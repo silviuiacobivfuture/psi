@@ -1,5 +1,6 @@
 import { Button, PractitionerCard } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { TEAM } from "../content/team";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -30,14 +31,6 @@ export function Methods({ locale }: { locale: Locale }): JSX.Element {
 	);
 }
 
-/** Names and roles as published on psizone.ro's team page; photos arrive with the shoot. */
-const TEAM: ReadonlyArray<{ name: string; role: string }> = [
-	{ name: "Daniela Turcu", role: "Psihoterapeut, neuroterapeut" },
-	{ name: "Adrian Turcu", role: "Psiholog clinician, psihoterapeut" },
-	{ name: "Iuliana Mușat", role: "Specialist" },
-	{ name: "Nicoleta Năfureanu", role: "Specialist" },
-];
-
 export function Team({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	return (
@@ -52,8 +45,8 @@ export function Team({ locale }: { locale: Locale }): JSX.Element {
 				</Button>
 			</div>
 			<div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-				{TEAM.map((p) => (
-					<PractitionerCard class="pz-rise" name={p.name} role={p.role} />
+				{TEAM.slice(0, 4).map((p) => (
+					<PractitionerCard class="pz-rise" name={p.name} role={p.role(o)} />
 				))}
 			</div>
 		</section>

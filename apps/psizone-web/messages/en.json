@@ -123,5 +123,15 @@
 	"form_ok_text": "Your request is complete.",
 	"form_not_connected": "Sending to the team switches on at launch; until then the request goes nowhere and is not stored.",
 	"contact_direct": "Or call us directly",
-	"contact_privacy": "Your details are used only for the appointment. Details in the privacy policy."
+	"contact_privacy": "Your details are used only for the appointment. Details in the privacy policy.",
+	"team_page_lead": "Psychologists, psychotherapists and therapists working together, on one plan.",
+	"team_photos_soon": "Team photos arrive after the photo shoot.",
+	"prep_overline": "In preparation",
+	"privacy_title": "Privacy",
+	"editorial_title": "Editorial policy",
+	"prep_text": "This page is being prepared and will be published before launch, reviewed by the right specialists.",
+	"prep_back": "Back to the home page",
+	"role_daniela": "Psychotherapist, neurotherapist",
+	"role_adrian": "Clinical psychologist, psychotherapist",
+	"role_specialist": "Specialist"
 }

@@ -7,10 +7,12 @@ import { getCookie } from "hono/cookie";
 import { BookingDone, BookingForm, BookingRequest, errorsFor } from "./booking";
 import { HUBS } from "./content/hubs";
 import { AskBody, streamAnswer } from "./guide";
-import type { Locale } from "./i18n";
+import { at, type Locale } from "./i18n";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
 import { HubPage } from "./pages/hub";
+import { PreparingPage, TeamPage } from "./pages/simple";
+import { m } from "./paraglide/messages.js";
 import { themeFrom } from "./theme";
 
 const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
@@ -50,6 +52,32 @@ for (const [locale, prefix] of [
 				/>,
 			);
 		});
+	}
+	app.get(`${prefix}/echipa`, (c) =>
+		c.html(
+			<TeamPage
+				locale={locale}
+				theme={themeFrom(getCookie(c, "theme"))}
+				origin={new URL(c.req.url).origin}
+				path="/echipa"
+			/>,
+		),
+	);
+	for (const [path, title] of [
+		["/confidentialitate", m.privacy_title({}, at(locale))],
+		["/politica-editoriala", m.editorial_title({}, at(locale))],
+	] as const) {
+		app.get(`${prefix}${path}`, (c) =>
+			c.html(
+				<PreparingPage
+					locale={locale}
+					theme={themeFrom(getCookie(c, "theme"))}
+					origin={new URL(c.req.url).origin}
+					path={path}
+					title={title}
+				/>,
+			),
+		);
 	}
 	app.get(`${prefix}/contact`, (c) => {
 		const origin = new URL(c.req.url).origin;
