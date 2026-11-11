@@ -3,13 +3,11 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 
 /**
- * The default model: the latest Claude Sonnet that OpenRouter lists (checked against
- * https://openrouter.ai/api/v1/models on 2026-11-11: `anthropic/claude-sonnet-5.5`, released
- * 2026-09-28, 1M context, tool calling). Sonnet is the current balance of quality, latency and
- * price for short grounded answers; Claude Opus 5.5 and Claude Fable 5.2 are listed as more capable
- * and can be chosen through `PSI_GUIDE_MODEL` or the `model` option.
+ * The default model, chosen by the owner (2026-11-11): `xiaomi/mimo-v2.6-flash` on OpenRouter
+ * (checked against https://openrouter.ai/api/v1/models: 1M context, tool calling, $0.14 / $0.28 per
+ * million input / output tokens). Override with `PSI_GUIDE_MODEL` or the `model` option.
  */
-export const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5";
+export const DEFAULT_MODEL = "xiaomi/mimo-v2.6-flash";
 
 /** An OpenRouter model slug: `vendor/model`, optionally with a `:variant`. */
 export const ModelIdSchema: z.ZodType<string> = z

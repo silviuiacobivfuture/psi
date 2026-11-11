@@ -100,11 +100,10 @@ question stays.
 | `OPENROUTER_API_KEY` | OpenRouter key. Read once, in `createGuide`. If it is missing, every answer is `unavailable`. Never log it. In the estate it comes from OpenBao. |
 | `PSI_GUIDE_MODEL` | OpenRouter model slug. A malformed value is ignored. |
 
-**Default model:** `anthropic/claude-sonnet-5.5` (`DEFAULT_MODEL`). This is the latest Claude Sonnet
-in OpenRouter's model list (checked 2026-11-11). It supports tools and a 1M-token context. For
-short grounded answers it is the best current balance of quality, latency and price.
-`anthropic/claude-opus-5.5` and `anthropic/claude-fable-5.2` are listed as more capable and can be
-set through `PSI_GUIDE_MODEL`.
+**Default model:** `xiaomi/mimo-v2.6-flash` (`DEFAULT_MODEL`), the owner's choice (2026-11-11).
+OpenRouter lists it with tool calling and a 1M-token context, at $0.14 / $0.28 per million input /
+output tokens (checked 2026-11-11). Any other OpenRouter model can be set through
+`PSI_GUIDE_MODEL` or the `model` option.
 
 ## Streaming to Datastar
 

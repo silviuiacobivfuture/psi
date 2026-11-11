@@ -83,6 +83,6 @@ describe("input validation", () => {
 
 	it("ignores a malformed PSI_GUIDE_MODEL", () => {
 		vi.stubEnv("PSI_GUIDE_MODEL", "not a slug");
-		expect(createGuide({ brand: "psizone", knowledge }).model).toBe("anthropic/claude-sonnet-5.5");
+		expect(createGuide({ brand: "psizone", knowledge }).model).toBe("xiaomi/mimo-v2.6-flash");
 	});
 });
