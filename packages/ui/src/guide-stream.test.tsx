@@ -67,8 +67,8 @@ describe("streamGuideAnswer", () => {
 		expect(out).toHaveLength(4);
 		expect(out[0]).toContain('aria-busy="true"');
 		expect(out[0]).toContain("T");
-		expect(out[1]).toContain(">Hello. </span>");
-		expect(out[2]).toContain(">Hello. World [1].</span>");
+		expect(out[1]).toContain('<span class="pz-para">Hello.</span>');
+		expect(out[2]).toContain('<span class="pz-para">Hello. World [1].</span>');
 		const done = out[3] ?? "";
 		expect(done).toContain('aria-busy="false"');
 		expect(done).toContain('data-done=""');
