@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hemisync-web
+  labels: { app: hemisync-web }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: hemisync-web } }
+  template:
+    metadata:
+      labels: { app: hemisync-web }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: registry.psizone.ro/psi/hemisync-web@sha256:c9f68f3e51d8b6098a87ae1bf73ec331b17f815e185e748006201853bff49895
+          ports: [{ name: http, containerPort: 3000 }]
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: NODE_ENV, value: production }
+            - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
+            - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
+            - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
+          readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /app/.data }
+      volumes:
+        - name: data
+          emptyDir: {}

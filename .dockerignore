@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+.nx
+**/dist
+.seb-bundle
+.git
+.env
+**/.env
+**/.data
+estate/seb-bundle-install.mjs

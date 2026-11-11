@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-web
+spec:
+  selector: { app: blog-web }
+  ports: [{ name: http, port: 80, targetPort: http }]

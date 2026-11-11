@@ -1,0 +1,8 @@
+# The estate's own applications on dev: one Argo Application file each.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - psizone-web.yaml
+  - eqsync-web.yaml
+  - hemisync-web.yaml
+  - blog-web.yaml

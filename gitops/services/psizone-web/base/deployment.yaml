@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psizone-web
+  labels: { app: psizone-web }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: psizone-web } }
+  template:
+    metadata:
+      labels: { app: psizone-web }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: registry.psizone.ro/psi/psizone-web@sha256:6fcb3d95ea73ccd6b2c2812b5dd1234b434a17e3ba635232dcd53a894dc1ab7c
+          ports: [{ name: http, containerPort: 3000 }]
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: NODE_ENV, value: production }
+            - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
+            - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
+            - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
+          readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /app/.data }
+      volumes:
+        - name: data
+          emptyDir: {}
