@@ -1504,7 +1504,7 @@ subjects:
 apiVersion: v1
 data:
   OIDC_GROUPS_CLAIM: groups
-  OIDC_ISSUER_URL: https://sso.psizone.ro/application/o/headlamp/
+  OIDC_ISSUER_URL: https://auth.psizone.ro/application/o/headlamp/
   OIDC_USERNAME_CLAIM: email
   OIDC_USERNAME_PREFIX: 'oidc:'
   REMOVE_OIDC_DROPIN: "false"

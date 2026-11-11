@@ -1972,7 +1972,7 @@ spec:
             - name: N8N_EDGE_HOOKS_HOST
               value: n8n-hooks.psizone.ro
             - name: N8N_EDGE_AUTH_HOST
-              value: sso.psizone.ro
+              value: auth.psizone.ro
             - name: REQUIRED_CRONJOBS
               value: observability/health-digest n8n/n8n-advisory-watch
             - name: WAL_METRICS_PORT

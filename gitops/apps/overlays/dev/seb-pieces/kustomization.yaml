@@ -21,6 +21,7 @@ resources:
   - netdata.yaml
   - nextcloud-platform.yaml
   - nextcloud.yaml
+  - openfga.yaml
   - pdfcraft.yaml
   - plane-platform.yaml
   - plane.yaml
