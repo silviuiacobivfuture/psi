@@ -7,272 +7,272 @@
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L001h], options: {delimiter: "  name: ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L001h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 2}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 16
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L002], options: {delimiter: "]]", index: -1}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 10
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L002], options: {delimiter: "-people", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L002}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L002h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L002h], options: {delimiter: "        name: ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L002h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 16}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 28
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 10}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 22
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L003], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L003}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L003h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L003h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 28}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 65
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 22}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 37
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L004], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L004}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L004h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L004h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 65}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 98
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 37}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 77
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L005], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L005}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L005h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L005h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 98}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 120
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 77}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 113
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L006], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L006}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L006h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L006h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 120}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 135
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 113}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 138
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L007], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L007}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L007h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L007h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 135}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 142
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 138}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 156
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L008], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L008}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L008h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L008h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 142}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 169
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 156}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 166
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L009], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L009}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L009h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L009h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 169}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 176
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 166}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 196
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L010], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L010}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L010h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L010h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 176}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 183
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 196}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 206
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L011], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L011}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L011h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L011h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 183}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 191
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 206}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 216
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L012], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L012}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L012h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L012h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 191}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 198
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 216}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 227
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L013], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L013}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L013h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L013h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 198}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 225
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 227}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 237
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L014], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L014}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L014h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L014h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 225}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 232
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 237}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 267
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L015], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L015}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L015h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L015h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 232}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 260
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 267}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 277
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L016], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L016}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L016h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L016h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 260}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 263
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L017], options: {delimiter: "-forward-auth` proxy provider instead. That provider", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L017}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L017h], options: {delimiter: "  # Traefik by the `", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L017h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 263}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 264
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L018], options: {delimiter: "), so its policy", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L018}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L018h], options: {delimiter: "  # is DOMAIN-level (mode forward_domain, *.dev.", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L018h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 264}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 279
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 277}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 308
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L019], options: {delimiter: "]]", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L017], options: {delimiter: "]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L017}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L017h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L017h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 308}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 314
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L018], options: {delimiter: "-forward-auth` proxy provider instead. That provider", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L018}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L018h], options: {delimiter: "  # Traefik by the `", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L018h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 314}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 315
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L019], options: {delimiter: "), so its policy", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L019}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L019h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L019h], options: {delimiter: "  # is DOMAIN-level (mode forward_domain, *.dev.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L019h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 279}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 298
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 315}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 330
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L020], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L020}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L020h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L020h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 298}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 353
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 330}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 352
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L021], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L021}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L021h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L021h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 353}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 355
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L022], options: {delimiter: ") ----", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L022}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L022h], options: {delimiter: "  # ---- Entitlements + roles: Novu (notification dashboard, novu.", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L022h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 355}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 377
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 352}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 410
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L023], options: {delimiter: "]]", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L022], options: {delimiter: "]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L022}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L022h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L022h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 410}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 415
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L023], options: {delimiter: ") ----", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L023}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L023h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L023h], options: {delimiter: "  # ---- Entitlements + roles: Novu (notification dashboard, novu.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L023h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 377}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 400
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 415}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 437
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L024], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L024}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L024h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L024h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 400}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 407
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 437}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 463
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L025], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L025}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L025h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L025h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 407}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 408
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L026], options: {delimiter: ") --", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L026}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L026h], options: {delimiter: "  # ---- Entitlements + roles: Plunk (the estate's e-mail, plunk.", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L026h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 408}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 425
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 463}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 473
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L027], options: {delimiter: "]]", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L026], options: {delimiter: "]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L026}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L026h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L026h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 473}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 477
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L027], options: {delimiter: ") --", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L027}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L027h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L027h], options: {delimiter: "  # ---- Entitlements + roles: Plunk (the estate's e-mail, plunk.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L027h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 425}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 432
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 477}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 494
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L028], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L028}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L028h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L028h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 432}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 450
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 494}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 504
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L029], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L029}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L029h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L029h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 450}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 458
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 504}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 525
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L030], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L030}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L030h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L030h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 458}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 465
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 525}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 536
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L031], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L031}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L031h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L031h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 465}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 472
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 536}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 546
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L032], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L032}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L032h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L032h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 472}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 479
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 546}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 556
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L033], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L033}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L033h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L033h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 479}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 483
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L034], options: {delimiter: "-groups-scope in blueprints-providers.yaml) detects the", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 556}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 566
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L034], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L034}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L034h], options: {delimiter: "  # expression (", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L034h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L034h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 483}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 530
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 566}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 573
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L035], options: {delimiter: "-people; a !Find against an account that does", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L035], options: {delimiter: "-groups-scope in blueprints-providers.yaml) detects the", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L035}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L035h], options: {delimiter: "  # The robots are created by ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L035h], options: {delimiter: "  # expression (", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L035h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 530}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 536
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 573}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 620
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L036], options: {delimiter: "-people", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L036], options: {delimiter: "-people; a !Find against an account that does", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L036}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L036h], options: {delimiter: "        name: ", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L036h], options: {delimiter: "  # The robots are created by ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L036h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 536}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 543
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 620}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 628
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L037], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L037}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L037h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L037h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 543}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 567
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 628}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 655
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L038], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L038}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L038h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L038h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 567}}]
-# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 587
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 655}}]
+# blueprints-groups.yaml · authentik-blueprints-groups · groups.yaml · line 678
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L039], options: {delimiter: "]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L039}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L039h], options: {delimiter: "        - !Find [authentik_core.user, [username, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L039h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 587}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-groups}, fieldPaths: [data.groups\.yaml], options: {delimiter: "\n", index: 678}}]
 # blueprints-sources.yaml · authentik-blueprints-sources · github-source.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L040], options: {delimiter: "-github-source", index: -1}}]
