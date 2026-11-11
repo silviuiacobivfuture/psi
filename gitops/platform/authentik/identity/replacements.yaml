@@ -302,17 +302,17 @@
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L043h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.oidc-providers\.yaml], options: {delimiter: "\n", index: 75}}]
 # blueprints-providers.yaml · authentik-blueprints-providers · oidc-providers.yaml · line 80
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L044], options: {delimiter: "/c/oidc/callback", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L044}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L044h], options: {delimiter: "          url: https://harbor.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L044h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L044h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.oidc-providers\.yaml], options: {delimiter: "\n", index: 80}}]
 # blueprints-providers.yaml · authentik-blueprints-providers · oidc-providers.yaml · line 88
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L045]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L045}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L045h], options: {delimiter: "      meta_launch_url: https://harbor.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L045h], options: {delimiter: "      meta_launch_url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L045h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.oidc-providers\.yaml], options: {delimiter: "\n", index: 88}}]
 # blueprints-providers.yaml · authentik-blueprints-providers · oidc-providers.yaml · line 110

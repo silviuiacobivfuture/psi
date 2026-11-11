@@ -80,5 +80,5 @@ data:
   GIT_SSH_URL: "git@github.com:silviuiacobivfuture/psi.git"
   AUTHENTIK_HOST: auth.psizone.ro
   FRONT_HOST: portal.psizone.ro
-  MESH_BASE_DOMAIN: mesh.psizone.ro
-  TAILNET_DOMAIN: mesh.psizone.ro
+  MESH_BASE_DOMAIN: psizone.ro
+  TAILNET_DOMAIN: psizone.ro

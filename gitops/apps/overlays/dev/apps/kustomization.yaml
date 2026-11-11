@@ -8,4 +8,4 @@ resources:
   - blog-web.yaml
   - chroma.yaml
   - cms.yaml
-  - hub.yaml
+  - doors.yaml
