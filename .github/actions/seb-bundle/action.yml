@@ -32,6 +32,9 @@ inputs:
 runs:
   using: composite
   steps:
+    # pnpm first: setup-node v5 caches the package manager package.json names (packageManager),
+    # and fails with "Unable to locate executable file: pnpm" when pnpm is not there yet.
+    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
         node-version-file: .nvmrc
