@@ -8,6 +8,10 @@ kind: Component
 #                 was refused with no-organization. Here: organisation "Psi" (MAIL_SENDER_NAME, the
 #                 one novu-bootstrap.sh creates), service account ops@psizone.ro (secret/apps/novu/admin).
 #                 Mounted into novu-sso and read through NOVU_SSO_MAPPING (apps/novu-sso/lib/config.mjs).
+#   the tailnet doors (Ingresses novu-dashboard and novu-api-tailnet, class tailscale) are removed:
+#                 psi has no mesh (MESH: none, no tailscale operator), so they never get an address
+#                 and held the Application Progressing forever. Novu's break-glass on psi is a
+#                 port-forward to svc/novu-api, as novu-bootstrap.sh already does.
 configMapGenerator:
   - name: novu-sso-mapping
     files:
@@ -24,3 +28,15 @@ patches:
       - op: add
         path: /spec/template/spec/volumes/-
         value: { name: estate-mapping, configMap: { name: novu-sso-mapping } }
+  - target: { kind: Ingress, name: novu-dashboard }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: novu-dashboard }
+  - target: { kind: Ingress, name: novu-api-tailnet }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: novu-api-tailnet }

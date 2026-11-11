@@ -1512,32 +1512,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    gethomepage.dev/description: Novu API on the private network — what the dashboard
-      calls
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Messaging
-    gethomepage.dev/href: https://novu-api.psizone.ro/v1/health-check
-    gethomepage.dev/icon: mdi-bell-cog
-    gethomepage.dev/name: Novu API (tailnet)
-    gethomepage.dev/pod-selector: app.kubernetes.io/name=novu-api
-    gethomepage.dev/weight: "30"
-  name: novu-api-tailnet
-  namespace: novu
-spec:
-  defaultBackend:
-    service:
-      name: novu-api
-      port:
-        name: http
-  ingressClassName: tailscale
-  tls:
-  - hosts:
-    - novu-api
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: novu-novu-deny-public@kubernetescrd
   name: novu-auth-refused
@@ -1559,32 +1533,6 @@ spec:
   - hosts:
     - novu-api.psizone.ro
     secretName: novu-tls
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
-    gethomepage.dev/description: Notification workflows, subscribers and activity
-      (tailnet)
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Messaging
-    gethomepage.dev/href: https://novu.psizone.ro
-    gethomepage.dev/icon: si-novu
-    gethomepage.dev/name: Novu (tailnet)
-    gethomepage.dev/pod-selector: app.kubernetes.io/name=novu-dashboard
-    gethomepage.dev/weight: "10"
-  name: novu-dashboard
-  namespace: novu
-spec:
-  defaultBackend:
-    service:
-      name: novu-dashboard
-      port:
-        name: http
-  ingressClassName: tailscale
-  tls:
-  - hosts:
-    - novu
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
