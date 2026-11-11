@@ -35,16 +35,15 @@ REGISTRY_PROJECT_MIRROR: mirror
 GIT_HOST: github.com
 GIT_OWNER: silviuiacobivfuture
 GIT_REPO: psi
-MESH_BASE_DOMAIN: mesh.psizone.ro
+# No mesh at all (owner, 2026-11-11): no Headscale or Tailscale, no mesh DNS records.
+MESH: none
 ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
-PLATFORM_APPS: authentik,autorizare,harbor,headscale,headplane,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
+PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
 AUTHENTIK_HOST_PREFIX: sso
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
-HEADSCALE_HOST_PREFIX: mesh-control
-HEADPLANE_HOST_PREFIX: mesh-console
 PLANE_HOST_PREFIX: work
 NOVU_HOST_PREFIX: notify
 N8N_HOST_PREFIX: flows
