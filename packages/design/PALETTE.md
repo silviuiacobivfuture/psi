@@ -1,6 +1,6 @@
 # Palette and contrast, all eight themes
 
-Generated from `design/tokens.json`. Ratios are WCAG 2 contrast. Minimums: text 4.5:1; focus ring and control borders 3:1. `glow-2` and `glow-3` are decorative only and are not checked as text.
+Generated from `tokens.json`. Ratios are WCAG 2 contrast. Minimums: text 4.5:1; focus ring and control borders 3:1. `glow-2` and `glow-3` are decorative only and are not checked as text.
 
 | Role | Psizone · Dark | Psizone · Light | EQ-SYNC · Night | EQ-SYNC · Day | Hemi-Sync · Dawn | Hemi-Sync · Night | Blog · Paper | Blog · Night |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

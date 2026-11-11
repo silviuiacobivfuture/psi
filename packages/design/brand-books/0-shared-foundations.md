@@ -19,7 +19,7 @@ Set the theme on `<html>`. A brand's site uses only its own two themes; the Blog
 
 **The shared face.** All four brands set headlines in **Fraunces** (`--font-display`), with `font-variation-settings: 'SOFT' 100, 'opsz' 144` for display sizes (class `.pz-display`). This is what makes the family recognisable side by side. One `display-xl` line per page.
 
-**The second face is the brand's.** Text and labels change per theme through `--pz-body` and `--pz-label`, set in `components/bundle.css`: Manrope (`--font-sans`) for Psizone and Blog interfaces, IBM Plex Mono (`--font-mono`) for EQ-SYNC, Inter (`--font-inter`) for Hemi-Sync. Measurements, times and codes are always IBM Plex Mono (`data` style). All faces load from Google Fonts with full Romanian support (imported in `bundle.css`).
+**The second face is the brand's.** Text and labels change per theme through `--pz-body` and `--pz-label`, set in `components.css`: Manrope (`--font-sans`) for Psizone and Blog interfaces, IBM Plex Mono (`--font-mono`) for EQ-SYNC, Inter (`--font-inter`) for Hemi-Sync. Measurements, times and codes are always IBM Plex Mono (`data` style). All faces load from Google Fonts with full Romanian support (imported in `components.css`).
 
 **Colour roles, not colours.** Use roles and let the theme fill them:
 - Grounds: `bg`, `surface-1` (solid cards, inputs), `surface-2` (raised, hover), `surface-glass` (with `blur-glass`, only over the ambient field or photography).
@@ -48,7 +48,7 @@ Set the theme on `<html>`. A brand's site uses only its own two themes; the Blog
 
 ## Using the system
 
-- Load React 18, then `components/bundle.css` and `components/bundle.js`; components are on `window.Psizone`.
+- Load React 18, then `components.css` and `components.js`; components are on `window.Psizone`.
 - Use tokens through CSS custom properties (`var(--accent)`, `var(--space-5)`); never paste hex values.
 - Never add a brand-specific token name. If a brand needs something new, add the same token to all eight themes.
 - Figures in component previews (prices, durations, names) are samples, not real data.

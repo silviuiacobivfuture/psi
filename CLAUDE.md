@@ -13,6 +13,7 @@ from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
 | `packages/<name>/` | psi's own shared code |
 | `tools/<name>/` | psi's own CLIs and scripts |
 | `estate/` | psi's identity, permissions inputs, SEB lock, components — the estate's inputs to SEB |
+| `docs/` | how psi works with SEB; `docs/brands/` holds the brands' business context and decisions |
 | `gitops/` | what Argo deploys for psi (generated platform Applications + psi's app registrations) |
 
 ## Hard rules (every agent)
@@ -29,7 +30,12 @@ from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
   (zod); explicit types on exported functions.
 - **Files ≤ 500 lines, one responsibility each**; no `utils.ts` dumping grounds.
 - **i18n-first**: every user-facing string goes through the i18n library; no bare strings in JSX.
-- **Shared UI first**: components come from the platform design system; don't fork one in an app.
+- **One design language: psi's.** Every psi app (the three brand landings, the blog, consoles)
+  speaks the psi design language in `packages/design/` (`@psi/design`): its tokens, themes and
+  components. A component two apps need goes there, never into an app. Brand books:
+  `packages/design/brand-books/`.
+- **No `rmx` naming in this repository.** Package names, imports, paths and identifiers are
+  `@psi/…`/psi's own. Any `rmx` left here is a leftover to remove, never a pattern to copy.
 - **Authorization goes through Polaris**: no hand-rolled roles/permissions; an app declares
   `apps/<name>/authz.manifest.json`.
 - **Secrets**: never in git; `.env*` are gitignored; secrets live in the estate's OpenBao.
@@ -37,6 +43,13 @@ from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
   before it is pushed. The branch is the environment (`dev` → psi dev).
 - **Commits**: conventional commits (`feat|fix|docs|refactor|test|build|ci|chore`); no WIP.
 - **Every reply ends with Progress and Next steps.**
+
+## Reference checkouts (read-only)
+
+- **SEB** at `../seb` (beside this repo): what the estate's platform looks like. Read it, never
+  modify it. Refresh it before relying on it: `git -C ../seb pull --ff-only`.
+- **rmx** (the first estate): available from the owner on request, for inspiration only; never
+  modified.
 
 ## Adding an app
 

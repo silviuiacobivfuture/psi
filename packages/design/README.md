@@ -2,7 +2,7 @@
 
 One component library, eight themes, four brands. Online version with live previews: https://claude.ai/artifact/KCDyT243fZZhkYDVYRfFo5
 
-## Principles (full text in `../context/brand-books/`)
+## Principles (full text in `brand-books/`)
 
 1. **One family, four feelings.** Same components and token names everywhere; each brand changes colour, second typeface, ambient background, corner feel and voice through its theme.
 2. **Fraunces is the family's voice.** Every brand sets headlines in Fraunces (SOFT 100 at display sizes).

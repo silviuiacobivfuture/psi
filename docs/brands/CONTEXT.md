@@ -16,7 +16,7 @@ Three related brands, run by the same team in Galați, Romania (Daniela Turcu, a
 
 - **One platform on Payload CMS** (headless) for all three brands plus a shared blog, with Payload also handling authentication; SSO across every app (sites, back office, control plane, scheduling app, automations).
 - **AI-first, light-text sites:** landing/hook pages with little text; depth lives in hubs, the blog and an AI guide that answers only from reviewed content.
-- **One design system, eight themes:** the same React components, re-themed per brand (Psizone dark/light, EQ-SYNC night/day, Hemi-Sync dawn/night, Blog paper/night). See `../design/` and `brand-books/`. Fraunces is the shared headline face for the whole family.
+- **One design system, eight themes:** the same React components, re-themed per brand (Psizone dark/light, EQ-SYNC night/day, Hemi-Sync dawn/night, Blog paper/night). See `packages/design/` and its `brand-books/`. Fraunces is the shared headline face for the whole family.
 - **Psizone identity: organic futurism**, dark mode primary. Promise: "Vezi schimbarea." (See the change).
 - **Hemi-Sync content leaves psizone.ro** and lives on hemi-sync.ro; Psizone keeps only a discreet link. The AI guide on Psizone never recommends Hemi-Sync for clinical questions.
 - **Nothing is deleted until its facts have a new home** (the audit enforces this).

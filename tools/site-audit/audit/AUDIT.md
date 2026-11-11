@@ -4,9 +4,9 @@ Audit **every URL** of psizone.ro, eq-sync.ro and hemi-sync.ro with the same rul
 
 ## Inputs
 
-- `audit/urls.csv`: the master list, built by `npm run audit:urls` from the exports and crawls. One row per URL. This is the scope: every row must end up in `audit/audit.csv`.
+- `audit/urls.csv`: the master list, built by `pnpm run audit:urls` from the exports and crawls. One row per URL. This is the scope: every row must end up in `audit/audit.csv`.
 - For each URL, read the **full text**: the WordPress Markdown (`data/wordpress/psizone/pages|posts|products|courses/*.md`) when it exists, else the crawl (`data/crawl/<site>/pages/*.md`). Use the crawl's `pages.jsonl` for outline, links and images, and `layout/` for menus and footers.
-- Context for decisions: `context/CONTEXT.md`, `context/content-strategy.md`, `context/brand-books/`.
+- Context for decisions: `docs/brands/CONTEXT.md`, `docs/brands/content-strategy.md`, `packages/design/brand-books/` (paths from the repository root).
 
 ## Outputs
 
@@ -17,7 +17,7 @@ Audit **every URL** of psizone.ro, eq-sync.ro and hemi-sync.ro with the same rul
 ## How to work
 
 1. Work in batches of 15 URLs, in the order of `audit/urls.csv`. For each URL: open and read the full text, fill the row, append its facts.
-2. After each batch run `npm run audit:check`. Fix every error it prints before the next batch.
+2. After each batch run `pnpm run audit:check`. Fix every error it prints before the next batch.
 3. Never invent. Every fact must be on the page; put the page's own words in `quote` (up to 25 words). If a value is unclear, leave it out and say so in `notes`.
 4. Write `summary` and `verdict_reason` in English; keep quotes, titles and Romanian terms as they are.
 5. When two pages look alike, compare their text before calling one a duplicate (see Duplicates).
@@ -109,7 +109,7 @@ Every `MERGE`, `REDIRECT`, `MOVE`, `KEEP` and `REWRITE` has a `target_url`. Ever
 
 ## Target structure
 
-**Psizone** (from `context/content-strategy.md`):
+**Psizone** (from `docs/brands/content-strategy.md`):
 
 | Path | becomes |
 | --- | --- |
@@ -131,6 +131,6 @@ If the content of a page does not fit any target, propose a new path, use verdic
 
 ## Done means
 
-- `npm run audit:check` prints `OK` with zero errors.
+- `pnpm run audit:check` prints `OK` with zero errors.
 - Every URL in `urls.csv` has exactly one row.
 - `REPORT.md` is filled in from the data, with every number taken from `audit.csv` and `facts.jsonl`.

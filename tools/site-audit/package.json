@@ -1,28 +1,24 @@
 {
-  "name": "psizone-platform",
-  "version": "1.0.0",
-  "description": "Psizone / EQ-SYNC / Hemi-Sync platform",
-  "scripts": {
-    "export:psizone": "node scripts/export-wordpress.mjs --site https://psizone.ro --out data/wordpress/psizone",
-    "crawl:psizone": "node scripts/crawl-site.mjs --site https://psizone.ro --out data/crawl/psizone",
-    "crawl:eqsync": "node scripts/crawl-site.mjs --site https://eq-sync.ro --out data/crawl/eq-sync",
-    "crawl:hemisync": "node scripts/crawl-site.mjs --site https://www.hemi-sync.ro --out data/crawl/hemi-sync",
-    "audit:urls": "node scripts/build-url-list.mjs",
-    "audit:check": "node scripts/validate-audit.mjs",
-    "audit:redirects": "node scripts/make-redirects.mjs"
-  },
-  "license": "ISC",
-  "dependencies": {
-    "cheerio": "1.0.0",
-    "turndown": "7.2.0",
-    "turndown-plugin-gfm": "1.0.2"
-  },
-  "private": true,
-  "type": "module",
-  "optionalDependencies": {
-    "playwright": "1.48.2"
-  },
-  "engines": {
-    "node": ">=18"
-  }
+	"name": "@psi/site-audit",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Lossless export, crawl and rule-based content audit of psizone.ro, eq-sync.ro and hemi-sync.ro before the rebuild",
+	"scripts": {
+		"export:psizone": "node scripts/export-wordpress.mjs --site https://psizone.ro --out data/wordpress/psizone",
+		"crawl:psizone": "node scripts/crawl-site.mjs --site https://psizone.ro --out data/crawl/psizone",
+		"crawl:eqsync": "node scripts/crawl-site.mjs --site https://eq-sync.ro --out data/crawl/eq-sync",
+		"crawl:hemisync": "node scripts/crawl-site.mjs --site https://www.hemi-sync.ro --out data/crawl/hemi-sync",
+		"audit:urls": "node scripts/build-url-list.mjs",
+		"audit:check": "node scripts/validate-audit.mjs",
+		"audit:redirects": "node scripts/make-redirects.mjs"
+	},
+	"dependencies": {
+		"cheerio": "1.0.0",
+		"turndown": "7.2.0",
+		"turndown-plugin-gfm": "1.0.2"
+	},
+	"optionalDependencies": {
+		"playwright": "1.48.2"
+	}
 }
