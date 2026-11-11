@@ -77,5 +77,8 @@
 	"footer_rights": "© {year} Psizone. All rights reserved.",
 	"footer_privacy": "Privacy",
 	"footer_editorial": "Editorial policy",
-	"footer_hemisync": "Hemi-Sync România"
+	"footer_hemisync": "Hemi-Sync România",
+	"nav_menu": "Menu",
+	"guide_thinking": "Searching the reviewed content…",
+	"guide_footer": "Answered from reviewed content. It does not replace a consultation."
 }

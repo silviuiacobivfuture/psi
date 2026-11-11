@@ -15,6 +15,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 			<div class="mx-auto max-w-6xl">
 				<NavBar
 					label={m.nav_label({}, o)}
+					menuLabel={m.nav_menu({}, o)}
 					homeHref={`${b}/`}
 					links={[
 						{ label: m.nav_children({}, o), href: `${b}/#pentru-cine` },

@@ -4,7 +4,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { AskBody, GuideAnswer } from "./guide";
+import { AskBody, streamAnswer } from "./guide";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
 import { themeFrom } from "./theme";
@@ -36,7 +36,7 @@ for (const [locale, prefix] of [
 	app.post(`${prefix}/ghid`, async (c) => {
 		const parsed = AskBody.safeParse(await c.req.json().catch(() => null));
 		if (!parsed.success) return c.body(null, 204);
-		return c.html(<GuideAnswer locale={locale} question={parsed.data.question} />);
+		return streamAnswer(c, locale, parsed.data.question);
 	});
 }
 

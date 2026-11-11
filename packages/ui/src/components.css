@@ -1165,3 +1165,76 @@ body {
 [data-theme^="eqsync"] .pz-article {
 	border-radius: var(--radius-md);
 }
+
+/* NavBar on phones: links and actions fold into a glass sheet under the pill. */
+.pz-nav__menu,
+.pz-nav__sheet {
+	display: none;
+}
+@media (max-width: 900px) {
+	.pz-nav--foldable {
+		position: relative;
+		justify-content: space-between;
+	}
+	.pz-nav--foldable .pz-nav__links,
+	.pz-nav--foldable .pz-nav__actions {
+		display: none;
+	}
+	.pz-nav--foldable .pz-nav__menu {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 48px;
+		height: 48px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: var(--ink);
+		cursor: pointer;
+	}
+	.pz-nav--foldable .pz-nav__menu:hover {
+		background: var(--surface-2);
+	}
+	.pz-nav--foldable .pz-nav__menu:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+	.pz-nav__sheet {
+		position: absolute;
+		top: calc(100% + 10px);
+		left: 0;
+		right: 0;
+		flex-direction: column;
+		gap: var(--space-5);
+		padding: var(--space-5);
+		border-radius: var(--radius-lg);
+		border: 1px solid var(--line);
+		background: color-mix(in oklab, var(--surface-1) 97%, transparent);
+		backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+		-webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+		box-shadow: var(--shadow-float);
+	}
+	.pz-nav__sheet[style*="display: none"] {
+		display: none;
+	}
+	.pz-nav__sheet:not([style*="display: none"]) {
+		display: flex;
+	}
+	.pz-nav__sheet-links {
+		display: flex;
+		flex-direction: column;
+	}
+	.pz-nav__sheet-links a {
+		padding: 14px 4px;
+		border-bottom: 1px solid var(--line);
+		font: 500 20px / 1.2 var(--font-display);
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.pz-nav__sheet-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3);
+	}
+}
