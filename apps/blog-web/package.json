@@ -12,11 +12,14 @@
 		"build": "pnpm i18n && pnpm css && esbuild src/server.tsx --bundle --platform=node --format=esm --target=node24 --jsx=automatic --jsx-import-source=hono/jsx --external:hono --external:@hono/node-server --external:zod --outfile=dist/server.js",
 		"start": "node dist/server.js",
 		"type-check": "pnpm i18n && tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"knowledge:seed": "pnpm --filter @psi/knowledge ingest-seed"
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.19.0",
 		"@psi/design": "workspace:*",
+		"@psi/guide": "workspace:*",
+		"@psi/knowledge": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76"
