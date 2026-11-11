@@ -1,6 +1,6 @@
 # PSI — the second estate (psizone.ro). The zone already holds the owner's own records
 # (a site at the apex and www, mail, tunnels): the estate never writes the apex.
-#   infrastructure/hetzner/scripts/genesis.sh dev --identity examples/estate-two/identity.yaml --dry-run
+#   infrastructure/hetzner/scripts/genesis.sh dev --identity estate/identity.yaml --dry-run
 
 # ── identity ────────────────────────────────────────────────────────────────
 BASE_DOMAIN: psizone.ro
