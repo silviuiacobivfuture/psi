@@ -53,6 +53,7 @@ NEXTCLOUD_HOST_PREFIX: drive
 REPORTPORTAL_HOST_PREFIX: reports
 TEST_REPORTS_HOST_PREFIX: tests
 PDFCRAFT_HOST_PREFIX: pdf
+FRONT_HOST_PREFIX: portal
 
 # ── hub ─────────────────────────────────────────────────────────────────────
 HUB_HOST_PREFIX: login
