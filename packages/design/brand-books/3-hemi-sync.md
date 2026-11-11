@@ -23,11 +23,11 @@ Real lines:
 
 ## Colour
 
-- Dawn: white ground, `ink` #20242C, a lavender wash (`surface-2` #F3F0FF) for sections and selected states.
+- Dawn: white ground, `ink` #20242C, a quiet grey-lavender wash (`surface-2` #F5F3F9) for sections and selected states.
 - `accent` is ink itself: primary buttons are dark pills with white text, as on the site.
-- `glow-1` violet (#6A5CFF) is the brand light: links, the active Focus level, the played waveform.
+- `glow-1` dusty violet (`#665F9E`; owner 2026-11-11: the electric violet was too aggressive) is the brand light: links, the active Focus level, the played waveform. Quiet, never saturated.
 - `glow-2` dawn peach and `glow-3` sky are decorative only (gradients and mist over photos), never text.
-- Night: deep indigo ground, soft violet `accent` with dark text, peach focus ring.
+- Night: deep indigo ground, soft lavender `accent` (`#ADA8D2`) with dark text, peach focus ring.
 
 ## Type
 

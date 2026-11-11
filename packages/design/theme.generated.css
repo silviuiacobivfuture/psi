@@ -129,7 +129,7 @@
 	color-scheme: light;
 	--bg: #FFFFFF;
 	--surface-1: #FFFFFF;
-	--surface-2: #F3F0FF;
+	--surface-2: #F5F3F9;
 	--surface-glass: rgba(255,255,255,0.72);
 	--line: rgba(32,36,44,0.10);
 	--line-strong: #C7CCD6;
@@ -137,30 +137,30 @@
 	--ink: #20242C;
 	--ink-muted: #5C6470;
 	--ink-faint: #606876;
-	--glow-1: #6A5CFF;
+	--glow-1: #665F9E;
 	--glow-2: #E9A57C;
 	--glow-3: #8FB3E6;
 	--accent: #20242C;
 	--accent-hover: #363B46;
 	--on-accent: #FFFFFF;
-	--accent-soft: rgba(106,92,255,0.10);
-	--ai-soft: rgba(106,92,255,0.10);
+	--accent-soft: rgba(102,95,158,0.10);
+	--ai-soft: rgba(102,95,158,0.10);
 	--warm-soft: rgba(233,165,124,0.16);
-	--focus: #6A5CFF;
+	--focus: #665F9E;
 	--success: #15724B;
 	--warning: #8A5A00;
 	--danger: #B42318;
 	--info: #4B3FE0;
 	--shadow-glass: inset 0 1px 0 rgba(255,255,255,0.9), 0 24px 56px rgba(13,26,31,0.10);
 	--shadow-float: 0 12px 28px rgba(13,26,31,0.12);
-	--shadow-glow: 0 0 0 1px rgba(106,92,255,0.35), 0 8px 40px rgba(106,92,255,0.25);
+	--shadow-glow: 0 0 0 1px rgba(102,95,158,0.35), 0 8px 40px rgba(102,95,158,0.25);
 }
 
 [data-theme="hemisync-dark"] {
 	color-scheme: dark;
 	--bg: #0E1020;
 	--surface-1: #151830;
-	--surface-2: #1D2140;
+	--surface-2: #1E2033;
 	--surface-glass: rgba(21,24,48,0.6);
 	--line: rgba(236,234,246,0.10);
 	--line-strong: #343A5E;
@@ -168,14 +168,14 @@
 	--ink: #ECEAF6;
 	--ink-muted: #A9ACC4;
 	--ink-faint: #8A8EAA;
-	--glow-1: #9C92FF;
+	--glow-1: #ADA8D2;
 	--glow-2: #F2B48C;
 	--glow-3: #9EC2F2;
-	--accent: #9C92FF;
-	--accent-hover: #B6AEFF;
+	--accent: #ADA8D2;
+	--accent-hover: #BFBADF;
 	--on-accent: #12102A;
-	--accent-soft: rgba(156,146,255,0.16);
-	--ai-soft: rgba(156,146,255,0.16);
+	--accent-soft: rgba(173,168,210,0.14);
+	--ai-soft: rgba(173,168,210,0.14);
 	--warm-soft: rgba(242,180,140,0.16);
 	--focus: #F2B48C;
 	--success: #7FDCAA;
@@ -184,7 +184,7 @@
 	--info: #9EC2F2;
 	--shadow-glass: inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 64px rgba(0,0,0,0.45);
 	--shadow-float: 0 12px 32px rgba(0,0,0,0.40);
-	--shadow-glow: 0 0 0 1px rgba(156,146,255,0.35), 0 8px 40px rgba(156,146,255,0.25);
+	--shadow-glow: 0 0 0 1px rgba(173,168,210,0.35), 0 8px 40px rgba(173,168,210,0.25);
 }
 
 [data-theme="blog-light"] {
