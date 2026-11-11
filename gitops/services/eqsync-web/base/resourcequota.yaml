@@ -1,0 +1,25 @@
+# Guard-rails for the namespace. The LimitRange backfills any container that omits resources so
+# the quota never rejects it; the quota holds one pod (app 384Mi request / 768Mi limit; its
+# seed initContainer runs before it, 256Mi / 512Mi) plus a rollout surge.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: eqsync-web
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 250m, memory: 256Mi }
+      max: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: eqsync-web
+spec:
+  hard:
+    requests.cpu: 500m
+    requests.memory: 1536Mi
+    limits.cpu: "3"
+    limits.memory: 2Gi
+    pods: "4"

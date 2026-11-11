@@ -1,0 +1,134 @@
+# eqsync-web's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
+# manifests are, which secrets it reads. SEB's secret seeding and health checks are driven by it.
+schema: seb.app/v1
+key: eqsync-web
+name: eqsync-web
+displayName: EQ-SYNC
+namespace: eqsync-web
+note: >-
+  The EQ-SYNC site (Hono + server-rendered TSX). Staging host eqsync.psizone.ro; eq-sync.ro is not
+  claimed (it is outside the estate's one zone: SEB extra zones or the edge bridge, per the plan).
+  The guide's knowledge base is a per-pod libSQL file seeded by the seed-knowledge initContainer.
+components:
+  - name: eqsync-web
+    path: apps/eqsync-web
+    namespace: eqsync-web
+    gitops: gitops/services/eqsync-web
+    image: psi/eqsync-web
+    build:
+      workflow: apps.yml
+      dockerfile: apps/eqsync-web/Dockerfile
+      context: .
+    port: 8080
+    services:
+      - name: eqsync-web
+        ports:
+          - 80
+    hosts:
+      - prefix: eqsync
+        exposure: public
+        ingress: eqsync-web
+        gate: "off"
+    overlayImages:
+      - psi/eqsync-web
+    workloads:
+      - name: eqsync-web
+        kind: Deployment
+        images:
+          - psi/eqsync-web
+        restartOnSecretChange: true
+        envFrom:
+          - eqsync-web-env
+        requiredEnv:
+          - OPENROUTER_API_KEY
+        initContainers:
+          - assert-secrets
+          - seed-knowledge
+        probes:
+          startup:
+            path: /healthz
+            port: 8080
+          readiness:
+            path: /healthz
+            port: 8080
+          liveness:
+            path: /healthz
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 384Mi
+          limits:
+            cpu: "1"
+            memory: 768Mi
+externalSecrets:
+  - name: harbor-pull
+    namespace: eqsync-web
+    target: harbor-pull
+    manifest: gitops/services/eqsync-web/base/harbor-pull-externalsecret.yaml
+    template:
+      - .dockerconfigjson
+  - name: eqsync-web-env
+    namespace: eqsync-web
+    target: eqsync-web-env
+    manifest: gitops/services/eqsync-web/base/externalsecret.yaml
+    extract:
+      - apps/eqsync-web/env
+secrets:
+  - path: apps/eqsync-web/env
+    owner: eqsync-web
+    onChange:
+      restart:
+        - eqsync-web/eqsync-web
+    keys:
+      - name: OPENROUTER_API_KEY
+        source:
+          kind: env-file
+          file: apps/eqsync-web/.env
+          key: OPENROUTER_API_KEY
+        readers:
+          - kind: external-secret
+            secret: eqsync-web/eqsync-web-env
+            env: OPENROUTER_API_KEY
+  - path: platform/harbor/pull
+    owner: shared
+    keys:
+      - name: username
+        readers:
+          - kind: external-secret
+            secret: eqsync-web/harbor-pull
+            env: username
+      - name: password
+        readers:
+          - kind: external-secret
+            secret: eqsync-web/harbor-pull
+            env: password
+groups: []
+ci:
+  workflows:
+    - file: apps.yml
+      images:
+        - psi/eqsync-web
+      buildArgs:
+        - REGISTRY_HOST
+        - REGISTRY_PROJECT_MIRROR
+      bumps:
+        - gitops/services/eqsync-web
+health:
+  secretChecks:
+    - label: eqsync-web
+      externalSecret: eqsync-web/eqsync-web-env
+      secret: eqsync-web-env
+      keys:
+        - OPENROUTER_API_KEY
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows:
+    - "`eqsync-web`"
+  paths:
+    - apps/eqsync-web/env
+    - platform/harbor/pull
+  keys:
+    - OPENROUTER_API_KEY
+findings: []

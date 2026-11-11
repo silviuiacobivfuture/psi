@@ -1,0 +1,14 @@
+{
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"name": "@psi/psizone-web",
+	"projectType": "application",
+	"targets": {
+		"lint": {
+			"executor": "nx:run-commands",
+			"options": {
+				"command": "biome check --config-path .mono/biome.json apps/psizone-web",
+				"cwd": "{workspaceRoot}"
+			}
+		}
+	}
+}

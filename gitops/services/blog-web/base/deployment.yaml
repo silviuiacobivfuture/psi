@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-web
+  labels: { app: blog-web }
+  annotations:
+    # Reloader rolls this Deployment when its ESO-synced Secret changes (OpenBao -> ESO ->
+    # Secret -> roll), e.g. when OPENROUTER_API_KEY is first written. A roll is a new pod: a fresh knowledge volume, seeded again.
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: psi
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: blog-web }
+  template:
+    metadata:
+      labels: { app: blog-web }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # The guide's knowledge base: the seed (every brand's reviewed, non-clinical entries)
+        # ingested into this pod's volume before the site starts. With OPENROUTER_API_KEY it embeds
+        # through OpenRouter, the vector space the site then queries. A failed seed (OpenRouter
+        # unreachable, out of credits) is reported here and does NOT stop the pod: the pages do
+        # not depend on it, and the guide then answers that it has no reviewed answer yet.
+        - name: seed-knowledge
+          image: registry.psizone.ro/psi/blog-web
+          command:
+            - sh
+            - -c
+            - 'node dist/knowledge-seed.js || echo "KNOWLEDGE SEED FAILED (above): the guide starts with an empty knowledge base" >&2'
+          envFrom:
+            - secretRef: { name: blog-web-env, optional: true }
+          env:
+            - { name: PSI_KNOWLEDGE_DB_URL, value: "file:/app/.data/knowledge.db" }
+          volumeMounts:
+            - { name: knowledge, mountPath: /app/.data }
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+      containers:
+        - name: blog-web
+          image: registry.psizone.ro/psi/blog-web
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef: { name: blog-web-env, optional: true }
+          env:
+            - { name: PORT, value: "8080" }
+            # Each brand's own site, where an article's next step leads (src/brands.ts).
+            - { name: PSIZONE_URL, value: "https://nou.psizone.ro" }
+            - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
+            - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
+            - { name: PSI_KNOWLEDGE_DB_URL, value: "file:/app/.data/knowledge.db" }
+          volumeMounts:
+            - { name: knowledge, mountPath: /app/.data }
+          # Measured: ~330 MiB resident after start and a guide answer (the bundle carries Mastra).
+          resources:
+            requests: { cpu: 50m, memory: 384Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          startupProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+      volumes:
+        # The knowledge database lives as long as the pod: re-seeded on every start. No PVC on
+        # purpose (dev): the seed is the source and a few MB rebuild in seconds.
+        - name: knowledge
+          emptyDir: { sizeLimit: 256Mi }
