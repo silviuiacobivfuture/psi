@@ -4,9 +4,11 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import { BookingDone, BookingForm, BookingRequest, errorsFor } from "./booking";
 import { HUBS } from "./content/hubs";
 import { AskBody, streamAnswer } from "./guide";
 import type { Locale } from "./i18n";
+import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
 import { HubPage } from "./pages/hub";
 import { themeFrom } from "./theme";
@@ -49,6 +51,29 @@ for (const [locale, prefix] of [
 			);
 		});
 	}
+	app.get(`${prefix}/contact`, (c) => {
+		const origin = new URL(c.req.url).origin;
+		return c.html(
+			<ContactPage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={origin} />,
+		);
+	});
+	app.post(`${prefix}/programare`, async (c) => {
+		const body = await c.req.parseBody();
+		const raw = Object.fromEntries(
+			Object.entries(body).map(([k, v]) => [k, typeof v === "string" ? v : ""]),
+		);
+		const parsed = BookingRequest.safeParse(raw);
+		if (!parsed.success) {
+			return c.html(
+				<BookingForm
+					locale={locale}
+					values={raw}
+					errors={errorsFor(parsed.error.issues, locale, raw)}
+				/>,
+			);
+		}
+		return c.html(<BookingDone locale={locale} name={parsed.data.name} />);
+	});
 	app.post(`${prefix}/ghid`, async (c) => {
 		const parsed = AskBody.safeParse(await c.req.json().catch(() => null));
 		if (!parsed.success) return c.body(null, 204);
