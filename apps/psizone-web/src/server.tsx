@@ -2,11 +2,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { parseAnswerTarget, parseAskSignals, questionFor, streamGuideAnswer } from "@psi/ui";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { BookingDone, BookingForm, BookingRequest, errorsFor } from "./booking";
 import { HUBS } from "./content/hubs";
-import { AnswerTarget, AskSignals, questionFor, streamAnswer } from "./guide";
+import { guideLabels } from "./guide";
+import { guide } from "./guide-client";
 import { at, type Locale } from "./i18n";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
@@ -113,11 +115,11 @@ for (const [locale, prefix] of [
 		return c.html(<BookingDone locale={locale} name={parsed.data.name} />);
 	});
 	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = AskSignals.safeParse(await c.req.json().catch(() => null));
-		const target = AnswerTarget.parse(c.req.query("target"));
-		const question = signals.success ? questionFor(target, signals.data) : null;
+		const signals = parseAskSignals(await c.req.json().catch(() => null));
+		const target = parseAnswerTarget(c.req.query("target"));
+		const question = signals === null ? null : questionFor(target, signals);
 		if (question === null) return c.body(null, 204);
-		return streamAnswer(c, locale, question, target);
+		return streamGuideAnswer(c, { guide, locale, question, target, labels: guideLabels(locale) });
 	});
 }
 

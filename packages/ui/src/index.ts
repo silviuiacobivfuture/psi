@@ -29,6 +29,14 @@ export { DayNight, type DayNightProps } from "./components/day-night";
 export { type FilterChip, FilterChips, type FilterChipsProps } from "./components/filter-chips";
 export { type FocusLevel, FocusScale, type FocusScaleProps } from "./components/focus-scale";
 export { GlassCard, type GlassCardProps } from "./components/glass-card";
+export {
+	ANSWER_TARGETS,
+	type AnswerTarget,
+	GuideAnswer,
+	type GuideAnswerProps,
+	type GuideLabels,
+	type GuidePhase,
+} from "./components/guide-answer";
 export { GuideMessage, type GuideMessageProps, type GuideSource } from "./components/guide-message";
 export { HubCard, type HubCardProps, type Hue } from "./components/hub-card";
 export { ArrowIcon } from "./components/icons";
@@ -48,3 +56,12 @@ export { ThemeToggle, type ThemeToggleProps } from "./components/theme-toggle";
 export { Timeline, type TimelineChapter, type TimelineProps } from "./components/timeline";
 export { cx } from "./cx";
 export { Doctype } from "./document";
+export {
+	type AskSignals,
+	type GuideAnswerRequest,
+	MAX_ASK_LENGTH,
+	parseAnswerTarget,
+	parseAskSignals,
+	questionFor,
+	streamGuideAnswer,
+} from "./guide-stream";

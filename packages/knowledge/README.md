@@ -120,16 +120,26 @@ The key is a secret: it lives in OpenBao and is never logged, printed or committ
 
 ## Seed and ingest
 
-`src/seed/` holds non-clinical Psizone entries only (`operational` and `editorial`, published,
-`reviewedBy: null`), in ro and en. They are built from facts already in this repo:
+`src/seed/` holds non-clinical entries for every brand (`status: "published"`, `reviewedBy:
+null`), in ro and en, with ids `<brand>-<locale>-<slug>`. They are built only from text already in
+this repo:
 
-- the two published phone numbers;
-- what the appointment request asks for (logistics only);
-- the six condition hubs and their one-line descriptions (`hub_*` messages);
-- how articles are written and reviewed (content-strategy.md, "Editorial workflow").
+- **psizone** (`operational`, `editorial`): the two published phone numbers; what the appointment
+  request asks for (logistics only); the six condition hubs and their one-line descriptions
+  (`hub_*` messages); how articles are written and reviewed (content-strategy.md, "Editorial
+  workflow").
+- **eqsync** (`programme`, `operational`): the free 21-day programme, headphones, the binaural
+  method in one line, the protocol categories and "a wellness tool, not a medical device"
+  (apps/eqsync-web messages). The contraindication answer is left out until a clinician reviews it.
+- **hemisync** (`programme`, `operational`): the Monroe programmes, the free exercises,
+  headphones, the technology (without the efficacy sentence), the Focus levels as listeners'
+  experience, and the Dolphin Energy Club (apps/hemisync-web messages).
+- **blog** (`editorial`): the editorial-policy article and what the blog is (apps/blog-web).
 
-The seed has no clinical facts, no prices and no address (the address is disputed). URLs are
-site-relative paths (`/contact`, `/en/contact`, hub paths), since the public origin is not settled.
+The seed has no clinical facts, no health claims, no prices and no address (the address is
+disputed). URLs are site-relative paths (`/contact`, `/en/contact`, hub paths, `/#anchor` on the
+EQ-SYNC and Hemi-Sync home pages, the blog's article path), since the public origins are not
+settled.
 
 Run the seed ingest from `packages/knowledge`:
 

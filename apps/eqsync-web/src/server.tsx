@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { parseAnswerTarget, parseAskSignals, questionFor, streamGuideAnswer } from "@psi/ui";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { AnswerTarget, AskSignals, GuideAnswer, questionFor } from "./guide";
+import { ANSWER_CLASS, guideLabels } from "./guide";
+import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
 import { themeFrom } from "./theme";
@@ -34,11 +36,18 @@ for (const [locale, prefix] of [
 		);
 	});
 	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = AskSignals.safeParse(await c.req.json().catch(() => null));
-		const target = AnswerTarget.parse(c.req.query("target"));
-		const question = signals.success ? questionFor(target, signals.data) : null;
+		const signals = parseAskSignals(await c.req.json().catch(() => null));
+		const target = parseAnswerTarget(c.req.query("target"));
+		const question = signals === null ? null : questionFor(target, signals);
 		if (question === null) return c.body(null, 204);
-		return c.html(<GuideAnswer locale={locale} question={question} target={target} />);
+		return streamGuideAnswer(c, {
+			guide,
+			locale,
+			question,
+			target,
+			labels: guideLabels(locale),
+			class: ANSWER_CLASS,
+		});
 	});
 }
 
