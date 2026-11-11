@@ -50,6 +50,31 @@ metadata:
   namespace: novu
 ---
 apiVersion: v1
+data:
+  mapping.json: "{\n\t\"_doc\": \"PSI's Authentik group → Novu access (the SEB default,
+    apps/novu-sso/mapping.json, names the first estate's organisation and account).
+    The organisation is the one novu-bootstrap.sh creates, named MAIL_SENDER_NAME
+    (Psi); the service account is secret/apps/novu/admin email (OPS_EMAIL). Authentik
+    group → Novu access. THE source of truth for who may use the Novu dashboard and
+    with which role, re-synced on every sign-in (lib/access.mjs). Every grant applies
+    in every organisation listed here; the first is where a sign-in lands unless ?org=
+    names another (/sso/orgs lists them). Roles are Novu community's own two: admin
+    (everything, members' list) or member. A person in several groups gets the HIGHEST
+    role. The service account is novu-bootstrap.sh's password account (the tailnet
+    break-glass door); it is never signed in or re-roled through SSO. Every group
+    named here must also be bound at the Novu gate (gitops/platform/authentik/blueprints-providers.yaml,
+    application `novu`) — a mapped group the gate refuses is a role nobody can use;
+    tests/policy.test.mjs compares the two lists.\",\n\t\"version\": 1,\n\t\"serviceAccount\":
+    \"ops@psizone.ro\",\n\t\"organizations\": [\"Psi\"],\n\t\"grants\": [\n\t\t{\n\t\t\t\"group\":
+    \"app-novu-admin\",\n\t\t\t\"role\": \"admin\"\n\t\t},\n\t\t{\n\t\t\t\"group\":
+    \"platform-admins\",\n\t\t\t\"role\": \"admin\"\n\t\t},\n\t\t{\n\t\t\t\"group\":
+    \"app-novu-member\",\n\t\t\t\"role\": \"member\"\n\t\t}\n\t]\n}\n"
+kind: ConfigMap
+metadata:
+  name: novu-sso-mapping-6b7b9k4mhb
+  namespace: novu
+---
+apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -688,6 +713,8 @@ spec:
           value: https://auth.psizone.ro/flows/-/default/invalidation/
         - name: NOVU_SSO_UPSTREAM
           value: http://novu-dashboard-public.novu.svc.cluster.local:4000
+        - name: NOVU_SSO_MAPPING
+          value: /estate/novu-sso/mapping.json
         image: registry.psizone.ro/psi/novu-sso:3.19.0-a20b03b@sha256:1968722d17919f4d505d26809d1639913668fcd86f8bc0beb644055b45361495
         livenessProbe:
           httpGet:
@@ -723,6 +750,9 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - mountPath: /estate/novu-sso
+          name: estate-mapping
+          readOnly: true
       enableServiceLinks: false
       imagePullSecrets:
       - name: harbor-pull
@@ -778,6 +808,9 @@ spec:
       volumes:
       - emptyDir: {}
         name: tmp
+      - configMap:
+          name: novu-sso-mapping-6b7b9k4mhb
+        name: estate-mapping
 ---
 apiVersion: apps/v1
 kind: Deployment

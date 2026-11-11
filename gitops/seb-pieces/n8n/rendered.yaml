@@ -894,6 +894,31 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: email-sender
+  namespace: n8n
+spec:
+  data:
+  - remoteRef:
+      key: apps/n8n/plunk
+      property: secret_key
+    secretKey: secret_key
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: email-sender
+    template:
+      data:
+        EMAIL_API_KEY: '{{ .secret_key }}'
+        EMAIL_API_URL: http://plunk.plunk.svc.cluster.local
+        EMAIL_FROM: noreply@n8n.psizone.ro
+        EMAIL_FROM_NAME: n8n
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: harbor-pull
   namespace: n8n
 spec:

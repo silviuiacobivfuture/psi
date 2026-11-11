@@ -1304,6 +1304,31 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: email-sender
+  namespace: nextcloud
+spec:
+  data:
+  - remoteRef:
+      key: apps/nextcloud/plunk
+      property: secret_key
+    secretKey: secret_key
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: email-sender
+    template:
+      data:
+        EMAIL_API_KEY: '{{ .secret_key }}'
+        EMAIL_API_URL: http://plunk.plunk.svc.cluster.local
+        EMAIL_FROM: noreply@cloud.psizone.ro
+        EMAIL_FROM_NAME: Nextcloud
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: nextcloud-admin
   namespace: nextcloud
 spec:

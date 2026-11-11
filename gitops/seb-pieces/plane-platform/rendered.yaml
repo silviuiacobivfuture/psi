@@ -774,6 +774,31 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: email-sender
+  namespace: plane
+spec:
+  data:
+  - remoteRef:
+      key: apps/plane/plunk
+      property: secret_key
+    secretKey: secret_key
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: email-sender
+    template:
+      data:
+        EMAIL_API_KEY: '{{ .secret_key }}'
+        EMAIL_API_URL: http://plunk.plunk.svc.cluster.local
+        EMAIL_FROM: noreply@plane.psizone.ro
+        EMAIL_FROM_NAME: Plane
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: harbor-pull
   namespace: plane
 spec:
