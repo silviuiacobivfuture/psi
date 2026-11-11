@@ -17,6 +17,12 @@ data:
       labels:
         blueprints.goauthentik.io/instantiate: "true"
     entries:
+      # People and robots first: every roster below finds accounts by name.
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: WLSLUG-people
+          required: true
       # Platform administrators — full access to every wired UI, and Authentik
       # superuser. The operator ALONE (2026-10-22): everyone else is a developer
       # (dept-dev + the app-*-developer entitlements). A superuser can re-grant
@@ -28,6 +34,9 @@ data:
           is_superuser: true
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # authentik's BUILT-IN superuser group. Not created here, but its roster is
       # pinned here: it is a second way to be a superuser, and until 2026-10-22
       # its membership existed only in the database, invisible to review.
@@ -40,6 +49,9 @@ data:
           users:
             - !Find [authentik_core.user, [username, akadmin]]
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # authentik's BUILT-IN read-only group: its role grants view on every object.
       # It was found 2026-10-22 with is_superuser TRUE (set by hand, in no file),
       # which made its one member a full superuser under a read-only name. Pinned
@@ -77,6 +89,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # The developers. dept-* is org-only (bound to no app); their access comes
       # from the app-*-developer entitlements below (ROLES.md §2b, 2026-10-22).
       - model: authentik_core.group
@@ -110,6 +125,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Entitlements: Nextcloud (collaboration suite) ----
       # Gates cloud.dev.<domain> — files, Office, Calendar and Talk. Membership is
       # the ONLY way in: the Nextcloud application carries a policy binding on this
@@ -132,6 +150,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
             # The tools robot (gate 9): a PLAIN Nextcloud user — Nextcloud's admin
             # group is the explicit roster in occ-reconcile.yaml, which it is not on.
             - !Find [authentik_core.user, [username, e2e-tools]]
@@ -147,6 +168,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-argocd-view
@@ -154,6 +178,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # developer: everything view has, plus sync, restart and logs — NOT create,
       # edit or delete applications, NOT exec, NOT repos/clusters/projects
       # (gitops/platform/argocd/rbac-cm.yaml → role:developer).
@@ -181,6 +208,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-harbor-push
@@ -188,6 +218,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-harbor-pull
@@ -195,6 +228,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Entitlements: OpenBao ----
       - model: authentik_core.group
         identifiers:
@@ -203,6 +239,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-openbao-read
@@ -210,6 +249,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # developer: reader everywhere + write on app secrets (secret/apps/*) only.
       # No policies, no auth methods, no platform secrets writes
       # (gitops/platform/openbao/auth/declaration.json → policy `developer`).
@@ -237,6 +279,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-k8s-view
@@ -244,6 +289,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # developer: view cluster-wide (no Secrets) + logs/exec/port-forward/restart/
       # scale in the APP namespaces only — never openbao, authentik, argocd,
       # kube-system or any other platform namespace
@@ -272,6 +320,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Entitlements: Plane (project tracking, forward-auth gated) ----
       # Plane's own OIDC is a paid Business-tier feature, so access is gated at
       # Traefik by the `WLSLUG-forward-auth` proxy provider instead. That provider
@@ -291,6 +342,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Plane ROLES (apps/plane-sso/mapping.yaml) ---------------------------
       # Since the Plane SSO (2026-10-28) Authentik groups decide the Plane role
       # too, re-synced on every sign-in and by the plane-sso-reconcile CronJob:
@@ -310,6 +364,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # Plane INSTANCE admin (god-mode), apps/plane-sso/mapping.yaml. The two
       # business super admins (ROLES.md §2c); the operator already is one through
       # platform-admins. GRANT-ONLY: leaving this group does not take it back, the
@@ -365,6 +422,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
             - !Find [authentik_core.user, [username, e2e-hub]]
       # ---- Entitlements + roles: Novu (notification dashboard, novu.WLDOMAIN) ----
       # Authentik groups decide who may use the Novu dashboard AND the role,
@@ -389,6 +449,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
             - !Find [authentik_core.user, [username, e2e-hub]]
       - model: authentik_core.group
         identifiers:
@@ -412,6 +475,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-headplane-admin
@@ -419,6 +485,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Entitlements + roles: Plunk (the estate's e-mail, plunk.WLDOMAIN) --
       # Authentik groups decide who may use Plunk AND the role, re-synced on every
       # sign-in by apps/plunk-sso (mapping.json):
@@ -437,6 +506,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-plunk-user
@@ -444,6 +516,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-plunk-e2e
@@ -462,6 +537,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ---- Entitlements: rmx-sign (business app) ----
       - model: authentik_core.group
         identifiers:
@@ -470,6 +548,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-signapp-operator
@@ -477,6 +558,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-signapp-hr
@@ -484,6 +568,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       - model: authentik_core.group
         identifiers:
           name: app-signapp-view
@@ -491,6 +578,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # ======================================================================
       # ROLE BUNDLES — one-click onboarding (see ROLES.md "Role bundles").
       # Assigning a person to ONE bundle-* group is enough: the OIDC groups-scope
@@ -544,17 +634,15 @@ data:
       # The robots are created by WLSLUG-people; a !Find against an account that does
       # not exist yet would fail this whole blueprint on a fresh install, so that
       # blueprint is applied first.
-      - model: authentik_blueprints.metaapplyblueprint
-        attrs:
-          identifiers:
-            name: WLSLUG-people
-          required: true
       - model: authentik_core.group
         identifiers: { name: app-invoice-admin }
         attrs:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # app-invoice-operator's only meaning was that the business directory's
       # invoice provider admitted its members; that provider went with the
       # business Authentik on 2026-10-25. It is KEPT because the owner chose to
@@ -579,6 +667,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
       # The login hub's e2e robot (blueprints-people.yaml). Member + tenant is
       # what the console's sign-in requires. The console journeys' robot
       # (`playwright`) is in NO console group since 2026-10-27 (owner decision
@@ -599,6 +690,9 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
             - !Find [authentik_core.user, [username, e2e-hub]]
       # The phantom journeys tenants, REMOVED (owner decision D3, 2026-10-27).
       # They were never tenants — no `tenant` row ever existed for either — so
