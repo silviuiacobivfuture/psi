@@ -22,6 +22,7 @@ OPERATOR_EMAIL: silviu.iacob@ivfuture.ro
 HCLOUD_LOCATION: nbg1
 CONTROL_PLANE_SERVER_TYPE: dev=cpx62
 AGENT_SERVER_TYPE: dev=cpx62
+AGENT_COUNT: dev=0
 OBJECT_STORAGE_REGION: nbg1
 OBJECT_STORAGE_ENDPOINT: https://nbg1.your-objectstorage.com
 BUCKET_PREFIX: psi
