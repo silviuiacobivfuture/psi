@@ -1,0 +1,6 @@
+# Chroma on dev. The image is a third-party one pinned by digest in the base (estate/images.list).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chroma
+resources:
+  - ../../base

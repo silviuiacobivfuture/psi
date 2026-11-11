@@ -1,0 +1,57 @@
+# The auth sidecar's nginx config. A template: the image's entrypoint substitutes the
+# environment variables it DEFINES (only CHROMA_SERVER_TOKEN here; nginx's own $variables are
+# left alone) and writes /etc/nginx/conf.d/default.conf, replacing the image's default.
+#
+#   :8080  the only port the Service exposes. Any request without the token is refused 401
+#          before it reaches Chroma; with it, the request is proxied to Chroma on 127.0.0.1.
+#   :8081  the kubelet's probes only: Chroma's heartbeat and the proxy's own health, nothing
+#          else (404). Not in the Service, so neither the Ingress nor another app reaches it.
+#
+# The token is 64 hex characters (asserted at start), so it is a plain literal in the map.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chroma-auth-proxy
+data:
+  default.conf.template: |
+    # "Bearer " + the token is longer than the default 64-byte map bucket.
+    map_hash_bucket_size 128;
+    map $http_x_chroma_token $chroma_token_ok {
+      default 0;
+      "${CHROMA_SERVER_TOKEN}" 1;
+    }
+    map $http_authorization $chroma_bearer_ok {
+      default 0;
+      "Bearer ${CHROMA_SERVER_TOKEN}" 1;
+    }
+    # Either header carrying the token opens the door; neither, and the request is refused.
+    map "${chroma_token_ok}${chroma_bearer_ok}" $chroma_refused {
+      default 0;
+      "00" 1;
+    }
+    server {
+      listen 8080;
+      server_tokens off;
+      # Chroma's own cap (max_payload_size_bytes, 40 MiB).
+      client_max_body_size 40m;
+      location / {
+        if ($chroma_refused) {
+          add_header WWW-Authenticate 'Bearer realm="chroma"' always;
+          return 401 '{"error":"Unauthorized","message":"a valid token is required"}\n';
+        }
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+      }
+    }
+    server {
+      listen 8081;
+      server_tokens off;
+      location = /api/v2/heartbeat { proxy_pass http://127.0.0.1:8000; }
+      location = /proxy-healthz { return 200 "ok\n"; }
+      location / { return 404; }
+    }

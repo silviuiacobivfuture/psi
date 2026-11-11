@@ -1,0 +1,27 @@
+# Per-namespace guard-rails. The LimitRange backfills any container that omits resources, so
+# the quota never bounces a pod. Sized from the Deployment (chroma 250m/1Gi req, 2/4Gi lim;
+# auth 20m/32Mi req, 500m/128Mi lim) with room for a Recreate rollout and the assert init.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: chroma
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 20m, memory: 32Mi }
+      default: { cpu: 250m, memory: 128Mi }
+      max: { cpu: "2", memory: 4Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: chroma
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 6Gi
+    requests.storage: 60Gi
+    persistentvolumeclaims: "2"
+    pods: "4"

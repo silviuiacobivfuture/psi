@@ -1,0 +1,22 @@
+# Chroma (https://www.trychroma.com/), the estate's vector database, at https://chroma.psizone.ro.
+#
+# Chroma's open-source server (1.x, the Rust frontend) has NO authentication of its own: every
+# request is served as the default tenant. So Chroma listens on 127.0.0.1 only, and the one way
+# in is the `auth` sidecar (nginx), which refuses any request that does not carry the estate's
+# token (secret/apps/chroma/env CHROMA_SERVER_TOKEN) as `Authorization: Bearer <token>` or
+# `X-Chroma-Token: <token>` — the two headers Chroma's own clients send with token auth.
+# How an app gets the token: estate/APP-SECRETS.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chroma
+resources:
+  - resourcequota.yaml
+  - externalsecret.yaml
+  - proxy-config.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+components:
+  # Argo's prune/delete guard on the PVC (the data).
+  - ../../../components/prune-guard

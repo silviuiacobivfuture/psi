@@ -6,3 +6,4 @@ resources:
   - eqsync-web.yaml
   - hemisync-web.yaml
   - blog-web.yaml
+  - chroma.yaml

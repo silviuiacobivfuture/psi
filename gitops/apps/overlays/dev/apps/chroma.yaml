@@ -1,0 +1,21 @@
+# Chroma, the estate's vector database (gitops/services/chroma).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chroma
+  namespace: argocd
+  # git-sourced → the overlay stamps targetRevision (= env branch). See BRANCHING.md.
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/chroma/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chroma
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]
