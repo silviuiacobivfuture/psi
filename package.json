@@ -23,7 +23,7 @@
 		"affected": "nx affected -t lint,type-check,test,build --base=origin/dev --parallel=1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.0.0",
+		"@biomejs/biome": "2.5.0",
 		"@nx/js": "22.2.3",
 		"@types/node": "^24.7.2",
 		"husky": "^9.1.7",
