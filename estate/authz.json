@@ -1,0 +1,15 @@
+{
+	"$comment": "PSI's inputs to the platform permissions generator (authz/tools/gen/estate.py says what each key means). PSI runs no business application yet: the platform's own manifest is the only one, and an application added under apps/<app>/authz.manifest.json joins by the second glob. Generated artefacts live under estate/authz/. Run from a SEB checkout: python3 authz/tools/generate.py --estate <psi>/estate/authz.json",
+	"manifests": ["apps/autorizare-web/authz.manifest.json", "apps/*/authz.manifest.json"],
+	"model": "estate/authz/fga.mod",
+	"modules_dir": "estate/authz/modules",
+	"catalog_dir": "estate/authz/catalog",
+	"tests_dir": "estate/authz/tests",
+	"blueprints_dir": "estate/authz/blueprints",
+	"directory_prefix": "psi",
+	"platform_id": "psi",
+	"acces_module": "@rmx/acces/convex",
+	"i18n_module": "@rmx/i18n",
+	"i18n_messages_dirs": "packages/rmx-i18n/messages/ro",
+	"doc_example_role": "administrator"
+}
