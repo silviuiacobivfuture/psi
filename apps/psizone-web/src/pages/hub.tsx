@@ -6,6 +6,7 @@ import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Closing, Footer } from "../sections/closing";
 import { Header } from "../sections/header";
+import { HubMethods } from "../sections/hub-methods";
 import type { Theme } from "../theme";
 
 export function HubPage({
@@ -44,6 +45,7 @@ export function HubPage({
 						</p>
 						<h1 class="display mt-4 max-w-4xl text-display-xl text-ink">{title}</h1>
 						<p class="mt-6 max-w-xl text-body-lg text-ink-muted">{hub.text(o)}</p>
+						{hub.note ? <p class="mt-4 max-w-xl text-body text-ink">{hub.note(o)}</p> : null}
 						<div class="mt-6">
 							<StatusBadge tone="info">{m.hub_review_badge({}, o)}</StatusBadge>
 						</div>
@@ -81,6 +83,7 @@ export function HubPage({
 						))}
 					</div>
 				</section>
+				<HubMethods hub={hub} locale={locale} />
 				<Closing locale={locale} />
 			</main>
 			<Footer locale={locale} />

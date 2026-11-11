@@ -2,6 +2,7 @@ import { Chip, GlassCard } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** A sine across the 600-unit diagram: `cycles` periods, `amp` units tall. */
 function wave(cycles: number, amp: number): string {
@@ -35,7 +36,14 @@ function Row({ label, d, kind }: { label: string; d: string; kind: "l" | "r" | "
 }
 
 /** Hemispheric synchronisation in one picture: 100 Hz left, 104 Hz right, a 4 Hz beat perceived. */
-export function Technology({ locale }: { locale: Locale }): JSX.Element {
+export function Technology({
+	locale,
+	more = true,
+}: {
+	locale: Locale;
+	/** The link to /tehnologia; off on that page itself. */
+	more?: boolean;
+}): JSX.Element {
 	const o = at(locale);
 	return (
 		<section id="tehnologia" class="mx-auto max-w-7xl px-6 py-24 md:px-14 md:py-36">
@@ -51,6 +59,11 @@ export function Technology({ locale }: { locale: Locale }): JSX.Element {
 						<Chip tone="ai">{m.tech_chip_2({}, o)}</Chip>
 						<Chip tone="ai">{m.tech_chip_3({}, o)}</Chip>
 					</div>
+					{more ? (
+						<a class="text-link mt-8 inline-block text-body" href={href(locale, "technology")}>
+							{m.tech_more({}, o)}
+						</a>
+					) : null}
 				</div>
 				<figure class="pz-rise m-0" aria-label={m.tech_diagram_label({}, o)}>
 					<GlassCard solid class="space-y-6 p-7 md:p-9">

@@ -2,6 +2,7 @@ import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Locale } from "./i18n";
+import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
 
 const FONTS =
@@ -47,15 +48,16 @@ export function Layout({
 					<meta name="description" content={description} />
 					<meta name="color-scheme" content="light dark" />
 					{noindex ? <meta name="robots" content="noindex" /> : null}
-					<link rel="canonical" href={canonical} />
-					{alternate !== undefined ? (
-						<link rel="alternate" hreflang={alternate.locale} href={alternate.href} />
-					) : null}
+					<SiteHead
+						locale={locale}
+						theme={theme}
+						title={title}
+						description={description}
+						canonical={canonical}
+						alternate={alternate}
+						ogType={ogType}
+					/>
 					<link rel="alternate" type="application/rss+xml" title={feed.title} href={feed.href} />
-					<meta property="og:type" content={ogType} />
-					<meta property="og:title" content={title} />
-					<meta property="og:description" content={description} />
-					<meta property="og:url" content={canonical} />
 					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 					<link rel="preconnect" href="https://fonts.googleapis.com" />
 					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />

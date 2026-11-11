@@ -1,5 +1,6 @@
-import { Button, DawnLandscape, Logo } from "@psi/ui";
+import { Button, DawnLandscape, EstateRow, Logo } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -38,7 +39,6 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 		{ label: m.nav_exercises({}, o), href: `${b}/#exercitii` },
 		{ label: m.nav_focus({}, o), href: `${b}/#focus` },
 		{ label: m.nav_club({}, o), href: `${b}/#club` },
-		{ label: m.footer_psizone({}, o), href: "https://psizone.ro/" },
 	];
 	const legal = [
 		{ label: m.footer_terms({}, o), href: ro ? "/termeni-si-conditii" : "/en/legal/terms" },
@@ -82,6 +82,11 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					</ul>
 				</nav>
 			</div>
+			<EstateRow
+				class="mx-auto max-w-7xl border-t border-line px-6 py-6 md:px-14"
+				label={m.estate_label({}, o)}
+				links={estateRow(locale)}
+			/>
 			<div class="mx-auto flex max-w-7xl flex-col gap-2 border-t border-line px-6 py-8 text-body-sm text-ink-faint md:flex-row md:justify-between md:px-14">
 				<p>{m.footer_rights({ year: String(new Date().getFullYear()) }, o)}</p>
 				<p class="max-w-2xl md:text-right">{m.footer_trademarks({}, o)}</p>

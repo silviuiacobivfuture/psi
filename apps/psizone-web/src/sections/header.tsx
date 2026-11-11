@@ -1,6 +1,9 @@
 import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { HUBS } from "../content/hubs";
+import { METHODS } from "../content/methods";
+import { RACE_ME_UP } from "../content/race-me-up";
+import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { THEMES, type Theme } from "../theme";
@@ -35,17 +38,44 @@ export function Header({
 				...hubItem("speech"),
 			],
 		},
-		{ label: m.group_teens_adults({}, o), items: [...hubItem("teens"), ...hubItem("adults")] },
+		{
+			label: m.group_teens_adults({}, o),
+			items: [
+				...hubItem("teens"),
+				...hubItem("adults"),
+				...hubItem("couple"),
+				...hubItem("stroke"),
+				...hubItem("oncology"),
+			],
+		},
+		{
+			// `compass` excludes EQ-Sync: the compass shows on hub pages, which never name it.
+			label: m.group_methods_programmes({}, o),
+			items: [
+				{ label: m.nav_all_methods({}, o), href: `${b}/metode` },
+				...METHODS.filter((x) => x.compass).map((x) => ({
+					label: x.name[locale],
+					href: `${b}${x.path}`,
+					hint: x.lead[locale],
+				})),
+				{ label: m.nav_programmes({}, o), href: `${b}/programe` },
+				...hubItem("sport"),
+				{ label: RACE_ME_UP.name, href: `${b}${RACE_ME_UP.path}`, hint: RACE_ME_UP.lead[locale] },
+			],
+		},
 		{
 			label: m.group_centre({}, o),
 			items: [
 				{ label: m.nav_home({}, o), href: `${b}/` },
 				{ label: m.nav_how({}, o), href: `${b}/#metode` },
+				{ label: m.nav_visit({}, o), href: `${b}/prima-vizita` },
+				{ label: m.nav_faq({}, o), href: `${b}/intrebari-frecvente` },
 				{ label: m.nav_story({}, o), href: `${b}/povestea` },
 				{ label: m.nav_team({}, o), href: `${b}/echipa` },
 				{ label: m.cta_book({}, o), href: `${b}/contact` },
 			],
 		},
+		estateGroup(locale),
 	];
 	return (
 		<>

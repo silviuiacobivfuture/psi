@@ -1,6 +1,6 @@
+import type { PublishedArticle } from "@psi/content";
 import { ArticleCover } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import type { PublishedArticle } from "../content/schema";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";

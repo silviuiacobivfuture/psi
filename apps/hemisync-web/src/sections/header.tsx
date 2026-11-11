@@ -1,7 +1,9 @@
 import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 import { THEMES } from "../theme";
 import { programmeHref } from "./programmes";
 
@@ -31,24 +33,45 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					href: programmeHref(locale, "lucid-dreaming"),
 					hint: m.lucid_text({}, o),
 				},
-				{ label: m.programmes_all({}, o), href: `${b}/#programe` },
+				{
+					label: m.programmes_all({}, o),
+					href: href(locale, "programmes"),
+					hint: m.hint_programmes({}, o),
+				},
+				{
+					label: m.nav_sessions({}, o),
+					href: href(locale, "programmes", "sesiuni"),
+					hint: m.hint_sessions({}, o),
+				},
 			],
 		},
 		{
 			label: m.group_free({}, o),
 			items: [
-				{ label: m.nav_exercises({}, o), href: `${b}/#exercitii`, hint: m.exercises_lead({}, o) },
-				{ label: m.nav_club({}, o), href: `${b}/#club`, hint: m.club_hint({}, o) },
+				{
+					label: m.nav_exercises({}, o),
+					href: href(locale, "exercises"),
+					hint: m.exercises_lead({}, o),
+				},
+				{ label: m.nav_club({}, o), href: href(locale, "club"), hint: m.club_hint({}, o) },
 			],
 		},
 		{
 			label: m.group_explore({}, o),
 			items: [
-				{ label: m.nav_technology({}, o), href: `${b}/#tehnologia`, hint: m.tech_hint({}, o) },
-				{ label: m.nav_focus({}, o), href: `${b}/#focus`, hint: m.focus_hint({}, o) },
+				{
+					label: m.nav_technology({}, o),
+					href: href(locale, "technology"),
+					hint: m.tech_hint({}, o),
+				},
+				{ label: m.nav_focus({}, o), href: href(locale, "focus"), hint: m.focus_hint({}, o) },
+				{ label: m.nav_faq({}, o), href: href(locale, "faq"), hint: m.hint_faq({}, o) },
+				{ label: m.nav_about({}, o), href: href(locale, "about"), hint: m.hint_about({}, o) },
+				{ label: m.nav_contact({}, o), href: href(locale, "contact"), hint: m.hint_contact({}, o) },
 				{ label: m.nav_guide({}, o), href: `${b}/#ghid` },
 			],
 		},
+		estateGroup(locale),
 	];
 	return (
 		<>

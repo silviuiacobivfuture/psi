@@ -1,6 +1,6 @@
+import type { Block, ReadableArticle } from "@psi/content";
 import { Prose } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import type { Block, PublishedArticle } from "../content/schema";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -32,7 +32,7 @@ export function ArticleBody({
 	article: a,
 	locale,
 }: {
-	article: PublishedArticle;
+	article: ReadableArticle;
 	locale: Locale;
 }): JSX.Element {
 	return (

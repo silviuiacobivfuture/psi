@@ -2,6 +2,7 @@ import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 import { HeadphonesIcon } from "./headphones-icon";
 
 const W = 600;
@@ -50,7 +51,14 @@ function Strip({
 }
 
 /** Binaural beats in one plain line, then a figure: two tones in, their difference out. */
-export function Method({ locale }: { locale: Locale }): JSX.Element {
+export function Method({
+	locale,
+	more = true,
+}: {
+	locale: Locale;
+	/** The link to /metoda; off on that page itself. */
+	more?: boolean;
+}): JSX.Element {
 	const o = at(locale);
 	return (
 		<section id="metoda" class="mx-auto max-w-6xl scroll-mt-28 px-5 pb-24 pt-8 md:pb-32 md:pt-12">
@@ -69,6 +77,14 @@ export function Method({ locale }: { locale: Locale }): JSX.Element {
 							<p>{m.method_step_2({}, o)}</p>
 						</li>
 					</ol>
+					{more ? (
+						<a
+							class="mt-10 inline-block text-data text-ink underline underline-offset-4"
+							href={href(locale, "method")}
+						>
+							{m.mp_more({}, o)}
+						</a>
+					) : null}
 				</div>
 				<figure class="eq-fig pz-rise lg:col-span-6 lg:col-start-7">
 					<Strip label={m.method_left({}, o)} height={40}>

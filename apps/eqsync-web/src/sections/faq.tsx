@@ -1,6 +1,7 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** Native disclosure list: works without JS, keyboard and screen readers included. */
 export function Faq({ locale }: { locale: Locale }): JSX.Element {
@@ -18,6 +19,12 @@ export function Faq({ locale }: { locale: Locale }): JSX.Element {
 				<div class="lg:col-span-4">
 					<p class="eq-overline">{m.faq_overline({}, o)}</p>
 					<h2 class="display eq-h2 pz-rise mt-5 text-ink">{m.faq_title({}, o)}</h2>
+					<a
+						class="mt-8 inline-block text-data text-ink underline underline-offset-4"
+						href={href(locale, "faq")}
+					>
+						{m.fp_all({}, o)}
+					</a>
 				</div>
 				<div class="eq-faq lg:col-span-8">
 					{items.map((it, i) => (

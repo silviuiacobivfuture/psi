@@ -1,7 +1,7 @@
+import { type Topic, TopicSchema } from "@psi/content";
 import type { BlogBrand } from "../brands";
 import type { Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
-import { type Topic, TopicSchema } from "./schema";
 
 type Text = (o: { locale: Locale }) => string;
 
@@ -14,6 +14,9 @@ const LABELS: Readonly<Record<Topic, Text>> = {
 	qeeg: (o) => m.topic_qeeg({}, o),
 	"anxietate-depresie": (o) => m.topic_anxietate_depresie({}, o),
 	editorial: (o) => m.topic_editorial({}, o),
+	"cum-lucram": (o) => m.topic_cum_lucram({}, o),
+	"programul-eqsync": (o) => m.topic_programul_eqsync({}, o),
+	"explorarea-constiintei": (o) => m.topic_explorarea_constiintei({}, o),
 };
 
 /** The hub on the brand's site that a topic belongs to, when that hub is live. */

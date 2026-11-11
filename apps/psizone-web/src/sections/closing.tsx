@@ -1,5 +1,6 @@
-import { AmbientField, Button, Logo } from "@psi/ui";
+import { AmbientField, Button, EstateRow, Logo } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -40,11 +41,13 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<a class="hover:text-ink" href={`${b}/politica-editoriala`}>
 						{m.footer_editorial({}, o)}
 					</a>
-					<a class="hover:text-ink" href="https://www.hemi-sync.ro/">
-						{m.footer_hemisync({}, o)}
-					</a>
 				</nav>
 			</div>
+			<EstateRow
+				class="mx-auto max-w-6xl px-5 pb-6"
+				label={m.estate_label({}, o)}
+				links={estateRow(locale)}
+			/>
 			<p class="mx-auto max-w-6xl px-5 pb-10 text-body-sm text-ink-faint">
 				{m.footer_rights({ year: String(new Date().getFullYear()) }, o)}
 			</p>

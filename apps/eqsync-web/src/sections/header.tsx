@@ -1,7 +1,9 @@
 import { Button, Compass, type CompassGroup, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 import { THEMES } from "../theme";
 
 /**
@@ -15,20 +17,28 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 		{
 			label: m.group_program({}, o),
 			items: [
-				{ label: m.nav_method({}, o), href: `${b}/#metoda`, hint: m.hint_method({}, o) },
+				{ label: m.nav_method({}, o), href: href(locale, "method"), hint: m.hint_method({}, o) },
 				{ label: m.nav_sample({}, o), href: `${b}/#asculta`, hint: m.hint_sample({}, o) },
 				{ label: m.nav_program({}, o), href: `${b}/#program`, hint: m.hint_program({}, o) },
+				{
+					label: m.nav_protocols({}, o),
+					href: href(locale, "protocols"),
+					hint: m.hint_protocols({}, o),
+				},
+				{ label: m.cta_free({}, o), href: href(locale, "signup"), hint: m.hint_start({}, o) },
 			],
 		},
 		{
 			label: m.group_more({}, o),
 			items: [
-				{ label: m.nav_protocols({}, o), href: `${b}/#protocoale`, hint: m.hint_protocols({}, o) },
+				{ label: m.nav_faq({}, o), href: href(locale, "faq"), hint: m.hint_faq({}, o) },
+				{ label: m.nav_about({}, o), href: href(locale, "about"), hint: m.hint_about({}, o) },
+				{ label: m.nav_safety({}, o), href: href(locale, "safety"), hint: m.hint_safety({}, o) },
+				{ label: m.nav_contact({}, o), href: href(locale, "contact"), hint: m.hint_contact({}, o) },
 				{ label: m.nav_guide({}, o), href: `${b}/#ghid`, hint: m.hint_guide({}, o) },
-				{ label: m.nav_faq({}, o), href: `${b}/#intrebari`, hint: m.hint_faq({}, o) },
-				{ label: m.cta_free({}, o), href: `${b}/#incepe`, hint: m.hint_start({}, o) },
 			],
 		},
+		estateGroup(locale),
 	];
 	return (
 		<>

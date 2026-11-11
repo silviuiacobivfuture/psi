@@ -5,6 +5,7 @@ import { ARTICLES, usedTopics } from "../content/articles";
 import { EDITORIAL_POLICY } from "../content/editorial-policy";
 import { brandName, topicLabel } from "../content/topics";
 import { dateline } from "../dates";
+import { estateGroup } from "../estate";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
@@ -48,6 +49,7 @@ function compassGroups(locale: Locale): ReadonlyArray<CompassGroup> {
 				{ label: m.footer_rss({}, o), href: routes.rss(locale) },
 			],
 		},
+		estateGroup(locale),
 	];
 }
 

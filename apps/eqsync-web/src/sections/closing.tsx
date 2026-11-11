@@ -1,5 +1,6 @@
-import { Button, Logo, SoundWaves } from "@psi/ui";
+import { Button, EstateRow, Logo, SoundWaves } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -38,7 +39,6 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<a href={`${b}/#program`}>{m.nav_program({}, o)}</a>
 					<a href={`${b}/#protocoale`}>{m.nav_protocols({}, o)}</a>
 					<a href={`${b}/#intrebari`}>{m.nav_faq({}, o)}</a>
-					<a href="https://psizone.ro/">{m.footer_psizone({}, o)}</a>
 				</nav>
 				<nav class="eq-footer-links md:col-span-4" aria-label={m.footer_legal_label({}, o)}>
 					<a href={`${b}/termeni`}>{m.footer_terms({}, o)}</a>
@@ -52,6 +52,11 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					</a>
 				</nav>
 			</div>
+			<EstateRow
+				class="mx-auto max-w-6xl border-t border-line px-5 py-6"
+				label={m.estate_label({}, o)}
+				links={estateRow(locale)}
+			/>
 			<div class="mx-auto flex max-w-6xl flex-col gap-2 border-t border-line px-5 py-8 text-data text-ink-faint md:flex-row md:justify-between">
 				<span>{m.footer_trader({}, o)}</span>
 				<span>{m.footer_rights({ year: String(new Date().getFullYear()) }, o)}</span>

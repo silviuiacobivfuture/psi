@@ -1,7 +1,8 @@
 import type { Locale } from "../i18n";
 
 /**
- * PSIZONE's story, as the owners wrote it (Romanian, verbatim, 2026-11-11). The English is a
+ * PSIZONE's story, as the owners wrote it (Romanian, verbatim, 2026-11-11; "peste 20 de ani" became
+ * "22 de ani" by the owners' decision of 2026-11-12, to match the hero). The English is a
  * translation for review. Content, not interface copy: it moves to the CMS with the rest.
  */
 type Localised = Record<Locale, string>;
@@ -41,14 +42,14 @@ export const STORY_CHAPTERS: ReadonlyArray<StoryChapter> = [
 	},
 	{
 		id: "invatare",
-		eyebrow: { ro: "Peste 20 de ani", en: "Over 20 years" },
+		eyebrow: { ro: "22 de ani", en: "22 years" },
 		title: {
 			ro: "Când nu știam destul, am mers să învățăm.",
 			en: "When we didn't know enough, we went to learn.",
 		},
 		text: {
-			ro: "În peste 20 de ani de activitate, de fiecare dată când un caz ne arăta că nu știm destul, am mers să învățăm. Așa au venit formările și specializările, apoi metodele combinate, ca să îi vedem pe copii progresând mai repede, și neurotehnologiile.",
-			en: "In over twenty years of work, every time a case showed us we didn't know enough, we went to learn. That is how the trainings and specialisations came, then the combined methods, to see children progress faster, and the neurotechnologies.",
+			ro: "În 22 de ani de activitate, de fiecare dată când un caz ne arăta că nu știm destul, am mers să învățăm. Așa au venit formările și specializările, apoi metodele combinate, ca să îi vedem pe copii progresând mai repede, și neurotehnologiile.",
+			en: "In twenty-two years of work, every time a case showed us we didn't know enough, we went to learn. That is how the trainings and specialisations came, then the combined methods, to see children progress faster, and the neurotechnologies.",
 		},
 		marks: [
 			{ ro: "Formări și specializări", en: "Trainings and specialisations" },
@@ -171,8 +172,8 @@ export const STORY_PARAGRAPHS: ReadonlyArray<Localised> = [
 		en: "For years, our days held twelve hours of therapy each. It was just the two of us, Daniela and Adrian Turcu, psychologists and psychotherapists, and we still could not reach everyone who came looking for us. That is how PSIZONE was born: a team to carry on what we were doing, first for children, then for adults and seniors.",
 	},
 	{
-		ro: "În peste 20 de ani de activitate, de fiecare dată când un caz ne arăta că nu știm destul, am mers să învățăm. Așa au venit formările și specializările, apoi metodele combinate, ca să îi vedem pe copii progresând mai repede, și neurotehnologiile. Din experiența și cercetările noastre s-au născut două metode proprii, brevetate: CRIIN și EQ-Sync.",
-		en: "In over twenty years of work, every time a case showed us we didn't know enough, we went to learn. That is how the trainings and specialisations came, then the combined methods, to see children progress faster, and the neurotechnologies. From our experience and research, two methods of our own were born, both patented: CRIIN and EQ-Sync.",
+		ro: "În 22 de ani de activitate, de fiecare dată când un caz ne arăta că nu știm destul, am mers să învățăm. Așa au venit formările și specializările, apoi metodele combinate, ca să îi vedem pe copii progresând mai repede, și neurotehnologiile. Din experiența și cercetările noastre s-au născut două metode proprii, brevetate: CRIIN și EQ-Sync.",
+		en: "In twenty-two years of work, every time a case showed us we didn't know enough, we went to learn. That is how the trainings and specialisations came, then the combined methods, to see children progress faster, and the neurotechnologies. From our experience and research, two methods of our own were born, both patented: CRIIN and EQ-Sync.",
 	},
 	{
 		ro: "Tot așa am deschis drumuri în Galați. Am înființat primul centru terapeutic din oraș și, în cabinetul nostru, prima sală de integrare senzorială și polisenzorială. Apoi am contribuit la amenajarea sălilor de integrare neurosenzorială de la școlile „Paul Popescu Neveanu” și „Emil Gârleanu”.",

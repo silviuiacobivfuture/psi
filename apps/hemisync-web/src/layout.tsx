@@ -2,6 +2,7 @@ import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Locale } from "./i18n";
+import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
 
 /** Fraunces with its italics for headlines, Inter for text and interface (the hemisync theme selects it). */
@@ -35,7 +36,13 @@ export function Layout({
 					<title>{title}</title>
 					<meta name="description" content={description} />
 					<meta name="color-scheme" content="light dark" />
-					<link rel="alternate" hreflang={alternate.locale} href={alternate.href} />
+					<SiteHead
+						locale={locale}
+						theme={theme}
+						title={title}
+						description={description}
+						alternate={alternate}
+					/>
 					<link rel="preconnect" href="https://fonts.googleapis.com" />
 					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 					<link rel="stylesheet" href={FONTS} />

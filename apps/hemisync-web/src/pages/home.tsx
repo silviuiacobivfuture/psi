@@ -2,9 +2,11 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
+import { FromTheBlog } from "../sections/blog";
 import { Closing, Footer } from "../sections/closing";
 import { Club, Guide } from "../sections/club-guide";
 import { Exercises } from "../sections/exercises";
+import { Explore } from "../sections/explore";
 import { Focus } from "../sections/focus";
 import { Header } from "../sections/header";
 import { Hero } from "../sections/hero";
@@ -41,7 +43,9 @@ export function HomePage({
 				<Technology locale={locale} />
 				<Focus locale={locale} />
 				<Club locale={locale} />
+				<Explore locale={locale} />
 				<Guide locale={locale} />
+				<FromTheBlog locale={locale} />
 				<Closing locale={locale} />
 			</main>
 			<Footer locale={locale} />

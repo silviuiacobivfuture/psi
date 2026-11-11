@@ -10,18 +10,29 @@ import {
 	streamGuideAnswer,
 } from "@psi/ui";
 import { Hono } from "hono";
+import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
+import { ESTATE, SITE } from "./estate";
 import { ANSWER_CLASS, guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
+import { registerPages } from "./pages/register";
+import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
 const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
 const PORT = Number.parseInt(process.env.PORT ?? "4320", 10);
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app);
+applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+app.use(contextStorage());
+app.get("/sitemap.xml", async (c) =>
+	c.body(await sitemap(app), 200, {
+		"content-type": "application/xml; charset=utf-8",
+		"cache-control": "public, max-age=3600",
+	}),
+);
 
 app.get("/healthz", (c) => c.text("ok"));
 app.get("/assets/datastar.js", (c) =>
@@ -57,6 +68,7 @@ for (const [locale, prefix] of [
 		});
 	});
 }
+registerPages(app);
 
 if (process.env.NODE_ENV !== "test") {
 	serve({ fetch: app.fetch, port: PORT }, (info) =>

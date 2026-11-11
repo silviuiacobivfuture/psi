@@ -1,12 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { BRANDS, SLUG, TOPICS } from "./vocabulary";
+import { BRANDS, SLUG, TOPICS, TOPICS_AWAITING_MIGRATION } from "./vocabulary";
 
-/** The quoted members of `export const <name> = [ … ] as const` in a blog-web source file. */
+/** The quoted members of `export const <name> = [ … ] as const` in an @psi/content source file. */
 async function blogList(file: string, name: string): Promise<string[]> {
-	const src = await readFile(new URL(`../../../blog-web/src/${file}`, import.meta.url), "utf8");
+	const src = await readFile(
+		new URL(`../../../../packages/content/src/${file}`, import.meta.url),
+		"utf8",
+	);
 	const block = new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\] as const`).exec(src)?.[1];
-	if (block === undefined) throw new Error(`${name} not found in blog-web/src/${file}`);
+	if (block === undefined) throw new Error(`${name} not found in packages/content/src/${file}`);
 	return [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "");
 }
 
@@ -15,7 +18,9 @@ describe("the blog's vocabulary", () => {
 		expect([...BRANDS]).toEqual(await blogList("brands.ts", "BRANDS"));
 	});
 	it("has the blog's topics", async () => {
-		expect([...TOPICS]).toEqual(await blogList("content/schema.ts", "TOPICS"));
+		expect([...TOPICS, ...TOPICS_AWAITING_MIGRATION]).toEqual(
+			await blogList("schema.ts", "TOPICS"),
+		);
 	});
 	it.each([
 		["a", true],

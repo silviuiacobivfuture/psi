@@ -2,9 +2,10 @@ import { AudioPlayer } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** The four free exercises on the home page of hemi-sync.ro. Lengths are shown only where the site states one. */
-export function Exercises({ locale }: { locale: Locale }): JSX.Element {
+export function ExerciseList({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	const items: ReadonlyArray<{
 		id: string;
@@ -40,6 +41,30 @@ export function Exercises({ locale }: { locale: Locale }): JSX.Element {
 		},
 	];
 	return (
+		<ol class="space-y-5">
+			{items.map((x) => (
+				<li class="pz-rise">
+					<AudioPlayer
+						id={x.id}
+						class={x.seconds === undefined ? "hs-player--wide hs-player--open" : "hs-player--wide"}
+						title={x.title}
+						meta={x.meta}
+						src="/assets/sample.mp3"
+						duration={x.seconds ?? 0}
+						playLabel={m.exercise_play({ title: x.title }, o)}
+						pauseLabel={m.exercise_pause({ title: x.title }, o)}
+					/>
+					<p class="mt-3 px-5 text-body-sm text-ink-muted">{x.text}</p>
+				</li>
+			))}
+		</ol>
+	);
+}
+
+/** The free exercises on the home: why to listen with headphones, then the list. */
+export function Exercises({ locale }: { locale: Locale }): JSX.Element {
+	const o = at(locale);
+	return (
 		<section id="exercitii" class="hs-wash">
 			<div class="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-6 py-24 md:px-14 md:py-36 lg:grid-cols-[5fr_7fr]">
 				<div class="lg:sticky lg:top-32 lg:self-start">
@@ -66,32 +91,11 @@ export function Exercises({ locale }: { locale: Locale }): JSX.Element {
 						</svg>
 						{m.exercises_headphones({}, o)}
 					</p>
-					<a
-						class="text-link mt-8 inline-block text-body"
-						href={locale === "ro" ? "/descarcari" : "/en/free-exercises"}
-					>
+					<a class="text-link mt-8 inline-block text-body" href={href(locale, "exercises")}>
 						{m.exercises_all({}, o)}
 					</a>
 				</div>
-				<ol class="space-y-5">
-					{items.map((x) => (
-						<li class="pz-rise">
-							<AudioPlayer
-								id={x.id}
-								class={
-									x.seconds === undefined ? "hs-player--wide hs-player--open" : "hs-player--wide"
-								}
-								title={x.title}
-								meta={x.meta}
-								src="/assets/sample.mp3"
-								duration={x.seconds ?? 0}
-								playLabel={m.exercise_play({ title: x.title }, o)}
-								pauseLabel={m.exercise_pause({ title: x.title }, o)}
-							/>
-							<p class="mt-3 px-5 text-body-sm text-ink-muted">{x.text}</p>
-						</li>
-					))}
-				</ol>
+				<ExerciseList locale={locale} />
 			</div>
 		</section>
 	);

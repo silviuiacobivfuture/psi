@@ -1,8 +1,8 @@
+import type { Article } from "@psi/content";
 import { ArticleCover, Button, ReadingProgress, StatusBadge } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { SITES } from "../brands";
 import { EDITORIAL_POLICY } from "../content/editorial-policy";
-import type { Article } from "../content/schema";
 import { brandName, topicHub, topicLabel } from "../content/topics";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
@@ -10,9 +10,11 @@ import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
 import { ArticleBody } from "../sections/article-body";
 import { Byline, overline } from "../sections/article-meta";
+import { DraftNotice } from "../sections/draft-notice";
 import { Footer } from "../sections/footer";
 import { GuidePanel } from "../sections/guide-panel";
 import { Header } from "../sections/header";
+import { Related } from "../sections/related";
 import type { Theme } from "../theme";
 
 /** The one next step: the topic's hub on the brand's site when it is live, else the site itself. */
@@ -58,8 +60,10 @@ export function ArticlePage({
 	const o = at(locale);
 	const other: Locale = locale === "ro" ? "en" : "ro";
 	const isPublished = a.status === "published";
-	const standfirst = isPublished ? a.standfirst[locale] : m.in_review_standfirst({}, o);
+	const standfirst =
+		a.status === "in-review" ? m.in_review_standfirst({}, o) : a.standfirst[locale];
 	const next = nextStep(a, locale);
+	const brand = brandName(a.brand, locale);
 	return (
 		<Layout
 			locale={locale}
@@ -68,32 +72,48 @@ export function ArticlePage({
 			description={standfirst}
 			canonical={`${origin}${routes.article(locale, a.slug)}`}
 			alternate={{ locale: other, href: `${origin}${routes.article(other, a.slug)}` }}
-			feed={{ title: m.rss_title({}, o), href: `${origin}${routes.rss(locale)}` }}
+			feed={{
+				title: m.rss_brand_title({ brand }, o),
+				href: `${origin}${routes.brandRss(locale, a.brand)}`,
+			}}
 			noindex={!isPublished}
 			ogType="article"
 		>
-			{isPublished ? <ReadingProgress /> : null}
+			{a.status !== "in-review" ? <ReadingProgress /> : null}
 			<Header locale={locale} otherHref={routes.article(other, a.slug)} brand={a.brand} />
 			<main id="continut">
 				<article class="px-4 pt-10 sm:px-6 md:pt-16">
 					<header class="mx-auto max-w-[680px]">
-						<a class="bl-back" href={`${routes.home(locale)}#articole`}>
-							<span aria-hidden="true">←</span>
-							{m.article_back({}, o)}
-						</a>
+						<p class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+							<a class="bl-back" href={`${routes.home(locale)}#articole`}>
+								<span aria-hidden="true">←</span>
+								{m.article_back({}, o)}
+							</a>
+							<a class="bl-back" href={`${SITES[a.brand]}${base(locale)}`}>
+								{m.article_brand_site({ brand }, o)}
+								<span aria-hidden="true">↗</span>
+							</a>
+						</p>
 						<p class="bl-overline mt-12 md:mt-16">{overline(a, locale)}</p>
 						<h1 class="bl-h1 mt-5">{a.title[locale]}</h1>
 						<p
 							class={
-								isPublished ? "bl-standfirst mt-7" : "bl-standfirst bl-standfirst--pending mt-7"
+								a.status === "in-review"
+									? "bl-standfirst bl-standfirst--pending mt-7"
+									: "bl-standfirst mt-7"
 							}
 						>
 							{standfirst}
 						</p>
 						<Byline article={a} locale={locale} />
 					</header>
-					{isPublished ? (
+					{a.status !== "in-review" ? (
 						<>
+							{a.status === "draft" ? (
+								<div class="mx-auto mt-10 max-w-[680px]">
+									<DraftNotice article={a} locale={locale} />
+								</div>
+							) : null}
 							<div class="mx-auto mt-12 max-w-[880px]">
 								<ArticleCover hue={1}>
 									<span class="bl-cover-mark">¶</span>
@@ -131,6 +151,7 @@ export function ArticlePage({
 							</Button>
 						</div>
 					</div>
+					<Related article={a} locale={locale} />
 				</aside>
 			</main>
 			<Footer locale={locale} />

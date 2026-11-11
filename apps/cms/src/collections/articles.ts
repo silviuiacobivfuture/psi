@@ -11,7 +11,7 @@ const text = (name: string, label: { ro: string; en: string }): Block["fields"][
 	label,
 });
 
-/** The body's blocks, the same four the blog renders (apps/blog-web/src/content/schema.ts). */
+/** The body's blocks, the same four the blog renders (packages/content/src/schema.ts). */
 const BODY: Block[] = [
 	{
 		slug: "p",

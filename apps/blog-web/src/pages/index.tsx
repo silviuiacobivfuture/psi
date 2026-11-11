@@ -1,8 +1,8 @@
+import type { Topic } from "@psi/content";
 import { ArticleList, ArticleListRow, FilterChips } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { type BlogBrand, BRANDS } from "../brands";
-import { type ArticleFilter, inProgress, published } from "../content/articles";
-import type { Topic } from "../content/schema";
+import { type ArticleFilter, drafts, inProgress, published } from "../content/articles";
 import { brandName, topicLabel } from "../content/topics";
 import { at, type Locale } from "../i18n";
 import { Layout } from "../layout";
@@ -36,7 +36,8 @@ export function IndexPage({
 	const other: Locale = locale === "ro" ? "en" : "ro";
 	const filter: ArticleFilter = { brand, topic };
 	const [featured, ...rest] = published(filter);
-	const coming = [...rest, ...inProgress(filter)];
+	// Drafts are listed only where they may be shown (staging), for the owner to review.
+	const coming = [...rest, ...drafts(filter), ...inProgress(filter)];
 	return (
 		<Layout
 			locale={locale}
@@ -115,7 +116,7 @@ export function IndexPage({
 										title={a.title[locale]}
 										overline={overline(a, locale)}
 										standfirst={
-											a.status === "published" ? a.standfirst[locale] : m.in_review_row({}, o)
+											a.status === "in-review" ? m.in_review_row({}, o) : a.standfirst[locale]
 										}
 										meta={<RowMeta article={a} locale={locale} />}
 									/>

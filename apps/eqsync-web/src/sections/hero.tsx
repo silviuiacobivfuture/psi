@@ -2,6 +2,7 @@ import { Button, Chip, DayIndex, SoundWaves } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 import { HeadphonesIcon } from "./headphones-icon";
 
 const TOTAL = 21;
@@ -25,7 +26,7 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 						<Button size="lg" arrow href={`${b}/#incepe`}>
 							{m.cta_free({}, o)}
 						</Button>
-						<Button variant="ghost" size="lg" href={`${b}/#metoda`}>
+						<Button variant="ghost" size="lg" href={href(locale, "method")}>
 							{m.hero_secondary({}, o)}
 						</Button>
 					</div>

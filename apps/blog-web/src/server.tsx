@@ -14,6 +14,7 @@ import { getCookie } from "hono/cookie";
 import { brandFrom } from "./brands";
 import { findArticle } from "./content/articles";
 import { topicFrom } from "./content/topics";
+import { ESTATE, SITE } from "./estate";
 import { answerClass, guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
@@ -21,13 +22,20 @@ import { ArticlePage } from "./pages/article";
 import { IndexPage } from "./pages/index";
 import { NotFoundPage } from "./pages/not-found";
 import { rssFeed } from "./rss";
+import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
 const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
 const PORT = Number.parseInt(process.env.PORT ?? "4340", 10);
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app);
+applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+app.get("/sitemap.xml", async (c) =>
+	c.body(await sitemap(app), 200, {
+		"content-type": "application/xml; charset=utf-8",
+		"cache-control": "public, max-age=3600",
+	}),
+);
 
 const originOf = (c: Context): string => new URL(c.req.url).origin;
 
@@ -80,6 +88,14 @@ for (const [locale, prefix, segment] of [
 			"content-type": "application/rss+xml; charset=utf-8",
 		}),
 	);
+	// One feed per brand: /rss/psizone.xml, /en/rss/eqsync.xml, …
+	app.get(`${prefix}/rss/:feed{[a-z]+\\.xml}`, (c) => {
+		const brand = brandFrom(c.req.param("feed").replace(/\.xml$/, ""));
+		if (brand === undefined) return notFound(c, locale);
+		return c.body(rssFeed(locale, originOf(c), brand), 200, {
+			"content-type": "application/rss+xml; charset=utf-8",
+		});
+	});
 	app.post(`${prefix}/ghid`, async (c) => {
 		const signals = parseAskSignals(await c.req.json().catch(() => null));
 		const target = parseAnswerTarget(c.req.query("target"));

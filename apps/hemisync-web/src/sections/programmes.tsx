@@ -2,6 +2,7 @@ import { ArchCard } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** The live site's programme URLs: /programe/<slug> in Romanian, /en/programmes/<slug> in English. */
 export function programmeHref(locale: Locale, slug: string): string {
@@ -42,7 +43,7 @@ export function Programmes({ locale }: { locale: Locale }): JSX.Element {
 						{m.programmes_title_1({}, o)} <em>{m.programmes_title_2({}, o)}</em>
 					</h2>
 				</div>
-				<a class="text-link text-body" href={locale === "ro" ? "/programe" : "/en/programmes"}>
+				<a class="text-link text-body" href={href(locale, "programmes")}>
 					{m.programmes_all({}, o)}
 				</a>
 			</div>

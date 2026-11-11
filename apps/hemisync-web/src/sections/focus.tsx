@@ -2,6 +2,7 @@ import { FocusScale } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** Focus 10, 12, 15, 21: the site's names, described as experience. Focus 21 wording awaits the owner. */
 export function Focus({ locale }: { locale: Locale }): JSX.Element {
@@ -30,7 +31,12 @@ export function Focus({ locale }: { locale: Locale }): JSX.Element {
 						{ level: 21, label: word, name: m.focus_21_name({}, o), text: m.focus_21_text({}, o) },
 					]}
 				/>
-				<p class="mt-16 text-body-sm text-ink-faint">{m.focus_note({}, o)}</p>
+				<div class="mt-16 flex flex-wrap items-baseline justify-between gap-6">
+					<p class="text-body-sm text-ink-faint">{m.focus_note({}, o)}</p>
+					<a class="text-link text-body" href={href(locale, "focus")}>
+						{m.focus_more({}, o)}
+					</a>
+				</div>
 			</div>
 		</section>
 	);

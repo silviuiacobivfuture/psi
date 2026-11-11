@@ -1,6 +1,6 @@
-import { GlassCard, ProgressSignal } from "@psi/ui";
+import { Button, GlassCard, ProgressSignal } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { at, type Locale } from "../i18n";
+import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
 export function How({ locale }: { locale: Locale }): JSX.Element {
@@ -27,6 +27,11 @@ export function How({ locale }: { locale: Locale }): JSX.Element {
 							</li>
 						))}
 					</ol>
+					<div class="mt-12">
+						<Button variant="glass" arrow href={`${base(locale)}/prima-vizita`}>
+							{m.visit_link({}, o)}
+						</Button>
+					</div>
 				</div>
 				<GlassCard class="pz-edge pz-rise p-8">
 					<ProgressSignal
