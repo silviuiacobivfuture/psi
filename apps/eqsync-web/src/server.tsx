@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { parseAnswerTarget, parseAskSignals, questionFor, streamGuideAnswer } from "@psi/ui";
+import {
+	applyIndexingPolicy,
+	parseAnswerTarget,
+	parseAskSignals,
+	questionFor,
+	streamGuideAnswer,
+} from "@psi/ui";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { ANSWER_CLASS, guideLabels } from "./guide";
@@ -15,6 +21,7 @@ const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datasta
 const PORT = Number.parseInt(process.env.PORT ?? "4320", 10);
 
 export const app = new Hono({ strict: false });
+applyIndexingPolicy(app);
 
 app.get("/healthz", (c) => c.text("ok"));
 app.get("/assets/datastar.js", (c) =>

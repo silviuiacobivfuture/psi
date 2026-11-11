@@ -65,3 +65,4 @@ export {
 	questionFor,
 	streamGuideAnswer,
 } from "./guide-stream";
+export { applyIndexingPolicy } from "./robots";
