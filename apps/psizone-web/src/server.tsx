@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { BookingDone, BookingForm, BookingRequest, errorsFor } from "./booking";
 import { HUBS } from "./content/hubs";
-import { AskBody, streamAnswer } from "./guide";
+import { AnswerTarget, AskSignals, questionFor, streamAnswer } from "./guide";
 import { at, type Locale } from "./i18n";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
@@ -103,9 +103,11 @@ for (const [locale, prefix] of [
 		return c.html(<BookingDone locale={locale} name={parsed.data.name} />);
 	});
 	app.post(`${prefix}/ghid`, async (c) => {
-		const parsed = AskBody.safeParse(await c.req.json().catch(() => null));
-		if (!parsed.success) return c.body(null, 204);
-		return streamAnswer(c, locale, parsed.data.question);
+		const signals = AskSignals.safeParse(await c.req.json().catch(() => null));
+		const target = AnswerTarget.parse(c.req.query("target"));
+		const question = signals.success ? questionFor(target, signals.data) : null;
+		if (question === null) return c.body(null, 204);
+		return streamAnswer(c, locale, question, target);
 	});
 }
 

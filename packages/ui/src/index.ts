@@ -19,3 +19,10 @@ export { StatusBadge, type StatusBadgeProps } from "./components/status-badge";
 export { TextField, type TextFieldProps } from "./components/text-field";
 export { ThemeToggle, type ThemeToggleProps } from "./components/theme-toggle";
 export { cx } from "./cx";
+export {
+	Compass,
+	type CompassGroup,
+	type CompassItem,
+	type CompassProps,
+	fold,
+} from "./components/compass";

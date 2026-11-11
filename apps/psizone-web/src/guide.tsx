@@ -6,8 +6,29 @@ import { z } from "zod";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 
-/** What Datastar posts: the page's signals. */
-export const AskBody = z.object({ question: z.string().trim().min(1).max(500) });
+/** What Datastar posts: the page's signals (the hero's question and the compass's query). */
+export const AskSignals = z.object({
+	question: z.string().optional(),
+	compassQuery: z.string().optional(),
+});
+
+/** The question the asking field holds: the compass's query, or the hero's question. */
+export const Question = z.string().trim().min(1).max(500);
+
+/** The answer regions a page has: the hero's and the compass's. */
+export const AnswerTarget = z.enum(["guide-answer", "compass-answer"]).catch("guide-answer");
+export type AnswerTarget = z.infer<typeof AnswerTarget>;
+
+/** Picks the question from the field that asked. */
+export function questionFor(
+	target: AnswerTarget,
+	signals: z.infer<typeof AskSignals>,
+): string | null {
+	const parsed = Question.safeParse(
+		target === "compass-answer" ? signals.compassQuery : signals.question,
+	);
+	return parsed.success ? parsed.data : null;
+}
 
 type Phase =
 	| { kind: "thinking" }
@@ -19,15 +40,17 @@ function GuideAnswer({
 	locale,
 	question,
 	phase,
+	target,
 }: {
 	locale: Locale;
 	question: string;
 	phase: Phase;
+	target: AnswerTarget;
 }): JSX.Element {
 	const o = at(locale);
 	return (
 		<div
-			id="guide-answer"
+			id={target}
 			class="mt-4 space-y-3"
 			aria-live="polite"
 			aria-busy={phase.kind === "done" ? "false" : "true"}
@@ -63,13 +86,20 @@ const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
  * Streams the answer as Datastar `datastar-patch-elements` events: thinking, then the text word by
  * word, then the sources. Until the reviewed knowledge base exists the answer hands over to a person.
  */
-export function streamAnswer(c: Context, locale: Locale, question: string): Response {
+export function streamAnswer(
+	c: Context,
+	locale: Locale,
+	question: string,
+	target: AnswerTarget,
+): Response {
 	const answer = m.guide_soon({}, at(locale));
 	const words = answer.split(" ");
 	return streamSSE(c, async (stream) => {
 		const patch = async (phase: Phase): Promise<void> => {
 			const html = (
-				await (<GuideAnswer locale={locale} question={question} phase={phase} />).toString()
+				await (
+					<GuideAnswer locale={locale} question={question} phase={phase} target={target} />
+				).toString()
 			).replace(/\n/g, " ");
 			await stream.writeSSE({ event: "datastar-patch-elements", data: `elements ${html}` });
 		};

@@ -133,5 +133,14 @@
 	"prep_back": "Back to the home page",
 	"role_daniela": "Psychotherapist, neurotherapist",
 	"role_adrian": "Clinical psychologist, psychotherapist",
-	"role_specialist": "Specialist"
+	"role_specialist": "Specialist",
+	"compass_label": "Navigation and guide",
+	"compass_placeholder": "Where do you want to go, or what do you want to know?",
+	"compass_toggle": "Open the compass",
+	"compass_ask": "Ask the guide",
+	"group_children": "Children",
+	"group_teens_adults": "Teens and adults",
+	"group_centre": "The centre",
+	"nav_home": "Home",
+	"nav_how": "How we work"
 }

@@ -133,5 +133,14 @@
 	"prep_back": "Înapoi la pagina principală",
 	"role_daniela": "Psihoterapeut, neuroterapeut",
 	"role_adrian": "Psiholog clinician, psihoterapeut",
-	"role_specialist": "Specialist"
+	"role_specialist": "Specialist",
+	"compass_label": "Navigare și ghid",
+	"compass_placeholder": "Unde vrei să mergi sau ce vrei să afli?",
+	"compass_toggle": "Deschide busola",
+	"compass_ask": "Întreabă ghidul",
+	"group_children": "Copii",
+	"group_teens_adults": "Adolescenți și adulți",
+	"group_centre": "Centrul",
+	"nav_home": "Acasă",
+	"nav_how": "Cum lucrăm"
 }

@@ -2,6 +2,7 @@
 @import "@psi/design/theme.css";
 @import "@psi/ui/components.css";
 @import "@psi/ui/effects.css";
+@import "@psi/ui/compass.css";
 @source "../../../packages/ui/src";
 
 /* Page-level craft for the Psizone landing; shared effects live in @psi/ui/effects.css. */
