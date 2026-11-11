@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Plane's images pinned by DIGEST. The chart writes `<image>:<planeVersion>` and has no key for a
+# digest, so the pin is made here, on the chart's output: each image becomes
+# `<image>:<planeVersion>@sha256:…`, the tag kept for reading, the digest deciding what runs.
+#
+# The digests are what the estate's registry serves for those tags: the four upstream images are
+# the `moved docker.io/makeplane/*` rows of infrastructure/hetzner/images.list (the amd64 manifest
+# the mirror holds), the backend is apps/plane-sso's build (build.sh --push prints it). A version
+# bump moves planeVersion, the backend path in values.yaml, the images.list rows AND these lines in
+# the same change: an `images` entry whose name no longer matches pins nothing, so
+# .github/scripts/tests/plane-digests_test.sh refuses a rendered Plane workload without one.
+#
+# Listed in ../kustomization.yaml BEFORE the estate's own component, which therefore sees (and may
+# act on) the pinned images.
+images:
+  - name: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e
+    newTag: v1.4.2
+    digest: sha256:139a5e35d91b507f3b3c475347f5bccc20af27d0a6a1f724fec6b11c7a7ab56a
+  - name: WLREGISTRY/mirror/docker.io/makeplane/plane-live
+    newTag: v1.4.2
+    digest: sha256:1e7c180f16e568db51b8739d9cccee8c450b52dab6335e06ed1c29fc45aecae9
+  - name: WLREGISTRY/mirror/docker.io/makeplane/plane-frontend
+    newTag: v1.4.2
+    digest: sha256:686faa25da4bb031ef5cbf8f6ad1fea60c416dcec11d113643c3d2bb99e70d44
+  - name: WLREGISTRY/mirror/docker.io/makeplane/plane-space
+    newTag: v1.4.2
+    digest: sha256:69d0f9d545931e3c7195eb0335c3a7739da849a12c3827971e48e9f6babf2a54
+  - name: WLREGISTRY/mirror/docker.io/makeplane/plane-admin
+    newTag: v1.4.2
+    digest: sha256:40c0f58f4de29f8e30d4fa4c5db2c8bc88e64e1ea14ea81c48368e8408b0a609

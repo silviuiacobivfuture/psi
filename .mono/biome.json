@@ -1,5 +1,6 @@
 {
 	"$schema": "../node_modules/@biomejs/biome/configuration_schema.json",
+	"root": true,
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -8,15 +9,20 @@
 	"files": {
 		"includes": [
 			"**",
-			"!!**/.mono",
-			"!gitops",
-			"!pieces",
-			"!components",
-			"!estate/openbao",
 			"!pnpm-lock.yaml",
-			"!packages/ui/assets",
 			"!**/dist/**",
-			"!**/*.generated.*"
+			"!**/*.generated.*",
+			"!.mono/**",
+			"!**/node_modules/**",
+			"!pieces/**",
+			"!gitops/**",
+			"!components/**",
+			"!estate/openbao/**",
+			"!packages/ui/assets/**",
+			"!**/project.inlang/cache/**"
+		],
+		"experimentalScannerIgnores": [
+			".mono"
 		]
 	},
 	"formatter": {

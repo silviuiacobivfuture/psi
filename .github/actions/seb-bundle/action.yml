@@ -1,0 +1,71 @@
+# Composite action — install the SEB bundle estate/platform.lock names into .seb-bundle/ before a
+# job installs, builds or runs the estate's gates (the CI half of .pnpmfile.cjs; CI installs with
+# --ignore-scripts too, so this runs it explicitly).
+#
+# The bundle is pulled BY DIGEST from the estate's Harbor with a pull-only robot read from the
+# estate's OpenBao through GitHub OIDC. Which OpenBao, mount, audience, role and secret path are
+# the CI host's settings (repository variables), never text here; a missing one stops the job by
+# name. While the lock names no digest yet (no Harbor bundle), nothing is pulled and no login is
+# attempted.
+#
+# The caller holds `id-token: write` and has the repository checked out.
+name: seb-bundle
+description: Install the locked SEB bundle into .seb-bundle/ (pull-only Harbor robot from OpenBao).
+
+inputs:
+  openbao-addr:
+    description: The estate's OpenBao address (vars.OPENBAO_ADDR).
+    required: true
+  openbao-mount:
+    description: The jwt auth mount (vars.OPENBAO_JWT_MOUNT).
+    required: true
+  openbao-audience:
+    description: The audience bound on the role (vars.OPENBAO_AUDIENCE).
+    required: true
+  openbao-role:
+    description: The gate-tier role (vars.OPENBAO_ROLE_GATE).
+    required: true
+  pull-secret:
+    description: The KV v2 data path of the pull robot, fields username and password (vars.REGISTRY_PULL_SECRET).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      with:
+        node-version-file: .nvmrc
+    - id: lock
+      shell: bash
+      run: |
+        set -euo pipefail
+        if grep -qE '^\s*digest\s*=' estate/platform.lock; then echo "locked=true" >> "$GITHUB_OUTPUT"; else echo "locked=false" >> "$GITHUB_OUTPUT"; fi
+    - if: steps.lock.outputs.locked == 'true'
+      shell: bash
+      env:
+        OPENBAO_ADDR: ${{ inputs.openbao-addr }}
+        OPENBAO_JWT_MOUNT: ${{ inputs.openbao-mount }}
+        OPENBAO_AUDIENCE: ${{ inputs.openbao-audience }}
+        OPENBAO_ROLE_GATE: ${{ inputs.openbao-role }}
+        REGISTRY_PULL_SECRET: ${{ inputs.pull-secret }}
+      run: |
+        set -euo pipefail
+        miss=0
+        for k in OPENBAO_ADDR OPENBAO_JWT_MOUNT OPENBAO_AUDIENCE OPENBAO_ROLE_GATE REGISTRY_PULL_SECRET; do
+          [ -n "${!k}" ] || { echo "::error::MISSING HOST SETTING: $k"; miss=1; }
+        done
+        [ "$miss" = 0 ]
+    - if: steps.lock.outputs.locked == 'true'
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        url: ${{ inputs.openbao-addr }}
+        method: jwt
+        path: ${{ inputs.openbao-mount }}
+        role: ${{ inputs.openbao-role }}
+        jwtGithubAudience: ${{ inputs.openbao-audience }}
+        secrets: |
+          ${{ inputs.pull-secret }} username | SEB_BUNDLE_PULL_USER ;
+          ${{ inputs.pull-secret }} password | SEB_BUNDLE_PULL_PASSWORD
+    - name: Install the locked bundle
+      shell: bash
+      run: node estate/seb-bundle-install.mjs --repo "$GITHUB_WORKSPACE"

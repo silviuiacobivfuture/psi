@@ -14,7 +14,6 @@ resources:
   - harbor.yaml
   - hcloud-csi.yaml
   - headlamp.yaml
-  - headscale.yaml
   - health-digest.yaml
   - homepage.yaml
   - kyverno-policies.yaml
@@ -31,7 +30,6 @@ resources:
   - reportportal-platform.yaml
   - reportportal.yaml
   - system-upgrade-controller.yaml
-  - tailscale-operator.yaml
   - talk-hpb.yaml
   - test-reports.yaml
   - traefik-accesslog.yaml

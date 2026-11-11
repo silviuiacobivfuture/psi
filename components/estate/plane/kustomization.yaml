@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the plane piece. SEB adds nothing: this is the default.
+# An estate supplies its own directory of the same name to the bundle builder
+# (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
+# replaces this one in the build workdir. What belongs there is the estate's own and not a
+# setting (see the piece's kustomization.yaml for what this piece takes).
+resources: []

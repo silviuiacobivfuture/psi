@@ -5,6 +5,7 @@ out/
 .next/
 .nx/
 .seb-bundle/
+.seb-bundle.staging/
 coverage/
 *.tsbuildinfo
 .env

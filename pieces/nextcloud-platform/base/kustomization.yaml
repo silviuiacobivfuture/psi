@@ -8,6 +8,8 @@ resources:
   - cnpg-cluster.yaml
   - redis.yaml
   - occ-reconcile.yaml
+  # The user files' backup: the collab bucket copied into the backup bucket, 6-hourly.
+  - files-copy.yaml
   # The plain-webhook -> signed-Talk translator. Lives here because it mounts the
   # talk-channels ConfigMap and talk-bot Secret this app already owns.
   - talk-webhook.yaml

@@ -1,0 +1,52 @@
+# The estate's gates on every push to an environment branch and every pull request: the locked
+# SEB bundle first, then a frozen install, Biome, and lint/type-check/test/build for what the
+# change affects (Nx), one project at a time.
+name: estate-gates
+
+on:
+  push:
+    branches: [dev]
+  pull_request: {}
+  workflow_dispatch: {}
+
+concurrency:
+  group: estate-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write # the GitHub OIDC token OpenBao verifies (bundle pull)
+
+jobs:
+  gates:
+    runs-on: k8s
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/seb-bundle
+        with:
+          openbao-addr: ${{ vars.OPENBAO_ADDR }}
+          openbao-mount: ${{ vars.OPENBAO_JWT_MOUNT }}
+          openbao-audience: ${{ vars.OPENBAO_AUDIENCE }}
+          openbao-role: ${{ vars.OPENBAO_ROLE_GATE }}
+          pull-secret: ${{ vars.REGISTRY_PULL_SECRET }}
+      - name: Install
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile --ignore-scripts
+      - name: Biome
+        run: pnpm lint
+      - name: Affected projects
+        env:
+          NX_DAEMON: "false"
+          BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            base="$BEFORE"
+          else
+            base="origin/$BASE"
+          fi
+          pnpm exec nx affected -t lint,type-check,test,build --base="$base" --parallel=1

@@ -496,33 +496,19 @@ declared and not wired yet.
 | `secret/apps/autorizare/e2e-admin-org` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | organisation robot, administers with no right in a company |
 | `secret/apps/autorizare/e2e-inregistrare` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | organisation robot, registers its own company on an invitation |
 | `secret/apps/autorizare/e2e-auditor` | use-time | `.github/actions/autorizare-journeys/action.yml` | the auditor journeys' person, pulled per run |
-| `secret/apps/flow-engine/convex` | use-time | `.github/workflows/flow-engine.yml` | the deploy credential, read at deploy time (also doctor/repair) |
-| `secret/apps/lmn-brs/convex` | use-time | `.github/workflows/lmn-brs.yml` | the deploy credential, read at deploy time (also doctor/repair) |
-| `secret/apps/lmn-sign/convex` | use-time | `.github/workflows/lmn-sign.yml` | the deploy credential, read at deploy time (also doctor/repair) |
 | `secret/platform/kubernetes/admin-kubeconfig` | use-time | `infrastructure/hetzner/scripts/lib-headscale.sh` | the certificate-based admin kubeconfig, `route` and `public` forms (base64). Written and read by `headscale-kubeconfig.sh`, judged by doctor: ladder paths 2b and 4 in BREAK-GLASS.md |
 | `secret/apps/novu/admin` | use-time | `infrastructure/hetzner/scripts/novu-bootstrap.sh` | the dashboard's first account, to re-capture the app keys |
-| `secret/apps/reportportal/ci` | use-time | `.github/workflows/lmn-sign.yml` | CI's launch import (also lmn-brs-ci, flow-engine); written in-cluster by reportportal-config-reconcile |
+| `secret/apps/reportportal/ci` | use-time | `infrastructure/hetzner/scripts/doctor.sh` | an estate's CI launch import reads it at use time; written in-cluster by reportportal-config-reconcile, judged by doctor |
 | `secret/platform/authentik/breakglass` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | the break-glass account's TOTP key, doctor/repair |
 | `secret/platform/authentik/e2e-cititor` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | an e2e robot (AK_ROBOTS), the read-only person |
 | `secret/platform/authentik/e2e-coleg` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | an e2e robot (AK_ROBOTS), the second person |
 | `secret/platform/authentik/e2e-hub` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | an e2e robot (AK_ROBOTS), the hub's sign-in proof |
 | `secret/platform/authentik/e2e-tools` | use-time | `infrastructure/hetzner/scripts/lib-authentik.sh` | an e2e robot (AK_ROBOTS), identitate gate 9 |
 | `secret/platform/authentik/tiles-cache-api-token` | use-time | `infrastructure/hetzner/scripts/lib-retired-credentials.sh` | a retired credential's slot; doctor proves it stays blank |
-| `secret/platform/harbor/ci-robot` | use-time | `.github/workflows/nova.yml` | every image build logs in to Harbor with it |
+| `secret/platform/harbor/ci-robot` | use-time | `.github/workflows/autorizare.yml` | every image build logs in to Harbor with it |
 | `secret/platform/n8n/owner` | use-time | `infrastructure/hetzner/scripts/n8n-password-repair.sh` | n8n's owner's plain password; `n8n-sso-bootstrap.sh` and a person read it too. No pod holds it, so no ExternalSecret names it |
 | `secret/platform/talk/channels` | use-time | `infrastructure/hetzner/scripts/talk-notify.sh` | room tokens for callers outside the cluster; occ-reconcile writes it |
 | `secret/apps/qa/tobi-qa` | manual | a person | Tobi's QA sign-in (the account is migrated as a person, `gitops/platform/authentik/blueprints-people.yaml`) |
-| `secret/apps/fern-brs/backup` | outside | `infrastructure/fern/scripts/backup.sh` | the Fern estate's backup keys |
-| `secret/apps/fern-brs/e2e-clerk` | outside | `infrastructure/fern/scripts/fern-utilizatori-clerk.py` | Fern's e2e person |
-| `secret/apps/fern-brs/env` | outside | `infrastructure/fern/scripts/facturare-conecteaza.py` | Fern's app env |
-| `secret/apps/fern-brs/facturare` | outside | `infrastructure/fern/scripts/facturare-conecteaza.py` | Fern's invoicing credential |
-| `secret/apps/fern-brs/facturare-oidc` | outside | `infrastructure/fern/scripts/sync-secrets.sh` | synced to Fly.io |
-| `secret/apps/fern-brs/landing` | outside | `infrastructure/fern/scripts/sync-secrets.sh` | synced to Fly.io |
-| `secret/apps/fern-brs/date-personale` | outside | — | no reader in this repository (the keys are set on the Fern deployment); the Fern lane decides |
-| `secret/apps/fern-brs/facturare-operator` | outside | — | no reader in this repository; the Fern lane decides |
-| `secret/apps/fern-brs/facturare-testeri` | outside | — | no reader in this repository; the Fern lane decides |
-| `secret/apps/fern-infra/env` | outside | — | written by seed-secrets.sh from `infrastructure/fern/.env`; no reader here |
-| `secret/apps/fern-landing/site` | outside | — | written by seed-secrets.sh; sync-secrets.sh reads `apps/fern-brs/landing` instead |
 | `secret/apps/_permtest` | retire | — | permission/audit smoke leftovers (fields AUDIT_PROBE, probe, t, watcher_test); called dead since 2026-08-20 |
 | `secret/apps/autorizare/scim` | retire | — | the hash of SCIM's bearer token; SCIM retired 2026-11-02 (audit PA15), no ExternalSecret reads it |
 | `secret/platform/authentik/autorizare-scim` | retire | — | SCIM's bearer token, for a provider that never existed in the directory; SCIM retired 2026-11-02 |
@@ -531,10 +517,6 @@ declared and not wired yet.
 | `secret/apps/autorizare/e2e-playwright-enrolled` | retire | — | superseded (the authorization work ledger (first estate's history, not shipped)); nothing reads it |
 | `secret/apps/autorizare/e2e-playwright-revocable` | retire | — | nothing reads it; the address survives only as a literal in a Go test's arguments |
 | `secret/apps/changelog/env` | retire | — | superseded 2026-10-22: the URLs are composed from apps/changelog/db (gitops/services/changelog/base/externalsecret.yaml) |
-| `secret/apps/convex/flow-engine` | retire | — | blanked (no fields); the live credentials are apps/convex/flow-engine/{instance,db} |
-| `secret/apps/convex/lmn-brs` | retire | — | blanked (no fields); the live credentials are apps/convex/lmn-brs/{instance,db} |
-| `secret/apps/convex/lmn-sign` | retire | — | blanked (no fields); the live credentials are apps/convex/lmn-sign/{instance,db} |
-| `secret/apps/lmn-brs/facturare-admin-test` | retire | — | only ledger prose mentions it; nothing reads it |
 | `secret/platform/authentik/invoice-oidc` | retire | — | RUNBOOK: "no reader and no writer" once the invoice blueprint is green — soft-delete then |
 | `secret/platform/authentik-business/autorizare-oidc` | retire | — | blanked; the business instance went on 2026-10-25 (seed-secrets.sh) |
 | `secret/platform/authentik-business/bootstrap` | retire | — | blanked; the business instance went on 2026-10-25 |
