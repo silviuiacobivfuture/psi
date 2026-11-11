@@ -1,0 +1,14 @@
+# Chroma's data (/data: the SQLite catalogue and the HNSW segments). Hetzner block storage,
+# grown in place if needed (allowVolumeExpansion). Guarded against Argo's prune by the
+# prune-guard component. Velero's 6-hourly schedule backs it up with the node agent (kopia):
+# it covers every namespace not on its exclude list, and `chroma` is not on it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chroma-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: psizone-web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls: [{ hosts: [landing.psizone.ro], secretName: psizone-web-tls }]
+  rules:
+    - host: landing.psizone.ro
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: psizone-web, port: { name: http } } } }]

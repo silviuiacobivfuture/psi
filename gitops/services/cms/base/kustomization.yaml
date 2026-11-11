@@ -1,0 +1,17 @@
+# cms — psi's content management (Payload 3), apps/cms. Postgres in-cluster (cms-db), files in
+# the estate's object storage (bucket psi-cms-dev, prefix media/), editors signed in through
+# Authentik (the cms application in gitops/platform/authentik/blueprints-cms.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cms
+resources:
+  - resourcequota.yaml
+  - cnpg-cluster.yaml
+  - externalsecret.yaml
+  - harbor-pull-externalsecret.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

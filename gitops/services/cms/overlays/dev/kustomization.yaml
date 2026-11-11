@@ -1,0 +1,9 @@
+# cms on dev. CI moves newTag after each image it pushes; never edit it by hand.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cms
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/cms
+    newTag: "f43a6f7"

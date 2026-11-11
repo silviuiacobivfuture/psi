@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eqsync-web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls: [{ hosts: [eqsync.psizone.ro], secretName: eqsync-web-tls }]
+  rules:
+    - host: eqsync.psizone.ro
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: eqsync-web, port: { name: http } } } }]

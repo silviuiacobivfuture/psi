@@ -1,0 +1,40 @@
+{
+	"name": "@psi/cms",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "psi's content management: Payload 3 on Next.js, Postgres, the estate's object storage, sign-in through the estate's Authentik",
+	"scripts": {
+		"dev": "next dev --port 3000",
+		"build": "next build",
+		"start": "node .next/standalone/apps/cms/server.js",
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --minWorkers=1 --maxWorkers=2",
+		"payload": "payload",
+		"generate:importmap": "payload generate:importmap",
+		"migrate:create": "payload migrate:create"
+	},
+	"dependencies": {
+		"@payloadcms/db-postgres": "3.93.0",
+		"@payloadcms/next": "3.93.0",
+		"@payloadcms/richtext-lexical": "3.93.0",
+		"@payloadcms/storage-s3": "3.93.0",
+		"@payloadcms/translations": "3.93.0",
+		"@payloadcms/ui": "3.93.0",
+		"graphql": "^16.11.0",
+		"next": "16.4.6",
+		"payload": "3.93.0",
+		"payload-oauth2": "1.0.21",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"sharp": "0.35.5",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.7.2",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"typescript": "^5.7.3",
+		"vitest": "^2.1.9"
+	}
+}

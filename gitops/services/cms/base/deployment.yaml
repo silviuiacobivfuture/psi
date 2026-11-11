@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cms
+  labels: { app: cms }
+  annotations:
+    # Rolls the pods when cms-env changes (OpenBao -> ESO -> Secret -> roll).
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: cms }
+  template:
+    metadata:
+      labels: { app: cms }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      initContainers:
+        # FIRST: fail LOUD on a missing or blank secret, before the app boots (src/env.ts would
+        # also refuse, naming the key). `${VAR:-}` survives kubelet expansion; `$$` would not —
+        # assert each key literally. Adding a key = adding its line.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: cms-env }
+          command:
+            - sh
+            - -c
+            - >-
+              m=0;
+              [ -n "${DATABASE_URI:-}" ] || { echo "MISSING REQUIRED SECRET: DATABASE_URI" >&2; m=1; };
+              [ -n "${PAYLOAD_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: PAYLOAD_SECRET" >&2; m=1; };
+              [ -n "${BREAKGLASS_EMAIL:-}" ] || { echo "MISSING REQUIRED SECRET: BREAKGLASS_EMAIL" >&2; m=1; };
+              [ -n "${BREAKGLASS_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: BREAKGLASS_PASSWORD" >&2; m=1; };
+              [ -n "${OIDC_CLIENT_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_ID" >&2; m=1; };
+              [ -n "${OIDC_CLIENT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_SECRET" >&2; m=1; };
+              [ -n "${S3_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: S3_ACCESS_KEY_ID" >&2; m=1; };
+              [ -n "${S3_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: S3_SECRET_ACCESS_KEY" >&2; m=1; };
+              [ "$m" = 0 ] && echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+        # SECOND: wait for the database to accept connections (CNPG creates it alongside this
+        # Deployment). Payload keeps a failed first connection for the life of the process, so
+        # starting before the database is up leaves a pod that answers 500 until restarted.
+        # Bounded: after 5 minutes it fails loud instead of waiting forever.
+        - name: wait-for-db
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          command:
+            - sh
+            - -c
+            - 'i=0; until nc -z -w 2 cms-db-rw 5432; do i=$((i+1)); [ "$i" -ge 150 ] && { echo "DATABASE NOT REACHABLE: cms-db-rw:5432" >&2; exit 1; }; sleep 2; done; echo db-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: cms
+          image: registry.psizone.ro/psi/cms
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef: { name: cms-env }
+          env:
+            - { name: SERVER_URL, value: "https://cms.psizone.ro" }
+            - { name: OIDC_ISSUER, value: "https://sso.psizone.ro/application/o/cms/" }
+            - { name: S3_BUCKET, value: psi-cms-dev }
+            - { name: S3_REGION, value: nbg1 }
+            - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          startupProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: { path: /admin/login, port: 8080 }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          # Liveness reads through Payload (and so the database): a process whose Payload
+          # failed to start answers 500 here and is restarted, rather than sitting unready.
+          livenessProbe:
+            httpGet: { path: /admin/login, port: 8080 }
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 6

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: psizone-web
+spec:
+  selector: { app: psizone-web }
+  ports: [{ name: http, port: 80, targetPort: http }]

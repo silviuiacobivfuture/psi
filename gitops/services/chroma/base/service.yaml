@@ -1,0 +1,13 @@
+# Only the auth sidecar's port. Chroma itself (127.0.0.1:8000) and the probe port (8081) are
+# not reachable through this Service. In-cluster apps use http://chroma.chroma.svc:8000
+# with the same token as from outside.
+apiVersion: v1
+kind: Service
+metadata:
+  name: chroma
+spec:
+  selector: { app: chroma }
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8080

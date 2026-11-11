@@ -1,0 +1,30 @@
+# Public, with a real certificate (cert-manager, letsencrypt-prod); external-dns publishes the
+# record from the host. Everything behind it requires the token (the auth sidecar).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chroma
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Chroma"
+    gethomepage.dev/description: "Vector database (token required)"
+    gethomepage.dev/group: "Services"
+    gethomepage.dev/icon: "mdi-vector-polyline"
+    gethomepage.dev/pod-selector: "app=chroma"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chroma.psizone.ro
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chroma
+                port: { number: 8000 }
+  tls:
+    - hosts: [chroma.psizone.ro]
+      secretName: chroma-tls

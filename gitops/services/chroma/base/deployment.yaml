@@ -1,0 +1,114 @@
+# Chroma 1.5.9 (single node) + its auth sidecar. One replica on a ReadWriteOnce volume, so
+# Recreate: the old pod releases the volume before the new one mounts it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chroma
+  labels: { app: chroma }
+  annotations:
+    # The sidecar reads the token from the environment at start: Reloader restarts the pod
+    # when OpenBao -> ESO changes the Secret.
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: chroma }
+  template:
+    metadata:
+      labels: { app: chroma }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # FIRST: refuse to start without a usable token. An empty token would make the
+        # sidecar's map match a request that sends no token at all, i.e. open the database.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: chroma-auth }
+          command:
+            - sh
+            - -c
+            # kubelet expands only $(VAR); ${VAR:-} and ${#VAR} reach sh untouched.
+            - '[ -n "${CHROMA_SERVER_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_SERVER_TOKEN" >&2; exit 1; }; case "$CHROMA_SERVER_TOKEN" in *[!0-9a-f]*) echo "INVALID SECRET: CHROMA_SERVER_TOKEN must be lowercase hex" >&2; exit 1;; esac; [ "${#CHROMA_SERVER_TOKEN}" -ge 32 ] || { echo "INVALID SECRET: CHROMA_SERVER_TOKEN shorter than 32" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: chroma
+          image: registry.psizone.ro/mirror/docker.io/chromadb/chroma:1.5.9@sha256:abcce7c335e2dab9f11ef629296f7309b09cb19ae4b34da32ac7e34ff5773140
+          # The image's config (/config.yaml: persist_path /data); CHROMA_* overrides it.
+          env:
+            # Loopback only: nothing but the auth sidecar in this pod can reach Chroma.
+            - { name: CHROMA_LISTEN_ADDRESS, value: "127.0.0.1" }
+            - { name: CHROMA_PORT, value: "8000" }
+            - { name: CHROMA_PERSIST_PATH, value: /data }
+            - { name: CHROMA_ALLOW_RESET, value: "false" }
+            - { name: HOME, value: /tmp }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+          resources:
+            requests: { cpu: 250m, memory: 1Gi }
+            limits: { cpu: "2", memory: 4Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          # Chroma's heartbeat, through the sidecar's probe-only port (Chroma is on loopback).
+          startupProbe:
+            httpGet: { path: /api/v2/heartbeat, port: 8081 }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /api/v2/heartbeat, port: 8081 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/v2/heartbeat, port: 8081 }
+            periodSeconds: 20
+            failureThreshold: 3
+        - name: auth
+          image: registry.psizone.ro/mirror/docker.io/nginxinc/nginx-unprivileged:1.27.4-alpine@sha256:2211200bb46431bb70f044f83cd989901205ce3232e1c431822876f1fd166689
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: probe, containerPort: 8081 }
+          envFrom:
+            - secretRef: { name: chroma-auth }
+          env:
+            # Only this variable is substituted into the template.
+            - { name: NGINX_ENVSUBST_FILTER, value: "^CHROMA_SERVER_TOKEN$" }
+          volumeMounts:
+            - { name: proxy-template, mountPath: /etc/nginx/templates, readOnly: true }
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 101
+            runAsGroup: 101
+            capabilities: { drop: ["ALL"] }
+          readinessProbe:
+            httpGet: { path: /proxy-healthz, port: 8081 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /proxy-healthz, port: 8081 }
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: chroma-data }
+        - name: tmp
+          emptyDir: {}
+        - name: proxy-template
+          configMap: { name: chroma-auth-proxy }
