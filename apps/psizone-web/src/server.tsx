@@ -4,9 +4,11 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import { HUBS } from "./content/hubs";
 import { AskBody, streamAnswer } from "./guide";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
+import { HubPage } from "./pages/hub";
 import { themeFrom } from "./theme";
 
 const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
@@ -34,6 +36,19 @@ for (const [locale, prefix] of [
 			<HomePage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={origin} />,
 		);
 	});
+	for (const hub of HUBS) {
+		app.get(`${prefix}${hub.path}`, (c) => {
+			const origin = new URL(c.req.url).origin;
+			return c.html(
+				<HubPage
+					hub={hub}
+					locale={locale}
+					theme={themeFrom(getCookie(c, "theme"))}
+					origin={origin}
+				/>,
+			);
+		});
+	}
 	app.post(`${prefix}/ghid`, async (c) => {
 		const parsed = AskBody.safeParse(await c.req.json().catch(() => null));
 		if (!parsed.success) return c.body(null, 204);
