@@ -30,7 +30,7 @@ export function HomePage({
 			description={m.meta_description({}, o)}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
 		>
-			<Header locale={locale} otherHref={otherHref} />
+			<Header locale={locale} otherHref={otherHref} theme={theme} />
 			<main id="continut">
 				<Hero locale={locale} />
 				<Hubs locale={locale} />

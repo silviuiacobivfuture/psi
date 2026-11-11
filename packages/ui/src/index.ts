@@ -25,6 +25,7 @@ export {
 } from "./components/dawn-landscape";
 export { DawnRidges, type DawnRidgesProps } from "./components/dawn-ridges";
 export { DayIndex, type DayIndexProps } from "./components/day-index";
+export { DayNight, type DayNightProps } from "./components/day-night";
 export { type FilterChip, FilterChips, type FilterChipsProps } from "./components/filter-chips";
 export { type FocusLevel, FocusScale, type FocusScaleProps } from "./components/focus-scale";
 export { GlassCard, type GlassCardProps } from "./components/glass-card";

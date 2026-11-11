@@ -32,7 +32,7 @@ export function HubPage({
 			description={hub.text(o)}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
 		>
-			<Header locale={locale} otherHref={otherHref} />
+			<Header locale={locale} otherHref={otherHref} theme={theme} />
 			<main id="continut">
 				<AmbientField intensity="low" class="pz-arc -mt-20">
 					<div class="mx-auto max-w-6xl px-5 pb-28 pt-44">

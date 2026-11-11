@@ -34,7 +34,7 @@ export function ContactPage({
 			description={m.contact_lead({}, o)}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
 		>
-			<Header locale={locale} otherHref={otherHref} />
+			<Header locale={locale} otherHref={otherHref} theme={theme} />
 			<main id="continut">
 				<AmbientField intensity="low" class="-mt-20">
 					<div class="mx-auto grid max-w-6xl gap-16 px-5 pb-28 pt-44 lg:grid-cols-[1fr_1.1fr]">

@@ -148,5 +148,7 @@
 	"guide_refusal_out_of_scope": "Diagnosis, medication or your own treatment we discuss only with a specialist, in person.",
 	"guide_refusal_no_content": "We don't have a reviewed answer about this yet. Write to us and a person from the team will answer.",
 	"guide_refusal_unavailable": "The guide isn't available right now. Try again a little later, or write to us.",
-	"guide_reviewed_by": "reviewed by {name}, {date}"
+	"guide_reviewed_by": "reviewed by {name}, {date}",
+	"theme_day": "Day",
+	"theme_night": "Night"
 }

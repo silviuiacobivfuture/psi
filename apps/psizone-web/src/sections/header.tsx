@@ -1,15 +1,23 @@
-import { Button, Compass, type CompassGroup, Logo, ThemeToggle } from "@psi/ui";
+import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { HUBS } from "../content/hubs";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
-import { THEMES } from "../theme";
+import { THEMES, type Theme } from "../theme";
 
 /**
  * No navbar: the brand sits quietly in the corner, and everything else is the compass at the foot
  * of the screen — go somewhere, or ask the guide.
  */
-export function Header({ locale, otherHref }: { locale: Locale; otherHref: string }): JSX.Element {
+export function Header({
+	locale,
+	otherHref,
+	theme,
+}: {
+	locale: Locale;
+	otherHref: string;
+	theme: Theme;
+}): JSX.Element {
 	const o = at(locale);
 	const b = base(locale);
 	const hub = (id: string) => HUBS.find((h) => h.id === id);
@@ -47,6 +55,16 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				<div class="mx-auto flex max-w-6xl items-center px-5 py-6">
 					<span class="pointer-events-auto">
 						<Logo size={30} href={`${b}/`} />
+					</span>
+					<span class="pointer-events-auto ml-auto">
+						<DayNight
+							day="psizone-light"
+							night="psizone-dark"
+							current={theme}
+							label={m.theme_toggle({}, o)}
+							dayLabel={m.theme_day({}, o)}
+							nightLabel={m.theme_night({}, o)}
+						/>
 					</span>
 				</div>
 			</header>

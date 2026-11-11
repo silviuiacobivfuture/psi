@@ -1243,3 +1243,42 @@ body {
 [data-theme="psizone-light"] .pz-hub__glow--1 {
 	background: var(--accent);
 }
+
+/* Day / night: a quiet two-segment pill; the pressed segment is the current theme. */
+.pz-daynight {
+	display: inline-flex;
+	margin: 0;
+	min-inline-size: 0;
+	gap: 2px;
+	padding: 3px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--line-control);
+	background: var(--surface-1);
+}
+.pz-daynight__option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--ink-muted);
+	font: 600 13px / 1 var(--pz-label);
+	cursor: pointer;
+	transition:
+		background 0.2s,
+		color 0.2s;
+}
+.pz-daynight__option:hover {
+	color: var(--ink);
+}
+.pz-daynight__option[aria-pressed="true"] {
+	background: var(--surface-2);
+	color: var(--ink);
+}
+.pz-daynight__option:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}

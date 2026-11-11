@@ -148,5 +148,7 @@
 	"guide_refusal_out_of_scope": "Despre diagnostic, medicație sau tratamentul tău vorbim doar cu un specialist, față în față.",
 	"guide_refusal_no_content": "Nu avem încă un răspuns revizuit despre asta. Scrie-ne și îți răspunde un om din echipă.",
 	"guide_refusal_unavailable": "Ghidul nu e disponibil acum. Încearcă din nou puțin mai târziu sau scrie-ne.",
-	"guide_reviewed_by": "revizuit de {name}, {date}"
+	"guide_reviewed_by": "revizuit de {name}, {date}",
+	"theme_day": "Zi",
+	"theme_night": "Noapte"
 }
