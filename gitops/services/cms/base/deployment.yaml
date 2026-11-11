@@ -52,6 +52,26 @@ spec:
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
             readOnlyRootFilesystem: true
+        # SECOND: wait for the database to accept connections (CNPG creates it alongside this
+        # Deployment). Payload keeps a failed first connection for the life of the process, so
+        # starting before the database is up leaves a pod that answers 500 until restarted.
+        # Bounded: after 5 minutes it fails loud instead of waiting forever.
+        - name: wait-for-db
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          command:
+            - sh
+            - -c
+            - 'i=0; until nc -z -w 2 cms-db-rw 5432; do i=$((i+1)); [ "$i" -ge 150 ] && { echo "DATABASE NOT REACHABLE: cms-db-rw:5432" >&2; exit 1; }; sleep 2; done; echo db-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
       containers:
         - name: cms
           image: registry.psizone.ro/psi/cms
@@ -80,6 +100,10 @@ spec:
             httpGet: { path: /admin/login, port: 8080 }
             periodSeconds: 10
             timeoutSeconds: 5
+          # Liveness reads through Payload (and so the database): a process whose Payload
+          # failed to start answers 500 here and is restarted, rather than sitting unready.
           livenessProbe:
-            httpGet: { path: /healthz, port: 8080 }
+            httpGet: { path: /admin/login, port: 8080 }
             periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 6
