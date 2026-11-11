@@ -29,7 +29,7 @@ BUCKET_PREFIX: psi
 DNS_PROVIDER: cloudflare
 DNS_ZONE: psizone.ro
 DNS_APEX: foreign
-SES_REGION: eu-west-1
+SES_REGION: eu-central-1
 REGISTRY_HOST: registry.psizone.ro
 REGISTRY_PROJECT_APPS: psi
 REGISTRY_PROJECT_MIRROR: mirror

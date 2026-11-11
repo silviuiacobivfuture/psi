@@ -60,7 +60,7 @@ spec:
     retentionPolicy: "14d"
     barmanObjectStore:
       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plunk-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId: { name: plunk-backup-s3, key: AWS_ACCESS_KEY_ID }
         secretAccessKey: { name: plunk-backup-s3, key: AWS_SECRET_ACCESS_KEY }

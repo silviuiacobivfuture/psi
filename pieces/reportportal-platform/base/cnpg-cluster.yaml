@@ -108,7 +108,7 @@ spec:
       # WLBUCKET-reportportal-dev: that bucket holds ReportPortal's ATTACHMENTS and is
       # app-facing; backups stay on the platform bucket by convention.
       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/reportportal-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           name: reportportal-backup-s3

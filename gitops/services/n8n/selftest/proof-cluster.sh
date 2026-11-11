@@ -55,8 +55,8 @@ spec:
               export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
               E=https://fsn1.your-objectstorage.com
               for top in cnpg db-dumps; do
-                for d in \$(aws s3 ls s3://rmx-tfstate-dev/\$top/ --endpoint-url \$E | awk '/PRE n8n-proof/ {print \$2}'); do
-                  aws s3 rm --recursive s3://rmx-tfstate-dev/\$top/\$d --endpoint-url \$E --only-show-errors
+                for d in \$(aws s3 ls s3://psi-tfstate-dev/\$top/ --endpoint-url \$E | awk '/PRE n8n-proof/ {print \$2}'); do
+                  aws s3 rm --recursive s3://psi-tfstate-dev/\$top/\$d --endpoint-url \$E --only-show-errors
                 done
               done
               echo cleaned
@@ -321,7 +321,7 @@ pf_up
 section "restore"
 kubectl -n "$NS" create job --from=cronjob/n8n-db-dump proof-dump >/dev/null
 kubectl -n "$NS" wait --for=condition=complete job/proof-dump --timeout=300s >/dev/null || true
-check R1 "the real dump job uploaded" "$(kubectl -n "$NS" logs job/proof-dump -c upload 2>&1)" 'DB dump uploaded: s3://rmx-tfstate-dev/db-dumps/n8n-proof-'
+check R1 "the real dump job uploaded" "$(kubectl -n "$NS" logs job/proof-dump -c upload 2>&1)" 'DB dump uploaded: s3://psi-tfstate-dev/db-dumps/n8n-proof-'
 set +e
 RESTORE_OUT="$(printf 'RESTORE\n' | N8N_RESTORE_NS="$NS" N8N_RESTORE_DUMP_PREFIX="db-dumps/$NS-$RUN" bash "$ROOT/infrastructure/hetzner/scripts/restore-n8n-db.sh" dev --from-dump 2>&1)"; RC=$?
 set -e
@@ -359,7 +359,7 @@ spec:
   externalClusters:
     - name: origin
       barmanObjectStore:
-        destinationPath: s3://rmx-tfstate-dev/cnpg/$NS-$RUN
+        destinationPath: s3://psi-tfstate-dev/cnpg/$NS-$RUN
         endpointURL: https://fsn1.your-objectstorage.com
         serverName: n8n-db
         s3Credentials:

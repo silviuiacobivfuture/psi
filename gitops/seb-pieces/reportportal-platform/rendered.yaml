@@ -1136,7 +1136,7 @@ spec:
       data:
         compression: gzip
       destinationPath: s3://psi-tfstate-dev/cnpg/reportportal-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           key: AWS_ACCESS_KEY_ID

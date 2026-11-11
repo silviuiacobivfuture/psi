@@ -99,7 +99,7 @@ spec:
       # NOTE this is NOT the Plane uploads bucket (…-plane-dev): that bucket holds Plane's user uploads and
       # is app-facing; backups stay on the platform bucket by convention.
       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plane-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           name: plane-backup-s3
