@@ -31,11 +31,12 @@ and translations are not among them yet. Platform code is never copied here; pla
   (zod); explicit types on exported functions.
 - **Files ≤ 500 lines, one responsibility each**; no `utils.ts` dumping grounds.
 - **i18n-first**: every user-facing string goes through the i18n library; no bare strings in JSX.
-- **One design language: psi's.** Every psi app (the three brand landings, the blog, consoles)
-  speaks the psi design language: tokens, eight themes, brand books and component guides in
-  `packages/design/` (`@psi/design`). A component two apps need is never written into an app.
-  What the component library is built from (the kit's own components, or SEB's design system as
-  the starting point) is still to be decided.
+- **One design language: psi's, on SEB's white-label design system.** The component library is
+  SEB's common design system, consumed from SEB the way the first estate (rmx) consumes it, never
+  forked here. psi brings the THEME: the identity in `packages/design/` (`@psi/design`: tokens
+  for eight themes, brand books, component guides) applied on top of that library. Every psi app
+  (the three brand landings, the blog, consoles) uses it; a component two apps need is never
+  written into an app.
 - **No `rmx` naming in this repository.** Package names, imports, paths and identifiers are
   `@psi/…`/psi's own. Any `rmx` left here is a leftover to remove, never a pattern to copy.
 - **Authorization goes through Polaris**: no hand-rolled roles/permissions; an app declares
