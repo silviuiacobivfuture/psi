@@ -7,3 +7,4 @@ resources:
   - hemisync-web.yaml
   - blog-web.yaml
   - chroma.yaml
+  - cms.yaml

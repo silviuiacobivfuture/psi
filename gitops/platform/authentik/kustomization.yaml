@@ -62,6 +62,9 @@ resources:
   # every estate application the hub declares. Also in blueprints.configMaps.
   # The platform's tiles here; the applications' are spliced in by apps/.
   - blueprints-estate-tiles.yaml
+  # psi's cms: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
+  - blueprints-cms.yaml
+  - cms-oidc-externalsecret.yaml
   # The working fields the estate's values are built in (never rendered). See below.
   - identity/lines.yaml
 

@@ -1,0 +1,31 @@
+# cms on the public internet, TLS from cert-manager, DNS from external-dns (Traefik ingresses).
+# No forward-auth: the admin is Payload's own sign-in (through Authentik), and the blog reads
+# published articles from its REST API anonymously.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cms
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "CMS"
+    gethomepage.dev/description: "Content for the blog and the sites"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/icon: "mdi-text-box-edit"
+    gethomepage.dev/pod-selector: "app=cms"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: cms.psizone.ro
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cms
+                port: { number: 80 }
+  tls:
+    - hosts: [cms.psizone.ro]
+      secretName: cms-tls

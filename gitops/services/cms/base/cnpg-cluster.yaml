@@ -1,0 +1,56 @@
+# cms's Postgres — a CloudNativePG Cluster, the shape of every in-cluster database here
+# (gitops/services/changelog/base/cnpg-cluster.yaml; reasoning there). One role, the owner:
+# Payload applies its own migrations when the server starts (prodMigrations), so the process
+# that owns the schema and the one that reads it are the same program.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cms-db
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  instances: 1
+  # Fast clean stop (10 s), not the 180 s smart-shutdown default: pooled clients never leave.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  bootstrap:
+    initdb:
+      database: cms
+      owner: cms
+      secret:
+        name: cms-db-app
+  # hcloud-volumes: a single-instance Cluster has no live path onto another storage class.
+  # 10Gi is the Hetzner block-volume minimum, not a sizing estimate.
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      # The estate's backup bucket (psi-tfstate-dev, nbg1), one prefix per database.
+      destinationPath: s3://psi-tfstate-dev/cnpg/cms-db
+      endpointURL: https://nbg1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: cms-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: cms-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. CNPG cron has SIX fields (leading seconds).
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: cms-db-base
+spec:
+  # 04:40 Sunday — grep `schedule:` across gitops/ before taking another slot.
+  schedule: "0 40 4 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: cms-db

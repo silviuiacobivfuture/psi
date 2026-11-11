@@ -1,0 +1,179 @@
+# cms's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
+# manifests are, which secrets it reads. SEB's doctor derives cms's health checks from it
+# (doctor/plan.mjs): the ExternalSecrets synced with every required key, the OpenBao paths
+# present, the workload, the host, the database and its backups.
+schema: seb.app/v1
+key: cms
+name: cms
+displayName: CMS
+namespace: cms
+components:
+  - name: cms
+    path: apps/cms
+    namespace: cms
+    gitops: gitops/services/cms
+    image: psi/cms
+    build:
+      workflow: .github/workflows/apps.yml
+      dockerfile: apps/cms/Dockerfile
+      context: .
+    port: 8080
+    hosts:
+      - prefix: cms
+        exposure: public
+        ingress: cms
+    overlayImages:
+      - psi/cms
+    workloads:
+      - name: cms
+        kind: Deployment
+        images:
+          - psi/cms
+        restartOnSecretChange: true
+        envFrom: [cms-env]
+        requiredEnv:
+          - DATABASE_URI
+          - PAYLOAD_SECRET
+          - BREAKGLASS_EMAIL
+          - BREAKGLASS_PASSWORD
+          - OIDC_CLIENT_ID
+          - OIDC_CLIENT_SECRET
+          - S3_ACCESS_KEY_ID
+          - S3_SECRET_ACCESS_KEY
+        initContainers: [assert-secrets]
+        probes:
+          startup: { path: /healthz, port: 8080 }
+          readiness: { path: /admin/login, port: 8080 }
+          liveness: { path: /healthz, port: 8080 }
+databases:
+  - kind: cnpg
+    name: cms-db
+    namespace: cms
+    database: cms
+    backups:
+      - schedule: "0 40 4 * * 0"
+        destination: s3://psi-tfstate-dev/cnpg/cms-db
+    restore:
+      drill: null
+storage:
+  - workload: cms
+    env: S3_BUCKET
+    bucket: psi-cms-dev
+externalSecrets:
+  - name: cms-env
+    namespace: cms
+    target: cms-env
+    manifest: gitops/services/cms/base/externalsecret.yaml
+    template:
+      - DATABASE_URI
+      - PAYLOAD_SECRET
+      - BREAKGLASS_EMAIL
+      - BREAKGLASS_PASSWORD
+      - OIDC_CLIENT_ID
+      - OIDC_CLIENT_SECRET
+      - S3_ACCESS_KEY_ID
+      - S3_SECRET_ACCESS_KEY
+  - name: cms-db-app
+    namespace: cms
+    target: cms-db-app
+    manifest: gitops/services/cms/base/externalsecret.yaml
+    template: [username, password]
+  - name: cms-backup-s3
+    namespace: cms
+    target: cms-backup-s3
+    manifest: gitops/services/cms/base/externalsecret.yaml
+  - name: authentik-cms-oidc
+    namespace: authentik
+    target: authentik-cms-oidc
+    manifest: gitops/platform/authentik/cms-oidc-externalsecret.yaml
+secrets:
+  - path: apps/cms/db
+    owner: cms
+    keys:
+      - name: username
+        source: { kind: literal }
+        readers:
+          - { kind: external-secret, secret: cms/cms-env, env: DATABASE_URI }
+          - { kind: external-secret, secret: cms/cms-db-app, env: username }
+      - name: password
+        source: { kind: generated, length: 40 }
+        readers:
+          - { kind: external-secret, secret: cms/cms-env, env: DATABASE_URI }
+          - { kind: external-secret, secret: cms/cms-db-app, env: password }
+  - path: apps/cms/env
+    owner: cms
+    keys:
+      - name: PAYLOAD_SECRET
+        source: { kind: generated, length: 64 }
+        readers: [{ kind: external-secret, secret: cms/cms-env, env: PAYLOAD_SECRET }]
+      - name: BREAKGLASS_EMAIL
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: cms/cms-env, env: BREAKGLASS_EMAIL }]
+      - name: BREAKGLASS_PASSWORD
+        source: { kind: generated, length: 32 }
+        readers: [{ kind: external-secret, secret: cms/cms-env, env: BREAKGLASS_PASSWORD }]
+  - path: apps/cms/oidc
+    owner: cms
+    keys:
+      - name: client_id
+        source: { kind: generated, length: 40 }
+        readers:
+          - { kind: external-secret, secret: cms/cms-env, env: OIDC_CLIENT_ID }
+          - { kind: external-secret, secret: authentik/authentik-cms-oidc, env: AUTHENTIK_OIDC__CMS__ID }
+      - name: client_secret
+        source: { kind: generated, length: 96 }
+        readers:
+          - { kind: external-secret, secret: cms/cms-env, env: OIDC_CLIENT_SECRET }
+          - { kind: external-secret, secret: authentik/authentik-cms-oidc, env: AUTHENTIK_OIDC__CMS__SECRET }
+oidc:
+  client: cms
+  kind: confidential
+  delegation: false
+  platform: false
+  redirectUris: [https://cms.psizone.ro/api/users/oauth/callback]
+  postLogoutRedirectUris: []
+  frontchannelLogoutUris: []
+groups:
+  - name: app-cms-editor
+    state: present
+    declaredIn: gitops/platform/authentik/blueprints-cms.yaml
+    role: editor
+ci:
+  workflows:
+    - file: .github/workflows/apps.yml
+      images: [psi/cms]
+      buildArgs: [REGISTRY_HOST, REGISTRY_PROJECT_MIRROR]
+      bumps: [gitops/services/cms/overlays/dev/kustomization.yaml]
+health:
+  secretChecks:
+    - label: cms environment
+      externalSecret: cms/cms-env
+      secret: cms-env
+      keys:
+        - DATABASE_URI
+        - PAYLOAD_SECRET
+        - BREAKGLASS_EMAIL
+        - BREAKGLASS_PASSWORD
+        - OIDC_CLIENT_ID
+        - OIDC_CLIENT_SECRET
+        - S3_ACCESS_KEY_ID
+        - S3_SECRET_ACCESS_KEY
+    - label: cms database owner
+      externalSecret: cms/cms-db-app
+      secret: cms-db-app
+      keys: [username, password]
+    - label: cms backups
+      externalSecret: cms/cms-backup-s3
+      secret: cms-backup-s3
+      keys: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
+    - label: cms OIDC client (Authentik)
+      externalSecret: authentik/authentik-cms-oidc
+      secret: authentik-cms-oidc
+      keys: [AUTHENTIK_OIDC__CMS__ID, AUTHENTIK_OIDC__CMS__SECRET]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/cms/db, apps/cms/env, apps/cms/oidc]
+  keys: []
+findings: []

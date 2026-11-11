@@ -1,0 +1,26 @@
+# Guard-rails for the cms namespace (the per-service base convention): the LimitRange backfills
+# any container that names no resources, the quota caps the namespace. Sized for the app
+# (req 100m/384Mi, lim 1/1Gi) + a rollout surge, cms-db (50m/128Mi, lim 500m/512Mi) and the
+# CNPG initdb Job on first boot.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cms
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 250m, memory: 256Mi }
+      max: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cms
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    pods: "8"

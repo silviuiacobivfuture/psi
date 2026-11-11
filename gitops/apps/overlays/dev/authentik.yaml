@@ -68,6 +68,12 @@ spec:
             - secretRef:
                 name: authentik-n8n-scim
                 optional: true
+            # psi's cms OIDC client (gitops/platform/authentik/cms-oidc-externalsecret.yaml).
+            # OPTIONAL so a missing client never holds the directory down; the doctor grades it
+            # (apps/cms/seb.app.yaml) and the cms provider shows an empty client id meanwhile.
+            - secretRef:
+                name: authentik-cms-oidc
+                optional: true
           # The Romanian mail templates (gitops/platform/authentik/email-templates.yaml),
           # under Authentik's email.template_dir (/templates). Read-only.
           volumes:
@@ -185,6 +191,8 @@ spec:
             - authentik-blueprints-theme
             # A library tile per estate application (generated). Also in the kustomization.
             - authentik-blueprints-estate-tiles
+            # psi's cms (OIDC provider, application, editors). Also in the kustomization.
+            - authentik-blueprints-cms
         # securityContext satisfies the cluster Kyverno policies (Enforce):
         # require-run-as-non-root + disallow-privileged. Set on server/worker (pod =
         # securityContext, container = containerSecurityContext) and the bundled
