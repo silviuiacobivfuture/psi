@@ -19,7 +19,7 @@ OPERATOR_NAME: Silviu Iacob
 OPERATOR_EMAIL: silviu.iacob@ivfuture.ro
 
 # ── cloud ───────────────────────────────────────────────────────────────────
-HCLOUD_LOCATION: hel1
+HCLOUD_LOCATION: nbg1
 CONTROL_PLANE_SERVER_TYPE: dev=cpx62
 AGENT_SERVER_TYPE: dev=cpx62
 OBJECT_STORAGE_REGION: nbg1
