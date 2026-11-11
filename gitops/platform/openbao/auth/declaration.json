@@ -41,7 +41,7 @@
 	],
 	"configs": {
 		"oidc": {
-			"oidc_discovery_url": "https://auth.recomex.eu/application/o/openbao/",
+			"oidc_discovery_url": "https://auth.psizone.ro/application/o/openbao/",
 			"default_role": "signin",
 			"oidc_client_id": { "kv": "platform/authentik/openbao-oidc", "field": "client_id" },
 			"oidc_client_secret": {
@@ -62,10 +62,8 @@
 			"groups_claim": "groups",
 			"oidc_scopes": ["openid", "profile", "email", "groups"],
 			"allowed_redirect_uris": [
-				"https://openbao.tailf6f2e6.ts.net/ui/vault/auth/oidc/oidc/callback",
-				"https://openbao.tailf6f2e6.ts.net/oidc/callback",
-				"https://openbao.net.recomex.eu/ui/vault/auth/oidc/oidc/callback",
-				"https://openbao.net.recomex.eu/oidc/callback",
+				"https://openbao.psizone.ro/ui/vault/auth/oidc/oidc/callback",
+				"https://openbao.psizone.ro/oidc/callback",
 				"http://localhost:8250/oidc/callback"
 			],
 			"bound_claims_type": "glob"
@@ -115,7 +113,7 @@
 				"_why": "DEPLOY: only a push, a dispatch or the schedule on an environment branch. A pull request carries ref refs/pull/<n>/merge and is refused; so is any other branch.",
 				"role_type": "jwt",
 				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/RecomExpert"],
+				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
 				"bound_claims_type": "glob",
 				"bound_claims": {
 					"repository": "silviuiacobivfuture/psi",
@@ -130,7 +128,7 @@
 				"_why": "PREVIEW: a pull request into dev building its preview image (rmx-brs.yml, rmx-sign.yml preview-build). Holds the Harbor PUSH robot because the preview image is pushed into the same Harbor project as every other image — a dedicated preview robot is an owner call (PLATFORM-19).",
 				"role_type": "jwt",
 				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/RecomExpert"],
+				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
 				"bound_claims_type": "glob",
 				"bound_claims": {
 					"repository": "silviuiacobivfuture/psi",
@@ -144,7 +142,7 @@
 				"_why": "GATE: any run of this repository. Write-only reporting bearers and the pull-only Harbor robot — nothing that publishes, deploys or reads an application secret.",
 				"role_type": "jwt",
 				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/RecomExpert"],
+				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
 				"bound_claims_type": "glob",
 				"bound_claims": { "repository": "silviuiacobivfuture/psi" },
 				"token_policies": ["github-ci-gate"],
