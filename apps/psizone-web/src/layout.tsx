@@ -31,6 +31,7 @@ export function Layout({
 				<title>{title}</title>
 				<meta name="description" content={description} />
 				<meta name="color-scheme" content="dark light" />
+				<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 				<link rel="alternate" hreflang={alternate.locale} href={alternate.href} />
 				<link rel="preconnect" href="https://fonts.googleapis.com" />
 				<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />

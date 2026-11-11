@@ -22,6 +22,7 @@ app.get("/assets/datastar.js", (c) =>
 	}),
 );
 app.use("/assets/*", serveStatic({ root: "./public" }));
+app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 
 for (const [locale, prefix] of [
 	["ro", ""],

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "@psi/design/theme.css";
+@import "@psi/ui/components.css";
+@import "@psi/ui/effects.css";
+@source "../../../packages/ui/src";
+
+.pz-display {
+	font-family: var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 144;
+}
