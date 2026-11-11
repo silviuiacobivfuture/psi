@@ -195,6 +195,12 @@ importers:
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
+      '@psi/guide':
+        specifier: workspace:*
+        version: link:../../packages/guide
+      '@psi/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
       '@psi/ui':
         specifier: workspace:*
         version: link:../../packages/ui

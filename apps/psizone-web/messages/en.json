@@ -142,5 +142,11 @@
 	"group_teens_adults": "Teens and adults",
 	"group_centre": "The centre",
 	"nav_home": "Home",
-	"nav_how": "How we work"
+	"nav_how": "How we work",
+	"guide_refusal_crisis": "If you or someone near you is in danger, call 112 now.",
+	"guide_refusal_crisis_clinic": "You can also call us:",
+	"guide_refusal_out_of_scope": "Diagnosis, medication or your own treatment we discuss only with a specialist, in person.",
+	"guide_refusal_no_content": "We don't have a reviewed answer about this yet. Write to us and a person from the team will answer.",
+	"guide_refusal_unavailable": "The guide isn't available right now. Try again a little later, or write to us.",
+	"guide_reviewed_by": "reviewed by {name}, {date}"
 }

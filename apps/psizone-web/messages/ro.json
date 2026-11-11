@@ -142,5 +142,11 @@
 	"group_teens_adults": "Adolescenți și adulți",
 	"group_centre": "Centrul",
 	"nav_home": "Acasă",
-	"nav_how": "Cum lucrăm"
+	"nav_how": "Cum lucrăm",
+	"guide_refusal_crisis": "Dacă tu sau cineva din jur e în pericol, sună acum la 112.",
+	"guide_refusal_crisis_clinic": "Ne poți suna și pe noi:",
+	"guide_refusal_out_of_scope": "Despre diagnostic, medicație sau tratamentul tău vorbim doar cu un specialist, față în față.",
+	"guide_refusal_no_content": "Nu avem încă un răspuns revizuit despre asta. Scrie-ne și îți răspunde un om din echipă.",
+	"guide_refusal_unavailable": "Ghidul nu e disponibil acum. Încearcă din nou puțin mai târziu sau scrie-ne.",
+	"guide_reviewed_by": "revizuit de {name}, {date}"
 }

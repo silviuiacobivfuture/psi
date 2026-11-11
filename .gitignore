@@ -14,3 +14,4 @@ coverage/
 apps/*/src/paraglide/
 apps/*/public/assets/app.css
 apps/*/project.inlang/cache/
+apps/*/.data/
