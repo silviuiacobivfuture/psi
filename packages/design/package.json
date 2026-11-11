@@ -3,9 +3,13 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"description": "The psi design language: one component library, eight themes (Psizone, EQ-SYNC, Hemi-Sync, Blog; each dark and light), its tokens, brand books and component guides",
+	"description": "The psi design language: eight themes (Psizone, EQ-SYNC, Hemi-Sync, Blog; each dark and light), tokens, brand books, component guides",
 	"exports": {
 		"./tokens.json": "./tokens.json",
-		"./components.css": "./components.css"
+		"./theme.css": "./theme.generated.css"
+	},
+	"scripts": {
+		"build": "node scripts/build-theme.mjs",
+		"check": "node scripts/build-theme.mjs --check"
 	}
 }

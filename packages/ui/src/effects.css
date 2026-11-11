@@ -1,0 +1,202 @@
+/*
+ * The psi signature effects, shared by every brand; each theme tints them through its roles.
+ * Every animated effect stops under prefers-reduced-motion. Only glow-1 and ink ever colour text.
+ */
+
+/* One word of a headline catches the light once, then rests (glow-1 → ink: both text-safe). */
+.pz-lumen {
+	background: linear-gradient(100deg, var(--glow-1) 25%, var(--ink) 85%) 100% 0 / 220% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: pz-sweep 1.6s ease-out 0.25s forwards;
+}
+@keyframes pz-sweep {
+	to {
+		background-position: 0 0;
+	}
+}
+@supports not (background-clip: text) {
+	.pz-lumen {
+		color: var(--glow-1);
+		background: none;
+	}
+}
+
+/* Film grain: makes light physical, so the aurora never reads as stock "AI". */
+.pz-grain::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	pointer-events: none;
+	opacity: 0.07;
+	mix-blend-mode: overlay;
+	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme$="light"] .pz-grain::after,
+[data-theme$="light"].pz-grain::after {
+	opacity: 0.05;
+	mix-blend-mode: multiply;
+}
+
+/* Glass with edge light: a hairline that catches the brand glows at the top. */
+.pz-edge {
+	position: relative;
+	background: color-mix(in oklab, var(--surface-1) 74%, transparent);
+	box-shadow:
+		inset 0 1px 0 color-mix(in oklab, var(--ink) 14%, transparent),
+		0 24px 60px -32px rgb(0 0 0 / 0.65);
+}
+.pz-edge::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	padding: 1px;
+	pointer-events: none;
+	opacity: 0.55;
+	transition: opacity 0.3s;
+	background: conic-gradient(
+		from 200deg at 50% 0,
+		var(--glow-1),
+		transparent 28%,
+		transparent 72%,
+		var(--glow-2)
+	);
+	-webkit-mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask:
+		linear-gradient(#000 0 0) content-box exclude,
+		linear-gradient(#000 0 0);
+}
+.pz-edge:hover::before,
+.pz-edge:focus-within::before {
+	opacity: 0.95;
+}
+
+/* The primary action glows where the pointer is. */
+.pz-btn--primary {
+	position: relative;
+	isolation: isolate;
+}
+.pz-btn--primary::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
+	opacity: 0;
+	transition: opacity 0.25s;
+	background: radial-gradient(
+		110px circle at var(--mx, 50%) var(--my, 50%),
+		var(--accent-hover),
+		var(--accent)
+	);
+}
+.pz-btn--primary:hover {
+	transform: translateY(-1px);
+}
+.pz-btn--primary:hover::before {
+	opacity: 1;
+}
+
+/* Reveal as the element scrolls into view; content stays visible where unsupported. */
+@supports (animation-timeline: view()) {
+	.pz-rise {
+		animation: pz-rise linear both;
+		animation-timeline: view();
+		animation-range: entry 0% entry 55%;
+	}
+	.pz-rise:nth-child(3n + 2) {
+		animation-range: entry 8% entry 63%;
+	}
+	.pz-rise:nth-child(3n + 3) {
+		animation-range: entry 16% entry 71%;
+	}
+	.pz-signal__line {
+		stroke-dasharray: 1;
+		stroke-dashoffset: 1;
+		animation: pz-draw linear both;
+		animation-timeline: view();
+		animation-range: entry 10% cover 50%;
+	}
+}
+@keyframes pz-rise {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+}
+@keyframes pz-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+/* The guide is thinking, then writing: an orb pulse and a caret. */
+.pz-ask__bar.is-asking .pz-ask__orb {
+	animation: pz-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pz-pulse {
+	50% {
+		transform: scale(0.82);
+		opacity: 0.7;
+	}
+}
+.pz-stream::after {
+	content: "";
+	display: inline-block;
+	width: 0.45ch;
+	height: 1.05em;
+	margin-left: 3px;
+	vertical-align: -0.15em;
+	background: var(--accent);
+	border-radius: 1px;
+	animation: pz-caret 1s steps(2, start) infinite;
+}
+.pz-stream[data-done]::after {
+	display: none;
+}
+@keyframes pz-caret {
+	to {
+		visibility: hidden;
+	}
+}
+
+/* A section that ends in a concave arc instead of a straight edge. */
+.pz-arc {
+	clip-path: ellipse(85% 100% at 50% 0);
+}
+
+/* Pages morph into each other. */
+@view-transition {
+	navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-lumen {
+		animation: none;
+		background-position: 0 0;
+	}
+	.pz-rise,
+	.pz-signal__line,
+	.pz-ask__bar.is-asking .pz-ask__orb {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+	.pz-btn--primary:hover {
+		transform: none;
+	}
+	.pz-stream::after {
+		animation: none;
+		opacity: 0.7;
+	}
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
+}

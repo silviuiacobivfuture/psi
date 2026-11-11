@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "@psi/design/theme.css";
+@import "@psi/ui/components.css";
+@import "@psi/ui/effects.css";
+@source "../../../packages/ui/src";
+
+/* Page-level craft for the Psizone landing; shared effects live in @psi/ui/effects.css. */
+
+html {
+	scroll-behavior: smooth;
+	background: var(--bg);
+}
+
+.display {
+	font-family: var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 144;
+}
+
+.ring-orbit {
+	position: absolute;
+	border-radius: 50%;
+	border: 1px solid var(--line);
+	pointer-events: none;
+}

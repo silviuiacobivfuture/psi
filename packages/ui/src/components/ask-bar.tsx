@@ -1,0 +1,73 @@
+/** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import type { JSX } from "hono/jsx/jsx-runtime";
+import { cx } from "../cx";
+import { ArrowIcon } from "./icons";
+
+export interface AskBarProps {
+	/** Endpoint that streams the guide's answer (Datastar SSE patch into `#${target}`). */
+	action: string;
+	/** Id of the element the answer is patched into. */
+	target: string;
+	label: string;
+	placeholder: string;
+	sendLabel: string;
+	suggestions?: ReadonlyArray<string>;
+	class?: string;
+}
+
+/** The AI guide's entry: one question in, an answer streamed back by the server. */
+export function AskBar({
+	action,
+	target,
+	label,
+	placeholder,
+	sendLabel,
+	suggestions = [],
+	class: className,
+}: AskBarProps): JSX.Element {
+	const post = `@post('${action}')`;
+	return (
+		<search>
+			<form
+				class={cx("pz-ask", className)}
+				data-signals:question__ifmissing="''"
+				data-on:submit__prevent={`$question.trim() && ${post}`}
+				data-indicator="asking"
+				aria-controls={target}
+			>
+				<div class="pz-ask__bar" data-class:is-asking="$asking">
+					<span class="pz-ask__orb" aria-hidden="true" />
+					<input
+						class="pz-ask__input"
+						data-bind="question"
+						placeholder={placeholder}
+						aria-label={label}
+						autocomplete="off"
+					/>
+					<button
+						type="submit"
+						class="pz-ask__send"
+						aria-label={sendLabel}
+						data-attr:disabled="$asking"
+					>
+						<ArrowIcon size={20} />
+					</button>
+				</div>
+				{suggestions.length > 0 ? (
+					<div class="pz-ask__chips">
+						{suggestions.map((s) => (
+							<button
+								type="button"
+								class="pz-chip"
+								aria-pressed="false"
+								data-on:click={`$question = ${JSON.stringify(s)}; ${post}`}
+							>
+								{s}
+							</button>
+						))}
+					</div>
+				) : null}
+			</form>
+		</search>
+	);
+}

@@ -11,3 +11,5 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+apps/*/src/paraglide/
+apps/*/public/assets/app.css
