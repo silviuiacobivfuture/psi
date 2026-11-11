@@ -23,6 +23,7 @@ resources:
   - nextcloud.yaml
   - pdfcraft.yaml
   - plane-platform.yaml
+  - plane.yaml
   - platform-rbac.yaml
   - platform-secrets.yaml
   - reference.yaml
