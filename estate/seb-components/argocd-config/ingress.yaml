@@ -1,0 +1,8 @@
+# The homepage link names the public door (the private-network Ingress has a wildcard host).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-tailnet
+  namespace: argocd
+  annotations:
+    gethomepage.dev/href: "https://argocd.psizone.ro"
