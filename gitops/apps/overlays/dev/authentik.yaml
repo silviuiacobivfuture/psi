@@ -253,13 +253,13 @@ spec:
             - name: assert-mail
               # image: set by `parameters` below (an estate value).
               envFrom:
-                - secretRef: { name: authentik-email }
+                - secretRef: { name: authentik-email, optional: true }
               command: ["sh", "-c"]
               args:
                 - >-
-                  [ -n "${AUTHENTIK_EMAIL__PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_EMAIL__PASSWORD" >&2; exit 1; };
-                  [ -n "${AUTHENTIK_EMAIL__FROM:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_EMAIL__FROM" >&2; exit 1; };
-                  echo secrets-ok
+                  if [ -z "${AUTHENTIK_EMAIL__PASSWORD:-}" ] || [ -z "${AUTHENTIK_EMAIL__FROM:-}" ]; then
+                  echo "NO MAIL: this estate has no mail yet (no SES / Plunk) — Authentik runs without sending e-mail" >&2;
+                  else echo secrets-ok; fi
               resources:
                 requests: { cpu: 10m, memory: 16Mi }
                 limits: { cpu: 100m, memory: 64Mi }
