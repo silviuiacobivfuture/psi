@@ -339,7 +339,7 @@ spec:
       # Estate values: filled from the identity by the estate's upgrade step, never written here.
       parameters:
         - name: githubConfigUrl
-          value: https://github.com/silviuiacobivfuture
+          value: https://github.com/silviuiacobivfuture/psi
           forceString: true
         - name: template.spec.initContainers[1].image
           value: registry.psizone.ro/mirror/docker.io/library/docker:dind@sha256:97545b7bab66319a476800a85b008b25c06681733d484909e2a776281e41574f
