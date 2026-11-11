@@ -229,3 +229,13 @@ body:has(.pz-compass) {
 		animation: none;
 	}
 }
+
+/* Nothing matches: the empty destinations take no room, and the ask line needs no rule above it. */
+.pz-compass__groups:not(:has(.pz-compass__group:not([style*="display: none"]))) {
+	display: none;
+}
+.pz-compass__groups:not(:has(.pz-compass__group:not([style*="display: none"]))) + .pz-compass__ask {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+}

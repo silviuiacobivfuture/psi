@@ -1,0 +1,151 @@
+/*
+ * EQ-SYNC signature pieces: hairline sound waves and the day index.
+ * Tokens only; every loop is 20s or longer and stops under prefers-reduced-motion.
+ */
+
+/* Sound waves: hairlines that drift one period (600 units) and loop seamlessly. */
+.pz-waves {
+	display: block;
+	width: 100%;
+	overflow: hidden;
+	pointer-events: none;
+}
+.pz-waves__w {
+	fill: none;
+	stroke-width: 1.15;
+	vector-effect: non-scaling-stroke;
+	animation: pz-wave 24s linear infinite;
+}
+.pz-waves__w--gold {
+	stroke: var(--glow-1);
+	opacity: 0.6;
+}
+.pz-waves__w--teal {
+	stroke: var(--glow-2);
+	opacity: 0.55;
+	animation-duration: 31s;
+	animation-direction: reverse;
+}
+.pz-waves__w--faint {
+	stroke: var(--ink);
+	opacity: 0.14;
+	animation-duration: 42s;
+}
+@keyframes pz-wave {
+	to {
+		transform: translateX(-600px);
+	}
+}
+
+/* Day index: a Fraunces numeral over one hairline tick per day. */
+.pz-dayindex {
+	margin: 0;
+	color: var(--ink);
+}
+.pz-dayindex__num {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: baseline;
+	column-gap: 0.35em;
+	font-family: var(--font-display);
+}
+.pz-dayindex__word {
+	grid-column: 1 / -1;
+	font: 500 12px / 16px var(--font-mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.pz-dayindex__day {
+	font-size: clamp(128px, 13vw, 208px);
+	line-height: 0.82;
+	font-weight: 200;
+	letter-spacing: -0.05em;
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 144;
+	font-variant-numeric: lining-nums;
+}
+.pz-dayindex__total {
+	font-size: clamp(36px, 3.4vw, 56px);
+	font-weight: 250;
+	letter-spacing: -0.02em;
+	color: var(--ink-faint);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 72;
+}
+.pz-dayindex__ticks {
+	list-style: none;
+	margin: 36px 0 0;
+	padding: 0;
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	align-items: end;
+	height: 48px;
+	border-bottom: 1px solid var(--line-strong);
+}
+.pz-dayindex__ticks li {
+	justify-self: center;
+	width: 1px;
+	height: 18px;
+	background: var(--line-strong);
+	transform-origin: 50% 100%;
+	animation: pz-tick 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.pz-dayindex__ticks li:nth-child(3n + 2) {
+	animation-delay: 0.08s;
+}
+.pz-dayindex__ticks li:nth-child(3n) {
+	animation-delay: 0.16s;
+}
+.pz-dayindex__ticks li:nth-child(7n) {
+	height: 26px;
+}
+.pz-dayindex__ticks li.is-done {
+	background: var(--ink-muted);
+	height: 30px;
+}
+.pz-dayindex__ticks li.is-today {
+	position: relative;
+	width: 2px;
+	height: 48px;
+	background: var(--ink);
+}
+.pz-dayindex__ticks li.is-today::before {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: -14px;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	border: 1.5px solid var(--ink);
+	transform: translateX(-50%);
+}
+@keyframes pz-tick {
+	from {
+		transform: scaleY(0);
+	}
+}
+.pz-dayindex__scale {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 10px;
+	font: 500 11px / 16px var(--font-mono);
+	letter-spacing: 0.08em;
+	color: var(--ink-faint);
+}
+.pz-dayindex__caption {
+	margin-top: 22px;
+	font: 400 12px / 18px var(--font-mono);
+	color: var(--ink-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-waves__w,
+	.pz-dayindex__ticks li {
+		animation: none;
+	}
+}

@@ -27,3 +27,5 @@ export {
 	fold,
 } from "./components/compass";
 export { Doctype } from "./document";
+export { DayIndex, type DayIndexProps } from "./components/day-index";
+export { SoundWaves, type SoundWavesProps } from "./components/sound-waves";
