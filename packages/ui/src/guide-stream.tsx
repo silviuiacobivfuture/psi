@@ -106,6 +106,12 @@ export function streamGuideAnswer(
 		let text = "";
 		let sources: ReadonlyArray<Source> = [];
 		let refused: RefusalReason | null = null;
+		// The question now shows in the answer region: empty both inputs that can send one (the
+		// page's ask bar and the compass), as a chat does once a message is sent.
+		await stream.writeSSE({
+			event: "datastar-patch-signals",
+			data: `signals {"question": "", "compassQuery": ""}`,
+		});
 		await patch({ kind: "thinking" });
 		for await (const event of guide.ask(
 			{ question, locale },
