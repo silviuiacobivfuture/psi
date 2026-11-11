@@ -5,7 +5,7 @@ import { cx } from "../cx";
 import { ArrowIcon } from "./icons";
 
 export interface ButtonProps {
-	variant?: "primary" | "glass" | "ghost";
+	variant?: "primary" | "glass" | "ghost" | "outline";
 	size?: "sm" | "md" | "lg";
 	arrow?: boolean;
 	href?: string;

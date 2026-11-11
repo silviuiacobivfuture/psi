@@ -88,3 +88,8 @@
 [data-finish="flat"] .pz-signal__dot {
 	fill: var(--accent);
 }
+
+/* Flat actions are rounded rectangles, not pills. */
+[data-finish="flat"] .pz-btn {
+	border-radius: 14px;
+}

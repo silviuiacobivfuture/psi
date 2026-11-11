@@ -4,7 +4,7 @@ import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Closing, Footer } from "../sections/closing";
 import { Header } from "../sections/header";
-import { Hero } from "../sections/hero";
+import { GuideSection, Hero } from "../sections/hero";
 import { How } from "../sections/how";
 import { Hubs } from "../sections/hubs";
 import { Methods, Team } from "../sections/methods-team";
@@ -33,6 +33,7 @@ export function HomePage({
 			<Header locale={locale} otherHref={otherHref} theme={theme} />
 			<main id="continut">
 				<Hero locale={locale} />
+				<GuideSection locale={locale} />
 				<Hubs locale={locale} />
 				<How locale={locale} />
 				<Methods locale={locale} />

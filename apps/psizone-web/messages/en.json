@@ -15,8 +15,8 @@
 	"lang_switch_label": "Citește în română",
 	"cta_book": "Book an evaluation",
 	"hero_overline": "Neuropsychology centre · Galați",
-	"hero_title": "See the change.",
-	"hero_lead": "We evaluate, we treat, and we show you the progress.",
+	"hero_title": "Every step matters.",
+	"hero_lead": "Evaluation, therapy and neurotherapies for children, adults and seniors. A team of specialists working together, like a family, for every step forward.",
 	"hero_reassure": "The first conversation is about you, not about a diagnosis.",
 	"ask_label": "Ask the Psizone guide",
 	"ask_placeholder": "Ask us anything about your child…",
@@ -158,5 +158,12 @@
 	"story_timeline_title": "Over twenty years, eleven chapters.",
 	"story_timeline_label": "The history of PSIZONE",
 	"story_full_overline": "The story, in full",
-	"nav_story": "Our story"
+	"nav_story": "Our story",
+	"hero_cta_book": "Book an evaluation",
+	"hero_cta_services": "See the services",
+	"hero_call": "Or call us directly:",
+	"hero_stat_value": "22",
+	"hero_stat_label": "years of experience",
+	"hero_photo_placeholder": "[Photo from the centre: a therapist with a child]",
+	"guide_section_overline": "The Psizone guide"
 }

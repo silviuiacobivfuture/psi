@@ -1282,3 +1282,14 @@ body {
 	outline: 2px solid var(--focus);
 	outline-offset: 2px;
 }
+
+/* Outline: the second action beside a primary — the accent as a line, ink as the label. */
+.pz-btn--outline {
+	background: transparent;
+	color: var(--ink);
+	border-color: var(--accent);
+	border-width: 1.5px;
+}
+.pz-btn--outline:hover {
+	background: var(--accent-soft);
+}
