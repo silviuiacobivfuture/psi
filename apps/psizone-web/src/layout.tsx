@@ -27,7 +27,7 @@ export function Layout({
 	return (
 		<>
 			<Doctype />
-			<html lang={locale} data-theme={theme}>
+			<html lang={locale} data-theme={theme} data-finish="flat">
 				<head>
 					<meta charset="utf-8" />
 					<meta name="viewport" content="width=device-width, initial-scale=1" />

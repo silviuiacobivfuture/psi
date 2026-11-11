@@ -12,7 +12,8 @@
 		"./compass.css": "./src/compass.css",
 		"./brand-eqsync.css": "./src/brand-eqsync.css",
 		"./brand-hemisync.css": "./src/brand-hemisync.css",
-		"./brand-blog.css": "./src/brand-blog.css"
+		"./brand-blog.css": "./src/brand-blog.css",
+		"./flat.css": "./src/flat.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
