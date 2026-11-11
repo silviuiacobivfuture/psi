@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the lexical fallback embedder > pins a known vector so the hash never drifts silently 1`] = `
+[
+  [
+    0,
+    -0.325318,
+  ],
+  [
+    1,
+    0.325318,
+  ],
+  [
+    3,
+    -0.325318,
+  ],
+  [
+    8,
+    -0.325318,
+  ],
+  [
+    9,
+    0.325318,
+  ],
+  [
+    11,
+    -0.325318,
+  ],
+  [
+    15,
+    -0.604161,
+  ],
+]
+`;

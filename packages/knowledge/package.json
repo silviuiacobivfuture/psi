@@ -1,0 +1,28 @@
+{
+	"name": "@psi/knowledge",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "The guide's knowledge: reviewed content entries, chunked and embedded, retrieved per brand and locale (Mastra RAG)",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run",
+		"ingest-seed": "tsx src/seed/ingest.ts"
+	},
+	"dependencies": {
+		"@mastra/core": "^1.82.0",
+		"@mastra/libsql": "^1.29.0",
+		"@mastra/rag": "^2.7.2",
+		"@openrouter/ai-sdk-provider": "^3.1.0",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.7.2",
+		"tsx": "^4.23.15",
+		"typescript": "^5.7.3",
+		"vitest": "^2.1.9"
+	}
+}
