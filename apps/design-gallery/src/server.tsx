@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { Doctype } from "@psi/ui";
 import { Hono } from "hono";
 import type { Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
@@ -28,39 +29,42 @@ for (const [locale, path] of [
 ] as const satisfies ReadonlyArray<readonly [Locale, string]>) {
 	app.get(path, (c) =>
 		c.html(
-			<html lang={locale} data-theme="psizone-dark">
-				<head>
-					<meta charset="utf-8" />
-					<meta name="viewport" content="width=device-width, initial-scale=1" />
-					<title>{m.title({}, { locale })}</title>
-					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-					<link rel="stylesheet" href={FONTS} />
-					<link rel="stylesheet" href="/assets/app.css" />
-					<script type="module" src="/assets/datastar.js" />
-				</head>
-				<body class="pz-grain">
-					<header class="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
-						<div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
-							<span class="pz-display text-headline">{m.title({}, { locale })}</span>
-							<nav class="flex flex-wrap gap-2" aria-label={m.jump({}, { locale })}>
-								{THEMES.map((t) => (
-									<a class="pz-chip" href={`#${t.id}`}>
-										{t.name}
-									</a>
-								))}
-							</nav>
-						</div>
-					</header>
-					<p class="mx-auto max-w-6xl px-5 py-6 text-body-sm text-ink-muted">
-						{m.lead({}, { locale })}
-					</p>
-					<main>
-						{THEMES.map((t) => (
-							<ThemePanel id={t.id} name={t.name} locale={locale} />
-						))}
-					</main>
-				</body>
-			</html>,
+			<>
+				<Doctype />
+				<html lang={locale} data-theme="psizone-dark">
+					<head>
+						<meta charset="utf-8" />
+						<meta name="viewport" content="width=device-width, initial-scale=1" />
+						<title>{m.title({}, { locale })}</title>
+						<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+						<link rel="stylesheet" href={FONTS} />
+						<link rel="stylesheet" href="/assets/app.css" />
+						<script type="module" src="/assets/datastar.js" />
+					</head>
+					<body class="pz-grain">
+						<header class="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
+							<div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+								<span class="pz-display text-headline">{m.title({}, { locale })}</span>
+								<nav class="flex flex-wrap gap-2" aria-label={m.jump({}, { locale })}>
+									{THEMES.map((t) => (
+										<a class="pz-chip" href={`#${t.id}`}>
+											{t.name}
+										</a>
+									))}
+								</nav>
+							</div>
+						</header>
+						<p class="mx-auto max-w-6xl px-5 py-6 text-body-sm text-ink-muted">
+							{m.lead({}, { locale })}
+						</p>
+						<main>
+							{THEMES.map((t) => (
+								<ThemePanel id={t.id} name={t.name} locale={locale} />
+							))}
+						</main>
+					</body>
+				</html>
+			</>,
 		),
 	);
 }
