@@ -84,7 +84,7 @@ data:
           name: dept-dev
         attrs:
           is_superuser: false
-          users:
+          users: []
       - { model: authentik_core.group, identifiers: { name: dept-business }, attrs: { is_superuser: false } }
       - { model: authentik_core.group, identifiers: { name: dept-hr },       attrs: { is_superuser: false } }
 
@@ -319,7 +319,7 @@ data:
           name: app-plane-instance-admin
         attrs:
           is_superuser: false
-          users:
+          users: []
       - model: authentik_core.group
         identifiers:
           name: app-plane-guest
