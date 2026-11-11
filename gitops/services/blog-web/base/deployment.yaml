@@ -32,7 +32,7 @@ spec:
             - -c
             - >-
               m=0;
-              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; };
+              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; }; [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; };
               [ "$m" = 0 ] && echo secrets-ok
           resources:
             requests: { cpu: 10m, memory: 16Mi }
