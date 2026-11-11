@@ -1231,3 +1231,15 @@ body {
 		gap: var(--space-3);
 	}
 }
+
+/* Psizone Gold: glow-1 is the deep, text-safe gold, which turns khaki when blurred over white. The
+ * light here comes from the luminous golds (champagne, the accent) and turquoise. */
+[data-theme="psizone-light"] .pz-ambient__blob--1 {
+	background: var(--glow-3);
+}
+[data-theme="psizone-light"] .pz-ambient__blob--3 {
+	background: var(--accent);
+}
+[data-theme="psizone-light"] .pz-hub__glow--1 {
+	background: var(--accent);
+}

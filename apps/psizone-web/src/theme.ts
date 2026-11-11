@@ -1,4 +1,4 @@
-export const THEMES = ["psizone-dark", "psizone-light"] as const;
+export const THEMES = ["psizone-light", "psizone-dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** The theme a visitor chose (cookie), or the brand's primary one. */

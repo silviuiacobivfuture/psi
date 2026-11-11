@@ -1,8 +1,8 @@
 # Psizone
 
-The neuro-psychology centre in Galați: evaluation, ABA, speech therapy, sensory integration, psychotherapy, QEEG, neurofeedback and TMS for children, teens and adults. The identity is **organic futurism**: calm, luminous and human, with technology felt rather than shown. The promise is **"Vezi schimbarea."** (See the change): we map, we treat, we show you the progress.
+The neuro-psychology centre in Galați: evaluation, ABA, speech therapy, sensory integration, psychotherapy, QEEG, neurofeedback and TMS for children, teens and adults. The identity is **organic futurism in gold and white** (owner, 2026-11-11): calm, luminous and human, with technology felt rather than shown. Gold is the light, white the ground, turquoise the second voice. The promise is **"Vezi schimbarea."** (See the change): we map, we treat, we show you the progress.
 
-Themes: `psizone-dark` (primary) and `psizone-light`. Design in dark first; light is a full equal used for print-like pages, forms and the client portal by preference.
+Themes: `psizone-light` ("Gold", primary) and `psizone-dark` ("Night"). Design in Gold first: warm white ground, gold and turquoise light; Night is the same palette on warm black.
 
 ## Who it speaks to
 
@@ -24,10 +24,11 @@ Real lines:
 
 ## Colour
 
-- Ground `bg` deep teal-black (dark) or mist (light); solid cards on `surface-1`.
-- `glow-1` teal is the lead hue; `glow-2` lilac belongs to the AI guide; `glow-3` peach is human warmth (team, stories, focus ring).
-- `accent` teal fills the one primary action; in dark it carries dark `on-accent` text, never white.
-- Rotate the three glows across hub cards (1, 2, 3) so rows feel alive without adding colours.
+- Ground `bg` warm white (`#FFFDF8`) with champagne washes (`surface-2`); solid cards on white `surface-1`. Night: warm black.
+- **Gold is the brand.** `accent` is a gold pill with dark ink text (`on-accent`), for the one primary action. `glow-1` is the deep, text-safe gold: the only glow used as text (one word of a headline, links), never blurred into the background in Gold, where it turns khaki; the light in Gold comes from the luminous golds (`glow-3` champagne, the `accent`) and turquoise.
+- **Turquoise is the second voice:** `glow-2` for the guide (its tint `ai-soft`, its orb) and the focus ring.
+- Rotate gold, turquoise, champagne across hub cards (1, 2, 3).
+- Every text and control pair is checked against WCAG AA in both themes (the contrast table is regenerated from `tokens.json`).
 
 ## Type
 
