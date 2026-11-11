@@ -4,6 +4,7 @@ namespace: blog-web
 resources:
   - namespace.yaml
   - harbor-pull-externalsecret.yaml
+  - externalsecret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

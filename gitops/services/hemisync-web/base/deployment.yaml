@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: hemisync-web
   labels: { app: hemisync-web }
+  annotations:
+    # Rolls the pods when hemisync-web-env changes (OpenBao -> ESO -> Secret -> roll).
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector: { matchLabels: { app: hemisync-web } }
@@ -17,12 +20,41 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # FIRST: fail LOUD on a missing or blank secret, before the site boots. `${VAR:-}`
+        # survives kubelet expansion; assert each key literally. Adding a key = adding its line.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: hemisync-web-env }
+          command:
+            - sh
+            - -c
+            - >-
+              m=0;
+              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; };
+              [ "$m" = 0 ] && echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
       containers:
         - name: web
           image: registry.psizone.ro/psi/hemisync-web@sha256:c9f68f3e51d8b6098a87ae1bf73ec331b17f815e185e748006201853bff49895
           ports: [{ name: http, containerPort: 3000 }]
+          envFrom:
+            - secretRef: { name: hemisync-web-env }
           env:
             - { name: PORT, value: "3000" }
+            # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
+            # sidecar; the token is CHROMA_API_KEY from hemisync-web-env.
+            - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
             - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }

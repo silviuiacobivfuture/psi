@@ -7,6 +7,7 @@ failure is made loud.
 | App | OpenBao path | Required keys | Evidence |
 |-----|--------------|---------------|----------|
 | `chroma` | `secret/apps/chroma/env` | `CHROMA_SERVER_TOKEN` (64 lowercase hex) | Declared per-key in `gitops/services/chroma/base/externalsecret.yaml` (missing ⇒ `SecretSyncedError`). The `assert-secrets` initContainer refuses an empty, short or non-hex token (`MISSING REQUIRED SECRET: CHROMA_SERVER_TOKEN`), because an empty token would let a request with no token through the auth sidecar. Seeded once with `openssl rand -hex 32`; never echoed. |
+| `psizone-web`, `eqsync-web`, `hemisync-web`, `blog-web` | `secret/apps/chroma/env` | `CHROMA_SERVER_TOKEN`, read as `CHROMA_API_KEY` | Declared per-key in `gitops/services/<site>/base/externalsecret.yaml` (Secret `<site>-env`; missing ⇒ `SecretSyncedError`). The `assert-secrets` initContainer exits `MISSING REQUIRED SECRET: CHROMA_API_KEY` on an empty value. `CHROMA_URL=http://chroma.chroma.svc:8000` is plain env in the Deployment. The knowledge store (`packages/knowledge`) sends it as `Authorization: Bearer`. |
 
 ## Using Chroma from an app
 
