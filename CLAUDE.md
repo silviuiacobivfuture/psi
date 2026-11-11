@@ -51,8 +51,8 @@ and translations are not among them yet. Platform code is never copied here; pla
 
 - **SEB** at `../seb` (beside this repo): what the estate's platform looks like. Read it, never
   modify it. Refresh it before relying on it: `git -C ../seb pull --ff-only`.
-- **rmx** (the first estate): available from the owner on request, for inspiration only; never
-  modified.
+- **rmx** at `../rmx` (the first estate): how an estate consumes SEB, and inspiration. Read it,
+  never modify it. Refresh it the same way: `git -C ../rmx pull --ff-only`.
 
 ## Adding an app
 
