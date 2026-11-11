@@ -1,0 +1,30 @@
+{
+	"name": "@psi/mono",
+	"version": "0.0.1",
+	"description": "psi estate monorepo: its apps, packages and tools; the platform comes from SEB",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@10.20.0",
+	"engines": {
+		"node": ">=24.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"scripts": {
+		"preinstall": "npx only-allow pnpm",
+		"build": "nx run-many -t build",
+		"test": "nx run-many -t test --parallel=1",
+		"type-check": "nx run-many -t type-check",
+		"lint": "biome check --config-path .mono/biome.json .",
+		"lint:fix": "biome check --config-path .mono/biome.json --write .",
+		"format": "biome format --config-path .mono/biome.json --write .",
+		"affected": "nx affected -t lint,type-check,test,build --base=origin/dev --parallel=1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.0.0",
+		"@nx/js": "22.2.3",
+		"@types/node": "^24.7.2",
+		"nx": "22.0.2",
+		"typescript": "^5.7.3",
+		"vitest": "^2.1.9"
+	}
+}

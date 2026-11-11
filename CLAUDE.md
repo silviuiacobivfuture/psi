@@ -1,0 +1,47 @@
+# psi — estate monorepo
+
+The psi estate's own code: its apps, packages and tools. The PLATFORM (cluster, sign-in,
+Polaris authorization, secrets, Argo, observability, the shared UI and i18n libraries) comes
+from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
+`estate/platform.lock`. Platform code is never copied here; platform changes go to SEB.
+
+## Layout
+
+| Path | What lives there |
+|------|------------------|
+| `apps/<name>/` | one folder per app (landing pages, services, consoles) |
+| `packages/<name>/` | psi's own shared code |
+| `tools/<name>/` | psi's own CLIs and scripts |
+| `estate/` | psi's identity, permissions inputs, SEB lock, components — the estate's inputs to SEB |
+| `gitops/` | what Argo deploys for psi (generated platform Applications + psi's app registrations) |
+
+## Hard rules (every agent)
+
+- **Ask through the interactive question tool**, never as prose at the end of a reply. Verify
+  before asking; every option carries pros and cons; recommend the complete option.
+- **Worktrees install their own dependencies**: `pnpm install --frozen-lockfile` in the worktree;
+  never link into the main checkout.
+- **Tests are scoped and capped**: one project at a time, `--maxWorkers=4` or lower. Never the
+  whole suite at once on a workstation.
+- **Green before commit**: build, lint, type-check and tests green for everything the change
+  affects (`pnpm affected`). Report failures honestly, with output.
+- **Type safety**: no `any`, no `@ts-ignore`, no unchecked casts, no `!`; parse at every boundary
+  (zod); explicit types on exported functions.
+- **Files ≤ 500 lines, one responsibility each**; no `utils.ts` dumping grounds.
+- **i18n-first**: every user-facing string goes through the i18n library; no bare strings in JSX.
+- **Shared UI first**: components come from the platform design system; don't fork one in an app.
+- **Authorization goes through Polaris**: no hand-rolled roles/permissions; an app declares
+  `apps/<name>/authz.manifest.json`.
+- **Secrets**: never in git; `.env*` are gitignored; secrets live in the estate's OpenBao.
+- **No live change without saying so**: anything that changes the running estate is stated
+  before it is pushed. The branch is the environment (`dev` → psi dev).
+- **Commits**: conventional commits (`feat|fix|docs|refactor|test|build|ci|chore`); no WIP.
+- **Every reply ends with Progress and Next steps.**
+
+## Adding an app
+
+1. `apps/<name>/` with its own `package.json` (name `@psi/<name>`) and `project.json`
+   (Nx targets: build, test, type-check, lint).
+2. A `Dockerfile` if it is deployed.
+3. Register it in `gitops/` (its Argo Application) — the estate's CI builds the image into the
+   estate's Harbor and bumps the tag.
