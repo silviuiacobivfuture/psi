@@ -73,7 +73,7 @@ spec:
         # The Next.js host-check must allow both private names (the outpost keeps the Host).
         env:
           - name: HOMEPAGE_ALLOWED_HOSTS
-            value: hub.mesh.psizone.ro,hub.mesh.psizone.ro
+            value: hub.psizone.ro,hub.mesh.psizone.ro
 
         config:
           # Kubernetes integration in CLUSTER mode → uses the pod's SA token + the RBAC above.
