@@ -162,7 +162,6 @@ body {
 	color: var(--ink);
 	border-color: var(--line-control);
 	backdrop-filter: blur(var(--blur-glass));
-	-webkit-backdrop-filter: blur(var(--blur-glass));
 }
 .pz-btn--glass:hover {
 	background: var(--surface-2);
@@ -200,7 +199,6 @@ body {
 .pz-glass {
 	background: var(--surface-glass);
 	backdrop-filter: blur(var(--blur-glass)) saturate(140%);
-	-webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
 	border: 1px solid var(--line);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-glass);
@@ -210,7 +208,6 @@ body {
 .pz-glass--solid {
 	background: var(--surface-1);
 	backdrop-filter: none;
-	-webkit-backdrop-filter: none;
 }
 
 /* Chip */
@@ -344,7 +341,6 @@ body {
 	border: 1px solid var(--line-control);
 	box-shadow: var(--shadow-float);
 	backdrop-filter: blur(var(--blur-glass));
-	-webkit-backdrop-filter: blur(var(--blur-glass));
 	transition:
 		box-shadow 0.25s,
 		border-color 0.25s;
@@ -600,7 +596,6 @@ body {
 	background: var(--surface-glass);
 	border: 1px solid var(--line);
 	backdrop-filter: blur(var(--blur-glass));
-	-webkit-backdrop-filter: blur(var(--blur-glass));
 	box-shadow: var(--shadow-float);
 }
 .pz-nav__links {
@@ -929,7 +924,7 @@ body {
 	align-items: center;
 	gap: var(--space-4);
 	width: 100%;
-	max-width: 560px;
+	max-width: none;
 	padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4);
 	border-radius: var(--radius-lg);
 	background: var(--surface-1);
@@ -1032,7 +1027,7 @@ body {
 /* Program tracker (EQ-SYNC 21 days; any multi-session programme) */
 .pz-tracker {
 	width: 100%;
-	max-width: 560px;
+	max-width: none;
 	padding: var(--space-5);
 	border-radius: var(--radius-lg);
 	background: var(--surface-1);
@@ -1099,7 +1094,7 @@ body {
 .pz-product {
 	display: flex;
 	flex-direction: column;
-	width: 300px;
+	width: 100%;
 	border-radius: var(--radius-lg);
 	overflow: hidden;
 	background: var(--surface-1);
@@ -1125,7 +1120,6 @@ body {
 	border-radius: var(--radius-pill);
 	background: var(--surface-glass);
 	backdrop-filter: blur(var(--blur-glass));
-	-webkit-backdrop-filter: blur(var(--blur-glass));
 	font: 600 12px / 16px var(--pz-label);
 	color: var(--ink);
 }
@@ -1211,7 +1205,6 @@ body {
 		border: 1px solid var(--line);
 		background: color-mix(in oklab, var(--surface-1) 97%, transparent);
 		backdrop-filter: blur(var(--blur-glass)) saturate(140%);
-		-webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
 		box-shadow: var(--shadow-float);
 	}
 	.pz-nav__sheet[style*="display: none"] {

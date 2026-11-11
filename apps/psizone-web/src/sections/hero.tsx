@@ -1,4 +1,4 @@
-import { AmbientField, AskBar, Button, GuideMessage } from "@psi/ui";
+import { AmbientField, AskBar, GuideMessage } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
@@ -38,12 +38,7 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 						<GuideMessage>{m.guide_intro({}, o)}</GuideMessage>
 					</div>
 				</div>
-				<div class="mt-10 flex flex-col items-center gap-3">
-					<Button size="lg" arrow href={`${base(locale)}/#programare`}>
-						{m.cta_book({}, o)}
-					</Button>
-					<span class="text-body-sm text-ink-muted">{m.hero_reassure({}, o)}</span>
-				</div>
+				<p class="mt-8 text-body-sm text-ink-muted">{m.hero_reassure({}, o)}</p>
 			</div>
 		</AmbientField>
 	);

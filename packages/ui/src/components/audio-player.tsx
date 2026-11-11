@@ -93,7 +93,7 @@ export function AudioPlayer({
 					{BARS.map((b, k) => (
 						<span
 							style={{ height: `${Math.round(b * 100)}%` }}
-							data-class:on={`${time} / ${duration} >= ${(k / BARS.length).toFixed(3)}`}
+							data-class:on={`${time} / ${duration} > ${(k / BARS.length).toFixed(3)}`}
 						/>
 					))}
 				</div>

@@ -26,3 +26,4 @@ export {
 	type CompassProps,
 	fold,
 } from "./components/compass";
+export { Doctype } from "./document";

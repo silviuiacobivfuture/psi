@@ -39,6 +39,7 @@ export function AskBar({
 					<span class="pz-ask__orb" aria-hidden="true" />
 					<input
 						class="pz-ask__input"
+						name="question"
 						data-bind="question"
 						placeholder={placeholder}
 						aria-label={label}
