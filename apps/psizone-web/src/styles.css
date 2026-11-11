@@ -4,6 +4,7 @@
 @import "@psi/ui/effects.css";
 @import "@psi/ui/compass.css";
 @import "@psi/ui/flat.css";
+@import "@psi/ui/timeline.css";
 @source "../../../packages/ui/src";
 
 /* Page-level craft for the Psizone landing; shared effects live in @psi/ui/effects.css. */
@@ -25,4 +26,20 @@ html {
 	border-radius: 50%;
 	border: 1px solid var(--line);
 	pointer-events: none;
+}
+
+/* The story's turning line: set apart, large, in the brand's gold. */
+.story-quote {
+	margin: var(--space-8) 0;
+	padding: 0;
+	border: 0;
+}
+.story-quote p {
+	margin: 0;
+	font: 300 clamp(28px, 3.6vw, 44px) / 1.15 var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 144;
+	letter-spacing: -0.02em;
+	color: var(--glow-1);
 }

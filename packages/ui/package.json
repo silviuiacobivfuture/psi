@@ -13,7 +13,8 @@
 		"./brand-eqsync.css": "./src/brand-eqsync.css",
 		"./brand-hemisync.css": "./src/brand-hemisync.css",
 		"./brand-blog.css": "./src/brand-blog.css",
-		"./flat.css": "./src/flat.css"
+		"./flat.css": "./src/flat.css",
+		"./timeline.css": "./src/timeline.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

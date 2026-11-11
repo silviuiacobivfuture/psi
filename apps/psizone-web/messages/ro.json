@@ -150,5 +150,13 @@
 	"guide_refusal_unavailable": "Ghidul nu e disponibil acum. Încearcă din nou puțin mai târziu sau scrie-ne.",
 	"guide_reviewed_by": "revizuit de {name}, {date}",
 	"theme_day": "Zi",
-	"theme_night": "Noapte"
+	"theme_night": "Noapte",
+	"story_overline": "Despre noi",
+	"story_title": "Povestea noastră.",
+	"story_lead": "Ani la rând, zilele noastre au avut câte 12 ore de terapie.",
+	"story_timeline_overline": "Istoric",
+	"story_timeline_title": "Peste douăzeci de ani, unsprezece capitole.",
+	"story_timeline_label": "Istoricul PSIZONE",
+	"story_full_overline": "Povestea, pe larg",
+	"nav_story": "Povestea noastră"
 }

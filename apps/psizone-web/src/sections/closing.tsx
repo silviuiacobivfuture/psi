@@ -31,6 +31,9 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<p class="max-w-sm text-body-sm text-ink-muted">{m.footer_tagline({}, o)}</p>
 				</div>
 				<nav class="flex flex-wrap gap-6 text-body-sm text-ink-muted" aria-label="Footer">
+					<a class="hover:text-ink" href={`${b}/povestea`}>
+						{m.nav_story({}, o)}
+					</a>
 					<a class="hover:text-ink" href={`${b}/confidentialitate`}>
 						{m.footer_privacy({}, o)}
 					</a>

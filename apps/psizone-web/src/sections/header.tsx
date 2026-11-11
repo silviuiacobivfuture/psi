@@ -41,6 +41,7 @@ export function Header({
 			items: [
 				{ label: m.nav_home({}, o), href: `${b}/` },
 				{ label: m.nav_how({}, o), href: `${b}/#metode` },
+				{ label: m.nav_story({}, o), href: `${b}/povestea` },
 				{ label: m.nav_team({}, o), href: `${b}/echipa` },
 				{ label: m.cta_book({}, o), href: `${b}/contact` },
 			],

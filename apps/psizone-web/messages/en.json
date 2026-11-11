@@ -150,5 +150,13 @@
 	"guide_refusal_unavailable": "The guide isn't available right now. Try again a little later, or write to us.",
 	"guide_reviewed_by": "reviewed by {name}, {date}",
 	"theme_day": "Day",
-	"theme_night": "Night"
+	"theme_night": "Night",
+	"story_overline": "About us",
+	"story_title": "Our story.",
+	"story_lead": "For years, our days held twelve hours of therapy each.",
+	"story_timeline_overline": "History",
+	"story_timeline_title": "Over twenty years, eleven chapters.",
+	"story_timeline_label": "The history of PSIZONE",
+	"story_full_overline": "The story, in full",
+	"nav_story": "Our story"
 }
