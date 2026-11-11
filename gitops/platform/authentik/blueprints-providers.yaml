@@ -345,7 +345,7 @@ data:
         attrs:
           mode: forward_domain
           external_host: https://WLAUTHHOST
-          cookie_domain: recomex.eu
+          cookie_domain: psizone.ro
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
           access_token_validity: hours=24
