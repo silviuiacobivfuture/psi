@@ -42,7 +42,7 @@ ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
 PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
-AUTHENTIK_HOST_PREFIX: sso
+AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
 PLANE_HOST_PREFIX: work
