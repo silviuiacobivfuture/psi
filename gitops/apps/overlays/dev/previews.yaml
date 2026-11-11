@@ -42,8 +42,8 @@ spec:
   generators:
     - pullRequest:
         github:
-          owner: RecomExpert
-          repo: platform
+          owner: silviuiacobivfuture
+          repo: psi
           tokenRef:
             secretName: github-pr-creds
             key: token
