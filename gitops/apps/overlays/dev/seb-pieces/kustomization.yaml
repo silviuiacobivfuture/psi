@@ -24,6 +24,7 @@ resources:
   - nextcloud-platform.yaml
   - nextcloud.yaml
   - novu.yaml
+  - nx-cache.yaml
   - openfga.yaml
   - pdfcraft.yaml
   - plane-platform.yaml
