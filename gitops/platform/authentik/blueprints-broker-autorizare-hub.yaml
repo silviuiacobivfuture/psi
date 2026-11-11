@@ -4,7 +4,7 @@
 # relying party of Authentik for business applications).
 #
 # Every business application (BRS, Sign, flow-platform, the autorizare console)
-# signs in through the hub at id.psizone.ro, and the hub signs in HERE, through
+# signs in through the hub at id.<apex>, and the hub signs in HERE, through
 # this one confidential client. Infra tools keep their own clients
 # (blueprints-providers.yaml).
 #
@@ -29,7 +29,7 @@
 #   * NO policy binding: everyone who signs in to any business application signs
 #     in through this one client; what they may do is decided by the hub and
 #     autorizare, not by an Authentik group (agreed with the hub lane).
-#   * Redirect URIs at the hub's ONE address, id.psizone.ro (owner's choice,
+#   * Redirect URIs at the hub's ONE address, id.<apex> (owner's choice,
 #     2026-10-23). Its former address is not served since the move off `.dev`
 #     (2026-10-24), and nothing else is registered.
 apiVersion: v1
@@ -81,11 +81,11 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
           redirect_uris:
             - matching_mode: strict
-              url: https://id.psizone.ro/hub/callback
+              url: https://id.WLDOMAIN/hub/callback
             # RP-initiated logout returns here (post_logout_redirect_uri). In
             # Authentik 2026.5 the type is `logout` (RedirectURIType.LOGOUT).
             - matching_mode: strict
-              url: https://id.psizone.ro/hub/signed-out
+              url: https://id.WLDOMAIN/hub/signed-out
               redirect_uri_type: logout
       # How long a login lasts is part of the sign-out: when Authentik cannot be reached
       # the hub's pages tell a person that closing the browser ends the session, and
@@ -121,4 +121,4 @@ data:
           # carries this application's bindings — so add one here and regenerate.
           meta_icon: /static/dist/assets/recomex/app-autorizare-hub.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, autorizare-hub]]
-          meta_launch_url: https://id.psizone.ro
+          meta_launch_url: https://id.WLDOMAIN

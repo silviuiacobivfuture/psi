@@ -130,6 +130,10 @@ configMapGenerator:
 # origin once, so the two-origin CORS list can take it whole by comma position.
 components:
   - ../../components/whitelabel
+  # Every Plane image pinned by digest (digests/kustomization.yaml says where each comes from).
+  - digests
+  # The estate's own layer (SEB's is empty). It comes after the pins, so it sees them.
+  - ../../components/estate/plane
 replacements:
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
     targets:

@@ -61,6 +61,20 @@ replacements:
       - select: { kind: ConfigMap, name: backup-bucket }
         fieldPaths: [data.BUCKET]
         options: { delimiter: "-", index: 0 }
+      - select: { kind: CronJob, name: nextcloud-files-copy }
+        fieldPaths:
+          - "spec.jobTemplate.spec.template.spec.containers.[name=copy].env.[name=SOURCE_BUCKET].value"
+          - "spec.jobTemplate.spec.template.spec.containers.[name=copy].env.[name=BUCKET].value"
+        options: { delimiter: "-", index: 0 }
+  # The user-files copy's object storage, from the identity.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: CronJob, name: nextcloud-files-copy }
+        fieldPaths: ["spec.jobTemplate.spec.template.spec.containers.[name=copy].env.[name=AWS_REGION].value"]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: CronJob, name: nextcloud-files-copy }
+        fieldPaths: ["spec.jobTemplate.spec.template.spec.containers.[name=copy].env.[name=AWS_ENDPOINT_URL].value"]
   - source: { kind: ConfigMap, name: backup-bucket, fieldPath: data.BUCKET }
     targets:
       - select: { kind: Cluster, name: nextcloud-db }

@@ -34,6 +34,9 @@ for _ in $(seq 1 40); do curl -sf http://127.0.0.1:18080/healthz >/dev/null && b
 
 export REPORT_INGEST_URL=http://127.0.0.1:18080 REPORT_INGEST_TOKEN=offline-test-token
 # The run links point at the estate's repository, from its identity (never typed here).
+# An estate's own checkout has estate/identity.yaml; SEB has none, and judges its example estate's.
+[ -n "${ESTATE_IDENTITY_FILE:-}" ] || [ -r "$ROOT/estate/identity.yaml" ] \
+  || export ESTATE_IDENTITY_FILE="$ROOT/examples/lumen/identity.yaml"
 # shellcheck source=infrastructure/hetzner/scripts/lib-estate-git.sh
 . "$ROOT/infrastructure/hetzner/scripts/lib-estate-git.sh"
 estate_git_load || exit 1

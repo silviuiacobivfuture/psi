@@ -1,0 +1,104 @@
+# Nextcloud USER FILES backup: a 6-hourly server-side copy of the primary objectstore
+# (s3://<BUCKET_PREFIX>-collab-<env>, every file anyone has uploaded) into the platform backup
+# bucket, s3://<BUCKET_PREFIX>-tfstate-<env>/file-copies/nextcloud/, where the db-dumps, the
+# CNPG archives and Velero's copies already live. Every value that differs per estate (the
+# bucket prefix, the object-storage region and endpoint, the registry, the ops address) comes
+# from the identity through ../kustomization.yaml; nothing here names an estate.
+#
+# WHY A COPY AND NOT ONLY VERSIONING. Versioning on the collab bucket recovers an overwrite or
+# a delete INSIDE that bucket. It does not survive the bucket itself: a `tofu destroy` of the
+# collab storage module, a bucket deleted by hand, or a lifecycle rule written by mistake takes
+# every version with it. A second bucket is the smallest thing that does. It is the SAME
+# location and, object-storage keys being project-wide, the same credential: this is a
+# defence against losing the bucket, not against losing the account.
+#
+# WHAT IT NEVER DOES. It never deletes: `aws s3 sync` without --delete, so a file deleted
+# in Nextcloud stays in the copy (which is the point of a backup; pruning is by hand and
+# deliberate). It never writes to the collab bucket: the source is only read.
+#
+# IT FAILS LOUD, by name, when the copy is incomplete: it lists the source BEFORE the
+# sync and, after it, refuses success unless every listed key is in the copy at the same
+# size. A file uploaded during the run is simply taken on the next one. On success it
+# writes file-copies/nextcloud.last-run (counts, bytes, time) beside the prefix, never
+# inside it. Freshness: doctor.sh layer "collaboration suite", from lastSuccessfulTime.
+# Restore drill: restore-drill.sh <env> nextcloud-files.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-files-copy
+  annotations:
+    # The neutral key: the piece's alert-owner transformer moves it to alerts.<ESTATE_LABEL_DOMAIN>/owner.
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # :55 — a free */6 slot (the db-dumps take :05 to :50, velero :00, openbao :30).
+  # grep `schedule:` across the pieces before taking another one.
+  schedule: "55 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels: { app: nextcloud-files-copy }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          containers:
+            - name: copy
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: nextcloud-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: nextcloud-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: HOME, value: /work }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required }
+                - { name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required }
+                - { name: SOURCE_BUCKET, value: BUCKET_PREFIX-collab-dev }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: file-copies/nextcloud }
+              resources:
+                requests: { cpu: 50m, memory: 128Mi }
+                limits: { cpu: 500m, memory: 512Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  ls_keys() { aws s3api list-objects-v2 --bucket "$1" ${2:+--prefix "$2"} --output text \
+                    --query 'Contents[].[Key,Size]' | awk -v p="$2" 'NF==2 && $1!="None" {sub("^" p, "", $1); print $1"\t"$2}' | sort; }
+                  ls_keys "$SOURCE_BUCKET" "" > /work/source.tsv
+                  N=$(wc -l < /work/source.tsv)
+                  [ "$N" -gt 0 ] || { echo "FATAL [SOURCE_EMPTY]: s3://$SOURCE_BUCKET lists no object — wrong bucket or credential" >&2; exit 1; }
+                  echo "source s3://$SOURCE_BUCKET: $N objects; copying into s3://$BUCKET/$PREFIX/"
+                  aws s3 sync "s3://$SOURCE_BUCKET" "s3://$BUCKET/$PREFIX/" --only-show-errors --no-progress
+                  ls_keys "$BUCKET" "$PREFIX/" > /work/copy.tsv
+                  MISSING=$(awk -F'\t' 'NR==FNR{c[$1]=$2; next} !($1 in c) || c[$1]!=$2' /work/copy.tsv /work/source.tsv | wc -l)
+                  [ "$MISSING" -eq 0 ] || { echo "FATAL [COPY_INCOMPLETE]: $MISSING of $N source objects are absent from the copy or differ in size" >&2; exit 1; }
+                  BYTES=$(awk -F'\t' '{s+=$2} END {printf "%d", s}' /work/source.tsv)
+                  TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  printf '{"at":"%s","source_objects":%d,"source_bytes":%s,"copy_objects":%d}\n' \
+                    "$TS" "$N" "$BYTES" "$(wc -l < /work/copy.tsv)" > /work/last-run.json
+                  aws s3 cp --only-show-errors /work/last-run.json "s3://$BUCKET/$PREFIX.last-run"
+                  echo "files copy complete: $(cat /work/last-run.json)"
