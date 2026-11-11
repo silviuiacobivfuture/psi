@@ -68,10 +68,13 @@ export function Compass({
 }: CompassProps): JSX.Element {
 	const firstMatch =
 		"el.closest('.pz-compass').querySelector('.pz-compass__item:not([style*=\"display: none\"])')";
+	/** Keeps the newest message in view: the sheet scrolls to its end as the answer streams in. */
+	const FOLLOW_ANSWER =
+		"new MutationObserver(() => { el.scrollTop = el.scrollHeight }).observe(el.querySelector('.pz-compass__answer'), { childList: true, subtree: true, characterData: true })";
 	const submit = [
 		`const q = ${QUERY}`,
 		`const a = ${firstMatch}`,
-		`if (q && a) { window.location.href = a.href } else if (q) { $compassOpen = true; @post('${guideAction}') }`,
+		`if (q && a) { window.location.href = a.href } else if (q) { $compassOpen = true; $compassChat = true; @post('${guideAction}') }`,
 	].join("; ");
 	const keys = [
 		"if (evt.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName ?? '')) { evt.preventDefault(); $compassOpen = true; el.querySelector('.pz-compass__input').focus() }",
@@ -81,7 +84,7 @@ export function Compass({
 		<nav
 			class={cx("pz-compass", className)}
 			aria-label={label}
-			data-signals="{compassOpen: false, compassQuery: ''}"
+			data-signals="{compassOpen: false, compassQuery: '', compassChat: false}"
 			data-class:is-open="$compassOpen"
 			data-on:keydown__window={keys}
 		>
@@ -96,8 +99,10 @@ export function Compass({
 				class="pz-compass__sheet"
 				style={{ display: "none" }}
 				data-show="$compassOpen"
+				data-init={FOLLOW_ANSWER}
 			>
-				<div class="pz-compass__groups">
+				{/* During a conversation the destinations step aside; typing brings matching ones back. */}
+				<div class="pz-compass__groups" data-show="!$compassChat || $compassQuery.trim() !== ''">
 					{groups.map((g) => (
 						<section
 							class="pz-compass__group"
