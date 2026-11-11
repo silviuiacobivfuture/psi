@@ -3,12 +3,12 @@
 :root,
 [data-theme="psizone-light"] {
 	color-scheme: light;
-	--bg: #FFFDF8;
-	--surface-1: #FFFFFF;
-	--surface-2: #F6EFDF;
-	--surface-glass: rgba(255,253,248,0.72);
+	--bg: #F4EEE2;
+	--surface-1: #FAF6EE;
+	--surface-2: #ECE3D1;
+	--surface-glass: rgba(250,246,238,0.72);
 	--line: rgba(46,34,10,0.10);
-	--line-strong: #E0D3B6;
+	--line-strong: #D8CBAE;
 	--line-control: #857759;
 	--ink: #16120A;
 	--ink-muted: #554C3B;

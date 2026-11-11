@@ -24,7 +24,7 @@ Real lines:
 
 ## Colour
 
-- Ground `bg` warm white (`#FFFDF8`) with champagne washes (`surface-2`); solid cards on white `surface-1`. Night: warm black.
+- Ground `bg` warm beige (`#F4EEE2`; owner 2026-11-11: day mode must not scream) with deeper beige washes (`surface-2`); solid cards on cream `surface-1` (`#FAF6EE`). Night: warm black.
 - **Gold is the brand.** `accent` is a gold pill with dark ink text (`on-accent`), for the one primary action. `glow-1` is the deep, text-safe gold: the only glow used as text (one word of a headline, links), never blurred into the background in Gold, where it turns khaki; the light in Gold comes from the luminous golds (`glow-3` champagne, the `accent`) and turquoise.
 - **Turquoise is the second voice:** `glow-2` for the guide (its tint `ai-soft`, its orb) and the focus ring.
 - Rotate gold, turquoise, champagne across hub cards (1, 2, 3).
