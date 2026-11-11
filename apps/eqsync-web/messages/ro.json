@@ -131,5 +131,8 @@
 	"hint_protocols": "După cele 21 de zile",
 	"hint_guide": "Întreabă despre program",
 	"hint_faq": "Căști, ședințe, contraindicații",
-	"hint_start": "Primul pas"
+	"hint_start": "Primul pas",
+	"guide_refusal_injection": "Ghidul răspunde doar la întrebări despre EQ-SYNC.",
+	"guide_refusal_abuse": "Răspundem la întrebările puse cu respect.",
+	"guide_refusal_rate_limited": "Prea multe întrebări într-un timp scurt. Încearcă din nou peste un minut."
 }

@@ -1,19 +1,30 @@
 import type { Agent } from "@mastra/core/agent";
+import type { MastraModelConfig } from "@mastra/core/llm";
 import type { Memory } from "@mastra/memory";
+import { z } from "zod";
 import { AnswerGate, type GateStep } from "./answer-gate";
 import type { Brand, Knowledge } from "./contract";
 import { within } from "./deadline";
 import { type AskInput, AskInputSchema, type GuideEvent, type RefusalReason } from "./events";
+import { type GuideScore, scoreAnswer } from "./faithfulness";
 import { isCrisis } from "./guardrails/crisis";
+import { detectLanguage } from "./guardrails/language";
 import { isClinical, isOutOfScope } from "./guardrails/scope";
+import { cleanText } from "./guardrails/unicode";
 import { scopeSearch, searchKnowledgeTools } from "./knowledge-tool";
 import { renderPassages, SourceLedger } from "./ledger";
-import { instructionsFor, passagesPreamble } from "./prompts/instructions";
+import { forgetAnswer, type ThreadKey } from "./memory";
+import { screenWithModel } from "./model-screening";
+import { instructionsFor, languageNote, passagesPreamble } from "./prompts/instructions";
+import { RateDecisionSchema, type RateLimiter } from "./rate-limit";
+import { screenInput } from "./screening";
 
 /** Time budgets for one answer, in milliseconds. */
 export interface GuideTimeouts {
 	/** One knowledge search. */
 	retrievalMs: number;
+	/** The model guardrails (run in parallel), and the app's rate limiter. */
+	screeningMs: number;
 	/** The longest silence between two pieces of the model's stream (covers the first token). */
 	idleMs: number;
 	/** The whole answer, retrieval included. */
@@ -22,6 +33,7 @@ export interface GuideTimeouts {
 
 export const DEFAULT_TIMEOUTS: GuideTimeouts = {
 	retrievalMs: 8_000,
+	screeningMs: 8_000,
 	idleMs: 20_000,
 	totalMs: 60_000,
 };
@@ -30,15 +42,31 @@ export const DEFAULT_TIMEOUTS: GuideTimeouts = {
 const MAX_OUTPUT_TOKENS = 4_096;
 /** Model steps per answer: the answer, or one more search and then the answer. */
 const MAX_STEPS = 3;
+/** Low, so the answer stays close to the passages' wording. */
+export const ANSWER_TEMPERATURE = 0.1;
 
 /**
- * Why an answer became `unavailable`, for the app's logs. It names the stage and the error, never
- * the question, the passages or the answer.
+ * Why a stage failed, for the app's logs. It names the stage and the error, never the question,
+ * the passages or the answer. `model` and `retrieval` failures make the answer `unavailable`;
+ * so do `rate_limit` and `screening` (the injection detector fails closed).
  */
 export interface GuideFailure {
-	stage: "retrieval" | "model";
+	stage: "retrieval" | "model" | "screening" | "rate_limit";
 	error: string;
 }
+
+/** Per-ask controls from the app. */
+export interface AskControl {
+	/** Aborts the answer (e.g. the visitor closed the SSE connection). */
+	signal?: AbortSignal;
+	/**
+	 * The client the rate limit counts against: a hash of the session or the IP, never a name or
+	 * an e-mail. Without it the guide does not rate-limit.
+	 */
+	clientId?: string;
+}
+
+const ClientIdSchema = z.string().trim().min(1).max(256).optional();
 
 /** What `ask` needs from the guide that owns it. */
 export interface AskContext {
@@ -46,6 +74,10 @@ export interface AskContext {
 	knowledge: Knowledge;
 	timeouts: GuideTimeouts;
 	onFailure: ((failure: GuideFailure) => void) | undefined;
+	onScore: ((score: GuideScore) => void) | undefined;
+	rateLimiter: RateLimiter;
+	/** The model the guardrail processors call, or undefined when model screening is off. */
+	screeningModel: MastraModelConfig | undefined;
 	/** The agent with no memory, or undefined when there is no API key. */
 	agent: Agent | undefined;
 	/** The agent with memory, opened on first use; undefined when memory is not configured. */
@@ -56,40 +88,6 @@ export interface AskContext {
 export interface ThreadAgent {
 	agent: Agent;
 	memory: Memory;
-}
-
-/** How long to wait for a refused run to settle before removing its answer from the thread. */
-const FORGET_AFTER_MS = 5_000;
-
-/** Where a consented thread lives in memory. */
-interface ThreadKey {
-	threadId: string;
-	resourceId: string;
-}
-
-/**
- * Removes the answers of a run that did not reach the visitor complete (refused, failed or
- * abandoned) from the thread, so they never replay into the next prompt. The visitor's question
- * stays. It runs in the background once the run has settled, because Mastra saves the answer when
- * the run ends, and an aborted run saves it under a new message id: every guide message written
- * since the run started is removed.
- */
-async function forgetAnswer(
-	memory: Memory,
-	key: ThreadKey,
-	since: number,
-	settled: Promise<unknown>,
-): Promise<void> {
-	try {
-		await within(settled, FORGET_AFTER_MS, "run settle").catch(() => undefined);
-		const { messages } = await memory.recall({ ...key, perPage: false });
-		const written = messages
-			.filter((m) => m.role === "assistant" && new Date(m.createdAt).getTime() >= since)
-			.map((m) => m.id);
-		if (written.length > 0) await memory.deleteMessages(written);
-	} catch {
-		// Nothing more can be done here; the next answer is still checked on its own.
-	}
 }
 
 type ModelMessage = { role: "user"; content: string } | { role: "assistant"; content: string };
@@ -104,16 +102,6 @@ function rawQuestion(raw: unknown): string | undefined {
 	return typeof raw.question === "string" ? raw.question : undefined;
 }
 
-/** Guardrails that run before anything leaves the process. */
-function screen(raw: unknown): { input: AskInput } | { reason: RefusalReason } {
-	const question = rawQuestion(raw);
-	if (question !== undefined && isCrisis(question)) return { reason: "crisis" };
-	const parsed = AskInputSchema.safeParse(raw);
-	if (!parsed.success) return { reason: "out_of_scope" };
-	if (isOutOfScope(parsed.data.question)) return { reason: "out_of_scope" };
-	return { input: parsed.data };
-}
-
 function describe(error: unknown): string {
 	const text = error instanceof Error ? `${error.name}: ${error.message}` : "unknown error";
 	return text.slice(0, 300);
@@ -125,6 +113,66 @@ function report(ctx: AskContext, stage: GuideFailure["stage"], error: unknown): 
 	} catch {
 		// A failing log hook must not change the answer.
 	}
+}
+
+async function scored(ctx: AskContext, answer: string, ledger: SourceLedger): Promise<GuideScore> {
+	const score = await scoreAnswer(answer, ledger.passageTexts());
+	try {
+		ctx.onScore?.(score);
+	} catch {
+		// A failing log hook must not change the answer.
+	}
+	return score;
+}
+
+/** Counts the question against the client's limit. The limiter failing refuses (fails closed). */
+async function rateLimit(
+	ctx: AskContext,
+	control: AskControl | undefined,
+): Promise<RefusalReason | undefined> {
+	try {
+		const clientId = ClientIdSchema.parse(control?.clientId);
+		if (clientId === undefined) return undefined;
+		const decision = await within(
+			Promise.resolve().then(() => ctx.rateLimiter.take(clientId)),
+			ctx.timeouts.screeningMs,
+			"rate limiter",
+		);
+		return RateDecisionSchema.parse(decision) ? undefined : "rate_limited";
+	} catch (error) {
+		report(ctx, "rate_limit", error);
+		return "unavailable";
+	}
+}
+
+/**
+ * The guardrails that need no model, before anything leaves the process: crisis (on the raw and
+ * the cleaned text, so invisible characters cannot hide it), the rate limit, validation, the
+ * deterministic chain (`screenInput`) and scope.
+ */
+async function screen(
+	ctx: AskContext,
+	raw: unknown,
+	control: AskControl | undefined,
+): Promise<{ input: AskInput } | { reason: RefusalReason }> {
+	const question = rawQuestion(raw);
+	if (question !== undefined && (isCrisis(question) || isCrisis(cleanText(question)))) {
+		return { reason: "crisis" };
+	}
+	const limited = await rateLimit(ctx, control);
+	if (limited !== undefined) return { reason: limited };
+	const parsed = AskInputSchema.safeParse(raw);
+	if (!parsed.success) return { reason: "out_of_scope" };
+	let screened: Awaited<ReturnType<typeof screenInput>>;
+	try {
+		screened = await screenInput(parsed.data);
+	} catch (error) {
+		report(ctx, "screening", error);
+		return { reason: "unavailable" };
+	}
+	if ("reason" in screened) return screened;
+	if (isOutOfScope(screened.input.question)) return { reason: "out_of_scope" };
+	return screened;
 }
 
 function conversation(input: AskInput, useHistory: boolean): Array<ModelMessage> {
@@ -146,9 +194,9 @@ function conversation(input: AskInput, useHistory: boolean): Array<ModelMessage>
 export async function* runAsk(
 	ctx: AskContext,
 	raw: unknown,
-	signal?: AbortSignal,
+	control?: AskControl,
 ): AsyncGenerator<GuideEvent, void, undefined> {
-	const screened = screen(raw);
+	const screened = await screen(ctx, raw, control);
 	if ("reason" in screened) {
 		yield* refusal(screened.reason);
 		return;
@@ -160,6 +208,7 @@ export async function* runAsk(
 	}
 	yield { type: "thinking" };
 
+	const signal = control?.signal;
 	const controller = new AbortController();
 	const abort = (): void => controller.abort();
 	signal?.addEventListener("abort", abort, { once: true });
@@ -170,6 +219,8 @@ export async function* runAsk(
 	let answered = false;
 	try {
 		const ledger = new SourceLedger();
+		// The configured locale is fixed before retrieval: the index is searched in it, whatever
+		// language the visitor wrote in.
 		const search = scopeSearch({
 			knowledge: ctx.knowledge,
 			brand: ctx.brand,
@@ -191,6 +242,20 @@ export async function* runAsk(
 		}
 		const numbered = ledger.register(passages);
 
+		if (ctx.screeningModel !== undefined) {
+			const verdict = await screenWithModel({
+				model: ctx.screeningModel,
+				question: input.question,
+				timeoutMs: ctx.timeouts.screeningMs,
+				signal: controller.signal,
+			});
+			if (verdict.kind === "failed") report(ctx, "screening", verdict.error);
+			if (verdict.kind !== "pass") {
+				yield* refusal(verdict.kind === "refuse" ? verdict.reason : "unavailable");
+				return;
+			}
+		}
+
 		const threads =
 			input.threadId !== undefined && ctx.threadAgent !== undefined ? ctx.threadAgent() : undefined;
 		const threaded = threads !== undefined;
@@ -199,15 +264,20 @@ export async function* runAsk(
 			input.threadId === undefined
 				? undefined
 				: { threadId: `${ctx.brand}-${input.threadId}`, resourceId: `psi-guide-${ctx.brand}` };
+		const note = languageNote(input.locale, detectLanguage(input.question));
 		const since = Date.now();
 		const started = agent.stream(conversation(input, !threaded), {
 			instructions: instructionsFor(ctx.brand, input.locale),
-			system: `${passagesPreamble(input.locale)}\n${renderPassages(numbered)}`,
-			toolsets: { knowledge: searchKnowledgeTools(search, ledger) },
+			system: `${note === "" ? "" : `${note}\n`}${passagesPreamble(input.locale)}\n${renderPassages(numbered)}`,
+			toolsets: { knowledge: searchKnowledgeTools(search, ledger, input.locale) },
 			maxSteps: MAX_STEPS,
 			maxProcessorRetries: 0,
 			abortSignal: controller.signal,
-			modelSettings: { maxRetries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS },
+			modelSettings: {
+				maxRetries: 0,
+				maxOutputTokens: MAX_OUTPUT_TOKENS,
+				temperature: ANSWER_TEMPERATURE,
+			},
 			...(threaded && key !== undefined
 				? { memory: { thread: key.threadId, resource: key.resourceId } }
 				: {}),
@@ -224,10 +294,18 @@ export async function* runAsk(
 		const gate = new AnswerGate({
 			ledger,
 			blockSisterBrands: ctx.brand === "psizone" && isClinical(input.question),
+			locale: input.locale,
 		});
-		const emit = (step: GateStep): GuideEvent | undefined => {
-			if (step.kind === "refuse") return { type: "refusal", reason: step.reason };
-			return step.text.length > 0 ? { type: "text", delta: step.text } : undefined;
+		const emit = async (step: GateStep): Promise<GuideEvent | undefined> => {
+			if (step.kind === "text") {
+				return step.text.length > 0 ? { type: "text", delta: step.text } : undefined;
+			}
+			if (step.check === "language") {
+				report(ctx, "model", new Error("answer not in the configured language"));
+			} else if (step.reason === "no_content" && step.check !== "sentinel") {
+				await scored(ctx, gate.rawText, ledger);
+			}
+			return { type: "refusal", reason: step.reason };
 		};
 
 		let finish: string | undefined;
@@ -241,7 +319,7 @@ export async function* runAsk(
 			if (next.done) break;
 			const chunk = next.value;
 			if (chunk.type === "text-delta") {
-				const event = emit(gate.push(chunk.payload.text));
+				const event = await emit(gate.push(chunk.payload.text));
 				if (event !== undefined) yield event;
 				if (event?.type === "refusal") {
 					yield { type: "done" };
@@ -269,7 +347,7 @@ export async function* runAsk(
 			return;
 		}
 
-		const last = emit(gate.end());
+		const last = await emit(gate.end());
 		if (last?.type === "refusal") {
 			yield* refusal(last.reason);
 			return;
@@ -278,6 +356,12 @@ export async function* runAsk(
 		const sources = ledger.citedSources();
 		// An answer that cites no passage is not grounded, whatever it says.
 		if (!gate.emitted || sources.length === 0) {
+			yield* refusal("no_content");
+			return;
+		}
+		// The whole answer, scored by Mastra's scorer: at least one claim, every claim supported.
+		const score = await scored(ctx, gate.rawText, ledger);
+		if (!score.passed) {
 			yield* refusal("no_content");
 			return;
 		}

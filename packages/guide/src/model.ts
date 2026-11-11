@@ -83,6 +83,10 @@ function shielded(source: ReadableStream<OpenRouterStreamPart>): ReadableStream<
 					controller.close();
 					return;
 				}
+				if (next.value.type === "error") {
+					controller.enqueue({ type: "error", error: sanitized(next.value.error) });
+					return;
+				}
 				if (next.value.type !== "ping") {
 					controller.enqueue(next.value);
 					return;
@@ -95,16 +99,53 @@ function shielded(source: ReadableStream<OpenRouterStreamPart>): ReadableStream<
 	});
 }
 
+/** A provider failure that carries nothing of the request or the response, only its kind. */
+export class ProviderError extends Error {
+	constructor(kind: string, status: number | undefined) {
+		super(status === undefined ? kind : `${kind} (HTTP ${status})`);
+		this.name = "ProviderError";
+	}
+}
+
+/**
+ * The provider's errors carry the request body (the visitor's question, the passages) and the
+ * response body, and Mastra prints errors to the console, including from the internal agents of
+ * its guardrail processors, which the guide cannot silence. Every error leaving the model is
+ * therefore replaced by one that names only its kind and HTTP status. Aborts pass through as they
+ * are: they carry nothing, and Mastra recognises them by name.
+ */
+function sanitized(error: unknown): Error {
+	if (error instanceof Error && error.name === "AbortError") return error;
+	const status =
+		typeof error === "object" &&
+		error !== null &&
+		"statusCode" in error &&
+		typeof error.statusCode === "number"
+			? error.statusCode
+			: undefined;
+	return new ProviderError(error instanceof Error ? error.name : "unknown error", status);
+}
+
 function forMastra(model: OpenRouterChatModel): MastraModelV4 {
 	return {
 		specificationVersion: "v4",
 		provider: model.provider,
 		modelId: model.modelId,
 		supportedUrls: model.supportedUrls,
-		doGenerate: (options) => model.doGenerate(options),
+		doGenerate: async (options) => {
+			try {
+				return await model.doGenerate(options);
+			} catch (error) {
+				throw sanitized(error);
+			}
+		},
 		doStream: async (options) => {
-			const result = await model.doStream(options);
-			return { ...result, stream: shielded(result.stream) };
+			try {
+				const result = await model.doStream(options);
+				return { ...result, stream: shielded(result.stream) };
+			} catch (error) {
+				throw sanitized(error);
+			}
 		},
 	};
 }

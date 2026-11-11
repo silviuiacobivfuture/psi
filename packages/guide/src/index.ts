@@ -1,4 +1,9 @@
-export { DEFAULT_TIMEOUTS, type GuideFailure, type GuideTimeouts } from "./ask";
+export {
+	type AskControl,
+	DEFAULT_TIMEOUTS,
+	type GuideFailure,
+	type GuideTimeouts,
+} from "./ask";
 export type { Brand, Knowledge, Locale, Passage, Source } from "./contract";
 export {
 	type AskInput,
@@ -11,5 +16,12 @@ export {
 	MAX_QUESTION_LENGTH,
 	type RefusalReason,
 } from "./events";
-export { type AskControl, createGuide, type Guide, type GuideOptions } from "./guide";
+export type { GuideScore } from "./faithfulness";
+export { createGuide, type Guide, type GuideOptions } from "./guide";
 export { DEFAULT_MODEL } from "./model";
+export {
+	createMemoryRateLimiter,
+	DEFAULT_RATE_LIMIT,
+	type MemoryRateLimitOptions,
+	type RateLimiter,
+} from "./rate-limit";

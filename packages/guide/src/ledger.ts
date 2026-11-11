@@ -14,6 +14,20 @@ interface Entry {
 
 const CITATION = /\[(\d{1,3}(?:\s*[,;]\s*\d{1,3})*)\]/g;
 
+/** The source numbers a piece of text cites, in order, as the model wrote them. */
+export function citedNumbers(text: string): Array<number> {
+	const numbers: Array<number> = [];
+	for (const match of text.matchAll(CITATION)) {
+		for (const raw of (match[1] ?? "").split(/[,;]/)) numbers.push(Number.parseInt(raw.trim(), 10));
+	}
+	return numbers;
+}
+
+/** Text with its citations removed. */
+export function withoutCitations(text: string): string {
+	return text.replace(CITATION, " ");
+}
+
 /**
  * Every source the model was shown during one `ask`, numbered in the order it first appeared
  * (passages of the same source share a number), and the order in which the answer cited them.
@@ -23,7 +37,7 @@ export class SourceLedger {
 	readonly #byId = new Map<string, Entry>();
 	readonly #byNumber = new Map<number, Entry>();
 	readonly #cited: Array<Entry> = [];
-	readonly #texts: Array<string> = [];
+	readonly #texts = new Map<number, Array<string>>();
 
 	/** Registers passages and returns them numbered for the model. */
 	register(passages: ReadonlyArray<Passage>): ReadonlyArray<NumberedPassage> {
@@ -34,7 +48,9 @@ export class SourceLedger {
 				this.#byId.set(passage.source.id, entry);
 				this.#byNumber.set(entry.n, entry);
 			}
-			this.#texts.push(passage.text);
+			const texts = this.#texts.get(entry.n) ?? [];
+			texts.push(passage.text);
+			this.#texts.set(entry.n, texts);
 			return { n: entry.n, title: passage.source.title, text: passage.text };
 		});
 	}
@@ -44,9 +60,16 @@ export class SourceLedger {
 		return this.#byId.size;
 	}
 
-	/** Every passage text shown to the model, for checking that figures come from the content. */
-	get corpus(): string {
-		return this.#texts.join("\n");
+	/** Everything the model was shown for source `n`, or undefined when `n` is not a source. */
+	passageText(n: number): string | undefined {
+		return this.#texts.get(n)?.join("\n");
+	}
+
+	/** Every source's passage text by number, for the faithfulness scorer. */
+	passageTexts(): Readonly<Record<string, string>> {
+		const out: Record<string, string> = {};
+		for (const [n, texts] of this.#texts) out[String(n)] = texts.join("\n");
+		return out;
 	}
 
 	/**

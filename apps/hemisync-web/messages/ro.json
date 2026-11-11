@@ -137,5 +137,8 @@
 	"nav_technology": "Tehnologia Hemi-Sync®",
 	"club_hint": "Comunitatea exercițiului DEC",
 	"tech_hint": "Sincronizare emisferică, prin sunet",
-	"focus_hint": "Harta conștiinței: Focus 10, 12, 15, 21"
+	"focus_hint": "Harta conștiinței: Focus 10, 12, 15, 21",
+	"guide_refusal_injection": "Ghidul răspunde doar la întrebări despre Hemi-Sync și programele noastre.",
+	"guide_refusal_abuse": "Răspundem la întrebările puse cu respect.",
+	"guide_refusal_rate_limited": "Prea multe întrebări într-un timp scurt. Încearcă din nou peste un minut."
 }

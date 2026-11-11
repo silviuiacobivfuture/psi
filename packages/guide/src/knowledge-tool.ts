@@ -39,9 +39,19 @@ const NumberedPassageSchema: z.ZodType<NumberedPassage> = z.object({
 	text: z.string(),
 });
 
-const SearchInputSchema = z.object({
-	query: z.string().trim().min(1).max(300).describe("What to look up, in the question's language"),
-});
+const LANGUAGE_NAME: Readonly<Record<Locale, string>> = { ro: "Romanian", en: "English" };
+
+/** The tool's input; the query is written in the site's language, the one the index is searched in. */
+function searchInputSchema(locale: Locale) {
+	return z.object({
+		query: z
+			.string()
+			.trim()
+			.min(1)
+			.max(300)
+			.describe(`What to look up, written in ${LANGUAGE_NAME[locale]}, the site's language`),
+	});
+}
 
 const SearchOutputSchema = z.object({ passages: z.array(NumberedPassageSchema).readonly() });
 
@@ -51,12 +61,16 @@ export type SearchKnowledgeOutput = z.infer<typeof SearchOutputSchema>;
  * The toolset holding `searchKnowledge`, the guide's only window on content. Every passage it
  * returns is registered in the answer's ledger, so citations to it are numbered with the rest.
  */
-export function searchKnowledgeTools(search: ScopedSearch, ledger: SourceLedger): ToolsInput {
+export function searchKnowledgeTools(
+	search: ScopedSearch,
+	ledger: SourceLedger,
+	locale: Locale,
+): ToolsInput {
 	const searchKnowledge = createTool({
 		id: "searchKnowledge",
 		description:
 			"Search the reviewed, published content of this site. Returns numbered passages; cite them as [n].",
-		inputSchema: SearchInputSchema,
+		inputSchema: searchInputSchema(locale),
 		outputSchema: SearchOutputSchema,
 		execute: async ({ query }): Promise<SearchKnowledgeOutput> => ({
 			passages: ledger.register(await search(query)),

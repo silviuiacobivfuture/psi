@@ -87,5 +87,8 @@
 	"compass_all": "All articles",
 	"compass_brand_hint": "{brand} articles",
 	"topic_filter": "Topic: {topic}",
-	"topic_filter_clear": "Show all topics"
+	"topic_filter_clear": "Show all topics",
+	"guide_refusal_injection": "The guide only answers questions about our articles.",
+	"guide_refusal_abuse": "We answer questions asked respectfully.",
+	"guide_refusal_rate_limited": "Too many questions in a short time. Try again in a minute."
 }

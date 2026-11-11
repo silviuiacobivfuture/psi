@@ -1,33 +1,45 @@
+import type { Locale } from "./contract";
 import type { RefusalReason } from "./events";
+import { assessSentence, type Unfaithful } from "./faithfulness";
+import { isOtherLanguage } from "./guardrails/language";
 import { mentionsSisterBrand } from "./guardrails/scope";
 import type { SourceLedger } from "./ledger";
+import { sentenceEnds, splitSentences } from "./sentences";
 
 /** What the model writes, alone, when the passages do not answer the question. */
 export const NO_CONTENT_SENTINEL = "NO_CONTENT";
 
-export type GateStep = { kind: "text"; text: string } | { kind: "refuse"; reason: RefusalReason };
+/** Which check stopped an answer. */
+export type GateCheck = "sentinel" | "sister_brand" | "language" | Unfaithful;
+
+export type GateStep =
+	| { kind: "text"; text: string }
+	| { kind: "refuse"; reason: RefusalReason; check: GateCheck };
 
 export interface GateRules {
 	ledger: SourceLedger;
 	/** Psizone on a clinical question: any mention of Hemi-Sync or EQ-SYNC refuses the answer. */
 	blockSisterBrands: boolean;
+	/** The configured language: a sentence clearly in the other one refuses the answer. */
+	locale: Locale;
 }
 
-const BOUNDARY = /[.!?…:;](?=\s)|\n/g;
-const MAX_HELD = 400;
-const PERCENT =
-	/(\d+(?:[.,]\d+)?)\s*(?:%|la sută|la suta|de procente|procente|procent|per ?cent)/gi;
+/** A run-on longer than this goes out at a word boundary and is checked as one sentence. */
+const MAX_HELD = 1000;
 const TAIL_KEPT = 24;
 
 /**
  * Holds the model's text back to the end of each sentence, checks the sentence, then lets it out
- * with its citations renumbered. One mechanism covers the post-checks: the no-content sentinel,
- * Psizone naming a sister brand on a clinical question, and percentages the passages do not hold.
+ * with its citations renumbered. The checks, in order: the no-content sentinel, Psizone naming a
+ * sister brand on a clinical question, a sentence in the other language, and faithfulness (a
+ * claim must cite a passage it was shown, use only that passage's figures and share its wording).
+ * A sentence that fails is never let out.
  */
 export class AnswerGate {
 	readonly #rules: GateRules;
 	#held = "";
 	#tail = "";
+	#raw = "";
 	#emitted = false;
 	#refused = false;
 
@@ -38,6 +50,11 @@ export class AnswerGate {
 	/** True once any text has been let out. */
 	get emitted(): boolean {
 		return this.#emitted;
+	}
+
+	/** Everything the model wrote that reached a check, with its original citation numbers. */
+	get rawText(): string {
+		return this.#raw;
 	}
 
 	/** Takes a delta; returns the checked text that may go out now, or a refusal. */
@@ -65,8 +82,8 @@ export class AnswerGate {
 	}
 
 	#cutPoint(): number {
-		let last = -1;
-		for (const match of this.#held.matchAll(BOUNDARY)) last = match.index + match[0].length;
+		// Text goes out a whole sentence at a time, so each check sees complete sentences.
+		const last = sentenceEnds(this.#held).at(-1) ?? -1;
 		if (last > 0) return last;
 		if (this.#held.length <= MAX_HELD) return 0;
 		const space = this.#held.lastIndexOf(" ");
@@ -77,10 +94,11 @@ export class AnswerGate {
 	}
 
 	#release(segment: string): GateStep {
+		this.#raw += segment;
 		const verdict = this.#check(segment);
 		if (verdict !== undefined) {
 			this.#refused = true;
-			return { kind: "refuse", reason: verdict };
+			return { kind: "refuse", ...verdict };
 		}
 		this.#tail = (this.#tail + segment).slice(-TAIL_KEPT);
 		const text = this.#rules.ledger.rewriteCitations(this.#emitted ? segment : segment.trimStart());
@@ -88,15 +106,18 @@ export class AnswerGate {
 		return { kind: "text", text };
 	}
 
-	#check(segment: string): RefusalReason | undefined {
-		if (segment.includes(NO_CONTENT_SENTINEL)) return "no_content";
+	#check(segment: string): { reason: RefusalReason; check: GateCheck } | undefined {
+		if (segment.includes(NO_CONTENT_SENTINEL)) return { reason: "no_content", check: "sentinel" };
 		if (this.#rules.blockSisterBrands && mentionsSisterBrand(this.#tail + segment)) {
-			return "out_of_scope";
+			return { reason: "out_of_scope", check: "sister_brand" };
 		}
-		const corpus = this.#rules.ledger.corpus;
-		for (const match of segment.matchAll(PERCENT)) {
-			const figure = match[1];
-			if (figure !== undefined && !corpus.includes(figure)) return "no_content";
+		const ledger = this.#rules.ledger;
+		for (const sentence of splitSentences(segment)) {
+			if (isOtherLanguage(sentence, this.#rules.locale)) {
+				return { reason: "unavailable", check: "language" };
+			}
+			const { problem } = assessSentence(sentence, (n) => ledger.passageText(n));
+			if (problem !== undefined) return { reason: "no_content", check: problem };
 		}
 		return undefined;
 	}

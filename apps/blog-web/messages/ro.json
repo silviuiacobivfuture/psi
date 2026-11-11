@@ -87,5 +87,8 @@
 	"compass_all": "Toate articolele",
 	"compass_brand_hint": "Articolele {brand}",
 	"topic_filter": "Subiect: {topic}",
-	"topic_filter_clear": "Arată toate subiectele"
+	"topic_filter_clear": "Arată toate subiectele",
+	"guide_refusal_injection": "Ghidul răspunde doar la întrebări despre articolele noastre.",
+	"guide_refusal_abuse": "Răspundem la întrebările puse cu respect.",
+	"guide_refusal_rate_limited": "Prea multe întrebări într-un timp scurt. Încearcă din nou peste un minut."
 }

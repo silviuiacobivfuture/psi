@@ -37,7 +37,12 @@ async function setUp(replies: ReadonlyArray<FakeReply> = ANSWERS) {
 	const guide = createGuide({
 		brand: "psizone",
 		knowledge: new FakeKnowledge([
-			{ kind: "passages", passages: [passage(EVALUATION, "Evaluarea durează două ore.")] },
+			{
+				kind: "passages",
+				passages: [
+					passage(EVALUATION, "Evaluarea durează două ore. Părinții participă la evaluare."),
+				],
+			},
 		]),
 		apiKey: "test-key",
 		baseURL: server.baseURL,

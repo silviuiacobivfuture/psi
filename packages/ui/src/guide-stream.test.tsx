@@ -13,6 +13,9 @@ const labels: GuideLabels = {
 	refusals: {
 		crisis: <div class="crisis">112</div>,
 		out_of_scope: "OOS",
+		injection: "INJ",
+		abuse: "ABUSE",
+		rate_limited: "RATE",
 		no_content: "NC",
 		unavailable: "U",
 	},

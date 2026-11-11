@@ -137,5 +137,8 @@
 	"nav_technology": "Hemi-Sync® technology",
 	"club_hint": "The community of the DEC exercise",
 	"tech_hint": "Hemispheric synchronisation, through sound",
-	"focus_hint": "A map of consciousness: Focus 10, 12, 15, 21"
+	"focus_hint": "A map of consciousness: Focus 10, 12, 15, 21",
+	"guide_refusal_injection": "The guide only answers questions about Hemi-Sync and our programmes.",
+	"guide_refusal_abuse": "We answer questions asked respectfully.",
+	"guide_refusal_rate_limited": "Too many questions in a short time. Try again in a minute."
 }

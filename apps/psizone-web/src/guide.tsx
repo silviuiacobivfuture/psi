@@ -37,6 +37,9 @@ export function guideLabels(locale: Locale): GuideLabels {
 				</div>
 			),
 			out_of_scope: m.guide_refusal_out_of_scope({}, o),
+			injection: m.guide_refusal_injection({}, o),
+			abuse: m.guide_refusal_abuse({}, o),
+			rate_limited: m.guide_refusal_rate_limited({}, o),
 			no_content: m.guide_refusal_no_content({}, o),
 			unavailable: m.guide_refusal_unavailable({}, o),
 		},

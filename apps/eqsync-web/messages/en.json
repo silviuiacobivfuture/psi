@@ -131,5 +131,8 @@
 	"hint_protocols": "After the 21 days",
 	"hint_guide": "Ask about the programme",
 	"hint_faq": "Headphones, sessions, contraindications",
-	"hint_start": "The first step"
+	"hint_start": "The first step",
+	"guide_refusal_injection": "The guide only answers questions about EQ-SYNC.",
+	"guide_refusal_abuse": "We answer questions asked respectfully.",
+	"guide_refusal_rate_limited": "Too many questions in a short time. Try again in a minute."
 }

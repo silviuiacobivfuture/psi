@@ -15,9 +15,28 @@ export interface FakeRequest {
 	body: unknown;
 }
 
+/** Which of Mastra's guardrail processors sent a (non-streaming) screening request. */
+export type ScreenKind = "injection" | "moderation";
+
+/**
+ * How the fake answers one guardrail: a clean or flagged verdict, a 200 whose text is not a verdict
+ * (`garbage`), an HTTP failure, or no answer at all.
+ */
+export type ScreenReply =
+	| { kind: "clean" }
+	| { kind: "garbage" }
+	| { kind: "flag" }
+	| { kind: "status"; status: number }
+	| { kind: "hang" };
+
+export type ScreenScript = Partial<Record<ScreenKind, ScreenReply>>;
+
 export interface FakeOpenRouter {
 	baseURL: string;
+	/** The streaming answer requests (the guide's agent). */
 	requests: ReadonlyArray<FakeRequest>;
+	/** The non-streaming guardrail requests, by the processor that sent them. */
+	screenings: ReadonlyArray<FakeRequest & { kind: ScreenKind }>;
 	/** Responses the client hung up on before they were complete. */
 	cutOff(): number;
 	close(): Promise<void>;
@@ -75,6 +94,56 @@ async function reply(res: ServerResponse, answer: FakeReply, n: number): Promise
 	res.end("data: [DONE]\n\n");
 }
 
+/** The verdict JSON each guardrail's structured output expects. */
+const VERDICTS: Readonly<Record<ScreenKind, Record<"clean" | "flag", object>>> = {
+	injection: {
+		clean: { categories: [], reason: null },
+		flag: { categories: [{ type: "injection", score: 0.95 }], reason: "override attempt" },
+	},
+	moderation: {
+		clean: { category_scores: [], reason: null },
+		flag: { category_scores: [{ category: "harassment", score: 0.95 }], reason: "insult" },
+	},
+};
+
+function isStreaming(body: unknown): boolean {
+	return typeof body === "object" && body !== null && "stream" in body && body.stream === true;
+}
+
+function screenKind(body: unknown): ScreenKind {
+	return JSON.stringify(body).includes("prompt injection") ? "injection" : "moderation";
+}
+
+function replyScreen(res: ServerResponse, kind: ScreenKind, answer: ScreenReply): void {
+	if (answer.kind === "hang") return;
+	if (answer.kind === "status") {
+		res.writeHead(answer.status, { "content-type": "application/json" });
+		res.end(JSON.stringify({ error: { message: "upstream failed", code: answer.status } }));
+		return;
+	}
+	res.writeHead(200, { "content-type": "application/json" });
+	res.end(
+		JSON.stringify({
+			id: "gen-screen",
+			model: "fake",
+			choices: [
+				{
+					index: 0,
+					message: {
+						role: "assistant",
+						content:
+							answer.kind === "garbage"
+								? "I cannot help with that."
+								: JSON.stringify(VERDICTS[kind][answer.kind]),
+					},
+					finish_reason: "stop",
+				},
+			],
+			usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+		}),
+	);
+}
+
 function readBody(req: IncomingMessage): Promise<unknown> {
 	return new Promise((resolve) => {
 		let raw = "";
@@ -92,11 +161,16 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 	});
 }
 
-/** Starts the fake; each request gets the next scripted reply (the last one repeats). */
+/**
+ * Starts the fake; each answer request gets the next scripted reply (the last one repeats). Guardrail
+ * requests (non-streaming) are answered from `screen`, clean by default, and recorded apart.
+ */
 export async function startFakeOpenRouter(
 	script: ReadonlyArray<FakeReply>,
+	screen: ScreenScript = {},
 ): Promise<FakeOpenRouter> {
 	const requests: Array<FakeRequest> = [];
+	const screenings: Array<FakeRequest & { kind: ScreenKind }> = [];
 	const open = new Set<ServerResponse>();
 	let cut = 0;
 	const server = createServer((req, res) => {
@@ -106,6 +180,12 @@ export async function startFakeOpenRouter(
 			if (!res.writableFinished) cut += 1;
 		});
 		void readBody(req).then((body) => {
+			if (!isStreaming(body)) {
+				const kind = screenKind(body);
+				screenings.push({ path: req.url ?? "", body, kind });
+				replyScreen(res, kind, screen[kind] ?? { kind: "clean" });
+				return;
+			}
 			requests.push({ path: req.url ?? "", body });
 			const answer = script[Math.min(requests.length, script.length) - 1] ?? {
 				kind: "status",
@@ -120,6 +200,7 @@ export async function startFakeOpenRouter(
 	return {
 		baseURL: `http://127.0.0.1:${port}/api/v1`,
 		requests,
+		screenings,
 		cutOff: () => cut,
 		close: () =>
 			new Promise<void>((resolve) => {

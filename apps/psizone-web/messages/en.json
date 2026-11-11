@@ -165,5 +165,8 @@
 	"hero_stat_value": "22",
 	"hero_stat_label": "years of experience",
 	"hero_photo_placeholder": "[Photo from the centre: a therapist with a child]",
-	"guide_section_overline": "The Psizone guide"
+	"guide_section_overline": "The Psizone guide",
+	"guide_refusal_injection": "The guide only answers questions about Psizone's services.",
+	"guide_refusal_abuse": "We answer questions asked respectfully.",
+	"guide_refusal_rate_limited": "Too many questions in a short time. Try again in a minute."
 }

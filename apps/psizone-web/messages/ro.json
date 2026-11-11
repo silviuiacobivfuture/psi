@@ -165,5 +165,8 @@
 	"hero_stat_value": "22",
 	"hero_stat_label": "de ani de experiență",
 	"hero_photo_placeholder": "[Fotografie din centru: terapeut cu un copil]",
-	"guide_section_overline": "Ghidul Psizone"
+	"guide_section_overline": "Ghidul Psizone",
+	"guide_refusal_injection": "Ghidul răspunde doar la întrebări despre serviciile Psizone.",
+	"guide_refusal_abuse": "Răspundem la întrebările puse cu respect.",
+	"guide_refusal_rate_limited": "Prea multe întrebări într-un timp scurt. Încearcă din nou peste un minut."
 }

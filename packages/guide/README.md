@@ -12,7 +12,7 @@ from its own i18n.
 ## Contract
 
 ```ts
-import { createGuide, type GuideEvent } from "@psi/guide";
+import { createGuide, createMemoryRateLimiter, type GuideEvent } from "@psi/guide";
 
 const guide = createGuide({
   brand: "psizone",            // "psizone" | "eqsync" | "hemisync" | "blog"
@@ -20,10 +20,17 @@ const guide = createGuide({
   apiKey: undefined,           // defaults to OPENROUTER_API_KEY
   model: undefined,            // defaults to PSI_GUIDE_MODEL, then DEFAULT_MODEL
   memory: { url: "file:.data/guide.db" }, // optional; used only for asks with a threadId
-  onFailure: (f) => log.warn("guide unavailable", f), // optional; { stage, error }, no visitor content
+  rateLimiter: undefined,      // defaults to createMemoryRateLimiter() (10 a minute per client)
+  modelScreening: true,        // Mastra's model guardrails; on by default
+  screeningModel: undefined,   // OpenRouter slug for the guardrails; defaults to `model`
+  onFailure: (f) => log.warn("guide stage failed", f), // { stage, error }, no visitor content
+  onScore: (s) => metrics.faithfulness(s),            // { scorer, score, claims, supported, passed }
 });
 
-for await (const event of guide.ask({ question, locale: "ro", history, threadId }, { signal })) {
+for await (const event of guide.ask(
+  { question, locale: "ro", history, threadId },
+  { signal, clientId: sha256(sessionId) },
+)) {
   // GuideEvent
 }
 ```
@@ -33,65 +40,134 @@ type GuideEvent =
   | { type: "thinking" }
   | { type: "text"; delta: string }
   | { type: "sources"; sources: ReadonlyArray<Source> }
-  | { type: "refusal"; reason: "crisis" | "out_of_scope" | "no_content" | "unavailable" }
+  | { type: "refusal"; reason: RefusalReason }
   | { type: "done" };
+
+type RefusalReason =
+  | "crisis" | "out_of_scope" | "injection" | "abuse" | "rate_limited" | "no_content" | "unavailable";
 ```
 
 - **A successful answer** is `thinking`, then `text`, then `sources`, then `done`. There can be any
   number of `text` events. Text arrives a sentence at a time, because each sentence is checked
   before it goes out.
 - **Citations.** `[k]` in the text points to `sources[k-1]`. `sources` lists only the passages the
-  answer cited, in the order it cited them. An answer that cites no passage is refused with
-  `no_content`. So is an answer the model did not finish (cut off at the length limit, filtered or
-  failed); that one is refused with `unavailable`.
+  answer cited, in the order it cited them.
 - **A refusal** is `refusal` followed by `done`. It comes after `thinking` once retrieval has
-  started. A refusal can also follow `text`, when a check fails partway through the answer. The app
-  then replaces the partial answer with the refusal.
+  started. A refusal can also follow `text`, when a sentence fails a check partway through the
+  answer. The sentence that failed is never sent; the app replaces the partial answer with the
+  refusal.
 - **Every stream ends with exactly one `done`.** `ask` never throws and never hangs. Every failure
-  becomes a refusal, and every wait has a deadline (`timeouts`: `retrievalMs` 8 s, `idleMs` 20 s,
-  `totalMs` 60 s).
+  becomes a refusal, and every wait has a deadline (`timeouts`: `retrievalMs` 8 s, `screeningMs`
+  8 s, `idleMs` 20 s, `totalMs` 60 s).
 - **Stopping.** Breaking out of the loop, or aborting `signal`, stops the model call.
+- **`clientId`** (in the second argument, not in the input) is what the rate limit counts: a hash
+  of the session or the IP, never a name or an e-mail. Without it the guide does not rate-limit.
 
-| Reason | When | Model called? |
-| --- | --- | --- |
-| `crisis` | Self-harm, suicide, abuse or emergency language, in Romanian or English, with or without diacritics. The app shows its fixed message with 112 and the clinic phone. | Never |
-| `out_of_scope` | The question asks for a diagnosis, medication or individual treatment advice. Also: invalid input (empty, more than 1000 characters, malformed). Also: the answer broke a brand rule, such as Psizone naming Hemi-Sync or EQ-SYNC on a clinical question. | No (the brand-rule check runs on the answer) |
-| `no_content` | Retrieval found nothing. Or the model judged that the passages do not answer the question. Or the answer cited no passage. Or it stated a percentage the passages do not contain. | No for empty retrieval |
-| `unavailable` | No API key, a provider or knowledge failure, a timeout, the caller aborted, or the model did not finish its answer. | — |
+## Refusal reasons, for the apps
 
-Apps can validate input before streaming with `AskInputSchema`. The limits are exported as
-`MAX_QUESTION_LENGTH`, `MAX_HISTORY_TURNS` and `MAX_HISTORY_TURN_LENGTH`.
+The module ships no copy. Each app renders every reason from its own i18n, **in the locale it
+passed to `ask`** (the configured language), never in the language the visitor wrote in. An app
+that keeps a `Record<RefusalReason, …>` of messages needs a key for each reason below.
 
-### Memory and consent
+| Reason | When | What the app shows | Model called? |
+| --- | --- | --- | --- |
+| `crisis` | Self-harm, suicide, abuse or emergency language, in Romanian or English, with or without diacritics, even hidden with invisible characters. Wins over every other reason, the rate limit included. | Its fixed message with 112 and the clinic phone. | Never |
+| `out_of_scope` | A diagnosis, medication or individual treatment request. Invalid input (empty, even once cleaned, over 1000 characters, malformed). An answer that broke a brand rule (Psizone naming Hemi-Sync or EQ-SYNC on a clinical question). | That the guide cannot answer this here, and how to book an evaluation. | No (the brand rule runs on the answer) |
+| `injection` | The question (or a history turn) tries to change, reveal or replace the guide's instructions, or make it play another role. | A neutral "the guide can only answer questions about our services". | No, when the rules catch it; one call when the detector does |
+| `abuse` | Insults, threats, slurs, obscenities or explicit content aimed at the guide or the team, with nothing about health or a child around it. | A short, calm boundary ("we answer respectful questions"), with the contact details. | No, when the rules catch it; one call when moderation does |
+| `rate_limited` | The `clientId` asked more questions than the limiter allows. | "Too many questions in a short time; try again in a minute." | Never |
+| `no_content` | Retrieval found nothing. The model judged the passages do not answer. The answer was not faithful: a claim without a citation, a figure the cited passages do not hold, a claim they do not support, or no grounded claim at all. | That there is no reviewed answer yet, with the contact details. | No for empty retrieval |
+| `unavailable` | No API key, a provider or knowledge failure, a timeout, an abort, the model not finishing, the answer written in the other language, the rate limiter failing, the injection detector failing (it fails closed). | "The guide is unavailable right now; try again." | — |
+
+## The guardrail chain, in order
+
+Cheapest and most certain first. A step that refuses stops the chain, so later (costlier) steps
+never run.
+
+| # | Step | What it does | Refuses with | Cost | If it fails |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Crisis rules | On the raw question and on the cleaned one (step 4), before validation. | `crisis` | Free | Cannot fail |
+| 2 | Rate limit | The app's `RateLimiter` (default: in-memory fixed window), keyed by `clientId`, with the `screeningMs` deadline. | `rate_limited` | One store call | Fails **closed** to `unavailable` (`onFailure` stage `rate_limit`): an outage must not open the model bill to a flood |
+| 3 | Validation | `AskInputSchema` (zod): length and shape limits. | `out_of_scope` | Free | — |
+| 4 | Mastra `UnicodeNormalizer` | NFKC, control characters, whitespace. | — | Free | Any error in steps 4 to 8 is `unavailable` |
+| 5 | `LookalikeFolder` (own processor) | Removes zero-width and bidirectional characters, folds Cyrillic and Greek look-alikes in mixed-script words. Mastra has no processor for this. | — | Free | |
+| 6 | Injection rules (own processor) | Romanian and English override, reveal and role-play requests, chat-template tokens; on the question and every history turn. | `injection` | Free | |
+| 7 | Abuse rules (own processor) | Obscenities, slurs, insults addressed to "you", threats; only on the question, and never when it is about health, therapy or a child (tics, Tourette, bullying). | `abuse` | Free | |
+| 8 | Mastra `RegexFilterProcessor` | Redacts e-mail, phone, card (Mastra's `pii` preset) and Romanian phone, CNP and IBAN before search, the model and memory. Never refuses. Input only: the passages may hold the clinic's phone. | — | Free | |
+| 9 | Scope rules | Diagnosis, medication, individual treatment. | `out_of_scope` | Free | — |
+| 10 | Language | Detects Romanian, English or a mix, deterministically (function words and diacritics, so stripped diacritics work). The site's `locale` is fixed here: retrieval and the answer use it whatever the visitor wrote. | — | Free | — |
+| 11 | Retrieval | `Knowledge.search` in the configured locale. | `no_content` when empty | One search | `unavailable` |
+| 12 | Mastra `PromptInjectionDetector` | Strategy `block`, threshold 0.7, on the cleaned, redacted question only. | `injection` | One small model call (in parallel with 13) | Fails **closed** to `unavailable` (`onFailure` stage `screening`): it exists for what the rules miss, failing closed only costs a retry, and crisis was handled at step 1 |
+| 13 | Mastra `ModerationProcessor` | Strategy `block`, threshold 0.7, categories harassment, hate, sexual-explicit, threat. Self-harm is left out (crisis owns it); its instructions say harm described as a concern is never abuse. | `abuse` | One small model call | Fails **open**: the answer is still grounded, gated and scored |
+| 14 | Mastra `TokenLimiterProcessor` (on the agent) | Keeps the prompt within 12 000 tokens by dropping the oldest history. | — | Free | `unavailable` |
+| 15 | The answer | Temperature 0.1, from the passages only, citations required. | — | The answer call | `unavailable` |
+| 16 | Per-sentence gate | Before each sentence goes out: the `NO_CONTENT` sentinel, the sister-brand rule, the language (a sentence clearly in the other language), and faithfulness (below). | `no_content`, `out_of_scope`, `unavailable` | Free | — |
+| 17 | Mastra scorer `psi-faithfulness` | The whole answer, after it is complete (`createScorer`), reported through `onScore`. | `no_content` | Free | `unavailable` |
+
+Steps 12 and 13 run only when retrieval found passages, so a question nothing answers costs no
+model call. They run before the agent, so a blocked question never reaches the answer model or a
+consented thread. With `modelScreening: false` they are skipped (two model calls fewer per
+answered question). Running them on a small, cheap model through `screeningModel` is the usual
+production set-up.
+
+Not used, and why: Mastra's `LanguageDetector` is a model call whose answer could not change
+anything (the answer language is the configured locale); `PIIDetector` is a model call, and the
+names it would redact include practitioners', which are legitimate questions;
+`SystemPromptScrubber` is a model call on the output, and the guide's instructions are not secret
+data (the answer gate already stops anything not grounded in the passages); `ClassifierProcessor`
+needs an AI SDK decision model, which OpenRouter does not provide.
+
+## Language
+
+The site's `locale` is the conversation's language and is settled before retrieval. The system
+prompt states it first ("Limba conversației este româna…"), including for refusals and referrals.
+When the visitor writes in the other language, or mixes both, the per-call system message says so
+and repeats that the answer stays in the configured language. The search, and the `searchKnowledge`
+tool's query, use the configured locale. A sentence of the answer clearly in the other language
+stops the answer as `unavailable`.
+
+## Accuracy
+
+Each claim-bearing sentence must cite a passage the model was shown, use only figures those
+passages hold, and share at least half of its content words (by four-letter stem, so Romanian
+inflections match) with them. Questions, courtesies and short next steps (booking, an article or a
+hub to read next, "Folosește căști"; at most four content words, so one cannot carry a claim) are
+not claims. A sentence that fails is never sent; the answer becomes `no_content`. Sentences end at
+`.`, `!`, `?`, `…` and newlines, but not after an abbreviation ("dr.", "str.", "nr.") or an initial.
+The gate therefore releases text a whole sentence at a time (no longer at `:` or `;`), and a run-on
+is released at a word boundary after 1000 characters.
+
+The complete answer is then scored by the `psi-faithfulness` Mastra scorer (supported claims over
+claims); it passes only with at least one claim and every claim supported. An answer with no claim
+at all ("Da [1].") has already streamed when the scorer refuses it, so the app replaces it, as with
+any refusal after `text`. `onScore` receives the score of every answer that reached an accuracy
+check, never the question or the answer.
+
+The check is lexical, not semantic: a paraphrase that keeps the passage's words but changes its
+meaning, or a figure written in words ("o oră" for "50 de minute"), can pass. `@mastra/evals`
+(`@mastra/evals/scorers/prebuilt`: `createFaithfulnessScorer`, `createHallucinationScorer`,
+model-judged) is not installed; adding it would be one more model call per answer.
+
+## Memory and consent
 
 Nothing is stored unless the app passes a `threadId`. The app passes one only after the visitor has
 consented. The `threadId` must be unguessable (16 to 128 characters from `A-Z a-z 0-9 _ -`, for
 example a UUID from the session), because it is the only key to the stored thread. When a thread is
 in use, its earlier messages come from memory and `history` is ignored. Without a thread, `history`
 is used and nothing is written. Memory keeps the last 10 messages. Semantic recall, working memory
-and title generation are all off. A crisis question is never stored, because it never reaches the
-model. An answer that did not reach the visitor complete (refused, failed or abandoned) is removed
-from the thread in the background once the run settles, within about 5 seconds. The visitor's
-question stays.
+and title generation are all off. A crisis, injection or abuse question is never stored, because it
+never reaches the agent; what is stored is the cleaned, redacted question. An answer that did not
+reach the visitor complete (refused, failed or abandoned) is removed from the thread in the
+background once the run settles, within about 5 seconds. The visitor's question stays. Apps should
+pass only answered turns as `history`.
 
-## Guardrails
+## Privacy
 
-1. **Crisis detection** runs on the raw question before validation. A long message from someone in
-   crisis therefore gets the crisis message, not a length refusal.
-2. **Scope detection** keys on the shape of the request, not on topic words. "Ce tratamente oferiți
-   pentru ADHD?" passes. "Copilul meu are ADHD?" and "Should I stop the sertraline?" do not.
-3. **Retrieval comes first.** The question is searched with `Knowledge.search`, scoped to the brand
-   and locale. If nothing comes back, the guide refuses with `no_content` and no model is called.
-4. **The agent.** It gets the brand's voice and grounding rules in the visitor's locale, from the
-   brand books in `packages/design/brand-books`. It also gets the passages, numbered by source, and
-   the `searchKnowledge` tool for one more search. It is told to answer only from the passages, to
-   cite them, and to reply with `NO_CONTENT` when they do not answer the question.
-5. **Post-checks** run on each sentence before it is streamed: the `NO_CONTENT` sentinel, Psizone
-   naming a sister brand on a clinical question, and percentages that are not in the passages. At
-   the end, the answer must cite at least one passage, and the model must have finished with
-   `stop`.
-6. **Privacy.** OpenRouter routing uses `data_collection: "deny"`. Mastra's logger is silenced,
-   because it would log request bodies. `onFailure` reports only the stage and the error.
+OpenRouter routing uses `data_collection: "deny"`. Mastra's logger is silenced on the guide's
+agents. Mastra's guardrail processors run internal agents whose console output the guide cannot
+silence, so every error leaving the model is replaced by one that names only its kind and HTTP
+status (`ProviderError`): no request or response body is ever printed. `onFailure` and `onScore`
+carry no visitor content.
 
 ## Environment
 
@@ -124,7 +200,8 @@ export function streamGuide(c: Context, locale: Locale, question: string): Respo
     };
     let text = "";
     let sources: ReadonlyArray<Source> = [];
-    for await (const event of guide.ask({ question, locale }, { signal: control.signal })) {
+    const clientId = hashOf(c); // the app's own hash of the session or IP
+    for await (const event of guide.ask({ question, locale }, { signal: control.signal, clientId })) {
       if (event.type === "thinking") await patch(<Answer state="thinking" />);
       else if (event.type === "text") await patch(<Answer state="writing" text={(text += event.delta)} />);
       else if (event.type === "sources") sources = event.sources;
@@ -145,6 +222,10 @@ pnpm exec tsc --noEmit
 pnpm exec vitest run --maxWorkers=2
 ```
 
-The tests use a local HTTP server that stands in for OpenRouter's `/chat/completions` SSE API, so
-the real provider, Mastra and this module all run. They also use an in-memory `Knowledge` that
-follows the `@psi/knowledge` contract.
+The tests use a local HTTP server that stands in for OpenRouter's `/chat/completions` API, so the
+real provider, Mastra (its processors and scorer included) and this module all run. Streaming
+requests are the answer; non-streaming ones are Mastra's guardrail processors, answered from a
+separate script (clean by default, or flagged, failing or hanging) and recorded apart. They also use
+an in-memory `Knowledge` that follows the `@psi/knowledge` contract. Every refusal reason has its
+own test, and ordinary clinical questions ("Cum arată o evaluare pentru autism?", a child swearing
+at school, tics) are tested to pass every guardrail.

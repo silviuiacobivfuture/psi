@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createBrandAgent } from "./agent";
 import {
+	type AskControl,
 	DEFAULT_TIMEOUTS,
 	type GuideFailure,
 	type GuideTimeouts,
@@ -9,8 +10,10 @@ import {
 } from "./ask";
 import { type Brand, BrandSchema, type Knowledge } from "./contract";
 import type { AskInput, GuideEvent } from "./events";
+import type { GuideScore } from "./faithfulness";
 import { openMemory } from "./memory";
 import { DEFAULT_MODEL, ModelIdSchema, openRouterModel, readGuideEnv } from "./model";
+import { createMemoryRateLimiter, type RateLimiter } from "./rate-limit";
 
 export interface GuideOptions {
 	brand: Brand;
@@ -25,13 +28,22 @@ export interface GuideOptions {
 	baseURL?: string;
 	/** Time budgets; see `GuideTimeouts`. */
 	timeouts?: Partial<GuideTimeouts>;
-	/** Called when an answer becomes `unavailable`; carries no visitor content. */
+	/** Called when a stage fails (the answer becomes `unavailable`); carries no visitor content. */
 	onFailure?: (failure: GuideFailure) => void;
-}
-
-export interface AskControl {
-	/** Aborts the answer (e.g. the visitor closed the SSE connection). */
-	signal?: AbortSignal;
+	/** Called with the faithfulness score of every answer that was scored; carries no visitor content. */
+	onScore?: (score: GuideScore) => void;
+	/**
+	 * Counts questions per `AskControl.clientId`. Defaults to an in-memory limiter (10 questions a
+	 * minute per client), which suits development and a single instance only.
+	 */
+	rateLimiter?: RateLimiter;
+	/**
+	 * Mastra's model guardrails (`PromptInjectionDetector`, `ModerationProcessor`): two small model
+	 * calls per answered question. On by default.
+	 */
+	modelScreening?: boolean;
+	/** OpenRouter model slug for the guardrails; defaults to the answering model. */
+	screeningModel?: string;
 }
 
 export interface Guide {
@@ -60,10 +72,26 @@ const GuideOptionsSchema = z.object({
 	model: ModelIdSchema.optional(),
 	memory: z.object({ url: z.string().trim().min(1) }).optional(),
 	baseURL: z.string().url().optional(),
-	timeouts: z.object({ retrievalMs: Millis, idleMs: Millis, totalMs: Millis }).partial().optional(),
+	timeouts: z
+		.object({ retrievalMs: Millis, screeningMs: Millis, idleMs: Millis, totalMs: Millis })
+		.partial()
+		.optional(),
 	onFailure: z
 		.custom<(failure: GuideFailure) => void>((value) => typeof value === "function")
 		.optional(),
+	onScore: z.custom<(score: GuideScore) => void>((value) => typeof value === "function").optional(),
+	rateLimiter: z
+		.custom<RateLimiter>(
+			(value) =>
+				typeof value === "object" &&
+				value !== null &&
+				"take" in value &&
+				typeof value.take === "function",
+			{ message: "rateLimiter must have a take function" },
+		)
+		.optional(),
+	modelScreening: z.boolean().optional(),
+	screeningModel: ModelIdSchema.optional(),
 });
 
 /**
@@ -86,6 +114,17 @@ export function createGuide(options: GuideOptions): Guide {
 					...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
 				});
 	const agent = model === undefined ? undefined : createBrandAgent({ brand: opts.brand, model });
+	const screeningModel =
+		apiKey === undefined || opts.modelScreening === false
+			? undefined
+			: opts.screeningModel === undefined
+				? model
+				: openRouterModel({
+						apiKey,
+						modelId: opts.screeningModel,
+						...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
+					});
+	const rateLimiter = opts.rateLimiter ?? createMemoryRateLimiter();
 
 	let threads: ThreadAgent | undefined;
 	const memoryOptions = opts.memory;
@@ -110,11 +149,14 @@ export function createGuide(options: GuideOptions): Guide {
 					knowledge: opts.knowledge,
 					timeouts,
 					onFailure: opts.onFailure,
+					onScore: opts.onScore,
+					rateLimiter,
+					screeningModel,
 					agent,
 					threadAgent: openThreadAgent,
 				},
 				input,
-				control?.signal,
+				control,
 			),
 	};
 }

@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
+import { within } from "./deadline";
 
 /** How many earlier messages of a thread the guide reads back. */
 export const THREAD_WINDOW = 10;
@@ -31,4 +32,38 @@ export function openMemory(url: string): Memory {
 			generateTitle: false,
 		},
 	});
+}
+
+/** How long to wait for a refused run to settle before removing its answer from the thread. */
+const FORGET_AFTER_MS = 5_000;
+
+/** Where a consented thread lives in memory. */
+export interface ThreadKey {
+	threadId: string;
+	resourceId: string;
+}
+
+/**
+ * Removes the answers of a run that did not reach the visitor complete (refused, failed or
+ * abandoned) from the thread, so they never replay into the next prompt. The visitor's question
+ * stays. It runs in the background once the run has settled, because Mastra saves the answer when
+ * the run ends, and an aborted run saves it under a new message id: every guide message written
+ * since the run started is removed.
+ */
+export async function forgetAnswer(
+	memory: Memory,
+	key: ThreadKey,
+	since: number,
+	settled: Promise<unknown>,
+): Promise<void> {
+	try {
+		await within(settled, FORGET_AFTER_MS, "run settle").catch(() => undefined);
+		const { messages } = await memory.recall({ ...key, perPage: false });
+		const written = messages
+			.filter((m) => m.role === "assistant" && new Date(m.createdAt).getTime() >= since)
+			.map((m) => m.id);
+		if (written.length > 0) await memory.deleteMessages(written);
+	} catch {
+		// Nothing more can be done here; the next answer is still checked on its own.
+	}
 }

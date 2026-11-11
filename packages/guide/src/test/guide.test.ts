@@ -23,6 +23,14 @@ const FOUND: SearchBehaviour = {
 	],
 };
 
+/** English content for English answers: faithfulness compares an answer's wording with its passages. */
+const FOUND_EN: SearchBehaviour = {
+	kind: "passages",
+	passages: [
+		passage(EVALUATION, "The evaluation takes two hours and includes a talk with the parents."),
+	],
+};
+
 let fake: FakeOpenRouter | undefined;
 
 async function guideWith(
@@ -102,7 +110,7 @@ describe("a grounded answer", () => {
 	it("answers in English with the English instructions", async () => {
 		const { guide, server } = await guideWith(
 			[{ kind: "text", chunks: ["The evaluation takes two hours [1]."] }],
-			[FOUND],
+			[FOUND_EN],
 		);
 		const events = await collect(
 			guide.ask({ question: "How does an evaluation work?", locale: "en" }),
@@ -213,7 +221,8 @@ describe("refusals", () => {
 			[FOUND],
 		);
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "text", "refusal:no_content", "done"]);
+		// The uncited sentence is refused before it is let out, so no text reaches the app.
+		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
 	});
 
 	it("unavailable: the answer was cut off before the model finished", async () => {
@@ -239,7 +248,17 @@ describe("refusals", () => {
 					],
 				},
 			],
-			[FOUND],
+			[
+				{
+					kind: "passages",
+					passages: [
+						passage(
+							{ ...EVALUATION, id: "anxietate", title: "Anxietatea" },
+							"Pentru anxietate lucrăm cu psihoterapie.",
+						),
+					],
+				},
+			],
 		);
 		const events = await collect(
 			guide.ask({ question: "Ce faceți pentru anxietate?", locale: "ro" }),

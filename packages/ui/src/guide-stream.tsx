@@ -1,4 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import { createHash, randomBytes } from "node:crypto";
 import type { Guide, Locale, RefusalReason, Source } from "@psi/guide";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
@@ -57,7 +58,23 @@ export interface GuideAnswerRequest {
 	target: AnswerTarget;
 	labels: GuideLabels;
 	/** The answer region's layout classes (see `GuideAnswer`). */
+	/** Who is asking, for the rate limit. Defaults to an anonymous hash of the client address. */
+	clientId?: string;
 	class?: string;
+}
+
+/** A per-process salt: the hash cannot be reversed to an address or linked across restarts. */
+const SALT = randomBytes(32);
+
+/**
+ * The visitor as the rate limiter sees them: a salted hash of the first forwarded address (the
+ * ingress sets it), never the address itself. Undefined when there is none, so no limit applies.
+ */
+export function anonymousClientId(c: Context): string | undefined {
+	const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+	const address = forwarded || c.req.header("x-real-ip")?.trim();
+	if (!address) return undefined;
+	return createHash("sha256").update(SALT).update(address).digest("base64url");
 }
 
 /**
@@ -67,7 +84,7 @@ export interface GuideAnswerRequest {
  */
 export function streamGuideAnswer(
 	c: Context,
-	{ guide, locale, question, target, labels, class: className }: GuideAnswerRequest,
+	{ guide, locale, question, target, labels, clientId, class: className }: GuideAnswerRequest,
 ): Response {
 	return streamSSE(c, async (stream) => {
 		const patch = async (phase: GuidePhase): Promise<void> => {
@@ -90,7 +107,10 @@ export function streamGuideAnswer(
 		let sources: ReadonlyArray<Source> = [];
 		let refused: RefusalReason | null = null;
 		await patch({ kind: "thinking" });
-		for await (const event of guide.ask({ question, locale }, { signal: abort.signal })) {
+		for await (const event of guide.ask(
+			{ question, locale },
+			{ signal: abort.signal, clientId: clientId ?? anonymousClientId(c) },
+		)) {
 			switch (event.type) {
 				case "thinking":
 					break;

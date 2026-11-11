@@ -3,18 +3,35 @@ import { type Locale, LocaleSchema, type Source } from "./contract";
 
 /**
  * Why the guide did not answer. The module ships no copy: the app renders each reason from its own
- * i18n (crisis is the fixed message with 112 and the clinic phone).
+ * i18n, in the locale it passed to `ask` (the configured language, never the visitor's detected
+ * one). Crisis is the fixed message with 112 and the clinic phone.
  * - `crisis`: self-harm, suicide, abuse or emergency language. Never sent to the model.
  * - `out_of_scope`: a request for a diagnosis, medication or individual treatment advice, a
  *   question the guide cannot take as asked (empty, too long, malformed), or an answer that broke a
  *   brand rule (Psizone recommending Hemi-Sync or EQ-SYNC on a clinical question).
+ * - `injection`: the question tries to change the guide's instructions, make it reveal them, or
+ *   make it play another role (prompt injection or jailbreak), found by the guide's rules or by
+ *   Mastra's `PromptInjectionDetector`.
+ * - `abuse`: the question harasses, insults or threatens, or is hate speech or explicit sexual
+ *   content, found by the guide's rules or by Mastra's `ModerationProcessor`. A visitor describing
+ *   harm done to them or to a child is never `abuse`: that is `crisis`, or an ordinary question.
+ * - `rate_limited`: the app's client (the `clientId` it passed) asked too many questions too fast.
  * - `no_content`: nothing reviewed answers the question (empty retrieval, the model found the
- *   passages do not answer it, the answer cited no passage, or it carried a figure the passages
- *   do not contain).
- * - `unavailable`: no API key, provider or knowledge failure, a timeout, an abort, or a model that
- *   did not finish its answer.
+ *   passages do not answer it), or the answer was not faithful to the passages: a claim without a
+ *   citation, a figure the cited passages do not contain, a claim the cited passages do not
+ *   support, or an answer with no grounded claim at all.
+ * - `unavailable`: no API key, provider or knowledge failure, a timeout, an abort, a model that
+ *   did not finish its answer or wrote it in another language, or a guardrail that could not run
+ *   (the rate limiter, or the injection detector, which fails closed).
  */
-export type RefusalReason = "crisis" | "out_of_scope" | "no_content" | "unavailable";
+export type RefusalReason =
+	| "crisis"
+	| "out_of_scope"
+	| "injection"
+	| "abuse"
+	| "rate_limited"
+	| "no_content"
+	| "unavailable";
 
 /**
  * One step of a streamed answer. A successful answer is `thinking`, `text`*, `sources`, `done`.
