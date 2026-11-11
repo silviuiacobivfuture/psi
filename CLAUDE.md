@@ -3,8 +3,8 @@
 The psi estate's own code: its apps, packages and tools. The PLATFORM (cluster, sign-in,
 Polaris authorization, secrets, Argo, observability) comes from SEB
 (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in `estate/platform.lock`.
-The bundle's built libraries are listed in SEB's `tools/bundle/libs.json`; SEB's design system
-and translations are not among them yet. Platform code is never copied here; platform changes go to SEB.
+SEB is the platform only: psi's user interface and its translations are psi's own code, here,
+and are expected to diverge from any other estate's. Platform code is never copied here; platform changes go to SEB.
 
 ## Layout
 
@@ -31,12 +31,13 @@ and translations are not among them yet. Platform code is never copied here; pla
   (zod); explicit types on exported functions.
 - **Files ≤ 500 lines, one responsibility each**; no `utils.ts` dumping grounds.
 - **i18n-first**: every user-facing string goes through the i18n library; no bare strings in JSX.
-- **One design language: psi's, on SEB's white-label design system.** The component library is
-  SEB's common design system, consumed from SEB the way the first estate (rmx) consumes it, never
-  forked here. psi brings the THEME: the identity in `packages/design/` (`@psi/design`: tokens
-  for eight themes, brand books, component guides) applied on top of that library. Every psi app
-  (the three brand landings, the blog, consoles) uses it; a component two apps need is never
-  written into an app.
+- **The stack: server-rendered TypeScript with Datastar and Tailwind. No React.** Apps are
+  Node 24 + Hono, rendering typed TSX to HTML on the server; interactivity is Datastar (client
+  bundle self-hosted; `@starfederation/datastar-sdk` for SSE patches); styling is Tailwind 4.
+- **One design language: psi's.** `packages/design/` (`@psi/design`) is the language: tokens for
+  eight themes (Psizone, EQ-SYNC, Hemi-Sync, Blog; each dark and light), brand books, component
+  guides. `packages/ui/` (`@psi/ui`) is the library built on it. Every psi app uses them; a
+  component two apps need is never written into an app.
 - **No `rmx` naming in this repository.** Package names, imports, paths and identifiers are
   `@psi/…`/psi's own. Any `rmx` left here is a leftover to remove, never a pattern to copy.
 - **Authorization goes through Polaris**: no hand-rolled roles/permissions; an app declares
@@ -51,8 +52,8 @@ and translations are not among them yet. Platform code is never copied here; pla
 
 - **SEB** at `../seb` (beside this repo): what the estate's platform looks like. Read it, never
   modify it. Refresh it before relying on it: `git -C ../seb pull --ff-only`.
-- **rmx** at `../rmx` (the first estate): how an estate consumes SEB, and inspiration. Read it,
-  never modify it. Refresh it the same way: `git -C ../rmx pull --ff-only`.
+- **rmx** at `../_RMX_READONLY` (the first estate): how an estate consumes SEB, and a source of
+  pieces to take over. Read it, never modify it. Refresh it: `git -C ../_RMX_READONLY pull --ff-only`.
 
 ## Adding an app
 
