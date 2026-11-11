@@ -1,9 +1,10 @@
 # @psi/knowledge
 
 The AI guide's knowledge base: reviewed content entries, chunked, embedded and retrieved per
-brand and locale. Built on Mastra RAG (`MDocument` chunking from `@mastra/rag`, `LibSQLVector`
-from `@mastra/libsql`), with OpenRouter embeddings when a key is present and a deterministic
-lexical fallback when it is not.
+brand and locale. Built on Mastra RAG (`MDocument` chunking from `@mastra/rag`; vectors in
+**Chroma** through `ChromaVector` from `@mastra/chroma` when `CHROMA_URL` is set, else in
+**LibSQL** through `LibSQLVector` from `@mastra/libsql`), with OpenRouter embeddings when a key
+is present and a deterministic lexical fallback when it is not.
 
 ## The contract (`@psi/guide` consumes this)
 
@@ -18,15 +19,17 @@ export interface Knowledge { search(q: { query: string; brand: Brand; locale: Lo
 ```ts
 import { createKnowledge } from "@psi/knowledge";
 
-const kb = createKnowledge({ url: "file:.data/knowledge.db" }); // embedder: optional
+const kb = createKnowledge({ url: "file:.data/knowledge.db" }); // embedder, vector: optional
+// with CHROMA_URL set, the same call uses Chroma; or name the store explicitly:
+// createKnowledge({ vector: { kind: "chroma", url: "http://localhost:8000" } })
 await kb.ingest(entries);   // → IngestReport
 await kb.remove(["psizone-ro-contact-phones"]);
 const passages = await kb.search({ query: "telefon", brand: "psizone", locale: "ro", topK: 5 });
 await kb.close();
 ```
 
-`createKnowledge` returns `Knowledge` plus `ingest`, `remove`, `embedder` (which one is in use)
-and `close`. `score` is cosine similarity; only rows scoring above 0 are returned. Passages are
+`createKnowledge` returns `Knowledge` plus `ingest`, `remove`, `embedder` (which one is in use),
+`store` (which vector store, and where) and `close`. `score` is cosine similarity; only rows scoring above 0 are returned. Passages are
 chunks: one entry can return several.
 
 Queries come from a model's tool call, so `search` degrades instead of throwing:
@@ -62,16 +65,64 @@ validation, not enforced here, because hubs, methods and pages are indexed too.
 
 ## Isolation
 
-One index per **brand, locale and vector space**: `kb_<brand>_<locale>_<space>`. `search` derives
-the index from the query's brand and locale and reads nothing else, so a Psizone query can never
-reach Hemi-Sync content (and the other way round). This is isolation by construction, and the
-returned rows' brand and locale are re-checked anyway. Tables this package owns all start with
-`kb_`. Nothing else in a shared database is touched.
+One index per **brand, locale and vector space**: `kb_<brand>_<locale>_<space>` (a LibSQL table, or
+a Chroma collection). `search` derives the index from the query's brand and locale and reads
+nothing else, so a Psizone query can never reach Hemi-Sync content (and the other way round).
+This is isolation by construction, and the returned rows' brand and locale are re-checked anyway.
+Indexes this package owns all start with `kb_`. Nothing else in a shared database is touched.
 
 Re-ingesting an id replaces it everywhere: its old chunks are deleted from every `kb_` index
 (another brand, locale or embedder included) before the new ones are written. Embedding and the index
 dimension checks happen first, so a failed embedding call or a dimension mismatch never removes
 live content.
+
+## Vector store
+
+| | When | Mastra store | Index |
+|---|---|---|---|
+| **Chroma** | `CHROMA_URL` is set, or `vector: { kind: "chroma", … }` | `ChromaVector` (`@mastra/chroma`) | one collection per index, cosine space |
+| **LibSQL** | otherwise, at `url` (or `vector: { kind: "libsql", … }`) | `LibSQLVector` (`@mastra/libsql`) | one table per index |
+
+The order is: an explicit `vector` option, then `CHROMA_URL`, then `url`. So the apps and the seed
+script, which pass a libsql `url`, write to Chroma once `CHROMA_URL` is set in their environment.
+The CMS does too, but only indexes at all when its `KNOWLEDGE_DB_URL` is set. A Chroma variable set without `CHROMA_URL` is refused (a half-configured Chroma never
+quietly becomes LibSQL), and with no store at all `createKnowledge` throws. The choice is reported in
+`IngestReport.store` and on `kb.store` (`kind`, `location`); the location never carries a token.
+
+Everything above holds on both stores (the whole knowledge suite runs on each). What Chroma needs
+on top:
+
+- **URL**: `CHROMA_URL` is an origin, `http(s)://host[:port]` (443 or 80 when no port). A path,
+  query, fragment or credentials in it are refused: the Chroma client has no path prefix, and the
+  token belongs in `CHROMA_API_KEY`.
+- **Token**: `CHROMA_API_KEY` is sent as `Authorization: Bearer <key>` (Chroma's default
+  transport), or as `X-Chroma-Token` with `CHROMA_AUTH_HEADER=x-chroma-token`. It is not passed as
+  `ChromaVector`'s own `apiKey`, which switches the client to Chroma Cloud.
+- **Tenant and database**: `CHROMA_TENANT` and `CHROMA_DATABASE`, default `default_tenant` and
+  `default_database`. The database must exist on the server. Give the knowledge base its own
+  database on a shared server: `ChromaVector.listIndexes()` reads one page of 100 collections, so a
+  database listing 100 or more is refused rather than risk missing a `kb_` index on a re-ingest.
+- **Collection names**: Chroma wants 3–512 characters of `[a-zA-Z0-9._-]`, starting and ending with
+  a letter or digit, no `..`, not an IPv4 address. Every name this package makes qualifies; an
+  embedder space Chroma cannot name (ending in `_`, say) is refused before anything is removed.
+- **Metadata**: Chroma drops `null` values and *merges* metadata on upsert. Each chunk's metadata is
+  therefore stored as one JSON string, `record`, rewritten whole on every write and parsed back with
+  zod (`reviewedBy: null` stays null; no stale review stamp survives). `entryId`, `brand` and
+  `locale` are copied beside it for the delete filter and for Chroma's own tools; a row whose copies
+  disagree with its record is never returned.
+- **Scores**: Chroma returns `1 − cosine distance` and has no score floor, so rows scoring 0 or less
+  are dropped, as LibSQL does. `close()` is a no-op: the client holds no connection.
+
+### Chroma locally
+
+```sh
+docker run -d --name psi-chroma -p 127.0.0.1:8000:8000 -v <repo>/.data/chroma:/data \
+  chromadb/chroma@sha256:1e0b73a187a28757c572acba508c46f48c9e8b0acaf5c20e6d95cdedce1acdf6
+curl http://localhost:8000/api/v2/heartbeat
+CHROMA_URL=http://localhost:8000 pnpm --filter @psi/knowledge ingest-seed
+```
+
+The estate's Chroma will be at `https://chroma.psizone.ro`; nothing here hard-codes it.
 
 ## Chunking
 
@@ -93,7 +144,7 @@ alone.
 
 The choice is reported in `IngestReport.embedder` (`kind`, `model`, `space`, `dimension`) and on
 `kb.embedder`. Pass `embedder` to `createKnowledge` to override it. Tests always pass the lexical
-embedder explicitly and never read the environment.
+embedder explicitly.
 
 **The lexical fallback is for development and tests, not production.** It hashes words and
 character trigrams (FNV-1a, signed, 1024 dimensions) with sublinear term frequency and
@@ -114,9 +165,15 @@ mixes vectors from different models.
 |---|---|---|
 | `OPENROUTER_API_KEY` | embedder selection | unset → lexical fallback |
 | `PSI_EMBED_MODEL` | OpenRouter model id | `openai/text-embedding-3-small` |
-| `PSI_KNOWLEDGE_DB_URL` | the seed ingest script | `file:.data/knowledge.db` |
+| `PSI_KNOWLEDGE_DB_URL` | the seed ingest script (LibSQL) | `file:.data/knowledge.db` |
+| `CHROMA_URL` | vector store selection | unset → LibSQL at `url` |
+| `CHROMA_API_KEY` | Chroma token | unset → no auth header |
+| `CHROMA_AUTH_HEADER` | how the token travels: `authorization` or `x-chroma-token` | `authorization` (Bearer) |
+| `CHROMA_TENANT` | Chroma tenant | `default_tenant` |
+| `CHROMA_DATABASE` | Chroma database (must exist) | `default_database` |
 
-The key is a secret: it lives in OpenBao and is never logged, printed or committed.
+`OPENROUTER_API_KEY` and `CHROMA_API_KEY` are secrets: they live in OpenBao and are never logged,
+printed, reported or committed.
 
 ## Seed and ingest
 
@@ -144,21 +201,29 @@ settled.
 Run the seed ingest from `packages/knowledge`:
 
 ```sh
-pnpm dlx tsx src/seed/ingest.ts
+pnpm ingest-seed
 # another database:
-PSI_KNOWLEDGE_DB_URL=file:/tmp/kb.db pnpm dlx tsx src/seed/ingest.ts
+PSI_KNOWLEDGE_DB_URL=file:/tmp/kb.db pnpm ingest-seed
+# into Chroma:
+CHROMA_URL=http://localhost:8000 pnpm ingest-seed
 ```
 
-`node --import tsx src/seed/ingest.ts` works once `tsx` is a devDependency of this package; it is
-not one yet. Re-running the ingest replaces the same entries. The parent directory of a `file:`
+With `CHROMA_URL` set the script writes to Chroma, though its first output line still prints the
+LibSQL `database:` URL. Re-running the ingest replaces the same entries. The parent directory of a `file:`
 database is created on first use, and `.data/` is gitignored.
 
 ## Tests
 
 ```sh
 pnpm exec tsc --noEmit
-pnpm exec vitest run --maxWorkers=2
+pnpm exec vitest run --maxWorkers=2                                   # LibSQL; Chroma skipped
+CHROMA_URL=http://localhost:8000 pnpm exec vitest run --maxWorkers=2  # LibSQL and Chroma
 ```
 
-Each test gets its own temporary libsql file. Only the network is stubbed: the OpenRouter tests
+The knowledge suite runs once per store. On LibSQL each test gets its own temporary file; on
+Chroma each test creates its own database on the server (`kbtest_<random>`) and deletes it after.
+Without `CHROMA_URL`, or when the server does not answer its heartbeat, the Chroma cases are
+skipped and the skip names the reason. The seed tests call `createKnowledge` with a libsql URL, so
+with `CHROMA_URL` set they follow it and write the seed into the configured Chroma database: point
+the tests at a local Chroma only, never at the estate's. Only the network is stubbed: the OpenRouter tests
 pass a fake `fetch` to the provider, so the live endpoint is not exercised by the suite.

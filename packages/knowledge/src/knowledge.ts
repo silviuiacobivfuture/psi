@@ -1,7 +1,3 @@
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { LibSQLVector } from "@mastra/libsql";
 import { z } from "zod";
 import { chunkMarkdown } from "./chunk";
 import {
@@ -19,12 +15,17 @@ import {
 	KnowledgeEntrySchema,
 	retrievability,
 } from "./entry";
-import { indexName, isOwnIndex } from "./store/indexes";
+import { resolveVectorConfig, type VectorConfig } from "./store/config";
+import { indexName } from "./store/indexes";
 import { type ChunkMetadata, chunkId, chunkMetadata, toPassage } from "./store/metadata";
+import { openVectorStore } from "./store/open";
+import type { VectorStoreInfo } from "./store/types";
 
 export interface IngestReport {
 	/** Which embedder produced the vectors (OpenRouter or the lexical fallback). */
 	embedder: EmbedderInfo & { dimension: number | null };
+	/** Which vector store holds the index (LibSQL or Chroma) and where; no secrets. */
+	store: VectorStoreInfo;
 	/** Entries now retrievable, with the index they live in and their chunk count. */
 	indexed: ReadonlyArray<{ id: string; index: string; chunks: number }>;
 	/** Entries refused by the retrievability rule; any earlier copy of them was removed. */
@@ -40,32 +41,30 @@ export interface KnowledgeStore extends Knowledge {
 	remove(ids: ReadonlyArray<string>): Promise<void>;
 	/** The embedder in use. */
 	readonly embedder: EmbedderInfo;
-	/** Closes the database connection. */
+	/** The vector store in use (LibSQL or Chroma) and where; no secrets. */
+	readonly store: VectorStoreInfo;
+	/** Closes the database connection (a no-op on Chroma, which holds none). */
 	close(): Promise<void>;
 }
 
 export interface CreateKnowledgeOptions {
-	/** A libsql URL, e.g. `file:.data/knowledge.db`. */
-	url: string;
+	/**
+	 * A libsql URL, e.g. `file:.data/knowledge.db`: the store when neither `vector` nor
+	 * `CHROMA_URL` names another one.
+	 */
+	url?: string;
 	/** Defaults to OpenRouter when `OPENROUTER_API_KEY` is set, else the lexical fallback. */
 	embedder?: Embedder;
+	/** The libsql auth token, with `url`. */
 	authToken?: string;
+	/**
+	 * The vector store, explicitly. Without it: Chroma when `CHROMA_URL` is set (see
+	 * `chromaFromEnv`), else LibSQL at `url`.
+	 */
+	vector?: VectorConfig;
 }
-
-const Options = z.object({
-	url: z.string().trim().min(1),
-	authToken: z.string().min(1).optional(),
-});
 
 const EntryIds = z.array(z.string().trim().min(1));
-
-/** Creates the parent directory of a local `file:` database so a first run just works. */
-function ensureLocalDir(url: string): void {
-	if (!url.startsWith("file:")) return;
-	const path = url.startsWith("file://") ? fileURLToPath(url) : url.slice("file:".length);
-	if (path === "" || path === ":memory:") return;
-	mkdirSync(dirname(path), { recursive: true });
-}
 
 interface Prepared {
 	entry: KnowledgeEntry;
@@ -74,40 +73,35 @@ interface Prepared {
 }
 
 export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
-	const o = Options.parse({ url: opts.url, authToken: opts.authToken });
+	const store = openVectorStore(resolveVectorConfig(opts));
 	const embedder = opts.embedder ?? embedderFromEnv();
-	ensureLocalDir(o.url);
-	const store = new LibSQLVector({
-		id: "psi-knowledge",
-		url: o.url,
-		...(o.authToken === undefined ? {} : { authToken: o.authToken }),
-	});
 	const created = new Set<string>();
 
-	async function ownIndexes(): Promise<ReadonlyArray<string>> {
-		return (await store.listIndexes()).filter(isOwnIndex);
+	function ownIndexes(): Promise<ReadonlyArray<string>> {
+		return store.ownIndexes();
 	}
 
 	async function remove(ids: ReadonlyArray<string>): Promise<void> {
 		const parsed = [...new Set(EntryIds.parse(ids))];
 		if (parsed.length === 0) return;
 		for (const index of await ownIndexes()) {
-			await store.deleteVectors({ indexName: index, filter: { entryId: { $in: parsed } } });
+			await store.deleteEntries(index, parsed);
 		}
 	}
 
 	async function ensureIndex(index: string, dimension: number): Promise<void> {
 		if (created.has(index)) return;
+		store.checkIndexName(index);
 		const existing = await ownIndexes();
 		if (existing.includes(index)) {
-			const stats = await store.describeIndex({ indexName: index });
-			if (stats.dimension !== dimension) {
+			const held = await store.dimension(index);
+			if (held !== dimension) {
 				throw new Error(
-					`index ${index} holds ${stats.dimension}-dimension vectors, the embedder gives ${dimension}`,
+					`index ${index} holds ${held}-dimension vectors, the embedder gives ${dimension}`,
 				);
 			}
 		} else {
-			await store.createIndex({ indexName: index, dimension, metric: "cosine" });
+			await store.createIndex(index, dimension);
 		}
 		created.add(index);
 	}
@@ -166,15 +160,11 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		await remove(entries.map((e) => e.id));
 		for (const [index, group] of byIndex) {
 			if (group.vectors.length === 0) continue;
-			await store.upsert({
-				indexName: index,
-				vectors: group.vectors,
-				metadata: group.meta,
-				ids: group.ids,
-			});
+			await store.upsert(index, { ids: group.ids, vectors: group.vectors, metadata: group.meta });
 		}
 		return {
 			embedder: { ...describeEmbedder(embedder), dimension },
+			store: store.info,
 			indexed,
 			skipped,
 			chunks: inputs.length,
@@ -194,12 +184,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		const [vector] = await embedder.embed([s.query]);
 		// A query with no usable tokens has no direction: cosine is undefined, so nothing matches.
 		if (vector === undefined || vector.every((x) => x === 0)) return [];
-		const rows = await store.query({
-			indexName: index,
-			queryVector: vector,
-			topK: s.topK,
-			minScore: 0,
-		});
+		const rows = await store.query(index, vector, s.topK);
 		const out: Passage[] = [];
 		for (const row of rows) {
 			const p = toPassage(row.metadata, row.score, { brand: s.brand, locale: s.locale });
@@ -213,6 +198,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		ingest,
 		remove,
 		embedder: describeEmbedder(embedder),
+		store: store.info,
 		close: () => store.close(),
 	};
 }

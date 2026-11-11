@@ -71,12 +71,16 @@ describe("the seed", () => {
 	});
 
 	it("ingests into a fresh database and finds the contact entry for 'telefon' and 'phone'", async () => {
-		const report = await ingestSeed({ url: db.url, embedder });
+		const report = await ingestSeed({
+			url: db.url,
+			embedder,
+			vector: { kind: "libsql", url: db.url },
+		});
 		expect(report.embedder.kind).toBe("lexical");
 		expect(report.skipped).toEqual([]);
 		expect(report.indexed).toHaveLength(SEED.length);
 
-		const k = createKnowledge({ url: db.url, embedder });
+		const k = createKnowledge({ url: db.url, embedder, vector: { kind: "libsql", url: db.url } });
 		try {
 			const ro = await k.search({ query: "telefon", brand: "psizone", locale: "ro" });
 			expect(ro[0]?.source.id).toBe("psizone-ro-contact-phones");
@@ -99,10 +103,18 @@ describe("the seed", () => {
 	});
 
 	it("re-running the seed ingest replaces the same entries", async () => {
-		const first = await ingestSeed({ url: db.url, embedder });
-		const second = await ingestSeed({ url: db.url, embedder });
+		const first = await ingestSeed({
+			url: db.url,
+			embedder,
+			vector: { kind: "libsql", url: db.url },
+		});
+		const second = await ingestSeed({
+			url: db.url,
+			embedder,
+			vector: { kind: "libsql", url: db.url },
+		});
 		expect(second.chunks).toBe(first.chunks);
-		const k = createKnowledge({ url: db.url, embedder });
+		const k = createKnowledge({ url: db.url, embedder, vector: { kind: "libsql", url: db.url } });
 		try {
 			const all = await k.search({
 				query: "telefon programare",
@@ -118,8 +130,8 @@ describe("the seed", () => {
 	});
 
 	it("finds each brand's own entries, and only those", async () => {
-		await ingestSeed({ url: db.url, embedder });
-		const k = createKnowledge({ url: db.url, embedder });
+		await ingestSeed({ url: db.url, embedder, vector: { kind: "libsql", url: db.url } });
+		const k = createKnowledge({ url: db.url, embedder, vector: { kind: "libsql", url: db.url } });
 		try {
 			const eq = await k.search({ query: "căști", brand: "eqsync", locale: "ro" });
 			expect(eq[0]?.source.id).toBe("eqsync-ro-headphones");

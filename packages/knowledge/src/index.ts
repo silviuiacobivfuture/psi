@@ -49,4 +49,14 @@ export {
 	type IngestReport,
 	type KnowledgeStore,
 } from "./knowledge";
+export {
+	CHROMA_AUTH_HEADERS,
+	type ChromaAuthHeader,
+	type ChromaConfig,
+	chromaFromEnv,
+	type LibSQLConfig,
+	resolveVectorConfig,
+	type VectorConfig,
+} from "./store/config";
 export { indexName } from "./store/indexes";
+export type { VectorStoreInfo, VectorStoreKind } from "./store/types";
