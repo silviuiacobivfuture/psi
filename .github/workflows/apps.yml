@@ -1,0 +1,134 @@
+# Build → Harbor → deploy, for every application under apps/ that has a Dockerfile and changed in
+# the push. The branch is the environment: the image is tagged with the commit, pushed to the
+# estate's Harbor (REGISTRY_HOST / REGISTRY_PROJECT_APPS from estate/identity.yaml), and its tag
+# written into gitops/services/<app>/overlays/<branch>/kustomization.yaml, which Argo deploys.
+name: apps
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "estate/platform.lock"
+  workflow_dispatch: {}
+
+# Never cancel a deploy mid-flight: an image pushed with no tag bump (or the reverse) is a state
+# nobody can reason about. GitHub keeps one running and one pending run per group.
+concurrency:
+  group: apps-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  plan:
+    runs-on: k8s
+    outputs:
+      apps: ${{ steps.changed.outputs.apps }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+      - id: changed
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          all() { for d in apps/*/; do [ -f "${d}Dockerfile" ] && basename "$d"; done; }
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+             || git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(packages/|pnpm-lock.yaml|estate/platform.lock)'; then
+            list="$(all || true)"
+          else
+            list="$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | sed -n 's|^apps/\([^/]*\)/.*|\1|p' | sort -u \
+              | while read -r a; do [ -f "apps/$a/Dockerfile" ] && echo "$a"; done || true)"
+          fi
+          echo "apps=$(printf '%s\n' "$list" | sed '/^$/d' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [plan]
+    if: needs.plan.outputs.apps != '[]'
+    runs-on: k8s
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.apps) }}
+    steps:
+      - name: The CI host's settings are all present
+        env:
+          OPENBAO_ADDR: ${{ vars.OPENBAO_ADDR }}
+          OPENBAO_JWT_MOUNT: ${{ vars.OPENBAO_JWT_MOUNT }}
+          OPENBAO_AUDIENCE: ${{ vars.OPENBAO_AUDIENCE }}
+          OPENBAO_ROLE_DEPLOY: ${{ vars.OPENBAO_ROLE_DEPLOY }}
+          REGISTRY_PUSH_SECRET: ${{ vars.REGISTRY_PUSH_SECRET }}
+          GIT_PUSH_SECRET: ${{ vars.GIT_PUSH_SECRET }}
+        run: |
+          miss=0
+          for k in OPENBAO_ADDR OPENBAO_JWT_MOUNT OPENBAO_AUDIENCE OPENBAO_ROLE_DEPLOY REGISTRY_PUSH_SECRET GIT_PUSH_SECRET; do
+            [ -n "${!k}" ] || { echo "::error::MISSING HOST SETTING: $k"; miss=1; }
+          done
+          [ "$miss" = 0 ]
+      - name: OIDC → OpenBao (Harbor push robot + git push token)
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ vars.OPENBAO_ADDR }}
+          method: jwt
+          path: ${{ vars.OPENBAO_JWT_MOUNT }}
+          role: ${{ vars.OPENBAO_ROLE_DEPLOY }}
+          jwtGithubAudience: ${{ vars.OPENBAO_AUDIENCE }}
+          secrets: |
+            ${{ vars.REGISTRY_PUSH_SECRET }} username | HARBOR_USERNAME ;
+            ${{ vars.REGISTRY_PUSH_SECRET }} password | HARBOR_PASSWORD ;
+            ${{ vars.GIT_PUSH_SECRET }} token | GIT_PUSH_TOKEN
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ env.GIT_PUSH_TOKEN }}
+      - name: The estate's registry, from its identity
+        run: |
+          set -euo pipefail
+          for key in REGISTRY_HOST REGISTRY_PROJECT_APPS REGISTRY_PROJECT_MIRROR; do
+            value="$(sed -n "s/^${key}:[[:space:]]*\([^[:space:]#]*\).*/\1/p" estate/identity.yaml)"
+            [ -n "$value" ] || { echo "::error::MISSING REQUIRED ESTATE VALUE: $key"; exit 1; }
+            echo "$key=$value" >> "$GITHUB_ENV"
+          done
+      - name: Log in to Harbor
+        run: echo "$HARBOR_PASSWORD" | docker login "$REGISTRY_HOST" -u "$HARBOR_USERNAME" --password-stdin
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Build + push
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_SHA::7}"
+          IMG="$REGISTRY_HOST/$REGISTRY_PROJECT_APPS/$APP"
+          docker buildx build -f "apps/$APP/Dockerfile" \
+            --build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
+            --cache-from "type=registry,ref=$IMG:buildcache" --cache-to "type=registry,ref=$IMG:buildcache,mode=max" \
+            -t "$IMG:$TAG" --push .
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+      - name: Bump the image tag on this environment (→ Argo deploys)
+        env:
+          APP: ${{ matrix.app }}
+          ENV_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          OVERLAY="gitops/services/$APP/overlays/$ENV_BRANCH/kustomization.yaml"
+          [ -f "$OVERLAY" ] || { echo "::error::$APP has no overlay for $ENV_BRANCH ($OVERLAY)"; exit 1; }
+          git config user.name "estate-ci"
+          git config user.email "estate-ci@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch -q origin "$ENV_BRANCH"
+            git reset -q --hard "origin/$ENV_BRANCH"
+            sed -i "s/^\(\s*newTag:\s*\).*/\1\"$TAG\"/" "$OVERLAY"
+            git add "$OVERLAY"
+            if git diff --cached --quiet; then echo "$APP already at $TAG"; exit 0; fi
+            git commit -q --no-verify -m "ci($APP): deploy $TAG to $ENV_BRANCH [skip ci] [PATCH]"
+            if git push -q --no-verify origin "HEAD:$ENV_BRANCH"; then exit 0; fi
+            sleep 5
+          done
+          echo "::error::could not push the tag bump after 3 attempts"; exit 1

@@ -1,0 +1,9 @@
+/*
+ * PSI's theme on the platform's design system — NEUTRAL: the design system's light and
+ * dark themes and its neutral mark tile are the whole of it. Every web application imports this
+ * file after the design system's tokens (apps/<app>/src/index.css).
+ *
+ * Own colours are declared HERE, never in an application: a `.dark[data-app="<app>"]` block per
+ * application (accent roles only, OKLCH) and `--brand-<app>-from` / `--brand-<app>-to` under
+ * `:where(:root)` for its mark tile, each measured by a contrast test before it ships.
+ */

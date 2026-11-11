@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Biome over what is staged; the whole tree is CI's.
+pnpm exec biome check --config-path .mono/biome.json --staged --no-errors-on-unmatched

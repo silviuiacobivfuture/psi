@@ -11,6 +11,9 @@
 	},
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",
+		"postinstall": "node scripts/postinstall.mjs",
+		"prepare": "husky",
+		"new-app": "node scripts/new-app.mjs",
 		"build": "nx run-many -t build",
 		"test": "nx run-many -t test --parallel=1",
 		"type-check": "nx run-many -t type-check",
@@ -23,6 +26,7 @@
 		"@biomejs/biome": "^2.0.0",
 		"@nx/js": "22.2.3",
 		"@types/node": "^24.7.2",
+		"husky": "^9.1.7",
 		"nx": "22.0.2",
 		"typescript": "^5.7.3",
 		"vitest": "^2.1.9"

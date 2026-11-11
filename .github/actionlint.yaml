@@ -1,0 +1,4 @@
+# The estate's runners: SEB's ARC runner scale set on the cluster (pieces/arc-runners).
+self-hosted-runner:
+  labels:
+    - k8s
