@@ -1,0 +1,493 @@
+/*
+ * Hemi-Sync România: dawn, journey, contemplative.
+ * The drawn dawn (DawnLandscape, DawnRidges), the arched programme window (ArchCard), the Focus scale,
+ * and the rising mist. Colours are theme roles only; peach and sky stay decorative, never text.
+ * Every loop is 60s and stops under prefers-reduced-motion.
+ */
+
+/* ---------- The hour, per theme ---------- */
+[data-theme="hemisync-light"] {
+	--hs-sky: linear-gradient(
+		180deg,
+		#ffffff 0%,
+		color-mix(in oklab, var(--glow-3) 14%, #ffffff) 26%,
+		color-mix(in oklab, var(--glow-3) 42%, #ffffff) 48%,
+		color-mix(in oklab, var(--glow-2) 52%, #ffffff) 66%,
+		color-mix(in oklab, var(--glow-2) 78%, #ffffff) 80%
+	);
+	--hs-sun: color-mix(in oklab, var(--glow-2) 70%, #fff4e8);
+	--hs-sun-o: 0.85;
+	--hs-ridge-1: color-mix(in oklab, var(--glow-3) 82%, var(--ink));
+	--hs-ridge-2: color-mix(in oklab, var(--glow-3) 64%, var(--ink));
+	--hs-ridge-3: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--glow-1) 30%, var(--glow-3)) 44%,
+		var(--ink)
+	);
+	--hs-ridge-4: color-mix(in oklab, var(--glow-1) 18%, var(--ink));
+	--hs-ridge-5: color-mix(in oklab, var(--ink) 84%, var(--glow-1));
+	--hs-haze: color-mix(in oklab, var(--glow-2) 34%, #ffffff);
+	--hs-haze-4: color-mix(in oklab, var(--glow-3) 40%, var(--ink));
+	--hs-haze-5: var(--hs-ridge-5);
+	--hs-mist-a: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--glow-2) 30%, #ffffff) 62%,
+		transparent
+	);
+	--hs-mist-b: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--glow-3) 22%, #ffffff) 56%,
+		transparent
+	);
+	--hs-mist-o: 1;
+}
+[data-theme="hemisync-dark"] {
+	--hs-sky: linear-gradient(
+		180deg,
+		var(--bg) 0%,
+		color-mix(in oklab, var(--surface-2) 80%, var(--glow-1)) 44%,
+		color-mix(in oklab, var(--surface-2) 58%, var(--glow-1)) 62%,
+		color-mix(in oklab, var(--glow-2) 46%, var(--surface-2)) 80%
+	);
+	--hs-sun: color-mix(in oklab, var(--glow-2) 70%, var(--glow-1));
+	--hs-sun-o: 0.5;
+	--hs-ridge-1: color-mix(in oklab, var(--glow-1) 34%, var(--surface-2));
+	--hs-ridge-2: color-mix(in oklab, var(--glow-1) 22%, var(--surface-1));
+	--hs-ridge-3: color-mix(in oklab, var(--glow-1) 14%, var(--bg));
+	--hs-ridge-4: color-mix(in oklab, var(--bg) 82%, #000);
+	--hs-ridge-5: color-mix(in oklab, var(--bg) 60%, #000);
+	--hs-haze: color-mix(in oklab, var(--glow-1) 22%, var(--surface-2));
+	--hs-haze-5: var(--hs-ridge-5);
+	--hs-mist-a: color-mix(in oklab, var(--glow-2) 30%, transparent);
+	--hs-mist-b: color-mix(in oklab, var(--glow-3) 26%, transparent);
+	--hs-mist-o: 0.6;
+}
+
+/* ---------- Hero frame: inset 16px, radius 36px, ~78svh ---------- */
+.hs-dawn {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	margin: 16px;
+	min-height: max(78svh, 640px);
+	border-radius: 36px;
+	background: var(--surface-2);
+	display: flex;
+}
+.hs-dawn__media,
+.hs-dawn__sky,
+.hs-dawn__img,
+.hs-dawn__scrim {
+	position: absolute;
+	inset: 0;
+}
+.hs-dawn__media {
+	z-index: 0;
+	overflow: hidden;
+}
+.hs-dawn__sky {
+	background: var(--hs-sky);
+}
+.hs-dawn__sun {
+	position: absolute;
+	left: 50%;
+	top: 46%;
+	width: 90%;
+	aspect-ratio: 2.2;
+	border-radius: 50%;
+	opacity: var(--hs-sun-o);
+	background: radial-gradient(closest-side, var(--hs-sun), transparent);
+	pointer-events: none;
+}
+.hs-dawn__ridges {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1600 / 520;
+	min-height: 40%;
+	max-height: 62%;
+}
+.hs-dawn__img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.hs-dawn__scrim {
+	z-index: 1;
+	pointer-events: none;
+	display: none;
+	background: linear-gradient(
+		180deg,
+		rgb(10 12 24 / 0.45),
+		rgb(10 12 24 / 0.08) 55%,
+		transparent 80%
+	);
+}
+.hs-dawn--photo .hs-dawn__scrim {
+	display: block;
+}
+.hs-dawn__content {
+	position: relative;
+	z-index: 3;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+/* Over a photograph, the words turn to light ink on their own; glass inside keeps the theme's ink. */
+.hs-dawn--photo {
+	--hs-ink-rest: var(--ink);
+	--hs-ink-muted-rest: var(--ink-muted);
+}
+.hs-dawn--photo .hs-dawn__content {
+	--ink: #ffffff;
+	--ink-muted: rgb(255 255 255 / 0.88);
+	color: var(--ink);
+}
+.hs-dawn--photo .hs-dawn__content .pz-glass {
+	--ink: var(--hs-ink-rest);
+	--ink-muted: var(--hs-ink-muted-rest);
+	color: var(--ink);
+}
+
+/* Recipe 6: the dawn mist, an oversized layer translated rather than repainted. */
+.hs-mist {
+	position: absolute;
+	left: -12%;
+	right: -12%;
+	bottom: 0;
+	height: 48%;
+	z-index: 2;
+	pointer-events: none;
+	opacity: var(--hs-mist-o, 1);
+	background:
+		radial-gradient(55% 60% at 22% 100%, var(--hs-mist-a), transparent 70%),
+		radial-gradient(45% 55% at 78% 100%, var(--hs-mist-b), transparent 70%);
+	-webkit-mask: linear-gradient(to top, #000 25%, transparent);
+	mask: linear-gradient(to top, #000 25%, transparent);
+	animation: hs-mist 60s ease-in-out infinite alternate;
+}
+.hs-mist--far {
+	bottom: 18%;
+	height: 30%;
+	opacity: calc(var(--hs-mist-o, 1) * 0.7);
+	background:
+		radial-gradient(40% 50% at 60% 80%, var(--hs-mist-b), transparent 70%),
+		radial-gradient(35% 45% at 12% 70%, var(--hs-mist-a), transparent 70%);
+	animation-duration: 75s;
+	animation-direction: alternate-reverse;
+}
+.hs-mist--soft {
+	height: 40%;
+	opacity: calc(var(--hs-mist-o, 1) * 0.85);
+}
+@keyframes hs-mist {
+	to {
+		transform: translateX(6%);
+	}
+}
+
+/* The ranges drift a little as the hero leaves (4%, scroll-driven, where supported). */
+@supports (animation-timeline: view()) {
+	.hs-dawn__ridges .hs-ridges__layer--5,
+	.hs-dawn__ridges .hs-ridges__layer--4 {
+		animation: hs-parallax linear both;
+		animation-timeline: view();
+		animation-range: exit 0% exit 100%;
+	}
+	.hs-dawn__ridges .hs-ridges__layer--4 {
+		--hs-shift: 2%;
+	}
+}
+@keyframes hs-parallax {
+	to {
+		transform: translateY(var(--hs-shift, 4%));
+	}
+}
+
+/* ---------- The arched window (programmes) ---------- */
+.hs-arch {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-5);
+	color: var(--ink);
+	text-decoration: none;
+	border-radius: 24px;
+}
+.hs-arch:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 6px;
+}
+.hs-arch__window {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	aspect-ratio: 4 / 5;
+	border-radius: 999px 999px 24px 24px;
+	background: var(--surface-2);
+	box-shadow: inset 0 0 0 1px var(--line);
+	transition:
+		transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1),
+		box-shadow 0.5s;
+}
+.hs-arch:hover .hs-arch__window {
+	transform: translateY(-4px);
+	box-shadow:
+		inset 0 0 0 1px var(--line),
+		var(--shadow-float);
+}
+.hs-arch__sky,
+.hs-arch__img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.hs-arch__sky {
+	background: var(--hs-sky);
+}
+.hs-arch--2 .hs-arch__sky {
+	background:
+		radial-gradient(
+			70% 40% at 30% 58%,
+			color-mix(in oklab, var(--glow-3) 60%, transparent),
+			transparent
+		),
+		var(--hs-sky);
+}
+.hs-arch--3 .hs-arch__sky {
+	background:
+		radial-gradient(
+			80% 45% at 70% 60%,
+			color-mix(in oklab, var(--glow-1) 34%, transparent),
+			transparent
+		),
+		var(--hs-sky);
+}
+.hs-arch__ridges {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 70%;
+}
+.hs-arch--1 .hs-arch__ridges {
+	width: 190%;
+	left: -8%;
+}
+.hs-arch--2 .hs-arch__ridges {
+	transform: scaleX(-1);
+}
+.hs-arch--3 .hs-arch__ridges {
+	width: 230%;
+	left: -118%;
+	height: 62%;
+}
+.hs-arch__body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: 0 var(--space-2);
+}
+.hs-arch__eyebrow {
+	font: 600 12px / 16px var(--pz-label);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.hs-arch__title {
+	font: 340 30px / 1.1 var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 72;
+	letter-spacing: -0.015em;
+}
+.hs-arch__text {
+	font: 400 16px / 26px var(--pz-body);
+	color: var(--ink-muted);
+}
+.hs-arch__more {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: var(--space-2);
+	font: 600 14px / 20px var(--pz-label);
+	color: var(--glow-1);
+}
+
+/* ---------- The Focus scale ---------- */
+.hs-focus {
+	--hs-track: linear-gradient(
+		90deg,
+		var(--line-strong),
+		color-mix(in oklab, var(--glow-1) 70%, var(--line-strong))
+	);
+	position: relative;
+	list-style: none;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--space-6);
+}
+.hs-focus::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 7px;
+	height: 1px;
+	background: var(--hs-track);
+}
+.hs-focus__step {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding-top: calc(var(--space-7) + var(--hs-step, 0) * 18px);
+	transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hs-focus__dot {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 15px;
+	height: 15px;
+	border-radius: 50%;
+	background: var(--bg);
+	border: 1px solid var(--line-control);
+	transition:
+		background 0.3s,
+		border-color 0.3s,
+		box-shadow 0.3s;
+}
+.hs-focus__step::after {
+	content: "";
+	position: absolute;
+	top: 15px;
+	left: 7px;
+	width: 1px;
+	height: calc(var(--space-7) - 22px + var(--hs-step, 0) * 18px);
+	background: linear-gradient(var(--line-strong), transparent);
+}
+.hs-focus__num {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	font: 200 88px / 0.9 var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 144;
+	letter-spacing: -0.04em;
+	color: var(--ink);
+	transition: color 0.3s;
+}
+.hs-focus__num small {
+	order: -1;
+	font: 600 12px / 16px var(--pz-label);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+}
+.hs-focus__name {
+	font: 400 italic 24px / 1.2 var(--font-display);
+	font-variation-settings: "opsz" 24;
+	font-weight: 300;
+	color: var(--ink);
+}
+.hs-focus__text {
+	font: 400 15px / 24px var(--pz-body);
+	color: var(--ink-muted);
+	max-width: 30ch;
+}
+.hs-focus__step.is-active .hs-focus__dot,
+.hs-focus__step:hover .hs-focus__dot {
+	background: var(--glow-1);
+	border-color: var(--glow-1);
+	box-shadow: 0 0 0 6px color-mix(in oklab, var(--glow-1) 18%, transparent);
+}
+.hs-focus__step.is-active .hs-focus__num,
+.hs-focus__step:hover .hs-focus__num {
+	color: var(--glow-1);
+}
+.hs-focus:hover .hs-focus__step.is-active:not(:hover) .hs-focus__dot {
+	background: var(--bg);
+	border-color: var(--line-control);
+	box-shadow: none;
+}
+.hs-focus:hover .hs-focus__step.is-active:not(:hover) .hs-focus__num {
+	color: var(--ink);
+}
+@media (max-width: 900px) {
+	.hs-focus {
+		grid-template-columns: 1fr;
+		gap: var(--space-6);
+		padding-left: var(--space-6);
+	}
+	.hs-focus::before {
+		top: 0;
+		bottom: 0;
+		left: 7px;
+		right: auto;
+		width: 1px;
+		height: auto;
+		background: linear-gradient(
+			180deg,
+			var(--line-strong),
+			color-mix(in oklab, var(--glow-1) 70%, var(--line-strong))
+		);
+	}
+	.hs-focus__step {
+		padding-top: 0;
+	}
+	.hs-focus__step::after {
+		display: none;
+	}
+	.hs-focus__dot {
+		left: calc(-1 * var(--space-6));
+		top: 22px;
+	}
+	.hs-focus__num {
+		font-size: 64px;
+	}
+}
+
+/* Players: Inter for their small print (no mono in this brand); a player without a known length hides its total. */
+[data-theme^="hemisync"] .pz-player__meta,
+[data-theme^="hemisync"] .pz-player__time {
+	font-family: var(--font-inter);
+	letter-spacing: 0.01em;
+}
+.hs-player--open .pz-player__time span:last-child {
+	visibility: hidden;
+}
+@media (max-width: 560px) {
+	.hs-player--wide .pz-player__head {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+	}
+	.hs-player--wide .pz-player__title {
+		white-space: normal;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hs-mist,
+	.hs-dawn__ridges .hs-ridges__layer--5,
+	.hs-dawn__ridges .hs-ridges__layer--4 {
+		animation: none;
+	}
+	.hs-arch__window,
+	.hs-focus__step {
+		transition: none;
+	}
+	.hs-arch:hover .hs-arch__window {
+		transform: none;
+	}
+}

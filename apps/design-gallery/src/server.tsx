@@ -14,7 +14,7 @@ const PORT = Number.parseInt(process.env.PORT ?? "4300", 10);
 const FONTS =
 	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Manrope:wght@400..800&family=Inter:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 
-export const app = new Hono();
+export const app = new Hono({ strict: false });
 
 app.get("/healthz", (c) => c.text("ok"));
 app.get("/assets/datastar.js", (c) =>

@@ -139,6 +139,7 @@ export function Compass({
 				/>
 				<input
 					class="pz-compass__input"
+					name="compass"
 					data-bind="compassQuery"
 					placeholder={placeholder}
 					aria-label={placeholder}

@@ -18,7 +18,7 @@ import { themeFrom } from "./theme";
 const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
 const PORT = Number.parseInt(process.env.PORT ?? "4310", 10);
 
-export const app = new Hono();
+export const app = new Hono({ strict: false });
 
 app.get("/healthz", (c) => c.text("ok"));
 app.get("/assets/datastar.js", (c) =>

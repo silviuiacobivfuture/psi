@@ -1,0 +1,73 @@
+import type { JSX } from "hono/jsx/jsx-runtime";
+import { readingMinutes } from "../content/articles";
+import type { Article } from "../content/schema";
+import { brandName, topicLabel } from "../content/topics";
+import { longDate } from "../dates";
+import { at, type Locale } from "../i18n";
+import { m } from "../paraglide/messages.js";
+
+/** "Psizone · Autism": the brand and topic overline every list entry and article carries. */
+export function overline(a: Article, locale: Locale): string {
+	return `${brandName(a.brand, locale)} · ${topicLabel(a.topic, locale)}`;
+}
+
+/** The mono metadata of a list entry: date and reading time, or the review state. */
+export function RowMeta({ article: a, locale }: { article: Article; locale: Locale }): JSX.Element {
+	const o = at(locale);
+	if (a.status === "in-review") {
+		return (
+			<>
+				<span class="bl-status">{m.status_in_review({}, o)}</span>
+				<span>{m.byline_pending({}, o)}</span>
+			</>
+		);
+	}
+	return (
+		<>
+			<time datetime={a.publishedAt}>{longDate(a.publishedAt, locale)}</time>
+			<span>{m.reading_time({ minutes: String(readingMinutes(a, locale)) }, o)}</span>
+		</>
+	);
+}
+
+/** The byline row under the standfirst: author · reviewed by · date, or the in-review notice. */
+export function Byline({ article: a, locale }: { article: Article; locale: Locale }): JSX.Element {
+	const o = at(locale);
+	if (a.status === "in-review") {
+		return (
+			<p class="bl-byline">
+				<span class="bl-status">{m.status_in_review({}, o)}</span>
+				<span>{m.byline_pending({}, o)}</span>
+			</p>
+		);
+	}
+	const published = (
+		<time datetime={a.publishedAt}>
+			{m.byline_published({ date: longDate(a.publishedAt, locale) }, o)}
+		</time>
+	);
+	const minutes = <span>{m.reading_time({ minutes: String(readingMinutes(a, locale)) }, o)}</span>;
+	if (a.kind === "editorial") {
+		return (
+			<p class="bl-byline">
+				<span class="text-ink">{m.byline_by({ name: a.author.team[locale] }, o)}</span>
+				<span>{m.byline_editorial({}, o)}</span>
+				{published}
+				{minutes}
+			</p>
+		);
+	}
+	return (
+		<p class="bl-byline">
+			<span class="text-ink">{m.byline_by({ name: a.author.name }, o)}</span>
+			<span>
+				{m.byline_reviewed(
+					{ name: a.reviewer.name, date: longDate(a.reviewer.reviewedAt, locale) },
+					o,
+				)}
+			</span>
+			{published}
+			{minutes}
+		</p>
+	);
+}

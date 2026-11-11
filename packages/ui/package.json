@@ -10,7 +10,9 @@
 		"./datastar.js": "./assets/datastar.js",
 		"./effects.css": "./src/effects.css",
 		"./compass.css": "./src/compass.css",
-		"./brand-eqsync.css": "./src/brand-eqsync.css"
+		"./brand-eqsync.css": "./src/brand-eqsync.css",
+		"./brand-hemisync.css": "./src/brand-hemisync.css",
+		"./brand-blog.css": "./src/brand-blog.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
