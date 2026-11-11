@@ -9,7 +9,7 @@
 		"./theme.css": "./theme.generated.css"
 	},
 	"scripts": {
-		"build": "node scripts/build-theme.mjs",
-		"check": "node scripts/build-theme.mjs --check"
+		"build": "node scripts/build-theme.mjs && node scripts/build-palette.mjs",
+		"check": "node scripts/build-theme.mjs --check && node scripts/build-palette.mjs --check"
 	}
 }
