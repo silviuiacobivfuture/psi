@@ -1,0 +1,254 @@
+# RabbitMQ for ReportPortal — the reporting queue AND the analyzer's exchange.
+# ReportPortal REQUIRES it: the api publishes every incoming test result onto it and
+# the auto-analyzer consumes from it, so with the broker absent an agent's POST is
+# accepted and the launch simply never materialises.
+#
+# DECISION: OUR OWN pinned StatefulSet, not the chart's bundled subchart
+# ------------------------------------------------------------------------
+# `rabbitmq.install: false` disables the CloudPirates `rabbitmq` subchart. It is not
+# a Bitnami chart (unlike the minio one — see the Argo Application), so the reason to
+# replace it is not the registry: it is that this platform already owns a hardened
+# RabbitMQ shape in gitops/services/plane/base/rabbitmq.yaml, complete with two
+# solved traps that cost real debugging time. Running a second, differently-shaped
+# broker would mean rediscovering both.
+#
+# THIS FILE IS A DELIBERATE COPY of plane's, with FOUR ReportPortal-specific deltas.
+# Read plane's file for the full rationale of everything that is identical; what
+# follows is only what differs and why.
+#
+#   Δ1  THE MANAGEMENT PLUGIN IS REQUIRED. Plane's broker runs the plain
+#       `rabbitmq:4.1.8-alpine` image and speaks AMQP only. ReportPortal ALSO dials
+#       the HTTP MANAGEMENT API: chart 26.8.12 renders
+#         RP_AMQP_API_ADDRESS = http://<user>:<pass>@<host>:15672/api
+#       on the api, jobs and analyzer workloads (msgbroker.apiport, default 15672),
+#       and uses it to enumerate and manage the reporting queues. Against a broker
+#       with no management plugin every one of those calls gets connection-refused
+#       and the api reports queues it can never see. So the plugins are enabled
+#       OFFLINE (before the server starts) and 15672 is published on the Service.
+#
+#   Δ2  TWO VHOSTS. The reporting traffic uses the default vhost `/`; the analyzer
+#       uses a SEPARATE vhost named `analyzer` (chart value `msgbroker.vhost`, read
+#       as RP_AMQP_ANALYZER-VHOST). `RABBITMQ_DEFAULT_VHOST` can only create ONE, so
+#       the second is created by the background reconcile below — in the same block,
+#       and for the same reason, as the password reconcile: it must run against a
+#       broker that is already up, and it must be idempotent.
+#
+#   Δ3  `deprecated_features.permit.queue_master_locator = true`. ReportPortal's api
+#       still sets `queue_master_locator` on the queues it declares. RabbitMQ 4.1
+#       permits the deprecated feature by default, but 4.3 DENIES it — which would
+#       turn a future image bump into a silent "queues cannot be declared" outage.
+#       Declaring the permission now makes the bump a no-op. (The chart's own values
+#       carry the identical line for its bundled broker, which is where this came
+#       from.)
+#
+#   Δ4  Extra plugins: `rabbitmq_consistent_hash_exchange` and `rabbitmq_shovel`
+#       (+ its management UI), which the chart's bundled-broker values list as
+#       required by ReportPortal.
+#
+# THE TWO TRAPS, COPIED VERBATIM FROM PLANE BECAUSE THEY ARE REAL:
+#   * `.erlang.cookie` MUST be mode 0400. fsGroup makes every file on the PVC
+#     group-writable (0660) and the Erlang VM then refuses to boot with
+#     "Cookie file /var/lib/rabbitmq/.erlang.cookie must be accessible by owner
+#     only". VERIFIED on dev 2026-08-18 as a CrashLoopBackOff right after the PVC's
+#     first write.
+#   * RABBITMQ_DEFAULT_USER/PASS are applied ONLY when Mnesia is empty — they are
+#     `default_user`/`default_pass` config, not a reconciler. With a PVC, a rotated
+#     password reaches the Secret, Reloader restarts the pod, and the broker keeps
+#     authenticating with the OLD password stored in Mnesia while every client dials
+#     the new one. A silent split-brain. `change_password` is idempotent, so the
+#     reconcile below is a no-op on every start where nothing rotated.
+#   * The reconcile runs in the BACKGROUND, never as a postStart hook: kubelet gives
+#     a postStart hook only the termination grace period and blocks the container
+#     from being marked started, and this image needs ~40s to boot — VERIFIED on
+#     plane (started 14:40:34, SIGTERM 14:40:38, FailedPostStartHook).
+#
+# Image: rabbitmq:4.1.8-management-alpine — the current 4.1 LTS series, official
+# Docker Hub library image (NOT bitnami/bitnamilegacy), explicitly tagged
+# (disallow-latest-tag is ENFORCE). The `-management` variant differs from plane's
+# only in shipping the management plugin, which Δ1 requires.
+apiVersion: v1
+kind: Service
+metadata:
+  name: reportportal-rabbitmq
+  labels:
+    app.kubernetes.io/name: reportportal-rabbitmq
+spec:
+  # Headless: it is both the StatefulSet's governing Service (stable pod DNS +
+  # hostname, which RabbitMQ needs for a stable `rabbit@<host>` node name) and the
+  # name clients dial.
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: reportportal-rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    # Δ1 — the HTTP management API. Published because ReportPortal's api/jobs/
+    # analyzer dial it (RP_AMQP_API_ADDRESS); NOT exposed through any Ingress, so it
+    # is reachable in-cluster only.
+    - name: management
+      port: 15672
+      targetPort: 15672
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: reportportal-rabbitmq
+  labels:
+    app.kubernetes.io/name: reportportal-rabbitmq
+  annotations:
+    # REQUIRED: RABBITMQ_DEFAULT_USER/PASS arrive as env (envFrom) and env is read
+    # once at process start. Works together with the rotation reconcile below —
+    # a restart alone would leave Mnesia holding the old password.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  serviceName: reportportal-rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reportportal-rabbitmq
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reportportal-rabbitmq
+    spec:
+      # uid 100 / gid 101 — VERIFIED from the docker-library/rabbitmq 4.1/alpine
+      # Dockerfile (`addgroup -g 101 -S rabbitmq; adduser -u 100 -S ... -G rabbitmq`),
+      # the same base the -management variant is built on. The DEBIAN variant uses
+      # 999/999; guessing that here would leave the PVC unwritable and fail late with
+      # a confusing Mnesia error. The image declares no USER, but its entrypoint only
+      # chowns + su-execs when `id -u` is 0, so running non-root is supported.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rabbitmq
+          image: WLREGISTRY/mirror/docker.io/library/rabbitmq:4.1.8-management-alpine@sha256:871fb39a298fe30f95f5683046e3ef09eaf4573bfc03b4388d8091325df2bc2b
+          envFrom:
+            # RABBITMQ_DEFAULT_USER + RABBITMQ_DEFAULT_PASS, ESO-synced from
+            # secret/apps/reportportal/rabbitmq — the SAME OpenBao properties the
+            # chart reads for RP_AMQP_PASS, so the two ends cannot drift.
+            - secretRef:
+                name: reportportal-rabbitmq
+                optional: false
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: management
+              containerPort: 15672
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            # NOT read-only: the Erlang VM writes crash dumps to its cwd and the
+            # server writes /var/log/rabbitmq and /tmp outside the mounted data dir.
+            # The caps drop + non-root + no-escalation are the load-bearing controls.
+            readOnlyRootFilesystem: false
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              # --- the Erlang cookie trap (see the header) -----------------------
+              # Must run BEFORE the server starts. The entrypoint creates the cookie
+              # itself when absent, so this only tightens the mode; `|| true` because
+              # the file legitimately does not exist on the very first boot.
+              [ -f /var/lib/rabbitmq/.erlang.cookie ] && chmod 0400 /var/lib/rabbitmq/.erlang.cookie || true
+
+              # --- Δ3: permit the deprecated feature ReportPortal still uses ------
+              # Written as a conf.d drop-in rather than baked into the image, and
+              # written on EVERY start so it survives a PVC that predates this line.
+              mkdir -p /etc/rabbitmq/conf.d
+              printf 'deprecated_features.permit.queue_master_locator = true\n' \
+                > /etc/rabbitmq/conf.d/10-reportportal.conf
+
+              # --- Δ1 + Δ4: plugins, enabled OFFLINE ------------------------------
+              # `--offline` writes enabled_plugins without talking to a running node,
+              # which is the only thing that works here: the server has not started
+              # yet, and enabling them afterwards would mean a second restart.
+              # rabbitmq_management is what serves RP_AMQP_API_ADDRESS on 15672.
+              rabbitmq-plugins enable --offline \
+                rabbitmq_management \
+                rabbitmq_consistent_hash_exchange \
+                rabbitmq_shovel \
+                rabbitmq_shovel_management
+
+              (
+                # NOT under `set -e`: await_startup is EXPECTED to fail on the first
+                # attempts while the Erlang node is still coming up, and an inherited
+                # -e would kill the subshell on that first failure before the retry
+                # loop could run.
+                set +e
+                tries=0
+                until rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; do
+                  tries=$((tries+1))
+                  if [ "$tries" -ge 30 ]; then break; fi
+                  sleep 10
+                done
+                if rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; then
+                  # --- rotation reconcile (see the header) -----------------------
+                  # NOTE: rabbitmqctl takes the password as an argument (no stdin
+                  # form), so it is visible in THIS container's own `ps` — it is
+                  # already in this container's environment, so no new exposure, and
+                  # it never reaches the host argv, which is what the platform rule
+                  # protects.
+                  rabbitmqctl change_password "$RABBITMQ_DEFAULT_USER" "$RABBITMQ_DEFAULT_PASS" \
+                    && echo "rotation-reconcile: password reconciled" \
+                    || echo "rotation-reconcile: FAILED to set password — ReportPortal may not authenticate" >&2
+
+                  # --- Δ2: the analyzer vhost ------------------------------------
+                  # `add_vhost` errors with vhost_already_exists on every start after
+                  # the first, which is expected and NOT a failure; set_permissions
+                  # is idempotent and is re-run regardless so a rebuilt Mnesia (or a
+                  # renamed user) cannot leave the analyzer unable to bind.
+                  rabbitmqctl add_vhost analyzer >/dev/null 2>&1 \
+                    && echo "vhost-reconcile: created vhost 'analyzer'" \
+                    || echo "vhost-reconcile: vhost 'analyzer' already present"
+                  rabbitmqctl set_permissions -p analyzer "$RABBITMQ_DEFAULT_USER" ".*" ".*" ".*" \
+                    && echo "vhost-reconcile: permissions set on 'analyzer'" \
+                    || echo "vhost-reconcile: FAILED to set permissions on 'analyzer' — the auto-analyzer will not consume" >&2
+                else
+                  echo "rotation-reconcile: broker did not start within ~5min — password and vhost NOT reconciled" >&2
+                fi
+              ) &
+              exec docker-entrypoint.sh rabbitmq-server
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 3
+          livenessProbe:
+            # check_running is stronger than ping: it asserts the RabbitMQ
+            # APPLICATION is running, not merely that the Erlang node answers.
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "check_running"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+    # A PVC, not an emptyDir: Mnesia holds the durable queue contents (results
+    # accepted but not yet analysed), the users/permissions/vhosts and the Erlang
+    # cookie. Dropping it on every restart would lose in-flight work and re-generate
+    # credentials. 2Gi matches plane's; local-path because the queue is short-lived
+    # working state, not the system of record (Postgres is).
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi

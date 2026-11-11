@@ -1,0 +1,172 @@
+# n8n's edge. WHICH ROUTER CARRIES WHICH PATH IS THE SECURITY MODEL.
+#
+# n8n-hooks.<apex>, the ONLY unauthenticated host: /webhook*, /form*, what a published workflow
+#                                  answers. Capped by size and rate. A workflow reads every header
+#                                  a visitor sends and writes any it likes, so this host is not the
+#                                  editor's, and n8n-hooks-strip takes Cookie out of the request and
+#                                  Set-Cookie out of the answer: a cookie set for the parent domain
+#                                  would still reach here. No editor, no /rest: everything else 404s.
+# n8n.<apex>, the editor:
+#   /outpost.goauthentik.io/callback   the gate's own callback, restart first
+#                                  (.github/scripts/sso-restart.sh)
+#   /api/, /webhook*, /form*, /mcp*    REFUSED to everybody (403). The API is for pods in this
+#                                  namespace only (networkpolicy.yaml); the rest run workflows,
+#                                  which must never see a request carrying this host's cookies.
+#   everything else                GATED by Authentik: the editor, /rest, /healthz.
+#
+# THE GATE is the `n8n` forward_single provider (blueprints-providers.yaml). The
+# outpost matches the host exactly, so ONLY its binding decides: app-n8n-admin.
+#
+# The placeholder host is overwritten by the replacements in kustomization.yaml, from
+# host.env; change it THERE. DNS for a *.<estate domain> host is the estate wildcard
+# (infrastructure/hetzner/modules/dns); the certificate is DNS-01 through Cloudflare,
+# so a host outside the estate's zone needs a DNS and a solver decision first.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # The catch-all loses to every specific route on this host.
+    traefik.ingress.kubernetes.io/router.priority: "1"
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-n8n-down@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd,n8n-n8n-body-limit@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "n8n"
+    gethomepage.dev/description: "Automatizări: fluxuri de lucru și webhook-uri"
+    gethomepage.dev/group: "Services"
+    gethomepage.dev/icon: "mdi-sitemap"
+    gethomepage.dev/href: "https://n8n.example.invalid"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=n8n"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: n8n.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: n8n, port: { name: http } } }
+  # BOTH names, so one Certificate covers both. cert-manager builds it from this Ingress.
+  tls:
+    - secretName: n8n-tls
+      hosts: [n8n.example.invalid, n8n-hooks.example.invalid]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: n8n.example.invalid
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend: { service: { name: n8n, port: { name: http } } }
+  tls:
+    - secretName: n8n-tls
+      hosts: [n8n.example.invalid]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-webhooks
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: n8n-n8n-hooks-strip@kubernetescrd,n8n-n8n-webhook-rate@kubernetescrd,n8n-n8n-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: n8n-hooks.example.invalid
+      http:
+        paths:
+          - { path: /webhook/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /webhook-test/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /webhook-waiting/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form-test/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form-waiting/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+  tls:
+    - secretName: n8n-tls
+      hosts: [n8n-hooks.example.invalid]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-api-closed
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: n8n-n8n-refuse-all@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: n8n.example.invalid
+      http:
+        paths:
+          - { path: /api/, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /api, pathType: Exact, backend: { service: { name: n8n, port: { name: http } } } }
+          # Whatever runs a workflow answers on the hooks host and never here.
+          - { path: /webhook, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /webhook-test, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /webhook-waiting, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form-test, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /form-waiting, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /mcp, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+          - { path: /mcp-test, pathType: Prefix, backend: { service: { name: n8n, port: { name: http } } } }
+  tls:
+    - secretName: n8n-tls
+      hosts: [n8n.example.invalid]
+---
+# The hooks host holds nothing of anybody's. Cookie goes before a workflow can read it, Set-Cookie
+# before a workflow can plant one, Clear-Site-Data before it can wipe one, and the sandbox gives a
+# page a workflow serves no access to document.cookie. It limits that page alone: H14 says what not.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-hooks-strip
+spec:
+  headers:
+    customRequestHeaders:
+      Cookie: ""
+    customResponseHeaders:
+      Set-Cookie: ""
+      Clear-Site-Data: ""
+      Content-Security-Policy: "sandbox allow-scripts allow-forms allow-popups"
+---
+# Admits no address on earth, so every request answers 403 and none reaches n8n.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-refuse-all
+spec:
+  ipAllowList:
+    sourceRange: ["255.255.255.255/32"]
+---
+# n8n's own N8N_PAYLOAD_SIZE_MAX is 16 MiB; the same figure here stops a bigger body
+# before it reaches the process.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-body-limit
+spec:
+  buffering:
+    maxRequestBodyBytes: 16777216
+---
+# The traefik Service is externalTrafficPolicy: Cluster, so behind ServiceLB many
+# callers share a source: this is a ceiling on webhooks as a whole more than per
+# caller. A flood answers 429 here, before it starts an execution.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-webhook-rate
+spec:
+  rateLimit:
+    average: 20
+    period: 1s
+    burst: 40

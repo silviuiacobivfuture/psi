@@ -1,0 +1,121 @@
+# Argo CD notifications → the #gitops Talk channel.
+#
+# The argocd-notifications-controller has been RUNNING since the cluster was built,
+# with a completely EMPTY argocd-notifications-cm — so every sync failure and every
+# Degraded app for 61 days went nowhere. This file gives it somewhere to send.
+#
+# WHY IT POSTS TO talk-webhook AND NOT TO TALK DIRECTLY: a Talk bot message must
+# carry X-Nextcloud-Talk-Bot-Signature = HMAC-SHA256(random ++ message) keyed with the
+# bot secret. Argo's webhook service templates its headers with Go templates, which
+# cannot compute an HMAC over the body it is about to send — so direct posting is not
+# expressible here at all. pieces/nextcloud-platform/base/talk-webhook.yaml does the
+# signing; Argo just POSTs plain JSON.
+#
+# SUBSCRIPTION IS GLOBAL (the `subscriptions` key at the bottom): every Application is
+# covered without annotating each one. A per-app annotation would mean a new app is
+# silently unmonitored until someone remembers — the exact failure mode this whole
+# alerting effort exists to remove.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # ---- the sink ------------------------------------------------------------
+  # $talk-webhook-token resolves from argocd-notifications-secret, populated by the
+  # ExternalSecret below. Argo's $-substitution does not span dots, so the key name
+  # is dash-separated (same constraint documented in sso-cm.yaml).
+  service.webhook.talk: |
+    url: http://talk-webhook.nextcloud.svc/notify/gitops
+    headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-Notify-Token
+      value: $talk-webhook-token
+
+  # ---- templates -----------------------------------------------------------
+  # `severity` maps to the same ok/warn/fail vocabulary scripts/talk-notify.sh uses,
+  # so a reader cannot tell which sender produced a line.
+  template.talk-sync-failed: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"fail","message":"Deployment failed: {{.app.metadata.name}}","detail":{{ printf "The app was NOT updated — the previous version is still running.\n\nCommit: %s\nBy: %s\nReason: %s" (call .repo.GetCommitMetadata .app.status.sync.revision).Message (call .repo.GetCommitMetadata .app.status.sync.revision).Author .app.status.operationState.message | trunc 600 | toJson }}}
+
+  template.talk-health-degraded: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"fail","message":"App unhealthy: {{.app.metadata.name}}","detail":"It may be partly down or serving errors. (health {{.app.status.health.status}}, sync {{.app.status.sync.status}})"}
+
+  template.talk-sync-succeeded: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"ok","message":"Deployed: {{.app.metadata.name}}","detail":{{ printf "%s\n\nBy %s" (call .repo.GetCommitMetadata .app.status.sync.revision).Message (call .repo.GetCommitMetadata .app.status.sync.revision).Author | trunc 400 | toJson }}}
+
+  # ---- triggers ------------------------------------------------------------
+  # oncePer keys the dedupe: without it a Degraded app re-notifies on EVERY
+  # reconcile (every ~3 min), which trains everyone to mute the channel.
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: app.status.operationState.syncResult.revision
+      send: [talk-sync-failed]
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      oncePer: app.status.sync.revision
+      send: [talk-health-degraded]
+
+  # Deploys are reported ONCE per revision. This is the "something changed" signal —
+  # deliberately not every sync, or a self-healing app would chat continuously.
+  # SCOPED TO THE APPS PEOPLE USE. A push to `dev` re-syncs EVERY Application that
+  # tracks the branch, so an unfiltered on-deployed posted six near-identical lines
+  # per commit — cert-manager-issuers, argocd-config, health-digest and the rest —
+  # each quoting the same 40-character SHA (observed in #gitops, 2026-08-20). Nobody
+  # reading this channel cares that cert-manager-issuers reconciled; they care that
+  # the Documents app shipped.
+  # FAILURES ARE NOT FILTERED — on-sync-failed and on-health-degraded still cover
+  # EVERY app, because cert-manager breaking absolutely does matter.
+  # WHICH apps are the estate's own: its component (../../components/estate/argocd-config)
+  # replaces this trigger with its list. SEB's default announces none.
+  trigger.on-deployed: |
+    - when: app.status.operationState.phase == 'Succeeded' and app.status.health.status == 'Healthy' and app.metadata.name in []
+      oncePer: app.status.sync.revision
+      send: [talk-sync-succeeded]
+
+  # ---- who gets what -------------------------------------------------------
+  subscriptions: |
+    - recipients:
+        - talk
+      triggers:
+        - on-sync-failed
+        - on-health-degraded
+        - on-deployed
+---
+# The bearer talk-webhook checks. Merged into the controller's own Secret rather than
+# a new one: argocd-notifications-controller resolves $-variables ONLY from
+# argocd-notifications-secret.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-notifications-token
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: argocd-notifications-secret
+    # Merge, NOT Owner: the Argo CD chart also ships this Secret. Owner would make ESO
+    # and the chart fight over it on every sync.
+    creationPolicy: Merge
+  data:
+    - secretKey: talk-webhook-token
+      remoteRef:
+        key: platform/talk/webhook
+        property: token

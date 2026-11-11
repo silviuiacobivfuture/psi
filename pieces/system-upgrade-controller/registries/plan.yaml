@@ -1,0 +1,63 @@
+# PREPARED, NOT WIRED (PLATFORM-11): the parent kustomization does not name this directory, so
+# nothing here reaches a cluster, and merging it changes no node. The owner is told first, with the
+# drill's results (RUNBOOK 2026-11-05, step 3). Then:
+#
+#   infrastructure/hetzner/scripts/registries-mode.sh apply    # then commit and push
+#   infrastructure/hetzner/scripts/registries-mode.sh remove   # the undo, the same way
+#
+# That script moves RG_MODE and `spec.version` together, names this directory in the parent and sets
+# `registries_mirror` for a rebuilt node. It must be both: SUC hashes the Plan spec and not the
+# ConfigMap, so a ConfigMap-only change never reaches a node (the OIDC Plan, 2026-10-29).
+#
+# ONE NODE AT A TIME, AGENT FIRST. Two Plans, because one orders nodes arbitrarily; the server's script
+# waits for every agent's plan label. NO cordon and NO drain: the restart keeps containers running.
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: registries-agent
+  namespace: system-upgrade
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  version: registries-hold-4a849734
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  cordon: false
+  upgrade:
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envs:
+      - { name: RG_ROLE, value: agent }
+    envFrom:
+      - configMapRef: { name: registries }
+    command: ["/bin/sh", "-c"]
+    args: ['exec sh -c "$RG_APPLY_SH"']
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: registries-server
+  namespace: system-upgrade
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  version: registries-hold-4a849734
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  cordon: false
+  tolerations:
+    - { key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists }
+    - { key: CriticalAddonsOnly, operator: Exists }
+  upgrade:
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envs:
+      - { name: RG_ROLE, value: server }
+    envFrom:
+      - configMapRef: { name: registries }
+    command: ["/bin/sh", "-c"]
+    args: ['exec sh -c "$RG_APPLY_SH"']

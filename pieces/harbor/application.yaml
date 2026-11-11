@@ -1,0 +1,64 @@
+# SEB piece `harbor`.
+#
+# Harbor — self-hosted container registry (dev). Bundles its own Postgres+Redis.
+# Admin password from the harbor-admin secret, synced from OpenBao
+# (secret/platform/harbor/admin) by the ESO ExternalSecret in
+# pieces/platform-secrets/. TLS via
+# cert-manager. Trivy/notary off for the lean dev deploy (enable on prod).
+#
+# A HELM piece (contract tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries the chart values, with identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argocd
+spec:
+  project: default
+  ignoreDifferences:
+    # PVC volumeName is set by the binder on bind → permanent drift.
+    - kind: PersistentVolumeClaim
+      name: harbor-registry
+      jqPathExpressions: ['.spec']  # bound PVC spec is immutable → ignore wholesale
+    # The chart mints core.secret / core.xsrfKey / jobservice.secret / registry HTTP
+    # secret with randAlphaNum when not pinned — `helm template` yields NEW values on
+    # every Argo render → the rendered Secret .data and the Deployments' checksum/*
+    # pod-template annotations differ from live on EVERY sync → permanent OutOfSync
+    # that selfHeal can't converge. These are chart-internal HMAC/xsrf keys (not
+    # git-meaningful; admin password is a pinned existingSecret). Ignore the churn.
+    - kind: Secret
+      jqPathExpressions: ['.data']
+    - kind: Deployment
+      jqPathExpressions: ['.spec.template.metadata.annotations']
+  source:
+    repoURL: https://helm.goharbor.io
+    chart: harbor
+    targetRevision: 1.19.1
+    helm:
+      # Estate values: identity placeholders, filled by the estate's upgrade step.
+      parameters:
+        - name: externalURL
+          value: https://${HARBOR_HOST_PREFIX}.${BASE_DOMAIN}
+          forceString: true
+        # Issued by the cutover's temporary Ingress for harbor.<apex>
+        # (docs/estate/05-mutare-runbook.md), so it is valid on the first pull.
+        - name: expose.tls.secret.secretName
+          value: harbor-${ESTATE_SLUG}-tls
+          forceString: true
+        - name: expose.ingress.hosts.core
+          value: ${HARBOR_HOST_PREFIX}.${BASE_DOMAIN}
+          forceString: true
+        - name: expose.ingress.annotations.gethomepage\.dev/href
+          value: https://${HARBOR_HOST_PREFIX}.${BASE_DOMAIN}
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

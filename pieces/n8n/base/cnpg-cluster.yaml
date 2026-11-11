@@ -1,0 +1,77 @@
+# n8n's Postgres, a CloudNativePG Cluster, same recipe as plunk-db.
+#
+# DURABILITY, two layers: (1) barman ships every WAL segment + a weekly base backup
+# to the platform bucket, PITR with minutes of RPO; (2) a 6-hourly logical pg_dump
+# (db-dump.yaml), a plain .sql.gz that restores without the operator. local-path is
+# node-pinned and free; losing the node costs a restore, not the data. doctor.sh
+# checks the dump's freshness; restore-drill-profiles/n8n__n8n-db.profile proves a
+# restore by contents; restore-n8n-db.sh restores.
+#
+# WHAT IS IN HERE: workflows, encrypted credentials (useless without the encryption
+# key in OpenBao), execution history (pruned, see n8n.yaml).
+#
+# SIZE: 5Gi. Executions are pruned at 7 days or 5000 rows and binary data does not
+# live here. Resize is a new cluster (local-path cannot grow).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: n8n-db
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: pooled
+  # clients never leave. Guard: infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: n8n
+      owner: n8n
+      secret:
+        name: n8n-db-app
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+  storage:
+    size: 5Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  postgresql:
+    parameters:
+      shared_buffers: "96MB"
+      effective_cache_size: "256MB"
+      work_mem: "4MB"
+      # n8n's pool (DB_POSTGRESDB_POOL_SIZE) + the dump + the drill.
+      max_connections: "30"
+      # A JIT-compiling backend costs ~35 MB for life (autorizare-db's OOM).
+      jit: "off"
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/n8n-db
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: n8n-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: n8n-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# Weekly base backup (six-field cron). 02:55 Sunday, after plunk-db-base (02:50).
+# `immediate` takes the first one at creation.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: n8n-db-base
+spec:
+  schedule: "0 55 2 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: n8n-db

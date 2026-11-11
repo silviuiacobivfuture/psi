@@ -1,0 +1,39 @@
+# Per-namespace guard-rails. The LimitRange MUST exist before the ResourceQuota:
+# once a quota constrains requests.*/limits.*, a pod that omits them is REJECTED —
+# the LimitRange backfills defaults so nothing gets bounced. Same convention as
+# gitops/services/changelog/base/resourcequota.yaml.
+# Sized from the live spec (req 10m/64Mi, lim 300m/256Mi, one replica, Recreate so
+# there is no rollout surge) with headroom for the assert-secrets initContainer.
+#
+# ACCOUNTING, since a quota that is one pod too tight fails SILENTLY as a Job that
+# never starts. A pod charges max(sum of containers, largest initContainer) per
+# resource, and pods in a terminal phase (Succeeded/Failed) are NOT charged — so
+# the retained CronJob history costs nothing here.
+#   Deployment       req 10m / 64Mi   lim 300m / 256Mi
+#   weekly-digest    req 10m / 32Mi   lim 200m / 128Mi   (Mondays only)
+#   -------------------------------------------------------------------
+#   concurrent peak  req 20m / 96Mi   lim 500m / 384Mi   in 2 pods
+# The values below leave roughly 3x headroom on every axis, which is what absorbs
+# a future sidecar or a second weekly job without a silent admission rejection.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: test-reports
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 10m, memory: 32Mi }
+      default: { cpu: 200m, memory: 128Mi }
+      max: { cpu: "1", memory: 512Mi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: test-reports
+spec:
+  hard:
+    requests.cpu: 300m
+    requests.memory: 384Mi
+    limits.cpu: "2"
+    limits.memory: 1Gi
+    pods: "6"

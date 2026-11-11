@@ -1,0 +1,254 @@
+# n8n itself: upstream's unchanged image, pinned by version AND digest, regular mode
+# (one process, one replica, no Redis), against its own Postgres. Why regular and not
+# queue, what every setting below is for and what each one was measured to do:
+# docs/n8n/00-plan.md.
+#
+# Recreate, not RollingUpdate: n8n migrates its database at start and is not safe to
+# run twice against one database in regular mode (schedules would fire twice).
+#
+# THE FILESYSTEM IS READ-ONLY. ~/.n8n, ~/.cache and /tmp are bounded emptyDirs: binary data of
+# running executions lives there and goes with the pod. The encryption key comes from
+# the environment, so the config file n8n writes holds nothing that has to survive.
+#
+# NEW ENV GOES AT THE END of the list (an overlay may patch by position).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: main
+  annotations:
+    # REQUIRED: every secret is env (envFrom n8n-app), so a rotation must restart.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+    # The digest apps/n8n-sso's real and compose suites last passed against (apps/n8n-sso/TESTED;
+    # the gate compares them). doctor and estate-watch compare the running pod with this.
+    n8n/tested-digest: sha256:4384b9ff20a78bc1708c35ce7864f84f724611de7801fb36d715998db7c000f1
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+      app.kubernetes.io/component: main
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n
+        app.kubernetes.io/component: main
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      # THE SECOND LAYER UNDER THE SETTINGS. Every n8n host the source of this version
+      # names (docs/n8n/00-plan.md §4) resolves to nothing reachable, so a future
+      # version whose new default phones home cannot, by name. The settings below are
+      # what keeps it quiet; the harness proves that with this block removed
+      # (gitops/services/n8n/selftest/, case T2).
+      hostAliases:
+        - ip: 127.0.0.1
+          hostnames:
+            - telemetry.n8n.io
+            - ph.n8n.io
+            - api.n8n.io
+            - api-rs.n8n.io
+            - api-staging.n8n.io
+            - license.n8n.io
+            - enterprise.n8n.io
+      initContainers:
+        # Fail loud and NAMED (infrastructure/hetzner/CLAUDE.md, secret schema).
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: n8n-app }
+            - configMapRef: { name: n8n-host }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in N8N_ENCRYPTION_KEY N8N_USER_MANAGEMENT_JWT_SECRET N8N_RUNNERS_AUTH_TOKEN N8N_INSTANCE_OWNER_PASSWORD_HASH DB_POSTGRESDB_USER DB_POSTGRESDB_PASSWORD N8N_HOST; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              echo "all required secrets present"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+      containers:
+        - name: n8n
+          image: WLREGISTRY/mirror/docker.io/n8nio/n8n:2.46.4@sha256:4384b9ff20a78bc1708c35ce7864f84f724611de7801fb36d715998db7c000f1
+          envFrom:
+            - secretRef: { name: n8n-app }
+          env:
+            # ── Where it is ───────────────────────────────────────────────────
+            - name: N8N_HOST
+              valueFrom: { configMapKeyRef: { name: n8n-host, key: N8N_HOST } }
+            - { name: N8N_PROTOCOL, value: https }
+            - { name: N8N_PORT, value: "5678" }
+            # Its own host: a workflow reads every header a visitor sends, so on the editor's host
+            # a member's webhook could read a colleague's session (docs/n8n/01-identity.md H14).
+            - name: WEBHOOK_URL
+              valueFrom: { configMapKeyRef: { name: n8n-host, key: N8N_WEBHOOK_URL } }
+            - { name: N8N_EDITOR_BASE_URL, value: "https://$(N8N_HOST)/" }
+            # Traefik is the one proxy, so the rate limiter reads the right address.
+            - { name: N8N_PROXY_HOPS, value: "1" }
+            - { name: GENERIC_TIMEZONE, value: Europe/Bucharest }
+            - { name: TZ, value: Europe/Bucharest }
+            # ── Its database ──────────────────────────────────────────────────
+            - { name: DB_TYPE, value: postgresdb }
+            - { name: DB_POSTGRESDB_HOST, value: n8n-db-rw }
+            - { name: DB_POSTGRESDB_PORT, value: "5432" }
+            - { name: DB_POSTGRESDB_DATABASE, value: n8n }
+            # ── Nothing leaves for n8n's servers (owner: "i no longer want it to
+            #    send data"). Each line is one thing the source of 2.46.4 contacts
+            #    otherwise; docs/n8n/00-plan.md §4 has the table, the harness the proof.
+            - { name: N8N_DIAGNOSTICS_ENABLED, value: "false" }
+            - { name: N8N_DIAGNOSTICS_CONFIG_FRONTEND, value: "" }
+            - { name: N8N_DIAGNOSTICS_CONFIG_BACKEND, value: "" }
+            - { name: N8N_DIAGNOSTICS_POSTHOG_API_KEY, value: "" }
+            - { name: N8N_DIAGNOSTICS_POSTHOG_API_HOST, value: "" }
+            - { name: N8N_VERSION_NOTIFICATIONS_ENABLED, value: "false" }
+            - { name: N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENABLED, value: "false" }
+            - { name: N8N_TEMPLATES_ENABLED, value: "false" }
+            - { name: N8N_PERSONALIZATION_ENABLED, value: "false" }
+            - { name: N8N_DYNAMIC_BANNERS_ENABLED, value: "false" }
+            - { name: N8N_HIRING_BANNER_ENABLED, value: "false" }
+            # Never an outside address: n8n-gate.sh holds this to the one path on n8n's own host.
+            # A dead cookie must not leave a person on n8n's form with no password to type, so n8n
+            # writes a tag for this into every page: apps/n8n-sso/src/page-hook.ts, from the sidecar.
+            - { name: EXTERNAL_FRONTEND_HOOKS_URLS, value: /sso/page.js }
+            - { name: N8N_AI_ENABLED, value: "false" }
+            - { name: N8N_AI_GATEWAY_ENABLED, value: "false" }
+            - { name: N8N_LICENSE_AUTO_RENEW_ENABLED, value: "false" }
+            - { name: N8N_LICENSE_DETACH_FLOATING_ON_SHUTDOWN, value: "false" }
+            # No setting stops the MCP registry: on the wire, with every line above in
+            # place, it called api.n8n.io ten seconds after start (2026-11-03) and it
+            # refreshes on a timer. So the module goes, with the other AI and MCP surfaces
+            # nobody here asked for, which is also where many of the advisories have been.
+            - { name: N8N_DISABLED_MODULES, value: "mcp-registry,mcp,mcp-discovery,chat-hub,agents,agent-evals,instance-ai,skills,knowledge,community-packages" }
+            # ── What a workflow can do ───────────────────────────────────────
+            # Code nodes run in the runner pod (runner.yaml), which reaches nothing.
+            - { name: N8N_RUNNERS_ENABLED, value: "true" }
+            # n8n's own session, 30 days instead of 7: Authentik still gates every visit, and a
+            # removed person's session dies with their account (R12), so this only spares a second sign-in.
+            - { name: N8N_USER_MANAGEMENT_JWT_DURATION_HOURS, value: "8" }
+            # n8n would otherwise renew a session in its last quarter, so 8 hours would not end.
+            # Signing in costs a person nothing, and the next page load does it.
+            - { name: N8N_USER_MANAGEMENT_JWT_REFRESH_TIMEOUT_HOURS, value: "-1" }
+            - { name: N8N_RUNNERS_MODE, value: external }
+            - { name: N8N_RUNNERS_BROKER_LISTEN_ADDRESS, value: "0.0.0.0" }
+            - { name: N8N_PYTHON_ENABLED, value: "false" }
+            # The refused set is upstream's default (executeCommand, localFileTrigger)
+            # plus every node that reads or writes this pod's own disk or shells out.
+            - name: NODES_EXCLUDE
+              value: '["n8n-nodes-base.executeCommand","n8n-nodes-base.localFileTrigger","n8n-nodes-base.readWriteFile","n8n-nodes-base.readBinaryFile","n8n-nodes-base.readBinaryFiles","n8n-nodes-base.writeBinaryFile","n8n-nodes-base.git","n8n-nodes-base.ssh"]'
+            - { name: N8N_BLOCK_ENV_ACCESS_IN_NODE, value: "true" }
+            - { name: N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES, value: "true" }
+            - { name: N8N_RESTRICT_FILE_ACCESS_TO, value: /home/node/.n8n-files }
+            - { name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS, value: "true" }
+            # In-process refusal of private addresses, under the NetworkPolicy.
+            - { name: N8N_SSRF_PROTECTION_ENABLED, value: "true" }
+            # Nothing installs code at run time: no community nodes, no npm.
+            - { name: N8N_COMMUNITY_PACKAGES_ENABLED, value: "false" }
+            - { name: N8N_VERIFIED_PACKAGES_ENABLED, value: "false" }
+            - { name: N8N_UNVERIFIED_PACKAGES_ENABLED, value: "false" }
+            - { name: N8N_REINSTALL_MISSING_PACKAGES, value: "false" }
+            # The public API stays ON for apps/n8n-sso (a key bypasses a person, so
+            # ingress.yaml refuses /api/ at the edge and networkpolicy.yaml admits only
+            # pods labelled n8n/api-client, keyed n8n.<label domain>/api-client when rendered). Its playground and the MCP
+            # server are off.
+            - { name: N8N_PUBLIC_API_DISABLED, value: "false" }
+            - { name: N8N_PUBLIC_API_SWAGGERUI_DISABLED, value: "true" }
+            - { name: N8N_MCP_MANAGED_BY_ENV, value: "true" }
+            - { name: N8N_MCP_ACCESS_ENABLED, value: "false" }
+            # ── The account, as code. n8n Community has one owner and SSO is a paid
+            #    feature, so this is what is behind the Authentik gate. The hash is
+            #    seeded; the password is at secret/platform/n8n/owner password.
+            - { name: N8N_INSTANCE_OWNER_MANAGED_BY_ENV, value: "true" }
+            - { name: N8N_INSTANCE_OWNER_EMAIL, value: ops@WLDOMAIN }
+            - { name: N8N_INSTANCE_OWNER_FIRST_NAME, value: WLBRAND }
+            - { name: N8N_INSTANCE_OWNER_LAST_NAME, value: Ops }
+            # ── Bounds, so a loop or a flood hits a wall of ours ─────────────
+            - { name: N8N_CONCURRENCY_PRODUCTION_LIMIT, value: "5" }
+            - { name: EXECUTIONS_TIMEOUT, value: "600" }
+            - { name: EXECUTIONS_TIMEOUT_MAX, value: "1800" }
+            - { name: N8N_PAYLOAD_SIZE_MAX, value: "16" }
+            - { name: N8N_FORMDATA_FILE_SIZE_MAX, value: "16" }
+            - { name: EXECUTIONS_DATA_PRUNE, value: "true" }
+            - { name: EXECUTIONS_DATA_MAX_AGE, value: "168" }
+            - { name: EXECUTIONS_DATA_PRUNE_MAX_COUNT, value: "5000" }
+            - { name: NODE_OPTIONS, value: "--max-old-space-size=768" }
+          ports:
+            - { name: http, containerPort: 5678 }
+            - { name: broker, containerPort: 5679 }
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /healthz/readiness, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: n8n-home, mountPath: /home/node/.n8n }
+            - { name: cache, mountPath: /home/node/.cache }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: n8n-home
+          emptyDir: { sizeLimit: 1Gi }
+        # n8n compiles its static assets here at start (a mkdir that kills the process
+        # on a read-only root, measured 2026-11-03).
+        - name: cache
+          emptyDir: { sizeLimit: 256Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+  labels:
+    app.kubernetes.io/name: n8n
+spec:
+  selector:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: main
+  ports:
+    - { name: http, port: 5678, targetPort: http }
+---
+# The task broker: only the runner pod reaches it (networkpolicy.yaml), and only with
+# the token it shares with n8n.
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-broker
+  labels:
+    app.kubernetes.io/name: n8n
+spec:
+  selector:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: main
+  ports:
+    - { name: broker, port: 5679, targetPort: broker }

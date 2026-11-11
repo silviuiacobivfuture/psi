@@ -1,0 +1,52 @@
+# Give Plane's pods the Harbor pull credential when they run OUR image.
+#
+# WHY (apps/plane-sso): the api, worker, beat-worker and migrator run
+# WLREGISTRY/WLAPPS/plane-backend-sso/<build>, a private repository. The
+# plane-ce chart attaches a pull secret in exactly one way —
+# `dockerRegistry.enabled: true` — which renders a Secret FROM the Helm values
+# (templates/config-secrets/docker-registry.yaml: host, loginid and password as
+# plain values). That would put the Harbor robot's password in git. Every other
+# service here mounts `harbor-pull` from ESO instead; the chart has no key to name
+# an existing Secret.
+#
+# WHY PODS, NOT DEPLOYMENTS: a Pod is never tracked by Argo, so mutating it creates
+# no drift and needs no ignoreDifferences. It also covers the migrator Job's pod,
+# whose template is immutable.
+#
+# SCOPE: namespace plane, and only pods with a container image from
+# WLREGISTRY — the upstream images (web, space, admin, live) pull
+# anonymously and are left untouched. The Secret itself:
+# gitops/services/plane/base/harbor-pull-externalsecret.yaml.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: mutate-plane-harbor-pull
+  annotations:
+    policies.kyverno.io/title: Harbor pull secret for Plane's own-built images
+    policies.kyverno.io/category: Workload Configuration
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      The plane-ce chart can only attach a pull secret by rendering one from
+      plaintext Helm values. This adds the ESO-managed harbor-pull Secret to Plane
+      pods whose image comes from REGISTRY_HOST, so the credential never
+      enters git.
+spec:
+  rules:
+    - name: add-harbor-pull
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [plane]
+              operations: [CREATE]
+      preconditions:
+        any:
+          - key: "{{ request.object.spec.containers[].image }}"
+            operator: AnyIn
+            value: ["REGISTRY_HOST/*"] # the estate registry, from the identity (kustomization.yaml)
+      mutate:
+        patchStrategicMerge:
+          spec:
+            imagePullSecrets:
+              - name: harbor-pull

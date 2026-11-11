@@ -1,0 +1,46 @@
+# SEB piece `argocd-config`: Argo CD's own configuration (SSO through Authentik, RBAC,
+# insecure mode behind the tailnet proxy, the tailnet Ingress, the OIDC and repository
+# ExternalSecrets, notifications, the sync-drift rules). Delivered in the SEB bundle, rendered
+# at build time (tools/bundle/build.mjs). Its Application keeps the name `argocd-config`
+# (the piece id), so Argo adopts what that Application already tracks. Argo manages itself
+# through it: switching its source is a step of its own, never folded into another change.
+#
+# The estate's values come from its identity (the whitelabel component). What is the estate's
+# own and not a setting (its hosts: argocd-cm url, additionalUrls and the OIDC issuer, the
+# Ingress's homepage link; and the apps it announces on deploy) comes from its component
+# (../../components/estate/argocd-config). The bootstrap may also `kubectl apply -k` the render.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+resources:
+  - cmd-params-cm.yaml   # server.insecure=true (HTTP behind TLS-terminating proxy)
+  - sso-cm.yaml          # argocd-cm: Authentik OIDC SSO + url
+  - rbac-cm.yaml         # argocd-rbac-cm: Authentik groups → roles
+  - oidc-externalsecret.yaml  # merges OIDC client creds into argocd-secret
+  - repo-externalsecret.yaml  # repo-platform: Argo's GitHub deploy key, from OpenBao
+  - ingress.yaml         # Tailscale-operator ingress (tailnet-only UI)
+  # Sync/health/deploy events -> the #gitops Talk channel via talk-webhook.
+  - notifications-cm.yaml
+
+# Merged INTO argocd-cm rather than listed as a resource: two ConfigMaps of the
+# same name in `resources` collide, and the sync-drift rules are a separate
+# concern from SSO that should not have to live in a file named for it.
+patches:
+  - path: sync-drift-cm.yaml
+  # kustomize sources may inflate Helm charts (the plane app; see the file).
+  - path: kustomize-helm-cm.yaml
+
+# Estate values come from the identity (estate/identity.yaml → the whitelabel
+# component), never written in the manifests above.
+components:
+  - ../../components/whitelabel
+  # The estate's hosts and the apps it announces (patches of argocd-cm, argocd-notifications-cm
+  # and the Ingress argocd-tailnet).
+  - ../../components/estate/argocd-config
+replacements:
+  # GIT_SSH_URL is derived by the loader from GIT_HOST, GIT_OWNER and GIT_REPO.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.GIT_SSH_URL }
+    targets:
+      - select: { kind: ExternalSecret, name: repo-platform }
+        fieldPaths:
+          - spec.target.template.data.url

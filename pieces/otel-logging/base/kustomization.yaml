@@ -1,0 +1,14 @@
+# OpenTelemetry logging collectors (agent DaemonSet + cluster Deployment).
+# Env-agnostic resources only — the per-env collector CONFIG (dataset names,
+# prod-only audit pipeline) is generated in overlays/<env> via configMapGenerator.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - serviceaccount.yaml
+  - rbac.yaml
+  - harbor-pull-externalsecret.yaml
+  - daemonset.yaml
+  - deployment.yaml
+# NOTE: the axiom-token Secret is synced by the centralized platform ExternalSecret
+# pieces/platform-secrets/axiom-ingest.yaml (OpenBao secret/platform/observability/axiom),
+# following the project's platform-secrets convention — not co-located here.

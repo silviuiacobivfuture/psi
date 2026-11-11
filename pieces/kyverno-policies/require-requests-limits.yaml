@@ -1,0 +1,71 @@
+# Require CPU/memory requests AND limits on every container — prevents noisy-
+# neighbour resource starvation and lets the scheduler bin-pack correctly.
+# Mode: ENFORCE — live background scan 2026-06-17 showed 0 failing pods across all
+# app namespaces; every app container already declares requests+limits. (external-dns,
+# a platform Helm component, omits limits → it is in the exclude list below.)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-requests-limits
+  annotations:
+    policies.kyverno.io/title: Require Resource Requests and Limits
+    policies.kyverno.io/category: Resource Management
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Every container must declare CPU & memory requests and limits so the
+      scheduler can place it and one workload cannot starve the node.
+spec:
+  # ENFORCE — apps already comply (0 failing pods in the live scan), so blocking is
+  # safe. failurePolicy Ignore is belt-and-braces: a webhook outage can never block
+  # all admissions.
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: require-requests-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          # Platform/system namespaces run privileged Helm components that
+          # legitimately omit limits — never enforce against them.
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata Helm sub-pods (k8sState, restarter) may omit limits.
+                - monitoring
+                # SUC controller + ephemeral Plan jobs (upstream manifest) omit limits.
+                - system-upgrade
+                # Velero kopia file-backup hosting pods (transient, per-PVC) are
+                # created by velero with no resource limits; blocking them made every
+                # PVC backup PartiallyFailed (silent data-loss) until 2026-06-20.
+                - velero
+      validate:
+        message: "CPU and memory requests and limits are required on every container."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    memory: "?*"
+                    cpu: "?*"
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"

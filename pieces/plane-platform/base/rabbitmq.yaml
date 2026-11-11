@@ -1,0 +1,209 @@
+# RabbitMQ for Plane — the Celery broker. Plane REQUIRES it: with AMQP_URL blank the
+# worker and beat-worker start, connect to nothing, and every background job (email,
+# notifications, webhooks, exports, page duplication) silently never runs.
+#
+# DECISION: OUR OWN pinned StatefulSet, not the chart's bundled one
+# ----------------------------------------------------------------
+# `rabbitmq.local_setup: false` in the Helm values disables
+# templates/workloads/rabbitmq.stateful.yaml. That template was read (chart 1.6.2)
+# and rejected on four counts, each of which is a live defect on this platform:
+#   1. It declares NO `resources` block at all. require-requests-limits is ENFORCE,
+#      so the pod would only ever be admitted by the namespace LimitRange's
+#      backfill — i.e. the broker's memory ceiling would be an accident of a default
+#      rather than a decision, on the one component whose OOM silently stops all
+#      background work.
+#   2. It has NO readiness or liveness probe. A wedged broker keeps its Endpoints and
+#      Celery just stops draining, with nothing reporting a failure.
+#   3. It pins rabbitmq:3.13.6-management-alpine. The 3.13 series is out of community
+#      support (4.x is current), and `-management` exposes the admin UI/plugin for no
+#      reason here — the chart only publishes it if `ingress.rabbitmqHost` is set, but
+#      the port and plugin are loaded regardless.
+#   4. Its PVC defaults to 100Mi, far too small for a Mnesia store plus queued
+#      messages, and it is not resizable on local-path.
+# Everything else about it we would have had to override anyway (annotations,
+# securityContext). Rewriting ~60 lines beats fighting a template with no seams —
+# the same call already made for authentik's and nextcloud's Redis.
+#
+# PVC, unlike plane-redis's emptyDir: this is NOT derived state. Mnesia holds the
+# durable queue contents (jobs accepted but not yet run), the users/permissions and
+# the Erlang cookie. Dropping it on every restart would lose in-flight work and
+# re-generate credentials.
+#
+# Image: rabbitmq:4.1.8-alpine — the current 4.1 LTS series, official Docker Hub
+# library image (NOT bitnami/bitnamilegacy), explicitly tagged (disallow-latest-tag
+# is ENFORCE).
+apiVersion: v1
+kind: Service
+metadata:
+  name: plane-rabbitmq
+  labels:
+    app.kubernetes.io/name: plane-rabbitmq
+spec:
+  # Headless: it is both the StatefulSet's governing Service (stable pod DNS +
+  # hostname, which RabbitMQ needs for a stable `rabbit@<host>` node name) and the
+  # name clients dial. Matches how the chart wires it.
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: plane-rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: plane-rabbitmq
+  labels:
+    app.kubernetes.io/name: plane-rabbitmq
+  annotations:
+    # REQUIRED: RABBITMQ_DEFAULT_USER/PASS arrive as env (envFrom), and env is read
+    # once at process start. See the postStart hook below for why a restart alone is
+    # not enough here — the two work together.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  serviceName: plane-rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plane-rabbitmq
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plane-rabbitmq
+    spec:
+      # uid 100 / gid 101 — VERIFIED from the docker-library/rabbitmq 4.1/alpine
+      # Dockerfile (`addgroup -g 101 -S rabbitmq; adduser -u 100 -S ... -G rabbitmq`).
+      # The DEBIAN variant uses 999/999; guessing that here would leave the PVC
+      # unwritable and fail late with a confusing Mnesia error. The image declares no
+      # USER, but its entrypoint explicitly supports being started with --user (it
+      # only chowns + su-execs when `id -u` is 0), so running non-root is supported.
+      # fsGroup makes the PVC group-writable by the rabbitmq group.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rabbitmq
+          image: WLREGISTRY/mirror/docker.io/library/rabbitmq:4.1.8-alpine@sha256:fc3178754f93e048db7f596a19742c68f438d71fcfe80657dff3198e196de64d
+          envFrom:
+            # RABBITMQ_DEFAULT_USER + RABBITMQ_DEFAULT_PASS, ESO-synced from
+            # secret/apps/plane/rabbitmq — the SAME OpenBao properties AMQP_URL in
+            # plane-app-secrets is composed from, so the two can never drift.
+            - secretRef:
+                name: plane-rabbitmq
+                optional: false
+          ports:
+            - name: amqp
+              containerPort: 5672
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            # NOT read-only: the Erlang VM writes crash dumps to its cwd and the
+            # server writes /var/log/rabbitmq and /tmp outside the mounted data dir.
+            # Left writable deliberately rather than guessing a set of emptyDirs that
+            # would fail late and cryptically; the caps drop + non-root + no-escalation
+            # are the load-bearing controls here.
+            readOnlyRootFilesystem: false
+          # ROTATION RECONCILE — runs in the BACKGROUND, deliberately not a
+          # postStart hook. Why not postStart: kubelet gives the hook only the pod's
+          # termination grace period to return, and it blocks the container from
+          # being marked started. rabbitmq:4.1.8-alpine needs ~40s to boot, so the
+          # hook was still inside `await_startup` when kubelet killed the container
+          # (VERIFIED on dev 2026-08-18: started 14:40:34, SIGTERM 14:40:38 —
+          # 4 seconds, CrashLoopBackOff, FailedPostStartHook). The hook COMMAND
+          # itself is correct — it was reproduced green against this exact image
+          # locally — so the fix is where it runs, not what it does.
+          #
+          # WHAT IT SOLVES (unchanged): RABBITMQ_DEFAULT_USER/PASS are applied by the
+          # broker ONLY when Mnesia is empty — they are `default_user`/`default_pass`
+          # config, not a reconciler. With a PVC, a rotated password in OpenBao would
+          # reach the Secret, Reloader would restart the pod, and RabbitMQ would keep
+          # authenticating with the OLD password stored in Mnesia while Celery dialled
+          # the new one. A silent split-brain of exactly the class the "env-injected
+          # secrets MUST carry the Reloader annotation" HARD RULE exists to prevent,
+          # one layer deeper.
+          #
+          # Running it as `command` + `&` before exec'ing the real entrypoint keeps
+          # the server as PID 1 (signal handling intact) while the reconcile waits
+          # for startup out of band. change_password is idempotent, so this is a
+          # no-op on every start where the password has not changed.
+          # A failure is LOUD in the container log but does not kill the broker —
+          # the readiness/liveness probes remain the health authority.
+          # NOTE: rabbitmqctl takes the password as an argument (no stdin form), so it
+          # is visible in THIS container's own `ps` — it is already in this
+          # container's environment, so no new exposure, and it never reaches the
+          # host argv, which is what the platform rule protects.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              # ERLANG COOKIE PERMISSIONS — must run BEFORE the server starts.
+              # fsGroup:101 makes every file on the PVC group-writable (0660), but the
+              # Erlang VM refuses to boot unless .erlang.cookie is owner-accessible
+              # ONLY, and dies in prelaunch with:
+              #   "Cookie file /var/lib/rabbitmq/.erlang.cookie must be accessible by
+              #    owner only"
+              # (VERIFIED on dev 2026-08-18 — CrashLoopBackOff after the PVC's first
+              # write.) The entrypoint creates the cookie itself when absent, so this
+              # only tightens the mode; `|| true` because the file legitimately does
+              # not exist on the very first boot.
+              [ -f /var/lib/rabbitmq/.erlang.cookie ] && chmod 0400 /var/lib/rabbitmq/.erlang.cookie || true
+              (
+                # NOT under `set -e`: await_startup is EXPECTED to fail on the first
+                # attempts while the Erlang node is still coming up ("unable to
+                # perform an operation on node ... Target node is not running"), and
+                # an inherited -e would kill the subshell on that first failure before
+                # the retry loop could run (VERIFIED against this image locally).
+                set +e
+                tries=0
+                until rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; do
+                  tries=$((tries+1))
+                  if [ "$tries" -ge 30 ]; then break; fi
+                  sleep 10
+                done
+                if rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; then
+                  rabbitmqctl change_password "$RABBITMQ_DEFAULT_USER" "$RABBITMQ_DEFAULT_PASS" \
+                    && echo "rotation-reconcile: password reconciled" \
+                    || echo "rotation-reconcile: FAILED to set password — Celery may not authenticate" >&2
+                else
+                  echo "rotation-reconcile: broker did not start within ~5min — password NOT reconciled" >&2
+                fi
+              ) &
+              exec docker-entrypoint.sh rabbitmq-server
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 3
+          livenessProbe:
+            # check_running is stronger than ping: it asserts the RabbitMQ
+            # APPLICATION is running, not merely that the Erlang node answers.
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "check_running"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi

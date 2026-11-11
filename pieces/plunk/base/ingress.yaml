@@ -1,0 +1,260 @@
+# Plunk's edge. WHICH ROUTER CARRIES WHICH PATH IS PART OF THE SECURITY MODEL —
+# read apps/plunk-sso/CLAUDE.md before moving a path. Same shape as Plane's
+# (gitops/services/plane/base/ingress.yaml), adapted to Plunk's two hosts.
+#
+# plunk.<apex> — the dashboard
+#   /auth/authentik      → plunk-sso   GATED: the sign-in trusts X-authentik-*
+#                                      only because this router's forward-auth
+#                                      deletes client copies and sets its own
+#   /                    → plunk       GATED + plunk-session-check: no valid Plunk
+#                                      session for the person Authentik vouched
+#                                      for → 302 /auth/authentik/?next=<page>
+#   /auth/login, /signup, /reset-password, /verify-email
+#                        → 302 /auth/authentik/ (plunk-credential-routes) — Plunk's
+#                                      own credential screens are never served
+#   /unsubscribe /subscribe /manage, /_next, /favicon, /plunk-sso
+#                        → plunk       UNGATED: the pages a mail RECIPIENT opens
+#                                      from a link (no Authentik account, ever),
+#                                      and the static files they need
+# plunk-api.<apex> — the API: UNGATED. Keys (sk_/pk_) and the dashboard's session
+#   cookie authenticate in Plunk itself; AWS posts SES events to /webhooks/sns.
+#   A forward-auth 302 can never sit in front of an XHR (Plane, 2026-08-19).
+#   EXCEPT the IngressRoute plunk-api-sso: the credential forms, project creation,
+#   membership changes, key regeneration and account/password changes are
+#   answered by plunk-sso (403 MANAGED_BY_SSO), and /auth/logout ends the
+#   Authentik session too.
+#
+# THE GATE is the `plunk` forward_single provider (blueprints-providers.yaml):
+# the outpost matches Host plunk.<apex> exactly, so ONLY its bindings
+# (app-plunk-*, platform-admins) decide — never the domain-wide provider's.
+#
+# DNS: plunk.<apex> and plunk-api.<apex> are served by the estate wildcard
+# (infrastructure/hetzner/modules/dns). plunk-smtp.<apex> needs no record at all:
+# it exists only as a certificate name (DNS-01).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # PRIORITY 1: the catch-all loses to every specific route on this host
+    # (Traefik ranks by rule length; see plane-web for the measured failure).
+    traefik.ingress.kubernetes.io/router.priority: "1"
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plunk-plunk-session-check@kubernetescrd,plunk-plunk-body-limit@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Plunk"
+    gethomepage.dev/description: "E-mail: trimitere, primire, șabloane și campanii"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "6"
+    gethomepage.dev/icon: "mdi-email-fast"
+    gethomepage.dev/href: "https://plunk.WLDOMAIN"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=plunk"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: plunk, port: { name: http } } }
+  tls:
+    - secretName: plunk-tls
+      hosts: [plunk.WLDOMAIN]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk-sso
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Gated, NO session check: this IS where a session is made.
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk.WLDOMAIN
+      http:
+        paths:
+          - path: /auth/authentik
+            pathType: Prefix
+            backend: { service: { name: plunk-sso, port: { name: http } } }
+  tls:
+    - secretName: plunk-tls
+      hosts: [plunk.WLDOMAIN]
+---
+# The outpost's CALLBACK on this host, with the estate's restart in front of the
+# gate: a callback the outpost refuses (state from another browser or session)
+# is answered by the sign-in restart page instead of a blank 400. Order is the
+# mechanism. Why and how: gitops/platform/authentik/sso-restart.yaml; the gate
+# .github/scripts/sso-restart.sh refuses this host without it. The backend is
+# never reached — the outpost answers the callback itself.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk.WLDOMAIN
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend: { service: { name: plunk-sso, port: { name: http } } }
+  tls:
+    - secretName: plunk-tls
+      hosts: [plunk.WLDOMAIN]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk-public
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk.WLDOMAIN
+      http:
+        paths:
+          # A recipient's own pages (Plunk renders them from the id in the link).
+          - { path: /unsubscribe, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /subscribe, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /manage, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          # Static files (Next bundles, icons) and the guard script: public by nature.
+          - { path: /_next, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /favicon, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /plunk-sso, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+  tls:
+    - secretName: plunk-tls
+      hosts: [plunk.WLDOMAIN]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk-credential-routes
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-credential-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk.WLDOMAIN
+      http:
+        paths:
+          - { path: /auth/login, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /auth/signup, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /auth/reset-password, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+          - { path: /auth/verify-email, pathType: Prefix, backend: { service: { name: plunk, port: { name: http } } } }
+  tls:
+    - secretName: plunk-tls
+      hosts: [plunk.WLDOMAIN]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plunk-api
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plunk-api.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: plunk, port: { name: http } } }
+  tls:
+    - secretName: plunk-api-tls
+      hosts: [plunk-api.WLDOMAIN]
+---
+# The API routes plunk-sso answers instead of Plunk. An IngressRoute because an
+# Ingress can match neither a METHOD nor a path pattern, and both matter: GET
+# /projects/<id>/members must still reach Plunk while POST must not. OPTIONS
+# (CORS preflight) is not matched, so Plunk's own CORS still answers it.
+# The rule is parsed as a Go expression, and a line that ENDS an expression gets
+# a semicolon: every line but the last must end with `||`, `&&` or `(`. Until
+# 2026-10-29 the closing `)` sat on a line of its own, Traefik refused the whole
+# router ("expected ')', found newline") and every one of these paths, sign-out
+# and the password forms included, went to Plunk itself.
+# .github/scripts/traefik-rules.sh parses every rule the way Traefik does.
+# Priority far above the plunk-api catch-all. TLS reuses plunk-api's certificate
+# (issued for the Ingress above, same host).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: plunk-api-sso
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: >-
+        Host(`plunk-api.WLDOMAIN`) && (
+          ((Method(`GET`) || Method(`POST`)) && Path(`/auth/logout`)) ||
+          (Method(`POST`) && (Path(`/auth/login`) || Path(`/auth/signup`) || Path(`/auth/verify-email`) ||
+            Path(`/auth/request-verification`) || Path(`/auth/request-password-reset`) || Path(`/auth/reset-password`) ||
+            Path(`/users/@me/password`) || Path(`/users/@me/projects`) ||
+            PathRegexp(`^/users/@me/projects/[^/]+/regenerate-keys$`) || PathRegexp(`^/projects/[^/]+/members$`))) ||
+          ((Method(`PATCH`) || Method(`DELETE`)) && PathRegexp(`^/projects/[^/]+/members/[^/]+$`)) ||
+          (Method(`DELETE`) && (Path(`/users/@me`) || PathRegexp(`^/users/@me/projects/[^/]+$`))))
+      services:
+        - { name: plunk-sso, port: 8080 }
+  tls:
+    secretName: plunk-api-tls
+---
+# Traefik forwardAuth against plunk-sso's session check (lib/server.mjs). 2xx =
+# pass; its 302 to /auth/authentik/ is handed to the browser as-is.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plunk-session-check
+spec:
+  forwardAuth:
+    address: http://plunk-sso.plunk.svc.cluster.local:8080/auth/authentik/session/
+    trustForwardHeader: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plunk-credential-redirect
+spec:
+  redirectRegex:
+    regex: '^https?://([^/]+)/.*$'
+    replacement: 'https://${1}/auth/authentik/'
+    permanent: false
+---
+# Plunk caps attachments at 10 MB (MAX_ATTACHMENT_SIZE_MB) and its own nginx at
+# client_max_body_size 10M; base64 inflates a 10 MB attachment to ~13.4 MB of
+# JSON, which upstream's own nginx would refuse too. 12 MiB here matches what
+# can actually get through.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plunk-body-limit
+spec:
+  buffering:
+    maxRequestBodyBytes: 12582912
+---
+# The SMTP relay's certificate (DNS-01, so the name needs no record). Mounted
+# into Plunk as /certs; Novu verifies it by name when it relays (phase 2).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: plunk-smtp
+spec:
+  secretName: plunk-smtp-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [plunk-smtp.WLDOMAIN]

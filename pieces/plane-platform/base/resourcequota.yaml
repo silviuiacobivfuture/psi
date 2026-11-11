@@ -1,0 +1,52 @@
+# Per-namespace guard-rails for plane.
+#
+# The LimitRange MUST exist before the ResourceQuota: once a quota constrains
+# requests.*/limits.*, every pod that omits them is rejected — the LimitRange
+# backfills defaults so nothing gets bounced.
+#
+# It is ALSO load-bearing for Kyverno here, which is a stronger requirement than in
+# the nextcloud namespace. chart 1.6.2's templates/workloads/migrator.job.yaml
+# declares NO `resources` block at all and exposes no values key to add one, so the
+# `plane-api-migrate-1` pod would be rejected by the ENFORCE'd require-requests-limits
+# ClusterPolicy — and with the migration Job blocked, Plane never gets a schema and
+# every service CrashLoops on an empty database. The backfill below is what admits
+# it: LimitRanger is an in-tree MUTATING admission plugin and runs before
+# ValidatingAdmissionWebhook (Kyverno), so by the time the policy evaluates the pod,
+# the defaults are already on it. Same mechanism nextcloud relies on for the CNPG
+# operator's transient join/backup pods.
+#
+# `default` (the limit) is therefore sized for the heaviest un-annotated pod we
+# expect — a Django `manage.py migrate` — not for a sidecar.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: plane
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 50m, memory: 128Mi }
+      default: { cpu: "1", memory: 1Gi }
+      max: { cpu: "2", memory: 3Gi }
+---
+# Sized from the live set declared in pieces/plane/values.yaml:
+#   api 200m/512Mi, worker 100m/384Mi, beat 50m/256Mi, live 100m/256Mi,
+#   web 100m/256Mi, space 100m/256Mi, admin 50m/128Mi   (= 700m / 2Gi requests)
+# plus plane-db 200m/512Mi, plane-redis 50m/64Mi, plane-rabbitmq 100m/256Mi and the
+# LimitRange-defaulted migrator Job — with headroom for a rolling update of every
+# Deployment at once and a CNPG backup pod.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: plane
+spec:
+  hard:
+    # Steady state is ~1.1 CPU / ~3Gi of requests. The headroom is for a rollout:
+    # each Deployment surges one extra pod (maxSurge 25% on 1 replica rounds up),
+    # so all seven rolling at once transiently doubles the chart's share. A quota
+    # rejection mid-rollout stalls the deploy with the reason buried in a
+    # ReplicaSet event, so this is deliberately generous rather than tight.
+    requests.cpu: "3"
+    requests.memory: 8Gi
+    limits.cpu: "16"
+    limits.memory: 16Gi
+    pods: "20"

@@ -1,0 +1,21 @@
+# Self-hosted Novu (notification infrastructure) for the estate —
+# see gitops/apps/overlays/dev/novu.yaml for the why, and
+# pieces/novu/base/api.yaml for the version pin and its evidence.
+# Order is documentation only (Argo applies by kind/wave, not by list position).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - config.yaml
+  - mongodb.yaml
+  - redis.yaml
+  - api.yaml
+  - worker.yaml
+  - ws.yaml
+  - dashboard.yaml
+  - sso.yaml
+  - bridge.yaml
+  - ingress.yaml
+  - ingress-tailnet.yaml
+  - ingress-dashboard.yaml

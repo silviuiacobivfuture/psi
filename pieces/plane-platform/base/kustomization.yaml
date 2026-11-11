@@ -1,0 +1,18 @@
+# Plane's non-chart half — see pieces/plane-platform.
+# Order is documentation only (Argo applies by kind/wave, not by list position).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - cnpg-cluster.yaml
+  - redis.yaml
+  - rabbitmq.yaml
+  - ingress.yaml
+  - assert-secrets.yaml
+  - smtp-reconcile.yaml
+  - harbor-pull-externalsecret.yaml
+  - sso-reconcile.yaml
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

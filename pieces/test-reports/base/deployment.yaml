@@ -1,0 +1,146 @@
+# test-reports — the permanent home of every CI run's business-rule outcome, and
+# the living-documentation page built from it (https://tests.WLDOMAIN).
+#
+# Phase 2 of infrastructure/hetzner/TEST-VISIBILITY-PLAN.md. Explicitly NOT
+# ReportPortal (phase 3): this is the cheap half that ends the 30-day amnesia and
+# gives the #tests notification something to link at.
+#
+# ONE REPLICA, ON PURPOSE. The volume is ReadWriteOnce (a Hetzner block device
+# attaches to one node) and the retention sweep is not coordinated between pods.
+# `strategy: Recreate` follows from that: a RollingUpdate would try to schedule the
+# new pod while the old one still holds the volume, and it would sit Pending until
+# the rollout timed out.
+#
+# ⚠️ A CONFIGMAP-MOUNTED app.py DOES NOT TAKE EFFECT UNTIL THE POD RESTARTS.
+# A long-lived Python process reads its source once, at startup; kubelet updating
+# the mounted file changes nothing about the running interpreter. This cost real
+# debugging time on talk-webhook. Here it is handled structurally: the ConfigMap is
+# built by kustomize's configMapGenerator, so ANY edit to the sources changes the
+# ConfigMap's name hash, which changes this Deployment's pod spec, which rolls the
+# pod. Do NOT set `disableNameSuffixHash: true` — that reintroduces the footgun.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-reports
+  annotations:
+    # The ingest bearer arrives as an env var, and env is read ONCE at process
+    # start — without this, a rotated token would leave the pod validating the old
+    # value forever, silently rejecting every CI report. See the HARD RULE in
+    # infrastructure/hetzner/CLAUDE.md ("Env-injected secrets MUST carry Reloader").
+    reloader.stakater.com/auto: "true"
+    # Keyed alerts.<ESTATE_LABEL_DOMAIN>/owner at render (components/alert-owner); value OPS_EMAIL.
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-reports
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-reports
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        # The PVC is formatted by the CSI driver and owned by root; fsGroup is what
+        # makes it writable by the nobody user the container runs as. Without it the
+        # first ingest fails with EACCES and nothing else looks wrong.
+        fsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # Fail-loud contract (gitops/services/APP-SECRETS.md): the ExternalSecret
+        # already makes an ABSENT key a visible SecretSyncedError; this catches the
+        # present-but-EMPTY case, which would otherwise let the service start with a
+        # blank bearer that no caller can ever match.
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: test-reports-ingest }
+          command:
+            - sh
+            - -c
+            # `${VAR:-}` passes through kubelet's $(VAR) expansion untouched — an
+            # `eval` loop over key names would assert on the NAME and pass vacuously.
+            - '[ -n "${INGEST_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: INGEST_TOKEN" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: test-reports
+          # PINNED (disallow-latest-tag is ENFORCE). Same image as talk-webhook:
+          # stdlib only, so there is nothing to install and nothing to build.
+          image: WLREGISTRY/mirror/docker.io/library/python:3.13-alpine@sha256:42825e7ec3437b3bce923c237484eb23d32128476e18307d2f48951bf86f1db2
+          command: ["python3", "/app/app.py"]
+          env:
+            - name: INGEST_TOKEN
+              valueFrom: { secretKeyRef: { name: test-reports-ingest, key: INGEST_TOKEN } }
+            - name: DATA_DIR
+              value: /data
+            # Stated explicitly rather than left to the default, so the retention
+            # promise is visible in the manifest and reported by /healthz.
+            - name: RETENTION_DAYS
+              value: "365"
+            # The link the weekly #tests digest carries. It CANNOT be derived from
+            # the request Host: the digest is fetched over the in-cluster Service
+            # name, so Host would be `test-reports.test-reports.svc` and the chat
+            # message would link somewhere nobody outside the cluster can open.
+            # When prod is built out this moves to a per-overlay patch, like the
+            # Ingress host.
+            - name: PUBLIC_URL
+              value: https://tests.WLDOMAIN
+            # branch == environment, 1:1. Names the env in the digest headline so a
+            # message is never ambiguous about which cluster it describes.
+            - name: ENV_NAME
+              value: dev
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            # /app is a read-only ConfigMap mount; without this Python would try to
+            # write __pycache__ into it on every import of render/store/analysis.
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONPATH
+              value: /app
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            # /healthz answers 200 even when reports are STALE — staleness is a CI
+            # problem, not a pod problem, and restarting the pod for it would be a
+            # false remedy. doctor.sh reads the age from the same response.
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+          volumeMounts:
+            - name: app
+              mountPath: /app
+            - name: data
+              mountPath: /data
+      volumes:
+        # Name resolved by kustomize to the hash-suffixed generated ConfigMap.
+        - name: app
+          configMap: { name: test-reports-app }
+        - name: data
+          persistentVolumeClaim: { claimName: test-reports-data }

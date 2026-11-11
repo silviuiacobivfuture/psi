@@ -1,0 +1,31 @@
+# SEB piece `reloader` — Stakater Reloader: watches Secrets/ConfigMaps and rolls the consuming
+# Deployment/StatefulSet when their content changes. Closes the last gap in the store → ESO → pod
+# chain: rotate a secret in the store → ESO syncs the k8s Secret → Reloader restarts the workload.
+# Opt-in per workload (`reloader.stakater.com/auto: "true"`), so unannotated apps are untouched.
+#
+# A HELM piece: this file is the estate's Argo CD Application TEMPLATE. The chart comes from its
+# upstream repository at the pinned version; its values are values.yaml beside this file, with
+# dollar-brace placeholders naming estate identity keys (REGISTRY_HOST, …). The bundle carries both files as they are
+# (seb/tools/bundle/build.mjs); the estate's upgrade step writes the Application = this template
+# with the identity-rendered values as spec.source.helm.values.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reloader
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://stakater.github.io/stakater-charts
+    chart: reloader
+    targetRevision: 2.2.12 # chart version (helm); app/image is v1.4.17
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: reloader
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

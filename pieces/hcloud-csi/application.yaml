@@ -1,0 +1,36 @@
+# SEB piece `hcloud-csi` — the Hetzner Cloud CSI driver: provisions network-attached, expandable
+# Hetzner block volumes (StorageClass hcloud-volumes, opt-in by name; local-path stays default).
+# The driver is stateless: the volumes are Hetzner's and the PVCs the apps', not this piece's.
+# Its API token is the `hcloud` Secret in kube-system, synced from the secret store by the
+# platform's secrets piece — never a helm value.
+#
+# A HELM piece (contract seb/tools/bundle/helm-piece.mjs): this file is the estate's Argo CD
+# Application TEMPLATE; the chart comes from its upstream repository at the pinned version; its
+# values are values.yaml beside this file, with dollar-brace placeholders naming estate identity
+# keys. The estate's upgrade step writes the Application = this template with the
+# identity-rendered values as spec.source.helm.values.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hcloud-csi
+  namespace: argocd
+  annotations:
+    # Before anything that binds a PVC against the new class; ESO and the ClusterSecretStore
+    # are at -5/-4, so the `hcloud` Secret already exists when the controller pod starts.
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.hetzner.cloud
+    chart: hcloud-csi
+    targetRevision: 2.22.1 # pinned; disallow-latest-tag is ENFORCE (kube-system is excluded, but pin anyway)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

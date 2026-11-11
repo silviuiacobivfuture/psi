@@ -1,0 +1,79 @@
+# Authentik Blueprint ConfigMap: Authentik as the SCIM CLIENT of n8n-sso (apps/n8n-sso/CLAUDE.md,
+# docs/n8n/01-identity.md). This IS the step-by-step configuration; nobody clicks anything.
+# Applied by the worker on boot and by blueprint-discovery every ten minutes; also named
+# under blueprints.configMaps in gitops/apps/overlays/dev/authentik.yaml.
+#
+# WHAT IT DOES, IN ORDER
+#   1. A mapping that sends the EMAIL as SCIM's userName. n8n knows people by email, and
+#      Authentik's client finds a person after a 409 by `userName eq`, so a username here
+#      would strand a retried create.
+#   2. The provider: where the sidecar is, the token (from the environment), whom it syncs.
+#      Group filter = the access groups only: nobody else's group names leave the directory.
+#   3. The provider is hung on the `n8n` application as a BACKCHANNEL. That is what scopes
+#      "which users": those the application's gate admits, app-n8n-admin today. The `n8n`
+#      provider and application themselves are declared by blueprints-providers.yaml and
+#      owned there; this adds nothing to them but the backchannel list.
+#   4. The provider's full sync every 15 minutes, not Authentik's default of every 4 hours.
+#      Putting a person in a group does NOT make Authentik POST them, only the group; the
+#      full sync is what links them, and what DELETEs a leaver through SCIM.
+#
+# WHAT IT TRUSTS: patch and bulk are off in the sidecar's ServiceProviderConfig, so Authentik
+# sends whole PUTs. Measured by apps/n8n-sso/tests/real/edge.test.ts against this file.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-n8n-sso
+  namespace: authentik
+data:
+  n8n-sso.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-n8n-sso
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      scim_token: !Env [AUTHENTIK_SCIM__N8N__TOKEN, ""]
+      scim_url: !Env [N8N_SSO_SCIM_URL, "http://n8n-sso.n8n.svc.cluster.local:8080/scim/v2"]
+    entries:
+      - model: authentik_providers_scim.scimmapping
+        identifiers:
+          name: "n8n-sso: the email is the userName"
+        attrs:
+          expression: |
+            email = request.user.email
+            return {
+                "userName": email,
+                "displayName": request.user.name,
+                "active": request.user.is_active,
+                "emails": [{"value": email, "type": "other", "primary": True}],
+                "externalId": str(request.user.uid),
+            }
+      - model: authentik_providers_scim.scimprovider
+        identifiers:
+          name: n8n-sso
+        attrs:
+          url: !Context scim_url
+          token: !Context scim_token
+          auth_mode: token
+          compatibility_mode: default
+          exclude_users_service_account: true
+          verify_certificates: false
+          property_mappings:
+            - !Find [authentik_providers_scim.scimmapping, [name, "n8n-sso: the email is the userName"]]
+          property_mappings_group:
+            - !Find [authentik_providers_scim.scimmapping, [managed, goauthentik.io/providers/scim/group]]
+          group_filters:
+            - !Find [authentik_core.group, [name, app-n8n-admin]]
+      - model: authentik_core.application
+        identifiers:
+          slug: n8n
+        attrs:
+          backchannel_providers:
+            - !Find [authentik_providers_scim.scimprovider, [name, n8n-sso]]
+      # The provider's save makes this row, so it exists by here. Saving again leaves the crontab.
+      - model: authentik_tasks_schedules.schedule
+        identifiers:
+          actor_name: authentik.providers.scim.tasks.scim_sync
+          identifier: !Format ["%s", !Find [authentik_providers_scim.scimprovider, [name, n8n-sso]]]
+        attrs:
+          crontab: "*/15 * * * *"

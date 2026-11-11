@@ -1,0 +1,55 @@
+# Novu's TAILNET surface (ingressClassName: tailscale — same mechanism as argocd,
+# openbao, headlamp, changelog). Zero public admin surface, per PLATFORM.md.
+#
+#   https://novu.<tailnet>      -> the dashboard SPA
+#   https://novu-api.<tailnet>  -> the SAME api, reachable with /v1/auth
+#
+# WHY A SECOND, TAILNET API HOST: the dashboard logs in through /v1/auth/login,
+# which the public ingress refuses (ingress.yaml). Pointing the dashboard at this
+# host keeps login, registration and password reset reachable ONLY from the
+# tailnet, while the public host keeps serving the apps. FRONT_BASE_URL in
+# config.yaml is the dashboard origin, so CORS admits exactly that page.
+#
+# No Authentik gate: the tailnet is the gate, and the dashboard's own Novu login
+# is the second. The SAME dashboard is also on the internet at novu.<apex>,
+# behind Authentik (ingress-dashboard.yaml, app-novu-admin in ROLES.md); this
+# tailnet pair stays as the path that works when Authentik does not.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-dashboard
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Novu (tailnet)"
+    gethomepage.dev/description: "Notification workflows, subscribers and activity (tailnet)"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "10"
+    gethomepage.dev/icon: "si-novu"
+    gethomepage.dev/href: "https://novu.WLTAILNET"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=novu-dashboard"
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service: { name: novu-dashboard, port: { name: http } }
+  tls:
+    - hosts: [novu]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-api-tailnet
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Novu API (tailnet)"
+    gethomepage.dev/description: "Novu API on the private network — what the dashboard calls"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "30"
+    gethomepage.dev/icon: "mdi-bell-cog"
+    gethomepage.dev/href: "https://novu-api.WLTAILNET/v1/health-check"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=novu-api"
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service: { name: novu-api, port: { name: http } }
+  tls:
+    - hosts: [novu-api]

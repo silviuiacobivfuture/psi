@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - weekly-digest.yaml
+
+# The whole service IS these five files. They are kept as REAL .py files rather
+# than a heredoc inside a ConfigMap manifest for two reasons that both matter:
+#   1. They can be run, compiled and tested offline exactly as they will run in the
+#      cluster (see ../selftest/run.sh) — the renderer was verified against a
+#      synthetic Vitest report before this ever reached a node.
+#   2. configMapGenerator appends a content HASH to the ConfigMap name, so ANY edit
+#      renames the ConfigMap, which changes the Deployment's pod spec, which ROLLS
+#      THE POD. That structurally removes the "edited app.py, nothing happened"
+#      trap that a fixed-name ConfigMap has (a long-lived Python process reads its
+#      source once, at startup). Do NOT add `disableNameSuffixHash: true`.
+configMapGenerator:
+  - name: test-reports-app
+    files:
+      - app/app.py
+      - app/store.py
+      - app/analysis.py
+      - app/render.py
+      - app/digest.py

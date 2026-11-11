@@ -1,0 +1,23 @@
+# The limits on Traefik's wait for Harbor (gitops/services/harbor-route). Its own Application because
+# harbor.yaml is the chart alone. git-sourced → overlay stamps targetRevision.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor-route
+  namespace: argocd
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    path: gitops/services/harbor-route/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: autorizare-svc
+  labels: { app: autorizare-svc }
+spec:
+  type: ClusterIP
+  selector: { app: autorizare-svc }
+  ports:
+    # port 80 -> the container's 8080, as the business services do. Unlike the
+    # openfga pair, no consumer is written against a literal port number here:
+    # the console reaches this service through the Ingress, and the SDKs talk to
+    # openfga, never to this.
+    - { name: http, port: 80, targetPort: http }

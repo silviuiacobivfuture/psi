@@ -1,0 +1,12 @@
+# The probe piece: the smallest thing a bundle can deliver. It proves the bundle
+# route end to end (build, push, lock, an Argo Application by digest) without
+# touching a real service. Nothing points an Application at it in git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seb-probe
+  namespace: seb-probe
+  labels:
+    app.kubernetes.io/part-of: seb-probe
+data:
+  purpose: "bundle route probe"

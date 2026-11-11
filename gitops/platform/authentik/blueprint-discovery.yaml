@@ -1,0 +1,71 @@
+# Asks Authentik to (re)discover its blueprint files, every 10 minutes.
+#
+# WHY: a blueprint ConfigMap Argo adds or changes reaches /blueprints/mounted/
+# in the worker, but Authentik only applies a file once its discovery task has
+# REGISTERED it. On this platform that has repeatedly not happened by itself
+# after a sync (2026-10-22: blueprints-people and blueprints-broker-autorizare-hub
+# after batch 5, blueprints-machine-credentials after batch 8) — configuration
+# in git that the directory never applies, with no error anywhere. doctor.sh
+# names such files and repair.sh fixes them; this makes the fix need nobody.
+#
+# HOW: the same call repair.sh makes — Authentik's own discovery task — sent from
+# a short-lived pod of the SAME image with the SAME configuration (envFrom the
+# chart's `authentik` Secret and `authentik-env`). Sending only enqueues the
+# task; a worker runs it against the files IT has mounted, which is the point.
+# Idempotent: on a healthy directory discovery registers nothing and re-applies
+# nothing unchanged. Not a PostSync hook, on purpose: the hook would fire when
+# the ConfigMaps are applied, which is before the kubelet has refreshed the
+# worker's mounted files and before the Helm app has rolled the pods — a race a
+# fixed interval does not have.
+#
+# No Reloader annotation: a CronJob starts a fresh pod each run and reads the
+# current Secrets by construction (the Kyverno guard matches Deployments only).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-blueprint-discovery
+  namespace: authentik
+  annotations:
+    alerts.recomex.eu/owner: WLOPSEMAIL
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 240
+      template:
+        metadata:
+          labels: { app: authentik-blueprint-discovery }
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: discover
+              # The chart's image at the chart's version (gitops/apps/overlays/dev/authentik.yaml,
+              # targetRevision 2026.5.3). Bump the two together.
+              image: WLREGISTRY/mirror/ghcr.io/goauthentik/server:2026.5.3@sha256:28166f077dae24371c59a644e4319ea173d5290613386462e8172a963bd607fd
+              args:
+                - shell
+                - -c
+                - "from authentik.blueprints.v1.tasks import blueprints_discovery; blueprints_discovery.send(); print('blueprint discovery requested')"
+              envFrom:
+                - secretRef: { name: authentik }
+                - secretRef: { name: authentik-env }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 50m, memory: 256Mi }
+                limits: { cpu: 500m, memory: 512Mi }

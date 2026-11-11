@@ -1,0 +1,33 @@
+# The sso pod's label (sso/sso.yaml).
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: n8n-key-api-client-pod
+target: { kind: Deployment, name: n8n-sso }
+patch: |-
+  - op: move
+    from: /spec/template/metadata/labels/n8n~1api-client
+    path: /spec/template/metadata/labels/n8n.WLDOMAIN~1api-client
+---
+# The ingress rule that admits it to n8n's API (base/networkpolicy.yaml, ingress rule 2). The
+# `move` refuses the render if that rule ever stops carrying the key at this position.
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: n8n-key-api-client-policy
+target: { kind: NetworkPolicy, name: n8n }
+patch: |-
+  - op: move
+    from: /spec/ingress/2/from/0/podSelector/matchLabels/n8n~1api-client
+    path: /spec/ingress/2/from/0/podSelector/matchLabels/n8n.WLDOMAIN~1api-client
+---
+# The tested digest (base/n8n.yaml).
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: n8n-key-tested-digest
+target: { kind: Deployment, name: n8n }
+patch: |-
+  - op: move
+    from: /metadata/annotations/n8n~1tested-digest
+    path: /metadata/annotations/n8n.WLDOMAIN~1tested-digest

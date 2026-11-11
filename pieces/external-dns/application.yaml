@@ -1,0 +1,38 @@
+# SEB piece `external-dns`.
+#
+# external-dns — auto-creates Cloudflare DNS records from Ingress/Service hosts.
+# So future services + prod get their DNS records without manual Cloudflare entries.
+# Reads CF token from the cloudflare-api-token secret in the external-dns ns
+# (synced from OpenBao by the ESO ExternalSecret in pieces/platform-secrets/).
+# policy=upsert-only so it
+# NEVER deletes records (safe coexistence with the manual *.dev wildcard).
+#
+# A HELM piece (contract tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries the chart values, with identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
+    chart: external-dns
+    targetRevision: 1.21.1
+    helm:
+      parameters:
+        - name: domainFilters[0]
+          value: ${DNS_ZONE}
+        - name: txtOwnerId
+          value: ${ESTATE_SLUG}-dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

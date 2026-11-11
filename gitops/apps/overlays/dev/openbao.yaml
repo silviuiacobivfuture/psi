@@ -1,0 +1,249 @@
+# OpenBao — FOSS secret manager (Vault-compatible API). Single-node standalone +
+# file storage for dev; UI enabled (exposed tailnet-only). Starts SEALED +
+# UNINITIALIZED — run `bao operator init` + unseal once (scripts/openbao-bootstrap.sh),
+# store the unseal key(s) + root token securely. ESO + k8s-auth wired after init.
+#
+# AUTO-UNSEAL (in-cluster, no cloud KMS). Hetzner has no KMS, so instead of a
+# `seal "awskms"`/transit stanza we run an `unseal-agent` SIDECAR (server.extraContainers
+# below) that polls the LOCAL OpenBao /v1/sys/health and, whenever it reports SEALED
+# (HTTP 503), runs `bao operator unseal <key>`. The key is read from a file mounted
+# from the `openbao-unseal` Secret (key `unseal-key`). On any pod restart (reboot,
+# upgrade, crash, rebuild) OpenBao comes back SEALED and the sidecar unseals it within
+# seconds — no human + laptop needed.
+#
+#   ┌─ THE unseal-key Secret IS BOOTSTRAP-CLASS, NOT GITOPS-SYNCED ───────────────┐
+#   │ The Secret `openbao-unseal` is created IMPERATIVELY by                       │
+#   │ infrastructure/hetzner/scripts/openbao-bootstrap.sh from .env's              │
+#   │ OPENBAO_UNSEAL_KEY (same single config surface as every other infra secret). │
+#   │ It CANNOT come from ESO — ESO reads its secrets FROM OpenBao, so the unseal   │
+#   │ key for OpenBao itself would be a chicken-and-egg. It is NEVER committed to   │
+#   │ git: this manifest only REFERENCES it (as a volume), never contains its value.│
+#   │ DR copies live in: the k8s Secret + infra/.env + the password manager.       │
+#   │ Security posture: an in-cluster unseal key is WEAKER than cloud KMS (a node   │
+#   │ compromise can read both ciphertext and key). Accepted for dev; prod should   │
+#   │ still move to KMS/transit auto-unseal. Rotating the key = `bao operator rekey`│
+#   │ then re-create this Secret + update .env + password manager.                  │
+#   └────────────────────────────────────────────────────────────────────────────┘
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openbao
+  namespace: argocd
+  # Early sync-wave: the secret backend must be up before any ExternalSecret
+  # (platform-secrets, app secrets) can sync on a fresh cluster. NB: OpenBao
+  # still needs a one-time manual init/unseal (scripts/openbao-init.sh). See PLATFORM.md.
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  project: default
+  ignoreDifferences:
+    # The agent-injector re-injects caBundle into its own webhook config every reconcile.
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: openbao-agent-injector-cfg
+      jqPathExpressions: ['.webhooks[]?.clientConfig.caBundle']
+  source:
+    repoURL: https://openbao.github.io/openbao-helm
+    chart: openbao
+    targetRevision: 0.28.3
+    helm:
+      values: |
+        server:
+          standalone:
+            enabled: true
+            # ---- server config (HCL) -------------------------------------------
+            # SETTING THIS REPLACES THE CHART DEFAULT WHOLESALE. `server.standalone.config`
+            # is a raw string rendered verbatim into ConfigMap openbao/openbao-config, key
+            # `extraconfig-from-values.hcl` (chart 0.28.3, templates/_helpers.tpl:1150 —
+            # `tpl .Values.server.standalone.config`). There is no merge: the `ui`,
+            # `listener` and `storage` stanzas below are BYTE-IDENTICAL to what the chart
+            # default rendered, and dropping any one of them would break the pod. The only
+            # things NOT carried over are the chart's two commented-out EXAMPLE blocks
+            # (`#seal "gcpckms"` and `#telemetry`), which are inert documentation — and the
+            # KMS example in particular is actively misleading here, since this cluster
+            # unseals with the sidecar described in the header, not a cloud KMS.
+            #
+            # ---- WHY THE audit STANZA IS HERE AND NOT `bao audit enable` -------
+            # OpenBao 2.5.4 REFUSES API-based audit enablement outright (verified
+            # 2026-08-20):
+            #   "cannot enable audit device via API; use declarative, config-based
+            #    audit device management instead"
+            # So the device can ONLY be declared in the server config. Verified end to
+            # end in an isolated quay.io/openbao/openbao:2.5.4 container on 2026-08-20:
+            # the server booted with this exact stanza and `bao audit list -detailed`
+            # then reported `to-stdout/  file  ... file_path=stdout`.
+            #
+            #   ┌─ RISK, AND IT IS REAL: AUDIT FAILURE STOPS OPENBAO SERVING ──────┐
+            #   │ When audit devices are enabled and NO enabled device succeeds in   │
+            #   │ writing an entry, OpenBao FAILS THE REQUEST. This is not Vault     │
+            #   │ lore — it is in the 2.5.4 source we ship:                          │
+            #   │   vault/audit_broker.go:165  "no audit backend succeeded in        │
+            #   │                               logging the request"                 │
+            #   │   vault/audit_broker.go:230  ... "logging the response"            │
+            #   │   vault/request_handling.go:1229-1231 turns that into              │
+            #   │                               ErrInternalError (HTTP 500)          │
+            #   │   vault/request_handling.go:1085-1087 does the same for responses  │
+            #   │ If OpenBao stops serving, ESO stops syncing, CI cannot read its    │
+            #   │ secrets, and every app secret rotation stalls. THAT is why there is │
+            #   │ exactly ONE device and why it is `stdout`: a write to the process's │
+            #   │ own stdout has no disk to fill, no file to rotate, no permission to │
+            #   │ lose and no remote to become unreachable — the failure modes that   │
+            #   │ take a `file`-to-disk or `socket` device down do not exist here.    │
+            #   │ NEVER add a second device that can fail (socket/syslog/remote file) │
+            #   │ without first understanding that ANY device failing is survivable   │
+            #   │ but ALL of them failing is a full outage of the secret store.       │
+            #   └────────────────────────────────────────────────────────────────────┘
+            #
+            # WHAT IT COSTS: every OpenBao request is now logged twice (a `request` and
+            # a `response` entry) and otel-agent ships both to Axiom. Unauthenticated
+            # `sys/health` / `sys/seal-status` are NOT audited (verified in the same
+            # container: six such calls produced zero audit lines), so the unseal-agent's
+            # 10-second poll adds nothing. Volume estimate + the option to drop
+            # `operation: read` lines at the collector: RUNBOOK 2026-08-20.
+            #
+            # WHAT READS IT: gitops/platform/openbao/audit-notify.yaml follows this
+            # container's stdout and posts "who changed which key, and where it lands"
+            # into the #secrets Talk channel. Values never appear — OpenBao HMACs every
+            # one of them before the entry is written.
+            #
+            # APPLYING THIS RESTARTS openbao-0. It comes back SEALED and the
+            # unseal-agent sidecar unseals it within seconds (RUNBOOK 2026-06-19).
+            config: |
+              ui = true
+
+              listener "tcp" {
+                tls_disable = 1
+                address = "[::]:8200"
+                cluster_address = "[::]:8201"
+              }
+              storage "file" {
+                path = "/openbao/data"
+              }
+
+              audit "file" "to-stdout" {
+                description = "Write audit information to standard output."
+                options { file_path = "stdout" }
+              }
+          dataStorage:
+            enabled: true
+            storageClass: local-path
+            size: 2Gi
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          # Volumes shared with the unseal-agent sidecar. `server.volumes` is rendered
+          # verbatim (toYaml) and made available to ALL containers in the pod.
+          #   - unseal-key  : the bootstrap-class Secret (created imperatively by
+          #                   openbao-bootstrap.sh, NOT GitOps-synced — see header).
+          #                   optional:true lets the pod still schedule if the Secret
+          #                   is absent on a brand-new cluster (the sidecar then just
+          #                   logs that the key file is missing and retries; the
+          #                   operator runs openbao-bootstrap.sh which creates it).
+          #   - tmp         : writable scratch so the sidecar can run readOnlyRootFilesystem.
+          volumes:
+            - name: unseal-key
+              secret:
+                secretName: openbao-unseal
+                optional: true
+                defaultMode: 0400
+                items:
+                  - key: unseal-key
+                    path: unseal-key
+            - name: unseal-agent-tmp
+              emptyDir: {}
+          # unseal-agent SIDECAR — polls LOCAL OpenBao health and unseals on SEALED.
+          # Uses the OpenBao image itself (ships `bao` + busybox `wget`); no extra image.
+          # key-shares=1 → a single `bao operator unseal` suffices. Never logs the key.
+          extraContainers:
+            - name: unseal-agent
+              # Same image the server runs (chart 0.28.3 appVersion = v2.5.4, server
+              # tag:"" → openbao/openbao:v2.5.4). Ships `bao` + busybox `wget`. Keep in
+              # lockstep with the chart's appVersion on upgrades.
+              image: quay.io/openbao/openbao:2.5.4   # MUST match the server image registry+tag (quay, not docker.io; tag has no 'v')
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                # POSIX sh loop (busybox in the openbao image). Health status codes
+                # (OpenBao /v1/sys/health, Vault-compatible):
+                #   501 = not initialised  → wait (bootstrap will init)
+                #   503 = sealed           → unseal
+                #   200 = unsealed+active / 429 = unsealed+standby → ok, nothing to do
+                #   000 = curl/wget no-connect (main container not up yet) → retry
+                # The key is read from the mounted file at call time (never an env/argv
+                # the way `ps` could see persistently; passed to `bao` on its stdin via a
+                # heredoc-free `printf | xargs`-free direct arg is avoided — we feed it as
+                # the unseal arg only transiently). We MUST NOT echo the key: no `set -x`,
+                # no printing $KEY. BAO_ADDR points at the local plaintext listener
+                # (dev listener has tls_disable=1 → http, no TLS skip needed).
+                - |
+                  set -eu
+                  BAO_ADDR='http://127.0.0.1:8200'
+                  export BAO_ADDR VAULT_ADDR="$BAO_ADDR"
+                  KEY_FILE=/etc/openbao/unseal/unseal-key
+                  backoff=2
+                  echo "unseal-agent: starting; watching OpenBao via 'bao status' on $BAO_ADDR"
+                  # Detect via `bao status` EXIT CODES, not an HTTP/wget probe: busybox wget
+                  # on a 503 (sealed) does NOT emit the -S status line the old parser read, so
+                  # a SEALED node was misread as code=0 and never unsealed. `bao status` is the
+                  # real API client — exit 0 = unsealed (active/standby), 2 = SEALED, other =
+                  # not-initialised / API not up yet. `rc=0; cmd || rc=$?` captures the code
+                  # without `set -e` killing the loop on the (expected) non-zero sealed exit.
+                  while true; do
+                    rc=0; bao status >/dev/null 2>&1 || rc=$?
+                    if [ "$rc" -eq 0 ]; then
+                      backoff=2; sleep 10; continue
+                    fi
+                    if [ "$rc" -eq 2 ]; then
+                      # SEALED → unseal. Read the key fresh from the mounted file each time.
+                      if [ ! -s "$KEY_FILE" ]; then
+                        echo "unseal-agent: SEALED but key file missing/empty ($KEY_FILE) — run openbao-bootstrap.sh; retry ${backoff}s"
+                        sleep "$backoff"; [ "$backoff" -lt 30 ] && backoff=$((backoff*2)); continue
+                      fi
+                      echo "unseal-agent: OpenBao SEALED → unsealing"
+                      # Key as an ARG (NOT `unseal -` — OpenBao 2.5.4 returns HTTP 400 on the
+                      # stdin `-` form). It lands only on THIS sidecar's own process argv: a
+                      # single-process, PID-isolated container (no shareProcessNamespace), so
+                      # no other workload can see it via /proc. Never echoed.
+                      if bao operator unseal "$(cat "$KEY_FILE")" >/dev/null 2>&1; then
+                        echo "unseal-agent: unseal OK"; backoff=2; sleep 5
+                      else
+                        echo "unseal-agent: unseal FAILED (retry) — check key validity"
+                        sleep "$backoff"; [ "$backoff" -lt 30 ] && backoff=$((backoff*2))
+                      fi
+                    else
+                      # not initialised yet, or API not up (main container still starting).
+                      echo "unseal-agent: OpenBao not ready (bao status rc=$rc) — retry ${backoff}s"
+                      sleep "$backoff"; [ "$backoff" -lt 30 ] && backoff=$((backoff*2))
+                    fi
+                  done
+              volumeMounts:
+                - name: unseal-key
+                  mountPath: /etc/openbao/unseal
+                  readOnly: true
+                - name: unseal-agent-tmp
+                  mountPath: /tmp
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 64Mi }
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 100
+                runAsGroup: 1000
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ "ALL" ]
+                seccompProfile:
+                  type: RuntimeDefault
+        ui:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openbao
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,409 @@
+# Authentik — self-hosted IdP (dev). Becomes the org SSO brain: OAuth2/OIDC for
+# Harbor/Argo/Headlamp/OpenBao + forward-auth (embedded outpost) for public Traefik
+# apps, with GitHub federated in as a login source. TAILNET-ONLY (no public ingress)
+# — tailnet membership is the outer gate, Authentik the inner identity layer.
+#
+# Bundles its own Postgres (Bitnami subchart) + Redis on local-path PVCs.
+# Secrets (secret_key, akadmin bootstrap pw, bootstrap API token, db/redis pw) come
+# from OpenBao via the ESO ExternalSecrets in pieces/platform-secrets/:
+#   - authentik-env       → global.envFrom (AUTHENTIK_SECRET_KEY/BOOTSTRAP_*/…__PASSWORD)
+#   - authentik-db-creds  → postgresql.auth.existingSecret + redis.auth.existingSecret
+# Config-as-code via Blueprints, mounted from the git-sourced ConfigMaps in
+# gitops/platform/authentik/ (referenced by blueprints.configMaps below) — those +
+# the tailnet ingress are delivered by the sibling `authentik-platform` Argo app.
+# ServerSideApply: the chart ships large CRDs + the bundled Postgres StatefulSet.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.goauthentik.io
+    chart: authentik
+    targetRevision: 2026.5.3
+    helm:
+      values: |
+        global:
+          # Harbor's mirror (PLATFORM-11), the chart's own version. Bump with
+          # targetRevision and gitops/platform/authentik/blueprint-discovery.yaml.
+          image:
+            # repository: set by `parameters` below (an estate value).
+            tag: "2026.5.3"
+            digest: sha256:28166f077dae24371c59a644e4319ea173d5290613386462e8172a963bd607fd
+          # All AUTHENTIK_* env from the ESO-synced secrets. envFrom turns every key
+          # into an env var: core (secret_key, bootstrap creds, db/redis pw),
+          # GitHub-source creds, and per-app deterministic OIDC client id/secret.
+          envFrom:
+            - secretRef:
+                name: authentik-env
+            - secretRef:
+                name: authentik-github-oauth
+            - secretRef:
+                name: authentik-google-oauth
+            - secretRef:
+                name: authentik-oidc-clients
+            # Outgoing mail: the platform sender's Plunk key (the relay's SMTP
+            # password) and its address, from secret/platform/plunk/platform
+            # (gitops/platform/secrets/authentik-email.yaml).
+            # NOT optional: set-password links are how every person gets a first
+            # password, so a directory that cannot send must not start.
+            - secretRef:
+                name: authentik-email
+            # The estate tile policy's settings (gitops/platform/secrets/
+            # authentik-estate-tiles.yaml): the engine's read port, the store, the
+            # PINNED model, the hub's person lookup. OPTIONAL on purpose — a tile
+            # must never hold the directory down: without it the directory starts,
+            # the policy shows no star tile and logs the missing key, and doctor.sh
+            # fails loud. Reloader rolls the pods when it changes (a re-pin).
+            - secretRef:
+                name: authentik-estate-tiles
+                optional: true
+            # n8n-sso's SCIM tokens (authentik-n8n-scim.generated.yaml). OPTIONAL for the
+            # same reason: a blueprint reads "" without it and the sidecar refuses that, so
+            # n8n's provisioning stops loudly and the directory never does.
+            - secretRef:
+                name: authentik-n8n-scim
+                optional: true
+          # The Romanian mail templates (gitops/platform/authentik/email-templates.yaml),
+          # under Authentik's email.template_dir (/templates). Read-only.
+          volumes:
+            - name: email-templates
+              configMap:
+                name: authentik-email-templates
+            # The estate's look (gitops/platform/authentik/estate/, generated as
+            # ConfigMaps by that kustomization). On the SERVER it is served at
+            # /static/dist/assets/recomex/ and the page template loads ro.js; on
+            # the WORKER the brand blueprint reads recomex.css from it with !File
+            # — so both pods mount both, and a missing ConfigMap holds both in
+            # ContainerCreating rather than letting the brand go blank.
+            - name: estate
+              configMap:
+                name: authentik-estate
+            - name: templates
+              configMap:
+                name: authentik-templates
+            # Authentik attaches web/icons/icon_left_brand.png (relative to its
+            # working directory, /) to EVERY mail as the inline image cid:logo,
+            # and the image ships no /web/icons — so this mount decides what that
+            # attachment is: the estate's wordmark, which the mail templates show.
+            - name: mail-logo
+              configMap:
+                name: authentik-estate
+                items:
+                  - key: mail-logo.png
+                    path: icon_left_brand.png
+          volumeMounts:
+            - name: email-templates
+              mountPath: /templates/recomex
+              readOnly: true
+            - name: estate
+              mountPath: /web/dist/assets/recomex
+              readOnly: true
+            # Authentik's template search path starts at email.template_dir
+            # (/templates), so this skeleton.html is found before Authentik's
+            # own and extends it (templates/skeleton.html says how).
+            - name: templates
+              mountPath: /templates/base
+              readOnly: true
+            - name: mail-logo
+              mountPath: /web/icons
+              readOnly: true
+        authentik:
+          # Plunk's in-cluster SMTP relay with STARTTLS, as the apex sender
+          # (gitops/services/plunk/senders/platform.json — identity mail is the
+          # apex's, owner 2026-10-29). The host is the name on the relay's
+          # certificate; cluster-dns resolves it to the plunk-smtp Service
+          # (pieces/cluster-dns), and Django verifies it. Username is the
+          # literal `plunk` (Plunk's apps/smtp handleAuth); password and sender
+          # come from the authentik-email Secret (envFrom above); the chart renders
+          # only the non-empty keys here, so the two sources never set one variable.
+          email:
+            # host: set by `parameters` below (an estate value).
+            port: 587
+            username: plunk
+            use_tls: true
+            use_ssl: false
+            timeout: 30
+          # Point the app at the bundled stores; passwords arrive via envFrom above
+          # (AUTHENTIK_POSTGRESQL__PASSWORD / AUTHENTIK_REDIS__PASSWORD).
+          postgresql:
+            # The CNPG Cluster's read-write Service (I2), NOT the retired Bitnami
+            # subchart's `authentik-postgresql`. CNPG publishes three Services per
+            # Cluster — `-rw`, `-ro` and `-r` — and only `-rw` follows a failover.
+            # Pointing an application at the Cluster name itself resolves to
+            # nothing at all.
+            host: authentik-db-rw
+            name: authentik
+            user: authentik
+          redis:
+            # External Redis: the authentik chart bundles ONLY postgres, so Redis runs
+            # as raw manifests (official image) in the authentik-platform app
+            # (gitops/platform/authentik/redis.yaml), Service authentik-redis-master.
+            # Password from AUTHENTIK_REDIS__PASSWORD (authentik-env secret).
+            host: authentik-redis-master
+          error_reporting:
+            enabled: false
+        # --- Blueprints (config-as-code) mounted from git-sourced ConfigMaps ---
+        # Each ConfigMap's *.yaml keys land in /blueprints/custom/ on server+worker
+        # and are reconciled by the worker on boot. ConfigMaps shipped by the
+        # authentik-platform Argo app (gitops/platform/authentik/).
+        blueprints:
+          configMaps:
+            - authentik-blueprints-providers
+            - authentik-blueprints-sources
+            - authentik-blueprints-groups
+            - authentik-blueprints-admins
+            - authentik-blueprints-enrollment
+            - authentik-blueprints-mfa
+            - authentik-blueprints-outpost
+            # Password policy + set-password link. Also in the kustomization.
+            - authentik-blueprints-recovery
+            # The people moved onto this directory. Also in the kustomization.
+            - authentik-blueprints-people
+            # The login hub's broker client. Also in the kustomization.
+            - authentik-blueprints-broker-autorizare-hub
+            # The machine-credential policy. Also in the kustomization.
+            - authentik-blueprints-machine-credentials
+            # Authentik as n8n-sso's SCIM client; one more per generated n8n instance.
+            # Also in the kustomization.
+            - authentik-blueprints-n8n-sso
+            - authentik-blueprints-n8n-instances
+            # GENERATED per application from its capability manifest, by
+            # authz/tools/generate.py. This list and the `resources:` in
+            # gitops/platform/authentik/kustomization.yaml are ONE decision in
+            # two files: a ConfigMap named here that the kustomization does not
+            # create leaves BOTH pods in ContainerCreating on an unmountable
+            # volume, and one created but not named here is simply never
+            # reconciled — the groups exist in git and not in the directory,
+            # and nobody can sign in with no visible reason.
+            - authentik-blueprints-groups-brs
+            - authentik-blueprints-groups-sign
+            - authentik-blueprints-groups-flow
+            - authentik-blueprints-sso-invoice
+            # The estate's look: brand, Romanian titles and labels. Also in the
+            # kustomization.
+            - authentik-blueprints-theme
+            # A library tile per estate application (generated). Also in the kustomization.
+            - authentik-blueprints-estate-tiles
+        # securityContext satisfies the cluster Kyverno policies (Enforce):
+        # require-run-as-non-root + disallow-privileged. Set on server/worker (pod =
+        # securityContext, container = containerSecurityContext) and the bundled
+        # postgres/redis so authentik is policy-COMPLIANT rather than excluded
+        # (keeps the restricted baseline; authentik + Bitnami images all run non-root).
+        server:
+          # Reloader auto-restarts this Deployment when any of its ESO-synced Secrets
+          # change (OpenBao -> ESO -> Secret -> roll). REQUIRED: every AUTHENTIK_* value
+          # arrives as an ENV VAR via global.envFrom above (authentik-env,
+          # -github-oauth, -google-oauth, -oidc-clients) and env is read once at
+          # startup — without this, rotating AUTHENTIK_SECRET_KEY or an OIDC client
+          # secret would silently never take effect. Enforced by the
+          # require-reloader-annotation Kyverno policy. Chart key VERIFIED against
+          # authentik 2026.5.3 templates/server/deployment.yaml:9 —
+          # `deploymentAnnotations` lands on the Deployment's own metadata, which is
+          # where Reloader reads the annotation (podAnnotations would put it on the pod
+          # template, which Reloader ignores; the chart's TOP-LEVEL podAnnotations is
+          # additionally deprecated and hard-fails the render).
+          deploymentAnnotations:
+            reloader.stakater.com/auto: "true"
+          # A roll must not answer anybody 502. There is one replica, so the moment
+          # the new pod is Ready the old one is told to stop, while Traefik still has
+          # its address. Reloader rolled this on 2026-11-04 at 17:25:44Z for a change
+          # to the authentik-estate ConfigMap; a pod takes 21 s to be Ready (measured
+          # on the 21:50 roll); and at 17:26:05.144Z a journey's sign-out got Traefik's
+          # bare "Bad Gateway" in 11 ms from Authentik's end-session, with the session
+          # there still alive (run 41871803679, UI-SIGNIN-08). So the pod goes on
+          # serving for ten seconds after it leaves the endpoints; the grace period
+          # grows by the same ten so the stop itself keeps its thirty.
+          # .github/scripts/sso-signout.sh refuses this file without the hook.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
+          terminationGracePeriodSeconds: 40
+          # PUBLIC-only at auth.<apex> (ingress-public.yaml in the
+          # authentik-platform app), NOT the chart's own ingress. The tailnet host
+          # was dropped in fe38c4b (dual host broke GitHub redirect_uri). The
+          # embedded outpost's browser-redirect host is pinned to auth.<apex>
+          # in blueprints-outpost.yaml.
+          ingress:
+            enabled: false
+          service:
+            type: ClusterIP
+          metrics:
+            enabled: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          containerSecurityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          # Fail loud: no mail, no start. The scalar is folded — NO `#` inside it,
+          # or the whole script becomes one shell comment and asserts nothing.
+          # Then wait for the directory's database to ACCEPT connections.
+          initContainers: &authentikInit
+            - name: assert-mail
+              # image: set by `parameters` below (an estate value).
+              envFrom:
+                - secretRef: { name: authentik-email }
+              command: ["sh", "-c"]
+              args:
+                - >-
+                  [ -n "${AUTHENTIK_EMAIL__PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_EMAIL__PASSWORD" >&2; exit 1; };
+                  [ -n "${AUTHENTIK_EMAIL__FROM:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_EMAIL__FROM" >&2; exit 1; };
+                  echo secrets-ok
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+            # Authentik's own bootstrap (lifecycle/wait_for_db.py) gives Postgres
+            # 30 one-second attempts and exits 1, so a database that is restarting
+            # turns into CrashLoopBackOff whose back-off outlives the database's
+            # own outage. Measured 2026-10-29: after kubelet restarted every pod on
+            # dev-k3s-agent-0 at 16:10:42, authentik-db was unavailable until
+            # ~16:14 and authentik-server exited 1 five times (last 16:12:56).
+            # This waits — up to 15 min, then fails loud — for pg_isready to say
+            # the -rw Service accepts connections ("rejecting connections" during a
+            # shutdown is not ready). The image of the CNPG operand, from the mirror, for the
+            # pg_isready it carries, as its own non-root user. Runs whenever the pod
+            # (re)starts, which is what a node-wide restart does.
+            - name: wait-for-db
+              # image: set by `parameters` below (an estate value).
+              command: ["sh", "-c"]
+              args:
+                - >-
+                  i=0;
+                  until pg_isready -q -h authentik-db-rw -p 5432 -d authentik -t 2; do
+                  i=$((i+1)); [ "$i" -ge 450 ] && { echo "DATABASE NOT READY: authentik-db-rw:5432 after 15 min" >&2; exit 1; };
+                  sleep 2; done;
+                  echo database-ready
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 26
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+        worker:
+          # Same as server: the worker consumes the identical envFrom Secrets, so it
+          # must roll on rotation too (require-reloader-annotation). Key VERIFIED at
+          # authentik 2026.5.3 templates/worker/deployment.yaml:9.
+          deploymentAnnotations:
+            reloader.stakater.com/auto: "true"
+          metrics:
+            enabled: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          containerSecurityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          # Same as the server: the worker is the half that sends mail, and its
+          # bootstrap gives up on the database after the same 30 s.
+          initContainers: *authentikInit
+        # --- Bundled Postgres (Bitnami subchart) — RETIRED by I2 ---
+        #
+        # `enabled: false` rather than deleted, and the block below is kept with
+        # it, deliberately. Two reasons. The values it carries — the exact
+        # securityContext Kyverno enforces, the resource ceilings, the 4Gi claim
+        # — are the record of what this database WAS when the dump was taken, and
+        # a migration whose "before" is only in git history is a migration nobody
+        # can check afterwards. And a re-enable during a rollback must not also
+        # be a re-derivation of six policy-compliance fields under pressure.
+        #
+        # THE PVC IS NOT RECLAIMED BY THIS CHANGE. Helm does not delete a
+        # StatefulSet's volumeClaimTemplate PVCs when the StatefulSet goes, which
+        # is the one piece of luck in this migration: the old data survives a
+        # premature cutover and is still there to dump again. Reclaiming it is a
+        # deliberate, separate, human act AFTER the restore is verified — see the
+        # runbook in infrastructure/hetzner/AUTHENTIK-DB-MIGRATION.md.
+        postgresql:
+          enabled: false
+          auth:
+            username: authentik
+            database: authentik
+            existingSecret: authentik-db-creds
+            secretKeys:
+              adminPasswordKey: postgres-password
+              userPasswordKey: password
+          primary:
+            persistence:
+              enabled: true
+              storageClass: local-path
+              size: 4Gi
+            # Policy-compliant securityContext + explicit limits (Kyverno Enforce).
+            podSecurityContext:
+              enabled: true
+              fsGroup: 1001
+              runAsNonRoot: true
+              seccompProfile: { type: RuntimeDefault }
+            containerSecurityContext:
+              enabled: true
+              runAsNonRoot: true
+              runAsUser: 1001
+              allowPrivilegeEscalation: false
+              capabilities: { drop: ["ALL"] }
+              seccompProfile: { type: RuntimeDefault }
+            resources:
+              requests: { cpu: 100m, memory: 256Mi }
+              limits: { cpu: "1", memory: 512Mi }
+        # NB: Redis is NOT bundled by the authentik chart (only postgres) — it runs as
+        # the separate `authentik-redis` Argo app (gitops/apps/overlays/dev/
+        # authentik-redis.yaml), reached at authentik.redis.host above.
+      # Estate values: filled from the identity by kustomize (overlay
+      # whitelabel-replacements.yaml), never written in this file.
+      parameters:
+        - name: global.image.repository
+          value: WLREGISTRY/mirror/ghcr.io/goauthentik/server
+          forceString: true
+        - name: authentik.email.host
+          value: plunk-smtp.WLDOMAIN
+          forceString: true
+        - name: server.initContainers[0].image
+          value: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          forceString: true
+        - name: server.initContainers[1].image
+          value: WLREGISTRY/mirror/ghcr.io/cloudnative-pg/postgresql:17.5@sha256:e6dd48683234f2b957ca2a18da4fd99e2a39a0534ac33fd2ee77e1ff7732270b
+          forceString: true
+        # The worker's initContainers are the server's (*authentikInit), so their
+        # images are set at both paths.
+        - name: worker.initContainers[0].image
+          value: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          forceString: true
+        - name: worker.initContainers[1].image
+          value: WLREGISTRY/mirror/ghcr.io/cloudnative-pg/postgresql:17.5@sha256:e6dd48683234f2b957ca2a18da4fd99e2a39a0534ac33fd2ee77e1ff7732270b
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

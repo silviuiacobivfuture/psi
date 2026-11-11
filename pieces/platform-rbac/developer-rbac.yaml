@@ -1,0 +1,173 @@
+# The DEVELOPER role in Kubernetes (ROLES.md §2b, 2026-10-22).
+#
+# A developer sees the whole cluster read-only (the built-in `view` role: no
+# Secrets anywhere) and OPERATES the application namespaces listed below: logs,
+# exec, port-forward, restart, scale, delete a stuck pod, run a Job by hand.
+#
+# They get nothing extra in the platform namespaces (openbao, authentik,
+# argocd, kube-system, external-secrets, tailscale, harbor,
+# kyverno, …). An exec or a workload edit there would reach OpenBao's or
+# Authentik's own data and undo the reason this role exists, which is that full
+# admin is the operator alone.
+#
+# WHY an allowlist of RoleBindings, not a cluster-wide grant with exceptions:
+# Kubernetes RBAC cannot deny, so a cluster-wide grant can only be fenced by an
+# admission policy, and this cluster's Kyverno policies fail OPEN
+# (failurePolicy: Ignore). An allowlist fails CLOSED: a namespace nobody listed
+# is simply not operable by developers.
+#
+# The namespaces listed below are the PLATFORM's own application namespaces. An
+# estate's application namespaces are its own: its component
+# (components/estate/platform-rbac) adds a RoleBinding `developer` for each. A
+# namespace nobody listed is view-only for developers (preview namespaces too).
+#
+# Two kinds of subject, because two kinds of login reach the apiserver:
+#   Group app-k8s-developer      — Authentik OIDC (Headlamp, kubelogin)
+#   User  <login>@github         — the Tailscale API proxy, which impersonates a
+#                                  bare user with NO groups
+#                                  (tailnet-clusterrolebindings.yaml). Those users
+#                                  are the estate's people: its component appends
+#                                  them to every developer binding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer
+  labels:
+    platform/managed-by: gitops
+rules:
+  # Restart = patch the pod template annotation; scale = the scale subresource.
+  # No `create` on workloads: deploying is Argo's job, from git.
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale", "statefulsets/scale"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+  # `get` as well as `create`: kubectl's websocket exec and port-forward ask for it.
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/attach", "pods/portforward"]
+    verbs: ["get", "create"]
+  # Run a CronJob by hand (`kubectl create job --from=cronjob/…`) and clean up.
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developer-view
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: autorizare
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: changelog
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: nx-cache
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: openfga
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: reference
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: test-reports
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-developer

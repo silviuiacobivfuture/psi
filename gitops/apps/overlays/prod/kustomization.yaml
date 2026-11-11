@@ -1,0 +1,25 @@
+# PROD profile = base + prod-only platform (Hetzner CCM → public node IPs +
+# LoadBalancers). Add future prod-only components here.
+#
+# Two lists, read together by the `root` Application (gitops/bootstrap/root-prod.yaml):
+# this file is the PLATFORM list (SEB); rmx/ is the RMX list, composed below.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # The RMX list (business applications). Its own kustomization; see rmx/.
+  - ../../base
+  - hetzner-ccm.yaml
+  - previews.yaml
+
+# Stamp the env branch onto every git-sourced Application (label source=git), so
+# the prod cluster always reconciles OUR manifests from the `prod` branch. Helm
+# apps (targetRevision = chart version) are deliberately untouched. Keeps the
+# branch pointer in ONE place per overlay → promotion merges never conflict on it.
+patches:
+  - target:
+      kind: Application
+      labelSelector: platform.recomex.eu/source=git
+    patch: |
+      - op: add
+        path: /spec/source/targetRevision
+        value: prod

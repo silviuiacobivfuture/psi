@@ -1,0 +1,197 @@
+# SEB piece `plane` (Argo Application `plane`): the plane-ce chart, rendered by kustomize
+# (`kubectl kustomize --enable-helm`; the bundle builder renders it at build time, so the
+# bundle carries the chart's output, never the chart). Plane's own objects (database, queue,
+# secrets, Ingress) are the piece `plane-platform`.
+#
+# WHY: the chart names its migrator Job `<release>-api-migrate-<.Release.Revision>`
+# (templates/workloads/migrator.job.yaml). Argo renders Helm without releases, so
+# the revision is always 1 and the name never changes. A Job's template is
+# immutable, so the first image change left the live Job unpatchable and the
+# `plane` app OutOfSync for ever: standing noise that hides real drift. Worse,
+# the new image's migrations never ran, and the api sat in `wait_for_migrations`.
+# The chart has no key for the Job's name, and its annotations come from
+# `api.annotations`, which also land on the api Deployment, so values cannot fix
+# it.
+#
+# THE FIX: the Job becomes an Argo PreSync hook with BeforeHookCreation.
+#   * Argo never diffs a hook, so `plane` reads Synced again — no ignoreDifferences.
+#   * Every sync deletes the previous Job and runs `migrate` on the CURRENT image
+#     BEFORE the Deployments roll, so an image bump migrates first, and a failed
+#     migration stops the sync before any pod runs new code on an old schema.
+#     `migrate` is idempotent, so a sync that changes something else costs one
+#     no-op Job.
+#   * The last Job stays (BeforeHookCreation) for its logs.
+# Kyverno's mutate-plane-migrator-resources still backfills its resources (it
+# matches plane-api-migrate-*).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: plane
+helmCharts:
+  - name: plane-ce
+    repo: https://helm.plane.so
+    version: 1.8.5 # appVersion 1.4.2 — pinned; disallow-latest-tag is ENFORCE
+    releaseName: plane
+    namespace: plane
+    valuesFile: values.yaml
+patches:
+  - target:
+      group: batch
+      version: v1
+      kind: Job
+      name: plane-api-migrate-1
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook
+        value: PreSync
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook-delete-policy
+        value: BeforeHookCreation
+      # Reloader must never touch the migrator. The chart copies api.annotations
+      # onto this Job, reloader.stakater.com/auto included, so a change to
+      # plane-app-vars made Reloader DELETE AND RE-CREATE the Job alongside the
+      # pods it was restarting: an unordered migrate next to new code (seen on
+      # dev 2026-10-28, the v1.4.2 chart bump, 16:33:53Z). Only the PreSync hook
+      # runs migrate, before anything rolls. Reloader runs with
+      # --reload-strategy=annotations and no --auto-reload-all, so removing the
+      # annotation is enough. The api/worker/beat-worker keep theirs.
+      - op: remove
+        path: /metadata/annotations/reloader.stakater.com~1auto
+  # ---- The web half of the SSO (apps/plane-sso README, "The web half") -------
+  # plane-web runs upstream's image with OUR nginx.conf: HTML is never cached,
+  # every page carries the SSO guard, /sw.js retires any old service worker. The
+  # files live here, not in apps/plane-sso, because kustomize (as Argo runs it)
+  # only reads files under this directory. The ConfigMap's name carries a content
+  # hash, so any change to these files rolls plane-web.
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: plane-web-wl
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: plane-web-wl
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: plane-sso-web
+                configMap:
+                  name: plane-sso-web
+            containers:
+              - name: plane-web
+                volumeMounts:
+                  - name: plane-sso-web
+                    mountPath: /etc/nginx/nginx.conf
+                    subPath: nginx.conf
+                    readOnly: true
+                  - name: plane-sso-web
+                    mountPath: /etc/nginx/plane-sso
+                    readOnly: true
+  # ---- A reproducible render ----------------------------------------------------
+  # The chart stamps every pod template with `timestamp: {{ now }}` (to roll pods on
+  # each `helm upgrade`), its only pod-template annotation. Rendered into the bundle,
+  # that line would differ on every build, so no release could be compared byte for
+  # byte with the one an estate locked; the annotations map is removed here. Nothing
+  # running changes: the `plane` Application ignores .spec.template.metadata.annotations
+  # (ignoreDifferences + RespectIgnoreDifferences), so Argo neither diffs nor applies
+  # that field, and the live stamp stays as it is. The PreSync migrator Job is
+  # re-created at each sync, from this template.
+  - target: { group: apps, version: v1, kind: Deployment }
+    patch: |-
+      - op: remove
+        path: /spec/template/metadata/annotations
+  - target: { group: batch, version: v1, kind: Job, name: plane-api-migrate-1 }
+    patch: |-
+      - op: remove
+        path: /spec/template/metadata/annotations
+configMapGenerator:
+  - name: plane-url # local-config, never rendered: see "Whitelabel" below
+    literals: [HTTPS=https://plane.WLDOMAIN]
+    options:
+      disableNameSuffixHash: true
+      annotations: { config.kubernetes.io/local-config: "true" }
+  - name: plane-sso-web
+    files:
+      - plane-sso-web/nginx.conf
+      - plane-sso-web/headers.conf
+      - plane-sso-web/guard.js
+      - plane-sso-web/sw.js
+# ---- Whitelabel ---------------------------------------------------------------
+# values.yaml names the registry by the tokens WLREGISTRY (REGISTRY_HOST) and
+# WLAPPS (REGISTRY_PROJECT_APPS); the replacements below write the identity's
+# values into every workload the chart renders from them.
+# values.yaml writes the host `plane.WLDOMAIN` and the owner `ops@WLDOMAIN`; the
+# values come from the estate identity through the `whitelabel` component
+# (SEB's components/whitelabel, generated by the bundle builder from the estate identity);
+# the alert annotation's key comes from ../../components/alert-owner.
+# `plane-url` is a local-config ConfigMap (never rendered): it resolves the https
+# origin once, so the two-origin CORS list can take it whole by comma position.
+components:
+  - ../../components/whitelabel
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: plane-app-vars }
+        fieldPaths: [data.WEB_URL]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: plane-url }
+        fieldPaths: [data.HTTPS]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: plane-app-vars, fieldPath: data.WEB_URL }
+    targets:
+      - select: { kind: ConfigMap, name: plane-app-vars }
+        fieldPaths: [data.CORS_ALLOWED_ORIGINS]
+        options: { delimiter: ",", index: 0 }
+  - source: { kind: ConfigMap, name: plane-url, fieldPath: data.HTTPS }
+    targets:
+      - select: { kind: ConfigMap, name: plane-app-vars }
+        fieldPaths: [data.CORS_ALLOWED_ORIGINS]
+        options: { delimiter: ",", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST }
+    targets:
+      - select: { kind: Deployment, name: plane-api-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-api].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-worker-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-worker].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-beat-worker-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-beat-worker].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Job, name: plane-api-migrate-1 }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-api-migrate].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-live-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-live].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-web-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-web].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-space-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-space].image"]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: plane-admin-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-admin].image"]
+        options: { delimiter: "/", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_PROJECT_APPS }
+    targets:
+      - select: { kind: Deployment, name: plane-api-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-api].image"]
+        options: { delimiter: "/", index: 1 }
+      - select: { kind: Deployment, name: plane-worker-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-worker].image"]
+        options: { delimiter: "/", index: 1 }
+      - select: { kind: Deployment, name: plane-beat-worker-wl }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-beat-worker].image"]
+        options: { delimiter: "/", index: 1 }
+      - select: { kind: Job, name: plane-api-migrate-1 }
+        fieldPaths: ["spec.template.spec.containers.[name=plane-api-migrate].image"]
+        options: { delimiter: "/", index: 1 }
+transformers:
+  - ../../components/alert-owner

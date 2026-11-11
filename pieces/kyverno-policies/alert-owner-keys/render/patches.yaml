@@ -1,0 +1,27 @@
+# The two policies that hold the alert-owner annotation as a MAP KEY inside their spec (a
+# pattern and a strategic-merge patch): each key is written `alerts/owner` in the policy and
+# moved here to alerts.<ESTATE_LABEL_DOMAIN>/owner. Each patch's `path:` ends in the word POINTER,
+# replaced (kustomization.yaml) by components/alert-owner/key's POINTER.
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: require-alert-annotation-owner-key
+target:
+  kind: ClusterPolicy
+  name: require-alert-annotation
+patch: |-
+  - op: move
+    from: /spec/rules/0/validate/pattern/metadata/annotations/alerts~1owner
+    path: /spec/rules/0/validate/pattern/metadata/annotations/POINTER
+---
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: mutate-reportportal-annotations-owner-key
+target:
+  kind: ClusterPolicy
+  name: mutate-reportportal-annotations
+patch: |-
+  - op: move
+    from: /spec/rules/0/mutate/patchStrategicMerge/metadata/annotations/alerts~1owner
+    path: /spec/rules/0/mutate/patchStrategicMerge/metadata/annotations/POINTER

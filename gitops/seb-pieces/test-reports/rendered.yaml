@@ -1,0 +1,1815 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: test-reports
+  namespace: test-reports
+spec:
+  hard:
+    limits.cpu: "2"
+    limits.memory: 1Gi
+    pods: "6"
+    requests.cpu: 300m
+    requests.memory: 384Mi
+---
+apiVersion: v1
+data:
+  analysis.py: |
+    """Derive the things a stakeholder actually asks, from stored run history.
+
+    Three questions, three functions:
+
+      1. "Since when has this been broken?"  -> failing_since()
+         A red mark with no age is useless. "Failing since 3 runs ago" is the whole
+         difference between "someone just broke it" and "we have been shipping around
+         this for a week".
+
+      2. "Did anything get worse?"          -> area_movement()
+         Comparing the latest run to the one before it is the only movement signal a
+         non-technical reader needs: this area regressed, that one recovered.
+
+      3. "Is it getting better over time?"  -> trend()
+         Rules-holding per run, most recent last, ready to draw as bars.
+
+    All three are PURE: they take already-loaded envelopes and return plain data. No
+    filesystem, no HTTP, no rendering — so they are trivially testable offline, which
+    is how the page was verified before it ever ran on the cluster.
+    """
+
+    # A rule is identified by (area, title). The title IS the business rule as
+    # written by whoever wrote the test, so a renamed rule reads as a new rule — which
+    # is correct: the sentence being asserted changed. The tab separator keeps the two
+    # fields from running together: a plain concatenation would make ("ab", "c") and
+    # ("a", "bc") the same key, i.e. one rule's history silently attributed to another.
+
+
+    def rule_key(area, title):
+        return "%s\t%s" % (area, title)
+
+
+    def _rules_by_key(envelope):
+        """{rule_key: status} for one run."""
+        out = {}
+        for area in envelope.get("areas") or []:
+            name = area.get("area") or ""
+            for rule in area.get("rules") or []:
+                out[rule_key(name, rule.get("title") or "")] = rule.get("status")
+        return out
+
+
+    def _area_failures(envelope):
+        """{area name: failed count} for one run."""
+        return {
+            (a.get("area") or ""): int(a.get("failed") or 0)
+            for a in envelope.get("areas") or []
+        }
+
+
+    def failing_since(history):
+        """For every rule failing in the newest run, how long it has been failing.
+
+        `history` is newest-first. Returns {rule_key: {"runs": int, "since": str|None,
+        "beyond": bool}} where:
+          * runs   — consecutive runs (including the newest) in which it has failed
+          * since  — the timestamp of the OLDEST of those runs, or None if unknown
+          * beyond — True when the streak reaches the end of the scanned window, i.e.
+                     it has been failing for AT LEAST `runs` runs and probably longer.
+                     Rendering that honestly ("de cel puțin N rulări") matters: the
+                     alternative is a confident number that quietly caps at the scan
+                     limit and understates a long-standing regression.
+        """
+        if not history:
+            return {}
+        latest = history[0]
+        statuses = [_rules_by_key(run) for run in history]
+        out = {}
+        for key, status in statuses[0].items():
+            if status != "failed":
+                continue
+            runs = 1
+            since = latest.get("receivedAt") or latest.get("timestamp")
+            beyond = True
+            for index in range(1, len(statuses)):
+                previous = statuses[index].get(key)
+                if previous == "failed":
+                    runs += 1
+                    since = history[index].get("receivedAt") or history[index].get("timestamp")
+                    continue
+                if previous is None:
+                    # The rule did not exist in that run (a new test, or a suite that
+                    # never ran). The streak ends here and the age IS known.
+                    beyond = False
+                    break
+                beyond = False  # it was passing (or skipped) then — a real boundary
+                break
+            else:
+                # Ran off the end of the scanned window without finding a boundary.
+                beyond = True
+            out[key] = {"runs": runs, "since": since, "beyond": beyond}
+        return out
+
+
+    def area_movement(history):
+        """Per-area change between the newest run and the one before it.
+
+        Returns {area: {"delta": int, "direction": "worse"|"better"|"same"|"new"}},
+        where delta is the change in FAILING rules (positive = more failures).
+        """
+        if not history:
+            return {}
+        current = _area_failures(history[0])
+        if len(history) < 2:
+            return {area: {"delta": 0, "direction": "new"} for area in current}
+        previous = _area_failures(history[1])
+        out = {}
+        for area, failed in current.items():
+            if area not in previous:
+                out[area] = {"delta": 0, "direction": "new"}
+                continue
+            delta = failed - previous[area]
+            if delta > 0:
+                direction = "worse"
+            elif delta < 0:
+                direction = "better"
+            else:
+                direction = "same"
+            out[area] = {"delta": delta, "direction": direction}
+        return out
+
+
+    def trend(history, limit=20):
+        """Rules-holding per run, OLDEST FIRST so it reads left-to-right as time.
+
+        Each point: {"id", "passed", "failed", "total", "at", "commit"}.
+        """
+        points = []
+        for run in list(history[:limit])[::-1]:
+            totals = run.get("totals") or {}
+            passed = int(totals.get("passed") or 0)
+            failed = int(totals.get("failed") or 0)
+            points.append(
+                {
+                    "id": run.get("id") or "",
+                    "passed": passed,
+                    "failed": failed,
+                    "total": passed + failed,
+                    "at": run.get("receivedAt") or run.get("timestamp") or "",
+                    "commit": (run.get("commit") or "")[:8],
+                }
+            )
+        return points
+
+
+    def totals_of(envelope):
+        """(passed, failed, skipped) for one run, defaulting safely."""
+        totals = envelope.get("totals") or {}
+        return (
+            int(totals.get("passed") or 0),
+            int(totals.get("failed") or 0),
+            int(totals.get("skipped") or 0),
+        )
+  app.py: |
+    """test-reports — receive a CI run's business-rule outcome, keep it, serve it.
+
+    WHY IT EXISTS
+        Until now a run's result lived in a GitHub job summary and a 30-day artifact
+        zip. No history, no trend, nothing to link a chat message at, and nothing a
+        non-technical stakeholder could open. This is phase 2 of
+        infrastructure/hetzner/TEST-VISIBILITY-PLAN.md — deliberately NOT ReportPortal
+        (that is phase 3), just the cheap half that delivers the business-facing value.
+
+    WHY PYTHON STDLIB
+        http.server + json are in the base image, so there is no pip install, no
+        requirements file, no supply chain and no build step — same reasoning as
+        gitops/services/nextcloud/base/talk-webhook.yaml. It handles a handful of
+        requests a day.
+
+    THE AUTH SPLIT — READ THIS BEFORE ADDING A ROUTE
+        The UI (`/`, `/run/...`) sits behind the Authentik forward-auth middleware.
+        `/ingest/...` and `/healthz` sit on a SEPARATE, UNGATED Ingress and are
+        protected by a bearer token instead. That is not a shortcut: a forward-auth
+        gate answers an unauthenticated request with a 302 to another origin, which a
+        machine caller cannot follow — the exact failure that broke Plane outright on
+        2026-08-19 (gitops/services/plane/base/ingress.yaml). A new MACHINE route must
+        go on the ungated Ingress with token auth; a new BROWSER route goes on the
+        gated one.
+
+        Nothing here re-checks SSO: the gated Ingress is the only thing standing in
+        front of the UI, so the routes are all reachable in-cluster by design. What
+        the token protects is WRITES.
+    """
+
+    import hmac
+    import json
+    import os
+    import sys
+    from datetime import datetime, timezone
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    import digest
+    import render
+    import store
+
+    # Bearer for POST /ingest. Read at startup: a rotation arrives as a new env value,
+    # which is why the Deployment carries the Reloader annotation (rotating the secret
+    # without restarting the pod would leave it validating the OLD token forever).
+    INGEST_TOKEN = os.environ["INGEST_TOKEN"]
+
+    # A report for ~400 rules is ~60 KB. 4 MiB is two orders of magnitude of headroom
+    # and still bounds what one request can make this process allocate.
+    MAX_BODY = int(os.environ.get("MAX_BODY_BYTES", str(4 * 1024 * 1024)))
+
+    # How many runs the index page scans. Bounds page-render cost and is the window
+    # within which "failing since N runs" can be stated exactly (analysis.py reports
+    # "de cel puțin N" when a streak reaches the edge of it, rather than lying).
+    HISTORY_LIMIT = int(os.environ.get("HISTORY_LIMIT", "40"))
+
+    # Listen port. 8080 in the cluster; overridable so the offline test can bind a
+    # free port and run the REAL server rather than a stand-in.
+    PORT = int(os.environ.get("PORT", "8080"))
+
+    # Public origin of this page, used ONLY to build the link inside the weekly digest.
+    # Not derived from the request Host: the digest is fetched over the in-cluster
+    # Service name, so Host would read `test-reports.test-reports.svc` and the chat
+    # message would carry a URL nobody outside the cluster can open.
+    PUBLIC_URL = os.environ["PUBLIC_URL"].rstrip("/")  # set by the piece: https://tests. + the estate apex
+
+    # Names the environment in the digest text. branch == environment, 1:1.
+    ENV_NAME = os.environ.get("ENV_NAME", "dev")
+
+    # How many runs per app the weekly digest scans. Larger than HISTORY_LIMIT because
+    # it compares against a run from a week ago and one busy app alone can do ~20 a day.
+    DIGEST_LIMIT = int(os.environ.get("DIGEST_LIMIT", "400"))
+
+    SCHEMA = "test-report/v1"
+
+
+    def validate(payload):
+        """Return an error string if this is not a report envelope we can store.
+
+        Boundary validation, in the sense root CLAUDE.md means it: everything arriving
+        over HTTP is untrusted until it is checked. Rejecting loudly here is what stops
+        a malformed sender quietly filling the volume with files the page then skips.
+        """
+        if not isinstance(payload, dict):
+            return "body must be a JSON object"
+        if payload.get("schema") != SCHEMA:
+            return "unsupported schema (expected %s)" % SCHEMA
+        if not isinstance(payload.get("totals"), dict):
+            return "missing totals object"
+        areas = payload.get("areas")
+        if not isinstance(areas, list):
+            return "missing areas array"
+        for area in areas:
+            if not isinstance(area, dict) or not isinstance(area.get("area"), str):
+                return "each area needs an `area` name"
+            if not isinstance(area.get("rules"), list):
+                return "each area needs a `rules` array"
+        return None
+
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "test-reports/1.0"
+
+        # -- plumbing -----------------------------------------------------------
+        def _send(self, code, body, content_type):
+            payload = body.encode("utf-8")
+            self.send_response(code)
+            # charset matters: every string on this page is Romanian.
+            self.send_header("Content-Type", "%s; charset=utf-8" % content_type)
+            self.send_header("Content-Length", str(len(payload)))
+            # The page is entirely self-contained (inline CSS, no scripts, no remote
+            # assets), so it can afford the strictest policy there is.
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; "
+                "form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
+            )
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(payload)
+
+        def _text(self, code, message):
+            self._send(code, message + "\n", "text/plain")
+
+        def _html(self, code, markup):
+            self._send(code, markup, "text/html")
+
+        def _json(self, code, obj):
+            self._send(code, json.dumps(obj, ensure_ascii=False) + "\n", "application/json")
+
+        def log_message(self, fmt, *args):
+            # Method + path only. Never the query string — the same discipline
+            # talk-webhook applies, so a token can never reach the container log.
+            sys.stderr.write("%s %s\n" % (self.command, self.path.split("?")[0]))
+
+        # -- reads --------------------------------------------------------------
+        def do_HEAD(self):
+            self.do_GET()
+
+        def do_GET(self):
+            path = self.path.split("?")[0].rstrip("/") or "/"
+            if path == "/healthz":
+                self._json(200, self.health())
+                return
+            if path == "/digest":
+                # The weekly #tests summary, pre-rendered as the exact JSON body the
+                # talk-webhook translator accepts — so the CronJob that posts it
+                # (../weekly-digest.yaml) is a `curl | curl` and holds no logic at all.
+                #
+                # THIS ROUTE IS NOT ON THE UNGATED INGRESS, on purpose. Its only caller
+                # is in-cluster and dials the Service directly, so it needs no public
+                # exposure; the gated Ingress's `/` catch-all covers it for a browser,
+                # which means it inherits the Authentik gate rather than adding a new
+                # anonymous surface. Do NOT add /digest to the ingest Ingress.
+                #
+                # The body also carries a `summaries` array the translator ignores (it
+                # reads message/detail/severity and nothing else) — kept because it is
+                # what the offline harness and a human debugging the digest assert on.
+                sections = [(app, store.history(app, DIGEST_LIMIT)) for app in store.apps()]
+                self._json(
+                    200,
+                    digest.weekly(
+                        sections,
+                        now=datetime.now(timezone.utc),
+                        base_url=PUBLIC_URL,
+                        env_name=ENV_NAME,
+                    ),
+                )
+                return
+            if path == "/":
+                sections = [(app, store.history(app, HISTORY_LIMIT)) for app in store.apps()]
+                self._html(200, render.render_index(sections))
+                return
+            if path.startswith("/run/"):
+                parts = path[len("/run/") :].split("/")
+                if len(parts) != 2:
+                    self._text(404, "not found")
+                    return
+                app, stem = parts
+                run = store.load(app, stem)
+                if run is None:
+                    self._text(404, "verificarea nu există")
+                    return
+                self._html(200, render.render_run(run))
+                return
+            self._text(404, "not found")
+
+        def health(self):
+            """Liveness AND freshness in one answer.
+
+            ALWAYS 200, even when a report is stale: this endpoint is the kubelet's
+            liveness probe, and returning 503 for staleness would restart a perfectly
+            healthy pod because CI happened to be quiet. The AGE is reported and
+            `doctor.sh` is what judges it — a silently-dead ingest is exactly the
+            failure this whole service exists to prevent, so the number has to be
+            readable from outside.
+            """
+            now = datetime.now(timezone.utc)
+            apps = {}
+            for app in store.apps():
+                apps[app] = {
+                    "runs": len(store.stems(app)),
+                    "newestAgeSeconds": store.newest_age_seconds(app, now=now),
+                }
+            return {
+                "status": "ok",
+                "retentionDays": store.RETENTION_DAYS,
+                "apps": apps,
+                "now": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+
+        # -- writes -------------------------------------------------------------
+        def do_POST(self):
+            path = self.path.split("?")[0].rstrip("/")
+            if not path.startswith("/ingest/"):
+                self._text(404, "not found")
+                return
+
+            # Header-only bearer, deliberately: unlike talk-webhook there is no sender
+            # here that cannot set a header (the only caller is a CI step), so the
+            # ?token= form is not offered and cannot end up in a proxy access log.
+            supplied = self.headers.get("X-Report-Token", "")
+            if not hmac.compare_digest(supplied, INGEST_TOKEN):
+                self._text(401, "unauthorized")
+                return
+
+            app = path[len("/ingest/") :]
+            if not store.valid_app(app):
+                self._text(400, "invalid app name")
+                return
+
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                self._text(400, "bad Content-Length")
+                return
+            if length <= 0:
+                self._text(400, "empty body")
+                return
+            if length > MAX_BODY:
+                self._text(413, "body too large (max %d bytes)" % MAX_BODY)
+                return
+
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            except (ValueError, UnicodeDecodeError) as exc:
+                # "Reject anything that does not parse" — a stored file that cannot be
+                # read is worse than a rejected request, because it is discovered later.
+                self._text(400, "body is not valid JSON: %s" % exc)
+                return
+
+            problem = validate(payload)
+            if problem:
+                self._text(400, problem)
+                return
+
+            try:
+                run_id = store.save(app, payload)
+            except (OSError, ValueError) as exc:
+                sys.stderr.write("store failed for %s: %s\n" % (app, exc))
+                self._text(500, "could not store the report")
+                return
+
+            # Prune here because there is no scheduler in a one-replica stdlib service
+            # and ingest is the only guaranteed tick. It only ever deletes files whose
+            # own name timestamp is outside the window.
+            pruned = store.prune(app)
+            self._text(201, "stored %s (pruned %d)" % (run_id, pruned))
+
+
+    def main():
+        os.makedirs(store.DATA_DIR, exist_ok=True)
+        ThreadingHTTPServer(("", PORT), Handler).serve_forever()
+
+
+    if __name__ == "__main__":
+        main()
+  digest.py: |
+    """The weekly #tests digest, computed here rather than in the CronJob's shell.
+
+    WHY THE LOGIC LIVES IN PYTHON AND NOT IN THE JOB
+        The CronJob that posts this (../../base/weekly-digest.yaml) is a `curl | curl`
+        pipe on purpose. Everything it would otherwise have to do — scan a year of
+        stored runs, compare against the same week last week, agree the Romanian noun
+        with the count — is work this service already has the data and the helpers for,
+        and shell is the worst possible place to do it. Keeping it here also means the
+        offline harness (../../selftest/run.sh) exercises the REAL digest text against
+        REAL stored runs, with no cluster and no Talk.
+
+        It rides the same deploy path as everything else in base/app/: kustomize
+        rehashes the ConfigMap name on any edit, which rolls the pod. There is no
+        separate image and nothing to bump.
+
+    THE NOTIFICATION PRINCIPLE (infrastructure/hetzner/TEST-VISIBILITY-PLAN.md §1)
+        A notification carries a SUMMARY AND A LINK. It never carries the payload. So
+        this returns counts, movement and a URL — never a rule title, never a failure
+        message, never a stack trace. "Which rules" is what the page answers, and the
+        page is one click away. A digest that pasted three failing rule names into chat
+        would be unreadable within a month and would leak test detail into a room that
+        is not gated the way the page is.
+
+    PURE
+        weekly() takes already-loaded envelopes and returns plain data. No filesystem,
+        no HTTP, no clock of its own (the caller passes `now`), so it is trivially
+        asserted offline.
+    """
+
+    from datetime import datetime, timedelta, timezone
+
+    # Matches the stem `store.py` writes: <YYYYmmddTHHMMSSZ>-<short-sha>.
+    _STEM_FORMAT = "%Y%m%dT%H%M%SZ"
+    # Matches `receivedAt`, the service's own receipt stamp.
+    _ISO_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+    def _plural(count, one, few, many):
+        """Romanian noun agreement, which has THREE forms, not two.
+
+            1        -> "o regulă"        (singular)
+            2..19    -> "5 reguli"        (plural, bare)
+            20+      -> "2773 de reguli"  (plural, with the particle "de")
+
+        and the form is decided by the LAST TWO DIGITS, so 118 takes the bare plural
+        ("118 reguli") while 120 takes "de" ("120 de reguli").
+
+        Not cosmetic. This text is read by the business side, and "1 reguli" or
+        "2773 reguli" both read as machine output — which is exactly the impression
+        this whole surface exists to avoid.
+        """
+        if count == 1:
+            return one
+        # ZERO is special-cased rather than folded into the modulo: `0 % 100 == 0`
+        # would take the "de" branch and produce "0 de reguli", while 100 — which has
+        # the SAME remainder — genuinely needs it ("100 de reguli"). One `== 0` test
+        # keeps both right.
+        if count == 0:
+            return few
+        return few if 1 <= count % 100 <= 19 else many
+
+
+    def run_time(envelope):
+        """When this run was recorded, as a UTC datetime, or None.
+
+        The STEM is preferred over any field the sender supplied: this service wrote
+        the filename itself, so a CI runner with a wrong clock cannot backdate or
+        fast-forward its way into (or out of) the weekly window.
+        """
+        stem = envelope.get("stem") or ""
+        head = stem.split("-", 1)[0]
+        for value, fmt in ((head, _STEM_FORMAT), (envelope.get("receivedAt"), _ISO_FORMAT)):
+            if not value:
+                continue
+            try:
+                return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                continue
+        return None
+
+
+    def _failing(envelope):
+        totals = envelope.get("totals") or {}
+        return int(totals.get("failed") or 0)
+
+
+    def _checked(envelope):
+        totals = envelope.get("totals") or {}
+        return int(totals.get("passed") or 0) + int(totals.get("failed") or 0)
+
+
+    def app_summary(app, runs, now, window_days=7):
+        """One application's week. `runs` is newest-first, as store.history returns."""
+        if not runs:
+            return {
+                "app": app,
+                "runs": 0,
+                "stale": True,
+                "ageDays": None,
+                "checked": 0,
+                "failing": 0,
+                "areasBroken": 0,
+                "delta": 0,
+            }
+
+        cutoff = now - timedelta(days=window_days)
+        latest = runs[0]
+        latest_at = run_time(latest)
+        in_window = [r for r in runs if (run_time(r) or datetime.min.replace(tzinfo=timezone.utc)) >= cutoff]
+
+        # The comparison point is the OLDEST run still inside the window — i.e. "how did
+        # this look a week ago". When the window holds a single run there is nothing to
+        # compare against and the delta is 0 rather than an invented movement.
+        reference = in_window[-1] if len(in_window) > 1 else None
+
+        return {
+            "app": app,
+            "runs": len(in_window),
+            # STALE means nothing was recorded this week. It is a WARNING, never a
+            # failure: these workflows are path-filtered, so a genuinely quiet week is
+            # normal. doctor.sh is what escalates a month of silence to a failure.
+            "stale": not in_window,
+            "ageDays": None if latest_at is None else max(0, (now - latest_at).days),
+            "checked": _checked(latest),
+            "failing": _failing(latest),
+            "areasBroken": sum(1 for a in latest.get("areas") or [] if int(a.get("failed") or 0)),
+            "delta": _failing(latest) - _failing(reference) if reference else 0,
+        }
+
+
+    def _app_line(summary):
+        app = summary["app"]
+        if summary["runs"] == 0:
+            if summary["ageDays"] is None:
+                return "%s — nicio verificare înregistrată" % app
+            return "%s — nicio verificare în ultimele 7 zile (ultima acum %d %s)" % (
+                app,
+                summary["ageDays"],
+                _plural(summary["ageDays"], "zi", "zile", "de zile"),
+            )
+
+        checks = "%d %s" % (
+            summary["runs"],
+            _plural(summary["runs"], "verificare", "verificări", "de verificări"),
+        )
+        if summary["failing"] == 0:
+            return "%s — toate cele %d %s se respectă (%s)" % (
+                app,
+                summary["checked"],
+                _plural(summary["checked"], "regulă", "reguli", "de reguli"),
+                checks,
+            )
+
+        movement = ""
+        if summary["delta"] > 0:
+            movement = ", cu %d în plus față de acum o săptămână" % summary["delta"]
+        elif summary["delta"] < 0:
+            movement = ", cu %d mai puține decât acum o săptămână" % -summary["delta"]
+        return "%s — %d din %d %s nu se respectă%s, în %d %s (%s)" % (
+            app,
+            summary["failing"],
+            summary["checked"],
+            _plural(summary["checked"], "regulă", "reguli", "de reguli"),
+            movement,
+            summary["areasBroken"],
+            _plural(summary["areasBroken"], "zonă de business", "zone de business", "de zone de business"),
+            checks,
+        )
+
+
+    def weekly(sections, now, base_url, env_name="dev", window_days=7):
+        """The whole digest: `{severity, message, detail, summaries}`.
+
+        `sections` is [(app, runs-newest-first)] — the same shape render_index takes,
+        so the digest and the page can never disagree about what was stored.
+
+        `severity` follows the talk-webhook vocabulary used by health-digest:
+          fail — at least one business rule is not holding right now
+          warn — everything that ran is green, but some app went a week without running
+          ok   — green and fresh. POSTED ANYWAY, deliberately: a digest that only
+                 speaks when something is broken is indistinguishable from a digest
+                 that has stopped working, and a quiet Monday would then be silently
+                 ambiguous. The green heartbeat IS the liveness proof, exactly as
+                 gitops/platform/health-digest reasons for #infra.
+        """
+        summaries = [app_summary(app, runs, now, window_days) for app, runs in sections]
+
+        if not summaries:
+            return {
+                "severity": "warn",
+                "message": "sumar săptămânal (%s): serviciul nu are nicio verificare stocată" % env_name,
+                "detail": "Pagina: %s" % base_url,
+                "summaries": [],
+            }
+
+        failing = sum(s["failing"] for s in summaries)
+        checked = sum(s["checked"] for s in summaries)
+        runs = sum(s["runs"] for s in summaries)
+        stale = [s["app"] for s in summaries if s["stale"]]
+
+        if failing:
+            severity = "fail"
+            headline = "%d din %d %s de business nu se respectă" % (
+                failing,
+                checked,
+                _plural(checked, "regulă", "reguli", "de reguli"),
+            )
+        elif stale:
+            severity = "warn"
+            headline = "toate cele %d %s verificate se respectă; %s fără verificări" % (
+                checked,
+                _plural(checked, "regulă", "reguli", "de reguli"),
+                ", ".join(stale),
+            )
+        else:
+            severity = "ok"
+            headline = "toate cele %d %s de business se respectă" % (
+                checked,
+                _plural(checked, "regulă", "reguli", "de reguli"),
+            )
+
+        message = "sumar săptămânal (%s): %s — %d %s în %d %s" % (
+            env_name,
+            headline,
+            runs,
+            _plural(runs, "verificare", "verificări", "de verificări"),
+            len(summaries),
+            _plural(len(summaries), "aplicație", "aplicații", "de aplicații"),
+        )
+
+        # SUMMARY PLUS LINK. Per-app counts and the URL — never a rule, never a trace.
+        detail = "\n".join([_app_line(s) for s in summaries] + ["", "Detalii: %s" % base_url])
+
+        return {"severity": severity, "message": message, "detail": detail, "summaries": summaries}
+  render.py: |
+    """The page. Server-rendered HTML, Romanian, for someone who has never seen a
+    test report.
+
+    DESIGN CONSTRAINTS, all deliberate:
+      * NO framework, NO CDN, NO external font, NO JavaScript. There is no guaranteed
+        internet egress from this cluster, and a page that silently loses its styling
+        when a CDN is unreachable is worse than a plain one. Everything is inline.
+      * NO stack traces on the index. A wall of technical text is precisely what makes
+        a report unreadable to the business; failure detail lives on the per-run page.
+      * The page EXPLAINS ITSELF. It states, in prose, what a "regulă de business" is
+        and what a red mark means, because the reader is assumed to have no context.
+      * Pass/fail is never conveyed by colour alone — every marker carries a glyph and
+        a word, so it survives a colour-blind reader and a black-and-white print.
+
+    Everything here is a pure function of already-loaded data, so the whole page can
+    be rendered and asserted on offline.
+    """
+
+    from html import escape
+
+    from analysis import area_movement, failing_since, rule_key, totals_of, trend
+
+    CSS = """
+    :root{--bg:#f7f7f5;--card:#fff;--ink:#1b1b1a;--muted:#5f6360;--line:#e3e3df;
+    --ok:#1f7a45;--ok-bg:#e8f5ed;--bad:#a5271f;--bad-bg:#fbeceb;--warn:#8a5a00}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.55;font-size:16px}
+    .wrap{max-width:960px;margin:0 auto;padding:28px 20px 72px}
+    h1{font-size:1.65rem;margin:0 0 4px}
+    h2{font-size:1.15rem;margin:32px 0 10px}
+    h3{font-size:1rem;margin:0}
+    a{color:#1a4f8a}
+    .sub{color:var(--muted);margin:0 0 22px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;margin:0 0 16px}
+    .intro{background:#fffdf5;border-color:#ecdfae}
+    .intro p{margin:0 0 8px}
+    .intro p:last-child{margin:0}
+    .verdict{font-size:1.25rem;font-weight:600;margin:0 0 6px}
+    .verdict.ok{color:var(--ok)}
+    .verdict.bad{color:var(--bad)}
+    .meta{color:var(--muted);font-size:.88rem;margin:0}
+    .badge{display:inline-block;font-size:.78rem;padding:2px 8px;border-radius:999px;
+    border:1px solid var(--line);background:#f1f1ee;color:var(--muted);white-space:nowrap}
+    .badge.ok{background:var(--ok-bg);border-color:#bfe0cd;color:var(--ok)}
+    .badge.bad{background:var(--bad-bg);border-color:#eec8c5;color:var(--bad)}
+    .badge.warn{background:#fdf4e2;border-color:#ecdfae;color:var(--warn)}
+    .area{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    margin:0 0 10px;overflow:hidden}
+    .area-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;
+    justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+    .area-head.bad{background:var(--bad-bg)}
+    .rules{list-style:none;margin:0;padding:6px 18px 14px}
+    .rules li{padding:5px 0;border-bottom:1px dotted var(--line);
+    display:flex;gap:10px;align-items:flex-start}
+    .rules li:last-child{border-bottom:0}
+    .mark{font-weight:700;flex:0 0 auto;min-width:1.4em}
+    .mark.ok{color:var(--ok)}
+    .mark.bad{color:var(--bad)}
+    .mark.skip{color:var(--muted)}
+    .rule-text{flex:1 1 auto}
+    .since{display:block;color:var(--bad);font-size:.85rem}
+    details{margin:8px 18px 14px}
+    summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+    .trend{display:flex;align-items:flex-end;gap:3px;height:110px;margin:10px 0 6px}
+    .bar{flex:1 1 0;min-width:4px;background:var(--ok);border-radius:2px 2px 0 0;
+    display:block}
+    .bar.bad{background:var(--bad)}
+    table{border-collapse:collapse;width:100%;font-size:.92rem}
+    th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}
+    th{color:var(--muted);font-weight:600}
+    td.n,th.n{text-align:right}
+    code{background:#f1f1ee;padding:1px 5px;border-radius:4px;font-size:.86rem}
+    pre{background:#f1f1ee;padding:12px;border-radius:8px;overflow-x:auto;
+    font-size:.82rem;white-space:pre-wrap;word-break:break-word}
+    footer{color:var(--muted);font-size:.85rem;margin-top:36px}
+    """
+
+    # The prose that makes the page self-explanatory. It is the reason a stakeholder
+    # can open this cold — do not delete it to "clean up" the layout.
+    INTRO = """
+    <div class="card intro">
+    <p><strong>Ce citiți aici.</strong> Fiecare rând de mai jos este o
+    <em>regulă de business</em> — o propoziție despre cum trebuie să se comporte
+    aplicația, scrisă de echipă în limbaj de business (de exemplu
+    „refuză a DOUA conversie a aceleiași proforme”). Fiecare regulă este verificată
+    automat, de la zero, la fiecare modificare a codului.</p>
+    <p><strong>Verde (✔) înseamnă că regula se respectă</strong> la ultima verificare.
+    <strong>Roșu (✘) înseamnă că nu se mai respectă</strong> — aplicația face acum
+    altceva decât s-a stabilit. La fiecare regulă roșie scrie și de când nu se mai
+    respectă, pentru că o regulă căzută ieri și una căzută de două săptămâni sunt
+    două probleme diferite.</p>
+    <p>Această pagină se actualizează singură la fiecare verificare și păstrează
+    istoricul, deci se poate compara cu ce era săptămâna trecută.</p>
+    </div>
+    """
+
+
+    def _e(value):
+        """Escape anything into HTML text."""
+        return escape("" if value is None else str(value), quote=True)
+
+
+    def _page(title, body):
+        return (
+            "<!doctype html>\n"
+            '<html lang="ro"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            "<title>%s</title><style>%s</style></head>"
+            '<body><div class="wrap">%s</div></body></html>\n'
+            % (_e(title), CSS, body)
+        )
+
+
+    def _plural(count, one, many):
+        return one if count == 1 else many
+
+
+    def _verdict(passed, failed):
+        total = passed + failed
+        if total == 0:
+            return '<p class="verdict">Nicio regulă verificată în această rulare.</p>'
+        if failed == 0:
+            return (
+                '<p class="verdict ok">✔ Toate cele %d reguli de business se respectă.</p>'
+                % total
+            )
+        return (
+            '<p class="verdict bad">✘ %d din %d reguli de business nu se mai respectă.</p>'
+            % (failed, total)
+        )
+
+
+    def _run_meta(run):
+        bits = []
+        when = run.get("receivedAt") or run.get("timestamp")
+        if when:
+            bits.append("Verificat: %s UTC" % _e(when.replace("T", " ").rstrip("Z")))
+        if run.get("branch"):
+            bits.append("ramura <code>%s</code>" % _e(run["branch"]))
+        if run.get("commit"):
+            bits.append("versiunea <code>%s</code>" % _e(run["commit"][:8]))
+        line = " · ".join(bits)
+        if run.get("runUrl"):
+            line += ' · <a href="%s">jurnalul tehnic al verificării</a>' % _e(run["runUrl"])
+        return '<p class="meta">%s</p>' % line
+
+
+    def _trend_block(points):
+        """Bars, drawn with plain divs — no chart library, no SVG viewbox maths.
+
+        Height is proportional to the share of rules that hold, so a run where
+        everything holds is a full bar and a bad run is visibly shorter. A run with any
+        failure is red, because "97% holding" is still a broken rule to whoever owns it.
+        """
+        if len(points) < 2:
+            return ""
+        bars = []
+        for point in points:
+            total = point["total"] or 1
+            share = point["passed"] / total
+            # Floor at 8% so a catastrophic run is still a visible bar, not a gap.
+            height = max(8, round(share * 100))
+            css = "bar bad" if point["failed"] else "bar"
+            label = "%s — %d din %d reguli se respectă" % (
+                point["at"].replace("T", " ").rstrip("Z"),
+                point["passed"],
+                point["total"],
+            )
+            bars.append(
+                '<a class="%s" style="height:%d%%" href="/run/%s" title="%s"></a>'
+                % (css, height, _e(point["id"]), _e(label))
+            )
+        first, last = points[0], points[-1]
+        return (
+            '<div class="card"><h3>Evoluție</h3>'
+            '<p class="meta">Ultimele %d verificări, de la stânga (mai vechi) la dreapta '
+            "(cea mai recentă). Bara roșie = verificare cu cel puțin o regulă încălcată.</p>"
+            '<div class="trend">%s</div>'
+            '<p class="meta">%s: %d din %d &nbsp;→&nbsp; %s: %d din %d</p></div>'
+            % (
+                len(points),
+                "".join(bars),
+                _e(first["at"][:10]),
+                first["passed"],
+                first["total"],
+                _e(last["at"][:10]),
+                last["passed"],
+                last["total"],
+            )
+        )
+
+
+    def _movement_badge(movement):
+        if not movement:
+            return ""
+        direction = movement.get("direction")
+        delta = movement.get("delta", 0)
+        if direction == "worse":
+            return '<span class="badge bad">↑ %d %s față de verificarea anterioară</span>' % (
+                delta,
+                _plural(delta, "regulă căzută", "reguli căzute"),
+            )
+        if direction == "better":
+            return '<span class="badge ok">↓ %d %s reparate</span>' % (
+                -delta,
+                _plural(-delta, "regulă", "reguli"),
+            )
+        if direction == "new":
+            return '<span class="badge">zonă nouă</span>'
+        return ""
+
+
+    def _since_text(info):
+        if not info:
+            return ""
+        runs = info.get("runs", 1)
+        when = (info.get("since") or "").replace("T", " ").rstrip("Z")
+        prefix = "de cel puțin" if info.get("beyond") else "de"
+        tail = " (din %s UTC)" % _e(when) if when else ""
+        return "nu se mai respectă %s %d %s%s" % (
+            prefix,
+            runs,
+            _plural(runs, "verificare", "verificări"),
+            tail,
+        )
+
+
+    def _area_block(area, since, movement, run_id):
+        name = area.get("area") or ""
+        passed = int(area.get("passed") or 0)
+        failed = int(area.get("failed") or 0)
+        skipped = int(area.get("skipped") or 0)
+        total = passed + failed
+        head_class = "area-head bad" if failed else "area-head"
+        status = (
+            '<span class="badge ok">%d din %d se respectă</span>' % (passed, total)
+            if failed == 0
+            else '<span class="badge bad">%d din %d nu se respectă</span>' % (failed, total)
+        )
+        parts = [
+            '<section class="area"><div class="%s"><h3>%s</h3><div>%s %s</div></div>'
+            % (head_class, _e(name), status, _movement_badge(movement))
+        ]
+
+        failing = [r for r in area.get("rules") or [] if r.get("status") == "failed"]
+        holding = [r for r in area.get("rules") or [] if r.get("status") == "passed"]
+        pending = [r for r in area.get("rules") or [] if r.get("status") == "skipped"]
+
+        if failing:
+            rows = []
+            for rule in failing:
+                info = since.get(rule_key(name, rule.get("title") or ""))
+                note = _since_text(info)
+                rows.append(
+                    '<li><span class="mark bad">✘</span><span class="rule-text">%s%s</span></li>'
+                    % (
+                        _e(rule.get("title")),
+                        '<span class="since">%s</span>' % note if note else "",
+                    )
+                )
+            parts.append('<ul class="rules">%s</ul>' % "".join(rows))
+
+        if holding:
+            rows = "".join(
+                '<li><span class="mark ok">✔</span><span class="rule-text">%s</span></li>'
+                % _e(rule.get("title"))
+                for rule in holding
+            )
+            parts.append(
+                "<details><summary>Vezi cele %d reguli care se respectă</summary>"
+                '<ul class="rules">%s</ul></details>' % (len(holding), rows)
+            )
+
+        if pending:
+            rows = "".join(
+                '<li><span class="mark skip">–</span><span class="rule-text">%s</span></li>'
+                % _e(rule.get("title"))
+                for rule in pending
+            )
+            parts.append(
+                "<details><summary>%d %s în așteptare (neverificate încă)</summary>"
+                '<ul class="rules">%s</ul></details>'
+                % (len(pending), _plural(len(pending), "regulă", "reguli"), rows)
+            )
+
+        if failed and run_id:
+            parts.append(
+                '<p class="meta" style="padding:0 18px 14px">'
+                '<a href="/run/%s">Detalii tehnice pentru această verificare</a></p>'
+                % _e(run_id)
+            )
+        parts.append("</section>")
+        return "".join(parts)
+
+
+    def _history_table(runs, limit=15):
+        rows = []
+        for run in runs[:limit]:
+            passed, failed, _ = totals_of(run)
+            mark = (
+                '<span class="badge ok">✔ toate</span>'
+                if failed == 0
+                else '<span class="badge bad">✘ %d</span>' % failed
+            )
+            rows.append(
+                '<tr><td><a href="/run/%s">%s</a></td><td>%s</td>'
+                '<td class="n">%d</td><td>%s</td></tr>'
+                % (
+                    _e(run.get("id")),
+                    _e((run.get("receivedAt") or "").replace("T", " ").rstrip("Z")),
+                    _e(run.get("branch") or ""),
+                    passed + failed,
+                    mark,
+                )
+            )
+        if not rows:
+            return ""
+        return (
+            '<div class="card"><h3>Verificări recente</h3><table>'
+            '<tr><th>Când (UTC)</th><th>Ramura</th><th class="n">Reguli</th>'
+            "<th>Rezultat</th></tr>%s</table></div>" % "".join(rows)
+        )
+
+
+    def render_app_section(app, runs):
+        """One application's whole story: verdict, trend, areas, recent runs."""
+        if not runs:
+            return (
+                '<div class="card"><h2>%s</h2>'
+                '<p class="meta">Nicio verificare înregistrată încă.</p></div>' % _e(app)
+            )
+        latest = runs[0]
+        passed, failed, skipped = totals_of(latest)
+        since = failing_since(runs)
+        movement = area_movement(runs)
+        points = trend(runs)
+        run_id = latest.get("id") or ""
+
+        areas = sorted(
+            latest.get("areas") or [],
+            # Broken areas first — what needs acting on should never be scrolled to.
+            key=lambda a: (0 if int(a.get("failed") or 0) else 1, a.get("area") or ""),
+        )
+        body = [
+            '<div class="card"><h2 style="margin-top:0">%s</h2>%s%s%s</div>'
+            % (
+                _e(app),
+                _verdict(passed, failed),
+                _run_meta(latest),
+                # Romanian agrees the noun AND the verb with the count — "1 reguli sunt"
+                # is wrong in a page whose whole purpose is being readable by the business.
+                '<p class="meta">%d %s în așteptare (scrise, dar dezactivate).</p>'
+                % (skipped, _plural(skipped, "regulă este", "reguli sunt"))
+                if skipped
+                else "",
+            ),
+            _trend_block(points),
+            "<h2>Pe zone de business</h2>",
+        ]
+        body.extend(_area_block(area, since, movement.get(area.get("area") or ""), run_id) for area in areas)
+        body.append(_history_table(runs))
+        return "".join(body)
+
+
+    def render_index(sections):
+        """The living-documentation page. `sections` is [(app, runs-newest-first)]."""
+        if not sections:
+            inner = (
+                INTRO
+                + '<div class="card"><p>Nicio verificare înregistrată încă. Pagina se '
+                "populează automat la următoarea rulare a testelor.</p></div>"
+            )
+            return _page("Reguli de business", inner)
+        body = [
+            "<h1>Regulile de business ale aplicației</h1>",
+            '<p class="sub">Starea curentă a comportamentului aplicației, verificat '
+            "automat la fiecare modificare a codului.</p>",
+            INTRO,
+        ]
+        body.extend(render_app_section(app, runs) for app, runs in sections)
+        body.append(
+            "<footer>Raport generat automat de serviciul <code>test-reports</code>. "
+            "Istoricul se păstrează 365 de zile.</footer>"
+        )
+        return _page("Reguli de business", "".join(body))
+
+
+    def render_run(run):
+        """One specific verification, WITH the technical failure detail.
+
+        This is the only page that shows a stack trace, and it is reached by an
+        explicit click — the index stays readable for the people it is written for.
+        """
+        passed, failed, skipped = totals_of(run)
+        body = [
+            "<h1>Verificare din %s UTC</h1>"
+            % _e((run.get("receivedAt") or "").replace("T", " ").rstrip("Z")),
+            '<p class="sub"><a href="/">← înapoi la starea curentă</a></p>',
+            '<div class="card">%s%s</div>' % (_verdict(passed, failed), _run_meta(run)),
+        ]
+        for area in sorted(
+            run.get("areas") or [],
+            key=lambda a: (0 if int(a.get("failed") or 0) else 1, a.get("area") or ""),
+        ):
+            name = area.get("area") or ""
+            failing = [r for r in area.get("rules") or [] if r.get("status") == "failed"]
+            if not failing:
+                continue
+            rows = []
+            for rule in failing:
+                detail = rule.get("message")
+                rows.append(
+                    '<li><span class="mark bad">✘</span><span class="rule-text">%s'
+                    '<div class="meta"><code>%s</code></div>%s</span></li>'
+                    % (
+                        _e(rule.get("title")),
+                        _e(rule.get("file") or ""),
+                        "<pre>%s</pre>" % _e(detail) if detail else "",
+                    )
+                )
+            body.append(
+                '<section class="area"><div class="area-head bad"><h3>%s</h3>'
+                '<span class="badge bad">%d nu se respectă</span></div>'
+                '<ul class="rules">%s</ul></section>' % (_e(name), len(failing), "".join(rows))
+            )
+        if failed == 0:
+            body.append(
+                '<div class="card"><p>Toate regulile se respectau la această verificare. '
+                "Nu există detalii tehnice de afișat.</p></div>"
+            )
+        if skipped:
+            body.append(
+                '<p class="meta">%d reguli erau în așteptare (dezactivate) la această '
+                "verificare.</p>" % skipped
+            )
+        return _page("Verificare %s" % (run.get("id") or ""), "".join(body))
+  store.py: |
+    """Durable storage for one CI run's business-rule outcome.
+
+    Everything that touches the PVC lives here: writing a received envelope, listing
+    runs, loading them, and pruning past the retention window. `render.py` is pure
+    presentation and `app.py` is pure HTTP — this is the only module that knows a
+    filesystem exists.
+
+    LAYOUT
+        /data/<app>/<YYYYmmddTHHMMSSZ>-<short-sha>.json
+
+    The UTC timestamp leads the filename on purpose: lexicographic order IS
+    chronological order, so listing a directory sorted gives history for free with no
+    index file to keep consistent.
+
+    DURABILITY
+      * Writes are atomic (temp file in the same directory + os.replace). A pod killed
+        mid-write leaves the temp file, never a half-parsed report — one corrupt file
+        would otherwise poison the index page permanently.
+      * Reads that fail to parse are SKIPPED with a warning rather than raising, so a
+        single bad file can never take the page down.
+
+    RETENTION — 365 days
+      Chosen rather than left implicit: a year covers "how did this area behave last
+      quarter", which is the question a stakeholder actually asks. Sizing it no longer
+      fits: written at 60 KB per run, the largest app's run reached 2.6 MB by 2026-11-04, which
+      at ~20 runs a day fills the 10 Gi volume in about 200 days. Pruning happens on ingest (there is no other reliable tick in a service
+      with one replica and no scheduler) and only ever deletes files whose own name
+      timestamp is older than the window.
+    """
+
+    import json
+    import os
+    import re
+    import sys
+    import tempfile
+    from datetime import datetime, timedelta, timezone
+
+    DATA_DIR = os.environ.get("DATA_DIR", "/data")
+    RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "365"))
+
+    # An app name becomes a directory name, so it is validated as a NAME and never as
+    # a path: letters, digits, dash, underscore only. Same posture as talk-webhook's
+    # channel_token — reject, never sanitise-and-continue, so a traversal attempt is
+    # visible as a 400 rather than silently rewritten.
+    _APP_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$")
+    _STEM_RE = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9_-]{1,40}$")
+
+    FILE_SUFFIX = ".json"
+
+
+    def valid_app(name):
+        """True if `name` is safe to use as a directory name."""
+        return bool(_APP_RE.match(name or ""))
+
+
+    def valid_stem(stem):
+        """True if `stem` is one of OUR generated filenames (no traversal, no glob)."""
+        return bool(_STEM_RE.match(stem or ""))
+
+
+    def _app_dir(app):
+        return os.path.join(DATA_DIR, app)
+
+
+    def stem_for(envelope, received_at):
+        """Filename stem for a run: sortable UTC stamp + the short commit sha."""
+        stamp = received_at.strftime("%Y%m%dT%H%M%SZ")
+        commit = str(envelope.get("commit") or "")
+        short = "".join(c for c in commit[:8] if c.isalnum()) or "nosha"
+        return "%s-%s" % (stamp, short)
+
+
+    def save(app, envelope, received_at=None):
+        """Persist one envelope. Returns its run id (`<app>/<stem>`)."""
+        if not valid_app(app):
+            raise ValueError("invalid app name")
+        received_at = received_at or datetime.now(timezone.utc)
+        envelope = dict(envelope)
+        envelope["app"] = app
+        # The service's own receipt time, distinct from the run's self-reported one:
+        # a sender with a wrong clock must not be able to reorder history.
+        envelope["receivedAt"] = received_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        directory = _app_dir(app)
+        os.makedirs(directory, exist_ok=True)
+        stem = stem_for(envelope, received_at)
+        target = os.path.join(directory, stem + FILE_SUFFIX)
+
+        payload = json.dumps(envelope, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=FILE_SUFFIX)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(tmp, target)
+        except BaseException:
+            # Never leave a temp file behind on a failed write.
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
+            raise
+        return "%s/%s" % (app, stem)
+
+
+    def apps():
+        """Every app that has at least one stored run, sorted."""
+        try:
+            entries = os.listdir(DATA_DIR)
+        except OSError:
+            return []
+        return sorted(e for e in entries if valid_app(e) and os.path.isdir(_app_dir(e)))
+
+
+    def stems(app, limit=None):
+        """Run stems for `app`, NEWEST FIRST. `limit` caps how many are returned."""
+        if not valid_app(app):
+            return []
+        try:
+            names = os.listdir(_app_dir(app))
+        except OSError:
+            return []
+        found = sorted(
+            (n[: -len(FILE_SUFFIX)] for n in names if n.endswith(FILE_SUFFIX)),
+            reverse=True,
+        )
+        found = [s for s in found if valid_stem(s)]
+        return found[:limit] if limit else found
+
+
+    def load(app, stem):
+        """Parse one stored run, or None if it is missing or unreadable.
+
+        A corrupt file is logged and skipped rather than raised: one bad write must
+        not be able to break every page that scans history.
+        """
+        if not (valid_app(app) and valid_stem(stem)):
+            return None
+        path = os.path.join(_app_dir(app), stem + FILE_SUFFIX)
+        try:
+            with open(path, "rb") as handle:
+                envelope = json.loads(handle.read().decode("utf-8"))
+        except (OSError, ValueError) as exc:
+            sys.stderr.write("skipping unreadable report %s/%s: %s\n" % (app, stem, exc))
+            return None
+        if not isinstance(envelope, dict):
+            sys.stderr.write("skipping non-object report %s/%s\n" % (app, stem))
+            return None
+        envelope.setdefault("app", app)
+        envelope["id"] = "%s/%s" % (app, stem)
+        envelope["stem"] = stem
+        return envelope
+
+
+    def _failing_rules(envelope):
+        """{(area, title)} for every rule failing in one run."""
+        return {
+            (area.get("area") or "", rule.get("title") or "")
+            for area in envelope.get("areas") or []
+            for rule in area.get("rules") or []
+            if rule.get("status") == "failed"
+        }
+
+
+    def _reduce(envelope, failing):
+        """An older run, holding only what a page reads from a run that is not the newest.
+
+        Its totals and each area's failure count, plus the rules still failing in the newest
+        run. A rule dropped here reads as absent, and analysis.failing_since ends a streak on
+        absent exactly as it does on passed, so the answer is the same.
+        """
+        envelope["areas"] = [
+            {
+                "area": area.get("area") or "",
+                "failed": area.get("failed") or 0,
+                "rules": [
+                    rule
+                    for rule in area.get("rules") or []
+                    if rule.get("status") == "failed"
+                    and (area.get("area") or "", rule.get("title") or "") in failing
+                ],
+            }
+            for area in envelope.get("areas") or []
+        ]
+        return envelope
+
+
+    def history(app, limit):
+        """The newest `limit` runs for `app`, newest first, unreadable ones dropped.
+
+        Only the newest run is whole. The largest app's reports reached 2.6 MB by 2026-11-04 and the
+        index page asks for 40 of them, which parsed and held at once killed the pod at its
+        256 Mi limit; each older run is now reduced as soon as it is read. A single run's
+        page goes through load(), whole.
+        """
+        out = []
+        failing = None
+        for stem in stems(app, limit=limit):
+            envelope = load(app, stem)
+            if envelope is None:
+                continue
+            if failing is None:
+                failing = _failing_rules(envelope)
+            else:
+                envelope = _reduce(envelope, failing)
+            out.append(envelope)
+        return out
+
+
+    def prune(app, now=None):
+        """Delete runs older than the retention window. Returns how many went."""
+        if not valid_app(app):
+            return 0
+        now = now or datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=RETENTION_DAYS)
+        removed = 0
+        # OLDEST FIRST — stems() is newest-first, so it is reversed here. Sweeping
+        # newest-first and breaking on the first in-window file would stop on the very
+        # first entry and never delete anything (caught by the offline retention test,
+        # which backdates a 400-day file and asserts it goes).
+        for stem in reversed(stems(app)):
+            try:
+                stamped = datetime.strptime(stem.split("-", 1)[0], "%Y%m%dT%H%M%SZ").replace(
+                    tzinfo=timezone.utc
+                )
+            except ValueError:
+                continue  # not one of ours; leave it alone
+            if stamped >= cutoff:
+                # Sorted ascending, so the first in-window file ends the sweep.
+                break
+            try:
+                os.unlink(os.path.join(_app_dir(app), stem + FILE_SUFFIX))
+                removed += 1
+            except FileNotFoundError:
+                pass  # benign race with another request on a threaded server
+            except OSError as exc:
+                sys.stderr.write("prune failed for %s/%s: %s\n" % (app, stem, exc))
+        return removed
+
+
+    def newest_age_seconds(app, now=None):
+        """Seconds since the newest stored run for `app`, or None if there is none.
+
+        Derived from the FILENAME stamp, which this service wrote itself — not from a
+        field the sender supplied, so a sender with a broken clock cannot fake
+        freshness. This is what the /healthz freshness check reads.
+        """
+        now = now or datetime.now(timezone.utc)
+        newest = stems(app, limit=1)
+        if not newest:
+            return None
+        try:
+            stamped = datetime.strptime(newest[0].split("-", 1)[0], "%Y%m%dT%H%M%SZ").replace(
+                tzinfo=timezone.utc
+            )
+        except ValueError:
+            return None
+        return int((now - stamped).total_seconds())
+kind: ConfigMap
+metadata:
+  name: test-reports-app-cktcgkd9fk
+  namespace: test-reports
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-reports
+  namespace: test-reports
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: test-reports
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: test-reports
+  namespace: test-reports
+spec:
+  limits:
+  - default:
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest:
+      cpu: 10m
+      memory: 32Mi
+    max:
+      cpu: "1"
+      memory: 512Mi
+    type: Container
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: test-reports-data
+  namespace: test-reports
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: hcloud-volumes
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    reloader.stakater.com/auto: "true"
+  name: test-reports
+  namespace: test-reports
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-reports
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-reports
+    spec:
+      containers:
+      - command:
+        - python3
+        - /app/app.py
+        env:
+        - name: INGEST_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: INGEST_TOKEN
+              name: test-reports-ingest
+        - name: DATA_DIR
+          value: /data
+        - name: RETENTION_DAYS
+          value: "365"
+        - name: PUBLIC_URL
+          value: https://tests.psizone.ro
+        - name: ENV_NAME
+          value: dev
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: PYTHONPATH
+          value: /app
+        image: registry.psizone.ro/mirror/docker.io/library/python:3.13-alpine@sha256:42825e7ec3437b3bce923c237484eb23d32128476e18307d2f48951bf86f1db2
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 30
+        name: test-reports
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 300m
+            memory: 256Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /app
+          name: app
+        - mountPath: /data
+          name: data
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - '[ -n "${INGEST_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: INGEST_TOKEN"
+          >&2; exit 1; }; echo secrets-ok'
+        envFrom:
+        - secretRef:
+            name: test-reports-ingest
+        image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+        name: assert-secrets
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          seccompProfile:
+            type: RuntimeDefault
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - configMap:
+          name: test-reports-app-cktcgkd9fk
+        name: app
+      - name: data
+        persistentVolumeClaim:
+          claimName: test-reports-data
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  name: test-reports-weekly-digest
+  namespace: test-reports
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 180
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: test-reports-weekly-digest
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              umask 077
+              W=/tmp
+              trap 'rm -f "$W/hdr.notify" "$W/digest.json"' EXIT
+
+              # Header FILE, then the bearer is dropped from the environment:
+              # curl reads it with -H @file so the token never reaches argv,
+              # where `ps` inside this container would see it. Same discipline
+              # as gitops/platform/health-digest.
+              printf 'X-Notify-Token: %s\n' "$NOTIFY_TOKEN" > "$W/hdr.notify"
+              unset NOTIFY_TOKEN
+
+              # --- hop 1: the pre-rendered notification body -----------------
+              # `-f` so an HTTP error is a FAILED fetch, not a body containing
+              # an error page that would then be posted as if it were a digest.
+              if ! curl -sSf --max-time 30 -o "$W/digest.json" "$REPORT_URL"; then
+                echo "WARN could not fetch $REPORT_URL — NO digest posted this week." >&2
+                echo "     check: kubectl -n test-reports get deploy test-reports" >&2
+                # Exit 0 deliberately: a missing Monday message IS the signal
+                # (see the header). A failed Job would ALSO fire the Axiom
+                # cronjob-failed monitor into #infra, which is the wrong room
+                # and the wrong severity for "the test page was briefly down".
+                exit 0
+              fi
+
+              # Log the body: OTel ships this container's stdout to Axiom, so
+              # the exact digest is recoverable even if Talk never got it.
+              echo "--- digest body ---"
+              cat "$W/digest.json"
+              echo
+
+              # --- hop 2: post it -------------------------------------------
+              CODE="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' \
+                -X POST -H @"$W/hdr.notify" -H 'Content-Type: application/json' \
+                -d @"$W/digest.json" "$NOTIFY_URL/notify/$NOTIFY_CHANNEL" || true)"
+              case "$CODE" in
+                200) echo "posted the weekly digest to #$NOTIFY_CHANNEL" ;;
+                401) echo "WARN #$NOTIFY_CHANNEL rejected the token (HTTP 401) — digest is LOG-ONLY. Check: kubectl -n test-reports get externalsecret talk-webhook-token" >&2 ;;
+                *)   echo "WARN could not reach $NOTIFY_URL (HTTP $CODE) — digest is LOG-ONLY. Check: kubectl -n nextcloud get deploy talk-webhook" >&2 ;;
+              esac
+
+              # ALWAYS exit 0. Failing rules are the PRODUCT of this job, not a
+              # job failure; and a Talk outage is not one either. Exiting
+              # non-zero would make the Axiom cronjob-failed monitor fire on
+              # every imperfect week and make a genuinely dead digest
+              # indistinguishable from a normal one.
+              exit 0
+            env:
+            - name: REPORT_URL
+              value: http://test-reports.test-reports.svc/digest
+            - name: NOTIFY_URL
+              value: http://talk-webhook.nextcloud.svc
+            - name: NOTIFY_CHANNEL
+              value: tests
+            - name: NOTIFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: talk-webhook-token
+            image: registry.psizone.ro/mirror/docker.io/curlimages/curl:8.11.1@sha256:ce8e655b562cf387752de7d2076ec3f81a4383c908f386b6724ec3571ce08b4a
+            name: digest
+            resources:
+              limits:
+                cpu: 200m
+                memory: 128Mi
+              requests:
+                cpu: 10m
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 65534
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          initContainers:
+          - args:
+            - |
+              set -eu
+              [ -n "${NOTIFY_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: token (Secret talk-webhook-token, key token, ns test-reports)"; exit 1; }
+              echo "required secrets present"
+            command:
+            - /bin/sh
+            - -c
+            env:
+            - name: NOTIFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: talk-webhook-token
+            image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+            name: assert-secrets
+            resources:
+              limits:
+                cpu: 50m
+                memory: 64Mi
+              requests:
+                cpu: 10m
+                memory: 16Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 65534
+              seccompProfile:
+                type: RuntimeDefault
+          restartPolicy: Never
+          securityContext:
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - emptyDir: {}
+            name: tmp
+  schedule: 23 7 * * 1
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: talk-webhook-token
+  namespace: test-reports
+spec:
+  data:
+  - remoteRef:
+      key: platform/talk/webhook
+      property: token
+    secretKey: token
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: talk-webhook-token
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: test-reports-ingest
+  namespace: test-reports
+spec:
+  data:
+  - remoteRef:
+      key: platform/test-reports/ingest
+      property: token
+    secretKey: INGEST_TOKEN
+  refreshInterval: 30s
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: test-reports-ingest
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    gethomepage.dev/description: Which rules each application keeps, checked automatically
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Delivery
+    gethomepage.dev/href: https://tests.psizone.ro
+    gethomepage.dev/icon: mdi-clipboard-check-multiple
+    gethomepage.dev/name: Business rules
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=test-reports
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  name: test-reports
+  namespace: test-reports
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: tests.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: test-reports
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - tests.psizone.ro
+    secretName: test-reports-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  name: test-reports-ingest
+  namespace: test-reports
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: tests.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: test-reports
+            port:
+              name: http
+        path: /ingest
+        pathType: Prefix
+      - backend:
+          service:
+            name: test-reports
+            port:
+              name: http
+        path: /healthz
+        pathType: Prefix
+  tls:
+  - hosts:
+    - tests.psizone.ro
+    secretName: test-reports-tls

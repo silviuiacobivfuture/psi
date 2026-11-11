@@ -1,0 +1,112 @@
+# SEB piece `plunk`: the estate's e-mail platform (Plunk, our sign-in plunk-sso, the
+# plunk-reconcile CronJob, its CNPG Postgres and Redis). Delivered in the SEB bundle, rendered
+# at build time (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity (the whitelabel component): the base writes the
+# apex as the dot-free token WLDOMAIN (`plunk.WLDOMAIN` → `plunk.<apex>`) and the alert owner
+# as WLOPSEMAIL; the replacements below fill both in. What is the estate's own and not a
+# setting — its senders and Plunk's own generated Secrets — comes from the estate's layer
+# (../../components/estate/plunk).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: plunk
+resources:
+  - base
+
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../components/prune-guard
+  - ../../components/whitelabel
+  # The estate's senders (ConfigMap plunk-senders, mounted by plunk-sso and plunk-reconcile)
+  # and Plunk's own generated Secrets (email-sender, plunk-inbound).
+  - ../../components/estate/plunk
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The apex: every host is <label>.WLDOMAIN, so the apex is dot-split index 1.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Ingress }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: plunk }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Certificate, name: plunk-smtp }
+        fieldPaths: [spec.dnsNames.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: plunk }
+        fieldPaths:
+          - spec.template.spec.containers.[name=plunk].env.[name=API_DOMAIN].value
+          - spec.template.spec.containers.[name=plunk].env.[name=DASHBOARD_DOMAIN].value
+          - spec.template.spec.containers.[name=plunk].env.[name=LANDING_DOMAIN].value
+          - spec.template.spec.containers.[name=plunk].env.[name=WIKI_DOMAIN].value
+          - spec.template.spec.containers.[name=plunk].env.[name=SMTP_DOMAIN].value
+          - spec.template.spec.containers.[name=plunk].startupProbe.httpGet.httpHeaders.[name=Host].value
+          - spec.template.spec.containers.[name=plunk].readinessProbe.httpGet.httpHeaders.[name=Host].value
+          - spec.template.spec.containers.[name=plunk].livenessProbe.httpGet.httpHeaders.[name=Host].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: plunk-sso }
+        fieldPaths:
+          - spec.template.spec.containers.[name=plunk-sso].env.[name=API_URI].value
+          - spec.template.spec.containers.[name=plunk-sso].env.[name=DASHBOARD_URI].value
+          - spec.template.spec.containers.[name=plunk-sso].env.[name=LANDING_URI].value
+          - spec.template.spec.containers.[name=plunk-sso].env.[name=WIKI_URI].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: CronJob, name: plunk-reconcile }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=reconcile].env.[name=API_URI].value
+          - spec.jobTemplate.spec.template.spec.containers.[name=reconcile].env.[name=DASHBOARD_URI].value
+          - spec.jobTemplate.spec.template.spec.containers.[name=reconcile].env.[name=LANDING_URI].value
+          - spec.jobTemplate.spec.template.spec.containers.[name=reconcile].env.[name=WIKI_URI].value
+        options: { delimiter: ".", index: 1 }
+  # The API host, once filled in, into the Traefik rule that names it between
+  # backticks (`Host(\`plunk-api.<apex>\`) && (…`): backtick-split index 1.
+  - source: { kind: Ingress, name: plunk-api, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: IngressRoute, name: plunk-api-sso }
+        fieldPaths: [spec.routes.0.match]
+        options: { delimiter: "`", index: 1 }
+  # Who is paged for a workload: the estate's operations address (the key is moved to
+  # alerts.<apex>/owner by ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  # Object storage: the bucket is <prefix>-tfstate-<env> (BUCKET_PREFIX is the
+  # part before the first dash), region and endpoint whole.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: CronJob, name: plunk-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+        options: { delimiter: "-", index: 0 }
+  - source:
+      kind: CronJob
+      name: plunk-db-dump
+      fieldPath: spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+    targets:
+      - select: { kind: Cluster, name: plunk-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: CronJob, name: plunk-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_REGION].value
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: CronJob, name: plunk-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_ENDPOINT_URL].value
+      - select: { kind: Cluster, name: plunk-db }
+        fieldPaths: [spec.backup.barmanObjectStore.endpointURL]
+  # The SES region an empty slot falls back to: the estate's SES_REGION, into the
+  # sentinel default of the plunk-app template (`default "WLSESREGION"`): quote-split index 1.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.SES_REGION }
+    targets:
+      - select: { kind: ExternalSecret, name: plunk-app }
+        fieldPaths: [spec.target.template.data.AWS_SES_REGION]
+        options: { delimiter: '"', index: 1 }
+transformers:
+  - ../../components/alert-owner

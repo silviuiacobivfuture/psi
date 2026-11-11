@@ -1,0 +1,718 @@
+/*
+ * The estate's layer over PDFCraft — injected by our nginx front before </head>
+ * on every page (gitops/services/pdfcraft/base/nginx.conf). Upstream's files are
+ * never modified; this is the only thing we put on their pages.
+ *
+ * 1. THE ESTATE'S COLOURS AND FONT — the block between the markers is GENERATED
+ *    from packages/rmx-ui's tokens (OKLCH → upstream's HSL triplets, light and
+ *    dark) by packages/rmx-ui/scripts/pdfcraft-theme.mjs. Never edit it by hand:
+ *    the drift test (packages/rmx-ui/src/__tests__/pdfcraft-theme.test.ts) fails
+ *    when it differs from what the tokens produce now.
+ *    The same block re-colours upstream's hard-coded Tailwind palette
+ *    (text-zinc-600, hover:bg-blue-50…) by redefining the palette VARIABLES those
+ *    utilities compile to, each onto the estate role nearest in lightness.
+ * 2. THE ESTATE'S GROUND — the dot grid and washes (light), the night sky (dark).
+ * 3. WHAT WE HIDE — their header, hero, footer, gradient text and links to their
+ *    project and social accounts. Stable hooks only (elements, landmarks, ARIA,
+ *    link targets, Tailwind utility NAMES), never hashed classes.
+ * 4. THE CREDIT — „realizat cu PDFCraft”, added by recomex.js, styled here.
+ *
+ * ON AN UPSTREAM UPGRADE the worst case is cosmetic and visible: a colour
+ * reverts to theirs, or a hidden link shows again. Nothing here can break a tool.
+ */
+
+/* ── BEGIN GENERATED TOKENS — packages/rmx-ui/scripts/pdfcraft-theme.mjs, from tokens.css, night.css and upstream-palette.json. Do not edit by hand. ── */
+html:root {
+	--font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+	--rx-radius: 0.5rem;
+	--color-primary: 219.4 53.3% 11.8%;
+	--color-primary-foreground: 225 50% 98.4%;
+	--color-primary-hover: 218.3 30% 23.5%;
+	--color-secondary: 218.2 40.7% 94.7%;
+	--color-secondary-foreground: 219.6 44.8% 20.6%;
+	--color-secondary-hover: 218.2 20.8% 89.6%;
+	--color-accent: 218.2 40.7% 94.7%;
+	--color-accent-foreground: 219.6 44.8% 20.6%;
+	--color-background: 225 50% 98.4%;
+	--color-foreground: 219.4 53.3% 11.8%;
+	--color-muted: 216 45.5% 95.7%;
+	--color-muted-foreground: 218 15.5% 38%;
+	--color-card: 200 100% 99.4%;
+	--color-card-foreground: 219.4 53.3% 11.8%;
+	--color-border: 220 25% 90.6%;
+	--color-input: 217.5 10.8% 56.5%;
+	--color-ring: 213.5 63.6% 45.3%;
+	--color-destructive: 357.6 82.7% 40.8%;
+	--color-destructive-foreground: 12 55.6% 98.2%;
+	--color-success: 134.2 65.5% 88.6%;
+	--color-success-foreground: 142.4 60.4% 21.8%;
+	--color-warning: 33.3 90% 88.2%;
+	--color-warning-foreground: 35.6 98.5% 25.5%;
+	--rx-background: oklch(0.985 0.004 262);
+	--rx-foreground: oklch(0.215 0.045 262);
+	--rx-card: oklch(0.996 0.004 262);
+	--rx-card-foreground: oklch(0.215 0.045 262);
+	--rx-popover: oklch(1 0 0);
+	--rx-popover-foreground: oklch(0.215 0.045 262);
+	--rx-primary: oklch(0.47 0.15 256);
+	--rx-primary-foreground: oklch(0.985 0.004 262);
+	--rx-secondary: oklch(0.955 0.01 262);
+	--rx-secondary-foreground: oklch(0.3 0.06 262);
+	--rx-muted: oklch(0.962 0.009 262);
+	--rx-muted-foreground: oklch(0.475 0.035 262);
+	--rx-accent: oklch(0.935 0.018 262);
+	--rx-accent-foreground: oklch(0.3 0.06 262);
+	--rx-destructive: oklch(0.51 0.2 27);
+	--rx-destructive-foreground: oklch(0.985 0.005 27);
+	--rx-border: oklch(0.922 0.012 262);
+	--rx-edge: oklch(0.885 0.016 262);
+	--rx-input: oklch(0.64 0.025 262);
+	--rx-ring: oklch(0.53 0.145 256);
+	--rx-success: oklch(0.935 0.055 152);
+	--rx-success-foreground: oklch(0.41 0.095 152);
+	--rx-warning: oklch(0.93 0.047 72);
+	--rx-warning-foreground: oklch(0.47 0.104 66);
+	--rx-danger: oklch(0.935 0.031 22);
+	--rx-danger-foreground: oklch(0.45 0.165 27);
+	--rx-info: oklch(0.935 0.031 245);
+	--rx-info-foreground: oklch(0.45 0.125 255);
+	--rx-scrim: oklch(0.16 0.03 262 / 0.55);
+	--rx-ground-ink: 0.06;
+	--rx-ground-wash: 0.05;
+	--color-amber-100: var(--rx-warning);
+	--color-amber-200: var(--rx-warning);
+	--color-amber-300: var(--rx-warning);
+	--color-amber-400: var(--rx-warning);
+	--color-amber-50: var(--rx-warning);
+	--color-amber-500: var(--rx-warning);
+	--color-amber-600: var(--rx-warning-foreground);
+	--color-amber-700: var(--rx-warning-foreground);
+	--color-amber-800: var(--rx-warning-foreground);
+	--color-amber-900: var(--rx-warning-foreground);
+	--color-amber-950: var(--rx-warning-foreground);
+	--color-black: var(--rx-foreground);
+	--color-blue-100: var(--rx-border);
+	--color-blue-200: var(--rx-border);
+	--color-blue-300: var(--rx-border);
+	--color-blue-400: var(--rx-input);
+	--color-blue-50: var(--rx-muted);
+	--color-blue-500: var(--rx-input);
+	--color-blue-600: var(--rx-muted-foreground);
+	--color-blue-700: var(--rx-muted-foreground);
+	--color-blue-800: var(--rx-muted-foreground);
+	--color-blue-900: var(--rx-muted-foreground);
+	--color-blue-950: var(--rx-foreground);
+	--color-cyan-100: var(--rx-info);
+	--color-cyan-300: var(--rx-info);
+	--color-cyan-400: var(--rx-info);
+	--color-cyan-500: var(--rx-info);
+	--color-cyan-600: var(--rx-info-foreground);
+	--color-cyan-700: var(--rx-info-foreground);
+	--color-cyan-950: var(--rx-info-foreground);
+	--color-emerald-100: var(--rx-success);
+	--color-emerald-200: var(--rx-success);
+	--color-emerald-300: var(--rx-success);
+	--color-emerald-400: var(--rx-success);
+	--color-emerald-50: var(--rx-success);
+	--color-emerald-500: var(--rx-success);
+	--color-emerald-600: var(--rx-success-foreground);
+	--color-emerald-700: var(--rx-success-foreground);
+	--color-emerald-800: var(--rx-success-foreground);
+	--color-emerald-900: var(--rx-success-foreground);
+	--color-emerald-950: var(--rx-success-foreground);
+	--color-fuchsia-50: var(--rx-background);
+	--color-gray-100: var(--rx-muted);
+	--color-gray-200: var(--rx-border);
+	--color-gray-300: var(--rx-border);
+	--color-gray-400: var(--rx-input);
+	--color-gray-50: var(--rx-background);
+	--color-gray-500: var(--rx-muted-foreground);
+	--color-gray-600: var(--rx-muted-foreground);
+	--color-gray-700: var(--rx-muted-foreground);
+	--color-gray-800: var(--rx-foreground);
+	--color-gray-900: var(--rx-foreground);
+	--color-gray-950: var(--rx-foreground);
+	--color-green-100: var(--rx-success);
+	--color-green-200: var(--rx-success);
+	--color-green-300: var(--rx-success);
+	--color-green-400: var(--rx-success);
+	--color-green-50: var(--rx-success);
+	--color-green-500: var(--rx-success);
+	--color-green-600: var(--rx-success-foreground);
+	--color-green-700: var(--rx-success-foreground);
+	--color-green-800: var(--rx-success-foreground);
+	--color-green-900: var(--rx-success-foreground);
+	--color-green-950: var(--rx-success-foreground);
+	--color-indigo-100: var(--rx-border);
+	--color-indigo-200: var(--rx-border);
+	--color-indigo-300: var(--rx-border);
+	--color-indigo-400: var(--rx-input);
+	--color-indigo-50: var(--rx-muted);
+	--color-indigo-500: var(--rx-input);
+	--color-indigo-600: var(--rx-muted-foreground);
+	--color-indigo-700: var(--rx-muted-foreground);
+	--color-indigo-800: var(--rx-muted-foreground);
+	--color-indigo-900: var(--rx-muted-foreground);
+	--color-indigo-950: var(--rx-foreground);
+	--color-neutral-100: var(--rx-muted);
+	--color-neutral-200: var(--rx-border);
+	--color-neutral-300: var(--rx-border);
+	--color-neutral-400: var(--rx-input);
+	--color-neutral-500: var(--rx-muted-foreground);
+	--color-neutral-600: var(--rx-muted-foreground);
+	--color-neutral-700: var(--rx-muted-foreground);
+	--color-neutral-800: var(--rx-foreground);
+	--color-neutral-900: var(--rx-foreground);
+	--color-neutral-950: var(--rx-foreground);
+	--color-orange-100: var(--rx-warning);
+	--color-orange-200: var(--rx-warning);
+	--color-orange-300: var(--rx-warning);
+	--color-orange-400: var(--rx-warning);
+	--color-orange-50: var(--rx-warning);
+	--color-orange-500: var(--rx-warning);
+	--color-orange-600: var(--rx-warning-foreground);
+	--color-orange-700: var(--rx-warning-foreground);
+	--color-orange-800: var(--rx-warning-foreground);
+	--color-orange-900: var(--rx-warning-foreground);
+	--color-orange-950: var(--rx-warning-foreground);
+	--color-pink-100: var(--rx-danger);
+	--color-pink-300: var(--rx-danger);
+	--color-pink-400: var(--rx-destructive);
+	--color-pink-500: var(--rx-destructive);
+	--color-pink-700: var(--rx-destructive);
+	--color-pink-950: var(--rx-danger-foreground);
+	--color-purple-100: var(--rx-secondary);
+	--color-purple-200: var(--rx-border);
+	--color-purple-300: var(--rx-border);
+	--color-purple-400: var(--rx-input);
+	--color-purple-50: var(--rx-background);
+	--color-purple-500: var(--rx-input);
+	--color-purple-600: var(--rx-input);
+	--color-purple-700: var(--rx-muted-foreground);
+	--color-purple-800: var(--rx-muted-foreground);
+	--color-purple-950: var(--rx-foreground);
+	--color-red-100: var(--rx-danger);
+	--color-red-200: var(--rx-danger);
+	--color-red-300: var(--rx-danger);
+	--color-red-400: var(--rx-destructive);
+	--color-red-50: var(--rx-danger);
+	--color-red-500: var(--rx-destructive);
+	--color-red-600: var(--rx-destructive);
+	--color-red-700: var(--rx-destructive);
+	--color-red-800: var(--rx-danger-foreground);
+	--color-red-900: var(--rx-danger-foreground);
+	--color-red-950: var(--rx-danger-foreground);
+	--color-rose-100: var(--rx-danger);
+	--color-rose-300: var(--rx-danger);
+	--color-rose-400: var(--rx-destructive);
+	--color-rose-50: var(--rx-danger);
+	--color-rose-500: var(--rx-destructive);
+	--color-rose-600: var(--rx-destructive);
+	--color-rose-700: var(--rx-destructive);
+	--color-rose-950: var(--rx-danger-foreground);
+	--color-sky-400: var(--rx-input);
+	--color-sky-50: var(--rx-background);
+	--color-slate-200: var(--rx-border);
+	--color-slate-700: var(--rx-muted-foreground);
+	--color-slate-800: var(--rx-foreground);
+	--color-teal-100: var(--rx-success);
+	--color-teal-200: var(--rx-success);
+	--color-teal-300: var(--rx-success);
+	--color-teal-400: var(--rx-success);
+	--color-teal-50: var(--rx-success);
+	--color-teal-500: var(--rx-success);
+	--color-teal-600: var(--rx-success-foreground);
+	--color-teal-700: var(--rx-success-foreground);
+	--color-teal-800: var(--rx-success-foreground);
+	--color-teal-900: var(--rx-success-foreground);
+	--color-teal-950: var(--rx-success-foreground);
+	--color-violet-300: var(--rx-border);
+	--color-violet-400: var(--rx-input);
+	--color-violet-500: var(--rx-input);
+	--color-violet-600: var(--rx-muted-foreground);
+	--color-violet-700: var(--rx-muted-foreground);
+	--color-white: var(--rx-background);
+	--color-yellow-100: var(--rx-warning);
+	--color-yellow-200: var(--rx-warning);
+	--color-yellow-300: var(--rx-warning);
+	--color-yellow-400: var(--rx-warning);
+	--color-yellow-50: var(--rx-warning);
+	--color-yellow-500: var(--rx-warning);
+	--color-yellow-600: var(--rx-warning-foreground);
+	--color-yellow-700: var(--rx-warning-foreground);
+	--color-yellow-800: var(--rx-warning-foreground);
+	--color-yellow-900: var(--rx-warning-foreground);
+	--color-yellow-950: var(--rx-warning-foreground);
+	--color-zinc-100: var(--rx-muted);
+	--color-zinc-200: var(--rx-border);
+	--color-zinc-300: var(--rx-border);
+	--color-zinc-400: var(--rx-input);
+	--color-zinc-50: var(--rx-background);
+	--color-zinc-500: var(--rx-muted-foreground);
+	--color-zinc-600: var(--rx-muted-foreground);
+	--color-zinc-700: var(--rx-muted-foreground);
+	--color-zinc-800: var(--rx-foreground);
+	--color-zinc-900: var(--rx-foreground);
+	--color-zinc-950: var(--rx-foreground);
+}
+html.dark {
+	--color-primary: 217.5 23.5% 93.3%;
+	--color-primary-foreground: 220 27.3% 6.5%;
+	--color-primary-hover: 217.5 7.1% 78%;
+	--color-secondary: 220 16.9% 17.5%;
+	--color-secondary-foreground: 222 21.7% 91%;
+	--color-secondary-hover: 220 13.8% 21.4%;
+	--color-accent: 220 16.9% 17.5%;
+	--color-accent-foreground: 222 21.7% 91%;
+	--color-background: 220 27.3% 6.5%;
+	--color-foreground: 217.5 23.5% 93.3%;
+	--color-muted: 221.5 16.5% 15.5%;
+	--color-muted-foreground: 217.1 13.2% 68.8%;
+	--color-card: 218.2 20% 10.8%;
+	--color-card-foreground: 217.5 23.5% 93.3%;
+	--color-border: 216.9 14.6% 17.5%;
+	--color-input: 218.2 9.4% 45.9%;
+	--color-ring: 214.3 87% 66.9%;
+	--color-destructive: 359.6 62.1% 48.6%;
+	--color-destructive-foreground: 0 45.5% 97.8%;
+	--color-success: 147.5 72.7% 12.9%;
+	--color-success-foreground: 136.7 67.2% 73.7%;
+	--color-warning: 30.5 86.7% 14.7%;
+	--color-warning-foreground: 33.3 98.5% 74.5%;
+	--rx-background: oklch(0.17 0.013 262);
+	--rx-foreground: oklch(0.945 0.008 262);
+	--rx-card: oklch(0.215 0.015 262);
+	--rx-card-foreground: oklch(0.945 0.008 262);
+	--rx-popover: oklch(0.265 0.018 262);
+	--rx-popover-foreground: oklch(0.945 0.008 262);
+	--rx-primary: oklch(0.69 0.15 256);
+	--rx-primary-foreground: oklch(0.17 0.02 262);
+	--rx-secondary: oklch(0.285 0.019 262);
+	--rx-secondary-foreground: oklch(0.925 0.01 262);
+	--rx-muted: oklch(0.265 0.017 262);
+	--rx-muted-foreground: oklch(0.745 0.021 262);
+	--rx-accent: oklch(0.315 0.025 262);
+	--rx-accent-foreground: oklch(0.945 0.008 262);
+	--rx-destructive: oklch(0.55 0.19 26);
+	--rx-destructive-foreground: oklch(0.98 0.005 26);
+	--rx-border: oklch(0.288 0.017 262);
+	--rx-edge: oklch(0.375 0.022 262);
+	--rx-input: oklch(0.55 0.024 262);
+	--rx-ring: oklch(0.7 0.14 256);
+	--rx-success: oklch(0.305 0.068 155);
+	--rx-success-foreground: oklch(0.86 0.125 152);
+	--rx-warning: oklch(0.305 0.065 62);
+	--rx-warning-foreground: oklch(0.86 0.11 72);
+	--rx-danger: oklch(0.305 0.1 25);
+	--rx-danger-foreground: oklch(0.86 0.075 25);
+	--rx-info: oklch(0.305 0.09 255);
+	--rx-info-foreground: oklch(0.86 0.068 250);
+	--rx-scrim: oklch(0.06 0.015 262 / 0.72);
+	--rx-ground-ink: 0.09;
+	--rx-ground-wash: 0.07;
+	--rx-night-star: 0.5;
+	--rx-night-star-bright: 0.85;
+	--rx-night-aurora: 0.32;
+	--rx-night-veil: 0.82;
+	--rx-sky-far: radial-gradient( circle at 48.6% 47.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.73px, transparent 1.33px ), radial-gradient( circle at 26.4% 75.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.58px, transparent 1.18px ), radial-gradient( circle at 15.3% 17.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.67px, transparent 1.27px ), radial-gradient( circle at 48.8% 98.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.58px, transparent 1.18px ), radial-gradient( circle at 11.2% 75.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.6px, transparent 1.2px ), radial-gradient( circle at 46.7% 66.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.67px, transparent 1.27px ), radial-gradient( circle at 50.6% 51.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.65px, transparent 1.25px ), radial-gradient( circle at 97.6% 45.6%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.59px, transparent 1.19px ), radial-gradient( circle at 47.8% 60.2%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.71px, transparent 1.31px ), radial-gradient( circle at 43.8% 6.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.78px, transparent 1.38px ), radial-gradient( circle at 25.9% 48.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.57px, transparent 1.17px ), radial-gradient( circle at 18.1% 25.4%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.51px, transparent 1.11px ), radial-gradient( circle at 83.7% 55.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.56px, transparent 1.16px ), radial-gradient( circle at 12.9% 33.4%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.6px, transparent 1.2px );
+	--rx-sky-far-size: 587px 587px;
+	--rx-sky-near: radial-gradient( circle at 35.0% 31.6%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1px, transparent 1.6px ), radial-gradient( circle at 52.4% 6.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.11px, transparent 1.71px ), radial-gradient( circle at 71.7% 54.5%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.2px, transparent 1.8px ), radial-gradient( circle at 97.8% 32.3%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.1px, transparent 1.7px ), radial-gradient( circle at 47.8% 11.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 0.99px, transparent 1.59px ), radial-gradient( circle at 29.4% 96.2%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.14px, transparent 1.74px ), radial-gradient( circle at 38.6% 20.8%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 0.96px, transparent 1.56px ), radial-gradient( circle at 46.9% 56.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.2px, transparent 1.8px ), radial-gradient( circle at 63.9% 57.8%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.22px, transparent 1.82px );
+	--rx-sky-near-size: 839px 839px;
+	--rx-sky-bright-a: radial-gradient( circle at 47.3% 4.3%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.59px, transparent 2.19px ), radial-gradient( circle at 86.5% 23.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.77px, transparent 2.37px ), radial-gradient( circle at 15.5% 46.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.7px, transparent 2.3px );
+	--rx-sky-bright-a-size: 1049px 1049px;
+	--rx-sky-bright-b: radial-gradient( circle at 73.2% 5.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.42px, transparent 2.02px ), radial-gradient( circle at 33.3% 88.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.61px, transparent 2.21px ), radial-gradient( circle at 42.2% 64.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.41px, transparent 2.01px );
+	--rx-sky-bright-b-size: 1223px 1223px;
+	--color-amber-100: var(--rx-warning-foreground);
+	--color-amber-200: var(--rx-warning-foreground);
+	--color-amber-300: var(--rx-warning-foreground);
+	--color-amber-400: var(--rx-warning-foreground);
+	--color-amber-50: var(--rx-warning-foreground);
+	--color-amber-500: var(--rx-warning-foreground);
+	--color-amber-600: var(--rx-warning-foreground);
+	--color-amber-700: var(--rx-warning);
+	--color-amber-800: var(--rx-warning);
+	--color-amber-900: var(--rx-warning);
+	--color-amber-950: var(--rx-warning);
+	--color-black: var(--rx-background);
+	--color-blue-100: var(--rx-foreground);
+	--color-blue-200: var(--rx-foreground);
+	--color-blue-300: var(--rx-muted-foreground);
+	--color-blue-400: var(--rx-muted-foreground);
+	--color-blue-50: var(--rx-foreground);
+	--color-blue-500: var(--rx-input);
+	--color-blue-600: var(--rx-input);
+	--color-blue-700: var(--rx-input);
+	--color-blue-800: var(--rx-input);
+	--color-blue-900: var(--rx-border);
+	--color-blue-950: var(--rx-secondary);
+	--color-cyan-100: var(--rx-info-foreground);
+	--color-cyan-300: var(--rx-info-foreground);
+	--color-cyan-400: var(--rx-info-foreground);
+	--color-cyan-500: var(--rx-info-foreground);
+	--color-cyan-600: var(--rx-info-foreground);
+	--color-cyan-700: var(--rx-info);
+	--color-cyan-950: var(--rx-info);
+	--color-emerald-100: var(--rx-success-foreground);
+	--color-emerald-200: var(--rx-success-foreground);
+	--color-emerald-300: var(--rx-success-foreground);
+	--color-emerald-400: var(--rx-success-foreground);
+	--color-emerald-50: var(--rx-success-foreground);
+	--color-emerald-500: var(--rx-success-foreground);
+	--color-emerald-600: var(--rx-success-foreground);
+	--color-emerald-700: var(--rx-success);
+	--color-emerald-800: var(--rx-success);
+	--color-emerald-900: var(--rx-success);
+	--color-emerald-950: var(--rx-success);
+	--color-fuchsia-50: var(--rx-foreground);
+	--color-gray-100: var(--rx-foreground);
+	--color-gray-200: var(--rx-foreground);
+	--color-gray-300: var(--rx-foreground);
+	--color-gray-400: var(--rx-muted-foreground);
+	--color-gray-50: var(--rx-foreground);
+	--color-gray-500: var(--rx-input);
+	--color-gray-600: var(--rx-input);
+	--color-gray-700: var(--rx-border);
+	--color-gray-800: var(--rx-secondary);
+	--color-gray-900: var(--rx-card);
+	--color-gray-950: var(--rx-background);
+	--color-green-100: var(--rx-success-foreground);
+	--color-green-200: var(--rx-success-foreground);
+	--color-green-300: var(--rx-success-foreground);
+	--color-green-400: var(--rx-success-foreground);
+	--color-green-50: var(--rx-success-foreground);
+	--color-green-500: var(--rx-success-foreground);
+	--color-green-600: var(--rx-success-foreground);
+	--color-green-700: var(--rx-success);
+	--color-green-800: var(--rx-success);
+	--color-green-900: var(--rx-success);
+	--color-green-950: var(--rx-success);
+	--color-indigo-100: var(--rx-foreground);
+	--color-indigo-200: var(--rx-foreground);
+	--color-indigo-300: var(--rx-muted-foreground);
+	--color-indigo-400: var(--rx-muted-foreground);
+	--color-indigo-50: var(--rx-foreground);
+	--color-indigo-500: var(--rx-input);
+	--color-indigo-600: var(--rx-input);
+	--color-indigo-700: var(--rx-input);
+	--color-indigo-800: var(--rx-border);
+	--color-indigo-900: var(--rx-border);
+	--color-indigo-950: var(--rx-muted);
+	--color-neutral-100: var(--rx-foreground);
+	--color-neutral-200: var(--rx-foreground);
+	--color-neutral-300: var(--rx-foreground);
+	--color-neutral-400: var(--rx-muted-foreground);
+	--color-neutral-500: var(--rx-input);
+	--color-neutral-600: var(--rx-input);
+	--color-neutral-700: var(--rx-border);
+	--color-neutral-800: var(--rx-muted);
+	--color-neutral-900: var(--rx-card);
+	--color-neutral-950: var(--rx-background);
+	--color-orange-100: var(--rx-warning-foreground);
+	--color-orange-200: var(--rx-warning-foreground);
+	--color-orange-300: var(--rx-warning-foreground);
+	--color-orange-400: var(--rx-warning-foreground);
+	--color-orange-50: var(--rx-warning-foreground);
+	--color-orange-500: var(--rx-warning-foreground);
+	--color-orange-600: var(--rx-warning-foreground);
+	--color-orange-700: var(--rx-warning);
+	--color-orange-800: var(--rx-warning);
+	--color-orange-900: var(--rx-warning);
+	--color-orange-950: var(--rx-warning);
+	--color-pink-100: var(--rx-danger-foreground);
+	--color-pink-300: var(--rx-danger-foreground);
+	--color-pink-400: var(--rx-danger-foreground);
+	--color-pink-500: var(--rx-destructive);
+	--color-pink-700: var(--rx-destructive);
+	--color-pink-950: var(--rx-danger);
+	--color-purple-100: var(--rx-foreground);
+	--color-purple-200: var(--rx-foreground);
+	--color-purple-300: var(--rx-muted-foreground);
+	--color-purple-400: var(--rx-muted-foreground);
+	--color-purple-50: var(--rx-foreground);
+	--color-purple-500: var(--rx-input);
+	--color-purple-600: var(--rx-input);
+	--color-purple-700: var(--rx-input);
+	--color-purple-800: var(--rx-input);
+	--color-purple-950: var(--rx-border);
+	--color-red-100: var(--rx-danger-foreground);
+	--color-red-200: var(--rx-danger-foreground);
+	--color-red-300: var(--rx-danger-foreground);
+	--color-red-400: var(--rx-destructive);
+	--color-red-50: var(--rx-danger-foreground);
+	--color-red-500: var(--rx-destructive);
+	--color-red-600: var(--rx-destructive);
+	--color-red-700: var(--rx-destructive);
+	--color-red-800: var(--rx-destructive);
+	--color-red-900: var(--rx-danger);
+	--color-red-950: var(--rx-danger);
+	--color-rose-100: var(--rx-danger-foreground);
+	--color-rose-300: var(--rx-danger-foreground);
+	--color-rose-400: var(--rx-danger-foreground);
+	--color-rose-50: var(--rx-danger-foreground);
+	--color-rose-500: var(--rx-destructive);
+	--color-rose-600: var(--rx-destructive);
+	--color-rose-700: var(--rx-destructive);
+	--color-rose-950: var(--rx-danger);
+	--color-sky-400: var(--rx-muted-foreground);
+	--color-sky-50: var(--rx-foreground);
+	--color-slate-200: var(--rx-foreground);
+	--color-slate-700: var(--rx-border);
+	--color-slate-800: var(--rx-secondary);
+	--color-teal-100: var(--rx-success-foreground);
+	--color-teal-200: var(--rx-success-foreground);
+	--color-teal-300: var(--rx-success-foreground);
+	--color-teal-400: var(--rx-success-foreground);
+	--color-teal-50: var(--rx-success-foreground);
+	--color-teal-500: var(--rx-success-foreground);
+	--color-teal-600: var(--rx-success-foreground);
+	--color-teal-700: var(--rx-success);
+	--color-teal-800: var(--rx-success);
+	--color-teal-900: var(--rx-success);
+	--color-teal-950: var(--rx-success);
+	--color-violet-300: var(--rx-muted-foreground);
+	--color-violet-400: var(--rx-muted-foreground);
+	--color-violet-500: var(--rx-input);
+	--color-violet-600: var(--rx-input);
+	--color-violet-700: var(--rx-input);
+	--color-white: var(--rx-background);
+	--color-yellow-100: var(--rx-warning-foreground);
+	--color-yellow-200: var(--rx-warning-foreground);
+	--color-yellow-300: var(--rx-warning-foreground);
+	--color-yellow-400: var(--rx-warning-foreground);
+	--color-yellow-50: var(--rx-warning-foreground);
+	--color-yellow-500: var(--rx-warning-foreground);
+	--color-yellow-600: var(--rx-warning-foreground);
+	--color-yellow-700: var(--rx-warning);
+	--color-yellow-800: var(--rx-warning);
+	--color-yellow-900: var(--rx-warning);
+	--color-yellow-950: var(--rx-warning);
+	--color-zinc-100: var(--rx-foreground);
+	--color-zinc-200: var(--rx-foreground);
+	--color-zinc-300: var(--rx-foreground);
+	--color-zinc-400: var(--rx-muted-foreground);
+	--color-zinc-50: var(--rx-foreground);
+	--color-zinc-500: var(--rx-input);
+	--color-zinc-600: var(--rx-input);
+	--color-zinc-700: var(--rx-border);
+	--color-zinc-800: var(--rx-muted);
+	--color-zinc-900: var(--rx-card);
+	--color-zinc-950: var(--rx-background);
+}
+/* ── END GENERATED TOKENS ── */
+
+/* ── The ground and the sky: what the estate's applications are painted on ──
+ * The SAME layers as the estate shell (`Ground` in the light theme, `NightSky`
+ * in the dark one) and the sign-in (gitops/platform/authentik/estate/recomex.css),
+ * drawn from the generated `--rx-*` roles above. Their sections that paint a
+ * band of their own sit on top of it, as a card would in an application. */
+html body {
+  font-family: var(--font-sans);
+  color: var(--rx-foreground);
+  background-color: var(--rx-background);
+  -webkit-font-smoothing: antialiased;
+}
+html:not(.dark) body {
+  background-image:
+    radial-gradient(
+      ellipse 60% 50% at 8% 0%,
+      color-mix(in oklab, var(--rx-primary) calc(var(--rx-ground-wash) * 100%), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 100% 10%,
+      color-mix(in oklab, var(--rx-accent) calc(var(--rx-ground-wash) * 100%), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--rx-foreground) calc(var(--rx-ground-ink) * 100%), transparent) 1px,
+      transparent 1px
+    );
+  background-size: auto, auto, 1.5rem 1.5rem;
+  background-attachment: fixed;
+}
+/* Dark: what an application's CONTENT AREA shows (measured on Meridian: an
+   opaque `bg-background`, oklch 0.17, with the faint star fields and no
+   aurora — the aurora belongs to the chrome). night.css's three star fields,
+   as fixed, viewport-sized, pointer-less layers behind everything — the far and
+   near fields drifting, the bright stars twinkling, all still under reduced
+   motion. */
+html.dark::before,
+html.dark body::after,
+html.dark::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+}
+html.dark::before {
+  background-image: var(--rx-sky-bright-a), var(--rx-sky-bright-b);
+  background-size: var(--rx-sky-bright-a-size), var(--rx-sky-bright-b-size);
+}
+html.dark body::after {
+  background-image: var(--rx-sky-near);
+  background-size: var(--rx-sky-near-size);
+}
+html.dark::after {
+  background-image: var(--rx-sky-far);
+  background-size: var(--rx-sky-far-size);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.dark::before {
+    animation: rx-twinkle 9s ease-in-out infinite alternate;
+  }
+  html.dark body::after {
+    animation: rx-drift-near 600s steps(419) infinite;
+  }
+  html.dark::after {
+    animation: rx-drift-far 900s steps(293) infinite;
+  }
+}
+@keyframes rx-drift-near {
+  to {
+    background-position: -839px -839px;
+  }
+}
+@keyframes rx-drift-far {
+  to {
+    background-position: -587px -587px;
+  }
+}
+@keyframes rx-twinkle {
+  to {
+    opacity: 0.35;
+  }
+}
+/* Their top-level wrappers paint the page colour over the body; the ground must
+   show through them, as it does under an application's content. */
+body > div:first-of-type,
+main#main-content,
+main {
+  background-color: transparent;
+}
+/* Their pages wrap content in tinted BANDS (`bg-[hsl(var(--color-muted)/0.3)]`
+   sections) that lift the whole page off the estate's background; in an
+   application only cards carry a surface. Measured against Meridian at the same
+   point: this band was the difference between #12161d and #0b0e14. */
+main section {
+  background-color: transparent;
+}
+/* Their `glass-card` (a named component of theirs, not a generated class) paints
+   a translucent gradient with hard-coded colours — slate in the dark theme —
+   that no variable reaches. It becomes the estate's card: the card surface, the
+   estate's border, no glass blur. */
+[class~="glass-card"] {
+  background: var(--rx-card) !important;
+  border: 1px solid var(--rx-border) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+
+/* ── Their chrome, removed ─────────────────────────────────────────────────── */
+/* Their whole top header — logo, pill navigation, "Studio NEW", search, the
+   update clock, the theme toggle — and their mobile menu. The estate's bar
+   takes its place. */
+header[role="banner"],
+#mobile-menu {
+  display: none !important;
+}
+/* ── Room for the estate's bar (apps/pdfcraft-bar, fixed at the top) ───────── */
+/* The bar publishes its measured height as --recomex-bar-height; until it has
+   loaded, the same room is reserved from its known size (one 56px row on a
+   desktop; the section row under it on a phone), so nothing moves when it
+   arrives. Their sticky panels stick just below it instead of at the offset
+   their own header needed. */
+html {
+  --recomex-bar-fallback: 7.125rem;
+  scroll-padding-top: calc(var(--recomex-bar-height, var(--recomex-bar-fallback)) + 0.5rem);
+}
+@media (min-width: 768px) {
+  html {
+    --recomex-bar-fallback: 3.5rem;
+  }
+}
+html body {
+  padding-top: var(--recomex-bar-height, var(--recomex-bar-fallback));
+}
+main [class~="sticky"] {
+  top: calc(var(--recomex-bar-height, var(--recomex-bar-fallback)) + 0.5rem) !important;
+}
+
+/* Their footer: brand, social links, links to marketing pages. */
+footer {
+  display: none !important;
+}
+/* The hero at the top of a page: the gradient headline, the "132+ instrumente"
+   line, the big search. The one section that holds the page's h1. */
+main section:has(h1) {
+  display: none !important;
+}
+/* No gradient text anywhere: any text painted by background-clip is drawn in
+   the plain foreground instead. Attribute selector on the utility's NAME, which
+   is Tailwind's stable vocabulary, not a hashed class. */
+[class~="bg-clip-text"],
+[class*=" bg-clip-text"] {
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  color: var(--rx-foreground) !important;
+}
+
+/* Their project and social accounts, wherever a link to them appears — except
+   our own credit below. */
+a[href*="github.com"]:not(#recomex-credit),
+a[href*="x.com/"],
+a[href*="twitter.com"] {
+  display: none !important;
+}
+
+/* Links to their About / Contact / Privacy pages, which our front redirects to
+   the entry page anyway. FAQ stays: it is one of the four entry points. */
+a[href$="/about/"],
+a[href$="/contact/"],
+a[href$="/privacy/"],
+a[href$="/terms/"],
+a[href$="/cookies/"] {
+  display: none !important;
+}
+
+/* "Check for updates" asks GitHub for upstream's releases — meaningless for an
+   image we pin. recomex.js switches the automatic check off; this hides the
+   manual one. Its label is localised; both languages that can appear are listed. */
+button[aria-label="Verifică actualizări"],
+button[aria-label="Check for Updates"] {
+  display: none !important;
+}
+
+/* ── The credit: the one place their name appears ─────────────────────────── */
+/* Added by recomex.js. Small, quiet, bottom-right, above their content but out
+   of the way; legible in both themes (muted text on the card surface). */
+#recomex-credit {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 40;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--rx-border);
+  border-radius: 999px;
+  background-color: var(--rx-card);
+  color: var(--rx-muted-foreground);
+  font: 500 0.75rem/1.25rem var(--font-sans);
+  text-decoration: none;
+}
+#recomex-credit:hover {
+  color: var(--rx-foreground);
+  text-decoration: underline;
+}
+#recomex-credit:focus-visible {
+  outline: 2px solid var(--rx-ring);
+  outline-offset: 2px;
+}
+@media print {
+  #recomex-credit {
+    display: none;
+  }
+}

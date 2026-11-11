@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The alert-owner annotation KEY as values, for a piece that must write it inside a string or
+# a JSON pointer rather than as an object's own annotation (that case is ../render): one
+# local-config ConfigMap `alert-owner-key`, never rendered, holding
+#   PREFIX   alerts.<ESTATE_LABEL_DOMAIN>
+#   KEY      alerts.<ESTATE_LABEL_DOMAIN>/owner     (a message, a JMESPath string)
+#   POINTER  alerts.<ESTATE_LABEL_DOMAIN>~1owner    (the last segment of a JSON-patch path)
+# List it AFTER ../../whitelabel under the piece's `components:`; its values are read with
+# kustomize `replacements` (a delimiter that isolates the neutral `alerts/owner` word).
+resources:
+  - alert-owner-key.yaml
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_LABEL_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: alert-owner-key }
+        fieldPaths: [data.PREFIX]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: alert-owner-key, fieldPath: data.PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: alert-owner-key }
+        fieldPaths: [data.KEY]
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: ConfigMap, name: alert-owner-key }
+        fieldPaths: [data.POINTER]
+        options: { delimiter: "~1", index: 0 }

@@ -1,0 +1,21 @@
+# Used by a piece under `transformers:` (see render/kustomization.yaml for what it does).
+# Lives under components/ (though it is a transformers directory, not a Component) because the
+# bundle builder copies components/ beside the pieces it renders.
+# A transformers directory must emit transformer configs ONLY: kustomize hands every
+# resource it renders to the plugin loader, local-config ones included, so the two value
+# ConfigMaps render/ needed are deleted here, after render/ has used them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - render
+patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: whitelabel }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: alert-owner-line }

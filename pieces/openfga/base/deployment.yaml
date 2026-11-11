@@ -1,0 +1,341 @@
+# OpenFGA — the DATA PLANE. It answers "may this subject do this thing", and it
+# is never in the control plane's dependency chain: if autorizare is down, every
+# application still authorizes normally, it simply cannot CHANGE who may do what.
+# That property is the reason the two are split and it must survive every future
+# change to this file.
+#
+# ── THE PORT SPLIT (@rule OPS-2, decision D7) ────────────────────────────────
+#
+# OpenFGA's preshared keys are UNSCOPED: any holder can Check and can equally
+# Write tuples or replace the authorization model. OpenFGA has NO Ingress (every
+# consumer is in-cluster) so the edge is unavailable, and NetworkPolicy is L3/L4
+# and cannot filter by HTTP path. The separation is therefore made INSIDE the pod,
+# which turns an L7 requirement into an L4 one that NetworkPolicy can enforce:
+#
+#   container openfga      :8080  every path        <- Service openfga-admin
+#   container authzfilter  :8081  read paths only   <- Service openfga
+#                                 proxies to 127.0.0.1:8080
+#
+# networkpolicy.yaml then restricts :8080 to autorizare's pods and :8081 to the
+# consumer namespaces. Neither half is decoration: without the filter the ports
+# serve the same surface, and without the policy anything in the cluster can
+# reach the admin port directly.
+#
+# ── ONE ARGO APP, ONE DEPLOYMENT (decision D9) ───────────────────────────────
+#
+# Not the official Helm chart, and not the two-app split authentik uses.
+# That split exists only because a Helm Application's `source` is a chart version
+# and therefore cannot also carry git files. We deploy an IMAGE, so the constraint
+# does not apply, and putting the manifest behind chart values would hide exactly
+# the details this file exists to state.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfga
+  labels: { app: openfga }
+  annotations:
+    # Rotating the preshared key rewrites openfga-secrets; env is read once at
+    # process start, so without this the old key would keep working forever and
+    # nothing would error. Required by the require-reloader-annotation policy.
+    reloader.stakater.com/auto: "true"
+    # Required by the require-alert-annotation policy: a crashing Deployment must
+    # have a named owner alongside the Axiom crashloop monitor.
+    alerts/owner: WLOPSEMAIL
+spec:
+  # ONE replica in the base. The dev overlay runs TWO, with a PDB and a
+  # zero-unavailable rollout (2026-10-23): the authzfilter sidecar's tag moves
+  # with every autorizare deploy (D17), and with one replica each such deploy
+  # was a short estate-wide authorization outage. An environment raising it
+  # re-checks its nodes' request headroom and the namespace quota first.
+  replicas: 1
+  selector:
+    matchLabels: { app: openfga }
+  template:
+    metadata:
+      labels: { app: openfga }
+    spec:
+      # Harbor is a PRIVATE registry and the authzfilter sidecar comes from it:
+      # without this the kubelet pulls anonymously and fails with "no basic auth
+      # credentials", which reads like a missing image rather than a missing
+      # credential. harbor-pull is produced by harbor-pull-externalsecret.yaml in
+      # this same directory.
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+
+      initContainers:
+        # ── Fail LOUD, by name, before anything else runs ────────────────────
+        #
+        # The platform's hard rule (infrastructure/hetzner/CLAUDE.md, "New apps:
+        # secret schema is MANDATORY"): a pod that needs a secret crashloops with
+        # `MISSING REQUIRED SECRET: <key>` rather than starting degraded.
+        #
+        # It matters MORE here than for an ordinary app. OpenFGA started with an
+        # empty preshared key does not fail — viper reads an empty list, and the
+        # server answers every caller. The pod would be Ready, `/healthz` would
+        # return SERVING, and the only symptom would be that the authorization
+        # engine had stopped checking who was asking.
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - name: OPENFGA_AUTHN_PRESHARED_KEYS
+              valueFrom:
+                secretKeyRef: { name: openfga-secrets, key: OPENFGA_AUTHN_PRESHARED_KEYS }
+            - name: OPENFGA_DATASTORE_URI
+              valueFrom:
+                secretKeyRef: { name: openfga-db-app, key: uri }
+          command:
+            - sh
+            - -c
+            # One line per required key, asserted LITERALLY. Not a loop over key
+            # names: the kubelet expands command strings ($(VAR) escape syntax
+            # collapses `$$` to `$`), so an `eval v=\$$k` loop reaches sh as
+            # `v=$k` — the key NAME, always non-empty — and the assertion
+            # silently never fires. `${VAR:-}` passes through untouched.
+            - >-
+              [ -n "${OPENFGA_AUTHN_PRESHARED_KEYS:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_AUTHN_PRESHARED_KEYS" >&2; exit 1; };
+              [ -n "${OPENFGA_DATASTORE_URI:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_DATASTORE_URI" >&2; exit 1; };
+              echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+        # OpenFGA will not serve against an unmigrated datastore: `run` exits
+        # with "datastore requires migrations" and the pod crashloops with an
+        # error that reads like a connection problem.
+        #
+        # An initContainer rather than a Job, for the reason the autorizare
+        # Deployment states at length: a Job runs BESIDE the rollout and can lose
+        # the race, so a pod may start against a schema one migration behind and
+        # fail later, on whichever request happened to need the new column. Here
+        # the server does not start until the schema is current, and a failed
+        # migration fails the rollout. `openfga migrate` is idempotent, so
+        # running it on every pod start costs a no-op query.
+        - name: migrate
+          image: WLREGISTRY/mirror/docker.io/openfga/openfga:v1.19.0@sha256:b9543c46f1efd110968ef1d4db65194348651b99f11d013c63a5207c95a3b86c
+          args: ["migrate"]
+          env:
+            - name: OPENFGA_DATASTORE_ENGINE
+              value: postgres
+            - name: OPENFGA_DATASTORE_URI
+              valueFrom:
+                secretKeyRef: { name: openfga-db-app, key: uri }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: "1", memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # 65532, NUMERIC. The image declares `USER 65532` already (verified
+            # against the v1.19.0 amd64 config blob on Docker Hub: Chainguard
+            # static base, entrypoint /openfga), but stating it here is what
+            # makes the manifest reviewable without pulling the image, and it is
+            # what the kubelet needs when a future tag switches to a NAME.
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+      containers:
+        # ── The engine. ADMIN SURFACE. Reachable only by autorizare. ──────────
+        - name: openfga
+          image: WLREGISTRY/mirror/docker.io/openfga/openfga:v1.19.0@sha256:b9543c46f1efd110968ef1d4db65194348651b99f11d013c63a5207c95a3b86c
+          args: ["run"]
+          ports:
+            # The full API. Named `admin` rather than `http` so that a reader of
+            # the Services below cannot mistake which port is which.
+            - { name: admin, containerPort: 8080 }
+          env:
+            - name: OPENFGA_DATASTORE_ENGINE
+              value: postgres
+            - name: OPENFGA_DATASTORE_URI
+              valueFrom:
+                secretKeyRef: { name: openfga-db-app, key: uri }
+            # HTTP on 8080, explicit rather than defaulted, because the whole
+            # architecture is a statement about which port is which.
+            - name: OPENFGA_HTTP_ADDR
+              value: "0.0.0.0:8080"
+            # ── THE COLLISION THIS LINE EXISTS TO PREVENT ────────────────────
+            # OpenFGA's gRPC server DEFAULTS to 0.0.0.0:8081 (verified against
+            # .config-schema.json at tag v1.19.0), which is the port the
+            # authzfilter sidecar binds. The two containers share one network
+            # namespace, so with the default the sidecar loses the bind and exits
+            # "address already in use" — the app-facing port would then be served
+            # by OpenFGA's gRPC surface with no filter in front of it, which is
+            # the exact failure the port split exists to prevent.
+            #
+            # LOOPBACK, not 0.0.0.0. OpenFGA's HTTP server is a grpc-gateway that
+            # dials its own gRPC server, so gRPC must be up — but nothing outside
+            # this pod may speak it, and no Service exposes 8082. Binding
+            # loopback makes that true in the process, not only in the
+            # NetworkPolicy.
+            - name: OPENFGA_GRPC_ADDR
+              value: "127.0.0.1:8082"
+            # Same reasoning. Metrics default to 0.0.0.0:2112; nothing scrapes
+            # them today (the PodMonitor CRD is not installed on this cluster —
+            # see cnpg-cluster.yaml), so an open port would be surface with no
+            # consumer. Loopback keeps the endpoint available to a future
+            # in-pod scraper without exposing it now.
+            #
+            # NOTE for anyone reading docs/autorizare/01-architecture.md: its
+            # allowlist table lists `GET /metrics` as permitted on :8081. That is
+            # wrong twice over — metrics are on 2112, not on the HTTP port, and
+            # internal/authzfilter/filter.go's table does not include the path.
+            # The code is authoritative; the table needs correcting.
+            - name: OPENFGA_METRICS_ADDR
+              value: "127.0.0.1:2112"
+            # Preshared, not `none`. It is NOT the access control — the ports and
+            # the NetworkPolicy are (@rule OPS-2) — but an unauthenticated engine
+            # would make any pod that reached either port a full administrator,
+            # and it gives every call an attributable identity.
+            - name: OPENFGA_AUTHN_METHOD
+              value: preshared
+            - name: OPENFGA_AUTHN_PRESHARED_KEYS
+              valueFrom:
+                secretKeyRef: { name: openfga-secrets, key: OPENFGA_AUTHN_PRESHARED_KEYS }
+            - name: OPENFGA_LOG_LEVEL
+              value: info
+            # JSON, so the platform's log pipeline parses it rather than
+            # regexing prose. The upstream default is `text`.
+            - name: OPENFGA_LOG_FORMAT
+              value: json
+            # @rule D11 — ONE store per environment, separated internally by
+            # Modular Models. The playground creates stores through an
+            # unauthenticated UI, which is precisely the thing that must not
+            # exist here. Off by default at v1.19.0; set explicitly so a
+            # default change upstream cannot quietly open it.
+            - name: OPENFGA_PLAYGROUND_ENABLED
+              value: "false"
+          # Probed through the SIDECAR's port, not the admin port.
+          #
+          # The kubelet cannot reach a port a NetworkPolicy does not admit, so
+          # probing `admin` forced an address-based allowance on :8080 — and the
+          # reassurance that carried it ("a pod cannot source packets from these
+          # node addresses") is false for host-network pods, which source from
+          # exactly them. That made the UNSCOPED write surface — replace the
+          # authorization model, write any tuple — reachable from any
+          # host-network workload on either node. The allowance is now :8081
+          # only, so this probe has to go there too.
+          #
+          # It still measures OpenFGA, not the sidecar: `GET /healthz` is on the
+          # sidecar's allowlist and is forwarded to 127.0.0.1:8080 upstream, so
+          # a failing OpenFGA still fails this probe.
+          #
+          # THE COST, stated rather than buried: OpenFGA's liveness now depends
+          # on the sidecar process. If the sidecar dies, this probe fails and
+          # OpenFGA is restarted even though nothing was wrong with it. That is
+          # a deliberate trade — a container restart is recoverable, an exposed
+          # authorization-model write surface is not — but it is a real coupling
+          # and the first place to look if OpenFGA restarts for no visible
+          # reason.
+          # The NUMBER, not the name `app`: a probe's named port is resolved
+          # from the port list of the container it is declared on, and 8081
+          # belongs to the sidecar. `port: app` here resolves to nothing and the
+          # probe fails, which would read as OpenFGA being unhealthy.
+          # Deliberately SLACK, and the numbers are the point.
+          #
+          # `/healthz` is on the sidecar's allowlist, so it is FORWARDED to
+          # 127.0.0.1:8080 rather than answered locally. That is what keeps this
+          # probe a measurement of OpenFGA — but it also means OpenFGA's liveness
+          # now depends on the sidecar PROCESS being up. A sidecar that
+          # crashloops would otherwise kill a perfectly healthy OpenFGA with it,
+          # turning one container's fault into two.
+          #
+          # 15s before the first check and 6 consecutive failures at 20s means
+          # roughly two minutes of continuous sidecar absence before OpenFGA is
+          # restarted. A sidecar restart takes about two seconds, so an ordinary
+          # one passes unnoticed; only a genuinely broken sidecar — which has
+          # already taken the app-facing port down — reaches the threshold.
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 6
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+        # ── The read-only door. APP SURFACE. Every application talks here. ────
+        #
+        # @rule OPS-3 / decision D17 — a small Go binary we own
+        # (apps/autorizare-svc/cmd/authzfilter), shipped in the SAME image, from
+        # the same build and the same commit, as the control plane. Not nginx and
+        # not Envoy: the residual risk D7 names is a bug in the ALLOWLIST, and a
+        # Go table is unit-testable against the complete OpenFGA endpoint list, so
+        # an endpoint added upstream fails a test rather than silently passing
+        # through. In nginx that allowlist is config, where the test does not
+        # exist.
+        #
+        # It holds no credential, makes no authorization decision and keeps no
+        # state. Anything more would put it in the Check path, which is the one
+        # thing the architecture forbids.
+        - name: authzfilter
+          # The autorizare-svc image, running its second entrypoint. The overlay
+          # pins the tag; CI bumps it here AND in the autorizare overlay, because
+          # one image serves both and a half-bumped pair would run a filter from
+          # a different commit than the service it was tested with.
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/authzfilter"]
+          ports:
+            - { name: app, containerPort: 8081 }
+          env:
+            # MUST be loopback. cmd/authzfilter/main.go refuses to start
+            # otherwise — "OPENFGA_UPSTREAM must be loopback — the filter is a
+            # sidecar, not a gateway" — because a filter aimed anywhere else is
+            # an open proxy onto whatever it was aimed at. Stated explicitly
+            # rather than left to the binary's default so the pairing with
+            # OPENFGA_HTTP_ADDR above is visible in one screen.
+            - name: OPENFGA_UPSTREAM
+              value: "http://127.0.0.1:8080"
+            - name: LISTEN_ADDR
+              value: ":8081"
+          # Probed through the FILTER, on the filter's own port, not against
+          # OpenFGA directly. `GET /healthz` is in the allowlist, so a passing
+          # probe proves the whole chain a caller uses — the filter is up, the
+          # allowlist matched, and the proxy reached OpenFGA. A probe that
+          # bypassed the filter would report healthy while the app-facing port
+          # was refusing everything.
+          livenessProbe:
+            httpGet: { path: /healthz, port: app }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /healthz, port: app }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # 65532 is distroless nonroot's uid. NUMERIC, and required: a
+            # distroless image declares `USER nonroot` by NAME, and the kubelet
+            # cannot prove a name is not root — it refuses to start the container
+            # with "image has non-numeric user (nonroot), cannot verify user is
+            # non-root" rather than trusting it. runAsNonRoot alone is therefore
+            # not a working setting on that base image, only an intended one.
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }

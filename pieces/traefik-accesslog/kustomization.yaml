@@ -1,0 +1,9 @@
+# SEB piece `traefik-accesslog`: k3s's Traefik values (JSON access logs, http→https,
+# the tailnet entrypoint) as a HelmChartConfig. Delivered in the SEB bundle, rendered at
+# build time (seb/tools/bundle/build.mjs). The HelmChartConfig stays in kube-system (no
+# namespace override): k3s's helm-controller reads it there by name. Same for every estate;
+# no estate value in it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - base

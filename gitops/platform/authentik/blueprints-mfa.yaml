@@ -1,0 +1,216 @@
+# Authentik Blueprint ConfigMap — ENFORCED, SELF-ENROLLABLE MFA (config-as-code).
+# Mounted by the chart at /blueprints/custom/ (blueprints.configMaps in
+# gitops/apps/overlays/dev/authentik.yaml) and reconciled by the worker on boot.
+# Additive + idempotent: identifiers are stable names; re-applies cleanly.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# THE GOAL: MFA mandatory for everyone, but a user WITHOUT a device is GUIDED to
+# enrol one on first login — NEVER denied. This is the only safe way to enforce
+# MFA on `default-authentication-flow`, because that flow is used by EVERY OIDC
+# provider login (Argo / Harbor / OpenBao / Headlamp / dashboards…) AND by
+# akadmin (local break-glass) and silviuiacobivfuture — none of whom may have a
+# device registered yet. Deny-on-missing-device would lock them all out.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHAT THIS DOES (minimal blast radius — NO new flow, NO new stage binding)
+# The default flow ALREADY ships with the validation stage bound at order 30:
+#
+#   default-authentication-flow (slug, designation=authentication):
+#     10  default-authentication-identification   (IdentificationStage)
+#     20  default-authentication-password         (PasswordStage)
+#     30  default-authentication-mfa-validation    (AuthenticatorValidateStage)  ← we reconfigure THIS
+#    100  default-authentication-login            (UserLoginStage)
+#
+# Out of the box that validate stage has not_configured_action=`skip` and NO
+# configuration_stages → MFA is effectively OPTIONAL. We re-declare the SAME
+# stage (matched by its stable name, so we mutate in place, we do NOT add a
+# second stage or a new binding) and flip two fields:
+#
+#   not_configured_action = configure   ← user with NO device is sent to enrol
+#   configuration_stages  = [TOTP setup]  ← what they enrol with (TOTP only)
+#
+# RESULT, per user state at login:
+#   • Has a device  → prompted to satisfy MFA (TOTP code / passkey). Enforced.
+#   • Has NO device → because action=configure, the flow DETOURS into the chosen
+#     configuration stage (TOTP, or WebAuthn) so they set one up right now, then
+#     continues. They are onboarded, NOT denied.  ← THE NO-LOCKOUT GUARANTEE.
+#
+# Because we only mutate the existing order-30 stage, the flow order is unchanged
+# (id → password → mfa → login) and no other binding is touched.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVICE CLASSES — TOTP ONLY (owner, 2026-10-22, verbatim intent: "username +
+# password with TOTP mandatory 2FA. Nothing else: no security keys/WebAuthn/
+# Bluetooth, no GitHub login, no Google, nothing, anywhere.")
+#   Accepted AND offered: `totp` alone. WebAuthn (passkeys, security keys,
+#   Bluetooth/hybrid) and `static` (recovery codes) are neither accepted at login
+#   nor enrollable: the two stock setup flows are closed by a deny policy below
+#   (they are owned by Authentik's SYSTEM blueprints, which would recreate them if
+#   deleted, so they are refused rather than removed). A person who only had a
+#   passkey is sent to enrol TOTP at their next login (action=configure).
+#   Existing WebAuthn/static devices are deleted by repair.sh and counted by
+#   doctor.sh ("Authentik second factor is TOTP only").
+#   A lost phone is an ADMIN reset — never the emailed link, which resets the
+#   password only: infrastructure/hetzner/RUNBOOK.md, "Authentik: reset a TOTP".
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# BREAK-GLASS / NO-LOCKOUT — read before applying
+#   • akadmin keeps working: on its first login post-apply it will be guided to
+#     enrol a TOTP/WebAuthn device (action=configure), it is NEVER denied. If you
+#     want zero friction for break-glass, enrol akadmin a TOTP device BEFORE the
+#     enforcement window — but it is not required to avoid lockout.
+#   • Recovery flow (default-recovery-flow) is untouched — akadmin can always
+#     recover via the local recovery path.
+#   • This blueprint does NOT change the identification or password stages, so
+#     existing credentials keep working; MFA is layered on top.
+#   • TOTP + WebAuthn enrolment stages referenced here are authentik's stock
+#     stages (default-authenticator-totp-setup / default-authenticator-webauthn-setup),
+#     which already exist — we only reference them, never recreate them.
+#
+# ROLLBACK: set not_configured_action back to `skip` and empty configuration_stages
+# (or remove this ConfigMap from kustomization.yaml and re-apply). MFA reverts to
+# optional immediately; nobody is locked out either way.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-mfa
+  namespace: authentik
+data:
+  mfa.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-enforced-mfa
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # ── Re-declare the EXISTING validate stage, flipping it to enforce+enrol ─
+      # Matched by name → mutates the stock stage in place (already bound at
+      # order 30 in default-authentication-flow). No new binding is created.
+      - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        identifiers:
+          name: default-authentication-mfa-validation
+        attrs:
+          # ENFORCE: a user with no configured device is routed into a
+          # configuration stage instead of being skipped past or denied.
+          not_configured_action: configure
+          # TOTP is the ONLY factor (see DEVICE CLASSES above).
+          device_classes:
+            - totp
+          # What a deviceless user is sent to set up: TOTP, nothing else.
+          configuration_stages:
+            - !Find [authentik_stages_authenticator_totp.authenticatortotpstage, [name, default-authenticator-totp-setup]]
+          # Re-validate every login (don't trust a long-lived "passed MFA" cookie).
+          last_auth_threshold: seconds=0
+
+      # ── A FEDERATED login is challenged exactly like a password login ────────
+      # `default-source-authentication` is the flow a Google (or GitHub) sign-in
+      # runs, and it ships with ONE stage: the login itself. A federated user was
+      # therefore admitted with NO second factor, while a password user was
+      # challenged at order 30 above. The weakest path defines the perimeter, so
+      # enforcing MFA on one flow and not the other enforced nothing — and with
+      # `user_matching_mode: email_link` on the source, whoever holds the Google
+      # account for a superuser's address inherited that superuser's session.
+      #
+      # BOTH bindings are declared, by (target, stage). The second one exists to
+      # MOVE the stock login binding from order 0 to 10 rather than to create
+      # anything: two bindings sharing an order leaves the sequence undefined,
+      # and the one order that must be certain is "factor before session".
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+          stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, default-authentication-mfa-validation]]
+        attrs:
+          order: 0
+          evaluate_on_plan: true
+          re_evaluate_policies: false
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-source-authentication-login]]
+        attrs:
+          order: 10
+
+      # ── After ENROLLING TOTP, prove it once more in the same sign-in ─────────
+      # Measured on dev 2026-10-22 through the login hub's broker client: when
+      # the order-30 stage SETS UP the authenticator instead of validating one
+      # (a person's first sign-in), Authentik records the login as password-only
+      # — the id_token says `amr: ["pwd"]` — and the hub, which requires "mfa",
+      # refuses that person's very first sign-in. Every later sign-in carries
+      # `["pwd", "mfa"]`. So this stage asks for one code from the app just
+      # enrolled, which is what marks the login as two-factor. It runs ONLY when
+      # the order-30 stage did not validate a device: the policy reads the
+      # login's own record of the devices it used (`auth_method_args.mfa_devices`,
+      # set by the validate stage), re-evaluated when the stage is reached.
+      # Cost: on the first sign-in only, one more code (and, because a TOTP code
+      # cannot be used twice, possibly a wait for the next one, at most 30 s).
+      - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        id: mfa-confirm
+        identifiers:
+          name: WLSLUG-mfa-confirm-after-enrolment
+        attrs:
+          device_classes:
+            - totp
+          not_configured_action: deny
+          last_auth_threshold: seconds=0
+      - model: authentik_policies_expression.expressionpolicy
+        id: mfa-not-yet-validated
+        identifiers:
+          name: WLSLUG-mfa-not-yet-validated
+        attrs:
+          expression: |
+            return "mfa_devices" not in (request.context.get("auth_method_args") or {})
+      - model: authentik_flows.flowstagebinding
+        id: bind-mfa-confirm
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          stage: !KeyOf mfa-confirm
+        attrs:
+          order: 35
+          evaluate_on_plan: false
+          re_evaluate_policies: true
+      - model: authentik_policies.policybinding
+        identifiers:
+          policy: !KeyOf mfa-not-yet-validated
+          target: !KeyOf bind-mfa-confirm
+          order: 0
+        attrs: { negate: false, enabled: true, timeout: 30 }
+
+      # ── WebAuthn and recovery codes cannot be enrolled (TOTP only) ───────────
+      # The stock setup flows belong to Authentik's system blueprints and come
+      # back if deleted, so each is REFUSED instead: a flow whose policy fails is
+      # not applicable, and the user-settings page cannot start it.
+      - model: authentik_policies_expression.expressionpolicy
+        id: deny
+        identifiers:
+          name: WLSLUG-totp-only-deny
+        attrs:
+          expression: |
+            ak_message("Singurul al doilea factor acceptat este aplicația de autentificare (TOTP).")
+            return False
+      # The two flows are named as entries (no attrs: nothing about them changes)
+      # so the bindings can target them by `!KeyOf`. A `!Find` on a flow yields
+      # the flow's own primary key, which is NOT the policy-binding target key, so
+      # the importer cannot find the existing binding on the next reconcile, tries
+      # to create it again and fails the unique (policy, target, order) set — seen
+      # on dev 2026-10-22 (`mfa.yaml` → error on the second apply).
+      - model: authentik_flows.flow
+        id: webauthn-setup
+        identifiers:
+          slug: default-authenticator-webauthn-setup
+      - model: authentik_flows.flow
+        id: static-setup
+        identifiers:
+          slug: default-authenticator-static-setup
+      - model: authentik_policies.policybinding
+        identifiers:
+          policy: !KeyOf deny
+          target: !KeyOf webauthn-setup
+          order: 0
+        attrs: { negate: false, enabled: true, timeout: 30 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          policy: !KeyOf deny
+          target: !KeyOf static-setup
+          order: 0
+        attrs: { negate: false, enabled: true, timeout: 30 }

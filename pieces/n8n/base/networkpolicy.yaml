@@ -1,0 +1,113 @@
+# What n8n can reach. An n8n instance runs what people write and holds credentials to
+# everything, so this is the wall under every setting: k3s enforces policies
+# (pieces/openfga/base/networkpolicy.yaml says how that was verified). Each
+# refusal is proven from the running pod by gitops/services/n8n/selftest/, against a
+# control pod that reaches the same targets.
+#
+# Selecting a pod flips it to default-deny in both directions, so the rules below are
+# the complete list. Kubelet probes come from node addresses and the public addresses
+# of the nodes are per-environment, so the dev overlay adds both.
+#
+# THE DATABASE PODS ARE NOT SELECTED, the reasoning openfga's policy records: they
+# need the operator, its instance manager and barman's egress, and the first mistake
+# in that list is a database that stops backing up silently. n8n-db is reachable only
+# with its own password, from anywhere in the cluster; the runner cannot reach it.
+
+# n8n: Traefik in; DNS, its own database and the outside world out.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+      app.kubernetes.io/component: main
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Namespace AND pod label in ONE element: an AND. Two elements would be an OR, and
+    # a pod label is something any pod can put on itself.
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+      ports:
+        - { protocol: TCP, port: 5678 }
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: n8n
+              app.kubernetes.io/component: runner
+      ports:
+        - { protocol: TCP, port: 5679 }
+    # The seam for apps/n8n-sso: n8n's API, from a pod in THIS namespace (no
+    # namespaceSelector) that carries the label. Nothing carries it until that exists.
+    - from:
+        - podSelector:
+            matchLabels: { n8n/api-client: "true" }
+      ports:
+        - { protocol: TCP, port: 5678 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels: { cnpg.io/cluster: n8n-db }
+      ports:
+        - { protocol: TCP, port: 5432 }
+    # The internet, for the workflows that are the point of n8n, and nothing of ours:
+    # no private range (pods, Services, nodes, the API server, OpenBao, every other
+    # app's Postgres), no CGNAT (the tailnet), no link-local (the cloud metadata
+    # service). The nodes' PUBLIC addresses are refused in the overlay.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 0.0.0.0/8
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.0.0.0/24
+              - 192.168.0.0/16
+              - 198.18.0.0/15
+              - 224.0.0.0/4
+              - 240.0.0.0/4
+---
+# The runner: nothing in, the broker and DNS out. A Code node's HTTP helpers are done
+# by n8n; this pod has no business with any other address.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n-runner
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+      app.kubernetes.io/component: runner
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: n8n
+              app.kubernetes.io/component: main
+      ports:
+        - { protocol: TCP, port: 5679 }

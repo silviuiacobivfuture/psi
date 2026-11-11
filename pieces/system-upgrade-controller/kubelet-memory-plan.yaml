@@ -1,0 +1,67 @@
+# SUC Plans: the kubelet's memory settings on the LIVE nodes, as a k3s drop-in, one
+# node at a time, agent before control plane. Same shape as oidc-apiserver-plan.yaml.
+# A rebuilt node already has the same bytes (modules/k3s writes them from the same
+# files), so these Plans find nothing to do there. RUNBOOK 2026-11-02.
+#
+# SHIPS IN `hold`: merging does nothing to any node. A kubelet restart on every node
+# deserves an idle CI queue, so someone chooses the moment:
+#
+#   infrastructure/hetzner/scripts/kubelet-memory-mode.sh apply    # then commit and push
+#   infrastructure/hetzner/scripts/kubelet-memory-mode.sh remove   # the rollback
+#
+# That script moves KM_MODE and `spec.version` together. It must be both: SUC hashes
+# the Plan spec, not the ConfigMap, so a ConfigMap-only change is silently never
+# applied (the trap sprung on the OIDC Plan, 2026-10-29). The version therefore
+# carries a hash of the mode and the files, and scripts/tests/kubelet-memory.test.sh
+# fails when they disagree.
+#
+# ORDER. The server's script waits until every agent's configz shows the values; two
+# Plans are needed because one Plan orders nodes arbitrarily, and the sync waves
+# alone only order the apply (Argo treats a Plan as healthy at once).
+# NO cordon and NO drain: the restart keeps containers running.
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: kubelet-memory-agent
+  namespace: system-upgrade
+spec:
+  version: kubelet-memory-apply-12e277c6
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  cordon: false
+  upgrade:
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envs:
+      - { name: KM_ROLE, value: agent }
+    envFrom:
+      - configMapRef: { name: kubelet-memory }
+    command: ["/bin/sh", "-c"]
+    args: ['exec sh -c "$KM_APPLY_SH"']
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: kubelet-memory-server
+  namespace: system-upgrade
+spec:
+  version: kubelet-memory-apply-12e277c6
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  cordon: false
+  tolerations:
+    - { key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists }
+    - { key: CriticalAddonsOnly, operator: Exists }
+  upgrade:
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envs:
+      - { name: KM_ROLE, value: server }
+    envFrom:
+      - configMapRef: { name: kubelet-memory }
+    command: ["/bin/sh", "-c"]
+    args: ['exec sh -c "$KM_APPLY_SH"']

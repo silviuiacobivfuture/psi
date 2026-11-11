@@ -1,0 +1,105 @@
+# The DEDICATED, READ-ONLY Authentik API token the Plane SSO reconcile reads the
+# directory with — minted, permissioned and maintained as code, on the ONE
+# directory. Vega's shape (vega-token-reconcile.yaml) with its own ServiceAccount,
+# OpenBao role (authentik-plane-sso-token, openbao-bootstrap.sh) and slot,
+# secret/platform/authentik/plane-sso-api-token, which the plane namespace's
+# plane-sso ExternalSecret reads as AUTHENTIK_API_TOKEN.
+#
+# THE PERMISSION SET is two codenames. The reconcile
+# (apps/plane-sso/plane_sso/directory.py) lists users with their groups —
+# GET /api/v3/core/users/?include_groups=true — and nothing else. Authentik
+# filters a list route through view_, so view_user + view_group is the whole of
+# it: no write anywhere, nothing on providers, flows, tokens or settings.
+#
+# Until the first run fills the slot, the plane-sso-reconcile CronJob refuses to
+# start with `MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN` — loud, by design.
+# Run it now:
+#   kubectl -n authentik create job --from=cronjob/authentik-plane-sso-token-reconcile plane-sso-token-now
+# The script is the shared one (credential-token-reconcile-script.yaml):
+# read-before-write, additive only, never revokes.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authentik-plane-sso-token
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-plane-sso-token-reconcile
+  annotations:
+    alerts.recomex.eu/owner: WLOPSEMAIL
+spec:
+  schedule: "11,26,41,56 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: authentik-plane-sso-token-reconcile }
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: authentik-plane-sso-token
+          automountServiceAccountToken: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: script
+              configMap: { name: authentik-credential-token-reconcile }
+          containers:
+            - name: reconcile
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: script, mountPath: /script, readOnly: true }
+              env:
+                - name: AK_API
+                  value: http://authentik-server.authentik.svc.cluster.local:80
+                - name: JOB_NAME
+                  value: authentik-plane-sso-token-reconcile
+                - name: AK_TOKEN_DESCRIPTION
+                  value: "plane-sso — reads users and their groups so Plane access follows Authentik groups (apps/plane-sso). Maintained by the authentik-plane-sso-token-reconcile CronJob."
+                - name: AK_SERVICE_ACCOUNT
+                  value: svc-plane-sso
+                - name: AK_ROLE
+                  value: plane-sso-directory-reader
+                - name: AK_TOKEN_IDENTIFIER
+                  value: plane-sso-api
+                - name: AK_PERMISSIONS
+                  value: >-
+                    authentik_core.view_user
+                    authentik_core.view_group
+                - name: AK_SIGNING_CERT
+                  value: "authentik Self-signed Certificate"
+                - name: AK_SIGNING_CERT_ENC
+                  value: "authentik%20Self-signed%20Certificate"
+                - name: BAO_ADDR
+                  value: http://openbao.openbao.svc:8200
+                - name: BAO_ROLE
+                  value: authentik-plane-sso-token
+                - name: TOKEN_SECRET_PATH
+                  value: platform/authentik/plane-sso-api-token
+                - name: TOKEN_SECRET_FIELD
+                  value: token
+                - name: AUTHENTIK_BOOTSTRAP_TOKEN
+                  valueFrom: { secretKeyRef: { name: authentik-env, key: AUTHENTIK_BOOTSTRAP_TOKEN } }
+              command: ["/bin/sh", "/script/reconcile.sh"]

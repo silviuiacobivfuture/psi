@@ -1,0 +1,94 @@
+# Novu ws — the socket.io server the browser Inbox connects to for live
+# unseen-count / new-message pushes. PUBLIC at novu-ws.<apex> (the apps'
+# NEXT_PUBLIC_NOVU_SOCKET_URL). Authenticates sockets with JWT_SECRET, so it MUST
+# hold the same value as the api — both read the one OpenBao property.
+# Version pin + evidence: see api.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-ws
+  labels: { app.kubernetes.io/name: novu-ws }
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-ws }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-ws }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: novu-app }
+          command:
+            - sh
+            - -c
+            - '[ -n "${JWT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: JWT_SECRET" >&2; exit 1; }; [ -n "${MONGO_URL:-}" ] || { echo "MISSING REQUIRED SECRET: MONGO_URL" >&2; exit 1; }; [ -n "${REDIS_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: REDIS_PASSWORD" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: ws
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/ws:3.19.0@sha256:68fca0aa089ca5062d5cb5078148458ce8d3e48cd19d28b5e22293eff22c6ee6
+          envFrom:
+            - configMapRef: { name: novu-config }
+            - secretRef: { name: novu-app }
+          env:
+            - { name: PORT, value: "3002" }
+            - { name: NODE_OPTIONS, value: "--max-old-space-size=384" }
+          ports:
+            - { name: http, containerPort: 3002 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          startupProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 4
+          resources:
+            requests: { cpu: 25m, memory: 160Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-ws
+  labels: { app.kubernetes.io/name: novu-ws }
+spec:
+  selector: { app.kubernetes.io/name: novu-ws }
+  ports:
+    - { name: http, port: 3002, targetPort: http }

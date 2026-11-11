@@ -1,0 +1,190 @@
+# Harbor housekeeping reconciler (as code for DB-stored config) — tag retention
+# on every project and a daily garbage collection. Same pattern as
+# harbor-oidc-reconcile.yaml: Harbor keeps both in its OWN database, so a
+# CronJob writes them through the API on a schedule and they survive a Harbor
+# database restore or a rebuild within one interval.
+#
+# The script is harbor-housekeeping.sh (configMapGenerator in kustomization.yaml):
+#   - keep the 20 most recently pushed artifacts of every repository, AND
+#   - always keep every tag that is deployed — derived at each run from Argo
+#     CD's rendered images (git) and every running pod. It refuses to write a
+#     policy when that derivation is empty.
+#   - always keep the platform bundle the estate's lock pins (estate/platform.lock,
+#     delivered as the ConfigMap platform-lock, key platform.lock, mounted at
+#     /lock). A bundle never runs in a pod, so only the lock names it. The run
+#     REFUSES a lock that is malformed, names a digest Harbor does not hold, or a
+#     digest without its version tag. The ConfigMap is REQUIRED (optional: false):
+#     the estate's upgrade step writes it with the lock, and a job without it does
+#     not start. Contract and proof: the delivery proof and its sample lock, and
+#     the housekeeping-lock gate.
+#   - retention runs hourly (it releases the project quota); GC runs daily at
+#     03:00, deleting untagged artifacts (it releases the disk). RUNBOOK 2026-11-04.
+#
+# Two CronJobs, one script:
+#   harbor-housekeeping-reconcile — every 30 min, writes policy + schedule only.
+#   harbor-housekeeping-run-now   — SUSPENDED, never scheduled. repair.sh runs it
+#     (kubectl -n harbor create job --from=cronjob/harbor-housekeeping-run-now …):
+#     dry-runs retention, refuses if anything deployed is in the result, runs
+#     it, then GC.
+# WHY: RUNBOOK 2026-10-29 (Harbor at 229.9 GB, no retention, no GC schedule,
+# dev-k3s-cp evicting pods at the disk line).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: harbor-housekeeping
+  namespace: harbor
+---
+# Running pods' images, cluster-wide — read only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: harbor-housekeeping-pod-images
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: harbor-housekeeping-pod-images
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: harbor-housekeeping-pod-images }
+subjects:
+  - { kind: ServiceAccount, name: harbor-housekeeping, namespace: harbor }
+---
+# What git renders: Argo CD Applications' status.summary.images — read only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: harbor-housekeeping-app-images
+  namespace: argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: harbor-housekeeping-app-images
+  namespace: argocd
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: harbor-housekeeping-app-images }
+subjects:
+  - { kind: ServiceAccount, name: harbor-housekeeping, namespace: harbor }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-housekeeping-reconcile
+  namespace: harbor
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  schedule: "7,37 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: harbor-housekeeping }
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: harbor-housekeeping
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: tmp
+              emptyDir: {}
+            - name: script
+              configMap: { name: harbor-housekeeping-script }
+            - name: lock
+              configMap: { name: platform-lock, optional: false }
+          containers:
+            - name: reconcile
+              image: alpine/k8s:1.30.3
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                - { name: script, mountPath: /script, readOnly: true }
+                - { name: lock, mountPath: /lock, readOnly: true }
+              env:
+                - { name: MODE, value: reconcile }
+                - { name: PLATFORM_LOCK, value: /lock/platform.lock }
+                - { name: REGISTRY_HOST, value: REGISTRY_HOST } # the estate's, from the identity (kustomization.yaml)
+                - name: HARBOR_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: harbor-admin, key: secret }
+              command: ["/bin/bash", "/script/harbor-housekeeping.sh"]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-housekeeping-run-now
+  namespace: harbor
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # Never scheduled: suspended, and only ever instantiated by repair.sh.
+  suspend: true
+  schedule: "0 0 31 2 *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels: { app: harbor-housekeeping }
+        spec:
+          restartPolicy: Never
+          serviceAccountName: harbor-housekeeping
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: tmp
+              emptyDir: {}
+            - name: script
+              configMap: { name: harbor-housekeeping-script }
+            - name: lock
+              configMap: { name: platform-lock, optional: false }
+          containers:
+            - name: run-now
+              image: alpine/k8s:1.30.3
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                - { name: script, mountPath: /script, readOnly: true }
+                - { name: lock, mountPath: /lock, readOnly: true }
+              env:
+                - { name: MODE, value: run-now }
+                - { name: PLATFORM_LOCK, value: /lock/platform.lock }
+                - { name: REGISTRY_HOST, value: REGISTRY_HOST } # the estate's, from the identity (kustomization.yaml)
+                - name: HARBOR_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: harbor-admin, key: secret }
+              command: ["/bin/bash", "/script/harbor-housekeeping.sh"]

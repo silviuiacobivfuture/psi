@@ -1,0 +1,325 @@
+# Plane's PUBLIC ingress — hand-written here instead of coming from the chart.
+#
+# WHY NOT THE CHART'S INGRESS (`ingress.enabled: false` in the Helm values)
+# ------------------------------------------------------------------------
+# chart 1.6.2 templates/ingress-traefik.yaml renders a traefik.io/v1alpha1
+# IngressRoute (not a networking.k8s.io/v1 Ingress) for ANY ingressClass value
+# starting with "traefik", and that IngressRoute template emits NO metadata
+# annotations at all — there is no values key that can add one. That loses, in one
+# go: the cert-manager cluster-issuer annotation, the Traefik entrypoint annotation,
+# the gethomepage.dev/* discovery annotations, and the Authentik forward-auth
+# middleware annotation. The only other branch (templates/ingress.yaml) renders a
+# real Ingress but sets `ingressClassName: {{ .Values.ingress.ingressClass }}` from
+# the SAME value — so a plain Ingress and `ingressClassName: traefik` are mutually
+# exclusive in this chart. Owning the object is the only way to get both.
+#
+# The route table below MIRRORS the chart's exactly (both branches agree):
+#   /god-mode → admin:3000   /spaces → space:3000   /api,/auth → api:8000
+#   /live → live:3000        /       → web:3000 (catch-all)
+# Traefik's Ingress provider orders routers by rule length, so the catch-all cannot
+# shadow the specific prefixes regardless of list order.
+#
+# SSO (apps/plane-sso, 2026-10-28) adds routes, never moves the chart's:
+#   /auth/authentik      → api:8000   GATED: the login endpoint. It trusts the
+#                                     X-authentik-* headers, which only this router's
+#                                     forward-auth sets (and overwrites when forged).
+#   the credential POSTs → api:8000   GATED: password, magic-code and sign-up forms,
+#                                     so neither Plane's public sign-up nor a leaked
+#                                     Plane password bypasses Authentik (and its MFA).
+#   static assets        → web:3000   GATED, no session check (one DB hit per asset
+#                                     would be a thousand on a cold load).
+#   /  (pages)           → web:3000   GATED + plane-session-check: a browser with no
+#                                     valid Plane session is sent to /auth/authentik/
+#                                     instead of Plane's own sign-in form.
+#   credential screens   → 302 /auth/authentik/   (plane-credential-routes):
+#                                     sign-in, sign-up, password set/reset/forgot.
+#   /sw.js               → web:3000   UNGATED: the retiring service worker.
+# Inside a loaded page the SSO guard (chart/plane-sso-web/guard.js, injected by
+# plane-web's nginx) sends any session 401 to /auth/authentik/, and HTML is
+# served no-store so no page load can skip the session check from cache.
+# UNCHANGED: /api, /auth (everything else), /live stay ungated — X-API-Key scripts and
+# the SPA's XHRs authenticate in Plane itself. God-mode keeps its own PASSWORD login
+# (/api/instances/admins/sign-in/, a separate admin cookie) as break-glass.
+#
+# DNS: `plane.WLDOMAIN` is served by the estate wildcard (*.<estate domain>)
+# (OpenTofu, modules/dns), the same way cloud.WLDOMAIN is. external-dns runs with
+# `sources: [ingress]` but excludes the nodes' private 10.x addresses (no CCM/LB on
+# the dev profile), so it publishes nothing for this record today — see
+# gitops/apps/base/external-dns.yaml. Nothing to do here; noted so the annotation
+# set is not mistaken for a working external-dns wiring.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plane
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # ---- SSO gate -----------------------------------------------------------
+    # Plane's NATIVE OIDC is a paid feature, so the whole site is gated at the edge
+    # by Authentik forward-auth instead. Rationale, licence details and the upgrade
+    # path are in pieces/plane/values.yaml — read that before changing
+    # this line. Middleware is namespaced as "<ns>-<name>@kubernetescrd"
+    # (gitops/platform/authentik/middleware-forwardauth.yaml).
+    #
+    # ORDER MATTERS: forward-auth runs FIRST so an unauthenticated request is
+    # redirected to Authentik before Traefik buffers its body.
+    #
+    # NOTE, flagged rather than assumed: this is the FIRST real consumer of that
+    # middleware — its own header says "not attached to any existing ingress here",
+    # and the three apps that look like precedents (netdata-gate, hub-gate,
+    # browseruse-webui-gate in ingress-proxied-apps.yaml) use the *proxy-mode*
+    # embedded outpost on the tailnet, which is a different mechanism. The
+    # forward_domain provider it targets is bound to the embedded outpost and scoped
+    # `cookie_domain: <estate domain>` (blueprints-providers.yaml → proxy-forwardauth),
+    # so plane's old and new hosts are both inside its cookie scope with no
+    # blueprint change.
+    # Also note that provider carries NO policy binding, so ANY authenticated
+    # Authentik user passes the gate; Plane's own account model is the second gate.
+    #
+    # SCOPE: this gate covers the BROWSER ENTRY POINTS only (/, /god-mode,
+    # /spaces). /api, /auth and /live moved to the ungated Ingress below on
+    # 2026-08-19 — gating them broke the app outright, see that header.
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plane-plane-body-limit@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Plane"
+    gethomepage.dev/description: "Projects, work items and boards"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "10"
+    gethomepage.dev/icon: "plane.png"
+    gethomepage.dev/href: "https://plane.WLDOMAIN"
+    # The Deployment that actually serves the catch-all route. The chart's own
+    # `app.kubernetes.io/name` label is the CHART name (plane-ce) on every workload,
+    # so it cannot distinguish them — the immutable per-workload label is `app.name`.
+    gethomepage.dev/pod-selector: "app.name=plane-plane-web"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plane.WLDOMAIN
+      http:
+        paths:
+          # Admin console. ADMIN_BASE_PATH defaults to /god-mode/ in the api, which
+          # is what every admin redirect is built against.
+          - path: /god-mode
+            pathType: Prefix
+            backend: { service: { name: plane-admin, port: { number: 3000 } } }
+          # Public "spaces" (published views).
+          - path: /spaces
+            pathType: Prefix
+            backend: { service: { name: plane-space, port: { number: 3000 } } }
+          # ---- SSO (apps/plane-sso) --------------------------------------------
+          # The Authentik login endpoint (+ /auth/authentik/session/). MUST stay on
+          # this gated router: the view trusts X-authentik-email only because the
+          # forward-auth middleware above deletes any client copy and sets its own.
+          # Longer than the ungated /auth prefix, so it always wins.
+          - path: /auth/authentik
+            pathType: Prefix
+            backend: { service: { name: plane-api, port: { number: 8000 } } }
+          # Plane's credential form POSTs (browser navigations, so a forward-auth
+          # 302 is followed normally). Exact paths; every other /auth/ endpoint —
+          # the SPA's XHRs (csrf token, email check, magic-code generation) and
+          # sign-out — stays on the ungated router.
+          - { path: /auth/sign-in/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/sign-up/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/magic-sign-in/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/magic-sign-up/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/spaces/sign-in/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/spaces/sign-up/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/spaces/magic-sign-in/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          - { path: /auth/spaces/magic-sign-up/, pathType: Exact, backend: { service: { name: plane-api, port: { number: 8000 } } } }
+          # The web app's static files: gated, but WITHOUT the per-request Plane
+          # session check the pages get (plane-web below). The list is the top of
+          # the web image's /usr/share/nginx/html (v1.4.1).
+          - { path: /assets, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /favicon, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /icons, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /plane-logos, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /manifest.json, pathType: Exact, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /site.webmanifest.json, pathType: Exact, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          # The SSO guard script every page loads (pieces/plane/
+          # plane-sso-web/guard.js). Static, so no session check, like the assets.
+          # /sw.js is NOT here any more: it moved to the ungated Ingress (below).
+          - { path: /plane-sso, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          # NOTE: /api, /auth and /live are deliberately NOT here — they live on
+          # the separate UNGATED Ingress below. The pages (/) are on plane-web.
+  tls:
+    - secretName: plane-tls
+      hosts:
+        - plane.WLDOMAIN
+---
+# The web app's PAGES — gated by Authentik AND by a valid Plane session.
+#
+# WHY A SECOND GATE: Authentik alone admits the person; Plane would then show its
+# own sign-in form, which is the second login the SSO exists to remove. The
+# plane-session-check middleware (below) asks the api whether this browser holds a
+# Plane session for the person Authentik just vouched for: yes → the page is
+# served; no → 302 to /auth/authentik/?next_path=<the page>, which signs them in
+# and comes back. It also catches the web app's own 401 bounce (a full reload of
+# "/?next_path=…"), so an expired Plane session goes through SSO too.
+#
+# ORDER MATTERS: authentik-forwardauth first (it sets X-authentik-email, which the
+# session check compares with the session's owner — a Plane session left by
+# someone else on a shared browser is not accepted), then the session check, then
+# the body limit.
+#
+# PRIORITY 1 — THE CATCH-ALL LOSES TO EVERY SPECIFIC ROUTE. Traefik ranks routers
+# by the LENGTH of their rule, not by path specificity. Path(`/sw.js`) (14 chars)
+# is shorter than PathPrefix(`/`) (15), so without this the gated catch-all won
+# /sw.js and the edge answered the retiring worker with a 302 to Authentik —
+# exactly what a worker script cannot follow (doctor FAIL on dev, 2026-10-28,
+# `curl https://plane.WLDOMAIN/sw.js` → 302). Lowering THIS router, and not
+# raising the ungated one, is deliberate: raising plane-api would let its /auth
+# prefix beat the gated /auth/authentik (invariant 2). Every other route on this
+# host is already longer than the catch-all, so only /sw.js changes.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plane-web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.priority: "1"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plane-plane-session-check@kubernetescrd,plane-plane-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plane.WLDOMAIN
+      http:
+        paths:
+          # Catch-all: the web SPA's pages.
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: plane-web, port: { number: 3000 } } }
+  tls:
+    - secretName: plane-tls
+      hosts:
+        - plane.WLDOMAIN
+---
+# Traefik forwardAuth against Plane itself (apps/plane-sso views.session_check).
+# In-cluster address: the check never leaves the pod network. 2xx = pass; the api's
+# 302 to /auth/authentik/ is handed to the browser as-is. No authResponseHeaders:
+# the check adds nothing to the request, it only decides.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plane-session-check
+spec:
+  forwardAuth:
+    address: http://plane-api.plane.svc.cluster.local:8000/auth/authentik/session/
+    trustForwardHeader: false
+---
+# UNGATED Ingress — the XHR/WebSocket surface. Same host, no forward-auth.
+#
+# WHY THIS EXISTS (verified on dev 2026-08-19): with the Authentik forward-auth
+# middleware on /api, every XHR the SPA makes is answered with a 302 to
+# auth.WLDOMAIN. A cross-origin redirect is UNRECOVERABLE for fetch() — the
+# browser cannot follow it and cannot read it — so the app rendered
+# "Looks like Plane didn't start up correctly!" while the backend was perfectly
+# healthy (the api logged 200s for the same path when called without the gate).
+# Traefik's access log showed the whole failure: /api/instances/, the error page's
+# own SVG and site.webmanifest.json all returning 302.
+#
+# A forward-auth gate is only safe on requests the BROWSER NAVIGATES to, where a
+# 302 is followed normally. It can never sit in front of an API a SPA calls.
+#
+# SECURITY: these paths are not unprotected — Plane authenticates them itself
+# (session cookie for the UI, X-API-Key for machine clients) and answers 401 to
+# anything unauthenticated. The Authentik gate on the entry points is what stops a
+# stranger reaching the UI at all; this split does not widen who can USE Plane, it
+# only stops the gate corrupting the app's own traffic. Keep signup disabled in
+# god-mode so a passer-by cannot self-register against the open /auth endpoints.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plane-api
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Body limit ONLY — deliberately no forward-auth here.
+    traefik.ingress.kubernetes.io/router.middlewares: plane-plane-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plane.WLDOMAIN
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend: { service: { name: plane-api, port: { number: 8000 } } }
+          - path: /auth
+            pathType: Prefix
+            backend: { service: { name: plane-api, port: { number: 8000 } } }
+          # Collaborative editing (hocuspocus; WebSocket upgrade).
+          - path: /live
+            pathType: Prefix
+            backend: { service: { name: plane-live, port: { number: 3000 } } }
+          # The RETIRING service worker (plane-sso-web/sw.js). Ungated on purpose: a
+          # browser fetches a worker script with redirects forbidden, so behind
+          # forward-auth an expired Authentik session would make the update check
+          # fail and keep an old worker installed. The file is static and public.
+          - { path: /sw.js, pathType: Exact, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+  tls:
+    - secretName: plane-tls
+      hosts:
+        - plane.WLDOMAIN
+---
+# Plane's own CREDENTIAL SCREENS, sent to SSO at the edge (2026-10-28).
+#
+# Sign-in, sign-up and the password screens (set / reset / forgot) of the web
+# app. A browser that asks for one is answered 302 /auth/authentik/ with its query
+# kept (so ?next_path= survives), and never receives the page that draws a form.
+# Ungated: the target is itself on the gated router, so Authentik still runs first.
+# The same routes are caught inside a loaded page by the SSO guard
+# (plane-sso-web/guard.js), and apps/plane-sso/test-web.sh fails an upgrade whose
+# web app has a credential route that is in neither. Longer than the catch-all /,
+# so these win over plane-web.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plane-credential-routes
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: plane-plane-credential-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plane.WLDOMAIN
+      http:
+        paths:
+          - { path: /sign-in, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /sign-up, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /signin, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /login, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /register, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+          - { path: /accounts, pathType: Prefix, backend: { service: { name: plane-web, port: { number: 3000 } } } }
+  tls:
+    - secretName: plane-tls
+      hosts:
+        - plane.WLDOMAIN
+---
+# Every path routed above → /auth/authentik/ plus the original query. The regex
+# matches the whole URL Traefik sees; nothing reaches plane-web.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plane-credential-redirect
+spec:
+  redirectRegex:
+    regex: '^https?://([^/]+)/[^?]*(\?.*)?$'
+    replacement: 'https://${1}/auth/authentik/${2}'
+    permanent: false
+---
+# Request body ceiling, replacing the chart's own `<release>-body-limit` Middleware
+# (templates/traefik-middleware.yaml), which is only rendered when the chart's
+# ingress is enabled. Same 20 MiB default the chart uses
+# (ingress.traefik.maxRequestBodyBytes), which must stay >= the api's own
+# FILE_SIZE_LIMIT (5 MiB, set in the plane-doc-store Secret) or uploads inside the
+# app's limit would be rejected at the proxy with an opaque 413.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plane-body-limit
+spec:
+  buffering:
+    maxRequestBodyBytes: 20971520

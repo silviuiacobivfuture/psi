@@ -1,0 +1,39 @@
+# Cluster collector — ONE pod for the whole cluster (singleton). Collects
+# Kubernetes events (k8sobjects receiver) → <estate>-<env>-k8s-events. Kept
+# separate from the agent so events aren't duplicated per node.
+# Config comes from the `otel-cluster` ConfigMap (generated per env in the overlay).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-cluster
+  labels: { app: otel-cluster }
+  annotations:
+    # Reloader: roll on axiom-token rotation (OpenBao -> ESO -> Secret -> roll),
+    # same opt-in chain as the app Deployments (gitops/apps/overlays/dev/reloader.yaml).
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: otel-cluster }
+  template:
+    metadata:
+      labels: { app: otel-cluster }
+    spec:
+      serviceAccountName: otel-collector
+      imagePullSecrets:
+        - name: harbor-pull
+      containers:
+        - name: otel-collector
+          image: WLREGISTRY/WLAPPS/otel-collector-journald:0.111.0
+          args: ["--config=/conf/cluster-config.yaml"]
+          env:
+            - name: AXIOM_TOKEN
+              valueFrom:
+                secretKeyRef: { name: axiom-token, key: AXIOM_TOKEN }
+          resources:
+            requests: { cpu: 25m, memory: 96Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+          volumeMounts:
+            - { name: config, mountPath: /conf }
+      volumes:
+        - { name: config, configMap: { name: otel-cluster } }

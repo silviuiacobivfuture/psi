@@ -1,0 +1,170 @@
+# ================================ THE AUTH SPLIT ==============================
+# TWO Ingress objects on ONE host, and the split is the single most important
+# decision in this service. Read this before adding a path to either.
+#
+#   reports.WLDOMAIN/      -> GATED by Authentik forward-auth (browser entry)
+#   reports.WLDOMAIN/ui    -> GATED   (the React bundle, browser navigation)
+#   reports.WLDOMAIN/api   -> UNGATED, ReportPortal's own bearer/API-key auth
+#   reports.WLDOMAIN/uat   -> UNGATED, ReportPortal's own auth service
+#
+# WHY, stated plainly because getting this wrong has already cost this platform
+# hours: a forward-auth gate answers an UNAUTHENTICATED request with a 302 to
+# auth.WLDOMAIN. A browser NAVIGATING to a page follows that redirect
+# normally, which is why it is the right gate for the UI. A machine caller cannot
+# follow it (curl gets a redirect to an HTML login form, not a 401), and a browser
+# `fetch()` can neither follow nor read a cross-origin redirect. On 2026-08-19 that
+# exact mistake put the gate in front of Plane's /api and broke the app outright
+# while the backend was perfectly healthy — see gitops/services/plane/base/ingress.yaml
+# and pieces/test-reports/base/ingress.yaml.
+#
+# ReportPortal is the case that failure mode was invented for: its whole purpose is
+# that TEST AGENTS POST RESULTS TO ITS REST API. Every agent — the CI import step in
+# .github/scripts/, any future runner, the RP CLI — authenticates with an API key
+# in an `Authorization: Bearer` header and cannot follow an SSO redirect. `/uat` is
+# on the ungated object for the same reason: it is the token endpoint the UI's own
+# fetch() calls and the one an agent hits to exchange credentials.
+#
+# THE PATHS ARE NOT GUESSES. They are the chart's own routing map, read from
+# templates/ingress/gateway-ingress.yaml in chart 26.8.12:
+#     /      -> <release>-index  :8080
+#     /ui    -> <release>-ui     :8080
+#     /uat   -> <release>-uat    :9999
+#     /api   -> <release>-api    :8585
+# The chart's own ingress templates are DISABLED (`ingress.enable: false`) because
+# they render an annotation-less object with no cert-manager, no Traefik entrypoint,
+# no forward-auth and no way to split the four paths across two Ingresses — the same
+# reason plane's chart ingress is disabled. The Service port is named `headless`
+# (the chart's name for it, a misnomer — the Services have real ClusterIPs).
+#
+# HOW TO VERIFY THE GATE IS NOT IN FRONT OF THE API (do this after any edit):
+#   kubectl -n reportportal get ingress reportportal-api \
+#     -o jsonpath='{.metadata.annotations}' | grep -c forwardauth   # must be 0
+#   curl -s -o /dev/null -w '%{http_code}' https://reports.WLDOMAIN/api/health
+#     # must be 200, NOT 302
+#   curl -s -o /dev/null -w '%{http_code}' https://reports.WLDOMAIN/
+#     # must be 302 (to auth.WLDOMAIN)
+# `doctor.sh` asserts the same split at the manifest level on every run.
+#
+# SECURITY POSTURE OF THE UNGATED PATHS
+#   ReportPortal's API is NOT anonymous — it rejects an unauthenticated request with
+#   401 and every write requires a project-scoped API key minted inside RP. What the
+#   ungated Ingress removes is the SECOND, outer gate, not the first. That is the
+#   same trade the test-reports `/ingest` path makes, one notch larger: RP's API can
+#   also READ launches, so an API key is a real credential and belongs in OpenBao,
+#   never in a workflow file.
+#   The RabbitMQ management API (15672) and OpenSearch (9200) are NOT exposed here
+#   at all — they are in-cluster only, and must stay that way.
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reportportal
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # ---- SSO gate — BROWSER ENTRY POINTS ONLY -------------------------------
+    # The same middleware Plane and test-reports use. It is namespaced as
+    # "<ns>-<name>@kubernetescrd" (gitops/platform/authentik/middleware-forwardauth.yaml)
+    # and its provider is cookie-scoped to dev.WLDOMAIN, so reports.WLDOMAIN
+    # is inside that scope with no Authentik blueprint change. The provider carries
+    # no policy binding: ANY authenticated Authentik user passes, which is the
+    # intent — ReportPortal's own account model is the second gate.
+    #
+    # The user's stated rule: the tailnet is for INFRA tools. This is not one, so it
+    # is public + SSO rather than tailnet-only.
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,reportportal-reportportal-csp@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "ReportPortal"
+    gethomepage.dev/description: "Test runs — history, trends, failure analysis"
+    gethomepage.dev/group: "Delivery"
+    gethomepage.dev/icon: "mdi-chart-box-outline"
+    gethomepage.dev/href: "https://reports.WLDOMAIN"
+    gethomepage.dev/pod-selector: "component=reportportal-ui"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: reports.WLDOMAIN
+      http:
+        paths:
+          # The React bundle. Listed BEFORE the catch-all for readability; Traefik's
+          # Ingress provider orders routers by rule LENGTH, so the longer prefixes
+          # always win regardless of declaration order.
+          - path: /ui
+            pathType: Prefix
+            backend:
+              service:
+                name: reportportal-ui
+                port: { name: headless }
+          # Catch-all: the index service, which is what a browser lands on.
+          # /api and /uat are NOT here — see the UNGATED object below.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reportportal-index
+                port: { name: headless }
+  tls:
+    - secretName: reportportal-tls
+      hosts:
+        - reports.WLDOMAIN
+---
+# UNGATED Ingress — the MACHINE surface. Same host, deliberately NO forward-auth.
+# Adding the middleware annotation here would break every reporting agent on its
+# next run, and it would break it in a way that looks like ReportPortal being down
+# rather than a routing change: the agent's POST would return an HTML login page
+# with a 200 or a 302 it cannot follow.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reportportal-api
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # NO router.middlewares key. Intentional. See the header.
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: reports.WLDOMAIN
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: reportportal-api
+                port: { name: headless }
+          - path: /uat
+            pathType: Prefix
+            backend:
+              service:
+                name: reportportal-uat
+                port: { name: headless }
+  tls:
+    - secretName: reportportal-tls
+      hosts:
+        - reports.WLDOMAIN
+---
+# Force sub-resource upgrades on the UI.
+#
+# WHY: ReportPortal's login page embeds ReportPortal's own external news feed, and
+# part of it is requested over plain http://. The browser therefore shows "Not
+# secure" even though the certificate is valid and verifies cleanly
+# (VERIFIED 2026-08-20: `ssl_verify_result=0`, and the browser's own panel says
+# "Certificate is valid"). It is textbook mixed content.
+#
+# The chart exposes NO toggle for that widget — grepped values.yaml for
+# news/analytics/telemetry/blog: nothing. So it cannot be removed from values, and
+# patching the upstream UI bundle is not something to own.
+#
+# `upgrade-insecure-requests` tells the browser to re-issue every http:// sub-resource
+# request as https:// before it is sent. The feed is served over https anyway, so the
+# upgrade succeeds and the warning goes away. Applied to the UI router ONLY — the API
+# router is untouched, because a CSP header on a machine API is pointless.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: reportportal-csp
+spec:
+  headers:
+    contentSecurityPolicy: "upgrade-insecure-requests"

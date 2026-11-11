@@ -1,0 +1,243 @@
+# n8n-sso: the identity layer beside n8n (apps/n8n-sso; read its CLAUDE.md before changing
+# anything here). It holds an API key of n8n's owner, narrowed to what it calls, so the wall
+# around it matters more than its code:
+#
+#   IN    estate-watch on 8080, for /healthz/upstream. Authentik's server and worker on 8080 (SCIM, bearer token). Traefik on 8080
+#         (the gated /sso/, and /sso/page.js alone ungated: page.yaml says why). Kubelet probes.
+#   OUT   DNS, n8n's port 5678 (and only because of the label below), Authentik's server.
+#
+# The label is the seam the install left: pieces/n8n/base/networkpolicy.yaml admits
+# port 5678 inside this namespace only from a pod carrying it. Nothing else may carry it.
+#
+# NOT IN THE BASE ON PURPOSE. overlays/dev names this directory the day the image exists in
+# Harbor (apps/n8n-sso/build.sh --push), so an install does not wait on an unpushed image.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-sso
+  labels:
+    app.kubernetes.io/name: n8n-sso
+  annotations:
+    # REQUIRED: every secret is env, read once at start.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n-sso
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n-sso
+        n8n/api-client: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: n8n-sso }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in N8N_API_KEY N8N_TRANSFER_PROJECT_ID SCIM_TOKEN_SHA256 N8N_SSO_PASSWORD_KEYS AUTHENTIK_API_TOKEN; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              echo "all required secrets present"
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: n8n-sso
+          image: WLREGISTRY/WLAPPS/n8n-sso:1a34fbe14@sha256:fe1b379f1a6708995192b125ed9fbfd3e0dd21ca21e409c93d7e487fe0b6b2f0
+          envFrom:
+            - secretRef: { name: n8n-sso }
+          env:
+            - name: N8N_HOST
+              valueFrom: { configMapKeyRef: { name: n8n-host, key: N8N_HOST } }
+            - { name: N8N_PUBLIC_URL, value: "https://$(N8N_HOST)" }
+            - { name: N8N_API_URL, value: "http://n8n:5678" }
+            - { name: AUTHENTIK_API_URL, value: "http://authentik-server.authentik.svc.cluster.local:80" }
+            # Where a sign-in is CONFIRMED: the outpost endpoint Traefik's forward auth asks.
+            - { name: AUTHENTIK_VERIFY_URL, value: "http://authentik-server.authentik.svc.cluster.local:80/outpost.goauthentik.io/auth/traefik" }
+            - { name: MAPPING_PATH, value: /config/mapping.json }
+            - { name: RECONCILE_INTERVAL_SECONDS, value: "300" }
+            - { name: LICENCE_RECHECK_SECONDS, value: "3600" }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            # The limit carries the service AND an operator's repair beside it, a second node process:
+            # the two peak at 97 MB each (P3b, and the live pod's VmHWM), past 128 Mi and at the edge of
+            # 192, where the kernel would pick the sign-in service to kill. Nothing bought: a limit.
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+          volumeMounts:
+            - { name: mapping, mountPath: /config, readOnly: true }
+      volumes:
+        - name: mapping
+          configMap: { name: n8n-sso-mapping }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-sso
+  labels:
+    app.kubernetes.io/name: n8n-sso
+spec:
+  selector:
+    app.kubernetes.io/name: n8n-sso
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+# Per-key data[]: an absent key is SecretSyncedError, loud. Contract: gitops/services/APP-SECRETS.md.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: n8n-sso
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: n8n-sso, creationPolicy: Owner }
+  data:
+    # Minted by infrastructure/hetzner/scripts/n8n-sso-bootstrap.sh: a key cannot exist
+    # until n8n does. Until then the pod stops at assert-secrets, by name.
+    - secretKey: N8N_API_KEY
+      remoteRef: { key: apps/n8n/sso, property: api_key }
+    - secretKey: N8N_TRANSFER_PROJECT_ID
+      remoteRef: { key: apps/n8n/sso, property: transfer_project_id }
+    # The hash only. The token itself is in platform/authentik/n8n-scim, for Authentik.
+    - secretKey: SCIM_TOKEN_SHA256
+      remoteRef: { key: apps/n8n/sso, property: scim_token_sha256 }
+    # What automatic passwords are derived from. WHOEVER READS THIS CAN SIGN IN AS ANYBODY HERE BUT
+    # THE OWNER. Under platform/, because developer, reader and github-ci all read apps/*: only ESO
+    # and an OpenBao admin reach this path. Space-separated, current first. RUNBOOK 2026-11-04.
+    - secretKey: N8N_SSO_PASSWORD_KEYS
+      remoteRef: { key: platform/n8n/sso-password, property: keys }
+    # view_user + view_group, minted by authentik-n8n-sso-token-reconcile.
+    - secretKey: AUTHENTIK_API_TOKEN
+      remoteRef: { key: platform/authentik/n8n-sso-api-token, property: token }
+---
+# /sso/ only, through the gate: the first half of "a forged identity is refused" lives on
+# this router. /scim is on no router at all.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-sso
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-n8n-down@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: n8n.example.invalid
+      http:
+        paths:
+          - { path: /sso/, pathType: Prefix, backend: { service: { name: n8n-sso, port: { name: http } } } }
+  tls:
+    - secretName: n8n-tls
+      hosts: [n8n.example.invalid]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n-sso
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/name: n8n-sso }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Namespace AND pod label in ONE element: an AND (see networkpolicy.yaml in the base).
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: authentik }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: authentik }
+        # Its probe, asked directly: the API server's proxy reaches only a pod on its own node.
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: observability }
+          podSelector:
+            matchLabels: { app: estate-watch }
+      ports:
+        - { protocol: TCP, port: 8080 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: n8n
+              app.kubernetes.io/component: main
+      ports:
+        - { protocol: TCP, port: 5678 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: authentik }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
+      ports:
+        - { protocol: TCP, port: 9000 }
+---
+# The image above is ours, on Harbor's private project. Same composed pull secret as every
+# service. It lives in this Component, so it arrives with the first pod that needs it and
+# every generated instance gets its own: n8n and its runner pull upstream's public images.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-pull
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: harbor-pull
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {"auths":{"WLREGISTRY":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}
+  data:
+    - secretKey: username
+      remoteRef: { key: platform/harbor/pull, property: username }
+    - secretKey: password
+      remoteRef: { key: platform/harbor/pull, property: password }

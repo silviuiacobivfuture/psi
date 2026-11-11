@@ -1,0 +1,52 @@
+# What the directory's ESTATE TILE POLICY reads (decision 2026-10-29):
+# gitops/platform/authentik/estate-tile-access.py, bound to every star tile by
+# blueprints-estate-tiles.yaml. A star tile is shown to a person who holds a
+# right in its application's module, asked of OpenFGA directly.
+#
+#   OPENFGA_URL        the engine's READ port, in-cluster (the authzfilter door,
+#                      never the admin one): the policy only asks
+#   OPENFGA_STORE_ID   the one store
+#   OPENFGA_MODEL_ID   the PIN — never "latest". It is a secret-pinned service
+#                      like the estate's pinned applications: CXE_SECRET_PINNED in
+#                      infrastructure/hetzner/scripts/lib-convex-env.sh carries
+#                      it, so repin-model.sh moves it with every other pin and
+#                      doctor.sh fails while it trails the current release
+#   OPENFGA_TOKEN      the preshared key, the SAME value every reader reads
+#   HUB_PERSON_LOOKUP_URL    the hub's internal person lookup (its own listener,
+#                            no Ingress): who an account is, in the engine's terms
+#   HUB_PERSON_LOOKUP_TOKEN  its bearer — ONE value at apps/autorizare/hub, read
+#                            here and by the hub (hub-externalsecret.yaml)
+#
+# Seeded by seed-secrets.sh (seed_authentik_tiles); checked by doctor.sh.
+#
+# PER-KEY data[], so a key missing in OpenBao makes this ExternalSecret
+# SecretSyncedError, which doctor.sh reports by name. The Authentik pods mount
+# the Secret as OPTIONAL (gitops/apps/overlays/dev/authentik.yaml): a tile must
+# never hold the directory down, so without it the directory starts, the policy
+# logs `MISSING REQUIRED SECRET: <key>` and shows no star tile, and doctor.sh
+# fails loud — the estate's own tile still opens every application.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-estate-tiles
+  namespace: authentik
+spec:
+  refreshInterval: 30s
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-estate-tiles
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  data:
+    - secretKey: OPENFGA_URL
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_URL }
+    - secretKey: OPENFGA_STORE_ID
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_STORE_ID }
+    - secretKey: OPENFGA_MODEL_ID
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_MODEL_ID }
+    - secretKey: OPENFGA_TOKEN
+      remoteRef: { key: apps/openfga/env, property: OPENFGA_AUTHN_PRESHARED_KEYS }
+    - secretKey: HUB_PERSON_LOOKUP_URL
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: HUB_PERSON_LOOKUP_URL }
+    - secretKey: HUB_PERSON_LOOKUP_TOKEN
+      remoteRef: { key: apps/autorizare/hub, property: HUB_PERSON_LOOKUP_TOKEN }

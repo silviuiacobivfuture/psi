@@ -1,0 +1,33 @@
+# The apex, served by estate-front. Host and certificate are filled from the
+# whitelabel BASE_DOMAIN by the piece. cert-manager issues over DNS-01
+# (letsencrypt-prod), so the certificate does not wait on the A record.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: estate-front
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "WLESTATENAME"
+    gethomepage.dev/description: "The front door: every application, the everyday tools, how to get in"
+    gethomepage.dev/group: "Apps"
+    gethomepage.dev/weight: "10"
+    gethomepage.dev/icon: "mdi-home-variant"
+    gethomepage.dev/href: "https://WLDOMAIN"
+    gethomepage.dev/pod-selector: "app=estate-front"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [estate-front.example.invalid]
+      secretName: estate-front-tls
+  rules:
+    - host: estate-front.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: estate-front
+                port: { name: http }

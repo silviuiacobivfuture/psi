@@ -1,0 +1,13 @@
+# cert-manager ClusterIssuers. The ACME account e-mail comes from the estate
+# identity (estate/identity.yaml → the whitelabel component), never written here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster-issuers.yaml
+components:
+  - ../../components/whitelabel
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ACME_EMAIL }
+    targets:
+      - select: { kind: ClusterIssuer }
+        fieldPaths: [spec.acme.email]

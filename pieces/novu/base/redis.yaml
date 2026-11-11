@@ -1,0 +1,90 @@
+# Redis for Novu — NOT just a cache. Novu's BullMQ job queues live here: every
+# triggered event, every workflow step waiting on a delay/digest, every pending
+# inbox delivery. Losing it loses notifications that were accepted (HTTP 201) but
+# not yet delivered. So, unlike plane-redis (pure cache, emptyDir):
+#   * AOF persistence on a small PVC (appendonly yes, fsync everysec);
+#   * maxmemory-policy NOEVICTION — BullMQ refuses to run under an evicting
+#     policy, and an evicted job key is a silently dropped notification.
+# Same official image + authenticated/probed/bounded shape as plane-redis.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: novu-redis
+  labels:
+    app.kubernetes.io/name: novu-redis
+  annotations:
+    # REQUIRED: the password is injected as env and baked into --requirepass at
+    # start; a rotation without a restart leaves redis accepting only the OLD one.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  serviceName: novu-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: novu-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: novu-redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: WLREGISTRY/mirror/docker.io/library/redis:7.4-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7
+          command: ["sh", "-c"]
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes --appendfsync everysec --maxmemory 192mb --maxmemory-policy noeviction
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: novu-redis, key: redis-password }
+          ports:
+            - { name: redis, containerPort: 6379 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 48Mi }
+            limits: { cpu: 250m, memory: 256Mi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-redis
+  labels:
+    app.kubernetes.io/name: novu-redis
+spec:
+  selector:
+    app.kubernetes.io/name: novu-redis
+  ports:
+    - { name: redis, port: 6379, targetPort: redis }

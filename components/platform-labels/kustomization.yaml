@@ -1,0 +1,23 @@
+# Used by a piece under `transformers:`, exactly as ../alert-owner is (see render/kustomization.yaml).
+# A transformers directory must emit transformer configs ONLY, so the value ConfigMaps render/
+# needed are deleted here, after render/ has used them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - render
+patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: whitelabel }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: platform-label-source }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: platform-label-managed-by }

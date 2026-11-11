@@ -1,0 +1,23 @@
+# Base set of Argo Applications — deployed on EVERY cluster profile (dev/prod).
+# Profile-specific additions live in ../overlays/<profile>.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+  # platform-secrets is the bundle piece `secrets` (pieces/secrets): the consumer generates its
+  # Application, same name.
+# Estate values come from the identity (estate/identity.yaml → the whitelabel
+# component), never written in the Applications.
+components:
+  - ../../components/whitelabel
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.DNS_ZONE }
+    targets:
+      - select: { kind: Application, name: external-dns }
+        fieldPaths:
+          - spec.source.helm.parameters.0.value
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG }
+    targets:
+      - select: { kind: Application, name: external-dns }
+        fieldPaths:
+          - spec.source.helm.parameters.[name=txtOwnerId].value
+        options: { delimiter: "-", index: 0 }

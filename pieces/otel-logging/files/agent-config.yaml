@@ -1,0 +1,118 @@
+# OTel agent (DaemonSet) — DEV. Ships node + container + network typologies to
+# their Axiom datasets (EU). Axiom routes by the X-Axiom-Dataset header, so each
+# typology has its own otlphttp exporter. Dataset names = WLSLUG-dev-* (Tofu).
+extensions:
+  # Persist filelog read offsets across restarts (mounted hostPath /var/lib/otelcol).
+  file_storage:
+    directory: /var/lib/otelcol
+
+receivers:
+  # Container/pod stdout-stderr. The `container` operator parses CRI/containerd
+  # format and extracts k8s.namespace.name / k8s.pod.name / k8s.container.name
+  # from the file path; k8sattributes then enriches with node + labels.
+  filelog:
+    include: [/var/log/pods/*/*/*.log]
+    start_at: end
+    include_file_path: true
+    storage: file_storage
+    operators:
+      - type: container
+        add_metadata_from_filepath: true
+
+  # Node/system/process logs (journald: k3s, containerd, kubelet, sshd, kernel).
+  # Requires journalctl — provided by the custom otel-collector-journald image.
+  journald:
+    directory: /var/log/journal
+
+processors:
+  batch: {}
+
+  # Enrich container logs with k8s metadata (node, workload, labels) for filtering.
+  k8sattributes:
+    auth_type: serviceAccount
+    passthrough: false
+    extract:
+      metadata:
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.node.name
+        - k8s.deployment.name
+        - k8s.daemonset.name
+        - k8s.statefulset.name
+      labels:
+        - tag_name: app
+          key: app
+          from: pod
+    pod_association:
+      - sources:
+          - { from: resource_attribute, name: k8s.pod.uid }
+      - sources:
+          - { from: resource_attribute, name: k8s.namespace.name }
+          - { from: resource_attribute, name: k8s.pod.name }
+
+  # Tag node logs with the node name + a source marker for easy Axiom filtering.
+  resource/node:
+    attributes:
+      - { key: host.name, value: "${env:K8S_NODE_NAME}", action: upsert }
+      - { key: log.source, value: node, action: insert }
+
+  resource/containers:
+    attributes:
+      - { key: log.source, value: containers, action: insert }
+
+  resource/network:
+    attributes:
+      - { key: log.source, value: network, action: insert }
+
+connectors:
+  # Split pod logs by namespace: kube-system (Traefik ingress, CoreDNS, kube-proxy)
+  # = network typology; everything else = workload containers. Add namespaces here
+  # to re-route more sources without touching exporters.
+  routing:
+    default_pipelines: [logs/containers]
+    table:
+      - statement: route() where attributes["k8s.namespace.name"] == "kube-system"
+        pipelines: [logs/network]
+
+exporters:
+  otlphttp/containers:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-dev-containers
+  otlphttp/network:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-dev-network
+  otlphttp/node:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-dev-node
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    # Container logs in → enrich → route by namespace.
+    logs/in:
+      receivers: [filelog]
+      processors: [k8sattributes, batch]
+      exporters: [routing]
+    logs/containers:
+      receivers: [routing]
+      processors: [resource/containers, batch]
+      exporters: [otlphttp/containers]
+    logs/network:
+      receivers: [routing]
+      processors: [resource/network, batch]
+      exporters: [otlphttp/network]
+    # Node/process logs (journald) → node dataset.
+    logs/node:
+      receivers: [journald]
+      processors: [resource/node, batch]
+      exporters: [otlphttp/node]

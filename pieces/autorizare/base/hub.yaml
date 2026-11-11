@@ -1,0 +1,302 @@
+# The sign-in hub — autorizare's OpenID Connect provider (decision D23, doc 21).
+#
+# SAME IMAGE as the control plane, its own process (`/autorizare-hub`) and its own
+# Deployment, because the two do different jobs: the hub decides whether anybody
+# can sign in at all. Both now run THREE replicas, spread across nodes, with a
+# PodDisruptionBudget that keeps two through a drain (doc 21 §3.4, §6); the control
+# plane's workers run on one elected replica (@rule RUN-6, deployment.yaml).
+#
+# Stateless: everything a login needs between two requests is in the shared
+# Postgres (migration 0015), so any replica can finish a login another started.
+# Its one background job, signing-key rotation, takes a Postgres advisory lock —
+# whichever replica holds it rotates, the others reload.
+#
+# Its migrations are applied by the control plane's `migrate` initContainer
+# (one runner, never four racing). A hub started before 0015 is applied fails at
+# start and is restarted until it is.
+#
+# Three places, ONE list of required settings: hub-externalsecret.yaml, the
+# assert-secrets initContainer below, and internal/hubconfig/config.go.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autorizare-hub
+  labels: { app: autorizare-hub }
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 3
+  # One at a time, never below two serving: a rollout must not be an outage of sign-in.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: autorizare-hub }
+  template:
+    metadata:
+      labels: { app: autorizare-hub }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: autorizare-hub }
+      # The thirty the stop always had, plus the ten of the preStop below, which come
+      # out of this. .github/scripts/hub-drain.sh refuses a shorter one.
+      terminationGracePeriodSeconds: 40
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - configMapRef: { name: autorizare-hub-config }
+            - secretRef: { name: autorizare-hub-secrets }
+          command:
+            - sh
+            - -c
+            - >-
+              for k in DATABASE_URL OPENFGA_URL OPENFGA_TOKEN OPENFGA_STORE_ID HUB_BASE_DOMAIN
+              HUB_UPSTREAM_ISSUER HUB_UPSTREAM_CLIENT_ID HUB_UPSTREAM_CLIENT_SECRET
+              HUB_SIGNING_KEK_ID HUB_SIGNING_KEK ENVIRONMENT ESTATE_NAME HUB_PERSON_LOOKUP_TOKEN
+              HUB_CLIENTS_FILE PLATFORM_OBJECT; do
+              eval "v=\${$k:-}"; [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }; done;
+              echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: autorizare-hub
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/autorizare-hub"]
+          # A roll must not answer anybody 502: a pod told to stop would close its
+          # listener at once, while Traefik still has its address. Measured on dev
+          # 2026-11-05 about 09:00Z: a console sign-in probe timed out during a hub
+          # roll, and a new autorizare-svc pod exited on the hub's 502. So the
+          # pod goes on serving for ten seconds after it leaves the endpoints.
+          # `sleep`, not exec: the image is distroless. .github/scripts/hub-drain.sh.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
+          ports:
+            - { name: http, containerPort: 8080 }
+            # The directory's person lookup (internal/hub/person_lookup.go): its own
+            # listener, on the Service's `internal` port, which no Ingress names.
+            - { name: internal, containerPort: 8081 }
+          envFrom:
+            - configMapRef: { name: autorizare-hub-config }
+            - secretRef: { name: autorizare-hub-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          # Ready = database answers, a signing key is active and fresh, and the
+          # upstream Authentik has been discovered (doc 21 §3.4).
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 2
+          resources:
+            requests: { cpu: 25m, memory: 48Mi }
+            limits: { cpu: 400m, memory: 192Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: autorizare-hub
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: { app: autorizare-hub }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autorizare-hub
+  labels: { app: autorizare-hub }
+spec:
+  type: ClusterIP
+  selector: { app: autorizare-hub }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+    # Only Authentik's estate tile policy calls it, in-cluster, with a bearer.
+    - { name: internal, port: 8081, targetPort: internal }
+---
+# The hub's settings that are not secret. HUB_BASE_DOMAIN and the ingress host are
+# filled from the whitelabel BASE_DOMAIN by the overlay — never typed (D27).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: autorizare-hub-config
+data:
+  ENVIRONMENT: "dev"
+  HUB_BASE_DOMAIN: "WLDOMAIN"
+  # platform:<ESTATE_SLUG> (overlay replacements), the same object the control plane governs.
+  PLATFORM_OBJECT: "platform:WLSLUG"
+  # ESTATE_NAME (the estate's name on the hub's pages), HUB_CLIENTS_FILE (its
+  # client registry: applications, names, addresses, tiles) and, optionally,
+  # HUB_HOST_PREFIX (the hub's host label, default `id`) are the ESTATE's: its
+  # overlay sets them and mounts the registry. The base names no estate, and a
+  # deployment without them is refused by name (assert-secrets above).
+  # The READ port: the hub only ever checks; the admin door stays the control
+  # plane's alone (@rule OPS-2).
+  OPENFGA_URL: "http://openfga.openfga.svc.cluster.local:8081"
+  HUB_REQUIRE_MFA: "true"
+  # Set by the overlay: the one Authentik's issuer for the hub's broker client.
+  HUB_UPSTREAM_ISSUER: "https://auth.example.invalid/application/o/autorizare-hub/"
+---
+# The hub has no page of its own at `/`: a person who opens id.<apex> is sent
+# to the estate's front door at the apex. Only the bare root matches.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hub-root-to-front
+spec:
+  redirectRegex:
+    regex: "^https?://id\\.([^/]+)/?$"
+    replacement: "https://${1}/"
+    permanent: false
+---
+# A sign-out's last hop is to Authentik. When Authentik cannot answer it, the
+# person is told by the hub, because Authentik is the thing that is down: 502–504
+# on the end-session route (gitops/platform/authentik/sso-signout-unfinished.yaml)
+# are replaced by this page, which is what internal/hub/signout_retry.go explains.
+# Here and not beside that route: a Middleware names a Service of its own namespace.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: signout-unfinished
+spec:
+  errors:
+    status: ["502-504"]
+    service: { name: autorizare-hub, port: 80 }
+    query: /hub/sign-out-unfinished
+---
+# The same outage on the door the OTHER applications sign out through (Plane, Novu).
+# The hub holds no sign-out of theirs, so it cannot retry and says so: a page
+# with nothing automatic on it.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: signout-unconfirmed
+spec:
+  errors:
+    status: ["502-504"]
+    service: { name: autorizare-hub, port: 80 }
+    query: /hub/sign-out-unconfirmed
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: autorizare-hub
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: autorizare-hub-root-to-front@kubernetescrd
+    # System Hub tile (gethomepage.dev) → "Platform": the estate's sign-in, which
+    # every application depends on. The href is PINNED to the discovery document:
+    # Homepage otherwise links a tile to the Ingress' FIRST rule path, which here
+    # is an RPC prefix, and the root only redirects to the front door.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Sign-in (id)"
+    gethomepage.dev/description: "The estate's sign-in — OpenID provider for every application"
+    gethomepage.dev/group: "Platform"
+    gethomepage.dev/icon: "mdi-account-key"
+    gethomepage.dev/href: "https://id.example.invalid/.well-known/openid-configuration"
+    gethomepage.dev/pod-selector: "app=autorizare-hub"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [id.example.invalid]
+      secretName: autorizare-hub-tls
+  rules:
+    - host: id.example.invalid
+      http:
+        paths:
+          # @rule HUB-8 — the organisation directory is served at the hub's
+          # origin (doc 21 §2.4), so a widget in any application calls ONE
+          # address with the person's hub access token. The control plane
+          # (autorizare-svc) answers these services; it verifies the token
+          # against the hub's own signing keys and token log in the shared
+          # database, and its CORS admits exactly the registered clients'
+          # origins. Prefix matching is per path ELEMENT, so each line claims
+          # one service's procedures and nothing else; everything else on this
+          # host is the hub's.
+          - path: /rmx.autorizare.v1.OrgService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          - path: /rmx.autorizare.v1.PersonService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          - path: /rmx.autorizare.v1.CatalogService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          - path: /rmx.autorizare.v1.GrantService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          # The estate's changelog (changelog.proto): every application's bell
+          # reads and writes it here with the person's hub token.
+          - path: /rmx.autorizare.v1.ChangelogService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          # The bell and the policy of an application with no session of its own
+          # (notifications.go). Without this line the hub answers the preflight
+          # itself, with no grant, and the browser reports a CORS failure.
+          - path: /rmx.autorizare.v1.NotificationService
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          # The hub's "no organisation" page accepts an invitation through the
+          # control plane, which owns the grant path (D24 — the hub never writes
+          # a tuple). Exact: this one address and nothing under it; the hub's
+          # own /hub/invitatii pages stay the hub's. The control plane reads the
+          # hub's `__Host-` session cookie, which only this host carries, and
+          # answers with a redirect back to the hub (domain/hub invitation.go).
+          - path: /hub/invitatii/accepta
+            pathType: Exact
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-hub
+                port: { name: http }

@@ -1,0 +1,16 @@
+mirrors:
+  docker.io:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/docker.io/$1" }
+  ghcr.io:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/ghcr.io/$1" }
+  reg.kyverno.io:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/reg.kyverno.io/$1" }
+  registry.k8s.io:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/registry.k8s.io/$1" }
+  gcr.io:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/gcr.io/$1" }

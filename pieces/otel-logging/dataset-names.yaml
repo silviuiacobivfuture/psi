@@ -1,0 +1,17 @@
+# The Axiom dataset names inside the collector config files, with the estate slug as the
+# token WLSLUG. Never rendered (local-config): slug-replacements.yaml fills ESTATE_SLUG in
+# here, then copies each value over the word at that position (split on spaces) in the file.
+# Edit a config file's words before a dataset name and the position must be re-derived.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-dataset-names
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+data:
+  otel-agent-35: WLSLUG-dev-*
+  otel-agent-550: "WLSLUG-dev-containers\n"
+  otel-agent-581: "WLSLUG-dev-network\n"
+  otel-agent-612: "WLSLUG-dev-node\n\nservice:\n"
+  otel-cluster-11: WLSLUG-dev-k8s-events.
+  otel-cluster-112: "WLSLUG-dev-k8s-events\n\nservice:\n"

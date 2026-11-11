@@ -1,0 +1,74 @@
+# PDFCraft — the browser-based PDF toolkit (https://github.com/PDFCraftTool/pdfcraft),
+# served to the estate's staff at https://pdf.<apex> (the host is the overlay's).
+#
+# WHAT IT IS, because every other decision here follows from it: a Next.js STATIC
+# EXPORT served by nginx. Every PDF operation (merge, split, compress, OCR, the
+# LibreOffice conversions…) runs in the visitor's BROWSER, in WebAssembly. The
+# server hands out files and never receives one — no upload endpoint, no API, no
+# database, no user accounts, no state of any kind. So:
+#
+#   AUTH      it has none of its own and no OIDC support, so it is gated at the
+#             edge: Traefik forward-auth → Authentik's embedded outpost, through
+#             a PER-HOST provider (`pdfcraft`, mode forward_single) whose policy
+#             admits only `app-pdfcraft-user` + `platform-admins`. See
+#             gitops/platform/authentik/blueprints-providers.yaml.
+#   STORAGE   none. No PVC: there is nothing to keep, so there is nothing to back
+#             up. The whole deployable is the pinned image + this directory, and
+#             both are reproducible from git and the registry. Velero still
+#             captures the namespace's objects with every other namespace.
+#   SECRETS   none. No ExternalSecret, nothing to seed, no assert-secrets
+#             initContainer — the fail-loud rule (gitops/services/APP-SECRETS.md)
+#             is for apps that NEED secrets, and this one reads none.
+#
+# The upstream image is used UNCHANGED (pinned by digest in deployment.yaml). The
+# only file of ours inside the pod is nginx's MAIN config, which makes stock nginx
+# run as a non-root user on a read-only root filesystem; the site config (routes,
+# caching, the COOP/COEP headers the WASM tools need) stays upstream's.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - networkpolicy.yaml
+  - deployment.yaml
+  - pdb.yaml
+  - service.yaml
+  - ingress.yaml
+
+# Hash-suffixed ON PURPOSE: nginx reads its config once, at start, so an edit has
+# to roll the pods. The hash changes the ConfigMap's name, which changes the pod
+# spec, which rolls them. Do NOT add `disableNameSuffixHash: true`.
+configMapGenerator:
+  - name: pdfcraft-nginx
+    files:
+      - nginx.conf
+      # The estate's stylesheet and script, injected on every page as
+      # /_<ESTATE_SLUG>/<ESTATE_SLUG>.css and .js. SEB's defaults (estate.css,
+      # estate.js: no theme; the update check off) — the estate's component
+      # (components/estate/pdfcraft) replaces them with its own theme and credit.
+      - ${ESTATE_SLUG}.css=estate.css
+      - ${ESTATE_SLUG}.js=estate.js
+      # Romanian for upstream's hardcoded Chinese — GENERATED from
+      # ro-overrides.json by ../tools/ro-overrides.py; never edit by hand.
+      - ro-overrides.conf
+      # THE Romanian map (chunks, texts, messages), read by ro.js; validated by
+      # ../tools/ro-overrides.py.
+      - ro-overrides.json
+      # Romanian for upstream's English tool names, descriptions and messages,
+      # in their pages, route payloads and chunks (njs).
+      - ro.js
+      # /_${ESTATE_SLUG}/me: the signed-in person as escaped JSON (njs).
+      - me.js
+  # The estate's bar — built by apps/pdfcraft-bar with the estate's own
+  # declaration, and supplied by the estate's component (~450 KB of script, so
+  # its own ConfigMap). SEB's default bar.js draws nothing.
+  - name: pdfcraft-bar
+    files:
+      - bar.js
+    # ~450 KB: client-side apply would copy it into the 256 KB last-applied
+    # annotation and the sync fails. On the OBJECT, not only on the Application,
+    # because an operation keeps the options it started with: on 2026-10-28 a
+    # sync begun before the Application gained ServerSideApply kept retrying
+    # without it, failing every time, until it was replaced.
+    options:
+      annotations:
+        argocd.argoproj.io/sync-options: ServerSideApply=true

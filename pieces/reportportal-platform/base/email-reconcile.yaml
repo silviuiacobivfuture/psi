@@ -1,0 +1,317 @@
+# ReportPortal email-server configuration reconciler (as-code for DB-stored config).
+#
+# THE GAP THIS CLOSES: ReportPortal cannot send mail until an "Email Server"
+# integration exists, and until it does, "Invite user" fails with
+#   "Email server is not configured or configuration is incorrect."
+# — which is exactly the state a freshly-deployed instance is in.
+#
+# THE CHART CANNOT EXPRESS IT. Chart 26.8.12's values.yaml has ZERO smtp/mail keys
+# (grepped for `smtp` and `mail`: no hits; the only auth-adjacent key in the whole
+# file is `uat.samlSessionLiveTime`). ReportPortal stores the mail server as a ROW
+# IN ITS OWN POSTGRES — a global `integration` of the BUILT_IN `email` plugin —
+# reachable only through its REST API or the admin UI. So the as-code source of
+# truth is this idempotent reconcile CronJob: same pattern, same rationale, as
+# pieces/platform-secrets/harbor-oidc-reconcile.yaml (Harbor's OIDC config) and
+# pieces/nextcloud-platform/base/occ-reconcile.yaml (Nextcloud's oc_appconfig).
+# A fresh cluster converges within one interval with no click-path; drift (someone
+# editing it in Administrate -> Integrations) is corrected on the next run.
+#
+# ============ WHY THIS ONE READS BEFORE IT WRITES (load-bearing) ==============
+# Harbor's reconciler blind-PUTs every 15 minutes because Harbor's PUT is inert
+# when nothing changed. ReportPortal's is NOT: `EmailServerIntegrationService`
+# ends BOTH create and update with
+#     if (authEnabled) emailService.sendConnectionTestEmail(isNewIntegration);
+# and `EmailService.sendConnectionTestEmail(boolean)` genuinely SENDS a message to
+# the `from` address — subject "Email server integration creation" / "... updated"
+# (VERIFIED by decompiling both classes out of the running api image's
+# service-api-5.15.4-exec.jar with javap). A blind PUT every 15 minutes would mail
+# the from-address 96 times a day forever. So this job:
+#   1. LISTS  GET /v1/integration/global/all/email
+#   2. COMPARES the nine non-secret parameters + `enabled` against the desired set
+#   3. writes ONLY on drift (POST to create, PUT to update) — one mail per change
+#   4. when the parameters already match, proves the credential still works with
+#      GET /v1/integration/{id}/connection/test, which calls JavaMailSender's
+#      testConnection() — an SMTP connect + AUTH that sends NO mail.
+# Step 4 is what makes a sender key ROTATION self-healing without any local state:
+# the API never returns the stored password (IntegrationConverter strips
+# EmailSettingsEnum.PASSWORD from every response), so a stale password is
+# invisible to a diff — but it is exactly what a connection test fails on. A
+# failed test therefore triggers one repair PUT, and if that still fails the job
+# exits non-zero with a named error.
+#
+# FAILING LOUD IS THE WHOLE POINT. A silently unconfigured mail server is the bug
+# being fixed, so every failure path here `exit 1`s with a NAMED reason: a missing
+# or empty secret, a token that will not mint, an API that rejects the config, more
+# than one email integration, or a connection test that still fails after a repair.
+# The Job then shows as failed in `kubectl -n reportportal get jobs` and is picked
+# up by the external Axiom CronJob-failure monitor via alerts/owner.
+#
+# THE API SHAPE IS NOT A GUESS. Established three independent ways against the
+# RUNNING 26.8.12 instance (see infrastructure/hetzner/RUNBOOK.md 2026-08-20):
+#   * the live OpenAPI document at /api/v1/api-docs — `POST /v1/integration/{pluginName}`
+#     (create global) / `PUT /v1/integration/{integrationId}` (update) with an
+#     IntegrationRQ of {name, enabled, integrationParameters};
+#   * the UI bundle served by reportportal-ui, whose email form binds exactly
+#     host / port / protocol / fromName+fromEmail (joined into ONE `from`) /
+#     authEnabled / starTlsEnabled / sslEnabled / username / password / rpHost;
+#   * `com.epam.ta.reportportal.entity.EmailSettingsEnum` inside
+#     commons-dao-5.15.6.jar, whose ten constants are precisely those attribute
+#     names — the server-side authority.
+# ⚠️ `port` is sent as a STRING and the three flags as JSON BOOLEANS, matching the
+# UI byte-for-byte: `retrieveCreateParams` hands PORT to
+# `NumberUtils.toInt(String, int)`, so a JSON number risks a ClassCastException.
+# ⚠️ `starTlsEnabled` is spelled exactly like that upstream (one T). Not a typo here.
+# ⚠️ `name` is sent on CREATE only. `updateGlobalIntegration` re-validates a
+# supplied name for uniqueness, and the row it would collide with is the one being
+# updated; the UI omits it on update for the same reason.
+#
+# AUTH FLOW (the part that is easy to get wrong): the token endpoint lives on the
+# UAT service, port 9999, under the context path /uat — NOT on the api service's
+# 8585 (VERIFIED: /uat/health answers through the service proxy, /health 404s).
+#   POST http://reportportal-uat:9999/uat/sso/oauth/token
+#        basic auth ui:uiman   grant_type=password   username=superadmin
+# The api service's own context path is /api on 8585, which is why every URL below
+# carries it.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reportportal-email-reconcile
+  annotations:
+    # On the CronJob's OWN metadata: require-alert-annotation matches the CronJob
+    # kind directly, and the reportportal mutate policy only supplements the
+    # chart's Deployments/StatefulSets — it does not reach this hand-written object.
+    alerts/owner: ops@WLDOMAIN
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: reportportal-email-reconcile }
+        spec:
+          restartPolicy: OnFailure
+          # No kubectl, no k8s API call, nothing to authenticate as.
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            # The root filesystem is read-only by policy, so curl's config/body
+            # files live on an emptyDir — which is created root-owned. Without the
+            # fsGroup the 65534 user cannot write into it (the wrinkle
+            # occ-reconcile documents).
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          containers:
+            - name: reconcile
+              # alpine/k8s, NOT curlimages/curl: this job has to PARSE and COMPARE
+              # JSON, and the curl image ships busybox with no jq (see the
+              # secret-watcher's note on hand-rolled JSON escaping). Same pinned
+              # image + tag as occ-reconcile and health-digest.
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 200m, memory: 256Mi }
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+              env:
+                # --- non-secret desired state (env-specific values live here) ----
+                # Plunk's in-cluster relay, as the `reports` sender
+                # (gitops/services/plunk/senders/reports.json → noreply@reports.<apex>;
+                # the e-mail migration plan (first estate's history, not shipped) step 3). The host is the name on the
+                # relay's certificate; cluster-dns resolves it to the plunk-smtp
+                # Service, so Java Mail's STARTTLS checks the certificate by its name.
+                - name: SMTP_HOST
+                  value: plunk-smtp.WLDOMAIN
+                # 587 + STARTTLS, not 465/implicit-TLS: `protocol: smtp` is the only
+                # option the plugin offers, and RP's starTlsEnabled maps to
+                # mail.smtp.starttls.enable.
+                - name: SMTP_PORT
+                  value: "587"
+                # The relay's username is the LITERAL "plunk" (Plunk's apps/smtp
+                # handleAuth); the password is the sender's Plunk secret key.
+                - name: SMTP_USERNAME
+                  value: plunk
+                # The public origin RP puts in the links it mails (password reset,
+                # invitation). Validated server-side with commons-validator's
+                # UrlValidator, so it must be an absolute URL.
+                - name: RP_HOST
+                  value: https://reports.WLDOMAIN
+                # --- secrets -----------------------------------------------------
+                # The `reports` sender's key and address, from the GENERATED
+                # `email-sender` Secret (email.generated.yaml), so the From cannot
+                # drift from the key: Plunk refuses one outside the project's domain.
+                - name: SMTP_PASSWORD
+                  valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_API_KEY } }
+                - name: SMTP_FROM
+                  valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_FROM } }
+                # ⚠️ The INITIAL superadmin password. If it was ever changed in the
+                # RP UI, this path is stale and the token mint below fails LOUDLY
+                # with that named cause — see the RUNBOOK's rotation note.
+                - name: RP_SUPERADMIN_PASSWORD
+                  valueFrom: { secretKeyRef: { name: reportportal-superadmin, key: password } }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+
+                  W=/work
+                  UAT=http://reportportal-uat.reportportal.svc.cluster.local:9999/uat
+                  API=http://reportportal-api.reportportal.svc.cluster.local:8585/api
+
+                  die() { echo "reportportal-email-reconcile: FAILED — $*" >&2; exit 1; }
+
+                  # Present-but-EMPTY is the case ESO's data[] cannot catch; an
+                  # ABSENT key already makes the ExternalSecret SecretSyncedError.
+                  [ -n "${SMTP_PASSWORD:-}" ] || die "MISSING REQUIRED SECRET: email-sender/EMAIL_API_KEY"
+                  [ -n "${SMTP_FROM:-}" ] || die "MISSING REQUIRED SECRET: email-sender/EMAIL_FROM"
+                  [ -n "${RP_SUPERADMIN_PASSWORD:-}" ] || die "MISSING REQUIRED SECRET: reportportal-superadmin/password"
+
+                  umask 077
+
+                  # Every credential reaches curl through a FILE, never argv:
+                  # `ps` / /proc/<pid>/cmdline are readable inside this pod, and an
+                  # SMTP password on a command line is the same class of leak the
+                  # seed script's stdin plumbing exists to avoid. `printf` is a
+                  # shell builtin, so the value never becomes an exec'd argv either.
+                  printf 'user = "ui:uiman"\n' > "$W/uat.cfg"
+                  printf '%s' "$RP_SUPERADMIN_PASSWORD" > "$W/pw.txt"
+
+                  # http <outfile> <curl args...> -> prints the status code
+                  # ("000" on a transport error) instead of aborting, so every
+                  # failure is reported with its own named message.
+                  http() {
+                    _out="$1"; shift
+                    _code="$(curl -sS --max-time 60 -o "$_out" -w '%{http_code}' "$@" 2>>"$W/curl.err")" || _code=000
+                    printf '%s' "$_code"
+                  }
+
+                  # --- 1. mint a superadmin token -------------------------------
+                  CODE="$(http "$W/token.json" -K "$W/uat.cfg" \
+                    --data 'grant_type=password' \
+                    --data 'username=superadmin' \
+                    --data-urlencode "password@$W/pw.txt" \
+                    "$UAT/sso/oauth/token")"
+                  [ "$CODE" = 200 ] || die "POST /uat/sso/oauth/token -> $CODE (expected 200). The most likely cause is a STALE superadmin password: uat applies secret/apps/reportportal/superadmin ONLY when the row is created, so a password changed in the RP UI must be written back to OpenBao — see infrastructure/hetzner/RUNBOOK.md"
+                  TOKEN="$(jq -r '.access_token // empty' "$W/token.json")"
+                  [ -n "$TOKEN" ] || die "POST /uat/sso/oauth/token returned 200 with no access_token"
+                  printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$W/api.cfg"
+                  printf 'header = "Content-Type: application/json"\n' >> "$W/api.cfg"
+
+                  # --- 2. desired state -----------------------------------------
+                  # jq reads the secrets from the ENVIRONMENT, so they are not argv
+                  # here either. `port` string + boolean flags: see the header.
+                  jq -n '{
+                    name: "email",
+                    enabled: true,
+                    integrationParameters: {
+                      host:           env.SMTP_HOST,
+                      port:           env.SMTP_PORT,
+                      protocol:       "smtp",
+                      authEnabled:    true,
+                      starTlsEnabled: true,
+                      sslEnabled:     false,
+                      username:       env.SMTP_USERNAME,
+                      password:       env.SMTP_PASSWORD,
+                      from:           env.SMTP_FROM,
+                      rpHost:         env.RP_HOST
+                    }
+                  }' > "$W/create.json"
+                  # The UI omits `name` on update and so do we — see the header.
+                  jq 'del(.name)' "$W/create.json" > "$W/update.json"
+
+                  # Canonical, TYPE-NORMALISED projection of the comparable fields.
+                  # `tostring` on both sides is load-bearing: the API may hand back
+                  # a boolean where we sent a boolean and a string where we sent a
+                  # string, but a jsonb round-trip is not guaranteed to preserve
+                  # that — and a too-strict compare would report drift on EVERY run,
+                  # i.e. an emailed test message every 15 minutes, which is the
+                  # exact failure this design exists to prevent. `password` is
+                  # absent by construction: the API never returns it.
+                  PROJECT='{
+                    enabled: (.enabled | tostring),
+                    p: (.integrationParameters
+                        | { host, port, protocol, authEnabled, starTlsEnabled,
+                            sslEnabled, username, from, rpHost }
+                        | with_entries(.value |= (if . == null then "" else tostring end)))
+                  }'
+                  WANT="$(jq -Sc "$PROJECT" "$W/create.json")"
+
+                  # --- 3. what exists today -------------------------------------
+                  CODE="$(http "$W/list.json" -K "$W/api.cfg" "$API/v1/integration/global/all/email")"
+                  [ "$CODE" = 200 ] || die "GET /api/v1/integration/global/all/email -> $CODE (expected 200)"
+                  COUNT="$(jq 'length' "$W/list.json")"
+
+                  # write <method> <url> <bodyfile> <what>
+                  # --data-binary, NOT --data: --data STRIPS newlines from a file,
+                  # which happens to leave this JSON valid but only by luck.
+                  write() {
+                    _c="$(http "$W/resp.json" -K "$W/api.cfg" -X "$1" --data-binary "@$3" "$2")"
+                    case "$_c" in
+                      200|201) echo "reportportal-email-reconcile: $4 OK ($1 $2 -> $_c)" ;;
+                      # RP validates the config by actually sending the test mail,
+                      # so a rejected write means the SMTP settings or the relay
+                      # key are wrong — surface its own message, do not swallow it.
+                      # The `|| true` matters: without it a non-JSON error body
+                      # makes jq fail, `set -e` aborts mid-argument and the job dies
+                      # with NO named reason — the opposite of the contract here.
+                      *) die "$1 $2 -> $_c: $( (jq -r '.message // .error_description // empty' "$W/resp.json" 2>/dev/null || head -c 400 "$W/resp.json") | head -c 400 )" ;;
+                    esac
+                  }
+
+                  if [ "$COUNT" -gt 1 ]; then
+                    die "$COUNT global email integrations exist; expected at most 1. Refusing to guess which one is authoritative — delete the extras in Administrate -> Integrations and re-run"
+                  fi
+
+                  if [ "$COUNT" -eq 0 ]; then
+                    echo "reportportal-email-reconcile: no email integration — creating (ReportPortal will send ONE 'Email server integration creation' message to $SMTP_FROM)"
+                    write POST "$API/v1/integration/email" "$W/create.json" "create"
+                    exit 0
+                  fi
+
+                  ID="$(jq -r '.[0].id' "$W/list.json")"
+                  HAVE="$(jq -Sc ".[0] | $PROJECT" "$W/list.json")"
+
+                  if [ "$HAVE" != "$WANT" ]; then
+                    echo "reportportal-email-reconcile: drift on integration $ID — reconciling"
+                    echo "  have: $HAVE"
+                    echo "  want: $WANT"
+                    write PUT "$API/v1/integration/$ID" "$W/update.json" "update"
+                    exit 0
+                  fi
+
+                  # --- 4. parameters match: is the CREDENTIAL still good? --------
+                  # Sends no mail (JavaMailSender.testConnection = SMTP connect +
+                  # AUTH). This is the only way to notice a rotated sender key,
+                  # because the stored password is never returned.
+                  CODE="$(http "$W/test.json" -K "$W/api.cfg" "$API/v1/integration/$ID/connection/test")"
+                  if [ "$CODE" = 200 ] && [ "$(cat "$W/test.json")" = true ]; then
+                    echo "reportportal-email-reconcile: in sync (integration $ID, $SMTP_HOST:$SMTP_PORT, from $SMTP_FROM) — no write, no mail"
+                    exit 0
+                  fi
+
+                  echo "reportportal-email-reconcile: connection test failed (-> $CODE) while the parameters match — the stored password is stale or the server is unreachable; re-pushing the credential"
+                  write PUT "$API/v1/integration/$ID" "$W/update.json" "credential repair"
+                  CODE="$(http "$W/test.json" -K "$W/api.cfg" "$API/v1/integration/$ID/connection/test")"
+                  if [ "$CODE" = 200 ] && [ "$(cat "$W/test.json")" = true ]; then
+                    echo "reportportal-email-reconcile: credential repaired, connection test now passes"
+                    exit 0
+                  fi
+                  die "connection test STILL fails after re-pushing the credential (-> $CODE). ReportPortal cannot send mail: check the reports sender key (secret/apps/reportportal/plunk, plunk-bootstrap.sh), cluster-dns, and that $SMTP_HOST:$SMTP_PORT is reachable from this namespace"

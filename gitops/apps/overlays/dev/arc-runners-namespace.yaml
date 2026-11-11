@@ -1,0 +1,13 @@
+# The `arc-runners` namespace, codified so it ALWAYS exists before the things
+# that target it. RBAC-before-ns race: the `arc-github-pat` ExternalSecret
+# (arc-runner-secret.yaml) and the gha-runner-scale-set chart both live in this
+# namespace, but ESO can land the ExternalSecret before the Argo-synced chart's
+# `CreateNamespace=true` has created it → the ExternalSecret errors "namespace
+# not found". Declaring the Namespace here (synced with the overlay) removes the
+# ordering dependency. Owned by Argo as part of the dev apps Application.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arc-runners
+  labels:
+    app.kubernetes.io/managed-by: argocd

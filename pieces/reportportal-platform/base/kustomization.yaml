@@ -1,0 +1,37 @@
+# ReportPortal's NON-CHART half — everything the upstream chart cannot express.
+# The chart itself is a separate Argo Application (gitops/apps/overlays/dev/
+# reportportal.yaml) that syncs at wave 2, after this one.
+#
+# The split mirrors nextcloud / nextcloud-platform and plane / plane-platform:
+#   THIS  = the CNPG Postgres Cluster, our RabbitMQ, the ExternalSecrets, the two
+#           public Ingresses (gated + ungated), the namespace LimitRange + quota.
+#   chart = the seven ReportPortal workloads + the OpenSearch subchart.
+#
+# ORDER MATTERS inside this list only for readability — kustomize does not sequence
+# apply, Argo's sync waves do. What DOES matter is that the LimitRange (in
+# resourcequota.yaml) is listed and created before the quota it protects; they are
+# in the same file for exactly that reason.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - cnpg-cluster.yaml
+  - rabbitmq.yaml
+  - ingress.yaml
+  # The mail server. NOT a chart value — chart 26.8.12 exposes no smtp/mail key at
+  # all; ReportPortal keeps it as a row in its own Postgres, so it is reconciled
+  # against the REST API exactly as harbor-oidc-reconcile and nextcloud's occ
+  # reconcile do for their DB-stored config.
+  - email-reconcile.yaml
+  # The project, the human accounts, their membership, the CI API key and the
+  # triage dashboards. Same reason as the mail server: ReportPortal keeps all of
+  # it in its OWN Postgres, so the chart cannot express any of it and a rebuild
+  # without a database restore would come back empty. The DATA (roster +
+  # dashboards) is a separate file so that adding a teammate is a one-line edit
+  # that never touches the job.
+  - config-reconcile-data.yaml
+  - config-reconcile.yaml
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

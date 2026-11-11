@@ -1,0 +1,319 @@
+# ── autorizare's copy (docs/autorizare/18-sso-authentik-unic.md, step 2) ──
+# The same dedicated, narrowly permissioned API token invoicing has, for the
+# authorization control plane: it issues, rolls and revokes machine credentials
+# (MACH-1/7) and reads groups (IDP-7) on the ONE directory. Its slot is
+# secret/platform/authentik/autorizare-api-token; autorizare's ExternalSecret
+# reads it (the hub lane's change). Everything below the separator is the
+# invoicing job's reasoning, which applies unchanged.
+# ────────────────────────────────────────────────────────────────────────────
+# ── THE ONE DIRECTORY'S COPY (docs/autorizare/18-sso-authentik-unic.md, step 5) ──
+# Derived from the retired business Authentik's invoice-token-reconcile CronJob
+# with only the instance changed: this directory's API, its env Secret, its own
+# ServiceAccount + OpenBao role (authentik-autorizare-token) and its own slot,
+# secret/platform/authentik/autorizare-api-token. Both ran until rmx-invoice-svc was
+# re-pointed (its ExternalSecret reads this slot and AUTHENTIK_API_URL names this
+# directory — the invoicing lane's change); the business copy was deleted with
+# that instance on 2026-10-25. Everything below is the original's reasoning, unchanged.
+#
+# The DEDICATED Authentik API credential rmx-invoice-svc issues machine
+# credentials with — minted, permissioned and maintained as code.
+#
+# THE GAP THIS CLOSES: rmx-invoice-svc shipped a whole capability (@rule MACH-1,
+# @rule MACH-6 — a machine credential is an OAuth client-credentials provider
+# created AT the identity provider) whose configuration no deployment supplied.
+# cmd/invoicesvcd/main.go builds the issuer only when AUTHENTIK_API_URL and
+# AUTHENTIK_API_TOKEN are both present; neither appeared in any manifest, in
+# seed-secrets.sh, or in the cluster Secret. So the pod logged one warning at
+# startup, stayed green, and the developer console answered every "create
+# credential" with `Credentialele nu pot fi emise: furnizorul de identitate nu
+# este configurat.` That refusal is CORRECT and must stay — it is what stops the
+# service handing out a secret that authenticates against nothing. What was
+# missing is the credential itself.
+#
+# WHY A JOB RATHER THAN A SEEDED VALUE. Only Authentik can mint a token that
+# Authentik will accept, so a generated random value would look present in
+# OpenBao and 403 on every call. The two shortcuts were considered and REJECTED
+# by the owner on 2026-09-02:
+#   * reuse AUTHENTIK_BOOTSTRAP_TOKEN — it is akadmin, a superuser over every
+#     user, group, application and flow on the directory. Handing it to
+#     an application makes any flaw in that application a flaw in the whole
+#     directory, and a bootstrap-token rotation would break invoicing with
+#     nothing naming the connection.
+#   * mint one by hand — nothing re-mints it, so an Authentik restored from an
+#     older backup silently loses the token and credential issuance fails again
+#     with the exact same message, with no trace of why.
+# So this job uses the bootstrap token ONCE per reconcile, in-cluster, to
+# maintain a service account whose ONLY permissions are the four on the OAuth2
+# provider model — and writes that account's token back to OpenBao, which is the
+# source of truth the ExternalSecret reads.
+#
+# THE PERMISSION SET, and why it is the narrowest that works. The adapter
+# (packages/rmx-invoicing/adapter/identitate/authentik.go) makes exactly three
+# calls: POST, PATCH and DELETE on /api/v3/providers/oauth2/. Authentik's
+# ObjectPermissions (authentik/rbac/permissions.py) maps POST -> add_, PATCH ->
+# change_, DELETE -> delete_, and resolves the object on every DETAIL route
+# through a queryset filtered by view_ — so PATCH and DELETE are unreachable
+# without view_ as well. Four codenames, all on one model out of the directory's
+# entire model set, and NOTHING on users, groups, flows, applications,
+# certificates, tokens or system settings:
+#   authentik_providers_oauth2.{add,change,delete,view}_oauth2provider
+# Verified against this instance (2026.5.3) on 2026-09-02: GET
+# /api/v3/rbac/permissions/?search=oauth2provider returns those four and no
+# others, so this is the model's complete permission surface and there is no
+# narrower expression of "may manage OAuth2 providers".
+#
+# ==================== READ BEFORE WRITE, AND ADDITIVE ONLY ====================
+# The same discipline as reportportal's config-reconcile.yaml, which this file is
+# modelled on. Every step is presence-checked and nothing here deletes or revokes
+# anything, ever:
+#   * the service account  — GET by username; create ONLY when absent.
+#   * the role             — GET by name; create ONLY when absent.
+#   * the membership       — read the user's roles; add ONLY when missing.
+#   * the permissions      — read what the role holds; assign ONLY what is
+#                            missing. Assignment is idempotent (guardian's
+#                            assign_perm), so this also REPAIRS a permission
+#                            removed by hand rather than merely noticing it.
+#   * the token            — GET by identifier; create ONLY when absent, and
+#                            re-read its key rather than minting a second one.
+#                            Authentik stores an API token's key in cleartext and
+#                            serves it from /view_key/, so a stale OpenBao copy
+#                            is a mirroring problem, not a lost secret — unlike
+#                            ReportPortal, where the key is hashed and a rebuild
+#                            forces a fresh mint.
+#   * OpenBao              — written ONLY when the stored value differs, and
+#                            MERGED into the existing data map (a KV v2 write
+#                            creates a whole new version, so a bare {token}
+#                            would drop every other field on the path).
+#
+# THE ONE TARGETED WRITE to an existing object is the `expiring` repair: a token
+# under OUR identifier that was created with an expiry would go stale on a date
+# nobody is watching, and the failure looks exactly like the bug this file
+# exists to fix. It touches only the object this job manages.
+#
+# ============================== FAILING LOUD ==================================
+# Every failure exits non-zero with a NAMED reason, because the alternative is
+# what already happened here: a healthy pod, a green namespace, and a button that
+# does nothing. The ONE deliberate exception is a TRANSIENT status while
+# validating the stored token — anything that is not 200/401/403 means the answer
+# is unknown, and acting on an unknown is how a working credential gets replaced
+# because Authentik was restarting.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authentik-autorizare-token
+---
+# NO Role/RoleBinding, deliberately. This job makes no Kubernetes API call at
+# all: the ServiceAccount exists ONLY so its projected token can be exchanged for
+# an OpenBao token through the `authentik-autorizare-token` kubernetes auth role
+# (infrastructure/hetzner/scripts/openbao-bootstrap.sh). Granting it k8s RBAC it
+# does not use would be a gratuitous widening — the same reasoning as
+# reportportal-config's.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-autorizare-token-reconcile
+  annotations:
+    # On the CronJob's OWN metadata: require-alert-annotation matches the CronJob
+    # kind directly and no mutate policy reaches a hand-written object here.
+    alerts.recomex.eu/owner: WLOPSEMAIL
+spec:
+  # Offset from reportportal's 7,22,37,52 so two jobs are never holding a
+  # superuser token in the same second.
+  schedule: "4,19,34,49 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: authentik-autorizare-token-reconcile }
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: authentik-autorizare-token
+          # Required: the projected token is the credential this job logs into
+          # OpenBao with to store the token it maintains.
+          automountServiceAccountToken: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            # The root filesystem is read-only by policy, so curl's config and
+            # body files live on an emptyDir — created root-owned. Without the
+            # fsGroup the 65534 user cannot write into it.
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+            # The shared script (credential-token-reconcile-script.yaml).
+            - name: script
+              configMap: { name: authentik-credential-token-reconcile }
+          containers:
+            - name: reconcile
+              # alpine/k8s, NOT curlimages/curl: this job PARSES and COMPARES
+              # JSON and the curl image ships busybox with no jq. Same pinned
+              # image and tag as every other reconcile in this repo.
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: script, mountPath: /script, readOnly: true }
+              env:
+                # --- non-secret desired state --------------------------------
+                # IN-CLUSTER, never a public address: this must not depend on
+                # public DNS, on the ingress, or on a certificate. The service's
+                # own AUTHENTIK_API_URL is the public origin because the service
+                # is reached from outside; this job is not.
+                - name: AK_API
+                  value: http://authentik-server.authentik.svc.cluster.local:80
+                # The Authentik service account. `svc-` prefixed and named for
+                # its consumer, so `Directory -> Users` says who holds it.
+                - name: JOB_NAME
+                  value: authentik-autorizare-token-reconcile
+                - name: AK_TOKEN_DESCRIPTION
+                  value: "autorizare — issues and revokes OAuth client-credentials providers and reads groups (@rule MACH-1, IDP-7). Maintained by the authentik-autorizare-token-reconcile CronJob."
+                - name: AK_SERVICE_ACCOUNT
+                  value: svc-autorizare
+                # The RBAC role carrying the four permissions. A role rather than
+                # a group: Authentik 2026.5 attaches a Role to a User directly
+                # (User.roles, related_name="users" — authentik/core/models.py),
+                # so a group would be a third object with nothing to add.
+                #
+                # NOT prefixed `app-invoice-`: that namespace belongs to the
+                # login groups in blueprints-groups.yaml, and the invoicing
+                # service's own architecture test grades every `app-invoice-*`
+                # name against that blueprint.
+                - name: AK_ROLE
+                  value: autorizare-credential-issuer
+                # The token's stable identifier. Fixed, so every run finds the
+                # SAME token instead of minting a new one; the API's pattern is
+                # ^[-a-zA-Z0-9_]+$.
+                - name: AK_TOKEN_IDENTIFIER
+                  value: autorizare-api
+                # Space-separated, and the whole grant this account receives: the
+                # complete permission surface of the OAuth2 provider model, a
+                # READ on flows, and what @rule MACH-10 needs to give each
+                # credential its own application.
+                #
+                # view_flow is what lets the adapter resolve
+                # `default-provider-authorization-implicit-consent` and
+                # `default-provider-invalidation-flow` to the uuids the provider
+                # is required to name. The uuids are generated per install, so
+                # they cannot be compiled in, and Authentik's ObjectFilter
+                # answers a list request from an account without the model's
+                # view_ permission with 403 rather than an empty page — so
+                # without this line issuing a credential fails at the lookup and
+                # reads like a missing flow.
+                #
+                # The application four are the NARROWEST set that works, and
+                # each was derived from Authentik 2026.5.3's own permission
+                # classes rather than guessed:
+                #   add_application    — POST /core/applications/. ObjectPermissions
+                #     falls through to DjangoModelPermissions for a create, and
+                #     rbac_allow_create_without_perm is set on the tokens
+                #     viewset alone, so the add_ permission is genuinely needed.
+                #   view_application   — the DELETE below is a DETAIL route, and
+                #     ObjectFilter resolves it through a queryset filtered by
+                #     view_. Without it the filter finds nothing and raises
+                #     PermissionDenied: a 403, not a 404.
+                #   delete_application — the revocation itself.
+                #   add_policybinding  — POST /policies/bindings/, the binding
+                #     that denies every interactive user.
+                # And ONE read outside those models:
+                #   view_expressionpolicy — the adapter resolves the shared deny
+                #     policy by NAME through a LIST route, which ObjectFilter
+                #     guards exactly as it guards the flows lookup above.
+                #   view_group — @rule ORG-15, and it was MISSING. The startup
+                #     assertion reads the directory's group list to prove the
+                #     platform-administrator group exists, and treats an
+                #     unreadable directory as a FAILED check — correctly, since
+                #     "cannot check" must not pass as "checked". Without this
+                #     grant /core/groups/ answers 403 and the process refuses to
+                #     start. Found 2026-09-02 while booting the service against
+                #     the scoped token: the pod then running had been started
+                #     with an earlier, broader credential, so the defect was
+                #     invisible until the next restart — which would have failed
+                #     with an error naming permissions rather than groups.
+                #   view_certificatekeypair — @rule MACH-1. A provider created
+                #     without `signing_key` does not fail; the field is nullable
+                #     and Authentik falls back to HS256, signing every token
+                #     with the CLIENT SECRET. This platform never keeps that
+                #     secret (@rule MACH-6), so such a token can be verified by
+                #     nothing and the credential is refused at every call while
+                #     minting perfectly. The adapter therefore resolves the
+                #     signing certificate BY NAME, through the same kind of LIST
+                #     route as the flows and the policy — and without this
+                #     permission that lookup answers 403, which lookupOne
+                #     reports as a missing certificate.
+                #     READ-ONLY, deliberately: add/change/delete_certificatekeypair
+                #     are absent for the same reason the expression-policy writes
+                #     are. An issuer able to replace the platform's signing key
+                #     could re-sign anything the directory vouches for.
+                #
+                # Four permissions are deliberately NOT here. change_application
+                # is absent because nothing ever patches an application: the
+                # slug derives from the credential's client id, which Roll does
+                # not change. delete_policybinding is absent because
+                # PolicyBinding.target is a foreign key with on_delete=CASCADE,
+                # so deleting the application takes its binding with it.
+                # view_policybinding is absent because no binding is ever read
+                # back. add/change/delete_expressionpolicy are absent on
+                # purpose and are the most important omission of the five: the
+                # deny policy is declared as config-as-code in
+                # blueprints-providers.yaml, and an issuer able to rewrite it
+                # could weaken the very rule it is bound by.
+                - name: AK_PERMISSIONS
+                  value: >-
+                    authentik_providers_oauth2.add_oauth2provider
+                    authentik_providers_oauth2.change_oauth2provider
+                    authentik_providers_oauth2.delete_oauth2provider
+                    authentik_providers_oauth2.view_oauth2provider
+                    authentik_flows.view_flow
+                    authentik_core.add_application
+                    authentik_core.view_application
+                    authentik_core.delete_application
+                    authentik_policies.add_policybinding
+                    authentik_policies_expression.view_expressionpolicy
+                    authentik_crypto.view_certificatekeypair
+                    authentik_core.view_group
+                # The certificate machine credentials sign with. Must match
+                # signingCertificateName in packages/rmx-securitate/identitate —
+                # the issuer resolves it by this name too, and the two
+                # disagreeing would mean new credentials and repaired ones sign
+                # with different keys. The pre-encoded form is what the query
+                # string needs; the plain one is what the comparison and the
+                # messages use.
+                - name: AK_SIGNING_CERT
+                  value: "authentik Self-signed Certificate"
+                - name: AK_SIGNING_CERT_ENC
+                  value: "authentik%20Self-signed%20Certificate"
+                - name: BAO_ADDR
+                  value: http://openbao.openbao.svc:8200
+                - name: BAO_ROLE
+                  value: authentik-autorizare-token
+                # The path rmx-invoice-svc's ExternalSecret reads AUTHENTIK_API_TOKEN
+                # from (gitops/services/rmx-invoice-svc/base/externalsecret.yaml).
+                # Its own path, not .../app: this identity must never be able to
+                # read the invoicing service's database DSN or token-encryption key.
+                - name: TOKEN_SECRET_PATH
+                  value: platform/authentik/autorizare-api-token
+                - name: TOKEN_SECRET_FIELD
+                  value: token
+                # --- secrets -------------------------------------------------
+                # akadmin. Used for the directory calls below and NEVER written
+                # anywhere: what this job stores is the scoped token it maintains.
+                - name: AUTHENTIK_BOOTSTRAP_TOKEN
+                  valueFrom: { secretKeyRef: { name: authentik-env, key: AUTHENTIK_BOOTSTRAP_TOKEN } }
+              command: ["/bin/sh", "/script/reconcile.sh"]

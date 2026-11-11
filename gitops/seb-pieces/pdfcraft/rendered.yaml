@@ -1,0 +1,1368 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  hard:
+    limits.cpu: "4"
+    limits.memory: 1Gi
+    persistentvolumeclaims: "0"
+    pods: "4"
+    requests.cpu: 200m
+    requests.memory: 256Mi
+---
+apiVersion: v1
+data:
+  bar.js: |
+    /* The estate bar slot: SEB draws none. An estate supplies its bar (apps/pdfcraft-bar, built with
+     * its own declaration) through its component (components/estate/pdfcraft). */
+kind: ConfigMap
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+  name: pdfcraft-bar-8b2t45k955
+  namespace: pdfcraft
+---
+apiVersion: v1
+data:
+  me.js: "// /_psi/me — the signed-in person, for the estate's bar (apps/pdfcraft-bar).\n//\n//
+    Authentik's forward-auth gate passes the person to this pod as request headers\n//
+    (X-authentik-name, X-authentik-email; gitops/platform/authentik/\n// middleware-forwardauth.yaml).
+    They are answered as JSON built by\n// JSON.stringify — never spliced into a page,
+    where a name holding a quote or an\n// angle bracket would be markup. Nothing
+    is stored and nothing else is read.\n//\n// njs (nginx's JavaScript module, shipped
+    in the image as ngx_http_js_module).\nfunction me(r) {\n\tconst name = r.headersIn[\"X-authentik-name\"]
+    || \"\";\n\tconst email = r.headersIn[\"X-authentik-email\"] || \"\";\n\tr.headersOut[\"Content-Type\"]
+    = \"application/json; charset=utf-8\";\n\tr.headersOut[\"Cache-Control\"] = \"no-store\";\n\tr.headersOut[\"X-Content-Type-Options\"]
+    = \"nosniff\";\n\tr.return(200, JSON.stringify({ name: name, email: email }));\n}\n\nexport
+    default { me };\n"
+  nginx.conf: |
+    # nginx MAIN config for PDFCraft — replaces the image's /etc/nginx/nginx.conf.
+    #
+    # It differs from the stock nginx:1.25-alpine one in exactly what running as a
+    # non-root user on a READ-ONLY root filesystem requires, and nothing else:
+    #   - no `user` directive (meaningless when not started as root);
+    #   - pid and every temp path under /tmp, the pod's one writable emptyDir;
+    #   - logs straight to the container's stdout/stderr;
+    #   - a fixed worker count: `auto` means one worker per NODE cpu, not per the
+    #     pod's cpu limit;
+    #   - server_tokens off, and relative redirects (TLS ends at Traefik).
+    # The site itself — routes, caching, the COOP/COEP headers the WebAssembly tools
+    # need — is upstream's /etc/nginx/conf.d/default.conf, untouched.
+    #
+    # OUR CUSTOMISATION (the owner, 2026-10-28: "a lot in Chinese, and a lot of
+    # marketing I don't want; customize it while staying resilient to future
+    # updates") is the `server` at the bottom: a front on :8080 that proxies to
+    # upstream's untouched server on 127.0.0.1:80. Upstream's files are never edited,
+    # so a new image cannot silently undo or conflict with any of this.
+    # njs, for /_psi/me (base/me.js) — shipped in the image, loaded here.
+    load_module modules/ngx_http_js_module.so;
+
+    worker_processes  2;
+
+    error_log  /dev/stderr notice;
+    pid        /tmp/nginx.pid;
+
+    events {
+        worker_connections  1024;
+    }
+
+    http {
+        client_body_temp_path /tmp/client_temp;
+        proxy_temp_path       /tmp/proxy_temp;
+        fastcgi_temp_path     /tmp/fastcgi_temp;
+        uwsgi_temp_path       /tmp/uwsgi_temp;
+        scgi_temp_path        /tmp/scgi_temp;
+
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log  /dev/stdout  main;
+
+        sendfile           on;
+        keepalive_timeout  65;
+        server_tokens      off;
+        # Behind Traefik's TLS, nginx sees plain http on :80. Its directory redirect
+        # (/en/tools/merge-pdf → …/merge-pdf/) would otherwise be written as an
+        # ABSOLUTE http://<host>/… URL — a scheme downgrade on every tool link. A
+        # relative Location keeps the browser on https.
+        absolute_redirect  off;
+
+        # Upstream's site: `listen 80`, served to the front below only. The pod's
+        # NetworkPolicy admits :8080 alone, so nothing outside the pod reaches :80.
+        include /etc/nginx/conf.d/*.conf;
+
+        # Which upstream responses the front may receive COMPRESSED. sub_filter can
+        # only rewrite plain text, so pages (paths without a static-file extension,
+        # .html, the .txt route payloads) are fetched uncompressed and the front
+        # gzips them itself; every static asset keeps upstream's own compression.
+        map $uri $psi_upstream_ae {
+            # The JS chunks are rewritten (Romanian for upstream's hardcoded Chinese),
+            # so they too come uncompressed. Listed FIRST: map regexes match in order.
+            ~^/_next/static/chunks/  "";
+            ~*\.(js|mjs|css|wasm|data|bin|json|svg|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|avif|ico|gz|map|pdf)$  $http_accept_encoding;
+            default  "";
+        }
+
+        # The account endpoint's handler (base/me.js).
+        js_import psi_me from /etc/nginx/psi/me.js;
+        # Romanian for upstream's English tool names, descriptions and messages
+        # (base/ro.js, from base/ro-overrides.json).
+        js_import psi_ro from /etc/nginx/psi/ro.js;
+
+        # ---- THE FRONT ----------------------------------------------------------
+        server {
+            listen 8080 default_server;
+            server_name _;
+
+            gzip on;
+            gzip_vary on;
+            gzip_proxied any;
+            gzip_comp_level 6;
+            gzip_min_length 256;
+            gzip_types text/plain text/css application/javascript application/json;
+
+            # ── ROUTING (owner, 2026-10-28: "only the landing pages … an entry point")
+            # Reachable: OUR entry page at `/`, and their Studio, tools, workflow and
+            # FAQ in Romanian. Everything else is sent to one of those.
+            #
+            # `/` → the tools index, until our own landing page is deployed in front.
+            location = / {
+                return 302 /ro/tools/;
+            }
+            location = /index.html {
+                return 302 /;
+            }
+            # THEIR home and their marketing pages → our entry point. The .txt files
+            # are the payloads their router fetches for an in-app navigation; they are
+            # redirected too, or a click on their logo would render their home
+            # without ever passing through here.
+            location ~ "^/ro(/(index\.(html|txt))?)?$" {
+                return 302 /;
+            }
+            location ~ "^/ro/(about|contact|privacy|terms|cookies)(/|\.|$)" {
+                return 302 /;
+            }
+            # Every OTHER locale prefix → the same path under /ro/. Matched by SHAPE
+            # (two letters, optionally -XX), not by a list, so a locale upstream adds
+            # later is redirected too. No shared asset directory has that shape
+            # (_next, fonts, images, web, workers, *-wasm, pdfjs-*, 404).
+            # 302, not 301: nothing here should be cached for ever.
+            location ~ "^/(?!ro(/|$))[a-z]{2}(-[A-Z]{2})?$" {
+                return 302 /ro/;
+            }
+            location ~ "^/(?!ro/)[a-z]{2}(?:-[A-Z]{2})?/(.*)$" {
+                return 302 /ro/$1$is_args$args;
+            }
+
+            # Our script (gitops/services/pdfcraft/base/psi.js): switches their
+            # GitHub update check off and adds the „realizat cu PDFCraft” credit.
+            location = /_psi/psi.js {
+                alias /etc/nginx/psi/psi.js;
+                default_type application/javascript;
+                add_header Cache-Control "public, max-age=0, must-revalidate";
+                add_header X-Content-Type-Options "nosniff" always;
+                add_header Cross-Origin-Resource-Policy "same-origin" always;
+            }
+
+            # The estate's bar (apps/pdfcraft-bar, built into base/bar.js).
+            location = /_psi/bar.js {
+                alias /etc/nginx/psi/bar.js;
+                default_type application/javascript;
+                add_header Cache-Control "public, max-age=0, must-revalidate";
+                add_header X-Content-Type-Options "nosniff" always;
+                add_header Cross-Origin-Resource-Policy "same-origin" always;
+            }
+
+            # The signed-in person, as the forward-auth gate passed them: JSON built
+            # by JSON.stringify in njs (base/me.js), never spliced into markup.
+            location = /_psi/me {
+                js_content psi_me.me;
+            }
+
+            # Our one stylesheet (gitops/services/pdfcraft/base/psi.css).
+            location = /_psi/psi.css {
+                alias /etc/nginx/psi/psi.css;
+                default_type text/css;
+                add_header Cache-Control "public, max-age=0, must-revalidate";
+                add_header X-Content-Type-Options "nosniff" always;
+                add_header Cross-Origin-Resource-Policy "same-origin" always;
+            }
+
+            # Upstream's JS chunks, in Romanian, from base/ro-overrides.json:
+            #   - its hardcoded Chinese (the Workflow templates, the node counter), by
+            #     sub_filter rules GENERATED from the map (tools/ro-overrides.py);
+            #   - its English tool names and descriptions (the catalogue the Studio and
+            #     the workflow editor list), by base/ro.js, string by string.
+            # ONLY those run here — never the </head> injection, which inside a JS
+            # string would break the script. A string upstream changes stays
+            # untranslated; nothing breaks. Their `immutable` one-year cache is
+            # replaced by one day, so a change to the map reaches browsers within a
+            # day; the conditional headers are not forwarded, so a browser holding an
+            # untranslated copy is never told by upstream that it is still current.
+            location ^~ /_next/static/chunks/ {
+                proxy_pass http://127.0.0.1:80;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header Connection "";
+                proxy_set_header Accept-Encoding $psi_upstream_ae;
+                proxy_set_header If-None-Match "";
+                proxy_set_header If-Modified-Since "";
+                proxy_max_temp_file_size 0;
+                js_header_filter psi_ro.headers;
+                js_body_filter psi_ro.body buffer_type=buffer;
+                proxy_hide_header Cache-Control;
+                proxy_hide_header Expires;
+                add_header Cache-Control "public, max-age=86400" always;
+                sub_filter_types application/javascript;
+                sub_filter_once off;
+                include /etc/nginx/psi/ro-overrides.conf;
+            }
+
+            # THEIR PAGES and the .txt route payloads, in Romanian: every tool's name
+            # and description and the messages upstream's ro.json lacks, by base/ro.js
+            # (njs — sub_filter takes at most 255 patterns a location, far too few).
+            # Only these paths go through it: it holds a response whole before
+            # rewriting, which is right for a page and wrong for a 30 MiB
+            # WebAssembly file, so every static asset stays in `location /` below.
+            # Otherwise the same as `location /`.
+            location ~ "(/|\.html|\.txt)$" {
+                proxy_pass http://127.0.0.1:80;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header Connection "";
+                proxy_set_header Accept-Encoding $psi_upstream_ae;
+                proxy_set_header If-None-Match "";
+                proxy_set_header If-Modified-Since "";
+                proxy_max_temp_file_size 0;
+                js_header_filter psi_ro.headers;
+                js_body_filter psi_ro.body buffer_type=buffer;
+                sub_filter '</head>' '<link rel="stylesheet" href="/_psi/psi.css"><script src="/_psi/psi.js"></script><script src="/_psi/bar.js" defer></script></head>';
+                sub_filter '<link rel="manifest" href="/manifest.webmanifest"/>' '<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials"/>';
+                sub_filter_once on;
+                sub_filter_types text/html;
+            }
+
+            location / {
+                proxy_pass http://127.0.0.1:80;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header Connection "";
+                proxy_set_header Accept-Encoding $psi_upstream_ae;
+                # STREAM, never spool to disk: the LibreOffice WebAssembly is tens of
+                # MiB and /tmp is a 64Mi emptyDir. A disk-buffered response would
+                # fill it and get the pod evicted.
+                proxy_max_temp_file_size 0;
+                # One stylesheet of ours, before </head>, on every page: the estate's
+                # colours and font, and the hiding of their footer and social links.
+                sub_filter '</head>' '<link rel="stylesheet" href="/_psi/psi.css"><script src="/_psi/psi.js"></script><script src="/_psi/bar.js" defer></script></head>';
+                # Browsers fetch a web-app manifest WITHOUT credentials unless told
+                # otherwise, so the Authentik gate answered it with a redirect to the
+                # sign-in and the console showed a CORS error on every page. Asking for
+                # it WITH the session cookie keeps the gate closed on everything. If
+                # upstream changes this markup the rule matches nothing: the console
+                # error returns, nothing breaks.
+                sub_filter '<link rel="manifest" href="/manifest.webmanifest"/>' '<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials"/>';
+                sub_filter_once on;
+                sub_filter_types text/html;
+            }
+        }
+    }
+  psi.css: |
+    /*
+     * PDFCraft's stylesheet slot, injected by the nginx front before </head> on every page
+     * (nginx.conf). SEB ships no theme: an estate brings its own colours and hides what it
+     * chooses through its component (components/estate/pdfcraft), which replaces this file.
+     */
+  psi.js: "/*\n * PDFCraft's script slot, loaded by the nginx front from <head> on
+    every page (nginx.conf).\n * SEB's default does one thing: upstream's automatic
+    \"check for updates\" asks GitHub and two\n * third-party mirrors from every visitor's
+    browser; it reads its switch from localStorage, so\n * the switch is set OFF here,
+    before their application starts. An estate's component\n * (components/estate/pdfcraft)
+    may replace this file (keeping the switch off).\n */\n(() => {\n\tconst UPDATE_SETTINGS
+    = \"pdfcraft_update_settings\";\n\ttry {\n\t\tconst raw = window.localStorage.getItem(UPDATE_SETTINGS);\n\t\tconst
+    settings = raw ? JSON.parse(raw) : {};\n\t\tif (settings === null || typeof settings
+    !== \"object\" || settings.autoCheck !== false) {\n\t\t\twindow.localStorage.setItem(\n\t\t\t\tUPDATE_SETTINGS,\n\t\t\t\tJSON.stringify({
+    ...(settings || {}), autoCheck: false }),\n\t\t\t);\n\t\t}\n\t} catch {\n\t\t/*
+    storage blocked: the check runs as upstream ships it */\n\t}\n})();\n"
+  ro-overrides.conf: |
+    # GENERATED by gitops/services/pdfcraft/tools/ro-overrides.py from
+    # ro-overrides.json — do not edit. Included by nginx.conf in the location
+    # that serves upstream's JS chunks.
+    sub_filter '合同安全加水印与加密归档 (Secure Contract Publishing)' 'Contract securizat: filigran, anonimizare și criptare';
+    sub_filter '\\u5408\\u540c\\u5b89\\u5168\\u52a0\\u6c34\\u5370\\u4e0e\\u52a0\\u5bc6\\u5f52\\u6863 (Secure Contract Publishing)' 'Contract securizat: filigran, anonimizare \\u0219i criptare';
+    sub_filter '从 PDF 输入开始，依次添加水印、敏感信息脱敏、高强度密码加密，并直接提供下载产物' 'Pornește de la un PDF, adaugă un filigran, ascunde informațiile sensibile, îl criptează cu o parolă puternică și oferă fișierul gata de descărcat.';
+    sub_filter '\\u4ece PDF \\u8f93\\u5165\\u5f00\\u59cb\\uff0c\\u4f9d\\u6b21\\u6dfb\\u52a0\\u6c34\\u5370\\u3001\\u654f\\u611f\\u4fe1\\u606f\\u8131\\u654f\\u3001\\u9ad8\\u5f3a\\u5ea6\\u5bc6\\u7801\\u52a0\\u5bc6\\uff0c\\u5e76\\u76f4\\u63a5\\u63d0\\u4f9b\\u4e0b\\u8f7d\\u4ea7\\u7269' 'Porne\\u0219te de la un PDF, adaug\\u0103 un filigran, ascunde informa\\u021biile sensibile, \\u00eel cripteaz\\u0103 cu o parol\\u0103 puternic\\u0103 \\u0219i ofer\\u0103 fi\\u0219ierul gata de desc\\u0103rcat.';
+    sub_filter 'PDF 源文档输入' 'Document PDF sursă';
+    sub_filter 'PDF \\u6e90\\u6587\\u6863\\u8f93\\u5165' 'Document PDF surs\\u0103';
+    sub_filter '添加防伪水印' 'Adaugă filigran de autenticitate';
+    sub_filter '\\u6dfb\\u52a0\\u9632\\u4f2a\\u6c34\\u5370' 'Adaug\\u0103 filigran de autenticitate';
+    sub_filter '机密文档 仅供参考' 'CONFIDENȚIAL — doar pentru consultare';
+    sub_filter '\\u673a\\u5bc6\\u6587\\u6863 \\u4ec5\\u4f9b\\u53c2\\u8003' 'CONFIDEN\\u021aIAL \\u2014 doar pentru consultare';
+    sub_filter '设置访问密码' 'Setează parola de acces';
+    sub_filter '\\u8bbe\\u7f6e\\u8bbf\\u95ee\\u5bc6\\u7801' 'Seteaz\\u0103 parola de acces';
+    sub_filter '下载安全合同 PDF' 'Descarcă contractul securizat (PDF)';
+    sub_filter '\\u4e0b\\u8f7d\\u5b89\\u5168\\u5408\\u540c PDF' 'Descarc\\u0103 contractul securizat (PDF)';
+    sub_filter '扫描件净化纠偏与增强 (Scanned Cleanup & Optimize)' 'Curățare și optimizare documente scanate';
+    sub_filter '\\u626b\\u63cf\\u4ef6\\u51c0\\u5316\\u7ea0\\u504f\\u4e0e\\u589e\\u5f3a (Scanned Cleanup & Optimize)' 'Cur\\u0103\\u021bare \\u0219i optimizare documente scanate';
+    sub_filter '自动对倾斜扫描件进行矫正、智能检测并删除空白页、进行快速线性化压缩优化' 'Îndreaptă automat paginile scanate strâmb, detectează și elimină paginile goale, apoi comprimă și optimizează documentul pentru afișare rapidă.';
+    sub_filter '\\u81ea\\u52a8\\u5bf9\\u503e\\u659c\\u626b\\u63cf\\u4ef6\\u8fdb\\u884c\\u77eb\\u6b63\\u3001\\u667a\\u80fd\\u68c0\\u6d4b\\u5e76\\u5220\\u9664\\u7a7a\\u767d\\u9875\\u3001\\u8fdb\\u884c\\u5feb\\u901f\\u7ebf\\u6027\\u5316\\u538b\\u7f29\\u4f18\\u5316' '\\u00cendreapt\\u0103 automat paginile scanate str\\u00e2mb, detecteaz\\u0103 \\u0219i elimin\\u0103 paginile goale, apoi comprim\\u0103 \\u0219i optimizeaz\\u0103 documentul pentru afi\\u0219are rapid\\u0103.';
+    sub_filter '扫描件原稿输入' 'Documentul scanat original';
+    sub_filter '\\u626b\\u63cf\\u4ef6\\u539f\\u7a3f\\u8f93\\u5165' 'Documentul scanat original';
+    sub_filter '自动倾斜校正' 'Îndreptare automată';
+    sub_filter '\\u81ea\\u52a8\\u503e\\u659c\\u6821\\u6b63' '\\u00cendreptare automat\\u0103';
+    sub_filter '移除空白扫描页' 'Elimină paginile goale';
+    sub_filter '\\u79fb\\u9664\\u7a7a\\u767d\\u626b\\u63cf\\u9875' 'Elimin\\u0103 paginile goale';
+    sub_filter 'Web 快视优化' 'Optimizare pentru afișare rapidă pe web';
+    sub_filter 'Web \\u5feb\\u89c6\\u4f18\\u5316' 'Optimizare pentru afi\\u0219are rapid\\u0103 pe web';
+    sub_filter '导出高清净化 PDF' 'Exportă PDF-ul curățat, la calitate înaltă';
+    sub_filter '\\u5bfc\\u51fa\\u9ad8\\u6e05\\u51c0\\u5316 PDF' 'Export\\u0103 PDF-ul cur\\u0103\\u021bat, la calitate \\u00eenalt\\u0103';
+    sub_filter '电子发票首页提取与归档 ZIP (Invoice Batch Archiver)' 'Arhivare facturi în lot (ZIP)';
+    sub_filter '\\u7535\\u5b50\\u53d1\\u7968\\u9996\\u9875\\u63d0\\u53d6\\u4e0e\\u5f52\\u6863 ZIP (Invoice Batch Archiver)' 'Arhivare facturi \\u00een lot (ZIP)';
+    sub_filter '批量提取电子发票的首页有效凭证，执行中等质量压缩，并将全部发票打包为 ZIP 归档' 'Extrage prima pagină, cea relevantă, din fiecare factură, o comprimă la calitate medie și pune toate facturile într-o arhivă ZIP.';
+    sub_filter '\\u6279\\u91cf\\u63d0\\u53d6\\u7535\\u5b50\\u53d1\\u7968\\u7684\\u9996\\u9875\\u6709\\u6548\\u51ed\\u8bc1\\uff0c\\u6267\\u884c\\u4e2d\\u7b49\\u8d28\\u91cf\\u538b\\u7f29\\uff0c\\u5e76\\u5c06\\u5168\\u90e8\\u53d1\\u7968\\u6253\\u5305\\u4e3a ZIP \\u5f52\\u6863' 'Extrage prima pagin\\u0103, cea relevant\\u0103, din fiecare factur\\u0103, o comprim\\u0103 la calitate medie \\u0219i pune toate facturile \\u00eentr-o arhiv\\u0103 ZIP.';
+    sub_filter '发票原件批量输入' 'Facturile originale, în lot';
+    sub_filter '\\u53d1\\u7968\\u539f\\u4ef6\\u6279\\u91cf\\u8f93\\u5165' 'Facturile originale, \\u00een lot';
+    sub_filter '提取发票首页' 'Extrage prima pagină a facturii';
+    sub_filter '\\u63d0\\u53d6\\u53d1\\u7968\\u9996\\u9875' 'Extrage prima pagin\\u0103 a facturii';
+    sub_filter '平衡质量压缩' 'Compresie echilibrată';
+    sub_filter '\\u5e73\\u8861\\u8d28\\u91cf\\u538b\\u7f29' 'Compresie echilibrat\\u0103';
+    sub_filter '打包发票为 ZIP 归档' 'Arhivează facturile în ZIP';
+    sub_filter '\\u6253\\u5305\\u53d1\\u7968\\u4e3a ZIP \\u5f52\\u6863' 'Arhiveaz\\u0103 facturile \\u00een ZIP';
+    sub_filter '相册多图转双面折页小册子 (Photo Album Booklet)' 'Broșură foto din mai multe imagini';
+    sub_filter '\\u76f8\\u518c\\u591a\\u56fe\\u8f6c\\u53cc\\u9762\\u6298\\u9875\\u5c0f\\u518c\\u5b50 (Photo Album Booklet)' 'Bro\\u0219ur\\u0103 foto din mai multe imagini';
+    sub_filter '上传多张图片合成 PDF，自动重排为可直接对折骑马钉装订的小册子并加上页码' 'Încarci mai multe imagini, le transformă într-un PDF, le reordonează ca broșură gata de îndoit și capsat la mijloc și adaugă numerele paginilor.';
+    sub_filter '\\u4e0a\\u4f20\\u591a\\u5f20\\u56fe\\u7247\\u5408\\u6210 PDF\\uff0c\\u81ea\\u52a8\\u91cd\\u6392\\u4e3a\\u53ef\\u76f4\\u63a5\\u5bf9\\u6298\\u9a91\\u9a6c\\u9489\\u88c5\\u8ba2\\u7684\\u5c0f\\u518c\\u5b50\\u5e76\\u52a0\\u4e0a\\u9875\\u7801' '\\u00cencarci mai multe imagini, le transform\\u0103 \\u00eentr-un PDF, le reordoneaz\\u0103 ca bro\\u0219ur\\u0103 gata de \\u00eendoit \\u0219i capsat la mijloc \\u0219i adaug\\u0103 numerele paginilor.';
+    sub_filter '批量图片输入' 'Imaginile, în lot';
+    sub_filter '\\u6279\\u91cf\\u56fe\\u7247\\u8f93\\u5165' 'Imaginile, \\u00een lot';
+    sub_filter '图片转 PDF' 'Imagini în PDF';
+    sub_filter '\\u56fe\\u7247\\u8f6c PDF' 'Imagini \\u00een PDF';
+    sub_filter '双面折页小册子重排' 'Reordonare pentru broșură îndoită';
+    sub_filter '\\u53cc\\u9762\\u6298\\u9875\\u5c0f\\u518c\\u5b50\\u91cd\\u6392' 'Reordonare pentru bro\\u0219ur\\u0103 \\u00eendoit\\u0103';
+    sub_filter '添加底部居中页码' 'Numerotare jos, centrat';
+    sub_filter '\\u6dfb\\u52a0\\u5e95\\u90e8\\u5c45\\u4e2d\\u9875\\u7801' 'Numerotare jos, centrat';
+    sub_filter '下载可印刷小册子 PDF' 'Descarcă broșura gata de tipărit (PDF)';
+    sub_filter '\\u4e0b\\u8f7d\\u53ef\\u5370\\u5237\\u5c0f\\u518c\\u5b50 PDF' 'Descarc\\u0103 bro\\u0219ura gata de tip\\u0103rit (PDF)';
+    sub_filter ' 节点' ' noduri';
+    sub_filter ' \\u8282\\u70b9' ' noduri';
+    sub_filter '删除节点' 'Șterge nodul';
+    sub_filter '\\u5220\\u9664\\u8282\\u70b9' '\\u0218terge nodul';
+    sub_filter '复制节点 (Duplicate)' 'Duplică nodul';
+    sub_filter '\\u590d\\u5236\\u8282\\u70b9 (Duplicate)' 'Duplic\\u0103 nodul';
+  ro-overrides.json: |
+    {
+      "chunks": {
+        "合同安全加水印与加密归档 (Secure Contract Publishing)": "Contract securizat: filigran, anonimizare și criptare",
+        "从 PDF 输入开始，依次添加水印、敏感信息脱敏、高强度密码加密，并直接提供下载产物": "Pornește de la un PDF, adaugă un filigran, ascunde informațiile sensibile, îl criptează cu o parolă puternică și oferă fișierul gata de descărcat.",
+        "PDF 源文档输入": "Document PDF sursă",
+        "添加防伪水印": "Adaugă filigran de autenticitate",
+        "机密文档 仅供参考": "CONFIDENȚIAL — doar pentru consultare",
+        "设置访问密码": "Setează parola de acces",
+        "下载安全合同 PDF": "Descarcă contractul securizat (PDF)",
+        "扫描件净化纠偏与增强 (Scanned Cleanup & Optimize)": "Curățare și optimizare documente scanate",
+        "自动对倾斜扫描件进行矫正、智能检测并删除空白页、进行快速线性化压缩优化": "Îndreaptă automat paginile scanate strâmb, detectează și elimină paginile goale, apoi comprimă și optimizează documentul pentru afișare rapidă.",
+        "扫描件原稿输入": "Documentul scanat original",
+        "自动倾斜校正": "Îndreptare automată",
+        "移除空白扫描页": "Elimină paginile goale",
+        "Web 快视优化": "Optimizare pentru afișare rapidă pe web",
+        "导出高清净化 PDF": "Exportă PDF-ul curățat, la calitate înaltă",
+        "电子发票首页提取与归档 ZIP (Invoice Batch Archiver)": "Arhivare facturi în lot (ZIP)",
+        "批量提取电子发票的首页有效凭证，执行中等质量压缩，并将全部发票打包为 ZIP 归档": "Extrage prima pagină, cea relevantă, din fiecare factură, o comprimă la calitate medie și pune toate facturile într-o arhivă ZIP.",
+        "发票原件批量输入": "Facturile originale, în lot",
+        "提取发票首页": "Extrage prima pagină a facturii",
+        "平衡质量压缩": "Compresie echilibrată",
+        "打包发票为 ZIP 归档": "Arhivează facturile în ZIP",
+        "相册多图转双面折页小册子 (Photo Album Booklet)": "Broșură foto din mai multe imagini",
+        "上传多张图片合成 PDF，自动重排为可直接对折骑马钉装订的小册子并加上页码": "Încarci mai multe imagini, le transformă într-un PDF, le reordonează ca broșură gata de îndoit și capsat la mijloc și adaugă numerele paginilor.",
+        "批量图片输入": "Imaginile, în lot",
+        "图片转 PDF": "Imagini în PDF",
+        "双面折页小册子重排": "Reordonare pentru broșură îndoită",
+        "添加底部居中页码": "Numerotare jos, centrat",
+        "下载可印刷小册子 PDF": "Descarcă broșura gata de tipărit (PDF)",
+        " 节点": " noduri",
+        "删除节点": "Șterge nodul",
+        "复制节点 (Duplicate)": "Duplică nodul"
+      },
+      "texts": {
+        "PDF Multi Tool": "Instrument PDF complet",
+        "Combine Files & Merge PDF": "Combinare fișiere și îmbinare PDF",
+        "Rotate by Custom Degrees": "Rotire la unghi personalizat",
+        "Grid Combine PDF": "Combinare PDF în grilă",
+        "Split PDF": "Împărțire PDF",
+        "Compress PDF": "Comprimare PDF",
+        "Edit PDF": "Editare PDF",
+        "JPG to PDF": "JPG în PDF",
+        "Sign PDF": "Semnare PDF",
+        "Crop PDF": "Decupare PDF",
+        "Extract Pages": "Extragere pagini",
+        "Organize PDF": "Organizare PDF",
+        "Delete Pages": "Ștergere pagini",
+        "Edit Bookmarks": "Editare marcaje",
+        "Table of Contents": "Cuprins",
+        "Page Numbers": "Numerotare pagini",
+        "Add Watermark": "Adăugare filigran",
+        "Header & Footer": "Antet și subsol",
+        "Invert Colors": "Inversare culori",
+        "Background Color": "Culoare de fundal",
+        "Change Text Color": "Schimbare culoare text",
+        "Add Stamps": "Adăugare ștampile",
+        "Remove Annotations": "Eliminare adnotări",
+        "Form Filler": "Completare formulare",
+        "Form Creator": "Creare formulare",
+        "Remove Blank Pages": "Eliminare pagini goale",
+        "Image to PDF": "Imagine în PDF",
+        "PNG to PDF": "PNG în PDF",
+        "WebP to PDF": "WebP în PDF",
+        "SVG to PDF": "SVG în PDF",
+        "BMP to PDF": "BMP în PDF",
+        "PSD to PDF": "PSD în PDF",
+        "HEIC to PDF": "HEIC în PDF",
+        "TIFF to PDF": "TIFF în PDF",
+        "Text to PDF": "Text în PDF",
+        "JSON to PDF": "JSON în PDF",
+        "Word to PDF": "Word în PDF",
+        "Excel to PDF": "Excel în PDF",
+        "PowerPoint to PDF": "PowerPoint în PDF",
+        "XPS to PDF": "XPS în PDF",
+        "RTF to PDF": "RTF în PDF",
+        "EPUB to PDF": "EPUB în PDF",
+        "MOBI to PDF": "MOBI în PDF",
+        "DJVU to PDF": "DJVU în PDF",
+        "FB2 to PDF": "FB2 în PDF",
+        "PDF to JPG": "PDF în JPG",
+        "PDF to PNG": "PDF în PNG",
+        "PDF to WebP": "PDF în WebP",
+        "PDF to BMP": "PDF în BMP",
+        "PDF to TIFF": "PDF în TIFF",
+        "PDF to CBZ": "PDF în CBZ",
+        "PDF to SVG": "PDF în SVG",
+        "PDF to Greyscale": "PDF în tonuri de gri",
+        "PDF to JSON": "PDF în JSON",
+        "PDF to PowerPoint": "PDF în PowerPoint",
+        "PDF to Excel": "PDF în Excel",
+        "OCR PDF": "OCR pentru PDF",
+        "Alternate Merge": "Îmbinare alternativă",
+        "Add Attachments": "Adăugare atașamente",
+        "Extract Attachments": "Extragere atașamente",
+        "Extract Images from PDF": "Extragere imagini din PDF",
+        "Edit Attachments": "Editare atașamente",
+        "Divide Pages": "Divizare pagini",
+        "Add Blank Page": "Adăugare pagină goală",
+        "Reverse Pages": "Inversare ordine pagini",
+        "Rotate PDF": "Rotire PDF",
+        "All-in-one PDF editor: merge, split, organize, delete, rotate, and extract pages in one powerful tool.": "Îmbinare, împărțire, organizare, ștergere, rotire și extragere de pagini, într-un singur instrument.",
+        "Combine multiple PDF files, images (JPG/PNG), Office documents (Word/Excel/PPT), and text into one unified PDF document. Free online tool with drag-and-drop reordering.": "Combină fișiere PDF, imagini (JPG/PNG), documente Office (Word/Excel/PPT) și text într-un singur PDF. Ordinea se stabilește prin tragere.",
+        "Rotate PDF pages by any angle. Precise custom rotation for straightening scanned documents.": "Rotește paginile PDF la orice unghi, pentru îndreptarea documentelor scanate.",
+        "Combine multiple PDF files onto single pages with a flexible grid layout. Arrange 2, 4, 6, 9 or more PDFs per page with borders and spacing.": "Așază mai multe fișiere PDF pe aceeași pagină, într-o grilă: 2, 4, 6, 9 sau mai multe pe pagină, cu chenar și spațiere.",
+        "Split PDF files into multiple documents. Extract specific pages or divide by page ranges.": "Împarte un PDF în mai multe documente, după pagini sau intervale de pagini.",
+        "Reduce PDF file size while maintaining quality. Free online PDF compressor for smaller files.": "Reduce dimensiunea fișierului PDF, păstrând calitatea.",
+        "Directly edit PDF text and images online. Click paragraphs to edit in-place with live reflow, replace images, and find & replace across documents.": "Editează direct textul și imaginile din PDF: modificare pe loc a paragrafelor, înlocuire de imagini, căutare și înlocuire în tot documentul.",
+        "Convert JPG images to PDF. Combine multiple JPG files into a single PDF document.": "Convertește imagini JPG în PDF; mai multe fișiere JPG devin un singur document.",
+        "Add electronic signatures to PDF documents. Draw, type, or upload your signature.": "Adaugă semnături electronice în documente PDF: desenate, scrise sau încărcate.",
+        "Crop PDF pages to remove margins and unwanted areas. Trim PDF documents precisely.": "Decupează paginile PDF pentru a elimina marginile și zonele inutile.",
+        "Extract specific pages from PDF files. Select and save individual pages as new documents.": "Extrage pagini dintr-un PDF și le salvează ca documente noi.",
+        "Reorder, duplicate, and delete PDF pages. Drag and drop to reorganize your documents.": "Reordonează, duplică și șterge pagini PDF, prin tragere.",
+        "Remove unwanted pages from PDF files. Select and delete specific pages easily.": "Elimină paginile nedorite dintr-un PDF.",
+        "Add, edit, and manage PDF bookmarks. Create navigation structure for your documents.": "Adaugă, editează și gestionează marcajele unui PDF, pentru navigarea în document.",
+        "Generate a table of contents for your PDF. Create clickable navigation from bookmarks.": "Generează un cuprins pentru PDF, cu legături create din marcaje.",
+        "Add page numbers to PDF documents. Customize position, format, and starting number.": "Adaugă numere de pagină în PDF, cu poziție, format și număr de început la alegere.",
+        "Add text or image watermarks to PDF files. Protect and brand your documents.": "Adaugă un filigran text sau imagine în fișierele PDF.",
+        "Add headers and footers to PDF documents. Include page numbers, dates, and custom text.": "Adaugă antet și subsol în PDF: numere de pagină, date și text propriu.",
+        "Invert PDF colors for dark mode reading. Convert documents to negative colors.": "Inversează culorile PDF-ului (negativ), pentru citire pe fundal întunecat.",
+        "Change PDF background color. Add colored backgrounds to document pages.": "Schimbă culoarea de fundal a paginilor PDF.",
+        "Change text color in PDF documents. Modify the color of all text content.": "Schimbă culoarea întregului text dintr-un PDF.",
+        "Add stamps to PDF documents. Use preset or custom stamps for approval, review, and more.": "Adaugă ștampile în PDF: predefinite sau proprii, pentru aprobare, verificare și altele.",
+        "Remove annotations from PDF files. Delete comments, highlights, and markup.": "Elimină adnotările dintr-un PDF: comentarii, evidențieri și marcaje.",
+        "Fill PDF forms online. Complete interactive PDF forms without printing.": "Completează formulare PDF interactive, fără a le tipări.",
+        "Create fillable PDF forms. Add text fields, checkboxes, and dropdowns to documents.": "Creează formulare PDF completabile: câmpuri text, casete de bifat și liste derulante.",
+        "Automatically detect and remove blank pages from PDF documents.": "Detectează și elimină automat paginile goale dintr-un PDF.",
+        "Convert any image to PDF. Support for JPG, PNG, WebP, BMP, TIFF, SVG, and HEIC formats.": "Convertește orice imagine în PDF: JPG, PNG, WebP, BMP, TIFF, SVG și HEIC.",
+        "Convert PNG images to PDF. Preserve transparency and combine multiple PNG files.": "Convertește imagini PNG în PDF, păstrând transparența; mai multe fișiere se pot combina.",
+        "Convert WebP images to PDF. Modern image format conversion with quality preservation.": "Convertește imagini WebP în PDF, păstrând calitatea.",
+        "Convert SVG vector graphics to PDF. Preserve scalability and quality.": "Convertește grafică vectorială SVG în PDF, păstrând calitatea la orice mărime.",
+        "Convert BMP bitmap images to PDF. Legacy format support with quality preservation.": "Convertește imagini BMP în PDF, păstrând calitatea.",
+        "Convert Adobe Photoshop (PSD) files to PDF format. Supports multiple files and preserves image quality.": "Convertește fișiere Adobe Photoshop (PSD) în PDF; acceptă mai multe fișiere și păstrează calitatea.",
+        "Convert iPhone HEIC photos to PDF. Apple image format conversion made easy.": "Convertește fotografii HEIC (iPhone) în PDF.",
+        "Convert TIFF images to PDF. Support for multi-page TIFF files and high-quality conversion.": "Convertește imagini TIFF în PDF, inclusiv fișiere TIFF cu mai multe pagini.",
+        "Convert plain text files to PDF. Customize fonts, margins, and page layout.": "Convertește fișiere text în PDF, cu font, margini și așezare în pagină la alegere.",
+        "Convert JSON files to formatted PDF. Syntax highlighting and structured output.": "Convertește fișiere JSON în PDF formatat, cu evidențierea sintaxei.",
+        "Convert Word documents (DOCX) to PDF. Preserve formatting and layout in your converted documents.": "Convertește documente Word (DOCX) în PDF, păstrând formatarea și așezarea în pagină.",
+        "Convert Excel spreadsheets (XLSX) to PDF. Preserve tables and data in your converted documents.": "Convertește foi de calcul Excel (XLSX) în PDF, păstrând tabelele și datele.",
+        "Convert PowerPoint presentations (PPTX) to PDF. Preserve slides and content for easy sharing.": "Convertește prezentări PowerPoint (PPTX) în PDF, păstrând diapozitivele și conținutul.",
+        "Convert XPS documents to PDF format. High-fidelity conversion preserving layout and graphics.": "Convertește documente XPS în PDF, păstrând așezarea în pagină și grafica.",
+        "Convert RTF (Rich Text Format) files to PDF. Preserve text formatting in your documents.": "Convertește fișiere RTF în PDF, păstrând formatarea textului.",
+        "Convert EPUB e-books to PDF. Preserve formatting, images, and chapter structure.": "Convertește cărți electronice EPUB în PDF, păstrând formatarea, imaginile și capitolele.",
+        "Convert MOBI e-books to PDF. Support for Kindle format with high-quality rendering.": "Convertește cărți electronice MOBI (Kindle) în PDF.",
+        "Convert DJVU document files to PDF. High-quality rendering for scanned documents and books.": "Convertește documente DJVU în PDF, potrivit pentru documente și cărți scanate.",
+        "Convert FictionBook (FB2) e-books to PDF. Supports multiple files with high-quality rendering.": "Convertește cărți electronice FictionBook (FB2) în PDF; acceptă mai multe fișiere.",
+        "Convert PDF pages to JPG images. High-quality extraction with customizable resolution.": "Convertește paginile PDF în imagini JPG, cu rezoluție la alegere.",
+        "Convert PDF pages to PNG images. Lossless quality with transparency support.": "Convertește paginile PDF în imagini PNG, fără pierderi și cu transparență.",
+        "Convert PDF pages to WebP images. Modern format with excellent compression.": "Convertește paginile PDF în imagini WebP, cu fișiere mici.",
+        "Convert PDF pages to BMP bitmap images. Uncompressed format for maximum compatibility.": "Convertește paginile PDF în imagini BMP necomprimate.",
+        "Convert PDF to TIFF images. Professional quality with multi-page support.": "Convertește un PDF în imagini TIFF, inclusiv TIFF cu mai multe pagini.",
+        "Convert PDF documents to high-definition Comic Book ZIP archives (.cbz). Built-in Calibre OPF, ComicInfo XML, and ZIP Comment metadata for perfect multi-reader cataloging.": "Convertește documente PDF în arhive de benzi desenate (.cbz), cu metadate Calibre OPF, ComicInfo XML și comentariu ZIP.",
+        "Convert PDF pages to SVG vector graphics. Perfect scalability at any size with individual page export.": "Convertește paginile PDF în grafică vectorială SVG, câte un fișier pe pagină.",
+        "Convert color PDF to greyscale. Reduce file size and prepare for black-and-white printing.": "Convertește un PDF color în tonuri de gri, pentru tipărire alb-negru și fișiere mai mici.",
+        "Extract PDF content to JSON format. Get structured data from PDF documents.": "Extrage conținutul unui PDF în format JSON, ca date structurate.",
+        "Convert PDF to PowerPoint presentation. Each page becomes a high-quality slide.": "Convertește un PDF în prezentare PowerPoint; fiecare pagină devine un diapozitiv.",
+        "Convert PDF to Excel spreadsheet. Extract tables to XLSX format.": "Convertește un PDF în foaie de calcul Excel, extrăgând tabelele în XLSX.",
+        "Make scanned PDFs searchable with OCR. Extract text from images and scanned documents.": "Face căutabile PDF-urile scanate prin OCR și extrage textul din imagini și scanări.",
+        "Merge PDFs by alternating pages. Combine front and back scans into one document.": "Îmbină PDF-uri alternând paginile, de exemplu fețele și versourile scanate separat.",
+        "Embed files in PDF documents. Attach any file type to your PDFs.": "Atașează fișiere de orice tip într-un document PDF.",
+        "Extract embedded files from PDFs. Download all attachments from PDF documents.": "Extrage fișierele atașate dintr-un PDF.",
+        "Extract all embedded images from PDF files. Download individually or as a ZIP archive. Filter small images automatically.": "Extrage toate imaginile dintr-un PDF, separat sau într-o arhivă ZIP; imaginile mici se pot filtra automat.",
+        "Manage PDF attachments. View, rename, and remove embedded files.": "Gestionează atașamentele unui PDF: vizualizare, redenumire și eliminare.",
+        "Split PDF pages into multiple sections. Divide pages horizontally or vertically.": "Împarte paginile PDF în mai multe secțiuni, pe orizontală sau pe verticală.",
+        "Insert blank pages into PDF documents. Add empty pages at any position.": "Inserează pagini goale în PDF, în orice poziție.",
+        "Reverse PDF page order. Flip document pages from last to first.": "Inversează ordinea paginilor dintr-un PDF, de la ultima la prima.",
+        "Rotate PDF pages. Turn pages 90, 180, or 270 degrees.": "Rotește paginile PDF cu 90, 180 sau 270 de grade.",
+        "Overlay PDF": "Suprapunere PDF",
+        "Timestamp PDF": "Marcă temporală PDF",
+        "Add Page Labels": "Etichete de pagină",
+        "N-Up PDF": "Mai multe pagini pe foaie",
+        "Combine to Single Page": "Combinare într-o singură pagină",
+        "View Metadata": "Vizualizare metadate",
+        "Edit Metadata": "Editare metadate",
+        "PDFs to ZIP": "PDF-uri în ZIP",
+        "Compare PDFs": "Comparare PDF-uri",
+        "Posterize PDF": "PDF în format poster",
+        "Fix Page Size": "Uniformizare dimensiune pagini",
+        "Linearize PDF": "Liniarizare PDF",
+        "Page Dimensions": "Dimensiuni pagini",
+        "Remove Restrictions": "Eliminare restricții",
+        "Repair PDF": "Reparare PDF",
+        "Encrypt PDF": "Criptare PDF",
+        "Sanitize PDF": "Curățare PDF",
+        "Find and Redact": "Căutare și anonimizare",
+        "Redact PDF": "Anonimizare PDF",
+        "Decrypt PDF": "Decriptare PDF",
+        "Flatten PDF": "Aplatizare PDF",
+        "Remove Metadata": "Eliminare metadate",
+        "Change Permissions": "Schimbare permisiuni",
+        "PDF to Word": "PDF în Word",
+        "PDF to Markdown": "PDF în Markdown",
+        "Deskew PDF": "Îndreptare PDF",
+        "PDF Booklet Creator": "Creare broșură PDF",
+        "Rasterize PDF": "Rasterizare PDF",
+        "Markdown to PDF": "Markdown în PDF",
+        "Email to PDF": "E-mail în PDF",
+        "CBZ to PDF": "CBZ în PDF",
+        "PDF to PDF/A": "PDF în PDF/A",
+        "Font to Outline": "Fonturi în contururi",
+        "Extract Tables from PDF": "Extragere tabele din PDF",
+        "PDF Layer Manager (OCG)": "Straturi PDF (OCG)",
+        "PDF Reader": "Cititor PDF",
+        "Digital Signature": "Semnătură digitală",
+        "Validate Signature": "Verificare semnătură",
+        "AI PDF Layout Reflower": "Reașezare PDF pentru ecrane mici",
+        "Citation Linker": "Legături pentru citări",
+        "PDF Vector Extractor": "Extragere grafică vectorială",
+        "Deep Metadata Sanitizer": "Curățare completă a metadatelor",
+        "3D Booklet & Folding Simulator": "Simulare broșură și pliere",
+        "PDF to Slide": "PDF în diapozitive",
+        "Form Logic Designer": "Logică pentru formulare",
+        "e-Ink Reader Optimizer": "Optimizare pentru cititoare e-Ink",
+        "Certificate Encrypt & Sign": "Criptare și semnare cu certificat",
+        "Double-Sided ID Composer": "Act de identitate față-verso",
+        "Export Annotations": "Exportare adnotări",
+        "Batch Remove Watermarks": "Eliminare filigrane în lot",
+        "Sensitive Data Redaction": "Anonimizare date sensibile",
+        "Auto Generate Bookmarks": "Generare automată de marcaje",
+        "Batch Inject Barcodes": "Coduri de bare în lot",
+        "Extract Signature & Stamp": "Extragere semnătură și ștampilă",
+        "Fix Dead Links": "Reparare legături moarte",
+        "Generate Interactive TOC": "Cuprins interactiv",
+        "Invoice Translate & Convert": "Facturi: traducere și conversie",
+        "Auto Scan Deskew": "Îndreptare automată a scanărilor",
+        "Two-Column Paper Reflow": "Reașezare articole pe două coloane",
+        "Uniform PDF Page Size": "Dimensiune uniformă a paginilor",
+        "Enhance Handwriting Ink": "Contrast pentru scris de mână",
+        "Calculate Book Spine Width": "Calcul lățime cotor",
+        "Signature Position Guide": "Ghid pentru locul semnăturii",
+        "Lossless Drawing Slicing": "Decupare desene fără pierderi",
+        "Grid Scratchpad Canvas": "Pagini cu grilă pentru notițe",
+        "ID Photo DIY Print Tiler": "Fotografii de buletin pentru tipărire",
+        "Overlay or underlay pages from one PDF onto another. Perfect for stamps, letterheads, and layout composition.": "Suprapune paginile unui PDF peste (sau sub) paginile altuia, pentru ștampile, antete și compoziție.",
+        "Add RFC 3161 trusted timestamps to PDF documents. Prove document existence at a specific point in time without certificates.": "Adaugă marcaje temporale RFC 3161 în PDF, care dovedesc existența documentului la un anumit moment, fără certificat.",
+        "Apply custom page labels to your PDF catalog. Supports Roman numerals, prefixes, and complex disjoint ranges.": "Aplică etichete de pagină proprii: cifre romane, prefixe și intervale neconsecutive.",
+        "Print multiple PDF pages per sheet. Create 2-up, 4-up, or custom layouts.": "Așază mai multe pagini PDF pe o foaie: 2, 4 sau un număr la alegere.",
+        "Stitch PDF pages into one continuous page. Create scrollable single-page documents.": "Unește paginile PDF într-o singură pagină continuă.",
+        "View PDF document properties. See author, title, dates, and other metadata.": "Afișează proprietățile unui PDF: autor, titlu, date și alte metadate.",
+        "Edit PDF document properties. Change title, author, subject, keywords, creation date, and modification date.": "Editează proprietățile unui PDF: titlu, autor, subiect, cuvinte cheie, data creării și a modificării.",
+        "Package multiple PDFs into a ZIP archive. Compress and bundle PDF files.": "Pune mai multe PDF-uri într-o arhivă ZIP.",
+        "Compare two PDF documents. Highlight differences between versions.": "Compară două documente PDF și evidențiază diferențele dintre versiuni.",
+        "Split large PDF pages into printable tiles. Create posters from PDF pages.": "Împarte paginile mari în bucăți tipăribile, pentru postere.",
+        "Standardize PDF page sizes. Convert all pages to uniform dimensions.": "Aduce toate paginile unui PDF la aceeași dimensiune.",
+        "Optimize PDF for fast web viewing. Enable progressive loading.": "Optimizează PDF-ul pentru afișare rapidă pe web, cu încărcare progresivă.",
+        "Analyze PDF page sizes. View dimensions of all pages in your document.": "Afișează dimensiunile tuturor paginilor unui PDF.",
+        "Remove PDF restrictions. Unlock printing, copying, and editing permissions.": "Elimină restricțiile unui PDF: tipărire, copiere și editare.",
+        "Fix corrupted PDF files. Recover and repair damaged documents.": "Repară fișiere PDF deteriorate.",
+        "Password protect PDF files. Add encryption and set permissions.": "Protejează un PDF cu parolă: criptare și permisiuni.",
+        "Remove hidden data from PDFs. Clean metadata, scripts, and sensitive information.": "Elimină datele ascunse dintr-un PDF: metadate, scripturi și informații sensibile.",
+        "Search and redact text across all pages of a PDF. Batch redact sensitive information like account numbers, names, and more.": "Caută și anonimizează text în toate paginile unui PDF: numere de cont, nume și altele.",
+        "Visually blackout, mosaic, or blur sensitive information in PDF files. Irreversible physical rasterization and deep metadata sanitization for privacy protection.": "Acoperă, pixelează sau estompează informații sensibile; rasterizare ireversibilă și curățarea metadatelor.",
+        "Remove password from PDF files. Unlock password-protected documents.": "Elimină parola dintr-un PDF protejat.",
+        "Flatten PDF forms and annotations. Make content non-editable.": "Aplatizează formularele și adnotările, astfel încât conținutul să nu mai poată fi editat.",
+        "Strip metadata from PDF files. Remove author, dates, and document properties.": "Elimină metadatele dintr-un PDF: autor, date și proprietăți.",
+        "Modify PDF permissions. Control printing, copying, and editing access.": "Modifică permisiunile unui PDF: tipărire, copiere și editare.",
+        "Convert PDF to editable Word (DOCX) documents. Preserve formatting and layout.": "Convertește un PDF în document Word (DOCX) editabil, păstrând formatarea.",
+        "Convert PDF to Markdown format. Extract text and preserve formatting like headings and lists.": "Convertește un PDF în Markdown, păstrând titlurile și listele.",
+        "Automatically straighten scanned or tilted PDF pages. Fix skewed documents with precision angle detection.": "Îndreaptă automat paginile scanate strâmb, detectând unghiul.",
+        "Create booklet layouts from PDF for printing. Arrange pages for saddle-stitch binding with multiple grid options.": "Așază paginile pentru tipărire ca broșură, cu legare prin capsare la mijloc.",
+        "Convert PDF pages to high-quality images. Export as PNG, JPEG, or WebP with custom DPI settings.": "Convertește paginile PDF în imagini PNG, JPEG sau WebP, la rezoluția aleasă (DPI).",
+        "Convert Markdown files to beautifully formatted PDF documents. Support for GitHub Flavored Markdown and syntax highlighting.": "Convertește fișiere Markdown în PDF formatat, inclusiv GitHub Flavored Markdown și evidențierea sintaxei.",
+        "Convert email files (.eml, .msg) to PDF documents. Preserve formatting, inline images, clickable links, and embed attachments.": "Convertește e-mailuri (.eml, .msg) în PDF, păstrând formatarea, imaginile, legăturile și atașamentele.",
+        "Convert comic book archives (CBZ) to PDF. Preserve image order and quality for digital comics.": "Convertește arhive de benzi desenate (CBZ) în PDF, păstrând ordinea și calitatea imaginilor.",
+        "Convert PDF to PDF/A archival format. Ensure long-term document preservation with ISO standards.": "Convertește un PDF în formatul de arhivare PDF/A (ISO), pentru păstrare pe termen lung.",
+        "Remove font dependencies from PDF documents by converting pages to high-quality images. Ensures compatibility across all systems.": "Elimină dependența de fonturi convertind paginile în imagini, pentru afișare identică pe orice sistem.",
+        "Detect and extract tables from PDF documents. Export to JSON, Markdown, or CSV formats.": "Detectează și extrage tabelele dintr-un PDF, în JSON, Markdown sau CSV.",
+        "Manage PDF layers (Optional Content Groups). View, toggle, add, delete, and rename layers in your PDF documents.": "Gestionează straturile unui PDF (OCG): afișare, comutare, adăugare, ștergere și redenumire.",
+        "Free online PDF reader. View, navigate, zoom, rotate, and print PDF documents directly in your browser.": "Citește documente PDF în browser: navigare, mărire, rotire și tipărire.",
+        "Add X.509 digital signatures to PDF documents. Sign PDFs with PFX, P12, or PEM certificates for legal validity.": "Adaugă semnături digitale X.509 în PDF, cu certificate PFX, P12 sau PEM.",
+        "Verify digital signatures in PDF documents. Check certificate validity, signer information, and document integrity.": "Verifică semnăturile digitale dintr-un PDF: valabilitatea certificatului, semnatarul și integritatea documentului.",
+        "Re-typeset PDF documents into responsive mobile-friendly layouts. Support Markdown and EPUB export for enhanced small-screen reading.": "Reașază documentele PDF pentru ecrane mici, cu export în Markdown și EPUB.",
+        "Scan and activate citation markers in PDFs, converting them into clickable DOI links or page-jump targets.": "Transformă trimiterile bibliografice dintr-un PDF în legături DOI sau salturi la pagină.",
+        "Convert PDF into high-fidelity SVG, allowing you to select, recolor, and export vector charts, logos, and graphics.": "Convertește un PDF în SVG, pentru selectarea, recolorarea și exportul graficelor, siglelor și desenelor vectoriale.",
+        "Thoroughly wipe author metadata, modification logs, hidden layers, and orphan objects from PDFs for maximum privacy.": "Șterge complet metadatele autorului, istoricul modificărilor, straturile ascunse și obiectele orfane dintr-un PDF.",
+        "Impose multi-page PDFs into foldable print sheets, featuring 3D physical folding animations and saddle-stitch previews.": "Așază paginile pe coli pliabile pentru tipărire, cu previzualizarea plierii și a capsării.",
+        "Intelligently analyze PDF outlines, extract vector charts, and reconstruct them into fully-editable PPTX presentations.": "Analizează structura unui PDF și îl reconstruiește ca prezentare PPTX editabilă, cu graficele vectoriale extrase.",
+        "Design dynamic behaviors using a glassmorphic node canvas and inject interactive AcroJS logic into PDF forms.": "Definește comportamente dinamice pe o diagramă de noduri și adaugă logică AcroJS în formularele PDF.",
+        "Optimize PDFs for e-Ink screens via background clearing, Otsu binarization, and morphological text dilation.": "Optimizează PDF-urile pentru ecrane e-Ink: fundal curățat, binarizare Otsu și text îngroșat.",
+        "Secure PDFs using asymmetric public-key certificate encryption, paired with a 3D gold wax-seal imprint and PKCS#7 signature.": "Protejează PDF-urile prin criptare cu certificat de cheie publică și semnătură PKCS#7.",
+        "Instantly compose both front and back sides of ID cards or passports onto a single A4 page with optional anti-counterfeit watermarks.": "Așază fața și verso-ul unui act de identitate pe o singură pagină A4, opțional cu filigran.",
+        "Extract PDF comments, notes, highlights, and underlines, and structure them into Markdown/JSON notebooks aligned with outline chapters.": "Extrage comentariile, notele, evidențierile și sublinierile, organizate pe capitole, în Markdown sau JSON.",
+        "Physically scrub watermark strings and XObject images from the PDF content stream without messing up layouts.": "Elimină textele și imaginile de filigran din conținutul PDF-ului, fără a strica așezarea în pagină.",
+        "Automatically detect phone numbers, emails, and IDs, overlay opaque masks, and physically erase underlying text streams.": "Detectează automat numere de telefon, e-mailuri și coduri de identificare, le acoperă și șterge textul de dedesubt.",
+        "Analyze document layout hierarchy and regex patterns (e.g. Chapter) to generate and inject /Outline bookmark catalogs.": "Generează marcajele unui PDF din structura documentului și din tipare (de exemplu „Capitol”).",
+        "Generate custom QR/Code128 tags and precisely inject them into bulk PDF pages with aligning guidelines.": "Generează coduri QR sau Code128 și le plasează precis în mai multe pagini PDF.",
+        "Extract handwritten signatures and red corporate stamps from photos, remove paper shadow noise, and export transparent PNGs.": "Extrage semnături de mână și ștampile din fotografii, fără umbra hârtiei, ca imagini PNG transparente.",
+        "Scan all URL actions and link annotations in PDF, detect reachability, and inject redirects.": "Verifică toate legăturile dintr-un PDF, găsește-le pe cele moarte și redirecționează-le.",
+        "Generate aesthetic Table of Contents pages, insert them pre-content, and wire internal bidirectional GoTo anchors.": "Generează pagini de cuprins, le inserează la început și creează legături interne în ambele sensuri.",
+        "Extract currency totals from multi-national invoices, run calculations, and stamp interactive frosted-glass exchange ledgers.": "Extrage totalurile în valută din facturi, face calculele și adaugă un tabel de conversie.",
+        "Detect and auto-correct page rotations and alignments on mobile-photo or scanned PDF sheets instantly.": "Corectează automat rotirea și alinierea paginilor fotografiate sau scanate.",
+        "Analyze IEEE/ACM double-column paper PDF structures and reflow them into responsive single-column layouts for smooth mobile and e-Reader viewing.": "Reașază articolele științifice pe două coloane (IEEE/ACM) pe o singură coloană, pentru telefon și cititoare electronice.",
+        "Batch resize and normalize mixed-format A4, A3, and Letter PDF sheets into a uniform target size with proportional centering and margin padding.": "Aduce paginile de formate diferite (A4, A3, Letter) la aceeași dimensiune, centrate și cu margini.",
+        "Extract blue or black handwriting signatures from photos, bleach yellow paper grain, and dramatically boost ink contrast for readability.": "Extrage semnături de mână albastre sau negre din fotografii, albește hârtia și mărește contrastul cernelii.",
+        "Calculate book spine width based on page count and paper GSM, and generate a printable cover template with spine fold lines.": "Calculează lățimea cotorului din numărul de pagini și gramajul hârtiei și generează șablonul copertei.",
+        "Automatically locate signature fields in contracts, and inject interactive hovering guides and anchors for quick signing.": "Găsește automat câmpurile de semnătură din contracte și adaugă repere pentru semnare.",
+        "Extract a partial region of large PDF CAD drawings, maps, or charts at a low-level, keeping vector resolution intact while dropping file size.": "Extrage o zonă din desene CAD, hărți sau grafice mari, păstrând calitatea vectorială și micșorând fișierul.",
+        "Stitch high-quality grid, ruled, or Cornell note-taking margins to PDF pages for formula derivations and exam note preparation.": "Adaugă paginilor PDF margini cu grilă, liniate sau Cornell, pentru notițe și calcule.",
+        "Crop and tile passport/ID photos onto standard 5\" or 6\" photo papers, and stamp precise prepress physical crop marks for easy cutting.": "Decupează și așază fotografii de pașaport sau buletin pe hârtie foto de 5\" sau 6\", cu semne de tăiere.",
+        "PDF Workflow Builder - PDFCraft": "Flux de lucru PDF - PDF Studio",
+        "Edit, annotate, and modify PDF content": "Editare, adnotare și modificare a conținutului PDF",
+        "Convert various formats to PDF": "Conversie din diverse formate în PDF",
+        "Convert PDF to other formats": "Conversie din PDF în alte formate",
+        "Organize, merge, split, and manage PDF pages": "Organizare, îmbinare, împărțire și gestionare a paginilor PDF",
+        "Compress, optimize, and repair PDF files": "Comprimare, optimizare și reparare a fișierelor PDF",
+        "Encrypt, decrypt, and secure PDF files": "Criptare, decriptare și securizare a fișierelor PDF"
+      },
+      "messages": {
+        "faq": {
+          "FAQ": "Întrebări frecvente"
+        },
+        "auto": {
+          "Auto": "Automat"
+        },
+        "eurLabel": {
+          "EUR (Euro)": "EUR (euro)"
+        },
+        "formatMarkdown": {
+          "Structured Markdown (.md)": "Markdown structurat (.md)"
+        },
+        "formatJson": {
+          "Structured JSON (.json)": "JSON structurat (.json)"
+        },
+        "enhanceContrast": {
+          "Smart Image Quality Enhancement": "Îmbunătățire automată a imaginii"
+        },
+        "enhanceContrastDesc": {
+          "Auto-enhances contrast and sharpens edges for faint ink and dark scans": "Mărește automat contrastul și claritatea, pentru cerneală slabă și scanări întunecate"
+        },
+        "copyText": {
+          "Copy Recognized Text": "Copiază textul recunoscut"
+        },
+        "copied": {
+          "Copied to clipboard!": "Copiat în clipboard"
+        },
+        "openInEditor": {
+          "Edit in PDF Editor": "Editează în editorul PDF"
+        },
+        "openInEditorDesc": {
+          "Directly edit text and layout in PDFCraft Editor without downloading": "Editează textul și așezarea în pagină direct în editorul PDF Studio, fără descărcare"
+        },
+        "statsPages": {
+          "Pages": "Pagini"
+        },
+        "statsWords": {
+          "Words": "Cuvinte"
+        },
+        "statsChars": {
+          "Characters": "Caractere"
+        },
+        "statsConfidence": {
+          "Avg Confidence": "Încredere medie"
+        },
+        "tabText": {
+          "Text Preview": "Previzualizare text"
+        },
+        "tabJson": {
+          "JSON Structure": "Structură JSON"
+        },
+        "general": {
+          "General": "Generale"
+        },
+        "addToWorkflowHint": {
+          "Drag or double-click to add to workflow": "Trageți sau faceți dublu clic pentru a adăuga în flux"
+        },
+        "inputCategory": {
+          "Input Sources": "Surse de intrare"
+        },
+        "pdfInput": {
+          "PDF Input": "Intrare PDF"
+        },
+        "imageInput": {
+          "Image Input": "Intrare imagini"
+        },
+        "fileInput": {
+          "File Input": "Intrare fișiere"
+        },
+        "totalExecutions": {
+          "Total Runs": "Total rulări"
+        },
+        "name": {
+          "Split & Watermark": "Împărțire și filigran"
+        },
+        "selectOdd": {
+          "Odd": "Impare"
+        },
+        "selectEven": {
+          "Even": "Pare"
+        },
+        "valid": {
+          "Valid": "Validă"
+        },
+        "modeFile": {
+          "Certificate file": "Fișier de certificat"
+        },
+        "modeRemote": {
+          "Remote signing service": "Serviciu de semnare la distanță"
+        },
+        "remoteServiceUrlLabel": {
+          "Signing service URL": "Adresa serviciului de semnare"
+        },
+        "remoteServiceUrlHint": {
+          "The CSC API address from your trust service provider. Any provider that implements the Cloud Signature Consortium API (v1 or v2) works, as long as it allows requests from this site.": "Adresa API CSC de la furnizorul de servicii de încredere. Merge orice furnizor care implementează API-ul Cloud Signature Consortium (v1 sau v2) și acceptă cereri de la acest site."
+        },
+        "remoteConnectButton": {
+          "Connect": "Conectare"
+        },
+        "remoteUsernameLabel": {
+          "Username": "Nume de utilizator"
+        },
+        "remotePasswordLabel": {
+          "Password": "Parolă"
+        },
+        "remoteSignInButton": {
+          "Sign in": "Autentificare"
+        },
+        "remoteClientIdLabel": {
+          "OAuth client ID": "ID client OAuth"
+        },
+        "remoteOAuthButton": {
+          "Sign in with provider": "Autentificare la furnizor"
+        },
+        "remoteRedirectHint": {
+          "Register this redirect URI with your provider:": "Înregistrați această adresă de redirecționare la furnizor:"
+        },
+        "remoteCredentialLabel": {
+          "Signing certificate": "Certificat de semnare"
+        },
+        "remoteOtpLabel": {
+          "One-time code": "Cod de unică folosință"
+        },
+        "remoteOptional": {
+          "optional": "opțional"
+        },
+        "remoteSendOtp": {
+          "Send code": "Trimite codul"
+        },
+        "remoteResendOtp": {
+          "Resend code": "Retrimite codul"
+        },
+        "remoteOAuthCredentialHint": {
+          "You will confirm the signature on your provider's page when you click Sign PDF.": "Confirmați semnătura pe pagina furnizorului, după ce porniți semnarea."
+        },
+        "remoteImplicitHint": {
+          "Your provider confirms this signature on its own side (for example in its mobile app).": "Furnizorul confirmă semnătura la el (de exemplu, în aplicația sa mobilă)."
+        },
+        "remotePrivacyNote": {
+          "Your PDF stays in your browser. Only a 32-byte hash of the signature data is sent to the signing service.": "PDF-ul rămâne în browser. Serviciului de semnare i se trimite doar o amprentă de 32 de octeți a datelor de semnat."
+        },
+        "remoteNoCredentials": {
+          "No signing certificates were found for this account.": "Contul nu are certificate de semnare."
+        },
+        "remoteSigningProgress": {
+          "Waiting for the signing service...": "Se așteaptă serviciul de semnare..."
+        },
+        "datesSection": {
+          "Document Dates": "Datele documentului"
+        },
+        "creationDate": {
+          "Creation Date": "Data creării"
+        },
+        "creationDateHelp": {
+          "The date the document was originally created.": "Data la care a fost creat documentul."
+        },
+        "modificationDate": {
+          "Modification Date": "Data modificării"
+        },
+        "modificationDateHelp": {
+          "Leave empty to auto-set to current date/time on save.": "Lăsați gol pentru data și ora salvării."
+        },
+        "textHistory": {
+          "Text change history": "Istoricul modificărilor de text"
+        },
+        "textUndo": {
+          "Undo text": "Anulează modificarea textului"
+        },
+        "textRedo": {
+          "Redo text": "Refă modificarea textului"
+        },
+        "textUndoApplied": {
+          "The last text change was undone.": "Ultima modificare a textului a fost anulată."
+        },
+        "textRedoApplied": {
+          "The text change was redone.": "Modificarea textului a fost refăcută."
+        },
+        "overflowAppliedWarning": {
+          "The replacement text exceeds the original area. Review the result visually before exporting.": "Textul nou depășește zona originală. Verificați rezultatul înainte de export."
+        },
+        "fallbackFontWarning": {
+          "The original font could not be reused and a fallback was used. Review the characters and spacing.": "Fontul original nu a putut fi refolosit; s-a folosit unul de rezervă. Verificați caracterele și spațierea."
+        },
+        "signatureInvalidatedWarning": {
+          "This PDF contained digital signatures. Editing its content invalidates the existing signatures.": "PDF-ul conținea semnături digitale. Editarea conținutului le invalidează."
+        },
+        "removeAll": {
+          "Remove all": "Elimină tot"
+        },
+        "removeAllConfirm": {
+          "Remove all bookmarks? You can still save to download a PDF with no bookmarks.": "Eliminați toate marcajele? Salvând, descărcați un PDF fără marcaje."
+        },
+        "removedAllHint": {
+          "All bookmarks removed. Save to download a PDF with no bookmarks.": "Toate marcajele au fost eliminate. Salvați pentru a descărca un PDF fără marcaje."
+        },
+        "removeSelected": {
+          "Remove selected ({count})": "Elimină selecția ({count})"
+        },
+        "removeSelectedConfirm": {
+          "Remove {count, plural, one {# selected bookmark} other {# selected bookmarks}}? Their child bookmarks will also be removed.": "Eliminați {count, plural, one {# marcaj selectat} few {# marcaje selectate} other {# de marcaje selectate}}? Se elimină și marcajele subordonate."
+        },
+        "selectForRemoval": {
+          "Select \"{title}\"": "Selectează „{title}”"
+        },
+        "selectHint": {
+          "Tick checkboxes to remove several bookmarks at once. Shift+click selects a range.": "Bifați casetele pentru a elimina mai multe marcaje deodată. Shift+clic selectează un interval."
+        },
+        "formatRoman": {
+          "Roman (I, II, III)": "Romane (I, II, III)"
+        },
+        "flattenTitle": {
+          "Flatten Watermark": "Aplatizare filigran"
+        },
+        "flattenDescription": {
+          "Rasterize pages into tamper-resistant images so watermarks cannot be removed or extracted": "Transformă paginile în imagini, ca filigranul să nu mai poată fi eliminat sau extras"
+        },
+        "dragHint": {
+          "Drag watermark directly on preview or drag corners to resize": "Trageți filigranul pe previzualizare; trageți de colțuri pentru a-l redimensiona"
+        },
+        "posTop": {
+          "Top": "Sus"
+        },
+        "posBottom": {
+          "Bottom": "Jos"
+        },
+        "posLeft": {
+          "Left": "Stânga"
+        },
+        "posRight": {
+          "Right": "Dreapta"
+        },
+        "scale": {
+          "Image Scale": "Scara imaginii"
+        },
+        "page": {
+          "Page": "Pagina"
+        },
+        "of": {
+          "of": "din"
+        },
+        "pages": {
+          "pages": "pagini"
+        },
+        "radioTool": {
+          "Radio": "Buton radio"
+        },
+        "levelLabel": {
+          "PDF/A Level": "Nivel PDF/A"
+        }
+      }
+    }
+  ro.js: "// Romanian for the English upstream ships under /ro/ — every tool's name
+    and\n// description, the category descriptions, and the catalogue messages its
+    ro.json\n// lacks. Read from ONE map, base/ro-overrides.json (\"texts\", \"messages\"),
+    and\n// applied as the front proxies upstream's pages and JS chunks. Upstream's
+    files\n// are never edited.\n//\n// WHY njs AND NOT sub_filter: nginx refuses
+    more than 255 sub_filter patterns in\n// one location (\"number of search patterns
+    exceeds 255\", measured on the pinned\n// image), and these strings need thousands
+    — each one in every spelling a page,\n// a route payload and a minified chunk
+    give it. Here a string is matched WHOLE,\n// as a string value, and looked up
+    in the map: no spelling list to keep, and a\n// string that merely contains a
+    mapped one is never touched.\n//\n// WHERE (each a real seam, each covered by
+    selftest/routing.sh):\n//   html   — the React Server Component payload pushed
+    inline\n//            (self.__next_f.push([1,\"…\"])), decoded, rewritten, re-encoded
+    the\n//            way Next encodes it; then the markup React will hydrate against\n//
+    \           it: text between tags and the content/title/alt/aria-label/\n//            placeholder
+    attributes. Markup and payload MUST agree, or React\n//            discards the
+    server markup — so a message (matched by key in the\n//            payload) is
+    rewritten in the markup only where the payload of the\n//            same page
+    rewrote that English, and never kept it elsewhere.\n//   flight — the .txt route
+    payloads the router fetches on a client navigation;\n//   js     — `key:\"value\"`
+    string literals in the chunks (the tool catalogue the\n//            Studio and
+    the workflow editor list, the category descriptions).\n//\n// NEVER TOUCHED: a
+    payload's TEXT ROWS (`<id>:T<hex length>,<bytes>`). Their\n// length is declared
+    in bytes, so a translation inside one would desynchronise\n// everything after
+    it; they hold schema.org JSON-LD that nobody reads. If the\n// payload's shape
+    cannot be followed (a row cut where its kind is unknown, an\n// inline push of
+    a shape not recognised) translation STOPS for the rest of that\n// document rather
+    than guess. Any exception leaves the response as upstream sent it.\n//\n// GRACEFUL
+    ON UPGRADE: a string upstream rewords no longer matches and stays\n// English;
+    nothing breaks. selftest/routing.sh reports how much still matches.\n//\n// njs
+    0.8.4 (the image's): no Map, no for…of — plain objects and indexes.\n// biome-ignore
+    lint/style/useNodejsImportProtocol: njs names its module \"fs\"; \"node:fs\" does
+    not exist there.\nimport fs from \"fs\";\n\nconst MAP_FILE = process.env.RO_OVERRIDES
+    || \"/etc/nginx/psi/ro-overrides.json\";\nconst MAP = JSON.parse(fs.readFileSync(MAP_FILE));\nconst
+    TEXTS = MAP.texts;\nconst MESSAGES = MAP.messages;\nconst SUFFIX = \" | PDFCraft\";\nconst
+    BRAND_SUFFIX = \" | PDF Studio\";\nconst LONGEST = 700; // no mapped string is
+    longer, in any spelling (tools/ro-overrides.py)\nconst ATTRS = { content: 1, title:
+    1, alt: 1, \"aria-label\": 1, placeholder: 1 };\nconst own = Object.prototype.hasOwnProperty;\n//
+    Every English a message translates, whatever its key.\nconst MESSAGE_ENGLISH =
+    {};\nObject.keys(MESSAGES).forEach((k) => {\n\tObject.keys(MESSAGES[k]).forEach((en)
+    => {\n\t\tMESSAGE_ENGLISH[en] = 1;\n\t});\n});\nconst NON_ASCII = new RegExp(`[${String.fromCharCode(0x80)}-${String.fromCharCode(0xffff)}]`,
+    \"g\");\nconst LS = String.fromCharCode(0x2028);\nconst PS = String.fromCharCode(0x2029);\n\n//
+    The Romanian for one string, or null. A message is matched by its own key AND\n//
+    its English, so \"Odd\" is translated where it is tools.extractPages.selectOdd\n//
+    and nowhere else; a tool text by its English alone. \"<title> | PDFCraft\" is
+    a\n// title with upstream's suffix: the estate calls the tool PDF Studio, so the\n//
+    suffix is renamed on EVERY such title (the stem translated when the map has\n//
+    it) — a tab reads \"… | PDF Studio\" whether or not its stem is mapped.\nfunction
+    translate(key, plain) {\n\tif (key !== null && own.call(MESSAGES, key) && own.call(MESSAGES[key],
+    plain)) {\n\t\treturn MESSAGES[key][plain];\n\t}\n\tif (own.call(TEXTS, plain))
+    return TEXTS[plain];\n\tif (plain.length > SUFFIX.length && plain.slice(-SUFFIX.length)
+    === SUFFIX) {\n\t\tconst stem = plain.slice(0, -SUFFIX.length);\n\t\treturn (own.call(TEXTS,
+    stem) ? TEXTS[stem] : stem) + BRAND_SUFFIX;\n\t}\n\treturn null;\n}\n\n// Index
+    of the quote closing the literal opened at s[i], or -1 (none within `limit`).\nfunction
+    closing(s, i, limit) {\n\tconst q = s[i];\n\tlet j = i + 1;\n\tfor (;;) {\n\t\tj
+    = s.indexOf(q, j);\n\t\tif (j < 0 || j - i > limit) return -1;\n\t\tlet n = 0;\n\t\twhile
+    (s[j - 1 - n] === \"\\\\\") n++;\n\t\tif (n % 2 === 0) return j;\n\t\tj++;\n\t}\n}\n\nfunction
+    decodeLiteral(lit) {\n\ttry {\n\t\tif (lit[0] === '\"') return JSON.parse(lit);\n\t\tconst
+    inner = lit.slice(1, -1).replace(/\\\\'/g, \"'\").replace(/\"/g, '\\\\\"');\n\t\treturn
+    JSON.parse(`\"${inner}\"`);\n\t} catch (_) {\n\t\treturn null;\n\t}\n}\n\nfunction
+    asciiOnly(s) {\n\treturn s.replace(NON_ASCII, (c) => `\\\\u${`000${c.charCodeAt(0).toString(16)}`.slice(-4)}`);\n}\n\n//
+    A chunk: every `key:\"value\"` / `key:'value'` literal whose value is a mapped\n//
+    text, rewritten ASCII-only, so the script stays valid whatever charset it is\n//
+    read in. Minified JS cannot be tokenised safely without parsing it; a `:`\n//
+    right before a quote is where the catalogue's literals start.\nfunction chunkLiterals(s)
+    {\n\tconst out = [];\n\tlet last = 0;\n\tlet p = 0;\n\t// The next ':\"' and \":'\"
+    at or after p, each searched again only once passed\n\t// (searching the rarer
+    one afresh every time would scan to the end each time).\n\tlet dq = -2;\n\tlet
+    sq = -2;\n\tfor (;;) {\n\t\tif (dq !== -1 && dq < p) dq = s.indexOf(':\"', p);\n\t\tif
+    (sq !== -1 && sq < p) sq = s.indexOf(\":'\", p);\n\t\tconst at = dq < 0 ? sq :
+    sq < 0 ? dq : Math.min(dq, sq);\n\t\tif (at < 0) break;\n\t\tconst start = at
+    + 1;\n\t\tconst end = closing(s, start, LONGEST);\n\t\tconst plain = end < 0 ?
+    null : decodeLiteral(s.slice(start, end + 1));\n\t\tconst ro = plain === null
+    ? null : translate(null, plain);\n\t\tif (ro === null) {\n\t\t\t// Maybe not a
+    literal at all (a ':\"' inside some string): look again\n\t\t\t// just past it,
+    so a real literal right after is not skipped.\n\t\t\tp = start + 1;\n\t\t\tcontinue;\n\t\t}\n\t\tout.push(s.slice(last,
+    start), asciiOnly(JSON.stringify(ro)));\n\t\tlast = end + 1;\n\t\tp = end + 1;\n\t}\n\tif
+    (last === 0) return s;\n\tout.push(s.slice(last));\n\treturn out.join(\"\");\n}\n\n//
+    One JSON row of a payload: every string value, looked up under the key it\n//
+    belongs to. `seen` records what this document rewrote and what English it\n//
+    kept, for the markup.\nfunction jsonRow(s, seen) {\n\tconst out = [];\n\tlet last
+    = 0;\n\tlet p = 0;\n\tlet key = null;\n\tfor (;;) {\n\t\tconst i = s.indexOf('\"',
+    p);\n\t\tif (i < 0) break;\n\t\tconst end = closing(s, i, s.length);\n\t\tif (end
+    < 0) break;\n\t\tif (s[end + 1] === \":\") {\n\t\t\tkey = s.slice(i + 1, end);\n\t\t}
+    else if (end - i <= LONGEST) {\n\t\t\tconst plain = decodeLiteral(s.slice(i, end
+    + 1));\n\t\t\tconst ro = plain === null ? null : translate(key, plain);\n\t\t\tif
+    (ro !== null) {\n\t\t\t\tout.push(s.slice(last, i), JSON.stringify(ro));\n\t\t\t\tlast
+    = end + 1;\n\t\t\t\tseen.applied[plain] = ro;\n\t\t\t} else if (plain !== null
+    && own.call(MESSAGE_ENGLISH, plain)) {\n\t\t\t\tseen.kept[plain] = 1;\n\t\t\t}\n\t\t}\n\t\tp
+    = end + 1;\n\t}\n\tif (last === 0) return s;\n\tout.push(s.slice(last));\n\treturn
+    out.join(\"\");\n}\n\n// ---- RSC payloads --------------------------------------------------------\n//
+    A payload is rows: `<id>:<json>\\n`, or a text row `<id>:T<hex bytes>,<bytes>`\n//
+    with no newline. Followed byte by byte, across the pieces an HTML page splits\n//
+    it into; only whole JSON rows inside one piece are rewritten.\nfunction newFlight()
+    {\n\treturn { atRow: true, skip: 0, lost: false, seen: { applied: {}, kept: {}
+    } };\n}\n\nfunction flight(st, buf) {\n\tif (st.lost) return buf;\n\tconst out
+    = [];\n\tlet pos = 0;\n\tlet changed = false;\n\twhile (pos < buf.length) {\n\t\tif
+    (st.skip > 0) {\n\t\t\tconst n = Math.min(st.skip, buf.length - pos);\n\t\t\tout.push(buf.slice(pos,
+    pos + n));\n\t\t\tst.skip -= n;\n\t\t\tpos += n;\n\t\t\tif (st.skip === 0) st.atRow
+    = true;\n\t\t\tcontinue;\n\t\t}\n\t\tconst nl = buf.indexOf(10, pos);\n\t\tif
+    (!st.atRow) {\n\t\t\t// Inside a JSON row that began in an earlier piece: pass
+    it through.\n\t\t\tconst end = nl < 0 ? buf.length : nl + 1;\n\t\t\tout.push(buf.slice(pos,
+    end));\n\t\t\tpos = end;\n\t\t\tst.atRow = nl >= 0;\n\t\t\tcontinue;\n\t\t}\n\t\tconst
+    head = buf.slice(pos, Math.min(buf.length, pos + 24)).toString();\n\t\tconst t
+    = /^[0-9a-f]*:T([0-9a-f]+),/.exec(head);\n\t\tif (t) {\n\t\t\tout.push(buf.slice(pos,
+    pos + t[0].length));\n\t\t\tpos += t[0].length;\n\t\t\tst.skip = parseInt(t[1],
+    16);\n\t\t\tst.atRow = st.skip === 0;\n\t\t\tcontinue;\n\t\t}\n\t\tif (nl < 0)
+    {\n\t\t\t// A row cut by the piece's end. Unless its header proves it is not a\n\t\t\t//
+    text row, the stream cannot be followed: stop translating.\n\t\t\tout.push(buf.slice(pos));\n\t\t\tpos
+    = buf.length;\n\t\t\tst.atRow = false;\n\t\t\tif (!/^[0-9a-f]*:[^T]/.test(head))
+    st.lost = true;\n\t\t\tcontinue;\n\t\t}\n\t\tconst row = buf.slice(pos, nl).toString();\n\t\tconst
+    ro = jsonRow(row, st.seen);\n\t\tif (ro !== row) {\n\t\t\tout.push(Buffer.from(ro));\n\t\t\tchanged
+    = true;\n\t\t} else {\n\t\t\tout.push(buf.slice(pos, nl));\n\t\t}\n\t\tout.push(buf.slice(nl,
+    nl + 1));\n\t\tpos = nl + 1;\n\t}\n\treturn changed ? Buffer.concat(out) : buf;\n}\n\n//
+    ---- HTML ------------------------------------------------------------------\nconst
+    ENTITIES = {\n\t\"&amp;\": \"&\",\n\t\"&lt;\": \"<\",\n\t\"&gt;\": \">\",\n\t\"&quot;\":
+    '\"',\n\t\"&#x27;\": \"'\",\n\t\"&#39;\": \"'\",\n};\nfunction unescapeHtml(s)
+    {\n\treturn s.indexOf(\"&\") < 0 ? s : s.replace(/&(amp|lt|gt|quot|#x27|#39);/g,
+    (e) => ENTITIES[e]);\n}\n// As React writes text and attribute values.\nfunction
+    escapeHtml(s) {\n\treturn s\n\t\t.replace(/&/g, \"&amp;\")\n\t\t.replace(/</g,
+    \"&lt;\")\n\t\t.replace(/>/g, \"&gt;\")\n\t\t.replace(/\"/g, \"&quot;\")\n\t\t.replace(/'/g,
+    \"&#x27;\");\n}\n// As Next writes an inline payload piece (htmlEscapeJsonString).\nfunction
+    escapeScriptJson(s) {\n\treturn s\n\t\t.replace(/&/g, \"\\\\u0026\")\n\t\t.replace(/</g,
+    \"\\\\u003c\")\n\t\t.replace(/>/g, \"\\\\u003e\")\n\t\t.split(LS)\n\t\t.join(\"\\\\u2028\")\n\t\t.split(PS)\n\t\t.join(\"\\\\u2029\");\n}\n\n//
+    The markup's Romanian for one string: a tool text always (the chunks and the\n//
+    payload carry it the same way); a message only as this page's payload did.\nfunction
+    markupText(plain, seen) {\n\tconst ro = translate(null, plain);\n\tif (ro !==
+    null) return ro;\n\tif (own.call(seen.applied, plain) && !own.call(seen.kept,
+    plain)) return seen.applied[plain];\n\treturn null;\n}\n\nfunction markup(seg,
+    seen) {\n\tconst out = [];\n\tlet last = 0;\n\tlet p = 0;\n\tfor (;;) {\n\t\tconst
+    gt = seg.indexOf(\">\", p);\n\t\tif (gt < 0) break;\n\t\tconst lt = seg.indexOf(\"<\",
+    gt + 1);\n\t\tif (lt < 0) break;\n\t\tif (lt - gt > 1 && lt - gt <= LONGEST) {\n\t\t\tconst
+    ro = markupText(unescapeHtml(seg.slice(gt + 1, lt)), seen);\n\t\t\tif (ro !==
+    null) {\n\t\t\t\tout.push(seg.slice(last, gt + 1), escapeHtml(ro));\n\t\t\t\tlast
+    = lt;\n\t\t\t}\n\t\t}\n\t\tp = lt;\n\t}\n\tout.push(seg.slice(last));\n\tconst
+    text = out.join(\"\");\n\t// Attributes.\n\tconst res = [];\n\tlet at = 0;\n\tlet
+    q = 0;\n\tfor (;;) {\n\t\tconst eq = text.indexOf('=\"', q);\n\t\tif (eq < 0)
+    break;\n\t\tconst end = text.indexOf('\"', eq + 2);\n\t\tif (end < 0) break;\n\t\tconst
+    sp = text.lastIndexOf(\" \", eq);\n\t\tconst name = sp < 0 ? \"\" : text.slice(sp
+    + 1, eq);\n\t\tif (own.call(ATTRS, name) && end - eq <= LONGEST) {\n\t\t\tconst
+    ro = markupText(unescapeHtml(text.slice(eq + 2, end)), seen);\n\t\t\tif (ro !==
+    null) {\n\t\t\t\tres.push(text.slice(at, eq + 2), escapeHtml(ro));\n\t\t\t\tat
+    = end;\n\t\t\t}\n\t\t}\n\t\tq = end + 1;\n\t}\n\tres.push(text.slice(at));\n\treturn
+    res.join(\"\");\n}\n\nconst PUSH_OPEN = \"self.__next_f.push([1,\";\nconst PUSH_CLOSE
+    = \"])\";\n\n// The inline payload first (it decides what the markup may say),
+    then the markup.\nfunction html(doc) {\n\tconst st = newFlight();\n\tconst parts
+    = []; // [markup, scriptOpenTag, body, ...]\n\tlet pos = 0;\n\tfor (;;) {\n\t\tconst
+    open = doc.indexOf(\"<script\", pos);\n\t\tconst bodyStart = open < 0 ? 0 : doc.indexOf(\">\",
+    open) + 1;\n\t\tconst close = bodyStart === 0 ? -1 : doc.indexOf(\"</script>\",
+    bodyStart);\n\t\tif (close < 0) break;\n\t\tconst body = doc.slice(bodyStart,
+    close);\n\t\tlet rewritten = body;\n\t\tif (body.indexOf(\"self.__next_f\") >=
+    0 && body.indexOf(PUSH_OPEN) >= 0) {\n\t\t\tlet piece = null;\n\t\t\tif (body.indexOf(PUSH_OPEN)
+    === 0 && body.slice(-PUSH_CLOSE.length) === PUSH_CLOSE) {\n\t\t\t\ttry {\n\t\t\t\t\tpiece
+    = JSON.parse(body.slice(PUSH_OPEN.length, body.length - PUSH_CLOSE.length));\n\t\t\t\t}
+    catch (_) {\n\t\t\t\t\tpiece = null;\n\t\t\t\t}\n\t\t\t}\n\t\t\tif (typeof piece
+    !== \"string\") {\n\t\t\t\tst.lost = true; // a push we cannot read: the stream
+    is no longer followed\n\t\t\t} else {\n\t\t\t\tconst before = Buffer.from(piece);\n\t\t\t\tconst
+    after = flight(st, before);\n\t\t\t\tif (after !== before) {\n\t\t\t\t\trewritten
+    = PUSH_OPEN + escapeScriptJson(JSON.stringify(after.toString())) + PUSH_CLOSE;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\tparts.push(doc.slice(pos,
+    open), doc.slice(open, bodyStart), rewritten);\n\t\tpos = close;\n\t}\n\tconst
+    out = [];\n\tfor (let i = 0; i < parts.length; i += 3) {\n\t\tout.push(markup(parts[i],
+    st.seen), parts[i + 1], parts[i + 2]);\n\t}\n\tout.push(markup(doc.slice(pos),
+    st.seen));\n\treturn out.join(\"\");\n}\n\n// ---- the filters -------------------------------------------------------------\n//
+    One VM per request, so these are per-request state.\nlet mode = null;\nconst received
+    = [];\n\nfunction kindOf(contentType) {\n\tconst ct = (contentType || \"\").toLowerCase();\n\tif
+    (ct.indexOf(\"text/html\") === 0) return \"html\";\n\tif (ct.indexOf(\"text/plain\")
+    === 0 || ct.indexOf(\"text/x-component\") === 0) return \"flight\";\n\tif (ct.indexOf(\"javascript\")
+    >= 0) return \"js\";\n\treturn null;\n}\n\nfunction transform(kind, buf) {\n\tif
+    (kind === \"flight\") return flight(newFlight(), buf);\n\tconst s = buf.toString();\n\tconst
+    ro = kind === \"html\" ? html(s) : chunkLiterals(s);\n\treturn ro === s ? buf
+    : ro;\n}\n\n// js_header_filter: decide, and drop what a rewritten body would
+    contradict.\nfunction headers(r) {\n\tmode = r.status === 200 ? kindOf(r.headersOut[\"Content-Type\"])
+    : null;\n\tif (mode !== null) {\n\t\tdelete r.headersOut[\"Content-Length\"];\n\t\tdelete
+    r.headersOut.ETag;\n\t\tdelete r.headersOut[\"Last-Modified\"];\n\t}\n}\n\n//
+    js_body_filter (buffer_type=buffer): the whole response, then once.\nfunction
+    body(r, data, flags) {\n\tif (mode === null) {\n\t\tr.sendBuffer(data, flags);\n\t\treturn;\n\t}\n\treceived.push(Buffer.from(data));\n\tif
+    (!flags.last) return;\n\tconst buf = Buffer.concat(received);\n\tlet out = buf;\n\ttry
+    {\n\t\tout = transform(mode, buf);\n\t} catch (e) {\n\t\tr.error(`ro: left untranslated,
+    ${e}`);\n\t}\n\tr.sendBuffer(out, flags);\n}\n\nexport default { headers, body,
+    transform, translate };\n"
+kind: ConfigMap
+metadata:
+  name: pdfcraft-nginx-td2khkhdhg
+  namespace: pdfcraft
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: pdfcraft
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  limits:
+  - default:
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest:
+      cpu: 10m
+      memory: 32Mi
+    max:
+      cpu: "1"
+      memory: 512Mi
+    type: Container
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pdfcraft
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - command:
+        - nginx
+        - -g
+        - daemon off;
+        image: registry.psizone.ro/mirror/ghcr.io/pdfcrafttool/pdfcraft:sha-1f3d1c8@sha256:2e1c26b4fc1cd3101a18f2422b713ebe7532b813fda94ced9f7ffcfd0b66da14
+        livenessProbe:
+          httpGet:
+            path: /ro/tools/
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: pdfcraft
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ro/tools/
+            port: http
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1"
+            memory: 256Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/nginx/nginx.conf
+          name: nginx-conf
+          readOnly: true
+          subPath: nginx.conf
+        - mountPath: /etc/nginx/psi/psi.css
+          name: nginx-conf
+          readOnly: true
+          subPath: psi.css
+        - mountPath: /etc/nginx/psi/psi.js
+          name: nginx-conf
+          readOnly: true
+          subPath: psi.js
+        - mountPath: /etc/nginx/psi/me.js
+          name: nginx-conf
+          readOnly: true
+          subPath: me.js
+        - mountPath: /etc/nginx/psi/bar.js
+          name: bar
+          readOnly: true
+          subPath: bar.js
+        - mountPath: /etc/nginx/psi/ro-overrides.conf
+          name: nginx-conf
+          readOnly: true
+          subPath: ro-overrides.conf
+        - mountPath: /etc/nginx/psi/ro-overrides.json
+          name: nginx-conf
+          readOnly: true
+          subPath: ro-overrides.json
+        - mountPath: /etc/nginx/psi/ro.js
+          name: nginx-conf
+          readOnly: true
+          subPath: ro.js
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/cache/nginx
+          name: cache
+      enableServiceLinks: false
+      securityContext:
+        runAsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: "0"
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: pdfcraft
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+      volumes:
+      - configMap:
+          name: pdfcraft-nginx-td2khkhdhg
+        name: nginx-conf
+      - configMap:
+          name: pdfcraft-bar-8b2t45k955
+        name: bar
+      - emptyDir:
+          sizeLimit: 64Mi
+        name: tmp
+      - emptyDir:
+          sizeLimit: 16Mi
+        name: cache
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    gethomepage.dev/description: PDF tools in the browser — files never leave your
+      computer
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Everyday tools
+    gethomepage.dev/icon: mdi-file-pdf-box
+    gethomepage.dev/name: PDF Studio
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=pdfcraft
+    gethomepage.dev/weight: "30"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: pdf.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: pdfcraft
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - pdf.psizone.ro
+    secretName: pdfcraft-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  name: pdfcraft-callback
+  namespace: pdfcraft
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: pdf.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: pdfcraft
+            port:
+              name: http
+        path: /outpost.goauthentik.io/callback
+        pathType: Exact
+  tls:
+  - hosts:
+    - pdf.psizone.ro
+    secretName: pdfcraft-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pdfcraft
+  namespace: pdfcraft
+spec:
+  egress: []
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+    ports:
+    - port: 8080
+      protocol: TCP
+  - from:
+    - ipBlock:
+        cidr: 10.0.1.10/32
+    - ipBlock:
+        cidr: 10.0.1.1/32
+    - ipBlock:
+        cidr: 10.42.0.1/32
+    - ipBlock:
+        cidr: 10.42.1.1/32
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft
+  policyTypes:
+  - Ingress
+  - Egress

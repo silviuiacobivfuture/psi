@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: changelog
+  labels: { app: changelog }
+  annotations:
+    # Reloader auto-restarts this Deployment when its ESO-synced Secret changes
+    # (OpenBao -> ESO -> Secret -> roll). Opt-in; see gitops/apps/overlays/dev/reloader.yaml.
+    reloader.stakater.com/auto: "true"
+    # Alert route for this workload's failures (Kyverno require-alert-annotation;
+    # pairs with the Axiom crashloop/OOM monitors). See gitops/services/APP-SECRETS.md.
+    alerts.recomex.eu/owner: ops@recomex.eu
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: changelog }
+  template:
+    metadata:
+      labels: { app: changelog }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      # Pod-level securityContext: the image's USER is `changelog` (uid 1001) so it
+      # already runs non-root — declared explicitly to satisfy the require-run-as-
+      # non-root Kyverno policy (Enforce). Inherited by initContainer + app container.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      # Run Prisma migrations before the app starts (idempotent: applies pending
+      # only). Same image (now carries the prisma CLI + schema).
+      # FIRST initContainer: fail LOUD if a hard-required secret is missing/blank,
+      # BEFORE the migrate init runs (prisma needs DATABASE_DIRECT_URL) and before
+      # the app boots (src/env.ts zod-validates both → process.exit(1)). Pod
+      # CrashLoops with `MISSING REQUIRED SECRET: <key>` instead of a cryptic
+      # prisma/DB connection error. Restricted SC (busybox as nobody) — Kyverno
+      # disallow-privileged + require-run-as-non-root compliant.
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: changelog-db }
+          command:
+            - sh
+            - -c
+            # NOTE: kubelet expands command/args strings — `$$` collapses to `$`
+            # (k8s $(VAR) escape syntax), so an `eval v=\$$k` loop reaches sh as
+            # `v=$k` (the key NAME, always non-empty) and the assertion silently
+            # never fires. `${VAR:-}` passes through kubelet expansion untouched —
+            # assert each required key literally. Adding a key = add its [ -n ] line.
+            - '[ -n "${DATABASE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: DATABASE_URL" >&2; exit 1; }; [ -n "${DATABASE_DIRECT_URL:-}" ] || { echo "MISSING REQUIRED SECRET: DATABASE_DIRECT_URL" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+        - name: migrate
+          image: WLREGISTRY/WLAPPS/changelog:0.4.0
+          # Run prisma CLI directly via node — NOT `pnpm exec` (that triggers a
+          # pnpm deps-status-check → corepack download + EACCES in the runtime).
+          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+          # disallow-privileged requires this on EVERY container, incl. initContainers.
+          securityContext:
+            allowPrivilegeEscalation: false
+          envFrom:
+            - secretRef: { name: changelog-db }
+      containers:
+        - name: changelog
+          image: WLREGISTRY/WLAPPS/changelog:0.4.0
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 8080
+          # DATABASE_URL + DATABASE_DIRECT_URL from the changelog-db Secret, which
+          # ESO composes from secret/apps/changelog/db and points at the in-cluster
+          # CNPG Cluster changelog-db (cnpg-cluster.yaml) — see externalsecret.yaml.
+          envFrom:
+            - secretRef: { name: changelog-db }
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 256Mi }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 20

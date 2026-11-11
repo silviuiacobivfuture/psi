@@ -1,0 +1,125 @@
+# Authentik Blueprint ConfigMap — THE ESTATE'S LOOK ON THE SIGN-IN.
+#
+# Owner, 2026-10-23: "customize, personalize and theme as with the rest what can
+# be customized regarding authentik and its screens." This file is everything
+# Authentik keeps in its DATABASE for that; the files it serves live in
+# estate/ and templates/ (configMapGenerator in kustomization.yaml).
+#
+#   THE BRAND (auth.dev's default brand, the one every screen reads):
+#     title "Recomex"; the logo is the five applications' marks and the name,
+#     one file per theme (`%(theme)s` → logo-dark.svg / logo-light.svg); the
+#     favicon is Polaris, the access mark; the flow background is the night sky
+#     (fundal.svg). All four are GENERATED from the design system by
+#     packages/rmx-ui/scripts/authentik-assets.mjs. The stylesheet is read from the
+#     mounted estate/recomex.css with !File, so the CSS is reviewed as a CSS file
+#     and lives in exactly one place. Theme "automatic": the person's system
+#     preference decides between the night sky and the light theme.
+#   THE WORDS Authentik lets us set: every flow title a person can reach, and the
+#     labels of the fields on the account pages. Authentik's own interface text
+#     (buttons, hints, errors) is not configurable and ships without Romanian;
+#     estate/ro.js covers it.
+#
+# THE ONE WAY THIS GOES STALE. Several entries below re-declare objects that
+# Authentik's own `default/` blueprints create (the default flows and prompts).
+# Those apply again only when their file changes — on an Authentik UPGRADE —
+# and then put the English titles back, while this file, unchanged, is not
+# re-applied. doctor.sh ("Authentik screens wear the estate's look") reads the
+# titles and the brand and fails on English; repair.sh step "Authentik theme"
+# re-applies this blueprint. Run it after every upgrade.
+#
+# Flows that no person can reach are left as they are: the GitHub/Google source
+# flows (no source exists — blueprints-sources.yaml), the self-enrolment flow
+# behind them, and the first-run setup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-theme
+  namespace: authentik
+data:
+  theme.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-theme
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # The ONE brand, found as the default rather than by its domain: keyed by
+      # domain, renaming the host (auth.dev → auth, 2026-10-24) would have
+      # CREATED a second brand with none of the default's flows and matched it
+      # on the new host. Keyed by `default`, the rename is an update in place.
+      - model: authentik_brands.brand
+        identifiers:
+          default: true
+        attrs:
+          domain: WLAUTHHOST
+          branding_title: WLBRAND
+          branding_logo: /static/dist/assets/recomex/logo-%(theme)s.svg
+          branding_favicon: /static/dist/assets/recomex/favicon.svg
+          branding_default_flow_background: /static/dist/assets/recomex/fundal.svg
+          branding_custom_css: !File /web/dist/assets/recomex/recomex.css
+          attributes:
+            settings:
+              theme:
+                base: automatic
+
+      # ── Flow titles: the heading of the card and the browser tab ──────────
+      - model: authentik_flows.flow
+        identifiers: { slug: default-authentication-flow }
+        attrs: { title: Autentificare }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-authenticator-totp-setup }
+        attrs: { title: Configurează aplicația de autentificare }
+      # Refused (blueprints-mfa.yaml): the title is what the refusal sits under.
+      - model: authentik_flows.flow
+        identifiers: { slug: default-authenticator-webauthn-setup }
+        attrs: { title: Chei de securitate }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-authenticator-static-setup }
+        attrs: { title: Coduri de rezervă }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-invalidation-flow }
+        attrs: { title: Deconectare }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-provider-authorization-explicit-consent }
+        attrs: { title: "Continui către %(app)s" }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-provider-authorization-implicit-consent }
+        attrs: { title: "Continui către %(app)s" }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-provider-invalidation-flow }
+        attrs: { title: "Te-ai deconectat din %(app)s." }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-user-settings-flow }
+        attrs: { title: Datele contului }
+      - model: authentik_flows.flow
+        identifiers: { slug: default-password-change }
+        attrs: { title: Schimbă parola }
+
+      # ── The authenticator's name, as the account page lists it ────────────
+      - model: authentik_stages_authenticator_totp.authenticatortotpstage
+        identifiers: { name: default-authenticator-totp-setup }
+        attrs: { friendly_name: Aplicația de autentificare }
+
+      # ── Field labels on the account pages ─────────────────────────────────
+      # The password-change prompt carries the same password rule as the
+      # e-mailed link (blueprints-recovery.yaml), so it carries the same words.
+      - model: authentik_stages_prompt.prompt
+        identifiers: { name: default-password-change-field-password }
+        attrs: { label: Parola nouă, placeholder: Parola nouă }
+      - model: authentik_stages_prompt.prompt
+        identifiers: { name: default-password-change-field-password-repeat }
+        attrs: { label: Repetă parola, placeholder: Repetă parola }
+      # NOT the username field: blueprints-enrollment.yaml identifies its username
+      # prompt by `field_key: username`, which matched the stock user-settings
+      # field and renamed it `WLSLUG-enrol-username` — so that file owns the
+      # account page's username label, and says it in Romanian. Two blueprints
+      # setting one label would rewrite it on every reconcile.
+      - model: authentik_stages_prompt.prompt
+        identifiers: { name: default-user-settings-field-name }
+        attrs: { label: Nume, placeholder: Numele tău }
+      - model: authentik_stages_prompt.prompt
+        identifiers: { name: default-user-settings-field-email }
+        attrs: { label: E-mail, placeholder: Adresa de e-mail }
+      - model: authentik_stages_prompt.prompt
+        identifiers: { name: default-user-settings-field-locale }
+        attrs: { label: Limba interfeței, placeholder: Limba interfeței }

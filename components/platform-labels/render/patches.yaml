@@ -1,0 +1,21 @@
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: platform-label-source
+target:
+  labelSelector: platform/source
+patch: |-
+  - op: move
+    from: /metadata/labels/platform~1source
+    path: /metadata/labels/platform.WLDOMAIN~1source
+---
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: platform-label-managed-by
+target:
+  labelSelector: platform/managed-by
+patch: |-
+  - op: move
+    from: /metadata/labels/platform~1managed-by
+    path: /metadata/labels/platform.WLDOMAIN~1managed-by

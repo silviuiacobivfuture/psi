@@ -1,0 +1,134 @@
+# Require the Stakater Reloader annotation on every workload that injects a Secret as
+# ENVIRONMENT VARIABLES, so a rotated secret can never silently fail to take effect.
+#
+# THE GAP THIS CLOSES: the secret chain is OpenBao -> ESO (polls, rewrites the k8s
+# Secret) -> Reloader (restarts the workloads annotated `reloader.stakater.com/auto`).
+# Env vars are read ONCE at process start. A workload that injects a Secret via
+# `envFrom[].secretRef` or `env[].valueFrom.secretKeyRef` and is NOT annotated keeps
+# running the OLD value forever after a rotation — the k8s Secret updates, the pod does
+# not, and NOTHING reports an error. That is the silent-death mode the app-layer
+# Deployments already avoid (gitops/services/*/base/deployment.yaml all carry the
+# annotation); the platform Helm components did not. See gitops/apps/overlays/dev/
+# reloader.yaml for the controller and gitops/services/APP-SECRETS.md for the contract.
+#
+# VALIDATE, NOT MUTATE. Kyverno could add the annotation itself with a mutate rule, and
+# that would be less typing — but it would create LIVE cluster state that exists nowhere
+# in git. The repo's HARD RULE (infrastructure/hetzner/CLAUDE.md, "No drift") is that
+# cluster state must match the gitops repo. A mutation is invisible drift by
+# construction: `git grep reloader.stakater.com/auto` would not find it, a rebuild from a
+# clean repo would not reproduce it, and nobody reviewing the manifest would know the
+# workload reloads. Validating forces the annotation into the MANIFEST, where it is
+# reviewable, greppable and reproducible.
+#
+# ESCAPE HATCH — the pattern accepts any non-empty value ("?*"), and Reloader itself
+# treats `reloader.stakater.com/auto: "false"` as an explicit opt-out (upstream README,
+# "Annotation Behavior Rules"). So a workload that genuinely must not auto-restart on a
+# secret change sets "false" and passes. The exception is then DECLARED IN GIT with a
+# comment explaining it, instead of the policy being weakened or the namespace excluded.
+#
+# SCOPE — matched by a precondition over the pod spec, not by a namespace/name list, so
+# the exemptions fall out of the mechanism rather than being maintained by hand:
+#   - VOLUME-mounted Secret consumers never match (kubelet refreshes mounted files in
+#     place, no restart needed): authentik-postgresql, the tailscale operator, velero +
+#     node-agent.
+#   - Consumers that read a Secret through the k8s API at use time never match either,
+#     because they hold no env ref: cert-manager (reads the Cloudflare token at
+#     certificate-issuance time — a restart is meaningless to it).
+#   - ConfigMap-only `envFrom` does not match: this policy is about SECRET rotation.
+# Verified against a live sweep of all 62 Deployments/StatefulSets/DaemonSets in the dev
+# cluster (2026-08-18): the precondition selects exactly the env-injected Secret
+# consumers and nothing else.
+#
+# Mode: AUDIT (2026-08-18, initial). Runs in `background: true` -> PolicyReports list the
+# un-annotated env consumers. The known violators are annotated in the same change
+# (authentik server/worker/redis, external-dns, headlamp); flip
+# `validationFailureAction: Enforce` once the reports come back clean. Same staged
+# convention the kustomization header documents and require-alert-annotation follows.
+#
+# EXCLUDED namespaces — deliberately MUCH narrower than require-alert-annotation's list.
+# That policy excludes external-dns, velero, tailscale, harbor, cert-manager and
+# observability, which are exactly the namespaces this policy has to cover. Only
+# namespaces whose matching workloads we cannot annotate from this repo are excluded,
+# each justified by the live sweep:
+#   - kube-system / kube-public / kube-node-lease : k3s-packaged system components; we do
+#     not own their templates and they are not part of the OpenBao -> ESO chain.
+#   - argocd : argocd-server / argocd-repo-server / argocd-application-controller inject
+#     the CHART-GENERATED `argocd-redis` secret. It is not ESO-managed and Argo owns its
+#     own rollout; annotating would mean forking upstream chart values for no benefit.
+#   - harbor : harbor-core / jobservice / registry / database inject chart-generated
+#     `harbor-*` secrets. The one ESO-managed piece (Harbor OIDC) is not consumed as env
+#     at all — it is reconciled into Harbor's OWN Postgres by
+#     pieces/platform-secrets/harbor-oidc-reconcile.yaml, so a pod restart is not the
+#     update mechanism and the annotation would be misleading.
+# Everything else stays in scope on purpose: observability (otel-agent/otel-cluster are
+# ALREADY annotated and must stay policy-visible), authentik, external-dns, headlamp,
+# and every future app namespace.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-reloader-annotation
+  annotations:
+    policies.kyverno.io/title: Require Reloader annotation on env-injected Secret consumers
+    policies.kyverno.io/category: Secrets / Rotation
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Deployment, StatefulSet, DaemonSet
+    policies.kyverno.io/description: >-
+      Workloads that inject a Secret as environment variables (envFrom[].secretRef or
+      env[].valueFrom.secretKeyRef) read those values once at startup, so a rotated
+      secret never takes effect without a restart. They must carry the
+      reloader.stakater.com/auto annotation so Stakater Reloader rolls them when the
+      Secret changes — or set it to "false" to declare the opt-out in git. Volume-mounted
+      Secret consumers are refreshed in place by the kubelet and do not match.
+spec:
+  validationFailureAction: Audit
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: require-reloader-auto-on-env-secret-consumers
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - harbor
+      # Only workloads that actually inject a Secret into the ENVIRONMENT. Both
+      # expressions walk containers AND initContainers, and both are total functions
+      # (they return 0, never null/error) on every shape a pod spec can take: absent
+      # initContainers, absent env/envFrom, empty containers list. The trailing `[]`
+      # flattens the per-container filter results — without it a container whose envFrom
+      # holds only a configMapRef would contribute an empty array that still counted.
+      # Verified with the JMESPath reference implementation against 11 hand-built edge
+      # cases and all 62 live workloads (0 mismatches), then end-to-end with
+      # `kyverno apply` fixtures.
+      preconditions:
+        any:
+          - key: "{{ request.object.spec.template.spec.[containers, initContainers][].envFrom[?secretRef][] | length(@) }}"
+            operator: GreaterThan
+            value: 0
+          - key: "{{ request.object.spec.template.spec.[containers, initContainers][].env[?valueFrom.secretKeyRef][] | length(@) }}"
+            operator: GreaterThan
+            value: 0
+      validate:
+        message: >-
+          This workload injects a Secret as environment variables, which are read only at
+          process start — a rotated secret would silently never take effect. Set the
+          annotation reloader.stakater.com/auto: "true" on the workload's own
+          metadata.annotations (NOT the pod template) so Stakater Reloader restarts it
+          when the Secret changes. If it genuinely must not auto-restart, set it to
+          "false" with a comment — that declares the exception in git. Volume-mounted
+          Secrets need neither (the kubelet refreshes them in place). See
+          gitops/services/APP-SECRETS.md.
+        pattern:
+          metadata:
+            annotations:
+              reloader.stakater.com/auto: "?*"

@@ -1,0 +1,32 @@
+# Host is patched per overlay (reference.WLDOMAIN on dev). cert-manager
+# auto-issues a real Let's Encrypt cert for the host (DNS-01 via Cloudflare).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reference
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Homepage hub auto-discovery (gethomepage.dev) → "Everyday tools" group.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Reference"
+    gethomepage.dev/description: "Developer reference and docs"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "40"
+    gethomepage.dev/icon: "mdi-book-open-variant"
+    gethomepage.dev/pod-selector: "app=reference"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [reference.example.invalid]
+      secretName: reference-tls
+  rules:
+    - host: reference.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reference
+                port: { number: 80 }

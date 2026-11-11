@@ -1,0 +1,75 @@
+# Public HTTPS is REQUIRED, not a convenience: this is the ONE host in the whole
+# design that faces a browser. OpenFGA has no Ingress and must never get one; this
+# service has exactly one, and the asymmetry is the architecture.
+#
+# The OIDC callback redirects a BROWSER to https://<host>/v1/auth/oidc/callback,
+# and Authentik compares the redirect_uri byte-for-byte against the URI registered
+# on the provider. A mismatch fails only AFTER the person has authenticated and
+# satisfied MFA — the most expensive possible moment to discover a typo.
+#
+# The path is therefore fixed in three places that must agree: this Ingress, the
+# OIDC_REDIRECT_URL in configmap.yaml, and the Authentik provider blueprint. It is
+# written out below rather than left to the catch-all prefix, so that a change to
+# the routing cannot silently stop serving it.
+#
+# ── THE PLACEHOLDER HOST ─────────────────────────────────────────────────────
+#
+# The host here is deliberately INVALID (`.example.invalid`, a reserved TLD that
+# can never resolve). The real one is patched in overlays/dev. An un-overlaid
+# `kubectl apply -k base` must not claim a real hostname: Traefik would route it
+# and cert-manager would request a certificate for it, and the first symptom would
+# be a live host serving a half-configured service.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: autorizare-svc
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # System Hub auto-discovery (gethomepage.dev). Polaris is one of the estate's
+    # applications — the one a person opens to change who may do what — so it
+    # sits in "Apps" with the other five; its status dot is the one that says
+    # whether grants can be issued at all. (OpenFGA, the engine behind it, is a
+    # static tile under "Services".)
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Polaris"
+    gethomepage.dev/description: "Authorization — who may do what: grants, catalog, audit"
+    # "Apps", one of the groups declared in the hub layout. Homepage does not
+    # merge a near-miss: a group name absent from settingsString.layout renders
+    # as an extra, unstyled section appended after the laid-out ones, so the
+    # tile appears and looks wrong rather than not appearing at all.
+    gethomepage.dev/group: "Apps"
+    gethomepage.dev/weight: "20"
+    gethomepage.dev/icon: "mdi-shield-key"
+    # Explicit href: Homepage derives a
+    # tile's link from the ingress' FIRST rule path when none is given, and that
+    # path here is the OIDC callback, so an auto-derived link would send anybody
+    # clicking the tile into the middle of a login flow. The host still comes
+    # from the overlay patch; only the link is pinned.
+    gethomepage.dev/href: "https://autorizare.example.invalid"
+    gethomepage.dev/pod-selector: "app=autorizare-svc"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [autorizare.example.invalid]
+      secretName: autorizare-svc-tls
+  rules:
+    - host: autorizare.example.invalid
+      http:
+        paths:
+          # The callback, named explicitly and FIRST. Exact match, because
+          # Authentik sends this path and no other, and a prefix here would also
+          # claim everything below it.
+          - path: /v1/auth/oidc/callback
+            pathType: Exact
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          # Everything else: the RPC surface and the console, both served by this
+          # one process (no BFF — decision D16).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }

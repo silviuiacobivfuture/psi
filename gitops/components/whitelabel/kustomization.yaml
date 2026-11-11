@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The white-label values every overlay reads through kustomize `replacements`. GENERATED from the
+# estate identity file:
+#   node tools/identity/load.mjs configmap <identity.yaml> > whitelabel-config.yaml
+# This export ships it rendered from examples/lumen/identity.yaml; render it from YOUR identity before use.
+resources:
+  - whitelabel-config.yaml

@@ -1,0 +1,65 @@
+# How long Traefik waits on Harbor. Without this nothing limits it: a harbor-core that accepts and
+# never answers holds a node's pull for ever, and containerd falls through to upstream only on an
+# error (RUNBOOK 2026-11-06). These routes answer in front of the chart's Ingress, which stays as it
+# is, so a Traefik that drops them falls back to that Ingress: Harbor unlimited, never Harbor down.
+#
+# What the limit counts: from the request fully written to the first response header. An upload's
+# transfer is outside it, and so is a download's body. Longest healthy answers, from Traefik's access
+# log (10-24 to 11-06, 132,243 requests) and the registry's (10-17 to 11-06, 114,385), read 2026-11-06:
+#
+#   pull   HEAD blob 2.25 s, GET blob under 1 MiB 1.55 s, GET manifest 1.37 s, token 1.04 s
+#   push   PUT manifest 2.07 s, POST upload 2.03 s, PUT commit with no body 0.89 s;
+#          PUT with its body 15.99 s and PATCH 47.82 s, both counting the transfer
+#
+# So two limits. Pull: 10 s, over four times the longest, because every object of a pull pays it
+# before falling through. Push: 60 s, above even the longest PATCH with its transfer counted as
+# waiting, because nothing falls through there and a cut fails a build.
+# The drill reads these limits from this file: scripts/registries-drill.sh --limit.
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: harbor-pull
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # A route naming a transport Traefik lacks answers 500.
+spec:
+  maxIdleConnsPerHost: 200  # A transport of our own does not inherit Traefik's default of 200.
+  forwardingTimeouts:
+    dialTimeout: 5s  # Traefik's default is 30 s, paid by every object when a pod's node is gone.
+    responseHeaderTimeout: 10s
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: harbor-push
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  maxIdleConnsPerHost: 200
+  forwardingTimeouts:
+    dialTimeout: 5s
+    responseHeaderTimeout: 60s
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: harbor-limit
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    # A pull: GET and HEAD under /v2/, and the token, by either method. A pull with a pull secret
+    # asks for its token by POST (405 here, then GET), so a token left on the push limit would
+    # cost a hung Harbor's pull 60 s.
+    - kind: Rule
+      match: Host(`harbor.WLDOMAIN`) && (PathPrefix(`/service/token`) || (PathPrefix(`/v2/`) && (Method(`GET`) || Method(`HEAD`))))
+      priority: 10000
+      services:
+        - { name: harbor-core, port: 80, serversTransport: harbor-pull }
+    # All the rest of what the chart's Ingress sends to harbor-core.
+    - kind: Rule
+      match: Host(`harbor.WLDOMAIN`) && (PathPrefix(`/v2/`) || PathPrefix(`/service/`) || PathPrefix(`/api/`) || PathPrefix(`/c/`))
+      priority: 9000
+      services:
+        - { name: harbor-core, port: 80, serversTransport: harbor-push }
+  tls:
+    secretName: harbor-WLSLUG-tls

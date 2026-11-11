@@ -1,0 +1,33 @@
+# Authentik Blueprint ConfigMap — SOURCES: there are none, by decision.
+#
+# Owner, 2026-10-22/23: login is email + password + TOTP only; no GitHub, no
+# Google, no other federation. This blueprint used to CREATE the GitHub and Google
+# OAuth sources whenever their client credentials existed in OpenBao. It now
+# REMOVES them (`state: absent`), so a credential left in OpenBao can never bring a
+# social login back, and a restore from an older backup is cleaned on the next
+# blueprint run. Deleting a source keeps every user; only the external link goes.
+#
+# The live GitHub source was deleted on 2026-10-23 (merged instance, auth.dev) and
+# this file is what keeps it deleted. doctor.sh's layer "Authentik second factor is
+# TOTP only, no external logins" checks it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-sources
+  namespace: authentik
+data:
+  github-source.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-github-source
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      - model: authentik_sources_oauth.oauthsource
+        state: absent
+        identifiers:
+          slug: github
+      - model: authentik_sources_oauth.oauthsource
+        state: absent
+        identifiers:
+          slug: google

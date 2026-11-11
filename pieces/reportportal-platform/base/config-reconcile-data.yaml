@@ -1,0 +1,92 @@
+# THE DECLARED STATE of everything ReportPortal keeps in its OWN database and the
+# Helm chart therefore cannot express: who has an account, who is on the estate's
+# project (RP_PROJECT), and which dashboards/widgets/filters exist.
+#
+# ============================ ADDING A PERSON ================================
+# ONE LINE in `roster` (in the estate's component for this piece). Nothing else changes.
+#     login|email|Full Name|ACCOUNT_ROLE|PROJECT_ROLE
+# Then seed their password ONCE (it is never stored in git):
+#     infrastructure/hetzner/scripts/seed-secrets.sh dev      # generate-if-missing
+# — that script reads the roster block of the estate's component, so the list lives in one
+# place. The reconcile CronJob creates the account on its next run (<=15 min) and
+# `bao kv get secret/apps/reportportal/users` is where you read the password to
+# hand over. RP can also mail a reset link: the mail server is configured as code
+# by email-reconcile.yaml in this same directory.
+#
+# ⚠️ `login` MUST match [a-zA-Z0-9-_.]+ — ReportPortal REJECTS an `@`, so an email
+# address is not a valid login ("User name may contain only Latin, numeric
+# characters, hyphen, underscore, dot"). Verified against the running instance.
+# ⚠️ `Full Name` must be >= 3 chars and match [\pL0-9-_ \.]+ (CreateUserRQFull).
+# ⚠️ Removing a line does NOT delete the account. The reconcile is ADDITIVE by
+# construction — see the header of config-reconcile.yaml for why. Offboarding is a
+# deliberate act, not a silent side effect of a text edit: the login goes on the
+# `retired` list below, by name, and the reconcile deletes it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reportportal-config-roster
+data:
+  # login|email|Full Name|ACCOUNT_ROLE|PROJECT_ROLE
+  #   ACCOUNT_ROLE: USER | ADMINISTRATOR      (instance-wide)
+  #   PROJECT_ROLE: CUSTOMER | MEMBER | PROJECT_MANAGER   (on the project below)
+  # Blank lines and #-comments are ignored by both readers (the CronJob and
+  # seed-secrets.sh). superadmin is deliberately ABSENT: it is created by the
+  # chart from secret/apps/reportportal/superadmin and is not roster-managed.
+  # An estate declares its people in its component for this piece (estate/seb-components/
+  # reportportal-platform, read by seed-secrets.sh through tools/bundle/estate-components.mjs
+  # dir): SEB declares nobody, and the reconcile refuses an empty roster by name.
+  roster: ""
+  retired: ""
+---
+# The dashboards, their widgets, and the launch filters those widgets read.
+#
+# WHY JSON AND NOT MORE YAML KEYS: the reconcile job is a POSIX shell script whose
+# only structured-data tool is jq. A JSON document is consumed with `jq` directly —
+# no hand-rolled parser, no quoting hazard in a widget name, and the exact bytes
+# below are what gets POSTed. The roster above is line-based instead because
+# seed-secrets.sh (a shell script with no jq dependency on the workstation path)
+# also has to read it.
+#
+# ==================== WHERE THESE WIDGET SHAPES COME FROM ====================
+# NOT from memory. Three sources, all against the RUNNING 5.15.4 instance:
+#   1. `demo_widgets.json`, shipped INSIDE service-api-5.15.4-exec.jar
+#      (BOOT-INF/classes/demo/demo_widgets.json, extracted with `jar xf` through
+#      kubectl exec). This is ReportPortal's OWN widget set — the one
+#      `DemoDashboardsService` creates for "generate demo data" — so every
+#      contentField spelling and viewMode value in it is server-authoritative.
+#   2. `POST /api/v1/<project>/widget/preview` — the endpoint the UI calls WHILE a human
+#      configures a widget. It computes content and persists NOTHING, so each
+#      launch-name-based widget below was executed against the real data and
+#      returned 200 before being written here.
+#   3. The UI bundle (5218.app.*.js out of the reportportal-ui pod), whose per-type
+#      controls declare the form defaults: `viewMode: Rle[Nle]` resolves to "bar",
+#      and the two types absent from demo_widgets.json (mostTimeConsuming,
+#      passingRatePerLaunch) initialise `filters: []` — i.e. they take NO filter,
+#      they take `widgetOptions.launchNameFilter`.
+#
+# ⚠️ TWO KINDS OF WIDGET, DO NOT MIX THEM UP:
+#   * filter-based  — `"filter": "<name from filters[] below>"`. The job resolves
+#     the name to the id RP assigned and sends it as `filterIds`.
+#   * launch-name-based — `widgetOptions.launchNameFilter: "<launch name>"` and NO
+#     `filter` key. topTestCases / flakyTestCases / mostTimeConsuming /
+#     passingRatePerLaunch. Giving one of these a filter is not an error, it is
+#     just ignored; omitting `contentFields` from topTestCases IS an error — it
+#     500s with "Index 0 out of bounds for length 0" (verified via preview).
+#
+# ⚠️ `name` is the IDENTITY of a dashboard and of a widget. The reconcile finds
+# them by name; RENAMING one here creates a SECOND object and leaves the old one.
+# Editing anything else (contentFields, size, position) does NOT update a widget
+# that already exists — see config-reconcile.yaml's header on why converge-by-name
+# is presence-only here.
+#
+# GRID: 12 columns. The UI's own defaults are {width:12,height:7} (full row) and
+# {width:6,height:7} (half); positionY is in the same row units.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reportportal-config-dashboards
+data:
+  # SEB declares no dashboard: the estate's component gives its own (they filter on the
+  # estate's launch names), in the shape documented above.
+  dashboards.json: |
+    { "filters": [], "dashboards": [] }

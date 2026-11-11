@@ -1,0 +1,145 @@
+# Preview environments for the DEV cluster.
+# A business application of the estate adds its own ApplicationSet from the estate repository.
+#
+# An open PR whose BASE branch is `dev` (i.e. a transient branch forked from dev,
+# "belonging" to the dev environment) and that carries the app's opt-in label
+# (`preview-changelog`) gets an ephemeral
+# deployment in its own namespace at its own host — built from the PR's head commit.
+# Argo destroys it automatically when the PR closes/merges. This is how transient
+# branches get a live env from the get-go without ever touching the stable dev app.
+#
+# Requires a GitHub token (repo read + PR list) in the `github-pr-creds` Secret —
+# synced from OpenBao (secret/github key `token`) by the ExternalSecret below, so
+# no token ever lives in git. Store it once:  bao kv put secret/github token=<PAT>
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-pr-creds
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: github-pr-creds
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: platform/github/token
+        property: token
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: previews-dev
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        github:
+          owner: RecomExpert
+          repo: platform
+          tokenRef:
+            secretName: github-pr-creds
+            key: token
+          # OPT-IN, for a reason of its
+          # own. This used to fire for EVERY PR to dev, while the workflow that
+          # creates a preview's database (changelog-preview-db.yml) only runs
+          # for PRs that touch apps/changelog. Every other PR therefore got a
+          # changelog preview whose ExternalSecret reads a path nothing ever
+          # writes — measured 2026-10-22: PRs 47 (subscriptions) and 61 (OpenBao
+          # policy) each carried a `preview-N-changelog` that had never deployed
+          # one object, reporting "Failed to load target state" on the board.
+          # (That workflow is retired; a preview now brings its own Cluster —
+          # see the patches below. The label stays: a preview costs a database.)
+          labels:
+            - preview-changelog
+        # Only PRs targeting `dev` → previews belong to the dev environment.
+        filters:
+          - targetBranchMatch: "^dev$"
+        requeueAfterSeconds: 120
+  template:
+    metadata:
+      name: "preview-{{.number}}-changelog"
+      labels:
+        platform.recomex.eu/preview: dev
+        platform.recomex.eu/pr: "{{.number}}"
+    spec:
+      project: default
+      source:
+        repoURL: git@github.com:silviuiacobivfuture/psi.git
+        targetRevision: "{{.head_sha}}"
+        path: gitops/services/changelog/overlays/dev
+        kustomize:
+          # Each PR is isolated in its own namespace (overrides the dev overlay's
+          # `namespace: changelog`) and served on its own host — so previews never
+          # collide with the stable dev app or each other.
+          #
+          # The changelog Ingress is TAILNET-ONLY (ingressClassName tailscale, a
+          # defaultBackend and no `rules`), and the Tailscale operator takes the
+          # MagicDNS name from tls.hosts[0]. So that one field is what makes the
+          # host unique, and a `/spec/rules/0/host` patch cannot apply at all —
+          # that patch is what failed every preview's manifest generation once
+          # the Ingress moved to the tailnet. The homepage tile is switched off,
+          # so a preview never shows up as a second
+          # "changelog" next to the real one.
+          namespace: "preview-pr-{{.number}}"
+          patches:
+            - target:
+                kind: Ingress
+              patch: |
+                - op: replace
+                  path: /spec/tls/0/hosts/0
+                  value: changelog-pr-{{.number}}
+                - op: replace
+                  path: /metadata/annotations/gethomepage.dev~1enabled
+                  value: "false"
+                - op: replace
+                  path: /metadata/annotations/gethomepage.dev~1href
+                  value: https://changelog-pr-{{.number}}.tailf6f2e6.ts.net
+            # The DATABASE. The base carries a CNPG Cluster, so each preview gets
+            # its OWN ephemeral changelog-db in preview-pr-<n>, and the base
+            # ExternalSecret's namespace-relative `changelog-db-rw` host reaches
+            # it rather than dev's. (Until 2026-10-22 this patch pointed the
+            # ExternalSecret at a per-PR Neon branch that the never-enabled
+            # changelog-preview-db workflow was meant to create — so previews in
+            # fact read dev's Neon URLs from the base's data[].)
+            #
+            # Two things the preview must NOT inherit from dev:
+            #   * the WAL archive — two Clusters archiving into the same
+            #     destinationPath interleave their WAL and ruin dev's PITR, so
+            #     `backup` is removed and the ScheduledBackup deleted;
+            #   * a 10Gi Hetzner block volume per PR — a throwaway database goes
+            #     on local-path at 1Gi instead.
+            - target:
+                kind: Cluster
+                name: changelog-db
+              patch: |
+                - op: remove
+                  path: /spec/backup
+                - op: replace
+                  path: /spec/storage
+                  value: { size: 1Gi, storageClass: local-path }
+            - target:
+                kind: ScheduledBackup
+                name: changelog-db-base
+              patch: |
+                $patch: delete
+                apiVersion: postgresql.cnpg.io/v1
+                kind: ScheduledBackup
+                metadata:
+                  name: changelog-db-base
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-pr-{{.number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

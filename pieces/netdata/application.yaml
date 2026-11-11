@@ -1,0 +1,70 @@
+# SEB piece `netdata`.
+#
+# Netdata — real-time node + per-pod resource & network observability (dev).
+# Parent/child topology: a single parent Deployment receives streamed metrics from
+# a child DaemonSet (one pod per node). The children run as privileged node agents
+# (hostPID + hostNetwork + hostPath + SYS_ADMIN/SYS_PTRACE caps, uid 0) so they can
+# read cgroups, attach eBPF, and do per-pod network accounting — this is how we get
+# per-pod CPU/mem/disk/NETWORK on FLANNEL (no Cilium/Hubble). Those host privileges
+# are baked into the chart's child DaemonSet template and are NOT tunable, so the
+# `monitoring` namespace is excluded from the Kyverno baseline policies
+# (disallow-privileged, disallow-host-namespaces-and-hostpath, require-run-as-non-root,
+# require-requests-limits) — see pieces/kyverno-policies/. monitoring is a NEW ns,
+# distinct from the Axiom-logging `observability` ns (NOT subject to app ResourceQuotas).
+#
+# SELF-HOSTED / LOCAL ONLY: Netdata Cloud claiming is OFF (parent/child/k8sState
+# claiming.enabled=false, chart default) — metrics stay in-cluster and are NEVER
+# forwarded to Axiom (Axiom is LOGS-only, via the separate OTel pipeline). The
+# chart's public ingress is DISABLED; access is tailnet-only via the Tailscale
+# operator Ingress below → netdata.<tailnet>.ts.net. Tailnet membership IS the gate
+# for now (same model as headlamp/openbao); Authentik can front it later via the
+# operator's forward-auth once that app lands. NO public ingress.
+#
+# Retention: parent uses dbengine on a 3Gi local-path PVC mounted at /var/cache/netdata.
+# local-path is node-pinned + non-expandable, so it's sized modestly for a dev box.
+# History is what 2.5 GiB holds, not a number of days: 46 h on 2026-11-03 at 36,000
+# samples/s. Children stream live (db mode=ram), so node restarts lose only the
+# in-flight child buffer, never the parent history.
+#
+# What is read here, and so what stays (2026-11-03): node RAM, pressure and per-cgroup
+# memory (the RUNBOOK's incident numbers), the apiserver probe and its alarm, the
+# k8s_state and kubelet alarms. doctor.sh and CI read nothing from Netdata.
+#
+# A HELM piece (contract tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries the chart values, with identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netdata
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://netdata.github.io/helmchart
+    chart: netdata
+    targetRevision: 3.7.166
+    helm:
+      # Estate values: identity placeholders, filled by the estate's upgrade step.
+      parameters:
+        - name: image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/netdata/netdata
+          forceString: true
+        - name: initContainersImage.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/alpine
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+# NOTE: netdata's tailnet ingress was REMOVED. Access is now gated by Authentik:
+# the host netdata.<tailnet>.ts.net is served by the embedded outpost via the
+# `netdata` proxy provider (gitops/platform/authentik/blueprints-providers.yaml)
+# and the replacement ingress in gitops/platform/authentik/ingress-proxied-apps.yaml
+# (ns authentik → authentik-server). The netdata Service stays ClusterIP-only.

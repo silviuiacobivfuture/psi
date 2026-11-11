@@ -1,0 +1,33 @@
+# CORRECTED 2026-09-03: this directory IS Argo-synced. The `argocd-config`
+# Application deploys this piece (pieces/argocd-config), with selfHeal on —
+# read off the live Application rather than assumed. Every file here carried a
+# header claiming the opposite and telling the reader to apply it by hand, which
+# is unnecessary and is also how live state gets created that then fights
+# self-heal. A merge to the environment branch is the deploy, here as everywhere
+# else on this platform.
+#
+# Argo CD server runtime params (argocd-cmd-params-cm).
+#
+# server.insecure=true → argocd-server serves PLAIN HTTP (no self-signed TLS).
+# It sits behind the Tailscale-operator ingress (ingress.yaml) which TERMINATES
+# TLS and forwards to argocd-server:80. Without this, argocd-server speaks HTTPS
+# on :80 and the HTTP-forwarding proxy gets ERR_SSL_PROTOCOL_ERROR.
+#
+# Codified here (was an imperative `kubectl patch` in scripts/gitops-apply.sh) so
+# a FRESH bootstrap gets insecure mode durably: `kubectl apply -f
+# <this piece rendered>` (or the bootstrap that applies it) sets it with
+# no manual patching. After applying, restart argocd-server to reload params:
+#   kubectl -n argocd rollout restart deploy/argocd-server
+#
+# Synced by the `argocd-config` Application (Argo does
+# not manage its own config). Apply with the rest of this dir by hand / bootstrap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  server.insecure: "true"

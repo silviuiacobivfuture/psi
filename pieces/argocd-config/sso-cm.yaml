@@ -1,0 +1,38 @@
+# CORRECTED 2026-09-03: this directory IS Argo-synced. The `argocd-config`
+# Application deploys this piece (pieces/argocd-config), with selfHeal on —
+# read off the live Application rather than assumed. Every file here carried a
+# header claiming the opposite and telling the reader to apply it by hand, which
+# is unnecessary and is also how live state gets created that then fights
+# self-heal. A merge to the environment branch is the deploy, here as everywhere
+# else on this platform.
+#
+# Argo CD config: SSO via Authentik OIDC (central IdP, GitHub-federated).
+# Replaces the previous GitHub-via-Dex SSO. Authentik is reached at its PUBLIC
+# host (real LE cert) — the in-cluster argocd-server can resolve + trust it (the
+# tailnet host is unreachable/untrusted in-cluster).
+#
+# The estate's hosts are the estate's own: `url`, `additionalUrls` and `oidc.config`
+# (whose issuer names its Authentik host) come from its component
+# (../../components/estate/argocd-config, a patch of this ConfigMap).
+# clientID/clientSecret come from argocd-secret keys authentikClientID /
+# authentikClientSecret (dot-free — Argo's $-substitution doesn't span dots),
+# merged in by the argocd-authentik-oidc ExternalSecret from OpenBao
+# secret/platform/authentik/argo-oidc. Never in git.
+#
+# Synced by the `argocd-config` Application. To apply out of band:
+#   kubectl apply -k <the piece rendered with the estate's identity and component>
+#   kubectl -n argocd rollout restart deploy/argocd-server
+#
+# BREAK-GLASS: local admin stays ENABLED. If SSO breaks, log in as admin + the
+# local password. Tighten admin.enabled to "false" once Authentik login +
+# group→admin RBAC are confirmed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  admin.enabled: "true"

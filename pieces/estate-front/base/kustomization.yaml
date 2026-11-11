@@ -1,0 +1,21 @@
+# The front door's manifests, with its name defaulted from the identity HERE, one layer below
+# the piece: a kustomization's own replacements run after its components, so a default set by
+# the piece itself would overwrite what the estate's component (components/estate/estate-front)
+# names itself. Set in this layer, the estate's component patches over it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - harbor-pull-externalsecret.yaml
+  - externalsecret.yaml
+  - deployment.yaml
+  - ingress.yaml
+components:
+  - ../../../components/whitelabel
+replacements:
+  # The estate's name: on the pages and on the homepage tile.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_NAME }
+    targets:
+      - select: { kind: ConfigMap, name: estate-front-config }
+        fieldPaths: [data.ESTATE_NAME]
+      - select: { kind: Ingress, name: estate-front }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/name]"]

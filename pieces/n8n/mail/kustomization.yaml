@@ -1,0 +1,87 @@
+# n8n's own mail: THE SWITCH. OFF until real e-mail works (2026-11-04: SES production access is
+# refused by AWS, case 179336081000159). It is on when, and only when, overlays/dev names this
+# directory under `components:`; nothing else in the tree turns it on, and
+# .github/scripts/n8n-sso-gate.sh refuses SMTP settings anywhere else. doctor.sh says which state
+# the running instance is in.
+#
+# OFF (today). n8n returns the invitation link and /sso/setup sends the person to it. Forgot-password
+# refuses (500 "Email sending must be set up"), so the owner hands out a reset link from n8n's Users
+# screen (docs/n8n/01-identity.md, H1b).
+#
+# ON, WHAT CHANGES, one line in overlays/dev, only after SES accepts mail to everybody:
+#   - n8n mails every invitation and stops returning the link, so /sso/setup can no longer redirect;
+#     it says "check your e-mail". A person gets an invitation mail the moment they are provisioned,
+#     and another each time they open /sso/setup while still pending.
+#   - if the relay refuses a mail there is NO link at all: the person gets a named page and is stuck
+#     until the relay accepts. That is why this stays off while SES can refuse.
+#   - forgot-password starts working, by mail.
+#   - n8n may reach Plunk's relay on 587, and assert-secrets demands email-sender.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target: { kind: Deployment, name: n8n }
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: { name: n8n }
+      spec:
+        template:
+          spec:
+            initContainers:
+              - name: assert-mail
+                image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+                env:
+                  - name: EMAIL_API_KEY
+                    valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_API_KEY } }
+                  - name: EMAIL_FROM
+                    valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_FROM } }
+                command: ["sh", "-c"]
+                args:
+                  - |
+                    for k in EMAIL_API_KEY EMAIL_FROM; do
+                      eval "v=\${$k:-}"
+                      [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+                    done
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  capabilities: { drop: ["ALL"] }
+                resources:
+                  requests: { cpu: 10m, memory: 16Mi }
+                  limits: { cpu: 100m, memory: 32Mi }
+            containers:
+              - name: n8n
+                env:
+                  - { name: N8N_EMAIL_MODE, value: smtp }
+                  - { name: N8N_SMTP_HOST, value: plunk-smtp.WLDOMAIN }
+                  - { name: N8N_SMTP_PORT, value: "587" }
+                  - { name: N8N_SMTP_SSL, value: "false" }
+                  - { name: N8N_SMTP_STARTTLS, value: "true" }
+                  - { name: N8N_SMTP_USER, value: plunk }
+                  - name: N8N_SMTP_PASS
+                    valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_API_KEY } }
+                  - name: N8N_SMTP_SENDER
+                    valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_FROM } }
+  # The estate's relay, in-cluster: its one private destination beyond its database. Appended, so
+  # overlays/dev's patches of egress/2 by position still mean the world rule.
+  - target: { kind: NetworkPolicy, name: n8n }
+    patch: |-
+      - op: add
+        path: /spec/egress/-
+        value:
+          to:
+            - namespaceSelector:
+                matchLabels: { kubernetes.io/metadata.name: plunk }
+              podSelector:
+                matchLabels: { app.kubernetes.io/name: plunk }
+          ports:
+            - { protocol: TCP, port: 587 }
+# The relay's host on the estate's domain (the whitelabel ConfigMap comes in through base).
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Deployment, name: n8n }
+        fieldPaths:
+          - "spec.template.spec.containers.[name=n8n].env.[name=N8N_SMTP_HOST].value"
+        options: { delimiter: ".", index: 1 }

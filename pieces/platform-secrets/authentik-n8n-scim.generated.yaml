@@ -1,0 +1,15 @@
+# GENERATED from gitops/services/n8n-instances/instances.json by apps/n8n-sso (bin/generate-instances.ts). Do not edit.
+# Optional at the chart (blueprints then see ""), so a token missing here can never hold
+# the directory down; the sidecar refuses a blank token and doctor.sh says so.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-n8n-scim
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: authentik-n8n-scim, creationPolicy: Owner }
+  data:
+    - secretKey: AUTHENTIK_SCIM__N8N__TOKEN
+      remoteRef: { key: platform/authentik/n8n-scim, property: token }

@@ -1,0 +1,161 @@
+# Disallow privileged containers AND privilege escalation (Pod Security baseline).
+# `privileged: true` grants near-host-root; allowPrivilegeEscalation must be false
+# so a process cannot gain more privileges than its parent (e.g. via setuid).
+# Mode: ENFORCE (2026-06-17). All 5 app Deployments now set
+# `securityContext.allowPrivilegeEscalation: false` on every container — incl. an
+# app's `migrate` initContainer (the initContainers/ephemeralContainers patterns
+# below require it on EVERY such container, no optional wrapper). Verified: each app
+# rolled out cleanly and its health endpoint still 200; a privileged/escalating pod
+# in a non-excluded namespace is now rejected at admission. Platform namespaces stay
+# excluded (they legitimately need elevated privileges).
+#
+# ASYMMETRIC EXCLUSION — `plane` and `reportportal` are excluded from the SECOND
+# rule only.
+# The two rules are deliberately not interchangeable: `disallow-privileged` wraps the
+# whole securityContext in `=()` (optional), so a container that declares none PASSES;
+# `disallow-privilege-escalation` requires the field to be present and false on EVERY
+# container, so a container with no securityContext FAILS. The plane-ce chart renders
+# no securityContext anywhere and offers no values key to add one, so it needs relief
+# from the second rule and none from the first — and gets exactly that, rather than a
+# blanket namespace exclusion. Rationale in full at the exclusion site below and in
+# gitops/apps/overlays/dev/plane.yaml.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged
+  annotations:
+    policies.kyverno.io/title: Disallow Privileged Containers
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Privileged containers and privilege escalation are disallowed. Privileged
+      mode is near-host-root; allowPrivilegeEscalation=false blocks setuid-style
+      privilege gain.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: disallow-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata child DaemonSet runs privileged (eBPF/cgroups host access).
+                - monitoring
+                # system-upgrade-controller Plan jobs run privileged to write node
+                # files (/etc/rancher/k3s) + restart k3s via nsenter. SUC-only ns.
+                - system-upgrade
+                # Velero kopia file-backup hosting pods set allowPrivilegeEscalation
+                # implicitly; blocking them silently failed every PVC backup.
+                - velero
+      validate:
+        message: "Privileged containers are not allowed (securityContext.privileged must be false)."
+        pattern:
+          spec:
+            =(initContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            =(ephemeralContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            containers:
+              - =(securityContext):
+                  =(privileged): "false"
+    - name: disallow-privilege-escalation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata child DaemonSet runs privileged (eBPF/cgroups host access).
+                - monitoring
+                # system-upgrade-controller Plan jobs run privileged to write node
+                # files (/etc/rancher/k3s) + restart k3s via nsenter. SUC-only ns.
+                - system-upgrade
+                # Velero kopia file-backup hosting pods set allowPrivilegeEscalation
+                # implicitly; blocking them silently failed every PVC backup.
+                - velero
+                # Plane — EXCLUDED FROM THIS RULE ONLY (see the header). The
+                # plane-ce chart 1.6.2 emits no securityContext on any of its eight
+                # workload templates and exposes no values key to add one, and this
+                # rule's pattern (unlike disallow-privileged's) requires the field to
+                # be PRESENT and false on every container, so a container with no
+                # securityContext at all is rejected. Without the exclusion the whole
+                # chart is blocked at admission, including the migrator Job — i.e.
+                # Plane never gets a schema. Everything we own in the namespace
+                # (plane-redis, plane-rabbitmq, plane-assert-secrets) sets
+                # allowPrivilegeEscalation:false explicitly regardless.
+                - plane
+                # ReportPortal — EXCLUDED FROM THIS RULE ONLY, for the identical
+                # reason as plane and verified the same way. `helm template
+                # reportportal 26.8.12` with this repo's values renders five
+                # Deployments, two StatefulSets and two Jobs, and NOT ONE container
+                # carries a securityContext: the chart exposes a POD-level seam
+                # (`global.securityContext` / `<service>.securityContext`, which we
+                # DO use — every pod sets runAsNonRoot, a verified numeric runAsUser
+                # and seccompProfile) but no container-level seam anywhere. This
+                # rule requires the field PRESENT and false on every container, so
+                # the whole chart is rejected at admission without this line —
+                # including the migrations Job, i.e. ReportPortal never gets a
+                # schema. `disallow-privileged` (the first rule) is NOT excluded:
+                # its pattern wraps securityContext in `=()`, so a container with
+                # none passes it, and a container that ever sets `privileged: true`
+                # is still rejected.
+                # Everything WE own in the namespace sets
+                # allowPrivilegeEscalation:false explicitly regardless
+                # (reportportal-rabbitmq, reportportal-db-dump), and the OpenSearch
+                # subchart does too — its `securityContext` value is a real seam and
+                # gitops/apps/overlays/dev/reportportal.yaml sets the field there.
+                - reportportal
+      validate:
+        message: "allowPrivilegeEscalation must be set to false on every container."
+        pattern:
+          spec:
+            =(initContainers):
+              - securityContext:
+                  allowPrivilegeEscalation: "false"
+            =(ephemeralContainers):
+              - securityContext:
+                  allowPrivilegeEscalation: "false"
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: "false"

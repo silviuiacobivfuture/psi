@@ -1,0 +1,39 @@
+# The estate's own labels, keyed by its label domain: platform.<ESTATE_LABEL_DOMAIN>/<name>.
+#
+# A kustomize replacement can write a value but never a KEY, so a piece writes the label under
+# the neutral key `platform/<name>` and lists ../ under `transformers:`. Each PatchTransformer
+# here MOVES one such label to platform.<ESTATE_LABEL_DOMAIN>/<name>; the domain comes from SEB's
+# whitelabel component, so no piece names it. Same mechanism as ../../alert-owner.
+#
+# The keys handled are the ones the platform's manifests carry: `source` (Argo's branch stamp
+# selects on it) and `managed-by` (the RBAC objects). A new key is one more line + transformer
+# pair here, and a case in tools/bundle/test/label-keys.test.mjs.
+#
+# Each patch's `path:` line is `~1`-delimited segment 1 (<name>\n  path: …/platform.WLDOMAIN);
+# its line ConfigMap composes that segment first (ESTATE_LABEL_DOMAIN at dot-split index 1).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  - ../../whitelabel
+resources:
+  - lines.yaml
+  - patches.yaml
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_LABEL_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: platform-label-source }
+        fieldPaths: [data.SEGMENT]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: platform-label-managed-by }
+        fieldPaths: [data.SEGMENT]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: platform-label-source, fieldPath: data.SEGMENT }
+    targets:
+      - select: { kind: PatchTransformer, name: platform-label-source }
+        fieldPaths: [patch]
+        options: { delimiter: "~1", index: 1 }
+  - source: { kind: ConfigMap, name: platform-label-managed-by, fieldPath: data.SEGMENT }
+    targets:
+      - select: { kind: PatchTransformer, name: platform-label-managed-by }
+        fieldPaths: [patch]
+        options: { delimiter: "~1", index: 1 }

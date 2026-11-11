@@ -1,0 +1,42 @@
+# Let's Encrypt issuers using Cloudflare DNS-01 (works for wildcards + private
+# origins). The cloudflare-api-token secret (key `token`) is synced from OpenBao
+# (secret/platform/cloudflare/token) by the ESO ExternalSecret in
+# pieces/platform-secrets/. The ACME e-mail is the estate identity's ACME_EMAIL,
+# put in by the replacements in kustomization.yaml.
+#
+# Two issuers: staging (fake certs, no rate limits — use while testing) and prod
+# (real trusted certs). Ingresses pick one via the cert-manager.io/cluster-issuer
+# annotation.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: ACME_EMAIL # from the estate identity (kustomization.yaml replacements)
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: token
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ACME_EMAIL # from the estate identity (kustomization.yaml replacements)
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: token

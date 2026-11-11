@@ -1,0 +1,308 @@
+image:
+  repository: "${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/ghcr.io/gethomepage/homepage"
+  tag: "v1.2.0@sha256:c4ff34bad2874432e4e4c375627400cfe8462ecffa62418cfe336dac6edff274"
+
+# Cluster-wide READ-ONLY RBAC + ServiceAccount (discovery only — no write verbs).
+enableRbac: true
+serviceAccount:
+  create: true
+
+service:
+  main:
+    ports:
+      http:
+        port: 3000
+
+resources:
+  requests: { cpu: 25m, memory: 128Mi }
+  limits:   { cpu: 500m, memory: 384Mi }
+
+# Kyverno baseline+restricted policies on this cluster require non-root + no
+# privilege escalation. The gethomepage image runs fine as an unprivileged user.
+# This chart maps top-level `podSecurityContext` → pod and `securityContext` →
+# container (it predates the bjw-s multi-controller `controllers:` schema).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+# Chart ingress DISABLED — the hub is gated by Authentik. The host
+# hub.<tailnet>.ts.net is served by the embedded outpost via the `hub` proxy
+# provider (gitops/platform/authentik/blueprints-providers.yaml) + the
+# replacement ingress in gitops/platform/authentik/ingress-proxied-apps.yaml
+# (ns authentik → authentik-server → homepage Service :3000). HOMEPAGE_ALLOWED_HOSTS
+# below still allows the hub host because the outpost preserves the Host header.
+ingress:
+  main:
+    enabled: false
+
+# The Next.js host-check must allow both private names (the outpost keeps the Host).
+env:
+  - name: HOMEPAGE_ALLOWED_HOSTS
+    value: hub.${TAILNET_DOMAIN},hub.${MESH_BASE_DOMAIN}
+
+config:
+  # Kubernetes integration in CLUSTER mode → uses the pod's SA token + the RBAC above.
+  # This powers: (a) auto-discovery of annotated Ingresses, (b) live pod/cluster status.
+  # NOTE: must be the `kubernetes` MAP (not kubernetesString) — the chart default sets
+  # config.kubernetes.mode, and the configmap template prefers the map over the string.
+  kubernetes:
+    mode: cluster
+
+  # No bookmarks: the two that were here (the repo, the Hetzner console) are
+  # tiles now, in Delivery and Platform. An empty list REPLACES the chart's
+  # default bookmarks rather than falling back to them.
+  bookmarks: []
+
+  # The header, one row: the name, the cluster's load, the date, search.
+  widgets:
+    - greeting:
+        text_size: xl
+        # seb:estate greeting
+        text: ${BRAND_TITLE}
+        # seb:end greeting
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "dev cluster"
+        nodes:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+    - datetime:
+        text_size: md
+        format:
+          dateStyle: medium
+          timeStyle: short
+          hourCycle: h23
+    - search:
+        provider: duckduckgo
+        target: _blank
+
+  # STATIC tiles — components with NO ingress of ours, so nothing discovers
+  # them. Everything with an annotated Ingress arrives by itself and lands in
+  # its annotated group; those are NOT repeated here, which is what keeps a
+  # service from rendering twice. Homepage merges both sources per group.
+  #
+  # Each status dot is a POD lookup and needs all three of `namespace`, `app`
+  # and `podSelector`. Homepage draws NO dot at all without `app` (seen in a
+  # local render, 2026-10-28), but the pods are chosen by `podSelector` —
+  # `app: X` alone expands to `app.kubernetes.io/name=X`, which matched no pod
+  # for openfga and the ubl validator (the 2026-06-17 "NOT FOUND" incident).
+  # Every selector below was checked against the live cluster on 2026-10-28.
+  # NOTE: provided as the `services` LIST (not servicesString) — the chart ships a
+  # default config.services that would otherwise win the merge over a string.
+  services:
+    # The estate's own tiles that no Ingress announces, as whole groups, first.
+    # seb:estate services-apps
+    # seb:end services-apps
+    - Delivery:
+        - GitHub:
+            icon: si-github
+            href: https://${GIT_HOST}/${GIT_OWNER}/${GIT_REPO}
+            description: The platform repository — code, pull requests, issues
+        - CI runners:
+            icon: si-githubactions
+            href: https://${GIT_HOST}/${GIT_OWNER}/${GIT_REPO}/actions
+            description: Self-hosted GitHub Actions runners (ARC)
+            namespace: arc-systems
+            app: arc-systems
+            podSelector: app.kubernetes.io/name=gha-rs-controller
+        # No UI and no link, and it must stay that way: the Nx remote cache
+        # speaks a four-verb HTTP protocol to `nx`, its only credential is a
+        # bearer token shared by every CI job, so it has no Ingress. When it is
+        # down nothing BREAKS, builds just get slow again — invisible in a
+        # red/green pipeline, which is why it needs a dot.
+        - Nx cache:
+            icon: si-nx
+            description: Remote build cache — no UI, read by every CI job
+            namespace: nx-cache
+            app: nx-cache
+            podSelector: app=nx-cache
+    - Services:
+        # The estate's own backends without an Ingress, first in this group.
+        # seb:estate services-services
+        # seb:end services-services
+        # No UI and no link, and it must stay that way: OpenFGA has no Ingress
+        # by design — its API auth is an unscoped preshared key, so publishing
+        # it would put the write path on the internet. It earns the tile because
+        # every application asks it whether an action is permitted: this dot
+        # going dark is the first sign authorization has stopped everywhere,
+        # while Polaris (the control plane) can be perfectly healthy.
+        - OpenFGA:
+            icon: mdi-key-chain-variant
+            description: Authorization engine — no UI, asked by every application
+            namespace: openfga
+            app: openfga
+            podSelector: app=openfga
+        - Collabora:
+            icon: si-collaboraonline
+            description: Office documents for Nextcloud — no UI of its own
+            namespace: nextcloud
+            app: nextcloud
+            podSelector: app.kubernetes.io/name=collabora
+    - Platform:
+        - External Secrets:
+            icon: mdi-key-arrow-right
+            description: Syncs secrets from OpenBao into the cluster
+            namespace: external-secrets
+            app: external-secrets
+            podSelector: app.kubernetes.io/name=external-secrets
+        - cert-manager:
+            icon: cert-manager.png
+            description: TLS certificates (Let's Encrypt)
+            namespace: cert-manager
+            app: cert-manager
+            podSelector: app.kubernetes.io/name=cert-manager
+        - external-dns:
+            icon: cloudflare.png
+            description: DNS records (Cloudflare)
+            namespace: external-dns
+            app: external-dns
+            podSelector: app.kubernetes.io/name=external-dns
+        - Traefik:
+            icon: traefik.png
+            description: Public ingress
+            namespace: kube-system
+            app: kube-system
+            podSelector: app.kubernetes.io/name=traefik
+        - Tailscale:
+            icon: si-tailscale
+            description: Private-network ingress (the tailnet operator)
+            namespace: tailscale
+            app: tailscale
+            podSelector: app=operator
+        - Kyverno:
+            icon: kyverno.png
+            description: Admission policies
+            namespace: kyverno
+            app: kyverno
+            podSelector: app.kubernetes.io/name=kyverno-admission-controller
+        - CloudNativePG:
+            icon: postgresql.png
+            description: PostgreSQL operator — every database in the cluster
+            namespace: cnpg-system
+            app: cnpg-system
+            podSelector: app.kubernetes.io/name=cloudnative-pg
+        - Velero:
+            icon: velero.png
+            description: Cluster backup and restore
+            namespace: velero
+            app: velero
+            podSelector: name=velero
+        - Reloader:
+            icon: reloader.png
+            description: Restarts workloads when their secrets rotate
+            namespace: reloader
+            app: reloader
+            podSelector: app.kubernetes.io/name=reloader
+        - System upgrades:
+            icon: k3s.png
+            description: k3s upgrade controller
+            namespace: system-upgrade
+            app: system-upgrade
+            podSelector: app.kubernetes.io/name=system-upgrade-controller
+        - Hetzner volumes:
+            icon: mdi-harddisk
+            description: Hetzner Cloud CSI — persistent volumes
+            namespace: kube-system
+            app: kube-system
+            podSelector: app.kubernetes.io/name=hcloud-csi
+        - Hetzner Cloud:
+            icon: hetzner.png
+            href: https://console.hetzner.cloud/
+            description: The cloud console — servers, network, storage
+    - Observability:
+        - OpenTelemetry:
+            icon: si-opentelemetry
+            description: Log and trace collection (agent + cluster collector)
+            namespace: observability
+            app: observability
+            podSelector: app in (otel-agent,otel-cluster)
+        # A CronJob: no pod lives between runs, so no status dot.
+        - Health digest:
+            icon: mdi-heart-pulse
+            description: The daily cluster health report, sent to Talk
+
+  # settingsString = stable layout ordering (Go/Helm toYaml sorts map keys otherwise).
+  settingsString: |
+    # seb:estate title
+    title: ${BRAND_TITLE}
+    # seb:end title
+    description: System Hub — every service in the dev cluster
+    theme: dark
+    color: slate
+    headerStyle: clean
+    target: _blank
+    language: en
+    hideVersion: true
+    disableCollapse: true
+    useEqualHeights: true
+    # A dot, not the "RUNNING" label on every card: calm when all is well,
+    # and a red dot still stands out in a page of green ones.
+    statusStyle: dot
+    # Every group is a full-width row of FOUR equal columns, so every card on
+    # the page is the same size. The order is the reading order above.
+    layout:
+      Apps:
+        style: row
+        columns: 4
+      Everyday tools:
+        style: row
+        columns: 4
+      Delivery:
+        style: row
+        columns: 4
+      Services:
+        style: row
+        columns: 4
+      Messaging:
+        style: row
+        columns: 4
+      Platform:
+        style: row
+        columns: 4
+      Observability:
+        style: row
+        columns: 4
+
+# ── The estate's theme ───────────────────────────────────────────────────
+# SEB ships none (the estate slot custom-css stays empty unless the estate brings one).
+# gethomepage auto-loads /app/config/custom.css. The jameswynn chart does not
+# render a custom.css key into its config ConfigMap, so the CSS ships as an
+# extra ConfigMap (configMaps.* below), subPath-mounted by persistence.custom-css.
+configMaps:
+  custom-css:
+    enabled: true
+    data:
+      # seb:estate custom-css
+      custom.css: ""
+      # seb:end custom-css
+
+persistence:
+  logs:
+    enabled: true
+    type: emptyDir
+    mountPath: /app/config/logs
+  # Mount the chart-rendered custom-css ConfigMap as /app/config/custom.css.
+  # gethomepage auto-loads it. subPath-mount (single key) so it lands as a
+  # file alongside the other config files on the shared /app/config dir.
+  # ConfigMap name = <release>-custom-css = "homepage-custom-css".
+  custom-css:
+    enabled: true
+    type: configMap
+    name: homepage-custom-css
+    readOnly: true
+    subPath:
+      - path: custom.css
+        mountPath: /app/config/custom.css

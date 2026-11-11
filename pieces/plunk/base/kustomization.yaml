@@ -1,0 +1,28 @@
+# Plunk — e-mail sending AND receiving for the estate (apps/plunk-sso,
+# the e-mail inventory (first estate's history, not shipped)). Order is documentation only.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - cnpg-cluster.yaml
+  - redis.yaml
+  - plunk.yaml
+  - sso.yaml
+  - ingress.yaml
+  - db-dump.yaml
+# Our two files mounted into upstream's image (plunk.yaml): the nginx template
+# copy and the guard. Kept HERE because kustomize, as Argo runs it, reads only
+# files under the kustomization. The name hash rolls the pod when either changes.
+configMapGenerator:
+  - name: plunk-sso-web
+    files:
+      - plunk-sso-web/nginx.conf.template
+      - plunk-sso-web/guard.js
+  # The senders (ConfigMap plunk-senders, mounted into plunk-sso and
+  # plunk-reconcile) are the ESTATE's list, so the estate's layer for this piece
+  # (../components/estate/plunk, filled by the bundle builder) generates them
+  # from its own senders.generated.json, beside Plunk's own generated Secrets
+  # (email.generated.yaml, inbound.generated.yaml) — all written by
+  # apps/plunk-sso/bin/email-sync.mjs --estate <that layer>: adding a sender is a
+  # declaration + a sync, never an image rebuild.

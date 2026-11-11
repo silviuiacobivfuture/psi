@@ -1,0 +1,165 @@
+# The SURVIVING directory's Postgres — a CloudNativePG Cluster, replacing the
+# chart-bundled Bitnami subchart on local-path. I2, the identity work ledger (first estate's history, not shipped).
+#
+# ── WHY THIS IS A PRECONDITION AND NOT AN IMPROVEMENT ───────────────────────
+#
+# This instance became the estate's ONLY directory (D-A): every business
+# application moved onto it and the business Authentik was deleted on
+# 2026-10-25. The instance since deleted had continuous WAL archiving, a scheduled base backup
+# and a 30-day retention on `hcloud-volumes`. This one has a Bitnami subchart on
+# `local-path` with NO WAL archiving and NO backup of any kind.
+#
+# Consolidating without this first would MOVE customer identities from a
+# recoverable database onto an unrecoverable one and call it progress. What a
+# directory holds is not "user rows": it is every credential hash, every MFA
+# device registration, every OAuth authorization grant, and the signing keypair
+# whose loss invalidates every token this instance has ever issued. Losing it
+# means every enrolled second factor is gone and every person is locked out with
+# no error that says why — and `local-path` is node-local storage with no
+# snapshot, so "losing it" is one node away.
+#
+# The owner's ruling (D-E, 2026-09-21): this lands BEFORE any provider moves,
+# and a point-in-time restore is DEMONSTRATED rather than configured.
+#
+# ── WHAT IS DELIBERATELY COPIED FROM THE RETIRED BUSINESS AUTHENTIK ─────────
+#
+# Shape, storage class, both backup layers and the six-field cron all come from
+# the retired business Authentik's CNPG Cluster, which itself came from
+# `rmx-invoice-svc`. Porting the pattern rather than inventing one is the
+# point: the instance since retired was the better-built one, and its database
+# arrangement is the half worth keeping.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: authentik-db
+  namespace: authentik
+  annotations:
+    alerts.recomex.eu/owner: WLOPSEMAIL
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+
+  bootstrap:
+    initdb:
+      database: authentik
+      owner: authentik
+      # Naming a secret means the operator EXPECTS it to exist. CNPG generates
+      # `<cluster>-app` for itself only when this field is omitted; naming one
+      # that no ExternalSecret creates leaves the cluster in "Setting up primary"
+      # forever, with the initdb pod in CreateContainerConfigError. The
+      # `authentik-db-app` ExternalSecret in pieces/platform-secrets/ exists so
+      # that mistake — which shipped once in rmx-invoice-svc — is not repeated.
+      #
+      # It reads the SAME OpenBao path the bundled subchart already used,
+      # `platform/authentik/postgresql`, so the credential does not change during
+      # the migration. A new password here would mean the dump and the restore
+      # target disagree at the worst possible moment.
+      secret:
+        name: authentik-db-app
+      # Authentik stores people's names, so ordering them is a Romanian
+      # collation question. ICU rather than a system locale: the CNPG image is
+      # Debian with only C and C.UTF-8 generated, so `localeCollate: ro_RO.UTF-8`
+      # fails initdb outright.
+      localeProvider: icu
+      icuLocale: ro-RO
+      localeCollate: C.UTF-8
+      localeCType: C.UTF-8
+
+  storage:
+    # hcloud-volumes, not local-path, and 10Gi because that is the Hetzner block
+    # volume MINIMUM rather than a sizing estimate. A single-instance CNPG
+    # Cluster has no live path onto a different storage class — a new Cluster
+    # object is the only path — so starting on the destination class is the
+    # difference between this database being done and joining the migration
+    # backlog in infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md.
+    #
+    # The bundled subchart it replaces asked for 4Gi on local-path. This is not
+    # a capacity increase; it is the floor of a class that also has
+    # allowVolumeExpansion=true, which local-path does not.
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  # Sized for the node, not for comfort. `kubectl describe node` on 2026-09-01
+  # reported memory LIMITS at 110% of capacity on dev-k3s-agent-0 and 93% on
+  # dev-k3s-cp, against requests near 38%. A generous limit is a promise the node
+  # cannot keep. This carries the whole estate's logins, so it gets more than the
+  # business instance's 512Mi ceiling and still stays under the subchart's 768Mi.
+  resources:
+    requests: { cpu: 150m, memory: 256Mi }
+    limits: { cpu: "1", memory: 640Mi }
+
+  # How long a stopping instance waits for its clients to leave before it stops
+  # FAST. CNPG's default is 180 s, and the directory's clients never leave:
+  # authentik's server, worker and embedded outpost all hold pooled connections,
+  # so a smart shutdown always runs the full window — and for all of it the
+  # instance refuses every new connection ("the database system is shutting
+  # down") while it is no longer Ready. Measured 2026-10-29: kubelet stopped
+  # every container on dev-k3s-agent-0 at 16:10:42; this instance sat in smart
+  # shutdown until 16:13:43; authentik-server's bootstrap gives the database 30
+  # one-second attempts and exits 1, so it crash-looped five times and the
+  # estate's sign-ins and forward-auth were down for over three minutes, not the
+  # seconds a restart takes. A fast shutdown is still a CLEAN one (it rolls back
+  # open transactions and checkpoints; no recovery at start), so 10 s costs
+  # nothing but the wait. Off the sync-drift ignore list for that reason
+  # (gitops/platform/argocd/sync-drift-cm.yaml), so Argo carries it.
+  smartShutdownTimeout: 10
+
+  # DELIBERATELY NOT enablePodMonitor. The PodMonitor CRD is not installed here
+  # (metrics go to Netdata + Axiom) — pieces/cnpg/values.yaml disables
+  # the operator's own PodMonitor for exactly that reason. Several sibling
+  # Clusters set it to `true` anyway and render a CR for a CRD that does not
+  # exist; that is a pre-existing inconsistency, not a pattern to copy.
+
+  backup:
+    # 30 days, matching the business instance rather than the platform's usual
+    # 14. The window in which an IDENTITY mistake is discovered is long: a group
+    # binding widened by accident, or a person deleted along with their MFA
+    # enrolments, surfaces the next time that person tries to log in — which for
+    # an external accountant may be a month.
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      # The platform bucket every other Cluster archives to, path-namespaced by
+      # this cluster's own name. No new bucket and no new credential: a backup
+      # that needs its own secret is a backup that stops when that secret rotates
+      # and nobody notices.
+      destinationPath: s3://rmx-tfstate-dev/cnpg/authentik-db
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId:
+          name: authentik-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: authentik-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. WAL alone restores NOTHING.
+#
+# CNPG uses a SIX-field cron (leading seconds), unlike the five-field CronJob
+# schedules elsewhere in this repository.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: authentik-db-base
+  namespace: authentik
+spec:
+  # 04:30 Sunday. Derived from the repository rather than assumed — every
+  # `schedule: "0 ...` under gitops/ was listed before choosing:
+  #   02:20 02:25 02:40 02:45 02:50 02:55 · 03:00 (x3) 03:05 03:20 03:40 03:50
+  #   04:00 04:10
+  # plus the 6-hourly logical dumps at `0 */6 * * *` (00:00 06:00 12:00 18:00).
+  # 04:30 collides with none of them, so no two backups ever contend for the
+  # same bucket.
+  schedule: "0 30 4 * * 0"
+  # Immediately on creation, not on the first Sunday. Without this the cluster
+  # spends up to a week with WAL archiving apparently working and NO restorable
+  # point — and every rebuild repeats that window. For the estate's only
+  # directory that window is unacceptable twice over.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: authentik-db

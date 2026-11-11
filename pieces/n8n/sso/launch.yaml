@@ -1,0 +1,46 @@
+# Authentik's launch address for n8n, /application/launch/n8n/, answered at the edge and not by Authentik.
+#
+# WHY. Signed out, Authentik's own view ends on a spinner, for every application and for ever. The
+# stage it appends, RedirectToAppStage, builds its answer with `instance=` where every other stage
+# writes `data=`, so the answer holds neither the address nor which stage it is, and the page has
+# nothing to draw (apps.py at 2026.5.3; the same on upstream's main on 2026-11-06). Measured live: the
+# password and code are accepted, the session exists, and the page spins (docs/n8n/01-identity.md H15).
+#
+# WHY NOT A STAGE IN THE FLOW. It would work, and every way of leaving Authentik's flow is a script,
+# which turns an arrival `same-site` and takes the button away from a click on another site
+# (invariant 27). It would also sit in the flow every sign-in of every application runs through.
+# A 302 here keeps `cross-site`, and what follows is a bookmark's journey, which is proven.
+#
+# SIGNED IN it changes nothing: Authentik answers a 302 to the same place.
+#
+# ANY METHOD, and the query goes nowhere: this redirects to a place that is gated, like press.yaml.
+# NO SERVICE, so nothing of Authentik's and nothing of n8n's is on a new router (invariant 15).
+# PRIORITY 300: above Authentik's Ingress, whose priority is its rule's length.
+#
+# Host(...) MUST stay first: the Component's replacement writes the second backtick field. The slug is
+# what a generated instance replaces, so it is the fourth "/" field of the rule.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-sso-launch
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 300
+      match: Host(`auth.example.invalid`) && PathRegexp(`^/application/launch/n8n/?$`)
+      middlewares:
+        - name: n8n-sso-launch
+      services:
+        - { name: noop@internal, kind: TraefikService }
+  tls: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-sso-launch
+spec:
+  redirectRegex:
+    regex: '^.*$'
+    replacement: 'https://n8n.example.invalid/sso/setup'
+    permanent: false

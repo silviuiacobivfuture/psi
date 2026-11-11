@@ -1,0 +1,250 @@
+apiVersion: v1
+data:
+  admin.enabled: "true"
+  kustomize.buildOptions: --enable-helm
+  resource.customizations.ignoreDifferences.external-secrets.io_ExternalSecret: |
+    jqPathExpressions:
+      - '.spec.data[]?.remoteRef.conversionStrategy'
+      - '.spec.data[]?.remoteRef.decodingStrategy'
+      - '.spec.data[]?.remoteRef.metadataPolicy'
+      - '.spec.data[]?.remoteRef.nullBytePolicy'
+  resource.customizations.ignoreDifferences.postgresql.cnpg.io_Cluster: |
+    jqPathExpressions:
+      - '.spec.affinity.podAntiAffinityType'
+      - '.spec.backup.target'
+      - '.spec.enablePDB'
+      - '.spec.enableSuperuserAccess'
+      - '.spec.failoverDelay'
+      - '.spec.logLevel'
+      - '.spec.maxSyncReplicas'
+      - '.spec.minSyncReplicas'
+      - '.spec.monitoring.customQueriesConfigMap'
+      - '.spec.monitoring.disableDefaultQueries'
+      - '.spec.postgresGID'
+      - '.spec.postgresUID'
+      - '.spec.postgresql.syncReplicaElectionConstraint'
+      - '.spec.postgresql.parameters.archive_mode'
+      - '.spec.postgresql.parameters.dynamic_shared_memory_type'
+      - '.spec.postgresql.parameters.full_page_writes'
+      - '.spec.postgresql.parameters.log_destination'
+      - '.spec.postgresql.parameters.log_directory'
+      - '.spec.postgresql.parameters.log_filename'
+      - '.spec.postgresql.parameters.log_rotation_age'
+      - '.spec.postgresql.parameters.log_rotation_size'
+      - '.spec.postgresql.parameters.log_truncate_on_rotation'
+      - '.spec.postgresql.parameters.logging_collector'
+      - '.spec.postgresql.parameters.max_parallel_workers'
+      - '.spec.postgresql.parameters.max_replication_slots'
+      - '.spec.postgresql.parameters.max_worker_processes'
+      - '.spec.postgresql.parameters.shared_memory_type'
+      - '.spec.postgresql.parameters.shared_preload_libraries'
+      - '.spec.postgresql.parameters.ssl_max_protocol_version'
+      - '.spec.postgresql.parameters.ssl_min_protocol_version'
+      - '.spec.postgresql.parameters.wal_keep_size'
+      - '.spec.postgresql.parameters.wal_level'
+      - '.spec.postgresql.parameters.wal_log_hints'
+      - '.spec.postgresql.parameters.wal_receiver_timeout'
+      - '.spec.postgresql.parameters.wal_sender_timeout'
+      - '.spec.primaryUpdateMethod'
+      - '.spec.probes'
+      - '.spec.replicationSlots'
+      # NOT .spec.smartShutdownTimeout: authentik-db sets it to 10 (its
+      # cnpg-cluster.yaml says why), and ignoring it would hide that.
+      - '.spec.startDelay'
+      - '.spec.stopDelay'
+      - '.spec.storage.resizeInUseVolumes'
+      - '.spec.switchoverDelay'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+  name: argocd-cm
+  namespace: argocd
+---
+apiVersion: v1
+data:
+  server.insecure: "true"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+  name: argocd-cmd-params-cm
+  namespace: argocd
+---
+apiVersion: v1
+data:
+  service.webhook.talk: |
+    url: http://talk-webhook.nextcloud.svc/notify/gitops
+    headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-Notify-Token
+      value: $talk-webhook-token
+  subscriptions: |
+    - recipients:
+        - talk
+      triggers:
+        - on-sync-failed
+        - on-health-degraded
+        - on-deployed
+  template.talk-health-degraded: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"fail","message":"App unhealthy: {{.app.metadata.name}}","detail":"It may be partly down or serving errors. (health {{.app.status.health.status}}, sync {{.app.status.sync.status}})"}
+  template.talk-sync-failed: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"fail","message":"Deployment failed: {{.app.metadata.name}}","detail":{{ printf "The app was NOT updated — the previous version is still running.\n\nCommit: %s\nBy: %s\nReason: %s" (call .repo.GetCommitMetadata .app.status.sync.revision).Message (call .repo.GetCommitMetadata .app.status.sync.revision).Author .app.status.operationState.message | trunc 600 | toJson }}}
+  template.talk-sync-succeeded: |
+    webhook:
+      talk:
+        method: POST
+        body: |
+          {"severity":"ok","message":"Deployed: {{.app.metadata.name}}","detail":{{ printf "%s\n\nBy %s" (call .repo.GetCommitMetadata .app.status.sync.revision).Message (call .repo.GetCommitMetadata .app.status.sync.revision).Author | trunc 400 | toJson }}}
+  trigger.on-deployed: |
+    - when: app.status.operationState.phase == 'Succeeded' and app.status.health.status == 'Healthy' and app.metadata.name in []
+      oncePer: app.status.sync.revision
+      send: [talk-sync-succeeded]
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      oncePer: app.status.sync.revision
+      send: [talk-health-degraded]
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: app.status.operationState.syncResult.revision
+      send: [talk-sync-failed]
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+---
+apiVersion: v1
+data:
+  policy.csv: |
+    g, app-argocd-admin, role:admin
+    g, app-argocd-view, role:readonly
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */*, allow
+    p, role:developer, applications, action/apps/Deployment/restart, */*, allow
+    p, role:developer, applications, action/apps/StatefulSet/restart, */*, allow
+    p, role:developer, logs, get, */*, allow
+    g, role:developer, role:readonly
+    g, app-argocd-developer, role:developer
+    p, role:signin, applications, get, */*, allow
+    g, app-argocd-signin, role:signin
+    g, platform-admins, role:admin
+    g, platform-members, role:readonly
+  policy.default: ""
+  scopes: '[groups]'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+  name: argocd-rbac-cm
+  namespace: argocd
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-authentik-oidc
+  namespace: argocd
+spec:
+  data:
+  - remoteRef:
+      key: platform/authentik/argo-oidc
+      property: client_id
+    secretKey: id
+  - remoteRef:
+      key: platform/authentik/argo-oidc
+      property: client_secret
+    secretKey: secret
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Merge
+    name: argocd-secret
+    template:
+      data:
+        authentikClientID: '{{ .id }}'
+        authentikClientSecret: '{{ .secret }}'
+      engineVersion: v2
+      mergePolicy: Merge
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-notifications-token
+  namespace: argocd
+spec:
+  data:
+  - remoteRef:
+      key: platform/talk/webhook
+      property: token
+    secretKey: talk-webhook-token
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Merge
+    name: argocd-notifications-secret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: repo-platform
+  namespace: argocd
+spec:
+  data:
+  - remoteRef:
+      key: platform/github/argocd-deploy-key
+      property: sshPrivateKey
+    secretKey: sshPrivateKey
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: repo-platform
+    template:
+      data:
+        sshPrivateKey: '{{ .sshPrivateKey }}'
+        type: git
+        url: git@github.com:silviuiacobivfuture/psi.git
+      engineVersion: v2
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    gethomepage.dev/description: GitOps — what is deployed, and syncing it
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Delivery
+    gethomepage.dev/icon: argo-cd.png
+    gethomepage.dev/name: Argo CD
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=argocd-server
+  name: argocd-tailnet
+  namespace: argocd
+spec:
+  defaultBackend:
+    service:
+      name: argocd-server
+      port:
+        number: 80
+  ingressClassName: tailscale
+  tls:
+  - hosts:
+    - argocd

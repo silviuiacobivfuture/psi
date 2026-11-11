@@ -1,0 +1,206 @@
+# Rancher system-upgrade-controller (SUC) + the apiserver-OIDC Plan — the GitOps-native
+# way to run privileged NODE changes (writing /etc/rancher/k3s drop-ins + restarting
+# k3s) with zero hand-SSH. Synced by the `system-upgrade-controller` Argo Application
+# (gitops/apps/overlays/dev/system-upgrade-controller.yaml).
+#
+# Pinned upstream v0.19.2 (github.com/rancher/system-upgrade-controller/releases/tag/
+# v0.19.2), vendored under upstream/ unmodified:
+#   - upstream/crd.yaml                       → the Plan CRD (plans.upgrade.cattle.io)
+#   - upstream/system-upgrade-controller.yaml → ns, SA, RBAC, env CM, controller Deploy
+# To bump SUC: replace both vendored files from the new release tag + update this note.
+#
+# The `system-upgrade` namespace (created by the upstream manifest with
+# pod-security.kubernetes.io/enforce: privileged) is excluded from the Kyverno baseline
+# policies — see pieces/kyverno-policies/{disallow-privileged,
+# disallow-host-namespaces-and-hostpath,require-run-as-non-root,require-requests-limits}.yaml
+# (least-privilege: that namespace ONLY). Node work only: the Plans, and the read-only
+# k3s-datastore-copy CronJob, whose header says why it sits here.
+#
+# Apply ORDER is enforced with Argo sync-waves (annotations patched in below):
+#   wave -2: the Plan CRD must exist before any Plan object.
+#   wave -1: the controller (+ its RBAC/SA/ns) must be Running before the Plan.
+#   wave  0: the ESO secrets (oidc client_id + etcd-s3 creds).
+#   wave  1: the apiserver-oidc Plan.
+#   wave  2: the etcd-s3 Plan — AFTER oidc so the two node restarts never overlap
+#            on the sole control plane (each restarts k3s ~once; serialising keeps
+#            the apiserver blips sequential, not concurrent).
+#   wave  3, 4: the kubelet-memory Plans, agent then control plane. Waves order only
+#            the apply; the server's script itself waits for the agent's configz.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: system-upgrade
+resources:
+  - upstream/crd.yaml
+  - upstream/system-upgrade-controller.yaml
+  - oidc-client-id-secret.yaml
+  - oidc-apiserver-plan.yaml
+  - etcd-s3-plan.yaml
+  - kubelet-memory-plan.yaml
+  # Not a Plan: the scheduled copy of the datastore. Its header says why it lives here.
+  - k3s-datastore-copy.yaml
+
+# The kubelet's memory settings. A Plan can mount no ConfigMap, so the script and the
+# drop-ins reach it as env vars. KM_MODE moves ONLY with
+# infrastructure/hetzner/scripts/kubelet-memory-mode.sh, which bumps the Plans' version.
+configMapGenerator:
+  - name: kubelet-memory
+    options:
+      disableNameSuffixHash: true
+    files:
+      - KM_APPLY_SH=kubelet-memory/apply.sh
+      - KM_DROPIN_AGENT=kubelet-memory/agent.yaml
+      - KM_DROPIN_SERVER=kubelet-memory/server.yaml
+    literals:
+      - KM_MODE=apply
+  - name: k3s-datastore-copy
+    options:
+      disableNameSuffixHash: true
+    files:
+      - copy.py=datastore-copy/copy.py
+      - upload.sh=datastore-copy/upload.sh
+
+patches:
+  # The controller from Harbor's mirror (PLATFORM-11), as a patch because upstream/ stays
+  # unmodified, and not `images:`, whose newTag the Harbor housekeeping reads as ours. Move
+  # the two together when bumping SUC. A Plan's `upgrade.image` does not enter SUC's hash
+  # (v0.19.2 pkg/upgrade/plan/plan.go hashes the version, the service account and the
+  # secrets), so changing an image re-runs no Plan on any node.
+  - target:
+      kind: Deployment
+      name: system-upgrade-controller
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: system-upgrade-controller
+      spec:
+        template:
+          spec:
+            containers:
+              - name: system-upgrade-controller
+                image: WLREGISTRY/mirror/docker.io/rancher/system-upgrade-controller:v0.19.2@sha256:9411406c244d9b956c492bc47d22096e28f8dba512aee68167bc1445fe78decb
+  # wave -2 — Plan CRD first.
+  - target:
+      kind: CustomResourceDefinition
+      name: plans.upgrade.cattle.io
+    patch: |
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-wave
+        value: "-2"
+  # The controller Deployment + its SA/RBAC/CM all stay at the DEFAULT wave 0 and sync
+  # TOGETHER. (Do NOT wave the Deployment ahead of its ServiceAccount: Argo waits for an
+  # earlier wave to be HEALTHY before applying the next, so a Deployment at wave -1 whose
+  # SA is at wave 0 deadlocks — the deploy can never become healthy without the SA, so the
+  # SA is never applied. k8s retries the pod-create within a wave once the SA lands.)
+  # wave 1 — the Plan applies only AFTER the controller (wave 0) is healthy/Running.
+  - target:
+      kind: Plan
+      name: apiserver-oidc
+    patch: |
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "1"
+  # wave 2 — the etcd-s3 Plan applies AFTER the oidc Plan (wave 1) so the two
+  # one-shot k3s restarts on the SOLE control plane are serialised, never
+  # concurrent. Its own ESO etcd-s3 Secret + ConfigMap stay at the default wave 0
+  # (synced with the oidc client_id Secret), available before any Plan runs.
+  - target:
+      kind: Plan
+      name: etcd-s3
+    patch: |
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "2"
+  - target:
+      kind: Plan
+      name: kubelet-memory-agent
+    patch: |
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "3"
+  - target:
+      kind: Plan
+      name: kubelet-memory-server
+    patch: |
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "4"
+  # critic M1 — cap job retries (upstream default 99). On a transient failure (e.g.
+  # Authentik briefly unreachable) each retry restarts k3s on the SOLE control plane;
+  # 99 retries within the 900s deadline = a restart storm. 2 retries is plenty for a
+  # one-shot node config; the Plan script is idempotent so re-runs are safe.
+  - target:
+      kind: ConfigMap
+      name: default-controller-env
+    patch: |
+      - op: replace
+        path: /data/SYSTEM_UPGRADE_JOB_BACKOFF_LIMIT
+        value: "2"
+
+# Estate values come from the identity (estate/identity.yaml → the whitelabel
+# component), never written in the manifests: object storage region, endpoint
+# and the bucket prefix. (Byte-identical with the values once written here; the etcd-s3
+# Plan's DRIFT TRAP still applies when an identity VALUE changes: bump its spec.version too.)
+components:
+  - ../../components/whitelabel
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The registries Plans (registries/, wired only by registries-mode.sh): their image and the
+  # registry host apply.sh writes into each node's registries.yaml. No match while unwired.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: registries }
+        fieldPaths: [data.RG_REGISTRY]
+      - select: { kind: Plan, name: registries-agent }
+        fieldPaths: [spec.upgrade.image]
+        options: { delimiter: /, index: 0 }
+      - select: { kind: Plan, name: registries-server }
+        fieldPaths: [spec.upgrade.image]
+        options: { delimiter: /, index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: CronJob, name: k3s-datastore-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_REGION].value
+      - select: { kind: ConfigMap, name: etcd-s3-flags }
+        fieldPaths:
+          - data.ETCD_S3_REGION
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: CronJob, name: k3s-datastore-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_ENDPOINT_URL].value
+  - source:
+      kind: ConfigMap
+      name: whitelabel
+      fieldPath: data.OBJECT_STORAGE_ENDPOINT
+      options: { delimiter: "//", index: 1 }
+    targets:
+      - select: { kind: ConfigMap, name: etcd-s3-flags }
+        fieldPaths:
+          - data.ETCD_S3_ENDPOINT
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: CronJob, name: k3s-datastore-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+        options: { delimiter: "-", index: 0 }
+      - select: { kind: ConfigMap, name: etcd-s3-flags }
+        fieldPaths:
+          - data.ETCD_S3_BUCKET
+        options: { delimiter: "-", index: 0 }
+  # AUTHENTIK_HOST is derived by the loader: AUTHENTIK_HOST_PREFIX.BASE_DOMAIN.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: apiserver-oidc-flags }
+        fieldPaths:
+          - data.OIDC_ISSUER_URL
+        options: { delimiter: "/", index: 2 }
+# The alert annotation's key (alerts.<ESTATE_LABEL_DOMAIN>/owner) from the identity: the CronJob writes the
+# neutral key alerts/owner and this transformer moves it.
+transformers:
+  - ../../components/alert-owner

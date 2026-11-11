@@ -1,0 +1,244 @@
+# Nextcloud Talk High Performance Backend — NATS + Janus (SFU) + eturnal (TURN) +
+# nextcloud-spreed-signaling, all four in the upstream `nextcloud/aio-talk` image
+# under supervisord. See gitops/apps/overlays/dev/talk-hpb.yaml for why they share
+# one pod rather than being split into four Deployments.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: talk-hpb-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: talk-hpb-secrets, creationPolicy: Owner }
+  data:
+    # Shared with Nextcloud: the same two values are mirrored into the nextcloud
+    # namespace (pieces/nextcloud-platform/base/externalsecrets.yaml -> talk-secrets) and
+    # written into Talk's config by the occ reconcile CronJob. Both ends MUST match
+    # or every call fails the signaling handshake.
+    - secretKey: signaling-secret
+      remoteRef: { key: apps/talk-hpb/secrets, property: signaling_secret }
+    - secretKey: turn-secret
+      remoteRef: { key: apps/talk-hpb/secrets, property: turn_secret }
+    # Internal only: signaling <-> its own clients. Never leaves this pod.
+    - secretKey: internal-secret
+      remoteRef: { key: apps/talk-hpb/secrets, property: internal_secret }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: talk-hpb
+  labels:
+    app.kubernetes.io/name: talk-hpb
+  annotations:
+    # Every secret below is an ENV VAR, and start.sh bakes them into
+    # eturnal.yml/signaling.conf/janus.jcfg at container start — a rotated secret
+    # would otherwise leave the media plane authenticating with the old value while
+    # Nextcloud uses the new one (calls fail, nothing logs an error).
+    reloader.stakater.com/auto: "true"
+    # Keyed alerts.<ESTATE_LABEL_DOMAIN>/owner at render (components/alert-owner); value OPS_EMAIL.
+    alerts/owner: ops@WLDOMAIN
+spec:
+  # Exactly one. NATS is embedded per-pod, so a second replica would be a second
+  # independent signaling server with its own session state — clients landing on
+  # different pods would not see each other in a call.
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: talk-hpb
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: talk-hpb
+    spec:
+      # hostNetwork: WebRTC media is UDP on a wide, dynamically-allocated port
+      # range. Traefik is HTTP-only, Hetzner Cloud LoadBalancers do not support UDP
+      # at all, and this cluster has no CCM anyway — so there is no path to these
+      # ports except the node's own network namespace. hostPort cannot express a
+      # range. This is why the talk-hpb namespace is listed in the
+      # disallow-host-namespaces-and-hostpath Kyverno exclusion, and why
+      # infrastructure/hetzner opens 3478 + the relay range (expose_media).
+      hostNetwork: true
+      # With hostNetwork the pod would otherwise inherit the node's resolv.conf and
+      # be unable to resolve cluster Services.
+      dnsPolicy: ClusterFirstWithHostNet
+      # PINNED to the control plane. TURN clients dial turn.WLDOMAIN:3478
+      # directly, and that name resolves (via the *.dev wildcard) to ONE public IP
+      # — so the pod has to be on the node behind that IP. There is no CCM/LB to
+      # abstract this, and external-dns cannot publish node IPs on this cluster
+      # (gitops/apps/base/external-dns.yaml excludes the private-only addresses it
+      # can see). doctor.sh checks that the DNS answer and the scheduled node's
+      # public IP actually agree, so a mismatch is reported rather than silently
+      # breaking every call.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: talk
+          # Pinned by date tag (upstream's scheme) — disallow-latest-tag is ENFORCE.
+          image: WLREGISTRY/mirror/docker.io/nextcloud/aio-talk:20260817_082005@sha256:19244334b59d9c54d5d1235ff1dc32c352aa6bd47e14a6bf50b5ff45124a364c
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          # FAIL-LOUD (CLAUDE.md rule): no assert-secrets initContainer here because
+          # the image's own entrypoint already is one — start.sh exits non-zero with
+          # "You need to provide the TURN_SECRET/SIGNALING_SECRET/INTERNAL_SECRET"
+          # before any process starts. A second assertion would be pure duplication.
+          env:
+            # The Nextcloud the signaling server authenticates against.
+            - name: NC_DOMAIN
+              value: cloud.WLDOMAIN
+            # The public name of the TURN server. start.sh digs this to work out the
+            # relay address it advertises, and Janus is configured to relay through
+            # it, so it must resolve to THIS node's public IP.
+            - name: TALK_HOST
+              value: turn.WLDOMAIN
+            - name: TURN_DOMAIN
+              value: turn.WLDOMAIN
+            - name: TALK_PORT
+              value: "3478"
+            - name: AIO_LOG_LEVEL
+              value: info
+            - name: TURN_SECRET
+              valueFrom: { secretKeyRef: { name: talk-hpb-secrets, key: turn-secret } }
+            - name: SIGNALING_SECRET
+              valueFrom: { secretKeyRef: { name: talk-hpb-secrets, key: signaling-secret } }
+            - name: INTERNAL_SECRET
+              valueFrom: { secretKeyRef: { name: talk-hpb-secrets, key: internal-secret } }
+          # RELAY ADDRESS FIX. The image's start.sh derives eturnal's advertised
+          # relay address from `hostname -i`. Under hostNetwork that resolves via
+          # the NODE's /etc/hosts, which on Debian/Ubuntu maps the hostname to the
+          # 127.0.1.1 stub — so eturnal handed out relay candidates on 127.0.1.1,
+          # every allocation relayed 0 bytes, ICE failed and calls hung forever on
+          # "Waiting for <person> to join" with nothing that looks like an error.
+          # (Under Docker's bridge network `hostname -i` gives the container IP and
+          # Docker NATs it, which is why upstream never hits this.)
+          #
+          # The entrypoint is /start.sh and it ends with `exec "$@"`, so overriding
+          # args ONLY — not command — lets start.sh generate all four configs as
+          # usual, then we correct the one value and exec supervisord ourselves.
+          # The address is resolved from TALK_HOST at every start rather than
+          # hardcoded, so a rebuilt cluster with a new public IP picks it up with no
+          # manifest change (the DNS record is the single source of truth, the same
+          # assumption the TURN client path already makes).
+          args:
+            - sh
+            - -c
+            - |
+              set -eu
+              PUB=$(dig +short "$TALK_HOST" A | grep -E '^[0-9]+\.' | head -1)
+              [ -n "$PUB" ] || { echo "FATAL: cannot resolve $TALK_HOST — TURN relay address unknown" >&2; exit 1; }
+              sed -i "s|relay_ipv4_addr:.*|relay_ipv4_addr: \"$PUB\"|" /conf/eturnal.yml
+              echo "eturnal relay address set to $PUB"
+              grep relay_ipv4_addr /conf/eturnal.yml
+              exec supervisord -c /supervisord.conf
+          ports:
+            # Documentation only under hostNetwork (the process binds the node
+            # directly), but it keeps the contract visible and lets the Service
+            # target a named port.
+            - name: signaling
+              containerPort: 8081
+              protocol: TCP
+            - name: turn-udp
+              containerPort: 3478
+              protocol: UDP
+            - name: turn-tcp
+              containerPort: 3478
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/v1/welcome
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/welcome
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            # Janus is the cost driver — it decodes nothing but forwards every
+            # stream. Sized for a handful of concurrent small calls on dev.
+            requests: { cpu: 200m, memory: 256Mi }
+            limits: { cpu: "2", memory: 1Gi }
+          volumeMounts:
+            # start.sh WRITES eturnal.yml / signaling.conf / janus.jcfg here on every
+            # boot (that is how the secrets reach the processes), so /conf must be
+            # writable and must NOT be baked into the image layer.
+            - name: conf
+              mountPath: /conf
+            - name: run
+              mountPath: /var/run/supervisord
+            - name: log
+              mountPath: /var/log/supervisord
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: conf
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: log
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+# Fronts ONLY the signaling HTTP/WebSocket port. TURN is not here on purpose: it is
+# reached directly on the node IP (see the Deployment header) and a Service would
+# add nothing but a misleading indirection.
+apiVersion: v1
+kind: Service
+metadata:
+  name: talk-hpb
+  labels:
+    app.kubernetes.io/name: talk-hpb
+spec:
+  selector:
+    app.kubernetes.io/name: talk-hpb
+  ports:
+    - name: signaling
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: talk-hpb
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # System Hub tile → "Messaging". Linked to the signaling server's welcome
+    # document: the root answers 404, and a tile that opens a 404 reads as down.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Talk signaling"
+    gethomepage.dev/description: "Nextcloud Talk high-performance backend — calls and video"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "40"
+    gethomepage.dev/icon: "mdi-message-video"
+    gethomepage.dev/href: "https://signaling.WLDOMAIN/api/v1/welcome"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=talk-hpb"
+spec:
+  ingressClassName: traefik
+  tls:
+    - secretName: talk-hpb-tls
+      hosts:
+        - signaling.WLDOMAIN
+  rules:
+    - host: signaling.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: talk-hpb
+                port:
+                  number: 8081

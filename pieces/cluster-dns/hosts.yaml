@@ -1,0 +1,11 @@
+# Names composed from the estate identity, for the rewrite rule that carries one INSIDE
+# a longer line. A replacements SOURCE only: config.kubernetes.io/local-config keeps it
+# out of every rendered manifest.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-dns-hosts
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  PLUNK_SMTP_HOST: plunk-smtp.WLDOMAIN

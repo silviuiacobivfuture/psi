@@ -1,0 +1,129 @@
+# novu-bridge — the estate's ONE Novu bridge (apps/novu-bridge; docs/notificari/01,
+# decision D1 of 2026-10-29). Novu's worker and api call it IN-CLUSTER at
+#   http://novu-bridge.novu.svc.cluster.local:8080/api/novu
+# to discover and run every application's code-first workflows (the catalogue packages
+# its estate builds it with). One bridge, because the estate has one Novu environment and an
+# environment holds exactly one bridge URL: a sync deletes every code-first
+# workflow its bridge does not list. novu-bootstrap.sh points the environment
+# here and syncs.
+#
+# Novu refuses a bridge on a private address unless it is allowed by name
+# (SSRF guard, @novu/application-generic ssrf-url-validation @ v3.19.0): see
+# NOVU_SAFE_OUTBOUND_ALLOW in config.yaml. Not exposed outside the cluster:
+# nothing but Novu calls a bridge, and every call is HMAC-signed with the
+# estate key anyway.
+#
+# Its one secret is the estate environment's API key (the HMAC Novu signs
+# with, and the key the critical guard and the policy reader use), written by
+# novu-bootstrap.sh to secret/apps/novu/estate. Image built and pushed by
+# apps/novu-bridge/build.sh --push; the tag is the commit of its source.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: novu-bridge
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: novu-bridge
+    creationPolicy: Owner
+  data:
+    # Declared PER KEY: a missing property turns this SecretSyncedError (fail loud).
+    - secretKey: NOVU_SECRET_KEY
+      remoteRef: { key: apps/novu/estate, property: secret_key }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-bridge
+  labels:
+    app.kubernetes.io/name: novu-bridge
+  annotations:
+    # REQUIRED: NOVU_SECRET_KEY is env, read once at start.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: novu-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: novu-bridge
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - name: NOVU_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: novu-bridge, key: NOVU_SECRET_KEY } }
+          command:
+            - sh
+            - -c
+            - '[ -n "${NOVU_SECRET_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: NOVU_SECRET_KEY" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: novu-bridge
+          image: WLREGISTRY/WLAPPS/novu-bridge:fed30c8b8@sha256:0a68ff47b5717b36bbd8830376547a7330b55f6b32bbba88fc2facbecaf6485f
+          env:
+            - name: NOVU_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: novu-bridge, key: NOVU_SECRET_KEY } }
+            # The critical guard and the policy reader call Novu's API in-cluster.
+            - { name: NOVU_API_URL, value: "http://novu-api.novu.svc.cluster.local:3000" }
+            # Every application is https://<app>.<this> (lib.sh estate_domain).
+            - { name: ESTATE_DOMAIN, value: WLDOMAIN }
+            - { name: PORT, value: "8080" }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 20m, memory: 96Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-bridge
+  labels:
+    app.kubernetes.io/name: novu-bridge
+spec:
+  selector:
+    app.kubernetes.io/name: novu-bridge
+  ports:
+    - { name: http, port: 8080, targetPort: http }

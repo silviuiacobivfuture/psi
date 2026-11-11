@@ -1,0 +1,31 @@
+# Hetzner Cloud Controller Manager — PROD ONLY. Gives nodes their real public
+# ExternalIP (so external-dns publishes correct public records) and enables
+# Hetzner LoadBalancers provisioned from k8s Service type=LoadBalancer (no manual
+# UI). Requires the prod-profile k3s node flags (enable_ccm=true in tofu:
+# --disable-cloud-controller + kubelet cloud-provider=external).
+#
+# Needs the `hcloud` secret (token) in kube-system — created out-of-band by the
+# prod bootstrap from .env (HCLOUD_TOKEN_PROD), NOT in git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hetzner-ccm
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.hetzner.cloud
+    chart: hcloud-cloud-controller-manager
+    targetRevision: 1.32.0
+    helm:
+      values: |
+        # flannel handles pod routing; CCM only manages node addresses + LBs.
+        networking:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

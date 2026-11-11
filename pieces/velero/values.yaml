@@ -1,0 +1,138 @@
+# AWS object-storage plugin (S3-compatible: Hetzner Object Storage).
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.13.0
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - name: plugins
+        mountPath: /target
+
+# Creds from the ESO-synced secret (key `cloud`), never inline.
+credentials:
+  useSecret: true
+  existingSecret: velero-credentials
+
+# Disable the chart's CRD-upgrade hook Job: it runs a bare `kubectl` pod with
+# no restricted securityContext/resources → Kyverno blocks it → Argo sync fails.
+# The CRDs are already installed at the chart version; on a chart bump, apply the
+# CRDs out-of-band (or temporarily re-enable). Keeps the sync green + policy intact.
+upgradeCRDs: false
+
+# RBAC: the chart binds Velero's SA to cluster-admin (rbac.clusterAdministrator,
+# default true) — Velero needs broad read across all namespaces + PVs to back
+# them up. Accepted for dev (single tailnet-gated operator); TODO(hardening):
+# replace with a scoped ClusterRole (read-all + manage velero.io CRs) before prod.
+
+# node-agent (kopia) → captures PersistentVolume *data*, not just k8s
+# resources. Required to actually protect PVC contents (openbao vault,
+# harbor registry, postgres, etc.).
+deployNodeAgent: true
+# QoS floor + ceiling so a large kopia upload can't spike a node unbounded.
+nodeAgent:
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+configuration:
+  # Default volume backup path = file-system backup via kopia node-agent.
+  # Hetzner Object Storage has no CSI VolumeSnapshot support, so FSB is the
+  # only way to capture PV data here.
+  defaultVolumesToFsBackup: true
+  uploaderType: kopia
+
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      # bucket: set by `parameters` below (an estate value).
+      prefix: velero
+      default: true
+      credential:
+        name: velero-credentials
+        key: cloud
+      config:
+        region: ${OBJECT_STORAGE_REGION}
+        s3ForcePathStyle: "true"
+        s3Url: ${OBJECT_STORAGE_ENDPOINT}
+        # Hetzner S3 rejects AWS-style checksums (same as the tofu backend's
+        # skip_s3_checksum). Disable the request/response checksum the AWS
+        # SDK v2 adds by default.
+        checksumAlgorithm: ""
+
+  # No CSI snapshotter on this cluster → no VolumeSnapshotLocation; PV data
+  # is protected by the node-agent FSB above.
+  volumeSnapshotLocation: []
+
+# 6-hourly schedule, 5-day retention. Velero has NO native count-based
+# retention — `ttl` is the idiomatic cap. 6h cadence × 5d ttl ≈ 20 live
+# backups retained (4 backups/day × 5 days = 20), each auto-expiring at
+# 120h. DENY-LIST not allow-list: back up every
+# namespace EXCEPT the ones trivially reconstructed from git/bootstrap — so a
+# new stateful namespace (e.g. a future postgres) is captured automatically
+# with no silent gap. Ephemeral preview-pr-* namespaces get backed up too but
+# their short TTL + isolated Neon branch make that harmless.
+schedules:
+  daily-platform:
+    disabled: false
+    # Every 6h on the hour (00:00, 06:00, 12:00, 18:00). OpenBao's snapshot
+    # CronJob is offset to 30 */6 so the two don't hit the bucket at once.
+    schedule: "0 */6 * * *"
+    useOwnerReferencesInBackup: false
+    template:
+      # 5-day ttl. With the 6h cadence above this caps live backups at
+      # ~20 (4/day × 5d); Velero auto-deletes each backup at expiry since
+      # it has no count-based retention knob. Spec path: Schedule CRD
+      # .spec.template.ttl (the BACKUP template, not the Schedule itself).
+      ttl: 120h0m0s
+      storageLocation: default
+      defaultVolumesToFsBackup: true
+      # Skips emptyDir volumes: see velero-volume-policy below.
+      resourcePolicy:
+        kind: configmap
+        name: velero-volume-policy
+      # arc-runners holds only CI runner pods, which come and go mid-backup.
+      # restore-drill-*: the drills' throwaway namespaces (lib-restore-drill-*.sh).
+      # A drill overlapping a run lost its PVC and PV mid-run and ended the run
+      # PartiallyFailed (11-03 at 06:00 and 12:00). Exact names: Velero 1.18 is not
+      # relied on for globs here, and tests/backup-window.test.sh V2 fails on a
+      # drill namespace missing from this list. `restore-drill` itself stays in:
+      # it holds the record of every drill, and it is not thrown away.
+      excludedNamespaces:
+        - kube-system
+        - kube-node-lease
+        - kube-public
+        - argocd
+        - arc-runners
+        - restore-drill-cnpg
+        - restore-drill-datastore
+        - restore-drill-headscale
+        - restore-drill-openbao
+
+# emptyDir dies with its pod, so there is nothing to restore, and a CronJob
+# pod that ends mid-backup failed the whole backup: measured on 2026-11-02,
+# no backup out of 21 reached Completed, because of these and of the server's
+# OOM kills below. Every PersistentVolume is still backed up.
+extraObjects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: velero-volume-policy
+      namespace: velero
+    data:
+      policy.yaml: |
+        version: v1
+        volumePolicies:
+          - conditions:
+              volumeTypes:
+                - emptyDir
+            action:
+              type: skip
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+# 512Mi OOM-killed the server 19 times, each time failing the running backup.
+resources:
+  requests: { cpu: 250m, memory: 256Mi }
+  limits: { memory: 1Gi }

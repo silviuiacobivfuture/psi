@@ -1,0 +1,58 @@
+# CORRECTED 2026-09-03: this directory IS Argo-synced. The `argocd-config`
+# Application deploys this piece (pieces/argocd-config), with selfHeal on —
+# read off the live Application rather than assumed. Every file here carried a
+# header claiming the opposite and telling the reader to apply it by hand, which
+# is unnecessary and is also how live state gets created that then fights
+# self-heal. A merge to the environment branch is the deploy, here as everywhere
+# else on this platform.
+#
+# Argo CD RBAC — Authentik groups → roles. Deny-by-default: only users in a
+# mapped group get any access (the org gate is group membership, controlled in
+# Authentik). Authentik emits the `groups` claim via the estate's groups scope
+# mapping (gitops/platform/authentik/blueprints-providers.yaml). Add a person to
+# `platform-admins` / `platform-members` in Authentik → they get the role below.
+#
+# Synced by the `argocd-config` Application.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Deny by default — no group, no access.
+  policy.default: ""
+  # Match RBAC subjects against the groups claim.
+  scopes: "[groups]"
+  # Taxonomy (ROLES.md): app-argocd-* are the entitlement groups. platform-admins/
+  # platform-members kept as break-glass (Authentik-admin / legacy) — remove later
+  # once everyone is on the app-* groups.
+  #
+  # role:developer (app-argocd-developer, 2026-10-22) = readonly + sync, restart
+  # and logs. Deliberately NOT: create/update/delete applications (that is
+  # choosing what gets deployed, i.e. cluster-admin one step removed), exec (it
+  # runs as argocd-server, so it would bypass the Kubernetes developer limits),
+  # override (sync from local manifests), or repositories/clusters/projects.
+  #
+  # role:signin (app-argocd-signin, 2026-10-29) = read applications and NOTHING
+  # else: no logs, no repositories/clusters/projects/accounts, no sync, no action.
+  # Smaller than role:readonly on purpose — it is held by the tools robot alone,
+  # which proves Argo's sign-in through the one directory (identitate gate 9)
+  # and must be refused a sync. doctor.sh fails if this role gains any rule
+  # whose action is not `get` on applications, or the group any second role.
+  policy.csv: |
+    g, app-argocd-admin, role:admin
+    g, app-argocd-view, role:readonly
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */*, allow
+    p, role:developer, applications, action/apps/Deployment/restart, */*, allow
+    p, role:developer, applications, action/apps/StatefulSet/restart, */*, allow
+    p, role:developer, logs, get, */*, allow
+    g, role:developer, role:readonly
+    g, app-argocd-developer, role:developer
+    p, role:signin, applications, get, */*, allow
+    g, app-argocd-signin, role:signin
+    g, platform-admins, role:admin
+    g, platform-members, role:readonly

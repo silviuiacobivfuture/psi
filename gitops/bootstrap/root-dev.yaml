@@ -1,0 +1,45 @@
+# DEV cluster root app-of-apps. The ONE Application applied by hand (gitops.sh)
+# on the dev cluster. Watches the `dev` BRANCH (env = branch) → every app in the
+# dev overlay syncs. A push to `dev` reconciles this cluster; `main` is never
+# watched by any cluster (env-less stable trunk). See gitops/BRANCHING.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/apps/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  # ExternalSecrets that root manages DIRECTLY (arc-github-pat, github-pr-creds):
+  # ESO's admission webhook defaults spec.data[].remoteRef.{conversionStrategy,
+  # decodingStrategy,metadataPolicy,nullBytePolicy} — absent from git → permanent
+  # OutOfSync that selfHeal can't converge. Ignore the controller-owned defaults
+  # (same pattern as the otel ExternalSecret overlay). Real key/property changes
+  # in git still diff.
+  ignoreDifferences:
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - '.spec.data[].remoteRef.conversionStrategy'
+        - '.spec.data[].remoteRef.decodingStrategy'
+        - '.spec.data[].remoteRef.metadataPolicy'
+        - '.spec.data[].remoteRef.nullBytePolicy'
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # Fresh-cluster bootstrap: the overlay contains ExternalSecrets (and other
+      # CRs) whose CRDs are installed by sibling apps in the SAME sync wave. Argo's
+      # client-side dry-run would fail ("synchronization tasks are not valid") on
+      # the not-yet-installed CRD and deadlock the whole root sync. Skip dry-run for
+      # missing resources + use server-side apply so the first sync converges.
+      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true

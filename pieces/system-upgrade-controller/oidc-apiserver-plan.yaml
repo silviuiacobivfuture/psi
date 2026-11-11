@@ -1,0 +1,212 @@
+# SUC Plan: write the apiserver OIDC trust onto the LIVE control-plane node, as-code,
+# no hand-SSH. Replaces RUNBOOK step-2 (the manual `ssh + edit config.yaml + restart`).
+# Argo syncs this; the system-upgrade-controller schedules a privileged Job on the
+# matched node; the Job drops `/etc/rancher/k3s/config.yaml.d/oidc.yaml` (a drop-in,
+# so the base config.yaml is NEVER touched) and restarts k3s via the host's systemd.
+#
+# WHY a drop-in (config.yaml.d) and not config.yaml: k3s loads
+# /etc/rancher/k3s/config.yaml then merges /etc/rancher/k3s/config.yaml.d/*.yaml in
+# alphabetical order (docs.k3s.io/installation/configuration). Our file is the ONLY
+# source of `kube-apiserver-arg`, so a plain (replace-semantics) key is correct — no
+# `+` append needed, and we never clobber or read the operator's base config.
+#
+# WHY no drain/cordon on this node: dev-k3s-cp is the SOLE control-plane. Draining or
+# cordoning the only control plane is dangerous (and pointless — the apiserver blip on
+# `systemctl restart k3s` is seconds; kubelets cache state and workloads keep running).
+# So cordon=false and NO `drain:` block. The Plan restarts the apiserver in place.
+#
+# IDEMPOTENT + SAFE: the job no-ops if the drop-in is already present and byte-identical
+# (it diffs before writing/restarting), backs up any pre-existing drop-in to
+# oidc.yaml.bak, and FAILS LOUDLY (non-zero exit → SUC marks the node not-applied) if
+# the apiserver does not return /healthz=ok after the restart. OIDC is ADDITIVE: the
+# node admin kubeconfig (/etc/rancher/k3s/k3s.yaml) + SA tokens are never touched, so
+# break-glass survives even a bad OIDC config.
+#
+# ROLLBACK (as-code): set REMOVE_OIDC_DROPIN="true" in the apiserver-oidc-flags
+# ConfigMap below and bump `spec.version` (→ the job deletes the drop-in and restarts
+# k3s, returning the apiserver to no-OIDC). Reverting this Plan + the controller in git
+# and Argo re-sync is the GitOps rollback. See RUNBOOK 2026-06-18.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apiserver-oidc-flags
+  namespace: system-upgrade
+data:
+  # Non-secret OIDC flags. The client_id is injected separately from the
+  # `apiserver-oidc` Secret (ESO ← OpenBao) as $OIDC_CLIENT_ID by the Plan args.
+  # Set REMOVE_OIDC_DROPIN=true (and bump spec.version) to ROLL BACK: the job removes
+  # the drop-in and restarts k3s.
+  #
+  # ⚠️ CRITIC H1 — DRIFT TRAP: SUC hashes the Plan SPEC, not this ConfigMap. ANY change
+  # to a value here MUST be accompanied by a `spec.version` bump on the Plan below IN THE
+  # SAME COMMIT. A ConfigMap-only change syncs to the cluster but will NEVER re-apply to
+  # the node (no error, no status change) — the apiserver keeps the old flags silently.
+  OIDC_ISSUER_URL: "https://AUTHENTIK_HOST/application/o/headlamp/" # host from the identity (kustomization.yaml)
+  OIDC_USERNAME_CLAIM: "email"
+  OIDC_USERNAME_PREFIX: "oidc:"
+  OIDC_GROUPS_CLAIM: "groups"
+  REMOVE_OIDC_DROPIN: "false"
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: apiserver-oidc
+  namespace: system-upgrade
+spec:
+  # Bump this string to force a re-run (e.g. after changing the flags or to roll back
+  # via REMOVE_OIDC_DROPIN). SUC tracks application per-node via the
+  # plan.upgrade.cattle.io/<name> node label; an unchanged version re-runs only if the
+  # latest-hash changes, so bump `version` to re-trigger intentionally.
+  #
+  # v2 (2026-10-29): e0d9988f2 moved OIDC_ISSUER_URL off the old auth.dev.<domain> issuer WITHOUT
+  # bumping this — the H1 trap above, sprung. The apiserver kept trusting the retired
+  # host for days (its jwt_issuer_hash metric named auth.dev), so every Headlamp and
+  # kubectl OIDC sign-in answered 401 while the ConfigMap read correct. Found by
+  # identitate gate 9 (estate-signin-journeys.sh, Headlamp). doctor.sh now compares the
+  # RUNNING apiserver's issuer with this ConfigMap ("The tools robot …" layer).
+  version: oidc-authentik-v2
+  # Target ONLY the sole control-plane node. Label verified live on dev-k3s-cp:
+  #   node-role.kubernetes.io/control-plane=true
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  # SOLE control plane → never cordon/drain it (see header). cordon=false; no drain.
+  cordon: false
+  tolerations:
+    - { key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists }
+    - { key: CriticalAddonsOnly, operator: Exists }
+  secrets:
+    # ESO-synced client_id → mounted as a file the upgrade container reads.
+    - name: apiserver-oidc
+      path: /run/system-upgrade/secrets/apiserver-oidc
+  upgrade:
+    # Minimal POSIX-sh image carrying nsenter + cmp (util-linux/busybox). The SUC
+    # upgrade container always runs privileged with host PID and the node root fs
+    # bind-mounted at /host, so we can write node files and drive the host systemd
+    # via `nsenter` into PID 1's namespaces.
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envFrom:
+      - configMapRef: { name: apiserver-oidc-flags }
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        set -eu
+        OIDC_CLIENT_ID="$(cat /run/system-upgrade/secrets/apiserver-oidc/client_id 2>/dev/null || true)"
+
+        DROPIN_DIR=/host/etc/rancher/k3s/config.yaml.d
+        DROPIN="$DROPIN_DIR/oidc.yaml"
+        NSENTER="nsenter -t 1 -m -u -i -n -p --"
+
+        restart_k3s() {
+          echo "[oidc-plan] restarting k3s on the host (single control-plane, in-place)"
+          $NSENTER systemctl restart k3s
+        }
+
+        wait_healthz() {
+          echo "[oidc-plan] waiting for apiserver /healthz=ok (break-glass kubeconfig)"
+          i=0
+          while [ "$i" -lt 60 ]; do
+            if $NSENTER k3s kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get --raw /healthz 2>/dev/null | grep -q '^ok$'; then
+              echo "[oidc-plan] apiserver healthy"
+              return 0
+            fi
+            i=$((i + 1)); sleep 2
+          done
+          echo "[oidc-plan] FATAL: apiserver did not return /healthz=ok within 120s" >&2
+          return 1
+        }
+
+        # ---- Rollback path: remove the drop-in, restart, verify ----
+        if [ "${REMOVE_OIDC_DROPIN:-false}" = "true" ]; then
+          if [ -f "$DROPIN" ]; then
+            echo "[oidc-plan] REMOVE_OIDC_DROPIN=true → deleting $DROPIN and restarting k3s"
+            rm -f "$DROPIN" "$DROPIN.bak"   # critic H2: leave no residual backup
+            restart_k3s
+            # critic M5: the drop-in is already gone; a healthz hiccup must NOT set -eu
+            # the script into a failed/retry loop. The node is in the correct no-OIDC state.
+            wait_healthz || true
+          else
+            echo "[oidc-plan] REMOVE_OIDC_DROPIN=true but no drop-in present → no-op"
+            rm -f "$DROPIN.bak"
+          fi
+          exit 0
+        fi
+
+        # ---- Apply path: require a client_id from the ESO secret ----
+        if [ -z "$OIDC_CLIENT_ID" ]; then
+          echo "[oidc-plan] FATAL: client_id empty (seed OpenBao secret/platform/authentik/headlamp-oidc) — refusing to write a broken apiserver flag" >&2
+          exit 1
+        fi
+
+        # Issuer pre-flight (critic M4): /healthz only proves the apiserver is alive, NOT
+        # that OIDC works — a wrong/unreachable issuer would pass healthz yet break every
+        # login silently. Validate the discovery doc is reachable AND advertises EXACTLY
+        # our issuer BEFORE we ever restart the apiserver. Fail loud → no restart on a bad
+        # issuer. (Authentik's public host is reachable from the pod network.)
+        apk add --no-cache curl >/dev/null 2>&1 || true
+        if command -v curl >/dev/null 2>&1; then
+          disc="$(curl -fsS "${OIDC_ISSUER_URL}.well-known/openid-configuration" 2>/dev/null || true)"
+          if ! printf '%s' "$disc" | grep -q "\"issuer\"[[:space:]]*:[[:space:]]*\"${OIDC_ISSUER_URL}\""; then
+            echo "[oidc-plan] FATAL: OIDC issuer discovery unreachable or mismatched at ${OIDC_ISSUER_URL} — refusing to restart apiserver" >&2
+            exit 1
+          fi
+          echo "[oidc-plan] issuer discovery OK ($OIDC_ISSUER_URL)"
+        else
+          echo "[oidc-plan] WARN: curl unavailable — skipping issuer pre-flight (rely on the RUNBOOK human pre-flight)" >&2
+        fi
+
+        mkdir -p "$DROPIN_DIR"
+
+        # Render the desired drop-in, then compare — idempotent: if the live drop-in
+        # already matches, we DO NOT restart the apiserver.
+        # Built with printf (NOT a heredoc) so the YAML block-scalar indentation of
+        # this script does NOT leak leading spaces into the drop-in. The k3s config
+        # needs `kube-apiserver-arg:` at column 0 and the list items at column 2.
+        DESIRED="$(mktemp)"
+        {
+          printf '%s\n' '# Managed by system-upgrade-controller Plan apiserver-oidc (GitOps). DO NOT EDIT.'
+          printf '%s\n' '# apiserver OIDC trust for Authentik (Headlamp + kubectl SSO). Additive; the node'
+          printf '%s\n' '# admin kubeconfig + SA tokens remain valid break-glass.'
+          printf '%s\n' 'kube-apiserver-arg:'
+          printf '  - "oidc-issuer-url=%s"\n'      "$OIDC_ISSUER_URL"
+          printf '  - "oidc-client-id=%s"\n'       "$OIDC_CLIENT_ID"
+          printf '  - "oidc-username-claim=%s"\n'  "$OIDC_USERNAME_CLAIM"
+          printf '  - "oidc-username-prefix=%s"\n' "$OIDC_USERNAME_PREFIX"
+          printf '  - "oidc-groups-claim=%s"\n'    "$OIDC_GROUPS_CLAIM"
+        } > "$DESIRED"
+
+        if [ -f "$DROPIN" ] && cmp -s "$DESIRED" "$DROPIN"; then
+          # Already current → pure no-op. Do NOT call wait_healthz here: nothing was
+          # restarted, and an unrelated apiserver blip would otherwise false-fail the
+          # Plan into a retry loop on a correctly-configured node (critic H3).
+          echo "[oidc-plan] drop-in already present and current → no-op (no restart)"
+          rm -f "$DESIRED"
+          exit 0
+        fi
+
+        # Back up any pre-existing drop-in before overwriting.
+        if [ -f "$DROPIN" ]; then
+          cp "$DROPIN" "$DROPIN.bak"
+          echo "[oidc-plan] backed up existing drop-in → $DROPIN.bak"
+        fi
+
+        cp "$DESIRED" "$DROPIN"
+        rm -f "$DESIRED"
+        echo "[oidc-plan] wrote $DROPIN"
+
+        restart_k3s
+        if ! wait_healthz; then
+          echo "[oidc-plan] apiserver unhealthy after applying OIDC — rolling back drop-in" >&2
+          if [ -f "$DROPIN.bak" ]; then
+            mv "$DROPIN.bak" "$DROPIN"
+          else
+            rm -f "$DROPIN"
+          fi
+          restart_k3s
+          wait_healthz || true
+          exit 1
+        fi
+
+        echo "[oidc-plan] OIDC apiserver trust applied and verified healthy"

@@ -1,0 +1,27 @@
+# Changelog — TAILNET-ONLY (Tailscale operator). NO public Traefik ingress, no
+# cert-manager, no public DNS (external-dns only watches Traefik ingresses). The
+# Tailscale operator terminates TLS and proxies to the changelog Service :80.
+# MagicDNS name: changelog.<tailnet>.ts.net (from tls.hosts[0]).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: changelog
+  annotations:
+    # Homepage hub auto-discovery (gethomepage.dev) → "Delivery" group.
+    # Tailscale ingress uses a wildcard host, so the href is set explicitly.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Changelog"
+    gethomepage.dev/description: "Release notes per application"
+    gethomepage.dev/group: "Delivery"
+    gethomepage.dev/icon: "mdi-timeline-text"
+    gethomepage.dev/href: "https://changelog.tailf6f2e6.ts.net"
+    gethomepage.dev/pod-selector: "app=changelog"
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: changelog
+      port: { number: 80 }
+  tls:
+    - hosts:
+        - changelog

@@ -1,0 +1,95 @@
+# Novu's PUBLIC surface — the API and the websocket, on *.<apex> with
+# cert-manager TLS (operator decision 2026-10-22: apps and browsers need them).
+#
+#   novu-api.<apex>  -> novu-api:3000   the apps' backends trigger      
+#                                               (/v1/events/trigger), browsers open
+#                                               the Inbox (/v1/inbox/*), the
+#                                               sync scripts register bridges.
+#   novu-ws.<apex>   -> novu-ws:3002    the Inbox's socket.io connection.
+#
+# DNS: served by the existing *.<apex> wildcard, like every other public
+# app on the dev profile (see gitops/services/plane/base/ingress.yaml).
+#
+# WHAT IS NOT PUBLIC HERE: /v1/auth/* — register, login, password reset, org
+# switch. The dashboard is the only legitimate caller of those routes; it reaches
+# them through the TAILNET api host (ingress-tailnet.yaml) or, on the internet,
+# through novu.<apex>/v1 — only after an Authentik sign-in
+# (ingress-dashboard.yaml). This host never offers them.
+# Leaving them public would let anyone on the internet self-register a Novu
+# account (community edition has no invite-only mode short of
+# DISABLE_USER_REGISTRATION, which would also stop novu-bootstrap.sh) and
+# brute-force the admin login. Everything else the API serves is authenticated
+# per request by an environment API key or a subscriber-HMAC inbox session.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Novu API"
+    gethomepage.dev/description: "Notifications API and websocket (public)"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "20"
+    gethomepage.dev/icon: "mdi-bell-ring"
+    gethomepage.dev/href: "https://novu-api.WLDOMAIN/v1/health-check"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=novu-api"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - novu-api.WLDOMAIN
+        - novu-ws.WLDOMAIN
+      secretName: novu-tls
+  rules:
+    - host: novu-api.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: novu-api, port: { name: http } } }
+    - host: novu-ws.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: novu-ws, port: { name: http } } }
+---
+# The /v1/auth refusal. Same host, a LONGER path rule, so Traefik's
+# rule-length router priority puts it ahead of the catch-all above regardless of
+# list order. The allow-list admits only 127.0.0.1, which no internet client is —
+# every request gets Traefik's 403 before it reaches the API.
+#
+# No gethomepage annotations, deliberately: this object exposes nothing to link
+# to, and a hub entry for it would be a second "Novu" tile pointing at a 403.
+# require-hub-annotation is Audit-mode and will list it, the same accepted
+# exception as plane's `plane-api` Ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-auth-refused
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: novu-novu-deny-public@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [novu-api.WLDOMAIN]
+      secretName: novu-tls
+  rules:
+    - host: novu-api.WLDOMAIN
+      http:
+        paths:
+          - path: /v1/auth
+            pathType: Prefix
+            backend: { service: { name: novu-api, port: { name: http } } }
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: novu-deny-public
+spec:
+  ipAllowList:
+    sourceRange:
+      - 127.0.0.1/32

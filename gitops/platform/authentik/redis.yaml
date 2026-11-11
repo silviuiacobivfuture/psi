@@ -1,0 +1,109 @@
+# Redis for Authentik — official redis image (NOT Bitnami: the Bitnami catalog moved
+# free images to docker.io/bitnamilegacy in 2025 and the chart's pinned tags 404).
+# Mirrors how the authentik chart itself uses the upstream docker.io/library/postgres
+# image. Single standalone instance, local-path PVC, password-auth, policy-compliant
+# securityContext (Kyverno Enforce). Service name authentik-redis-master matches
+# authentik.redis.host in gitops/apps/overlays/dev/authentik.yaml. Tailnet-only by
+# association (no ingress). Password = redis-password key of the ESO-synced
+# authentik-db-creds secret (= AUTHENTIK_REDIS__PASSWORD the authentik pods use).
+# Delivered by the authentik-platform Argo app (this dir's kustomization).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authentik-redis-data
+  namespace: authentik
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik-redis
+  namespace: authentik
+  labels:
+    app.kubernetes.io/name: authentik-redis
+  annotations:
+    # Reloader auto-restarts this Deployment when the ESO-synced authentik-db-creds
+    # Secret changes (OpenBao -> ESO -> Secret -> roll). REQUIRED: redis-password is
+    # injected as the REDIS_PASSWORD env var below and baked into the redis-server
+    # --requirepass argv at container start, so a rotated password would leave redis
+    # accepting only the OLD one while authentik authenticates with the new one — a
+    # silent split-brain. Enforced by the require-reloader-annotation Kyverno policy.
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # single RWO PVC — never two pods at once
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: authentik-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: authentik-redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: WLREGISTRY/mirror/docker.io/library/redis:7.4-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7
+          command: ["sh", "-c"]
+          # requirepass via env so the password never appears in the manifest/argv.
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes --dir /data
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-db-creds
+                  key: redis-password
+          ports:
+            - name: redis
+              containerPort: 6379
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: authentik-redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik-redis-master
+  namespace: authentik
+  labels:
+    app.kubernetes.io/name: authentik-redis
+spec:
+  selector:
+    app.kubernetes.io/name: authentik-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379

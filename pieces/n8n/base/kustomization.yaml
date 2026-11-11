@@ -1,0 +1,70 @@
+# n8n — workflow automation for the estate (docs/n8n/00-plan.md). Order is
+# documentation only. The ONE statement of its public name is host.env, on the estate's
+# domain (WLDOMAIN, and the sign-in host's prefix, both from the identity: the first
+# replacements below); the next ones carry it into every Ingress, and the Deployment reads
+# it from the ConfigMap. The Authentik blueprint cannot read it (another app, a string in a
+# ConfigMap), so .github/scripts/n8n-gate.sh refuses a tree where the two disagree.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - cnpg-cluster.yaml
+  - db-dump.yaml
+  - advisory-watch.yaml
+  - n8n.yaml
+  - runner.yaml
+  - networkpolicy.yaml
+  - ingress.yaml
+configMapGenerator:
+  - name: n8n-host
+    envs:
+      - host.env
+    options:
+      disableNameSuffixHash: true
+  # The script is read by node on the image n8n runs (advisory-watch.yaml).
+  - name: n8n-advisory-watch
+    files:
+      - advisory-watch.mjs
+replacements:
+  # host.env on the estate's domain, resolved first: everything below and the sso component
+  # read the n8n-host ConfigMap.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: n8n-host }
+        fieldPaths: [data.N8N_HOST, data.AUTHENTIK_HOST, data.N8N_HOOKS_HOST]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: n8n-host }
+        fieldPaths: [data.AUTHENTIK_HOST]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.N8N_HOOKS_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: n8n-host }
+        fieldPaths: [data.N8N_WEBHOOK_URL]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.N8N_HOST }
+    targets:
+      - select: { kind: Ingress }
+        reject: [{ kind: Ingress, name: n8n-webhooks }]
+        fieldPaths:
+          - spec.rules.*.host
+          - spec.tls.0.hosts.0
+      - select: { kind: Ingress, name: n8n }
+        fieldPaths:
+          - metadata.annotations.[gethomepage.dev/href]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.N8N_HOOKS_HOST }
+    targets:
+      - select: { kind: Ingress, name: n8n }
+        fieldPaths: [spec.tls.0.hosts.1]
+      - select: { kind: Ingress, name: n8n-webhooks }
+        fieldPaths:
+          - spec.rules.*.host
+          - spec.tls.0.hosts.0
+components:
+  # The estate's values (a replacements source, never rendered); the piece reads it from here.
+  - ../../../components/whitelabel
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

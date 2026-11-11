@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the health-digest piece. SEB adds nothing: this is the default, and
+# estate-watch then watches the platform and Polaris' notices only. An estate supplies its own
+# directory of the same name to the bundle builder (tools/bundle/build.mjs --estate-components
+# <dir>, one sub-directory per piece), which replaces this one in the build workdir. What belongs
+# there, as JSON patches on the CronJob and the ExternalSecret `estate-watch`:
+#   - its applications' cron logs: env CRON_SOURCES {"<app>": "<address of its cron log>"},
+#     each answering {"crons": [{job, status, failingSince, lastRunAt, silentAfterMs}], "failedJobs": {}};
+#   - its notice senders beside Polaris: NOTICE_SOURCES's value, {"<app>": "<address>"};
+#   - where the key both are asked with lives: the ExternalSecret's CRON_WATCH_KEY remoteRef.key
+#     (SEB writes apps/estate-watch/env), the same path components/estate/autorizare gives Polaris.
+resources: []

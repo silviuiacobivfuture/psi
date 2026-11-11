@@ -1,0 +1,39 @@
+# The ONLY way to PDFCraft is through Traefik, i.e. through the Authentik gate.
+#
+# Without this, any pod in the cluster could fetch the app from the ClusterIP
+# Service and skip the forward-auth middleware entirely. Selecting the pods flips
+# them to default-deny; the rules below are the complete list of who may connect.
+#
+#   INGRESS  :8080 (our front) from the Traefik pods in kube-system — namespace AND pod label
+#            in ONE `from` element (an AND). Written as two elements it would be
+#            an OR, and a pod label is something any pod can put on itself (the
+#            same trap the openfga policy documents).
+#            Upstream's own :80 is NOT admitted: only our front reaches it,
+#            from inside the pod, so their pages always carry our routing.
+#            Kubelet probes come from node addresses; those are per-environment,
+#            so the dev overlay adds them (as openfga's does).
+#   EGRESS   none at all. nginx serving files never opens a connection, and the
+#            PDF work happens in the visitor's browser, not here. A pod that can
+#            reach nothing cannot be used to reach anything.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pdfcraft
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 8080 }
+  egress: []

@@ -1,0 +1,628 @@
+# Authentik Blueprint ConfigMap — GROUPS (config-as-code).
+# Mounted by the chart at /blueprints/custom/ (blueprints.configMaps in
+# gitops/apps/overlays/dev/authentik.yaml) and reconciled by the worker on boot.
+# Only keys ending in .yaml are loaded. Groups are the RBAC anchor: GitHub-federated
+# users land here (see blueprints-sources.yaml group mapping) and applications gate
+# access on membership. Idempotent — re-applies cleanly.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-groups
+  namespace: authentik
+data:
+  groups.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-groups
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # Platform administrators — full access to every wired UI, and Authentik
+      # superuser. The operator ALONE (2026-10-22): everyone else is a developer
+      # (dept-dev + the app-*-developer entitlements). A superuser can re-grant
+      # themselves anything, so this roster is the real boundary of the estate.
+      - model: authentik_core.group
+        identifiers:
+          name: platform-admins
+        attrs:
+          is_superuser: true
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # authentik's BUILT-IN superuser group. Not created here, but its roster is
+      # pinned here: it is a second way to be a superuser, and until 2026-10-22
+      # its membership existed only in the database, invisible to review.
+      # akadmin is the local break-glass account — never remove it.
+      - model: authentik_core.group
+        identifiers:
+          name: authentik Admins
+        attrs:
+          is_superuser: true
+          users:
+            - !Find [authentik_core.user, [username, akadmin]]
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # authentik's BUILT-IN read-only group: its role grants view on every object.
+      # It was found 2026-10-22 with is_superuser TRUE (set by hand, in no file),
+      # which made its one member a full superuser under a read-only name. Pinned
+      # here: never a superuser, and no members — developers need no view of the
+      # directory's own configuration.
+      - model: authentik_core.group
+        identifiers:
+          name: authentik Read-only
+        attrs:
+          is_superuser: false
+          users: []
+      # Read-only / standard members.
+      - model: authentik_core.group
+        identifiers:
+          name: platform-members
+        attrs:
+          is_superuser: false
+
+      # ======================================================================
+      # RBAC TAXONOMY (see gitops/platform/authentik/ROLES.md for the matrix).
+      # Three prefixes, one purpose each — NEVER mix:
+      #   dept-*      organisational reality (who's in which team)
+      #   app-<a>-<r> ENTITLEMENTS — the ONLY groups apps bind to (group→role)
+      #   pending     default on self-enrol; zero entitlements
+      # A person = their dept-* group(s) + the app-*-* groups their job needs.
+      # Overlap is additive (two depts → both sets). is_superuser stays FALSE for
+      # all of these — Authentik-admin is ONLY platform-admins above.
+      # ======================================================================
+
+      # ---- Departments (org structure; not bound to apps directly) ----------
+      - model: authentik_core.group
+        identifiers:
+          name: dept-platform
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # The developers. dept-* is org-only (bound to no app); their access comes
+      # from the app-*-developer entitlements below (ROLES.md §2b, 2026-10-22).
+      - model: authentik_core.group
+        identifiers:
+          name: dept-dev
+        attrs:
+          is_superuser: false
+          users:
+      - { model: authentik_core.group, identifiers: { name: dept-business }, attrs: { is_superuser: false } }
+      - { model: authentik_core.group, identifiers: { name: dept-hr },       attrs: { is_superuser: false } }
+
+      # ---- Onboarding bundles (what a whitelisted person gets on first login) --
+      # These are ROLE PACKAGES, not entitlements: the enrolment policy in
+      # blueprints-enrollment.yaml maps a whitelisted email to exactly ONE of these,
+      # and it expands to the app-*-* entitlement groups below.
+      #
+      # NAMING: `onboard-*`, deliberately NOT `bundle-*`. The existing bundle-*
+      # groups are claim-expansion only — the groups scope mapping expands them
+      # inside the TOKEN, while real membership stays unchanged. A policy binding
+      # (e.g. Nextcloud's) checks REAL membership, so a bundle-* grant would appear
+      # in a user's claim and still be denied. These grant real membership instead.
+      - { model: authentik_core.group, identifiers: { name: onboard-collab },    attrs: { is_superuser: false } }
+      - { model: authentik_core.group, identifiers: { name: onboard-developer }, attrs: { is_superuser: false } }
+      # onboard-admin carries an explicit roster so the grant is reproducible on a
+      # rebuild, not just live state. Members here are people ALREADY onboarded
+      # (the whitelist policy handles future enrolments by itself).
+      - model: authentik_core.group
+        identifiers:
+          name: onboard-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Entitlements: Nextcloud (collaboration suite) ----
+      # Gates cloud.dev.<domain> — files, Office, Calendar and Talk. Membership is
+      # the ONLY way in: the Nextcloud application carries a policy binding on this
+      # group (blueprints-providers.yaml), so a self-enrolled `pending` user with no
+      # entitlements is denied, exactly like the tailnet dashboards. Deliberately
+      # NOT expanded from the bundle-* groups: bundles expand only inside the token
+      # CLAIM, while the binding checks REAL membership, so a bundle-sourced grant
+      # would show up in the claim and still be denied — confusing by construction.
+      # Membership is declared HERE, from the group side, rather than in each
+      # user's own blueprint entry: a user entry's `groups:` list REPLACES that
+      # user's whole membership set (see the note in blueprints-admins.yaml), which
+      # would silently strip the ~20 groups a full team member already holds. The
+      # group's `users` list only owns THIS group's membership, so it is safe and
+      # the whole roster is reviewable in one place.
+      # To revoke someone's access to the collaboration suite: delete their line.
+      - model: authentik_core.group
+        identifiers:
+          name: app-nextcloud-user
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+            # The tools robot (gate 9): a PLAIN Nextcloud user — Nextcloud's admin
+            # group is the explicit roster in occ-reconcile.yaml, which it is not on.
+            - !Find [authentik_core.user, [username, e2e-tools]]
+          # NOTE: a blueprint `users` list REPLACES this group's membership, so this
+          # roster must be complete — an omission silently REVOKES someone's access
+          # on the next reconcile. It lists only the operator; the estate adds its own people
+          # in its own copy. (One `users` key only: a second one silently replaced the first.)
+      # ---- Entitlements: Argo CD ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-argocd-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-argocd-view
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # developer: everything view has, plus sync, restart and logs — NOT create,
+      # edit or delete applications, NOT exec, NOT repos/clusters/projects
+      # (gitops/platform/argocd/rbac-cm.yaml → role:developer).
+      - model: authentik_core.group
+        identifiers:
+          name: app-argocd-developer
+        attrs:
+          is_superuser: false
+          users: []
+      # signin: the SMALLEST Argo role — read applications, nothing else
+      # (rbac-cm.yaml → role:signin: no logs, no repos/clusters/projects, no sync).
+      # Held by the tools robot alone, which proves Argo's sign-in (gate 9).
+      - model: authentik_core.group
+        identifiers:
+          name: app-argocd-signin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-tools]]
+      # ---- Entitlements: Harbor ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-harbor-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-harbor-push
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-harbor-pull
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Entitlements: OpenBao ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-openbao-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-openbao-read
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # developer: reader everywhere + write on app secrets (secret/apps/*) only.
+      # No policies, no auth methods, no platform secrets writes
+      # (gitops/platform/openbao/auth/declaration.json → policy `developer`).
+      - model: authentik_core.group
+        identifiers:
+          name: app-openbao-developer
+        attrs:
+          is_superuser: false
+          users: []
+      # signin: the SMALLEST OpenBao grant — a login whose policy `signin` names
+      # NO secret path, only the token's own lookup/renew/revoke
+      # (gitops/platform/openbao/auth/policies/signin.hcl). Held by the tools robot alone.
+      - model: authentik_core.group
+        identifiers:
+          name: app-openbao-signin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-tools]]
+      # ---- Entitlements: Kubernetes (Headlamp + kubectl) ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-k8s-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-k8s-view
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # developer: view cluster-wide (no Secrets) + logs/exec/port-forward/restart/
+      # scale in the APP namespaces only — never openbao, authentik, argocd,
+      # kube-system or any other platform namespace
+      # (gitops/platform/rbac/developer-rbac.yaml).
+      - model: authentik_core.group
+        identifiers:
+          name: app-k8s-developer
+        attrs:
+          is_superuser: false
+          users: []
+      # signin: the SMALLEST Kubernetes grant — list namespaces, nothing else; no
+      # Secrets anywhere (gitops/platform/rbac/oidc-clusterrolebindings.yaml →
+      # ClusterRole oidc-signin). Held by the tools robot alone (Headlamp, gate 9).
+      - model: authentik_core.group
+        identifiers:
+          name: app-k8s-signin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-tools]]
+      # ---- Entitlements: Dashboards (hub, netdata, read-only consoles) ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-dashboards-view
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Entitlements: Plane (project tracking, forward-auth gated) ----
+      # Plane's own OIDC is a paid Business-tier feature, so access is gated at
+      # Traefik by the `WLSLUG-forward-auth` proxy provider instead. That provider
+      # is DOMAIN-level (mode forward_domain, *.dev.WLDOMAIN), so its policy
+      # bindings decide who may reach EVERY forward-auth'd public app — today only
+      # Plane. Adding a second such app means adding ITS group as another binding
+      # (engine mode `any`), not reusing this one.
+      # Membership declared HERE, from the group side, for the same reason
+      # app-nextcloud-user above does it: a user entry's `groups:` list REPLACES
+      # that user's whole membership set, which would silently strip the ~20
+      # groups a full team member already holds.
+      # To revoke someone's Plane access: delete their line.
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-user
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Plane ROLES (apps/plane-sso/mapping.yaml) ---------------------------
+      # Since the Plane SSO (2026-10-28) Authentik groups decide the Plane role
+      # too, re-synced on every sign-in and by the plane-sso-reconcile CronJob:
+      #   app-plane-admin  → Admin  (20) in workspace rmx
+      #   app-plane-user   → Member (15) in workspace rmx   (the default)
+      #   app-plane-guest  → Guest   (5) in workspace rmx
+      # The highest wins. Leaving every one of them DEACTIVATES the person's
+      # membership (never deletes: their issues, comments and history stay).
+      # DAY ONE: all four people using Plane were workspace Admins, so all four are
+      # here — nobody lost a role (apps/plane-sso/UPGRADES.md, entry 2026-10-28).
+      # To make someone a Member instead: delete their line here; app-plane-user
+      # above still admits them. Same group-side membership rule as above.
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # Plane INSTANCE admin (god-mode), apps/plane-sso/mapping.yaml. The two
+      # business super admins (ROLES.md §2c); the operator already is one through
+      # platform-admins. GRANT-ONLY: leaving this group does not take it back, the
+      # SSO never revokes an instance admin.
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-instance-admin
+        attrs:
+          is_superuser: false
+          users:
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-guest
+        attrs:
+          is_superuser: false
+          users: []
+      # The ROBOTS' Plane roles, in their own workspace rmx-e2e (never the team's).
+      # Two robots in two different groups are what the live proof
+      # (apps/plane-sso/verify-live.sh) needs to show a role landing as mapped.
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-e2e-member
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-plane-e2e-guest
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-coleg]]
+      # ---- Entitlements: PDFCraft (browser PDF toolkit, forward-auth gated) ----
+      # Gates pdf.<apex>. PDFCraft has no accounts and no OIDC of its own, so the
+      # `pdfcraft` proxy provider (mode forward_single, blueprints-providers.yaml)
+      # decides at the edge, and its application admits THIS group (+ the
+      # platform-admins break-glass). Its own group, not app-plane-user: the
+      # domain-wide provider's bindings are Plane's, and widening Plane's group to
+      # cover an unrelated tool is the thing that comment forbids.
+      # The staff roster is the same as app-nextcloud-user / app-plane-user, and
+      # every onboard-* bundle grants it (blueprints-enrollment.yaml), so a newly
+      # whitelisted colleague gets it without an edit here.
+      # e2e-hub is the ROBOT that proves the gate end to end (sign in → app); it
+      # is a member so the proof exercises the real binding, not platform-admins.
+      # Membership declared from the group side, for the same reason as above.
+      # NOTE: this `users` list REPLACES the membership — keep it complete.
+      # To revoke someone's PDFCraft access: delete their line.
+      - model: authentik_core.group
+        identifiers:
+          name: app-pdfcraft-user
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      # ---- Entitlements + roles: Novu (notification dashboard, novu.WLDOMAIN) ----
+      # Authentik groups decide who may use the Novu dashboard AND the role,
+      # re-synced on every sign-in by apps/novu-sso (mapping.json):
+      #   app-novu-admin   → admin  in every declared Novu organisation
+      #   app-novu-member  → member in every declared Novu organisation
+      #   platform-admins  → admin  (break-glass, as everywhere)
+      # The highest wins. Passing the gate IS the sign-in: novu-sso creates the
+      # person's Novu account (password-less) and hands the dashboard Novu's own
+      # session; Novu's login, registration and password screens are closed on
+      # this host (pieces/novu/base/ingress-dashboard.yaml). The tailnet
+      # dashboard keeps Novu's own login as the door that works without Authentik.
+      # All three are bound at the `novu` gate (blueprints-providers.yaml);
+      # apps/novu-sso/build.sh checks the two lists agree. An administration tool:
+      # not in any onboard-* bundle. e2e-hub proves the sign-in in a real browser
+      # (gitops/services/novu/selftest/gate.mjs).
+      # NOTE: each `users` list REPLACES the membership — keep it complete.
+      - model: authentik_core.group
+        identifiers:
+          name: app-novu-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-novu-member
+        attrs:
+          is_superuser: false
+          users: []
+      # ---- Entitlements: the tailnet (Headscale) and its console (Headplane) -----
+      # docs/headscale/00-plan.md. Only the operator so far, as ROLES.md section 2b has it:
+      # the owner has not yet said who else holds a tailnet device. Being in these lists is
+      # what gives access, and Headscale's own allowed_groups names tailnet-users too.
+      #   tailnet-users        may sign a device in to Headscale; policy.hujson then decides
+      #                        what that device reaches
+      #   app-headplane-admin  may open the mesh's console and is its `admin` there. Holds
+      #                        real power over who is on the network: keep it short.
+      # NOTE: each `users` list REPLACES the membership — keep it complete.
+      - model: authentik_core.group
+        identifiers:
+          name: tailnet-users
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-headplane-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Entitlements + roles: Plunk (the estate's e-mail, plunk.WLDOMAIN) --
+      # Authentik groups decide who may use Plunk AND the role, re-synced on every
+      # sign-in by apps/plunk-sso (mapping.json):
+      #   app-plunk-admin → ADMIN  in every project (domains, settings, keys' view)
+      #   app-plunk-user  → MEMBER in every project (templates, campaigns, contacts)
+      #   platform-admins → ADMIN  (break-glass, as everywhere)
+      #   app-plunk-e2e   → MEMBER of the robots' project only (verify-live)
+      # The highest wins; leaving all of them removes the person's memberships
+      # (their account and everything they made stay). All four are bound at the
+      # `plunk` gate (blueprints-providers.yaml); doctor.sh checks the two agree.
+      # NOTE: each `users` list REPLACES the membership — keep it complete.
+      - model: authentik_core.group
+        identifiers:
+          name: app-plunk-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-plunk-user
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-plunk-e2e
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      # ---- Entitlement: n8n (workflow automation) --------------------------------
+      # Who may reach n8n's editor at all: the one group bound at the `n8n` gate
+      # (blueprints-providers.yaml). By roster, in no department bundle.
+      # NOTE: the `users` list REPLACES the membership — keep it complete.
+      - model: authentik_core.group
+        identifiers:
+          name: app-n8n-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ---- Entitlements: rmx-sign (business app) ----
+      - model: authentik_core.group
+        identifiers:
+          name: app-signapp-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-signapp-operator
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-signapp-hr
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-signapp-view
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # ======================================================================
+      # ROLE BUNDLES — one-click onboarding (see ROLES.md "Role bundles").
+      # Assigning a person to ONE bundle-* group is enough: the OIDC groups-scope
+      # expression (WLSLUG-groups-scope in blueprints-providers.yaml) detects the
+      # bundle membership and EXPANDS it into the bundle's entitlement group names
+      # in the emitted `groups` claim — so apps grant the mapped roles WITHOUT the
+      # person being added to each app-*-* group individually.
+      #
+      # ⚠ SYNC: these group names + their entitlement sets are duplicated in the
+      # BUNDLES dict inside that scope expression. Changing a bundle = edit BOTH
+      # (the group here AND the BUNDLES dict). is_superuser stays FALSE — a bundle
+      # is a convenience alias for entitlements, never an Authentik-admin grant.
+      #   bundle-platform  → app-argocd-admin, app-harbor-admin, app-openbao-admin,
+      #                      app-k8s-admin, app-dashboards-view
+      #   bundle-developer → app-argocd-view + app-argocd-developer, app-harbor-push,
+      #                      app-openbao-read + app-openbao-developer,
+      #                      app-k8s-view + app-k8s-developer, app-dashboards-view
+      #   bundle-viewer    → app-dashboards-view
+      # rmx-sign (app-signapp-*) is deliberately EXCLUDED — it is NOT behind Authentik.
+      # ======================================================================
+      # bundle-platform claim-expands to EVERY *-admin entitlement, so holding it
+      # is full admin on Argo, OpenBao and Kubernetes. Full admin is the operator
+      # alone (2026-10-22), who holds those groups directly — so this roster is
+      # declared EMPTY, and any live member is removed on the next reconcile.
+      - model: authentik_core.group
+        identifiers:
+          name: bundle-platform
+        attrs:
+          is_superuser: false
+          users: []
+      - { model: authentik_core.group, identifiers: { name: bundle-developer }, attrs: { is_superuser: false } }
+      - { model: authentik_core.group, identifiers: { name: bundle-viewer },    attrs: { is_superuser: false } }
+
+      # ---- Default landing group for self-enrolled users (no access) ----
+      - { model: authentik_core.group, identifiers: { name: pending }, attrs: { is_superuser: false } }
+
+      # ======================================================================
+      # GROUPS SERVICES ASSERT — moved from the business directory (doc 18,
+      # step 5; owner, 2026-10-22: "keep only the groups services assert until
+      # their owners migrate them"). Business-org membership itself lives in
+      # autorizare/OpenFGA, not here.
+      #   app-invoice-*      rmx-invoice-svc asserts app-invoice-admin at startup
+      #                      (ORG-15 — a rename breaks the service).
+      #   app-autorizare-*,  autorizare's control plane: console entry and tenant
+      #   autorizare-tenant-* membership (D24 keeps these in the directory for now).
+      # Memberships are the business directory's, for the people migrated here.
+      # Its e2e robots (playwright*, autorizare-enrol-*) are NOT carried: robots
+      # are not migrated as people, and the suites that use them get accounts of
+      # their own when autorizare moves.
+      # ======================================================================
+      # The robots are created by WLSLUG-people; a !Find against an account that does
+      # not exist yet would fail this whole blueprint on a fresh install, so that
+      # blueprint is applied first.
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: WLSLUG-people
+          required: true
+      - model: authentik_core.group
+        identifiers: { name: app-invoice-admin }
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # app-invoice-operator's only meaning was that the business directory's
+      # invoice provider admitted its members; that provider went with the
+      # business Authentik on 2026-10-25. It is KEPT because the owner chose to
+      # make it the door to the operator section (apps/rmx-invoice-svc/docs/
+      # plans/superadmin.md, SA2 and step 0b) — that is decided, not built.
+      - model: authentik_core.group
+        identifiers: { name: app-invoice-operator }
+        attrs:
+          is_superuser: false
+          users: []
+      # RETIRED 2026-10-25. app-invoice-view had the same single meaning and no
+      # plan behind it. Meridian signs people in through the hub, whose tokens
+      # carry no groups (ORG-27), and its role bindings are empty by design
+      # (apps/rmx-invoice-svc/authz.manifest.json), so it is REMOVED rather than
+      # left behind as an entitlement that grants nothing. It had no members.
+      - model: authentik_core.group
+        state: absent
+        identifiers: { name: app-invoice-view }
+      - model: authentik_core.group
+        identifiers: { name: app-autorizare-admin }
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # The login hub's e2e robot (blueprints-people.yaml). Member + tenant is
+      # what the console's sign-in requires. The console journeys' robot
+      # (`playwright`) is in NO console group since 2026-10-27 (owner decision
+      # D3): its memberships of the phantom tenants e2e-consola / e2e-gol were
+      # revoked through the grant path. Until D2's throwaway copy per run, the
+      # journeys have a real test tenant of their own (e2e-jurnale, below), and
+      # their account is in it through tuples, not groups.
+      - model: authentik_core.group
+        identifiers: { name: app-autorizare-member }
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      - { model: authentik_core.group, identifiers: { name: app-autorizare-view },   attrs: { is_superuser: false, users: [] } }
+      - model: authentik_core.group
+        identifiers: { name: autorizare-tenant-recomex }
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+            - !Find [authentik_core.user, [username, e2e-hub]]
+      # The phantom journeys tenants, REMOVED (owner decision D3, 2026-10-27).
+      # They were never tenants — no `tenant` row ever existed for either — so
+      # the console-access import turned these groups into memberships of
+      # nothing, and the journeys' entitlement check stayed red. `absent`
+      # rather than deleting the entries: a blueprint does not remove what it
+      # stops declaring, and `console-access apply` would write the memberships
+      # back from a group still standing. The journeys move to a tenant of
+      # their own per run (D2).
+      - model: authentik_core.group
+        state: absent
+        identifiers: { name: autorizare-tenant-e2e-consola }
+      - model: authentik_core.group
+        state: absent
+        identifiers: { name: autorizare-tenant-e2e-gol }
+      # The journeys' REAL test tenants (2026-10-28), each with a `tenant` row
+      # naming its group. EMPTY on purpose: the console signs in through the hub,
+      # where membership is the `console_member` tuple, and the journeys account
+      # gets that (plus `administrator`) from `autorizared e2e-tenant` — seeded,
+      # audited, refused if the account sits in any real tenant. Putting the
+      # robot in these groups would hand it back to the console-access import,
+      # which is what made the phantoms; the groups exist only so each row's
+      # named group is real (@rule IDP-7).
+      #   e2e-jurnale      where every journey registers, deletes and grants
+      #   e2e-jurnale-gol  kept empty for UI-APP-02 (sorts after the first one)
+      - { model: authentik_core.group, identifiers: { name: autorizare-tenant-e2e-jurnale },     attrs: { is_superuser: false, users: [] } }
+      - { model: authentik_core.group, identifiers: { name: autorizare-tenant-e2e-jurnale-gol }, attrs: { is_superuser: false, users: [] } }

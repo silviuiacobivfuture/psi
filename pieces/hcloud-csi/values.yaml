@@ -1,0 +1,65 @@
+controller:
+  # Point the chart at OUR ESO-synced Secret instead of letting it render
+  # one from a value. With `hcloudToken.value` empty the chart's own
+  # templates/controller/secret.yaml is skipped entirely and the
+  # Deployment's secretKeyRef switches to this name.
+  hcloudToken:
+    existingSecret:
+      name: hcloud
+      key: token
+  # Explicit requests+limits on every container. kube-system IS excluded
+  # from require-requests-limits, so this is not an admission requirement
+  # — it is so a control-plane component cannot become the noisy neighbour
+  # that starves an app namespace. The chart ships `{}` for all of them.
+  resources:
+    hcloudCSIDriver:
+      requests: { cpu: 20m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 256Mi }
+    csiAttacher:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    csiResizer:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    csiProvisioner:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    livenessProbe:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+node:
+  resources:
+    hcloudCSIDriver:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+    csiNodeDriverRegistrar:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    livenessProbe:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+# The controller injects the hcloud token as an ENV VAR (secretKeyRef), so
+# a rotated token would never reach the running process. kube-system is
+# excluded from require-reloader-annotation, so nothing enforces this —
+# it is here because the rotation would otherwise silently half-apply.
+# commonAnnotations lands on every rendered object (including the
+# StorageClass and CSIDriver, where it is inert); the chart exposes no
+# per-workload metadata-annotation key, only podAnnotations, and Reloader
+# reads the WORKLOAD's annotations, not the pod template's.
+commonAnnotations:
+  reloader.stakater.com/auto: "true"
+  alerts.${ESTATE_LABEL_DOMAIN}/owner: ${OPS_EMAIL}
+storageClasses:
+  - name: hcloud-volumes
+    # CRITICAL: the chart's own default for this is `true`. Leaving it
+    # would give the cluster TWO default StorageClasses (local-path is
+    # already the default) — an ambiguous state in which a PVC with no
+    # storageClassName gets whichever the API server picks, and every
+    # existing workload's storage could silently move providers. The new
+    # class is opt-in by name only; `local-path` stays the default.
+    defaultStorageClass: false
+    # Matches local-path's behaviour (and CNPG's expectation that the
+    # operator owns volume lifecycle). The durability story for these
+    # databases is the barman WAL archive, not a retained orphan volume —
+    # and a retained volume keeps billing after the PVC is gone.
+    reclaimPolicy: Delete

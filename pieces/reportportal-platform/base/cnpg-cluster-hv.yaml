@@ -1,0 +1,106 @@
+# reportportal-db-hv — the hcloud-volumes REPLACEMENT for reportportal-db,
+# created ALONGSIDE cnpg-cluster.yaml (untouched: reportportal-db keeps serving
+# ReportPortal until this cluster is verified and the operator deliberately cuts
+# over). Same recipe as
+# pieces/nextcloud-platform/base/cnpg-cluster-hv.yaml — read that file's header
+# for the full rationale (immutability, the archive-collision avoidance, why
+# there is no `recoveryTarget`); only the deltas are called out here. Full
+# procedure: infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md. NOT wired into
+# kustomization.yaml — that is a runbook step.
+#
+# REPORTPORTAL-SPECIFIC CUTOVER NOTE (see restore-reportportal-db.sh, same fact
+# restated): THREE workloads hold the DB credential — reportportal-api,
+# reportportal-uat, reportportal-jobs (NOT the analyzer). The DB host IS a Helm
+# value here (`database.endpoint` in gitops/apps/overlays/dev/reportportal.yaml,
+# currently `reportportal-db-rw.reportportal.svc.cluster.local`), unlike Plane's
+# ESO-composed DSN — so cutover is a one-line edit there, not an ExternalSecret
+# change. The OpenSearch index will disagree with a rewound database after any
+# recovery; it is derived and safe to leave to re-converge (see
+# restore-reportportal-db.sh's cutover_notes()).
+#
+# EXTENSIONS: ltree, pg_trgm, pgcrypto are all TRUSTED (see cnpg-cluster.yaml's
+# header) and are part of the restored physical data — recovery brings them back
+# with everything else. Nothing to redeclare here.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: reportportal-db-hv
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+
+  bootstrap:
+    recovery:
+      source: origin
+      # No secret/owner/database — see nextcloud-db-hv's header. The
+      # `reportportal` role's restored password must still match OpenBao's
+      # apps/reportportal/db secret; runbook pre-flight checks this.
+
+  externalClusters:
+    - name: origin
+      barmanObjectStore:
+        destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/reportportal-db
+        endpointURL: https://fsn1.your-objectstorage.com
+        serverName: reportportal-db
+        s3Credentials:
+          accessKeyId:
+            name: reportportal-backup-s3
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKey:
+            name: reportportal-backup-s3
+            key: AWS_SECRET_ACCESS_KEY
+        wal:
+          maxParallel: 2
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      effective_cache_size: "512MB"
+      work_mem: "8MB"
+      max_connections: "200"
+      archive_timeout: "5min"
+
+# ============================================================================
+# FOLLOW-UP — apply ONLY after cutover is verified. See nextcloud-db-hv.yaml's
+# footer for the reasoning; only the destinationPath/names/schedule differ.
+#
+# spec:
+#   backup:
+#     retentionPolicy: "14d"
+#     barmanObjectStore:
+#       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/reportportal-db-hv   # NOT the old path
+#       endpointURL: https://fsn1.your-objectstorage.com
+#       s3Credentials:
+#         accessKeyId: { name: reportportal-backup-s3, key: AWS_ACCESS_KEY_ID }
+#         secretAccessKey: { name: reportportal-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+#       wal: { compression: gzip, maxParallel: 2 }
+#       data: { compression: gzip }
+# ---
+# apiVersion: postgresql.cnpg.io/v1
+# kind: ScheduledBackup
+# metadata:
+#   name: reportportal-db-hv-base
+# spec:
+#   schedule: "0 5 3 * * 0"   # an unused slot — see the other cnpg-cluster.yaml headers for the taken list
+#   immediate: true
+#   backupOwnerReference: self
+#   cluster:
+#     name: reportportal-db-hv
+# ============================================================================

@@ -1,0 +1,93 @@
+# Where Code nodes run: upstream's runners image, in a pod of its own rather than as
+# n8n's recommended sidecar. A sidecar shares n8n's network namespace, so an escaped
+# Code node would be one password away from n8n's database and one socket away from
+# every address n8n can reach. In this pod it has the broker token and can reach the
+# broker and DNS, nothing else (networkpolicy.yaml, proven in the selftest). A Code
+# node's HTTP helpers are carried out by n8n, not here.
+#
+# JavaScript only: N8N_PYTHON_ENABLED=false in n8n, and the launcher starts one runner.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-runner
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: runner
+  annotations:
+    # REQUIRED: the broker token is env.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+      app.kubernetes.io/component: runner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n
+        app.kubernetes.io/component: runner
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: n8n-runner }
+          command: ["sh", "-c"]
+          args:
+            - |
+              [ -n "${N8N_RUNNERS_AUTH_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: N8N_RUNNERS_AUTH_TOKEN" >&2; exit 1; }
+              echo "all required secrets present"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+      containers:
+        - name: runner
+          image: WLREGISTRY/mirror/docker.io/n8nio/runners:2.46.4@sha256:7ae8720b0c2e1c3504cb4386394183ced00fa227697e4fa47f095b0e368827b6
+          args: ["javascript"]
+          envFrom:
+            - secretRef: { name: n8n-runner }
+          env:
+            - { name: N8N_RUNNERS_TASK_BROKER_URI, value: "http://n8n-broker:5679" }
+            - { name: N8N_RUNNERS_MAX_CONCURRENCY, value: "2" }
+            - { name: N8N_RUNNERS_TASK_TIMEOUT, value: "120" }
+            - { name: N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT, value: "60" }
+            - { name: N8N_RUNNERS_LAUNCHER_HEALTH_CHECK_PORT, value: "5680" }
+            - { name: GENERIC_TIMEZONE, value: Europe/Bucharest }
+            - { name: NODE_OPTIONS, value: "--max-old-space-size=384" }
+          ports:
+            - { name: health, containerPort: 5680 }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 25m, memory: 96Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 128Mi }

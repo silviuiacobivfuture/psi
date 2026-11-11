@@ -1,0 +1,96 @@
+# THE ESTATE GATE — the business applications' hosts (SEB 1.16b). The rest of the
+# register, and the design, is in ../gate.yaml; estate-gate.py reads that file,
+# then this one, as one register: same host shape, same modes, a host listed in
+# exactly one of the two. Edit here, then: infrastructure/hetzner/scripts/estate-gate.py render
+apiVersion: estate.recomex.eu/v1
+kind: EstateGateHosts
+
+hosts:
+  # --- the applications ----------------------------------------------------------
+  - name: sirius
+    mode: report
+    exempt:
+      - prefix: /l/
+        who: "anyone holding a short link or a QR code"
+        why: "links printed on documents and sent by e-mail"
+      - prefix: /r/
+        who: "anyone holding a short link or a QR code"
+        why: "links printed on documents and sent by e-mail"
+      - prefix: /sites/
+        who: "visitors of a published site"
+        why: "public sites built with the page builder"
+      - prefix: /api/pagebuilder/
+        who: "visitors of a published site"
+        why: "its contact form and its proof-of-work challenge"
+  - name: altair
+    mode: report
+    exempt:
+      - path: /api/webhooks/clerk
+        who: "Clerk (svix)"
+        why: "account events"
+      - path: /api/webhooks/inbound
+        who: "Plunk (its workflow on email.received, reconciled by apps/plunk-sso)"
+        why: "received mail handed over; the route requires its bearer token"
+      - prefix: /scan/
+        who: "a phone scanning the QR code"
+        why: "the phone need not be on the tailnet"
+      - prefix: /sites/
+        who: "visitors of a published site"
+        why: "public sites built with the page builder"
+  - name: pulsar
+    mode: report
+    why: /api/mcp and /api/service are called by an agent runtime whose location is unknown — the report says whether it is outside
+  - name: meridian
+    mode: report
+  - name: api.meridian
+    mode: report
+    exempt:
+      - path: /v1/anaf/oauth/callback
+        who: "the certificate holder's browser, back from logincert.anaf.ro"
+        why: "the machine holding the ANAF certificate may not run Tailscale; the callback is useless without the state it carries"
+  - name: vega
+    mode: report
+  - name: api.vega
+    mode: report
+
+  # --- the applications' services ----------------------------------------------
+  - name: convex-rmx-brs
+    mode: report
+  - name: convex-rmx-brs-site
+    mode: report
+    exempt:
+      - path: /clerk-webhook
+        who: "Clerk (svix)"
+        why: "account events"
+      - path: /api/clerk-webhook
+        who: "Clerk (svix)"
+        why: "account events, older endpoint"
+      - prefix: /l/
+        who: "anyone holding a short link or a QR code"
+        why: "the short-link resolver itself"
+      - prefix: /r/
+        who: "anyone holding a short link or a QR code"
+        why: "the short-link resolver itself"
+  - name: convex-rmx-brs-dash
+    mode: report
+  - name: convex-rmx-sign
+    mode: report
+  - name: convex-rmx-sign-site
+    mode: report
+  - name: convex-rmx-sign-dash
+    mode: report
+  - name: convex-flow-platform
+    mode: report
+  - name: convex-flow-platform-site
+    mode: report
+  - name: convex-flow-platform-dash
+    mode: report
+
+  # --- tools ---------------------------------------------------------------------
+  - name: browseruse-api
+    mode: report
+
+  # --- never gated -----------------------------------------------------------------
+  - name: sign.landing
+    mode: "off"
+    why: Wise's public landing page (apps/wise-proconsult) — Wise is separate and stays public

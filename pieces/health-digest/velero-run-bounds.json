@@ -1,0 +1,7 @@
+{
+  "_": "When a Velero run stops being healthy. One copy: doctor (lib-velero-run.sh) and estate-watch (backup_watch.py) both read this. Measured on the 21 runs kept on 2026-11-05: the longest healthy run took 1h33m, the longest silence in a run that finished was 56m, and Velero stops waiting on volumes at 4h (4h00m04 on 11-02). RUNBOOK 2026-11-05.",
+  "slow_secs": 7200,
+  "stall_secs": 5400,
+  "overdue_secs": 15300,
+  "finished": ["Completed", "PartiallyFailed", "Failed", "FailedValidation", "Deleting"]
+}

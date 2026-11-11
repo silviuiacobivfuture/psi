@@ -1,0 +1,127 @@
+# OTel agent (DaemonSet) — PROD. Full profile: node + container + network + AUDIT.
+# Datasets WLSLUG-prod-* (Tofu prod profile). Mirrors dev plus the apiserver
+# audit pipeline (reads /var/log/kubernetes/audit.log — enabled by the k3s
+# audit-policy change; mount added via the prod DaemonSet patch).
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol
+
+receivers:
+  filelog:
+    include: [/var/log/pods/*/*/*.log]
+    start_at: end
+    include_file_path: true
+    storage: file_storage
+    operators:
+      - type: container
+        add_metadata_from_filepath: true
+
+  # Node/system/process logs (journald). Needs journalctl — custom collector image.
+  journald:
+    directory: /var/log/journal
+
+  # PROD-ONLY: kube-apiserver audit log (JSON lines).
+  filelog/audit:
+    include: [/var/log/kubernetes/audit.log]
+    start_at: end
+    storage: file_storage
+    operators:
+      - type: json_parser
+
+processors:
+  batch: {}
+
+  k8sattributes:
+    auth_type: serviceAccount
+    passthrough: false
+    extract:
+      metadata:
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.node.name
+        - k8s.deployment.name
+        - k8s.daemonset.name
+        - k8s.statefulset.name
+      labels:
+        - tag_name: app
+          key: app
+          from: pod
+    pod_association:
+      - sources:
+          - { from: resource_attribute, name: k8s.pod.uid }
+      - sources:
+          - { from: resource_attribute, name: k8s.namespace.name }
+          - { from: resource_attribute, name: k8s.pod.name }
+
+  resource/node:
+    attributes:
+      - { key: host.name, value: "${env:K8S_NODE_NAME}", action: upsert }
+      - { key: log.source, value: node, action: insert }
+  resource/containers:
+    attributes:
+      - { key: log.source, value: containers, action: insert }
+  resource/network:
+    attributes:
+      - { key: log.source, value: network, action: insert }
+  resource/audit:
+    attributes:
+      - { key: host.name, value: "${env:K8S_NODE_NAME}", action: upsert }
+      - { key: log.source, value: audit, action: insert }
+
+connectors:
+  routing:
+    default_pipelines: [logs/containers]
+    table:
+      - statement: route() where attributes["k8s.namespace.name"] == "kube-system"
+        pipelines: [logs/network]
+
+exporters:
+  otlphttp/containers:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-prod-containers
+  otlphttp/network:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-prod-network
+  otlphttp/node:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-prod-node
+  otlphttp/audit:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-prod-audit
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs/in:
+      receivers: [filelog]
+      processors: [k8sattributes, batch]
+      exporters: [routing]
+    logs/containers:
+      receivers: [routing]
+      processors: [resource/containers, batch]
+      exporters: [otlphttp/containers]
+    logs/network:
+      receivers: [routing]
+      processors: [resource/network, batch]
+      exporters: [otlphttp/network]
+    logs/node:
+      receivers: [journald]
+      processors: [resource/node, batch]
+      exporters: [otlphttp/node]
+    logs/audit:
+      receivers: [filelog/audit]
+      processors: [resource/audit, batch]
+      exporters: [otlphttp/audit]

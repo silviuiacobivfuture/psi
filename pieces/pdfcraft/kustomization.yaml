@@ -1,0 +1,80 @@
+# SEB piece `pdfcraft`: PDFCraft, the browser-side PDF toolkit at https://pdf.<apex>, behind the
+# identity provider's forward-auth (base/kustomization.yaml says what it is). Stateless: a static
+# export served by nginx, no volume, no secret. Delivered in the SEB bundle, rendered at build
+# time (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity: the host (BASE_DOMAIN through the whitelabel
+# component), the alert owner, and the estate's SLUG, which names the front's own paths
+# (/_<slug>/…, /etc/nginx/<slug>/…) and the injected files. The slug sits inside the generated
+# nginx ConfigMap, whose content is hashed into its name, so it is filled by the builder before
+# kustomize runs (identity-files.txt), not by a replacement.
+# What is the estate's own and not a setting comes from its layer,
+# ../../components/estate/pdfcraft: its stylesheet and script (<slug>.css, <slug>.js) and its bar
+# (bar.js), merged over SEB's neutral defaults.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pdfcraft
+components:
+  - ../../components/whitelabel
+  - ../../components/estate/pdfcraft
+resources:
+  - base
+patches:
+  - target:
+      kind: Ingress
+      name: pdfcraft|pdfcraft-callback
+    patch: |
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: pdf.WLDOMAIN
+      - op: replace
+        path: /spec/rules/0/host
+        value: pdf.WLDOMAIN
+  # ── Kubelet health probes through the default-deny policy ──────────────────
+  # Probes arrive from the node the pod runs on: its InternalIP, or its cni0
+  # gateway when flannel SNATs a same-node connection. Which one appears depends
+  # on the path, so both are listed — the same four addresses, read from the live
+  # dev cluster, that pieces/openfga/kustomization.yaml
+  # admits for the same reason:
+  #   10.0.1.10/32  dev-k3s-cp       InternalIP     10.42.0.1/32  dev-k3s-cp     cni0
+  #   10.0.1.1/32   dev-k3s-agent-0  InternalIP     10.42.1.1/32  dev-k3s-agent-0 cni0
+  # Here, unlike openfga's admin port, a host-network pod reaching :8080 gains
+  # nothing a signed-in browser does not already have: the port serves the same
+  # public static files and holds no credential.
+  - target: { kind: NetworkPolicy, name: pdfcraft }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 8080 }
+replacements:
+  - path: whitelabel-replacements.yaml
+  - source:
+      kind: ConfigMap
+      name: whitelabel
+      fieldPath: data.BASE_DOMAIN
+    targets:
+      - select: { kind: Ingress, name: pdfcraft-callback }
+        fieldPaths:
+          - spec.tls.0.hosts.0
+          - spec.rules.0.host
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: pdfcraft }
+        fieldPaths:
+          - spec.tls.0.hosts.0
+          - spec.rules.0.host
+        options: { delimiter: ".", index: 1 }
+  # Who is paged: the estate's operations address (the key is moved to
+  # alerts.<ESTATE_LABEL_DOMAIN>/owner by ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+transformers:
+  - ../../components/alert-owner

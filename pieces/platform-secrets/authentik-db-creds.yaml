@@ -1,0 +1,30 @@
+# Authentik bundled-subchart DB/cache passwords → authentik-db-creds secret in the
+# authentik namespace. The Bitnami postgresql + redis subcharts read their password
+# from an existingSecret (postgresql.auth.existingSecret / redis.auth.existingSecret)
+# at the well-known keys below. SAME values as authentik-env's
+# AUTHENTIK_POSTGRESQL__PASSWORD / AUTHENTIK_REDIS__PASSWORD so the app and its
+# bundled stores agree. Synced from OpenBao secret/platform/authentik/*.
+# See gitops/apps/overlays/dev/authentik.yaml + gitops/PLATFORM.md.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-db-creds
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-db-creds
+    creationPolicy: Owner
+    template:
+      data:
+        # Bitnami postgresql subchart keys (non-superuser app password).
+        password: "{{ .postgresql_password }}"
+        postgres-password: "{{ .postgresql_password }}"
+        # Bitnami redis subchart key.
+        redis-password: "{{ .redis_password }}"
+  data:
+    - secretKey: postgresql_password
+      remoteRef: { key: platform/authentik/postgresql, property: password }
+    - secretKey: redis_password
+      remoteRef: { key: platform/authentik/redis, property: password }

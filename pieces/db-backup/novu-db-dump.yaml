@@ -1,0 +1,129 @@
+# Novu MongoDB logical backup — 6-hourly `mongodump --archive --gzip` → Hetzner
+# Object Storage. Same shape as plane-db-dump.yaml (dump in an initContainer onto
+# an emptyDir, upload + prune in the main container), adapted to MongoDB.
+#
+# WHAT IS AT STAKE: every Novu organization, environment, ENCRYPTED API key and
+# integration credential, subscriber, preference, workflow, message and execution
+# record. Losing it means every app's NOVU_SECRET_KEY / application identifier
+# stops resolving and every in-app message history is gone. Note the dump is only
+# restorable together with the SAME STORE_ENCRYPTION_KEY (secret/apps/novu/app) —
+# the stored credentials are ciphertext under it, which is why that key is never
+# rotated by seed-secrets.sh --rotate.
+#
+# This is Novu's ONLY consistent database backup layer (there is no operator-level
+# WAL archive as CNPG gives Postgres); Velero's PVC snapshot is the second, crash-
+# consistent one. Restored by infrastructure/hetzner/scripts/restore-novu-db.sh,
+# freshness checked by doctor.sh (layer "novu").
+#
+# Runs IN the novu namespace to read the ESO-synced root credential (novu-mongodb)
+# and the S3 credential (novu-backup-s3). Image = the server's own mongo:8.0.17,
+# which ships mongodump (mongodb-database-tools), so the tool can never be older
+# than the server it dumps. Storage: s3://<BUCKET_PREFIX>-tfstate-<env>/db-dumps/novu/.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: novu-db-dump
+  namespace: novu
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # :40 — a free */6 slot (taken: :05 :10 :15 :20 :25 :35 :45 :50, velero :00,
+  # openbao :30). grep `schedule:` across gitops/ before taking another one.
+  schedule: "40 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  # One failed run is kept for diagnosis, and every finished run is removed
+  # 12h (two schedule windows) after it ends: a failure from days ago left
+  # db-backup Degraded long after the next runs completed, masking whatever
+  # failed next. Freshness is doctor.sh's to judge ("logical DB dumps"): it
+  # fails when a CronJob has not COMPLETED within its window.
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: { app: novu-db-dump }
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            fsGroup: 999
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          initContainers:
+            - name: dump
+              image: WLREGISTRY/mirror/docker.io/library/mongo:8.0.17@sha256:f76c917358b2c4ca1272dd160c82a762408e4e35c8174bf0aede36e7423dbf74
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              envFrom:
+                - secretRef: { name: novu-mongodb }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: "1", memory: 512Mi }
+              command: ["/bin/sh", "-c"]
+              # The URI (with the password) is handed to mongodump through a
+              # config FILE, not argv — `--uri` on the command line would put the
+              # credential in /proc/<pid>/cmdline for the life of the dump.
+              args:
+                - |
+                  set -eu
+                  umask 077
+                  printf 'uri: "mongodb://%s:%s@novu-mongodb.novu.svc.cluster.local:27017/?authSource=admin"\n' \
+                    "$MONGO_INITDB_ROOT_USERNAME" "$MONGO_INITDB_ROOT_PASSWORD" > /work/.dump.yaml
+                  echo "mongodump novu-db → /work/novu.archive.gz"
+                  mongodump --config=/work/.dump.yaml --db=novu-db --archive=/work/novu.archive.gz --gzip
+                  rm -f /work/.dump.yaml
+                  ls -l /work/novu.archive.gz
+                  sz=$(wc -c < /work/novu.archive.gz); [ "$sz" -gt 1000 ] || { echo "FATAL: novu dump too small ($sz bytes) — connection/auth failed or empty database" >&2; exit 1; }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          containers:
+            - name: upload
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: novu-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: novu-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: db-dumps/novu }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT=/work/novu.archive.gz
+                  test -s "$OUT" || { echo "FATAL: dump missing/empty (initContainer failed)" >&2; exit 1; }
+                  export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+                  export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+                  KEY="${PREFIX}/novu-${TS}.archive.gz"
+                  echo "Uploading → s3://${BUCKET}/${KEY}"
+                  aws s3 cp "$OUT" "s3://${BUCKET}/${KEY}" --endpoint-url "$AWS_ENDPOINT_URL"
+                  echo "DB dump uploaded: s3://${BUCKET}/${KEY}"
+                  KEEP=20
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | awk '{print $4}' | grep -E '^novu-.*\.archive\.gz$' | sort -r | tail -n +$((KEEP + 1)) \
+                    | while read -r f; do aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}" --endpoint-url "$AWS_ENDPOINT_URL"; done || true

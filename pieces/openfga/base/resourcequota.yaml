@@ -1,0 +1,19 @@
+# A ceiling on the namespace, so a mistake here cannot starve the rest of the
+# node. Sized for what this namespace actually runs: the openfga pod (three
+# containers, ~1.6 CPU and ~900Mi of limits) plus the CNPG Cluster and its
+# transient backup pods.
+#
+# persistentvolumeclaims: 4 leaves room for the CNPG volume plus the temporary
+# ones a restore creates — a quota that exactly fits the steady state is a quota
+# that blocks the recovery.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: openfga
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    persistentvolumeclaims: "4"

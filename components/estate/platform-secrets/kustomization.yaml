@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the platform-secrets piece. SEB adds nothing: this is the default.
+# An estate supplies its own directory of the same name to the bundle builder
+# (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
+# replaces this one in the build workdir. It is applied after the piece's defaults
+# (../../../pieces/platform-secrets/defaults), so its patches win. What belongs there:
+#   - ExternalSecrets of the estate's own platform tooling (same shape as the piece's: store
+#     `openbao`, ClusterSecretStore), as resources. An application's own secrets live with the
+#     application, never here;
+#   - the platform sender's display name, when its declaration has one:
+#       patches:
+#         - target: { kind: ExternalSecret, name: authentik-email }
+#           patch: |-
+#             - op: replace
+#               path: /spec/target/template/data/AUTHENTIK_EMAIL__FROM
+#               value: "<Name> <noreply@<MAIL_DOMAIN>>"
+resources: []

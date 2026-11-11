@@ -1,0 +1,127 @@
+# Harbor Postgres logical backup — 6-hourly `pg_dumpall` → Hetzner Object Storage.
+# Belt-and-suspenders ON TOP of Velero's raw-PVC backup: a kopia file-copy of a LIVE
+# postgres data dir is only crash-consistent, while pg_dumpall is a transactionally
+# consistent logical dump that restores cleanly into any fresh Postgres. Runs IN the
+# harbor namespace so it can read the chart-generated `harbor-database` password
+# secret (that password is NOT in OpenBao — it's random per install). harbor ns is
+# already excluded from the Kyverno pod-security policies (platform ns).
+# Storage: s3://<BUCKET_PREFIX>-tfstate-<env>/db-dumps/harbor/ (sibling to openbao-snapshots/).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-backup-s3
+  namespace: harbor
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: harbor-backup-s3, creationPolicy: Owner }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-db-dump
+  namespace: harbor
+spec:
+  schedule: "15 */6 * * *" # offset from velero (:00) + openbao (:30)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  # One failed run is kept for diagnosis, and every finished run is removed
+  # 12h (two schedule windows) after it ends: a failure from days ago left
+  # db-backup Degraded long after the next runs completed, masking whatever
+  # failed next. Freshness is doctor.sh's to judge ("logical DB dumps"): it
+  # fails when a CronJob has not COMPLETED within its window.
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels: { app: harbor-db-dump }
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70 # postgres uid in the alpine image (client-only, any uid works)
+            fsGroup: 70
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          # initContainer dumps (has pg_dumpall + gzip); main container uploads
+          # (amazon/aws-cli has no postgres client). Shared via the 'work' emptyDir.
+          initContainers:
+            - name: dump
+              image: postgres:17-alpine
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              env:
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: harbor-database, key: POSTGRES_PASSWORD } }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  echo "pg_dumpall harbor-database → /work/harbor.sql.gz"
+                  pg_dumpall -h harbor-database -p 5432 -U postgres | gzip -c > /work/harbor.sql.gz
+                  ls -l /work/harbor.sql.gz
+                  # Fail LOUD if the dump is suspiciously tiny (auth/connect failure
+                  # yields an near-empty file) — a silent bad backup is worse than none.
+                  sz=$(wc -c < /work/harbor.sql.gz); [ "$sz" -gt 1000 ] || { echo "FATAL: harbor dump too small ($sz bytes) — connection/auth failed" >&2; exit 1; }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          containers:
+            - name: upload
+              image: amazon/aws-cli:2.17.0
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: harbor-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: harbor-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path } # Hetzner needs path-style
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: db-dumps/harbor }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT=/work/harbor.sql.gz
+                  test -s "$OUT" || { echo "FATAL: dump missing/empty (initContainer failed)" >&2; exit 1; }
+                  # Hetzner S3 rejects the SDK default checksum (same as velero/openbao).
+                  export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+                  export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+                  KEY="${PREFIX}/harbor-${TS}.sql.gz"
+                  echo "Uploading → s3://${BUCKET}/${KEY}"
+                  aws s3 cp "$OUT" "s3://${BUCKET}/${KEY}" --endpoint-url "$AWS_ENDPOINT_URL"
+                  echo "DB dump uploaded: s3://${BUCKET}/${KEY}"
+                  # Retention: keep the 20 most recent dumps (≈5 days at 6-hourly).
+                  KEEP=20
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | awk '{print $4}' | grep -E '^harbor-.*\.sql\.gz$' | sort -r | tail -n +$((KEEP + 1)) \
+                    | while read -r f; do aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}" --endpoint-url "$AWS_ENDPOINT_URL"; done || true

@@ -1,0 +1,212 @@
+# Authentik Blueprint ConfigMap — THE PEOPLE MOVED ONTO THIS DIRECTORY.
+# docs/autorizare/18-sso-authentik-unic.md, step 6. Owner-approved list, 2026-10-22.
+#
+# The union of every directory on the estate, by email, is produced by
+# infrastructure/hetzner/scripts/authentik-people.py (read-only). Of the five
+# people approved for migration, four already had an account here; this file
+# declares what had to CHANGE for the fifth and for the one merge:
+#
+#   * burcustobias+qa@gmail.com — Tobi's QA account, migrated as a person (the
+#     owner overrode the robot rule). CREATED ONLY (`state: created`): never
+#     touched again by a reconcile, so the password it sets through the emailed
+#     link and the TOTP it enrols are never overwritten. No password here, ever.
+#   * rares.mustea@gmail.com (`Rares`) — MERGED into rares@recomexpert.ro
+#     (`rares-hash`): one person, one login. Deactivated 2026-10-22, REMOVED
+#     2026-11-05 (owner: "remove the one that is not @recomexpert.ro"), by the
+#     `state: absent` entry at the end of this file. His history stays where it
+#     lives: Polaris keeps the one person (rares@recomexpert.ro) with this
+#     account's old ids as linked logins and legacy ids, and no blueprint names
+#     the account in a !Find, so nothing here depends on it.
+#
+# Not here, deliberately: g2320hdb@gmail.com (removed; it never had an account
+# on this directory) and office@recomex.ro (left exactly as it is, on the
+# business directory, deactivated).
+#
+# Groups for the new account arrive with the groups its services assert (step 5);
+# a group this file named before it exists would fail the whole blueprint.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-people
+  namespace: authentik
+data:
+  people.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-people
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # ROBOT, not a person: the login hub's dev end-to-end login and kill-a-pod
+      # proof. `.invalid` so it is classed as a robot and can never receive a
+      # mail. Created only; its password and TOTP come from OpenBao
+      # (secret/platform/authentik/e2e-hub) via repair.sh, checked by doctor.sh —
+      # a blueprint cannot hold either without putting them in a pod's env.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-hub
+        attrs:
+          name: E2E hub (robot)
+          email: e2e-hub@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: the TOOLS robot — identitate gate 9 for the tools that sign in to
+      # this directory DIRECTLY (Argo CD, Harbor, Headlamp, OpenBao, Nextcloud).
+      # It holds the SMALLEST role each tool offers and nothing else
+      # (blueprints-groups.yaml, the `app-*-signin` groups + app-nextcloud-user;
+      # no Harbor group at all, so Harbor sees a user in no project). Created only;
+      # repair.sh ("Authentik robots") sets its password and TOTP from
+      # secret/platform/authentik/e2e-tools, doctor.sh proves both AND fails on
+      # any grant beyond those ("The tools robot holds only its sign-in grants").
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-tools
+        attrs:
+          name: E2E tools (robot)
+          email: e2e-tools@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: the READER — a member who holds read roles and nothing personal
+      # (no `registru_date_personale`, no write role). It proves live what a
+      # person without a right sees: personal data hidden, write controls absent
+      # (audit RMX-69 S1/S2). Placed in the robot's own organisation through
+      # Polaris (AddMember, audited), never written into OpenFGA. Created only;
+      # repair.sh ("Authentik robots") sets its password and TOTP from
+      # secret/platform/authentik/e2e-cititor, doctor.sh proves both.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-cititor
+        attrs:
+          name: E2E cititor (robot)
+          email: e2e-cititor@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: the COLLEAGUE — the second person the suites that need two people
+      # sign in as (Sirius's per-company rights, Altair's shadow journey), each
+      # given roles in that suite's OWN e2e organisation and nowhere else. It
+      # replaced the console journeys' robot, whose extra organisations put the
+      # hub's organisation picker in front of the journeys (2026-10-27). Created
+      # only; repair.sh ("Authentik robots") sets its password and TOTP from
+      # secret/platform/authentik/e2e-coleg, doctor.sh proves both.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-coleg
+        attrs:
+          name: E2E coleg (robot)
+          email: e2e-coleg@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: autorizare's console e2e account (the Polaris sign-in through the
+      # hub). The same account the business directory had, so the fixture keeps
+      # its secret: secret/apps/autorizare/e2e {email, password, totp_secret}.
+      # Created only; repair.sh ("Authentik robots") sets its password and TOTP
+      # from that path, doctor.sh proves both. Groups: blueprints-groups.yaml.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: playwright
+        attrs:
+          name: Playwright (robot)
+          email: playwright@recomex.eu
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: the console journeys' SECOND account, a read-only platform
+      # auditor for the screens only platform auditors open (release history,
+      # drift, person search, model pins; owner decision 2026-10-28). In NO
+      # group: its entry and its rights are tuples, seeded by `autorizared
+      # e2e-auditor` (repair.sh), which refuses it any real-tenant membership.
+      # Created only; repair.sh ("Authentik robots") sets its password and TOTP
+      # from secret/apps/autorizare/e2e-auditor, doctor.sh proves both.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-auditor
+        attrs:
+          name: E2E auditor platformă (robot)
+          email: e2e-auditor@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # The sign-in journeys' robots (UI-SIGNIN-02…09). In NO group: what they hold
+      # is declared by `autorizared e2e-signin` (repair.sh). e2e-signin is an ordinary
+      # member of the journeys tenant, e2e-revocabil is listed there and nothing else;
+      # e2e-strain is listed nowhere, the person the console must refuse. Created
+      # only; repair.sh ("Authentik robots") sets password and TOTP from OpenBao.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-signin
+        attrs:
+          name: E2E intrare în consolă (robot)
+          email: e2e-signin@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-revocabil
+        attrs:
+          name: E2E acces retras (robot)
+          email: e2e-revocabil@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-strain
+        attrs:
+          name: E2E fără acces (robot)
+          email: e2e-strain@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOTS: what Meridian answers somebody standing in an organisation (ORG-64,
+      # ORG-65). What they hold is declared by `autorizared e2e-org` (repair.sh):
+      # e2e-o-firma has a right in one company of its robot organisation,
+      # e2e-admin-org administers it with no right in any. Created only; repair.sh
+      # ("Authentik robots") sets password and TOTP from OpenBao.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-o-firma
+        attrs:
+          name: E2E drept într-o firmă (robot)
+          email: e2e-o-firma@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-admin-org
+        attrs:
+          name: E2E administrator fără drept (robot)
+          email: e2e-admin-org@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+      # ROBOT: registers a company on an invitation (ORG-13, ORG-66). It administers
+      # the robot organisation; repair.sh writes its invitation, because the only other
+      # door is a platform administrator's, which no robot may be.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: e2e-inregistrare
+        attrs:
+          name: E2E înregistrare companie (robot)
+          email: e2e-inregistrare@recomex.invalid
+          type: internal
+          is_active: true
+          path: users/robots
+

@@ -1,0 +1,10 @@
+# Scratch value for kustomization.yaml: the registry host as the one word a policy description
+# carries it as ("… comes from <REGISTRY_HOST>, so …"). Never rendered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kyverno-policies-values
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  REGISTRY_WORD: "REGISTRY_HOST,"

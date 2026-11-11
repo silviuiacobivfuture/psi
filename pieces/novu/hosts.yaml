@@ -1,0 +1,13 @@
+# Hosts composed from the estate identity, for the fields that carry a host
+# INSIDE a longer value (a URL with a path). A replacements SOURCE only:
+# config.kubernetes.io/local-config keeps it out of every rendered manifest.
+# The replacements in kustomization.yaml fill the labels and domains in first.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: novu-hosts
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  AUTH_HOST: AUTHPREFIX.WLDOMAIN
+  TAILNET_API_HOST: novu-api.WLTAILNET

@@ -1,0 +1,149 @@
+# The settings internal/config/config.go REQUIRES that are not secrets.
+#
+# ── WHY A ConfigMap RATHER THAN `env:` ON THE CONTAINER ──────────────────────
+#
+# A service that pins its non-secret required settings directly in the
+# container's `env:` block, and asserts only the SECRET-sourced ones in its
+# `assert-secrets` initContainer. That leaves half of `config.go`'s required list
+# unasserted: a manifest edit that drops OIDC_ISSUER_URL there fails at process
+# start with config.go's own message, which is fine — but it fails AFTER the
+# initContainer has printed `secrets-ok`, which makes the assertion read as more
+# complete than it is.
+#
+# Here the twelve required keys are asserted as twelve, and that needs the
+# non-secret six to be readable by two containers. A ConfigMap is one source for
+# both; duplicating six literals into the initContainer's `env:` would be two
+# sources that agree today. (Reading mandatory non-secret config from a ConfigMap is an established
+# pattern for services here, not a new idea.)
+#
+# These are NOT secrets and are pinned in git ON PURPOSE: every one of them is a
+# value whose change should be visible in review, not in OpenBao.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: autorizare-config
+data:
+  # dev or prod; config.go rejects anything else. There is NO prod overlay and
+  # verification §12 asserts that absence, so this reads `dev` in the only
+  # overlay that exists.
+  ENVIRONMENT: "dev"
+
+  # The control-plane tenant whose applications serve the directory's
+  # organisations (doc 21 §3.1). Every organisation created through the
+  # directory is attached to it (`served_by`), which is what admits its tuples
+  # into that tenant's mirrors. REQUIRED: config.go refuses an empty value.
+  DIRECTORY_TENANT: "WLSLUG"
+
+  # The estate's own organisation: its programs named in the catalog are let into
+  # every other organisation (docs/autorizare/07 "An application's program"). The
+  # same id the estate's organisation declaration names. Set by the estate's layer
+  # (components/estate/autorizare). REQUIRED: config.go refuses this empty value,
+  # so a piece rendered without the estate's layer fails loud.
+  ESTATE_ORG_ID: ""
+
+  # The platform object every platform tuple of the estate is written on (@rule AUTZ-3):
+  # platform:<ESTATE_SLUG>, from the whitelabel component (overlay replacements), so the
+  # first estate keeps the id its tuples already carry. REQUIRED: config.go defaults nothing.
+  PLATFORM_OBJECT: "platform:WLSLUG"
+
+  # The reserved domain the estate's test robots sign in under, <ESTATE_SLUG>.invalid
+  # (overlay replacements): the e2e-* commands seed and retire only e2e-…@<it>.
+  E2E_ROBOT_DOMAIN: "WLSLUG.invalid"
+
+  # What the estate's robots stand in an organisation with (`autorizared e2e-org`): the type
+  # of an organisation's company, the right a robot holds in ONE of them, and the
+  # organisation roles of the two-person suites' colleague (comma-separated). The estate's
+  # own types and relations, so set by its layer (components/estate/autorizare). e2e-org
+  # refuses while any is empty, naming it; the service itself does not read them.
+  E2E_COMPANY_TYPE: ""
+  E2E_COMPANY_RELATION: ""
+  E2E_COLLEAGUE_ROLES: ""
+
+  # The estate's base domain: the estate search answers across
+  # exactly the five https://<app>.<domain> origins. Filled from the whitelabel
+  # BASE_DOMAIN by the overlay — never typed. REQUIRED.
+  ESTATE_DOMAIN: "WLDOMAIN"
+
+  # The estate's console brand — its declaration (estate.config.json), theme (estate.css) and
+  # icons — read at start-up, never built into the image (internal/api/console_brand.go). The
+  # directory the Deployment mounts from the estate's `estate-brand` ConfigMap, which its layer
+  # generates (components/estate/autorizare). The service refuses to start, naming the file,
+  # when anything is missing.
+  ESTATE_BRAND_DIR: "/estate-brand"
+
+  # The estate's changelog service, in the cluster (gitops/services/changelog).
+  # The bar's changelog bell in every estate application is served through this
+  # service, which alone holds the changelog's key. REQUIRED.
+  CHANGELOG_URL: "http://changelog.changelog.svc.cluster.local"
+  # The estate's Talk translator, in-cluster: the break-glass page must not
+  # depend on Traefik, DNS or a public certificate (D1, PA3).
+  NOTIFY_URL: "http://talk-webhook.nextcloud.svc"
+  # @rule NOTIF-1, NOTIF-7 — our Novu, in-cluster, and as a person's browser reaches it.
+  NOVU_API_URL: "http://novu-api.novu.svc.cluster.local:3000"
+  NOVU_PUBLIC_API_URL: "https://novu-api.WLDOMAIN"
+  NOVU_PUBLIC_WS_URL: "https://novu-ws.WLDOMAIN"
+
+  # ── The data plane, ADMIN port ───────────────────────────────────────────
+  #
+  # @rule OPS-2 — the admin Service, not the app-facing one. config.go REFUSES to
+  # start if this string contains `:8081`, because pointing the control plane at
+  # the read-only port makes every write fail with a 403 from the filter, which
+  # reads as a permissions bug and is a configuration error.
+  #
+  # Fully qualified: openfga lives in its own namespace and a bare name would
+  # resolve only from within it. http, not https — this hop is in-cluster and
+  # OpenFGA serves plaintext here; config.go's https requirement applies to the
+  # four browser/API URLs below, not to this one.
+  OPENFGA_ADMIN_URL: "http://openfga-admin.openfga.svc.cluster.local:8080"
+
+  # ── Identity ─────────────────────────────────────────────────────────────
+  #
+  # The console (Polaris) signs in through the SIGN-IN HUB (D23, G1): Polaris →
+  # id.<apex> → the one Authentik (password + TOTP) → back. Entry and tenants
+  # come from OpenFGA's console_member (D31), imported by `autorizared
+  # console-access apply` and proven equal by `verify` before this was flipped.
+  #
+  # The issuer is the hub's: NO trailing slash, because the hub publishes none
+  # and config.go requires the two to match for CONSOLE_IDENTITY=hub (an
+  # Authentik issuer, by contrast, must END in `/`). The apex comes from the
+  # whitelabel component (the overlay's replacements). It moves WITH the hub's
+  # host, in the same change, or every console sign-in is refused.
+  #
+  # There is no way back to signing in against an Authentik directly: the
+  # business Authentik that path used was deleted on 2026-10-25
+  # (docs/autorizare/18-sso-authentik-unic.md, row 11).
+  CONSOLE_IDENTITY: "hub"
+  OIDC_ISSUER_URL: "https://id.WLDOMAIN"
+
+  # Must byte-match a redirect URI registered on that provider. A mismatch fails
+  # at the very END of the flow, after the person has authenticated and satisfied
+  # MFA — the most expensive possible moment to discover a typo.
+  OIDC_REDIRECT_URL: "https://autorizare.example.invalid/v1/auth/oidc/callback"
+
+  # Authentik's admin API, used to provision client-credentials providers
+  # (decision D12). https, as config.go requires for every non-loopback URL.
+  #
+  # The HOST ONLY — no /api/v3 on the end. Every path the client builds carries
+  # its own prefix, so a base ending in /api/v3/ produces /api/v3/api/v3/… and
+  # Authentik answers 404 with an HTML page. That reads as "the endpoint is
+  # gone" rather than "the base URL is doubled", and it surfaces at BOOT, after
+  # OIDC discovery has already succeeded — so everything upstream looks correct.
+  # The sign-in library's Authentik client says so.
+  #
+  # THE MERGED INSTANCE (the one Authentik, `auth.dev.<apex>` alias form), where
+  # every credential is now ISSUED. The apex comes from the whitelabel component
+  # (overlay replacements) — nothing here types it.
+  AUTHENTIK_API_URL: "https://auth.WLDOMAIN"
+
+  # The policy that keeps people out of every machine credential this service
+  # issues (@rule MACH-10), declared as `WLSLUG-business-machine-credential-only`
+  # in gitops/platform/authentik/blueprints-machine-credentials.yaml. The slug is
+  # the estate's (overlay replacements, from ESTATE_SLUG), so the name moves with
+  # the blueprint's. REQUIRED: the client defaults nothing.
+  AUTHENTIK_MACHINE_CREDENTIAL_POLICY: "WLSLUG-business-machine-credential-only"
+
+  # Where a completed sign-in sends the browser. The console is served by this
+  # same service (no BFF, decision D16), so this is its OWN host — unlike
+  # a service whose APP_URL points at a separate SPA. The host is the console
+  # Ingress's (kustomization.yaml replacements).
+  APP_URL: "https://autorizare.example.invalid"

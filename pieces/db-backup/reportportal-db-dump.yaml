@@ -1,0 +1,130 @@
+# ReportPortal Postgres logical backup — 6-hourly `pg_dump` → Hetzner Object
+# Storage. Same rationale and shape as plane-db-dump.yaml / nextcloud-db-dump.yaml,
+# and the SECOND of ReportPortal's two DB backup layers:
+#   - CNPG's barman WAL archive (pieces/reportportal-platform/base/cnpg-cluster.yaml) gives
+#     PITR with minutes of RPO, but restoring it needs the CNPG operator and a
+#     matching Postgres major version — i.e. it is useless in exactly the disaster
+#     where the cluster itself is what broke.
+#   - THIS gives a plain .sql.gz that restores anywhere with psql.
+#
+# WHAT IS LOST WITHOUT IT: every launch, test item, log line, dashboard, widget,
+# project, user and API key ReportPortal has ever held. The attachments in
+# <BUCKET_PREFIX>-reportportal-dev would survive as unreachable rubble — their object keys and
+# their ownership exist only in this database. The OpenSearch index is the one part
+# that is NOT lost, because it is derived: RP can re-generate it from Postgres.
+#
+# Runs IN the reportportal namespace to read the ESO-synced app-role password
+# (reportportal-db-app) and connects to the CNPG read/write Service, which always
+# points at the current primary. Image is postgres:17-alpine because the CNPG
+# cluster runs PG 17 (pg_dump must be >= the server version).
+# Storage: s3://<BUCKET_PREFIX>-tfstate-<env>/db-dumps/reportportal/.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reportportal-db-dump
+  namespace: reportportal
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # :20 — an UNUSED slot. Taken already: velero :00, the nextcloud dump :05, the
+  # plane dump :10, harbor :15, openbao :30, authentik :45, and the CNPG base
+  # backups on Sunday (02:20 nextcloud-db, 02:40 plane-db, 02:55 reportportal-db).
+  # Nothing else fires at :20 on the 6-hourly cadence.
+  schedule: "20 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  # One failed run is kept for diagnosis, and every finished run is removed
+  # 12h (two schedule windows) after it ends: a failure from days ago left
+  # db-backup Degraded long after the next runs completed, masking whatever
+  # failed next. Freshness is doctor.sh's to judge ("logical DB dumps"): it
+  # fails when a CronJob has not COMPLETED within its window.
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 2
+      # Longer than plane's 900s: ReportPortal's log table is the biggest thing on
+      # this platform by row count and a dump of a busy quarter is not instant.
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels: { app: reportportal-db-dump }
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            # uid/gid 70 = the `postgres` user in the alpine postgres image.
+            runAsNonRoot: true
+            runAsUser: 70
+            fsGroup: 70
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          initContainers:
+            - name: dump
+              image: WLREGISTRY/mirror/docker.io/library/postgres:17-alpine@sha256:e4cb93687b062cd25a0e8f672d85a7708235009d70d31f8a7698d9370092a9c4
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              env:
+                # The `reportportal` role OWNS the `reportportal` database
+                # (bootstrap.initdb.owner), so a single-DB dump as the owner needs
+                # no superuser — the same call the other three dumps make.
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: reportportal-db-app, key: password } }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: "1", memory: 512Mi }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  echo "pg_dump reportportal (db=reportportal, user=reportportal) → /work/reportportal.sql.gz"
+                  pg_dump -h reportportal-db-rw -p 5432 -U reportportal -d reportportal | gzip -c > /work/reportportal.sql.gz
+                  ls -l /work/reportportal.sql.gz
+                  sz=$(wc -c < /work/reportportal.sql.gz); [ "$sz" -gt 1000 ] || { echo "FATAL: reportportal dump too small ($sz bytes) — connection/auth failed" >&2; exit 1; }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          containers:
+            - name: upload
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: reportportal-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: reportportal-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: db-dumps/reportportal }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT=/work/reportportal.sql.gz
+                  test -s "$OUT" || { echo "FATAL: dump missing/empty (initContainer failed)" >&2; exit 1; }
+                  export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+                  export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+                  KEY="${PREFIX}/reportportal-${TS}.sql.gz"
+                  echo "Uploading → s3://${BUCKET}/${KEY}"
+                  aws s3 cp "$OUT" "s3://${BUCKET}/${KEY}" --endpoint-url "$AWS_ENDPOINT_URL"
+                  echo "DB dump uploaded: s3://${BUCKET}/${KEY}"
+                  KEEP=20
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | awk '{print $4}' | grep -E '^reportportal-.*\.sql\.gz$' | sort -r | tail -n +$((KEEP + 1)) \
+                    | while read -r f; do aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}" --endpoint-url "$AWS_ENDPOINT_URL"; done || true

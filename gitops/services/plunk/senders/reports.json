@@ -1,0 +1,19 @@
+{
+  "_doc": "ReportPortal (reports.<apex>): invitations, password resets, launch reports. Takes SMTP only: reportportal-email-reconcile writes the relay (plunk-smtp.<apex>:587, user plunk, this sender's key and address from email-sender) into ReportPortal's email integration.",
+  "version": 1,
+  "key": "reports",
+  "name": "ReportPortal — teste",
+  "subdomain": "reports",
+  "receive": false,
+  "sender": {
+    "local": "noreply",
+    "name": "ReportPortal"
+  },
+  "consumer": {
+    "service": "reportportal",
+    "namespace": "reportportal",
+    "openbao": "secret/apps/reportportal/plunk",
+    "wire": true
+  },
+  "novu": null
+}

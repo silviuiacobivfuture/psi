@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - harbor-pull-externalsecret.yaml
+  - cnpg-cluster.yaml
+  - externalsecret.yaml
+  # The six non-secret settings config.go requires. Listed before the Deployment
+  # that envFroms it, because a reader following the file order meets the values
+  # before the container that consumes them.
+  - configmap.yaml
+  - deployment.yaml
+  # The sign-in hub (D23): its own Deployment, Service, Ingress and secrets.
+  - hub-externalsecret.yaml
+  - hub.yaml
+  - service.yaml
+  - ingress.yaml
+  - resourcequota.yaml

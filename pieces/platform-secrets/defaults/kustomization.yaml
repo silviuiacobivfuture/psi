@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The piece's defaults an estate may override. Listed in ../kustomization.yaml after the
+# whitelabel component (the identity ConfigMap these read) and before the estate's component,
+# so an estate's patch is applied after these and wins.
+#   AUTHENTIK_EMAIL__FROM: the platform sender's address, noreply@<MAIL_DOMAIN>. An estate whose
+#   `platform` sender declaration carries a display name writes the full From in its component
+#   (doctor's lib-email-relay.sh compares the live value with the declaration).
+#   REGISTRY_HOST of the housekeeping CronJobs: the registry whose repositories
+#   harbor-housekeeping.sh keeps (it requires it).
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_DOMAIN }
+    targets:
+      - select: { kind: ExternalSecret, name: authentik-email }
+        fieldPaths:
+          - spec.target.template.data.AUTHENTIK_EMAIL__FROM
+        options: { delimiter: "@", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST }
+    targets:
+      - select: { kind: CronJob, name: harbor-housekeeping-reconcile }
+        fieldPaths: ["spec.jobTemplate.spec.template.spec.containers.[name=reconcile].env.[name=REGISTRY_HOST].value"]
+      - select: { kind: CronJob, name: harbor-housekeeping-run-now }
+        fieldPaths: ["spec.jobTemplate.spec.template.spec.containers.[name=run-now].env.[name=REGISTRY_HOST].value"]

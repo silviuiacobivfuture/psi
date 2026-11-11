@@ -1,0 +1,41 @@
+# Headlamp OIDC client creds → headlamp-oidc secret in the headlamp namespace,
+# consumed by the Headlamp deployment's native OIDC config (pieces/headlamp/
+# values.yaml: config.oidc.externalSecret → envFrom secretRef). Source:
+# OpenBao secret/platform/authentik/headlamp-oidc — the SAME deterministic client
+# the Authentik blueprint provisions (blueprints-providers.yaml headlamp provider)
+# and that the kube-apiserver trusts as its oidc-client-id. Never in git.
+#
+# The Headlamp chart's externalSecret mode does `envFrom: secretRef`, loading ALL
+# secret keys as env vars — so this secret must carry the OIDC_* env-var KEYS the
+# Headlamp backend reads (OIDC_CLIENT_ID/OIDC_CLIENT_SECRET/OIDC_ISSUER_URL/
+# OIDC_SCOPES), not raw client_id/client_secret. We template them here: client_id
+# + client_secret from OpenBao; issuer + scopes are non-secret constants pinned to
+# the Authentik headlamp provider (single source of truth alongside the creds).
+# `groups` scope is what carries the RBAC group claim → apiserver RBAC.
+#
+# Mirrors pieces/platform-secrets/harbor-oidc.yaml (same OpenBao key, same store).
+# Until the OpenBao entry is seeded the creds sync empty → Headlamp OIDC login
+# won't work yet, but nothing else breaks (additive).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: headlamp-oidc
+  namespace: headlamp
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: headlamp-oidc
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      data:
+        OIDC_CLIENT_ID: "{{ .client_id }}"
+        OIDC_CLIENT_SECRET: "{{ .client_secret }}"
+        OIDC_ISSUER_URL: "https://AUTHENTIK_HOST/application/o/headlamp/" # host from the identity (kustomization.yaml)
+        OIDC_SCOPES: "openid,profile,email,groups"
+  data:
+    - secretKey: client_id
+      remoteRef: { key: platform/authentik/headlamp-oidc, property: client_id }
+    - secretKey: client_secret
+      remoteRef: { key: platform/authentik/headlamp-oidc, property: client_secret }

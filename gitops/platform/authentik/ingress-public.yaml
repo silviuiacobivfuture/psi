@@ -1,0 +1,44 @@
+# Public HTTPS endpoint for Authentik at auth.recomex.eu — Traefik + a real
+# Let's Encrypt cert (same pattern as WLREGISTRY).
+#
+# WHY public: Authentik is an IdP. In-cluster app SERVERS (Argo/Harbor/OpenBao)
+# must reach it to fetch OIDC discovery + JWKS — they can't resolve or trust the
+# tailnet-only host (CoreDNS doesn't know *.ts.net; the in-cluster svc has only a
+# self-signed cert). A public host with public DNS + a real cert makes native
+# OIDC "just work" for both in-cluster servers AND browsers. Only Authentik's
+# login endpoint is exposed (GitHub-gated); the dashboards stay tailnet-only.
+#
+# The OIDC providers use this host as the issuer base
+# (https://auth.recomex.eu/application/o/<slug>/). The tailnet ingress
+# (ingress-tailscale.yaml) stays for direct admin UI access.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: authentik-public
+  namespace: authentik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # System Hub tile → "Platform": the identity provider behind every gate.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Authentik"
+    gethomepage.dev/description: "Identity — single sign-on, groups and the forward-auth gates"
+    gethomepage.dev/group: "Platform"
+    gethomepage.dev/icon: "authentik.png"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=authentik,app.kubernetes.io/component=server"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - WLAUTHHOST
+      secretName: authentik-public-tls
+  rules:
+    - host: WLAUTHHOST
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: authentik-server
+                port:
+                  number: 80

@@ -1,0 +1,39 @@
+# Authentik Blueprint ConfigMap — EMBEDDED OUTPOST host pin (config-as-code).
+# Mounted at /blueprints/mounted/, reconciled by the worker on boot.
+#
+# WHY: authentik's tailnet host (authentik.tailf6f2e6.ts.net) was decommissioned in
+# fe38c4b — authentik is now PUBLIC-only at auth.recomex.eu. But the embedded
+# outpost's `authentik_host` / `authentik_host_browser` were DB-managed and still
+# pointed at the dead tailnet host, so every gated-dashboard login 302'd the browser
+# to authentik.tailf6f2e6.ts.net/application/o/authorize/ → DNS_PROBE / "can't be
+# reached" (the 2026-06-19 outage). Fixed live in the admin UI; this blueprint PINS
+# it so a rebuild/reseed can never resurrect the dead host again.
+#
+# Only `config` is set (a JSONField → replaced wholesale). `type` and the `providers`
+# M2M are intentionally NOT in attrs, so the proxy-provider bindings created by
+# blueprints-providers.yaml stay intact.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-outpost
+  namespace: authentik
+data:
+  embedded-outpost.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-embedded-outpost-host
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      - model: authentik_outposts.outpost
+        identifiers:
+          name: authentik Embedded Outpost
+        attrs:
+          config:
+            # The load-bearing fix: the host the outpost redirects the BROWSER to.
+            authentik_host: https://WLAUTHHOST
+            authentik_host_browser: https://WLAUTHHOST
+            authentik_host_insecure: false
+            log_level: info
+            error_reporting: false
+            object_naming_template: ak-outpost-%(name)s

@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the argocd-config piece. SEB adds nothing: this is the default.
+# An estate supplies its own directory of the same name to the bundle builder
+# (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
+# replaces this one in the build workdir. What belongs there (the sample is
+# examples/lumen/seb-components/argocd-config): patches giving argocd-cm its `url`,
+# `additionalUrls` and `oidc.config` (the estate's Argo and Authentik hosts), the Ingress
+# argocd-tailnet its `gethomepage.dev/href`, and argocd-notifications-cm the
+# `trigger.on-deployed` naming the estate's own apps. The headscale and sign-in tooling read
+# the argocd-cm patch (argocd-cm.yaml) through tools/bundle/estate-components.mjs `dir`.
+resources: []

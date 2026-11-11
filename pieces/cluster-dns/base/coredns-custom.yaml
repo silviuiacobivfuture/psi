@@ -1,0 +1,31 @@
+# In-cluster names that must resolve to a Service, not to the public estate
+# wildcard. k3s's CoreDNS imports every `*.override` key of this ConfigMap INSIDE
+# its `.:53` server block (/etc/coredns/custom/*.override; the mount is optional,
+# so the ConfigMap may be absent) and reloads it by itself (the `reload` plugin).
+#
+# plunk-smtp.<apex> → Plunk's SMTP relay (pieces/plunk/base/plunk.yaml,
+# Service plunk-smtp). Every product that speaks only SMTP — Authentik, Plane,
+# Nextcloud, ReportPortal — connects to THIS name with STARTTLS and verifies the
+# relay's certificate (cert-manager, DNS-01, dnsNames [plunk-smtp.<apex>]) the way
+# its own mail library does: Django's backend (Authentik, Plane) uses
+# ssl.create_default_context(), i.e. hostname and chain checked, with no setting
+# to give it another name to check. The Service's own name
+# (plunk-smtp.plunk.svc.cluster.local) can never be on a public certificate, so
+# without this rewrite the choice is a failed handshake or a disabled check.
+# Publicly the name falls to the estate wildcard (the ingress, which has no 587):
+# a pod outside this cluster that tried it fails loudly, never sends elsewhere.
+#
+# `answer auto` rewrites the answer's owner name back to the asked name, so a
+# resolver that checks the answer against its question accepts it. PROVEN on
+# CoreDNS 1.12.1 (2026-10-29): A plunk-smtp.<apex> answered with the Service
+# address under the name asked, NOERROR.
+#
+# Checked by doctor.sh layer "e-mail consumers (Plunk relay)" (lib-email-relay.sh).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  plunk-smtp.override: |
+    rewrite stop name exact plunk-smtp.WLDOMAIN plunk-smtp.plunk.svc.cluster.local answer auto

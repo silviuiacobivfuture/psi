@@ -1,0 +1,212 @@
+# test-reports-weekly-digest — ONE message a week into #tests saying whether the
+# business rules still hold across every app that reports here.
+#
+# Phase 4 of infrastructure/hetzner/TEST-VISIBILITY-PLAN.md. Modelled on
+# pieces/health-digest (the daily #infra heartbeat) — read that file for
+# the reasoning this one inherits wholesale:
+#   * A GREEN DIGEST IS POSTED ANYWAY. Every other sender on #tests is
+#     silent-when-healthy (the CI notify job only fires on failure), so nothing
+#     would ever reveal that the whole chain had stopped working. A Monday with no
+#     message is itself the alarm. That only works if a healthy Monday HAS one.
+#   * NEVER REPORT GREEN OFF A FAILED LOOKUP. If /digest cannot be fetched, this
+#     job says so explicitly and exits 0 — it never posts an all-clear it did not
+#     compute.
+#
+# WHY IT HOLDS NO LOGIC. All of it — scanning a year of stored runs, comparing
+# against a week ago, agreeing Romanian nouns with counts — lives in
+# base/app/digest.py, where the offline harness (selftest/run.sh) exercises the
+# REAL text against REAL stored runs with no cluster and no Talk. This job is
+# therefore a two-hop pipe: GET the pre-rendered notification body from the service
+# over its ClusterIP, POST it to the talk-webhook translator. Shell is the worst
+# possible place for that computation and this is the seam that keeps it out.
+#
+# THE NOTIFICATION PRINCIPLE: a summary and a LINK, never the payload. /digest
+# returns counts, movement and the page URL. No rule title, no failure message, no
+# stack trace ever reaches the chat room.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: test-reports-weekly-digest
+  annotations:
+    # Keyed alerts.<ESTATE_LABEL_DOMAIN>/owner at render (components/alert-owner); value OPS_EMAIL.
+    alerts/owner: ops@WLDOMAIN
+spec:
+  # 07:23 UTC Monday. Monday because the digest's whole subject is "what happened
+  # last week"; 07:23 is an off-minute AND deliberately after the 06:17 #infra
+  # health digest, so the two never contend and a reader gets platform health
+  # first, product health second.
+  schedule: "23 7 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  # A missed window (node down at 07:23) still fires when the scheduler catches up
+  # within 10 minutes, rather than skipping the week silently.
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      # One retry: a single blip should not cost the week's message, but a real
+      # failure must not grind — it is visible as a failed Job AND as a missing
+      # Monday message, which is the louder of the two.
+      backoffLimit: 1
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          labels: { app: test-reports-weekly-digest }
+        spec:
+          restartPolicy: Never
+          # No ServiceAccount permissions of any kind are needed: this job talks to
+          # two ClusterIPs over HTTP and never to the API server. It therefore does
+          # NOT get a ServiceAccount of its own — `default` with its token still
+          # automounted would be more access than it needs.
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            # The "no silent deaths" rule (infrastructure/hetzner/CLAUDE.md): assert
+            # the bearer is present AND NON-EMPTY before the job does anything. ESO
+            # can sync a present-but-EMPTY field, which is why `-n` and not merely
+            # presence — otherwise this job would compute a perfect digest, post it
+            # with a blank token, take a 401 and report nothing.
+            - name: assert-secrets
+              image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  [ -n "${NOTIFY_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: token (Secret talk-webhook-token, key token, ns test-reports)"; exit 1; }
+                  echo "required secrets present"
+              env:
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 64Mi }
+          containers:
+            - name: digest
+              # curl only — no kubectl, no shell scripting of the report. Pinned
+              # (disallow-latest-tag is ENFORCE); the `-alpine` variant ships
+              # /bin/sh, which the plain `curlimages/curl` scratch layers do not.
+              image: WLREGISTRY/mirror/docker.io/curlimages/curl:8.11.1@sha256:ce8e655b562cf387752de7d2076ec3f81a4383c908f386b6724ec3571ce08b4a
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { cpu: 200m, memory: 128Mi }
+              env:
+                # IN-CLUSTER addresses for BOTH hops. Neither Traefik, nor public
+                # DNS, nor the certificate is in the path — the digest must still be
+                # deliverable when one of those is the thing that broke. (The link
+                # INSIDE the message is of course the public URL; that comes from
+                # the service's own PUBLIC_URL, not from here.)
+                - { name: REPORT_URL, value: "http://test-reports.test-reports.svc/digest" }
+                - { name: NOTIFY_URL, value: "http://talk-webhook.nextcloud.svc" }
+                - { name: NOTIFY_CHANNEL, value: "tests" }
+                # Send-only bearer: the translator holds the Talk signing key, so
+                # this pod can post a message and nothing else. NO Reloader
+                # annotation — a CronJob starts a fresh pod per run and therefore
+                # always reads the current value (the annotation is for long-lived
+                # processes that read env once at start).
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  umask 077
+                  W=/tmp
+                  trap 'rm -f "$W/hdr.notify" "$W/digest.json"' EXIT
+
+                  # Header FILE, then the bearer is dropped from the environment:
+                  # curl reads it with -H @file so the token never reaches argv,
+                  # where `ps` inside this container would see it. Same discipline
+                  # as gitops/platform/health-digest.
+                  printf 'X-Notify-Token: %s\n' "$NOTIFY_TOKEN" > "$W/hdr.notify"
+                  unset NOTIFY_TOKEN
+
+                  # --- hop 1: the pre-rendered notification body -----------------
+                  # `-f` so an HTTP error is a FAILED fetch, not a body containing
+                  # an error page that would then be posted as if it were a digest.
+                  if ! curl -sSf --max-time 30 -o "$W/digest.json" "$REPORT_URL"; then
+                    echo "WARN could not fetch $REPORT_URL — NO digest posted this week." >&2
+                    echo "     check: kubectl -n test-reports get deploy test-reports" >&2
+                    # Exit 0 deliberately: a missing Monday message IS the signal
+                    # (see the header). A failed Job would ALSO fire the Axiom
+                    # cronjob-failed monitor into #infra, which is the wrong room
+                    # and the wrong severity for "the test page was briefly down".
+                    exit 0
+                  fi
+
+                  # Log the body: OTel ships this container's stdout to Axiom, so
+                  # the exact digest is recoverable even if Talk never got it.
+                  echo "--- digest body ---"
+                  cat "$W/digest.json"
+                  echo
+
+                  # --- hop 2: post it -------------------------------------------
+                  CODE="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' \
+                    -X POST -H @"$W/hdr.notify" -H 'Content-Type: application/json' \
+                    -d @"$W/digest.json" "$NOTIFY_URL/notify/$NOTIFY_CHANNEL" || true)"
+                  case "$CODE" in
+                    200) echo "posted the weekly digest to #$NOTIFY_CHANNEL" ;;
+                    401) echo "WARN #$NOTIFY_CHANNEL rejected the token (HTTP 401) — digest is LOG-ONLY. Check: kubectl -n test-reports get externalsecret talk-webhook-token" >&2 ;;
+                    *)   echo "WARN could not reach $NOTIFY_URL (HTTP $CODE) — digest is LOG-ONLY. Check: kubectl -n nextcloud get deploy talk-webhook" >&2 ;;
+                  esac
+
+                  # ALWAYS exit 0. Failing rules are the PRODUCT of this job, not a
+                  # job failure; and a Talk outage is not one either. Exiting
+                  # non-zero would make the Axiom cronjob-failed monitor fire on
+                  # every imperfect week and make a genuinely dead digest
+                  # indistinguishable from a normal one.
+                  exit 0
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            # readOnlyRootFilesystem is on, so the header file and the fetched body
+            # need somewhere writable. emptyDir, never the PVC: this job must not be
+            # able to touch the history it reports on.
+            - name: tmp
+              emptyDir: {}
+---
+# The send-only talk-webhook bearer, mirrored into THIS namespace — ESO cannot copy
+# a Secret across namespaces, which is why health-digest carries its own copy too.
+# Same OpenBao path as every other copy, so one rotation reaches all of them.
+#
+# Explicit `data[]` rather than `dataFrom.extract`: a key missing in OpenBao makes
+# this go SecretSyncedError (loud, visible in `kubectl get externalsecret -A`)
+# instead of syncing an empty token that would 401 in silence every Monday. See
+# gitops/services/APP-SECRETS.md.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: talk-webhook-token
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: talk-webhook-token
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: platform/talk/webhook
+        property: token

@@ -1,0 +1,93 @@
+image:
+  registry: ${REGISTRY_HOST}
+  repository: ${REGISTRY_PROJECT_MIRROR}/ghcr.io/headlamp-k8s/headlamp
+  tag: "v0.42.0@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121"
+# Reloader auto-restarts this Deployment when the ESO-synced headlamp-oidc
+# Secret changes (OpenBao -> ESO -> Secret -> roll). REQUIRED: the chart injects
+# OIDC_CLIENT_ID/SECRET/ISSUER_URL/SCOPES as ENV VARS via envFrom secretRef
+# (config.oidc.externalSecret above), and env is read once at startup — without
+# this, rotating the Authentik client secret would leave Headlamp on the old
+# value with no error. Enforced by the require-reloader-annotation Kyverno
+# policy. Chart key VERIFIED against headlamp 0.42.0
+# templates/deployment.yaml:67 — `deploymentAnnotations` lands on the
+# Deployment's own metadata, which is where Reloader reads the annotation
+# (`podAnnotations` would put it on the pod template, where Reloader ignores it).
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
+# inCluster = cluster CONNECTIVITY only (API endpoint + CA). The presented
+# credential is the user's OIDC id_token (native OIDC below), not the SA.
+config:
+  inCluster: true
+  # Native OIDC: login flows through Authentik; the user's id_token is the
+  # cluster token. Non-secret bits (issuer, scopes) + the client id/secret
+  # all arrive via the externalSecret (envFrom secretRef) so there is a
+  # single source of truth and NO secret in git.
+  oidc:
+    secret:
+      create: false
+    externalSecret:
+      enabled: true
+      name: headlamp-oidc
+# Keep an unprivileged pod ServiceAccount, but do NOT bind it to
+# cluster-admin — authorization is the user's OIDC token via apiserver RBAC.
+serviceAccount:
+  create: true
+clusterRoleBinding:
+  create: false
+service:
+  type: ClusterIP
+  port: 80
+# Chart's own ingress OFF — exposed tailnet-only via extraManifests below.
+ingress:
+  enabled: false
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { cpu: 500m, memory: 512Mi }
+# Container securityContext — the chart default sets runAsUser/NonRoot but NOT
+# allowPrivilegeEscalation, so the Kyverno baseline (disallow-privileged) blocks
+# the pod. This replaces the chart default with a fully restricted-compliant set
+# (the old grandfathered pod predates enforcement). `securityContext` is the
+# container key; podSecurityContext carries the pod-level seccomp.
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 100
+  runAsGroup: 101
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+# Tailscale-operator ingress (matches gitops/platform/argocd/ingress.yaml).
+# Tailscale terminates TLS and proxies to the headlamp Service :80.
+# Host = headlamp.<tailnet>.ts.net — the registered OIDC redirect host.
+extraManifests:
+  - |
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: headlamp
+      namespace: headlamp
+      annotations:
+        # Homepage hub auto-discovery → "Observability" group.
+        gethomepage.dev/enabled: "true"
+        gethomepage.dev/name: "Headlamp"
+        gethomepage.dev/description: "Kubernetes console"
+        gethomepage.dev/group: "Observability"
+        gethomepage.dev/icon: "si-kubernetes"
+        gethomepage.dev/href: "https://headlamp.${TAILNET_DOMAIN}"
+    spec:
+      ingressClassName: tailscale
+      defaultBackend:
+        service:
+          name: headlamp
+          port:
+            number: 80
+      tls:
+        - hosts:
+            - headlamp

@@ -1,0 +1,50 @@
+# The sidecar's part of the n8n namespace. A Component, so the dev overlay (and through it
+# every generated instance) adds it with one line in `components:`, after its image exists.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - sso.yaml
+  - intercept.yaml
+  - page.yaml
+  - press.yaml
+  - launch.yaml
+configMapGenerator:
+  - name: n8n-sso-mapping
+    files: [mapping.json]
+    options: { disableNameSuffixHash: true }
+# The base's replacements ran before this Component joined, so its Ingress gets the host here.
+# Without this the route answered for n8n.example.invalid, and /sso/setup fell through to
+# n8n's own sign-in, a dead end for someone with no password yet (2026-11-04).
+replacements:
+  - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.N8N_HOST }
+    targets:
+      - select: { kind: Ingress, name: n8n-sso }
+        fieldPaths:
+          - spec.rules.*.host
+          - spec.tls.*.hosts.*
+      # Host(`...`) is the rule's first string, so the second backtick field.
+      - select: { kind: IngressRoute, name: n8n-sso-intercept }
+        fieldPaths:
+          - spec.routes.0.match
+        options: { delimiter: "`", index: 1 }
+      - select: { kind: IngressRoute, name: n8n-sso-page }
+        fieldPaths:
+          - spec.routes.0.match
+        options: { delimiter: "`", index: 1 }
+      - select: { kind: IngressRoute, name: n8n-sso-press }
+        fieldPaths:
+          - spec.routes.0.match
+          - spec.routes.1.match
+        options: { delimiter: "`", index: 1 }
+      # Where Authentik's launch address goes: the host is the third "/" field of the address.
+      - select: { kind: Middleware, name: n8n-sso-launch }
+        fieldPaths:
+          - spec.redirectRegex.replacement
+        options: { delimiter: "/", index: 2 }
+  # Authentik's own host, where that launch address lives (launch.yaml).
+  - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.AUTHENTIK_HOST }
+    targets:
+      - select: { kind: IngressRoute, name: n8n-sso-launch }
+        fieldPaths:
+          - spec.routes.0.match
+        options: { delimiter: "`", index: 1 }

@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Argo CD's own per-resource guard on everything that HOLDS DATA: every
+# PersistentVolumeClaim and every CloudNativePG Cluster the composing kustomization renders.
+#
+#   Prune=false   a render that stops producing the object leaves it alone (the app
+#                 shows OutOfSync, "requires pruning") instead of deleting it.
+#   Delete=false  deleting the Application leaves it alone too.
+#
+# WHY: an estate's Applications run `automated.prune: true`, and a PV provisioned with
+# `reclaimPolicy: Delete` dies with its claim. One render that drops a PVC (a renamed base,
+# a lost component, a switch to a source that names it differently) deletes the volume and
+# its data on the next reconcile; dropping a Cluster deletes its instance PVCs through
+# CNPG's owner references. `helm.sh/resource-policy: keep` is a Helm annotation and stops
+# none of that. Removing such an object on purpose becomes a deliberate act: delete it by
+# hand after the render has dropped it.
+#
+# Changing only metadata.annotations of a PVC or Cluster touches neither the volume nor
+# the database: no resize, no rollout, no new instance.
+#
+# Composed by every piece that renders a PVC or a Cluster; the gate
+# .github/scripts/tests/prune-guard_test.sh renders every piece and refuses one without the
+# guard. A target that matches nothing is not an error.
+patches:
+  - target:
+      version: v1
+      kind: PersistentVolumeClaim
+    patch: |-
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: prune-guard
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  - target:
+      group: postgresql.cnpg.io
+      kind: Cluster
+    patch: |-
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: prune-guard
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false,Delete=false

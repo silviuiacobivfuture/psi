@@ -1,0 +1,76 @@
+# pdf.<apex> — the host is a placeholder here and written by the overlay from the
+# whitelabel component (gitops/WHITELABEL.md). cert-manager issues the Let's
+# Encrypt certificate (DNS-01); DNS is the *.<apex> wildcard.
+#
+# ONE Ingress, ALL of it gated. Unlike tests.<apex> or Plane there is no machine
+# surface to carve out: no API, no webhook, nothing a non-browser caller needs.
+# Every path — including the WebAssembly and worker files the page loads — sits
+# behind the same Authentik session cookie, which the browser sends on those
+# same-origin fetches.
+#
+# THE GATE: authentik-authentik-forwardauth → the embedded outpost. The outpost
+# matches the request's Host EXACTLY against the `pdfcraft` proxy provider (mode
+# forward_single, external_host https://pdf.<apex>) before it considers the
+# domain-wide forward-auth one, so this host is judged by the
+# pdfcraft application's own policy bindings (app-pdfcraft-user +
+# platform-admins), not by Plane's. Signed out → 302 to auth.<apex>.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pdfcraft
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "PDF Studio"
+    gethomepage.dev/description: "PDF tools in the browser — files never leave your computer"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "30"
+    gethomepage.dev/icon: "mdi-file-pdf-box"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=pdfcraft"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [pdf.example.invalid]
+      secretName: pdfcraft-tls
+  rules:
+    - host: pdf.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pdfcraft
+                port: { name: http }
+---
+# The outpost's CALLBACK on this host, with the estate's restart in front of the
+# gate: a callback the outpost refuses (state from another browser or session)
+# is answered by the sign-in restart page instead of a blank 400. Order is the
+# mechanism. Why and how: gitops/platform/authentik/sso-restart.yaml; the gate
+# .github/scripts/sso-restart.sh refuses this host without it. The backend is
+# never reached — the outpost answers the callback itself.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pdfcraft-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [pdf.example.invalid]
+      secretName: pdfcraft-tls
+  rules:
+    - host: pdf.example.invalid
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: pdfcraft
+                port: { name: http }

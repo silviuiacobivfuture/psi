@@ -1,0 +1,14 @@
+{
+	"_doc": "Authentik group → access to THIS n8n. Read apps/n8n-sso/CLAUDE.md. `access`: being in one of these is what an account here means; a person in none is removed by the reconcile, their work moved to the owner. Every group must also pass the `n8n` gate (gitops/platform/authentik/blueprints-providers.yaml), and .github/scripts/tests/n8n-sso_test.sh compares the lists. `projects`: group (Authentik pk or name) → n8n project, with an optional per-project node policy. Empty on purpose: on the Community Edition n8n refuses both calls by licence (docs/n8n/01-identity.md). A declaration here starts working, with nothing else to change, the moment the instance holds a licence that covers it. Per-group node limits on the Community Edition come from one n8n instance per group: gitops/services/n8n-instances/instances.json.",
+	"version": 1,
+	"access": ["app-n8n-admin"],
+	"neverRemove": [],
+	"maxRemovalsPerRun": 5,
+	"nodePolicies": {
+		"restricted": {
+			"defaultAction": "allow",
+			"deny": ["n8n-nodes-base.executeCommand", "n8n-nodes-base.readWriteFile"]
+		}
+	},
+	"projects": []
+}

@@ -1,0 +1,41 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      general:
+        format: json
+      access:
+        enabled: true
+        format: json
+        fields:
+          defaultmode: keep
+          headers:
+            defaultmode: drop
+    # Plain http forwards to https for every host. Without it a browser that
+    # tries http first (a typed address with no scheme) got Traefik's
+    # "404 page not found", on new and old hosts alike (2026-10-23).
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      # The tailnet's private entrypoint (docs/headscale/00-plan.md). `expose.default: false`
+      # keeps it off the LoadBalancer Service, so off the nodes' public addresses: rendered with
+      # the live chart 39.0.701 on 2026-11-03, the Service holds web and websecure only. Reached
+      # through kube-system/traefik-tailnet. CHANGING THIS RESTARTS TRAEFIK: seconds, in a window.
+      tailnet:
+        port: 8444
+        expose:
+          default: false
+        exposedPort: 8444
+        protocol: TCP
+        http:
+          tls:
+            enabled: true

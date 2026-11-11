@@ -1,0 +1,15 @@
+# Expose the k8s API server over Tailscale (kubectl via tailnet).
+apiServerProxyConfig:
+  mode: "true"
+# A changed value here restarts the operator pod. 2026-10-29: after the
+# apiserver plan (oidc-authentik-v2) restarted the control plane, the
+# operator's device left the tailnet and every workstation lost kube
+# access (the public :22/:6443 path is closed by design). Bumping this
+# is the as-code restart; RUNBOOK 2026-10-29.
+operatorConfig:
+  podAnnotations:
+    ${BASE_DOMAIN}/restarted: "2026-10-29T13-30"
+# OAuth read from the pre-created operator-oauth secret.
+oauth:
+  clientId: ""
+  clientSecret: ""

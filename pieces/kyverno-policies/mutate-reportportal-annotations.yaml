@@ -1,0 +1,142 @@
+# Inject the two OPERATIONAL annotations onto ReportPortal's chart-rendered
+# workloads, and the pod securityContext onto its pre-upgrade hook Job — the three
+# things chart 26.8.12 has no seam for.
+#
+# WHY THIS EXISTS (verified by rendering the chart, not assumed)
+# --------------------------------------------------------------
+# `helm template reportportal/reportportal --version 26.8.12` with this repo's
+# values produces five Deployments, two StatefulSets and two Jobs whose
+# `metadata.annotations` is EMPTY on every one of them. The chart exposes
+# `podAnnotations` only — which lands on `spec.template.metadata.annotations`, the
+# wrong object for both consumers:
+#   * Stakater Reloader reads the PARENT workload's annotations. An annotation on
+#     the pod template is silently ignored (this is the exact HARD RULE in
+#     infrastructure/hetzner/CLAUDE.md, "Env-injected secrets MUST carry the
+#     Reloader annotation").
+#   * `require-alert-annotation` matches Deployment/StatefulSet/CronJob metadata.
+# The one exception is the OpenSearch subchart, which DOES have a seam
+# (`openSearchAnnotations` lands on the StatefulSet's own metadata) and therefore
+# carries `alerts.<ESTATE_LABEL_DOMAIN>/owner` from values — it is deliberately NOT handled
+# here. Only the workloads with no seam at all are.
+#
+# WHY A MUTATE AND NOT A NAMESPACE EXCLUSION
+# ------------------------------------------
+# Same reasoning as mutate-plane-migrator-resources.yaml, which is the precedent
+# this follows. Excluding `reportportal` from `require-reloader-annotation` would
+# not merely silence the policy — it would leave the hole the policy exists to
+# close WIDE OPEN. Four of these workloads inject a Secret as env (the Postgres
+# password, the AMQP password, the S3 keys), and env is read ONCE at process start:
+# a rotation in OpenBao would reach the k8s Secret, and ReportPortal would keep
+# authenticating with the old value forever, with nothing reporting an error. The
+# mutation ACTUALLY FIXES that — Reloader reads the live object, which carries the
+# annotation this policy adds — where an exclusion would only hide it.
+#
+# The CLAUDE.md line "validate, NOT mutate" governs how the CLUSTER-WIDE reloader
+# GUARD is implemented: turning that policy into an auto-fixer would mean nothing
+# ever declares its intent. This is the opposite shape — a namespace-scoped
+# supplement whose values are declared right here, in git, for one chart that has
+# no seam. Nothing about it is invisible.
+#
+# ARGO DRIFT, and how it is handled: a mutated annotation exists on the live object
+# and not in the chart's render, so Argo would report reportportal permanently
+# OutOfSync. `gitops/apps/overlays/dev/reportportal.yaml` therefore lists exactly
+# these two annotation keys under `ignoreDifferences` with
+# `RespectIgnoreDifferences=true` (which strips them from the APPLIED patch, not
+# just the diff view). If you rename a key here, rename it there in the same change
+# or the app goes OutOfSync and self-heal fights Kyverno every three minutes.
+#
+# SCOPE: deliberately narrow — namespace `reportportal` only, and each rule has a
+# precondition so a future chart version that ships its own annotation or
+# securityContext wins over this policy rather than being overwritten.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: mutate-reportportal-annotations
+  annotations:
+    policies.kyverno.io/title: Inject Reloader + alert-owner annotations on ReportPortal workloads
+    policies.kyverno.io/category: Operations
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Deployment, StatefulSet, Job
+    policies.kyverno.io/description: >-
+      The reportportal chart renders every workload with empty metadata.annotations
+      and exposes only podAnnotations, which neither Stakater Reloader nor
+      require-alert-annotation reads. This injects the two annotations on the
+      workload's own metadata so both cluster-wide policies can stay ENFORCE, and
+      backfills the pod securityContext on the chart's pre-upgrade hook Job, which
+      is the one workload the chart's securityContext helper is not applied to.
+spec:
+  rules:
+    # ---- 1. the two operational annotations --------------------------------
+    - name: add-workload-annotations
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              namespaces:
+                - reportportal
+      preconditions:
+        all:
+          # Only when the chart still ships neither annotation. A future version
+          # that adds its own seam (or a manifest of ours that sets them) wins.
+          - key: "{{ request.object.metadata.annotations.\"reloader.stakater.com/auto\" || '' }}"
+            operator: Equals
+            value: ""
+          - key: "{{ request.object.metadata.annotations.\"alerts/owner\" || '' }}"
+            operator: Equals
+            value: ""
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            annotations:
+              # Every ReportPortal workload either injects a Secret as env (api,
+              # uat, jobs, analyzer) or is a static bundle (ui, index). Setting it
+              # on all of them is deliberate: the two static ones simply never have
+              # a Secret to react to, and a uniform rule cannot go stale when a
+              # future chart version adds an envFrom to one of them.
+              reloader.stakater.com/auto: "true"
+              alerts/owner: OPS_EMAIL # key renamed to alerts.<ESTATE_LABEL_DOMAIN>/owner; the estate ops address, from the identity (kustomization.yaml)
+    # ---- 2. the pre-upgrade hook Job's securityContext ----------------------
+    # `helm.sh/hook: pre-upgrade` makes Argo run this Job as a PreSync hook on every
+    # sync. It deletes the (immutable) migrations Job so the next sync can recreate
+    # it and re-run the migrations — that is the chart's designed upgrade path, and
+    # disabling it would trade an automatic step for a manual one, which the infra
+    # HARD RULE treats as a defect.
+    #
+    # But templates/hooks/upgrade/pre-upgrade-cleanup.yaml is the ONE workload the
+    # chart does not pass through its `reportportal.securityContext` helper, so it
+    # has no pod securityContext at all and `require-run-as-non-root` (ENFORCE)
+    # rejects it — which would fail the PreSync and therefore the whole sync.
+    #
+    # uid/gid 1000 is VERIFIED, not guessed: `rancher/kubectl:v1.36.2` declares
+    # `USER kubectl`, and its /etc/passwd (extracted from the image layer) reads
+    # `kubectl:x:1000:1000::/home/kubectl:/bin/bash`. The numeric form is required —
+    # with `runAsNonRoot: true` and a NON-NUMERIC image USER the kubelet refuses to
+    # start the container with "cannot verify user is non-root".
+    - name: add-preupgrade-hook-security-context
+      match:
+        any:
+          - resources:
+              kinds:
+                - Job
+              namespaces:
+                - reportportal
+              names:
+                - "*-pre-upgrade-cleanup"
+      preconditions:
+        all:
+          - key: "{{ request.object.spec.template.spec.securityContext.runAsNonRoot || '' }}"
+            operator: Equals
+            value: ""
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                  runAsGroup: 1000
+                  seccompProfile:
+                    type: RuntimeDefault

@@ -1,0 +1,135 @@
+# https://novu.<apex> — the Novu dashboard on the internet, ALL of it behind
+# Authentik, and signed in BY Authentik (apps/novu-sso; read its CLAUDE.md before
+# moving a path — which router carries which path is part of the security model).
+#
+#   /sso                 -> novu-sso   sign-in from the CONFIRMED Authentik
+#                                      identity: the person's Novu account and
+#                                      role from their groups, Novu's own session
+#                                      handed to the SPA; /sso/orgs, /sso/signout
+#   /                    -> novu-sso   the dashboard pages, proxied from
+#                                      novu-dashboard-public with the guard as the
+#                                      first script; Novu's own /auth/* screens
+#                                      are answered 302 /sso/
+#   /assets              -> novu-dashboard-public   the SPA bundles, direct
+#   /v1, /v2             -> novu-api   the API the SPA calls, same origin
+#   /v1/auth/{login,register,reset,update-password,github,test}, /v1/invites
+#                        -> novu-sso   403 MANAGED_BY_SSO: Novu's own credential
+#                                      forms and invitations never work here —
+#                                      accounts and roles come from Authentik
+#                                      (longer paths: Traefik ranks them first)
+#
+# THE GATE: authentik-authentik-forwardauth -> the embedded outpost, which matches
+# the Host EXACTLY against the `novu` proxy provider (mode forward_single,
+# external_host https://novu.<apex>) before it considers the domain-wide
+# estate-wide forward-auth one — so this host is judged by the `novu` application's
+# own bindings (app-novu-admin, app-novu-member, platform-admins), never by
+# Plane's. Signed out: 302 to auth.<apex> with novu.<apex>'s own callback,
+# for the page AND for every API path. The middleware also DELETES any client
+# X-authentik-* header and sets the outpost's own, which is what /sso trusts —
+# and /sso confirms it with the outpost a second time (apps/novu-sso identity.mjs).
+#
+# What stays as it was: novu-api.<apex> still refuses /v1/auth to everyone
+# (ingress.yaml, novu-auth-refused). The tailnet dashboard and its tailnet api
+# host are unchanged (ingress-tailnet.yaml): Novu's own login there is the door
+# that works when Authentik does not.
+#
+# No path on this host is reachable signed out. DNS: the *.<apex> wildcard.
+# TLS: cert-manager.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-dashboard-gated
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Novu"
+    gethomepage.dev/description: "Fluxuri de notificări, abonați și activitate (Authentik-gated)"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "5"
+    gethomepage.dev/icon: "si-novu"
+    gethomepage.dev/href: "https://novu.WLDOMAIN"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=novu-dashboard-public"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [novu.WLDOMAIN]
+      secretName: novu-dashboard-tls
+  rules:
+    - host: novu.WLDOMAIN
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend: { service: { name: novu-api, port: { name: http } } }
+          - path: /v2
+            pathType: Prefix
+            backend: { service: { name: novu-api, port: { name: http } } }
+          - path: /assets
+            pathType: Prefix
+            backend: { service: { name: novu-dashboard-public, port: { name: http } } }
+          - path: /sso
+            pathType: Prefix
+            backend: { service: { name: novu-sso, port: { name: http } } }
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: novu-sso, port: { name: http } } }
+---
+# Novu's own credential forms and invitations on this host, answered by novu-sso
+# (403 MANAGED_BY_SSO). Same gate. Separate object only for readability: Traefik
+# ranks routers by rule length, so these longer prefixes win over /v1 above.
+# /v1/auth/organizations/:id/switch stays Novu's (an org switch is not a
+# credential), and so does everything else under /v1.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-dashboard-sso-refused
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [novu.WLDOMAIN]
+      secretName: novu-dashboard-tls
+  rules:
+    - host: novu.WLDOMAIN
+      http:
+        paths:
+          - { path: /v1/auth/login, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/auth/register, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/auth/reset, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/auth/update-password, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/auth/github, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/auth/test, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+          - { path: /v1/invites, pathType: Prefix, backend: { service: { name: novu-sso, port: { name: http } } } }
+---
+# The outpost's CALLBACK on this host, with the estate's sign-in restart in front
+# of the gate: a callback the outpost refuses (a sign-in begun in another browser
+# — the owner's 16:40 400, Firefox then Chrome — or cookieless requests racing so
+# the cookie no longer matches the state: gate.mjs G13, G15) is answered by the
+# restart page, which starts the sign-in again where it was going, instead of a
+# blank 400 that reloading repeats. ONE mechanism for every gated host:
+# gitops/platform/authentik/sso-restart.yaml (it replaced the novu-only
+# novu-callback-restart → novu-sso /sso/restart that was here first). Order is
+# the mechanism: restart first, so it wraps the gate's answer. Only this path —
+# the errors middleware must never see Novu's own 400s on /v1. An Ingress, not
+# an IngressRoute: both middlewares live in the authentik namespace.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novu-dashboard-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [novu.WLDOMAIN]
+      secretName: novu-dashboard-tls
+  rules:
+    - host: novu.WLDOMAIN
+      http:
+        paths:
+          - { path: /outpost.goauthentik.io/callback, pathType: Exact, backend: { service: { name: novu-sso, port: { name: http } } } }

@@ -1,0 +1,7 @@
+{
+  "_doc": "The live proof's robots (apps/plunk-sso/verify-live.sh). Sends nothing, holds nobody real.",
+  "version": 1,
+  "key": "e2e",
+  "name": "Roboți — verificare SSO",
+  "robots": true
+}

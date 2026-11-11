@@ -1,0 +1,184 @@
+# Helm values for the plane-ce chart, rendered by kustomization.yaml in this
+# directory (moved here VERBATIM from pieces/plane/values.yaml on
+# 2026-10-28, so the chart can be patched — see kustomization.yaml).
+# apps/plane-sso/build.sh --push prints the image edit for this file.
+# Image tag for every Plane workload. Pinned explicitly rather than left to
+# the chart default so a bump is a reviewable one-line diff.
+planeVersion: v1.4.2
+
+# --- Bundled infrastructure: ALL OFF -----------------------------------
+# Each of these is replaced by an instance we own in plane-platform, for
+# reasons written at each replacement's own manifest. Summary:
+#   postgres → CNPG (WAL archive + PITR; the chart's is a bare StatefulSet
+#              with no backup at all)
+#   redis    → ours (the chart's has NO password, no probes, no limits)
+#   rabbitmq → ours (see pieces/plane-platform/base/rabbitmq.yaml for the
+#              four-point justification: no resources, no probes, EOL 3.13,
+#              100Mi PVC)
+#   minio    → Hetzner Object Storage (and the chart's minio images are
+#              literally `minio/minio:latest`, which disallow-latest-tag
+#              would reject at admission)
+postgres:
+  local_setup: false
+redis:
+  local_setup: false
+rabbitmq:
+  local_setup: false
+minio:
+  local_setup: false
+
+# --- Secrets: the chart renders NONE of them ---------------------------
+# Naming an existing Secret makes the chart skip its own Secret template and
+# point every envFrom at ours. This is what keeps the Postgres password, the
+# AMQP password and the S3 keys out of git — the documented alternative
+# (env.pgdb_password / rabbitmq.external_rabbitmq_url / env.aws_secret_access_key)
+# would put all three in plaintext HERE. The composed DSNs and the full
+# rationale live in pieces/plane-platform/base/externalsecrets.yaml.
+external_secrets:
+  app_env_existingSecret: plane-app-secrets
+  doc_store_existingSecret: plane-doc-store
+  live_env_existingSecret: plane-live-secrets
+
+# --- Ingress: OURS, not the chart's ------------------------------------
+# `enabled: false` suppresses both ingress templates and the chart's
+# body-limit Middleware; pieces/plane-platform/base/ingress.yaml replaces
+# them (that file explains why the chart's IngressRoute cannot work here).
+# appHost STAYS SET even so: the app-vars ConfigMap reads it OUTSIDE the
+# ingress.enabled guard to build WEB_URL and CORS_ALLOWED_ORIGINS, and
+# clearing it would blank both — base_host() then raises
+# ImproperlyConfigured on every auth redirect. (Both values are overridden
+# to https in plane-app-secrets, because the ConfigMap hardcodes http://.)
+ingress:
+  enabled: false
+  appHost: plane.WLDOMAIN
+# No cert-manager objects from the chart: the `letsencrypt-prod`
+# ClusterIssuer + our own Ingress own TLS here (secret plane-tls), exactly
+# like nextcloud. Leaving these on would mint a second, conflicting
+# Certificate/Issuer for the same host.
+ssl:
+  createIssuer: false
+  generateCerts: false
+  tls_secret_name: ""
+
+# --- Per-service sizing, annotations and Services -----------------------
+# `annotations` lands on the WORKLOAD's own metadata (verified: _helpers.tpl
+# `plane.labelsAndAnnotations` is called from the Deployment metadata block,
+# not the pod template) — which is exactly where Reloader reads it, and where
+# require-alert-annotation looks. `labels`/`podAnnotations` would not work.
+#
+# reloader.stakater.com/auto is set on the FOUR workloads that inject a
+# Secret as env (api, worker, beatworker, live). web/space/admin have no
+# envFrom at all — they are static bundles — so the reloader policy's
+# precondition never matches them and an annotation there would be noise.
+#
+# assign_cluster_ip: true gives each Service a real ClusterIP instead of the
+# chart's default headless Service. Our Ingress and the api→live in-cluster
+# call both dial these names; a stable VIP is the conventional shape here.
+# --- OUR backend image (apps/plane-sso) --------------------------------
+# api, worker and beatworker run Plane's backend + our overlay: carried
+# upstream fixes (patch 0001: the public API's asset endpoints) and the
+# Authentik SSO app. ONE repository on all three keys; the migrator Job
+# reads api.image. The chart appends ":<planeVersion>", so the build id is
+# in the PATH and planeVersion must equal apps/plane-sso/UPSTREAM's
+# PLANE_VERSION. Produced by apps/plane-sso/build.sh --push, which prints
+# this exact value; upgrade.sh / rollback.sh move it. Pulled with the
+# harbor-pull Secret that pieces/kyverno-policies/mutate-plane-harbor-pull.yaml
+# attaches (the chart could only render one from plaintext values).
+api:
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e
+  replicas: 1
+  cpuRequest: 200m
+  memoryRequest: 448Mi
+  cpuLimit: "1"
+  memoryLimit: 1Gi
+  assign_cluster_ip: true
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+# MEMORY — sized against Celery's fork model, not guessed. The worker
+# entrypoint runs `celery worker` with NO --concurrency flag, so Celery
+# defaults to one child process PER CPU: on this 16-core node that is 16
+# forks of the full Django app. At the original 1Gi limit the pod was
+# OOMKilled (exit 137) roughly a minute after start, every start — VERIFIED
+# on dev 2026-08-18, after the broker and DB were already healthy, so it
+# looked like a queue problem and was not.
+# 2Gi covers the observed footprint with headroom; the node has ~21% of
+# 32Gi in use, so this is affordable. If the fork count ever needs capping,
+# the lever is CELERY_WORKER_CONCURRENCY on the app-vars ConfigMap, not a
+# bigger limit.
+worker:
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e  # = api.image (apps/plane-sso)
+  replicas: 1
+  cpuRequest: 100m
+  memoryRequest: 512Mi
+  cpuLimit: "2"
+  memoryLimit: 2Gi
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+# NOTE the key is `beatworker`, not `beat-worker` — the workload it renders
+# is named plane-beat-worker-wl. A `beat-worker:` block here would be
+# silently ignored and the pod would fall back to the chart defaults.
+beatworker:
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e  # = api.image (apps/plane-sso)
+  replicas: 1
+  cpuRequest: 50m
+  memoryRequest: 256Mi
+  cpuLimit: 500m
+  memoryLimit: 512Mi
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+live:
+  image: WLREGISTRY/mirror/docker.io/makeplane/plane-live # the chart appends :<planeVersion>
+  replicas: 1
+  cpuRequest: 100m
+  memoryRequest: 256Mi
+  cpuLimit: 500m
+  memoryLimit: 512Mi
+  assign_cluster_ip: true
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+web:
+  image: WLREGISTRY/mirror/docker.io/makeplane/plane-frontend # the chart appends :<planeVersion>
+  replicas: 1
+  cpuRequest: 100m
+  memoryRequest: 64Mi # it serves built files: 21 Mi at peak (RUNBOOK 2026-11-05)
+  cpuLimit: 500m
+  memoryLimit: 512Mi
+  assign_cluster_ip: true
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+space:
+  image: WLREGISTRY/mirror/docker.io/makeplane/plane-space # the chart appends :<planeVersion>
+  replicas: 1
+  cpuRequest: 100m
+  memoryRequest: 256Mi
+  cpuLimit: 500m
+  memoryLimit: 512Mi
+  assign_cluster_ip: true
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+admin:
+  image: WLREGISTRY/mirror/docker.io/makeplane/plane-admin # the chart appends :<planeVersion>
+  replicas: 1
+  cpuRequest: 50m
+  memoryRequest: 32Mi # it serves built files: 9 Mi at peak (RUNBOOK 2026-11-05)
+  cpuLimit: 300m
+  memoryLimit: 256Mi
+  assign_cluster_ip: true
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+
+# --- Misc --------------------------------------------------------------
+env:
+  # Left as the chart default; kept here so the knob is visible. The api
+  # rate-limits X-API-Key callers at this rate.
+  api_key_rate_limit: "60/minute"
+  # Upload ceiling advertised by the api. MUST stay <= the Traefik
+  # body-limit middleware (20 MiB) in pieces/plane-platform/base/ingress.yaml.
+  doc_upload_size_limit: "5242880"
+# No registry credential: the web images come from Harbor's public mirror (PLATFORM-11).
+dockerRegistry:
+  enabled: false

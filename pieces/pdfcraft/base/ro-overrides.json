@@ -1,0 +1,558 @@
+{
+  "chunks": {
+    "合同安全加水印与加密归档 (Secure Contract Publishing)": "Contract securizat: filigran, anonimizare și criptare",
+    "从 PDF 输入开始，依次添加水印、敏感信息脱敏、高强度密码加密，并直接提供下载产物": "Pornește de la un PDF, adaugă un filigran, ascunde informațiile sensibile, îl criptează cu o parolă puternică și oferă fișierul gata de descărcat.",
+    "PDF 源文档输入": "Document PDF sursă",
+    "添加防伪水印": "Adaugă filigran de autenticitate",
+    "机密文档 仅供参考": "CONFIDENȚIAL — doar pentru consultare",
+    "设置访问密码": "Setează parola de acces",
+    "下载安全合同 PDF": "Descarcă contractul securizat (PDF)",
+    "扫描件净化纠偏与增强 (Scanned Cleanup & Optimize)": "Curățare și optimizare documente scanate",
+    "自动对倾斜扫描件进行矫正、智能检测并删除空白页、进行快速线性化压缩优化": "Îndreaptă automat paginile scanate strâmb, detectează și elimină paginile goale, apoi comprimă și optimizează documentul pentru afișare rapidă.",
+    "扫描件原稿输入": "Documentul scanat original",
+    "自动倾斜校正": "Îndreptare automată",
+    "移除空白扫描页": "Elimină paginile goale",
+    "Web 快视优化": "Optimizare pentru afișare rapidă pe web",
+    "导出高清净化 PDF": "Exportă PDF-ul curățat, la calitate înaltă",
+    "电子发票首页提取与归档 ZIP (Invoice Batch Archiver)": "Arhivare facturi în lot (ZIP)",
+    "批量提取电子发票的首页有效凭证，执行中等质量压缩，并将全部发票打包为 ZIP 归档": "Extrage prima pagină, cea relevantă, din fiecare factură, o comprimă la calitate medie și pune toate facturile într-o arhivă ZIP.",
+    "发票原件批量输入": "Facturile originale, în lot",
+    "提取发票首页": "Extrage prima pagină a facturii",
+    "平衡质量压缩": "Compresie echilibrată",
+    "打包发票为 ZIP 归档": "Arhivează facturile în ZIP",
+    "相册多图转双面折页小册子 (Photo Album Booklet)": "Broșură foto din mai multe imagini",
+    "上传多张图片合成 PDF，自动重排为可直接对折骑马钉装订的小册子并加上页码": "Încarci mai multe imagini, le transformă într-un PDF, le reordonează ca broșură gata de îndoit și capsat la mijloc și adaugă numerele paginilor.",
+    "批量图片输入": "Imaginile, în lot",
+    "图片转 PDF": "Imagini în PDF",
+    "双面折页小册子重排": "Reordonare pentru broșură îndoită",
+    "添加底部居中页码": "Numerotare jos, centrat",
+    "下载可印刷小册子 PDF": "Descarcă broșura gata de tipărit (PDF)",
+    " 节点": " noduri",
+    "删除节点": "Șterge nodul",
+    "复制节点 (Duplicate)": "Duplică nodul"
+  },
+  "texts": {
+    "PDF Multi Tool": "Instrument PDF complet",
+    "Combine Files & Merge PDF": "Combinare fișiere și îmbinare PDF",
+    "Rotate by Custom Degrees": "Rotire la unghi personalizat",
+    "Grid Combine PDF": "Combinare PDF în grilă",
+    "Split PDF": "Împărțire PDF",
+    "Compress PDF": "Comprimare PDF",
+    "Edit PDF": "Editare PDF",
+    "JPG to PDF": "JPG în PDF",
+    "Sign PDF": "Semnare PDF",
+    "Crop PDF": "Decupare PDF",
+    "Extract Pages": "Extragere pagini",
+    "Organize PDF": "Organizare PDF",
+    "Delete Pages": "Ștergere pagini",
+    "Edit Bookmarks": "Editare marcaje",
+    "Table of Contents": "Cuprins",
+    "Page Numbers": "Numerotare pagini",
+    "Add Watermark": "Adăugare filigran",
+    "Header & Footer": "Antet și subsol",
+    "Invert Colors": "Inversare culori",
+    "Background Color": "Culoare de fundal",
+    "Change Text Color": "Schimbare culoare text",
+    "Add Stamps": "Adăugare ștampile",
+    "Remove Annotations": "Eliminare adnotări",
+    "Form Filler": "Completare formulare",
+    "Form Creator": "Creare formulare",
+    "Remove Blank Pages": "Eliminare pagini goale",
+    "Image to PDF": "Imagine în PDF",
+    "PNG to PDF": "PNG în PDF",
+    "WebP to PDF": "WebP în PDF",
+    "SVG to PDF": "SVG în PDF",
+    "BMP to PDF": "BMP în PDF",
+    "PSD to PDF": "PSD în PDF",
+    "HEIC to PDF": "HEIC în PDF",
+    "TIFF to PDF": "TIFF în PDF",
+    "Text to PDF": "Text în PDF",
+    "JSON to PDF": "JSON în PDF",
+    "Word to PDF": "Word în PDF",
+    "Excel to PDF": "Excel în PDF",
+    "PowerPoint to PDF": "PowerPoint în PDF",
+    "XPS to PDF": "XPS în PDF",
+    "RTF to PDF": "RTF în PDF",
+    "EPUB to PDF": "EPUB în PDF",
+    "MOBI to PDF": "MOBI în PDF",
+    "DJVU to PDF": "DJVU în PDF",
+    "FB2 to PDF": "FB2 în PDF",
+    "PDF to JPG": "PDF în JPG",
+    "PDF to PNG": "PDF în PNG",
+    "PDF to WebP": "PDF în WebP",
+    "PDF to BMP": "PDF în BMP",
+    "PDF to TIFF": "PDF în TIFF",
+    "PDF to CBZ": "PDF în CBZ",
+    "PDF to SVG": "PDF în SVG",
+    "PDF to Greyscale": "PDF în tonuri de gri",
+    "PDF to JSON": "PDF în JSON",
+    "PDF to PowerPoint": "PDF în PowerPoint",
+    "PDF to Excel": "PDF în Excel",
+    "OCR PDF": "OCR pentru PDF",
+    "Alternate Merge": "Îmbinare alternativă",
+    "Add Attachments": "Adăugare atașamente",
+    "Extract Attachments": "Extragere atașamente",
+    "Extract Images from PDF": "Extragere imagini din PDF",
+    "Edit Attachments": "Editare atașamente",
+    "Divide Pages": "Divizare pagini",
+    "Add Blank Page": "Adăugare pagină goală",
+    "Reverse Pages": "Inversare ordine pagini",
+    "Rotate PDF": "Rotire PDF",
+    "All-in-one PDF editor: merge, split, organize, delete, rotate, and extract pages in one powerful tool.": "Îmbinare, împărțire, organizare, ștergere, rotire și extragere de pagini, într-un singur instrument.",
+    "Combine multiple PDF files, images (JPG/PNG), Office documents (Word/Excel/PPT), and text into one unified PDF document. Free online tool with drag-and-drop reordering.": "Combină fișiere PDF, imagini (JPG/PNG), documente Office (Word/Excel/PPT) și text într-un singur PDF. Ordinea se stabilește prin tragere.",
+    "Rotate PDF pages by any angle. Precise custom rotation for straightening scanned documents.": "Rotește paginile PDF la orice unghi, pentru îndreptarea documentelor scanate.",
+    "Combine multiple PDF files onto single pages with a flexible grid layout. Arrange 2, 4, 6, 9 or more PDFs per page with borders and spacing.": "Așază mai multe fișiere PDF pe aceeași pagină, într-o grilă: 2, 4, 6, 9 sau mai multe pe pagină, cu chenar și spațiere.",
+    "Split PDF files into multiple documents. Extract specific pages or divide by page ranges.": "Împarte un PDF în mai multe documente, după pagini sau intervale de pagini.",
+    "Reduce PDF file size while maintaining quality. Free online PDF compressor for smaller files.": "Reduce dimensiunea fișierului PDF, păstrând calitatea.",
+    "Directly edit PDF text and images online. Click paragraphs to edit in-place with live reflow, replace images, and find & replace across documents.": "Editează direct textul și imaginile din PDF: modificare pe loc a paragrafelor, înlocuire de imagini, căutare și înlocuire în tot documentul.",
+    "Convert JPG images to PDF. Combine multiple JPG files into a single PDF document.": "Convertește imagini JPG în PDF; mai multe fișiere JPG devin un singur document.",
+    "Add electronic signatures to PDF documents. Draw, type, or upload your signature.": "Adaugă semnături electronice în documente PDF: desenate, scrise sau încărcate.",
+    "Crop PDF pages to remove margins and unwanted areas. Trim PDF documents precisely.": "Decupează paginile PDF pentru a elimina marginile și zonele inutile.",
+    "Extract specific pages from PDF files. Select and save individual pages as new documents.": "Extrage pagini dintr-un PDF și le salvează ca documente noi.",
+    "Reorder, duplicate, and delete PDF pages. Drag and drop to reorganize your documents.": "Reordonează, duplică și șterge pagini PDF, prin tragere.",
+    "Remove unwanted pages from PDF files. Select and delete specific pages easily.": "Elimină paginile nedorite dintr-un PDF.",
+    "Add, edit, and manage PDF bookmarks. Create navigation structure for your documents.": "Adaugă, editează și gestionează marcajele unui PDF, pentru navigarea în document.",
+    "Generate a table of contents for your PDF. Create clickable navigation from bookmarks.": "Generează un cuprins pentru PDF, cu legături create din marcaje.",
+    "Add page numbers to PDF documents. Customize position, format, and starting number.": "Adaugă numere de pagină în PDF, cu poziție, format și număr de început la alegere.",
+    "Add text or image watermarks to PDF files. Protect and brand your documents.": "Adaugă un filigran text sau imagine în fișierele PDF.",
+    "Add headers and footers to PDF documents. Include page numbers, dates, and custom text.": "Adaugă antet și subsol în PDF: numere de pagină, date și text propriu.",
+    "Invert PDF colors for dark mode reading. Convert documents to negative colors.": "Inversează culorile PDF-ului (negativ), pentru citire pe fundal întunecat.",
+    "Change PDF background color. Add colored backgrounds to document pages.": "Schimbă culoarea de fundal a paginilor PDF.",
+    "Change text color in PDF documents. Modify the color of all text content.": "Schimbă culoarea întregului text dintr-un PDF.",
+    "Add stamps to PDF documents. Use preset or custom stamps for approval, review, and more.": "Adaugă ștampile în PDF: predefinite sau proprii, pentru aprobare, verificare și altele.",
+    "Remove annotations from PDF files. Delete comments, highlights, and markup.": "Elimină adnotările dintr-un PDF: comentarii, evidențieri și marcaje.",
+    "Fill PDF forms online. Complete interactive PDF forms without printing.": "Completează formulare PDF interactive, fără a le tipări.",
+    "Create fillable PDF forms. Add text fields, checkboxes, and dropdowns to documents.": "Creează formulare PDF completabile: câmpuri text, casete de bifat și liste derulante.",
+    "Automatically detect and remove blank pages from PDF documents.": "Detectează și elimină automat paginile goale dintr-un PDF.",
+    "Convert any image to PDF. Support for JPG, PNG, WebP, BMP, TIFF, SVG, and HEIC formats.": "Convertește orice imagine în PDF: JPG, PNG, WebP, BMP, TIFF, SVG și HEIC.",
+    "Convert PNG images to PDF. Preserve transparency and combine multiple PNG files.": "Convertește imagini PNG în PDF, păstrând transparența; mai multe fișiere se pot combina.",
+    "Convert WebP images to PDF. Modern image format conversion with quality preservation.": "Convertește imagini WebP în PDF, păstrând calitatea.",
+    "Convert SVG vector graphics to PDF. Preserve scalability and quality.": "Convertește grafică vectorială SVG în PDF, păstrând calitatea la orice mărime.",
+    "Convert BMP bitmap images to PDF. Legacy format support with quality preservation.": "Convertește imagini BMP în PDF, păstrând calitatea.",
+    "Convert Adobe Photoshop (PSD) files to PDF format. Supports multiple files and preserves image quality.": "Convertește fișiere Adobe Photoshop (PSD) în PDF; acceptă mai multe fișiere și păstrează calitatea.",
+    "Convert iPhone HEIC photos to PDF. Apple image format conversion made easy.": "Convertește fotografii HEIC (iPhone) în PDF.",
+    "Convert TIFF images to PDF. Support for multi-page TIFF files and high-quality conversion.": "Convertește imagini TIFF în PDF, inclusiv fișiere TIFF cu mai multe pagini.",
+    "Convert plain text files to PDF. Customize fonts, margins, and page layout.": "Convertește fișiere text în PDF, cu font, margini și așezare în pagină la alegere.",
+    "Convert JSON files to formatted PDF. Syntax highlighting and structured output.": "Convertește fișiere JSON în PDF formatat, cu evidențierea sintaxei.",
+    "Convert Word documents (DOCX) to PDF. Preserve formatting and layout in your converted documents.": "Convertește documente Word (DOCX) în PDF, păstrând formatarea și așezarea în pagină.",
+    "Convert Excel spreadsheets (XLSX) to PDF. Preserve tables and data in your converted documents.": "Convertește foi de calcul Excel (XLSX) în PDF, păstrând tabelele și datele.",
+    "Convert PowerPoint presentations (PPTX) to PDF. Preserve slides and content for easy sharing.": "Convertește prezentări PowerPoint (PPTX) în PDF, păstrând diapozitivele și conținutul.",
+    "Convert XPS documents to PDF format. High-fidelity conversion preserving layout and graphics.": "Convertește documente XPS în PDF, păstrând așezarea în pagină și grafica.",
+    "Convert RTF (Rich Text Format) files to PDF. Preserve text formatting in your documents.": "Convertește fișiere RTF în PDF, păstrând formatarea textului.",
+    "Convert EPUB e-books to PDF. Preserve formatting, images, and chapter structure.": "Convertește cărți electronice EPUB în PDF, păstrând formatarea, imaginile și capitolele.",
+    "Convert MOBI e-books to PDF. Support for Kindle format with high-quality rendering.": "Convertește cărți electronice MOBI (Kindle) în PDF.",
+    "Convert DJVU document files to PDF. High-quality rendering for scanned documents and books.": "Convertește documente DJVU în PDF, potrivit pentru documente și cărți scanate.",
+    "Convert FictionBook (FB2) e-books to PDF. Supports multiple files with high-quality rendering.": "Convertește cărți electronice FictionBook (FB2) în PDF; acceptă mai multe fișiere.",
+    "Convert PDF pages to JPG images. High-quality extraction with customizable resolution.": "Convertește paginile PDF în imagini JPG, cu rezoluție la alegere.",
+    "Convert PDF pages to PNG images. Lossless quality with transparency support.": "Convertește paginile PDF în imagini PNG, fără pierderi și cu transparență.",
+    "Convert PDF pages to WebP images. Modern format with excellent compression.": "Convertește paginile PDF în imagini WebP, cu fișiere mici.",
+    "Convert PDF pages to BMP bitmap images. Uncompressed format for maximum compatibility.": "Convertește paginile PDF în imagini BMP necomprimate.",
+    "Convert PDF to TIFF images. Professional quality with multi-page support.": "Convertește un PDF în imagini TIFF, inclusiv TIFF cu mai multe pagini.",
+    "Convert PDF documents to high-definition Comic Book ZIP archives (.cbz). Built-in Calibre OPF, ComicInfo XML, and ZIP Comment metadata for perfect multi-reader cataloging.": "Convertește documente PDF în arhive de benzi desenate (.cbz), cu metadate Calibre OPF, ComicInfo XML și comentariu ZIP.",
+    "Convert PDF pages to SVG vector graphics. Perfect scalability at any size with individual page export.": "Convertește paginile PDF în grafică vectorială SVG, câte un fișier pe pagină.",
+    "Convert color PDF to greyscale. Reduce file size and prepare for black-and-white printing.": "Convertește un PDF color în tonuri de gri, pentru tipărire alb-negru și fișiere mai mici.",
+    "Extract PDF content to JSON format. Get structured data from PDF documents.": "Extrage conținutul unui PDF în format JSON, ca date structurate.",
+    "Convert PDF to PowerPoint presentation. Each page becomes a high-quality slide.": "Convertește un PDF în prezentare PowerPoint; fiecare pagină devine un diapozitiv.",
+    "Convert PDF to Excel spreadsheet. Extract tables to XLSX format.": "Convertește un PDF în foaie de calcul Excel, extrăgând tabelele în XLSX.",
+    "Make scanned PDFs searchable with OCR. Extract text from images and scanned documents.": "Face căutabile PDF-urile scanate prin OCR și extrage textul din imagini și scanări.",
+    "Merge PDFs by alternating pages. Combine front and back scans into one document.": "Îmbină PDF-uri alternând paginile, de exemplu fețele și versourile scanate separat.",
+    "Embed files in PDF documents. Attach any file type to your PDFs.": "Atașează fișiere de orice tip într-un document PDF.",
+    "Extract embedded files from PDFs. Download all attachments from PDF documents.": "Extrage fișierele atașate dintr-un PDF.",
+    "Extract all embedded images from PDF files. Download individually or as a ZIP archive. Filter small images automatically.": "Extrage toate imaginile dintr-un PDF, separat sau într-o arhivă ZIP; imaginile mici se pot filtra automat.",
+    "Manage PDF attachments. View, rename, and remove embedded files.": "Gestionează atașamentele unui PDF: vizualizare, redenumire și eliminare.",
+    "Split PDF pages into multiple sections. Divide pages horizontally or vertically.": "Împarte paginile PDF în mai multe secțiuni, pe orizontală sau pe verticală.",
+    "Insert blank pages into PDF documents. Add empty pages at any position.": "Inserează pagini goale în PDF, în orice poziție.",
+    "Reverse PDF page order. Flip document pages from last to first.": "Inversează ordinea paginilor dintr-un PDF, de la ultima la prima.",
+    "Rotate PDF pages. Turn pages 90, 180, or 270 degrees.": "Rotește paginile PDF cu 90, 180 sau 270 de grade.",
+    "Overlay PDF": "Suprapunere PDF",
+    "Timestamp PDF": "Marcă temporală PDF",
+    "Add Page Labels": "Etichete de pagină",
+    "N-Up PDF": "Mai multe pagini pe foaie",
+    "Combine to Single Page": "Combinare într-o singură pagină",
+    "View Metadata": "Vizualizare metadate",
+    "Edit Metadata": "Editare metadate",
+    "PDFs to ZIP": "PDF-uri în ZIP",
+    "Compare PDFs": "Comparare PDF-uri",
+    "Posterize PDF": "PDF în format poster",
+    "Fix Page Size": "Uniformizare dimensiune pagini",
+    "Linearize PDF": "Liniarizare PDF",
+    "Page Dimensions": "Dimensiuni pagini",
+    "Remove Restrictions": "Eliminare restricții",
+    "Repair PDF": "Reparare PDF",
+    "Encrypt PDF": "Criptare PDF",
+    "Sanitize PDF": "Curățare PDF",
+    "Find and Redact": "Căutare și anonimizare",
+    "Redact PDF": "Anonimizare PDF",
+    "Decrypt PDF": "Decriptare PDF",
+    "Flatten PDF": "Aplatizare PDF",
+    "Remove Metadata": "Eliminare metadate",
+    "Change Permissions": "Schimbare permisiuni",
+    "PDF to Word": "PDF în Word",
+    "PDF to Markdown": "PDF în Markdown",
+    "Deskew PDF": "Îndreptare PDF",
+    "PDF Booklet Creator": "Creare broșură PDF",
+    "Rasterize PDF": "Rasterizare PDF",
+    "Markdown to PDF": "Markdown în PDF",
+    "Email to PDF": "E-mail în PDF",
+    "CBZ to PDF": "CBZ în PDF",
+    "PDF to PDF/A": "PDF în PDF/A",
+    "Font to Outline": "Fonturi în contururi",
+    "Extract Tables from PDF": "Extragere tabele din PDF",
+    "PDF Layer Manager (OCG)": "Straturi PDF (OCG)",
+    "PDF Reader": "Cititor PDF",
+    "Digital Signature": "Semnătură digitală",
+    "Validate Signature": "Verificare semnătură",
+    "AI PDF Layout Reflower": "Reașezare PDF pentru ecrane mici",
+    "Citation Linker": "Legături pentru citări",
+    "PDF Vector Extractor": "Extragere grafică vectorială",
+    "Deep Metadata Sanitizer": "Curățare completă a metadatelor",
+    "3D Booklet & Folding Simulator": "Simulare broșură și pliere",
+    "PDF to Slide": "PDF în diapozitive",
+    "Form Logic Designer": "Logică pentru formulare",
+    "e-Ink Reader Optimizer": "Optimizare pentru cititoare e-Ink",
+    "Certificate Encrypt & Sign": "Criptare și semnare cu certificat",
+    "Double-Sided ID Composer": "Act de identitate față-verso",
+    "Export Annotations": "Exportare adnotări",
+    "Batch Remove Watermarks": "Eliminare filigrane în lot",
+    "Sensitive Data Redaction": "Anonimizare date sensibile",
+    "Auto Generate Bookmarks": "Generare automată de marcaje",
+    "Batch Inject Barcodes": "Coduri de bare în lot",
+    "Extract Signature & Stamp": "Extragere semnătură și ștampilă",
+    "Fix Dead Links": "Reparare legături moarte",
+    "Generate Interactive TOC": "Cuprins interactiv",
+    "Invoice Translate & Convert": "Facturi: traducere și conversie",
+    "Auto Scan Deskew": "Îndreptare automată a scanărilor",
+    "Two-Column Paper Reflow": "Reașezare articole pe două coloane",
+    "Uniform PDF Page Size": "Dimensiune uniformă a paginilor",
+    "Enhance Handwriting Ink": "Contrast pentru scris de mână",
+    "Calculate Book Spine Width": "Calcul lățime cotor",
+    "Signature Position Guide": "Ghid pentru locul semnăturii",
+    "Lossless Drawing Slicing": "Decupare desene fără pierderi",
+    "Grid Scratchpad Canvas": "Pagini cu grilă pentru notițe",
+    "ID Photo DIY Print Tiler": "Fotografii de buletin pentru tipărire",
+    "Overlay or underlay pages from one PDF onto another. Perfect for stamps, letterheads, and layout composition.": "Suprapune paginile unui PDF peste (sau sub) paginile altuia, pentru ștampile, antete și compoziție.",
+    "Add RFC 3161 trusted timestamps to PDF documents. Prove document existence at a specific point in time without certificates.": "Adaugă marcaje temporale RFC 3161 în PDF, care dovedesc existența documentului la un anumit moment, fără certificat.",
+    "Apply custom page labels to your PDF catalog. Supports Roman numerals, prefixes, and complex disjoint ranges.": "Aplică etichete de pagină proprii: cifre romane, prefixe și intervale neconsecutive.",
+    "Print multiple PDF pages per sheet. Create 2-up, 4-up, or custom layouts.": "Așază mai multe pagini PDF pe o foaie: 2, 4 sau un număr la alegere.",
+    "Stitch PDF pages into one continuous page. Create scrollable single-page documents.": "Unește paginile PDF într-o singură pagină continuă.",
+    "View PDF document properties. See author, title, dates, and other metadata.": "Afișează proprietățile unui PDF: autor, titlu, date și alte metadate.",
+    "Edit PDF document properties. Change title, author, subject, keywords, creation date, and modification date.": "Editează proprietățile unui PDF: titlu, autor, subiect, cuvinte cheie, data creării și a modificării.",
+    "Package multiple PDFs into a ZIP archive. Compress and bundle PDF files.": "Pune mai multe PDF-uri într-o arhivă ZIP.",
+    "Compare two PDF documents. Highlight differences between versions.": "Compară două documente PDF și evidențiază diferențele dintre versiuni.",
+    "Split large PDF pages into printable tiles. Create posters from PDF pages.": "Împarte paginile mari în bucăți tipăribile, pentru postere.",
+    "Standardize PDF page sizes. Convert all pages to uniform dimensions.": "Aduce toate paginile unui PDF la aceeași dimensiune.",
+    "Optimize PDF for fast web viewing. Enable progressive loading.": "Optimizează PDF-ul pentru afișare rapidă pe web, cu încărcare progresivă.",
+    "Analyze PDF page sizes. View dimensions of all pages in your document.": "Afișează dimensiunile tuturor paginilor unui PDF.",
+    "Remove PDF restrictions. Unlock printing, copying, and editing permissions.": "Elimină restricțiile unui PDF: tipărire, copiere și editare.",
+    "Fix corrupted PDF files. Recover and repair damaged documents.": "Repară fișiere PDF deteriorate.",
+    "Password protect PDF files. Add encryption and set permissions.": "Protejează un PDF cu parolă: criptare și permisiuni.",
+    "Remove hidden data from PDFs. Clean metadata, scripts, and sensitive information.": "Elimină datele ascunse dintr-un PDF: metadate, scripturi și informații sensibile.",
+    "Search and redact text across all pages of a PDF. Batch redact sensitive information like account numbers, names, and more.": "Caută și anonimizează text în toate paginile unui PDF: numere de cont, nume și altele.",
+    "Visually blackout, mosaic, or blur sensitive information in PDF files. Irreversible physical rasterization and deep metadata sanitization for privacy protection.": "Acoperă, pixelează sau estompează informații sensibile; rasterizare ireversibilă și curățarea metadatelor.",
+    "Remove password from PDF files. Unlock password-protected documents.": "Elimină parola dintr-un PDF protejat.",
+    "Flatten PDF forms and annotations. Make content non-editable.": "Aplatizează formularele și adnotările, astfel încât conținutul să nu mai poată fi editat.",
+    "Strip metadata from PDF files. Remove author, dates, and document properties.": "Elimină metadatele dintr-un PDF: autor, date și proprietăți.",
+    "Modify PDF permissions. Control printing, copying, and editing access.": "Modifică permisiunile unui PDF: tipărire, copiere și editare.",
+    "Convert PDF to editable Word (DOCX) documents. Preserve formatting and layout.": "Convertește un PDF în document Word (DOCX) editabil, păstrând formatarea.",
+    "Convert PDF to Markdown format. Extract text and preserve formatting like headings and lists.": "Convertește un PDF în Markdown, păstrând titlurile și listele.",
+    "Automatically straighten scanned or tilted PDF pages. Fix skewed documents with precision angle detection.": "Îndreaptă automat paginile scanate strâmb, detectând unghiul.",
+    "Create booklet layouts from PDF for printing. Arrange pages for saddle-stitch binding with multiple grid options.": "Așază paginile pentru tipărire ca broșură, cu legare prin capsare la mijloc.",
+    "Convert PDF pages to high-quality images. Export as PNG, JPEG, or WebP with custom DPI settings.": "Convertește paginile PDF în imagini PNG, JPEG sau WebP, la rezoluția aleasă (DPI).",
+    "Convert Markdown files to beautifully formatted PDF documents. Support for GitHub Flavored Markdown and syntax highlighting.": "Convertește fișiere Markdown în PDF formatat, inclusiv GitHub Flavored Markdown și evidențierea sintaxei.",
+    "Convert email files (.eml, .msg) to PDF documents. Preserve formatting, inline images, clickable links, and embed attachments.": "Convertește e-mailuri (.eml, .msg) în PDF, păstrând formatarea, imaginile, legăturile și atașamentele.",
+    "Convert comic book archives (CBZ) to PDF. Preserve image order and quality for digital comics.": "Convertește arhive de benzi desenate (CBZ) în PDF, păstrând ordinea și calitatea imaginilor.",
+    "Convert PDF to PDF/A archival format. Ensure long-term document preservation with ISO standards.": "Convertește un PDF în formatul de arhivare PDF/A (ISO), pentru păstrare pe termen lung.",
+    "Remove font dependencies from PDF documents by converting pages to high-quality images. Ensures compatibility across all systems.": "Elimină dependența de fonturi convertind paginile în imagini, pentru afișare identică pe orice sistem.",
+    "Detect and extract tables from PDF documents. Export to JSON, Markdown, or CSV formats.": "Detectează și extrage tabelele dintr-un PDF, în JSON, Markdown sau CSV.",
+    "Manage PDF layers (Optional Content Groups). View, toggle, add, delete, and rename layers in your PDF documents.": "Gestionează straturile unui PDF (OCG): afișare, comutare, adăugare, ștergere și redenumire.",
+    "Free online PDF reader. View, navigate, zoom, rotate, and print PDF documents directly in your browser.": "Citește documente PDF în browser: navigare, mărire, rotire și tipărire.",
+    "Add X.509 digital signatures to PDF documents. Sign PDFs with PFX, P12, or PEM certificates for legal validity.": "Adaugă semnături digitale X.509 în PDF, cu certificate PFX, P12 sau PEM.",
+    "Verify digital signatures in PDF documents. Check certificate validity, signer information, and document integrity.": "Verifică semnăturile digitale dintr-un PDF: valabilitatea certificatului, semnatarul și integritatea documentului.",
+    "Re-typeset PDF documents into responsive mobile-friendly layouts. Support Markdown and EPUB export for enhanced small-screen reading.": "Reașază documentele PDF pentru ecrane mici, cu export în Markdown și EPUB.",
+    "Scan and activate citation markers in PDFs, converting them into clickable DOI links or page-jump targets.": "Transformă trimiterile bibliografice dintr-un PDF în legături DOI sau salturi la pagină.",
+    "Convert PDF into high-fidelity SVG, allowing you to select, recolor, and export vector charts, logos, and graphics.": "Convertește un PDF în SVG, pentru selectarea, recolorarea și exportul graficelor, siglelor și desenelor vectoriale.",
+    "Thoroughly wipe author metadata, modification logs, hidden layers, and orphan objects from PDFs for maximum privacy.": "Șterge complet metadatele autorului, istoricul modificărilor, straturile ascunse și obiectele orfane dintr-un PDF.",
+    "Impose multi-page PDFs into foldable print sheets, featuring 3D physical folding animations and saddle-stitch previews.": "Așază paginile pe coli pliabile pentru tipărire, cu previzualizarea plierii și a capsării.",
+    "Intelligently analyze PDF outlines, extract vector charts, and reconstruct them into fully-editable PPTX presentations.": "Analizează structura unui PDF și îl reconstruiește ca prezentare PPTX editabilă, cu graficele vectoriale extrase.",
+    "Design dynamic behaviors using a glassmorphic node canvas and inject interactive AcroJS logic into PDF forms.": "Definește comportamente dinamice pe o diagramă de noduri și adaugă logică AcroJS în formularele PDF.",
+    "Optimize PDFs for e-Ink screens via background clearing, Otsu binarization, and morphological text dilation.": "Optimizează PDF-urile pentru ecrane e-Ink: fundal curățat, binarizare Otsu și text îngroșat.",
+    "Secure PDFs using asymmetric public-key certificate encryption, paired with a 3D gold wax-seal imprint and PKCS#7 signature.": "Protejează PDF-urile prin criptare cu certificat de cheie publică și semnătură PKCS#7.",
+    "Instantly compose both front and back sides of ID cards or passports onto a single A4 page with optional anti-counterfeit watermarks.": "Așază fața și verso-ul unui act de identitate pe o singură pagină A4, opțional cu filigran.",
+    "Extract PDF comments, notes, highlights, and underlines, and structure them into Markdown/JSON notebooks aligned with outline chapters.": "Extrage comentariile, notele, evidențierile și sublinierile, organizate pe capitole, în Markdown sau JSON.",
+    "Physically scrub watermark strings and XObject images from the PDF content stream without messing up layouts.": "Elimină textele și imaginile de filigran din conținutul PDF-ului, fără a strica așezarea în pagină.",
+    "Automatically detect phone numbers, emails, and IDs, overlay opaque masks, and physically erase underlying text streams.": "Detectează automat numere de telefon, e-mailuri și coduri de identificare, le acoperă și șterge textul de dedesubt.",
+    "Analyze document layout hierarchy and regex patterns (e.g. Chapter) to generate and inject /Outline bookmark catalogs.": "Generează marcajele unui PDF din structura documentului și din tipare (de exemplu „Capitol”).",
+    "Generate custom QR/Code128 tags and precisely inject them into bulk PDF pages with aligning guidelines.": "Generează coduri QR sau Code128 și le plasează precis în mai multe pagini PDF.",
+    "Extract handwritten signatures and red corporate stamps from photos, remove paper shadow noise, and export transparent PNGs.": "Extrage semnături de mână și ștampile din fotografii, fără umbra hârtiei, ca imagini PNG transparente.",
+    "Scan all URL actions and link annotations in PDF, detect reachability, and inject redirects.": "Verifică toate legăturile dintr-un PDF, găsește-le pe cele moarte și redirecționează-le.",
+    "Generate aesthetic Table of Contents pages, insert them pre-content, and wire internal bidirectional GoTo anchors.": "Generează pagini de cuprins, le inserează la început și creează legături interne în ambele sensuri.",
+    "Extract currency totals from multi-national invoices, run calculations, and stamp interactive frosted-glass exchange ledgers.": "Extrage totalurile în valută din facturi, face calculele și adaugă un tabel de conversie.",
+    "Detect and auto-correct page rotations and alignments on mobile-photo or scanned PDF sheets instantly.": "Corectează automat rotirea și alinierea paginilor fotografiate sau scanate.",
+    "Analyze IEEE/ACM double-column paper PDF structures and reflow them into responsive single-column layouts for smooth mobile and e-Reader viewing.": "Reașază articolele științifice pe două coloane (IEEE/ACM) pe o singură coloană, pentru telefon și cititoare electronice.",
+    "Batch resize and normalize mixed-format A4, A3, and Letter PDF sheets into a uniform target size with proportional centering and margin padding.": "Aduce paginile de formate diferite (A4, A3, Letter) la aceeași dimensiune, centrate și cu margini.",
+    "Extract blue or black handwriting signatures from photos, bleach yellow paper grain, and dramatically boost ink contrast for readability.": "Extrage semnături de mână albastre sau negre din fotografii, albește hârtia și mărește contrastul cernelii.",
+    "Calculate book spine width based on page count and paper GSM, and generate a printable cover template with spine fold lines.": "Calculează lățimea cotorului din numărul de pagini și gramajul hârtiei și generează șablonul copertei.",
+    "Automatically locate signature fields in contracts, and inject interactive hovering guides and anchors for quick signing.": "Găsește automat câmpurile de semnătură din contracte și adaugă repere pentru semnare.",
+    "Extract a partial region of large PDF CAD drawings, maps, or charts at a low-level, keeping vector resolution intact while dropping file size.": "Extrage o zonă din desene CAD, hărți sau grafice mari, păstrând calitatea vectorială și micșorând fișierul.",
+    "Stitch high-quality grid, ruled, or Cornell note-taking margins to PDF pages for formula derivations and exam note preparation.": "Adaugă paginilor PDF margini cu grilă, liniate sau Cornell, pentru notițe și calcule.",
+    "Crop and tile passport/ID photos onto standard 5\" or 6\" photo papers, and stamp precise prepress physical crop marks for easy cutting.": "Decupează și așază fotografii de pașaport sau buletin pe hârtie foto de 5\" sau 6\", cu semne de tăiere.",
+    "PDF Workflow Builder - PDFCraft": "Flux de lucru PDF - PDF Studio",
+    "Edit, annotate, and modify PDF content": "Editare, adnotare și modificare a conținutului PDF",
+    "Convert various formats to PDF": "Conversie din diverse formate în PDF",
+    "Convert PDF to other formats": "Conversie din PDF în alte formate",
+    "Organize, merge, split, and manage PDF pages": "Organizare, îmbinare, împărțire și gestionare a paginilor PDF",
+    "Compress, optimize, and repair PDF files": "Comprimare, optimizare și reparare a fișierelor PDF",
+    "Encrypt, decrypt, and secure PDF files": "Criptare, decriptare și securizare a fișierelor PDF"
+  },
+  "messages": {
+    "faq": {
+      "FAQ": "Întrebări frecvente"
+    },
+    "auto": {
+      "Auto": "Automat"
+    },
+    "eurLabel": {
+      "EUR (Euro)": "EUR (euro)"
+    },
+    "formatMarkdown": {
+      "Structured Markdown (.md)": "Markdown structurat (.md)"
+    },
+    "formatJson": {
+      "Structured JSON (.json)": "JSON structurat (.json)"
+    },
+    "enhanceContrast": {
+      "Smart Image Quality Enhancement": "Îmbunătățire automată a imaginii"
+    },
+    "enhanceContrastDesc": {
+      "Auto-enhances contrast and sharpens edges for faint ink and dark scans": "Mărește automat contrastul și claritatea, pentru cerneală slabă și scanări întunecate"
+    },
+    "copyText": {
+      "Copy Recognized Text": "Copiază textul recunoscut"
+    },
+    "copied": {
+      "Copied to clipboard!": "Copiat în clipboard"
+    },
+    "openInEditor": {
+      "Edit in PDF Editor": "Editează în editorul PDF"
+    },
+    "openInEditorDesc": {
+      "Directly edit text and layout in PDFCraft Editor without downloading": "Editează textul și așezarea în pagină direct în editorul PDF Studio, fără descărcare"
+    },
+    "statsPages": {
+      "Pages": "Pagini"
+    },
+    "statsWords": {
+      "Words": "Cuvinte"
+    },
+    "statsChars": {
+      "Characters": "Caractere"
+    },
+    "statsConfidence": {
+      "Avg Confidence": "Încredere medie"
+    },
+    "tabText": {
+      "Text Preview": "Previzualizare text"
+    },
+    "tabJson": {
+      "JSON Structure": "Structură JSON"
+    },
+    "general": {
+      "General": "Generale"
+    },
+    "addToWorkflowHint": {
+      "Drag or double-click to add to workflow": "Trageți sau faceți dublu clic pentru a adăuga în flux"
+    },
+    "inputCategory": {
+      "Input Sources": "Surse de intrare"
+    },
+    "pdfInput": {
+      "PDF Input": "Intrare PDF"
+    },
+    "imageInput": {
+      "Image Input": "Intrare imagini"
+    },
+    "fileInput": {
+      "File Input": "Intrare fișiere"
+    },
+    "totalExecutions": {
+      "Total Runs": "Total rulări"
+    },
+    "name": {
+      "Split & Watermark": "Împărțire și filigran"
+    },
+    "selectOdd": {
+      "Odd": "Impare"
+    },
+    "selectEven": {
+      "Even": "Pare"
+    },
+    "valid": {
+      "Valid": "Validă"
+    },
+    "modeFile": {
+      "Certificate file": "Fișier de certificat"
+    },
+    "modeRemote": {
+      "Remote signing service": "Serviciu de semnare la distanță"
+    },
+    "remoteServiceUrlLabel": {
+      "Signing service URL": "Adresa serviciului de semnare"
+    },
+    "remoteServiceUrlHint": {
+      "The CSC API address from your trust service provider. Any provider that implements the Cloud Signature Consortium API (v1 or v2) works, as long as it allows requests from this site.": "Adresa API CSC de la furnizorul de servicii de încredere. Merge orice furnizor care implementează API-ul Cloud Signature Consortium (v1 sau v2) și acceptă cereri de la acest site."
+    },
+    "remoteConnectButton": {
+      "Connect": "Conectare"
+    },
+    "remoteUsernameLabel": {
+      "Username": "Nume de utilizator"
+    },
+    "remotePasswordLabel": {
+      "Password": "Parolă"
+    },
+    "remoteSignInButton": {
+      "Sign in": "Autentificare"
+    },
+    "remoteClientIdLabel": {
+      "OAuth client ID": "ID client OAuth"
+    },
+    "remoteOAuthButton": {
+      "Sign in with provider": "Autentificare la furnizor"
+    },
+    "remoteRedirectHint": {
+      "Register this redirect URI with your provider:": "Înregistrați această adresă de redirecționare la furnizor:"
+    },
+    "remoteCredentialLabel": {
+      "Signing certificate": "Certificat de semnare"
+    },
+    "remoteOtpLabel": {
+      "One-time code": "Cod de unică folosință"
+    },
+    "remoteOptional": {
+      "optional": "opțional"
+    },
+    "remoteSendOtp": {
+      "Send code": "Trimite codul"
+    },
+    "remoteResendOtp": {
+      "Resend code": "Retrimite codul"
+    },
+    "remoteOAuthCredentialHint": {
+      "You will confirm the signature on your provider's page when you click Sign PDF.": "Confirmați semnătura pe pagina furnizorului, după ce porniți semnarea."
+    },
+    "remoteImplicitHint": {
+      "Your provider confirms this signature on its own side (for example in its mobile app).": "Furnizorul confirmă semnătura la el (de exemplu, în aplicația sa mobilă)."
+    },
+    "remotePrivacyNote": {
+      "Your PDF stays in your browser. Only a 32-byte hash of the signature data is sent to the signing service.": "PDF-ul rămâne în browser. Serviciului de semnare i se trimite doar o amprentă de 32 de octeți a datelor de semnat."
+    },
+    "remoteNoCredentials": {
+      "No signing certificates were found for this account.": "Contul nu are certificate de semnare."
+    },
+    "remoteSigningProgress": {
+      "Waiting for the signing service...": "Se așteaptă serviciul de semnare..."
+    },
+    "datesSection": {
+      "Document Dates": "Datele documentului"
+    },
+    "creationDate": {
+      "Creation Date": "Data creării"
+    },
+    "creationDateHelp": {
+      "The date the document was originally created.": "Data la care a fost creat documentul."
+    },
+    "modificationDate": {
+      "Modification Date": "Data modificării"
+    },
+    "modificationDateHelp": {
+      "Leave empty to auto-set to current date/time on save.": "Lăsați gol pentru data și ora salvării."
+    },
+    "textHistory": {
+      "Text change history": "Istoricul modificărilor de text"
+    },
+    "textUndo": {
+      "Undo text": "Anulează modificarea textului"
+    },
+    "textRedo": {
+      "Redo text": "Refă modificarea textului"
+    },
+    "textUndoApplied": {
+      "The last text change was undone.": "Ultima modificare a textului a fost anulată."
+    },
+    "textRedoApplied": {
+      "The text change was redone.": "Modificarea textului a fost refăcută."
+    },
+    "overflowAppliedWarning": {
+      "The replacement text exceeds the original area. Review the result visually before exporting.": "Textul nou depășește zona originală. Verificați rezultatul înainte de export."
+    },
+    "fallbackFontWarning": {
+      "The original font could not be reused and a fallback was used. Review the characters and spacing.": "Fontul original nu a putut fi refolosit; s-a folosit unul de rezervă. Verificați caracterele și spațierea."
+    },
+    "signatureInvalidatedWarning": {
+      "This PDF contained digital signatures. Editing its content invalidates the existing signatures.": "PDF-ul conținea semnături digitale. Editarea conținutului le invalidează."
+    },
+    "removeAll": {
+      "Remove all": "Elimină tot"
+    },
+    "removeAllConfirm": {
+      "Remove all bookmarks? You can still save to download a PDF with no bookmarks.": "Eliminați toate marcajele? Salvând, descărcați un PDF fără marcaje."
+    },
+    "removedAllHint": {
+      "All bookmarks removed. Save to download a PDF with no bookmarks.": "Toate marcajele au fost eliminate. Salvați pentru a descărca un PDF fără marcaje."
+    },
+    "removeSelected": {
+      "Remove selected ({count})": "Elimină selecția ({count})"
+    },
+    "removeSelectedConfirm": {
+      "Remove {count, plural, one {# selected bookmark} other {# selected bookmarks}}? Their child bookmarks will also be removed.": "Eliminați {count, plural, one {# marcaj selectat} few {# marcaje selectate} other {# de marcaje selectate}}? Se elimină și marcajele subordonate."
+    },
+    "selectForRemoval": {
+      "Select \"{title}\"": "Selectează „{title}”"
+    },
+    "selectHint": {
+      "Tick checkboxes to remove several bookmarks at once. Shift+click selects a range.": "Bifați casetele pentru a elimina mai multe marcaje deodată. Shift+clic selectează un interval."
+    },
+    "formatRoman": {
+      "Roman (I, II, III)": "Romane (I, II, III)"
+    },
+    "flattenTitle": {
+      "Flatten Watermark": "Aplatizare filigran"
+    },
+    "flattenDescription": {
+      "Rasterize pages into tamper-resistant images so watermarks cannot be removed or extracted": "Transformă paginile în imagini, ca filigranul să nu mai poată fi eliminat sau extras"
+    },
+    "dragHint": {
+      "Drag watermark directly on preview or drag corners to resize": "Trageți filigranul pe previzualizare; trageți de colțuri pentru a-l redimensiona"
+    },
+    "posTop": {
+      "Top": "Sus"
+    },
+    "posBottom": {
+      "Bottom": "Jos"
+    },
+    "posLeft": {
+      "Left": "Stânga"
+    },
+    "posRight": {
+      "Right": "Dreapta"
+    },
+    "scale": {
+      "Image Scale": "Scara imaginii"
+    },
+    "page": {
+      "Page": "Pagina"
+    },
+    "of": {
+      "of": "din"
+    },
+    "pages": {
+      "pages": "pagini"
+    },
+    "radioTool": {
+      "Radio": "Buton radio"
+    },
+    "levelLabel": {
+      "PDF/A Level": "Nivel PDF/A"
+    }
+  }
+}

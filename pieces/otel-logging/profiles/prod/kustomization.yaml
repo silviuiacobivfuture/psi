@@ -1,0 +1,34 @@
+# PROD profile of the SEB piece `otel-logging` — full profile, incl. the AUDIT dataset.
+# The bundle renders it beside the piece's default (dev) render as profiles/prod/otel-logging/
+# (tools/bundle/build.mjs), with the estate's identity; an estate's prod environment deploys
+# that path (bundle.json records each piece's profiles).
+# Adds the apiserver audit-log hostPath mount to the agent DaemonSet (prod-only — dev
+# has no audit policy, so the mount lives here, not in base). Dataset names carry the
+# estate slug as the token WLSLUG (dataset-names.yaml + slug-replacements.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+resources:
+  - ../../base
+  - dataset-names.yaml
+configMapGenerator:
+  - name: otel-agent
+    files:
+      - agent-config.yaml=files/agent-config.yaml
+  - name: otel-cluster
+    files:
+      - cluster-config.yaml=files/cluster-config.yaml
+patches:
+  - target: { kind: DaemonSet, name: otel-agent }
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: audit, mountPath: /var/log/kubernetes, readOnly: true }
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: { name: audit, hostPath: { path: /var/log/kubernetes, type: DirectoryOrCreate } }
+components:
+  - ../../../../components/whitelabel
+replacements:
+  - path: whitelabel-replacements.yaml
+  - path: slug-replacements.yaml

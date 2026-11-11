@@ -1,0 +1,59 @@
+# CNPG bootstrap credential for the surviving directory's database, and the S3
+# credential its barman archive writes with. I2, the identity work ledger (first estate's history, not shipped).
+#
+# `authentik-db-app` is named by `bootstrap.initdb.secret` in
+# gitops/platform/authentik/cnpg-cluster.yaml. Naming a secret tells CNPG to
+# EXPECT it: if it does not exist the Cluster sits in "Setting up primary"
+# forever with the initdb pod in CreateContainerConfigError, which reads as a
+# broken operator rather than a missing Secret.
+#
+# IT READS THE PATH THE BUNDLED SUBCHART ALREADY USED. `platform/authentik/postgresql`
+# feeds authentik-db-creds (the Bitnami keys) and this one (the CNPG basic-auth
+# keys) from the SAME values, so the application's password does not change when
+# the database underneath it does. A fresh password here would mean the dump and
+# the restore target disagree in the middle of the migration — the one moment
+# nobody wants to be debugging a credential.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-db-app
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-db-app
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    # Declared INDIVIDUALLY rather than by dataFrom.extract: an absent property
+    # must surface as a failed ExternalSecret, not as an empty string that looks
+    # like a working config. An empty password here would let CNPG bootstrap a
+    # database nobody can then authenticate to.
+    - secretKey: username
+      remoteRef: { key: platform/authentik/postgresql, property: username }
+    - secretKey: password
+      remoteRef: { key: platform/authentik/postgresql, property: password }
+---
+# Barman's S3 credential. Same platform object-storage account every other CNPG
+# Cluster archives with — no new bucket and no new credential, because a backup
+# that needs its own secret is a backup that stops the day that secret rotates
+# and nobody notices.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-backup-s3
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: authentik-backup-s3, creationPolicy: Owner }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }

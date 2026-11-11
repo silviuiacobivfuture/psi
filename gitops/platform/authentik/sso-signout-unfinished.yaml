@@ -1,0 +1,115 @@
+# A sign-out whose last hop Authentik cannot answer is told so, by the hub.
+#
+# Measured during an Authentik roll: the browser's hop to the broker's end-session
+# was answered a bare "Bad Gateway". The applications had been signed out and
+# Authentik's session had not, so on a shared machine the next person could walk
+# back in. The preStop hook covers a normal roll; this covers a real outage.
+#
+# The errors middleware is `autorizare/signout-unfinished`
+# (pieces/autorizare/base/hub.yaml): 502–504 here are replaced by a page
+# from the HUB, because Authentik is the thing that is down. It lives in the hub's
+# namespace since a Middleware names a Service of its own namespace (this Traefik
+# has no allowCrossNamespace); an Ingress may chain a Middleware of any namespace.
+#
+# Three paths and no more: the hub's end-session and the flow it sends the browser
+# to, where the page takes the browser to the hub (it can finish a sign-out only
+# where it holds one: apps/autorizare-svc/internal/hub/signout_retry.go), and the
+# door other applications use, which gets a no-retry page. Longer than
+# authentik-public's `/`, so Traefik ranks them first; if a Middleware is ever
+# missing, Traefik drops the router and the path falls back to authentik-public: a
+# bare error again, never a route to nowhere.
+#
+# The two /signout-canary/ paths are the proof that all this works when nothing is
+# failing: same middlewares, a Service with no endpoints, so Traefik answers 503 there
+# at every moment and doctor expects the hub's page (lib-signout-outage.sh). Without
+# them the middlewares can be broken for months and nothing says so.
+#
+# .github/scripts/sso-signout-outage.sh refuses a tree that loses any of this, and
+# derives the path from the hub's own HUB_UPSTREAM_ISSUER.
+apiVersion: v1
+kind: Service
+metadata:
+  name: signout-canary
+  namespace: authentik
+spec:
+  # No selector, and no Endpoints written: nothing answers, on purpose.
+  ports:
+    - port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: authentik-end-session-unfinished
+  namespace: authentik
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: autorizare-signout-unfinished@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - WLAUTHHOST
+      secretName: authentik-public-tls
+  rules:
+    - host: WLAUTHHOST
+      http:
+        paths:
+          - path: /application/o/autorizare-hub/end-session/
+            pathType: Exact
+            backend:
+              service:
+                name: authentik-server
+                port:
+                  number: 80
+          # The next hop of the same sign-out: where the end-session sends the browser.
+          # Plane's and Novu's sign-outs pass here too, one redirect after their door
+          # below. The page moves them to the hub, which holds nothing of theirs: with
+          # a live hub session it says it cannot confirm, without one it asks Authentik
+          # if Authentik answers, and otherwise says the same. It never retries theirs.
+          - path: /if/flow/default-invalidation-flow/
+            pathType: Exact
+            backend:
+              service:
+                name: authentik-server
+                port:
+                  number: 80
+          - path: /signout-canary/unfinished
+            pathType: Exact
+            backend:
+              service:
+                name: signout-canary
+                port:
+                  number: 80
+---
+# The door Plane and Novu sign out through. Its own Ingress, for its own
+# middleware: no retry, only what is true and what to do.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: authentik-invalidation-unconfirmed
+  namespace: authentik
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: autorizare-signout-unconfirmed@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - WLAUTHHOST
+      secretName: authentik-public-tls
+  rules:
+    - host: WLAUTHHOST
+      http:
+        paths:
+          - path: /flows/-/default/invalidation/
+            pathType: Exact
+            backend:
+              service:
+                name: authentik-server
+                port:
+                  number: 80
+          - path: /signout-canary/unconfirmed
+            pathType: Exact
+            backend:
+              service:
+                name: signout-canary
+                port:
+                  number: 80

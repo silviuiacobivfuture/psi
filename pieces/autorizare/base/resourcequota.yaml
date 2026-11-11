@@ -1,0 +1,21 @@
+# A ceiling on the namespace, so a mistake here cannot starve the rest of the
+# node. Sized for the service pod plus the CNPG Cluster and its transient backup
+# pods; persistentvolumeclaims: 4 leaves room for the temporary volumes a restore
+# creates, because a quota that exactly fits the steady state is a quota that
+# blocks the recovery.
+#
+# limits.cpu is 8 since the control plane runs three replicas (@rule RUN-6):
+# three autorizare-svc pods at 1 CPU plus one surging in a rollout, the hub's
+# three plus its surge at 400m, and the database at 1 — 6.6 when both roll at
+# once, which the previous 6 would have refused half-way through a rollout.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: autorizare
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "8"
+    limits.memory: 5Gi
+    persistentvolumeclaims: "4"

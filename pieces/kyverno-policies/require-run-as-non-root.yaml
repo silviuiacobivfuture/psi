@@ -1,0 +1,94 @@
+# Require runAsNonRoot (Pod Security restricted). Containers must run as a non-root
+# UID so a container breakout does not start with host-root. Satisfied at the pod
+# OR the container securityContext level.
+# Mode: ENFORCE.
+# EXCLUDED namespaces below are the PLATFORM's: system components and the platform
+# applications whose upstream image genuinely requires root (each one's reason at its
+# entry). An ESTATE adds its own such namespaces through its kustomize component for this
+# piece (components/estate/kyverno-policies, replaced by the estate's at bundle build:
+# tools/bundle/build.mjs --estate-components), each with its reason there; they are
+# appended after the platform's.
+# These still set allowPrivilegeEscalation:false (disallow-privileged is enforced).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-run-as-non-root
+  annotations:
+    policies.kyverno.io/title: Require runAsNonRoot
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Containers must run as a non-root user (runAsNonRoot=true), set at the pod
+      or container securityContext level.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata child DaemonSet runs as uid 0 (privileged node agent).
+                - monitoring
+                # SUC Plan jobs run as root to write node files + restart k3s.
+                - system-upgrade
+                # Velero kopia file-backup hosting pods run as root to read PVC data
+                # off the node; blocking them silently failed every PVC backup.
+                - velero
+                # Nextcloud: the upstream image's entrypoint runs as root to chown
+                # /var/www/html and fix up config/apps ownership before apache drops
+                # to www-data for request handling — running the pod as non-root
+                # makes the entrypoint fail outright. Only the nextcloud SERVER
+                # needs this: the Collabora and Redis pods in the same namespace
+                # declare runAsNonRoot themselves, and the occ reconcile CronJob
+                # runs as 65534.
+                - nextcloud
+                # Plane: none of the five upstream images declares a USER, so every
+                # container runs as uid 0 — VERIFIED against the v1.4.1 Dockerfiles
+                # (apps/api/Dockerfile.api ends `chmod -R 777 /code` + CMD with no
+                # USER; web/admin are nginx:alpine running `nginx -g daemon off`;
+                # live/space are node images with no USER either). The plane-ce chart
+                # additionally exposes NO securityContext key on any container, so
+                # even a compliant image could not be made to declare runAsNonRoot
+                # from values — its per-service values are only replicas/image/
+                # resources/annotations/scheduling. Excluding the namespace is the
+                # only option short of forking the chart.
+                # SCOPE: only the CHART's pods need this. Everything we own in the
+                # namespace declares a restricted context anyway — plane-redis (999),
+                # plane-rabbitmq (100/101) and the plane-assert-secrets CronJob
+                # (65534) all set runAsNonRoot themselves.
+                - plane
+      validate:
+        message: "runAsNonRoot must be true at the pod or container securityContext level."
+        anyPattern:
+          # Either set once on the pod...
+          - spec:
+              securityContext:
+                runAsNonRoot: "true"
+          # ...or on every container individually.
+          - spec:
+              containers:
+                - securityContext:
+                    runAsNonRoot: "true"

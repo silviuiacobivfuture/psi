@@ -1,0 +1,107 @@
+# A scheduled, consistent copy of Headscale's database to the object store, on the pattern of
+# pieces/system-upgrade-controller/k3s-datastore-copy.yaml: SQLite's online backup,
+# mode=ro, on a read-only mount, verified before upload, the credential in a separate container
+# from the one holding the file. estate-watch covers the job by derivation; doctor reads the
+# object store's age, because a Job that succeeded proves nothing about the bucket.
+#
+# On the agent because the volume is ReadWriteOnce and the live pod is there. If the pod moves,
+# this nodeSelector moves with it. If that node is gone the job waits, as does the volume.
+#
+# Holds every node's keys in plaintext, so it goes where the datastore copy goes (not the
+# business bucket). Restore: scripts/restore-headscale.sh. Proof: scripts/restore-drill.sh
+# <env> headscale.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: headscale-db-copy
+  annotations:
+    alerts/owner: "platform-infra"
+spec:
+  schedule: "45 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: headscale-db-copy
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          nodeSelector:
+            kubernetes.io/hostname: dev-k3s-agent-0
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: db
+              persistentVolumeClaim: { claimName: headscale-data }
+            - name: work
+              emptyDir: { sizeLimit: 256Mi }
+            - name: scripts
+              configMap: { name: headscale-db-copy, defaultMode: 0555 }
+          initContainers:
+            - name: assert-secrets
+              image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              securityContext: &restricted
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 32Mi }
+              envFrom:
+                - secretRef: { name: headscale-db-copy-s3 }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  [ -n "${AWS_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_ACCESS_KEY_ID" >&2; exit 1; }
+                  [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_SECRET_ACCESS_KEY" >&2; exit 1; }
+            - name: copy
+              image: WLREGISTRY/mirror/docker.io/library/python:3.13-alpine@sha256:42825e7ec3437b3bce923c237484eb23d32128476e18307d2f48951bf86f1db2
+              securityContext: *restricted
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 128Mi }
+              env:
+                - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
+              command: ["python", "-I", "/scripts/copy.py"]
+              volumeMounts:
+                - { name: db, mountPath: /db, readOnly: true }
+                - { name: work, mountPath: /work }
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+          containers:
+            - name: upload
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              securityContext: *restricted
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              env:
+                - { name: HOME, value: /work }
+                - { name: AWS_REGION, value: WLREGION }
+                - { name: AWS_ENDPOINT_URL, value: WLENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: WLBUCKET-tfstate-dev }
+                - { name: PREFIX, value: headscale-snapshots }
+                - { name: KEEP, value: "20" }
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: { name: headscale-db-copy-s3, key: AWS_ACCESS_KEY_ID }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: { name: headscale-db-copy-s3, key: AWS_SECRET_ACCESS_KEY }
+              command: ["/bin/sh", "/scripts/upload.sh"]
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: scripts, mountPath: /scripts, readOnly: true }

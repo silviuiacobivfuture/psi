@@ -1,0 +1,19 @@
+# Harbor in front of the upstream registries on every node. See plan.yaml: NOT WIRED today.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: system-upgrade
+resources:
+  - plan.yaml
+# A Plan can mount no ConfigMap, so the script and the file reach it as env vars. RG_MODE moves ONLY
+# with infrastructure/hetzner/scripts/registries-mode.sh, which bumps the Plans' version.
+configMapGenerator:
+  - name: registries
+    options:
+      disableNameSuffixHash: true
+    files:
+      - RG_APPLY_SH=apply.sh
+      - RG_REGISTRIES=registries.yaml
+    literals:
+      - RG_MODE=hold
+      # The estate's registry host: filled from the identity by the parent piece (replacements).
+      - RG_REGISTRY=WLREGISTRY

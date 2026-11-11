@@ -1,0 +1,18 @@
+# Explicit requests+limits — require-requests-limits is ENFORCE, and the
+# chart ships `resources: {}`, so an un-set value is a rejected admission
+# (the operator would never start and every Cluster CR would sit unclaimed).
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 512Mi }
+# The operator reads its config from a ConfigMap/Secret through the k8s API
+# at use time, not from env — nothing to roll on rotation. Declared
+# explicitly as an opt-out so require-reloader-annotation stays satisfied
+# by a reviewable statement in git rather than by a namespace exclusion.
+deploymentAnnotations:
+  reloader.stakater.com/auto: "false"
+  alerts.${ESTATE_LABEL_DOMAIN}/owner: ${OPS_EMAIL}
+monitoring:
+  # PodMonitor needs the Prometheus operator CRDs, which this cluster does
+  # not run (metrics go to Netdata + Axiom). Leaving it on renders a CR for
+  # a CRD that does not exist → sync error.
+  podMonitorEnabled: false

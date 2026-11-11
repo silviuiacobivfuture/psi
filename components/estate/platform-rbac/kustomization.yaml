@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the platform-rbac piece. SEB adds nothing: this is the default.
+# An estate supplies its own directory of the same name to the bundle builder
+# (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
+# replaces this one in the build workdir. What belongs there:
+#   - its application namespaces' RoleBinding `developer` (same shape as developer-rbac.yaml's,
+#     label `platform/managed-by: gitops`), as resources;
+#   - its people, appended as subjects:
+#       patches:
+#         - target: { kind: ClusterRoleBinding, name: tailnet-admin }
+#           patch: |-
+#             - op: add
+#               path: /subjects/-
+#               value: { apiGroup: rbac.authorization.k8s.io, kind: User, name: <tailnet owner login> }
+#         - target: { kind: RoleBinding, name: developer }   # and ClusterRoleBinding developer-view
+#           patch: |-
+#             - op: add
+#               path: /subjects/-
+#               value: { apiGroup: rbac.authorization.k8s.io, kind: User, name: <login>@github }
+resources: []

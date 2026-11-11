@@ -1,0 +1,19 @@
+# Axiom INGEST token → axiom-token secret (key AXIOM_TOKEN) in the observability
+# namespace, read by both OTel collectors (otlphttp Authorization: Bearer header).
+# Synced from OpenBao secret/platform/observability (key axiom_ingest_token).
+# The observability namespace is created by the otel-logging Argo app; ESO retries
+# until it exists (same as harbor/tailscale platform secrets).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: axiom-token
+  namespace: observability
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: axiom-token
+    creationPolicy: Owner
+  data:
+    - secretKey: AXIOM_TOKEN
+      remoteRef: { key: platform/observability, property: axiom_ingest_token }

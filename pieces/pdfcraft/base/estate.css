@@ -1,0 +1,5 @@
+/*
+ * PDFCraft's stylesheet slot, injected by the nginx front before </head> on every page
+ * (nginx.conf). SEB ships no theme: an estate brings its own colours and hides what it
+ * chooses through its component (components/estate/pdfcraft), which replaces this file.
+ */

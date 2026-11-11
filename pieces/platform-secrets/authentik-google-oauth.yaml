@@ -1,0 +1,39 @@
+# Google OAuth client creds for Authentik's Google Workspace federation source →
+# authentik-google-oauth secret in the authentik namespace, loaded into server+worker
+# via the chart's global.envFrom (gitops/apps/overlays/dev/authentik.yaml). The
+# blueprint (blueprints-sources.yaml) reads AUTHENTIK_SOURCES__GOOGLE__KEY/__SECRET
+# into the Google oauthsource. Synced from OpenBao secret/platform/authentik/google-oauth.
+#
+# USER STEP: create a Google OAuth client (Google Cloud Console → APIs & Services →
+# Credentials → OAuth client ID → Web application) with Authorized redirect URI
+#   https://<AUTHENTIK_HOST>/source/oauth/callback/google/
+# then:  bao kv put secret/platform/authentik/google-oauth client_id=<id> client_secret=<secret>
+# Until then ESO syncs empty strings → the source stays INERT (the blueprint condition
+# gate skips it) — no lockout, nothing half-created.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-google-oauth
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-google-oauth
+    creationPolicy: Owner
+    deletionPolicy: Merge
+    template:
+      data:
+        AUTHENTIK_SOURCES__GOOGLE__KEY: "{{ .client_id }}"
+        AUTHENTIK_SOURCES__GOOGLE__SECRET: "{{ .client_secret }}"
+  data:
+    - secretKey: client_id
+      remoteRef:
+        key: platform/authentik/google-oauth
+        property: client_id
+        conversionStrategy: Default
+        decodingStrategy: None
+    - secretKey: client_secret
+      remoteRef:
+        key: platform/authentik/google-oauth
+        property: client_secret

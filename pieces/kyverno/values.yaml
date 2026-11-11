@@ -1,0 +1,26 @@
+# Lean dev footprint: one replica per controller (HA is a prod-profile concern).
+admissionController:
+  replicas: 1
+backgroundController:
+  replicas: 1
+cleanupController:
+  replicas: 1
+reportsController:
+  replicas: 1
+# Enforcement runs through the Kyverno admission webhook, not native
+# ValidatingAdmissionPolicies. Our pattern-based (non-CEL) policies cannot
+# be expressed as VAPs anyway ("skip generating VAP for non CEL rules"), and
+# leaving the generator on makes it churn the policy status on every reconcile.
+features:
+  generateValidatingAdmissionPolicy:
+    enabled: false
+  generateMutatingAdmissionPolicy:
+    enabled: false
+# The chart stamps `admissions.enforcer/disabled: "true"` on every Kyverno
+# webhook by default (to coexist with Rancher/RKE2's admission-webhook-enforcer).
+# On THIS k3s apiserver that annotation makes the webhooks be SKIPPED → Enforce
+# policies never block (admission_requests_total stays 0; cert-manager's webhook,
+# which lacks the annotation, fires fine). Clear it so the webhooks are honored
+# and enforcement actually rejects bad manifests.
+config:
+  webhookAnnotations: {}

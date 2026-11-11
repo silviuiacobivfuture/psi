@@ -1,0 +1,137 @@
+# nextcloud-db-hv — the hcloud-volumes REPLACEMENT for nextcloud-db, created
+# ALONGSIDE cnpg-cluster.yaml (which is untouched: nextcloud-db keeps serving
+# Nextcloud until this cluster is verified and the operator deliberately cuts
+# over). Full procedure: infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md —
+# read it before applying anything here. This file is NOT wired into
+# kustomization.yaml; that wiring is itself a runbook step, done deliberately.
+#
+# WHY A NEW Cluster OBJECT AND NOT AN EDIT: spec.storage.storageClass is
+# functionally immutable on a running Cluster. CNPG's validating webhook does not
+# reject the field edit outright, but the change has no effect on the PVC already
+# bound to the (single) running instance — storageClassName on a Kubernetes PVC
+# is itself immutable, and CNPG does not delete/recreate a lone instance's PVC to
+# honour a spec change (that trick only exists for replicas being cycled one at a
+# time in a multi-instance cluster, which nextcloud-db is not — instances: 1). So
+# the only path onto hcloud-volumes is a new Cluster, bootstrapped from the
+# backup this platform already takes.
+#
+# HOW THIS AVOIDS THE ARCHIVE-COLLISION FOOTGUN (read this before editing):
+# barman lays out WAL under <destinationPath>/<serverName>/. `externalClusters`
+# below is READ-ONLY against the OLD cluster's archive (destinationPath
+# s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db, serverName pinned explicitly to
+# `nextcloud-db` — the origin's own name, matching restore-nextcloud-db.sh
+# exactly). There is DELIBERATELY NO `spec.backup.barmanObjectStore` stanza here
+# — this cluster cannot archive a single WAL segment anywhere until a human adds
+# one, in a SEPARATE follow-up commit, POST-cutover, pointed at a DISTINCT path
+# (s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db-hv — see the comment at the bottom).
+# Two barmanObjectStore blocks that never share a destinationPath+serverName pair
+# is what makes collision structurally impossible rather than merely avoided by
+# discipline.
+#
+# RECOVERY TARGET: no `recoveryTarget` block, i.e. "recover to the latest
+# available WAL". The runbook makes this safe (RPO=0) by requiring the operator
+# to SCALE NEXTCLOUD TO 0 and force a final WAL segment switch on the OLD primary
+# BEFORE this Cluster is applied — see runbook step "quiesce + flush". Without
+# that quiesce step, "latest" is only as fresh as the last archived WAL segment,
+# and none of this platform's CNPG clusters set `archive_timeout`, so a quiet
+# database could be archived-behind by a long margin. Do not apply this file
+# before that step.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: nextcloud-db-hv
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  # MUST match nextcloud-db's imageName exactly — barman restore requires the
+  # same PostgreSQL major (this also happens to be a byte-identical pin).
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+
+  bootstrap:
+    recovery:
+      source: origin
+      # No `secret:` / `owner:` / `database:` — recovery restores the WHOLE
+      # physical cluster, roles and passwords included. The `nextcloud` role's
+      # password in the restored data already matches OpenBao's
+      # apps/nextcloud/db secret, PROVIDED that secret has not been rotated
+      # since the backup being recovered was taken. Runbook pre-flight checks
+      # this explicitly.
+
+  externalClusters:
+    - name: origin
+      barmanObjectStore:
+        destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db
+        endpointURL: https://fsn1.your-objectstorage.com
+        # Pinned to the ORIGIN cluster's own name, not this cluster's name —
+        # this is the one line that keeps the archive read pointed at the right
+        # sub-prefix. See the collision note above.
+        serverName: nextcloud-db
+        s3Credentials:
+          accessKeyId:
+            name: nextcloud-backup-s3
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKey:
+            name: nextcloud-backup-s3
+            key: AWS_SECRET_ACCESS_KEY
+        wal:
+          maxParallel: 2
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      effective_cache_size: "512MB"
+      work_mem: "8MB"
+      max_connections: "200"
+      # Durability hardening added on the NEW cluster only (not backported to
+      # nextcloud-db — that file is not edited by this migration). Bounds how
+      # stale the archive can get on a quiet database, closing exactly the gap
+      # the recovery-target comment above describes. 5 minutes: small enough to
+      # matter for a real disaster, large enough not to spam the bucket.
+      archive_timeout: "5min"
+
+# ============================================================================
+# FOLLOW-UP — apply ONLY after cutover is verified (runbook "give the archive
+# back" step). Paste as a SEPARATE commit, appended to this file, THEN let Argo
+# sync it. Doing this too early is harmless (nothing collides — see the header)
+# but doing it BEFORE cutover just means paying for backups of a cluster nobody
+# is using yet.
+#
+# spec:
+#   backup:
+#     retentionPolicy: "14d"
+#     barmanObjectStore:
+#       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db-hv   # NOT the old path
+#       endpointURL: https://fsn1.your-objectstorage.com
+#       s3Credentials:
+#         accessKeyId: { name: nextcloud-backup-s3, key: AWS_ACCESS_KEY_ID }
+#         secretAccessKey: { name: nextcloud-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+#       wal: { compression: gzip, maxParallel: 2 }
+#       data: { compression: gzip }
+# ---
+# apiVersion: postgresql.cnpg.io/v1
+# kind: ScheduledBackup
+# metadata:
+#   name: nextcloud-db-hv-base
+# spec:
+#   schedule: "0 25 2 * * 0"   # an unused slot — see the other cnpg-cluster.yaml headers for the taken list
+#   immediate: true
+#   backupOwnerReference: self
+#   cluster:
+#     name: nextcloud-db-hv
+# ============================================================================

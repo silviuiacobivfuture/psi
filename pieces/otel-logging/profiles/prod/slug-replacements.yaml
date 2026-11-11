@@ -1,0 +1,112 @@
+# The estate slug (ESTATE_SLUG) into the Axiom dataset names: first into dataset-names.yaml,
+# then each name over its token-bearing word in the collector config. Order matters.
+- source:
+    kind: ConfigMap
+    name: whitelabel
+    fieldPath: data.ESTATE_SLUG
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-dataset-names
+    fieldPaths:
+    - data.otel-agent-16
+    - data.otel-agent-510
+    - data.otel-agent-541
+    - data.otel-agent-572
+    - data.otel-agent-603
+    - data.otel-cluster-11
+    - data.otel-cluster-102
+    options:
+      delimiter: '-'
+      index: 0
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-16
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 16
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-510
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 510
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-541
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 541
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-572
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 572
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-603
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 603
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-cluster-11
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-cluster
+    fieldPaths:
+    - data.[cluster-config.yaml]
+    options:
+      delimiter: ' '
+      index: 11
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-cluster-102
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-cluster
+    fieldPaths:
+    - data.[cluster-config.yaml]
+    options:
+      delimiter: ' '
+      index: 102

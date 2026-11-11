@@ -1,0 +1,14 @@
+# GENERATED from gitops/services/n8n-instances/instances.json by apps/n8n-sso (bin/generate-instances.ts). Do not edit.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-n8n-instances
+  namespace: authentik
+data:
+  n8n-instances.yaml: |
+    version: 1
+    metadata:
+      name: lumen-n8n-instances
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries: []

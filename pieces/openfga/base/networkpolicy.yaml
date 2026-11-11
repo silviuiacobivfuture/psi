@@ -1,0 +1,127 @@
+# THE FIRST HAND-WRITTEN NetworkPolicy IN THIS REPOSITORY.
+#
+# Eight already exist in the cluster (`kubectl get netpol -A` on 2026-09-02:
+# seven from the Argo CD chart, one from Authentik's bundled Bitnami Postgres), so
+# this is not a new control class for the cluster — but it is the first one the
+# platform authors rather than inherits, and the first the platform DEPENDS on.
+#
+# IT IS ENFORCED HERE. `--disable-network-policy` is absent from
+# `server_install_base` in infrastructure/hetzner/modules/k3s/main.tf (verified
+# 2026-09-02), so k3s runs its embedded policy controller. Verification §11's
+# third curl — a timeout from an ordinary app pod against openfga-admin:8080 — is
+# what PROVES that at runtime; without it this object is decorative.
+#
+# ── WHAT IT DOES ─────────────────────────────────────────────────────────────
+#
+# Selecting the openfga pods with an `Ingress` policy flips them to DEFAULT-DENY:
+# once any policy selects a pod, only traffic an ingress rule permits arrives.
+# So the two rules below are not "additions to" an open pod, they are the entire
+# set of permitted callers.
+#
+#   :8080 (admin)  <- pods labelled app=autorizare-svc in the autorizare
+#                     namespace, and nothing else in the cluster.
+#   :8081 (app)    <- the consumer namespaces, named one by one.
+#
+# ── WHAT IT DELIBERATELY DOES NOT DO ─────────────────────────────────────────
+#
+# It does not select the CNPG pods. Restricting openfga-db's 5432 would also have
+# to permit the cnpg-system operator, its instance-manager port, and the barman
+# sidecar's egress — a policy whose exception list is longer than its rule, and
+# whose first mistake is a database that stops backing up silently. The database
+# is reachable only with its own credential; that is the boundary here, and
+# tightening it is a separate, tested change rather than a line added to this one.
+#
+# It writes no Egress rules. OpenFGA must reach its Postgres and its own loopback,
+# and an egress policy that got either wrong would fail as a hang rather than as
+# an error. Ingress is where the requirement is.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openfga
+spec:
+  podSelector:
+    matchLabels: { app: openfga }
+  policyTypes:
+    - Ingress
+  ingress:
+    # ── The administrative surface. ONE caller, by pod label. ────────────────
+    #
+    # namespaceSelector AND podSelector inside a SINGLE `from` element, which is
+    # an AND. Written as two elements it would be an OR — "anything in the
+    # autorizare namespace, OR anything anywhere labelled app=autorizare-svc" —
+    # and the second half of that is a label any pod in any namespace can set on
+    # itself. That is the classic way this policy is written wrong, and it fails
+    # open with no error.
+    #
+    # `kubernetes.io/metadata.name` is set automatically by the apiserver on
+    # every namespace (verified with `kubectl get ns --show-labels`), so this
+    # needs no label of our own on the namespace and cannot be defeated by one
+    # being dropped.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: autorizare
+          podSelector:
+            matchLabels:
+              app: autorizare-svc
+      ports:
+        - { protocol: TCP, port: 8080 }
+
+    # ── The application surface. The read paths, for the apps that authorize. ─
+    #
+    # Namespaces named one at a time rather than by a shared label. A label would
+    # let a new namespace grant itself access by wearing it; a name has to be
+    # added HERE, in a reviewed commit, which is the point.
+    #
+    # WHO IS ON THIS LIST AND WHY:
+    #   <the estate's own applications>  added by the estate's layer for this piece
+    #                    (components/estate/openfga): each Checks with a pinned
+    #                    model id and never writes.
+    #   authentik        the directory's SERVER pods only (they render the library
+    #                    and evaluate its policies): the estate tile policy asks
+    #                    whether a person holds a right in an application, with a
+    #                    pinned model, and never writes (decision 2026-10-29).
+    #
+    # DELIBERATELY ABSENT:
+    #   a static SPA      a browser cannot reach a ClusterIP, so a grant would
+    #                    authorize nothing and mislead the next reader.
+    #   preview-pr-*     ephemeral preview namespaces get NO access. A preview
+    #                    that could Check against the real store would be reading
+    #                    the live grant graph from an unreviewed branch. Previews
+    #                    that need authorization need their own store, not this
+    #                    one — and a preview failing loudly here is the correct
+    #                    outcome, not a bug to patch by widening this list.
+    #   autorizare-svc   the control plane uses :8080 with HIGHER_CONSISTENCY for
+    #                    meta-authz. It has no reason to hold a second path onto
+    #                    the same engine, and giving it one would blur which port
+    #                    each caller is supposed to be on.
+    - from:
+        # The sign-in hub (D23): it computes org_roles and membership with Check
+        # and ListObjects, and never writes, so it gets the READ port and not the
+        # admin one. Namespace AND pod in one element — only the hub's pods, not
+        # the control plane's, which keeps its single admin path above.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: autorizare
+          podSelector:
+            matchLabels:
+              app: autorizare-hub
+        # The directory's server (blueprints-estate-tiles.yaml's policy). Namespace
+        # AND pod in one element: its worker, its outpost and its database get
+        # nothing. Labels the authentik chart sets on the server Deployment.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: authentik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authentik
+              app.kubernetes.io/component: server
+      ports:
+        - { protocol: TCP, port: 8081 }
+
+    # A THIRD RULE — kubelet health probes — is added by the DEV OVERLAY, not
+    # here, because it names node addresses and those are per-environment
+    # (branch = environment; never hardcode one env's addresses in a base). See
+    # pieces/openfga/kustomization.yaml for what it adds
+    # and for the honest statement of what could not be verified without applying
+    # it.

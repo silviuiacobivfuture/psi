@@ -1,0 +1,35 @@
+# Per-namespace guard-rails, same convention as test-reports: the LimitRange
+# backfills defaults so a container that omits requests/limits is not rejected by
+# the quota.
+#
+# ACCOUNTING (a quota one pod too tight fails silently as a rollout that never
+# finishes):
+#   2 replicas            req  40m /  64Mi   lim 2    / 512Mi
+#   +1 surge pod (rollout) req  20m /  32Mi   lim 1    / 256Mi
+#   -------------------------------------------------------------
+#   peak, 3 pods          req  60m /  96Mi   lim 3    / 768Mi
+# The values below leave room for that peak plus one more pod.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pdfcraft
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 10m, memory: 32Mi }
+      default: { cpu: 200m, memory: 128Mi }
+      max: { cpu: "1", memory: 512Mi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: pdfcraft
+spec:
+  hard:
+    requests.cpu: 200m
+    requests.memory: 256Mi
+    limits.cpu: "4"
+    limits.memory: 1Gi
+    pods: "4"
+    # Nothing here stores anything; a claim appearing would be a mistake.
+    persistentvolumeclaims: "0"

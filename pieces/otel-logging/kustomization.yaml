@@ -1,0 +1,28 @@
+# SEB piece `otel-logging` — OpenTelemetry logging collectors (agent DaemonSet + cluster
+# Deployment) → Axiom (EU). DEV profile: node, containers, network, k8s-events datasets,
+# no audit pipeline (prod-only: the estate adds it in its own prod overlay). Collector config is generated from files/;
+# a config change rolls the pods (hash suffix on the ConfigMap).
+#
+# Whitelabel: the registry host and apps project come from the `whitelabel` component
+# (REGISTRY_HOST, REGISTRY_PROJECT_APPS: whitelabel-replacements.yaml, generated); the
+# Axiom dataset names carry the estate slug as the token WLSLUG (ESTATE_SLUG:
+# dataset-names.yaml + slug-replacements.yaml). Render is byte-identical for the
+# current values. To rebrand: edit estate/identity.yaml, regenerate the component.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+resources:
+  - base
+  - dataset-names.yaml
+configMapGenerator:
+  - name: otel-agent
+    files:
+      - agent-config.yaml=files/agent-config.yaml
+  - name: otel-cluster
+    files:
+      - cluster-config.yaml=files/cluster-config.yaml
+components:
+  - ../../components/whitelabel
+replacements:
+  - path: whitelabel-replacements.yaml
+  - path: slug-replacements.yaml

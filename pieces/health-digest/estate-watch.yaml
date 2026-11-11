@@ -1,0 +1,267 @@
+# estate-watch — a failure that nobody is looking at reaches #infra (PLATFORM-3).
+#
+# THE QUESTION IT WAS DESIGNED FROM: what, failing silently today, would cost the owner
+# most? Measured: no Velero backup out of 21 reached Completed while a log line said
+# "restores impossible" for days, `autorizare-journeys` stayed red for 4 days,
+# and an application's alert read only `jobFailures`. In that order: losing the ability to
+# restore; a watcher that died; scheduled work that stopped; a deploy that stopped;
+# a node about to stall.
+#
+# WHY NOT PROMETHEUS. Nothing here needs a time series. Each of these is a fact the
+# owning system already states (a Backup's phase, a Job's condition, an Application's
+# health, a run's conclusion), so reading it needs a ServiceAccount and one small pod
+# every ten minutes. It needs no extra node, no paid upsizing.
+#
+# WHAT ALREADY SPEAKS, AND WHY THIS IS NOT THAT. Axiom's six monitors (tofu,
+# modules/axiom) fire per event and are the only path that survives the cluster dying.
+# Argo notifies #gitops per revision. health-digest says
+# once a morning what is wrong at that moment. None of them carries state, so none can
+# say "this has been red for two hours" once, or "it recovered".
+#
+# ONE MESSAGE ON ENTERING A BAD STATE, ONE ON RECOVERY, A REMINDER AT MOST DAILY. A
+# noisy channel gets muted. Each check has a bounded grace period, so a blip that heals
+# itself says nothing. The engine, and every check's source: estate_watch.py.
+#
+# WHO WATCHES IT. A watcher that dies must be loud: health-digest fails its morning
+# message when this CronJob is absent, suspended, late or failed, and this one reports
+# health-digest the same way (REQUIRED_CRONJOBS). doctor has the layer "estate-watch".
+# Its Job exits 1 when it could not deliver; Axiom's "Scheduled job failed" hears that
+# from outside the cluster.
+#
+# NOT NOVU. Everything here is acted on by whoever runs the estate. A person in an
+# application has nothing to do about a failed backup, so there is nobody for Novu to
+# tell, and #infra is deliberately independent of the email path Novu needs.
+#
+# LEAST PRIVILEGE. Read-only on exactly the resources it judges, no `secrets` verb, and
+# write on one ConfigMap by name. The GitHub token is used for GET only. CRON_WATCH_KEY,
+# the key the applications ask for, reads cron names, states and times, nothing a run wrote.
+#
+# THE ESTATE'S APPLICATIONS. SEB watches its own (Polaris' notices); the estate's (their cron
+# logs, CRON_SOURCES, and notice senders, NOTICE_SOURCES) and the secret path that holds the key
+# come from the estate's component, components/estate/health-digest (@rule NOTIF-5: the same
+# path Polaris reads it from, components/estate/autorizare).
+#
+# NOTICES GIVEN UP ON. notice_watch.py reads each sender's names and counts, with the key above. A
+# notice given up on is somebody who was not told, and nothing tries again.
+#
+# PINNED IMAGES. image_watch.py compares each images.list row with what its registry serves
+# today and reports one behind for 14 days (PLATFORM-11). Reads only; its reasons are there.
+#
+# BACKUPS THAT DO NOT FINISH, WAL THAT DOES NOT ARRIVE. backup_watch.py judges an open Velero run with
+# doctor's bounds and treats failed WAL archiving as one episode, however many attempts fail. The
+# exporter it reads is each primary's, on :9187, with no credential; its reasons are there.
+#
+# Synced by the `health-digest` Argo Application. Dev only, like health-digest.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: estate-watch
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: estate-watch
+rules:
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list"]
+  - apiGroups: ["velero.io"]
+    resources: ["backups", "schedules", "podvolumebackups"]
+    verbs: ["get", "list"]
+  # Which clusters archive WAL, and the address of each primary, for backup_watch.py. An EndpointSlice
+  # shows an address and a pod's name; `pods` would show every pod's spec, cluster-wide.
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters"]
+    verbs: ["get", "list"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list"]
+  # Conditions, and the k3s.io/node-args annotation that says whether eviction landed.
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: estate-watch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: estate-watch
+subjects:
+  - kind: ServiceAccount
+    name: estate-watch
+    namespace: observability
+---
+# What it has already said. Declared with NO data: Argo compares only what git holds,
+# so it owns the object and leaves the state alone, and the Role needs no `create`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: estate-watch-state
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: estate-watch-state
+  namespace: observability
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["estate-watch-state"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: estate-watch-state
+  namespace: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: estate-watch-state
+subjects:
+  - kind: ServiceAccount
+    name: estate-watch
+    namespace: observability
+---
+# Explicit data[]: a key missing in OpenBao is a LOUD SecretSyncedError, never an empty
+# value. The notify bearer comes from talk-webhook-token, health-digest's ExternalSecret.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: estate-watch
+  namespace: observability
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: estate-watch
+    creationPolicy: Owner
+  data:
+    - secretKey: GITHUB_TOKEN
+      remoteRef:
+        key: platform/github/token
+        property: token
+    - secretKey: CRON_WATCH_KEY
+      remoteRef:
+        key: apps/estate-watch/env
+        property: CRON_WATCH_KEY
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: estate-watch
+  namespace: observability
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # Off the minute every other scheduler uses.
+  schedule: "3-53/10 * * * *"
+  # Forbid: two ticks reading the same state would post the same message twice.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      # The retry IS the next tick (state advances only after delivery).
+      backoffLimit: 0
+      activeDeadlineSeconds: 240
+      template:
+        metadata:
+          labels: { app: estate-watch }
+        spec:
+          restartPolicy: Never
+          serviceAccountName: estate-watch
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: assert-secrets
+              image: busybox:1.36.1
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  [ -n "${NOTIFY_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: token (Secret talk-webhook-token, ns observability)"; exit 1; }
+                  [ -n "${GITHUB_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: GITHUB_TOKEN (Secret estate-watch, ns observability)"; exit 1; }
+                  [ -n "${CRON_WATCH_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CRON_WATCH_KEY (Secret estate-watch, ns observability)"; exit 1; }
+                  echo "required secrets present"
+              env:
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: estate-watch, key: GITHUB_TOKEN }
+                - name: CRON_WATCH_KEY
+                  valueFrom:
+                    secretKeyRef: { name: estate-watch, key: CRON_WATCH_KEY }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 64Mi }
+          containers:
+            - name: watch
+              image: python:3.13-alpine
+              command: ["python3", "-I", "/scripts/estate_watch.py"]
+              env:
+                - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
+                - { name: ENV_NAME, value: dev } # branch == environment, 1:1
+                - { name: GITHUB_BRANCH, value: dev }
+                # owner/repo of the estate's repository: "/" here, both halves filled from the
+                # identity (GIT_OWNER, GIT_REPO) by kustomization.yaml; empty, the watcher refuses to start.
+                - { name: GITHUB_REPO, value: "/" }
+                # IN-CLUSTER: these fire when Traefik, DNS or the certificate may be the break.
+                - { name: NOTIFY_URL, value: http://talk-webhook.nextcloud.svc }
+                - { name: NOTIFY_CHANNEL, value: infra }
+                # Who keeps what it gave up on (notice_watch.py): the platform's Polaris; the estate's
+                # component lists its own applications beside it.
+                - name: NOTICE_SOURCES
+                  value: >-
+                    {"polaris":"http://autorizare-svc.autorizare.svc/ops/netrimise"}
+                # Unlike those, through the public edge: Traefik's rule IS what n8n_edge.py judges.
+                - { name: N8N_EDGE_HOST, value: n8n.BASE_DOMAIN }
+                - { name: N8N_EDGE_HOOKS_HOST, value: n8n-hooks.BASE_DOMAIN }
+                - { name: N8N_EDGE_AUTH_HOST, value: AUTHENTIK_HOST } # the three hosts: from the identity (kustomization.yaml)
+                # The watchers. Unlike the rest, one that is deleted or suspended is itself a failure.
+                - { name: REQUIRED_CRONJOBS, value: "observability/health-digest n8n/n8n-advisory-watch" }
+                # Each primary's exporter (backup_watch.py), over the pod network.
+                - { name: WAL_METRICS_PORT, value: "9187" }
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: estate-watch, key: GITHUB_TOKEN }
+                - name: CRON_WATCH_KEY
+                  valueFrom:
+                    secretKeyRef: { name: estate-watch, key: CRON_WATCH_KEY }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 25m, memory: 48Mi }
+                limits: { cpu: 300m, memory: 128Mi }
+              volumeMounts:
+                - { name: script, mountPath: /scripts, readOnly: true }
+          volumes:
+            - name: script
+              configMap:
+                name: estate-watch-script
+                defaultMode: 0444

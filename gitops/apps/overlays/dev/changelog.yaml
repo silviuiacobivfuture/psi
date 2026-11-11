@@ -1,0 +1,26 @@
+# changelog service — deployed from Harbor image via GitOps. Its database is the
+# in-cluster CNPG Cluster changelog-db (same Application; Neon until 2026-10-22);
+# the changelog-db Secret is composed by ESO from secret/apps/changelog/db.
+# Migrations run as an initContainer (prisma migrate deploy).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: changelog
+  namespace: argocd
+  # git-sourced → the overlay stamps targetRevision (= env branch). See BRANCHING.md.
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    path: gitops/services/changelog/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: changelog
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,381 @@
+# Authentik Blueprint ConfigMap — SELF-ENROLMENT (config-as-code).
+# Mounted by the chart at /blueprints/custom/ (blueprints.configMaps in
+# gitops/apps/overlays/dev/authentik.yaml) and reconciled by the worker on boot.
+# Additive + idempotent: re-applies cleanly, identifiers are stable slugs/keys.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHAT THIS DOES
+# Replaces the stock `default-source-enrollment` flow (referenced by the GitHub
+# OAuth source in blueprints-sources.yaml) with a recomex enrolment flow that:
+#   1. Asks the new person "which team?" (choice) + "why do you need access?"
+#      (free text) — see the prompt fields below.
+#   2. Writes those answers onto the user's `attributes` (enrol_team / enrol_reason)
+#      via the user_write stage. The "needs review" marker is `pending` membership.
+#   3. Creates the user as type=`external` (free SSO seat; internal seats are
+#      reserved for admins, see blueprints-admins.yaml) and drops them into the
+#      ZERO-ACCESS `pending` group and NOTHING else (create_users_group → pending).
+#   4. Logs them in (UserLoginStage) so the OAuth callback completes — but with no
+#      entitlements, every gated app denies them until an admin promotes them.
+#
+# This flow has its OWN slug `WLSLUG-self-enrollment` (NOT the stock
+# `default-source-enrollment` — reusing that collided with Authentik's system
+# enrolment blueprint, which keeps re-adding its own stage bindings). The GitHub
+# OAuth source's `enrollment_flow` is repointed to this slug in blueprints-sources.yaml.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# HOW A NEW PERSON ENROLS
+#   • They click "Login with GitHub" on https://auth.recomex.eu.
+#   • First time → GitHub OAuth callback has no matching user → this enrolment
+#     flow runs → they pick a team + type a reason → account created in `pending`.
+#   • They are logged in but see nothing they can use (pending = zero access).
+#
+# WHERE THE TEAM/WHY IS STORED
+#   On the user object's `attributes` JSON:
+#     attributes.enrol_team    = business | hr | dev | platform | other
+#     attributes.enrol_reason  = free text the user typed
+#     attributes.enrol_status  = "pending"   (cleared/updated by admin on promote)
+#   Plus group membership: the user is in the `pending` group.
+#
+# HOW THE ADMIN REVIEWS + PROMOTES (per ROLES.md §3/§4)
+#   Authentik UI → Directory → Users. Filter the list by group `pending`
+#   (or search the attributes for enrol_team/enrol_reason). For each new person:
+#     1. Read attributes.enrol_team + attributes.enrol_reason to decide the row.
+#     2. Add their `dept-*` group + the `app-*-*` entitlement groups from the
+#        ROLES.md §3 matrix (e.g. dept-dev → app-argocd-view, app-harbor-push, …).
+#     3. Remove them from `pending` (optional but tidy) and set
+#        attributes.enrol_status = "active".
+#   Group assignment is the ONLY thing that grants access — there is no separate
+#   "approve" toggle. Promotion = correct group membership.
+#
+# BREAK-GLASS / NO-LOCKOUT NOTE
+#   This flow only affects NEW self-enrolling SSO users. It does NOT touch the
+#   authentication flow, akadmin, or any existing user. `akadmin` (local
+#   break-glass) and the pinned internal admins log in exactly as before.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-enrollment
+  namespace: authentik
+data:
+  enrollment.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-self-enrollment
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # ── Prompt field: which team? (single-choice dropdown) ──────────────────
+      - model: authentik_stages_prompt.prompt
+        identifiers:
+          field_key: enrol_team
+        attrs:
+          label: Which team are you joining?
+          name: WLSLUG-enrol-team
+          type: dropdown
+          required: true
+          placeholder: |-
+            business
+            hr
+            dev
+            platform
+            other
+          # dropdown choices are taken from placeholder lines in 2026.5.
+          order: 100
+
+      # ── Prompt field: why / reason (multi-line free text) ───────────────────
+      - model: authentik_stages_prompt.prompt
+        identifiers:
+          field_key: enrol_reason
+        attrs:
+          label: Why do you need access? (which app / what for)
+          name: WLSLUG-enrol-reason
+          type: text_area
+          required: true
+          placeholder: "e.g. Dev on rmx-sign, need Argo + Harbor read"
+          order: 200
+
+      # ── Hidden field: capture the GitHub username for the account ───────────
+      # The source enrollment context provides a suggested username; keep the
+      # stock username prompt so user_write has a username to persist.
+      - model: authentik_stages_prompt.prompt
+        identifiers:
+          field_key: username
+        attrs:
+          # This entry matched (by field_key) the stock username field of the
+          # ACCOUNT page and took it over, so this label is what every person
+          # sees under "Datele contului" (blueprints-theme.yaml).
+          label: Nume de utilizator
+          name: WLSLUG-enrol-username
+          type: username
+          required: true
+          placeholder: Nume de utilizator
+          order: 300
+
+      # ── Prompt stage: collect team + reason + username ──────────────────────
+      - model: authentik_stages_prompt.promptstage
+        identifiers:
+          name: WLSLUG-enrollment-prompt
+        attrs:
+          fields:
+            - !Find [authentik_stages_prompt.prompt, [field_key, enrol_team]]
+            - !Find [authentik_stages_prompt.prompt, [field_key, enrol_reason]]
+            - !Find [authentik_stages_prompt.prompt, [field_key, username]]
+
+      # ── WHITELIST: auto-assign groups on enrolment ──────────────────────────
+      # THE PROBLEM: enrolment is open to any GitHub account on earth, and every
+      # enrollee lands in `pending` with zero entitlements — so a real colleague is
+      # blocked until a human notices and clicks. There is no Workspace/LDAP
+      # directory yet to answer "is this person staff?", so the answer is a
+      # whitelist held here, in git, reviewable in a diff.
+      #
+      # HOW IT WORKS: user_write adds `create_users_group` AND anything the flow
+      # plan left in context["groups"] (verified against authentik 2026.5.3
+      # stages/user_write/stage.py: `user.groups.add(*self.executor.plan.context[
+      # PLAN_CONTEXT_GROUPS])`). This policy runs on the write binding, so it can
+      # put the matched bundle there before the user is persisted.
+      #
+      # NOT ON THE PROMPT STAGE: policies bind to a PolicyBindingModel — Flow /
+      # FlowStageBinding / Application — never to a PromptStage (the note at the
+      # bottom of this file records that lesson).
+      #
+      # FAIL-CLOSED: no match, no email, or ANY exception → returns True with no
+      # groups set, so the user still enrols and still lands in `pending` only.
+      # A broken policy must never grant access, and must never block enrolment.
+      #
+      # TO ADD SOMEONE: add their address (or domain) to the maps below and commit.
+      # Domains match the part after `@`; exact addresses win over domains.
+      - model: authentik_policies_expression.expressionpolicy
+        identifiers:
+          name: WLSLUG-enrollment-whitelist
+        attrs:
+          execution_logging: true
+          expression: |
+            # ---- WHITELIST (edit these three maps; everything else is machinery) ----
+            # Company domains → every address at that domain gets this bundle.
+            #
+            # DELIBERATELY EMPTY as of 2026-09-21 (I1, docs/identitate/LEDGER.md).
+            # It used to map recomexpert.ro and ivfuture.ro to "onboard-admin",
+            # which includes platform-admins (is_superuser — Authentik itself).
+            # Enrolment is open to any GitHub account on earth, and a GitHub
+            # account can carry any verified address, so that mapping meant:
+            # prove control of one address at either domain and become a
+            # superuser of the directory that fronts OpenBao, Argo CD, Harbor and
+            # Headlamp. On a tailnet-gated directory that was contained. This
+            # directory is about to become the estate's ONLY one and to hold
+            # accountants and external clients on a public ingress, so it is not.
+            #
+            # A domain match now grants NOTHING: the person enrols, lands in
+            # `pending`, and an admin promotes them per ROLES.md §3. That is one
+            # click of friction against an unauthenticated path to superuser.
+            #
+            # If a domain bundle is ever wanted again, map it to "onboard-collab"
+            # — never to an admin bundle, and never past NEVER_GRANTED below.
+            DOMAINS = {}
+            # Named individuals on personal addresses (no gmail.com wildcard — that
+            # would let ANY Google account in).
+            ADDRESSES = {
+                # The operator (identity OPERATOR_EMAIL). Anyone else is the
+                # estate's own to add, in its own copy of this blueprint.
+                "WLOPERATOREMAIL": "onboard-admin",
+            }
+            # Bundle → the REAL groups it grants.
+            BUNDLES = {
+                "onboard-collab": [
+                    "onboard-collab", "dept-business",
+                    "app-nextcloud-user", "app-pdfcraft-user",
+                ],
+                # The developer role (ROLES.md §2b): view everywhere, plus the
+                # three *-developer entitlements — write app secrets, operate app
+                # namespaces, sync and restart in Argo. Never an *-admin group.
+                "onboard-developer": [
+                    "onboard-developer", "dept-dev",
+                    "app-nextcloud-user", "app-plane-user", "app-pdfcraft-user", "app-dashboards-view",
+                    "app-plunk-user",
+                    "app-argocd-view", "app-argocd-developer",
+                    "app-harbor-push", "app-harbor-pull",
+                    "app-openbao-read", "app-openbao-developer",
+                    "app-k8s-view", "app-k8s-developer",
+                    "app-signapp-view",
+                ],
+                # The full application set for the named admins — WITHOUT
+                # platform-admins, removed 2026-09-21 (I1).
+                #
+                # Removing it costs those five accounts nothing: their
+                # platform-admins membership is declared by ROSTER in
+                # blueprints-groups.yaml, five `!Find` entries by username, which
+                # is the reviewable path. This bundle was a SECOND way to become a
+                # superuser, reached by enrolling rather than by being listed —
+                # and a second path to the widest authority in the install is the
+                # one nobody audits.
+                "onboard-admin": [
+                    "onboard-admin", "dept-platform",
+                    "app-nextcloud-user", "app-plane-user", "app-plane-admin", "app-pdfcraft-user", "app-dashboards-view",
+                    "app-plunk-user", "app-plunk-admin",
+                    "app-argocd-admin", "app-argocd-view",
+                    "app-harbor-admin", "app-harbor-push", "app-harbor-pull",
+                    "app-openbao-admin", "app-openbao-read",
+                    "app-k8s-admin", "app-k8s-view",
+                    "app-signapp-admin", "app-signapp-operator",
+                    "app-signapp-hr", "app-signapp-view",
+                ],
+            }
+            # ---- machinery ----------------------------------------------------
+            try:
+                from authentik.core.models import Group
+                email = (context.get("prompt_data", {}).get("email")
+                         or (request.context.get("pending_user").email
+                             if request.context.get("pending_user") else None)
+                         or "")
+                email = email.strip().lower()
+                if not email:
+                    ak_message("no email on enrolment — staying in pending")
+                    return True
+                bundle = ADDRESSES.get(email) or DOMAINS.get(email.rpartition("@")[2])
+                if not bundle:
+                    ak_message("email not whitelisted — staying in pending")
+                    return True
+                names = BUNDLES.get(bundle, [])
+                # THE GUARD THE MAPS CANNOT TALK THEIR WAY PAST (I1).
+                #
+                # Two independent checks, because each catches what the other
+                # misses. The name list catches a group that does not exist yet or
+                # has had is_superuser cleared temporarily; the is_superuser test
+                # catches a NEW superuser group nobody thought to name here. A
+                # deny-list alone rots; a property test alone misses the group
+                # that is dangerous by convention rather than by flag.
+                #
+                # This is enforced in the machinery rather than by reviewing the
+                # maps, because the maps are the part people edit in a hurry.
+                NEVER_GRANTED = {"platform-admins", "authentik Admins"}
+                blocked = [n for n in names if n in NEVER_GRANTED]
+                names = [n for n in names if n not in NEVER_GRANTED]
+                groups = []
+                # `fetched` is what the directory actually has, recorded BEFORE
+                # the superuser filter. The `missing` report below is computed
+                # from it, so a group that was REFUSED is reported once as
+                # refused and never also as missing — "missing" means the
+                # directory does not declare it, which sends an operator looking
+                # for a blueprint bug that is not there.
+                fetched = set()
+                for g in Group.objects.filter(name__in=names):
+                    fetched.add(g.name)
+                    if getattr(g, "is_superuser", False):
+                        blocked.append(g.name)
+                        continue
+                    groups.append(g)
+                if blocked:
+                    # Loud. A bundle that tried to grant superuser is a change
+                    # somebody made on purpose, and it must be visible in the
+                    # enrolment log rather than silently trimmed.
+                    ak_message("whitelist: REFUSED superuser groups %s" % ",".join(sorted(set(blocked))))
+                missing = [n for n in names if n not in fetched]
+                if missing:
+                    # Loud but non-fatal: the user still gets what exists. A silently
+                    # half-applied bundle is how someone ends up "onboarded" with no
+                    # access and nobody noticing.
+                    ak_message("whitelist: missing groups %s" % ",".join(missing))
+                context["groups"] = groups
+                ak_message("whitelisted %s -> %s" % (email, bundle))
+                return True
+            except Exception as exc:
+                # Never block enrolment on a policy bug; the user lands in pending.
+                ak_message("whitelist policy error: %s" % exc)
+                return True
+
+      # ── User-write stage: persist attributes, type=external, group=pending ──
+      # create_users_group → `pending` is what makes a freshly enrolled user land
+      # in the zero-access group and NOTHING else. user_type=external keeps them
+      # off a paid internal seat (admins are pinned internal separately).
+      - model: authentik_stages_user_write.userwritestage
+        identifiers:
+          name: WLSLUG-enrollment-write
+        attrs:
+          user_creation_mode: always_create
+          create_users_as_inactive: false
+          user_type: external
+          create_users_group: !Find [authentik_core.group, [name, pending]]
+
+      # ── Login stage: complete the OAuth callback session ────────────────────
+      - model: authentik_stages_user_login.userloginstage
+        identifiers:
+          name: WLSLUG-enrollment-login
+        attrs:
+          # The hub's sign-out pages stand on this: see blueprints-broker-autorizare-hub.yaml.
+          session_duration: seconds=0
+
+      # NOTE: the "needs review" marker is simply membership in the `pending` group
+      # (set by the user_write stage). enrol_team / enrol_reason are persisted onto
+      # user.attributes by user_write from the prompt data — no extra policy needed.
+      # (A previous expression-policy-bound-to-the-prompt-stage approach was dropped:
+      # policies bind to a PolicyBindingModel — Flow/FlowStageBinding/Application —
+      # NOT to a PromptStage directly, which made the blueprint invalid.)
+
+      # ── The enrolment flow itself (own slug WLSLUG-self-enrollment) ────────
+      - model: authentik_flows.flow
+        identifiers:
+          slug: WLSLUG-self-enrollment
+        attrs:
+          name: WLSLUG Self-Enrolment
+          title: Request access — tell us your team & why
+          designation: enrollment
+          authentication: none
+          # No extra policy gating on the flow; the prompt + write do the work.
+
+      # ── Stage bindings: prompt → write → login (ordered) ────────────────────
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, WLSLUG-self-enrollment]]
+          stage: !Find [authentik_stages_prompt.promptstage, [name, WLSLUG-enrollment-prompt]]
+          order: 10
+        attrs:
+          evaluate_on_plan: true
+
+      - model: authentik_flows.flowstagebinding
+        id: enrollment-write-binding
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, WLSLUG-self-enrollment]]
+          stage: !Find [authentik_stages_user_write.userwritestage, [name, WLSLUG-enrollment-write]]
+          order: 20
+        attrs:
+          # The whitelist policy must be evaluated when this stage RUNS (not at plan
+          # time), because it reads the email the prompt stage collected a moment
+          # earlier and writes context["groups"] for user_write to consume.
+          evaluate_on_plan: false
+      # Bind the whitelist to the WRITE stage binding above. PolicyBinding targets a
+      # FlowStageBinding here (not the Flow) so it runs at exactly that point.
+      #
+      # `!KeyOf`, NOT `!Find`. A policy binding points at the stage binding's
+      # POLICY-BINDING id (pbm_uuid), which is a different id from the stage
+      # binding's own primary key. !KeyOf resolves to the pbm_uuid; !Find resolves
+      # to the primary key, so the importer never found the existing binding, tried
+      # to create a duplicate and refused the WHOLE blueprint ("The fields policy,
+      # target, order must make a unique set"). That refusal hid for a month that
+      # nothing in this file was being applied: the 2026-09-22 fix below (empty
+      # DOMAINS, NEVER_GRANTED) never reached the live directory, which kept
+      # granting onboard-admin, platform-admins included, to any GitHub account
+      # carrying a recomexpert.ro or ivfuture.ro address (found and closed
+      # 2026-10-22).
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf enrollment-write-binding
+          policy: !Find [authentik_policies_expression.expressionpolicy, [name, WLSLUG-enrollment-whitelist]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !Find [authentik_flows.flow, [slug, WLSLUG-self-enrollment]]
+          stage: !Find [authentik_stages_user_login.userloginstage, [name, WLSLUG-enrollment-login]]
+          order: 30
+
+    # ── GitHub source wiring (no change needed) ───────────────────────────────
+    # blueprints-sources.yaml already sets the GitHub OAuth source's
+    #   enrollment_flow: !Find [authentik_flows.flow, [slug, WLSLUG-self-enrollment]]
+    # Because this blueprint OWNS that slug, the source now resolves to the
+    # WLSLUG enrolment flow with no edit to blueprints-sources.yaml. We do NOT
+    # re-declare the source here — that would risk half-creating it before the
+    # GitHub OAuth creds exist (the source serializer rejects a blank consumer
+    # key). The reference already points at the right slug.

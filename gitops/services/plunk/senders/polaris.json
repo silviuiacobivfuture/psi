@@ -1,0 +1,22 @@
+{
+  "_doc": "Polaris (autorizare): organisation invitations, sent through rmx.eu/platform/email with this sender's generated email-sender (EMAIL_*).",
+  "version": 1,
+  "key": "polaris",
+  "name": "Polaris — autorizare",
+  "subdomain": "polaris",
+  "receive": false,
+  "sender": {
+    "local": "noreply",
+    "name": "Polaris"
+  },
+  "consumer": {
+    "service": "autorizare",
+    "namespace": "autorizare",
+    "openbao": "secret/apps/autorizare/plunk",
+    "wire": true
+  },
+  "novu": {
+    "org": "{MAIL_SENDER_NAME}",
+    "primary": true
+  }
+}

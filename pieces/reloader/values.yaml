@@ -1,0 +1,24 @@
+image:
+  repository: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/ghcr.io/stakater/reloader
+  tag: "v1.4.17@sha256:2c76a3ae64cb6738bfbaff0e56d668a4e46ac2e3814d990d34ef51aa8f95e6d0"
+reloader:
+  # Watch every namespace (cluster-wide), reload only annotated workloads.
+  watchGlobally: true
+  # Reload on a Secret/ConfigMap CHANGE (not just on referenced-resource events).
+  reloadStrategy: annotations
+  deployment:
+    resources:
+      requests: { cpu: 10m, memory: 64Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    # Kyverno-compliant (reloader ns is a NEW app-scope ns → policies apply).
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      fsGroup: 65534
+      seccompProfile: { type: RuntimeDefault }
+    containerSecurityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities: { drop: ["ALL"] }
+      seccompProfile: { type: RuntimeDefault }

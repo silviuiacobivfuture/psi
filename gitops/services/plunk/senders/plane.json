@@ -1,0 +1,19 @@
+{
+  "_doc": "Plane (owner: Plane sends from plane.<apex>, not the apex). Plane takes SMTP only: plane-smtp-reconcile writes the relay (plunk-smtp.<apex>:587, user plunk, this sender's key from email-sender) into Plane's instance configuration.",
+  "version": 1,
+  "key": "plane",
+  "name": "Plane — proiecte",
+  "subdomain": "plane",
+  "receive": false,
+  "sender": {
+    "local": "noreply",
+    "name": "Plane"
+  },
+  "consumer": {
+    "service": "plane",
+    "namespace": "plane",
+    "openbao": "secret/apps/plane/plunk",
+    "wire": true
+  },
+  "novu": null
+}

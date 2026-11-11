@@ -1,0 +1,75 @@
+# Disable Kubernetes service-link env injection for Plane's workloads.
+#
+# WHY (verified on dev 2026-08-19): kubelet injects a legacy Docker-link variable
+# per Service in the namespace — for the admin Service that is
+#   PLANE_ADMIN_PORT=tcp://10.43.206.158:3000
+# Plane's frontend reads an env var of exactly that name expecting an ADMIN URL, so
+# it takes the injected `tcp://<clusterIP>:3000` and builds every god-mode link as
+#   https://plane.<BASE_DOMAIN>:3000/god-mode/
+# Nothing is published on 3000 (it is the in-cluster Service port), so "Get started"
+# hangs and dead-ends with ERR_NETWORK_CHANGED / ERR_CONNECTION_TIMED_OUT.
+#
+# The chart gives the web container NO env at all (templates/workloads/
+# web.deployment.yaml: image, resources, scheduling — nothing else) and exposes no
+# values key for env or enableServiceLinks, so the collision cannot be fixed from
+# values. Setting ADMIN_BASE_URL/SPACE_BASE_URL on the API is still correct and
+# necessary — the API uses them for emailed links — but it does NOT help the web
+# bundle, which never reads that Secret.
+#
+# `enableServiceLinks: false` stops the injection entirely. It is the documented
+# Kubernetes control for exactly this collision, it removes only legacy Docker-link
+# variables (DNS service discovery is untouched — every in-cluster address Plane
+# uses is an explicit DNS name in our ExternalSecret), and it is namespace-scoped
+# here so nothing else on the cluster changes.
+#
+# WHY A MUTATE: the plane Argo Application is Helm-only — there is no kustomize layer
+# to patch, and hand-editing the live Deployment would be drift Argo reverts on the
+# next sync. Same mechanism and rationale as mutate-plane-migrator-resources.yaml.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: mutate-plane-service-links
+  annotations:
+    policies.kyverno.io/title: Disable service-link env injection for Plane
+    policies.kyverno.io/category: Workload Configuration
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >-
+      kubelet's legacy service-link variables collide with the env var names Plane's
+      frontend reads (PLANE_ADMIN_PORT), making it build god-mode URLs against the
+      in-cluster Service port 3000. The chart exposes no way to set env or
+      enableServiceLinks, so this mutates the Deployments to turn the injection off.
+spec:
+  rules:
+    - name: disable-service-links
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+              namespaces:
+                - plane
+      preconditions:
+        all:
+          # EVERY upstream chart workload (…-wl), not just the frontends. The first
+          # version of this rule listed web/admin/space only and did NOT fix the
+          # symptom: `plane-api-wl` kept its injected PLANE_ADMIN_PORT, and the API
+          # is what serves `admin_base_url` to the browser via /api/instances/, so
+          # the bad port survived where it actually mattered. Our own Deployments
+          # (plane-redis) are matched by name suffix and stay untouched.
+          - key: "{{ request.object.metadata.name }}"
+            operator: AnyIn
+            value:
+              - plane-web-wl
+              - plane-admin-wl
+              - plane-space-wl
+              - plane-api-wl
+              - plane-worker-wl
+              - plane-beat-worker-wl
+              - plane-live-wl
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                enableServiceLinks: false

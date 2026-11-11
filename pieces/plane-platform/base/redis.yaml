@@ -1,0 +1,105 @@
+# Redis for Plane — Django's cache/rate-limit store (api, worker, beat-worker) and
+# the live server's document pub/sub. Official upstream image, NOT Bitnami (the
+# Bitnami catalog moved free images to docker.io/bitnamilegacy in 2025 and the
+# pinned tags 404) and NOT the chart's bundled StatefulSet.
+#
+# WHY NOT THE CHART'S (`redis.local_setup: true`): it ships valkey/valkey:7.2.11-alpine
+# with NO password (the chart's REDIS_URL has no credentials at all), NO resource
+# requests/limits (require-requests-limits is ENFORCE), NO probes, and a 100Mi PVC for
+# data that is pure cache. Our own instance is authenticated, probed and bounded —
+# the same choice already made for authentik's and nextcloud's Redis.
+#
+# NO PVC, unlike authentik's: everything in here is derived state — cache entries,
+# rate-limit counters and editor pub/sub that Plane re-creates on demand. Persisting
+# it would add a node-pinned local-path volume for data nobody would ever want
+# restored. An emptyDir keeps the failure mode to "a cold cache after a restart".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plane-redis
+  labels:
+    app.kubernetes.io/name: plane-redis
+  annotations:
+    # REQUIRED: redis-password is injected as an env var and baked into the
+    # redis-server --requirepass argv at start, so a rotated password would leave
+    # redis accepting only the OLD one while Plane authenticates with the new one —
+    # a silent split-brain that surfaces as random cache/auth errors.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plane-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plane-redis
+    spec:
+      # The plane namespace is EXCLUDED from require-run-as-non-root because the
+      # upstream Plane images all run as root (see pieces/plane/values.yaml).
+      # That exclusion is a ceiling, not a target: this pod is ours, so it declares a
+      # restricted context anyway.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: WLREGISTRY/mirror/docker.io/library/redis:7.4-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7
+          command: ["sh", "-c"]
+          # requirepass via env so the password never appears in the manifest/argv.
+          # appendonly no: see the header — this data is disposable by design.
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly no --maxmemory 192mb --maxmemory-policy allkeys-lru
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: plane-redis
+                  key: redis-password
+          ports:
+            - name: redis
+              containerPort: 6379
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plane-redis
+  labels:
+    app.kubernetes.io/name: plane-redis
+spec:
+  selector:
+    app.kubernetes.io/name: plane-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379

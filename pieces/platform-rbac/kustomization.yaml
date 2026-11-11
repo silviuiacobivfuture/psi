@@ -1,0 +1,21 @@
+# SEB piece `platform-rbac`: the cluster's RBAC — Authentik OIDC group → ClusterRole bindings
+# (deny-by-default; oidc-clusterrolebindings.yaml), the tailnet break-glass binding
+# (tailnet-clusterrolebindings.yaml) and the developer role (developer-rbac.yaml).
+# Stateless, no webhook: RBAC objects only, all additive, inert until a matching identity
+# presents itself. Delivered in the SEB bundle, rendered at build time (tools/bundle/build.mjs).
+#
+# The estate's own comes from its layer, ../../components/estate/platform-rbac: its people (the
+# tailnet owner, developers' tailnet logins) and its application namespaces' developer
+# RoleBindings. The managed-by label is written `platform/managed-by` and moved under the
+# estate's label domain by ../../components/platform-labels.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - oidc-clusterrolebindings.yaml
+  - tailnet-clusterrolebindings.yaml
+  - developer-rbac.yaml
+components:
+  - ../../components/whitelabel
+  - ../../components/estate/platform-rbac
+transformers:
+  - ../../components/platform-labels

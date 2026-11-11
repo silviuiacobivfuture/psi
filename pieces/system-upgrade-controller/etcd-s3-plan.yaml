@@ -1,0 +1,247 @@
+# SUC Plan: enable k3s native etcd S3 snapshots on the LIVE control-plane node,
+# as-code, no hand-SSH. Mirrors oidc-apiserver-plan.yaml exactly: Argo syncs this;
+# the system-upgrade-controller schedules a privileged Job on the matched node; the
+# Job drops `/etc/rancher/k3s/config.yaml.d/etcd-s3.yaml` (a drop-in, so the base
+# config.yaml is NEVER touched) and restarts k3s once via the host's systemd.
+#
+# WHY native k3s flags (drop-in) over a privileged CronJob/timer running
+# `k3s etcd-snapshot save --s3`:
+#   • k3s's own supervisor owns the schedule (--etcd-snapshot-schedule-cron) and the
+#     S3 push + retention pruning (--etcd-snapshot-retention) — one integrated path,
+#     survives node reboots, and `k3s etcd-snapshot list/prune` works against it.
+#   • This is the EXACT proven pattern already running on this node (the OIDC Plan):
+#     idempotent diff-before-write, self-rollback on /healthz fail, backoffLimit cap,
+#     and the `system-upgrade` ns is already Kyverno-excluded for privileged pods.
+#   • A CronJob would need its OWN privileged Kyverno exception, its OWN cron, and
+#     would duplicate scheduling/pruning logic k3s already does natively.
+# Cost of native flags: enabling them requires restarting k3s ONCE (~30s apiserver
+# blip — the OIDC Plan did the same successfully on this sole cp). That single
+# restart is the ONLY disruptive moment; thereafter snapshots run in-process with NO
+# further restarts. Kubelets cache state and workloads keep running across the blip.
+#
+# WHY a drop-in (config.yaml.d) and not config.yaml: k3s loads
+# /etc/rancher/k3s/config.yaml then merges /etc/rancher/k3s/config.yaml.d/*.yaml in
+# alphabetical order. This file is the ONLY source of etcd-s3 keys, so plain
+# (replace-semantics) keys are correct — we never clobber or read the operator base.
+# It is ALSO byte-identical to what modules/k3s bakes into cloud-init for a from-
+# scratch rebuild, so the live node and a fresh provision converge on the same flags.
+#
+# WHY no drain/cordon: dev-k3s-cp is the SOLE control-plane. Draining/cordoning the
+# only cp is dangerous and pointless — the restart blip is seconds. cordon=false, no
+# drain block. The Plan restarts the apiserver in place.
+#
+# IDEMPOTENT + SAFE: the job no-ops if the drop-in is already present and byte-
+# identical (it diffs before writing/restarting), backs up any pre-existing drop-in
+# to etcd-s3.yaml.bak, and FAILS LOUDLY (non-zero exit → SUC marks the node
+# not-applied, and on failure it restores the backup + restarts) if the apiserver
+# does not return /healthz=ok after the restart. The node admin kubeconfig
+# (/etc/rancher/k3s/k3s.yaml) is never touched (break-glass survives).
+#
+# GATE: ENABLE_ETCD_S3 in the etcd-s3-flags ConfigMap (default "true" for dev). Set
+# it "false" + bump spec.version to ROLL BACK (deletes the drop-in, restarts k3s →
+# etcd-s3 off again; existing snapshots in S3 are untouched).
+#
+# ── RESTORE (single-cp DR — destroys current etcd, restores a snapshot) ──
+# This is a LAST RESORT for a live cluster. On the cp node:
+#   1. systemctl stop k3s
+#   2. k3s server \
+#        --cluster-reset \
+#        --etcd-s3 \
+#        --etcd-s3-bucket=<BUCKET_PREFIX>-tfstate-dev \
+#        --etcd-s3-folder=etcd-snapshots/dev \
+#        --etcd-s3-endpoint=fsn1.your-objectstorage.com \
+#        --etcd-s3-region=fsn1 \
+#        --etcd-s3-access-key=<AWS_ACCESS_KEY_ID_DEV> \
+#        --etcd-s3-secret-key=<AWS_SECRET_ACCESS_KEY_DEV> \
+#        --cluster-reset-restore-path=<snapshot-name>
+#      (list snapshots: `k3s etcd-snapshot list --s3 --etcd-s3-bucket=<BUCKET_PREFIX>-tfstate-dev
+#       --etcd-s3-folder=etcd-snapshots/dev --etcd-s3-endpoint=fsn1.your-objectstorage.com
+#       --etcd-s3-region=fsn1 --etcd-s3-access-key=… --etcd-s3-secret-key=…`)
+#   3. systemctl start k3s
+# The consolidated runbook lives in infra/RUNBOOK.md (owned elsewhere) — this header
+# is the authoritative restore reference co-located with the Plan.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etcd-s3-flags
+  namespace: system-upgrade
+data:
+  # Non-secret etcd-s3 config. The access/secret keys are injected separately from
+  # the `etcd-s3` Secret (ESO ← OpenBao) as files the Plan reads. Bucket/endpoint/
+  # region match infra/environments/dev/backend.tf + the openbao snapshot CronJob.
+  #
+  # ⚠️ DRIFT TRAP (same as the OIDC Plan): SUC hashes the Plan SPEC, not this
+  # ConfigMap. ANY change to a value here MUST be accompanied by a `spec.version`
+  # bump on the Plan below IN THE SAME COMMIT, or it syncs but never re-applies.
+  ETCD_S3_BUCKET: "BUCKET_PREFIX-tfstate-dev" # the estate values here come from the identity (kustomization.yaml)
+  ETCD_S3_FOLDER: "etcd-snapshots/dev"
+  ETCD_S3_ENDPOINT: "OBJECT_STORAGE_ENDPOINT_HOST"
+  ETCD_S3_REGION: "OBJECT_STORAGE_REGION"
+  # 6h cadence, retain the last 20 snapshots (local + S3 pruning).
+  ETCD_SNAPSHOT_SCHEDULE_CRON: "0 */6 * * *"
+  ETCD_SNAPSHOT_RETENTION: "20"
+  # Gate: "true" enables etcd-s3 (default for dev). Set "false" + bump spec.version
+  # to roll back (the job deletes the drop-in and restarts k3s).
+  ENABLE_ETCD_S3: "true"
+---
+# S3 credentials for the Plan job → `etcd-s3` Secret in the system-upgrade namespace.
+# Reuses the SAME Hetzner Object Storage creds as velero + the OpenBao snapshot
+# CronJob + the tofu state backend (OpenBao KV secret/platform/object-storage/dev).
+# NOT inline, NOT from .env. Until OpenBao is seeded the value syncs empty → the
+# Plan job fails its precondition (empty key) and the node stays not-applied (safe).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: etcd-s3
+  namespace: system-upgrade
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: etcd-s3
+    creationPolicy: Owner
+  data:
+    - secretKey: access_key
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: secret_key
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: etcd-s3
+  namespace: system-upgrade
+spec:
+  # Bump this string to force a re-run (e.g. after changing a ConfigMap value or to
+  # roll back via ENABLE_ETCD_S3=false). SUC tracks application per-node; an
+  # unchanged version only re-runs if the latest-hash changes.
+  version: etcd-s3-v1
+  # Target ONLY the sole control-plane node (verified live on dev-k3s-cp).
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  # SOLE control plane → never cordon/drain it. cordon=false; no drain.
+  cordon: false
+  tolerations:
+    - { key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists }
+    - { key: CriticalAddonsOnly, operator: Exists }
+  secrets:
+    # ESO-synced S3 creds → mounted as files the upgrade container reads.
+    - name: etcd-s3
+      path: /run/system-upgrade/secrets/etcd-s3
+  upgrade:
+    # Minimal POSIX-sh image carrying nsenter + cmp (util-linux/busybox). The SUC
+    # upgrade container runs privileged with host PID + the node root fs at /host,
+    # so we can write node files and drive the host systemd via `nsenter` into PID 1.
+    image: WLREGISTRY/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    envFrom:
+      - configMapRef: { name: etcd-s3-flags }
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        set -eu
+        ACCESS_KEY="$(cat /run/system-upgrade/secrets/etcd-s3/access_key 2>/dev/null || true)"
+        SECRET_KEY="$(cat /run/system-upgrade/secrets/etcd-s3/secret_key 2>/dev/null || true)"
+
+        DROPIN_DIR=/host/etc/rancher/k3s/config.yaml.d
+        DROPIN="$DROPIN_DIR/etcd-s3.yaml"
+        NSENTER="nsenter -t 1 -m -u -i -n -p --"
+
+        restart_k3s() {
+          echo "[etcd-s3-plan] restarting k3s on the host (single control-plane, in-place)"
+          $NSENTER systemctl restart k3s
+        }
+
+        wait_healthz() {
+          echo "[etcd-s3-plan] waiting for apiserver /healthz=ok (break-glass kubeconfig)"
+          i=0
+          while [ "$i" -lt 60 ]; do
+            if $NSENTER k3s kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get --raw /healthz 2>/dev/null | grep -q '^ok$'; then
+              echo "[etcd-s3-plan] apiserver healthy"
+              return 0
+            fi
+            i=$((i + 1)); sleep 2
+          done
+          echo "[etcd-s3-plan] FATAL: apiserver did not return /healthz=ok within 120s" >&2
+          return 1
+        }
+
+        # ---- Rollback path: remove the drop-in, restart, verify ----
+        if [ "${ENABLE_ETCD_S3:-true}" != "true" ]; then
+          if [ -f "$DROPIN" ]; then
+            echo "[etcd-s3-plan] ENABLE_ETCD_S3!=true → deleting $DROPIN and restarting k3s"
+            rm -f "$DROPIN" "$DROPIN.bak"
+            restart_k3s
+            # The drop-in is already gone; a healthz hiccup must NOT flip the node into
+            # a failed/retry loop. The node is in the correct no-etcd-s3 state.
+            wait_healthz || true
+          else
+            echo "[etcd-s3-plan] ENABLE_ETCD_S3!=true but no drop-in present → no-op"
+            rm -f "$DROPIN.bak"
+          fi
+          exit 0
+        fi
+
+        # ---- Apply path: require both S3 keys from the ESO secret ----
+        if [ -z "$ACCESS_KEY" ] || [ -z "$SECRET_KEY" ]; then
+          echo "[etcd-s3-plan] FATAL: S3 access/secret key empty (seed OpenBao secret/platform/object-storage/dev) — refusing to write broken etcd-s3 flags" >&2
+          exit 1
+        fi
+
+        mkdir -p "$DROPIN_DIR"
+
+        # Render the desired drop-in, then compare — idempotent: if the live drop-in
+        # already matches, DO NOT restart. Built with printf (NOT a heredoc) so the
+        # YAML block-scalar indentation of this script does not leak into the drop-in.
+        DESIRED="$(mktemp)"
+        {
+          printf '%s\n' '# Managed by system-upgrade-controller Plan etcd-s3 (GitOps). DO NOT EDIT.'
+          printf '%s\n' '# k3s native timed etcd snapshots to Hetzner Object Storage (S3). Mirrors the'
+          printf '%s\n' '# flags modules/k3s bakes into cloud-init for a from-scratch rebuild.'
+          printf '%s\n' 'etcd-s3: true'
+          printf 'etcd-s3-bucket: "%s"\n'              "$ETCD_S3_BUCKET"
+          printf 'etcd-s3-folder: "%s"\n'              "$ETCD_S3_FOLDER"
+          printf 'etcd-s3-endpoint: "%s"\n'            "$ETCD_S3_ENDPOINT"
+          printf 'etcd-s3-region: "%s"\n'              "$ETCD_S3_REGION"
+          printf 'etcd-s3-access-key: "%s"\n'          "$ACCESS_KEY"
+          printf 'etcd-s3-secret-key: "%s"\n'          "$SECRET_KEY"
+          printf 'etcd-snapshot-schedule-cron: "%s"\n' "$ETCD_SNAPSHOT_SCHEDULE_CRON"
+          printf 'etcd-snapshot-retention: %s\n'       "$ETCD_SNAPSHOT_RETENTION"
+        } > "$DESIRED"
+
+        if [ -f "$DROPIN" ] && cmp -s "$DESIRED" "$DROPIN"; then
+          # Already current → pure no-op. Do NOT call wait_healthz: nothing restarted,
+          # and an unrelated apiserver blip would otherwise false-fail the Plan into a
+          # retry loop on a correctly-configured node.
+          echo "[etcd-s3-plan] drop-in already present and current → no-op (no restart)"
+          rm -f "$DESIRED"
+          exit 0
+        fi
+
+        # Back up any pre-existing drop-in before overwriting.
+        if [ -f "$DROPIN" ]; then
+          cp "$DROPIN" "$DROPIN.bak"
+          echo "[etcd-s3-plan] backed up existing drop-in → $DROPIN.bak"
+        fi
+
+        cp "$DESIRED" "$DROPIN"
+        rm -f "$DESIRED"
+        chmod 600 "$DROPIN"   # the drop-in carries S3 secret-key — restrict it
+        echo "[etcd-s3-plan] wrote $DROPIN"
+
+        restart_k3s
+        if ! wait_healthz; then
+          echo "[etcd-s3-plan] apiserver unhealthy after applying etcd-s3 — rolling back drop-in" >&2
+          if [ -f "$DROPIN.bak" ]; then
+            mv "$DROPIN.bak" "$DROPIN"
+          else
+            rm -f "$DROPIN"
+          fi
+          restart_k3s
+          wait_healthz || true
+          exit 1
+        fi
+
+        echo "[etcd-s3-plan] etcd-s3 snapshots enabled (6h cadence, retain 20) and apiserver verified healthy"

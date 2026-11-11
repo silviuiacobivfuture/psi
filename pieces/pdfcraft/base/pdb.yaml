@@ -1,0 +1,11 @@
+# One of the two replicas always stays up through a voluntary disruption (a node
+# drain, a k3s upgrade by system-upgrade-controller).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdfcraft
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft

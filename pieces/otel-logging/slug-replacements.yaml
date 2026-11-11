@@ -1,0 +1,98 @@
+# The estate slug (ESTATE_SLUG) into the Axiom dataset names: first into dataset-names.yaml,
+# then each name over its token-bearing word in the collector config. Order matters.
+- source:
+    kind: ConfigMap
+    name: whitelabel
+    fieldPath: data.ESTATE_SLUG
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-dataset-names
+    fieldPaths:
+    - data.otel-agent-35
+    - data.otel-agent-550
+    - data.otel-agent-581
+    - data.otel-agent-612
+    - data.otel-cluster-11
+    - data.otel-cluster-112
+    options:
+      delimiter: '-'
+      index: 0
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-35
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 35
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-550
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 550
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-581
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 581
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-agent-612
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-agent
+    fieldPaths:
+    - data.[agent-config.yaml]
+    options:
+      delimiter: ' '
+      index: 612
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-cluster-11
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-cluster
+    fieldPaths:
+    - data.[cluster-config.yaml]
+    options:
+      delimiter: ' '
+      index: 11
+- source:
+    kind: ConfigMap
+    name: otel-dataset-names
+    fieldPath: data.otel-cluster-112
+  targets:
+  - select:
+      kind: ConfigMap
+      name: otel-cluster
+    fieldPaths:
+    - data.[cluster-config.yaml]
+    options:
+      delimiter: ' '
+      index: 112

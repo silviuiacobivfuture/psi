@@ -1,0 +1,26 @@
+# Namespace bounds. An n8n instance runs what people write, and a runaway workflow
+# must hit these, not the node. Requests sum (n8n 320Mi, runner 96Mi, n8n-db 192Mi,
+# the dump's containers 128Mi) ≈ 740Mi. The nodes were at 91% and 95% of memory
+# requested on 2026-11-03: sized to the workload, not to the box.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: n8n
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 500m, memory: 256Mi }
+      max: { cpu: "2", memory: 1536Mi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: n8n
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 1536Mi
+    limits.cpu: "5"
+    limits.memory: 4Gi
+    pods: "8"

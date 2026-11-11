@@ -1,0 +1,139 @@
+# PDFCraft — nginx serving the static export. Stateless, so TWO replicas spread
+# over the nodes, a PodDisruptionBudget, and a surge-only rollout: a node drain or
+# an image bump never takes the page down.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdfcraft
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdfcraft
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pdfcraft
+    spec:
+      # It talks to nothing and needs no API access.
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        # The image's own `nginx` user (uid/gid 101, created by the nginx base).
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+        # Upstream's site config listens on :80 (behind our front on :8080).
+        # Rather than fork it to move the port, the pod lets its unprivileged
+        # user bind low ports — a namespaced,
+        # "safe" sysctl (allowed by the kubelet by default) that affects this
+        # pod's network namespace only.
+        sysctls:
+          - name: net.ipv4.ip_unprivileged_port_start
+            value: "0"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: pdfcraft
+      containers:
+        - name: pdfcraft
+          # PINNED by tag AND digest (disallow-latest-tag is ENFORCE). Upstream
+          # publishes no releases, only one image per commit to main, tagged
+          # sha-<short commit>; this is commit 1f3d1c8 (2026-10-27). The digest is
+          # the multi-arch index, so the tag cannot be re-pointed under us.
+          # To upgrade: pick a newer sha-* tag from ghcr.io/pdfcrafttool/pdfcraft,
+          # replace both halves, and check the page in a browser.
+          image: WLREGISTRY/mirror/ghcr.io/pdfcrafttool/pdfcraft:sha-1f3d1c8@sha256:2e1c26b4fc1cd3101a18f2422b713ebe7532b813fda94ced9f7ffcfd0b66da14
+          # nginx directly, NOT the image's docker-entrypoint.sh: its scripts
+          # rewrite files under /etc/nginx, which is read-only here.
+          command: ["nginx", "-g", "daemon off;"]
+          # :8080 is OUR front (routing, the estate's stylesheet) — the only port
+          # the Service, the probes and the NetworkPolicy know. Upstream's own
+          # server still listens on :80 inside the pod, reached by the front only.
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          # /ro/tools/ answers only when BOTH servers work: our front proxies it to
+          # upstream's. `/` would be a redirect the front answers on its own.
+          readinessProbe:
+            httpGet: { path: /ro/tools/, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /ro/tools/, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          # Static files via sendfile: memory stays small. CPU is for on-the-fly
+          # gzip of the larger JavaScript and WebAssembly bundles.
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { cpu: "1", memory: 256Mi }
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            # Our stylesheet, served by the front at /_${ESTATE_SLUG}/${ESTATE_SLUG}.css.
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/${ESTATE_SLUG}.css
+              subPath: ${ESTATE_SLUG}.css
+              readOnly: true
+            # Our script, served by the front at /_${ESTATE_SLUG}/${ESTATE_SLUG}.js.
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/${ESTATE_SLUG}.js
+              subPath: ${ESTATE_SLUG}.js
+              readOnly: true
+            # The account endpoint's njs handler.
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/me.js
+              subPath: me.js
+              readOnly: true
+            # The estate's bar, served by the front at /_${ESTATE_SLUG}/bar.js.
+            - name: bar
+              mountPath: /etc/nginx/${ESTATE_SLUG}/bar.js
+              subPath: bar.js
+              readOnly: true
+            # The generated Chinese→Romanian rules for upstream's JS chunks.
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/ro-overrides.conf
+              subPath: ro-overrides.conf
+              readOnly: true
+            # The Romanian map and the njs that applies its texts and messages.
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/ro-overrides.json
+              subPath: ro-overrides.json
+              readOnly: true
+            - name: nginx-conf
+              mountPath: /etc/nginx/${ESTATE_SLUG}/ro.js
+              subPath: ro.js
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            # nginx creates its compiled-in cache directory at start even when
+            # every temp path is redirected; give it somewhere writable.
+            - name: cache
+              mountPath: /var/cache/nginx
+      volumes:
+        - name: nginx-conf
+          configMap: { name: pdfcraft-nginx }
+        - name: bar
+          configMap: { name: pdfcraft-bar }
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+        - name: cache
+          emptyDir: { sizeLimit: 16Mi }

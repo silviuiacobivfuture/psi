@@ -1,0 +1,79 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - clustersecretstore.yaml
+  - ingress-tailscale.yaml
+  - snapshot-s3-externalsecret.yaml
+  - snapshot-cronjob.yaml
+  # The talk-webhook bearer, mirrored into this namespace so the secret-watcher can
+  # report its findings into the #security Talk channel. BEFORE the CronJob: the pod
+  # cannot start without it (the script asserts it non-empty and exits).
+  - talk-webhook-token-externalsecret.yaml
+  # secret-watcher: detects an OpenBao change and routes it to the right action
+  # (force-sync the ExternalSecret / dispatch the CI rebuild / warn when nothing
+  # consumes it). RBAC first — the CronJob's ServiceAccount must exist.
+  - secret-watcher-rbac.yaml
+  - secret-watcher.yaml
+  # model-pin-alarm: posts to #infra when a consumer's authorization-model pin
+  # trails Polaris's current release (RUNBOOK 2026-10-29). Moves nothing.
+  - model-pin-alarm.yaml
+  # openbao-audit-notify: reports WHO changed WHICH KEY and WHERE it lands, into
+  # the #secrets Talk channel, by following openbao-0's audit stream. Complements
+  # the watcher, which can only see THAT a path changed (KV metadata carries no
+  # author and no key names). Needs the audit device enabled in the Helm values
+  # (gitops/apps/overlays/dev/openbao.yaml) — until then it follows the stream,
+  # finds no audit entries and stays silent, which is correct, not a failure.
+  # RBAC first (the ServiceAccount must exist), then the program, then the pod.
+  - audit-notify-rbac.yaml
+  - audit-notify-app.yaml
+  - audit-notify.yaml
+  # OpenBao's auth configuration (methods, roles, policies, identity groups),
+  # reconciled from auth/declaration.json + auth/policies/*.hcl every 10 minutes.
+  # Replaces the operator-run oidc-setup.sh (RUNBOOK 2026-10-29).
+  - auth/reconcile.yaml
+
+# The engine and the declaration, packaged from the SAME files doctor.sh and
+# openbao-bootstrap.sh run. Hash-suffixed: a change rolls into the next run.
+# Every policies/*.hcl MUST be listed below — tests/openbao-auth.test.sh fails on a
+# file missing here (in-cluster the engine would refuse a declared policy without
+# its file, before any write). The business applications' policies live in
+# apps/policies/ (SEB 1.16b) and are listed last; a ConfigMap key is the file's
+# base name, so the CronJob's /decl is one flat directory either way.
+configMapGenerator:
+  - name: openbao-auth-engine
+    namespace: openbao
+    files:
+      - auth/openbao_auth.py
+      - auth/auth_model.py
+      - auth/auth_bao.py
+  - name: openbao-auth-declaration
+    namespace: openbao
+    files:
+      - auth/declaration.json
+      - auth/policies/admin.hcl
+      - auth/policies/authentik-autorizare-token.hcl
+      - auth/policies/authentik-invoice-token.hcl
+      - auth/policies/authentik-plane-sso-token.hcl
+      - auth/policies/authentik-plunk-sso-token.hcl
+      - auth/policies/authentik-novu-sso-token.hcl
+      - auth/policies/authentik-n8n-sso-token.hcl
+      - auth/policies/default.hcl
+      - auth/policies/developer.hcl
+      - auth/policies/eso.hcl
+      - auth/policies/github-ci.hcl
+      - auth/policies/github-ci-gate.hcl
+      - auth/policies/github-ci-preview.hcl
+      - auth/policies/model-pin-alarm.hcl
+      - auth/policies/nextcloud-occ.hcl
+      - auth/policies/openbao-auth-audit.hcl
+      - auth/policies/openbao-auth-reconcile.hcl
+      - auth/policies/reader.hcl
+      - auth/policies/reportportal-config.hcl
+      - auth/policies/secret-watcher.hcl
+      - auth/policies/signin.hcl
+      # The business applications' policies.
+      - apps/policies/authentik-vega-token.hcl
+components:
+  - ../../components/whitelabel
+replacements:
+  - path: whitelabel-replacements.yaml

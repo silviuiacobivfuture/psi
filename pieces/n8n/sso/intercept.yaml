@@ -1,0 +1,58 @@
+# A person with no n8n session is sent to /sso/setup, not left on n8n's sign-in form with no
+# password to type. /signin cannot be matched alone: n8n's own pages move there in the browser
+# (/ loads the app, /rest/login answers 401, the app goes to /signin), so what is intercepted is
+# the DOCUMENT LOAD, on any page but the ones listed.
+#
+# WHAT THE RULE MEANS
+#   Method, Sec-Fetch-Dest   a browser loading a page: never an XHR, an asset or an API client.
+#                            A browser that does not send it just gets n8n's form, as before.
+#   no n8n-auth cookie       nobody who has a session is touched. Its VALUE is not judged: an
+#                            expired one passes, n8n clears it, and the next load is intercepted.
+#   Query sso=1              the loop breaker: /sso/setup sends n8n's owner, the one person who
+#                            uses the form, to /signin?sso=1 (src/setup.ts), which must not match again.
+#   PathRegexp               every path n8n serves that is not a page for a signed-in person.
+#                            Derived from the image: apps/n8n-sso/upstream-routes.txt, and the gate
+#                            refuses a route there that this list does not cover.
+#
+# PRIORITY 2 ON PURPOSE: above the catch-all `n8n` Ingress (1), below every specific route, whose
+# priority is its rule's length. /webhook/, /api/, /sso/ and the callback win without being asked.
+# They are listed anyway so the rule stands by itself, and the gate compares it with compose's.
+#
+# NO GATE HERE: it only redirects, and /sso/setup is gated, so anybody anonymous still meets
+# Authentik first. `tls: {}` rather than secretName: the certificate is chosen by SNI from what
+# the n8n Ingress loads, so this does not depend on n8n-tls existing (it did not, 2026-11-04).
+#
+# IF n8n-sso IS DOWN: someone with no session gets an error at /sso/setup. Someone with a session
+# keeps it, and each page they load waits for /sso/page.js to fail, about 2 s at worst if the pod
+# hangs (page.yaml). /signin?sso=1 still reaches n8n's form, with that same wait. RUNBOOK 2026-11-04.
+#
+# Host(...) MUST stay first: the Component's replacement writes the second backtick field.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-sso-intercept
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 2
+      match: >-
+        Host(`n8n.example.invalid`) && Method(`GET`) && Header(`Sec-Fetch-Dest`, `document`) &&
+        !HeaderRegexp(`Cookie`, `(^|;\s*)n8n-auth=`) && !Query(`sso`, `1`) &&
+        !PathRegexp(`^/(sso|signup|forgot-password|change-password|outpost\.goauthentik\.io|rest|api|assets|static|types|\.well-known|healthz|metrics|e2e|favicon\.ico|webhook|webhook-test|webhook-waiting|form|form-test|form-waiting|mcp|mcp-test)(/|$)`)
+      middlewares:
+        - name: n8n-sso-intercept
+      services:
+        - { name: noop@internal, kind: TraefikService }
+  tls: {}
+---
+# `from` carries the page asked for, raw: src/setup.ts keeps it only if it is a local path.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-sso-intercept
+spec:
+  redirectRegex:
+    regex: '^(https?)://([^/]+)(/.*)$'
+    replacement: '${1}://${2}/sso/setup?from=${3}'
+    permanent: false

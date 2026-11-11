@@ -1,0 +1,19 @@
+{
+  "_doc": "Nextcloud (cloud.<apex>): share notifications, password resets, activity digests. Takes SMTP only: its chart env points at the relay (plunk-smtp.<apex>:587, user plunk, this sender's key from email-sender); MAIL_FROM_ADDRESS@MAIL_DOMAIN in gitops/apps/overlays/dev/nextcloud.yaml must equal this sender's address.",
+  "version": 1,
+  "key": "cloud",
+  "name": "Nextcloud — colaborare",
+  "subdomain": "cloud",
+  "receive": false,
+  "sender": {
+    "local": "noreply",
+    "name": "Nextcloud"
+  },
+  "consumer": {
+    "service": "nextcloud",
+    "namespace": "nextcloud",
+    "openbao": "secret/apps/nextcloud/plunk",
+    "wire": true
+  },
+  "novu": null
+}

@@ -1,0 +1,37 @@
+# GitHub OAuth app creds for Authentik's GitHub federation source → authentik-github-oauth
+# secret in the authentik namespace, loaded into the server+worker via the chart's
+# global.envFrom (gitops/apps/overlays/dev/authentik.yaml). The blueprint
+# (blueprints-sources.yaml) reads these env vars (AUTHENTIK_SOURCES__GITHUB__KEY/__SECRET)
+# into the GitHub oauthsource. Synced from OpenBao secret/platform/authentik/github-oauth.
+#
+# USER STEP: create the GitHub OAuth app (callback
+#   https://authentik.<TAILNET_DOMAIN>/source/oauth/callback/github/ ), then:
+#   bao kv put secret/platform/authentik/github-oauth client_id=<id> client_secret=<secret>
+# Until then ESO syncs empty strings → the source is inert but not broken (no lockout).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-github-oauth
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-github-oauth
+    creationPolicy: Owner
+    deletionPolicy: Merge
+    template:
+      data:
+        AUTHENTIK_SOURCES__GITHUB__KEY: "{{ .client_id }}"
+        AUTHENTIK_SOURCES__GITHUB__SECRET: "{{ .client_secret }}"
+  data:
+    - secretKey: client_id
+      remoteRef:
+        key: platform/authentik/github-oauth
+        property: client_id
+        conversionStrategy: Default
+        decodingStrategy: None
+    - secretKey: client_secret
+      remoteRef:
+        key: platform/authentik/github-oauth
+        property: client_secret

@@ -1,0 +1,27 @@
+# Scratch values for kustomization.yaml: each patch segment that carries the domain. Never rendered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-key-api-client-pod
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  SEGMENT: "api-client\n  path: /spec/template/metadata/labels/n8n.WLDOMAIN"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-key-api-client-policy
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  SEGMENT: "api-client\n  path: /spec/ingress/2/from/0/podSelector/matchLabels/n8n.WLDOMAIN"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-key-tested-digest
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  SEGMENT: "tested-digest\n  path: /metadata/annotations/n8n.WLDOMAIN"

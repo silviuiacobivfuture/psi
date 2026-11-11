@@ -1,0 +1,32 @@
+# Argo app for Authentik's raw platform manifests: the Tailscale-operator ingress
+# (authentik.<tailnet>.ts.net) + the Blueprint ConfigMaps (config-as-code) the
+# Helm chart mounts via blueprints.configMaps. Separate from authentik.yaml (the
+# Helm install) — same split as openbao-store vs openbao: OUR manifests, git-sourced
+# so the env branch is stamped by the overlay patch (label source=git).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik-platform
+  namespace: argocd
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    path: gitops/platform/authentik
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The estate ConfigMap (the sign-in's look and every library tile's icon)
+      # renders at ~211 KB. Client-side apply copies it into the last-applied
+      # annotation, whose limit is 256 KB, so one more logo would fail the sync;
+      # server-side apply keeps no such copy. Same setting as authentik (the
+      # Helm install), harbor and pdfcraft.
+      - ServerSideApply=true

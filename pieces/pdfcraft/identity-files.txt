@@ -1,0 +1,9 @@
+# Files of this piece that carry ${KEY} identity placeholders, filled from the estate's identity
+# by the bundle builder before kustomize renders (tools/bundle/build.mjs). Only where a value
+# sits inside a GENERATED ConfigMap's content or a data key, which replacements cannot reach
+# (and where the content is hashed into the ConfigMap's name, so it must be final first).
+base/kustomization.yaml
+base/deployment.yaml
+base/nginx.conf
+base/me.js
+base/ro.js

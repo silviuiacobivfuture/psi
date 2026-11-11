@@ -1,0 +1,211 @@
+# ============================================================================
+# SEB'S COPY of Plunk 0.17.0's docker/nginx/nginx.conf.template, mounted over
+# /app/docker/nginx/nginx.conf.template (setup-nginx.sh envsubsts it at start).
+# Upstream's file is hash-pinned in apps/plunk-sso/upstream-files.sha256: when
+# an upgrade changes it, carry upstream's change into this copy and keep OUR
+# four additions, the first three in the Web Dashboard block and the map below:
+#   1. every HTML page is Cache-Control: no-store (Next ships static pages with
+#      s-maxage; a page from the browser cache would skip the edge's checks);
+#   2. the plunk-sso guard is injected before </head> (sub_filter);
+#   3. /plunk-sso/guard.js is served from the plunk-sso-web mount;
+#   4. in the API block, POST /v1/send goes through the send gate beside Plunk
+#      (apps/plunk-sso/lib/send-gate.mjs), which refuses what SES would refuse.
+# ============================================================================
+
+# (addition 1) HTML → no-store; everything else keeps upstream's header.
+map $upstream_http_content_type $plunk_sso_cache_control {
+    ~*^text/html  "no-store";
+    default       $upstream_http_cache_control;
+}
+
+# Nginx Configuration for Plunk - Subdomain-based Routing
+# This configuration routes traffic based on subdomains:
+#   - api.example.com -> API server (port 8080)
+#   - app.example.com -> Web dashboard (port 3000)
+#   - www.example.com -> Landing page (port 4000)
+#   - docs.example.com -> Documentation (port 1000)
+
+# Upstream definitions
+upstream plunk_api {
+    server 127.0.0.1:8080;
+}
+
+upstream plunk_web {
+    server 127.0.0.1:3000;
+}
+
+upstream plunk_landing {
+    server 127.0.0.1:4000;
+}
+
+upstream plunk_wiki {
+    server 127.0.0.1:1000;
+}
+
+upstream plunk_acme_challenge {
+    server 127.0.0.1:8888;
+}
+
+# API Server (also serves as default_server for unmatched domains)
+server {
+    listen ${NGINX_PORT} default_server;
+    server_name ${API_DOMAIN};
+
+    client_max_body_size 10M;
+
+    # ACME challenges should be handled by SMTP server, not API
+    # This catches ALL ACME challenges, including for SMTP_DOMAIN
+    location /.well-known/acme-challenge/ {
+        proxy_pass http://plunk_acme_challenge;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # (addition 4) every send, the SMTP relay's included (it posts to API_URI). The
+    # gate is a container in this pod: if it is down this answers 502, and nothing
+    # is sent. That is on purpose: the alternative is a success nobody delivers.
+    location = /v1/send {
+        proxy_pass http://127.0.0.1:8091;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://plunk_api;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# Web Dashboard
+server {
+    listen ${NGINX_PORT};
+    server_name ${DASHBOARD_DOMAIN};
+
+    client_max_body_size 10M;
+
+    # ACME challenges fallback
+    location /.well-known/acme-challenge/ {
+        proxy_pass http://plunk_acme_challenge;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # (addition 3) the guard script, from the plunk-sso-web mount.
+    location = /plunk-sso/guard.js {
+        alias /app/plunk-sso-web/guard.js;
+        default_type application/javascript;
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location / {
+        proxy_pass http://plunk_web;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        # (addition 2) sub_filter cannot rewrite a compressed body.
+        proxy_set_header Accept-Encoding "";
+        sub_filter '</head>' '<script src="/plunk-sso/guard.js"></script></head>';
+        sub_filter_once on;
+        # (addition 1)
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control $plunk_sso_cache_control always;
+    }
+}
+
+# Landing Page
+server {
+    listen ${NGINX_PORT};
+    server_name ${LANDING_DOMAIN};
+
+    client_max_body_size 10M;
+
+    # ACME challenges fallback
+    location /.well-known/acme-challenge/ {
+        proxy_pass http://plunk_acme_challenge;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://plunk_landing;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# Documentation (optional)
+server {
+    listen ${NGINX_PORT};
+    server_name ${WIKI_DOMAIN};
+
+    client_max_body_size 10M;
+
+    # ACME challenges fallback
+    location /.well-known/acme-challenge/ {
+        proxy_pass http://plunk_acme_challenge;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://plunk_wiki;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# ACME Challenge Proxy (for SMTP domain certificate generation)
+# This proxies Let's Encrypt ACME HTTP-01 challenges to the SMTP server's challenge handler
+server {
+    listen ${NGINX_PORT};
+    server_name ${SMTP_DOMAIN};
+
+    # Proxy ACME challenges to SMTP server's internal challenge server
+    location /.well-known/acme-challenge/ {
+        proxy_pass http://plunk_acme_challenge;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Deny all other requests to SMTP domain
+    location / {
+        return 404;
+    }
+}

@@ -1,0 +1,81 @@
+# Novu's NON-secret runtime config, shared by api, worker and ws via envFrom.
+# Component-specific values (PORT, the worker's in-cluster API_ROOT_URL) are set
+# as plain `env:` on each Deployment, which overrides an envFrom key of the same
+# name. Variable set taken from Novu's official self-hosting compose for the
+# pinned release (docker/community/docker-compose.yml + .env.example @ v3.19.0)
+# and cross-checked against the validators the services actually enforce
+# (apps/{api,worker,ws}/src/config/env.validators.ts @ v3.19.0).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: novu-config
+data:
+  NODE_ENV: production
+  # REQUIRED by the api's validator with no default (envalid `str({choices})`);
+  # the official compose never sets it and relies on the image's bundled
+  # .env.production — set here so boot does not depend on that file.
+  LOG_LEVEL: info
+  # Self-hosted community edition. BOTH flags are load-bearing:
+  #   IS_SELF_HOSTED=true + NOVU_ENTERPRISE=false is the ONLY combination for
+  #   which libs/application-generic's cache/workflow/websocket in-memory
+  #   providers select single-node REDIS (with REDIS_PASSWORD). With
+  #   NOVU_ENTERPRISE unset they fall through to the Novu-Cloud Elasticache /
+  #   cluster providers and silently run without a cache.
+  IS_SELF_HOSTED: "true"
+  NOVU_ENTERPRISE: "false"
+  IS_V2_ENABLED: "true"
+  IS_NEW_MESSAGES_API_RESPONSE_ENABLED: "true"
+  # On since 2026-10-28: the estate's triggers carry an `Idempotency-Key`, and an
+  # API that ignores it delivers a retried trigger twice with no error anywhere.
+  # Rate limiting protects the shared Mongo/Redis from one runaway caller.
+  IS_API_IDEMPOTENCY_ENABLED: "true"
+  IS_API_RATE_LIMITING_ENABLED: "true"
+  # The estate's ONE bridge is in-cluster (bridge.yaml). Novu refuses a bridge
+  # that resolves to a private address unless the host is allowed BY NAME here
+  # (@novu/application-generic ssrf-url-validation + @novu/shared
+  # outbound-ssrf-allow-list `NOVU_SAFE_OUTBOUND_ALLOW` @ v3.19.0) — read by the
+  # api (sync, preview) and the worker (every step). The bridge and Plunk's relay,
+  # by name and nothing else: the worker's SMTP send goes through the same guard
+  # (SsrfBlockedError PRIVATE_IP, 2026-11-03), and a CIDR here would open every pod
+  # in the cluster to a hand-set URL.
+  NOVU_SAFE_OUTBOUND_ALLOW: novu-bridge.novu.svc.cluster.local,plunk-smtp.WLDOMAIN
+  IS_EMAIL_INLINE_CSS_DISABLED: "false"
+  IS_USE_MERGED_DIGEST_ID_ENABLED: "false"
+  MONGO_AUTO_CREATE_INDEXES: "true"
+  MONGO_MIN_POOL_SIZE: "2"
+  MONGO_MAX_POOL_SIZE: "10"
+  REDIS_HOST: novu-redis.novu.svc.cluster.local
+  REDIS_PORT: "6379"
+  REDIS_DB_INDEX: "2"
+  REDIS_CACHE_SERVICE_HOST: novu-redis.novu.svc.cluster.local
+  REDIS_CACHE_SERVICE_PORT: "6379"
+  # Public origins. The API is PUBLIC (apps trigger from Convex, browsers open the
+  # inbox). The dashboard has THREE origins: novu.<apex> behind Authentik
+  # (ingress-dashboard.yaml), the tailnet one and the Headscale one. FRONT_BASE_URL is compiled into
+  # a RegExp by apps/api/src/config/cors.config.ts (`new RegExp(FRONT_BASE_URL)`,
+  # tested against the request Origin) and admits exactly these three dashboard
+  # origins to credentialed CORS outside the /v1/inbox and /v1/widgets wildcard
+  # routes — anchored so a look-alike host cannot match. (The public page calls
+  # its own origin and needs no CORS; it is listed so the two stay symmetrical.)
+  # DASHBOARD_URL is what Novu writes into the links it mails (password reset,
+  # invitations — resolve-dashboard-base-url.ts, password-reset-request.usecase.ts)
+  # so it names the public page, which a person can open from anywhere.
+  API_ROOT_URL: https://novu-api.WLDOMAIN
+  # The three origins are the estate's hosts as an escaped, anchored RegExp, which no identity
+  # replacement can write: the estate's layer (components/estate/novu) sets it. This
+  # value admits no origin, so a piece rendered without one fails closed.
+  FRONT_BASE_URL: '^$'
+  DASHBOARD_URL: https://novu.WLDOMAIN
+  SUBSCRIBER_WIDGET_JWT_EXPIRATION_TIME: 15d
+  # Object storage: Hetzner, path-style (forcePathStyle is hard-coded true in
+  # libs/application-generic/src/services/storage/storage.service.ts). Novu has
+  # no key-prefix setting, so it gets its own bucket.
+  STORAGE_SERVICE: AWS
+  S3_LOCAL_STACK: https://fsn1.your-objectstorage.com
+  S3_BUCKET_NAME: WLBUCKET-novu-dev
+  S3_REGION: fsn1
+  NEW_RELIC_ENABLED: "false"
+  BROADCAST_QUEUE_CHUNK_SIZE: "100"
+  MULTICAST_QUEUE_CHUNK_SIZE: "100"
+  # Node writes nothing outside /tmp; the root filesystem is read-only.
+  HOME: /tmp

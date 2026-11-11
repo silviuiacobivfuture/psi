@@ -1,0 +1,21 @@
+# Harbor OIDC client creds → harbor-oidc secret in the harbor namespace, consumed
+# by the harbor-oidc-reconcile CronJob (pieces/platform-secrets/harbor-oidc-reconcile.yaml)
+# which pushes the OIDC auth config into Harbor's DB via its REST API. Source:
+# OpenBao secret/platform/authentik/harbor-oidc (the deterministic client the
+# Authentik blueprint provisions). Never in git.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-oidc
+  namespace: harbor
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: harbor-oidc
+    creationPolicy: Owner
+  data:
+    - secretKey: client_id
+      remoteRef: { key: platform/authentik/harbor-oidc, property: client_id }
+    - secretKey: client_secret
+      remoteRef: { key: platform/authentik/harbor-oidc, property: client_secret }

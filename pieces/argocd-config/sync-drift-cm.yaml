@@ -1,0 +1,133 @@
+# Argo CD: stop reporting five applications as permanently OutOfSync over fields
+# nobody wrote.
+#
+# THE PROBLEM, measured on 2026-09-03 rather than looked up. Five applications —
+# autorizare, openfga and three of the first estate's own services —
+# reported OutOfSync/Healthy indefinitely. Rendering the overlay and diffing it
+# against the cluster showed the ENTIRE difference, in one direction only:
+#
+#   ExternalSecret    5 fields   conversionStrategy, decodingStrategy,
+#                                metadataPolicy and nullBytePolicy on every
+#                                remoteRef, plus target.deletionPolicy
+#   CNPG Cluster     52 fields   across 27 subtrees, 23 of them postgresql
+#                                parameters
+#
+# Nothing git asks for is missing from either. These are STRUCTURAL SCHEMA
+# DEFAULTS: the API server fills them in from the CRD, so no controller's field
+# manager owns them — checked on the live objects, and it is why
+# `managedFieldsManagers`, the precise instrument for controller-written fields,
+# does not apply here. Argo compares what it sent to what exists, sees fields it
+# never sent, and says OutOfSync forever. Self-heal cannot fix it, because
+# re-applying git does not remove a default.
+#
+# WHY FIX IT, GIVEN NOTHING IS BROKEN. Deployment is unaffected — on 2026-09-03
+# the overlay bumped and Argo carried the new image to the cluster unaided in 250
+# seconds while saying OutOfSync throughout. But the Sync column is the one place
+# anybody looks to answer "did my change land", and for five applications it has
+# been permanently wrong. A deployment that had genuinely frozen went unnoticed
+# through four rounds of investigation, partly because the signal that would have
+# said so was already red for other reasons. A monitor that is always red
+# monitors nothing.
+#
+# WHAT THIS COULD HIDE, AND WHAT CATCHES IT. Ignoring a field means Argo stops
+# noticing changes to it. Every field below is one that NO manifest in this
+# repository sets — and that is a measurement, re-taken on every run by
+# `infrastructure/hetzner/scripts/tests/sync-drift.test.sh`, which reads this
+# list and scans gitops/ for anything setting an entry on it.
+#
+# THE GUARD HAS ALREADY EARNED ITS PLACE. The first version of this list was
+# measured against autorizare's two objects alone and included
+# `dataFrom[].extract.*`, `.spec.postgresql.parameters`, `.spec.monitoring`,
+# `.spec.primaryUpdateStrategy` and `.spec.bootstrap.initdb.encoding`. The guard
+# refused it: reportportal and one of the estate's services set every one of those on purpose,
+# so the rule would have made deliberate settings invisible to Argo. That is
+# exactly the failure the guard exists to prevent, and it caught it before this
+# file shipped rather than after.
+#
+# MAINTENANCE, honestly. This is what THIS operator version defaults. An upgrade
+# that adds defaults brings the drift back for the new ones, which get appended
+# after being measured the same way. The list is explicit, one field at a time,
+# precisely so that stays visible — a blanket `.spec` ignore would never need
+# maintaining and would never tell anyone anything either.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  # `data[].remoteRef` only, and nothing else. Two entries were on this list and
+  # came off, both because the guard found manifests setting them:
+  #
+  #   dataFrom[].extract.*     reportportal sets all four explicitly
+  #   target.deletionPolicy    four manifests set it to Merge — a deliberate,
+  #                            non-default value that ignoring would have hidden
+  #
+  # deletionPolicy's drift was fixed the other way instead: the sixteen
+  # ExternalSecrets in the five affected services now DECLARE `Retain`, which is
+  # what the API server was filling in anyway. Declaring beats ignoring wherever
+  # the field means something.
+  resource.customizations.ignoreDifferences.external-secrets.io_ExternalSecret: |
+    jqPathExpressions:
+      - '.spec.data[]?.remoteRef.conversionStrategy'
+      - '.spec.data[]?.remoteRef.decodingStrategy'
+      - '.spec.data[]?.remoteRef.metadataPolicy'
+      - '.spec.data[]?.remoteRef.nullBytePolicy'
+
+  # Named one parameter at a time rather than ignoring `.spec.postgresql.parameters`
+  # wholesale, because services DO tune postgres: shared_buffers, work_mem,
+  # max_connections, effective_cache_size, deadlock_timeout, log_lock_waits and
+  # archive_timeout are each set somewhere in this repository. A blanket ignore
+  # would have made every one of them invisible. Of the 23 parameters the
+  # operator defaults, 22 are listed here; archive_timeout is the one a service
+  # also sets, so it stays compared.
+  #
+  # `.spec.monitoring`, `.spec.primaryUpdateStrategy` and
+  # `.spec.bootstrap.initdb.encoding` are absent for the same reason — each is
+  # set by a service — which is why monitoring appears below only as its two
+  # unset sub-fields.
+  resource.customizations.ignoreDifferences.postgresql.cnpg.io_Cluster: |
+    jqPathExpressions:
+      - '.spec.affinity.podAntiAffinityType'
+      - '.spec.backup.target'
+      - '.spec.enablePDB'
+      - '.spec.enableSuperuserAccess'
+      - '.spec.failoverDelay'
+      - '.spec.logLevel'
+      - '.spec.maxSyncReplicas'
+      - '.spec.minSyncReplicas'
+      - '.spec.monitoring.customQueriesConfigMap'
+      - '.spec.monitoring.disableDefaultQueries'
+      - '.spec.postgresGID'
+      - '.spec.postgresUID'
+      - '.spec.postgresql.syncReplicaElectionConstraint'
+      - '.spec.postgresql.parameters.archive_mode'
+      - '.spec.postgresql.parameters.dynamic_shared_memory_type'
+      - '.spec.postgresql.parameters.full_page_writes'
+      - '.spec.postgresql.parameters.log_destination'
+      - '.spec.postgresql.parameters.log_directory'
+      - '.spec.postgresql.parameters.log_filename'
+      - '.spec.postgresql.parameters.log_rotation_age'
+      - '.spec.postgresql.parameters.log_rotation_size'
+      - '.spec.postgresql.parameters.log_truncate_on_rotation'
+      - '.spec.postgresql.parameters.logging_collector'
+      - '.spec.postgresql.parameters.max_parallel_workers'
+      - '.spec.postgresql.parameters.max_replication_slots'
+      - '.spec.postgresql.parameters.max_worker_processes'
+      - '.spec.postgresql.parameters.shared_memory_type'
+      - '.spec.postgresql.parameters.shared_preload_libraries'
+      - '.spec.postgresql.parameters.ssl_max_protocol_version'
+      - '.spec.postgresql.parameters.ssl_min_protocol_version'
+      - '.spec.postgresql.parameters.wal_keep_size'
+      - '.spec.postgresql.parameters.wal_level'
+      - '.spec.postgresql.parameters.wal_log_hints'
+      - '.spec.postgresql.parameters.wal_receiver_timeout'
+      - '.spec.postgresql.parameters.wal_sender_timeout'
+      - '.spec.primaryUpdateMethod'
+      - '.spec.probes'
+      - '.spec.replicationSlots'
+      # NOT .spec.smartShutdownTimeout: authentik-db sets it to 10 (its
+      # cnpg-cluster.yaml says why), and ignoring it would hide that.
+      - '.spec.startDelay'
+      - '.spec.stopDelay'
+      - '.spec.storage.resizeInUseVolumes'
+      - '.spec.switchoverDelay'

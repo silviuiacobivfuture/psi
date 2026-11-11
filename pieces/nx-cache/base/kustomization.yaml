@@ -1,0 +1,12 @@
+# nx-cache — the Nx self-hosted remote cache server.
+#
+# No ingress here, and that is the design: the only clients are the ARC runners
+# inside this cluster, so the ClusterIP Service is the entire surface. Anything
+# that publishes this would publish a bearer token capable of poisoning every
+# build that trusts the cache.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - externalsecret.yaml
+  - harbor-pull-externalsecret.yaml
+  - deployment.yaml

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The estate's white-label values, as a kustomize `replacements` SOURCE for SEB's pieces.
+# A piece names it as `components: [../../components/whitelabel]` and never reaches
+# outside seb/ for the values.
+#
+# whitelabel-config.yaml is NOT in the tree (seb/.gitignore): the bundle builder
+# (tools/bundle/build.mjs --identity <estate identity.yaml>) generates it into its build
+# workdir with tools/identity/load.mjs, so each estate's bundle carries that estate's
+# values. To render a piece by hand, generate it next to this file first:
+#   node tools/identity/load.mjs configmap <identity.yaml> > components/whitelabel/whitelabel-config.yaml
+resources:
+  - whitelabel-config.yaml

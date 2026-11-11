@@ -1,0 +1,84 @@
+# A sign-in the outpost REFUSES at its callback starts again, on every host
+# behind the Authentik gate — instead of a blank 400 that reloading repeats.
+#
+# Measured 2026-10-29 with the e2e-hub robot in Chromium, a sign-in begun in one
+# browser and finished in another (the owner's 16:40 400, Firefox then Chrome):
+#   pdf.<apex>    callback 400 (empty body), reload → 400       (own callback)
+#   plane.<apex>  auth.<apex> callback 400, reload → 400        (domain callback)
+#   tests.<apex>  auth.<apex> callback 400, reload → 400        (domain callback)
+#   novu.<apex>   400 → novu-sso's restart page → signed in     (the first fix)
+# The outpost is right to refuse — the state belongs to another session, and that
+# refusal is what stops a forged sign-in. The defect is only the dead end.
+#
+# THE ONE MECHANISM (it replaced novu's own copy):
+#   Middleware `sso-restart` — Traefik errors: a 400 from what follows it in the
+#   chain is replaced by estate/restart.html, served by authentik-server from
+#   /static/dist/assets/recomex/ on any Host (measured). The status stays 400;
+#   the address stays the callback, which is what the page reads. A callback the
+#   outpost ACCEPTS is its 302 + Set-Cookie, untouched (measured against Traefik
+#   3.6.13 for novu). Read estate/restart.html for where it sends the browser and
+#   why it stops after three tries.
+#
+# WHERE IT GOES — only on the outpost's callback path, FIRST in that route's
+# chain, never anywhere else (an app's own 400s must reach the app's caller):
+#   · a forward_single provider (its own external_host) → a callback Ingress on
+#     that host, next to the app's gated Ingress, chain
+#     `authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd`
+#     (pdfcraft, plunk, novu);
+#   · the domain-wide forward_domain provider → its callback is on auth.<apex>,
+#     the Ingress below, for every host it gates (plane, reports, tests, the
+#     Convex dashboards — and any host gated later, with nothing to add).
+# The gate .github/scripts/sso-restart.sh derives the forward_single hosts from
+# blueprints-providers.yaml and refuses a tree where one lacks its route.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sso-restart
+  namespace: authentik
+spec:
+  errors:
+    status: ["400"]
+    service: { name: authentik-server, port: 80 }
+    query: /static/dist/assets/recomex/restart.html
+---
+# n8n's down-state: what Traefik would answer bare when n8n or n8n-sso is away, as one plain page.
+# Authentik serves it, so it does not depend on what it reports. docs/n8n/01-identity.md H13.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-down
+  namespace: authentik
+spec:
+  errors:
+    status: ["502-504"]
+    service: { name: authentik-server, port: 80 }
+    query: /static/dist/assets/recomex/n8n-down.html
+---
+# auth.<apex>'s own callback — where the forward_domain provider lands every
+# domain-gated host's sign-in. Longer than authentik-public's `/`, so Traefik
+# ranks it first; the outpost answers it either way (no forward-auth here: the
+# outpost IS this host's backend).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: authentik-callback-restart
+  namespace: authentik
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - WLAUTHHOST
+      secretName: authentik-public-tls
+  rules:
+    - host: WLAUTHHOST
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: authentik-server
+                port:
+                  number: 80

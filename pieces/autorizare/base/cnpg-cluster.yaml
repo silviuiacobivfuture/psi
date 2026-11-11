@@ -1,0 +1,167 @@
+# The control plane's Postgres — a CloudNativePG Cluster, the EIGHTH on this
+# platform. Its shape, the owner/application role split, backup layering and the
+# six-field cron follow the platform's other CNPG clusters.
+#
+# WHAT IT HOLDS, and why that is not "some tables". Grant intents, the audit log,
+# drift events and model releases — the ACCOUNT of how the authorization graph
+# came to be what it is. OpenFGA's own change log records that a tuple changed and
+# can never say who asked or why; only this database can. Losing it does not stop
+# authorization (the data plane keeps answering, which is the entire point of the
+# split) — it destroys the ability to explain any of it after the fact, which for
+# an authorization system is the whole of the accountability story.
+#
+# SEPARATE FROM openfga-db, permanently. See that cluster's header for why a
+# restore must not carry the other's state.
+#
+# storageClass is hcloud-volumes, NOT local-path — same reasoning as
+# openfga-db (and the retired authentik-business-db): starting on the destination class costs
+# nothing now and keeps this database out of the storage-class migration backlog
+# in infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md. 10Gi is the Hetzner
+# block-volume MINIMUM, not a sizing estimate.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: autorizare-db
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  # No JIT. A backend that compiles one query loads LLVM and keeps about 35 MB of
+  # private memory for life, against 4 MB without it. Measured 2026-11-03: every heavy
+  # backend here had LLVM mapped and no light one did, and ten of them kept a 40 MB
+  # database at 443Mi of its 512Mi, OOM-killed at 18:13Z and 00:01Z with the hub's
+  # probes failing alongside. Nothing this database runs is long enough to repay it.
+  postgresql:
+    parameters:
+      jit: "off"
+
+  bootstrap:
+    initdb:
+      database: autorizare
+      owner: autorizare
+      # NAMING A SECRET MEANS THE OPERATOR EXPECTS IT TO EXIST — CNPG generates
+      # `<cluster>-app` for itself only when this field is omitted. See
+      # externalsecret.yaml.
+      secret:
+        name: autorizare-db-app
+      # Tenant names, application names and audit actor strings are read by
+      # people and ordered in the console's tables. Romanian collation is
+      # therefore the same question it is for the invoicing and identity
+      # databases: without it, "Șerban" sorts after "Zamfir" because Ș is a high
+      # code point.
+      #
+      # Through ICU, not a system locale. The CNPG image is Debian with only C
+      # and C.UTF-8 generated, so `localeCollate: ro_RO.UTF-8` fails initdb
+      # outright with "invalid locale name" and the cluster never bootstraps.
+      localeProvider: icu
+      icuLocale: ro-RO
+      localeCollate: C.UTF-8
+      localeCType: C.UTF-8
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  # Sized against the node rather than against comfort — see openfga-db's header
+  # for the measurement this comes from.
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+  # DELIBERATELY NOT enablePodMonitor — the PodMonitor CRD is not installed on
+  # this cluster. Follows openfga-db; see that file.
+
+  # The application role, created BY THE OPERATOR because only a superuser can
+  # make one. Verification §12 asserts that the app and the migrations use
+  # DIFFERENT database roles, and this is that split:
+  #
+  #   autorizare      the OWNER. Used ONLY by the migrate initContainer, which
+  #                   creates tables, indexes and triggers.
+  #   autorizare_app  what the SERVICE connects as. Not the owner, not a
+  #                   superuser. It cannot ALTER the schema whose append-only
+  #                   audit trigger constrains it — and a service that can
+  #                   rewrite its own constraints is a service whose constraints
+  #                   are advisory. For an AUDIT log specifically, "the process
+  #                   that writes it can also drop the trigger that makes it
+  #                   append-only" is not an audit log.
+  #
+  # CNPG's owner is deliberately not a superuser, so the migration cannot create
+  # this role itself: it would fail with "permission denied to create role". The
+  # operator creates it, and the migration finds it present and only grants.
+  managed:
+    roles:
+      # connectionLimit / inherit on every role below are CNPG's own defaults,
+      # DECLARED so that desired == live: Argo compares a `roles[]` element
+      # whole, so an operator-filled default inside it reads as permanent drift
+      # (measured 2026-10-22 against Argo's own diff — the only fields keeping
+      # this Cluster OutOfSync). Declaring beats ignoring wherever the field
+      # means something; see gitops/platform/argocd/sync-drift-cm.yaml.
+      - name: autorizare_app
+        ensure: present
+        connectionLimit: -1
+        inherit: true
+        login: true
+        superuser: false
+        bypassrls: false
+        createdb: false
+        createrole: false
+        # The SAME value the service's DATABASE_URL carries, from the same
+        # OpenBao key — see externalsecret.yaml. One value read twice, never two
+        # values kept in step.
+        passwordSecret:
+          name: autorizare-app-credentials
+        comment: "application role; owns no schema"
+
+  backup:
+    # 30 days rather than the platform's usual 14. The window in which an
+    # authorization mistake is DISCOVERED is long — a grant widened by accident
+    # surfaces the next time somebody notices they can see something they should
+    # not — and this database is the only place the answer to "who did that, and
+    # when, and why" exists at all.
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      destinationPath: s3://BUCKET_PREFIX-tfstate-dev/cnpg/autorizare-db
+      endpointURL: OBJECT_STORAGE_ENDPOINT
+      s3Credentials:
+        accessKeyId:
+          name: autorizare-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: autorizare-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. WAL alone restores nothing.
+#
+# NOTE: CNPG uses a SIX-field cron (leading seconds), unlike the five-field
+# CronJob schedules elsewhere in this repository.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: autorizare-db-base
+spec:
+  # 04:10 Sunday. The full taken-and-reserved list is written out in
+  # pieces/openfga/base/cnpg-cluster.yaml; the short version is that
+  # everything else on this platform backs up between 02:20 and 03:50, and
+  # nothing in this repository schedules anything in hour 04. openfga-db takes
+  # 04:00; this takes 04:10, ten minutes later, so the two control-plane
+  # databases do not contend for the same bucket either.
+  schedule: "0 10 4 * * 0"
+  # Immediately on creation, not on the first Sunday. Without this the cluster
+  # spends up to a week with WAL archiving apparently working and NO restorable
+  # point — and every rebuild repeats that window.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: autorizare-db

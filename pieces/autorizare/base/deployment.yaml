@@ -1,0 +1,348 @@
+# autorizare-svc — the CONTROL PLANE. Model release, tuple ingestion and the
+# outbox, the catalog, audit and drift, grant lifecycle, break-glass, and the
+# console that drives all of it.
+#
+# IT IS NEVER IN THE DECISION PATH. If this Deployment is down, every application
+# still authorizes normally against openfga:8081 — it simply cannot CHANGE who may
+# do what. That property is the reason for the two-plane split and it must survive
+# every future change to this file. Nothing here may become a dependency of a
+# Check.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autorizare-svc
+  labels: { app: autorizare-svc }
+  annotations:
+    # The pod injects ESO-managed Secrets as ENV, and env is read once at process
+    # start — without this, rotating the Authentik admin token or the OpenFGA
+    # preshared key would silently never take effect. Required by the
+    # require-reloader-annotation policy.
+    reloader.stakater.com/auto: "true"
+    # Required by the require-alert-annotation policy.
+    alerts/owner: WLOPSEMAIL
+spec:
+  # THREE replicas, spread across nodes, with a PodDisruptionBudget that keeps
+  # two through a drain (doc 21 §3.4, §6) — the hub's shape.
+  #
+  # The reconciler, the drift poller, the reaper and the webhook delivery worker
+  # run in-process, and on ONE replica only: each replica contends for a
+  # session-level Postgres advisory lock (internal/leader, @rule RUN-6) and only
+  # the holder runs them. The others serve the API. A new holder waits out a
+  # takeover window before starting anything, so a leader that lost its session
+  # has stopped — or exited — first. doctor.sh checks that exactly one session
+  # holds the lock.
+  replicas: 3
+  # One at a time, never below two serving: a rollout must not be a gap in which
+  # nobody can change who may do what.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: autorizare-svc }
+  template:
+    metadata:
+      # `app: autorizare-svc` is not cosmetic here. It is the podSelector
+      # pieces/openfga/base/networkpolicy.yaml matches to allow the
+      # admin port, so renaming this label silently removes this service's only
+      # route to OpenFGA's write surface.
+      labels: { app: autorizare-svc }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: autorizare-svc }
+      # Longer than the worker stop bound (15s) plus the HTTP drain (30s), so a
+      # leader's workers stop and its session ends before the kubelet kills it, plus
+      # the ten of the preStop below. .github/scripts/hub-drain.sh refuses a shorter one.
+      terminationGracePeriodSeconds: 70
+
+      initContainers:
+        # ── Fail LOUD, by name, before anything else runs ────────────────────
+        #
+        # @rule OPS-1 — a deployed service that needs a secret MUST fail with
+        # `MISSING REQUIRED SECRET: <key>` rather than start degraded. That exact
+        # string is a CONTRACT: config.go's MissingSecretError renders it,
+        # doctor.sh matches it, and this container prints it. A partially
+        # configured authorization service is worse than one that will not start
+        # — it answers, and the answers are wrong.
+        #
+        # ALL TWELVE of config.go's `required` keys are asserted, not just the
+        # secret-sourced ones. The six non-secret values come from the
+        # autorizare-config ConfigMap so that this container and the service
+        # container read ONE source (see configmap.yaml for why that beats
+        # repeating six literals here).
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - configMapRef: { name: autorizare-config }
+            - secretRef: { name: autorizare-secrets }
+            # Polaris's mail sender (EMAIL_*), GENERATED from
+            # gitops/services/plunk/senders/polaris.json (email.generated.yaml).
+            - secretRef: { name: email-sender }
+          env:
+            # The OWNER URI, used only by the migrate container below. Asserted
+            # here as well, so a missing one fails the pod with a message naming
+            # the key rather than with a connection error inside the migration
+            # runner.
+            - name: DATABASE_MIGRATE_URL
+              valueFrom:
+                secretKeyRef: { name: autorizare-db-app, key: uri }
+          command:
+            - sh
+            - -c
+            # ONE LINE PER REQUIRED KEY, each asserted LITERALLY.
+            #
+            # NOT a loop over key names: the kubelet expands command strings
+            # ($(VAR) escape syntax collapses `$$` to `$`), so an `eval v=\$$k`
+            # loop reaches sh as `v=$k` — the key NAME, always non-empty — and the
+            # assertion silently never fires. `${VAR:-}` passes through kubelet
+            # expansion untouched.
+            #
+            # Adding a key to config.go's `required` slice means adding it here
+            # AND to externalsecret.yaml (or configmap.yaml). Three places, one
+            # list.
+            - >-
+              [ -n "${DATABASE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: DATABASE_URL" >&2; exit 1; };
+              [ -n "${DATABASE_MIGRATE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: DATABASE_MIGRATE_URL" >&2; exit 1; };
+              [ -n "${OPENFGA_ADMIN_URL:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_ADMIN_URL" >&2; exit 1; };
+              [ -n "${OPENFGA_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_TOKEN" >&2; exit 1; };
+              [ -n "${OPENFGA_STORE_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_STORE_ID" >&2; exit 1; };
+              [ -n "${OIDC_ISSUER_URL:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_ISSUER_URL" >&2; exit 1; };
+              [ -n "${OIDC_CLIENT_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_ID" >&2; exit 1; };
+              [ -n "${OIDC_CLIENT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_SECRET" >&2; exit 1; };
+              [ -n "${OIDC_REDIRECT_URL:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_REDIRECT_URL" >&2; exit 1; };
+              [ -n "${AUTHENTIK_API_URL:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_API_URL" >&2; exit 1; };
+              [ -n "${AUTHENTIK_API_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN" >&2; exit 1; };
+              [ -n "${AUTHENTIK_MACHINE_CREDENTIAL_POLICY:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_MACHINE_CREDENTIAL_POLICY" >&2; exit 1; };
+              [ -n "${ENVIRONMENT:-}" ] || { echo "MISSING REQUIRED SECRET: ENVIRONMENT" >&2; exit 1; };
+              [ -n "${DIRECTORY_TENANT:-}" ] || { echo "MISSING REQUIRED SECRET: DIRECTORY_TENANT" >&2; exit 1; };
+              [ -n "${ESTATE_ORG_ID:-}" ] || { echo "MISSING REQUIRED SECRET: ESTATE_ORG_ID" >&2; exit 1; };
+              [ -n "${ESTATE_DOMAIN:-}" ] || { echo "MISSING REQUIRED SECRET: ESTATE_DOMAIN" >&2; exit 1; };
+              [ -n "${PLATFORM_OBJECT:-}" ] || { echo "MISSING REQUIRED SECRET: PLATFORM_OBJECT" >&2; exit 1; };
+              [ -n "${CHANGELOG_URL:-}" ] || { echo "MISSING REQUIRED SECRET: CHANGELOG_URL" >&2; exit 1; };
+              [ -n "${CHANGELOG_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHANGELOG_API_KEY" >&2; exit 1; };
+              [ -n "${APP_URL:-}" ] || { echo "MISSING REQUIRED SECRET: APP_URL" >&2; exit 1; };
+              [ -n "${WEBHOOK_SEALING_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: WEBHOOK_SEALING_KEY_ID" >&2; exit 1; };
+              [ -n "${WEBHOOK_SEALING_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: WEBHOOK_SEALING_KEY" >&2; exit 1; };
+              [ -n "${EMAIL_API_URL:-}" ] || { echo "MISSING REQUIRED SECRET: EMAIL_API_URL" >&2; exit 1; };
+              [ -n "${EMAIL_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: EMAIL_API_KEY" >&2; exit 1; };
+              [ -n "${EMAIL_FROM:-}" ] || { echo "MISSING REQUIRED SECRET: EMAIL_FROM" >&2; exit 1; };
+              [ -n "${EMAIL_FROM_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: EMAIL_FROM_NAME" >&2; exit 1; };
+              [ -n "${NOTIFY_URL:-}" ] || { echo "MISSING REQUIRED SECRET: NOTIFY_URL" >&2; exit 1; };
+              [ -n "${NOVU_SECRET_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: NOVU_SECRET_KEY" >&2; exit 1; };
+              [ -n "${CRON_WATCH_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CRON_WATCH_KEY" >&2; exit 1; };
+              [ -n "${NOVU_APPLICATION_ID:-}" ] || { echo "MISSING REQUIRED SECRET: NOVU_APPLICATION_ID" >&2; exit 1; };
+              [ -n "${NOTIFY_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: NOTIFY_TOKEN" >&2; exit 1; };
+              echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+        # ── The schema, from the SAME image and the same commit ──────────────
+        #
+        # AN initContainer, NOT A Job. A Job runs BESIDE the rollout and can lose
+        # the race, so a pod may start against a schema one migration behind and
+        # then fail on a column, at runtime, on whichever request happened to
+        # need it. Here the service does not start until the schema is current,
+        # and a failed migration fails the rollout. Verification §12 asserts this
+        # shape by reading this manifest as text.
+        #
+        # It connects as the OWNER, not as the application role: migrations
+        # create tables, indexes and the append-only audit trigger, none of which
+        # autorizare_app may do — and the audit log's integrity depends on the
+        # role the service uses being unable to alter the constraint that binds
+        # it (cnpg-cluster.yaml, managed.roles).
+        - name: migrate
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/autorizaremigrate"]
+          env:
+            - name: DATABASE_MIGRATE_URL
+              valueFrom:
+                secretKeyRef: { name: autorizare-db-app, key: uri }
+            # The application role's password, so the migration can GRANT to
+            # autorizare_app on the objects it has just created. The role itself
+            # is created by the CNPG operator (only a superuser can), so the
+            # migration finds it present and only grants.
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: autorizare-secrets, key: DB_APP_PASSWORD }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: "1", memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # 65532 is distroless nonroot's uid. NUMERIC, and required: the image
+            # declares `USER nonroot` by NAME, and the kubelet cannot prove a name
+            # is not root — it refuses to start the container with "image has
+            # non-numeric user (nonroot), cannot verify user is non-root" rather
+            # than trusting it. runAsNonRoot alone is therefore not a working
+            # setting on this base image, only an intended one.
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+        # ── The authorization model this image carries ───────────────────────
+        #
+        # AFTER the migration, because it writes a release row, and BEFORE the
+        # service, because the service refuses to start with no pinned model.
+        #
+        # It runs HERE rather than in CI for a reason the platform is built on:
+        # writing an authorization model is an ADMIN-port operation, and the
+        # admin port is restricted by NetworkPolicy to this service (@rule
+        # OPS-2, verification gate 11). A runner that could reach it would be
+        # that guarantee not holding. The contract said "CI does this"; nothing
+        # anywhere did, and the only release on this environment turned out to
+        # have been written by hand.
+        #
+        # IDEMPOTENT, so it is safe on every rollout: it compares a digest of
+        # the model in the image against the digest the current release
+        # recorded, and exits without writing when they match. A deploy that
+        # only changed the console must not mint a new model id and re-pin every
+        # application onto it.
+        #
+        # The commit comes from the sha linked into the binary — the same one
+        # /healthz reports — so no manifest carries it and none can drift from
+        # the tag it deploys.
+        - name: release-model
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/autorizared", "release"]
+          envFrom:
+            - configMapRef: { name: autorizare-config }
+            - secretRef: { name: autorizare-secrets }
+            - secretRef: { name: email-sender }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: "1", memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # 65532, numerically, for the same reason the migration states it.
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+      containers:
+        - name: autorizare-svc
+          # Goes on serving for ten seconds after it leaves the endpoints: it would
+          # otherwise close its listener while Traefik still has its address. Its
+          # workers run through those ten too, and stop on SIGTERM as ever. `sleep`,
+          # not exec: the image is distroless. See hub.yaml for what was measured.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/autorizared"]
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            # The six non-secret required settings. Pinned in git, in
+            # configmap.yaml, so a change to an issuer or a redirect URI is
+            # visible in review rather than in OpenBao.
+            - configMapRef: { name: autorizare-config }
+            # DATABASE_URL, OPENFGA_TOKEN, OPENFGA_STORE_ID, OIDC_CLIENT_ID,
+            # OIDC_CLIENT_SECRET, AUTHENTIK_API_TOKEN, DB_APP_PASSWORD.
+            - secretRef: { name: autorizare-secrets }
+            # EMAIL_API_URL, EMAIL_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME: Polaris's
+            # own sender (noreply@polaris.<apex>, its own Plunk key), GENERATED
+            # by apps/plunk-sso/bin/email-sync.mjs (email.generated.yaml).
+            - secretRef: { name: email-sender }
+          env:
+            - name: LISTEN_ADDR
+              value: ":8080"
+            # The in-cluster receivers, each subscribed as code by
+            # `autorizared webhook-subscribe` from seed-secrets.sh: the estate's
+            # applications that hear org lifecycle events and its mirrors' drain
+            # signal (`mirror.drain_requested.v1`, sent before a revocation's fence
+            # waits). The exact service hostnames, never a pattern — they are the
+            # estate's, so its layer sets them (components/estate/autorizare);
+            # empty here: no receiver.
+            - name: WEBHOOK_EGRESS_ALLOWLIST
+              value: ""
+            # RUN_RECONCILER, RUN_DRIFT, RUN_REAPER, RUN_DELIVERY and
+            # RUN_ROLL_CLOSER (a rolled credential's old provider deleted at
+            # Authentik when its overlap ends) are deliberately NOT set.
+            # config.go defaults them all ON, precisely so
+            # a deployment that forgot to enable the reconciler cannot accept
+            # grants, leave them pending, and look healthy doing it — or queue
+            # webhook deliveries that nothing sends. Setting them here would
+            # create a way to turn them off by editing a manifest.
+            #
+            # WEBHOOK_EGRESS_ALLOWLIST names exactly four hosts (above): every
+            # other receiver is public https only. Declaring another in-cluster
+            # receiver is a reviewed edit THERE naming its exact service
+            # hostname — never a pattern — and WEBHOOK_PLATFORM_TENANT
+            # stays unset until the owner decides which tenant hears about
+            # platform-scoped changes (break-glass).
+            #
+            # CREDENTIAL_ROLL_OVERLAP is likewise left at config.go's 15m
+            # default; config.go caps it at 1h, and a rolled secret outliving a
+            # break-glass window would be the longer-lived exception.
+          # Liveness and readiness are deliberately different endpoints.
+          # Readiness fails while a dependency is unreachable so traffic is
+          # withheld; liveness keeps passing so the kubelet does not restart a
+          # healthy process that is merely waiting on Postgres or on Authentik's
+          # discovery document.
+          #
+          # Nothing listens until discovery is over, so during that wait /healthz
+          # is refused and it is the startupProbe that keeps the kubelet's hands
+          # off: without it, liveness kills the process about a minute into a
+          # wait of two (@rule IDP-1, identitate.BootPatience). Three minutes,
+          # which internal/architecture compares with the wait.
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          # The estate's console brand (ESTATE_BRAND_DIR, configmap.yaml): its declaration,
+          # theme and icons, from the ConfigMap the estate's layer generates. The image carries
+          # no estate's look; without the ConfigMap the pod does not start.
+          volumeMounts:
+            - { name: estate-brand, mountPath: /estate-brand, readOnly: true }
+      volumes:
+        - { name: estate-brand, configMap: { name: estate-brand } }
+---
+# Two replicas through any voluntary disruption. Leadership moves with the pod:
+# a drained leader stops its workers and ends its session, and one of the two
+# that remain takes over after the takeover window.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: autorizare-svc
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: { app: autorizare-svc }

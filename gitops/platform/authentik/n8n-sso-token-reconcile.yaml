@@ -1,0 +1,97 @@
+# The DEDICATED, READ-ONLY Authentik API token apps/n8n-sso's reconcile reads the directory
+# with: view_user + view_group, and the three reads that say which flow n8n's provider runs, which
+# doctor and estate-watch judge through /healthz/upstream. Nothing else. plane-sso's shape with its own ServiceAccount,
+# OpenBao role and slot, secret/platform/authentik/n8n-sso-api-token, which every n8n
+# namespace's n8n-sso ExternalSecret reads as AUTHENTIK_API_TOKEN. One token for all of them:
+# they read the same directory. The script is the shared one
+# (credential-token-reconcile-script.yaml): read-before-write, additive, never revokes.
+#   kubectl -n authentik create job --from=cronjob/authentik-n8n-sso-token-reconcile n8n-sso-token-now
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authentik-n8n-sso-token
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-n8n-sso-token-reconcile
+  annotations:
+    alerts.recomex.eu/owner: WLOPSEMAIL
+spec:
+  schedule: "13,28,43,58 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: authentik-n8n-sso-token-reconcile }
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: authentik-n8n-sso-token
+          automountServiceAccountToken: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: script
+              configMap: { name: authentik-credential-token-reconcile }
+          containers:
+            - name: reconcile
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: script, mountPath: /script, readOnly: true }
+              env:
+                - name: AK_API
+                  value: http://authentik-server.authentik.svc.cluster.local:80
+                - name: JOB_NAME
+                  value: authentik-n8n-sso-token-reconcile
+                - name: AK_TOKEN_DESCRIPTION
+                  value: "n8n-sso — reads users and their groups so n8n access follows Authentik groups (apps/n8n-sso). Maintained by the authentik-n8n-sso-token-reconcile CronJob."
+                - name: AK_SERVICE_ACCOUNT
+                  value: svc-n8n-sso
+                - name: AK_ROLE
+                  value: n8n-sso-directory-reader
+                - name: AK_TOKEN_IDENTIFIER
+                  value: n8n-sso-api
+                - name: AK_PERMISSIONS
+                  value: >-
+                    authentik_core.view_user
+                    authentik_core.view_group
+                    authentik_providers_proxy.view_proxyprovider
+                    authentik_flows.view_flow
+                    authentik_flows.view_flowstagebinding
+                - name: AK_SIGNING_CERT
+                  value: "authentik Self-signed Certificate"
+                - name: AK_SIGNING_CERT_ENC
+                  value: "authentik%20Self-signed%20Certificate"
+                - name: BAO_ADDR
+                  value: http://openbao.openbao.svc:8200
+                - name: BAO_ROLE
+                  value: authentik-n8n-sso-token
+                - name: TOKEN_SECRET_PATH
+                  value: platform/authentik/n8n-sso-api-token
+                - name: TOKEN_SECRET_FIELD
+                  value: token
+                - name: AUTHENTIK_BOOTSTRAP_TOKEN
+                  valueFrom: { secretKeyRef: { name: authentik-env, key: AUTHENTIK_BOOTSTRAP_TOKEN } }
+              command: ["/bin/sh", "/script/reconcile.sh"]

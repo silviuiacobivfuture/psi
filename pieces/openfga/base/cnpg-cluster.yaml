@@ -1,0 +1,143 @@
+# OpenFGA's datastore — a CloudNativePG Cluster, the SEVENTH on this platform
+# (after nextcloud-db, plane-db, convex-db, reportportal-db, invoice-svc-db and
+# the retired business Authentik's authentik-business-db). Its shape, backup layering and six-field
+# cron follow the platform's other CNPG clusters.
+#
+# SEPARATE FROM autorizare's DATABASE, deliberately and permanently. This one
+# holds the TUPLES — the answer to "who may do what". autorizare's holds the
+# ACCOUNT of how they got there. If one is restored from backup it must not drag
+# the other's state with it: a tuple restored without its intent is exactly the
+# drift the control plane exists to detect, and an intent restored without its
+# tuple is a grant that silently stopped working.
+#
+# THREE THINGS DIFFER FROM ITS SIBLINGS, each for a stated reason.
+#
+# 1. storageClass is hcloud-volumes, NOT local-path. Same reasoning as
+#    the retired authentik-business-db: a single-instance CNPG Cluster has no live path onto
+#    a new storage class, so a cluster created on local-path today buys a full
+#    backup-restore-cutover when the migration in
+#    infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md finally runs. 10Gi is the
+#    Hetzner block-volume MINIMUM, not a sizing estimate.
+#
+# 2. NO Romanian ICU collation, unlike invoice-svc-db (and the retired authentik-business-db).
+#    Nothing in this database is a human-readable name that anybody sorts: the
+#    rows are OpenFGA type, relation and object identifiers, which @rule D1
+#    constrains to `[a-z0-9_-]` and which no query orders for a person to read.
+#    Declaring ro-RO here would be cargo cult — a locale on a column that never
+#    faces a reader.
+#
+# 3. ONE role, not the owner/application split invoice-svc-db carries. OpenFGA
+#    runs its OWN schema migrations (`openfga migrate`, the initContainer in
+#    deployment.yaml) against this database and creates its own tables, so the
+#    process that owns the schema and the process that reads it are the same
+#    process. A split here would be a boundary with nothing on the other side of
+#    it. autorizare's cluster DOES split them, because there the two are
+#    genuinely different programs — see that cluster's managed.roles.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: openfga-db
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+
+  bootstrap:
+    initdb:
+      database: openfga
+      owner: openfga
+      # NAMING A SECRET MEANS THE OPERATOR EXPECTS IT TO EXIST. CNPG generates
+      # `<cluster>-app` for itself ONLY when this field is omitted; naming one
+      # that no ExternalSecret creates leaves the cluster in "Setting up primary"
+      # forever with the initdb pod in CreateContainerConfigError. That exact
+      # mistake shipped once in a business service; openfga-db-app in
+      # externalsecret.yaml exists so it is not repeated a third time.
+      secret:
+        name: openfga-db-app
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  # Sized against the node, not against comfort. `kubectl describe node` on
+  # 2026-09-01 reported memory LIMITS already at 110% of capacity on
+  # dev-k3s-agent-0 and 93% on dev-k3s-cp. A generous limit here is a promise the
+  # node cannot keep, and the workload that discovers that is whichever one
+  # happens to allocate first.
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+  # DELIBERATELY NOT enablePodMonitor, following the retired authentik-business-db
+  # rather than the five older Clusters: the PodMonitor CRD is not installed here
+  # (metrics go to Netdata + Axiom), and pieces/cnpg/values.yaml
+  # disables the operator's own PodMonitor for exactly that reason. The older
+  # Clusters render a CR for a CRD that does not exist; that is a pre-existing
+  # inconsistency, not a pattern to copy.
+
+  backup:
+    # 30 days, matching the two databases whose loss is worst on this platform.
+    # The window in which an AUTHORIZATION mistake is discovered is long: a
+    # relation removed by a bad model release, or a tuple set lost with a volume,
+    # surfaces the next time somebody is refused something they should have —
+    # which for a quarterly task is a quarter later.
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      # The platform bucket every other Cluster archives to, path-namespaced by
+      # this cluster's own name. No new bucket and no new credential: a backup
+      # that needs its own secret is a backup that stops when that secret rotates
+      # and nobody notices.
+      destinationPath: s3://BUCKET_PREFIX-tfstate-dev/cnpg/openfga-db
+      endpointURL: OBJECT_STORAGE_ENDPOINT
+      s3Credentials:
+        accessKeyId:
+          name: openfga-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: openfga-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. WAL alone restores nothing.
+#
+# NOTE: CNPG uses a SIX-field cron (leading seconds), unlike the five-field
+# CronJob schedules elsewhere in this repository.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: openfga-db-base
+spec:
+  # 04:00 Sunday. The taken and RESERVED weekly slots, read out of the repo
+  # rather than assumed (the list the retired authentik-business-db's header
+  # kept; its own 03:50 slot is free since its deletion on 2026-10-25):
+  #   02:20 nextcloud-db        02:25 nextcloud-db-hv*    02:40 plane-db
+  #   02:45 plane-db-hv*        02:50 invoice-svc-db      02:55 reportportal-db
+  #   03:00 the estate's convex-db clusters and invoice-svc-db-hv*
+  #   03:05 reportportal-db-hv* 03:20, 03:40 the estate's convex clusters
+  #   (* = reserved in a commented -hv migration manifest, not yet live)
+  # Plus the daily 03:15 invoice integrity CronJob and the 6-hourly logical dumps
+  # at :05 :10 :15 :20 :25 :30 :35 :45, which fire at hours 0/6/12/18.
+  #
+  # NOTHING in this repository schedules anything in hour 04 — grep for
+  # `schedule:` across gitops/ to confirm before taking another slot there. This
+  # cluster takes 04:00 and autorizare-db takes 04:10, so the two control-plane
+  # databases neither contend with the existing backup window nor with each other.
+  schedule: "0 0 4 * * 0"
+  # Immediately on creation, not on the first Sunday. Without this the cluster
+  # spends up to a week with WAL archiving apparently working and NO restorable
+  # point — and every rebuild repeats that window.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: openfga-db

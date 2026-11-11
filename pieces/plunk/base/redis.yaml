@@ -1,0 +1,87 @@
+# Redis for Plunk — and NOT a cache: it is BullMQ's queue store. Every email,
+# campaign and workflow step waits here between the api and the worker, so it
+# is persisted (AOF, everysec) on a PVC and never evicts (noeviction: a full
+# Redis refuses a new job loudly instead of silently dropping a queued email).
+# Same shape as novu-redis, which holds Novu's BullMQ queues for the same reason.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: plunk-redis
+  labels:
+    app.kubernetes.io/name: plunk-redis
+  annotations:
+    # REQUIRED: the password is env, baked into --requirepass at start.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  serviceName: plunk-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plunk-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plunk-redis
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: WLREGISTRY/mirror/docker.io/library/redis:7.4-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7
+          command: ["sh", "-c"]
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes --appendfsync everysec --maxmemory 192mb --maxmemory-policy noeviction
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: plunk-redis, key: redis-password }
+          ports:
+            - { name: redis, containerPort: 6379 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 48Mi }
+            limits: { cpu: 250m, memory: 256Mi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plunk-redis
+  labels:
+    app.kubernetes.io/name: plunk-redis
+spec:
+  selector:
+    app.kubernetes.io/name: plunk-redis
+  ports:
+    - { name: redis, port: 6379, targetPort: redis }

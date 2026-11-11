@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The estate's overlay over the platform's OpenBao layer (gitops/platform/openbao). Argo's
+# `openbao-store` Application (gitops/apps/overlays/dev/secret-store.yaml) points HERE.
+#
+# This is the default an estate rendered from SEB starts with: the ClusterSecretStore, the
+# snapshot job and the secret-watcher with an EMPTY CI map (nothing is dispatched until the
+# estate lists a path). An estate that builds images from secrets adds its table as a patch of
+# ConfigMap secret-watcher-config (data.ci-map), as the first estate does.
+#
+# GIT_OWNER / GIT_REPO come from the estate identity (whitelabel component), never typed.
+resources:
+  - ../../gitops/platform/openbao
+# No `components: [whitelabel]` here: the base already composes it, and its ConfigMap (local-config,
+# dropped from the output) is still in the build for these replacements to read.
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.GIT_OWNER }
+    targets:
+      - select: { kind: ConfigMap, name: secret-watcher-config }
+        fieldPaths: [data.GIT_OWNER]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.GIT_REPO }
+    targets:
+      - select: { kind: ConfigMap, name: secret-watcher-config }
+        fieldPaths: [data.GIT_REPO]

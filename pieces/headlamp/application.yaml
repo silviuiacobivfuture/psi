@@ -1,0 +1,28 @@
+# SEB piece `headlamp` — Headlamp, the web Kubernetes console, tailnet-only, native OIDC: the
+# user's own id_token (from the estate's identity provider) is the cluster credential, so each
+# user sees what their groups' RBAC permits. Stateless; its OIDC client arrives through the
+# headlamp-oidc ExternalSecret (not part of this piece).
+#
+# A HELM piece (contract seb/tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: headlamp
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/headlamp/
+    chart: headlamp
+    targetRevision: 0.42.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: headlamp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

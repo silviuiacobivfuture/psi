@@ -1,0 +1,50 @@
+# SEB piece `reference` (the golden-path showcase: whoami behind Ingress + auto-TLS).
+# Delivered in the SEB bundle, rendered at build time (seb/tools/bundle/build.mjs) and
+# deployed by the estate's Application `reference` by digest (its upgrade step).
+# Namespace + the real host + the registry. Same base for every estate.
+#
+# Whitelabel: the apex domain is sourced from SEB's own `whitelabel` component
+# (components/whitelabel, BASE_DOMAIN). Its values file is generated from the estate's
+# identity at bundle build time (tools/bundle/build.mjs --identity), so this piece never
+# reaches outside seb/. The patch writes the host with a `WLDOMAIN` placeholder token and
+# the replacement substitutes BASE_DOMAIN into it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: reference
+components:
+  - ../../components/whitelabel
+resources:
+  - base
+patches:
+  - target:
+      kind: Ingress
+      name: reference
+    patch: |
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: reference.WLDOMAIN
+      - op: replace
+        path: /spec/rules/0/host
+        value: reference.WLDOMAIN
+replacements:
+  - path: whitelabel-replacements.yaml
+  - source:
+      kind: ConfigMap
+      name: whitelabel
+      fieldPath: data.BASE_DOMAIN
+    targets:
+      - select: { kind: Ingress, name: reference }
+        fieldPaths:
+          - spec.tls.0.hosts.0
+          - spec.rules.0.host
+        options: { delimiter: ".", index: 1 }
+  # The image's registry host is the estate's (REGISTRY_HOST): the base names none.
+  - source:
+      kind: ConfigMap
+      name: whitelabel
+      fieldPath: data.REGISTRY_HOST
+    targets:
+      - select: { kind: Deployment, name: reference }
+        fieldPaths:
+          - spec.template.spec.containers.[name=reference].image
+        options: { delimiter: "/", index: 0 }

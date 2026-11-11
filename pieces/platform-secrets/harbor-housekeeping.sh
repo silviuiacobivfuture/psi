@@ -1,0 +1,346 @@
+#!/bin/bash
+# Harbor housekeeping, as code: hourly tag retention on every project + a daily GC.
+#
+# Mounted into the harbor-housekeeping CronJobs (harbor-housekeeping.yaml) and
+# runnable from a workstation with the same inputs (HARBOR_API pointed at a
+# port-forward), which is how repair.sh and the RUNBOOK prove it.
+#
+#   MODE=reconcile  (default, every 30 min) — write the retention policy on every
+#                   project and the GC schedule. Never deletes anything itself.
+#   MODE=run-now    — reconcile, then DRY-RUN retention, refuse if a single
+#                   deployed tag or running digest is in what it would delete,
+#                   then run it for real, then GC (delete untagged). repair.sh.
+#
+# WHY (RUNBOOK 2026-10-29): Harbor held 229.9 GB over 29 repositories with no
+# retention and no GC schedule, its local-path volume lives on dev-k3s-cp, and
+# the node crossed the kubelet's eviction line — Novu, netdata, velero and then
+# Harbor's own registry were evicted. harbor-bootstrap.sh had configured both
+# once; nothing kept them, so a Harbor database restore lost them silently.
+#
+# WHY THOSE TWO CADENCES (RUNBOOK 2026-11-04, measured from Harbor's own dumps):
+# retention releases the project QUOTA, GC only releases the DISK. Each overwritten
+# :buildcache is an untagged artifact holding its layers (40 GiB of the 43 GiB above
+# the kept set at the peak), and only retention lets go of it. At 2.85 GiB/h a daily
+# retention cannot stay under a 36 GiB quota with 26.7 GiB kept; an hourly one can.
+#
+# THE ONE RULE: a deployed tag is never deleted. The policy is two rules OR'd:
+#   1. retain the RETAIN_K most recently pushed artifacts of every repository;
+#   2. ALWAYS retain every tag that is deployed — derived at each run from
+#      Argo CD (status.summary.images, i.e. what git renders) UNION every
+#      running pod's image. The tag list is project-wide, so a tag deployed in
+#      one repository is also kept in another: over-retention, never under.
+# If the derivation yields nothing (Argo unreadable, empty answer), the run
+# REFUSES before any write — a policy without rule 2 is exactly the one that
+# deletes what is running.
+#
+# THE PLATFORM LOCK: the estate runs a platform BUNDLE pinned by digest in its
+# lock file (PLATFORM_LOCK, mounted from the platform-lock ConfigMap). No pod
+# ever runs a bundle, so neither Argo's images nor the pods name it, and the
+# newest-K rule alone would retire it once K newer versions were pushed. Its
+# digest and every tag Harbor holds on it join rule 2. Retention selects by tag,
+# and GC deletes untagged artifacts, so a locked digest that does not carry its
+# version tag cannot be protected: the run REFUSES rather than pretend it is.
+set -euo pipefail
+
+HARBOR_API="${HARBOR_API:-http://harbor-core.harbor.svc.cluster.local/api/v2.0}"
+REGISTRY_HOST="${REGISTRY_HOST:?REGISTRY_HOST is required (the estate registry host, from the identity)}"
+RETAIN_K="${RETAIN_K:-20}"
+RETENTION_CRON="${RETENTION_CRON:-0 12 * * * *}"   # quartz 6-field: hourly at :12, 5 min after the :07 reconcile refreshes the deployed list
+GC_CRON="${GC_CRON:-0 0 3 * * *}"                   # quartz 6-field: daily 03:00
+MODE="${MODE:-reconcile}"
+POLL_SECS="${POLL_SECS:-10}"
+POLL_MAX="${POLL_MAX:-360}"                          # 360 x 10 s = 1 h per wait
+PLATFORM_LOCK="${PLATFORM_LOCK:-}"                   # the CronJobs set /lock/platform.lock
+: "${HARBOR_ADMIN_PASSWORD:?HARBOR_ADMIN_PASSWORD is required (harbor-admin secret)}"
+
+log() { printf '%s\n' "$*" >&2; }
+die() { printf 'REFUSED: %s\n' "$*" >&2; exit 1; }
+
+# api <method> <path> [json] — prints "<body>\n<status>". The password and the
+# body go on curl's config STDIN, never argv.
+api() {
+  local pw=${HARBOR_ADMIN_PASSWORD//\\/\\\\}; pw=${pw//\"/\\\"}
+  {
+    printf 'user = "admin:%s"\n' "$pw"
+    printf 'request = "%s"\n' "$1"
+    printf 'url = "%s%s"\n' "$HARBOR_API" "$2"
+    if [ -n "${3:-}" ]; then
+      local b=${3//\\/\\\\}; b=${b//\"/\\\"}
+      printf 'header = "Content-Type: application/json"\n'
+      printf 'data-binary = "%s"\n' "$b"
+    fi
+  } | curl -sS --max-time 60 -o - -w '\n%{http_code}' -K -
+}
+code() { printf '%s' "$1" | tail -n1; }
+body() { printf '%s' "$1" | sed '$d'; }
+# must <expected-codes-regex> <method> <path> [json] — body on success, dies otherwise.
+must() {
+  local want="$1" r; shift
+  r="$(api "$@")"
+  [[ "$(code "$r")" =~ ^($want)$ ]] || die "$1 $2 -> HTTP $(code "$r"): $(body "$r" | head -c 300)"
+  body "$r"
+}
+
+# deployed_refs — one "<repository>:<tag>" or "<repository>@<digest>" per line,
+# repository relative to the registry host ("<project>/<app>"). Reads Argo CD's
+# rendered images and every pod's spec image AND resolved imageID.
+deployed_refs() {
+  {
+    kubectl get applications.argoproj.io -n argocd -o json \
+      | jq -r '.items[].status.summary.images[]?'
+    kubectl get pods -A -o json \
+      | jq -r '.items[] | ((.spec.containers + (.spec.initContainers // []))[] | .image),
+                          ((.status.containerStatuses // []) + (.status.initContainerStatuses // []))[].imageID'
+  } | refs_from_images
+}
+
+# refs_from_images (stdin: image references) — keep ours, normalise.
+# "host/p/r:t@sha256:d" yields both "p/r:t" and "p/r@sha256:d".
+refs_from_images() {
+  local host="$REGISTRY_HOST"
+  sed -n "s#^\(docker-pullable://\)\{0,1\}${host//./\\.}/##p" | while IFS= read -r ref; do
+    local name="${ref%%@*}" digest=""
+    if [ "$name" != "$ref" ]; then digest="${ref#*@}"; fi
+    if [[ "${name##*/}" == *:* ]]; then
+      printf '%s:%s\n' "${name%:*}" "${name##*:}"
+      name="${name%:*}"
+    fi
+    if [ -n "$digest" ]; then printf '%s@%s\n' "$name" "$digest"; fi
+  done | sort -u
+}
+
+# lock_fields <lock-file> — "<repository> <digest> <version>" from the platform
+# lock, repository relative to the registry host. REFUSES anything that is not
+# exactly the contract (see the sample lock in the delivery proof):
+#   version = <major.minor.patch[-pre]>   the bundle's version AND its tag in Harbor
+#   digest  = sha256:<64 lowercase hex>   the manifest digest the estate runs
+#   source  = oci://<REGISTRY_HOST>/<project>/<repository>
+# One "key = value" per line, each key exactly once; blank lines and # comments.
+lock_fields() {
+  local f="$1" parsed version digest source repo
+  [ -r "$f" ] || die "platform lock $f is not readable"
+  parsed="$(awk '
+    /^[[:space:]]*(#|$)/ { next }
+    {
+      line = $0
+      if (match(line, /^[[:space:]]*[a-z]+[[:space:]]*=[[:space:]]*/) == 0) { print "ERR line " NR " is not key = value: " line; bad = 1; exit }
+      key = substr(line, 1, RLENGTH); sub(/[[:space:]]*=.*/, "", key); gsub(/[[:space:]]/, "", key)
+      val = substr(line, RLENGTH + 1); sub(/[[:space:]]+$/, "", val)
+      if (key != "version" && key != "digest" && key != "source") { print "ERR unknown key \"" key "\" on line " NR; bad = 1; exit }
+      if (key in seen) { print "ERR key \"" key "\" twice (lines " seen[key] " and " NR ")"; bad = 1; exit }
+      seen[key] = NR; v[key] = val
+    }
+    END { if (bad) exit
+          if (!("version" in v) || !("digest" in v) || !("source" in v)) { print "ERR needs version, digest and source"; exit }
+          print v["version"] "\t" v["digest"] "\t" v["source"] }' "$f")"
+  case "$parsed" in ERR*) die "platform lock $f: ${parsed#ERR }" ;; esac
+  IFS=$'\t' read -r version digest source <<< "$parsed"
+  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || die "platform lock $f: version \"$version\" is not major.minor.patch[-pre]"
+  [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || die "platform lock $f: digest \"$digest\" is not sha256:<64 hex>"
+  [[ "$source" == "oci://$REGISTRY_HOST/"* ]] || die "platform lock $f: source \"$source\" is not in this Harbor (oci://$REGISTRY_HOST/…) — housekeeping here cannot protect it"
+  repo="${source#"oci://$REGISTRY_HOST/"}"
+  [[ "$repo" =~ ^[a-z0-9._-]+(/[a-z0-9._-]+)+$ ]] || die "platform lock $f: source \"$source\" names no <project>/<repository>"
+  printf '%s %s %s\n' "$repo" "$digest" "$version"
+}
+
+# locked_refs <lock-file> — "<repo>@<digest>" plus "<repo>:<tag>" for every tag
+# Harbor holds on the locked digest. REFUSES when Harbor does not hold the digest,
+# or when the digest does not carry the lock's version tag (untagged or re-tagged:
+# retention and GC would delete it whatever this run wrote).
+locked_refs() {
+  local fields repo digest version enc r tags
+  fields="$(lock_fields "$1")" || exit 1
+  read -r repo digest version <<< "$fields"
+  enc="${repo#*/}"; enc="${enc//\//%252F}"
+  r="$(api GET "/projects/${repo%%/*}/repositories/$enc/artifacts/$digest?with_tag=true")"
+  [ "$(code "$r")" = 200 ] \
+    || die "the platform lock names $repo@$digest, which Harbor does not hold (HTTP $(code "$r")) — nothing written"
+  tags="$(body "$r" | jq -r '.tags[]?.name')"
+  grep -qxF "$version" <<< "$tags" \
+    || die "the platform lock names $repo@$digest at version $version, but that digest carries tags [$(paste -sd, <<< "$tags")] — retention keeps by tag and GC deletes untagged, so it cannot be protected; re-tag it $version"
+  printf '%s@%s\n' "$repo" "$digest"
+  while IFS= read -r t; do printf '%s:%s\n' "$repo" "$t"; done <<< "$tags"
+}
+
+# protect_locked <refs-file> — appends the locked bundle's refs, so rule 2 keeps
+# its tags and run-now refuses a dry run that would delete its digest. The
+# ConfigMap is optional while no estate has a lock yet: its absence is logged on
+# every run, never silent.
+protect_locked() {
+  local locked
+  [ -n "$PLATFORM_LOCK" ] || return 0
+  if [ ! -e "$PLATFORM_LOCK" ]; then
+    log "platform lock: none at $PLATFORM_LOCK (ConfigMap platform-lock absent) — no bundle digest protected beyond the newest $RETAIN_K"
+    return 0
+  fi
+  locked="$(locked_refs "$PLATFORM_LOCK")" || exit 1
+  log "platform lock: protecting $(paste -sd' ' <<< "$locked")"
+  printf '%s\n' "$locked" >> "$1"
+}
+
+# tags_pattern (stdin: refs) — "{t1,t2,…}" over every distinct tag, or nothing.
+tags_pattern() {
+  local tags
+  tags="$(grep -v '@' | sed 's/.*://' | sort -u | paste -sd, -)" || true
+  if [ -n "$tags" ]; then printf '{%s}' "$tags"; fi
+}
+
+# retention_body <project_id> <tags_pattern> — the policy, Harbor v2 schema.
+retention_body() {
+  jq -nc --argjson pid "$1" --argjson k "$RETAIN_K" --arg cron "$RETENTION_CRON" --arg deployed "$2" '{
+    algorithm: "or",
+    rules: [
+      { action: "retain", template: "latestPushedK", params: { latestPushedK: $k },
+        tag_selectors:   [ { kind: "doublestar", decoration: "matches", pattern: "**", extras: "{\"untagged\":false}" } ],
+        scope_selectors: { repository: [ { kind: "doublestar", decoration: "repoMatches", pattern: "**" } ] } },
+      { action: "retain", template: "always", params: {},
+        tag_selectors:   [ { kind: "doublestar", decoration: "matches", pattern: $deployed, extras: "{\"untagged\":false}" } ],
+        scope_selectors: { repository: [ { kind: "doublestar", decoration: "repoMatches", pattern: "**" } ] } }
+    ],
+    scope:   { level: "project", ref: $pid },
+    trigger: { kind: "Schedule", references: {}, settings: { cron: $cron } }
+  }'
+}
+
+gc_body() {
+  jq -nc --arg type "$1" --arg cron "${2:-}" \
+    '{ schedule: ({ type: $type } + (if $cron == "" then {} else { cron: $cron } end)),
+       parameters: { delete_untagged: true, workers: 1 } }'
+}
+
+# reconcile <refs-file> — writes the policy on every project, and the GC schedule.
+reconcile() {
+  local refs="$1" pattern projects p pid rid pol
+  pattern="$(tags_pattern < "$refs")"
+  [ -n "$pattern" ] || die "derived no deployed tag under $REGISTRY_HOST — not writing a retention policy that protects nothing"
+  log "deployed tags protected: $pattern"
+  projects="$(must 200 GET '/projects?page_size=100' | jq -r '.[] | "\(.project_id) \(.name) \(.metadata.retention_id // "")"')"
+  [ -n "$projects" ] || die "Harbor listed no projects"
+  while read -r pid p rid; do
+    pol="$(retention_body "$pid" "$pattern")"
+    if [ -n "$rid" ] && [ "$(code "$(api GET "/retentions/$rid")")" = 200 ]; then
+      must 200 PUT "/retentions/$rid" "$(printf '%s' "$pol" | jq -c --argjson id "$rid" '. + {id: $id}')" >/dev/null
+      log "retention: $p (policy $rid) updated — keep $RETAIN_K + deployed"
+    else
+      must 201 POST /retentions "$pol" >/dev/null
+      log "retention: $p created — keep $RETAIN_K + deployed"
+    fi
+  done <<< "$projects"
+  if [ -n "$(must 200 GET /system/gc/schedule | jq -r '.schedule.cron // empty' 2>/dev/null)" ]; then
+    must 200 PUT /system/gc/schedule "$(gc_body Custom "$GC_CRON")" >/dev/null
+    log "gc: schedule updated ($GC_CRON, delete untagged)"
+  else
+    must 201 POST /system/gc/schedule "$(gc_body Custom "$GC_CRON")" >/dev/null
+    log "gc: schedule created ($GC_CRON, delete untagged)"
+  fi
+}
+
+# deletions_from_log <repository> (stdin: a retention task log) — "<repo>:<tag>"
+# and "<repo>@<digest>" for every row the task marks DEL. Harbor 2.15 logs a
+# pipe table (pkg/retention/job.go):
+#   | Digest | Tag | Kind | Labels | PushedTime | PulledTime | CreatedTime | Retention |
+# Tag holds several tags comma-joined, or nothing for an untagged artifact.
+deletions_from_log() {
+  awk -F'|' -v repo="$1" '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    NF >= 10 && trim($2) ~ /^sha256:/ && trim($9) == "DEL" {
+      print repo "@" trim($2)
+      tags = trim($3)
+      if (tags != "") { n = split(tags, t, ","); for (i = 1; i <= n; i++) print repo ":" trim(t[i]) }
+    }'
+}
+
+# wait_execution <policy-id> <execution-id> — until it leaves Running/Pending.
+wait_execution() {
+  local s i
+  for ((i = 0; i < POLL_MAX; i++)); do
+    s="$(must 200 GET "/retentions/$1/executions?page=1&page_size=50" | jq -r --argjson e "$2" '.[] | select(.id == $e) | .status')"
+    case "$s" in Succeed|Success) return 0 ;; Failed|Stopped|Error) die "retention execution $2 ended $s" ;; esac
+    sleep "$POLL_SECS"
+  done
+  die "retention execution $2 did not finish in $((POLL_SECS * POLL_MAX)) s"
+}
+
+# execute <policy-id> <dry-run true|false> — prints the execution id.
+execute() {
+  local before after
+  before="$(must 200 GET "/retentions/$1/executions?page=1&page_size=1" | jq -r '.[0].id // 0')"
+  must 201 POST "/retentions/$1/executions" "{\"dry_run\": $2}" >/dev/null
+  after="$(must 200 GET "/retentions/$1/executions?page=1&page_size=1" | jq -r '.[0].id // 0')"
+  [ "$after" != "$before" ] || die "retention execution on policy $1 was accepted but never appeared"
+  printf '%s' "$after"
+}
+
+# planned_deletions <policy-id> <execution-id> <project> — every
+# "<project>/<repo>:<tag>" / "<project>/<repo>@<digest>" it marks DEL. A task's
+# `repository` is the name INSIDE the project ("app", never
+# "project/app" — read from Harbor 2.15 on 2026-11-11), so the project is
+# prefixed here to compare with the deployed refs. Without it no deletion ever
+# matched a deployed ref, and run-now's refusal could not fire.
+planned_deletions() {
+  local page=1 tasks t repo
+  while :; do
+    tasks="$(must 200 GET "/retentions/$1/executions/$2/tasks?page=$page&page_size=100" | jq -r '.[] | "\(.id) \(.repository)"')"
+    [ -n "$tasks" ] || break
+    while read -r t repo; do
+      api GET "/retentions/$1/executions/$2/tasks/$t" | sed '$d' | deletions_from_log "$3/$repo"
+    done <<< "$tasks"
+    page=$((page + 1))
+  done | sort -u
+}
+
+run_now() {
+  local refs="$1" policies rid project ex del hit
+  policies="$(must 200 GET '/projects?page_size=100' | jq -r '.[] | select(.metadata.retention_id) | "\(.metadata.retention_id) \(.name)"')"
+  [ -n "$policies" ] || die "no project carries a retention policy after reconcile"
+  while read -r rid project; do
+    ex="$(execute "$rid" true)"; log "retention $rid ($project): dry run $ex started"
+    wait_execution "$rid" "$ex"
+    del="$(planned_deletions "$rid" "$ex" "$project")"
+    log "retention $rid: dry run would delete $(grep -c '@' <<< "$del" || true) artifacts ($(grep -vc '@' <<< "$del" || true) tags)"
+    grep -v '@' <<< "$del" | sed 's/:[^:]*$//' | sort | uniq -c | sort -rn | sed 's/^/    tags removed  /' >&2 || true
+    hit="$(grep -Fxf "$refs" <<< "$del" || true)"
+    [ -z "$hit" ] || die "the dry run would delete what is deployed — nothing deleted:
+$hit"
+    log "retention $rid: no deployed tag or running digest in the dry run — running it"
+    ex="$(execute "$rid" false)"; wait_execution "$rid" "$ex"; log "retention $rid: execution $ex done"
+  done <<< "$policies"
+  run_gc
+}
+
+# run_gc — one GC now (delete untagged), unless one is already running.
+run_gc() {
+  local gc_id freed i st
+  if must 200 GET '/system/gc?page=1&page_size=1' | jq -e '.[0].job_status | test("Running|Pending")' >/dev/null 2>&1; then
+    die "a GC is already running — not starting a second one; re-run when it ends"
+  fi
+  must 201 POST /system/gc/schedule "$(gc_body Manual)" >/dev/null
+  gc_id="$(must 200 GET '/system/gc?page=1&page_size=1' | jq -r '.[0].id')"
+  log "gc $gc_id started (delete untagged)"
+  for ((i = 0; i < POLL_MAX; i++)); do
+    st="$(must 200 GET "/system/gc/$gc_id" | jq -r .job_status)"
+    case "$st" in
+      Success) freed="$(must 200 GET "/system/gc/$gc_id" | jq -r '.job_parameters | fromjson | .freed_space // 0')"
+               log "gc $gc_id done — freed $((freed / 1000000)) MB"; return 0 ;;
+      Error|Stopped) die "gc $gc_id ended $st" ;;
+    esac
+    sleep "$POLL_SECS"
+  done
+  die "gc $gc_id did not finish in $((POLL_SECS * POLL_MAX)) s"
+}
+
+main() {
+  HH_REFS="$(mktemp)"; trap 'rm -f "$HH_REFS"' EXIT
+  deployed_refs > "$HH_REFS"
+  [ -s "$HH_REFS" ] || die "derived no deployed image under $REGISTRY_HOST from Argo CD and the running pods"
+  protect_locked "$HH_REFS"
+  reconcile "$HH_REFS"
+  case "$MODE" in
+    reconcile) ;;
+    run-now) run_now "$HH_REFS" ;;
+    *) die "unknown MODE=$MODE (reconcile | run-now)" ;;
+  esac
+  log "OK harbor housekeeping ($MODE)"
+}
+
+[ "${HH_SOURCE_ONLY:-0}" = 1 ] || main

@@ -1,0 +1,991 @@
+# Authentik Blueprint ConfigMap — PROVIDERS + APPLICATIONS (config-as-code).
+# Mounted at /blueprints/mounted/, reconciled by the worker on boot.
+#
+# Delivers:
+#   - One OAuth2/OIDC provider + application per OIDC-capable UI:
+#       Harbor, Argo CD, Headlamp, OpenBao.
+#   - A domain-level forward-auth Proxy provider for the PUBLIC Traefik apps,
+#     bound to the embedded outpost (Traefik forwardAuth Middleware targets it).
+#
+# client_id / client_secret per OIDC app are DETERMINISTIC, injected from env
+# (sourced from OpenBao secret/platform/authentik/<app>-oidc) via the chart envFrom +
+# the authentik-oidc-clients ESO secret. This lets the SAME id/secret be handed to
+# each app's OIDC config (see per-app secrets in gitops/platform/secrets/). Redirect
+# URIs use the tailnet/public hostnames.
+#
+# Flows + scope mappings are referenced inline with !Find (authentik defaults shipped
+# by the chart's own system blueprints).
+#
+# Every application a person can open carries `meta_icon`: its tile in "Aplicațiile
+# mele" is otherwise a letter. The icon is a FILE in estate/ (app-<slug>.svg, its
+# source and licence in estate/app-icons.json), served by the directory itself at
+# /static/dist/assets/recomex/ — never a URL on somebody else's host: the Novu
+# tile pointed at a CDN path that never existed and showed a broken image.
+# doctor.sh's "Authentik library tiles" layer fetches each one.
+#
+# Every provider here signs out through `default-invalidation-flow` (the one
+# with the user-logout stage), NEVER `default-provider-invalidation-flow`, which
+# has no stage at all: an end-session through it says "you signed out of <app>"
+# and leaves the Authentik session alive. Measured on dev 2026-10-29 with the
+# e2e-hub robot in Chromium: PDF Studio's and Plunk's ?X-authentik-logout=true
+# and Plane's outpost sign_out each ran it, Authentik's users/me stayed 200, and
+# the next visit to the app signed the robot straight back in. Same finding as
+# the hub's provider on 2026-10-23 (blueprints-broker-autorizare-hub.yaml).
+# .github/scripts/sso-signout.sh refuses the stage-less flow in any blueprint
+# here; doctor.sh ("Authentik sign-out flows") checks the live providers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-providers
+  namespace: authentik
+data:
+  oidc-providers.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-oidc-providers
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      harbor_client_id:     !Env [AUTHENTIK_OIDC__HARBOR__ID, ""]
+      harbor_client_secret: !Env [AUTHENTIK_OIDC__HARBOR__SECRET, ""]
+      argo_client_id:       !Env [AUTHENTIK_OIDC__ARGO__ID, ""]
+      argo_client_secret:   !Env [AUTHENTIK_OIDC__ARGO__SECRET, ""]
+      headlamp_client_id:     !Env [AUTHENTIK_OIDC__HEADLAMP__ID, ""]
+      headlamp_client_secret: !Env [AUTHENTIK_OIDC__HEADLAMP__SECRET, ""]
+      openbao_client_id:     !Env [AUTHENTIK_OIDC__OPENBAO__ID, ""]
+      openbao_client_secret: !Env [AUTHENTIK_OIDC__OPENBAO__SECRET, ""]
+      nextcloud_client_id:     !Env [AUTHENTIK_OIDC__NEXTCLOUD__ID, ""]
+      nextcloud_client_secret: !Env [AUTHENTIK_OIDC__NEXTCLOUD__SECRET, ""]
+    entries:
+      # ---------- Groups scope ----------
+      # Emits a `groups` claim (the user's Authentik group names) so each app can
+      # map groups -> roles (e.g. Argo g,platform-admins,role:admin). Referenced by
+      # every OIDC provider's property_mappings below. Without it, tokens carry no
+      # groups and RBAC can't match.
+      - model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: WLSLUG-groups-scope
+        attrs:
+          scope_name: groups
+          description: "User's Authentik groups (+ expanded role bundles)"
+          expression: |
+            # Emit the user's group names. ROLE BUNDLES (ROLES.md): if the user is in a
+            # bundle-* group, ALSO emit that bundle's entitlement group names — so one
+            # bundle assignment grants the mapped app roles without per-app group adds.
+            # Also emit email_verified=True: the k8s apiserver REQUIRES it in the id_token
+            # when --oidc-username-claim=email (HEADLAMP_K8S_OIDC.md) — without it every
+            # OIDC login is rejected with "oidc: email not verified". Our users are
+            # federated (GitHub/Google verified) or admin-created, so this is sound.
+            # Wrapped so a bad lookup can NEVER break the claim (RBAC depends on it).
+            # ⚠ Keep BUNDLES in sync with the bundle-* groups in blueprints-groups.yaml.
+            try:
+                names = {g.name for g in request.user.ak_groups.all()}
+                BUNDLES = {
+                    "bundle-platform":  ["app-argocd-admin", "app-harbor-admin", "app-openbao-admin", "app-k8s-admin", "app-dashboards-view"],
+                    "bundle-developer": ["app-argocd-view", "app-argocd-developer", "app-harbor-push", "app-openbao-read", "app-openbao-developer", "app-k8s-view", "app-k8s-developer", "app-dashboards-view"],
+                    "bundle-viewer":    ["app-dashboards-view"],
+                }
+                for bundle, ents in BUNDLES.items():
+                    if bundle in names:
+                        names.update(ents)
+                return {"groups": sorted(names), "email_verified": True}
+            except Exception:
+                return {"groups": [g.name for g in request.user.ak_groups.all()], "email_verified": True}
+
+      # ---------- Harbor ----------
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: harbor
+        attrs:
+          client_type: confidential
+          client_id: !Context harbor_client_id
+          client_secret: !Context harbor_client_secret
+          # Authentik 2026.5 gates allowed grant types per provider — empty list
+          # rejects the authorize as "invalid_request / malformed". signing_key is
+          # required to sign the id_token JWT (OIDC). Both omitted = login broken.
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: user_email
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          # BOTH names for the cutover (docs/estate/02-adrese.md T1): Harbor's
+          # sign-in works whichever name it is serving on; the cut keeps the new.
+          redirect_uris:
+            - matching_mode: strict
+              url: https://harbor.WLDOMAIN/c/oidc/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: harbor
+        attrs:
+          name: Harbor
+          meta_icon: /static/dist/assets/recomex/app-harbor.svg
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, harbor]]
+          meta_launch_url: https://harbor.WLDOMAIN
+
+      # ---------- Argo CD ----------
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: argocd
+        attrs:
+          client_type: confidential
+          client_id: !Context argo_client_id
+          client_secret: !Context argo_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: user_email
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://argocd.WLTAILNET/auth/callback
+            - matching_mode: strict
+              url: https://argocd.WLMESH/auth/callback
+            - matching_mode: strict
+              url: https://argocd.WLTAILNET/api/dex/callback
+            - matching_mode: strict
+              url: https://argocd.WLMESH/api/dex/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: argocd
+        attrs:
+          name: Argo CD
+          meta_icon: /static/dist/assets/recomex/app-argocd.svg
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, argocd]]
+          meta_launch_url: https://argocd.WLTAILNET
+
+      # ---------- Headlamp ----------
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: headlamp
+        attrs:
+          client_type: confidential
+          client_id: !Context headlamp_client_id
+          client_secret: !Context headlamp_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: user_email
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://headlamp.WLTAILNET/oidc-callback
+            - matching_mode: strict
+              url: https://headlamp.WLMESH/oidc-callback
+      - model: authentik_core.application
+        identifiers:
+          slug: headlamp
+        attrs:
+          name: Headlamp
+          meta_icon: /static/dist/assets/recomex/app-headlamp.svg
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, headlamp]]
+          meta_launch_url: https://headlamp.WLTAILNET
+
+      # ---------- OpenBao ----------
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: openbao
+        attrs:
+          client_type: confidential
+          client_id: !Context openbao_client_id
+          client_secret: !Context openbao_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: user_email
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          redirect_uris:
+            # OpenBao OIDC auth method: UI callback + CLI localhost listener.
+            - matching_mode: strict
+              url: https://openbao.WLTAILNET/ui/vault/auth/oidc/oidc/callback
+            - matching_mode: strict
+              url: https://openbao.WLMESH/ui/vault/auth/oidc/oidc/callback
+            - matching_mode: strict
+              url: https://openbao.WLTAILNET/oidc/callback
+            - matching_mode: strict
+              url: https://openbao.WLMESH/oidc/callback
+            - matching_mode: strict
+              url: http://localhost:8250/oidc/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: openbao
+        attrs:
+          name: OpenBao
+          meta_icon: /static/dist/assets/recomex/app-openbao.svg
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, openbao]]
+          meta_launch_url: https://openbao.WLTAILNET
+
+      # ---------- Nextcloud ----------
+      # The collaboration suite (files/Office/Talk) at cloud.WLDOMAIN. PUBLIC,
+      # not tailnet-gated: it is the day-to-day workspace for people who are not on
+      # the tailnet, so Authentik itself is the only gate.
+      #
+      # The Nextcloud side of this pairing is written by the occ reconcile CronJob
+      # (pieces/nextcloud-platform/base/occ-reconcile.yaml), which registers the
+      # provider with the SAME client id/secret — both read OpenBao
+      # secret/platform/authentik/nextcloud-oidc, so they cannot drift.
+      #
+      # user_oidc maps users on `preferred_username`, so the profile scope is
+      # REQUIRED (without it the claim is absent and every login creates a new
+      # orphaned account). The groups scope drives Nextcloud group provisioning.
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: nextcloud
+        attrs:
+          client_type: confidential
+          client_id: !Context nextcloud_client_id
+          client_secret: !Context nextcloud_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: user_email
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://cloud.WLDOMAIN/apps/user_oidc/code
+      - model: authentik_core.application
+        identifiers:
+          slug: nextcloud
+        attrs:
+          name: Nextcloud
+          meta_icon: /static/dist/assets/recomex/app-nextcloud.svg
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, nextcloud]]
+          meta_launch_url: https://cloud.WLDOMAIN
+
+      # ---- Nextcloud: gate on the entitlement group -------------------------
+      # Without a binding an application lets ANY authenticated user through — so
+      # before this, a self-enrolled `pending` user (zero entitlements everywhere
+      # else) could sign into the collaboration suite. Two bindings, and the
+      # engine mode is `any`, so either one grants access:
+      #   app-nextcloud-user  the entitlement; how a teammate is granted access
+      #   platform-admins     break-glass, for the SAME reason blueprints-admins.yaml
+      #                       gives the operator every app-*-admin group: a binding
+      #                       must never be able to lock the operator out of the app
+      #                       (including during the window where this binding exists
+      #                       but the group membership has not reconciled yet).
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, nextcloud]]
+          group: !Find [authentik_core.group, [name, app-nextcloud-user]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, nextcloud]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1
+  proxy-forwardauth.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-forward-auth
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      headscale_client_id:     !Env [AUTHENTIK_OIDC__HEADSCALE__ID, ""]
+      headscale_client_secret: !Env [AUTHENTIK_OIDC__HEADSCALE__SECRET, ""]
+      headplane_client_id:     !Env [AUTHENTIK_OIDC__HEADPLANE__ID, ""]
+      headplane_client_secret: !Env [AUTHENTIK_OIDC__HEADPLANE__SECRET, ""]
+    entries:
+      # Domain-level forward-auth proxy provider for the PUBLIC Traefik apps.
+      # mode forward_domain → one outpost cookie covers every host under
+      # cookie_domain. It is the APEX (WLDOMAIN), not dev.WLDOMAIN: the gated
+      # tools move to <name>.WLDOMAIN (docs/estate/02-adrese.md), and the apex
+      # covers the old and the new names alike, so both work throughout the move.
+      # Changing it costs each person one extra sign-in (the old cookie no longer
+      # matches). The
+      # Traefik forwardAuth Middleware (gitops/platform/authentik/middleware-forwardauth.yaml)
+      # points at the embedded outpost's /outpost.goauthentik.io/auth/traefik.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: WLSLUG-forward-auth
+        attrs:
+          mode: forward_domain
+          external_host: https://WLAUTHHOST
+          cookie_domain: recomex.eu
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers:
+          slug: WLSLUG-forward-auth
+        attrs:
+          name: RecomEx Forward Auth
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, WLSLUG-forward-auth]]
+          # The domain-wide gate is plumbing, not something a person opens: hidden
+          # from "My applications" (authentik's blank://blank convention). Each app
+          # behind it gets its own tile below, e.g. Plane.
+          meta_launch_url: blank://blank
+      # ---- Plane's tile in "My applications" ------------------------------------
+      # Plane is signed into through the domain gate above, which has no launch URL,
+      # so without this the library showed "RecomEx Forward Auth" and no Plane. This
+      # application carries NO provider — it is the tile, nothing more; access is
+      # still decided at the gate. Its bindings match who the gate admits (the Plane
+      # role groups and platform-admins, not the e2e robots), so the tile appears
+      # exactly for the people Plane will let in.
+      - model: authentik_core.application
+        identifiers:
+          slug: plane
+        attrs:
+          name: Plane
+          meta_icon: /static/dist/assets/recomex/app-plane.svg
+          meta_launch_url: https://plane.WLDOMAIN
+          meta_description: Proiecte, sarcini și rapoarte de testare
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plane]]
+          group: !Find [authentik_core.group, [name, app-plane-user]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plane]]
+          group: !Find [authentik_core.group, [name, app-plane-admin]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plane]]
+          group: !Find [authentik_core.group, [name, app-plane-guest]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plane]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 3 }
+      # ---- WHO may pass the forward-auth gate --------------------------------
+      # WITHOUT these bindings an application has NO policy attached, and authentik
+      # then admits EVERY authenticated user — so any account in the directory could
+      # reach every public forward-auth'd app. That was the state until Plane became
+      # the first consumer of this middleware; the tailnet gates below always had
+      # their own bindings, which is why the gap was easy to miss.
+      #
+      # SCOPE: this provider is DOMAIN-level (mode forward_domain, cookie_domain
+      # WLDOMAIN), so these bindings gate EVERY ingress carrying the
+      # authentik-forwardauth middleware — today only plane.WLDOMAIN. When a
+      # second app is gated, add ITS entitlement group as a further binding here
+      # (engine mode `any` → any one binding grants access); do NOT widen an
+      # existing group to cover an unrelated app.
+      #
+      # Two bindings, same rationale as nextcloud above:
+      #   app-plane-user   the entitlement; how a teammate is granted access
+      #   platform-admins  break-glass, so a binding can never lock the operator out
+      #                    (including in the window where the binding exists but the
+      #                    group membership has not reconciled yet)
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, app-plane-user]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1
+      # The Plane ROLE groups (apps/plane-sso/mapping.yaml) admit at the gate too:
+      # a person given only a role group — a Guest, or a robot in rmx-e2e — must
+      # reach Plane to be signed in with that role. Every group mapping.yaml names
+      # is bound here; a mapped group the gate refuses would be a role nobody can
+      # use. doctor.sh checks the two lists agree.
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, app-plane-admin]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, app-plane-guest]]
+        attrs: { negate: false, enabled: true, order: 3 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, app-plane-e2e-member]]
+        attrs: { negate: false, enabled: true, order: 4 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, WLSLUG-forward-auth]]
+          group: !Find [authentik_core.group, [name, app-plane-e2e-guest]]
+        attrs: { negate: false, enabled: true, order: 5 }
+      # ---- PDFCraft: a PER-HOST forward-auth provider ---------------------------
+      # pdf.<apex> carries the same Traefik middleware as Plane, but it must NOT be
+      # judged by the domain-wide bindings above (those are Plane's). The embedded
+      # outpost looks a request's Host up EXACTLY among proxy/forward_single
+      # providers FIRST and falls back to the forward_domain one only when none
+      # matches (authentik 2026.5.3 internal/outpost/proxyv2/handlers.go,
+      # lookupApp). So this forward_single provider owns pdf.<apex> outright, and
+      # its application's bindings below are the whole access decision there.
+      # Traefik needs no extra route: the outpost recognises its own callback by
+      # the X-authentik-auth-callback query flag on the forwarded URL, so the
+      # sign-in returns through the same middleware (mode_forward.go).
+      # The session cookie is host-only (pdf.<apex>), separate from the domain one.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: pdfcraft
+        attrs:
+          mode: forward_single
+          external_host: https://pdf.WLDOMAIN
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers:
+          slug: pdfcraft
+        attrs:
+          name: PDF Studio
+          meta_icon: /static/dist/assets/recomex/app-pdfcraft.svg
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, pdfcraft]]
+          meta_launch_url: https://pdf.WLDOMAIN
+      # Same two-binding shape as Nextcloud and Plane (engine mode `any`):
+      #   app-pdfcraft-user  the entitlement — the staff roster
+      #   platform-admins    break-glass; a binding can never lock the operator out
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, pdfcraft]]
+          group: !Find [authentik_core.group, [name, app-pdfcraft-user]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, pdfcraft]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1
+      # ---- Novu: a PER-HOST forward-auth provider ------------------------------
+      # novu.WLDOMAIN (pieces/novu/base/ingress-dashboard.yaml) carries
+      # the same Traefik middleware, for the dashboard page AND for the /v1 + /v2
+      # API paths it calls on that host. Same reasoning as PDFCraft above: a
+      # forward_single provider owns the host outright, so the domain-wide
+      # bindings (Plane's) never decide who reaches Novu, and a Plane user is not
+      # thereby a Novu operator. Its application IS the "Novu" tile in the
+      # library (it has a launch URL), so no separate provider-less tile is
+      # needed — Plane needs one only because its gate is the domain-wide
+      # provider, whose application is hidden.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: novu
+        attrs:
+          mode: forward_single
+          external_host: https://novu.WLDOMAIN
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers:
+          slug: novu
+        attrs:
+          name: Novu
+          meta_icon: /static/dist/assets/recomex/app-novu.svg
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, novu]]
+          meta_launch_url: https://novu.WLDOMAIN
+          meta_description: Notificări — fluxuri, abonați, activitate
+      #   app-novu-admin   Novu admin   (apps/novu-sso/mapping.json; blueprints-groups.yaml)
+      #   app-novu-member  Novu member
+      #   platform-admins  break-glass; a binding can never lock the operator out
+      # Every group novu-sso maps must be bound here (apps/novu-sso/build.sh exit 15).
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, novu]]
+          group: !Find [authentik_core.group, [name, app-novu-admin]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, novu]]
+          group: !Find [authentik_core.group, [name, app-novu-member]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, novu]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      # ---- Plunk: a PER-HOST forward-auth provider ------------------------------
+      # plunk.WLDOMAIN (pieces/plunk/base/ingress.yaml) carries the same
+      # Traefik middleware. Same reasoning as PDFCraft and Novu: a forward_single
+      # provider owns the host outright, so ONLY these bindings decide there —
+      # never the domain-wide provider's (Plane's). Passing the gate is the whole
+      # sign-in: apps/plunk-sso then signs the person into Plunk with the role
+      # their groups map to (apps/plunk-sso/mapping.json). Sign-out goes through
+      # this provider's logout signature (X-authentik-logout) on plunk.<apex>.
+      # The API host (plunk-api.<apex>) is NOT gated — keys and SES webhooks.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: plunk
+        attrs:
+          mode: forward_single
+          external_host: https://plunk.WLDOMAIN
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers:
+          slug: plunk
+        attrs:
+          name: Plunk
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, plunk]]
+          meta_launch_url: https://plunk.WLDOMAIN
+          meta_description: E-mail — trimitere, primire, șabloane, campanii
+          meta_icon: /static/dist/assets/recomex/app-plunk.svg
+      # EVERY group apps/plunk-sso/mapping.json names is bound here (engine mode
+      # `any`): a mapped group the gate refused would be a role nobody can use.
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plunk]]
+          group: !Find [authentik_core.group, [name, app-plunk-user]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plunk]]
+          group: !Find [authentik_core.group, [name, app-plunk-admin]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plunk]]
+          group: !Find [authentik_core.group, [name, app-plunk-e2e]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, plunk]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 3 }
+      # ---- Headscale: the tailnet's sign-in ---------------------------------------
+      # A device signing in. Headscale reads the secret from the same OpenBao path, so the
+      # two ends cannot drift. Hidden from "My applications": nobody launches it.
+      # hashed_user_id, not user_email: Headscale keys a person on iss+sub, and a changed
+      # address must not make a second tailnet user. PKCE by the client; no encryption key,
+      # which Headscale's documentation requires of Authentik.
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: headscale
+        attrs:
+          client_type: confidential
+          client_id: !Context headscale_client_id
+          client_secret: !Context headscale_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://headscale.WLDOMAIN/oidc/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: headscale
+        attrs:
+          name: Headscale
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, headscale]]
+          meta_launch_url: blank://blank
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headscale]]
+          group: !Find [authentik_core.group, [name, tailnet-users]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headscale]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      # ---- Headplane: the console, behind TWO Authentik checks --------------------
+      # 1. The EDGE: this forward_single provider owns headplane.<apex> outright, so a
+      #    signed-out or unlisted person gets a redirect or a refusal and never a byte of
+      #    the application. Only these bindings decide, not the domain-wide provider's.
+      # 2. The APPLICATION: its own OIDC client, with the same bindings, and a role claim.
+      #    A flaw in either alone does not open the console.
+      # Why it has two applications: an Authentik application holds one provider.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: headplane
+        attrs:
+          mode: forward_single
+          external_host: https://headplane.WLDOMAIN
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=8
+      - model: authentik_core.application
+        identifiers:
+          slug: headplane
+        attrs:
+          name: Headplane
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, headplane]]
+          meta_launch_url: https://headplane.WLDOMAIN/
+          meta_icon: /static/dist/assets/recomex/app-headplane.svg
+          meta_description: Rețeaua privată — dispozitive, rute, chei
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headplane]]
+          group: !Find [authentik_core.group, [name, app-headplane-admin]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headplane]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      # The claim Headplane reads at each sign-in (oidc.role_claim). Being in the group is the
+      # role; leaving it takes the role away at the next sign-in. Anyone else gets no claim,
+      # so Headplane's default_role, `member`, which has no access.
+      - model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: headplane-role-scope
+        attrs:
+          scope_name: headplane
+          description: "Headplane's role, from the Authentik group"
+          expression: |
+            names = {g.name for g in request.user.ak_groups.all()}
+            if names & {"app-headplane-admin", "platform-admins"}:
+                return {"headplane_role": "admin"}
+            return {}
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: headplane-oidc
+        attrs:
+          client_type: confidential
+          client_id: !Context headplane_client_id
+          client_secret: !Context headplane_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          # The same as Headscale's, so Headplane can link a person to their Headscale user.
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-groups-scope]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, headplane-role-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://headplane.WLDOMAIN/admin/oidc/callback
+            - matching_mode: strict
+              url: https://headplane.WLDOMAIN/admin/login?s=logout
+              redirect_uri_type: logout
+      - model: authentik_core.application
+        identifiers:
+          slug: headplane-oidc
+        attrs:
+          name: Headplane (sign-in)
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, headplane-oidc]]
+          meta_launch_url: blank://blank
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headplane-oidc]]
+          group: !Find [authentik_core.group, [name, app-headplane-admin]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, headplane-oidc]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      # ---- Tailnet dashboard gates (proxy MODE) --------------------------------
+      # These apps can't speak OIDC natively (netdata/hub) or shouldn't (headlamp:
+      # OIDC would require reconfiguring the k3s apiserver). Instead the embedded
+      # outpost reverse-proxies them: a request to https://<app>.<tailnet>.ts.net is
+      # routed (by Host) to the matching proxy provider, gated behind Authentik, then
+      # proxied to internal_host. The app's OWN tailscale ingress is removed and a
+      # replacement ingress in ns authentik points at authentik-server (the embedded
+      # outpost) — see gitops/platform/authentik/ingress-proxied-apps.yaml. Group
+      # membership is enforced per-app via the `app-dashboards-view` policy bindings
+      # at the bottom of this blueprint (only its members may reach these apps).
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: netdata }
+        attrs:
+          mode: proxy
+          external_host: https://netdata.WLTAILNET
+          internal_host: http://netdata.monitoring.svc.cluster.local:19999
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: netdata }
+        attrs:
+          name: Netdata
+          meta_icon: /static/dist/assets/recomex/app-netdata.svg
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, netdata]]
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: hub }
+        attrs:
+          mode: proxy
+          external_host: https://hub.WLTAILNET
+          internal_host: http://homepage.homepage.svc.cluster.local:3000
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: hub }
+        attrs:
+          name: System Hub
+          meta_icon: /static/dist/assets/recomex/app-hub.svg
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, hub]]
+      # Headlamp embedded-outpost proxy gate REMOVED — Headlamp moved to NATIVE k8s OIDC
+      # (the apiserver trusts Authentik via the SUC drop-in; identity enforced at the API
+      # server itself, HEADLAMP_K8S_OIDC.md §4). The proxy gate + native OIDC together
+      # would be redundant double-auth. The `headlamp` OIDC oauth2provider (above) is KEPT
+      # and now used for real. The headlamp-gate ingress + this provider are dropped in the
+      # same step Headlamp switched to native OIDC.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: browseruse-webui }
+        attrs:
+          mode: proxy
+          external_host: https://browseruse-webui.WLTAILNET
+          internal_host: http://browseruse-webui.browseruse-webui.svc.cluster.local:7788
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: browseruse-webui }
+        attrs:
+          name: Browser-Use WebUI
+          meta_icon: /static/dist/assets/recomex/app-browseruse-webui.svg
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, browseruse-webui]]
+
+      # Netdata under its private name (docs/headscale/00-plan.md, Stage 3). A proxy provider matches
+      # one external_host and an application holds one provider, so the name is its own pair, with
+      # the same binding: an application with no binding lets anyone signed in through. Hidden, so
+      # "My applications" does not list the tool twice. Stage 6 removes the *.ts.net pair.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: netdata-net }
+        attrs:
+          mode: proxy
+          external_host: https://netdata.WLMESH
+          internal_host: http://netdata.monitoring.svc.cluster.local:19999
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: netdata-net }
+        attrs:
+          name: Netdata (private network)
+          meta_launch_url: blank://blank
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, netdata-net]]
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, netdata-net]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+
+      # Browser-Use WebUI under its private name (docs/headscale/00-plan.md, Stage 3). A proxy provider matches
+      # one external_host and an application holds one provider, so the name is its own pair, with
+      # the same binding: an application with no binding lets anyone signed in through. Hidden, so
+      # "My applications" does not list the tool twice. Stage 6 removes the *.ts.net pair.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: browseruse-webui-net }
+        attrs:
+          mode: proxy
+          external_host: https://browseruse-webui.WLMESH
+          internal_host: http://browseruse-webui.browseruse-webui.svc.cluster.local:7788
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: browseruse-webui-net }
+        attrs:
+          name: Browser-Use WebUI (private network)
+          meta_launch_url: blank://blank
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, browseruse-webui-net]]
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, browseruse-webui-net]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+
+      # System Hub under its private name (docs/headscale/00-plan.md, Stage 3). A proxy provider matches
+      # one external_host and an application holds one provider, so the name is its own pair, with
+      # the same binding: an application with no binding lets anyone signed in through. Hidden, so
+      # "My applications" does not list the tool twice. Stage 6 removes the *.ts.net pair.
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers: { name: hub-net }
+        attrs:
+          mode: proxy
+          external_host: https://hub.WLMESH
+          internal_host: http://homepage.homepage.svc.cluster.local:3000
+          internal_host_ssl_validation: false
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers: { slug: hub-net }
+        attrs:
+          name: System Hub (private network)
+          meta_launch_url: blank://blank
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, hub-net]]
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, hub-net]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+
+      # ---- Access policy: gate the tailnet dashboards on group membership ------
+      # By default an application with ZERO policy bindings lets ANY authenticated
+      # user through. We bind the entitlement group `app-dashboards-view` directly
+      # to each of netdata / hub / browseruse-webui so ONLY its members may reach
+      # them through the embedded outpost; everyone else is denied at Authentik.
+      #
+      # How the deny works: each Application's policy_engine_mode is `any` (pass if
+      # at least one binding matches). With exactly one binding — a group binding,
+      # negate:false — a request passes ONLY when the user is in `app-dashboards-view`;
+      # for any non-member NO binding matches, so the engine returns deny and the
+      # outpost refuses the request (no proxy to internal_host). PolicyBinding has a
+      # first-class `group` FK (target=Application, group=Group), so this needs NO
+      # expression policy — the group binding is the canonical, simplest mechanism
+      # in Authentik 2026.5. Operator `silviu` is a member of `app-dashboards-view`,
+      # so access is preserved. Idempotent: identifiers (target+group) are stable,
+      # re-applies cleanly. Headlamp is intentionally NOT gated here (native OIDC).
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, netdata]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, hub]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, browseruse-webui]]
+          group: !Find [authentik_core.group, [name, app-dashboards-view]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+
+      # ---- n8n: a PER-HOST forward-auth provider --------------------------------
+      # Gates the host in pieces/n8n/base/host.env (.github/scripts/n8n-gate.sh
+      # refuses a tree where the two differ). forward_single owns the host outright, so
+      # ONLY this binding decides, and it is deliberately one group: an n8n instance
+      # runs code and holds credentials, so no platform-admins break-glass and no
+      # department bundle reach it by accident. n8n Community's own sign-in is behind
+      # this gate. Only /webhook/ and /webhook-waiting/ pass without it (ingress.yaml).
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: n8n
+        attrs:
+          mode: forward_single
+          external_host: https://n8n.WLDOMAIN
+          # IMPLICIT, and it is a security setting here. The explicit flow's page leaves by script, which
+          # turns any arrival into a same-site one, so a page on another site could sign a person in and
+          # make a pending person's account (docs/n8n/01-identity.md H15). The gate holds this.
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=8
+      - model: authentik_core.application
+        identifiers:
+          slug: n8n
+        attrs:
+          name: n8n
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, n8n]]
+          # /sso/setup answers everybody: to n8n's own sign-in, or, for someone who has not
+          # chosen a password yet, to their invitation (apps/n8n-sso/src/setup.ts).
+          meta_launch_url: https://n8n.WLDOMAIN/sso/setup
+          meta_description: Automatizări — fluxuri de lucru și webhook-uri
+          meta_icon: /static/dist/assets/recomex/app-n8n.svg
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, n8n]]
+          group: !Find [authentik_core.group, [name, app-n8n-admin]]
+        attrs: { negate: false, enabled: true, order: 0 }
+
+      # Bind ALL proxy providers (forward-auth + the tailnet gates) to the embedded
+      # outpost (the in-cluster server pod runs it). The list REPLACES the m2m set,
+      # so every provider that must be served has to appear here.
+      - model: authentik_outposts.outpost
+        identifiers:
+          managed: goauthentik.io/outposts/embedded
+        attrs:
+          providers:
+            - !Find [authentik_providers_proxy.proxyprovider, [name, WLSLUG-forward-auth]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, pdfcraft]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, novu]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, plunk]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, n8n]]
+            # BEGIN GENERATED n8n instances (apps/n8n-sso)
+            # END GENERATED n8n instances
+            - !Find [authentik_providers_proxy.proxyprovider, [name, headplane]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, netdata]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, netdata-net]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, hub]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, hub-net]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, browseruse-webui]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, browseruse-webui-net]]

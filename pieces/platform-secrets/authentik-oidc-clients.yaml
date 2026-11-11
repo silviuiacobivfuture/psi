@@ -1,0 +1,85 @@
+# Deterministic OIDC client_id/client_secret per wired UI → authentik-oidc-clients
+# secret in the authentik namespace, loaded into the server+worker via the chart's
+# global.envFrom. The providers blueprint (blueprints-providers.yaml) reads these env
+# vars (AUTHENTIK_OIDC__<APP>__ID/__SECRET) into each oauth2provider, so the SAME
+# id/secret can be handed to the app's own OIDC config. Synced from OpenBao
+# secret/platform/authentik/<app>-oidc (one KV entry per app, keys client_id/client_secret).
+#
+# The orchestrator/user seeds these once (generate a random id+secret per app):
+#   for a in harbor argo headlamp openbao nextcloud; do
+#     bao kv put secret/platform/authentik/$a-oidc \
+#       client_id=$(openssl rand -hex 16) client_secret=$(openssl rand -hex 32); done
+# Until seeded, ESO syncs empty strings → providers exist with blank creds (no login
+# via them yet) but Authentik + all existing app auth keep working (no lockout).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-oidc-clients
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-oidc-clients
+    creationPolicy: Owner
+    deletionPolicy: Merge
+    template:
+      data:
+        AUTHENTIK_OIDC__HARBOR__ID: "{{ .harbor_id }}"
+        AUTHENTIK_OIDC__HARBOR__SECRET: "{{ .harbor_secret }}"
+        AUTHENTIK_OIDC__ARGO__ID: "{{ .argo_id }}"
+        AUTHENTIK_OIDC__ARGO__SECRET: "{{ .argo_secret }}"
+        AUTHENTIK_OIDC__HEADLAMP__ID: "{{ .headlamp_id }}"
+        AUTHENTIK_OIDC__HEADLAMP__SECRET: "{{ .headlamp_secret }}"
+        AUTHENTIK_OIDC__OPENBAO__ID: "{{ .openbao_id }}"
+        AUTHENTIK_OIDC__OPENBAO__SECRET: "{{ .openbao_secret }}"
+        AUTHENTIK_OIDC__NEXTCLOUD__ID: "{{ .nextcloud_id }}"
+        AUTHENTIK_OIDC__NEXTCLOUD__SECRET: "{{ .nextcloud_secret }}"
+        # Headscale and Headplane read the same two paths from their own namespace.
+        AUTHENTIK_OIDC__HEADSCALE__ID: "{{ .headscale_id }}"
+        AUTHENTIK_OIDC__HEADSCALE__SECRET: "{{ .headscale_secret }}"
+        AUTHENTIK_OIDC__HEADPLANE__ID: "{{ .headplane_id }}"
+        AUTHENTIK_OIDC__HEADPLANE__SECRET: "{{ .headplane_secret }}"
+        # A manifest `sso` block needs its pair here (check-oidc-credentials.py
+        # refuses one whose prefix has no keys); a RETIRED one (`sso_retired`,
+        # e.g. invoice since 2026-10-29) must have NONE left.
+        # The login hub's broker client (autorizare, <HUB_HOST_PREFIX>.<BASE_DOMAIN>) — the ONE
+        # OIDC client every business application signs in through (D23). The
+        # hub reads the same OpenBao path, so the two ends cannot drift.
+        AUTHENTIK_OIDC__AUTORIZARE_HUB__ID: "{{ .autorizare_hub_id }}"
+        AUTHENTIK_OIDC__AUTORIZARE_HUB__SECRET: "{{ .autorizare_hub_secret }}"
+  data:
+    - secretKey: harbor_id
+      remoteRef: { key: platform/authentik/harbor-oidc, property: client_id }
+    - secretKey: harbor_secret
+      remoteRef: { key: platform/authentik/harbor-oidc, property: client_secret }
+    - secretKey: argo_id
+      remoteRef: { key: platform/authentik/argo-oidc, property: client_id }
+    - secretKey: argo_secret
+      remoteRef: { key: platform/authentik/argo-oidc, property: client_secret }
+    - secretKey: headlamp_id
+      remoteRef: { key: platform/authentik/headlamp-oidc, property: client_id }
+    - secretKey: headlamp_secret
+      remoteRef: { key: platform/authentik/headlamp-oidc, property: client_secret }
+    - secretKey: openbao_id
+      remoteRef: { key: platform/authentik/openbao-oidc, property: client_id }
+    - secretKey: openbao_secret
+      remoteRef: { key: platform/authentik/openbao-oidc, property: client_secret }
+    # Nextcloud reads the SAME path from its own namespace (nextcloud-oidc
+    # ExternalSecret) so both ends of the handshake share one source of truth.
+    - secretKey: nextcloud_id
+      remoteRef: { key: platform/authentik/nextcloud-oidc, property: client_id }
+    - secretKey: nextcloud_secret
+      remoteRef: { key: platform/authentik/nextcloud-oidc, property: client_secret }
+    - secretKey: headscale_id
+      remoteRef: { key: platform/authentik/headscale-oidc, property: client_id }
+    - secretKey: headscale_secret
+      remoteRef: { key: platform/authentik/headscale-oidc, property: client_secret }
+    - secretKey: headplane_id
+      remoteRef: { key: platform/authentik/headplane-oidc, property: client_id }
+    - secretKey: headplane_secret
+      remoteRef: { key: platform/authentik/headplane-oidc, property: client_secret }
+    - secretKey: autorizare_hub_id
+      remoteRef: { key: platform/authentik/autorizare-hub-oidc, property: client_id }
+    - secretKey: autorizare_hub_secret
+      remoteRef: { key: platform/authentik/autorizare-hub-oidc, property: client_secret }

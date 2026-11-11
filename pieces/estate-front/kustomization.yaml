@@ -1,0 +1,49 @@
+# SEB piece `estate-front`: the estate's front door at https://<apex>/ (the hub: the estate's
+# applications and everyday tools) and its internal landing at https://<apex>/despre
+# (apps/estate-front). Delivered in the SEB bundle, rendered at build time
+# (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity (the whitelabel component). What is the
+# estate's own and not a setting comes from its layer, ../../components/estate/estate-front:
+#   - its registry (the applications the front door lists, mounted at /estate);
+#   - its tools (links.json) and, if it names itself otherwise than its identity's
+#     ESTATE_NAME, that name (base/kustomization.yaml sets the default);
+#   - the image TAG, while the estate's CI still bumps it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: estate-front
+resources:
+  - base
+
+# The whitelabel component (the identity's values, ConfigMap `whitelabel`) comes in through
+# base/, which reads it first; naming it here too would register it twice.
+components:
+  - ../../components/estate/estate-front
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The apex IS the host: Ingress rule and certificate, and the setting the pages link with.
+  # The front door's host: the apex, or its own host when the apex is someone else's
+  # (FRONT_HOST, derived by the identity loader from DNS_APEX and FRONT_HOST_PREFIX).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.FRONT_HOST }
+    targets:
+      - select: { kind: Ingress, name: estate-front }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: estate-front-config }
+        fieldPaths: [data.BASE_DOMAIN]
+  # The homepage tile's link: https://<apex>.
+  - source: { kind: Ingress, name: estate-front, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: Ingress, name: estate-front }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+  # Who is paged: the estate's operations address (the key is moved to alerts.<ESTATE_LABEL_DOMAIN>/owner by
+  # ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+transformers:
+  - ../../components/alert-owner

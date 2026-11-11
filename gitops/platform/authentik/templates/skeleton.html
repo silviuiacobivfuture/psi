@@ -1,0 +1,26 @@
+{% extends "base/skeleton.html" %}
+{% comment %}
+    THE PAGE TEMPLATE, ONE LINE LONGER — mounted at /templates/base/skeleton.html.
+
+    Authentik's template search path starts with `email.template_dir`
+    (/templates); its own templates come after. So this file is found FIRST for
+    "base/skeleton.html", and `extends` of the same name then loads Authentik's
+    original (Django skips the file it is already in). Every page Authentik
+    renders — the sign-in, the account pages, the server's error pages — is that
+    original plus the one script below. Nothing else changes.
+
+    WHY THE `scripts` BLOCK, at the end of the body: it is the one block no
+    Authentik template overrides (`login/base_full.html`, behind the error
+    pages, replaces `head_before` without keeping it), and a classic script there
+    still runs before any of Authentik's components exist — theirs are module
+    scripts, which wait for the whole page to be parsed. So ro.js is in place to
+    watch each component from the moment it is created.
+
+    What the script does and why: gitops/platform/authentik/estate/ro.js.
+    Served from /web/dist/assets/recomex/ (the estate ConfigMap).
+{% endcomment %}
+{% load static %}
+{% block scripts %}
+{{ block.super }}
+<script data-id="recomex-ro" src="{% static 'dist/assets/recomex/ro.js' %}"></script>
+{% endblock %}

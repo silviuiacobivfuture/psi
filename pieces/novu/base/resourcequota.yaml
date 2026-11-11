@@ -1,0 +1,36 @@
+# Per-namespace guard-rails for novu.
+#
+# The LimitRange backfills defaults for anything that omits them (a restore Job
+# from restore-novu-db.sh, a throwaway kubectl-run pod from novu-bootstrap.sh
+# carries its own) so the ResourceQuota never bounces a pod for having none.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: novu
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 500m, memory: 512Mi }
+      max: { cpu: "2", memory: 2Gi }
+---
+# Sized from the set declared in this directory:
+#   api 100m/320Mi, worker 100m/320Mi, ws 25m/160Mi, dashboard 10m/48Mi x3
+#   (tailnet + public + Headscale), mongodb 100m/384Mi, redis 25m/48Mi, sso 20m/128Mi,
+#   bridge 20m/96Mi
+#                                                 (= 420m / ~1.6Gi requests)
+# plus the 6-hourly mongodump Job — with headroom for every Deployment surging one
+# pod at once during a rollout. The CLUSTER is the tighter constraint, not this
+# quota: on 2026-10-22 the two nodes had 98% / 92% of memory REQUESTS allocated,
+# which is why the requests above are kept small and the limits carry the burst.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: novu
+spec:
+  hard:
+    requests.cpu: "1500m"
+    requests.memory: 4Gi
+    limits.cpu: "10"
+    limits.memory: 10Gi
+    pods: "16"

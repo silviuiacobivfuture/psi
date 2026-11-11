@@ -1,0 +1,97 @@
+# plane-db-hv — the hcloud-volumes REPLACEMENT for plane-db, created ALONGSIDE
+# cnpg-cluster.yaml (untouched: plane-db keeps serving Plane until this cluster
+# is verified and the operator deliberately cuts over). Same recipe as
+# pieces/nextcloud-platform/base/cnpg-cluster-hv.yaml — read that file's header
+# for the full rationale (immutability, the archive-collision avoidance, why
+# there is no `recoveryTarget`); only the deltas are called out here. Full
+# procedure: infrastructure/hetzner/MIGRATION-STORAGE-CLASS.md. NOT wired into
+# kustomization.yaml — that is a runbook step.
+#
+# PLANE-SPECIFIC CUTOVER NOTE (see restore-plane-db.sh, same fact restated):
+# THREE workloads hold DATABASE_URL — plane-api-wl, plane-worker-wl,
+# plane-beat-worker-wl — and it is composed inline in
+# pieces/plane-platform/base/externalsecrets.yaml, not a Helm value. Quiescing
+# for the recovery point means scaling all three to 0, not just plane-api-wl.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: plane-db-hv
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+
+  bootstrap:
+    recovery:
+      source: origin
+      # No secret/owner/database — see nextcloud-db-hv's header. The `plane`
+      # role's restored password must still match OpenBao's apps/plane/db
+      # secret; runbook pre-flight checks this.
+
+  externalClusters:
+    - name: origin
+      barmanObjectStore:
+        destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plane-db
+        endpointURL: https://fsn1.your-objectstorage.com
+        serverName: plane-db
+        s3Credentials:
+          accessKeyId:
+            name: plane-backup-s3
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKey:
+            name: plane-backup-s3
+            key: AWS_SECRET_ACCESS_KEY
+        wal:
+          maxParallel: 2
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      effective_cache_size: "512MB"
+      work_mem: "8MB"
+      max_connections: "200"
+      archive_timeout: "5min"
+
+# ============================================================================
+# FOLLOW-UP — apply ONLY after cutover is verified. See nextcloud-db-hv.yaml's
+# footer for the reasoning; only the destinationPath/names differ.
+#
+# spec:
+#   backup:
+#     retentionPolicy: "14d"
+#     barmanObjectStore:
+#       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plane-db-hv   # NOT the old path
+#       endpointURL: https://fsn1.your-objectstorage.com
+#       s3Credentials:
+#         accessKeyId: { name: plane-backup-s3, key: AWS_ACCESS_KEY_ID }
+#         secretAccessKey: { name: plane-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+#       wal: { compression: gzip, maxParallel: 2 }
+#       data: { compression: gzip }
+# ---
+# apiVersion: postgresql.cnpg.io/v1
+# kind: ScheduledBackup
+# metadata:
+#   name: plane-db-hv-base
+# spec:
+#   schedule: "0 45 2 * * 0"   # an unused slot — see the other cnpg-cluster.yaml headers for the taken list
+#   immediate: true
+#   backupOwnerReference: self
+#   cluster:
+#     name: plane-db-hv
+# ============================================================================

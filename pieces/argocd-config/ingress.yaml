@@ -1,0 +1,33 @@
+# Exposes the Argo CD UI TAILNET-ONLY (Tailscale operator) → argocd.<tailnet>.ts.net.
+# Zero public surface (PLATFORM.md). Tailscale terminates TLS; argocd-server runs
+# --insecure (HTTP) so the proxy forwards to :80 — set by gitops-apply.sh.
+# GitHub OIDC SSO callback must point at this tailnet host (sso-cm.yaml url +
+# the GitHub OAuth app's Authorization callback URL).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-tailnet
+  namespace: argocd
+  annotations:
+    # Homepage hub auto-discovery (gethomepage.dev) → "Delivery" group.
+    # Tailscale ingress uses a wildcard host, so the href (the estate's tailnet host) is
+    # set explicitly, by the estate's component.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Argo CD"
+    gethomepage.dev/description: "GitOps — what is deployed, and syncing it"
+    gethomepage.dev/group: "Delivery"
+    gethomepage.dev/icon: "argo-cd.png"
+    # Ingress is named `argocd-tailnet`, so homepage would derive selector
+    # `app.kubernetes.io/name=argocd-tailnet` → matches nothing → "NOT FOUND".
+    # Pin the real argocd-server pod label.
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=argocd-server"
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: argocd-server
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - argocd

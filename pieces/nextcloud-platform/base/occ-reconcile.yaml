@@ -1,0 +1,520 @@
+# Nextcloud configuration-as-code for everything that does NOT live in config.php.
+#
+# THE GAP THIS CLOSES: Nextcloud keeps app configuration — the OIDC provider, Talk's
+# signaling + TURN servers, the Collabora URL, which apps are enabled — in its OWN
+# database (oc_appconfig), reachable only through `occ`. The Helm chart cannot write
+# any of it. Left to a human, a cluster rebuild would come back with files and users
+# intact and SSO/calls silently dead until someone remembered the click-path.
+#
+# So this CronJob is the source of truth: every 15 minutes it re-asserts the whole
+# configuration, idempotently. A fresh cluster converges within one interval with no
+# manual step; drift (someone changing it in the admin UI) is corrected on the next
+# run. Exactly the pattern and rationale as
+# pieces/platform-secrets/harbor-oidc-reconcile.yaml, which does the same for
+# Harbor's DB-stored auth config.
+#
+# WHAT DOES *NOT* BELONG HERE: outbound mail. The `mail_*` settings are SYSTEM
+# config (config.php), not oc_appconfig, and the official image already ships
+# config/smtp.config.php, which builds the whole block from SMTP_* / MAIL_* env —
+# wired declaratively in gitops/apps/overlays/dev/nextcloud.yaml. Adding an
+# `occ config:system:set mail_smtppassword` here would be strictly worse: it puts the
+# sender key in argv and then in plaintext inside config.php on a Velero-backed PVC,
+# and converges 15 minutes slower than a file the server reads on every request.
+#
+# WHY kubectl exec instead of its own pod: occ must run against the SAME
+# /var/www/html the server uses, and that PVC is ReadWriteOnce — a second pod
+# mounting it is a scheduling trap. Exec into the running container is the
+# supported path (`docker exec -u www-data` in upstream docs).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nextcloud-occ
+---
+# Narrow by construction: exec into pods of THIS namespace, nothing else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nextcloud-occ
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  # The talk-channels ConfigMap (channel name -> Talk room token). Split in two
+  # deliberately: k8s RBAC CANNOT scope `create` with resourceNames (the object
+  # does not exist yet, so the authorizer has no name to match), so create is
+  # granted on configmaps in THIS namespace only, while every other verb is
+  # pinned to the single object. The job can therefore never read or rewrite any
+  # other ConfigMap here (nextcloud's own config included).
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["talk-channels"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nextcloud-occ
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nextcloud-occ
+subjects:
+  - kind: ServiceAccount
+    name: nextcloud-occ
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-occ-reconcile
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: { app: nextcloud-occ-reconcile }
+          annotations:
+            # Secrets arrive as env vars below and are read once per run — a run is
+            # short-lived, but the annotation keeps the workload policy-visible.
+            reloader.stakater.com/auto: "true"
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: nextcloud-occ
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            # An emptyDir is created root-owned; without an fsGroup the 65534 user
+            # cannot write the curl config/response files the Talk reconcile needs
+            # (the root filesystem is read-only by policy).
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          containers:
+            - name: occ
+              # alpine/k8s, NOT rancher/kubectl: the rancher image ships the kubectl
+              # binary with NO shell, so the container died at startup with
+              # `exec: "/bin/sh": stat /bin/sh: no such file or directory` and this
+              # script never ran. Same image + tag as the health-digest CronJob in
+              # pieces/db-backup, which needs the same sh+kubectl combination.
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              env:
+                - name: OIDC_CLIENT_ID
+                  valueFrom: { secretKeyRef: { name: nextcloud-oidc, key: client-id } }
+                - name: OIDC_CLIENT_SECRET
+                  valueFrom: { secretKeyRef: { name: nextcloud-oidc, key: client-secret } }
+                - name: SIGNALING_SECRET
+                  valueFrom: { secretKeyRef: { name: talk-secrets, key: signaling-secret } }
+                - name: TURN_SECRET
+                  valueFrom: { secretKeyRef: { name: talk-secrets, key: turn-secret } }
+                # ENV-SPECIFIC hostnames. Kept as env (not baked into the script) so
+                # a prod overlay patches these four values and nothing else.
+                - name: NC_DOMAIN
+                  value: cloud.WLDOMAIN
+                - name: AUTHENTIK_DOMAIN
+                  value: auth.WLDOMAIN
+                - name: SIGNALING_DOMAIN
+                  value: signaling.WLDOMAIN
+                - name: TURN_DOMAIN
+                  value: turn.WLDOMAIN
+                - name: OFFICE_DOMAIN
+                  value: office.WLDOMAIN
+                # ---- Talk notification channels ----------------------------
+                # The ONE bot secret the whole platform signs notifications with.
+                # The reconcile job CREATES the bot with exactly this value, so
+                # OpenBao is the source of truth and a rebuilt cluster comes back
+                # with a bot every existing caller can still post through.
+                - name: TALK_BOT_SECRET
+                  valueFrom: { secretKeyRef: { name: talk-bot, key: secret } }
+                # Talk has NO `occ talk:room:list` (verified on spreed 24.0.4 —
+                # the command simply does not exist), so rooms are enumerated over
+                # the OCS API as a participant. ncadmin is that participant: it is
+                # the ONLY Nextcloud account whose password the cluster holds.
+                - name: NC_ADMIN_USER
+                  valueFrom: { secretKeyRef: { name: nextcloud-admin, key: admin-username } }
+                - name: NC_ADMIN_PASS
+                  valueFrom: { secretKeyRef: { name: nextcloud-admin, key: admin-password } }
+                # In-cluster address for that OCS call. Deliberately NOT the public
+                # https URL: this keeps the request off the internet round-trip and
+                # out of any future edge middleware. The Host header still carries
+                # NC_DOMAIN because Nextcloud rejects untrusted_domain requests.
+                - name: NC_INTERNAL_URL
+                  value: http://nextcloud.nextcloud.svc:8080
+                # The seven channels. ONE space-separated list — adding another is
+                # a one-word edit here (plus its description in the script).
+                - name: TALK_CHANNELS
+                  value: "infra devops gitops security tasks tests secrets"
+                # Nextcloud group invited to every channel, so a human actually
+                # SEES the notifications. Provisioned by Authentik's OIDC group
+                # mapping — best-effort: on a fresh cluster nobody has logged in
+                # yet, so the group does not exist and the add is skipped, not fatal.
+                - name: TALK_CHANNEL_GROUP
+                  value: dept-platform
+                # Explicit roster, belt-and-braces with the group above. Space separated.
+                # A new teammate needs adding here only if they should be in the channels
+                # BEFORE their next OIDC login refreshes their group membership.
+                # Nextcloud's own admin group. This is NOT granted by Authentik: the
+                # OIDC claim carries app-*/dept-* entitlements, and Nextcloud's `admin`
+                # is a MAGIC LOCAL group name that no sane Authentik taxonomy should
+                # contain. So it is asserted here instead.
+                # Re-asserted on EVERY reconcile on purpose: user_oidc runs with
+                # --group-provisioning=1, which re-syncs a user's groups from the claim
+                # at each login and can drop membership the claim does not mention. A
+                # one-off `occ group:adduser` would therefore silently evaporate the
+                # next time someone logged in. Fifteen minutes is the worst-case window
+                # in which admin comes back by itself.
+                # The three lists are the ESTATE's people, so SEB ships them empty: the
+                # estate sets them in its nextcloud-platform component (a patch of this
+                # CronJob's env). Empty: no admin asserted, no channel member added, no
+                # account deleted.
+                - name: NC_ADMINS
+                  value: ""
+                - name: TALK_CHANNEL_USERS
+                  value: ""
+                # Accounts this reconcile deletes, by exact name; a name also in
+                # NC_ADMINS stops it.
+                - name: NC_RETIRED_USERS
+                  value: ""
+                # Display name of the bot = the author shown on every message.
+                # Renaming it makes the reconcile create a SECOND bot (lookup is
+                # by name) — see the RUNBOOK before changing.
+                - name: TALK_BOT_NAME
+                  value: Platform
+                # Where the name->token map is mirrored for callers OUTSIDE the
+                # cluster (GitHub Actions reads it through the github-ci OIDC
+                # role). In-cluster callers use the talk-channels ConfigMap.
+                - name: BAO_ADDR
+                  value: http://openbao.openbao.svc:8200
+                - name: BAO_ROLE
+                  value: nextcloud-occ
+                - name: CHANNELS_PATH
+                  value: platform/talk/channels
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+              volumeMounts:
+                # Scratch for curl config/response files — credentials travel in
+                # `-K` config files and request bodies, NEVER in argv (argv is
+                # readable by `ps` inside the container).
+                - name: work
+                  mountPath: /work
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+
+                  # The server pod. Not ready yet (first install, or a rollout) is a
+                  # NON-failure: the next run in 15 minutes picks it up. Failing here
+                  # would page for a condition that resolves itself.
+                  POD="$(kubectl get pod -l app.kubernetes.io/name=nextcloud \
+                          --field-selector=status.phase=Running \
+                          -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+                  if [ -z "$POD" ]; then
+                    echo "no running nextcloud pod yet — nothing to reconcile this run"
+                    exit 0
+                  fi
+                  echo "reconciling against pod $POD"
+
+                  # occ refuses to run as root ("Console has to be executed with the
+                  # user that owns config.php"), and kubectl exec cannot pick a user
+                  # — so drop to www-data inside the container.
+                  #
+                  # Each argument is single-quoted (with embedded quotes escaped)
+                  # before being handed to `su -c`, because that runs a SECOND shell
+                  # which re-parses the string. A naive "$*" would silently corrupt
+                  # exactly the two things that matter here: --scope="openid email
+                  # profile" would word-split into three arguments, and the JSON
+                  # --value payloads below would lose their double quotes and be
+                  # stored as invalid JSON — leaving Talk configured with garbage and
+                  # no error anywhere.
+                  occ() {
+                    cmd="php /var/www/html/occ"
+                    for a in "$@"; do
+                      esc=$(printf %s "$a" | sed "s/'/'\\\\''/g")
+                      cmd="$cmd '$esc'"
+                    done
+                    kubectl exec "$POD" -c nextcloud -- su -s /bin/sh www-data -c "$cmd"
+                  }
+
+                  # Still installing (or in maintenance) → same non-failure logic.
+                  # Spacing-tolerant: occ pretty-prints JSON on some versions.
+                  if ! occ status --output=json | grep -q '"installed": *true'; then
+                    echo "nextcloud not installed yet — retrying next run"
+                    exit 0
+                  fi
+
+                  # ---- apps -------------------------------------------------------
+                  # app:install errors when already present, so check first. These
+                  # five are the Teams-shaped surface: SSO, Office, chat/calls,
+                  # calendar, contacts.
+                  for app in user_oidc richdocuments spreed calendar contacts; do
+                    if occ app:list --output=json | grep -q "\"$app\""; then
+                      occ app:enable "$app" >/dev/null
+                    else
+                      occ app:install "$app"
+                    fi
+                  done
+
+                  # ---- SSO: the Authentik OIDC provider ---------------------------
+                  # user_oidc:provider is upsert-by-name — safe to re-run.
+                  # mapping-uid=preferred_username keeps usernames stable and human
+                  # readable; unique-uid=0 stops user_oidc hashing the sub into an
+                  # opaque uid, which would orphan every existing user's files if the
+                  # provider were ever recreated.
+                  # The survey app reports usage to nextcloud.com; nothing here may send data
+                  # out for no reason (owner, 2026-11-03).
+                  if [ "$(occ config:app:get survey_client enabled)" = "yes" ]; then
+                    occ app:disable survey_client >/dev/null
+                  fi
+
+                  occ user_oidc:provider Authentik \
+                    --clientid="$OIDC_CLIENT_ID" \
+                    --clientsecret="$OIDC_CLIENT_SECRET" \
+                    --discoveryuri="https://$AUTHENTIK_DOMAIN/application/o/nextcloud/.well-known/openid-configuration" \
+                    --scope="openid email profile" \
+                    --unique-uid=0 \
+                    --mapping-uid=preferred_username \
+                    --mapping-email=email \
+                    --mapping-display-name=name \
+                    --mapping-groups=groups \
+                    --group-provisioning=1 \
+                    --check-bearer=0 \
+                    --no-interaction
+
+                  # ---- Talk: signaling + TURN + STUN ------------------------------
+                  # Written with config:app:set rather than `talk:signaling:add`
+                  # because add APPENDS — re-running it every 15 minutes would grow
+                  # the server list forever. A full-value set is idempotent.
+                  occ config:app:set spreed signaling_servers --value="{\"servers\":[{\"server\":\"https://$SIGNALING_DOMAIN\",\"verify\":true}],\"secret\":\"$SIGNALING_SECRET\"}"
+                  occ config:app:set spreed turn_servers --value="[{\"server\":\"$TURN_DOMAIN:3478\",\"secret\":\"$TURN_SECRET\",\"protocols\":\"udp,tcp\"}]"
+                  occ config:app:set spreed stun_servers --value="[\"$TURN_DOMAIN:3478\"]"
+
+                  # ---- Office: point richdocuments at Collabora -------------------
+                  occ config:app:set richdocuments wopi_url --value="https://$OFFICE_DOMAIN"
+                  occ config:app:set richdocuments public_wopi_url --value="https://$OFFICE_DOMAIN"
+                  # WOPI callers are Collabora itself; the pod CIDR is the only hop.
+                  occ config:app:set richdocuments wopi_allowlist --value="10.42.0.0/16"
+
+                  # ---- Talk notification channels ---------------------------------------
+                  # Six conversations the platform posts into (infra, devops, gitops, security,
+                  # tasks, tests) plus ONE bot that may post into all of them.
+                  #
+                  # IDEMPOTENCY IS THE WHOLE PROBLEM HERE. Room tokens are random and assigned at
+                  # creation, and spreed 24.0.4 ships NO `occ talk:room:list` (verified: the
+                  # command does not exist; `occ list talk` shows create/add/update/delete only).
+                  # So "does channel X already exist?" is answered against Nextcloud's OWN
+                  # database over the OCS API as ncadmin — the account whose password the cluster
+                  # holds. That makes the DATABASE the source of truth: a lost ConfigMap, a wiped
+                  # OpenBao, or a restored backup can never make this job create a second "infra".
+                  # Any design that trusted a stored token map would.
+                  NCPW_FILE=/work/nc.curlrc
+                  umask 077
+                  trap 'rm -f /work/nc.curlrc /work/rooms.json /work/login.json /work/hdr.bao /work/resp /work/chan.tsv /work/patch.json' EXIT
+                  printf 'user = "%s:%s"\n' "$NC_ADMIN_USER" "$NC_ADMIN_PASS" > "$NCPW_FILE"
+
+                  # The credential goes in a curl CONFIG FILE (-K), never on the command line:
+                  # argv is world-readable via `ps` inside the container.
+                  ROOMS_CODE="$(curl -sS --max-time 20 -K "$NCPW_FILE" \
+                    -H "Host: $NC_DOMAIN" -H 'OCS-APIRequest: true' -H 'Accept: application/json' \
+                    -o /work/rooms.json -w '%{http_code}' \
+                    "$NC_INTERNAL_URL/ocs/v2.php/apps/spreed/api/v4/room" || echo 000)"
+                  if [ "$ROOMS_CODE" != 200 ]; then
+                    echo "FATAL room enumeration failed (HTTP $ROOMS_CODE) — cannot tell which channels exist, so NOTHING is created (a blind create would duplicate every room). Check the nextcloud-admin secret and that spreed is enabled."
+                    exit 1
+                  fi
+
+                  # ---- the bot ----------------------------------------------------------
+                  # Looked up BY NAME, created only when absent. An existing bot is NEVER
+                  # recreated and its secret is NEVER reset: Talk stores its own copy, so a
+                  # silent reset would 401 every caller still holding the old value with no
+                  # error anywhere. Rotating is a deliberate two-step (RUNBOOK): re-seed
+                  # OpenBao, then `occ talk:bot:uninstall <id>` and let this job recreate it.
+                  BOT_ID="$(occ talk:bot:list --output=json 2>/dev/null \
+                    | jq -r --arg n "$TALK_BOT_NAME" 'map(select(.name==$n))[0].id // empty')"
+                  if [ -z "$BOT_ID" ]; then
+                    echo "creating Talk bot '$TALK_BOT_NAME'"
+                    # The secret is streamed on STDIN and re-assembled inside the nextcloud
+                    # container, so it never appears in THIS pod's argv. occ has no stdin form
+                    # for --secret, so it is still one `php occ` argv INSIDE that container for
+                    # the length of a single command — unavoidable, and strictly smaller than
+                    # putting it on the kubectl command line here.
+                    BOT_NAME_Q=$(printf %s "$TALK_BOT_NAME" | sed "s/'/'\\\\''/g")
+                    printf '%s' "$TALK_BOT_SECRET" | kubectl exec -i "$POD" -c nextcloud -- \
+                      su -s /bin/sh www-data -c \
+                      "S=\$(cat); exec php /var/www/html/occ talk:bot:create '$BOT_NAME_Q' 'Platform notifications (infra, devops, gitops, security, tasks, tests, secrets). Managed by gitops/services/nextcloud/base/occ-reconcile.yaml.' --secret=\"\$S\""
+                    BOT_ID="$(occ talk:bot:list --output=json 2>/dev/null \
+                      | jq -r --arg n "$TALK_BOT_NAME" 'map(select(.name==$n))[0].id // empty')"
+                    [ -n "$BOT_ID" ] || { echo "FATAL bot '$TALK_BOT_NAME' still absent after create — is TALK_BOT_SECRET 40-128 chars? (occ rejects anything shorter/longer)"; exit 1; }
+                  fi
+                  echo "Talk bot '$TALK_BOT_NAME' is id $BOT_ID"
+
+                  # ---- the seven rooms --------------------------------------------------
+                  : > /work/chan.tsv
+                  printf 'base_url\thttps://%s\n' "$NC_DOMAIN" >> /work/chan.tsv
+                  for CH in $TALK_CHANNELS; do
+                    case "$CH" in
+                      infra)    DESC="Cluster and cloud infrastructure: health sweeps, node/storage/cert problems." ;;
+                      devops)   DESC="Builds, deploys and CI pipeline results." ;;
+                      gitops)   DESC="Argo CD sync, drift and reconciliation events." ;;
+                      security) DESC="Secret rotation, policy violations and access changes." ;;
+                      tasks)    DESC="Scheduled jobs and background work." ;;
+                      tests)    DESC="Test suites and quality gates." ;;
+                      # Distinct from #security ON PURPOSE. #security is a WARNING
+                      # channel (the secret-watcher posts there only when a tick finds
+                      # a problem). #secrets is a LEDGER: every write to OpenBao, with
+                      # the actor, the key NAMES and where the value lands. Values
+                      # never appear — OpenBao HMACs them before the audit entry is
+                      # written. Fed by gitops/platform/openbao/audit-notify.yaml.
+                      secrets)  DESC="Secret changes in OpenBao: who changed which key, and where it lands. Key names only, never values." ;;
+                      *)        DESC="Platform notifications." ;;
+                    esac
+                    # Match on the room's stored NAME (what we created it with), not displayName:
+                    # displayName is derived and, for some room types, is the participant's name.
+                    TOKEN="$(jq -r --arg n "$CH" '.ocs.data | map(select(.name==$n))[0].token // empty' /work/rooms.json)"
+                    if [ -z "$TOKEN" ]; then
+                      # --owner needs the user to ALSO be a participant, so --user names the same
+                      # account (a bare --owner=ncadmin fails "User 'ncadmin' is no participant").
+                      OUT="$(occ talk:room:create "$CH" --user="$NC_ADMIN_USER" --owner="$NC_ADMIN_USER" --description="$DESC")"
+                      TOKEN="$(printf '%s' "$OUT" | sed -n 's/^Room token: *//p' | tr -d '\r')"
+                      [ -n "$TOKEN" ] || { echo "FATAL could not parse a room token out of talk:room:create for '$CH': $OUT"; exit 1; }
+                      echo "created channel '$CH' ($TOKEN)"
+                    fi
+
+                    # Humans. talk:room:add is idempotent (re-adding an existing participant is a
+                    # no-op that still exits 0 — verified), so this runs every reconcile and picks
+                    # up anyone added to the group since. Non-fatal: on a fresh cluster nobody has
+                    # logged in through Authentik yet, so the group does not exist.
+                    if ! occ talk:room:add "$TOKEN" --group="$TALK_CHANNEL_GROUP" >/dev/null 2>&1; then
+                      echo "  note: group '$TALK_CHANNEL_GROUP' not addable to '$CH' yet (does it exist? it is OIDC-provisioned on first login)"
+                    fi
+
+                    # ALSO add each account by name. The group alone is NOT enough: Nextcloud
+                    # populates group membership from the OIDC claim AT LOGIN, so anyone who last
+                    # signed in before their Authentik groups were granted is missing from
+                    # dept-platform until they log in again (observed 2026-08-19: burcustobias was
+                    # in NO Nextcloud group while holding the full set in Authentik). Listing the
+                    # accounts explicitly makes membership correct immediately and stays correct;
+                    # the group line above keeps covering anyone added later.
+                    # Non-fatal per user: an account that has never logged in does not exist yet.
+                    for U in $TALK_CHANNEL_USERS; do
+                      if ! occ talk:room:add "$TOKEN" --user="$U" >/dev/null 2>&1; then
+                        echo "  note: user '$U' not addable to '$CH' yet (never logged in?)"
+                      fi
+                    done
+
+                    # (admin group is asserted once, after the channel loop)
+                    # The bot, per room. Guarded by the per-room bot list so setup runs ONCE.
+                    if ! occ talk:bot:list "$TOKEN" --output=json 2>/dev/null \
+                         | jq -e --argjson id "$BOT_ID" 'map(select(.id==$id)) | length > 0' >/dev/null; then
+                      # HARMLESS LOUD FAILURE AHEAD. talk:bot:setup succeeds ("Successfully set up
+                      # for conversation <token>") and then Talk tries to deliver a Join event to
+                      # the bot over its `responseonly://` pseudo-URL, which has no dialable
+                      # scheme by design. Guzzle logs a full stack trace ending in
+                      #   The scheme 'responseonly' is not supported.
+                      # That is EXPECTED for a response-only bot and is not a failure — do not
+                      # chase it. stderr is dropped so it cannot drown this job's log.
+                      occ talk:bot:setup "$BOT_ID" "$TOKEN" 2>/dev/null || {
+                        echo "FATAL talk:bot:setup failed for '$CH' ($TOKEN)"; exit 1; }
+                      echo "  bot $BOT_ID set up in '$CH'"
+                    fi
+                    printf '%s\t%s\n' "$CH" "$TOKEN" >> /work/chan.tsv
+                  done
+
+                  # ---- publish the name -> token map ------------------------------------
+                  # Tokens are random, so every caller needs a lookup. Two projections of the SAME
+                  # truth (the rooms just enumerated), regenerated each run — neither is
+                  # authoritative, so neither can go stale in a way that matters:
+                  #
+                  #  1. ConfigMap `talk-channels` in THIS namespace, for in-cluster callers. It is
+                  #     deliberately NOT declared in git: Argo self-heals, so a checked-in
+                  #     ConfigMap would have its job-written tokens reverted to the committed
+                  #     (empty) content on every sync. Argo also never prunes what it does not own.
+                  #  2. OpenBao `secret/platform/talk/channels`, for callers OUTSIDE the cluster.
+                  #     GitHub Actions cannot read a ConfigMap, but it already reaches OpenBao
+                  #     through the github-ci OIDC role for the bot secret — so the token comes
+                  #     from the same vault-action pull, no new mechanism.
+                  set -- --from-literal=base-url="https://$NC_DOMAIN"
+                  while IFS="$(printf '\t')" read -r K V; do
+                    [ "$K" = base_url ] && continue
+                    set -- "$@" --from-literal="channel-$K=$V"
+                  done < /work/chan.tsv
+                  kubectl create configmap talk-channels "$@" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+                  echo "published ConfigMap talk-channels"
+
+                  # OpenBao mirror. COMPARE BEFORE WRITE, always: KV v2 bumps current_version on
+                  # every write even when the value is identical, and the secret-watcher reacts to
+                  # version bumps — a blind put here would make it force-sync this path every 15
+                  # minutes forever.
+                  DESIRED="$(jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add' < /work/chan.tsv)"
+                  { printf '{"role":"%s","jwt":"' "$BAO_ROLE"; tr -d '\n' < /var/run/secrets/kubernetes.io/serviceaccount/token; printf '"}'; } > /work/login.json
+                  BC="$(curl -sS --max-time 20 -o /work/resp -w '%{http_code}' -X POST -d @/work/login.json "$BAO_ADDR/v1/auth/kubernetes/login" || echo 000)"
+                  if [ "$BC" != 200 ]; then
+                    echo "WARN OpenBao login failed (HTTP $BC, role=$BAO_ROLE) — the ConfigMap is published but the EXTERNAL (GitHub Actions) mirror at $CHANNELS_PATH was NOT refreshed this run. CI keeps whatever token map it last saw; doctor.sh FAILs if the two ever diverge. Is the role bound? see openbao-bootstrap.sh"
+                  else
+                    { printf 'X-Vault-Token: '; jq -r '.auth.client_token' /work/resp; } > /work/hdr.bao
+                    CC="$(curl -sS --max-time 20 -o /work/resp -w '%{http_code}' -H @/work/hdr.bao "$BAO_ADDR/v1/secret/data/$CHANNELS_PATH" || echo 000)"
+                    case "$CC" in
+                      200) CURRENT="$(jq -c '.data.data // {}' /work/resp)" ;;
+                      404) CURRENT='{}' ;;
+                      *)   CURRENT='' ;;
+                    esac
+                    if [ -z "$CURRENT" ]; then
+                      echo "WARN could not read $CHANNELS_PATH (HTTP $CC) — mirror NOT refreshed this run"
+                    elif [ "$(printf '%s' "$DESIRED" | jq -cS .)" = "$(printf '%s' "$CURRENT" | jq -cS .)" ]; then
+                      echo "OpenBao mirror $CHANNELS_PATH already current (no write — a no-op put would still bump current_version and wake the secret-watcher)"
+                    else
+                      jq -n --argjson d "$DESIRED" '{data:$d}' > /work/patch.json
+                      WC="$(curl -sS --max-time 20 -o /work/resp -w '%{http_code}' -X POST -H @/work/hdr.bao \
+                        -H 'Content-Type: application/json' -d @/work/patch.json "$BAO_ADDR/v1/secret/data/$CHANNELS_PATH" || echo 000)"
+                      case "$WC" in
+                        200|204) echo "OpenBao mirror $CHANNELS_PATH updated" ;;
+                        *) echo "WARN write of $CHANNELS_PATH failed (HTTP $WC) — external callers keep the previous map; retried next run" ;;
+                      esac
+                    fi
+                  fi
+
+                  # ---- Nextcloud admins -------------------------------------------
+                  # See the NC_ADMINS comment above for WHY this is re-asserted every
+                  # run rather than set once. group:adduser is idempotent (a user
+                  # already in the group exits 0), so this is a no-op in steady state.
+                  for U in $NC_RETIRED_USERS; do
+                    case " $NC_ADMINS " in
+                      *" $U "*) echo "FATAL: '$U' is in both NC_ADMINS and NC_RETIRED_USERS" >&2; exit 1 ;;
+                    esac
+                    if occ user:info "$U" >/dev/null 2>&1; then
+                      occ user:delete "$U"
+                      echo "retired Nextcloud user '$U'"
+                    fi
+                  done
+                  # Non-fatal per user: an account that has never signed in does not
+                  # exist yet, which is normal on a fresh cluster.
+                  for U in $NC_ADMINS; do
+                    if occ group:adduser admin "$U" >/dev/null 2>&1; then
+                      echo "  admin: $U"
+                    else
+                      echo "  note: '$U' not addable to admin (never logged in?)"
+                    fi
+                  done
+
+                  echo "reconcile OK"

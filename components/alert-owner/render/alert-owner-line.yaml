@@ -1,0 +1,9 @@
+# Scratch value for kustomization.yaml: the patch segment that carries the domain. Never rendered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-owner-line
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  SEGMENT: "owner\n  path: /metadata/annotations/alerts.WLDOMAIN"

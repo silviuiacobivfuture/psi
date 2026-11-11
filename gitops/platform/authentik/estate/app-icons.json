@@ -1,0 +1,126 @@
+{
+	"$comment": "The tile icon of every application in Authentik's 'Aplicațiile mele', by application slug. Served from the authentik-estate ConfigMap at /static/dist/assets/recomex/<file> and named by meta_icon in the blueprints. 'estate' files are GENERATED from @rmx/ui (packages/rmx-ui/scripts/authentik-assets.mjs and authentik-tiles.mjs): an application's own mark, or for the hub (mark 'estate') the six marks three by two. 'vendored' files are the project's official logo, byte for byte as published at 'source' (sha256 recorded). 'derived' files are cut from the official artwork at 'source', as 'derivation' says. Every third-party logo is its owner's trademark, shown only to identify that owner's software. Never hot-link: a logo on somebody else's host breaks the day they move it (the Novu tile, 2026-10-29). Held to these rules by packages/rmx-ui/src/__tests__/authentik-app-icons.test.ts.",
+	"argocd": {
+		"file": "app-argocd.svg",
+		"kind": "vendored",
+		"mark": "Argo",
+		"source": "https://github.com/cncf/artwork/blob/main/projects/argo/icon/color/argo-icon-color.svg",
+		"licence": "Linux Foundation trademark usage guidelines (cncf/artwork LICENSE.md)",
+		"sha256": "e926e477a7912364ea2f582f9cb08b04c3adf92a7b67c39693095960ed50b46a"
+	},
+	"autorizare-hub": {
+		"file": "app-autorizare-hub.svg",
+		"kind": "estate",
+		"mark": "estate"
+	},
+	"browseruse-webui": {
+		"file": "app-browseruse-webui.svg",
+		"kind": "derived",
+		"mark": "Browser Use",
+		"source": "https://docs.browser-use.com (logo/light.svg, the docs site's wordmark)",
+		"licence": "MIT (browser-use/web-ui, browser-use/browser-use); the mark is Browser Use's trademark",
+		"sha256": "d6de051064eea8cdbe948b15082a552ec5ac319fed8e9cb92a7b8bfc001b9c5c",
+		"derivation": "The wordmark's first path (the symbol, unchanged, #141414) kept alone and centred on a white rounded tile, so the dark symbol reads on the library's dark tiles. The project publishes no symbol-only SVG; sha256 is that of the wordmark."
+	},
+	"harbor": {
+		"file": "app-harbor.svg",
+		"kind": "vendored",
+		"mark": "Harbor",
+		"source": "https://github.com/cncf/artwork/blob/main/projects/harbor/icon/color/harbor-icon-color.svg",
+		"licence": "Linux Foundation trademark usage guidelines (cncf/artwork LICENSE.md)",
+		"sha256": "874d9348f306fddadc620f3029ab62545ac1054c53f7acf41e4b862a123d8391"
+	},
+	"headlamp": {
+		"file": "app-headlamp.svg",
+		"kind": "vendored",
+		"mark": "Headlamp",
+		"source": "https://github.com/kubernetes-sigs/headlamp/blob/main/frontend/src/resources/icon-light.svg",
+		"licence": "Apache-2.0 (kubernetes-sigs/headlamp); Linux Foundation trademark usage guidelines",
+		"sha256": "b38c906874ff58da665aa04abb62bb36a1ef14f8a28edd3e3bc4cdd125e6e681"
+	},
+	"headplane": {
+		"file": "app-headplane.svg",
+		"kind": "vendored",
+		"mark": "Headplane",
+		"source": "https://github.com/tale/headplane/blob/main/public/favicon.svg",
+		"licence": "MIT (tale/headplane); the mark is its project's",
+		"sha256": "d671f3b8a914d3ba4727d1b96b7c86161f014222c49cb1aeba42bec0863a28ae"
+	},
+	"hub": {
+		"file": "app-hub.svg",
+		"kind": "vendored",
+		"mark": "Homepage (gethomepage), the System Hub's software",
+		"source": "https://github.com/selfhst/icons/blob/main/svg/homepage.svg",
+		"licence": "CC-BY-4.0 (selfhst/icons); the mark is gethomepage's (GPL-3.0 project), whose own repository publishes it as PNG and a monochrome pinned-tab SVG only (searched 2026-10-29)",
+		"sha256": "71f408db7c4da52c670895cd3173f4ba3ab554a091a2616324becf7dd05a7c5d"
+	},
+	"n8n": {
+		"file": "app-n8n.svg",
+		"kind": "vendored",
+		"mark": "n8n",
+		"source": "https://github.com/n8n-io/n8n/blob/n8n%402.46.4/packages/frontend/%40n8n/design-system/src/components/N8nIcon/nodes/n8n.svg",
+		"licence": "Sustainable Use License (n8n-io/n8n); the project's own mark, pinned to the tag in the source URL (vendored 2026-11-03)",
+		"sha256": "30c9c3805971765a8d3b30e1ba488d957f18c86d623296c3482a36213bf44646"
+	},
+	"netdata": {
+		"file": "app-netdata.svg",
+		"kind": "vendored",
+		"mark": "Netdata",
+		"source": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/netdata.svg",
+		"licence": "Apache-2.0 (homarr-labs/dashboard-icons); the mark is Netdata's (GPL-3.0 project), whose repository was searched for an SVG of it and has none (2026-10-29)",
+		"sha256": "b3a1f13373a691cde24d3b79c39a9b37cb83d1fec10d9798d16a1e879af98955"
+	},
+	"nextcloud": {
+		"file": "app-nextcloud.svg",
+		"kind": "vendored",
+		"mark": "Nextcloud",
+		"source": "https://github.com/nextcloud/server/blob/master/core/img/favicon.svg",
+		"licence": "AGPL-3.0 (nextcloud/server); the mark is Nextcloud GmbH's trademark",
+		"sha256": "8eeb3144ce5e71ce14594ae246a70298bbd3439569c62035682c8757d7ea9ed8"
+	},
+	"novu": {
+		"file": "app-novu.svg",
+		"kind": "vendored",
+		"mark": "Novu",
+		"source": "https://github.com/novuhq/novu/blob/next/apps/dashboard/public/images/novu.svg",
+		"licence": "MIT (novuhq/novu LICENSE-MIT); the mark is Novu's trademark",
+		"sha256": "6757db630d967d92c2f2dd56740afc310a5ef570fc41549985f54615faa4d52f"
+	},
+	"openbao": {
+		"file": "app-openbao.svg",
+		"kind": "vendored",
+		"mark": "OpenBao",
+		"source": "https://github.com/openbao/openbao/blob/main/ui/public/openbao-single.svg",
+		"licence": "MPL-2.0 (openbao/openbao); Linux Foundation trademark usage guidelines",
+		"sha256": "568beacc62f6835151447b76a9d7feface3f39b3b9af639c09998e4f384bf741"
+	},
+	"pdfcraft": {
+		"file": "app-pdfcraft.svg",
+		"kind": "vendored",
+		"mark": "PDFCraft, the software behind PDF Studio (pdf.<apex>), as its own browser tab shows it",
+		"source": "https://github.com/PDFCraftTool/pdfcraft/blob/main/public/favicon.svg",
+		"licence": "AGPL-3.0 (PDFCraftTool/pdfcraft)",
+		"sha256": "7139e931e73bb582283cbbffbb10349ceb7ed4968d0882d8c7359fcf43572807"
+	},
+	"plane": {
+		"file": "app-plane.svg",
+		"kind": "vendored",
+		"mark": "Plane",
+		"source": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/plane.svg",
+		"licence": "Apache-2.0 (homarr-labs/dashboard-icons); the mark is Plane's (AGPL-3.0 project), whose repository was searched for an SVG of it and has none (2026-10-29)",
+		"sha256": "985e5ecddc3d0506f1d9c6ed71299420ce29d77e5afcfa112c6f06e3e6080248"
+	},
+	"plunk": {
+		"file": "app-plunk.svg",
+		"kind": "vendored",
+		"mark": "Plunk",
+		"source": "https://github.com/useplunk/plunk/blob/627f7e9cf3ed71ce7a6b2bab7bebf6ce1a2941e3/apps/web/public/favicon/favicon.svg",
+		"licence": "AGPL-3.0 (useplunk/plunk); the project's own favicon, pinned to the commit in the source URL (vendored 2026-10-29)",
+		"sha256": "6947c9521ebcff97313f73fb544ed3a544354178dc3b4bccd5b22be44ed18a1e"
+	},
+	"polaris": {
+		"file": "app-polaris.svg",
+		"kind": "estate",
+		"mark": "polaris"
+	}
+}

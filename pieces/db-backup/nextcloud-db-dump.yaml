@@ -1,0 +1,121 @@
+# Nextcloud Postgres logical backup — 6-hourly `pg_dump` → Hetzner Object Storage.
+# Same rationale and shape as authentik-db-dump.yaml / harbor-db-dump.yaml, and the
+# SECOND of Nextcloud's two DB backup layers:
+#   - CNPG's barman WAL archive (pieces/nextcloud-platform/base/cnpg-cluster.yaml) gives
+#     PITR with minutes of RPO, but restoring it needs the CNPG operator and a
+#     matching Postgres major version.
+#   - THIS gives a plain .sql.gz that restores anywhere with psql, including into a
+#     managed Postgres if the platform ever moves off in-cluster databases.
+# Losing Nextcloud's DB = losing every share, group folder, Talk conversation and
+# calendar entry — the files in S3 would still be there but would be unreachable
+# rubble (object keys are urn:oid:<row id> from this database).
+#
+# Runs IN the nextcloud namespace to read the ESO-synced app-role password
+# (nextcloud-db-app), and connects to the CNPG read/write Service, which always
+# points at the current primary. Image is postgres:17-alpine because the CNPG
+# cluster runs PG 17 (pg_dump must be >= the server version).
+# Storage: s3://<BUCKET_PREFIX>-tfstate-<env>/db-dumps/nextcloud/.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-db-dump
+  namespace: nextcloud
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # :05 — offset from velero(:00), harbor(:15), openbao(:30), authentik(:45) and
+  # the CNPG base backup (Sun 02:20) so no two backups contend for the node.
+  schedule: "5 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  # One failed run is kept for diagnosis, and every finished run is removed
+  # 12h (two schedule windows) after it ends: a failure from days ago left
+  # db-backup Degraded long after the next runs completed, masking whatever
+  # failed next. Freshness is doctor.sh's to judge ("logical DB dumps"): it
+  # fails when a CronJob has not COMPLETED within its window.
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: { app: nextcloud-db-dump }
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            fsGroup: 70
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+          initContainers:
+            - name: dump
+              image: WLREGISTRY/mirror/docker.io/library/postgres:17-alpine@sha256:e4cb93687b062cd25a0e8f672d85a7708235009d70d31f8a7698d9370092a9c4
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              env:
+                # The `nextcloud` role owns the `nextcloud` database, so a single-DB
+                # dump as the owner needs no superuser (same call as authentik's).
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: nextcloud-db-app, key: password } }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: "1", memory: 512Mi }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  echo "pg_dump nextcloud (db=nextcloud, user=nextcloud) → /work/nextcloud.sql.gz"
+                  pg_dump -h nextcloud-db-rw -p 5432 -U nextcloud -d nextcloud | gzip -c > /work/nextcloud.sql.gz
+                  ls -l /work/nextcloud.sql.gz
+                  sz=$(wc -c < /work/nextcloud.sql.gz); [ "$sz" -gt 1000 ] || { echo "FATAL: nextcloud dump too small ($sz bytes) — connection/auth failed" >&2; exit 1; }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          containers:
+            - name: upload
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: nextcloud-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: nextcloud-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: db-dumps/nextcloud }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT=/work/nextcloud.sql.gz
+                  test -s "$OUT" || { echo "FATAL: dump missing/empty (initContainer failed)" >&2; exit 1; }
+                  export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+                  export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+                  KEY="${PREFIX}/nextcloud-${TS}.sql.gz"
+                  echo "Uploading → s3://${BUCKET}/${KEY}"
+                  aws s3 cp "$OUT" "s3://${BUCKET}/${KEY}" --endpoint-url "$AWS_ENDPOINT_URL"
+                  echo "DB dump uploaded: s3://${BUCKET}/${KEY}"
+                  KEEP=20
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | awk '{print $4}' | grep -E '^nextcloud-.*\.sql\.gz$' | sort -r | tail -n +$((KEEP + 1)) \
+                    | while read -r f; do aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}" --endpoint-url "$AWS_ENDPOINT_URL"; done || true

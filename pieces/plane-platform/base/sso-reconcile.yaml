@@ -1,0 +1,163 @@
+# Plane access follows Authentik groups — the periodic half (apps/plane-sso).
+#
+# Every SSO login already re-syncs THAT person's roles. This job covers everyone
+# else: someone removed from every Plane group in Authentik loses their workspace
+# membership within 15 minutes even if they never sign in again — Plane's own
+# soft way (is_active=false on the member and their project memberships; never a
+# deletion). Re-adding them reactivates on the next run. Rules and limits:
+# apps/plane-sso/mapping.yaml; the code: apps/plane-sso/plane_sso/reconcile.py.
+#
+# HOW: the smtp-reconcile pattern (smtp-reconcile.yaml, read its header). The job
+# execs into the RUNNING api pod and runs Plane's own `manage.py` — so it always
+# runs exactly the code the api serves, and there is no second image reference to
+# keep in step on an upgrade. If the api ever runs an image WITHOUT plane_sso
+# (a rollback to upstream), the command is unknown and the job FAILS — loud.
+#
+# SAFETY (all in reconcile.py): plan everything, then write; abort writing nothing
+# when Authentik cannot be read or lists nobody mapped, when more than
+# policy.max_deactivations_per_run memberships would go, or when a workspace
+# would be left without an Admin. Abort = non-zero exit = failed Job = alert.
+#
+# SECRET HANDLING: the directory token reaches this pod as env from the
+# plane-sso-directory Secret (the api pods never hold it), is base64'd into a
+# prelude and travels over STDIN — never argv, never disk.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: plane-sso-reconcile
+---
+# Exec into pods of THIS namespace and nothing else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: plane-sso-reconcile
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: plane-sso-reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: plane-sso-reconcile
+subjects:
+  - kind: ServiceAccount
+    name: plane-sso-reconcile
+---
+# The read-only directory token, minted by
+# gitops/platform/authentik/plane-sso-token-reconcile.yaml into
+# secret/platform/authentik/plane-sso-api-token. Declared per key so an empty slot
+# is SecretSyncedError, not a blank token. A CronJob reads the Secret fresh on
+# every run, so no Reloader annotation is needed (same note as plane-smtp).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-sso-directory
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: plane-sso-directory, creationPolicy: Owner }
+  data:
+    - secretKey: token
+      remoteRef: { key: platform/authentik/plane-sso-api-token, property: token }
+---
+# Python as a ConfigMap file, not a heredoc — the indentation reason is in
+# smtp-reconcile.yaml. Prelude from the CronJob: API, TOKEN_B64, MODE.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plane-sso-reconcile-script
+data:
+  reconcile.py: |
+    import base64
+    import os
+    import sys
+
+    from django.core.management import CommandError, call_command
+
+    os.environ["AUTHENTIK_API_URL"] = API  # noqa: F821 - from the prelude
+    os.environ["AUTHENTIK_API_TOKEN"] = base64.b64decode(TOKEN_B64).decode()  # noqa: F821
+    try:
+        call_command("plane_sso_reconcile", *(["--dry-run"] if MODE == "dry-run" else []))  # noqa: F821
+    except CommandError as e:
+        print(f"FATAL {e}", file=sys.stderr)
+        raise SystemExit(1)
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: plane-sso-reconcile
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  schedule: "4,19,34,49 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: plane-sso-reconcile }
+        spec:
+          restartPolicy: Never
+          serviceAccountName: plane-sso-reconcile
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: script
+              configMap: { name: plane-sso-reconcile-script }
+          containers:
+            - name: reconcile
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 20m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: script, mountPath: /script, readOnly: true }
+              env:
+                - name: AUTHENTIK_API_TOKEN
+                  valueFrom: { secretKeyRef: { name: plane-sso-directory, key: token } }
+                # In-cluster, never the public host.
+                - name: AUTHENTIK_API_URL
+                  value: http://authentik-server.authentik.svc.cluster.local:80
+                # "apply" for the CronJob; a one-off `--from` copy may set dry-run
+                # to print the data report without writing (verify-live.sh does).
+                - name: MODE
+                  value: apply
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  [ -n "${AUTHENTIK_API_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN (plane-sso-directory)" >&2; exit 1; }
+                  POD="$(kubectl get pod -l app.name=plane-plane-api --field-selector=status.phase=Running \
+                          -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+                  if [ -z "$POD" ]; then
+                    echo "no running plane-api pod yet — nothing to reconcile this run"
+                    exit 0
+                  fi
+                  echo "reconciling against pod $POD (mode $MODE)"
+                  {
+                    printf 'API = "%s"\n' "$AUTHENTIK_API_URL"
+                    printf 'MODE = "%s"\n' "$MODE"
+                    printf 'TOKEN_B64 = "%s"\n' "$(printf '%s' "$AUTHENTIK_API_TOKEN" | base64 | tr -d '\n')"
+                    cat /script/reconcile.py
+                  } | kubectl exec -i "$POD" -c plane-api -- python manage.py shell

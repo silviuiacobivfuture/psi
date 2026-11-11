@@ -1,0 +1,81 @@
+# Disallow the `:latest` image tag (and untagged images, which resolve to latest).
+# An explicit, immutable tag makes deploys reproducible and rollbacks deterministic.
+# Mode: ENFORCE — live background scan 2026-06-17 showed 0 failing pods across all
+# app namespaces; every image already pins an explicit tag, so enforcing breaks nothing.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Image Tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Images must use an explicit, non-`latest` tag so deployments are
+      reproducible and rollbacks are deterministic.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: require-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+      validate:
+        message: "An explicit image tag is required (untagged images default to :latest)."
+        pattern:
+          spec:
+            containers:
+              - image: "*:*"
+    - name: disallow-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+      validate:
+        message: "Using the :latest image tag is not allowed; pin an explicit version."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

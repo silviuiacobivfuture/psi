@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: alert-owner
+target:
+  annotationSelector: alerts/owner
+patch: |-
+  - op: move
+    from: /metadata/annotations/alerts~1owner
+    path: /metadata/annotations/alerts.WLDOMAIN~1owner

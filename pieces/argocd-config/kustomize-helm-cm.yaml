@@ -1,0 +1,19 @@
+# Let kustomize sources inflate Helm charts (`helmCharts:`), merged INTO
+# argocd-cm like sync-drift-cm.yaml.
+#
+# WHY: the `plane` app renders the plane-ce chart through kustomize so ONE object
+# can be patched — its migrator Job becomes a PreSync hook
+# (gitops/services/plane/chart/kustomization.yaml). A bare Helm source cannot
+# patch a rendered object.
+#
+# SCOPE: this flag only ADDS the ability to use `helmCharts:`. A kustomization
+# without one renders byte-identically with or without it, so no existing
+# kustomize app changes. Checked 2026-10-28 against the repo-server's own
+# kustomize v5.8.1 and helm v3.19.4.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  kustomize.buildOptions: --enable-helm

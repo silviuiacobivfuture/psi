@@ -1,0 +1,86 @@
+# openbao-audit-notify RBAC — least privilege for the audit reporter.
+#
+# It needs exactly three things, and each one is scoped to the narrowest object
+# that answers the question it is asked:
+#
+#   1. `pods/log` on ONE pod — openbao-0 — to follow the audit stream. Namespaced
+#      Role, not a ClusterRole, and pinned with resourceNames: the pod is the
+#      ordinal-0 member of a StatefulSet, so its name is stable and there is no
+#      reason for this identity to be able to read any other pod's logs.
+#      NOTE, stated plainly because it is the real privilege here: openbao-0's log
+#      is a HIGH-VALUE stream. It carries every request path and actor. It does NOT
+#      carry secret values — OpenBao HMACs them before writing the entry (verified
+#      against 2.5.4, 2026-08-20) — but path + actor is still an inventory of the
+#      secret store, so this grant is deliberately one pod wide and read-only.
+#   2. `get`/`list` on ExternalSecrets — the cluster's own declaration of which
+#      OpenBao path feeds which k8s Secret, in which namespace. NO `patch`: unlike
+#      the secret-watcher, this component only REPORTS. It never force-syncs.
+#   3. `get`/`list` on Deployments/StatefulSets/DaemonSets — to name the SERVICE a
+#      changed secret actually reaches.
+#
+# It has NO access to `secrets`, in any namespace, with any verb — same rule as the
+# secret-watcher (infrastructure/hetzner/CLAUDE.md: "The watcher must never gain
+# read access to secret VALUES"). Widening any of this is a security regression, not
+# a convenience.
+#
+# Namespace is set explicitly on every namespaced object: the `openbao-store` Argo
+# Application's destination namespace is `external-secrets`.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openbao-audit-notify
+  namespace: openbao
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openbao-audit-notify
+  namespace: openbao
+rules:
+  # The audit stream itself. `pods` get is required alongside `pods/log` because the
+  # apiserver authorises the subresource against the parent resource name.
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get"]
+    resourceNames: ["openbao-0"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openbao-audit-notify
+  namespace: openbao
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: openbao-audit-notify
+subjects:
+  - kind: ServiceAccount
+    name: openbao-audit-notify
+    namespace: openbao
+---
+# Cluster-scoped because ExternalSecrets and workloads live in every namespace, and
+# the whole point of the message is to name the namespace a change lands in.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openbao-audit-notify
+rules:
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openbao-audit-notify
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openbao-audit-notify
+subjects:
+  - kind: ServiceAccount
+    name: openbao-audit-notify
+    namespace: openbao

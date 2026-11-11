@@ -1,0 +1,20 @@
+# Used by the piece under `transformers:`: renames the alert-owner MAP KEYS inside two
+# policies' specs (a kustomize replacement writes values, never keys). Same shape as
+# components/alert-owner, which does this for an object's own annotation: render/ emits the
+# PatchTransformers with the estate's domain composed in, and this level deletes the value
+# ConfigMaps render/ needed (a transformers directory must emit transformer configs only).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - render
+patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: whitelabel }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: alert-owner-key }

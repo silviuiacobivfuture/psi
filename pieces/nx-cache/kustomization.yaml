@@ -1,0 +1,41 @@
+# SEB piece `nx-cache`: the Nx self-hosted remote cache (apps/nx-cache-svc), read and written by
+# the estate's CI runners inside the cluster. No ingress, by design (base/kustomization.yaml).
+# Stateless: every cached artifact lives in the estate's bucket <BUCKET_PREFIX>-nx-cache-dev,
+# whose lifecycle rule evicts old entries. Delivered in the SEB bundle, rendered at build time
+# (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity (the whitelabel component): the registry, the
+# object storage endpoint and bucket prefix, the alert owner. What is the estate's own and not a
+# setting comes from its layer, ../../components/estate/nx-cache: the image TAG. The estate builds
+# the image; its CI writes the tag there and into the piece's Argo CD Application
+# (spec.source.kustomize.images), so a build deploys without a new bundle. The base names
+# `:REPLACE_ME`, which makes the bundle ship the piece as a kustomization (estateImages).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: nx-cache
+resources:
+  - base
+components:
+  - ../../components/whitelabel
+  - ../../components/estate/nx-cache
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The object store the cache writes to: the estate's endpoint, and its bucket
+  # <BUCKET_PREFIX>-nx-cache-dev (a bucket of its own: the bucket boundary is the isolation).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: ExternalSecret, name: nx-cache-secrets }
+        fieldPaths: [spec.target.template.data.NX_CACHE_S3_ENDPOINT]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ExternalSecret, name: nx-cache-secrets }
+        fieldPaths: [spec.target.template.data.NX_CACHE_S3_BUCKET]
+        options: { delimiter: "-", index: 0 }
+  # Who is paged: the estate's operations address (the key is moved to
+  # alerts.<ESTATE_LABEL_DOMAIN>/owner by ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+transformers:
+  - ../../components/alert-owner

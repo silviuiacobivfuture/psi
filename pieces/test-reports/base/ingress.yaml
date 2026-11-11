@@ -1,0 +1,126 @@
+# ================================ THE AUTH SPLIT ==============================
+# TWO Ingress objects on ONE host, and the split is the single most important
+# decision in this service. Read this before adding a path to either.
+#
+#   tests.WLDOMAIN/            -> GATED by Authentik forward-auth (browser)
+#   tests.WLDOMAIN/ingest/...  -> UNGATED, bearer-token auth   (machine)
+#   tests.WLDOMAIN/healthz     -> UNGATED, no auth            (probe/doctor)
+#
+# WHY, stated plainly because getting this wrong has already cost this platform
+# hours: a forward-auth gate answers an UNAUTHENTICATED request with a 302 to
+# auth.WLDOMAIN. A browser NAVIGATING to a page follows that redirect
+# normally, which is why it is the right gate for the UI. A machine caller cannot
+# follow it (curl gets a redirect to an HTML login form, not a 401), and a
+# browser fetch() can neither follow nor read a cross-origin redirect. On
+# 2026-08-19 that exact mistake put the gate in front of Plane's /api and broke the
+# app outright while the backend was perfectly healthy — see
+# gitops/services/plane/base/ingress.yaml, and the same reasoning in
+# pieces/nextcloud-platform/base/talk-webhook.yaml.
+#
+# So: a new BROWSER route goes on the gated Ingress. A new MACHINE route goes on
+# the ungated one and authenticates itself with the bearer. Never both.
+#
+# HOW TO VERIFY THE GATE IS NOT IN FRONT OF INGEST (do this after any edit):
+#   kubectl -n test-reports get ingress test-reports-ingest \
+#     -o jsonpath='{.metadata.annotations}' | grep -c forwardauth   # must be 0
+#   curl -s -o /dev/null -w '%{http_code}' https://tests.WLDOMAIN/healthz
+#     # must be 200, NOT 302
+#   curl -s -o /dev/null -w '%{http_code}' -X POST \
+#     https://tests.WLDOMAIN/ingest/<app>                     # must be 401
+# A 302 on either of the last two means the gate has crept onto the wrong object.
+#
+# SECURITY POSTURE OF THE UNGATED PATHS
+#   /ingest — write-only, and every write is checked against a 48-char shared
+#     bearer sent as X-Report-Token (header only; unlike talk-webhook there is no
+#     sender here that cannot set a header, so no ?token= form exists to leak into
+#     a proxy log). Worst case if it leaks: someone can store a bogus test report.
+#     It grants no read access to anything, and it is not reusable anywhere else.
+#   /healthz — returns counts and the age of the newest report. No rule text, no
+#     commit contents, nothing about the code. It is deliberately open so
+#     doctor.sh can read it without holding a credential, and so the check proves
+#     the ingress and the certificate at the same time.
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-reports
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # ---- SSO gate — BROWSER ENTRY POINTS ONLY -------------------------------
+    # Same middleware Plane uses. It is namespaced as "<ns>-<name>@kubernetescrd"
+    # (gitops/platform/authentik/middleware-forwardauth.yaml) and its provider is
+    # cookie-scoped to dev.WLDOMAIN, so tests.WLDOMAIN is inside that scope
+    # with no Authentik blueprint change. The provider carries no policy binding:
+    # ANY authenticated Authentik user passes, which is the intent — this page is
+    # for the whole team plus the business side, not a subset.
+    #
+    # The user's stated rule: the tailnet is for INFRA tools. This is not an infra
+    # tool, it is the page you send to someone who wants to know whether the app
+    # still behaves, so it is public + SSO rather than tailnet-only.
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Business rules"
+    gethomepage.dev/description: "Which rules each application keeps, checked automatically"
+    gethomepage.dev/group: "Delivery"
+    gethomepage.dev/icon: "mdi-clipboard-check-multiple"
+    gethomepage.dev/href: "https://tests.WLDOMAIN"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=test-reports"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: tests.WLDOMAIN
+      http:
+        paths:
+          # Catch-all: the living-documentation page and the per-run views.
+          # /ingest and /healthz are NOT here — see the UNGATED object below.
+          # Traefik's Ingress provider orders routers by rule LENGTH, so the two
+          # specific prefixes below always win over this catch-all regardless of
+          # the order the objects are created in.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: test-reports
+                port: { name: http }
+  tls:
+    - secretName: test-reports-tls
+      hosts:
+        - tests.WLDOMAIN
+---
+# UNGATED Ingress — the MACHINE surface. Same host, deliberately NO forward-auth.
+# Adding the middleware annotation here would break CI ingest on the next run, and
+# it would break it SILENTLY (the step is continue-on-error), so the page would
+# simply stop updating with nothing anywhere reporting an error. That is the exact
+# failure mode this whole service exists to prevent.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-reports-ingest
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # NO router.middlewares key. Intentional. See the header.
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: tests.WLDOMAIN
+      http:
+        paths:
+          - path: /ingest
+            pathType: Prefix
+            backend:
+              service:
+                name: test-reports
+                port: { name: http }
+          - path: /healthz
+            pathType: Prefix
+            backend:
+              service:
+                name: test-reports
+                port: { name: http }
+  tls:
+    - secretName: test-reports-tls
+      hosts:
+        - tests.WLDOMAIN

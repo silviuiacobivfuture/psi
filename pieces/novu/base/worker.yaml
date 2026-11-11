@@ -1,0 +1,95 @@
+# Novu worker — drains the BullMQ queues in novu-redis: executes workflow steps,
+# and for code-first workflows CALLS THE ESTATE'S BRIDGE (bridge.yaml,
+# http://novu-bridge.novu.svc.cluster.local:8080/api/novu) to render step content.
+#
+# BRIDGE REACHABILITY: Novu's outbound HTTP is SSRF-guarded
+# (@novu/application-generic utils/ssrf-url-validation.js `resolvePublicAddresses`
+# @ v3.19.0): private, loopback and link-local addresses are refused UNLESS the
+# hostname is in NOVU_SAFE_OUTBOUND_ALLOW (@novu/shared outbound-ssrf-allow-list;
+# link-local is refused even then). config.yaml allows exactly the bridge's
+# Service name — read in this image, 2026-10-29. (An earlier note here said
+# there was no override; the allow-list exists in 3.19.0.)
+#
+# Version pin + evidence: see api.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-worker
+  labels: { app.kubernetes.io/name: novu-worker }
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-worker }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-worker }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: novu-app }
+          command:
+            - sh
+            - -c
+            - '[ -n "${STORE_ENCRYPTION_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: STORE_ENCRYPTION_KEY" >&2; exit 1; }; [ "${#STORE_ENCRYPTION_KEY}" -eq 32 ] || { echo "INVALID SECRET: STORE_ENCRYPTION_KEY must be exactly 32 characters" >&2; exit 1; }; [ -n "${MONGO_URL:-}" ] || { echo "MISSING REQUIRED SECRET: MONGO_URL" >&2; exit 1; }; [ -n "${REDIS_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: REDIS_PASSWORD" >&2; exit 1; }; [ -n "${AWS_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_ACCESS_KEY_ID" >&2; exit 1; }; [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_SECRET_ACCESS_KEY" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: worker
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/worker:3.19.0@sha256:c7d6c808f0aee4543c8b3deacee0737763bdc1ef45345f569547178d8fa8ccc5
+          envFrom:
+            - configMapRef: { name: novu-config }
+            - secretRef: { name: novu-app }
+          env:
+            - { name: PORT, value: "3004" }
+            # The worker talks to the api IN-CLUSTER (the official compose uses
+            # http://api:<port>); overrides the public value from novu-config.
+            - { name: API_ROOT_URL, value: "http://novu-api.novu.svc.cluster.local:3000" }
+            - { name: NODE_OPTIONS, value: "--max-old-space-size=768" }
+          ports:
+            - { name: http, containerPort: 3004 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          startupProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 4
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}

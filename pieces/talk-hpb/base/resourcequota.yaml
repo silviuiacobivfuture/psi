@@ -1,0 +1,25 @@
+# Namespace guard-rails. The LimitRange MUST precede the ResourceQuota so any pod
+# that omits requests/limits gets defaults instead of being rejected. Sized for the
+# single HPB pod plus a Recreate rollout overlap.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: talk-hpb
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 100m, memory: 128Mi }
+      default: { cpu: "1", memory: 512Mi }
+      max: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: talk-hpb
+spec:
+  hard:
+    requests.cpu: 600m
+    requests.memory: 1Gi
+    limits.cpu: "4"
+    limits.memory: 3Gi
+    pods: "3"

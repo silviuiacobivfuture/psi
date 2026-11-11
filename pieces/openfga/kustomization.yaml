@@ -1,0 +1,140 @@
+# SEB piece `openfga`: the authorization DATA PLANE (OpenFGA plus the authzfilter sidecar,
+# its CNPG Postgres). Delivered in the SEB bundle, rendered at build time
+# (tools/bundle/build.mjs) with the estate's identity and the estate's own layer
+# (components/estate/openfga: the namespaces of the estate's applications that Check,
+# and the authzfilter image tag while CI still bumps it).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openfga
+resources:
+  - base
+  - pdb.yaml
+  - bucket.yaml
+
+# The image TAG is not here: the authzfilter sidecar is the autorizare-svc image running its
+# second entrypoint (decision D17: same image, same build, same CI), and its tag is set by the
+# estate's layer (components/estate/openfga) together with the autorizare piece's, so
+# the pair is bumped TOGETHER — a half-bumped pair runs a filter built from a different commit
+# than the service whose tests proved its allowlist.
+
+patches:
+  # ── Two replicas, never zero during a deploy (coordinator, 2026-10-23) ──────
+  #
+  # The authzfilter sidecar is autorizare-svc's image (D17), so its tag bumps
+  # with every autorizare deploy and OpenFGA restarted each time: with ONE
+  # replica, every autorizare deploy was a short authorization outage across the
+  # estate. Two replicas, spread across the two nodes when they can be, and a
+  # RollingUpdate that brings the new pod Ready before an old one goes
+  # (maxUnavailable 0). OpenFGA is stateless over its Postgres; the migrate
+  # initContainer runs in one new pod at a time (maxSurge 1) and is idempotent.
+  # Measured headroom, 2026-10-23: requests 97% of memory on both nodes leaves
+  # ~950 MiB each; one more pod requests ~210 MiB. The namespace quota's
+  # limits.cpu (4) cannot hold two pods' limits (2.1 each), so it is raised.
+  - target: { kind: Deployment, name: openfga }
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: add
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels: { app: openfga }
+  - target: { kind: ResourceQuota, name: openfga }
+    patch: |-
+      - op: replace
+        path: /spec/hard/limits.cpu
+        value: "6"
+  # ── Kubelet health probes through a default-deny policy ──────────────────────
+  #
+  # networkpolicy.yaml selects the openfga pods, which makes them default-deny:
+  # ONLY traffic a rule permits arrives. Kubelet probes are traffic too. Whether
+  # k3s's embedded controller (kube-router) exempts them is NOT something this
+  # change verified — it cannot be verified without applying the policy — so the
+  # rule is written rather than assumed. If the exemption exists, this rule is
+  # redundant and harmless; if it does not, its absence would take the pod
+  # NotReady minutes after the first sync, which reads as a broken image.
+  #
+  # It lives in the OVERLAY, not the base, because it names ADDRESSES and
+  # addresses are per-environment. Branch = environment: a base carrying dev's
+  # node IPs would be a dev fact compiled into the shape every environment
+  # inherits.
+  #
+  # THE FOUR ADDRESSES, read from the live dev cluster on 2026-09-02:
+  #   10.0.1.10/32   dev-k3s-cp        node InternalIP
+  #   10.0.1.1/32    dev-k3s-agent-0   node InternalIP
+  #   10.42.0.1/32   dev-k3s-cp        cni0 gateway — flannel SNATs a same-node
+  #   10.42.1.1/32   dev-k3s-agent-0   cni0 gateway   probe to this, not the node IP
+  # Both forms are listed because which one appears as the source depends on
+  # whether the probe crosses the bridge, and guessing wrong fails silently.
+  #
+  # A CORRECTION, because the sentence that stood here was wrong and it is the
+  # reason :8080 was open to these addresses at all. It read: "these are
+  # node-local addresses: a pod cannot source packets from them, so this rule
+  # does not widen the policy to other workloads."
+  #
+  # A HOST-NETWORK pod sources from exactly them. Any workload granted host
+  # network on either node could therefore reach OpenFGA's admin port, where the
+  # preshared key is unscoped — enough to replace the authorization model or
+  # write any tuple, in the one system whose whole purpose is deciding who may
+  # do that. `doctor.sh` had been reporting it; the report was dismissed once as
+  # a false positive, wrongly.
+  #
+  # So this rule now admits :8081 ONLY. OpenFGA's own probes were moved to the
+  # sidecar's port to make that possible (see the deployment). The admin port is
+  # reachable from inside the pod and from `autorizare-svc` alone — the latter
+  # by an AND-shaped namespace+pod selector, which is a real identity rather
+  # than an address anything can arrive from.
+  - target: { kind: NetworkPolicy, name: openfga }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 8081 }
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../components/prune-guard
+  - ../../components/whitelabel
+  - ../../components/estate/openfga
+replacements:
+  - path: whitelabel-replacements.yaml
+  # Who is paged: the estate's operations address (the key is moved to alerts.<apex>/owner by
+  # ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  # The backup bucket <BUCKET_PREFIX>-tfstate-dev: prefix at dash-split index 0 of the bucket
+  # segment, composed in bucket.yaml first (a local-config scratch value), then written whole.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: openfga-bucket }
+        fieldPaths: [data.BUCKET]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: openfga-bucket, fieldPath: data.BUCKET }
+    targets:
+      - select: { kind: Cluster, name: openfga-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: Cluster, name: openfga-db }
+        fieldPaths: [spec.backup.barmanObjectStore.endpointURL]
+transformers:
+  - ../../components/alert-owner

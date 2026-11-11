@@ -1,0 +1,114 @@
+# nxcached — the Nx self-hosted remote cache.
+#
+# WHY THIS EXISTS AT ALL: Nx 22 activates a built-in HTTP remote-cache client
+# from NX_SELF_HOSTED_REMOTE_CACHE_SERVER alone, no plugin and no licence. The
+# official `@nx/s3-cache` is `license: Commercial`, and the free community
+# plugins are task-runner based, which Nx removed in v21. Two endpoints were
+# cheaper to write than any of that was to adopt.
+#
+# NO INGRESS, deliberately. The only clients are the ARC runners, which are IN
+# this cluster, so a ClusterIP Service is the whole surface. An ingress would put
+# a bearer token that can poison every build on the public internet for no gain.
+# Developers who want cache reads reach it through the tailnet, not through this.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nx-cache
+  labels: { app: nx-cache }
+  annotations:
+    # Rolls the pod when ESO rewrites the Secret — the token and the object-store
+    # credentials arrive as env vars and are read once at boot, so without this a
+    # rotation would silently never take effect.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  # TWO replicas. The cache is stateless — all state is in the bucket — so this
+  # costs nothing and means a node drain does not stop every build in flight
+  # from caching.
+  replicas: 2
+  selector:
+    matchLabels: { app: nx-cache }
+  template:
+    metadata:
+      labels: { app: nx-cache }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532        # distroless `nonroot`
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      # Fail LOUD and EARLY if a required secret is missing, rather than starting
+      # a cache that answers every read with a miss and every write with an
+      # error. That failure mode is indistinguishable from a cold cache, so
+      # nobody would investigate and the speed would simply never arrive.
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: nx-cache-secrets }
+          command:
+            - sh
+            - -c
+            # kubelet expands these strings, so each key is asserted literally.
+            - |
+              for k in NX_CACHE_ACCESS_TOKEN NX_CACHE_S3_ENDPOINT NX_CACHE_S3_BUCKET \
+                       NX_CACHE_S3_ACCESS_KEY_ID NX_CACHE_S3_SECRET_ACCESS_KEY; do
+                eval v=\$$k
+                if [ -z "$v" ]; then echo "MISSING REQUIRED SECRET: $k"; exit 1; fi
+              done
+              echo "every required secret is present"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: nxcached
+          # The estate builds this image and sets its tag (components/estate/nx-cache); REPLACE_ME
+          # makes the bundle ship this piece as a kustomization, so the estate's Argo CD Application
+          # sets the tag between releases (tools/bundle/estate-images.mjs, bundle.json estateImages).
+          image: WLREGISTRY/WLAPPS/nx-cache-svc:REPLACE_ME
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - secretRef: { name: nx-cache-secrets }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          # /healthz does NOT touch the bucket, on purpose. A probe that fails
+          # when object storage hiccups restarts a server that was serving
+          # misses perfectly well, and a restarting cache is worse than a cold
+          # one — every in-flight upload dies with it.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            # The uploader buffers 16MB parts with concurrency 3, so ~48MB of
+            # buffers per in-flight upload plus overhead. 256Mi leaves room for
+            # several at once without inviting the node oversubscription this
+            # cluster already has.
+            limits: { cpu: 500m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nx-cache
+  labels: { app: nx-cache }
+spec:
+  type: ClusterIP
+  selector: { app: nx-cache }
+  ports:
+    - { name: http, port: 80, targetPort: http }

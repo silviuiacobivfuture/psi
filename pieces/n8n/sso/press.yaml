@@ -1,0 +1,81 @@
+# THE SECOND LAYER. The first is that n8n's provider runs Authentik's implicit flow, all 302s, so an
+# arrival from another site stays `cross-site` through Authentik and src/setup.ts gives the button. On
+# the explicit flow the page leaves by script, everybody comes back `same-site`, and a page on another
+# site signed a person in and made a pending person's account (measured on dev, 2026-11-05; H15). This
+# marks the arrival press=1 BEFORE the gate, so it stands if the flow is ever changed back: the outpost
+# hands the address back whole, and press=1 is always the one button (invariant 27).
+#
+# ANY METHOD. A page can POST here with no click at all, and nothing of n8n's posts to either path: its
+# own calls are XHRs and its forms live on the hooks host. Traefik answers a POST with 307, so it stays
+# a POST: it arrives at /sso/setup?press=1, where nothing answers a POST and the gate's own 302 ends it.
+#
+# ONE ROUTE IS ENOUGH. The intercept's own 302 keeps Sec-Fetch-Site: cross-site, so a click on any page
+# arrives here by way of it, with its `from=` carried along. A 302 keeps it here too, which is why the
+# rule must stop on the flag: Query(press, 1) is the loop breaker.
+#
+# THE EDGE AND THE SIDECAR MUST READ THE FLAG THE SAME WAY. Query matches press=1 anywhere in the query,
+# so src/setup.ts's pressAsked does too, `from=` or not. Otherwise /sso/setup?from=/x&press=1 passes
+# here as marked and there as unmarked: the shape of sso=0&sso=1 (H15).
+#
+# NOT `same-site`. An Authentik tile and the estate's other applications arrive that way, and that
+# is everybody's normal way in. A sibling on *.<estate domain> can therefore still sign a person in to their
+# own account (H13). NOT a frame: Sec-Fetch-Dest stops that in src/setup.ts, and it never reaches here.
+#
+# THE OUTPOST'S /start TAKES AN ADDRESS. /outpost.goauthentik.io/start?rd=<n8n>/sso/setup goes to
+# Authentik and back to /sso/setup without passing the first rule, and that signed a person in
+# (X17). Nothing of ours links to it: the gate goes to Authentik directly. So a click from another
+# site is sent to the button, and rd= goes nowhere.
+#
+# PRIORITY 300: above the /sso/ Ingress, whose priority is its rule's length. It only redirects, to a
+# place that is gated, so no route to the sidecar exists here (invariant 15).
+#
+# Host(...) MUST stay first: the Component's replacement writes the second backtick field.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-sso-press
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 300
+      match: >-
+        Host(`n8n.example.invalid`) && Path(`/sso/setup`) &&
+        Header(`Sec-Fetch-Site`, `cross-site`) && Header(`Sec-Fetch-Dest`, `document`) &&
+        !Query(`press`, `1`)
+      middlewares:
+        - name: n8n-sso-press
+      services:
+        - { name: noop@internal, kind: TraefikService }
+    - kind: Rule
+      priority: 300
+      match: >-
+        Host(`n8n.example.invalid`) && PathPrefix(`/outpost.goauthentik.io/start`) &&
+        Header(`Sec-Fetch-Site`, `cross-site`) && Header(`Sec-Fetch-Dest`, `document`)
+      middlewares:
+        - name: n8n-sso-press-start
+      services:
+        - { name: noop@internal, kind: TraefikService }
+  tls: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-sso-press
+spec:
+  redirectRegex:
+    # Any path: the rule chose it, and it matches what Traefik normalises (/sso//setup, /sso/%73etup),
+    # which the outpost then hands back as /sso/setup. Measured: both signed a person in.
+    regex: '^(https?)://([^/?]+)/[^?]*\??(.*)$'
+    replacement: '${1}://${2}/sso/setup?press=1&${3}'
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: n8n-sso-press-start
+spec:
+  redirectRegex:
+    regex: '^(https?)://([^/]+)/.*$'
+    replacement: '${1}://${2}/sso/setup?press=1'
+    permanent: false

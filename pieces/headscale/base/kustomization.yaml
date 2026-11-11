@@ -1,0 +1,21 @@
+# The tailnet's control plane and its console. Why each piece is the way it is, and what was
+# proven how: docs/headscale/00-plan.md. The estate's own files (Headscale's and Headplane's
+# configuration, the access policy, the DNS records) come from its component (../../../components/estate/headscale).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - externalsecrets.yaml
+  - headscale.yaml
+  - headplane.yaml
+  - ingress.yaml
+  - db-copy.yaml
+  - tailnet-router.yaml
+configMapGenerator:
+  - name: tailnet-check
+    literals:
+      - index.html=tailnet-check ok
+  - name: headscale-db-copy
+    files:
+      - db-copy/copy.py
+      - db-copy/upload.sh

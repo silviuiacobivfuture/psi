@@ -1,0 +1,29 @@
+# n8n's own label and annotation keys, keyed by the estate's label domain: n8n.<ESTATE_LABEL_DOMAIN>/…
+# Used by the piece under `transformers:`, exactly as components/alert-owner is (see
+# render/kustomization.yaml). A transformers directory must emit transformer configs ONLY, so the
+# value ConfigMaps render/ needed are deleted here, after render/ has used them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - render
+patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: whitelabel }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: n8n-key-api-client-pod }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: n8n-key-api-client-policy }
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: { name: n8n-key-tested-digest }

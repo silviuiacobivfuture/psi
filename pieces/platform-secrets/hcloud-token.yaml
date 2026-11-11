@@ -1,0 +1,40 @@
+# Hetzner Cloud API token → `hcloud` Secret (key `token`) in kube-system, read by
+# the hcloud-csi controller via secretKeyRef as HCLOUD_TOKEN
+# (controller.hcloudToken.existingSecret in pieces/hcloud-csi/values.yaml).
+# Synced from OpenBao `secret/platform/hcloud`.
+#
+# THE SAME PROJECT TOKEN TOFU ALREADY USES, not a new credential class: it is
+# `HCLOUD_TOKEN_<ENV>` from infrastructure/hetzner/.env, which provisions the
+# servers, networks and firewalls. The CSI controller needs read+write on the
+# project to create, attach, detach and resize volumes — the token cannot be
+# scoped narrower than the project, so this is the same blast radius Tofu has.
+#
+# NOT YET IN OPENBAO at the time this landed: `secret/platform/hcloud` did not
+# exist, so this ExternalSecret will sit SecretSyncedError (loudly, in
+# `kubectl get externalsecret -A`) until it is seeded. That is the intended
+# behaviour of a per-key `data[]` ref and exactly why no `dataFrom.extract` is
+# used here. `seed-secrets.sh` seeds it from HCLOUD_TOKEN_<ENV> and `doctor.sh`
+# checks it.
+#
+# CONSEQUENCE OF IT BEING ABSENT, so the failure is not mysterious: the CSI
+# controller starts with an empty HCLOUD_TOKEN and every volume provision fails
+# with an unauthorized error from the Hetzner API — which surfaces as a Convex
+# CNPG Cluster stuck with a Pending PVC, not as anything mentioning a token.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hcloud-token
+  namespace: kube-system
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    # The name the chart's `controller.hcloudToken.existingSecret.name` points at.
+    # Also the name the upstream quickstart's `kubectl create secret generic
+    # hcloud` uses, so an operator following the vendor docs and this manifest
+    # cannot end up with two Secrets.
+    name: hcloud
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef: { key: platform/hcloud, property: token }

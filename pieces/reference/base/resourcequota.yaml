@@ -1,0 +1,31 @@
+# Per-namespace guard-rails for reference (the traefik/whoami template service).
+# The LimitRange MUST exist before the ResourceQuota: once a quota constrains
+# requests.*/limits.*, every pod that omits them is rejected — the LimitRange
+# backfills sane defaults (and a per-container max) so nothing gets bounced. Tiny
+# demo workload: live req 10m/16Mi, lim 100m/64Mi × 1 replica. ~3x headroom for a
+# rollout surge + a preview or two. Mirrors the per-service base convention.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: reference
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 10m, memory: 16Mi }
+      default: { cpu: 100m, memory: 64Mi }
+      # Per-container ceiling — small, this is only ever a whoami echo server.
+      max: { cpu: 250m, memory: 128Mi }
+---
+# Namespace total cap. used must stay < hard; raise it (never break a deploy)
+# rather than let real usage exceed it.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: reference
+spec:
+  hard:
+    requests.cpu: 100m
+    requests.memory: 128Mi
+    limits.cpu: 500m
+    limits.memory: 512Mi
+    pods: "5"

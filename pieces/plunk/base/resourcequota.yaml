@@ -1,0 +1,26 @@
+# Namespace bounds. Requests sum (plunk 768Mi, send-gate 64Mi, plunk-db 256Mi, redis 48Mi,
+# plunk-sso 96Mi, the reconcile/dump jobs ~200Mi) ≈ 1.4Gi; the quota leaves room
+# for a Recreate rollout and the CNPG backup pod, and no more. Nodes were at
+# ~85% requested on 2026-10-29: this is sized to the workload, not to the box.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: plunk
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 500m, memory: 512Mi }
+      max: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: plunk
+spec:
+  hard:
+    requests.cpu: "1500m"
+    requests.memory: 3Gi
+    limits.cpu: "8"
+    limits.memory: 6Gi
+    pods: "12"

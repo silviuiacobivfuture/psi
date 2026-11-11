@@ -1,0 +1,148 @@
+# estate-front — the estate's front door (apps/estate-front):
+#   https://<apex>/         the hub: the five applications, the tools, the estate
+#   https://<apex>/despre   the internal landing: what this is, how to get in
+# Every page needs a person signed in through the estate's hub (id.<apex>); the
+# session cookie is signed with SESSION_KEY, shared by both replicas
+# (externalsecret.yaml), asserted below and by the binary itself. The settings are
+# a ConfigMap and the binary refuses to start (`MISSING REQUIRED SETTING: <key>`)
+# when one is blank.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estate-front
+  labels: { app: estate-front }
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    # ConfigMap-only consumer (settings + mounted links file). Reloader restarts it
+    # when either changes, so a new shortcut shows without a manual rollout.
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: estate-front }
+  template:
+    metadata:
+      labels: { app: estate-front }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: estate-front }
+      initContainers:
+        # Fail LOUD, by name, before anything else runs (the platform's rule for
+        # an app that needs a secret). One line per key, asserted literally.
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - name: SESSION_KEY
+              valueFrom:
+                secretKeyRef: { name: estate-front-secrets, key: SESSION_KEY }
+          command:
+            - sh
+            - -c
+            - >-
+              [ -n "${SESSION_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: SESSION_KEY" >&2; exit 1; };
+              echo secrets-ok
+          resources:
+            requests: { cpu: 5m, memory: 8Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: estate-front
+          image: WLREGISTRY/WLAPPS/estate-front:REPLACE_ME
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - configMapRef: { name: estate-front-config }
+            - secretRef: { name: estate-front-secrets }
+          env:
+            - name: LINKS_FILE
+              value: /etc/estate-front/links.json
+          volumeMounts:
+            - { name: links, mountPath: /etc/estate-front, readOnly: true }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 1
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 10m, memory: 24Mi }
+            limits: { cpu: 200m, memory: 96Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+      volumes:
+        - name: links
+          configMap: { name: estate-front-links }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: estate-front
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: estate-front }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: estate-front
+  labels: { app: estate-front }
+spec:
+  type: ClusterIP
+  selector: { app: estate-front }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+# Settings, not secrets. BASE_DOMAIN is filled from the whitelabel component by
+# the piece, ESTATE_NAME by this base from the identity (the estate's component
+# may name itself otherwise) — never typed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: estate-front-config
+data:
+  ESTATE_NAME: "WLESTATENAME"
+  BASE_DOMAIN: "WLDOMAIN"
+  ENVIRONMENT: "dev"
+---
+# The everyday tools on the hub — user-facing only, in this order. Operator
+# consoles (Argo CD, Harbor, OpenBao, Headlamp, Netdata, …) are NOT here: they
+# are reached from the System Hub, which lists every service in the cluster.
+#
+# Each entry: {"id", "name", "href", "private"?}. `private: true` marks a tool
+# that opens from the private network (tailnet) only; the hub says so beside that
+# entry. The list is the ESTATE's own: SEB ships none, the estate's component
+# (components/estate/estate-front) replaces links.json.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: estate-front-links
+data:
+  links.json: |
+    []

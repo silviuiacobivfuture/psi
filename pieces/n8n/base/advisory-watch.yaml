@@ -1,0 +1,60 @@
+# Who watches for n8n's security releases. n8n publishes advisories nearly every two
+# weeks, some of them high, and N8N_VERSION_NOTIFICATIONS_ENABLED is off on purpose, so
+# nothing inside n8n will say so. Scheduled GitHub workflows do not run in this
+# repository. This runs in the cluster, on the same image as n8n, so what it judges is
+# the version that image holds; a pin that moves moves this too (n8n-gate refuses two).
+#
+# It reads GitHub's public advisory list, holds no credential, and asks nothing of n8n.
+# A version inside an advisory's range makes the Job fail, naming each advisory.
+# estate-watch reports a failed CronJob to #infra by derivation, once, and again on
+# recovery (REQUIRED_CRONJOBS names this one, so deleting or suspending it fires too).
+# Its label is neither the main's nor the runner's, so networkpolicy.yaml does not
+# select it, and it has no Secret: egress is the point and there is nothing to take.
+#
+# Proven by .github/scripts/tests/n8n_test.sh against a fake GitHub.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: n8n-advisory-watch
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  schedule: "40 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 43200
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: n8n-advisory-watch }
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: script
+              configMap: { name: n8n-advisory-watch }
+          containers:
+            - name: watch
+              image: WLREGISTRY/mirror/docker.io/n8nio/n8n:2.46.4@sha256:4384b9ff20a78bc1708c35ce7864f84f724611de7801fb36d715998db7c000f1
+              command: ["node", "/watch/advisory-watch.mjs"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 128Mi }
+              volumeMounts:
+                - { name: script, mountPath: /watch, readOnly: true }

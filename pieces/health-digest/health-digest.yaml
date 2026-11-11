@@ -1,0 +1,462 @@
+# health-digest — ONE message a morning into #infra saying whether the platform is
+# actually fine.
+#
+# WHY IT IS NOT doctor.sh IN A POD. `scripts/doctor.sh` is the deeper sweep, but it is
+# WORKSTATION tooling: it sources `infrastructure/hetzner/.env` for
+# `OPENBAO_ROOT_TOKEN` and talks to the cluster over the tailnet kubectl context.
+# Shipping the OpenBao ROOT token into a CronJob to get a daily message would trade a
+# read-only report for cluster-wide secret compromise — a privilege regression, not a
+# convenience. This job therefore re-implements only the checks that need NOTHING but
+# its own read-only ServiceAccount, and doctor.sh stays the operator-run deep sweep.
+#
+# WHY A GREEN HEARTBEAT IS THE POINT. An alerting path that only speaks when something
+# breaks is indistinguishable from an alerting path that is DEAD. Every other sender
+# here is silent-when-healthy on purpose (Argo notifies per event, the secret-watcher
+# only on findings, Axiom only on a firing monitor), so nothing would ever reveal that
+# the whole chain had stopped working. This job is the liveness proof: a morning with
+# no #infra message is itself the alarm. That is also why it posts `ok` rather than
+# staying quiet on a clean sweep.
+#
+# NEVER REPORT GREEN OFF A FAILED LOOKUP. Every check below is wrapped in
+# `if VAR="$(kubectl get ...)"` so an RBAC denial or an apiserver timeout becomes an
+# explicit INCONCLUSIVE finding instead of an empty list rendered as "all clear".
+# A false green in the one job whose purpose is proving health would be the worst
+# possible bug in this file.
+#
+# Synced by the `health-digest` Argo Application (the SEB piece pieces/health-digest). DEV ONLY
+# for now, matching the db-backup precedent — the prod overlay is deliberately lean and
+# picks up platform extras when prod is actually built out.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-digest-script
+  namespace: observability
+data:
+  digest.sh: |
+    #!/bin/sh
+    # POSIX/ash. alpine/k8s ships kubectl, curl and busybox — no jq is used for the
+    # findings (kubectl -o jsonpath does the extraction) and the notification body is
+    # built with the same sed-based escaper the secret-watcher uses.
+    set -eu
+
+    NOTIFY_URL="${NOTIFY_URL:-http://talk-webhook.nextcloud.svc}"
+    NOTIFY_CHANNEL="${NOTIFY_CHANNEL:-infra}"
+    ENV_NAME="${ENV_NAME:?ENV_NAME must be set (branch == environment, 1:1)}"
+    : "${NOTIFY_TOKEN:?MISSING REQUIRED SECRET: token (Secret talk-webhook-token, key token, ns observability)}"
+
+    W=/tmp
+    umask 077
+    trap 'rm -f "$W/hdr.notify" "$W/notify.json"' EXIT
+    # Header FILE, then dropped from the environment: curl reads it with -H @file so
+    # the bearer never reaches argv, where `ps` inside the container would see it.
+    printf 'X-Notify-Token: %s\n' "$NOTIFY_TOKEN" > "$W/hdr.notify"
+    unset NOTIFY_TOKEN
+
+    : > "$W/findings"
+    N_FAIL=0; N_WARN=0
+
+    # note <fail|warn> <text> — one finding, counted and queued for the message body.
+    # `fail` means something IS broken (Degraded, CrashLoop, unsynced secret, expired
+    # cert). `warn` means something is off but may be transient or self-correcting
+    # (OutOfSync, Progressing, Pending). The distinction sets the message severity, so
+    # a genuinely broken platform is visually different from a noisy one.
+    note() {
+      case "$1" in
+        fail) N_FAIL=$((N_FAIL + 1)) ;;
+        *)    N_WARN=$((N_WARN + 1)) ;;
+      esac
+      printf '%s\n' "$2" >> "$W/findings"
+      printf '  [%s] %s\n' "$1" "$2"
+    }
+
+    # count <text> — number of non-empty lines. Used for the "all clear" line, which
+    # must say WHAT was checked; "all clear" with no numbers is indistinguishable from
+    # "checked nothing".
+    count() { printf '%s\n' "$1" | grep -c . || true; }
+
+    echo "== health-digest ($ENV_NAME) =="
+
+    # ---- 1. Argo CD Applications ---------------------------------------------
+    # `if VAR="$(kubectl ...)"` and NOT `|| true`: a denied or timed-out list must
+    # become an explicit INCONCLUSIVE finding. An empty string rendered as "all clear"
+    # is the false-green this whole job exists to prevent.
+    APP_N=0
+    if APPS="$(kubectl -n argocd get applications.argoproj.io \
+        -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.sync.status}{" "}{.status.health.status}{"\n"}{end}' 2>/dev/null)"; then
+      APP_N="$(count "$APPS")"
+      if [ "$APP_N" = 0 ]; then
+        note fail "no Argo Applications found at all — Argo CD is not managing anything (expected dozens)"
+      else
+        printf '%s\n' "$APPS" | grep -v '^ *$' | awk '$2 != "Synced" || $3 != "Healthy"' > "$W/apps.bad" || true
+        while read -r a_name a_sync a_health; do
+          [ -n "${a_name:-}" ] || continue
+          # Degraded is broken NOW. OutOfSync/Progressing/Missing may still be
+          # converging, so they are warnings until they persist to the next digest.
+          if [ "$a_health" = "Degraded" ]; then
+            note fail "Argo app $a_name is DEGRADED (sync=$a_sync)"
+          else
+            note warn "Argo app $a_name: sync=$a_sync health=$a_health"
+          fi
+        done < "$W/apps.bad"
+      fi
+    else
+      note fail "INCONCLUSIVE: could not list Argo Applications — sync/health was NOT checked this run"
+    fi
+
+    # ---- 2. pods -------------------------------------------------------------
+    # Two distinct failure shapes, and the second is the one people miss: a
+    # CrashLoopBackOff pod has phase=Running. Checking phase alone would greenlight a
+    # container that has restarted 400 times. So the container waiting REASONS are
+    # pulled out alongside the phase.
+    POD_N=0
+    if PODS="$(kubectl get pods -A \
+        -o jsonpath='{range .items[*]}{.metadata.namespace}{"/"}{.metadata.name}{"|"}{.status.phase}{"|"}{range .status.containerStatuses[*]}{.state.waiting.reason}{","}{end}{range .status.initContainerStatuses[*]}{.state.waiting.reason}{","}{end}{"\n"}{end}' 2>/dev/null)"; then
+      POD_N="$(count "$PODS")"
+      if [ "$POD_N" = 0 ]; then
+        note fail "no pods found at all — the pod listing returned nothing (expected hundreds)"
+      else
+        printf '%s\n' "$PODS" | grep -v '^ *$' > "$W/pods.all"
+        while IFS='|' read -r p_name p_phase p_reasons; do
+          [ -n "${p_name:-}" ] || continue
+          # Strip the trailing comma-separators jsonpath emits for absent reasons.
+          p_clean="$(printf '%s' "${p_reasons:-}" | tr -d ',')"
+          case "$p_phase" in
+            Succeeded)
+              # A completed Job pod. Normal and expected — CronJobs keep the last one.
+              continue ;;
+            Running)
+              # PodInitializing / ContainerCreating are ordinary startup states; only
+              # a real backoff/error reason is a finding.
+              case "$p_clean" in
+                ""|PodInitializing|ContainerCreating) continue ;;
+                *) note fail "pod $p_name is Running but a container is stuck: $p_clean" ;;
+              esac ;;
+            Failed)
+              # A lingering Failed pod is usually a failed Job kept by
+              # failedJobsHistoryLimit. It is REPORTED, not suppressed: a failed
+              # backup/migration Job is exactly the thing that must not go quiet.
+              # It stays listed until its Job is pruned, which is the intended nag.
+              note fail "pod $p_name is Failed (a failed Job pod is kept by failedJobsHistoryLimit until the Job is pruned)" ;;
+            Pending)
+              note warn "pod $p_name is Pending${p_clean:+ ($p_clean)} — unschedulable, or waiting on an image/volume" ;;
+            *)
+              note warn "pod $p_name is in phase $p_phase${p_clean:+ ($p_clean)}" ;;
+          esac
+        done < "$W/pods.all"
+      fi
+    else
+      note fail "INCONCLUSIVE: could not list pods — pod health was NOT checked this run"
+    fi
+
+    # ---- 3. ExternalSecrets --------------------------------------------------
+    # STATUS only. The job has no `secrets` verb at all, so it can see THAT a sync
+    # failed and never WHAT was synced.
+    ES_N=0
+    if ES="$(kubectl get externalsecrets.external-secrets.io -A \
+        -o jsonpath='{range .items[*]}{.metadata.namespace}{"/"}{.metadata.name}{" "}{range .status.conditions[?(@.type=="Ready")]}{.reason}{end}{"\n"}{end}' 2>/dev/null)"; then
+      ES_N="$(count "$ES")"
+      printf '%s\n' "$ES" | grep -v '^ *$' | awk '$2 != "SecretSynced"' > "$W/es.bad" || true
+      while read -r e_name e_reason; do
+        [ -n "${e_name:-}" ] || continue
+        note fail "ExternalSecret $e_name is ${e_reason:-<no Ready condition>} — the k8s Secret it feeds is stale or absent"
+      done < "$W/es.bad"
+    else
+      note fail "INCONCLUSIVE: could not list ExternalSecrets — secret sync was NOT checked this run"
+    fi
+
+    # ---- 4. certificates -----------------------------------------------------
+    CERT_N=0
+    if CERTS="$(kubectl get certificates.cert-manager.io -A \
+        -o jsonpath='{range .items[*]}{.metadata.namespace}{"/"}{.metadata.name}{" "}{range .status.conditions[?(@.type=="Ready")]}{.status}{end}{"\n"}{end}' 2>/dev/null)"; then
+      CERT_N="$(count "$CERTS")"
+      printf '%s\n' "$CERTS" | grep -v '^ *$' | awk '$2 != "True"' > "$W/certs.bad" || true
+      while read -r c_name c_ready; do
+        [ -n "${c_name:-}" ] || continue
+        note fail "certificate $c_name is not Ready (ready=${c_ready:-<none>}) — TLS on that host will fail once the current cert expires"
+      done < "$W/certs.bad"
+    else
+      note fail "INCONCLUSIVE: could not list Certificates — TLS was NOT checked this run"
+    fi
+
+    # ---- 5. CNPG clusters (optional CRD) -------------------------------------
+    # Presence is probed EXPLICITLY so "no Postgres operator installed" (fine, skip)
+    # is never confused with "the list was denied" (a finding). The RBAC grant for
+    # this probe is scoped to this one CRD name.
+    CNPG_SUMMARY=""
+    if kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1; then
+      if PGS="$(kubectl get clusters.postgresql.cnpg.io -A \
+          -o jsonpath='{range .items[*]}{.metadata.namespace}{"/"}{.metadata.name}{"|"}{.status.phase}{"|"}{.status.readyInstances}{"/"}{.status.instances}{"\n"}{end}' 2>/dev/null)"; then
+        PG_N="$(count "$PGS")"
+        CNPG_SUMMARY=", $PG_N CNPG cluster(s) healthy"
+        printf '%s\n' "$PGS" | grep -v '^ *$' > "$W/pg.all"
+        while IFS='|' read -r g_name g_phase g_ready; do
+          [ -n "${g_name:-}" ] || continue
+          # CNPG's phase is a human sentence, not an enum — this exact string is what
+          # a healthy cluster reports (verified on dev, 2026-08-19).
+          if [ "$g_phase" != "Cluster in healthy state" ]; then
+            note fail "CNPG cluster $g_name: phase='$g_phase' instances=$g_ready"
+          else
+            case "$g_ready" in
+              # readyInstances/instances — a 1/3 cluster is "healthy" by phase but has
+              # lost replicas, which is a real durability finding.
+              */*) [ "${g_ready%/*}" = "${g_ready#*/}" ] || note warn "CNPG cluster $g_name is healthy but only $g_ready instances are ready" ;;
+            esac
+          fi
+        done < "$W/pg.all"
+      else
+        note fail "INCONCLUSIVE: the CNPG CRD exists but its clusters could not be listed — Postgres was NOT checked this run"
+      fi
+    else
+      echo "  cnpg CRD not installed — Postgres check skipped (not a finding)"
+    fi
+
+    # ---- 6. the watcher ------------------------------------------------------
+    # estate-watch reports everything else, and cannot report its own death. It ticks
+    # every ten minutes, so an hour without a finished run means it is not working.
+    # ISO strings sort chronologically; busybox date cannot parse the `Z` form.
+    EW_NOTE=""
+    if EW="$(kubectl -n observability get cronjob estate-watch \
+        -o jsonpath='{.spec.suspend}{"|"}{.status.lastSuccessfulTime}' 2>/dev/null)"; then
+      ew_cut="$(date -u -d "@$(( $(date -u +%s) - 3600 ))" +%Y-%m-%dT%H:%M:%SZ)"
+      ew_ok="${EW#*|}"
+      if [ "${EW%%|*}" = "true" ]; then
+        note fail "estate-watch is SUSPENDED — failures are reaching nobody"
+      elif [ -z "$ew_ok" ] || [ "$(printf '%s\n%s\n' "$ew_ok" "$ew_cut" | sort | head -1)" = "$ew_ok" ]; then
+        note fail "estate-watch has not finished a run in the last hour (last: ${ew_ok:-never}) — failures are reaching nobody. Check: kubectl -n observability logs -l app=estate-watch --tail=30"
+      else
+        EW_NOTE=", estate-watch ran at $ew_ok"
+      fi
+    else
+      note fail "estate-watch could not be read (absent, or denied) — failures may be reaching nobody"
+    fi
+
+    # ---- 7. report -----------------------------------------------------------
+    # See the secret-watcher for the reasoning on this escaper: no jq in the image,
+    # backslashes before quotes, then fold the lines into literal \n.
+    json_escape() {
+      sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g'
+    }
+
+    if [ "$N_FAIL" = 0 ] && [ "$N_WARN" = 0 ]; then
+      SEV=ok
+      # The all-clear NAMES ITS EVIDENCE. "All clear" on its own would read the same
+      # whether the job checked forty Applications or zero.
+      MSG="platform daily digest ($ENV_NAME): all clear — $APP_N Argo apps Synced+Healthy, $POD_N pods Running/Completed, $ES_N ExternalSecrets synced, $CERT_N certificates Ready$CNPG_SUMMARY$EW_NOTE"
+      DETAIL=""
+    else
+      SEV=warn
+      [ "$N_FAIL" -gt 0 ] && SEV=fail
+      MSG="platform daily digest ($ENV_NAME): $N_FAIL broken, $N_WARN degraded — checked $APP_N Argo apps, $POD_N pods, $ES_N ExternalSecrets, $CERT_N certificates"
+      FIND_N="$(wc -l < "$W/findings" | tr -d ' ')"
+      head -25 "$W/findings" > "$W/findings.short"
+      if [ "$FIND_N" -gt 25 ]; then
+        printf '... and %s more — see: kubectl -n observability logs job/<latest health-digest>\n' "$((FIND_N - 25))" >> "$W/findings.short"
+      fi
+      DETAIL="$(json_escape < "$W/findings.short")"
+    fi
+    MSG="$(printf '%s' "$MSG" | json_escape)"
+
+    printf '{"severity":"%s","message":"%s","detail":"%s"}\n' "$SEV" "$MSG" "$DETAIL" > "$W/notify.json"
+
+    # curl's -w always prints a code (000 on a transport failure), and `|| true` keeps
+    # a Talk outage from failing the Job — the full report is already on stdout, where
+    # OTel ships it to Axiom regardless.
+    CODE="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+      -X POST -H @"$W/hdr.notify" -H 'Content-Type: application/json' \
+      -d @"$W/notify.json" "$NOTIFY_URL/notify/$NOTIFY_CHANNEL" || true)"
+    case "$CODE" in
+      200) echo "posted the digest to #$NOTIFY_CHANNEL (severity=$SEV)" ;;
+      401) echo "WARN #$NOTIFY_CHANNEL rejected the token (HTTP 401) — digest is LOG-ONLY. Check: kubectl -n observability get externalsecret talk-webhook-token" ;;
+      *)   echo "WARN could not reach $NOTIFY_URL (HTTP $CODE) — digest is LOG-ONLY. Check: kubectl -n nextcloud get deploy talk-webhook" ;;
+    esac
+
+    # ALWAYS exit 0. A cluster with findings is not a FAILED JOB — the findings are
+    # the product. Exiting non-zero would make the Axiom CronJob-failed monitor fire
+    # on every imperfect morning and make a genuinely dead digest indistinguishable
+    # from a normal one.
+    exit 0
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: health-digest
+  namespace: observability
+---
+# Read-only, and ONLY the resources the digest actually reports on. No `secrets` verb
+# of any kind: the job reads ExternalSecret STATUS (did it sync?), never the Secret a
+# sync produced. Cluster-scoped because every resource it reports on lives in every
+# namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: health-digest
+rules:
+  # "which Applications are not Synced/Healthy"
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list"]
+  # "which pods are not Running/Completed" (+ their container waiting reasons, which
+  # is where CrashLoopBackOff lives — a crashlooping pod is phase=Running)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  # "which ExternalSecrets are not SecretSynced" — STATUS only.
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets"]
+    verbs: ["get", "list"]
+  # "is the watcher itself alive" — that one CronJob.
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    resourceNames: ["estate-watch"]
+    verbs: ["get"]
+  # "which certificates are not Ready"
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates"]
+    verbs: ["get", "list"]
+  # "which CNPG clusters are not healthy" — optional, the CRD may not be installed.
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters"]
+    verbs: ["get", "list"]
+  # Presence probe for the CNPG CRD, scoped to that ONE name. Without it a missing
+  # CRD and an RBAC denial look identical, and the job would either cry wolf on a
+  # cluster with no Postgres or silently skip a real failure. resourceNames keeps
+  # this from becoming a general CRD read.
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    resourceNames: ["clusters.postgresql.cnpg.io"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: health-digest
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: health-digest
+subjects:
+  - kind: ServiceAccount
+    name: health-digest
+    namespace: observability
+---
+# The send-only talk-webhook bearer, mirrored into this namespace (ESO cannot copy a
+# Secret across namespaces). Same OpenBao path as every other copy, so a rotation
+# reaches all of them. Explicit data[] → a missing key is a LOUD SecretSyncedError,
+# never an empty token that would 401 in silence.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: talk-webhook-token
+  namespace: observability
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: talk-webhook-token
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: platform/talk/webhook
+        property: token
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: health-digest
+  namespace: observability
+  annotations:
+    alerts/owner: OPS_EMAIL # the estate ops address, from the identity (kustomization.yaml)
+spec:
+  # 06:17 UTC daily — an off-minute on purpose: :00 is when every other scheduler in
+  # the cluster fires, and a digest that reads the cluster mid-thundering-herd reports
+  # transient Pending pods as findings.
+  schedule: "17 6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      # One retry: a single apiserver blip should not cost the day's heartbeat, but
+      # the job must not grind either — a real failure is visible as a failed Job
+      # (and as a missing morning message, which is the louder signal).
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: health-digest }
+        spec:
+          restartPolicy: Never
+          serviceAccountName: health-digest
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            # The "no silent deaths" rule (infrastructure/hetzner/CLAUDE.md): assert the
+            # required secret is present AND non-empty before the job does anything, so
+            # a missing key is a pod that dies with a NAMED error instead of a digest
+            # that computes a perfect report and posts it into the void. ESO can sync a
+            # present-but-EMPTY field, which is why `-n` and not just presence.
+            - name: assert-secrets
+              image: busybox:1.36.1
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  [ -n "${NOTIFY_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: token (Secret talk-webhook-token, key token, ns observability)"; exit 1; }
+                  echo "required secrets present"
+              env:
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 64Mi }
+          containers:
+            - name: digest
+              # alpine/k8s ships kubectl AND /bin/sh AND curl (rancher/kubectl is
+              # shell-less → StartError). Pinned to the cluster's minor, never :latest.
+              image: alpine/k8s:1.30.3
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              env:
+                # kubectl writes its discovery cache under $HOME and the root FS is
+                # read-only — point HOME at the writable emptyDir (its root FS is read-only).
+                - { name: HOME, value: /tmp }
+                - { name: ENV_NAME, value: dev }
+                # IN-CLUSTER translator: the digest must still be deliverable when
+                # Traefik, external DNS or the public cert are the thing that is broken.
+                - { name: NOTIFY_URL, value: http://talk-webhook.nextcloud.svc }
+                - { name: NOTIFY_CHANNEL, value: infra }
+                # Send-only bearer — the translator holds the Talk signing key, so this
+                # pod can post a message and nothing else. No Reloader annotation: a
+                # CronJob starts a fresh pod per run and always reads the current value.
+                - name: NOTIFY_TOKEN
+                  valueFrom:
+                    secretKeyRef: { name: talk-webhook-token, key: token }
+              command: ["/bin/sh", "/scripts/digest.sh"]
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                - { name: script, mountPath: /scripts, readOnly: true }
+          volumes:
+            - name: tmp
+              emptyDir: {}
+            - name: script
+              configMap:
+                name: health-digest-script
+                defaultMode: 0555

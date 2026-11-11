@@ -1,0 +1,27 @@
+# SEB piece `cluster-dns`: in-cluster DNS overrides for k3s's CoreDNS. Delivered in the SEB
+# bundle, rendered at build time (seb/tools/bundle/build.mjs). The ConfigMap stays in
+# kube-system (no namespace override): k3s's CoreDNS reads it from there by name.
+#
+# Whitelabel: the base writes the relay name as plunk-smtp.WLDOMAIN inside the rewrite
+# rule. hosts.yaml composes the whole name first (the apex from BASE_DOMAIN, dot-split
+# index 1), then it is put into the rule whole (space-split index 4). Render is
+# byte-identical for the current value. To rebrand: estate/identity.yaml — see
+# gitops/WHITELABEL.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  - ../../components/whitelabel
+resources:
+  - base
+  - hosts.yaml
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: cluster-dns-hosts }
+        fieldPaths: [data.PLUNK_SMTP_HOST]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: cluster-dns-hosts, fieldPath: data.PLUNK_SMTP_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: coredns-custom }
+        fieldPaths: ["data.[plunk-smtp.override]"]
+        options: { delimiter: " ", index: 4 }

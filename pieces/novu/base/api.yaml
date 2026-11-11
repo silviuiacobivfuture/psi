@@ -1,0 +1,104 @@
+# Novu API — REST + bridge sync + inbox session endpoints.
+#
+# ============ VERSION PIN (verified 2026-10-22, not remembered) ===============
+# v3.19.0 — the newest SERVER release on github.com/novuhq/novu/releases
+# (published 2026-08-07; every later release is an SDK package: @novu/js,
+# @novu/react, @novu/framework …), and the exact tag Novu's own self-hosting
+# compose pins for every service (docker/community/docker-compose.yml on `next`).
+# Pinned by tag AND digest (the amd64-inclusive index digest read from ghcr.io on
+# 2026-10-22), so a re-pushed tag cannot change what runs. All four Novu images
+# declare USER 1000, so no Kyverno exclusion is needed.
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-api
+  labels: { app.kubernetes.io/name: novu-api }
+  annotations:
+    # REQUIRED: novu-app is injected via envFrom (read once at start).
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: novu-app }
+          command:
+            - sh
+            - -c
+            # STORE_ENCRYPTION_KEY is asserted to be EXACTLY 32 chars, not merely
+            # present: Novu uses it as an aes-256 key and a wrong length fails
+            # only at the first credential encrypt/decrypt, long after boot.
+            - '[ -n "${JWT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: JWT_SECRET" >&2; exit 1; }; [ -n "${STORE_ENCRYPTION_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: STORE_ENCRYPTION_KEY" >&2; exit 1; }; [ "${#STORE_ENCRYPTION_KEY}" -eq 32 ] || { echo "INVALID SECRET: STORE_ENCRYPTION_KEY must be exactly 32 characters" >&2; exit 1; }; [ -n "${NOVU_SECRET_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: NOVU_SECRET_KEY" >&2; exit 1; }; [ -n "${MONGO_URL:-}" ] || { echo "MISSING REQUIRED SECRET: MONGO_URL" >&2; exit 1; }; [ -n "${REDIS_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: REDIS_PASSWORD" >&2; exit 1; }; [ -n "${AWS_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_ACCESS_KEY_ID" >&2; exit 1; }; [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_SECRET_ACCESS_KEY" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: api
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/api:3.19.0@sha256:76f1c2071a1a96c0a88255187d67a2167bd65757afc05d3be967d0d7b02f609d
+          envFrom:
+            - configMapRef: { name: novu-config }
+            - secretRef: { name: novu-app }
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: NODE_OPTIONS, value: "--max-old-space-size=768" }
+          ports:
+            - { name: http, containerPort: 3000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          startupProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet: { path: /v1/health-check, port: http }
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 4
+          resources:
+            requests: { cpu: 100m, memory: 320Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-api
+  labels: { app.kubernetes.io/name: novu-api }
+spec:
+  selector: { app.kubernetes.io/name: novu-api }
+  ports:
+    - { name: http, port: 3000, targetPort: http }

@@ -1,0 +1,32 @@
+# DEV. Harbor runs only here: the prod overlay has no Harbor Application.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+# Whitelabel: Harbor's host is written `harbor.WLDOMAIN` and its certificate `harbor-WLSLUG-tls`,
+# as gitops/apps/overlays/dev/harbor.yaml writes them for the chart; the values come from the
+# estate identity through the `whitelabel` component.
+components:
+  - ../../../../components/whitelabel
+configMapGenerator:
+  - name: harbor-host # local-config, never rendered: resolves harbor.<apex> once, for both routes
+    literals: [HOST=harbor.WLDOMAIN]
+    options:
+      disableNameSuffixHash: true
+      annotations: { config.kubernetes.io/local-config: "true" }
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: harbor-host }
+        fieldPaths: [data.HOST]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: harbor-host, fieldPath: data.HOST }
+    targets:
+      - select: { kind: IngressRoute, name: harbor-limit }
+        fieldPaths: [spec.routes.0.match, spec.routes.1.match]
+        options: { delimiter: "`", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG }
+    targets:
+      - select: { kind: IngressRoute, name: harbor-limit }
+        fieldPaths: [spec.tls.secretName]
+        options: { delimiter: "-", index: 1 }

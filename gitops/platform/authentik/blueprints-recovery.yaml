@@ -1,0 +1,229 @@
+# Authentik Blueprint ConfigMap — PASSWORD POLICY + THE SET-PASSWORD LINK.
+# docs/autorizare/18-sso-authentik-unic.md, step 3.
+#
+# Sign-in on this estate is email/username + password + TOTP (no GitHub, no
+# Google, no passkeys). Nobody is ever TOLD a password: an administrator sends a
+# one-time link (`POST /api/v3/core/users/<pk>/recovery_email/?email_stage=<this
+# email stage>`), the person opens it and chooses a password — and is NOT signed
+# in: they sign in normally afterwards, where TOTP is asked (or enrolled, the
+# first time). The link never touches the second factor. The same flow is the
+# "Forgot password?" link on the login page, so a first password and a lost one
+# take exactly one path.
+#
+# THE LINK: one use, valid 3 DAYS (`token_expiry`). Long enough for somebody who
+# reads mail once a day over a weekend, short enough that a forwarded or leaked
+# mail stops being a key. Mail leaves through Plunk's relay as the apex sender
+# (authentik.email in gitops/apps/overlays/dev/authentik.yaml), and the pods refuse
+# to start without it.
+#
+# THE POLICY: 12+ characters, a strength estimate (zxcvbn score >= 3), and no
+# password that appears in a known breach (HIBP k-anonymity: only the first five
+# characters of the SHA-1 leave the cluster). Bound to EVERY prompt that sets a
+# password here — this flow and the built-in password-change flow — so there is no
+# second door with a weaker rule.
+#
+# Shape copied from Authentik's own /blueprints/example/
+# flows-recovery-email-verification.yaml (2026.5.3, read out of the running
+# worker), with ONE deliberate difference: the example's skip-if-restored policy
+# still shows "who are you?" to a person arriving through an administrator's link
+# (proven on dev 2026-10-22), so it is replaced by needs-identification below.
+#
+# Every policybinding carries `order` in its IDENTIFIERS. Without it the importer
+# looks the binding up by (policy, target) alone and, on the second reconcile,
+# tries to create it again and fails the unique (policy, target, order) set —
+# exactly what has kept the business directory's enrolment blueprint in `error`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-recovery
+  namespace: authentik
+data:
+  recovery.yaml: |
+    version: 1
+    metadata:
+      name: WLSLUG-recovery
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      - model: authentik_policies_password.passwordpolicy
+        id: password-policy
+        identifiers:
+          name: WLSLUG-password-policy
+        attrs:
+          password_field: password
+          error_message: "Parola trebuie să aibă cel puțin 12 caractere și să nu apară în scurgeri de date cunoscute."
+          check_static_rules: true
+          length_min: 12
+          amount_digits: 0
+          amount_uppercase: 0
+          amount_lowercase: 0
+          amount_symbols: 0
+          check_have_i_been_pwned: true
+          hibp_allowed_count: 0
+          # Owner, 2026-10-23: the guessability check (zxcvbn ≥3) refused ordinary
+          # strong passwords as "too weak". Length 12 + not in a known leak stays.
+          check_zxcvbn: false
+          zxcvbn_score_threshold: 3
+
+      - model: authentik_flows.flow
+        id: flow
+        identifiers:
+          slug: WLSLUG-set-password
+        attrs:
+          name: WLBRAND — setare parolă
+          title: Alege parola contului tău
+          designation: recovery
+          authentication: require_unauthenticated
+
+      - model: authentik_stages_prompt.prompt
+        id: field-password
+        identifiers:
+          name: WLSLUG-set-password-field
+        attrs:
+          field_key: password
+          label: Parola nouă
+          type: password
+          required: true
+          placeholder: Parola nouă
+          order: 0
+          placeholder_expression: false
+      - model: authentik_stages_prompt.prompt
+        id: field-password-repeat
+        identifiers:
+          name: WLSLUG-set-password-field-repeat
+        attrs:
+          field_key: password_repeat
+          label: Repetă parola
+          type: password
+          required: true
+          placeholder: Repetă parola
+          order: 1
+          placeholder_expression: false
+
+      # Asking WHO and checking the mailbox only make sense when the person
+      # started from the login page. A link an administrator generated is planned
+      # with the account already in it (`pending_user`), and the mail that carried
+      # it is the mailbox check — so both stages are left out of THAT plan.
+      # Decided once, at plan time (re_evaluate_policies: false on both bindings):
+      # re-evaluating after identification would see the account it just found and
+      # skip the mailbox check for anyone who typed a username.
+      - model: authentik_policies_expression.expressionpolicy
+        id: needs-identification
+        identifiers:
+          name: WLSLUG-set-password-needs-identification
+        attrs:
+          expression: |
+            return "pending_user" not in request.context
+
+      - model: authentik_stages_identification.identificationstage
+        id: identification
+        identifiers:
+          name: WLSLUG-set-password-identification
+        attrs:
+          user_fields: [email, username]
+      - model: authentik_stages_email.emailstage
+        id: email
+        identifiers:
+          name: WLSLUG-set-password-email
+        attrs:
+          use_global_settings: true
+          token_expiry: days=3
+          subject: "WLBRAND — setează parola contului"
+          # Romanian, mounted from email-templates.yaml at /templates/recomex/.
+          template: recomex/setare-parola.html
+          activate_user_on_success: true
+          recovery_max_attempts: 5
+          recovery_cache_timeout: minutes=5
+      - model: authentik_stages_prompt.promptstage
+        id: prompt
+        identifiers:
+          name: WLSLUG-set-password-prompt
+        attrs:
+          fields:
+            - !KeyOf field-password
+            - !KeyOf field-password-repeat
+          validation_policies:
+            - !KeyOf password-policy
+      - model: authentik_stages_user_write.userwritestage
+        id: write
+        identifiers:
+          name: WLSLUG-set-password-write
+        attrs:
+          user_creation_mode: never_create
+      # NO login stage, on purpose (owner, 2026-10-22: "recovery = the emailed
+      # link resets the password ONLY, never the TOTP"). A login stage here would
+      # hand whoever holds the mailbox a session WITHOUT the second factor. The
+      # flow ends after writing the password; the person then signs in through
+      # the normal flow — password, then TOTP (or TOTP enrolment, the first time).
+      # `absent` removes the stage (and its binding) from directories where an
+      # earlier version of this file created it.
+      - model: authentik_stages_user_login.userloginstage
+        state: absent
+        identifiers:
+          name: WLSLUG-set-password-login
+
+      # The SES-sandbox notice is GONE: AWS granted production access on 2026-11-04
+      # (docs/email/01-ses.md), and "your mail may not arrive" had become a false
+      # statement to everyone who forgets a password. `absent`, like the login stage
+      # above, because a blueprint only deletes what it names: leaving these lines out
+      # would keep the stage and its text in the flow. Deleting the stage takes its flow
+      # binding and that binding's policy binding with it (both cascade). doctor warns
+      # if the notice is declared present while the gate says production.
+      - model: authentik_stages_prompt.promptstage
+        state: absent
+        identifiers:
+          name: WLSLUG-set-password-sandbox-notice
+      - model: authentik_stages_prompt.prompt
+        state: absent
+        identifiers:
+          name: WLSLUG-set-password-sandbox-notice
+      - model: authentik_flows.flowstagebinding
+        id: bind-identification
+        identifiers: { target: !KeyOf flow, stage: !KeyOf identification, order: 10 }
+        attrs: { evaluate_on_plan: true, re_evaluate_policies: false, policy_engine_mode: any, invalid_response_action: retry }
+      - model: authentik_flows.flowstagebinding
+        id: bind-email
+        identifiers: { target: !KeyOf flow, stage: !KeyOf email, order: 20 }
+        attrs: { evaluate_on_plan: true, re_evaluate_policies: false, policy_engine_mode: any, invalid_response_action: retry }
+      - model: authentik_flows.flowstagebinding
+        identifiers: { target: !KeyOf flow, stage: !KeyOf prompt, order: 30 }
+        attrs: { evaluate_on_plan: true, re_evaluate_policies: false, policy_engine_mode: any, invalid_response_action: retry }
+      - model: authentik_flows.flowstagebinding
+        identifiers: { target: !KeyOf flow, stage: !KeyOf write, order: 40 }
+        attrs: { evaluate_on_plan: true, re_evaluate_policies: false, policy_engine_mode: any, invalid_response_action: retry }
+      - model: authentik_policies.policybinding
+        identifiers: { policy: !KeyOf needs-identification, target: !KeyOf bind-identification, order: 0 }
+        attrs: { negate: false, enabled: true, timeout: 30 }
+      - model: authentik_policies.policybinding
+        identifiers: { policy: !KeyOf needs-identification, target: !KeyOf bind-email, order: 0 }
+        attrs: { negate: false, enabled: true, timeout: 30 }
+
+      # The same policy on the built-in "change password" prompt, so a person
+      # signed in cannot replace a strong password with a weak one.
+      - model: authentik_stages_prompt.promptstage
+        identifiers:
+          name: default-password-change-prompt
+        attrs:
+          validation_policies:
+            - !KeyOf password-policy
+
+      # The "Forgot password?" link on the login page, and the flow the admin
+      # API's recovery endpoints use: both read the BRAND's recovery flow.
+      - model: authentik_stages_identification.identificationstage
+        identifiers:
+          name: default-authentication-identification
+        attrs:
+          # Restated as it is live (2026-10-22): the serializer validates the
+          # stage as a whole and refuses one with neither user fields nor sources.
+          user_fields: [email, username]
+          recovery_flow: !KeyOf flow
+      # The ONE brand, found as the default rather than by its domain: keyed by
+      # domain, renaming the host (auth.dev → auth, 2026-10-24) would have
+      # CREATED a second brand with none of the default's flows and matched it
+      # on the new host. Keyed by `default`, the rename is an update in place.
+      - model: authentik_brands.brand
+        identifiers:
+          default: true
+        attrs:
+          domain: WLAUTHHOST
+          flow_recovery: !KeyOf flow

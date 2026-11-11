@@ -1,0 +1,161 @@
+# A scheduled, consistent copy of the k3s datastore to the object store. RUNBOOK
+# 2026-11-03. The server on dev runs SQLite (kine), not etcd: `--etcd-s3*` does nothing
+# there, and nothing else holds kube-system, argocd, arc-runners or the cluster's
+# certificates.
+#
+# WHY A CRONJOB, AND WHY IN THIS NAMESPACE. Reading the file needs a hostPath. The
+# policy disallow-host-namespaces-and-hostpath refuses one everywhere except its listed
+# namespaces, and it stays exactly as it is: no new exclusion and no exception. This
+# namespace is the one that policy already sets aside for work on the node, so the job
+# sits here, and asks for far less than what already runs here: a SUC Plan job is
+# privileged with hostPID and the whole node at /host; this is unprivileged, no
+# capabilities, no host namespace, one directory, mounted read-only. Only the container
+# that opens the file is uid 0, because k3s keeps that directory 0700 root (measured:
+# uid 65534 is refused); with every capability dropped that uid passes only as the
+# directory's owner and holds no credential. The other two containers are uid 65534.
+#
+# WHY NOT THE ALTERNATIVES. A SUC Plan runs once per version, so it schedules nothing.
+# A systemd timer laid down by a Plan and by cloud-init would put a second copy of the
+# S3 key on the node's disk, needs a Python and an S3 client on the host, misses ESO
+# rotation, and fails where estate-watch cannot see it. Here estate-watch covers the
+# job by derivation (cron-failed, cron-silent) and ESO rotates its credential.
+#
+# THE LIVE FILE IS ONLY EVER READ. The mount is readOnly and copy.py opens the database
+# mode=ro through SQLite's online-backup API, never a file copy. k3s is not restarted
+# and not told. A failed or late run costs one stale copy and nothing else.
+#
+# COST, measured on dev 2026-11-03 (RUNBOOK): see the resources below. The node is busy,
+# so CPU is capped; the file is read at that pace and writers are not blocked, because
+# in WAL mode a reader holds no lock against them.
+#
+# THE COPY HOLDS EVERY SECRET ON THE CLUSTER IN PLAINTEXT (no --secrets-encryption), as
+# Velero's backups and the tofu state in this same bucket already do. Same caveat as
+# RUNBOOK "Single-bucket blast radius". Restore: scripts/restore-datastore.sh. Proof it
+# restores: scripts/restore-drill.sh <env> datastore.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k3s-datastore-s3
+  namespace: system-upgrade
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: k3s-datastore-s3
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k3s-datastore-copy
+  namespace: system-upgrade
+  annotations:
+    alerts/owner: "platform-infra" # keyed alerts.<ESTATE_LABEL_DOMAIN>/owner by ../../components/alert-owner
+spec:
+  schedule: "15 */6 * * *" # between velero's :00 and openbao-snapshot's :30
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app: k3s-datastore-copy
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          # The file exists on the control plane only.
+          nodeSelector:
+            node-role.kubernetes.io/control-plane: "true"
+          tolerations:
+            - { key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists }
+            - { key: CriticalAddonsOnly, operator: Exists }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: db
+              hostPath: { path: /var/lib/rancher/k3s/server/db, type: Directory }
+            # On disk, not memory: the copy is the size of the database. Emptied by
+            # upload.sh, and copy.py removes what it wrote when it refuses.
+            - name: work
+              emptyDir: { sizeLimit: 2Gi }
+            - name: scripts
+              configMap: { name: k3s-datastore-copy, defaultMode: 0555 }
+          initContainers:
+            # Fail loud and by name, before the file is opened.
+            - name: assert-secrets
+              image: busybox:1.37
+              securityContext: &restricted
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 50m, memory: 32Mi }
+              envFrom:
+                - secretRef: { name: k3s-datastore-s3 }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  [ -n "${AWS_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_ACCESS_KEY_ID" >&2; exit 1; }
+                  [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_SECRET_ACCESS_KEY" >&2; exit 1; }
+            # Holds no credential: this container reads the file, the next one has the key.
+            - name: copy
+              image: python:3.13-alpine
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+                runAsNonRoot: false
+                runAsUser: 0
+                runAsGroup: 0
+              resources:
+                requests: { cpu: 100m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+              env:
+                - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
+              command: ["python", "-I", "/scripts/copy.py"]
+              volumeMounts:
+                - { name: db, mountPath: /db, readOnly: true }
+                - { name: work, mountPath: /work }
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+          containers:
+            - name: upload
+              image: amazon/aws-cli:2.17.0
+              securityContext: *restricted
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              env:
+                - { name: HOME, value: /work }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: datastore-snapshots }
+                - { name: KEEP, value: "20" }
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: { name: k3s-datastore-s3, key: AWS_ACCESS_KEY_ID }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: { name: k3s-datastore-s3, key: AWS_SECRET_ACCESS_KEY }
+              command: ["/bin/sh", "/scripts/upload.sh"]
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: scripts, mountPath: /scripts, readOnly: true }

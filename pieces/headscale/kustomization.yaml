@@ -1,0 +1,83 @@
+# SEB piece `headscale`: the tailnet's control plane (Headscale), its console (Headplane), the
+# two tailnet routers, the tailnet-check page and the database copy. Delivered in the SEB
+# bundle, rendered at build time (tools/bundle/build.mjs). Design and proof:
+# docs/headscale/00-plan.md.
+#
+# The estate's values come from its identity (the whitelabel component): the base writes the
+# control host as HEADSCALE.WLDOMAIN (HEADSCALE_HOST_PREFIX . apex), the console as
+# headplane.WLDOMAIN, the alert owner as WLOPSEMAIL and the bucket as WLBUCKET; the
+# replacements below fill them in. What is the estate's own and not a setting (the sign-in
+# settings, the access policy naming people, the relay map and the DNS records, i.e. the
+# ConfigMaps headscale-config and headplane-config) comes from the estate's layer
+# (../../components/estate/headscale).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: headscale
+resources:
+  - base
+
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../components/prune-guard
+  - ../../components/whitelabel
+  - ../../components/estate/headscale
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The apex: every host is <label>.WLDOMAIN, so the apex is dot-split index 1.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Ingress }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+  # The control host's label: HEADSCALE_HOST_PREFIX, dot-split index 0.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.HEADSCALE_HOST_PREFIX }
+    targets:
+      - select: { kind: Ingress, name: headscale }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 0 }
+  # The control host, once filled in, into the routers' login server (`--login-server=https://<host>`).
+  - source: { kind: Ingress, name: headscale, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: StatefulSet, name: tailnet-router }
+        fieldPaths:
+          - spec.template.spec.containers.[name=tailscale].env.[name=TS_EXTRA_ARGS].value
+        options: { delimiter: "//", index: 1 }
+  # The console host into its homepage link (`https://<host>/`) and the Traefik rule that names
+  # it between backticks.
+  - source: { kind: Ingress, name: headplane, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: Ingress, name: headplane }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: IngressRoute, name: headplane-no-key-login }
+        fieldPaths: [spec.routes.0.match]
+        options: { delimiter: "`", index: 1 }
+  # Who is paged for a workload: the estate's operations address (the key is moved to
+  # alerts.<apex>/owner by ../../components/alert-owner). The database copy pages its own owner.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { kind: Deployment }
+        fieldPaths: [metadata.annotations.alerts/owner]
+      - select: { kind: StatefulSet }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  # Object storage: the bucket is <prefix>-tfstate-<env> (BUCKET_PREFIX is the part before the
+  # first dash), region and endpoint whole.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: CronJob, name: headscale-db-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: CronJob, name: headscale-db-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_REGION].value
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: CronJob, name: headscale-db-copy }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_ENDPOINT_URL].value
+transformers:
+  - ../../components/alert-owner

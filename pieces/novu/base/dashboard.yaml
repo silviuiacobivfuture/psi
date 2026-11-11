@@ -1,0 +1,211 @@
+# Novu dashboard — a static SPA (http-server on :4000), in THREE instances:
+#   novu-dashboard         https://novu.<tailnet> (ingress-tailnet.yaml)
+#   novu-dashboard-public  https://novu.<apex> behind Authentik
+#                          (ingress-dashboard.yaml; why two: see the second
+#                          Deployment below). Owner, 2026-10-28: "should exist
+#                          at novu.<apex>".
+#   novu-dashboard-net     https://novu.<mesh>, the Headscale private name
+#                          (last Deployment below; Stage 6 retires the first).
+#
+# It is a PURE BROWSER CLIENT: it holds no secret and no database connection.
+# The browser dials VITE_API_HOSTNAME / VITE_WEBSOCKET_HOSTNAME directly, so they
+# must be addresses the operator's browser can reach:
+#   * API = the TAILNET api host, NOT the public one — the public ingress refuses
+#     /v1/auth/* (ingress.yaml), and the dashboard logs in through exactly that.
+#   * WS  = the public ws host (socket auth is a JWT; nothing to hide there).
+#
+# WRITABLE ROOT FS, deliberately: the image's /app/docker-entrypoint.sh injects
+# the VITE_* values into /app/dist/index.html with `sed -i` at every start
+# (apps/dashboard/docker-entrypoint.sh @ v3.19.0). A read-only root filesystem
+# makes the sed fail and the SPA boot pointed at nothing.
+# Version pin + evidence: see api.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-dashboard
+  labels: { app.kubernetes.io/name: novu-dashboard }
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    # No Secret is injected here at all, so the require-reloader-annotation
+    # precondition does not match; declared "false" so the opt-out is in git.
+    reloader.stakater.com/auto: "false"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-dashboard }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-dashboard }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: dashboard
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/dashboard:3.19.0@sha256:f9d793ed355fb5c96c012c6f8736f55732d4f4617743f71dc26bced160d4957d
+          env:
+            - { name: VITE_API_HOSTNAME, value: "https://novu-api.WLTAILNET" }
+            - { name: VITE_WEBSOCKET_HOSTNAME, value: "https://novu-ws.WLDOMAIN" }
+          ports:
+            - { name: http, containerPort: 4000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-dashboard
+  labels: { app.kubernetes.io/name: novu-dashboard }
+spec:
+  selector: { app.kubernetes.io/name: novu-dashboard }
+  ports:
+    - { name: http, port: 4000, targetPort: http }
+---
+# THE SECOND DASHBOARD — https://novu.<apex>, behind Authentik.
+#
+# Why a second instance and not the first one re-pointed: the SPA bakes in ONE
+# absolute API base (window._env_.VITE_API_HOSTNAME, read once at boot; in the
+# 3.19.0 bundle every call is `${base}/v1…` or `${base}/v2…`). The two origins
+# need two different bases:
+#   * tailnet page -> https://novu-api.<tailnet> (the tailnet api host);
+#   * public page  -> https://novu.<apex> ITSELF. The gated ingress
+#     (ingress-dashboard.yaml) routes /v1 and /v2 on this host to novu-api
+#     behind the same forward-auth as the page, so the SPA's calls are
+#     same-origin and carry the host-only Authentik cookie. Its pages are served
+#     THROUGH novu-sso (sso.yaml), which adds the guard and signs the person in
+#     from Authentik; Novu's own login, registration and reset are closed on that
+#     host (ingress-dashboard.yaml, apps/novu-sso).
+# One base for both pages cannot work: from the tailnet origin a call to
+# novu.<apex> is cross-site, the SameSite=Lax Authentik cookie is not sent,
+# and every call would bounce to the sign-in page.
+# Same pinned image, same hardening, same entrypoint caveat (writable root FS).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-dashboard-public
+  labels: { app.kubernetes.io/name: novu-dashboard-public }
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    reloader.stakater.com/auto: "false"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-dashboard-public }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-dashboard-public }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: dashboard
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/dashboard:3.19.0@sha256:f9d793ed355fb5c96c012c6f8736f55732d4f4617743f71dc26bced160d4957d
+          env:
+            - { name: VITE_API_HOSTNAME, value: "https://novu.WLDOMAIN" }
+            - { name: VITE_WEBSOCKET_HOSTNAME, value: "https://novu-ws.WLDOMAIN" }
+          ports:
+            - { name: http, containerPort: 4000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-dashboard-public
+  labels: { app.kubernetes.io/name: novu-dashboard-public }
+spec:
+  selector: { app.kubernetes.io/name: novu-dashboard-public }
+  ports:
+    - { name: http, port: 4000, targetPort: http }
+---
+# THE THIRD DASHBOARD — https://novu.<mesh>, on the Headscale network. The same reason as the
+# second: the SPA bakes one API base, and from this origin it must be this network's API host. Novu's
+# own login stays here as it does on the tailnet page: this is the door that works without Authentik.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-dashboard-net
+  labels: { app.kubernetes.io/name: novu-dashboard-net }
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    reloader.stakater.com/auto: "false"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: novu-dashboard-net }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: novu-dashboard-net }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: dashboard
+          image: WLREGISTRY/mirror/ghcr.io/novuhq/novu/dashboard:3.19.0@sha256:f9d793ed355fb5c96c012c6f8736f55732d4f4617743f71dc26bced160d4957d
+          env:
+            - { name: VITE_API_HOSTNAME, value: "https://novu-api.WLMESH" }
+            - { name: VITE_WEBSOCKET_HOSTNAME, value: "https://novu-ws.WLDOMAIN" }
+          ports:
+            - { name: http, containerPort: 4000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-dashboard-net
+  labels: { app.kubernetes.io/name: novu-dashboard-net }
+spec:
+  selector: { app.kubernetes.io/name: novu-dashboard-net }
+  ports:
+    - { name: http, port: 4000, targetPort: http }

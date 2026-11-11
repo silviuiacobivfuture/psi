@@ -1,0 +1,19 @@
+# Composes patches.yaml's JSON-patch paths from the estate's domain (components/alert-owner/key)
+# so no policy and no patch names it. See ../kustomization.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  - ../../../../components/whitelabel
+  - ../../../../components/alert-owner/key
+resources:
+  - patches.yaml
+replacements:
+  - source: { kind: ConfigMap, name: alert-owner-key, fieldPath: data.POINTER }
+    targets:
+      # `path:` is the last "/"-segment of each patch (segment 16).
+      - select: { kind: PatchTransformer, name: require-alert-annotation-owner-key }
+        fieldPaths: [patch]
+        options: { delimiter: "/", index: 16 }
+      - select: { kind: PatchTransformer, name: mutate-reportportal-annotations-owner-key }
+        fieldPaths: [patch]
+        options: { delimiter: "/", index: 16 }

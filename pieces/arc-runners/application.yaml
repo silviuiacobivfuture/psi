@@ -1,0 +1,39 @@
+# SEB piece `arc-runners` — the GitHub Actions runner scale set (gha-runner-scale-set): ephemeral
+# runner pods for the estate's GitHub owner (`runs-on: k8s` in a workflow → a pod spins up here,
+# runs the job, vanishes). A dind sidecar gives each runner a docker daemon (for `docker build`).
+# Auth via the arc-github-pat secret (arc-runner-secret.yaml in the dev overlay, from OpenBao).
+# Its controller is the piece arc-controller.
+#
+# A HELM piece (contract: tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; values.yaml beside it is the chart's values. The estate's GitHub owner and registry
+# come from the identity (placeholders below); the notes in values.yaml that name an estate's own
+# incidents are ESTATE SLOTS, filled from <estate-components>/arc-runners/<slot>.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: arc-runners
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.14.2
+    helm:
+      # Estate values: filled from the identity by the estate's upgrade step, never written here.
+      parameters:
+        - name: githubConfigUrl
+          value: https://${GIT_HOST}/${GIT_OWNER}
+          forceString: true
+        - name: template.spec.initContainers[1].image
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/docker:dind@sha256:97545b7bab66319a476800a85b008b25c06681733d484909e2a776281e41574f
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

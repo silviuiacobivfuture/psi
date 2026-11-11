@@ -1,0 +1,29 @@
+# Per-namespace guard-rails for nextcloud. The LimitRange MUST exist before the
+# ResourceQuota: once a quota constrains requests.*/limits.*, every pod that omits
+# them is rejected — the LimitRange backfills defaults so nothing gets bounced
+# (notably the CNPG operator's transient join/backup pods, whose specs we do not
+# write by hand). Sized from the live set: nextcloud (200m/768Mi req, 2/2Gi lim) +
+# cron sidecar + collabora (200m/512Mi, 2/2Gi) + postgres (200m/512Mi, 1/1Gi) +
+# redis, with headroom for a Recreate rollout and a CNPG backup pod.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nextcloud
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 50m, memory: 128Mi }
+      default: { cpu: "1", memory: 1Gi }
+      max: { cpu: "2", memory: 3Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nextcloud
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "12"
+    limits.memory: 12Gi
+    pods: "12"

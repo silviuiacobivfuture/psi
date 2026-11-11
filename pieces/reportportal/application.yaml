@@ -1,0 +1,172 @@
+# ReportPortal — the engineer-facing half of test visibility: permanent per-test
+# history, trends, flakiness, and ML clustering of recurring failures. Phase 3 of
+# infrastructure/hetzner/TEST-VISIBILITY-PLAN.md.
+#
+# IT DOES NOT REPLACE `test-reports` (phase 2). That service answers the BUSINESS
+# question — "which business rules hold, and since when did that change" — in
+# Romanian prose, and no generic test tool can, because none of them knows what a
+# business rule is here. This answers the ENGINEER question. Both read the same CI
+# run; they are layers, not alternatives.
+#
+# SPLIT, mirroring plane / plane-platform and nextcloud / nextcloud-platform:
+#   - THIS app = the upstream Helm chart (api, uat, ui, index, jobs, analyzer, the
+#     migrations Job, the pre-upgrade hook) + the OpenSearch subchart.
+#   - `reportportal-platform` (git, wave 1) = the CNPG Postgres Cluster, our
+#     RabbitMQ, every ExternalSecret, the two public Ingresses, the namespace quota.
+#
+# ============================ THE BITNAMI AUDIT ===============================
+# The chart has four optional subcharts. EXACTLY ONE of them is a Bitnami chart —
+# `minio`, pinned in the chart's own values to `bitnamilegacy/minio`, i.e. the
+# DEPRECATED registry this platform has already been burned by twice (Redis and
+# RabbitMQ; see the nextcloud and plane manifests). Disabling it removes the only
+# exposure. VERIFIED by rendering: with the values below, `helm template` emits
+# these images and no others —
+#   opensearchproject/opensearch:3.8.0      rancher/kubectl:v1.36.2
+#   reportportal/k8s-wait-for:2.1.5         reportportal/migrations:5.15.4
+#   reportportal/service-api:5.15.4         reportportal/service-authorization:5.15.1
+#   reportportal/service-auto-analyzer:5.15.5  reportportal/service-index:5.15.1
+#   reportportal/service-jobs:5.15.2        reportportal/service-ui:5.15.5
+# — no `bitnami/*`, no `bitnamilegacy/*`, and every tag pinned (disallow-latest-tag
+# is ENFORCE). The other two subcharts are CloudPirates charts pulling the official
+# docker-library `postgres` and `rabbitmq` images; both are disabled anyway.
+# If a future chart version reintroduces a bitnami image, this list is the diff to
+# check it against.
+# ==============================================================================
+#
+# ======================== SSO — READ BEFORE CHANGING ==========================
+# ReportPortal has NO OIDC. Checked twice, both ways:
+#   * The CHART exposes no auth-provider values at all — the only auth key in
+#     values.yaml is `uat.samlSessionLiveTime`. There is nothing to configure.
+#   * The DOCS list Active Directory, GitHub, LDAP and SAML 2.0 as the supported
+#     providers (reportportal.io/docs/plugins/authorization), and SAML is configured
+#     through `Administration -> Plugins -> SAML -> Add integration` — i.e. it is a
+#     ROW IN REPORTPORTAL'S OWN POSTGRES, not a file and not an env var.
+# So federating to Authentik is not expressible as a Helm value, and OIDC is not
+# expressible at all. Identity is therefore enforced ONE LAYER OUT, exactly as it is
+# for Plane: the browser Ingress carries the Authentik forward-auth middleware, and
+# ReportPortal's own account model is the second gate.
+#
+# IF SAML SSO IS EVER WANTED: the as-code path is an idempotent reconcile CronJob
+# against the uat API — the same pattern and rationale as
+# gitops/platform/secrets/harbor-oidc-reconcile.yaml and nextcloud's occ reconcile.
+# Add an Authentik SAML provider to blueprints-providers.yaml, seed the metadata URL
+# + certificate at secret/platform/authentik/reportportal-saml, and only THEN
+# consider dropping the middleware from the UI Ingress. Do not drop it first.
+# ==============================================================================
+#
+# KYVERNO: the reportportal namespace is excluded from the `disallow-privilege-
+# escalation` rule of `disallow-privileged` — and from that rule ONLY — because the
+# chart renders no container-level securityContext anywhere and exposes no seam for
+# one. It exposes a POD-level seam, which the values below use on every workload
+# (runAsNonRoot + a VERIFIED numeric runAsUser + seccompProfile). The two
+# annotations the chart also cannot carry are injected by the narrow mutate policy
+# `gitops/platform/kyverno/mutate-reportportal-annotations.yaml`, which is why
+# `require-reloader-annotation`, `require-alert-annotation` and
+# `require-run-as-non-root` all stay ENFORCE here. Rationale at each site.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reportportal
+  namespace: argocd
+  annotations:
+    # After reportportal-platform (wave 1): the chart's pods block on the CNPG
+    # Cluster's -rw Service, RabbitMQ and the ESO-synced Secrets existing.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  ignoreDifferences:
+    # The two annotations Kyverno injects (see the header). They exist on the LIVE
+    # object and in the ClusterPolicy, never in the chart's render — without this
+    # the app is permanently OutOfSync and self-heal fights the webhook every three
+    # minutes. RespectIgnoreDifferences below is what makes it stick: it strips
+    # these paths from the APPLIED patch, not merely from the diff view.
+    - group: apps
+      kind: Deployment
+      jqPathExpressions:
+        - '.metadata.annotations."reloader.stakater.com/auto"'
+        - '.metadata.annotations."alerts.${ESTATE_LABEL_DOMAIN}/owner"'
+    - group: apps
+      kind: StatefulSet
+      jqPathExpressions:
+        - '.metadata.annotations."reloader.stakater.com/auto"'
+        - '.metadata.annotations."alerts.${ESTATE_LABEL_DOMAIN}/owner"'
+        # API-server-defaulted fields on the analyzer + OpenSearch StatefulSets.
+        # Same list, same reasons as plane-platform.yaml — see that file. Kept even
+        # though these come from a chart rather than a hand-written manifest:
+        # plane's cost real debugging time to find, and carrying the list is free.
+        - '.spec.volumeClaimTemplates[].status'
+        - '.spec.volumeClaimTemplates[].spec.volumeMode'
+        - '.spec.volumeClaimTemplates[].apiVersion'
+        - '.spec.volumeClaimTemplates[].kind'
+        - '.spec.podManagementPolicy'
+        - '.spec.revisionHistoryLimit'
+        - '.spec.persistentVolumeClaimRetentionPolicy'
+  source:
+    # The documented URL (reportportal.io/kubernetes) 403s behind CloudFront and Argo's
+    # repo-server could not fetch the chart from it (VERIFIED on dev 2026-08-20:
+    # "not a valid chart repository or cannot be reached"). The GitHub Pages URL
+    # redirects here, and this host serves index.yaml with 26.8.12 present.
+    repoURL: https://k8s.reportportal.io
+    chart: reportportal
+    # Pinned. appVersion 26.0.5. NOTE: this repo is served through CloudFront and was
+    # NOT reachable from the workstation while this was written (HTTP 403 "Request
+    # blocked") — the chart was verified from its GitHub source at tag
+    # `reportportal-26.8.12` instead. Argo's repo-server reaches it from the cluster;
+    # if the first sync fails on the repo, that is the thing to check first.
+    targetRevision: 26.8.12
+    helm:
+      parameters:
+        - name: opensearch.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/opensearchproject/opensearch
+          forceString: true
+        - name: storage.bucket.bucketDefaultName
+          value: ${BUCKET_PREFIX}-reportportal-dev
+          forceString: true
+        - name: kubectl.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/rancher/kubectl
+          forceString: true
+        - name: k8sWaitFor.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/k8s-wait-for
+          forceString: true
+        - name: serviceapi.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-api
+          forceString: true
+        - name: serviceapi.extraInitContainers[0].image
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          forceString: true
+        - name: uat.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-authorization
+          forceString: true
+        - name: uat.extraInitContainers[0].image
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          forceString: true
+        - name: serviceui.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-ui
+          forceString: true
+        - name: serviceindex.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-index
+          forceString: true
+        - name: servicejobs.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-jobs
+          forceString: true
+        - name: serviceanalyzer.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/service-auto-analyzer
+          forceString: true
+        - name: migrations.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/reportportal/migrations
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: reportportal
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      # Load-bearing: it strips the ignoreDifferences paths from the APPLIED patch,
+      # not just from the diff view. Without it every sync would push a patch that
+      # REMOVES the Kyverno-injected annotations, the webhook would put them back,
+      # and Argo would go OutOfSync again three minutes later — forever.
+      - RespectIgnoreDifferences=true

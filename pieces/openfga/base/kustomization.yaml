@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - harbor-pull-externalsecret.yaml
+  - cnpg-cluster.yaml
+  - externalsecret.yaml
+  - deployment.yaml
+  - service.yaml
+  # @rule OPS-2 / decision D7 — the L4 half of the port split. The Deployment
+  # above is the L7 half; NEITHER is sufficient alone, so a change that removes
+  # this line has removed the control, not simplified the manifest.
+  - networkpolicy.yaml
+  - resourcequota.yaml
+  # NO ingress.yaml, and its absence is a decision (01-architecture.md: "OpenFGA
+  # ClusterIP only — NO Ingress"). Every consumer is in-cluster; an Ingress would
+  # put an L7 surface in front of an L4 control and defeat it.

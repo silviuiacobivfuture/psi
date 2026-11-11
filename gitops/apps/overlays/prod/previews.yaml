@@ -1,0 +1,94 @@
+# Preview environments for the PROD cluster.
+#
+# Any open PR whose BASE branch is `prod` (a transient branch forked from prod —
+# e.g. a hotfix — "belonging" to the prod environment) gets an ephemeral
+# deployment in its own `preview-pr-<n>` namespace at its own host, built from the
+# PR's head commit, on the prod cluster. Auto-destroyed when the PR closes. Lets
+# you validate a prod-targeted change against prod-like infra before merging,
+# without touching the live prod app.
+#
+# Same `github-pr-creds` Secret contract as the dev overlay (ESO ← OpenBao
+# secret/github key `token`).
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-pr-creds
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: openbao
+    kind: ClusterSecretStore
+  target:
+    name: github-pr-creds
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: platform/github/token
+        property: token
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: previews-prod
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        github:
+          owner: RecomExpert
+          repo: platform
+          tokenRef:
+            secretName: github-pr-creds
+            key: token
+        # Only PRs targeting `prod` → previews belong to the prod environment.
+        filters:
+          - targetBranchMatch: "^prod$"
+        requeueAfterSeconds: 120
+  template:
+    metadata:
+      name: "preview-{{.number}}-changelog"
+      labels:
+        platform.recomex.eu/preview: prod
+        platform.recomex.eu/pr: "{{.number}}"
+    spec:
+      project: default
+      source:
+        repoURL: git@github.com:silviuiacobivfuture/psi.git
+        targetRevision: "{{.head_sha}}"
+        path: gitops/services/changelog/overlays/prod
+        kustomize:
+          # Per-PR namespace isolation + own host (rule + TLS SAN). Requires a
+          # wildcard *.recomex.eu DNS/cert (or adjust to a preview subdomain).
+          namespace: "preview-pr-{{.number}}"
+          patches:
+            - target:
+                kind: Ingress
+              patch: |
+                - op: replace
+                  path: /spec/rules/0/host
+                  value: changelog-pr-{{.number}}.recomex.eu
+                - op: replace
+                  path: /spec/tls/0/hosts/0
+                  value: changelog-pr-{{.number}}.recomex.eu
+            # Per-PR isolated Neon branch (secret/previews/changelog/pr-<n>/env).
+            - target:
+                kind: ExternalSecret
+                name: changelog-db
+              patch: |
+                - op: replace
+                  path: /spec/dataFrom/0/extract/key
+                  value: previews/changelog/pr-{{.number}}/env
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-pr-{{.number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# The ESTATE's additions to the kyverno-policies piece. SEB adds nothing: this is the default.
+# An estate supplies its own directory of the same name to the bundle builder
+# (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
+# replaces this one in the build workdir. Typical use: append the estate's own namespaces to a
+# policy's exclusion list, each with its reason, e.g.
+#   patches:
+#     - target: { kind: ClusterPolicy, name: require-run-as-non-root }
+#       patch: |-
+#         - op: add
+#           path: /spec/rules/0/exclude/any/0/resources/namespaces/-
+#           value: <namespace>
+resources: []

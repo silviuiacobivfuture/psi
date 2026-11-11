@@ -1,0 +1,41 @@
+# Authentik core secrets → authentik-env secret in the authentik namespace.
+# Mounted into the server + worker pods via the chart's global.envFrom (see
+# gitops/apps/overlays/dev/authentik.yaml). One secret carries:
+#   - AUTHENTIK_SECRET_KEY          (cookie/token signing — must be stable)
+#   - AUTHENTIK_BOOTSTRAP_PASSWORD  (initial akadmin password)
+#   - AUTHENTIK_BOOTSTRAP_TOKEN     (initial API token for blueprints/automation)
+#   - AUTHENTIK_POSTGRESQL__PASSWORD / AUTHENTIK_REDIS__PASSWORD (app→db/cache auth)
+# Synced from OpenBao secret/platform/authentik/* by ESO. Values never in git.
+# The authentik namespace is created by the authentik Argo app; ESO retries until
+# it exists (same as harbor / velero). See gitops/PLATFORM.md.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-env
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-env
+    creationPolicy: Owner
+    template:
+      # Render the keys the authentik image reads as env vars (envFrom → all keys
+      # become env). __ maps to a nested config path (POSTGRESQL__PASSWORD etc).
+      data:
+        AUTHENTIK_SECRET_KEY: "{{ .secret_key }}"
+        AUTHENTIK_BOOTSTRAP_PASSWORD: "{{ .bootstrap_password }}"
+        AUTHENTIK_BOOTSTRAP_TOKEN: "{{ .bootstrap_token }}"
+        AUTHENTIK_POSTGRESQL__PASSWORD: "{{ .postgresql_password }}"
+        AUTHENTIK_REDIS__PASSWORD: "{{ .redis_password }}"
+  data:
+    - secretKey: secret_key
+      remoteRef: { key: platform/authentik/secret-key, property: secret_key }
+    - secretKey: bootstrap_password
+      remoteRef: { key: platform/authentik/bootstrap, property: password }
+    - secretKey: bootstrap_token
+      remoteRef: { key: platform/authentik/bootstrap, property: token }
+    - secretKey: postgresql_password
+      remoteRef: { key: platform/authentik/postgresql, property: password }
+    - secretKey: redis_password
+      remoteRef: { key: platform/authentik/redis, property: password }

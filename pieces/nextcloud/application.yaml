@@ -1,0 +1,105 @@
+# Nextcloud Hub — the Microsoft-Teams-shaped half of the platform: files (S3 primary
+# storage), Office editing (Collabora, bundled subchart), Calendar/Contacts, and Talk
+# (chat + calls). SSO is Authentik OIDC; the media plane for Talk calls is the
+# separate `talk-hpb` Application (hostNetwork UDP — see seb/pieces/talk-hpb).
+#
+# SPLIT, mirroring authentik / authentik-platform:
+#   - THIS app  = the upstream Helm chart only.
+#   - `nextcloud-platform` (git) = everything the chart cannot express — the CNPG
+#     Postgres Cluster, Redis, the ExternalSecrets, the namespace quota, and the
+#     occ reconcile CronJob that writes the DB-stored config (OIDC/Talk) as code.
+#
+# STATE — three stores, deliberately:
+#   1. Files  → Hetzner Object Storage bucket <BUCKET_PREFIX>-collab-dev (Tofu:
+#      environments/dev/main.tf module.collab_storage). Its OWN bucket, though it
+#      could technically share one (OBJECTSTORE_S3_OBJECT_PREFIX exists, exposed as
+#      nextcloud.objectStore.s3.prefix), because versioning is a BUCKET-level
+#      setting and these files are the only data here that needs it, and because
+#      Hetzner has no path-level authorization — one credential sees a whole bucket,
+#      so company documents get their own blast radius.
+#   2. Database → CNPG cluster `nextcloud-db` (WAL-archived to S3 + 6-hourly pg_dump).
+#   3. /var/www/html → an 8Gi local-path PVC holding installed apps + config.php.
+#      NODE-PINNED and not resizable (the known local-path limitation, Track A of
+#      DURABILITY-HA-PLAN.md). It is REBUILDABLE state — apps reinstall and the occ
+#      reconcile CronJob rewrites the config — so a node loss costs a resync, not
+#      data. Velero backs it up anyway.
+#
+# ROOT: the nextcloud image's entrypoint runs as root (it chowns /var/www/html and
+# apache drops to www-data), so the namespace is listed in the
+# require-run-as-non-root Kyverno exclusion — same documented escape hatch as
+# browseruse-*. Everything else (requests+limits, no :latest, reloader) complies.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nextcloud
+  namespace: argocd
+  annotations:
+    # After nextcloud-platform (wave 1): the chart's pod blocks on the CNPG
+    # Cluster's -rw Service and the ESO-synced secrets existing.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  ignoreDifferences:
+    # The chart mints a fresh `nextcloud-...` Secret on every render when values do
+    # not pin one; the pod-template checksum annotations move with it. Same churn
+    # Harbor has — ignore it or every sync is permanently OutOfSync.
+    - kind: Deployment
+      jqPathExpressions: ['.spec.template.metadata.annotations']
+  source:
+    repoURL: https://nextcloud.github.io/helm/
+    chart: nextcloud
+    targetRevision: 9.2.6 # Nextcloud 34.0.3 (image tag derives from appVersion)
+    helm:
+      parameters:
+        - name: image.registry
+          value: ${REGISTRY_HOST}
+          forceString: true
+        - name: ingress.annotations.gethomepage\.dev/href
+          value: https://cloud.${BASE_DOMAIN}
+          forceString: true
+        - name: nextcloud.host
+          value: cloud.${BASE_DOMAIN}
+          forceString: true
+        - name: nextcloud.objectStore.s3.bucket
+          value: ${BUCKET_PREFIX}-collab-dev
+          forceString: true
+        - name: nextcloud.extraInitContainers[0].image
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          forceString: true
+        - name: nextcloud.extraEnv[0].value
+          value: plunk-smtp.${BASE_DOMAIN}
+          forceString: true
+        - name: nextcloud.extraEnv[6].value
+          value: cloud.${BASE_DOMAIN}
+          forceString: true
+        - name: collabora.image.repository
+          value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/collabora/code
+          forceString: true
+        - name: collabora.collabora.server_name
+          value: office.${BASE_DOMAIN}
+          forceString: true
+        - name: ingress.tls[0].secretName
+          value: cloud-${ESTATE_SLUG}-tls
+          forceString: true
+        - name: ingress.tls[0].hosts[0]
+          value: cloud.${BASE_DOMAIN}
+          forceString: true
+        - name: nextcloud.trustedDomains[0]
+          value: cloud.${BASE_DOMAIN}
+          forceString: true
+        - name: collabora.ingress.hosts[0].host
+          value: office.${BASE_DOMAIN}
+          forceString: true
+        - name: collabora.ingress.tls[0].hosts[0]
+          value: office.${BASE_DOMAIN}
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nextcloud
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

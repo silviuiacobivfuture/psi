@@ -1,0 +1,549 @@
+/*
+ * THE ESTATE'S LOOK ON THE SIGN-IN — Authentik's brand stylesheet.
+ *
+ * Read by the blueprint (`branding_custom_css: !File …/recomex.css`, see
+ * blueprints-theme.yaml) and stored on the auth.dev brand. Authentik 2026.5
+ * puts it in the page head AND adopts it into the shadow root of every one of
+ * its web components, so one rule reaches the document and the inside of each
+ * component alike — which is why the token block below is declared for both
+ * `:root` and `:host`.
+ *
+ * NO COLOUR IS WRITTEN HERE. The token block is GENERATED from the design
+ * system (packages/rmx-ui: tokens.css for the roles, night.css for the sky) by
+ * packages/rmx-ui/scripts/authentik-assets.mjs, and the drift test there fails if it
+ * falls behind. Everything after it maps Authentik's PatternFly variables onto
+ * those roles. The sign-in wears the estate's DEFAULT theme — it is the front
+ * door of all five applications, not one of them — so there is no per-app
+ * accent here.
+ *
+ * THEMES. `html[data-theme]` on the page and `theme="…"` on each component are
+ * Authentik's own switch; with the brand's theme set to "automatic" (the
+ * blueprint) they follow the person's system preference. Dark is the night
+ * sky; light is the shared light theme on its washed ground. Every text/ground
+ * pair used here is a pair the design system's contrast suite already measures
+ * (WCAG 2.2 AA, both themes).
+ *
+ * MOTION. The star fields drift exactly as night.css drifts them, and not at
+ * all under `prefers-reduced-motion` — no animation is declared there, and the
+ * last block cuts every transition and animation Authentik itself declares.
+ */
+
+/* ── BEGIN GENERATED TOKENS — packages/rmx-ui/scripts/authentik-assets.mjs, from tokens.css and night.css. Do not edit by hand. ── */
+:root,
+:host {
+	--rx-radius: 0.5rem;
+	--rx-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+	--rx-background: oklch(0.985 0.004 262);
+	--rx-foreground: oklch(0.215 0.045 262);
+	--rx-card: oklch(0.996 0.004 262);
+	--rx-card-foreground: oklch(0.215 0.045 262);
+	--rx-popover: oklch(1 0 0);
+	--rx-popover-foreground: oklch(0.215 0.045 262);
+	--rx-primary: oklch(0.47 0.15 256);
+	--rx-primary-foreground: oklch(0.985 0.004 262);
+	--rx-secondary: oklch(0.955 0.01 262);
+	--rx-secondary-foreground: oklch(0.3 0.06 262);
+	--rx-muted: oklch(0.962 0.009 262);
+	--rx-muted-foreground: oklch(0.475 0.035 262);
+	--rx-accent: oklch(0.935 0.018 262);
+	--rx-accent-foreground: oklch(0.3 0.06 262);
+	--rx-destructive: oklch(0.51 0.2 27);
+	--rx-destructive-foreground: oklch(0.985 0.005 27);
+	--rx-border: oklch(0.922 0.012 262);
+	--rx-edge: oklch(0.885 0.016 262);
+	--rx-input: oklch(0.64 0.025 262);
+	--rx-ring: oklch(0.53 0.145 256);
+	--rx-success: oklch(0.935 0.055 152);
+	--rx-success-foreground: oklch(0.41 0.095 152);
+	--rx-warning: oklch(0.93 0.047 72);
+	--rx-warning-foreground: oklch(0.47 0.104 66);
+	--rx-danger: oklch(0.935 0.031 22);
+	--rx-danger-foreground: oklch(0.45 0.165 27);
+	--rx-info: oklch(0.935 0.031 245);
+	--rx-info-foreground: oklch(0.45 0.125 255);
+	--rx-scrim: oklch(0.16 0.03 262 / 0.55);
+	--rx-ground-ink: 0.06;
+	--rx-ground-wash: 0.05;
+}
+html[data-theme="dark"],
+:host([theme="dark"]) {
+	--rx-background: oklch(0.17 0.013 262);
+	--rx-foreground: oklch(0.945 0.008 262);
+	--rx-card: oklch(0.215 0.015 262);
+	--rx-card-foreground: oklch(0.945 0.008 262);
+	--rx-popover: oklch(0.265 0.018 262);
+	--rx-popover-foreground: oklch(0.945 0.008 262);
+	--rx-primary: oklch(0.69 0.15 256);
+	--rx-primary-foreground: oklch(0.17 0.02 262);
+	--rx-secondary: oklch(0.285 0.019 262);
+	--rx-secondary-foreground: oklch(0.925 0.01 262);
+	--rx-muted: oklch(0.265 0.017 262);
+	--rx-muted-foreground: oklch(0.745 0.021 262);
+	--rx-accent: oklch(0.315 0.025 262);
+	--rx-accent-foreground: oklch(0.945 0.008 262);
+	--rx-destructive: oklch(0.55 0.19 26);
+	--rx-destructive-foreground: oklch(0.98 0.005 26);
+	--rx-border: oklch(0.288 0.017 262);
+	--rx-edge: oklch(0.375 0.022 262);
+	--rx-input: oklch(0.55 0.024 262);
+	--rx-ring: oklch(0.7 0.14 256);
+	--rx-success: oklch(0.305 0.068 155);
+	--rx-success-foreground: oklch(0.86 0.125 152);
+	--rx-warning: oklch(0.305 0.065 62);
+	--rx-warning-foreground: oklch(0.86 0.11 72);
+	--rx-danger: oklch(0.305 0.1 25);
+	--rx-danger-foreground: oklch(0.86 0.075 25);
+	--rx-info: oklch(0.305 0.09 255);
+	--rx-info-foreground: oklch(0.86 0.068 250);
+	--rx-scrim: oklch(0.06 0.015 262 / 0.72);
+	--rx-ground-ink: 0.09;
+	--rx-ground-wash: 0.07;
+	--rx-night-star: 0.5;
+	--rx-night-star-bright: 0.85;
+	--rx-night-aurora: 0.32;
+	--rx-night-veil: 0.82;
+	--rx-sky-far: radial-gradient( circle at 48.6% 47.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.73px, transparent 1.33px ), radial-gradient( circle at 26.4% 75.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.58px, transparent 1.18px ), radial-gradient( circle at 15.3% 17.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.67px, transparent 1.27px ), radial-gradient( circle at 48.8% 98.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.58px, transparent 1.18px ), radial-gradient( circle at 11.2% 75.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.6px, transparent 1.2px ), radial-gradient( circle at 46.7% 66.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.67px, transparent 1.27px ), radial-gradient( circle at 50.6% 51.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.65px, transparent 1.25px ), radial-gradient( circle at 97.6% 45.6%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.59px, transparent 1.19px ), radial-gradient( circle at 47.8% 60.2%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.71px, transparent 1.31px ), radial-gradient( circle at 43.8% 6.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.78px, transparent 1.38px ), radial-gradient( circle at 25.9% 48.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.57px, transparent 1.17px ), radial-gradient( circle at 18.1% 25.4%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.51px, transparent 1.11px ), radial-gradient( circle at 83.7% 55.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.56px, transparent 1.16px ), radial-gradient( circle at 12.9% 33.4%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 55%), transparent) 0.6px, transparent 1.2px );
+	--rx-sky-far-size: 587px 587px;
+	--rx-sky-near: radial-gradient( circle at 35.0% 31.6%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1px, transparent 1.6px ), radial-gradient( circle at 52.4% 6.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.11px, transparent 1.71px ), radial-gradient( circle at 71.7% 54.5%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.2px, transparent 1.8px ), radial-gradient( circle at 97.8% 32.3%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.1px, transparent 1.7px ), radial-gradient( circle at 47.8% 11.7%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 0.99px, transparent 1.59px ), radial-gradient( circle at 29.4% 96.2%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.14px, transparent 1.74px ), radial-gradient( circle at 38.6% 20.8%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 0.96px, transparent 1.56px ), radial-gradient( circle at 46.9% 56.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.2px, transparent 1.8px ), radial-gradient( circle at 63.9% 57.8%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star) * 100%), transparent) 1.22px, transparent 1.82px );
+	--rx-sky-near-size: 839px 839px;
+	--rx-sky-bright-a: radial-gradient( circle at 47.3% 4.3%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.59px, transparent 2.19px ), radial-gradient( circle at 86.5% 23.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.77px, transparent 2.37px ), radial-gradient( circle at 15.5% 46.1%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.7px, transparent 2.3px );
+	--rx-sky-bright-a-size: 1049px 1049px;
+	--rx-sky-bright-b: radial-gradient( circle at 73.2% 5.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.42px, transparent 2.02px ), radial-gradient( circle at 33.3% 88.9%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.61px, transparent 2.21px ), radial-gradient( circle at 42.2% 64.0%, color-mix(in oklab, var(--rx-foreground) calc(var(--rx-night-star-bright) * 100%), transparent) 1.41px, transparent 2.01px );
+	--rx-sky-bright-b-size: 1223px 1223px;
+}
+/* ── END GENERATED TOKENS ── */
+
+/* ── PatternFly and Authentik, re-pointed at the estate's roles ─────────── */
+:root,
+:host,
+html[data-theme="dark"],
+:host([theme="dark"]) {
+	--ak-generic-sans-serif: var(--rx-font-sans);
+	--ak-generic-body: var(--rx-font-sans);
+	--ak-generic-heading: var(--rx-font-sans);
+	--ak-generic-display: var(--rx-font-sans);
+	--ak-font-family-sans-serif: var(--rx-font-sans);
+	--ak-font-family-heading: var(--rx-font-sans);
+	--pf-global--FontFamily--sans-serif: var(--rx-font-sans);
+	--pf-global--FontFamily--heading--sans-serif: var(--rx-font-sans);
+	--pf-global--FontFamily--redhat-updated--sans-serif: var(--rx-font-sans);
+	--pf-global--FontFamily--redhat-updated--heading--sans-serif: var(--rx-font-sans);
+
+	--ak-accent: var(--rx-primary);
+	--ak-dark-foreground: var(--rx-foreground);
+	--ak-dark-background: var(--rx-background);
+	--ak-dark-background-light: var(--rx-card);
+	--ak-dark-background-lighter: var(--rx-popover);
+	--ak-global--background-color: var(--rx-background);
+
+	--pf-global--BackgroundColor--100: var(--rx-card);
+	--pf-global--BackgroundColor--150: var(--rx-muted);
+	--pf-global--BackgroundColor--200: var(--rx-background);
+	--pf-global--BackgroundColor--300: var(--rx-secondary);
+	--pf-global--BackgroundColor--400: var(--rx-accent);
+	--pf-global--BackgroundColor--light-100: var(--rx-card);
+	--pf-global--BackgroundColor--light-200: var(--rx-background);
+	--pf-global--BackgroundColor--light-300: var(--rx-secondary);
+	--pf-global--BackgroundColor--dark-100: var(--rx-card);
+	--pf-global--BackgroundColor--dark-200: var(--rx-background);
+	--pf-global--BackgroundColor--dark-300: var(--rx-accent);
+	--pf-global--BackgroundColor--dark-400: var(--rx-secondary);
+	--pf-global--BackgroundColor--dark-transparent-100: var(--rx-scrim);
+	--pf-global--BackgroundColor--dark-transparent-200: var(--rx-scrim);
+
+	--pf-global--Color--100: var(--rx-foreground);
+	--pf-global--Color--200: var(--rx-muted-foreground);
+	--pf-global--Color--300: var(--rx-muted-foreground);
+	--pf-global--Color--400: var(--rx-muted-foreground);
+	--pf-global--Color--dark-100: var(--rx-foreground);
+	--pf-global--Color--dark-200: var(--rx-muted-foreground);
+	--pf-global--Color--light-100: var(--rx-foreground);
+	--pf-global--Color--light-200: var(--rx-muted-foreground);
+	--pf-global--Color--light-300: var(--rx-muted-foreground);
+
+	--pf-global--BorderColor--100: var(--rx-edge);
+	--pf-global--BorderColor--200: var(--rx-border);
+	--pf-global--BorderColor--300: var(--rx-border);
+	--pf-global--BorderColor--dark-100: var(--rx-edge);
+	--pf-global--BorderColor--light-100: var(--rx-edge);
+
+	--pf-global--primary-color--100: var(--rx-primary);
+	--pf-global--primary-color--200: var(--rx-primary);
+	--pf-global--primary-color--light-100: var(--rx-primary);
+	--pf-global--primary-color--dark-100: var(--rx-primary);
+	--pf-global--active-color--100: var(--rx-primary);
+	--pf-global--active-color--200: var(--rx-primary);
+	--pf-global--link--Color: var(--rx-primary);
+	--pf-global--link--Color--hover: var(--rx-primary);
+	--pf-global--link--Color--light: var(--rx-primary);
+	--pf-global--link--Color--light--hover: var(--rx-primary);
+	--pf-global--link--Color--dark: var(--rx-primary);
+	--pf-global--link--Color--dark--hover: var(--rx-primary);
+
+	--pf-global--danger-color--100: var(--rx-destructive);
+	--pf-global--danger-color--200: var(--rx-danger-foreground);
+	--pf-global--success-color--100: var(--rx-success-foreground);
+	--pf-global--success-color--200: var(--rx-success-foreground);
+	--pf-global--warning-color--100: var(--rx-warning-foreground);
+	--pf-global--warning-color--200: var(--rx-warning-foreground);
+	--pf-global--info-color--100: var(--rx-info-foreground);
+	--pf-global--info-color--200: var(--rx-info-foreground);
+	--pf-global--disabled-color--100: var(--rx-muted-foreground);
+	--pf-global--disabled-color--200: var(--rx-muted);
+	--pf-global--disabled-color--300: var(--rx-muted);
+
+	--pf-global--BorderRadius--sm: var(--rx-radius);
+	--pf-global--BorderRadius--lg: calc(var(--rx-radius) + 4px);
+
+	--ak-c-login__main--BackgroundColor: var(--rx-card);
+	--ak-c-login__main--Color: var(--rx-card-foreground);
+	--ak-c-login__footer--Color: var(--rx-muted-foreground);
+}
+
+/* ── The ground ───────────────────────────────────────────────────────────── */
+/* As specific as Authentik's own `html[data-theme=dark] body:has(ak-flow-executor)`,
+ * and later in the page, so the ground is the estate's on every screen. */
+html[data-theme] body,
+html[data-theme] body:has(ak-flow-executor) {
+	font-family: var(--rx-font-sans);
+	color: var(--rx-foreground);
+	background-color: var(--rx-background);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Light: the shared light theme on the design system's washed, dotted ground
+ * (`ground-wash` + `ground-dots` in tokens.css). The night background image is
+ * a dark-theme thing and is switched off. */
+html[data-theme="light"] {
+	--ak-global--background-image: none;
+}
+html[data-theme="light"] body {
+	background-image:
+		radial-gradient(
+			ellipse 60% 50% at 8% 0%,
+			color-mix(in oklab, var(--rx-primary) calc(var(--rx-ground-wash) * 100%), transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			ellipse 55% 45% at 100% 10%,
+			color-mix(in oklab, var(--rx-accent) calc(var(--rx-ground-wash) * 100%), transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			circle at center,
+			color-mix(in oklab, var(--rx-foreground) calc(var(--rx-ground-ink) * 100%), transparent) 1px,
+			transparent 1px
+		);
+	background-size: auto, auto, 1.5rem 1.5rem;
+	background-attachment: fixed;
+}
+
+/* Dark: the night sky. The brand's flow background (fundal.svg) is the aurora
+ * and a scatter of faint stars; these three layers are night.css's star fields
+ * on top of it — the far and near fields drifting at their own speeds, the
+ * bright stars twinkling — each a fixed, pointer-less, viewport-sized
+ * pseudo-element behind everything.
+ *
+ * WHY THE DRIFT MOVES THE BACKGROUND, NOT THE LAYER. night.css translates a
+ * layer larger than the page inside a clipping box. A pseudo-element has no
+ * clipping box to sit in, and a fixed layer wider than the viewport makes the
+ * PAGE wider: focusing a field then scrolled the whole sign-in sideways (seen
+ * on dev). So each layer is exactly the viewport and its background slides, one
+ * pixel per step — 419 steps over 600 s, 293 over 900 s: the same paths and
+ * periods as night.css, repainted about once a second rather than every frame. */
+html[data-theme="dark"]::before,
+html[data-theme="dark"] body::after,
+html[data-theme="dark"]::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	background-repeat: repeat;
+}
+html[data-theme="dark"]::before {
+	background-image: var(--rx-sky-bright-a), var(--rx-sky-bright-b);
+	background-size: var(--rx-sky-bright-a-size), var(--rx-sky-bright-b-size);
+}
+html[data-theme="dark"] body::after {
+	background-image: var(--rx-sky-near);
+	background-size: var(--rx-sky-near-size);
+}
+html[data-theme="dark"]::after {
+	background-image: var(--rx-sky-far);
+	background-size: var(--rx-sky-far-size);
+}
+@media (prefers-reduced-motion: no-preference) {
+	html[data-theme="dark"]::before {
+		animation: rx-twinkle 9s ease-in-out infinite alternate;
+	}
+	html[data-theme="dark"] body::after {
+		animation: rx-drift-near 600s steps(419) infinite;
+	}
+	html[data-theme="dark"]::after {
+		animation: rx-drift-far 900s steps(293) infinite;
+	}
+}
+@keyframes rx-drift-near {
+	to {
+		background-position: -839px -839px;
+	}
+}
+@keyframes rx-drift-far {
+	to {
+		background-position: -587px -587px;
+	}
+}
+@keyframes rx-twinkle {
+	to {
+		opacity: 0.35;
+	}
+}
+
+/* ── The card ─────────────────────────────────────────────────────────────── */
+.pf-c-login__main {
+	background-color: var(--rx-card);
+	color: var(--rx-card-foreground);
+	border: 1px solid var(--rx-border);
+	border-radius: calc(var(--rx-radius) + 4px);
+	/* The shadow is the theme's own scrim, so it is right in both themes. */
+	box-shadow: 0 24px 48px -24px var(--rx-scrim) !important;
+	overflow: clip;
+}
+.pf-c-login__main-header.pf-c-brand {
+	padding-inline: 1.5rem;
+}
+.pf-c-login__main-header.pf-c-brand .branding-logo {
+	max-height: 2.5rem;
+	width: auto;
+	max-width: 100%;
+}
+.pf-c-title,
+h1.pf-c-title {
+	font-family: var(--rx-font-sans);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--rx-card-foreground);
+}
+.pf-c-login__main-header .pf-c-title.pf-m-3xl {
+	font-size: 1.5rem;
+	line-height: 1.25;
+}
+.pf-c-login__main-footer-band {
+	background-color: transparent;
+	border-top: 1px solid var(--rx-border);
+}
+
+/* The language picker offers every language Authentik ships and Romanian is not
+ * one of them; the sign-in speaks Romanian (ro.js), so the picker would only
+ * offer a way out of it. Hidden. So is "Powered by authentik". */
+ak-locale-select,
+ak-brand-links,
+footer[name="site-footer"] [name="flow-links"] {
+	display: none !important;
+}
+
+/* The SERVER-rendered pages (errors, and a refusal at an application's
+ * authorize URL — Authentik's login/base_full.html) draw the logo from the
+ * brand's single URL, where the per-theme `%(theme)s` in the file name is not
+ * resolved and would be a broken image. Those pages are the only ones with the
+ * logo in the light DOM, so these two rules reach them alone; the interface's
+ * own components resolve the themed logo themselves. */
+html[data-theme="dark"] .pf-c-brand img.branding-logo {
+	content: url("/static/dist/assets/recomex/logo-dark.svg");
+}
+html[data-theme="light"] .pf-c-brand img.branding-logo {
+	content: url("/static/dist/assets/recomex/logo-light.svg");
+}
+
+/* ── Fields ───────────────────────────────────────────────────────────────── */
+.pf-c-form__label,
+.pf-c-form__label-text {
+	color: var(--rx-card-foreground);
+	font-weight: 500;
+}
+.pf-c-form-control {
+	--pf-c-form-control--BackgroundColor: var(--rx-card);
+	--pf-c-form-control--Color: var(--rx-foreground);
+	color: var(--rx-foreground);
+	background-color: var(--rx-card);
+	border: 1px solid var(--rx-input) !important;
+	border-radius: var(--rx-radius) !important;
+	min-height: 2.75rem;
+	padding-inline: 0.75rem;
+}
+.pf-c-form-control::placeholder {
+	color: var(--rx-muted-foreground);
+	font-style: normal;
+}
+.pf-c-form-control:focus,
+.pf-c-form-control:focus-visible {
+	outline: 2px solid var(--rx-ring);
+	outline-offset: 0;
+	border-color: var(--rx-ring) !important;
+}
+.pf-c-form-control[aria-invalid="true"] {
+	border-color: var(--rx-destructive) !important;
+}
+.pf-c-form__helper-text {
+	--pf-c-form__helper-text--m-error--Color: var(--rx-danger-foreground);
+	color: var(--rx-muted-foreground);
+}
+.pf-c-form__helper-text.pf-m-error {
+	color: var(--rx-danger-foreground);
+}
+
+/* ── Buttons and links ────────────────────────────────────────────────────── */
+.pf-c-button {
+	--pf-c-button--BorderRadius: var(--rx-radius);
+	font-weight: 500;
+	border-radius: var(--rx-radius);
+}
+.pf-c-button.pf-m-primary {
+	--pf-c-button--m-primary--BackgroundColor: var(--rx-primary);
+	--pf-c-button--m-primary--hover--BackgroundColor: color-mix(in oklch, var(--rx-primary) 86%, var(--rx-foreground));
+	--pf-c-button--m-primary--focus--BackgroundColor: var(--rx-primary);
+	--pf-c-button--m-primary--active--BackgroundColor: color-mix(in oklch, var(--rx-primary) 80%, var(--rx-foreground));
+	--pf-c-button--m-primary--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--hover--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--focus--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--active--Color: var(--rx-primary-foreground);
+	background-color: var(--pf-c-button--m-primary--BackgroundColor);
+	color: var(--rx-primary-foreground);
+	min-height: 2.75rem;
+}
+.pf-c-button.pf-m-primary:hover {
+	background-color: var(--pf-c-button--m-primary--hover--BackgroundColor);
+}
+.pf-c-button.pf-m-secondary,
+.pf-c-button.pf-m-tertiary {
+	--pf-c-button--m-secondary--Color: var(--rx-foreground);
+	--pf-c-button--m-secondary--hover--Color: var(--rx-foreground);
+	--pf-c-button--m-secondary--BackgroundColor: transparent;
+	--pf-c-button--m-secondary--after--BorderColor: var(--rx-edge);
+	--pf-c-button--m-secondary--hover--after--BorderColor: var(--rx-input);
+	--pf-c-button--m-tertiary--Color: var(--rx-foreground);
+	--pf-c-button--m-tertiary--after--BorderColor: var(--rx-edge);
+}
+.pf-c-button.pf-m-danger {
+	--pf-c-button--m-danger--BackgroundColor: var(--rx-destructive);
+	--pf-c-button--m-danger--hover--BackgroundColor: color-mix(in oklch, var(--rx-destructive) 86%, var(--rx-foreground));
+	--pf-c-button--m-danger--Color: var(--rx-destructive-foreground);
+	--pf-c-button--m-danger--hover--Color: var(--rx-destructive-foreground);
+}
+.pf-c-button.pf-m-link,
+.pf-c-button.pf-m-link.pf-m-inline {
+	--pf-c-button--m-link--Color: var(--rx-primary);
+	--pf-c-button--m-link--hover--Color: var(--rx-primary);
+}
+a {
+	color: var(--rx-primary);
+	text-underline-offset: 0.2em;
+}
+a:hover {
+	text-decoration: underline;
+}
+
+/* Focus is ALWAYS visible and defined once (tokens.css `focus-ring`). */
+a:focus-visible,
+button:focus-visible,
+.pf-c-button:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+	outline: 2px solid var(--rx-ring);
+	outline-offset: 2px;
+}
+
+/* ── Notices ──────────────────────────────────────────────────────────────── */
+.pf-c-alert {
+	--pf-c-alert--BackgroundColor: var(--rx-card);
+	border-radius: var(--rx-radius);
+}
+.pf-c-alert.pf-m-danger,
+.pf-c-alert.pf-m-inline.pf-m-danger {
+	--pf-c-alert--BackgroundColor: var(--rx-danger);
+	--pf-c-alert__title--Color: var(--rx-danger-foreground);
+	--pf-c-alert__icon--Color: var(--rx-danger-foreground);
+	color: var(--rx-danger-foreground);
+}
+.pf-c-alert.pf-m-success {
+	--pf-c-alert--BackgroundColor: var(--rx-success);
+	--pf-c-alert__title--Color: var(--rx-success-foreground);
+	--pf-c-alert__icon--Color: var(--rx-success-foreground);
+}
+.pf-c-alert.pf-m-warning {
+	--pf-c-alert--BackgroundColor: var(--rx-warning);
+	--pf-c-alert__title--Color: var(--rx-warning-foreground);
+	--pf-c-alert__icon--Color: var(--rx-warning-foreground);
+}
+.pf-c-alert.pf-m-info {
+	--pf-c-alert--BackgroundColor: var(--rx-info);
+	--pf-c-alert__title--Color: var(--rx-info-foreground);
+	--pf-c-alert__icon--Color: var(--rx-info-foreground);
+}
+
+/* ── The account pages (/if/user/) ────────────────────────────────────────── */
+/* Authentik paints a slanted band behind the top half of these pages; on the
+ * estate the ground is the sky (dark) or the washed ground (light), unbroken. */
+[part="background-wrapper"],
+[part="background-default-slant"] {
+	display: none !important;
+}
+.pf-c-page {
+	--pf-c-page--BackgroundColor: transparent;
+	--pf-c-page__main-section--BackgroundColor: transparent;
+	background-color: transparent;
+}
+.pf-c-page__main-section,
+.pf-c-page__main,
+.pf-c-page__drawer,
+.pf-c-drawer__content,
+.pf-c-drawer__body {
+	--pf-c-page__main-section--BackgroundColor: transparent;
+	--pf-c-drawer__content--BackgroundColor: transparent;
+	background-color: transparent;
+}
+.pf-c-card {
+	--pf-c-card--BackgroundColor: var(--rx-card);
+	background-color: var(--rx-card);
+	border: 1px solid var(--rx-border);
+	border-radius: calc(var(--rx-radius) + 4px);
+	color: var(--rx-card-foreground);
+}
+.pf-c-tabs__link {
+	color: var(--rx-muted-foreground);
+}
+.pf-c-tabs__item.pf-m-current .pf-c-tabs__link {
+	color: var(--rx-foreground);
+}
+.pf-c-tabs {
+	--pf-c-tabs__item--m-current__link--after--BorderColor: var(--rx-primary);
+}
+.pf-c-table {
+	--pf-c-table--BackgroundColor: var(--rx-card);
+	--pf-c-table--BorderColor: var(--rx-border);
+	--pf-c-table--cell--Color: var(--rx-card-foreground);
+}
+.pf-c-toolbar,
+.pf-c-pagination {
+	--pf-c-toolbar--BackgroundColor: var(--rx-card);
+	--pf-c-pagination--m-bottom--BackgroundColor: var(--rx-card);
+}
+.pf-c-avatar,
+.pf-c-avatar.pf-m-md {
+	border-radius: 9999px;
+}
+
+/* ── Reduced motion wins against every animation and transition on the page,
+ * Authentik's own included (tokens.css, @rule DSGN-6). ────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

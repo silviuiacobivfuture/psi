@@ -1,0 +1,23 @@
+{
+  "_doc": "Shared identity and platform mail ONLY (owner, 2026-10-29): Authentik and the hub's sign-in, password resets, invitations, Plunk's own notices, alerts. Wired first — Plunk's own platform mail is the proof of the onboarding path.",
+  "version": 1,
+  "key": "platform",
+  "name": "{MAIL_SENDER_NAME} — platformă",
+  "subdomain": null,
+  "receive": false,
+  "sender": {
+    "local": "noreply",
+    "name": "{MAIL_SENDER_NAME}"
+  },
+  "consumer": {
+    "service": "plunk",
+    "namespace": "plunk",
+    "openbao": "secret/platform/plunk/platform",
+    "wire": true
+  },
+  "novu": {
+    "org": "{MAIL_SENDER_NAME}",
+    "primary": true,
+    "default": true
+  }
+}

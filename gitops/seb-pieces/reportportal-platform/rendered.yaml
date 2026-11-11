@@ -1,0 +1,1200 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: reportportal
+  namespace: reportportal
+spec:
+  hard:
+    limits.cpu: "12"
+    limits.memory: 20Gi
+    pods: "20"
+    requests.cpu: "3"
+    requests.memory: 8Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reportportal-config
+  namespace: reportportal
+---
+apiVersion: v1
+data:
+  dashboards.json: |
+    { "filters": [], "dashboards": [] }
+kind: ConfigMap
+metadata:
+  name: reportportal-config-dashboards
+  namespace: reportportal
+---
+apiVersion: v1
+data:
+  retired: ""
+  roster: ""
+kind: ConfigMap
+metadata:
+  name: reportportal-config-roster
+  namespace: reportportal
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: reportportal-rabbitmq
+  name: reportportal-rabbitmq
+  namespace: reportportal
+spec:
+  clusterIP: None
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  - name: management
+    port: 15672
+    targetPort: 15672
+  selector:
+    app.kubernetes.io/name: reportportal-rabbitmq
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: reportportal
+  namespace: reportportal
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 50m
+      memory: 128Mi
+    max:
+      cpu: "2"
+      memory: 4Gi
+    type: Container
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    reloader.stakater.com/auto: "true"
+  labels:
+    app.kubernetes.io/name: reportportal-rabbitmq
+  name: reportportal-rabbitmq
+  namespace: reportportal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reportportal-rabbitmq
+  serviceName: reportportal-rabbitmq
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reportportal-rabbitmq
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          # --- the Erlang cookie trap (see the header) -----------------------
+          # Must run BEFORE the server starts. The entrypoint creates the cookie
+          # itself when absent, so this only tightens the mode; `|| true` because
+          # the file legitimately does not exist on the very first boot.
+          [ -f /var/lib/rabbitmq/.erlang.cookie ] && chmod 0400 /var/lib/rabbitmq/.erlang.cookie || true
+
+          # --- Δ3: permit the deprecated feature ReportPortal still uses ------
+          # Written as a conf.d drop-in rather than baked into the image, and
+          # written on EVERY start so it survives a PVC that predates this line.
+          mkdir -p /etc/rabbitmq/conf.d
+          printf 'deprecated_features.permit.queue_master_locator = true\n' \
+            > /etc/rabbitmq/conf.d/10-reportportal.conf
+
+          # --- Δ1 + Δ4: plugins, enabled OFFLINE ------------------------------
+          # `--offline` writes enabled_plugins without talking to a running node,
+          # which is the only thing that works here: the server has not started
+          # yet, and enabling them afterwards would mean a second restart.
+          # rabbitmq_management is what serves RP_AMQP_API_ADDRESS on 15672.
+          rabbitmq-plugins enable --offline \
+            rabbitmq_management \
+            rabbitmq_consistent_hash_exchange \
+            rabbitmq_shovel \
+            rabbitmq_shovel_management
+
+          (
+            # NOT under `set -e`: await_startup is EXPECTED to fail on the first
+            # attempts while the Erlang node is still coming up, and an inherited
+            # -e would kill the subshell on that first failure before the retry
+            # loop could run.
+            set +e
+            tries=0
+            until rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; do
+              tries=$((tries+1))
+              if [ "$tries" -ge 30 ]; then break; fi
+              sleep 10
+            done
+            if rabbitmqctl await_startup --timeout 60 >/dev/null 2>&1; then
+              # --- rotation reconcile (see the header) -----------------------
+              # NOTE: rabbitmqctl takes the password as an argument (no stdin
+              # form), so it is visible in THIS container's own `ps` — it is
+              # already in this container's environment, so no new exposure, and
+              # it never reaches the host argv, which is what the platform rule
+              # protects.
+              rabbitmqctl change_password "$RABBITMQ_DEFAULT_USER" "$RABBITMQ_DEFAULT_PASS" \
+                && echo "rotation-reconcile: password reconciled" \
+                || echo "rotation-reconcile: FAILED to set password — ReportPortal may not authenticate" >&2
+
+              # --- Δ2: the analyzer vhost ------------------------------------
+              # `add_vhost` errors with vhost_already_exists on every start after
+              # the first, which is expected and NOT a failure; set_permissions
+              # is idempotent and is re-run regardless so a rebuilt Mnesia (or a
+              # renamed user) cannot leave the analyzer unable to bind.
+              rabbitmqctl add_vhost analyzer >/dev/null 2>&1 \
+                && echo "vhost-reconcile: created vhost 'analyzer'" \
+                || echo "vhost-reconcile: vhost 'analyzer' already present"
+              rabbitmqctl set_permissions -p analyzer "$RABBITMQ_DEFAULT_USER" ".*" ".*" ".*" \
+                && echo "vhost-reconcile: permissions set on 'analyzer'" \
+                || echo "vhost-reconcile: FAILED to set permissions on 'analyzer' — the auto-analyzer will not consume" >&2
+            else
+              echo "rotation-reconcile: broker did not start within ~5min — password and vhost NOT reconciled" >&2
+            fi
+          ) &
+          exec docker-entrypoint.sh rabbitmq-server
+        envFrom:
+        - secretRef:
+            name: reportportal-rabbitmq
+            optional: false
+        image: registry.psizone.ro/mirror/docker.io/library/rabbitmq:4.1.8-management-alpine@sha256:871fb39a298fe30f95f5683046e3ef09eaf4573bfc03b4388d8091325df2bc2b
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - -q
+            - check_running
+          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 20
+        name: rabbitmq
+        ports:
+        - containerPort: 5672
+          name: amqp
+        - containerPort: 15672
+          name: management
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - -q
+            - ping
+          failureThreshold: 3
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          timeoutSeconds: 15
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/rabbitmq
+          name: data
+      securityContext:
+        fsGroup: 101
+        runAsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 100
+        seccompProfile:
+          type: RuntimeDefault
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: local-path
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  name: reportportal-config-reconcile
+  namespace: reportportal
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: reportportal-config-reconcile
+        spec:
+          automountServiceAccountToken: true
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              W=/work
+              UAT=http://reportportal-uat.reportportal.svc.cluster.local:9999/uat
+              API=http://reportportal-api.reportportal.svc.cluster.local:8585/api
+              P="$RP_PROJECT"
+
+              die() { echo "reportportal-config-reconcile: FAILED — $*" >&2; exit 1; }
+              note() { echo "reportportal-config-reconcile: $*"; }
+
+              # Present-but-EMPTY is the case ESO's data[] cannot catch.
+              [ -n "${RP_SUPERADMIN_PASSWORD:-}" ] || die "MISSING REQUIRED SECRET: reportportal-superadmin/password"
+              [ -s /roster/roster ] || die "ConfigMap reportportal-config-roster has no 'roster' key — nothing declares who should have an account"
+              [ -s /dashboards/dashboards.json ] || die "ConfigMap reportportal-config-dashboards has no 'dashboards.json' key"
+
+              umask 077
+
+              # Every credential reaches curl through a FILE, never argv: `ps`
+              # and /proc/<pid>/cmdline are readable inside this pod. printf is
+              # a shell builtin, so the value never becomes an exec'd argv.
+              printf 'user = "ui:uiman"\n' > "$W/uat.cfg"
+              printf '%s' "$RP_SUPERADMIN_PASSWORD" > "$W/pw.txt"
+
+              # http <outfile> <curl args...> -> prints the status code ("000"
+              # on a transport error) instead of aborting, so every failure is
+              # reported with its own named message.
+              http() {
+                _out="$1"; shift
+                _code="$(curl -sS --max-time 60 -o "$_out" -w '%{http_code}' "$@" 2>>"$W/curl.err")" || _code=000
+                printf '%s' "$_code"
+              }
+              # The API's own error message, never swallowed. `|| true` matters:
+              # without it a non-JSON body makes jq fail, `set -e` aborts
+              # mid-argument and the job dies with NO named reason.
+              emsg() { (jq -r '.message // .error_description // empty' "$1" 2>/dev/null || head -c 300 "$1") | head -c 300; }
+
+              # --- 1. superadmin token --------------------------------------
+              CODE="$(http "$W/token.json" -K "$W/uat.cfg" \
+                --data 'grant_type=password' --data 'username=superadmin' \
+                --data-urlencode "password@$W/pw.txt" "$UAT/sso/oauth/token")"
+              [ "$CODE" = 200 ] || die "POST /uat/sso/oauth/token -> $CODE (expected 200). Most likely a STALE superadmin password: uat applies secret/apps/reportportal/superadmin ONLY when the row is created, so a password changed in the RP UI must be written back to OpenBao — see infrastructure/hetzner/RUNBOOK.md"
+              TOKEN="$(jq -r '.access_token // empty' "$W/token.json")"
+              [ -n "$TOKEN" ] || die "POST /uat/sso/oauth/token returned 200 with no access_token"
+              printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$W/api.cfg"
+              printf 'header = "Content-Type: application/json"\n' >> "$W/api.cfg"
+
+              # --- 2. the project -------------------------------------------
+              CODE="$(http "$W/proj.json" -K "$W/api.cfg" "$API/v1/project/$P")"
+              case "$CODE" in
+                200) note "project '$P' exists" ;;
+                404)
+                  note "project '$P' absent — creating"
+                  jq -n --arg n "$P" '{projectName:$n, entryType:"INTERNAL"}' > "$W/body.json"
+                  C="$(http "$W/resp.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/v1/project")"
+                  case "$C" in 200|201) note "project '$P' created" ;; *) die "POST /v1/project -> $C: $(emsg "$W/resp.json")" ;; esac
+                  C="$(http "$W/proj.json" -K "$W/api.cfg" "$API/v1/project/$P")"
+                  [ "$C" = 200 ] || die "GET /v1/project/$P -> $C right after creating it"
+                  ;;
+                *) die "GET /v1/project/$P -> $CODE (expected 200 or 404)" ;;
+              esac
+
+              # --- 3. the roster --------------------------------------------
+              # Strip comments and blank lines. Field grammar is fixed at five
+              # pipe-separated fields; a malformed line is a NAMED failure, not
+              # a silently ignored person.
+              sed -e 's/[[:space:]]*#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+                  /roster/roster | grep -v '^$' > "$W/roster.txt" || true
+              [ -s "$W/roster.txt" ] || die "the roster in ConfigMap reportportal-config-roster parsed to ZERO users — check the login|email|Full Name|ACCOUNT_ROLE|PROJECT_ROLE grammar"
+
+              CREATED=0
+              # Drift accumulates in a FILE, not a shell variable holding
+              # embedded newlines: every line of this script lives inside a
+              # YAML block scalar, so a continuation line indented less than
+              # the block would silently end the manifest.
+              : > "$W/drift.txt"
+              while IFS='|' read -r LOGIN EMAIL FULLNAME AROLE PROLE; do
+                [ -n "$LOGIN" ] || continue
+                { [ -n "$EMAIL" ] && [ -n "$FULLNAME" ] && [ -n "$AROLE" ] && [ -n "$PROLE" ]; } \
+                  || die "roster line for '$LOGIN' is malformed — expected login|email|Full Name|ACCOUNT_ROLE|PROJECT_ROLE"
+                case "$LOGIN" in *@*) die "roster login '$LOGIN' contains '@' — ReportPortal rejects it (a login may contain only Latin letters, digits, hyphen, underscore, dot). Use the local part, not the address" ;; esac
+
+                C="$(http "$W/u.json" -K "$W/api.cfg" "$API/users/$LOGIN")"
+                case "$C" in
+                  200)
+                    HAVE_ROLE="$(jq -r '.userRole // empty' "$W/u.json")"
+                    if [ "$HAVE_ROLE" != "$AROLE" ]; then
+                      echo "  - $LOGIN: accountRole is '$HAVE_ROLE', roster says '$AROLE'" >> "$W/drift.txt"
+                    fi
+                    ;;
+                  404)
+                    # The ONLY place a password is ever sent. A roster user with
+                    # no seeded password is a NAMED failure: a skipped user is an
+                    # account that silently never appears.
+                    PWFILE="/rp-users/$LOGIN"
+                    [ -s "$PWFILE" ] || die "MISSING REQUIRED SECRET: reportportal-users/$LOGIN — '$LOGIN' is on the roster but has no password field at secret/apps/reportportal/users. Seed it: infrastructure/hetzner/scripts/seed-secrets.sh <env>"
+                    jq -n --arg l "$LOGIN" --arg e "$EMAIL" --arg f "$FULLNAME" \
+                          --arg a "$AROLE" --arg p "$PROLE" --arg d "$P" \
+                          --rawfile pw "$PWFILE" \
+                      '{login:$l, email:$e, fullName:$f, password:($pw|rtrimstr("\n")),
+                        accountRole:$a, projectRole:$p, defaultProject:$d,
+                        accountType:"INTERNAL", active:true}' > "$W/body.json"
+                    C2="$(http "$W/resp.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/users")"
+                    case "$C2" in
+                      200|201) note "created user '$LOGIN' ($AROLE, $PROLE on $P)"; CREATED=$((CREATED+1)) ;;
+                      *) die "POST /users for '$LOGIN' -> $C2: $(emsg "$W/resp.json")" ;;
+                    esac
+                    ;;
+                  *) die "GET /users/$LOGIN -> $C (expected 200 or 404)" ;;
+                esac
+              done < "$W/roster.txt"
+              # `if`, not `[ ... ] && note`: under `set -e` a false test makes
+              # the whole AND-list return 1 and kills the job.
+              if [ "$CREATED" -eq 0 ]; then
+                note "all roster users already exist — no account touched, no password reset"
+              fi
+
+              # --- 3b. retired logins --------------------------------------
+              # The ONE delete in this job, by exact login, from a list somebody
+              # wrote on purpose. Both refusals come first: a login on both lists
+              # would be deleted and recreated on every run.
+              sed -e 's/[[:space:]]*#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+                  /roster/retired | grep -v '^$' > "$W/retired.txt" || true
+              while read -r LOGIN; do
+                if cut -d'|' -f1 "$W/roster.txt" | grep -qxF -- "$LOGIN"; then
+                  die "login '$LOGIN' is on both the roster and the retired list — remove it from one"
+                fi
+                case "$LOGIN" in superadmin) die "superadmin cannot be retired: the chart owns it" ;; esac
+                C="$(http "$W/u.json" -K "$W/api.cfg" "$API/users/$LOGIN")"
+                case "$C" in
+                  404) ;;
+                  200)
+                    UID_R="$(jq -r '.id // empty' "$W/u.json")"
+                    [ -n "$UID_R" ] || die "GET /users/$LOGIN answered no id"
+                    C2="$(http "$W/resp.json" -K "$W/api.cfg" -X DELETE "$API/users/$UID_R")"
+                    case "$C2" in
+                      200|204) note "retired user '$LOGIN' (id $UID_R)" ;;
+                      *) die "DELETE /users/$UID_R for '$LOGIN' -> $C2: $(emsg "$W/resp.json")" ;;
+                    esac
+                    ;;
+                  *) die "GET /users/$LOGIN -> $C (expected 200 or 404)" ;;
+                esac
+              done < "$W/retired.txt"
+
+              # --- 4. project membership ------------------------------------
+              # Re-read: step 3 may have created users with defaultProject=$P,
+              # which assigns them already.
+              C="$(http "$W/proj.json" -K "$W/api.cfg" "$API/v1/project/$P")"
+              [ "$C" = 200 ] || die "GET /v1/project/$P -> $C while checking membership"
+              jq -r '.users[]? | "\(.login)|\(.projectRole)"' "$W/proj.json" > "$W/members.txt"
+
+              ASSIGN=0
+              while IFS='|' read -r LOGIN EMAIL FULLNAME AROLE PROLE; do
+                [ -n "$LOGIN" ] || continue
+                HAVE="$(grep "^$LOGIN|" "$W/members.txt" | head -1 | cut -d'|' -f2 || true)"
+                if [ -z "$HAVE" ]; then
+                  jq -n --arg l "$LOGIN" --arg r "$PROLE" '{userNames:{($l):$r}}' > "$W/body.json"
+                  C2="$(http "$W/resp.json" -K "$W/api.cfg" -X PUT --data-binary "@$W/body.json" "$API/v1/project/$P/assign")"
+                  case "$C2" in
+                    200|201) note "assigned '$LOGIN' to $P as $PROLE"; ASSIGN=$((ASSIGN+1)) ;;
+                    *) die "PUT /v1/project/$P/assign for '$LOGIN' -> $C2: $(emsg "$W/resp.json")" ;;
+                  esac
+                elif [ "$HAVE" != "$PROLE" ]; then
+                  echo "  - $LOGIN: projectRole on $P is '$HAVE', roster says '$PROLE'" >> "$W/drift.txt"
+                fi
+              done < "$W/roster.txt"
+              if [ "$ASSIGN" -eq 0 ]; then
+                note "every roster user is already a member of $P"
+              fi
+
+              # --- 5. the CI API key ----------------------------------------
+              # WHY THIS IS HERE AT ALL: a ReportPortal API key can only be
+              # minted INSIDE ReportPortal, and its value is stored HASHED —
+              # a restored database returns a key nobody can read. So the
+              # source of truth is OpenBao, and this step's job is to make the
+              # slot non-empty and VALID, never to rotate on a schedule.
+              CI_STATE=skipped
+              { printf '{"role":"%s","jwt":"' "$BAO_ROLE"; tr -d '\n' < /var/run/secrets/kubernetes.io/serviceaccount/token; printf '"}'; } > "$W/login.json"
+              BC="$(http "$W/bao.json" -X POST --data-binary "@$W/login.json" "$BAO_ADDR/v1/auth/kubernetes/login")"
+              if [ "$BC" != 200 ]; then
+                note "WARN OpenBao login failed (HTTP $BC, role=$BAO_ROLE) — the CI API key slot was NOT inspected this run. Is the role bound? see infrastructure/hetzner/scripts/openbao-bootstrap.sh"
+              else
+                { printf 'header = "X-Vault-Token: '; jq -j '.auth.client_token' "$W/bao.json"; printf '"\n'; } > "$W/bao.cfg"
+                printf 'header = "Content-Type: application/json"\n' >> "$W/bao.cfg"
+                RC="$(http "$W/ci.json" -K "$W/bao.cfg" "$BAO_ADDR/v1/secret/data/$CI_SECRET_PATH")"
+                case "$RC" in
+                  200) CUR_DATA="$(jq -c '.data.data // {}' "$W/ci.json")" ;;
+                  404) CUR_DATA='{}' ;;
+                  *)   CUR_DATA='' ;;
+                esac
+                if [ -z "$CUR_DATA" ]; then
+                  note "WARN could not read secret/$CI_SECRET_PATH (HTTP $RC) — CI API key not inspected this run"
+                else
+                  printf '%s' "$CUR_DATA" | jq -r '.api_token // ""' > "$W/ci_token.txt"
+                  NEED_MINT=yes
+                  if [ -s "$W/ci_token.txt" ]; then
+                    # Validate against exactly the capability CI needs: reading
+                    # the project it imports launches into. 401/403 = stale key
+                    # (revoked, or a DB restored from before it was minted);
+                    # anything else is transient and must NOT trigger a mint.
+                    { printf 'header = "Authorization: Bearer '; tr -d '\n' < "$W/ci_token.txt"; printf '"\n'; } > "$W/cikey.cfg"
+                    VC="$(http "$W/v.json" -K "$W/cikey.cfg" "$API/v1/$P/launch?page.size=1")"
+                    case "$VC" in
+                      200) NEED_MINT=no; CI_STATE="valid" ;;
+                      401|403) note "the stored CI API key no longer authenticates (HTTP $VC) — minting a replacement" ;;
+                      *) NEED_MINT=no; CI_STATE="unverified(HTTP $VC)"; note "WARN could not validate the stored CI API key (HTTP $VC) — leaving it alone rather than minting on a transient error" ;;
+                    esac
+                  else
+                    note "the CI API key slot at secret/$CI_SECRET_PATH is EMPTY — minting"
+                  fi
+
+                  if [ "$NEED_MINT" = yes ]; then
+                    C="$(http "$W/owner.json" -K "$W/api.cfg" "$API/users/$RP_CI_KEY_OWNER")"
+                    [ "$C" = 200 ] || die "GET /users/$RP_CI_KEY_OWNER -> $C while minting the CI API key"
+                    UID_N="$(jq -r '.id' "$W/owner.json")"
+                    C="$(http "$W/keys.json" -K "$W/api.cfg" "$API/users/$UID_N/api-keys")"
+                    [ "$C" = 200 ] || die "GET /users/$UID_N/api-keys -> $C"
+                    # Names are unique per user and old keys are NEVER revoked
+                    # (something outside this cluster may still be using one),
+                    # so a taken name gets a dated suffix. The pattern the API
+                    # allows is [A-Za-z0-9-._~+/]+.
+                    KEY_NAME="$RP_CI_KEY_NAME"
+                    if jq -e --arg n "$KEY_NAME" '.items[]? | select(.name == $n)' "$W/keys.json" >/dev/null; then
+                      KEY_NAME="$RP_CI_KEY_NAME-$(date -u +%Y%m%d-%H%M%S)"
+                      note "'$RP_CI_KEY_NAME' is taken by an unreadable existing key — minting '$KEY_NAME' instead (the old one is left alone)"
+                    fi
+                    jq -n --arg n "$KEY_NAME" '{name:$n}' > "$W/body.json"
+                    C="$(http "$W/newkey.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/users/$UID_N/api-keys")"
+                    case "$C" in 200|201) : ;; *) die "POST /users/$UID_N/api-keys -> $C: $(emsg "$W/newkey.json")" ;; esac
+                    jq -e '.api_key != null and .api_key != ""' "$W/newkey.json" >/dev/null \
+                      || die "POST /users/$UID_N/api-keys returned $C with no api_key — the value is shown ONCE and is now unrecoverable; delete the key '$KEY_NAME' in the RP UI before the next run"
+                    # Merge into the existing data map rather than replacing it:
+                    # a KV v2 write creates a whole new version, so a bare
+                    # {api_token} would DROP any other field on this path.
+                    jq -n --argjson cur "$CUR_DATA" --slurpfile k "$W/newkey.json" \
+                      '{data: ($cur + {api_token: $k[0].api_key})}' > "$W/body.json"
+                    WC="$(http "$W/resp.json" -K "$W/bao.cfg" -X POST --data-binary "@$W/body.json" "$BAO_ADDR/v1/secret/data/$CI_SECRET_PATH")"
+                    case "$WC" in
+                      200|204) CI_STATE="minted '$KEY_NAME' and stored" ;;
+                      *) die "minted API key '$KEY_NAME' but FAILED to write it to secret/$CI_SECRET_PATH (HTTP $WC). The value is shown ONCE — it is now LOST. Delete the key in the RP UI (Administrate -> $RP_CI_KEY_OWNER -> API keys) so the next run can mint a fresh one, and check the reportportal-config OpenBao policy" ;;
+                    esac
+                  fi
+                fi
+              fi
+              note "CI API key: $CI_STATE"
+
+              # --- 6. filters, dashboards, widgets --------------------------
+              D=/dashboards/dashboards.json
+              jq -e . "$D" >/dev/null || die "dashboards.json is not valid JSON"
+
+              # Filters first: a widget references one BY NAME and needs the id
+              # ReportPortal assigned. page.size is explicit because the default
+              # is 20 and a truncated page would look like "absent" and create a
+              # duplicate.
+              C="$(http "$W/filters.json" -K "$W/api.cfg" "$API/v1/$P/filter?page.size=300")"
+              [ "$C" = 200 ] || die "GET /v1/$P/filter -> $C"
+              : > "$W/filtermap.txt"
+              jq -c '.filters[]?' "$D" | while read -r F; do
+                FN="$(printf '%s' "$F" | jq -r '.name')"
+                FID="$(jq -r --arg n "$FN" '.content[]? | select(.name == $n) | .id' "$W/filters.json" | head -1)"
+                if [ -z "$FID" ]; then
+                  printf '%s' "$F" | jq '{name, type, description, conditions, orders}' > "$W/body.json"
+                  C2="$(http "$W/resp.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/v1/$P/filter")"
+                  case "$C2" in
+                    200|201) FID="$(jq -r '.id' "$W/resp.json")"; echo "reportportal-config-reconcile: created filter '$FN' (id $FID)" ;;
+                    *) echo "reportportal-config-reconcile: FAILED — POST /v1/$P/filter for '$FN' -> $C2: $( (jq -r '.message // empty' "$W/resp.json" 2>/dev/null || true) | head -c 300 )" >&2; exit 1 ;;
+                  esac
+                fi
+                printf '%s\t%s\n' "$FN" "$FID" >> "$W/filtermap.txt"
+              done || die "filter reconcile failed (see the named error above)"
+
+              C="$(http "$W/dash.json" -K "$W/api.cfg" "$API/v1/$P/dashboard?page.size=300")"
+              [ "$C" = 200 ] || die "GET /v1/$P/dashboard -> $C"
+
+              # A `while read` in a pipeline runs in a SUBSHELL, so counters set
+              # inside it are lost; the loop below therefore reports per object
+              # and signals failure with exit 1, which `|| die` turns into the
+              # job's own named failure.
+              jq -c '.dashboards[]?' "$D" | while read -r DB; do
+                DN="$(printf '%s' "$DB" | jq -r '.name')"
+                DID="$(jq -r --arg n "$DN" '.content[]? | select(.name == $n) | .id' "$W/dash.json" | head -1)"
+                if [ -z "$DID" ]; then
+                  printf '%s' "$DB" | jq '{name, description}' > "$W/body.json"
+                  C2="$(http "$W/resp.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/v1/$P/dashboard")"
+                  case "$C2" in
+                    200|201) DID="$(jq -r '.id' "$W/resp.json")"; echo "reportportal-config-reconcile: created dashboard '$DN' (id $DID)" ;;
+                    *) echo "reportportal-config-reconcile: FAILED — POST /v1/$P/dashboard '$DN' -> $C2" >&2; exit 1 ;;
+                  esac
+                fi
+                # Which widgets are ALREADY on it (by name).
+                C2="$(http "$W/d1.json" -K "$W/api.cfg" "$API/v1/$P/dashboard/$DID")"
+                [ "$C2" = 200 ] || { echo "reportportal-config-reconcile: FAILED — GET /v1/$P/dashboard/$DID -> $C2" >&2; exit 1; }
+
+                printf '%s' "$DB" | jq -c '.widgets[]?' | while read -r WG; do
+                  WN="$(printf '%s' "$WG" | jq -r '.name')"
+                  if jq -e --arg n "$WN" '.widgets[]? | select(.widgetName == $n)' "$W/d1.json" >/dev/null; then
+                    continue
+                  fi
+                  # filterIds is resolved from the declared filter NAME. A widget
+                  # with no `filter` key (topTestCases / flakyTestCases /
+                  # mostTimeConsuming / passingRatePerLaunch) gets none — those
+                  # read widgetOptions.launchNameFilter instead.
+                  FNAME="$(printf '%s' "$WG" | jq -r '.filter // ""')"
+                  FIDS='[]'
+                  if [ -n "$FNAME" ]; then
+                    FID="$(grep -F "$(printf '%s\t' "$FNAME")" "$W/filtermap.txt" | head -1 | cut -f2 || true)"
+                    [ -n "$FID" ] || { echo "reportportal-config-reconcile: FAILED — widget '$WN' references filter '$FNAME', which is not declared in dashboards.json" >&2; exit 1; }
+                    FIDS="[$FID]"
+                  fi
+                  printf '%s' "$WG" | jq --argjson f "$FIDS" \
+                    '{name, description: (.description // ""), widgetType, contentParameters, filterIds: $f}' > "$W/body.json"
+                  C3="$(http "$W/resp.json" -K "$W/api.cfg" -X POST --data-binary "@$W/body.json" "$API/v1/$P/widget")"
+                  case "$C3" in
+                    200|201) WID="$(jq -r '.id' "$W/resp.json")" ;;
+                    *) echo "reportportal-config-reconcile: FAILED — POST /v1/$P/widget '$WN' -> $C3: $( (jq -r '.message // empty' "$W/resp.json" 2>/dev/null || true) | head -c 300 )" >&2; exit 1 ;;
+                  esac
+                  printf '%s' "$WG" | jq --argjson id "$WID" \
+                    '{addWidget: {widgetId: $id, widgetName: .name, widgetType: .widgetType,
+                                  widgetSize: .size, widgetPosition: .position}}' > "$W/body.json"
+                  C3="$(http "$W/resp.json" -K "$W/api.cfg" -X PUT --data-binary "@$W/body.json" "$API/v1/$P/dashboard/$DID/add")"
+                  case "$C3" in
+                    200|201) echo "reportportal-config-reconcile: added widget '$WN' to dashboard '$DN'" ;;
+                    *) echo "reportportal-config-reconcile: FAILED — PUT /v1/$P/dashboard/$DID/add for '$WN' (widget $WID exists but is orphaned) -> $C3" >&2; exit 1 ;;
+                  esac
+                done || exit 1
+              done || die "dashboard reconcile failed (see the named error above)"
+
+              # --- 7. drift the job refuses to silently correct --------------
+              # A role is a PERMISSION. Auto-correcting it would need
+              # PUT /users/{login} (EditUserRQ), whose omitted `active`/`email`
+              # members would deactivate the account, or a re-assign that RP
+              # rejects for an existing member. So drift is reported LOUDLY and
+              # fixed by a human in Administrate — or by editing the roster if
+              # the live value is the intended one.
+              if [ -s "$W/drift.txt" ]; then
+                echo "reportportal-config-reconcile: FAILED — role drift between the roster and ReportPortal:" >&2
+                cat "$W/drift.txt" >&2
+                echo "  Fix it in Administrate -> All Users / Project Members, or change the roster in gitops/services/reportportal/base/config-reconcile-data.yaml to match." >&2
+                exit 1
+              fi
+
+              note "in sync (project $P, $(wc -l < "$W/roster.txt") roster users, $(jq '[.dashboards[]]|length' "$D") dashboards)"
+            env:
+            - name: RP_PROJECT
+              value: platform
+            - name: RP_CI_KEY_NAME
+              value: ci-test-results
+            - name: RP_CI_KEY_OWNER
+              value: superadmin
+            - name: BAO_ADDR
+              value: http://openbao.openbao.svc:8200
+            - name: BAO_ROLE
+              value: reportportal-config
+            - name: CI_SECRET_PATH
+              value: apps/reportportal/ci
+            - name: RP_SUPERADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: reportportal-superadmin
+            image: registry.psizone.ro/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+            name: reconcile
+            resources:
+              limits:
+                cpu: 300m
+                memory: 256Mi
+              requests:
+                cpu: 25m
+                memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /work
+              name: work
+            - mountPath: /roster
+              name: roster
+              readOnly: true
+            - mountPath: /dashboards
+              name: dashboards
+              readOnly: true
+            - mountPath: /rp-users
+              name: rp-users
+              readOnly: true
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: reportportal-config
+          volumes:
+          - emptyDir: {}
+            name: work
+          - configMap:
+              name: reportportal-config-roster
+            name: roster
+          - configMap:
+              name: reportportal-config-dashboards
+            name: dashboards
+          - name: rp-users
+            secret:
+              optional: true
+              secretName: reportportal-users
+  schedule: 7,22,37,52 * * * *
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  name: reportportal-email-reconcile
+  namespace: reportportal
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: reportportal-email-reconcile
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              W=/work
+              UAT=http://reportportal-uat.reportportal.svc.cluster.local:9999/uat
+              API=http://reportportal-api.reportportal.svc.cluster.local:8585/api
+
+              die() { echo "reportportal-email-reconcile: FAILED — $*" >&2; exit 1; }
+
+              # Present-but-EMPTY is the case ESO's data[] cannot catch; an
+              # ABSENT key already makes the ExternalSecret SecretSyncedError.
+              [ -n "${SMTP_PASSWORD:-}" ] || die "MISSING REQUIRED SECRET: email-sender/EMAIL_API_KEY"
+              [ -n "${SMTP_FROM:-}" ] || die "MISSING REQUIRED SECRET: email-sender/EMAIL_FROM"
+              [ -n "${RP_SUPERADMIN_PASSWORD:-}" ] || die "MISSING REQUIRED SECRET: reportportal-superadmin/password"
+
+              umask 077
+
+              # Every credential reaches curl through a FILE, never argv:
+              # `ps` / /proc/<pid>/cmdline are readable inside this pod, and an
+              # SMTP password on a command line is the same class of leak the
+              # seed script's stdin plumbing exists to avoid. `printf` is a
+              # shell builtin, so the value never becomes an exec'd argv either.
+              printf 'user = "ui:uiman"\n' > "$W/uat.cfg"
+              printf '%s' "$RP_SUPERADMIN_PASSWORD" > "$W/pw.txt"
+
+              # http <outfile> <curl args...> -> prints the status code
+              # ("000" on a transport error) instead of aborting, so every
+              # failure is reported with its own named message.
+              http() {
+                _out="$1"; shift
+                _code="$(curl -sS --max-time 60 -o "$_out" -w '%{http_code}' "$@" 2>>"$W/curl.err")" || _code=000
+                printf '%s' "$_code"
+              }
+
+              # --- 1. mint a superadmin token -------------------------------
+              CODE="$(http "$W/token.json" -K "$W/uat.cfg" \
+                --data 'grant_type=password' \
+                --data 'username=superadmin' \
+                --data-urlencode "password@$W/pw.txt" \
+                "$UAT/sso/oauth/token")"
+              [ "$CODE" = 200 ] || die "POST /uat/sso/oauth/token -> $CODE (expected 200). The most likely cause is a STALE superadmin password: uat applies secret/apps/reportportal/superadmin ONLY when the row is created, so a password changed in the RP UI must be written back to OpenBao — see infrastructure/hetzner/RUNBOOK.md"
+              TOKEN="$(jq -r '.access_token // empty' "$W/token.json")"
+              [ -n "$TOKEN" ] || die "POST /uat/sso/oauth/token returned 200 with no access_token"
+              printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$W/api.cfg"
+              printf 'header = "Content-Type: application/json"\n' >> "$W/api.cfg"
+
+              # --- 2. desired state -----------------------------------------
+              # jq reads the secrets from the ENVIRONMENT, so they are not argv
+              # here either. `port` string + boolean flags: see the header.
+              jq -n '{
+                name: "email",
+                enabled: true,
+                integrationParameters: {
+                  host:           env.SMTP_HOST,
+                  port:           env.SMTP_PORT,
+                  protocol:       "smtp",
+                  authEnabled:    true,
+                  starTlsEnabled: true,
+                  sslEnabled:     false,
+                  username:       env.SMTP_USERNAME,
+                  password:       env.SMTP_PASSWORD,
+                  from:           env.SMTP_FROM,
+                  rpHost:         env.RP_HOST
+                }
+              }' > "$W/create.json"
+              # The UI omits `name` on update and so do we — see the header.
+              jq 'del(.name)' "$W/create.json" > "$W/update.json"
+
+              # Canonical, TYPE-NORMALISED projection of the comparable fields.
+              # `tostring` on both sides is load-bearing: the API may hand back
+              # a boolean where we sent a boolean and a string where we sent a
+              # string, but a jsonb round-trip is not guaranteed to preserve
+              # that — and a too-strict compare would report drift on EVERY run,
+              # i.e. an emailed test message every 15 minutes, which is the
+              # exact failure this design exists to prevent. `password` is
+              # absent by construction: the API never returns it.
+              PROJECT='{
+                enabled: (.enabled | tostring),
+                p: (.integrationParameters
+                    | { host, port, protocol, authEnabled, starTlsEnabled,
+                        sslEnabled, username, from, rpHost }
+                    | with_entries(.value |= (if . == null then "" else tostring end)))
+              }'
+              WANT="$(jq -Sc "$PROJECT" "$W/create.json")"
+
+              # --- 3. what exists today -------------------------------------
+              CODE="$(http "$W/list.json" -K "$W/api.cfg" "$API/v1/integration/global/all/email")"
+              [ "$CODE" = 200 ] || die "GET /api/v1/integration/global/all/email -> $CODE (expected 200)"
+              COUNT="$(jq 'length' "$W/list.json")"
+
+              # write <method> <url> <bodyfile> <what>
+              # --data-binary, NOT --data: --data STRIPS newlines from a file,
+              # which happens to leave this JSON valid but only by luck.
+              write() {
+                _c="$(http "$W/resp.json" -K "$W/api.cfg" -X "$1" --data-binary "@$3" "$2")"
+                case "$_c" in
+                  200|201) echo "reportportal-email-reconcile: $4 OK ($1 $2 -> $_c)" ;;
+                  # RP validates the config by actually sending the test mail,
+                  # so a rejected write means the SMTP settings or the relay
+                  # key are wrong — surface its own message, do not swallow it.
+                  # The `|| true` matters: without it a non-JSON error body
+                  # makes jq fail, `set -e` aborts mid-argument and the job dies
+                  # with NO named reason — the opposite of the contract here.
+                  *) die "$1 $2 -> $_c: $( (jq -r '.message // .error_description // empty' "$W/resp.json" 2>/dev/null || head -c 400 "$W/resp.json") | head -c 400 )" ;;
+                esac
+              }
+
+              if [ "$COUNT" -gt 1 ]; then
+                die "$COUNT global email integrations exist; expected at most 1. Refusing to guess which one is authoritative — delete the extras in Administrate -> Integrations and re-run"
+              fi
+
+              if [ "$COUNT" -eq 0 ]; then
+                echo "reportportal-email-reconcile: no email integration — creating (ReportPortal will send ONE 'Email server integration creation' message to $SMTP_FROM)"
+                write POST "$API/v1/integration/email" "$W/create.json" "create"
+                exit 0
+              fi
+
+              ID="$(jq -r '.[0].id' "$W/list.json")"
+              HAVE="$(jq -Sc ".[0] | $PROJECT" "$W/list.json")"
+
+              if [ "$HAVE" != "$WANT" ]; then
+                echo "reportportal-email-reconcile: drift on integration $ID — reconciling"
+                echo "  have: $HAVE"
+                echo "  want: $WANT"
+                write PUT "$API/v1/integration/$ID" "$W/update.json" "update"
+                exit 0
+              fi
+
+              # --- 4. parameters match: is the CREDENTIAL still good? --------
+              # Sends no mail (JavaMailSender.testConnection = SMTP connect +
+              # AUTH). This is the only way to notice a rotated sender key,
+              # because the stored password is never returned.
+              CODE="$(http "$W/test.json" -K "$W/api.cfg" "$API/v1/integration/$ID/connection/test")"
+              if [ "$CODE" = 200 ] && [ "$(cat "$W/test.json")" = true ]; then
+                echo "reportportal-email-reconcile: in sync (integration $ID, $SMTP_HOST:$SMTP_PORT, from $SMTP_FROM) — no write, no mail"
+                exit 0
+              fi
+
+              echo "reportportal-email-reconcile: connection test failed (-> $CODE) while the parameters match — the stored password is stale or the server is unreachable; re-pushing the credential"
+              write PUT "$API/v1/integration/$ID" "$W/update.json" "credential repair"
+              CODE="$(http "$W/test.json" -K "$W/api.cfg" "$API/v1/integration/$ID/connection/test")"
+              if [ "$CODE" = 200 ] && [ "$(cat "$W/test.json")" = true ]; then
+                echo "reportportal-email-reconcile: credential repaired, connection test now passes"
+                exit 0
+              fi
+              die "connection test STILL fails after re-pushing the credential (-> $CODE). ReportPortal cannot send mail: check the reports sender key (secret/apps/reportportal/plunk, plunk-bootstrap.sh), cluster-dns, and that $SMTP_HOST:$SMTP_PORT is reachable from this namespace"
+            env:
+            - name: SMTP_HOST
+              value: plunk-smtp.psizone.ro
+            - name: SMTP_PORT
+              value: "587"
+            - name: SMTP_USERNAME
+              value: plunk
+            - name: RP_HOST
+              value: https://reports.psizone.ro
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: EMAIL_API_KEY
+                  name: email-sender
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  key: EMAIL_FROM
+                  name: email-sender
+            - name: RP_SUPERADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: reportportal-superadmin
+            image: registry.psizone.ro/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+            name: reconcile
+            resources:
+              limits:
+                cpu: 200m
+                memory: 256Mi
+              requests:
+                cpu: 25m
+                memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /work
+              name: work
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - emptyDir: {}
+            name: work
+  schedule: '*/15 * * * *'
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-backup-s3
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: access_key_id
+    secretKey: AWS_ACCESS_KEY_ID
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: secret_access_key
+    secretKey: AWS_SECRET_ACCESS_KEY
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-backup-s3
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-db-app
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: apps/reportportal/db
+      property: username
+    secretKey: username
+  - remoteRef:
+      key: apps/reportportal/db
+      property: password
+    secretKey: password
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-db-app
+    template:
+      data:
+        password: '{{ .password }}'
+        username: '{{ .username }}'
+      type: kubernetes.io/basic-auth
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-rabbitmq
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: apps/reportportal/rabbitmq
+      property: username
+    secretKey: username
+  - remoteRef:
+      key: apps/reportportal/rabbitmq
+      property: password
+    secretKey: password
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-rabbitmq
+    template:
+      data:
+        RABBITMQ_DEFAULT_PASS: '{{ .password }}'
+        RABBITMQ_DEFAULT_USER: '{{ .username }}'
+        rabbitmq-password: '{{ .password }}'
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-storage
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: access_key_id
+    secretKey: access_key_id
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: secret_access_key
+    secretKey: secret_access_key
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-storage
+    template:
+      data:
+        access-key: '{{ .access_key_id }}'
+        secret-key: '{{ .secret_access_key }}'
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-superadmin
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: apps/reportportal/superadmin
+      property: password
+    secretKey: password
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-superadmin
+    template:
+      data:
+        password: '{{ .password }}'
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reportportal-users
+  namespace: reportportal
+spec:
+  dataFrom:
+  - extract:
+      conversionStrategy: Default
+      decodingStrategy: None
+      key: apps/reportportal/users
+      metadataPolicy: None
+      nullBytePolicy: Ignore
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: reportportal-users
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    gethomepage.dev/description: Test runs — history, trends, failure analysis
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Delivery
+    gethomepage.dev/href: https://reports.psizone.ro
+    gethomepage.dev/icon: mdi-chart-box-outline
+    gethomepage.dev/name: ReportPortal
+    gethomepage.dev/pod-selector: component=reportportal-ui
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,reportportal-reportportal-csp@kubernetescrd
+  name: reportportal
+  namespace: reportportal
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: reports.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: reportportal-ui
+            port:
+              name: headless
+        path: /ui
+        pathType: Prefix
+      - backend:
+          service:
+            name: reportportal-index
+            port:
+              name: headless
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - reports.psizone.ro
+    secretName: reportportal-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  name: reportportal-api
+  namespace: reportportal
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: reports.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: reportportal-api
+            port:
+              name: headless
+        path: /api
+        pathType: Prefix
+      - backend:
+          service:
+            name: reportportal-uat
+            port:
+              name: headless
+        path: /uat
+        pathType: Prefix
+  tls:
+  - hosts:
+    - reports.psizone.ro
+    secretName: reportportal-tls
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: reportportal-db
+  namespace: reportportal
+spec:
+  backup:
+    barmanObjectStore:
+      data:
+        compression: gzip
+      destinationPath: s3://psi-tfstate-dev/cnpg/reportportal-db
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId:
+          key: AWS_ACCESS_KEY_ID
+          name: reportportal-backup-s3
+        secretAccessKey:
+          key: AWS_SECRET_ACCESS_KEY
+          name: reportportal-backup-s3
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: 14d
+  bootstrap:
+    initdb:
+      database: reportportal
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+      owner: reportportal
+      secret:
+        name: reportportal-db-app
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  instances: 1
+  postgresql:
+    parameters:
+      effective_cache_size: 512MB
+      max_connections: "200"
+      shared_buffers: 256MB
+      work_mem: 8MB
+  primaryUpdateStrategy: unsupervised
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  smartShutdownTimeout: 10
+  storage:
+    size: 10Gi
+    storageClass: local-path
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: reportportal-db-base
+  namespace: reportportal
+spec:
+  backupOwnerReference: self
+  cluster:
+    name: reportportal-db
+  immediate: true
+  schedule: 0 55 2 * * 0
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: reportportal-csp
+  namespace: reportportal
+spec:
+  headers:
+    contentSecurityPolicy: upgrade-insecure-requests

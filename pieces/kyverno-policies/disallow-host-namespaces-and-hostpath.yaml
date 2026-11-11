@@ -1,0 +1,114 @@
+# Disallow host namespaces (hostNetwork/hostPID/hostIPC) and hostPath volumes
+# (Pod Security baseline). Sharing host namespaces or mounting host paths breaks
+# the container isolation boundary and can expose the node filesystem.
+# Mode: ENFORCE — live background scan 2026-06-17 showed 0 failing pods across all
+# app namespaces; no app uses host namespaces or hostPath, so enforcing breaks
+# nothing. (otel-logging in `observability` uses hostPath/host-namespaces for node
+# log collection → that platform namespace is in the exclude list below.)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-namespaces-and-hostpath
+  annotations:
+    policies.kyverno.io/title: Disallow Host Namespaces and hostPath
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod, Volume
+    policies.kyverno.io/description: >-
+      Pods may not share the host network/PID/IPC namespaces nor mount hostPath
+      volumes — these break the container isolation boundary.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: disallow-host-namespaces
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata node-agent (child DaemonSet) needs hostPID + hostPath for
+                # cgroups/eBPF/network accounting — node-agent ns is exempt.
+                - monitoring
+                # SUC Plan jobs use hostPID + hostPath (/host node root) to write the
+                # k3s drop-in and nsenter the host systemd. SUC-only ns.
+                - system-upgrade
+                # Nextcloud Talk's media plane (eturnal TURN + Janus SFU) needs
+                # hostNetwork: WebRTC media is UDP over a wide dynamic port range,
+                # Traefik is HTTP-only, Hetzner Cloud LoadBalancers do not support
+                # UDP, and this cluster runs no CCM — so the only path to those
+                # ports is the node's own network namespace, and hostPort cannot
+                # express a range. Scoped to its OWN namespace precisely so the
+                # nextcloud namespace keeps full policy coverage; hostPath is NOT
+                # excluded (the pod mounts only emptyDirs). See
+                # pieces/talk-hpb/base/talk-hpb.yaml.
+                - talk-hpb
+      validate:
+        message: "Sharing the host namespaces (hostNetwork/hostPID/hostIPC) is not allowed."
+        pattern:
+          spec:
+            =(hostNetwork): "false"
+            =(hostPID): "false"
+            =(hostIPC): "false"
+    - name: disallow-hostpath
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                # Netdata node-agent (child DaemonSet) needs hostPID + hostPath for
+                # cgroups/eBPF/network accounting — node-agent ns is exempt.
+                - monitoring
+                # SUC Plan jobs use hostPID + hostPath (/host node root) to write the
+                # k3s drop-in and nsenter the host systemd. Node work only. The one
+                # other user is the k3s-datastore-copy CronJob: one directory, read-only,
+                # no privilege; scripts/tests/datastore-copy.test.sh holds it to that.
+                - system-upgrade
+                # Velero kopia file-backup hosting pods hostPath-mount the node's
+                # PVC dir to read volume data; blocking them silently failed every
+                # PVC backup. Only hostPath is excluded here, NOT host namespaces
+                # (the kopia pods don't use hostNetwork/PID/IPC).
+                - velero
+      validate:
+        message: "hostPath volumes are not allowed."
+        pattern:
+          spec:
+            =(volumes):
+              - X(hostPath): "null"

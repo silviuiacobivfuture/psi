@@ -1,0 +1,13 @@
+# At least one OpenFGA pod answers through a voluntary disruption (a node drain,
+# an eviction). With two replicas and the RollingUpdate below, neither a deploy
+# nor a drain takes the estate's authorization data plane to zero. Every app
+# calls OpenFGA (or its mirror drains from it) for every decision, so zero
+# replicas is an estate-wide outage, not this service's.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: openfga
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: openfga }

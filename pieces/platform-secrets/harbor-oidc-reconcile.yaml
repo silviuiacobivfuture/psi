@@ -1,0 +1,86 @@
+# Harbor OIDC config reconciler (as-code for DB-stored config).
+#
+# Harbor keeps its auth config in its OWN Postgres DB, not in Helm values — so there
+# is no declarative knob in the chart. This CronJob is the as-code source of truth:
+# it idempotently PUTs the OIDC configuration into Harbor's REST API on a schedule,
+# so the config survives a Harbor DB/PVC wipe or a fresh cluster rebuild (converges
+# within one interval) without any manual `curl`. It reads the admin password from
+# the harbor-admin secret and the OIDC client creds from the harbor-oidc secret
+# (both ESO-synced from OpenBao). PUT /configurations is idempotent.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-oidc-reconcile
+  namespace: harbor
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels:
+            app: harbor-oidc-reconcile
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: curlimages/curl:8.5.0
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              env:
+                - name: HARBOR_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: harbor-admin, key: secret }
+                - name: OIDC_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef: { name: harbor-oidc, key: client_id }
+                - name: OIDC_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef: { name: harbor-oidc, key: client_secret }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  body=$(cat <<JSON
+                  {
+                    "auth_mode": "oidc_auth",
+                    "oidc_name": "Authentik",
+                    "oidc_endpoint": "https://AUTHENTIK_HOST/application/o/harbor/",
+                    "oidc_client_id": "${OIDC_CLIENT_ID}",
+                    "oidc_client_secret": "${OIDC_CLIENT_SECRET}",
+                    "oidc_scope": "openid,profile,email,groups,offline_access",
+                    "oidc_groups_claim": "groups",
+                    "oidc_admin_group": "app-harbor-admin",
+                    "oidc_user_claim": "preferred_username",
+                    "oidc_auto_onboard": true,
+                    "oidc_verify_cert": true
+                  }
+                  JSON
+                  )
+                  echo "Reconciling Harbor OIDC config via internal API..."
+                  code=$(curl -s -o /dev/null -w '%{http_code}' \
+                    -u "admin:${HARBOR_ADMIN_PASSWORD}" \
+                    -X PUT "http://harbor-core.harbor.svc.cluster.local/api/v2.0/configurations" \
+                    -H "Content-Type: application/json" \
+                    -d "${body}")
+                  echo "PUT /configurations -> ${code}"
+                  case "$code" in 200|201) echo "OK (Harbor OIDC reconciled)";; *) echo "FAILED"; exit 1;; esac

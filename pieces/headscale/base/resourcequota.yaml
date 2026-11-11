@@ -1,0 +1,25 @@
+# Sized to the workload. Requests: headscale 50m/128Mi (measured 12Mi idle with two nodes on
+# 2026-11-03), headplane 50m/128Mi, two routers 20m/64Mi each (14 Mi measured), the check page
+# 5m/16Mi, the copy job about 170m/144Mi four times a day.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: headscale
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 500m, memory: 256Mi }
+      max: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: headscale
+spec:
+  hard:
+    requests.cpu: 600m
+    requests.memory: 768Mi
+    limits.cpu: "6"
+    limits.memory: 3Gi
+    pods: "9"

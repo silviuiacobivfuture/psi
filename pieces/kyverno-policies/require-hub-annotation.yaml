@@ -1,0 +1,94 @@
+# Require the hub annotations on every Ingress, so nothing ships invisible to the
+# platform hub. Homepage (gethomepage.dev) discovers a tile from
+# `gethomepage.dev/enabled: "true"` plus its siblings on the Ingress; an Ingress
+# without them is a running, reachable service that appears nowhere on the one
+# page an operator looks at first.
+#
+# WHY THIS EXISTS RATHER THAN A CONVENTION. The convention already existed and
+# already failed twice. The RUNBOOK records the 2026-06-17 "tiles NOT FOUND"
+# incident, and its lesson — that a tile needs a pod-selector or a matching
+# `app.kubernetes.io/name` label — has lived only as prose ever since. Worse, the
+# service scaffolder emitted an Ingress with no hub annotations at all, so every
+# generated service started invisible and nobody was told. Prose does not survive
+# nine parallel workstreams; a PolicyReport row does.
+#
+# WHAT IS NOT CHECKED HERE, deliberately. Kyverno sees Ingresses, so it cannot
+# know about a component that has none — OpenFGA has no Ingress by design and
+# never will, and it earns its tile as a STATIC entry in the homepage Application
+# instead. A policy cannot catch a missing static tile; the architecture test in
+# apps/autorizare-svc/internal/architecture does that half, by reading the hub's
+# own manifest. The two halves are separate because the failure modes are.
+#
+# Mode: AUDIT. Two reasons, and the second is the important one. Existing
+# Ingresses are not all annotated, so Enforce would block their next Argo sync —
+# the same staged rollout the other baseline policies use. But also: a hub tile
+# is an operability concern, not a security one, and a policy that can refuse a
+# deployment should be reserved for things worth refusing a deployment over.
+# Flip to Enforce only if the audit trail shows this being ignored.
+#
+# EXCLUDED namespaces: the same system/platform set the other baseline policies
+# exclude — Helm-managed components whose templates we do not own and cannot
+# annotate without forking a chart.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-hub-annotation
+  annotations:
+    policies.kyverno.io/title: Require hub (gethomepage) annotations
+    policies.kyverno.io/category: Operability / Discoverability
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Ingress
+    policies.kyverno.io/description: >-
+      Every Ingress must carry the gethomepage.dev discovery annotations, so the
+      service it exposes appears on the platform hub. A deployed service missing
+      from the hub is one nobody knows to check, renew a certificate for, or look
+      at first during an incident.
+spec:
+  validationFailureAction: Audit
+  background: true
+  failurePolicy: Ignore
+  rules:
+    - name: require-hub-discovery
+      match:
+        any:
+          - resources:
+              kinds:
+                - Ingress
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - kyverno
+                - argocd
+                - arc-systems
+                - arc-runners
+                - tailscale
+                - openbao
+                - harbor
+                - external-secrets
+                - cert-manager
+                - external-dns
+                - observability
+                - monitoring
+                - system-upgrade
+                - velero
+      validate:
+        message: >-
+          Ingress must set the gethomepage.dev discovery annotations (enabled,
+          name, description, group, icon) so the service appears on the platform
+          hub. `group` must be one of the groups declared in the hub layout —
+          Apps, Everyday tools, Delivery, Services, Messaging, Platform,
+          Observability — because Homepage does not
+          merge a near-miss: an undeclared group renders as an extra, unstyled
+          section rather than joining the one that was meant.
+        pattern:
+          metadata:
+            annotations:
+              gethomepage.dev/enabled: "true"
+              gethomepage.dev/name: "?*"
+              gethomepage.dev/description: "?*"
+              gethomepage.dev/group: "Apps|Everyday tools|Delivery|Services|Messaging|Platform|Observability"
+              gethomepage.dev/icon: "?*"

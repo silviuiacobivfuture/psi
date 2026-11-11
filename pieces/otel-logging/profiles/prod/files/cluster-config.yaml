@@ -1,0 +1,30 @@
+# OTel cluster collector (Deployment singleton) — PROD. Kubernetes events →
+# WLSLUG-prod-k8s-events.
+receivers:
+  k8sobjects:
+    auth_type: serviceAccount
+    objects:
+      - name: events
+        mode: watch
+        group: events.k8s.io
+
+processors:
+  batch: {}
+  resource/events:
+    attributes:
+      - { key: log.source, value: k8s-events, action: insert }
+
+exporters:
+  otlphttp/events:
+    logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+    compression: gzip
+    headers:
+      Authorization: "Bearer ${env:AXIOM_TOKEN}"
+      X-Axiom-Dataset: WLSLUG-prod-k8s-events
+
+service:
+  pipelines:
+    logs:
+      receivers: [k8sobjects]
+      processors: [resource/events, batch]
+      exporters: [otlphttp/events]

@@ -1,0 +1,11 @@
+# Scratch values for kustomization.yaml (composed from ESTATE_LABEL_DOMAIN there). Never rendered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-owner-key
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  PREFIX: alerts.WLDOMAIN
+  KEY: PREFIX/owner
+  POINTER: PREFIX~1owner

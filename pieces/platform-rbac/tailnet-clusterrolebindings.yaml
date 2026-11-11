@@ -1,0 +1,33 @@
+# Tailscale API-proxy → k8s RBAC (break-glass admin over the tailnet).
+#
+# The Tailscale operator exposes the apiserver over the tailnet
+# (apiServerProxyConfig.mode "true", pieces/tailscale-operator/values.yaml). In
+# that mode the proxy authenticates the tailnet user and impersonates them to the
+# apiserver as a bare USER = their tailnet login, with NO groups. So the OIDC GROUP
+# bindings in oidc-clusterrolebindings.yaml (app-k8s-admin / platform-admins) DO NOT
+# authorize the tailnet path — a different auth method.
+#
+# WHY this exists: the public apiserver (6443) is firewalled to admin_cidr (a single
+# /32). When the operator's home IP rotates, the cert-kubeconfig over 6443 goes dead
+# and there is no admin path left. The tailnet API proxy is IP-independent (tailnet
+# membership is the gate), so binding the tailnet OWNER to cluster-admin here gives a
+# durable, reproducible break-glass that survives IP churn AND a full reprovision
+# (same tailnet identity). Additive — never replaces the node-local
+# /etc/rancher/k3s/k3s.yaml admin (the ultimate break-glass).
+#
+# WHO is the estate's: SEB binds nobody. The estate's component
+# (components/estate/platform-rbac) appends its tailnet owner's login as a User
+# subject (the exact string the operator proxy presents, no oidc: prefix). Bind only
+# the operator here; developers' tailnet logins (`<login>@github`) go on the
+# developer bindings in developer-rbac.yaml instead.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tailnet-admin
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects: []

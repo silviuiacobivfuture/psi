@@ -1,0 +1,141 @@
+# SEB piece `novu`: the estate's notification infrastructure (Novu's api, worker, ws and
+# dashboards, our sign-in novu-sso, the novu-bridge, MongoDB and Redis). Delivered in the SEB
+# bundle, rendered at build time (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity (the whitelabel component). The base writes them
+# as dot-free tokens the replacements below fill in:
+#   WLDOMAIN    the apex (BASE_DOMAIN)          novu.WLDOMAIN     → novu.<apex>
+#   WLMESH      the mesh (MESH_BASE_DOMAIN)     novu-api.WLMESH   → novu-api.<mesh>
+#   WLTAILNET   the tailnet (TAILNET_DOMAIN)    novu.WLTAILNET    → novu.<tailnet>
+#   WLOPSEMAIL  who is paged (OPS_EMAIL)
+# A host inside a longer URL is composed in hosts.yaml first, then put in whole.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: novu
+resources:
+  - base
+  - hosts.yaml
+
+components:
+  - ../../components/whitelabel
+  # What no identity value can write: the dashboard origins as Novu's CORS RegExp.
+  - ../../components/estate/novu
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # ── the apex: <label>.WLDOMAIN, dot-split index 1 ─────────────────────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Ingress, name: novu }
+        fieldPaths: [spec.rules.0.host, spec.rules.1.host, spec.tls.0.hosts.0, spec.tls.0.hosts.1]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: novu-auth-refused }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: novu-dashboard-gated }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0, "metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: novu-dashboard-sso-refused }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: novu-dashboard-callback }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: novu-config }
+        fieldPaths: [data.API_ROOT_URL, data.DASHBOARD_URL]
+        options: { delimiter: ".", index: 1 }
+      # novu-bridge.novu.svc.cluster.local,plunk-smtp.WLDOMAIN: the apex is the
+      # sixth dot-separated part.
+      - select: { kind: ConfigMap, name: novu-config }
+        fieldPaths: [data.NOVU_SAFE_OUTBOUND_ALLOW]
+        options: { delimiter: ".", index: 5 }
+      - select: { kind: Deployment, name: novu-dashboard }
+        fieldPaths:
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_WEBSOCKET_HOSTNAME].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: novu-dashboard-public }
+        fieldPaths:
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_API_HOSTNAME].value
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_WEBSOCKET_HOSTNAME].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: novu-dashboard-net }
+        fieldPaths:
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_WEBSOCKET_HOSTNAME].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: novu-sso }
+        fieldPaths:
+          - spec.template.spec.containers.[name=novu-sso].env.[name=DASHBOARD_URI].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: novu-hosts }
+        fieldPaths: [data.AUTH_HOST]
+        options: { delimiter: ".", index: 1 }
+      # The bridge takes the apex itself (ESTATE_DOMAIN: which addresses are the estate's).
+      - select: { kind: Deployment, name: novu-bridge }
+        fieldPaths:
+          - spec.template.spec.containers.[name=novu-bridge].env.[name=ESTATE_DOMAIN].value
+  # ── the mesh: <label>.WLMESH ──────────────────────────────────────────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MESH_BASE_DOMAIN }
+    targets:
+      - select: { kind: Deployment, name: novu-dashboard-net }
+        fieldPaths:
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_API_HOSTNAME].value
+        options: { delimiter: ".", index: 1 }
+  # ── the tailnet: <label>.WLTAILNET (the break-glass door, ingress-tailnet.yaml) ──
+  # The piece needs TAILNET_DOMAIN in the identity (the door is a tailscale Ingress).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN }
+    targets:
+      - select: { kind: Ingress, name: novu-dashboard }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Deployment, name: novu-dashboard }
+        fieldPaths:
+          - spec.template.spec.containers.[name=dashboard].env.[name=VITE_API_HOSTNAME].value
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: novu-hosts }
+        fieldPaths: [data.TAILNET_API_HOST]
+        options: { delimiter: ".", index: 1 }
+  # ── Authentik's label (auth.<apex>) ───────────────────────────────────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: novu-hosts }
+        fieldPaths: [data.AUTH_HOST]
+        options: { delimiter: ".", index: 0 }
+  # ── whole hosts into URLs with a path: slash-split index 2 ────────────────
+  - source: { kind: ConfigMap, name: novu-hosts, fieldPath: data.AUTH_HOST }
+    targets:
+      - select: { kind: Deployment, name: novu-sso }
+        fieldPaths:
+          - spec.template.spec.containers.[name=novu-sso].env.[name=NOVU_SSO_SIGNOUT_URL].value
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: novu-hosts, fieldPath: data.TAILNET_API_HOST }
+    targets:
+      - select: { kind: Ingress, name: novu-api-tailnet }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: Ingress, name: novu, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: Ingress, name: novu }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+  # ── who is paged for a workload ───────────────────────────────────────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  # ── object storage: <prefix>-novu-<env>, region and endpoint whole ────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: novu-config }
+        fieldPaths: [data.S3_BUCKET_NAME]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: ConfigMap, name: novu-config }
+        fieldPaths: [data.S3_REGION]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: ConfigMap, name: novu-config }
+        fieldPaths: [data.S3_LOCAL_STACK]
+# The alert annotation's key, alerts.<apex>/owner (the base writes alerts/owner).
+transformers:
+  - ../../components/alert-owner

@@ -1,0 +1,272 @@
+# The tailnet's way into the cluster: one router pair instead of one proxy per tool. Two pods on
+# two nodes advertise the same two addresses (services.yaml `routes`); Headscale probes them and
+# moves the route to the survivor (H3).
+#
+# NO --advertise-tags: Headscale refuses it beside a pre-auth key (plan, section 8). The tag comes
+# from the key. Userspace, so no NET_ADMIN and no /dev/net/tun: non-root, nothing dropped back in.
+# A StatefulSet with its own small volume per pod, so a restarted router keeps its identity and
+# no Kubernetes token or Secret-writing RBAC exists here (containerboot's other state store).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: tailnet-router-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: tailnet-router-secrets, creationPolicy: Owner }
+  data:
+    # Only Headscale can mint this: an EMPTY SLOT until headscale-bootstrap.sh captures it.
+    - secretKey: preauth_key
+      remoteRef: { key: apps/headscale/router, property: preauth_key }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tailnet-router
+  labels:
+    app.kubernetes.io/name: tailnet-router
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 2
+  serviceName: tailnet-router
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tailnet-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tailnet-router
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: tailnet-router
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - { name: preauth_key, valueFrom: { secretKeyRef: { name: tailnet-router-secrets, key: preauth_key } } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              [ -n "${preauth_key:-}" ] || { echo "MISSING REQUIRED SECRET: preauth_key" >&2; exit 1; }
+          securityContext: &restricted
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+      containers:
+        - name: tailscale
+          image: WLREGISTRY/mirror/docker.io/tailscale/tailscale:v1.104.4@sha256:519bf6f2c386992052216ea7e9391d5ace3a859d458f4f61bc8db8c58377eb7d
+          env:
+            - { name: TS_USERSPACE, value: "true" }
+            # A subdirectory: tailscaled chmods its state directory, and a local-path volume's root
+            # is root-owned, so on the root it starts with an in-memory store and never joins
+            # (seen in the gate, 2026-11-03). fsGroup does not reach a local-path volume.
+            - { name: TS_STATE_DIR, value: /var/lib/tailscale/state }
+            - { name: TS_SOCKET, value: /var/lib/tailscale/tailscaled.sock }
+            # Empty, so containerboot keeps its state on the volume and never looks for a token.
+            - { name: TS_KUBE_SECRET, value: "" }
+            - { name: TS_AUTH_ONCE, value: "true" }
+            - { name: TS_ACCEPT_DNS, value: "false" }
+            - { name: TS_ROUTES, value: "10.43.53.53/32,10.43.0.1/32" }
+            - { name: TS_EXTRA_ARGS, value: "--login-server=https://HEADSCALE.WLDOMAIN" }
+            # Tailscale's log servers do not hear from a cluster node.
+            - { name: TS_TAILSCALED_EXTRA_ARGS, value: "--no-logs-no-support" }
+            - name: TS_AUTHKEY
+              valueFrom: { secretKeyRef: { name: tailnet-router-secrets, key: preauth_key } }
+          readinessProbe:
+            exec: { command: ["tailscale", "--socket=/var/lib/tailscale/tailscaled.sock", "status", "--peers=false"] }
+            periodSeconds: 15
+            timeoutSeconds: 5
+          securityContext: *restricted
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { cpu: "1", memory: 256Mi }
+          volumeMounts:
+            - { name: state, mountPath: /var/lib/tailscale }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 16Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: state
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tailnet-router
+  labels:
+    app.kubernetes.io/name: tailnet-router
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: tailnet-router
+  ports:
+    - { name: none, port: 41641, protocol: UDP }
+---
+# A router that a route was wrongly approved for still reaches only this. Proven live 2026-11-03:
+# with this shape, a ClusterIP outside it with an approved route failed, the two inside answered.
+#   IN   nothing. Direct WireGuard is replies to its own outbound packets.
+#   OUT  DNS; Traefik's private port; the API server; and off the private ranges 443 to the
+#        control plane and relay, and UDP for WireGuard and STUN.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tailnet-router
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tailnet-router
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 8444 }
+    # The estate's public address, from a pod ON THE NODE behind it. The kernel turns that into the
+    # node's svclb pod before this policy sees it, so the rule below, off the private ranges, does
+    # not match, and every public name answers "connection refused" from here and only from here.
+    # Measured 2026-11-03: a pod of this shape on dev-k3s-cp was refused 40 of 40 without this rule
+    # and connected 40 of 40 with it.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              svccontroller.k3s.cattle.io/svcname: traefik
+      ports:
+        - { protocol: TCP, port: 443 }
+    # What Service default/kubernetes resolves to on dev.
+    - to:
+        - ipBlock: { cidr: 10.0.1.10/32 }
+      ports:
+        - { protocol: TCP, port: 6443 }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
+      ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: UDP }
+---
+# The sandbox tool: one static page behind the private entrypoint. What a device opens to prove
+# the whole path, and what doctor asks the public address for with a spoofed Host.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tailnet-check
+  labels:
+    app.kubernetes.io/name: tailnet-check
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    reloader.stakater.com/auto: "false" # no Secret here
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tailnet-check
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tailnet-check
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: page
+          image: WLREGISTRY/mirror/docker.io/nginxinc/nginx-unprivileged:1.27.4-alpine@sha256:2211200bb46431bb70f044f83cd989901205ce3232e1c431822876f1fd166689
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            exec: { command: ["test", "-f", "/usr/share/nginx/html/index.html"] }
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 5m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          volumeMounts:
+            - { name: page, mountPath: /usr/share/nginx/html, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: page
+          configMap: { name: tailnet-check }
+        - name: tmp
+          emptyDir: { sizeLimit: 8Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tailnet-check
+  labels:
+    app.kubernetes.io/name: tailnet-check
+spec:
+  selector:
+    app.kubernetes.io/name: tailnet-check
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tailnet-check
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tailnet-check
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 8080 }
+  egress: []

@@ -1,0 +1,134 @@
+# novu-sso — our Authentik sign-in for the Novu dashboard at novu.<apex>
+# (apps/novu-sso; read its CLAUDE.md before changing anything here). Runs OUR
+# image: Novu's own api image (the pin in api.yaml) plus /usr/src/app/novu-sso,
+# which imports Novu's DAL and JwtService. It needs exactly two of Novu's
+# secrets — the MongoDB URL and the JWT secret the api verifies sessions with —
+# taken key by key, never the whole novu-app Secret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novu-sso
+  labels:
+    app.kubernetes.io/name: novu-sso
+  annotations:
+    # REQUIRED: JWT_SECRET and MONGO_URL are env, read once at start.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: novu-sso
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: novu-sso
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: novu-app, key: JWT_SECRET } }
+            - name: MONGO_URL
+              valueFrom: { secretKeyRef: { name: novu-app, key: MONGO_URL } }
+            - name: AUTHENTIK_API_TOKEN
+              valueFrom: { secretKeyRef: { name: novu-sso-directory, key: token } }
+          command:
+            - sh
+            - -c
+            - '[ -n "${JWT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: JWT_SECRET" >&2; exit 1; }; [ -n "${MONGO_URL:-}" ] || { echo "MISSING REQUIRED SECRET: MONGO_URL" >&2; exit 1; }; [ -n "${AUTHENTIK_API_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: novu-sso
+          image: WLREGISTRY/WLAPPS/novu-sso:3.19.0-a20b03b@sha256:1968722d17919f4d505d26809d1639913668fcd86f8bc0beb644055b45361495
+          env:
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: novu-app, key: JWT_SECRET } }
+            - name: MONGO_URL
+              valueFrom: { secretKeyRef: { name: novu-app, key: MONGO_URL } }
+            # Each sign-in reads the person's groups from the directory (lib/directory.mjs).
+            - name: AUTHENTIK_API_TOKEN
+              valueFrom: { secretKeyRef: { name: novu-sso-directory, key: token } }
+            - { name: AUTHENTIK_API_URL, value: "http://authentik-server.authentik.svc.cluster.local:80" }
+            - { name: NODE_ENV, value: production }
+            - { name: HOME, value: /tmp }
+            - { name: MONGO_MIN_POOL_SIZE, value: "1" }
+            - { name: MONGO_MAX_POOL_SIZE, value: "5" }
+            - { name: DASHBOARD_URI, value: https://novu.WLDOMAIN }
+            # Where a sign-in is CONFIRMED: the outpost endpoint Traefik's
+            # forward-auth asks, in-cluster. Never the public host.
+            - { name: NOVU_SSO_VERIFY_URL, value: "http://authentik-server.authentik.svc.cluster.local:80/outpost.goauthentik.io/auth/traefik" }
+            # Sign-out: Authentik's default invalidation flow; ending the
+            # Authentik session ends this host's outpost session too (measured;
+            # the outpost's own sign_out paths do not — apps/novu-sso server.mjs).
+            - { name: NOVU_SSO_SIGNOUT_URL, value: "https://auth.WLDOMAIN/flows/-/default/invalidation/" }
+            # The dashboard novu-sso serves, guard added (dashboard.yaml).
+            - { name: NOVU_SSO_UPSTREAM, value: "http://novu-dashboard-public.novu.svc.cluster.local:4000" }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 20m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novu-sso
+  labels:
+    app.kubernetes.io/name: novu-sso
+spec:
+  selector:
+    app.kubernetes.io/name: novu-sso
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+# The read-only directory token (view_user + view_group). Per key, so an empty slot is
+# SecretSyncedError; authentik-novu-sso-token-reconcile fills it.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: novu-sso-directory
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: novu-sso-directory, creationPolicy: Owner }
+  data:
+    - secretKey: token
+      remoteRef: { key: platform/authentik/novu-sso-api-token, property: token }

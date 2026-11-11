@@ -1,0 +1,58 @@
+# Per-namespace guard-rails. The LimitRange MUST exist before the ResourceQuota:
+# once a quota constrains requests.*/limits.*, a pod that omits them is REJECTED —
+# the LimitRange backfills defaults so nothing gets bounced. Same convention as
+# gitops/services/plane/base/resourcequota.yaml, and for the same concrete reason:
+# a Helm chart will eventually render a workload with no `resources` block, and
+# without the LimitRange that workload is rejected while looking like a quota bug.
+#
+# SIZED FROM THE ACTUAL RENDER, not guessed. `helm template` of chart 26.8.12 with
+# gitops/apps/overlays/dev/reportportal.yaml's values, summed the way a quota
+# charges a pod (max(sum of containers, largest initContainer) per resource):
+#
+#   Deployment  reportportal-api                  req 300m / 1024Mi   lim 1    / 2048Mi
+#   Deployment  reportportal-uat                  req 100m /  512Mi   lim 500m / 1024Mi
+#   Deployment  reportportal-jobs                 req 100m /  512Mi   lim 500m / 1024Mi
+#   Deployment  reportportal-index                req  50m /   64Mi   lim 200m /  128Mi
+#   Deployment  reportportal-ui                   req  50m /   64Mi   lim 200m /  128Mi
+#   StatefulSet reportportal-analyzer             req 200m /  512Mi   lim 500m / 1024Mi
+#   StatefulSet opensearch-cluster-master         req 250m / 2048Mi   lim 1    / 3072Mi
+#   Job         reportportal-migrations           req 100m /  128Mi   lim 300m /  256Mi
+#   Job         reportportal-pre-upgrade-cleanup  req  50m /   64Mi   lim 100m /  128Mi
+#   ------------------------------------------------------------------------------
+#   chart subtotal        9 pods   req 1.20 cpu / 4.81 GiB   lim 4.30 cpu / 8.62 GiB
+#   + reportportal-db     1 pod    req 200m / 512Mi          lim 1    / 1Gi
+#   + reportportal-rabbitmq 1 pod  req 100m / 256Mi          lim 1    / 1Gi
+#   ==============================================================================
+#   STEADY STATE         11 pods   req ~1.5 cpu / 5.56 GiB   lim ~6.3 cpu / 10.6 GiB
+#
+# The two Jobs are transient (one runs at install, one per sync) and pods in a
+# terminal phase are not charged, so the real steady state is 9 pods.
+#
+# The numbers below leave room for a rollout surge (RollingUpdate on five
+# Deployments) plus the 6-hourly dump Job, without leaving so much slack that a
+# runaway component could take the node with it.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: reportportal
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 50m, memory: 128Mi }
+      default: { cpu: 500m, memory: 512Mi }
+      # Above the largest declared limit (opensearch, 1 cpu / 3Gi) with headroom,
+      # so a deliberate bump does not need this file edited too — but low enough
+      # that a typo'd "10Gi" is rejected rather than scheduled.
+      max: { cpu: "2", memory: 4Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: reportportal
+spec:
+  hard:
+    requests.cpu: "3"
+    requests.memory: 8Gi
+    limits.cpu: "12"
+    limits.memory: 20Gi
+    pods: "20"

@@ -1,0 +1,98 @@
+# The changelog service's Postgres — a CloudNativePG Cluster, replacing the Neon
+# project the service ran on until 2026-10-22, when Neon refused every connection
+# with "Your account or project has exceeded the quota" and the service sat in
+# CrashLoopBackOff (5,500 restarts) behind a 503 /health. Owner decision the same
+# day: run it in-cluster like every other service's database.
+#
+# Shape copied from pieces/openfga/base/cnpg-cluster.yaml — read that
+# first; the reasoning there applies here unchanged, and only the differences are
+# written down below.
+#
+# 1. ONE role, the owner. Prisma runs `migrate deploy` from the `migrate`
+#    initContainer, so the process that owns the schema and the process that
+#    reads it are the same program — the openfga argument, not the
+#    invoice-svc/autorizare one. There is no row-level security to bypass.
+#
+# 2. hcloud-volumes, not local-path — same reason as openfga-db: a single-instance
+#    Cluster has no live path onto a new storage class. 10Gi is the Hetzner
+#    block-volume MINIMUM, not a sizing estimate (the data is a few MB).
+#
+# 3. The base is SHARED with the per-PR preview namespaces
+#    (gitops/apps/overlays/dev/previews.yaml renders overlays/dev into
+#    preview-pr-<n>). Each preview therefore gets its OWN ephemeral Cluster, which
+#    is the isolation the old Neon-branch-per-PR workflow promised and never
+#    delivered. The preview ApplicationSet strips `backup` and the
+#    ScheduledBackup: two Clusters archiving WAL into the same destinationPath
+#    would interleave and ruin the dev archive.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: changelog-db
+  annotations:
+    alerts.recomex.eu/owner: ops@recomex.eu
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+
+  bootstrap:
+    initdb:
+      database: changelog
+      owner: changelog
+      # Naming a secret means the operator expects it to EXIST — changelog-db-app
+      # in externalsecret.yaml, built from secret/apps/changelog/db.
+      secret:
+        name: changelog-db-app
+
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+
+  # Sized against the node (see openfga-db's note: memory limits were already over
+  # capacity on two nodes). The per-container LimitRange in resourcequota.yaml caps
+  # at 512Mi, so this is the ceiling, not a guess.
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+  # No enablePodMonitor — the PodMonitor CRD is not installed (see openfga-db).
+
+  backup:
+    # 14 days, the platform's usual window. A changelog mistake is noticed when a
+    # release note is read, which is days, not quarters.
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://rmx-tfstate-dev/cnpg/changelog-db
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId:
+          name: changelog-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: changelog-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. WAL alone restores nothing.
+# NOTE: CNPG uses a SIX-field cron (leading seconds).
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: changelog-db-base
+spec:
+  # 04:20 Sunday. Hour 04 holds openfga-db (04:00), autorizare-db (04:10) and one
+  # at 04:30 — grep `schedule:` across gitops/ before taking another slot.
+  schedule: "0 20 4 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: changelog-db

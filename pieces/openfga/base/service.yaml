@@ -1,0 +1,44 @@
+# TWO Services onto ONE pod, and the pair is the architecture.
+#
+# The names are the contract every consumer is written against, so they are
+# deliberately blunt: the one called `openfga` is the one applications use, and it
+# is the SAFE one. An engineer reaching for "the openfga service" gets the
+# read-only door by default; reaching the administrative surface requires typing
+# `-admin`, which is a thing you cannot do by accident.
+#
+# THERE IS NO INGRESS, here or anywhere in this service. Every consumer is
+# in-cluster. That absence is deliberate and is what makes the port split
+# sufficient — with an Ingress, an attacker outside the cluster would have an
+# edge to attack and the L4 control would not reach it.
+#
+# The port NUMBERS are part of the contract too: verification §11 curls
+# `openfga.openfga.svc:8081` and `openfga-admin.openfga.svc:8080` literally, and
+# the SDKs are configured with those. Hence 8081/8080 rather than the port-80
+# convention the business services' Services use — a translated port here would make
+# every consumer's URL disagree with the diagram it was drawn from.
+apiVersion: v1
+kind: Service
+metadata:
+  name: openfga
+  labels: { app: openfga }
+spec:
+  type: ClusterIP
+  selector: { app: openfga }
+  ports:
+    # -> the authzfilter sidecar. Read paths only; everything else is 403.
+    - { name: app, port: 8081, targetPort: app }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openfga-admin
+  labels: { app: openfga }
+spec:
+  type: ClusterIP
+  selector: { app: openfga }
+  ports:
+    # -> OpenFGA itself. Write, authorization-models, read, changes, assertions,
+    # store lifecycle. networkpolicy.yaml restricts it to autorizare's pods, and
+    # that restriction is the only thing standing between this port and any pod
+    # in the cluster: the Service object itself grants nothing and blocks nothing.
+    - { name: admin, port: 8080, targetPort: admin }

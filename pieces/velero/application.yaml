@@ -1,0 +1,52 @@
+# SEB piece `velero`.
+#
+# Velero — cluster backup/restore (dev). Backs up k8s resources AND PersistentVolume
+# data (node-agent / kopia file-level) to the EXISTING Hetzner Object Storage bucket
+# (<BUCKET_PREFIX>-tfstate-dev) under a dedicated `velero/` prefix — separate from the tofu state
+# at `dev/terraform.tfstate`. Same S3 endpoint/region as the tofu backend
+# (the identity's OBJECT_STORAGE_ENDPOINT and OBJECT_STORAGE_REGION, path-style).
+#
+# S3 creds come from the velero-credentials secret (key `cloud`, AWS-credentials-file
+# format), synced from OpenBao secret/platform/object-storage/dev by the ESO
+# ExternalSecret in pieces/platform-secrets/velero-credentials.yaml — NOT inline.
+#
+# DEPENDS on OpenBao + ESO + the openbao ClusterSecretStore (its creds). Those sit at
+# early sync-waves (-5/-4); this app is at wave 0 and self-heals once the
+# velero-credentials secret exists. The BackupStorageLocation + daily Schedule are
+# configured via Helm values (the idiomatic Velero way) so the whole backup config
+# is one declarative unit.
+#
+# A HELM piece (contract tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries the chart values, with identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+  # Explicit wave (matches the header): Velero needs OpenBao+ESO+store (waves -5/-4)
+  # up first for its creds; it sits at wave 0.
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://vmware-tanzu.github.io/helm-charts
+    chart: velero
+    targetRevision: 12.0.3 # appVersion velero 1.18.1
+    helm:
+      # Estate values: identity placeholders, filled by the estate's upgrade step.
+      parameters:
+        - name: configuration.backupStorageLocation[0].bucket
+          value: ${BUCKET_PREFIX}-tfstate-dev
+          forceString: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,85 @@
+# Plunk's Postgres — a CloudNativePG Cluster, same recipe as plane-db (read
+# gitops/services/plane/base/cnpg-cluster.yaml for the full rationale).
+#
+# DURABILITY, two layers, as Plane: (1) barman ships every WAL segment + a weekly
+# base backup to the platform bucket → PITR, minutes of RPO; (2) a 6-hourly
+# logical pg_dump (db-dump.yaml) → a plain .sql.gz that restores without the
+# operator. local-path is node-pinned and free; losing the node costs a restore,
+# not the data. doctor.sh checks the dump's freshness (< 12h).
+#
+# VERSION: PG 17 like every other cluster here. Plunk's compose ships postgres:16
+# but reaches the database only through Prisma 6 (supports 9.6–17) and its
+# migrations use no version-gated SQL — VERIFIED by the suite, which migrates and
+# runs against 16, and by the first sync, which migrates 17. Its migrations create
+# extensions? No: `grep -ri "create extension" packages/db/prisma/migrations` at
+# v0.17.0 is empty, so no postInitApplicationSQL is needed.
+#
+# SIZE: 5Gi. Plunk stores contacts, events and every email row; at this estate's
+# volume (thousands of transactional mails a month) that is megabytes. Resize is a
+# new cluster (local-path cannot grow) — revisit before bulk campaigns.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: plunk-db
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  instances: 1
+  # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
+  # pooled clients never leave, so a smart shutdown always runs the full window
+  # and refuses every connection meanwhile. Rationale and the 2026-10-29
+  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: plunk
+      owner: plunk
+      secret:
+        name: plunk-db-app
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+  storage:
+    size: 5Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  postgresql:
+    parameters:
+      shared_buffers: "160MB"
+      effective_cache_size: "384MB"
+      work_mem: "8MB"
+      # api + worker + smtp (Prisma pools, ~10 each by default) + plunk-sso +
+      # the reconcile and the dump.
+      max_connections: "100"
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plunk-db
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: plunk-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: plunk-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# Weekly base backup (six-field cron). 02:50 Sunday — after plane-db-base (02:40)
+# and every other base backup, so no two contend. `immediate` takes the first one
+# at creation instead of leaving a week with no restorable point.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: plunk-db-base
+spec:
+  schedule: "0 50 2 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: plunk-db

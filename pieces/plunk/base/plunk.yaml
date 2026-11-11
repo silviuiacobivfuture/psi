@@ -1,0 +1,230 @@
+# Plunk itself — upstream's UNCHANGED all-in-one image (apps/plunk-sso/UPSTREAM):
+# nginx + api + worker + smtp + web + landing + wiki under pm2. SERVICE=all is
+# the only mode that image supports (its entrypoint refuses any other), so this
+# is one Deployment, one replica, Recreate: the entrypoint runs `prisma migrate
+# deploy` before anything starts, and two pods migrating at once is how a
+# schema upgrade breaks. Our ONLY change to the running image is two mounted
+# files (plunk-sso-web: the nginx template copy and the guard script). Beside it
+# runs ONE container of ours, the send gate (apps/plunk-sso/lib/send-gate.mjs):
+# nginx hands it POST /v1/send, and it refuses what SES would refuse.
+#
+# HOSTS (nginx inside routes by Host):
+#   plunk.<apex>       DASHBOARD_DOMAIN — the dashboard, behind Authentik + SSO
+#   plunk-api.<apex>   API_DOMAIN       — the API (keys, the dashboard's XHRs, SES
+#                                         webhooks); nginx's default_server
+#   LANDING/WIKI       set to the dashboard host on purpose: we serve neither, and
+#                      every link Plunk builds to them then stays on our host
+#                      (nginx warns "conflicting server name" and the dashboard,
+#                      declared first, wins).
+#   plunk-smtp.<apex>  SMTP_DOMAIN — in-cluster relay only (Novu → Plunk, phase 2),
+#                      never published; its certificate is ingress.yaml's.
+#
+# KYVERNO: no exclusion needed. The image runs as uid 1001; nginx (80) and the
+# wiki (1000) bind low ports, so the pod lowers ip_unprivileged_port_start —
+# a namespaced "safe" sysctl, the pdfcraft precedent. The root filesystem is
+# WRITABLE, deliberately: at start the entrypoint renders nginx's config and
+# rewrites the Next.js bundles with the runtime URLs, in place.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plunk
+  labels:
+    app.kubernetes.io/name: plunk
+  annotations:
+    # REQUIRED: every secret is env (envFrom plunk-app) — a rotation must restart.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plunk
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plunk
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # The send gate's image is ours; Plunk's own stays upstream's.
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 65533
+        seccompProfile: { type: RuntimeDefault }
+        sysctls:
+          - name: net.ipv4.ip_unprivileged_port_start
+            value: "0"
+      initContainers:
+        # Fail loud and NAMED (infrastructure/hetzner/CLAUDE.md, secret schema).
+        # The SES pair is asserted too: it always holds a value — the owner's key
+        # or the named sentinel — so an EMPTY one means the template broke.
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: plunk-app }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in JWT_SECRET DATABASE_URL DIRECT_DATABASE_URL REDIS_URL AWS_SES_REGION AWS_SES_ACCESS_KEY_ID AWS_SES_SECRET_ACCESS_KEY PLUNK_SES_CONFIGURED; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              echo "all required secrets present (SES configured: $PLUNK_SES_CONFIGURED)"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+      containers:
+        # Only the four keys it needs, by name: it holds no database URL and no JWT
+        # secret. Reloader restarts it with the pod when the key changes.
+        - name: send-gate
+          image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-a882578@sha256:cec22a0df9954a831a8b846822b87ed2888f92fda8f9940d4790980d92ef3d35
+          command: ["node", "/app/plunk-sso/bin/send-gate.mjs"]
+          env:
+            - name: AWS_SES_REGION
+              valueFrom: { secretKeyRef: { name: plunk-app, key: AWS_SES_REGION } }
+            - name: AWS_SES_ACCESS_KEY_ID
+              valueFrom: { secretKeyRef: { name: plunk-app, key: AWS_SES_ACCESS_KEY_ID } }
+            - name: AWS_SES_SECRET_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: plunk-app, key: AWS_SES_SECRET_ACCESS_KEY } }
+            - name: PLUNK_SES_CONFIGURED
+              valueFrom: { secretKeyRef: { name: plunk-app, key: PLUNK_SES_CONFIGURED } }
+          ports:
+            - { name: send-gate, containerPort: 8091 }
+          startupProbe:
+            httpGet: { path: /healthz, port: send-gate }
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /healthz, port: send-gate }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: send-gate }
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          # Bounded by nginx's 10M body, held once in memory; the node runtime is ~60Mi.
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+        - name: plunk
+          image: WLREGISTRY/mirror/ghcr.io/useplunk/plunk:0.17.0@sha256:9eb0c3bdfa02ec2a9b2e6144a8807aaed08c8bd8eaec4116efbe25ff4adca912
+          envFrom:
+            - secretRef: { name: plunk-app }
+          env:
+            - { name: SERVICE, value: all }
+            - { name: NODE_ENV, value: production }
+            - { name: USE_HTTPS, value: "true" }
+            - { name: API_DOMAIN, value: plunk-api.WLDOMAIN }
+            - { name: DASHBOARD_DOMAIN, value: plunk.WLDOMAIN }
+            - { name: LANDING_DOMAIN, value: plunk.WLDOMAIN }
+            - { name: WIKI_DOMAIN, value: plunk.WLDOMAIN }
+            - { name: SMTP_DOMAIN, value: plunk-smtp.WLDOMAIN }
+            # Plunk's own sign-up stays closed; the SSO provisions (apps/plunk-sso).
+            - { name: DISABLE_SIGNUPS, value: "true" }
+            - { name: SHOW_SPONSOR, value: "false" }
+            # SES: AWS_SES_REGION comes with the credential (secret/platform/ses/
+            # admin `region`; declared as SES_REGION in estate/identity.yaml,
+            # which doctor holds it to). The two configuration sets are created by
+            # infrastructure/hetzner/environments/ses.
+            - { name: SES_CONFIGURATION_SET, value: plunk-tracking }
+            - { name: SES_CONFIGURATION_SET_NO_TRACKING, value: plunk-no-tracking }
+            # MAIL FROM is bounce.<domain>, NOT upstream's default plunk.<domain>:
+            # plunk.<apex> is this dashboard's host, and an MX/TXT on that name
+            # would hide the estate wildcard's A record for it (RFC 4592).
+            - { name: MAIL_FROM_SUBDOMAIN, value: bounce }
+            - { name: AUTO_PROJECT_DISABLE, value: "true" }
+            # Plunk's OWN notices (project disabled, limits) — the apex sender,
+            # through the same onboarding path every app uses (senders/platform.json
+            # → email.generated.yaml). Optional ONLY until plunk-bootstrap.sh has
+            # captured the key: Plunk must run before its first project exists.
+            - name: PLUNK_API_KEY
+              valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_API_KEY, optional: true } }
+            - name: PLUNK_FROM_ADDRESS
+              valueFrom: { secretKeyRef: { name: email-sender, key: EMAIL_FROM, optional: true } }
+          ports:
+            - { name: http, containerPort: 80 }
+            - { name: smtp-submit, containerPort: 587 }
+            - { name: smtps, containerPort: 465 }
+          startupProbe:
+            httpGet: { path: /health, port: http, httpHeaders: [{ name: Host, value: plunk-api.WLDOMAIN }] }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /health, port: http, httpHeaders: [{ name: Host, value: plunk-api.WLDOMAIN }] }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http, httpHeaders: [{ name: Host, value: plunk-api.WLDOMAIN }] }
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 200m, memory: 640Mi }
+            limits: { cpu: "2", memory: 2Gi }
+          volumeMounts:
+            - name: sso-web
+              mountPath: /app/docker/nginx/nginx.conf.template
+              subPath: nginx.conf.template
+            - name: sso-web
+              mountPath: /app/plunk-sso-web/guard.js
+              subPath: guard.js
+            - name: smtp-tls
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: sso-web
+          configMap: { name: plunk-sso-web }
+        # cert-manager's Secret, renamed to the files Plunk's SMTP server reads.
+        # Optional: until it is issued the relay runs without TLS and picks the
+        # certificate up within a minute of it appearing (Plunk's own watcher).
+        - name: smtp-tls
+          secret:
+            secretName: plunk-smtp-tls
+            optional: true
+            items:
+              - { key: tls.crt, path: fullchain.pem }
+              - { key: tls.key, path: privkey.pem }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plunk
+  labels:
+    app.kubernetes.io/name: plunk
+spec:
+  selector:
+    app.kubernetes.io/name: plunk
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+# The SMTP relay, in-cluster only (no Ingress, no LoadBalancer). Username
+# `plunk`, password = a project's secret key (apps/smtp handleAuth).
+apiVersion: v1
+kind: Service
+metadata:
+  name: plunk-smtp
+  labels:
+    app.kubernetes.io/name: plunk
+spec:
+  selector:
+    app.kubernetes.io/name: plunk
+  ports:
+    - { name: smtp-submit, port: 587, targetPort: smtp-submit }
+    - { name: smtps, port: 465, targetPort: smtps }

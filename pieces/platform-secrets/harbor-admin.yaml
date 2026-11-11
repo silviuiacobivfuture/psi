@@ -1,0 +1,19 @@
+# Harbor admin password → harbor-admin secret (key `secret`) in the harbor
+# namespace, read by the harbor Helm chart (existingSecretAdminPassword:
+# harbor-admin, existingSecretAdminPasswordKey: secret). Synced from OpenBao
+# secret/platform/harbor/admin (key password). Replaces the out-of-band secret
+# previously created by hand from .env.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-admin
+  namespace: harbor
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: harbor-admin
+    creationPolicy: Owner
+  data:
+    - secretKey: secret
+      remoteRef: { key: platform/harbor/admin, property: password }

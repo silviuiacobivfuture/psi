@@ -1,0 +1,160 @@
+# SEB piece `autorizare`: Polaris, the authorization CONTROL PLANE (autorizare-svc and the
+# console it serves, its CNPG Postgres) and the sign-in hub (autorizare-hub, at id.<apex>).
+# Delivered in the SEB bundle, rendered at build time (tools/bundle/build.mjs).
+#
+# The estate's values come from its identity (the whitelabel component). What is the
+# estate's own and not a setting comes from its layer, ../../components/estate/autorizare:
+#   - its permissions bundle (the modules, catalogs and composed model Polaris loads at
+#     start-up; the image carries the platform's only) and its hub registry (applications,
+#     tiles, changelogs, mounted at /estate);
+#   - its organisation id, its webhook receivers, the path of its watch key, its own sender;
+#   - the image TAG, while the estate's CI still bumps it (together with the openfga piece's
+#     authzfilter tag, the same image — decision D17).
+#
+# THERE IS NO prod variant, and its absence is load-bearing (verification §12): promotion is
+# a deliberate act with its own review.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: autorizare
+resources:
+  - base
+  - bucket.yaml
+
+patches:
+  # The console's real host, kept OUT of the base so an un-overlaid apply cannot claim it:
+  # <AUTORIZARE_HOST_PREFIX>.<apex>, filled in below. Both the rule host and the TLS SAN,
+  # because Traefik routes on the first and cert-manager requests a certificate for the
+  # second.
+  - target: { kind: Ingress, name: autorizare-svc }
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: WLAUTORIZARE.WLDOMAIN
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: WLAUTORIZARE.WLDOMAIN
+  # ── The sign-in hub (D23, D27) ──────────────────────────────────────────────
+  #
+  # The hub answers at id.<apex> — no `.dev`, the apex from the whitelabel
+  # component (replacements below), the label from the base Ingress (`id.`, the
+  # value of HostPrefix in packages/autorizare-sdk-go/hub/issuer.go).
+  - target: { kind: ConfigMap, name: autorizare-hub-config }
+    patch: |-
+      # The ONE Authentik (the infra instance) and its broker application for the
+      # hub.
+      - op: replace
+        path: /data/HUB_UPSTREAM_ISSUER
+        value: https://WLAUTHHOST/application/o/autorizare-hub/
+  # The hub's real host, kept out of the base like the console's: `id.` is the
+  # label, WLDOMAIN the apex the replacements below fill in.
+  - target: { kind: Ingress, name: autorizare-hub }
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: id.WLDOMAIN
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: id.WLDOMAIN
+
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../components/prune-guard
+  - ../../components/whitelabel
+  - ../../components/estate/autorizare
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The ONE Authentik's host in the hub's upstream issuer: https://WLAUTHHOST/… → auth.<apex>.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: autorizare-hub-config }
+        fieldPaths: [data.HUB_UPSTREAM_ISSUER]
+        options: { delimiter: "/", index: 2 }
+  # The console's label: <AUTORIZARE_HOST_PREFIX>.<apex>.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTORIZARE_HOST_PREFIX }
+    targets:
+      - select: { kind: Ingress, name: autorizare-svc }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Ingress, name: autorizare-svc }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: autorizare-hub-config }
+        fieldPaths: [data.HUB_BASE_DOMAIN]
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.ESTATE_DOMAIN]
+      # id.WLDOMAIN → id.<apex>, and the console's issuer pin
+      # https://id.WLDOMAIN → https://id.<apex>: the console signs in through the
+      # hub, so its issuer moves in the same change as the hub's host.
+      - select: { kind: Ingress, name: autorizare-hub }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.OIDC_ISSUER_URL]
+        options: { delimiter: ".", index: 1 }
+      # The Authentik admin address, https://auth.<apex> — apex from BASE_DOMAIN; Novu as a
+      # person's browser reaches it, https://novu-api.<apex> and https://novu-ws.<apex>.
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.AUTHENTIK_API_URL, data.NOVU_PUBLIC_API_URL, data.NOVU_PUBLIC_WS_URL]
+        options: { delimiter: ".", index: 1 }
+  # The console's host, once filled in, into the URLs that carry it (slash-split index 2).
+  - source: { kind: Ingress, name: autorizare-svc, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.OIDC_REDIRECT_URL, data.APP_URL]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: Ingress, name: autorizare-svc }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: Ingress, name: autorizare-hub, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: Ingress, name: autorizare-hub }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+  # The estate's slug: the platform object and the robots' domain (below), the
+  # machine-credential deny policy,
+  # <slug>-business-machine-credential-only (the name the Authentik blueprints give it), and
+  # the control-plane tenant that serves the directory's organisations.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG }
+    targets:
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.AUTHENTIK_MACHINE_CREDENTIAL_POLICY]
+        options: { delimiter: "-", index: 0 }
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.DIRECTORY_TENANT]
+      # The platform object, platform:<slug>, in the control plane and the hub alike; the
+      # robots' reserved domain, <slug>.invalid.
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.PLATFORM_OBJECT]
+        options: { delimiter: ":", index: 1 }
+      - select: { kind: ConfigMap, name: autorizare-hub-config }
+        fieldPaths: [data.PLATFORM_OBJECT]
+        options: { delimiter: ":", index: 1 }
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.E2E_ROBOT_DOMAIN]
+        options: { delimiter: ".", index: 0 }
+  # Who is paged: the estate's operations address (the key is moved to alerts.<apex>/owner by
+  # ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+  # The backup bucket <BUCKET_PREFIX>-tfstate-dev, composed in bucket.yaml first.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: autorizare-bucket }
+        fieldPaths: [data.BUCKET]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: autorizare-bucket, fieldPath: data.BUCKET }
+    targets:
+      - select: { kind: Cluster, name: autorizare-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: Cluster, name: autorizare-db }
+        fieldPaths: [spec.backup.barmanObjectStore.endpointURL]
+transformers:
+  - ../../components/alert-owner

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - cnpg-cluster.yaml
+  - externalsecret.yaml
+  - harbor-pull-externalsecret.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

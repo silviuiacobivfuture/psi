@@ -1,0 +1,28 @@
+# SEB piece `tailscale-operator` — the Tailscale Kubernetes operator: tailnet ingress class and
+# the API-server proxy (kubectl over the tailnet). Its OAuth client is the pre-created
+# operator-oauth Secret (ESO, not part of this piece); the chart's own oauth values stay empty.
+# Its proxies' tailnet state lives in Secrets the operator owns, untouched by a re-template.
+#
+# A HELM piece (contract seb/tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries identity placeholders the estate's upgrade step fills in.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://pkgs.tailscale.com/helmcharts
+    chart: tailscale-operator
+    targetRevision: 1.98.4
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tailscale
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

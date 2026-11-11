@@ -1,0 +1,39 @@
+# Authentik's outgoing mail — the set-password links, recovery links and every
+# other message the directory sends. Identity mail is the APEX's (owner,
+# 2026-10-29), so Authentik sends as the `platform` sender
+# (gitops/services/plunk/senders/platform.json: noreply@<apex>, with its display name)
+# through Plunk's in-cluster SMTP relay, with that sender's Plunk key — the one
+# plunk-bootstrap.sh captures into secret/platform/plunk/platform. One key, one
+# Plunk project, one reputation for all identity mail.
+#
+# Only the secret arrives from OpenBao: the relay's SMTP password IS the project's
+# secret key (the SMTP username is the literal "plunk"). Host, port, username and
+# STARTTLS are not secret and are set in the chart values
+# (gitops/apps/overlays/dev/authentik.yaml, authentik.email), because the chart
+# renders those keys itself and a duplicate here would race it. The sender is
+# the declaration's: noreply@<MAIL_DOMAIN> here (defaults/), the estate's full From with its
+# display name in its component; doctor.sh (lib-email-relay.sh) and
+# scripts/tests/email-relay.test.sh fail when the two disagree.
+#
+# Declared per key, no dataFrom.extract: an absent property makes this
+# ExternalSecret go SecretSyncedError, and the `assert-mail` initContainer on
+# server and worker then refuses to start with `MISSING REQUIRED SECRET: …`
+# instead of a directory whose set-password emails silently never leave.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-email
+  namespace: authentik
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: authentik-email
+    creationPolicy: Owner
+    template:
+      data:
+        AUTHENTIK_EMAIL__PASSWORD: "{{ .secret_key }}"
+        AUTHENTIK_EMAIL__FROM: "noreply@MAIL_DOMAIN" # the identity's; an estate's display name in its component (defaults/)
+  data:
+    - secretKey: secret_key
+      remoteRef: { key: platform/plunk/platform, property: secret_key }

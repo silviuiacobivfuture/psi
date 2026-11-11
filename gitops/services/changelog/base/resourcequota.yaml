@@ -1,0 +1,35 @@
+# Per-namespace guard-rails for changelog. The LimitRange MUST exist before the
+# ResourceQuota: once a quota constrains requests.*/limits.*, every pod that omits
+# them is rejected — the LimitRange backfills sane defaults (and a per-container
+# max) so nothing gets bounced. Sized from the live deployment (req 25m/64Mi,
+# lim 250m/256Mi × 1 replica) with ~3x headroom for a rollout surge + a preview
+# namespace or two sharing this base. Mirrors the per-service base convention.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: changelog
+spec:
+  limits:
+    - type: Container
+      # Backfill for any container (e.g. the migrate initContainer) that omits
+      # resources, so the ResourceQuota never rejects it.
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 250m, memory: 256Mi }
+      # Per-container ceiling — a single container can't blow the whole namespace.
+      max: { cpu: "1", memory: 512Mi }
+---
+# Namespace total cap. used must stay < hard; raise it (never break a deploy)
+# rather than let real usage exceed it. Raised 2026-10-22 for the in-cluster
+# database: changelog-db (50m/128Mi req) + the CNPG initdb/join Job on first boot +
+# the 6-hourly dump Job (50m/64Mi) on top of the app and its rollout surge.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: changelog
+spec:
+  hard:
+    requests.cpu: 400m
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    pods: "6"

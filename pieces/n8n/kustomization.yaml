@@ -1,0 +1,97 @@
+# DEV overlay. The addresses below are this environment's, read from the live cluster
+# and `infrastructure/hetzner/environments/dev` on 2026-11-03; a base carrying them
+# would compile a dev fact into every environment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: n8n
+resources:
+  - base
+components:
+  # (The whitelabel component, the estate's values, comes in through base.)
+  - sso
+  # The estate's own (see ../../components/estate/n8n): its sender, its nodes' public addresses.
+  - ../../components/estate/n8n
+patches:
+  # Kubelet health probes through a default-deny policy: node InternalIPs and the two
+  # cni0 gateways, as openfga's overlay records. A host-network pod sources from these
+  # too, so they reach the probed port and nothing else; n8n's port answers only with
+  # its own sign-in.
+  - target: { kind: NetworkPolicy, name: n8n }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 5678 }
+      # The nodes' PUBLIC addresses are the estate's (its cluster's, known only once it is
+      # provisioned): its component for this piece excepts them from the world rule
+      # (components/estate/n8n says how). Without them a workflow could reach the API
+      # server's port, the kubelets and the estate's ingress looking internal.
+  - target: { kind: NetworkPolicy, name: n8n-runner }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 5680 }
+# Whitelabel: the owner address is written `ops@WLDOMAIN` (n8n's host is host.env's);
+# the value comes from the estate identity through the `whitelabel` component
+# (estate/identity.yaml → gitops/components/whitelabel). See gitops/WHITELABEL.md.
+configMapGenerator:
+  - name: backup-bucket # local-config, never rendered: see the bucket replacements below
+    literals: [BUCKET=WLBUCKET-tfstate-dev]
+    options:
+      disableNameSuffixHash: true
+      annotations: { config.kubernetes.io/local-config: "true" }
+replacements:
+  - path: whitelabel-replacements.yaml
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+      - select: { kind: Deployment, name: n8n }
+        fieldPaths:
+          - "spec.template.spec.containers.*.env.[name=N8N_INSTANCE_OWNER_EMAIL].value"
+  # The owner's first name is the estate's brand (n8n shows it on the owner account).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE }
+    targets:
+      - select: { kind: Deployment, name: n8n }
+        fieldPaths:
+          - "spec.template.spec.containers.*.env.[name=N8N_INSTANCE_OWNER_FIRST_NAME].value"
+  # The pull secret names the registry as `WLREGISTRY`: REGISTRY_HOST, at the auths key.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST }
+    targets:
+      - select: { kind: ExternalSecret, name: harbor-pull }
+        fieldPaths: ["spec.target.template.data.[.dockerconfigjson]"]
+        options: { delimiter: '"', index: 3 }
+  # Buckets are written `WLBUCKET-<use>-<env>`. `backup-bucket` is a local-config ConfigMap
+  # (never rendered) that resolves this environment's backup bucket once, so a path can take
+  # it whole at its position after `s3://`.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: backup-bucket }
+        fieldPaths: [data.BUCKET]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: backup-bucket, fieldPath: data.BUCKET }
+    targets:
+      - select: { kind: Cluster, name: n8n-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: CronJob, name: n8n-db-dump }
+        fieldPaths: ["spec.jobTemplate.spec.template.spec.containers.*.env.[name=BUCKET].value"]
+# The alert annotation is written `alerts/owner` (value OPS_EMAIL, above); its key becomes
+# alerts.<label domain>/owner here. n8n's own keys (`n8n/api-client`, `n8n/tested-digest`)
+# become n8n.<label domain>/… in label-keys/.
+transformers:
+  - ../../components/alert-owner
+  - label-keys

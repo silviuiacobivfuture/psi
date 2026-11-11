@@ -1,0 +1,196 @@
+# Headscale: one replica (SQLite), its database on a Hetzner volume so it can follow a node,
+# and pinned to the agent because udp/3478 on the control plane is Talk's TURN. The owner has
+# not answered where it runs: this is the plan's default and moving it is the nodeSelector
+# here, the ipv4 in config/derp.yaml and doctor's agreement check.
+#
+# Volume: 10 GB is Hetzner's minimum, €0.57/month at €0.0572/GB (API, 2026-11-03).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: headscale-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headscale
+  labels:
+    app.kubernetes.io/name: headscale
+  annotations:
+    # The client id is an env var and the files are read once at start.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headscale
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headscale
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: dev-k3s-agent-0
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          env:
+            - { name: noise_private_key, valueFrom: { secretKeyRef: { name: headscale-secrets, key: noise_private_key } } }
+            - { name: derp_private_key, valueFrom: { secretKeyRef: { name: headscale-secrets, key: derp_private_key } } }
+            - { name: oidc_client_id, valueFrom: { secretKeyRef: { name: headscale-secrets, key: oidc_client_id } } }
+            - { name: oidc_client_secret, valueFrom: { secretKeyRef: { name: headscale-secrets, key: oidc_client_secret } } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in noise_private_key derp_private_key oidc_client_id oidc_client_secret; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              # A key in another shape makes Headscale die with a parse error nobody connects to this.
+              for k in noise_private_key derp_private_key; do
+                eval "v=\${$k:-}"
+                case "$v" in privkey:*) ;; *) echo "MALFORMED SECRET: $k does not start with privkey:" >&2; exit 1 ;; esac
+              done
+          securityContext: &restricted
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+      containers:
+        - name: headscale
+          image: WLREGISTRY/mirror/docker.io/headscale/headscale:v0.29.7@sha256:4f36e125a41713eedc98a7baa5ab6849fd8c4f769281d832997eb2e59d7ace37
+          args: ["serve"]
+          env:
+            - name: HEADSCALE_OIDC_CLIENT_ID
+              valueFrom: { secretKeyRef: { name: headscale-secrets, key: oidc_client_id } }
+          ports:
+            - { name: http, containerPort: 8080, protocol: TCP }
+            # hostPort, not hostNetwork: Kyverno's namespace policy stays as it is, and the
+            # one port the relay needs is the one port the node gives it. Proven from outside
+            # 2026-11-03. The firewall rule is hcloud_firewall.tailnet (module k3s).
+            - { name: stun, containerPort: 3478, hostPort: 3478, protocol: UDP }
+          # exec, so probes need no rule for node addresses in the NetworkPolicy.
+          readinessProbe:
+            exec: { command: ["headscale", "health"] }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec: { command: ["headscale", "health"] }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          securityContext: *restricted
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts:
+            - { name: config, mountPath: /etc/headscale, readOnly: true }
+            - { name: secrets, mountPath: /run/secrets/headscale, readOnly: true }
+            - { name: data, mountPath: /var/lib/headscale }
+            - { name: socket, mountPath: /var/run/headscale }
+      volumes:
+        - name: config
+          configMap: { name: headscale-config }
+        - name: secrets
+          secret:
+            secretName: headscale-secrets
+            defaultMode: 0440
+            items:
+              - { key: noise_private_key, path: noise_private_key }
+              - { key: derp_private_key, path: derp_private_key }
+              - { key: oidc_client_secret, path: oidc_client_secret }
+        - name: data
+          persistentVolumeClaim: { claimName: headscale-data }
+        - name: socket
+          emptyDir: { medium: Memory, sizeLimit: 1Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale
+  labels:
+    app.kubernetes.io/name: headscale
+spec:
+  selector:
+    app.kubernetes.io/name: headscale
+  ports:
+    - { name: http, port: 8080, targetPort: http, protocol: TCP }
+---
+# Who may talk to it. The /api routes need an API key anyway, and only the console and Traefik
+# can reach the port at all; Traefik's Ingress does not route /api (ingress.yaml).
+#   IN   8080 from Traefik and the console; udp/3478 from anywhere (it is STUN).
+#   OUT  DNS, and 443 off the private ranges for Authentik's discovery. Nothing else: no
+#        Tailscale relay map, no update check (config.yaml), no route into the cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: headscale
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: headscale
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: headplane
+      ports:
+        - { protocol: TCP, port: 8080 }
+    - from:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - { protocol: UDP, port: 3478 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # The estate's public address, from a pod ON THE NODE behind it. The kernel turns that into the
+    # node's svclb pod before this policy sees it, so the rule below, off the private ranges, does
+    # not match, and every public name answers "connection refused" from here and only from here.
+    # Measured 2026-11-03: a pod of this shape on dev-k3s-cp was refused 40 of 40 without this rule
+    # and connected 40 of 40 with it.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              svccontroller.k3s.cattle.io/svcname: traefik
+      ports:
+        - { protocol: TCP, port: 443 }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
+      ports:
+        - { protocol: TCP, port: 443 }

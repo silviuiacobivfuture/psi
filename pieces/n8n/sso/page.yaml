@@ -1,0 +1,42 @@
+# /sso/page.js, the script n8n writes a tag for into every page (apps/n8n-sso/src/page-hook.ts). The
+# tag is a blocking script in <head>, so whatever this file takes, every n8n page waits, live sessions
+# and the owner's form included. Measured: 8 s here made n8n's form take 8.9 s.
+#
+# TWO SECONDS, on connect and on the answer, so the worst a stalled sidecar costs a page is about that.
+# /sso/setup keeps its longer limit: a sign-in is allowed to take its time, a script is not.
+#
+# NOT GATED, and the only thing under /sso/ that is not. Forward auth in front would put the outpost
+# back in that wait with no limit, and the file is the same constant for everybody: it holds nothing
+# and does nothing here. It is also what lets doctor and estate-watch ask, anonymously, whether the
+# edge still serves it, and hash what it serves against the pin: behind the gate, a missing route and
+# a working one both answer 302.
+# Capped like the other public host. The gate holds this to exactly one path.
+#
+# An IngressRoute, not an Ingress with a Service annotation: that annotation has to name the
+# namespace, and a generated instance lives in another one.
+#
+# Host(...) MUST stay first: the Component's replacement writes the second backtick field.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: n8n-sso-page
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 200
+      match: Host(`n8n.example.invalid`) && Path(`/sso/page.js`) && Method(`GET`)
+      middlewares:
+        - name: n8n-webhook-rate
+      services:
+        - { name: n8n-sso, port: http, serversTransport: n8n-sso-page }
+  tls: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: n8n-sso-page
+spec:
+  forwardingTimeouts:
+    dialTimeout: 2s
+    responseHeaderTimeout: 2s

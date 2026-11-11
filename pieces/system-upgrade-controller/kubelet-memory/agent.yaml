@@ -1,0 +1,11 @@
+# /etc/rancher/k3s/config.yaml.d/kubelet-memory.yaml — dev agent, cx53. DO NOT EDIT on the node.
+# Written by cloud-init on a rebuild and by Plan kubelet-memory-agent on a live node.
+# Values and the arithmetic behind them: RUNBOOK 2026-11-02.
+kubelet-arg+:
+  - "system-reserved=memory=512Mi"
+  - "kube-reserved=memory=2Gi"
+  - "eviction-hard=memory.available<2Gi,imagefs.available<5%,nodefs.available<5%"
+  - "eviction-minimum-reclaim=memory.available=512Mi,imagefs.available=10%,nodefs.available=10%"
+  - "eviction-soft=memory.available<4Gi"
+  - "eviction-soft-grace-period=memory.available=60s"
+  - "eviction-max-pod-grace-period=60"

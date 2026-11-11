@@ -1,0 +1,30 @@
+# The alert-owner annotation, keyed by the estate's label domain: alerts.<ESTATE_LABEL_DOMAIN>/owner.
+#
+# A kustomize replacement can write a value but never a KEY, so a piece's base writes the
+# annotation under the neutral key `alerts/owner` (its value filled from OPS_EMAIL by the
+# piece's own replacements) and lists this directory under `transformers:`. Its output is
+# one PatchTransformer that MOVES that annotation to alerts.<ESTATE_LABEL_DOMAIN>/owner; the
+# domain is put into the patch here, from SEB's whitelabel component, so no piece names it.
+# ESTATE_LABEL_DOMAIN, not the apex: policies and alert rules match on this key, so moving
+# the apex must not rename it (see components/platform-labels for the platform.<…>/ keys).
+#
+# The patch's `path:` line is `~1`-delimited segment 1 (owner\n  path: …/alerts.WLDOMAIN);
+# alert-owner-line.yaml composes that segment first (ESTATE_LABEL_DOMAIN at dot-split index 1).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  - ../../whitelabel
+resources:
+  - alert-owner-line.yaml
+  - patch.yaml
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_LABEL_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: alert-owner-line }
+        fieldPaths: [data.SEGMENT]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: alert-owner-line, fieldPath: data.SEGMENT }
+    targets:
+      - select: { kind: PatchTransformer, name: alert-owner }
+        fieldPaths: [patch]
+        options: { delimiter: "~1", index: 1 }

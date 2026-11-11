@@ -1,0 +1,173 @@
+# talk-webhook — the ONE translator between plain webhooks and Nextcloud Talk.
+#
+# WHY IT EXISTS: posting to Talk requires an HMAC-SHA256 of (random ++ message)
+# keyed with the bot secret, carried in X-Nextcloud-Talk-Bot-Signature. Nothing that
+# wants to notify us can produce that:
+#   - Argo CD notifications templates its webhook headers with Go templates, which
+#     cannot compute an HMAC over the body it is about to send.
+#   - Axiom notifiers post a fixed Slack-shaped payload to a URL. No signing at all.
+#   - GitHub Actions / CronJobs COULD sign (scripts/talk-notify.sh does), but then the
+#     bot secret and the HMAC recipe spread across every call site.
+# One translator solves all of them: senders POST plain JSON, this signs and forwards.
+#
+# WHY IN THE nextcloud NAMESPACE: the two inputs it needs already live here — the
+# `talk-channels` ConfigMap (name -> room token, republished by the occ reconcile
+# CronJob) and the `talk-bot` Secret (the signing key). Running it anywhere else would
+# mean mirroring both across namespaces for no gain.
+#
+# WHY PYTHON STDLIB: hmac/hashlib/http.server/urllib are all in the base image, so
+# there is no pip install, no requirements file, no supply chain, and no build step —
+# the whole service is one file, talk-webhook/app.py (the ConfigMap talk-webhook-app,
+# generated in kustomization.yaml). Nothing here is hot-path; it handles a handful
+# of alerts a day.
+#
+# TALK URL IS INTERNAL: http://nextcloud.nextcloud.svc:8080 — VERIFIED 2026-08-19 to
+# return 201 for a signed bot post, so notifications never leave the cluster and do
+# not depend on Traefik, DNS or the public certificate being healthy. That matters:
+# these are the messages that fire WHEN THINGS ARE BROKEN.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: talk-webhook
+  annotations:
+    # Rolls when the bot secret or the shared token rotates — both arrive as env.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: ops@WLDOMAIN
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: talk-webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: talk-webhook
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: talk-webhook
+          image: WLREGISTRY/mirror/docker.io/library/python:3.13-alpine@sha256:42825e7ec3437b3bce923c237484eb23d32128476e18307d2f48951bf86f1db2
+          command: ["python3", "/app/app.py"]
+          env:
+            - name: TALK_URL
+              value: http://nextcloud.nextcloud.svc:8080
+            - name: BOT_SECRET
+              valueFrom: { secretKeyRef: { name: talk-bot, key: secret } }
+            - name: NOTIFY_TOKEN
+              valueFrom: { secretKeyRef: { name: talk-webhook-token, key: token } }
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            # Plane enrichment. optional:true on purpose — see the plane-api
+            # ExternalSecret: no token means unresolved names, never a lost message.
+            - name: PLANE_API_URL
+              value: https://plane.WLDOMAIN
+            # The estate's Plane workspace slug, from the estate's component; empty, the
+            # relay posts the raw form (no names, no link), as with no token.
+            - name: PLANE_WORKSPACE
+              value: ""
+            - name: PLANE_API_KEY
+              valueFrom:
+                secretKeyRef: { name: plane-api, key: token, optional: true }
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          volumeMounts:
+            - name: app
+              mountPath: /app
+            - name: channels
+              mountPath: /etc/talk-channels
+      volumes:
+        - name: app
+          configMap: { name: talk-webhook-app }
+        # The token map, mounted rather than baked: kubelet refreshes it in place when
+        # the reconcile job republishes, so a recreated room is picked up without a
+        # restart.
+        - name: channels
+          configMap: { name: talk-channels, optional: true }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: talk-webhook
+spec:
+  selector:
+    app.kubernetes.io/name: talk-webhook
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# PUBLIC endpoint — exists for ONE reason: Axiom is SaaS, so it cannot reach a
+# ClusterIP. Every in-cluster sender (Argo CD, CronJobs, doctor.sh) uses
+# http://talk-webhook.nextcloud.svc and never touches this.
+#
+# SECURITY POSTURE, stated plainly because this is an internet-facing endpoint:
+#   - It is gated by the same 48-char shared token as the internal path. Axiom's
+#     notifier can only send a bare URL with no custom headers, so the token travels
+#     as ?token= — exactly how a Slack incoming webhook works.
+#   - The service logs METHOD and PATH only, never the query string, so the token
+#     does not end up in container logs (see log_message in the app).
+#   - Worst case if the token leaks: someone can post messages into the six Talk
+#     channels. It grants no read access, no Nextcloud session, and it is NOT the bot
+#     signing key — that never leaves the cluster.
+#   - Rotate by re-running seed-secrets.sh with ROTATE=1 for platform/talk/webhook and
+#     updating TF_VAR_alert_slack_webhook; Reloader restarts the pod automatically.
+#
+# NOT behind the Authentik forward-auth middleware ON PURPOSE: a machine sender cannot
+# complete an interactive SSO redirect. This is the same lesson Plane taught on
+# 2026-08-19 — a forward-auth gate in front of a machine endpoint answers with a 302
+# the caller cannot follow.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: talk-webhook
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # System Hub tile → "Messaging". The endpoint itself has no page (a machine
+    # sender's URL, token-gated), so the tile opens Talk, where its alerts land.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Talk alerts relay"
+    gethomepage.dev/description: "Turns platform alerts into Nextcloud Talk messages"
+    gethomepage.dev/group: "Messaging"
+    gethomepage.dev/weight: "50"
+    gethomepage.dev/icon: "mdi-bell-badge"
+    gethomepage.dev/href: "https://cloud.WLDOMAIN/apps/spreed"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=talk-webhook"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: notify.WLDOMAIN
+      http:
+        paths:
+          - path: /notify
+            pathType: Prefix
+            backend:
+              service:
+                name: talk-webhook
+                port: { name: http }
+  tls:
+    - secretName: talk-webhook-tls
+      hosts:
+        - notify.WLDOMAIN

@@ -1,0 +1,32 @@
+# Where the history lives. THE reason this service exists is that a 30-day artifact
+# zip is not a history — so the volume is the deliverable, not an implementation
+# detail.
+#
+# WHY hcloud-volumes AND NOT local-path
+#   local-path pins the data to whichever node first scheduled the pod: the volume
+#   cannot be resized, and if that node is drained or rebuilt the history is gone
+#   (the limitation already documented for nextcloud). hcloud-volumes is a
+#   network-attached Hetzner block device — it follows the pod to another node and
+#   the class has allowVolumeExpansion=true, so growing it is an edit here rather
+#   than a restore.
+#
+# SIZE — 10Gi
+#   Hetzner block volumes have a 10 GB MINIMUM (pieces/hcloud-csi/values.yaml),
+#   so 10Gi is the floor, not a guess: asking for 5Gi would only create drift
+#   between this manifest and the volume actually provisioned. It is also ample —
+#   a run is roughly 60 KB, so a full 365-day window at ~20 runs a day is ~450 MB,
+#   under 5% of the volume.
+#
+# COST: 10 GB x EUR 0.0572/GB/month = ~EUR 0.57/month (rate from
+# infrastructure/hetzner/COSTS.md, same source as the hcloud-csi app). This is the
+# only recurring cost the whole of phase 2 adds.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-reports-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 10Gi

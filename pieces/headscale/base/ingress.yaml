@@ -1,0 +1,150 @@
+# The public edge. Both names are served by the estate wildcard and the ordinary websecure
+# entrypoint, the tools' private entrypoint is Stage 2's. headscale-services.py check reads this
+# file and refuses each rule below being broken (.github/scripts/tests/headscale_test.sh).
+#
+# headscale.<apex>: what a device needs, listed. Everything else is 404 at Traefik, /api above
+# all: the API is for the console, from inside the namespace. Proven through Traefik 3.6.13 on
+# 2026-11-03: the control protocol's POST upgrade and DERP's GET upgrade both pass an Exact
+# or Prefix path untouched (plan, Stage 0). No forward-auth here: a device is not a browser,
+# and sign-in happens on /register and /oidc/callback against Authentik itself.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headscale
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [HEADSCALE.WLDOMAIN]
+      secretName: headscale-tls
+  rules:
+    - host: HEADSCALE.WLDOMAIN
+      http:
+        paths:
+          - { path: /ts2021, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /key, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /health, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /derp, pathType: Prefix, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /bootstrap-dns, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /register, pathType: Prefix, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /auth, pathType: Prefix, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /oidc/callback, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+          - { path: /machine/ping-response, pathType: Exact, backend: { service: { name: headscale, port: { name: http } } } }
+---
+# headplane.<apex>: ALL of it behind the gate, signed out is a 302 and never a byte of the
+# console. The gate is the `headplane` forward_single provider, whose bindings are
+# app-headplane-admin and platform-admins, and nobody else (blueprints-providers.yaml).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headplane
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Headplane"
+    gethomepage.dev/description: "Rețeaua privată: dispozitive, rute, chei"
+    gethomepage.dev/group: "Platform"
+    gethomepage.dev/icon: "mdi-lan"
+    gethomepage.dev/href: "https://headplane.WLDOMAIN/"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=headplane"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [headplane.WLDOMAIN]
+      secretName: headplane-tls
+  rules:
+    - host: headplane.WLDOMAIN
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: headplane, port: { name: http } } } }
+---
+# Headplane answers 404 on / (H13) and lives under /admin. This route sends the address the
+# owner was promised to the application, gate first. The priority is the mechanism: Traefik
+# ranks by rule length, so without it the longer PathPrefix(`/`) above wins and / is a 404
+# (seen on the real Traefik, H15, 2026-11-03).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headplane-root
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.priority: "100"
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,headscale-headplane-root@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [headplane.WLDOMAIN]
+      secretName: headplane-tls
+  rules:
+    - host: headplane.WLDOMAIN
+      http:
+        paths:
+          - { path: /, pathType: Exact, backend: { service: { name: headplane, port: { name: http } } } }
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: headplane-root
+spec:
+  redirectRegex:
+    regex: "^https://([^/]+)/$"
+    replacement: "https://$1/admin/"
+    permanent: false
+---
+# The outpost's callback on this host, restart first: gitops/platform/authentik/sso-restart.yaml,
+# and .github/scripts/sso-restart.sh refuses this host without it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headplane-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [headplane.WLDOMAIN]
+      secretName: headplane-tls
+  rules:
+    - host: headplane.WLDOMAIN
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend: { service: { name: headplane, port: { name: http } } }
+---
+# Upstream's disable_api_key_login only redirects the login PAGE: in v0.8.2 the POST behind it
+# still turns a valid Headscale API key into a session with every right, past the role system
+# (H14 pins this against the real image). The key is on no person's machine, and the gate
+# already requires Authentik; this closes the path anyway, because the switch reads as if it
+# were closed. An IngressRoute because an Ingress cannot match a method. Sign-in is OIDC,
+# which never posts here.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: headplane-no-key-login
+spec:
+  entryPoints: [websecure]
+  tls:
+    secretName: headplane-tls
+  routes:
+    - kind: Rule
+      match: Host(`headplane.WLDOMAIN`) && Path(`/admin/login`) && Method(`POST`)
+      priority: 1000
+      middlewares:
+        - name: headplane-refuse
+      services:
+        - { name: headplane, port: http }
+---
+# Allows only an address no client has: every request is 403 and the service is never called.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: headplane-refuse
+spec:
+  ipAllowList:
+    sourceRange: [127.0.0.1/32]

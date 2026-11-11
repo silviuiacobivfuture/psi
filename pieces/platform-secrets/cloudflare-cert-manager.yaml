@@ -1,0 +1,18 @@
+# Cloudflare API token → cloudflare-api-token secret (key `token`) in the
+# cert-manager namespace, consumed by the ClusterIssuers' DNS-01 solver.
+# Synced from OpenBao secret/platform/cloudflare/token (key api_token). Replaces
+# the out-of-band secret previously created by scripts/gitops-apply.sh from .env.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cloudflare-api-token
+  namespace: cert-manager
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: cloudflare-api-token
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef: { key: platform/cloudflare/token, property: api_token }

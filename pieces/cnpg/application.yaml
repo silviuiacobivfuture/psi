@@ -1,0 +1,33 @@
+# SEB piece `cnpg` — the CloudNativePG operator: reconciles Postgres Cluster CRs (WAL archiving,
+# PITR, supervised failover, declarative restore). The operator is stateless: it holds NO data,
+# only reconciles Cluster CRs; losing it loses nothing, Argo reinstalls it and it re-adopts the
+# running instances. The Clusters themselves belong to the apps that declare them, not to this piece.
+#
+# A HELM piece (contract seb/tools/bundle/helm-piece.mjs): this file is the estate's Argo CD
+# Application TEMPLATE; the chart comes from its upstream repository at the pinned version; its
+# values are values.yaml beside this file, with dollar-brace placeholders naming estate identity
+# keys. The estate's upgrade step writes the Application = this template with the
+# identity-rendered values as spec.source.helm.values.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cnpg
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg
+    targetRevision: 0.29.0 # operator 1.30.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The CNPG CRDs (Cluster/Backup/ScheduledBackup/Pooler…) exceed the 262 KiB
+      # last-applied-configuration annotation limit that client-side apply uses.
+      - ServerSideApply=true

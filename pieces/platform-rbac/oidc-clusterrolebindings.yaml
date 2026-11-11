@@ -1,0 +1,89 @@
+# Authentik group → k8s RBAC. Deny-by-default: a group with no binding gets
+# NOTHING (the apiserver authorizes only what a ClusterRoleBinding names). This is
+# the cluster analogue of the Argo CD deny-by-default policy in
+# pieces/argocd-config/rbac-cm.yaml (g, platform-admins, role:admin /
+# g, platform-members, role:readonly) — same Authentik groups, same intent,
+# applied at the Kubernetes API itself.
+#
+# Subjects are the Authentik group NAMES carried verbatim in the `groups` claim
+# (emitted by the groups scope mapping, gitops/platform/authentik/
+# blueprints-providers.yaml). The apiserver is configured WITHOUT
+# --oidc-groups-prefix (modules/k3s/main.tf local.oidc_server_flags omits it), so groups are used as-is — the subject name is exactly
+# `platform-admins` / `platform-members` (NO prefix). Note: the apiserver DOES set
+# --oidc-username-prefix=oidc:, but that prefixes USERNAMES only, never groups, so
+# these Group subjects are unaffected. If you ever add --oidc-groups-prefix, you
+# MUST prefix the names below to match (e.g. "oidc:platform-admins").
+#
+# These bindings are INERT until the apiserver OIDC flags are live and a human
+# presents a matching token — so they are safe to sync FIRST, before the apiserver
+# change (HEADLAMP_K8S_OIDC.md §5/§6.4).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-platform-admins
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  # app-k8s-admin = the taxonomy entitlement (ROLES.md). platform-admins kept as
+  # break-glass (Authentik superuser) until everyone is on the app-* groups.
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-admin
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: platform-admins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-platform-members
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  # app-k8s-view = the taxonomy entitlement (ROLES.md). platform-members break-glass.
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-view
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: platform-members
+---
+# The SMALLEST grant: list namespaces, nothing else — no Secrets (nor any other
+# namespaced object) anywhere. Held through app-k8s-signin by the tools robot
+# alone, which proves Headlamp's sign-in through the one directory (identitate
+# gate 9) and must be refused a Secret. doctor.sh fails if this role or binding
+# grows: any verb beyond get/list/watch, any resource beyond namespaces, any
+# subject beyond app-k8s-signin.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oidc-signin
+  labels:
+    platform/managed-by: gitops
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-signin
+  labels:
+    platform/managed-by: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: oidc-signin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: app-k8s-signin

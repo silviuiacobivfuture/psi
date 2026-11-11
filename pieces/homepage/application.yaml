@@ -1,0 +1,34 @@
+# SEB piece `homepage` — Homepage (gethomepage.dev), the SYSTEM HUB: every service and UI running
+# in the cluster on one page, private-network only (hub.<tailnet> and hub.<mesh>, behind the
+# identity provider's outpost). Stateless: its configuration is these values; it discovers the
+# rest from annotated Ingresses with read-only RBAC.
+#
+# A HELM piece (contract tools/bundle/helm-piece.mjs): this file is the Argo CD Application
+# TEMPLATE; the chart comes from its upstream repository at the pinned version; values.yaml beside
+# it carries identity placeholders the estate's upgrade step fills in, and ESTATE SLOTS the bundle
+# builder fills from the estate's own fragments (--estate-components <dir>/homepage/<slot>.yaml):
+#   greeting, title       the name the page wears (default: the identity's BRAND_TITLE)
+#   services-apps         the estate's own tiles that no Ingress announces, as whole groups
+#                         placed first (e.g. an "Apps" group: an application running elsewhere)
+#   services-services     the estate's own backends without an Ingress, first in "Services"
+#   custom-css            the estate's theme (default: none — an estate brings its own)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: homepage
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://jameswynn.github.io/helm-charts
+    chart: homepage
+    targetRevision: 2.1.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: homepage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
