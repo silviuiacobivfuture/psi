@@ -37,6 +37,36 @@ data:
       labels:
         blueprints.goauthentik.io/instantiate: "true"
     entries:
+      # ESTATE ADMINS (owner, 2026-11-11): full privileges, the same rosters as the
+      # operator (blueprints-groups.yaml). Created only: the password and the TOTP
+      # each sets through the invitation link are never overwritten.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: turcu_daniela
+        attrs:
+          name: Daniela Turcu
+          email: turcu_daniela@icloud.com
+          type: internal
+          is_active: true
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: adi_rar
+        attrs:
+          name: Adi
+          email: adi_rar@yahoo.com
+          type: internal
+          is_active: true
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: nicholas.turcu
+        attrs:
+          name: Nicholas Turcu
+          email: nicholas.turcu@icloud.com
+          type: internal
+          is_active: true
       # ROBOT, not a person: the login hub's dev end-to-end login and kill-a-pod
       # proof. `.invalid` so it is classed as a robot and can never receive a
       # mail. Created only; its password and TOTP come from OpenBao

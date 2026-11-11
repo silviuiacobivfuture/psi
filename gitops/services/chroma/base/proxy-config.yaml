@@ -34,6 +34,12 @@ data:
       server_tokens off;
       # Chroma's own cap (max_payload_size_bytes, 40 MiB).
       client_max_body_size 40m;
+      # A browser opening the bare address gets a page saying what this is,
+      # not a blank 401. Nothing is proxied here, so nothing is exposed.
+      location = / {
+        default_type text/html;
+        return 200 '<!doctype html><meta charset="utf-8"><title>Chroma</title><body style="font-family:sans-serif;max-width:40em;margin:4em auto"><h1>Chroma</h1><p>Chroma vector database API (v2). Every API call needs the token: <code>Authorization: Bearer &lt;token&gt;</code>.</p><p>Inside the cluster: <code>http://chroma.chroma.svc:8000</code></p></body>\n';
+      }
       location / {
         if ($chroma_refused) {
           add_header WWW-Authenticate 'Bearer realm="chroma"' always;
