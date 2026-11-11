@@ -1,0 +1,17 @@
+{
+	"name": "@psi/content",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "The estate's shared content index: what every psi site may show of another (articles, brands, cross-links) until the CMS serves it.",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"zod": "^3.25.76"
+	}
+}

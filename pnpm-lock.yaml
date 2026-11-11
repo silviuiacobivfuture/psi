@@ -37,6 +37,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -184,6 +187,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -230,6 +236,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -276,6 +285,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -316,6 +328,12 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+
+  packages/content:
+    dependencies:
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
 
   packages/design: {}
 
