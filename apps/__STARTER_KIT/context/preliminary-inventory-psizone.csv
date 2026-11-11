@@ -1,0 +1,120 @@
+Title,Type,URL,Words,Cluster,Verdict,New home / repurpose as,Last updated,Notes
+HomePage,page,/,325,Core & trust,Rebuild,AI-first landing (hook),2026-09-22,Newest copy; reuse H1 idea and 6 service cards
+Concept Psizone,page,/concept-psizone/,507,Core & trust,Rewrite,About › Our approach + Facilities; method copy → knowledge base,2025-05-14,Duplicated paragraph; title tag still says Hemi-Sync
+Echipa Psizone,page,/echipa-psizone/,692,Core & trust,Keep & restructure,Practitioners collection (one profile each),2026-09-22,"Daniela Turcu, Adrian Turcu, Iuliana Mușat, Nicoleta Năfureanu, Marica Sîrbu, Georgiana Gheorghiță"
+Marturii,page,/marturii/,864,Core & trust,Review,"Testimonials collection (clinical only, with consent)",2025-05-27,Mostly Explorarea Conștiinței workshop quotes → Hemi-Sync site; check CPR rules
+Contact,page,/contact/,61,Core & trust,Rebuild,Contact + booking CTA; NAP in Site settings global,2025-05-16,Company data block; Gmail address
+Plan personalizat de intervenție,post,/plan-personalizat-de-interventie/,257,Core & trust,Repurpose,"""How we work"" section + knowledge base",2024-04-28,
+Autism,page,/autism/,617,Condition – children,Keep & rewrite,Hub: Autism / TSA,2026-09-22,Strongest page; has meta description
+ADD- ADHD,page,/add-adhd/,128,Condition – children,Merge,Into ADHD hub,2026-09-22,Thin; duplicate topic
+Evaluare și intervenție în ADHD,page,/evaluare-si-interventie-in-adhd/,159,Condition – children,Merge,ADHD hub (canonical),2026-09-22,Duplicate topic of /add-adhd/
+Integrare Neurosenzorială,page,/integrare-neurosenzoriala/,373,Condition – children,Keep & rewrite,Hub: Integrare senzorială,2026-09-23,"Intro paragraph is about autism diagnosis, off-topic"
+Stimulare polisenzorială,post,/stimulare-polisenzoriala/,1091,Condition – children,Merge,Integrare senzorială hub + blog article,2019-07-24,
+Intervenția la adolescenți,page,/interventia-la-adolescenti/,409,Condition – teens,Keep & rewrite,Hub: Adolescenți,2026-09-22,
+Intervenție în adicția de ecrane albastre,page,/interventie-in-adictia-de-ecrane-albastre/,534,Condition – teens,Repurpose,Blog pillar: screen time + Adolescenți hub section,2025-05-18,High-interest topic for parents
+Workshop: Dezvoltare personală pentru adolescenți,page,/workshop-dezvoltare-personala-pentru-adolescenti/,422,Programme,Rewrite,Programme: teen group workshop,2025-05-18,Contains Lorem ipsum placeholder text
+Brain fitness,page,/brain-fitness/,254,Programme,Rewrite,"Programme: BrainBoost (teens), drop Hemi-Sync parts",2025-05-17,
+Programul BrainFitness pentru copii și adolescenți,post,/programul-brainfitness-pentru-copii-si-adolescenti/,1581,Programme,Merge,BrainBoost programme page,2019-08-02,Same word count as 2 other posts: likely duplicated body
+Grup BrainFitness,post,/grup-brain-fitness-pentru-adolescenti/,308,Programme,Merge,BrainBoost programme page,2019-07-24,
+Terapie individuală – anxietate și depresie,page,/terapie-individuala-interventie-in-anxietate-si-depresie/,369,Condition – adults,Keep & rewrite,Hub: Anxietate și depresie,2026-09-22,
+Anxietate și atac de panică,page,/anxietate-si-atac-de-panica/,180,Condition – adults,Merge,Anxietate hub; panic attacks → blog article,2026-09-22,
+Terapia de familie și cuplu,page,/terapia-de-familie-si-cuplu/,474,Condition – adults,Keep & rewrite,Hub: Cuplu și familie,2025-05-18,
+Psihoterapie de familie și cuplu,post,/psihoterapie-de-familie-si-cuplu/,1581,Condition – adults,Merge,Cuplu și familie hub + blog articles,2020-03-15,Likely duplicated body (1581 words)
+Intervenția post-AVC,page,/interventia-post-avc/,426,Condition – adults,Keep & rewrite,Hub: Recuperare post-AVC,2025-05-18,Remove outcome promises in testimonials
+Intervenția psiho-oncologică,page,/interventia-psiho-oncologica/,449,Condition – adults,Keep & rewrite,Hub: Psiho-oncologie,2025-05-18,
+Grup de suport pentru pacienții oncologici,post,/grup-de-suport-pentru-pacientii-oncologici/,166,Condition – adults,Merge,Psiho-oncologie hub (support group),2019-09-02,
+Psihologia sportivă,page,/psihologia-sportiva/,430,Programme,Keep & rewrite,Programme: Psihologie sportivă,2026-09-22,Motorsport angle is distinctive
+Sportul de Îndemânare Auto,page,/sportul-de-indemanare-auto/,433,Programme,Repurpose,Blog: psychology in motorsport,2024-07-29,
+Psihologie Sportivă (empty),page,/psihologie-sportiva/,0,Junk,Redirect,→ Psihologie sportivă,2026-09-22,Empty duplicate
+Neurofeedback,page,/neurofeedback/,519,Method,Keep & rewrite,Method: Neurofeedback,2026-09-22,
+Terapia Neurofeedback,page,/terapia-neurofeedback/,403,Method,Merge,Neurofeedback,2026-09-22,Not in menu
+Cum funcționează neurofeedback,page,/cum-functioneaza-neurofeedback/,224,Method,Repurpose,FAQ + knowledge base on Neurofeedback,2025-05-20,
+Elementor #2446,page,/elementor-2446/,224,Junk,Drop,—,2021-04-15,"Draft duplicate of ""Cum funcționează"""
+Cine folosește Neurofeedback?,page,/cine-foloseste-neurofeedback/,135,Method,Repurpose,Blog / FAQ,2025-05-20,
+Mindfulness cu neurofeedback,page,/mindfulness-cu-neurofeedback/,160,Method,Merge,Neurofeedback (protocols section),2025-05-20,
+Neurofeedback cu VR,page,/neurofeedback-cu-vr-realitate-virtuala/,242,Method,Merge,Neurofeedback (VR section),2025-05-20,
+Camera Virtuală,page,/camera-virtuala/,201,Method,Merge,Neurofeedback (VR section),2021-03-17,Orphan page
+QEEG – Mapping cerebral,page,/qeeg-mapping-cerebral/,439,Method,Keep & rewrite,"Method: Evaluare și QEEG (anchor of ""measured progress"")",2026-09-22,
+TMS,page,/tms/,399,Method,Keep & rewrite,Method: TMS,2025-05-18,Strong medical claims; needs clinical review
+Conceptul EQ-SYNC,page,/conceptul-eq-sync/,353,Method,Rewrite,"Method: EQ-SYNC, or fold into Neurofeedback",2025-05-18,Binaural-beat claims need softening
+Terapie cognitiv-comportamentală,page,/terapie-cognitiv-comportamentala/,420,Method,Keep & rewrite,Method: Psihoterapie (CBT),2026-09-22,
+Terapia prin hipnoză,page,/terapia-prin-hipnoza/,414,Method,Keep & rewrite,Method: Hipnoză clinică,2025-05-19,
+Hipnoză,post,/hipnoza/,1270,Method,Merge,Hipnoză clinică + blog,2020-03-18,
+Terapia 2H,post,/terapia-2h/,577,Method,Review,Decide keep or drop,2020-03-20,Unclear method
+Psihoterapie online,post,/psihoterapie-online/,521,Method,Repurpose,Online therapy page + FAQ,2020-03-18,
+Intervenție în cadrul grupurilor,post,/interventie-in-cadrul-grupurilor/,1581,Method,Merge,Group therapy section,2020-03-15,Likely duplicated body
+Grupuri de lucru,page,/grupuri-de-lucru/,139,Method,Merge,Group therapy / support groups,2020-07-03,
+Cum ne influențează viața emisfera stângă / dreaptă,post,/cum-ne-influenteaza-viata-emisfera-stanga-respectiv-emisfera-dreapta-a-creierului/,342,Blog,Rewrite,Blog: brain myths explained,2019-08-06,Left/right-brain idea is a popular myth: fact-check
+Frecvența undelor cerebrale și starea de conștiință,post,/frecventa-undelor-cerebrale-si-starea-de-constiinta/,443,Blog,Repurpose,Blog + knowledge base: brainwaves explained,2019-07-23,Supports QEEG and neurofeedback pages
+Noutati,page,/noutati/,296,System,Redirect,→ /blog,2020-07-03,
+Evenimente,page,/evenimente/,106,System,Redirect,→ /evenimente (Events collection),2023-03-13,
+Oferta exclusivă a Lunii August,post,/oferta-exclusiva-a-lunii-august-la-centrul-psizone/,108,Event (past),Drop,—,2024-07-30,Expired offer
+Workshop Parenting pentru copiii cu TPD,post,/workshop-parenting-pentru-copiii-cu-tulburari-pervazive-de-dezvoltare/,95,Event (past),Repurpose,Recurring parent programme (Events),2024-07-29,
+"Atelier Echilibru și Armonie în Familie, aug 2024",post,/atelier-echilibru-si-armonie-in-familie-8-11-august-2024/,388,Event (past),Archive,Events archive; reuse format,2024-07-30,
+Psihologia transpersonală,page,/psihologia-transpersonala/,400,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-05-18,Hurts clinical credibility on main site
+Despre Institutul Monroe,page,/despre-institutul-monroe/,364,Hemi-Sync & wellness,Move,Hemi-Sync site,2020-07-03,
+Produse Hemi-Sync,page,/produse-hemi-sync/,286,Hemi-Sync & wellness,Move,Hemi-Sync site (shop of 244 products),2020-05-02,
+Hemi Sync și echilibrarea emoțională,post,/hemi-sync-si-echilibrarea-emotionala/,532,Hemi-Sync & wellness,Move,Hemi-Sync site blog,2019-10-25,
+Hemi Sync și dezvoltarea personală (copii și adulți),post,/hemi-sync-si-dezvoltarea-personala-atat-a-copiilor-cat-si-a-adultilor/,570,Hemi-Sync & wellness,Move,Hemi-Sync site blog,2019-12-18,
+Workshop: Explorarea Conștiinței,page,/workshop-explorarea-constiintei/,393,Hemi-Sync & wellness,Move,Hemi-Sync site (canonical workshop page),2025-05-18,
+Workshop Explorarea Conștiinței (old),page,/workshop-excursie/,308,Hemi-Sync & wellness,Redirect,→ canonical workshop page,2025-05-17,"Body is actually ""Optimise Your Life"""
+"Workshop ,,Excursie avansată""",page,/workshop-excursie-avansata-dezvoltare-personala/,380,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-05-18,
+Workshop Excursie Avansată (old),page,/workshop-excursie-avansata/,638,Hemi-Sync & wellness,Redirect,→ canonical Excursie Avansată,2020-07-03,
+Workshop: Out of Body,page,/workshop-out-of-body-explorarea-iesirii-constiente-din-corp/,401,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-05-18,
+Workshop: Optimise Your Life,page,/workshop-optimise-your-life/,350,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-05-18,
+Workshop Creative Life,page,/workshop-creative-life/,263,Hemi-Sync & wellness,Move,Hemi-Sync site,2020-07-03,
+Workshop Deep Conection,page,/workshop-deep-conection/,154,Hemi-Sync & wellness,Move,Hemi-Sync site,2020-07-03,Typo in title and URL
+Workshop-uri Online,page,/workshop-uri-online/,73,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-06-05,
+Workshop Online – Explorarea Conștiinței,post,/workshop-online-explorarea-constiintei/,704,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-06-05,
+7 meditații pentru starea de bine,post,/7-meditatii-pentru-starea-de-bine/,59,Hemi-Sync & wellness,Move,Hemi-Sync site,2025-06-05,
+Intervenție de urgență (curs),post,/interventie-de-urgenta/,56,Hemi-Sync & wellness,Review,Clinic resource or Hemi-Sync course,2025-06-05,
+"Workshop „Optimise your life"" (LearnPress course)",course,/course/workshop-optimise-your-life/,139,Hemi-Sync & wellness,Move,Hemi-Sync site,—,
+Webinar Calea Hemi-Sync (ESTE SIMPLU… ÎNSCRIE-TE!!!),page,/webinar-calea-hemi-sync/,759,Hemi-Sync & wellness,Move,Hemi-Sync site,2020-08-07,
+"Workshop Explorarea Conștiinței, 13-14 mai, Galați",page,/workshop-excursie-23-24-noiembrie-constanta/,786,Event (past),Archive,Hemi-Sync site archive,2023-03-13,URL and title disagree
+"Workshop Excursie, 9-10 noiembrie, Iași",page,/workshop-excursie-9-10-noiembrie-iasi/,786,Event (past),Archive,Hemi-Sync site archive,2020-07-03,
+"Workshop Excursie, 28-29 septembrie, Galați",page,/landing-metoda-hemi-sync/,789,Event (past),Archive,Hemi-Sync site archive,2020-07-03,
+"Workshop Optimise Your Life, Galați, 1-2 aprilie 2023",page,/workshop-optimise-your-life-galati-1-2-aprilie-2023/,372,Event (past),Archive,Hemi-Sync site archive,2023-03-13,Duplicate of the next row
+"Workshop Optimise Your Life, Galați, 1-2 aprilie 2023",page,/evenimente/workshop-optimise-your-life-galati-1-2-aprilie-2023/,372,Event (past),Drop,—,2023-03-13,Duplicate
+"Workshop Optimise Your Life, Galați, 1-2 aprilie 2023",post,/workshop-explorarea-constiintei-galati-1-2-aprilie-2023/,372,Event (past),Drop,—,2024-07-29,Duplicate; slug says Explorarea Conștiinței
+"Workshop Explorarea Conștiinței, Galați, 13-14 mai 2023",post,/workshop-explorarea-constiintei-galati-13-14-mai-2023/,616,Event (past),Archive,Hemi-Sync site archive,2024-07-29,
+"Workshop Excursie Avansată, Galați, 17-18 iunie 2023",post,/workshop-excursie-avansata-dezvoltarea-vindecarii/,215,Event (past),Archive,Hemi-Sync site archive,2024-07-29,
+Sincronizarea emisferelor cerebrale – echilibrare cerebrală,page (audio),/https-psizone-ro-wp-content-uploads-2026-10-017-sincronizarea-emisferelor-cerebrale-echilibrare-cerebrala-mp3/,0,Audio library,Move,"Audio library (gated, Hemi-Sync site or client portal)",2026-10-22,Slug is a pasted file URL
+Activarea resurselor subconștientului,page (audio),/https-psizone-ro-wp-content-uploads-2026-10-022-activarea-resurselor-subconstientului-mp3/,0,Audio library,Move,Audio library,2026-10-08,Slug is a pasted file URL
+Iertarea,page (audio),/https-psizone-ro-wp-content-uploads-2026-10-006-iertarea-mp3/,0,Audio library,Move,Audio library,2026-10-08,Slug is a pasted file URL
+Respirație – relaxare,page (audio),/respiratie-relaxare/,0,Audio library,Move,Audio library,2026-10-08,
+Manifestare pozitivă a zilei,page (audio),/manifestare-pozitiva-a-zilei/,0,Audio library,Move,Audio library,2026-09-22,
+Recuperare emoțională și protecție,page (audio),/https-psizone-ro-wp-content-uploads-2026-09-010-recuperare-mp3/,0,Audio library,Move,Audio library,2026-09-22,Slug is a pasted file URL
+Între gânduri,page (audio),/intre-ganduri/,0,Audio library,Move,Audio library,2026-09-22,
+EX 1 Delta profund mixat,page (audio),/ex-1-delta-profund-mixat/,0,Audio library,Move,Audio library,2026-08-22,
+EX2 Portalul somnului,page (audio),/ex2-portalul-somnului/,0,Audio library,Move,Audio library,2026-08-21,
+EX1 Deconectare,page (audio),/ex1-deconectare/,0,Audio library,Move,Audio library,2026-08-21,
+Restoring Your Energy RM,page (audio),/restoring-your-energy-rm-2/,0,Audio library,Move,Audio library,2026-08-20,Licensed Monroe title?
+Reball,page (audio),/reball/,0,Audio library,Move,Audio library,2026-08-20,Licensed Monroe title?
+Decizie clară Ex 3,page (audio),/decizie-clara-ex-3/,0,Audio library,Move,Audio library,2026-08-13,
+Manifestarea conștientă a zilei,page (audio),/startul-zilei-ex-3/,0,Audio library,Move,Audio library,2026-09-03,
+Lucid dream Ex 4,page (audio),/lucid-dream-ex-4/,0,Audio library,Move,Audio library,2025-11-14,
+Lucid dream,page (audio),/lucid-dream/,0,Audio library,Move,Audio library,2025-11-12,
+Visare,page (audio),/visare-2/,0,Audio library,Move,Audio library,2025-11-10,
+Hemi-Sync Nap,page (audio),/hemi-sync-nap/,0,Audio library,Move,Audio library,2025-11-04,Licensed Monroe title?
+Partners Meditation,page (audio),/partners_meditation/,0,Audio library,Move,Audio library,2024-10-08,
+Metamusic: Seasons at Roberts Mountain,page (audio),/hemi-sync-metamusic-seasons-at-roberts-mountain/,0,Audio library,Move,Audio library,2024-08-13,Licensed Monroe title?
+MA111DL Spiral of Light,page (audio),/ma111dl_spiral_of_light/,0,Audio library,Move,Audio library,2024-08-06,Licensed Monroe title?
+Metamusic: Higher,page (audio),/hemi-sync-metamusic-higher/,0,Audio library,Move,Audio library,2024-07-30,Licensed Monroe title?
+Inner Journey,page (audio),/inner-journey/,0,Audio library,Move,Audio library,2024-07-23,
+Aqua Aura,page (audio),/aqua-aura-2/,0,Audio library,Move,Audio library,2024-07-09,
+Chakra Attunement,page (audio),/chakra-attunement-2/,0,Audio library,Move,Audio library,2024-07-02,
+Visare (old),page (audio),/visare/,0,Audio library,Drop,—,2021-07-16,Duplicate of /visare-2/
+Vizita,page,/vizita-3/,0,Junk,Drop,—,2024-07-16,Empty
+Vizita,page,/vizita-2/,0,Junk,Drop,—,2023-02-09,Empty
+aaa,page,/aaa/,3,Junk,Drop,—,2019-08-23,Test page
+Destination,page,/destination/,0,Junk,Drop,—,2020-12-17,Empty
+Webinar Online,page,/webinar-online/,0,Junk,Drop,—,2020-08-06,Empty
+Term Conditions (LearnPress),page,/lp-term-conditions/,0,System,Rebuild,"Legal: Termeni, Confidențialitate, Cookies",2022-01-03,Empty; legal pages missing
+Shop,page,/shop/,0,System,Move,Hemi-Sync site,2020-04-09,WooCommerce
+Cart,page,/cart/,0,System,Move,Hemi-Sync site,2020-04-09,WooCommerce
+Checkout,page,/checkout/,0,System,Move,Hemi-Sync site,2020-04-09,WooCommerce
+Checkout (duplicate),page,/checkout-2/,0,Junk,Drop,—,2020-08-13,LearnPress duplicate
+My account,page,/my-account/,0,System,Rebuild,Client portal (Payload auth + SSO),2020-04-09,
+Profile,page,/profile/,10,System,Rebuild,Client portal,2024-06-27,LearnPress
+Courses,page,/courses/,0,System,Move,Hemi-Sync site,2020-08-13,LearnPress
+Become a Teacher,page,/become-a-teacher/,0,Junk,Drop,—,2020-08-13,LearnPress default page
