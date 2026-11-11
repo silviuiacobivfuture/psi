@@ -47,10 +47,12 @@ spec:
             # Outgoing mail: the platform sender's Plunk key (the relay's SMTP
             # password) and its address, from secret/platform/plunk/platform
             # (gitops/platform/secrets/authentik-email.yaml).
-            # NOT optional: set-password links are how every person gets a first
-            # password, so a directory that cannot send must not start.
+            # Optional while psi has no mail (no SES / Plunk yet): set-password links
+            # cannot be sent, so the first sign-in is the bootstrap admin. Make it
+            # required again once psi's mail runs.
             - secretRef:
                 name: authentik-email
+                optional: true
             # The estate tile policy's settings (gitops/platform/secrets/
             # authentik-estate-tiles.yaml): the engine's read port, the store, the
             # PINNED model, the hub's person lookup. OPTIONAL on purpose — a tile
