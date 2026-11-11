@@ -45,5 +45,6 @@ export { SoundWaves, type SoundWavesProps } from "./components/sound-waves";
 export { StatusBadge, type StatusBadgeProps } from "./components/status-badge";
 export { TextField, type TextFieldProps } from "./components/text-field";
 export { ThemeToggle, type ThemeToggleProps } from "./components/theme-toggle";
+export { Timeline, type TimelineChapter, type TimelineProps } from "./components/timeline";
 export { cx } from "./cx";
 export { Doctype } from "./document";

@@ -12,6 +12,7 @@ import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
 import { HubPage } from "./pages/hub";
 import { PreparingPage, TeamPage } from "./pages/simple";
+import { StoryPage } from "./pages/story";
 import { m } from "./paraglide/messages.js";
 import { themeFrom } from "./theme";
 
@@ -53,6 +54,15 @@ for (const [locale, prefix] of [
 			);
 		});
 	}
+	app.get(`${prefix}/povestea`, (c) =>
+		c.html(
+			<StoryPage
+				locale={locale}
+				theme={themeFrom(getCookie(c, "theme"))}
+				origin={new URL(c.req.url).origin}
+			/>,
+		),
+	);
 	app.get(`${prefix}/echipa`, (c) =>
 		c.html(
 			<TeamPage
