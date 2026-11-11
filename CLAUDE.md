@@ -1,9 +1,10 @@
 # psi — estate monorepo
 
 The psi estate's own code: its apps, packages and tools. The PLATFORM (cluster, sign-in,
-Polaris authorization, secrets, Argo, observability, the shared UI and i18n libraries) comes
-from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
-`estate/platform.lock`. Platform code is never copied here; platform changes go to SEB.
+Polaris authorization, secrets, Argo, observability) comes from SEB
+(github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in `estate/platform.lock`.
+The bundle's built libraries are listed in SEB's `tools/bundle/libs.json`; SEB's design system
+and translations are not among them yet. Platform code is never copied here; platform changes go to SEB.
 
 ## Layout
 
@@ -31,9 +32,10 @@ from SEB (github.com/silviuiacobivfuture/seb) as a versioned bundle, pinned in
 - **Files ≤ 500 lines, one responsibility each**; no `utils.ts` dumping grounds.
 - **i18n-first**: every user-facing string goes through the i18n library; no bare strings in JSX.
 - **One design language: psi's.** Every psi app (the three brand landings, the blog, consoles)
-  speaks the psi design language in `packages/design/` (`@psi/design`): its tokens, themes and
-  components. A component two apps need goes there, never into an app. Brand books:
-  `packages/design/brand-books/`.
+  speaks the psi design language: tokens, eight themes, brand books and component guides in
+  `packages/design/` (`@psi/design`). A component two apps need is never written into an app.
+  What the component library is built from (the kit's own components, or SEB's design system as
+  the starting point) is still to be decided.
 - **No `rmx` naming in this repository.** Package names, imports, paths and identifiers are
   `@psi/…`/psi's own. Any `rmx` left here is a leftover to remove, never a pattern to copy.
 - **Authorization goes through Polaris**: no hand-rolled roles/permissions; an app declares
