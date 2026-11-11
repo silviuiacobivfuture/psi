@@ -148,7 +148,7 @@ data:
           slug: polaris
         attrs:
           name: Polaris
-          meta_launch_url: https://access.lumen.example/
+          meta_launch_url: https://access.psizone.ro/
           meta_icon: /static/dist/assets/recomex/app-polaris.svg
           policy_engine_mode: all
       - model: authentik_policies.policybinding
