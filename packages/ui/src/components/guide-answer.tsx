@@ -49,6 +49,24 @@ function sourceLink(source: Source, labels: GuideLabels): GuideSource {
 	return { label: `${source.title}${reviewed}`, href: source.url };
 }
 
+/**
+ * The answer's paragraphs, each its own block: the stream sends one line per patch, so blank
+ * lines in the model's text would otherwise collapse and run sentences together.
+ */
+function Paragraphs({ text }: { text: string }): JSX.Element {
+	const parts = text
+		.split(/\n\s*\n|\n/)
+		.map((p) => p.trim())
+		.filter((p) => p.length > 0);
+	return (
+		<>
+			{parts.map((p) => (
+				<span class="pz-para">{p}</span>
+			))}
+		</>
+	);
+}
+
 function RefusalText({
 	reason,
 	labels,
@@ -89,7 +107,7 @@ export function GuideAnswer({
 					sources={phase.kind === "done" ? phase.sources.map((s) => sourceLink(s, labels)) : []}
 				>
 					<span class="pz-stream" data-done={phase.kind === "done" ? "" : undefined}>
-						{phase.text}
+						<Paragraphs text={phase.text} />
 					</span>
 					{phase.kind === "done" ? (
 						<p class="mt-3 text-body-sm text-ink-faint">{labels.footer}</p>

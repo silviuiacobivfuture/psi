@@ -1293,3 +1293,11 @@ body {
 .pz-btn--outline:hover {
 	background: var(--accent-soft);
 }
+
+/* The guide's answer paragraphs: blocks with a little air between them. */
+.pz-para {
+	display: block;
+}
+.pz-para + .pz-para {
+	margin-top: 0.75em;
+}
