@@ -1,0 +1,13 @@
+# psi has NO private network (MESH: none, owner 2026-11-11), so the doors SEB's pieces open on
+# the mesh are opened here on the PUBLIC ingress, at <tool>.psizone.ro (the identity derives the
+# mesh names onto the apex). Each is gated: the tools with their own Authentik login (Argo CD,
+# Headlamp, OpenBao) ALSO sit behind the estate's domain sign-in; the hub and Netdata go through
+# the embedded outpost (backend authentik-server), exactly as their private gates do.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - argocd.yaml
+  - headlamp.yaml
+  - openbao.yaml
+  - hub.yaml
+  - netdata.yaml

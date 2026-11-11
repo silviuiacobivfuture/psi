@@ -1,2 +1,5 @@
 #!/usr/bin/env sh
-node scripts/commit-msg.mjs "$1"
+# The message rule (conventional commit + [PATCH]/[UPDATE]/[RELEASE]), then the bump: every
+# package that owns a staged file has its version bumped into THIS commit (post-commit folds it).
+node scripts/commit-msg.mjs "$1" || exit 1
+node scripts/version-bump.mjs "$1" || exit 1

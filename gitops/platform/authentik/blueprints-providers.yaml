@@ -120,7 +120,7 @@ data:
           # sign-in works whichever name it is serving on; the cut keeps the new.
           redirect_uris:
             - matching_mode: strict
-              url: https://harbor.WLDOMAIN/c/oidc/callback
+              url: https://WLREGISTRY/c/oidc/callback
       - model: authentik_core.application
         identifiers:
           slug: harbor
@@ -128,7 +128,7 @@ data:
           name: Harbor
           meta_icon: /static/dist/assets/recomex/app-harbor.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, harbor]]
-          meta_launch_url: https://harbor.WLDOMAIN
+          meta_launch_url: https://WLREGISTRY
 
       # ---------- Argo CD ----------
       - model: authentik_providers_oauth2.oauth2provider

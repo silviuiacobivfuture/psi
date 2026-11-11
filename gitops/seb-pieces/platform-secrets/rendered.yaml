@@ -599,7 +599,7 @@ spec:
               {
                 "auth_mode": "oidc_auth",
                 "oidc_name": "Authentik",
-                "oidc_endpoint": "https://sso.psizone.ro/application/o/harbor/",
+                "oidc_endpoint": "https://auth.psizone.ro/application/o/harbor/",
                 "oidc_client_id": "${OIDC_CLIENT_ID}",
                 "oidc_client_secret": "${OIDC_CLIENT_SECRET}",
                 "oidc_scope": "openid,profile,email,groups,offline_access",
@@ -1128,7 +1128,7 @@ spec:
       data:
         OIDC_CLIENT_ID: '{{ .client_id }}'
         OIDC_CLIENT_SECRET: '{{ .client_secret }}'
-        OIDC_ISSUER_URL: https://sso.psizone.ro/application/o/headlamp/
+        OIDC_ISSUER_URL: https://auth.psizone.ro/application/o/headlamp/
         OIDC_SCOPES: openid,profile,email,groups
       engineVersion: v2
 ---

@@ -317,10 +317,10 @@ spec:
         # chart or image bump is what would make it wrong.
         storage:
           type: minio
-          endpoint: fsn1.your-objectstorage.com
+          endpoint: nbg1.your-objectstorage.com
           port: "443"
           ssl: true
-          region: fsn1
+          region: nbg1
           secretName: reportportal-storage
           accesskeyName: access-key
           secretkeyName: secret-key

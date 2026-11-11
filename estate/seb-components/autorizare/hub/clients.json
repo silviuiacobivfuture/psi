@@ -1,0 +1,26 @@
+{
+	"clients": [
+		{
+			"client_id": "console",
+			"tenant": "psi",
+			"application": "autorizare",
+			"name": "Polaris",
+			"module": "autorizare",
+			"kind": "confidential",
+			"redirect_uris": ["https://access.{base}/v1/auth/oidc/callback"],
+			"post_logout_redirect_uris": ["https://access.{base}/autentificare"],
+			"frontchannel_logout_uris": ["https://access.{base}/v1/auth/oidc/frontchannel-logout"],
+			"delegation": false,
+			"platform": true,
+			"estate": {
+				"key": "polaris",
+				"notifications": true,
+				"home": "https://access.{base}/",
+				"changelog": {
+					"author": "platform",
+					"linked": false
+				}
+			}
+		}
+	]
+}

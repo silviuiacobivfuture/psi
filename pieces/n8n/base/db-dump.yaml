@@ -73,8 +73,8 @@ spec:
                   valueFrom: { secretKeyRef: { name: n8n-backup-s3, key: AWS_ACCESS_KEY_ID } }
                 - name: AWS_SECRET_ACCESS_KEY
                   valueFrom: { secretKeyRef: { name: n8n-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
-                - { name: AWS_REGION, value: fsn1 }
-                - { name: AWS_ENDPOINT_URL, value: https://fsn1.your-objectstorage.com }
+                - { name: AWS_REGION, value: nbg1 }
+                - { name: AWS_ENDPOINT_URL, value: https://nbg1.your-objectstorage.com }
                 - { name: AWS_S3_ADDRESSING_STYLE, value: path }
                 - { name: BUCKET, value: WLBUCKET-tfstate-dev }
                 - { name: PREFIX, value: db-dumps/n8n }

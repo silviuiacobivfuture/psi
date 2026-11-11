@@ -5,6 +5,7 @@ resources:
   - arc-controller.yaml
   - arc-runners.yaml
   - argocd-config.yaml
+  - autorizare.yaml
   - cert-manager.yaml
   - cluster-dns.yaml
   - cnpg.yaml
@@ -18,13 +19,18 @@ resources:
   - homepage.yaml
   - kyverno-policies.yaml
   - kyverno.yaml
+  - n8n.yaml
   - netdata.yaml
   - nextcloud-platform.yaml
   - nextcloud.yaml
+  - novu.yaml
+  - openfga.yaml
   - pdfcraft.yaml
   - plane-platform.yaml
+  - plane.yaml
   - platform-rbac.yaml
   - platform-secrets.yaml
+  - plunk.yaml
   - reference.yaml
   - reloader.yaml
   - reportportal-platform.yaml

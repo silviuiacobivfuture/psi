@@ -939,9 +939,9 @@ spec:
     template:
       data:
         AWS_ACCESS_KEY_ID: '{{ .access_key_id }}'
-        AWS_REGION: fsn1
+        AWS_REGION: nbg1
         AWS_S3_BUCKET_NAME: psi-plane-dev
-        AWS_S3_ENDPOINT_URL: https://fsn1.your-objectstorage.com
+        AWS_S3_ENDPOINT_URL: https://nbg1.your-objectstorage.com
         AWS_SECRET_ACCESS_KEY: '{{ .secret_access_key }}'
         FILE_SIZE_LIMIT: "5242880"
         USE_MINIO: "0"
@@ -1344,7 +1344,7 @@ spec:
       data:
         compression: gzip
       destinationPath: s3://psi-tfstate-dev/cnpg/plane-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           key: AWS_ACCESS_KEY_ID

@@ -1504,7 +1504,7 @@ subjects:
 apiVersion: v1
 data:
   OIDC_GROUPS_CLAIM: groups
-  OIDC_ISSUER_URL: https://sso.psizone.ro/application/o/headlamp/
+  OIDC_ISSUER_URL: https://auth.psizone.ro/application/o/headlamp/
   OIDC_USERNAME_CLAIM: email
   OIDC_USERNAME_PREFIX: 'oidc:'
   REMOVE_OIDC_DROPIN: "false"
@@ -1921,6 +1921,7 @@ data:
       - "eviction-soft=memory.available<4Gi"
       - "eviction-soft-grace-period=memory.available=60s"
       - "eviction-max-pod-grace-period=60"
+      - "max-pods=250"
   KM_DROPIN_SERVER: |
     # /etc/rancher/k3s/config.yaml.d/kubelet-memory.yaml — dev control plane, cx53. DO NOT EDIT on the node.
     # Written by cloud-init on a rebuild and by Plan kubelet-memory-server on a live node.
@@ -1933,6 +1934,7 @@ data:
       - "eviction-soft=memory.available<4Gi"
       - "eviction-soft-grace-period=memory.available=60s"
       - "eviction-max-pod-grace-period=60"
+      - "max-pods=250"
   KM_MODE: apply
 kind: ConfigMap
 metadata:
@@ -2604,7 +2606,7 @@ spec:
     - name: KM_ROLE
       value: agent
     image: registry.psizone.ro/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
-  version: kubelet-memory-apply-12e277c6
+  version: kubelet-memory-apply-4e666188
 ---
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
@@ -2642,4 +2644,4 @@ spec:
     - name: KM_ROLE
       value: server
     image: registry.psizone.ro/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
-  version: kubelet-memory-apply-12e277c6
+  version: kubelet-memory-apply-4e666188

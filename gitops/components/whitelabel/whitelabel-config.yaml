@@ -36,7 +36,7 @@ data:
   DNS_PROVIDER: cloudflare
   DNS_ZONE: psizone.ro
   DNS_APEX: foreign
-  SES_REGION: eu-west-1
+  SES_REGION: eu-central-1
   REGISTRY_HOST: registry.psizone.ro
   REGISTRY_PROJECT_APPS: psi
   REGISTRY_PROJECT_MIRROR: mirror
@@ -47,7 +47,7 @@ data:
   ENVIRONMENTS: dev
   # platform-apps
   PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
-  AUTHENTIK_HOST_PREFIX: sso
+  AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
   PLANE_HOST_PREFIX: work
@@ -64,7 +64,7 @@ data:
   OPERATOR_EMAIL: silviu.iacob@ivfuture.ro
   # hub
   FRONT_HOST_PREFIX: portal
-  HUB_HOST_PREFIX: login
+  HUB_HOST_PREFIX: sso
   HUB_NAME: "Psi Sign-in"
   # secret-references
   REF_DNS_TOKEN_PATH: secret/platform/dns/token
@@ -78,7 +78,7 @@ data:
   REF_APP_ENV_PATH: "secret/apps/{app}/env"
   # derived (computed by the loader from the keys above)
   GIT_SSH_URL: "git@github.com:silviuiacobivfuture/psi.git"
-  AUTHENTIK_HOST: sso.psizone.ro
+  AUTHENTIK_HOST: auth.psizone.ro
   FRONT_HOST: portal.psizone.ro
-  MESH_BASE_DOMAIN: mesh.psizone.ro
-  TAILNET_DOMAIN: mesh.psizone.ro
+  MESH_BASE_DOMAIN: psizone.ro
+  TAILNET_DOMAIN: psizone.ro

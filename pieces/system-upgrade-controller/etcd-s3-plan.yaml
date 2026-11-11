@@ -49,14 +49,14 @@
 #        --etcd-s3 \
 #        --etcd-s3-bucket=<BUCKET_PREFIX>-tfstate-dev \
 #        --etcd-s3-folder=etcd-snapshots/dev \
-#        --etcd-s3-endpoint=fsn1.your-objectstorage.com \
-#        --etcd-s3-region=fsn1 \
+#        --etcd-s3-endpoint=nbg1.your-objectstorage.com \
+#        --etcd-s3-region=nbg1 \
 #        --etcd-s3-access-key=<AWS_ACCESS_KEY_ID_DEV> \
 #        --etcd-s3-secret-key=<AWS_SECRET_ACCESS_KEY_DEV> \
 #        --cluster-reset-restore-path=<snapshot-name>
 #      (list snapshots: `k3s etcd-snapshot list --s3 --etcd-s3-bucket=<BUCKET_PREFIX>-tfstate-dev
-#       --etcd-s3-folder=etcd-snapshots/dev --etcd-s3-endpoint=fsn1.your-objectstorage.com
-#       --etcd-s3-region=fsn1 --etcd-s3-access-key=… --etcd-s3-secret-key=…`)
+#       --etcd-s3-folder=etcd-snapshots/dev --etcd-s3-endpoint=nbg1.your-objectstorage.com
+#       --etcd-s3-region=nbg1 --etcd-s3-access-key=… --etcd-s3-secret-key=…`)
 #   3. systemctl start k3s
 # The consolidated runbook lives in infra/RUNBOOK.md (owned elsewhere) — this header
 # is the authoritative restore reference co-located with the Plan.

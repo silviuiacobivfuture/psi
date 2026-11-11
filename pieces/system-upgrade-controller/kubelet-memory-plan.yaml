@@ -25,7 +25,7 @@ metadata:
   name: kubelet-memory-agent
   namespace: system-upgrade
 spec:
-  version: kubelet-memory-apply-12e277c6
+  version: kubelet-memory-apply-4e666188
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
@@ -47,7 +47,7 @@ metadata:
   name: kubelet-memory-server
   namespace: system-upgrade
 spec:
-  version: kubelet-memory-apply-12e277c6
+  version: kubelet-memory-apply-4e666188
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }

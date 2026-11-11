@@ -16,7 +16,7 @@
 # moves to HA raft + KMS auto-unseal, swap this for `raft snapshot save` (atomic,
 # consistent) — tracked in RUNBOOK.
 #
-# Storage layout: bucket rmx-tfstate-dev (the platform-layer bucket, same as velero +
+# Storage layout: bucket psi-tfstate-dev (the platform-layer bucket, same as velero +
 # tofu state), prefix openbao-snapshots/ — sibling to velero/ under the same bucket.
 #
 # Deployment: this is NOT applied by hand. It is Argo-synced — the `openbao-store`
@@ -115,17 +115,17 @@ spec:
                     secretKeyRef: { name: openbao-snapshot-s3, key: AWS_SECRET_ACCESS_KEY }
                 # Hetzner Object Storage S3 endpoint/region — same as velero + tofu backend.
                 - name: AWS_REGION
-                  value: fsn1
+                  value: nbg1
                 - name: AWS_ENDPOINT_URL
-                  value: https://fsn1.your-objectstorage.com
+                  value: https://nbg1.your-objectstorage.com
                 # Hetzner S3 needs PATH-STYLE addressing (bucket in the path, not the
                 # host). Without this the aws CLI uses virtual-hosted style
-                # (bucket.fsn1.your-objectstorage.com) and Hetzner answers 301
+                # (bucket.nbg1.your-objectstorage.com) and Hetzner answers 301
                 # redirects — exactly why velero sets s3ForcePathStyle. Force it here.
                 - name: AWS_S3_ADDRESSING_STYLE
                   value: path
                 - name: BUCKET
-                  value: rmx-tfstate-dev
+                  value: psi-tfstate-dev
                 - name: PREFIX
                   value: openbao-snapshots
               volumeMounts:
