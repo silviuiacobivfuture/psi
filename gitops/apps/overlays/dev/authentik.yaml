@@ -180,10 +180,6 @@ spec:
             # volume, and one created but not named here is simply never
             # reconciled — the groups exist in git and not in the directory,
             # and nobody can sign in with no visible reason.
-            - authentik-blueprints-groups-brs
-            - authentik-blueprints-groups-sign
-            - authentik-blueprints-groups-flow
-            - authentik-blueprints-sso-invoice
             # The estate's look: brand, Romanian titles and labels. Also in the
             # kustomization.
             - authentik-blueprints-theme
