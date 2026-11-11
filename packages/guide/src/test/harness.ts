@@ -1,7 +1,17 @@
-import type { GuideFailure } from "../ask";
+import {
+	type FakeOpenRouter,
+	type FakeReply,
+	type ScreenScript,
+	startFakeOpenRouter,
+} from "@psi/engine/testing";
 import type { Brand } from "../contract";
-import type { GuideScore } from "../faithfulness";
-import { createGuide, type Guide, type GuideOptions } from "../guide";
+import {
+	createGuide,
+	type Guide,
+	type GuideFailure,
+	type GuideOptions,
+	type GuideScore,
+} from "../guide";
 import {
 	ABA,
 	EVALUATION,
@@ -10,12 +20,6 @@ import {
 	QEEG,
 	type SearchBehaviour,
 } from "./fake-knowledge";
-import {
-	type FakeOpenRouter,
-	type FakeReply,
-	type ScreenScript,
-	startFakeOpenRouter,
-} from "./fake-openrouter";
 
 /** Reviewed passages for the hardening tests, in Romanian. */
 export const FOUND_RO: SearchBehaviour = {

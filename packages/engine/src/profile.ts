@@ -1,0 +1,118 @@
+import { z } from "zod";
+import { LocaleCodeSchema } from "./contract";
+import { type RefusalReason, RefusalReasonSchema } from "./events";
+import { type RuleSet, RuleSetsSchema } from "./rules";
+
+/** What a profile says in one locale: its voice, its policy rules and its allowed next steps. */
+export interface ProfileLocale {
+	/** Who the persona is and how it speaks, in this locale (from the brand book, say). */
+	voice: string;
+	/**
+	 * The profile's own numbered rules, between the engine's grounding rules and its closing
+	 * rules: what the persona never does (diagnose, promise outcomes), its style, its length.
+	 */
+	policy: ReadonlyArray<string>;
+	/** The next steps a short uncited sentence may offer, as the prompt names them. */
+	nextSteps: string;
+}
+
+/**
+ * A rule about what an answer may name. When the question matches `when`, an answer that matches
+ * `forbid` is stopped mid-stream and refused as `refusal`: a clinic's guide naming a sister brand
+ * on a clinical question, say.
+ */
+export interface CrossReferenceRule {
+	when: ReadonlyArray<RuleSet>;
+	forbid: ReadonlyArray<RuleSet>;
+	refusal: RefusalReason;
+}
+
+/** The model guardrails' instructions for this persona's context (the engine has neutral ones). */
+export interface ScreeningPrompts {
+	/** `PromptInjectionDetector` instructions. Must mention "prompt injection". */
+	injection?: string;
+	/** `ModerationProcessor` instructions. */
+	moderation?: string;
+	/** The moderation categories judged; defaults to harassment, hate, sexual-explicit, threat. */
+	moderationCategories?: ReadonlyArray<string>;
+}
+
+/** How the persona refuses what it cannot take. */
+export interface RefusalPolicy {
+	/** What an empty, over-long or malformed question is refused as. Defaults to `out_of_scope`. */
+	invalidInput?: RefusalReason;
+	/** How many characters of an over-long question are still scanned for crisis. Defaults to 8000. */
+	crisisScanLimit?: number;
+}
+
+/**
+ * A persona the engine answers as, entirely as data. Rule sets match folded text (see `fold`).
+ * The engine registers one Mastra agent per profile; a consumer brings as many as it has.
+ */
+export interface Profile {
+	/** `[a-z0-9-]`, unique in one engine: names the agent, its memory resource and its threads. */
+	id: string;
+	/** The agent's display name. */
+	name: string;
+	/** What `EngineKnowledge.search` receives as `scope`. */
+	knowledgeScope: string;
+	/** The locales it answers in, each with its voice; every one needs a language pack. */
+	locales: Readonly<Record<string, ProfileLocale>>;
+	/** Refused as `crisis` before anything else, the rate limit included; never sent to a model. */
+	crisis?: ReadonlyArray<RuleSet>;
+	/** Refused as `out_of_scope` before retrieval. */
+	outOfScope?: ReadonlyArray<RuleSet>;
+	/** A question matching these is never refused as `abuse` by the rules (a tic, a bullied child). */
+	abuseExemptions?: ReadonlyArray<RuleSet>;
+	crossReferences?: ReadonlyArray<CrossReferenceRule>;
+	/** Next-step phrases (folded) a short sentence may carry uncited, beyond the language packs'. */
+	nextStepPhrases?: ReadonlyArray<string>;
+	screening?: ScreeningPrompts;
+	refusalPolicy?: RefusalPolicy;
+}
+
+const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
+	.object({
+		voice: z.string().trim().min(1),
+		policy: z.array(z.string().trim().min(1)).readonly(),
+		nextSteps: z.string().trim().min(1),
+	})
+	.strict();
+
+const CrossReferenceRuleSchema: z.ZodType<CrossReferenceRule> = z
+	.object({ when: RuleSetsSchema, forbid: RuleSetsSchema, refusal: RefusalReasonSchema })
+	.strict();
+
+export const ProfileSchema: z.ZodType<Profile> = z
+	.object({
+		id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/),
+		name: z.string().trim().min(1),
+		knowledgeScope: z.string().trim().min(1),
+		locales: z
+			.record(LocaleCodeSchema, ProfileLocaleSchema)
+			.refine((locales) => Object.keys(locales).length > 0, "a profile needs a locale"),
+		crisis: RuleSetsSchema.optional(),
+		outOfScope: RuleSetsSchema.optional(),
+		abuseExemptions: RuleSetsSchema.optional(),
+		crossReferences: z.array(CrossReferenceRuleSchema).readonly().optional(),
+		nextStepPhrases: z.array(z.string().min(1)).readonly().optional(),
+		screening: z
+			.object({
+				injection: z.string().includes("prompt injection").optional(),
+				moderation: z.string().min(1).optional(),
+				moderationCategories: z.array(z.string().min(1)).min(1).readonly().optional(),
+			})
+			.strict()
+			.optional(),
+		refusalPolicy: z
+			.object({
+				invalidInput: RefusalReasonSchema.optional(),
+				crisisScanLimit: z.number().int().positive().optional(),
+			})
+			.strict()
+			.optional(),
+	})
+	.strict();
+
+/** The default for `RefusalPolicy.crisisScanLimit`. */
+export const CRISIS_SCAN_LIMIT = 8000;

@@ -1,9 +1,11 @@
 export {
 	type AskControl,
+	createMemoryRateLimiter,
+	DEFAULT_RATE_LIMIT,
 	DEFAULT_TIMEOUTS,
-	type GuideFailure,
-	type GuideTimeouts,
-} from "./ask";
+	type MemoryRateLimitOptions,
+	type RateLimiter,
+} from "@psi/engine";
 export type { Brand, Knowledge, Locale, Passage, Source } from "./contract";
 export {
 	type AskInput,
@@ -16,12 +18,19 @@ export {
 	MAX_QUESTION_LENGTH,
 	type RefusalReason,
 } from "./events";
-export type { GuideScore } from "./faithfulness";
-export { createGuide, type Guide, type GuideOptions } from "./guide";
-export { DEFAULT_MODEL } from "./model";
 export {
-	createMemoryRateLimiter,
-	DEFAULT_RATE_LIMIT,
-	type MemoryRateLimitOptions,
-	type RateLimiter,
-} from "./rate-limit";
+	createGuide,
+	type Guide,
+	type GuideFailure,
+	type GuideOptions,
+	type GuideScore,
+	type GuideTimeouts,
+} from "./guide";
+export { DEFAULT_MODEL } from "./model";
+export { ALL_PSI_PROFILES, PSI_PROFILES } from "./profiles";
+export {
+	createPsiEngine,
+	PSI_ID_PREFIX,
+	PSI_SCORER,
+	type PsiEngineOptions,
+} from "./psi-engine";

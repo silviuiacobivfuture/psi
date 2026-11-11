@@ -1,8 +1,8 @@
+import { collect, shape } from "@psi/engine/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AskInputSchema, MAX_QUESTION_LENGTH } from "../events";
 import { createGuide, type Guide } from "../guide";
 import { EVALUATION, FakeKnowledge, passage } from "./fake-knowledge";
-import { collect, shape } from "./helpers";
 
 /**
  * `ask` takes input from apps that may not be type-checked; the spread lets these calls pass

@@ -1,11 +1,16 @@
+import { ANSWER_TEMPERATURE, MAX_PROMPT_TOKENS } from "@psi/engine";
+import {
+	answerText,
+	chatBody,
+	collect,
+	type FakeOpenRouter,
+	messageText,
+	shape,
+} from "@psi/engine/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { MAX_PROMPT_TOKENS } from "../agent";
-import { ANSWER_TEMPERATURE } from "../ask";
 import { EVALUATION, passage } from "./fake-knowledge";
-import type { FakeOpenRouter } from "./fake-openrouter";
 import { closeAll, FOUND_EN, FOUND_RO, startGuide } from "./harness";
-import { answerText, chatBody, collect, messageText, shape } from "./helpers";
 
 beforeEach(() => {
 	vi.stubEnv("OPENROUTER_API_KEY", "");

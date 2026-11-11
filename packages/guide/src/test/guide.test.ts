@@ -1,7 +1,16 @@
+import {
+	answerText,
+	chatBody,
+	collect,
+	type FakeOpenRouter,
+	type FakeReply,
+	messageText,
+	shape,
+	startFakeOpenRouter,
+} from "@psi/engine/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { GuideFailure } from "../ask";
 import type { Brand } from "../contract";
-import { createGuide, type Guide } from "../guide";
+import { createGuide, type Guide, type GuideFailure } from "../guide";
 import { DEFAULT_MODEL } from "../model";
 import {
 	ABA,
@@ -11,8 +20,6 @@ import {
 	QEEG,
 	type SearchBehaviour,
 } from "./fake-knowledge";
-import { type FakeOpenRouter, type FakeReply, startFakeOpenRouter } from "./fake-openrouter";
-import { answerText, chatBody, collect, messageText, shape } from "./helpers";
 
 const FOUND: SearchBehaviour = {
 	kind: "passages",

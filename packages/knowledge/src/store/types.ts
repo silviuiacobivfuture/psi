@@ -1,3 +1,4 @@
+import type { MastraVector } from "@mastra/core/vector";
 import type { ChunkMetadata } from "./metadata";
 
 export type VectorStoreKind = "libsql" | "chroma";
@@ -29,6 +30,8 @@ export interface ChunkRows {
  */
 export interface VectorStore {
 	readonly info: VectorStoreInfo;
+	/** Mastra's own vector store underneath, for registering with a Mastra instance. */
+	readonly vector: MastraVector;
 	/** Every index this package owns (`kb_…`); nothing else in a shared store is listed. */
 	ownIndexes(): Promise<ReadonlyArray<string>>;
 	/** Throws when the store cannot hold an index of this name. */

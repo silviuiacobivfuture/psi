@@ -1,0 +1,110 @@
+import type { Agent } from "@mastra/core/agent";
+import type { Memory } from "@mastra/memory";
+import type { z } from "zod";
+import type { EngineKnowledge } from "./contract";
+import type { AskInput } from "./events";
+import type { EngineScore, Faithfulness } from "./grounding/faithfulness";
+import type { LanguageDetector } from "./language/detect";
+import type { LanguagePack } from "./language/pack";
+import type { ChatModel } from "./model";
+import type { Profile } from "./profile";
+import type { ScreeningRules } from "./screening/chain";
+import type { RateLimiter } from "./screening/rate-limit";
+
+/** Time budgets for one answer, in milliseconds. */
+export interface EngineTimeouts {
+	/** One knowledge search. */
+	retrievalMs: number;
+	/** The model guardrails (run in parallel), and the app's rate limiter. */
+	screeningMs: number;
+	/** The longest silence between two pieces of the model's stream (covers the first token). */
+	idleMs: number;
+	/** The whole answer, retrieval included. */
+	totalMs: number;
+}
+
+export const DEFAULT_TIMEOUTS: EngineTimeouts = {
+	retrievalMs: 8_000,
+	screeningMs: 8_000,
+	idleMs: 20_000,
+	totalMs: 60_000,
+};
+
+/** Which stage of an answer failed. */
+export type FailureStage = "retrieval" | "model" | "screening" | "rate_limit";
+
+/**
+ * Why a stage failed, for the app's logs. It names the profile, the stage and the error, never
+ * the question, the passages or the answer. Every failure makes the answer `unavailable`.
+ */
+export interface EngineFailure {
+	profile: string;
+	stage: FailureStage;
+	error: string;
+}
+
+/** Per-ask controls from the app. */
+export interface AskControl {
+	/** Aborts the answer (e.g. the visitor closed the SSE connection). */
+	signal?: AbortSignal;
+	/**
+	 * The client the rate limit counts against: a hash of the session or the IP, never a name or
+	 * an e-mail. Without it the engine does not rate-limit.
+	 */
+	clientId?: string;
+}
+
+/** A setting the engine needs and was not given: it names the setting, never a secret. */
+export class ConfigurationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ConfigurationError";
+	}
+}
+
+/** The agent that serves consented threads, and the memory it writes to. */
+export interface ThreadAgent {
+	agent: Agent;
+	memory: Memory;
+}
+
+/** Everything one profile's answers need, resolved once by `createEngine`. */
+export interface AskContext {
+	profile: Profile;
+	/** The language pack of each of the profile's locales. */
+	packs: ReadonlyMap<string, LanguagePack>;
+	inputSchema: z.ZodType<AskInput, z.ZodTypeDef, unknown>;
+	languages: LanguageDetector;
+	screening: ScreeningRules;
+	faithfulness: Faithfulness;
+	knowledge: EngineKnowledge;
+	timeouts: EngineTimeouts;
+	rateLimiter: RateLimiter;
+	onFailure: ((failure: EngineFailure) => void) | undefined;
+	onScore: ((score: EngineScore) => void) | undefined;
+	/**
+	 * Builds the model the guardrail processors call, telling `onError` what failed; undefined when
+	 * model screening is off.
+	 */
+	screeningModel: ((onError: (error: Error) => void) => ChatModel) | undefined;
+	/** The agent with no memory, or undefined when there is no API key. */
+	agent: Agent | undefined;
+	/** The agent with memory, opened on first use; undefined when memory is not configured. */
+	threadAgent: (() => ThreadAgent) | undefined;
+	/** The memory resource this profile's threads belong to. */
+	resourceId: string;
+}
+
+function describe(error: unknown): string {
+	const text = error instanceof Error ? `${error.name}: ${error.message}` : "unknown error";
+	return text.slice(0, 300);
+}
+
+/** Reports a failed stage to the app; a failing hook never changes the answer. */
+export function report(ctx: AskContext, stage: FailureStage, error: unknown): void {
+	try {
+		ctx.onFailure?.({ profile: ctx.profile.id, stage, error: describe(error) });
+	} catch {
+		// A failing log hook must not change the answer.
+	}
+}

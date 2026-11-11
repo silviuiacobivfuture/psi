@@ -28,8 +28,15 @@ const passages = await kb.search({ query: "telefon", brand: "psizone", locale: "
 await kb.close();
 ```
 
-`createKnowledge` returns `Knowledge` plus `ingest`, `remove`, `embedder` (which one is in use),
-`store` (which vector store, and where) and `close`. `score` is cosine similarity; only rows scoring above 0 are returned. Passages are
+`createKnowledge` returns `Knowledge` plus:
+
+- `ingest` and `remove`;
+- `embedder`: which one is in use;
+- `store`: which vector store, and where;
+- `vector`: Mastra's `ChromaVector` or `LibSQLVector` underneath, which `@psi/guide` registers
+  with its Mastra instance. Searching it directly skips the rule below; `search` is the way to
+  read content;
+- `close`. `score` is cosine similarity; only rows scoring above 0 are returned. Passages are
 chunks: one entry can return several.
 
 Queries come from a model's tool call, so `search` degrades instead of throwing:
@@ -98,6 +105,13 @@ on top:
 - **Token**: `CHROMA_API_KEY` is sent as `Authorization: Bearer <key>` (Chroma's default
   transport), or as `X-Chroma-Token` with `CHROMA_AUTH_HEADER=x-chroma-token`. It is not passed as
   `ChromaVector`'s own `apiKey`, which switches the client to Chroma Cloud.
+- **Refusals**: the estate's Chroma sits behind an auth sidecar that answers 401 without the
+  token. A 401 (or 403), and an unreachable server, become a `ChromaAccessError` naming the
+  setting to fix ("requires a token (HTTP 401): set CHROMA_API_KEY", "refused the token (HTTP
+  401): CHROMA_API_KEY is not the server's token", "is unreachable: check CHROMA_URL"). So a
+  missing or wrong token reads as configuration, never as empty content (the guide reports a
+  `retrieval` failure and answers `unavailable`, not `no_content`). The token never appears in
+  the message. A test stands up a local stand-in for the sidecar.
 - **Tenant and database**: `CHROMA_TENANT` and `CHROMA_DATABASE`, default `default_tenant` and
   `default_database`. The database must exist on the server. Give the knowledge base its own
   database on a shared server: `ChromaVector.listIndexes()` reads one page of 100 collections, so a
@@ -122,7 +136,12 @@ curl http://localhost:8000/api/v2/heartbeat
 CHROMA_URL=http://localhost:8000 pnpm --filter @psi/knowledge ingest-seed
 ```
 
-The estate's Chroma will be at `https://chroma.psizone.ro`; nothing here hard-codes it.
+**Local development uses this local container only** (`CHROMA_URL=http://localhost:8000`, no
+token). The deployed sites use Chroma's internal Service, `CHROMA_URL=http://chroma.chroma.svc:8000`,
+with `CHROMA_API_KEY` from their own ExternalSecret. That ExternalSecret reads OpenBao
+`secret/apps/chroma/env`, property `CHROMA_SERVER_TOKEN` (see `packages/engine/README.md`,
+"Chroma"). The public `https://chroma.psizone.ro` is never used from a workstation. Nothing here
+hard-codes either address.
 
 ## Chunking
 

@@ -1,19 +1,31 @@
+import { type AskControl, type EngineTimeouts, ModelIdSchema, type RateLimiter } from "@psi/engine";
 import { z } from "zod";
-import { createBrandAgent } from "./agent";
-import {
-	type AskControl,
-	DEFAULT_TIMEOUTS,
-	type GuideFailure,
-	type GuideTimeouts,
-	runAsk,
-	type ThreadAgent,
-} from "./ask";
 import { type Brand, BrandSchema, type Knowledge } from "./contract";
 import type { AskInput, GuideEvent } from "./events";
-import type { GuideScore } from "./faithfulness";
-import { openMemory } from "./memory";
-import { DEFAULT_MODEL, ModelIdSchema, openRouterModel, readGuideEnv } from "./model";
-import { createMemoryRateLimiter, type RateLimiter } from "./rate-limit";
+import { createPsiEngine } from "./psi-engine";
+
+/** Time budgets for one answer, in milliseconds (see the engine's `EngineTimeouts`). */
+export type GuideTimeouts = EngineTimeouts;
+
+/**
+ * Why a stage failed, for the app's logs. It names the stage and the error, never the question,
+ * the passages or the answer. Every failure makes the answer `unavailable`.
+ */
+export interface GuideFailure {
+	stage: "retrieval" | "model" | "screening" | "rate_limit";
+	error: string;
+}
+
+/** The faithfulness of one answer: how many of its claims the cited passages support. */
+export interface GuideScore {
+	scorer: "psi-faithfulness";
+	/** Supported claims over claims, 0 to 1 (0 when the answer makes no claim at all). */
+	score: number;
+	claims: number;
+	supported: number;
+	/** True when the answer may be shown: at least one claim, and every claim supported. */
+	passed: boolean;
+}
 
 export interface GuideOptions {
 	brand: Brand;
@@ -95,68 +107,32 @@ const GuideOptionsSchema = z.object({
 });
 
 /**
- * Creates the guide for one brand. Options are validated here, so a misconfiguration fails at
- * startup; after that nothing throws to the caller. The API key and model come from the options or
- * the environment (`OPENROUTER_API_KEY`, `PSI_GUIDE_MODEL`); they are read once, here.
+ * Creates the guide for one brand: psi's profile for it, on the engine. Options are validated
+ * here, so a misconfiguration fails at startup; after that nothing throws to the caller. The API
+ * key and model come from the options or the environment (`OPENROUTER_API_KEY`,
+ * `PSI_GUIDE_MODEL`); they are read once, here.
  */
 export function createGuide(options: GuideOptions): Guide {
-	const opts = GuideOptionsSchema.parse(options);
-	const env = readGuideEnv(process.env);
-	const apiKey = opts.apiKey ?? env.apiKey;
-	const modelId = opts.model ?? env.model ?? DEFAULT_MODEL;
-	const timeouts: GuideTimeouts = { ...DEFAULT_TIMEOUTS, ...opts.timeouts };
-	const model =
-		apiKey === undefined
-			? undefined
-			: openRouterModel({
-					apiKey,
-					modelId,
-					...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
-				});
-	const agent = model === undefined ? undefined : createBrandAgent({ brand: opts.brand, model });
-	const screeningModel =
-		apiKey === undefined || opts.modelScreening === false
-			? undefined
-			: opts.screeningModel === undefined
-				? model
-				: openRouterModel({
-						apiKey,
-						modelId: opts.screeningModel,
-						...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
-					});
-	const rateLimiter = opts.rateLimiter ?? createMemoryRateLimiter();
-
-	let threads: ThreadAgent | undefined;
-	const memoryOptions = opts.memory;
-	const openThreadAgent =
-		model === undefined || memoryOptions === undefined
-			? undefined
-			: (): ThreadAgent => {
-					if (threads === undefined) {
-						const memory = openMemory(memoryOptions.url);
-						threads = { agent: createBrandAgent({ brand: opts.brand, model, memory }), memory };
-					}
-					return threads;
-				};
-
-	return {
-		brand: opts.brand,
-		model: modelId,
-		ask: (input, control) =>
-			runAsk(
-				{
-					brand: opts.brand,
-					knowledge: opts.knowledge,
-					timeouts,
-					onFailure: opts.onFailure,
-					onScore: opts.onScore,
-					rateLimiter,
-					screeningModel,
-					agent,
-					threadAgent: openThreadAgent,
-				},
-				input,
-				control,
-			),
-	};
+	const { brand, onFailure, onScore, ...rest } = GuideOptionsSchema.parse(options);
+	const engine = createPsiEngine({
+		...rest,
+		brands: [brand],
+		...(onFailure === undefined
+			? {}
+			: { onFailure: (failure) => onFailure({ stage: failure.stage, error: failure.error }) }),
+		...(onScore === undefined
+			? {}
+			: {
+					onScore: (score) =>
+						onScore({
+							scorer: "psi-faithfulness",
+							score: score.score,
+							claims: score.claims,
+							supported: score.supported,
+							passed: score.passed,
+						}),
+				}),
+	});
+	const profile = engine.guide(brand);
+	return { brand, model: engine.model, ask: (input, control) => profile.ask(input, control) };
 }

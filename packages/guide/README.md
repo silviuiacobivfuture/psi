@@ -2,14 +2,28 @@
 
 The guide for the psi brand sites (Psizone, EQ-SYNC, Hemi-Sync România, the Blog). It answers a
 visitor's question only from reviewed, published content, cites the pages it used, and streams the
-answer as events that an app renders through Datastar. It is a Mastra agent per brand
-(`@mastra/core`), with models served through OpenRouter (`@openrouter/ai-sdk-provider`) and optional
-conversation memory on LibSQL (`@mastra/memory`, `@mastra/libsql`).
+answer as events that an app renders through Datastar.
+
+It is psi's four brands as **profiles on `@psi/engine`**, the reusable core (see
+`packages/engine/README.md`). The engine owns the Mastra agent per profile, the OpenRouter model,
+the screening chain, retrieval, the per-sentence gate, the scorer, the event stream and memory.
+This package owns what is psi's, in `src/profiles/`:
+
+- the brand names and brand-book voices;
+- psi's policy rules;
+- the crisis, scope and clinical word lists;
+- the clinic's guardrail context;
+- the sister-brand rule (Psizone only).
+
+`createGuide` builds a one-profile engine. `createPsiEngine` builds all four on one Mastra
+instance (Studio's entry) and registers the knowledge base's vector store with Mastra.
 
 The module ships **no user-facing strings**. Refusals arrive as reasons, and the app renders them
 from its own i18n.
 
 ## Contract
+
+Unchanged by the move to the engine; the apps and `@psi/ui` compile as before.
 
 ```ts
 import { createGuide, createMemoryRateLimiter, type GuideEvent } from "@psi/guide";
@@ -77,7 +91,7 @@ that keeps a `Record<RefusalReason, …>` of messages needs a key for each reaso
 | `abuse` | Insults, threats, slurs, obscenities or explicit content aimed at the guide or the team, with nothing about health or a child around it. | A short, calm boundary ("we answer respectful questions"), with the contact details. | No, when the rules catch it; one call when moderation does |
 | `rate_limited` | The `clientId` asked more questions than the limiter allows. | "Too many questions in a short time; try again in a minute." | Never |
 | `no_content` | Retrieval found nothing. The model judged the passages do not answer. The answer was not faithful: a claim without a citation, a figure the cited passages do not hold, a claim they do not support, or no grounded claim at all. | That there is no reviewed answer yet, with the contact details. | No for empty retrieval |
-| `unavailable` | No API key, a provider or knowledge failure, a timeout, an abort, the model not finishing, the answer written in the other language, the rate limiter failing, the injection detector failing (it fails closed). | "The guide is unavailable right now; try again." | — |
+| `unavailable` | No API key (reported to `onFailure` as a `model` stage `ConfigurationError`), a provider or knowledge failure (a Chroma 401 is a `ChromaAccessError`; a key without credits is the provider's HTTP 402, named), a timeout, an abort, the model not finishing, the answer written in the other language, the rate limiter failing, the injection detector failing (it fails closed). | "The guide is unavailable right now; try again." | — |
 
 ## The guardrail chain, in order
 
@@ -222,8 +236,9 @@ pnpm exec tsc --noEmit
 pnpm exec vitest run --maxWorkers=2
 ```
 
-The tests use a local HTTP server that stands in for OpenRouter's `/chat/completions` API, so the
-real provider, Mastra (its processors and scorer included) and this module all run. Streaming
+The tests use a local HTTP server that stands in for OpenRouter's `/chat/completions` API
+(`@psi/engine/testing`), so the real provider, Mastra (its processors and scorer included), the
+engine and psi's profiles all run. Streaming
 requests are the answer; non-streaming ones are Mastra's guardrail processors, answered from a
 separate script (clean by default, or flagged, failing or hanging) and recorded apart. They also use
 an in-memory `Knowledge` that follows the `@psi/knowledge` contract. Every refusal reason has its

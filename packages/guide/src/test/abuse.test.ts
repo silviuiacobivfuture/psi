@@ -1,8 +1,8 @@
 import { inspect } from "node:util";
+import { createMemoryRateLimiter, type RateLimiter } from "@psi/engine";
+import { chatBody, collect, messageText, shape } from "@psi/engine/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryRateLimiter, type RateLimiter } from "../rate-limit";
 import { closeAll, startGuide } from "./harness";
-import { chatBody, collect, messageText, shape } from "./helpers";
 
 beforeEach(() => {
 	vi.stubEnv("OPENROUTER_API_KEY", "");

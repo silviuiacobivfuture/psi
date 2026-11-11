@@ -1,12 +1,19 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { openMemory } from "@psi/engine";
+import {
+	chatBody,
+	collect,
+	type FakeOpenRouter,
+	type FakeReply,
+	messageText,
+	shape,
+	startFakeOpenRouter,
+} from "@psi/engine/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGuide } from "../guide";
-import { fileDirectory, openMemory } from "../memory";
 import { EVALUATION, FakeKnowledge, passage } from "./fake-knowledge";
-import { type FakeOpenRouter, type FakeReply, startFakeOpenRouter } from "./fake-openrouter";
-import { chatBody, collect, messageText, shape } from "./helpers";
 
 const THREAD = "0b6f0c5e-7d0c-4c55-9c39-3f7d2b0a9e11";
 
@@ -115,12 +122,5 @@ describe("memory", () => {
 			},
 			{ timeout: 8_000, interval: 200 },
 		);
-	});
-
-	it("creates the directory of a file URL and leaves other URLs alone", () => {
-		expect(fileDirectory("file:.data/guide.db")).toMatch(/\.data$/);
-		expect(fileDirectory("file:///var/lib/psi/guide.db")).toBe("/var/lib/psi");
-		expect(fileDirectory("libsql://psi.turso.io")).toBeUndefined();
-		expect(fileDirectory(":memory:")).toBeUndefined();
 	});
 });

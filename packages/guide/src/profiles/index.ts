@@ -1,0 +1,55 @@
+import type { Profile, ProfileLocale } from "@psi/engine";
+import { BRANDS, type Brand, type Locale } from "../contract";
+import { CRISIS } from "./crisis";
+import { NEXT_STEP_PHRASES, NEXT_STEPS, POLICY } from "./policy";
+import { CLINICAL, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
+import { SCREENING } from "./screening";
+import { VOICES } from "./voices";
+
+/** Each brand's guide, as its agent is named. */
+const NAMES: Readonly<Record<Brand, string>> = {
+	psizone: "Ghidul Psizone",
+	eqsync: "Ghidul EQ-SYNC",
+	hemisync: "Ghidul Hemi-Sync",
+	blog: "Ghidul blogului psi",
+};
+
+/** One brand's wording in one locale: its voice, psi's policy and next steps. */
+function wording(brand: Brand, locale: Locale): ProfileLocale {
+	return { voice: VOICES[brand][locale], policy: POLICY[locale], nextSteps: NEXT_STEPS[locale] };
+}
+
+/**
+ * One brand's guide as an engine profile. Every brand shares psi's crisis, scope and abuse
+ * exemptions; only Psizone carries the sister-brand rule (no Hemi-Sync or EQ-SYNC on a clinical
+ * question). Romanian is listed first, so it is the agent's default instructions.
+ */
+function profileFor(brand: Brand): Profile {
+	return {
+		id: brand,
+		name: NAMES[brand],
+		knowledgeScope: brand,
+		locales: { ro: wording(brand, "ro"), en: wording(brand, "en") },
+		crisis: CRISIS,
+		outOfScope: OUT_OF_SCOPE,
+		abuseExemptions: CLINICAL,
+		crossReferences:
+			brand === "psizone"
+				? [{ when: CLINICAL, forbid: SISTER_BRANDS, refusal: "out_of_scope" }]
+				: [],
+		nextStepPhrases: NEXT_STEP_PHRASES,
+		screening: SCREENING,
+		refusalPolicy: { invalidInput: "out_of_scope" },
+	};
+}
+
+/** psi's four guides, as the engine's profiles. */
+export const PSI_PROFILES: Readonly<Record<Brand, Profile>> = {
+	psizone: profileFor("psizone"),
+	eqsync: profileFor("eqsync"),
+	hemisync: profileFor("hemisync"),
+	blog: profileFor("blog"),
+};
+
+/** The profiles in brand order. */
+export const ALL_PSI_PROFILES: ReadonlyArray<Profile> = BRANDS.map((brand) => PSI_PROFILES[brand]);

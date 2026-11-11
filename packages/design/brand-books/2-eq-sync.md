@@ -24,9 +24,9 @@ Real lines:
 ## Colour
 
 - Night navy ground (`bg` #141C24) with cream ink (`ink` #EFE7D8): never pure white text.
-- Gold `accent` and `glow-1` (#E3B24C) is the brand: the action, today's session, the played part of a waveform.
-- `glow-2` teal (#5FA6B8) is the second sound wave and the focus ring; `glow-3` amber is warmth.
-- Day theme flips to warm cream paper with a navy `accent` pill and deep gold as `glow-1`.
+- Blue `accent` and `glow-1` (night #6FA8FF, day #1F5FC4; owner 2026-11-12: "try a blue colour palette", replacing the gold) is the brand: the action, today's session, the played part of a waveform.
+- `glow-2` teal (night #5FC4D6, day #1F6F86) is the second sound wave and the focus ring; `glow-3` ice blue is the quiet third light.
+- Day theme is cool white paper (#F2F6FB) with a blue `accent` pill (white label) and deep blue as `glow-1`; night is deep navy (#0F1724).
 
 ## Type
 

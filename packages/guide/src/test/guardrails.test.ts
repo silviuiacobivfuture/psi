@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isCrisis } from "../guardrails/crisis";
-import { isClinical, isOutOfScope, mentionsSisterBrand } from "../guardrails/scope";
+import { isCrisis } from "../profiles/crisis";
+import { isClinical, isOutOfScope, mentionsSisterBrand } from "../profiles/scope";
 
 describe("crisis language", () => {
 	it.each([

@@ -15,6 +15,7 @@ import {
 	createChromaVector,
 	isChromaCollectionName,
 } from "./chroma";
+import { ChromaAccessError } from "./chroma-errors";
 import { encodeChromaMetadata } from "./chroma-metadata";
 import { ChromaConfigSchema, type ParsedChromaConfig } from "./config";
 import { indexName } from "./indexes";
@@ -207,6 +208,78 @@ describe("what reaches the Chroma server", () => {
 		} finally {
 			await server.close();
 		}
+	});
+});
+
+/**
+ * A local stand-in for the estate's auth sidecar (gitops/services/chroma/base/proxy-config.yaml):
+ * 401 with `WWW-Authenticate: Bearer` unless `Authorization: Bearer <token>` or `X-Chroma-Token`
+ * carries the token; with it, an empty collection list.
+ */
+async function sidecar(token: string): Promise<{ url: string; close(): Promise<void> }> {
+	const server = createServer((req, res) => {
+		const ok =
+			req.headers.authorization === `Bearer ${token}` || req.headers["x-chroma-token"] === token;
+		if (!ok) {
+			res.writeHead(401, {
+				"content-type": "application/json",
+				"www-authenticate": 'Bearer realm="chroma"',
+			});
+			res.end('{"error":"Unauthorized","message":"a valid token is required"}\n');
+			return;
+		}
+		res.writeHead(200, { "content-type": "application/json" });
+		res.end("[]");
+	});
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const address = server.address();
+	if (address === null || typeof address === "string") throw new Error("no TCP address");
+	return {
+		url: `http://127.0.0.1:${address.port}`,
+		close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+	};
+}
+
+describe("a Chroma behind the estate's token sidecar", () => {
+	const TOKEN = "a".repeat(64);
+	let proxy: { url: string; close(): Promise<void> };
+	beforeEach(async () => {
+		proxy = await sidecar(TOKEN);
+	});
+	afterEach(async () => {
+		await proxy.close();
+	});
+
+	const search = (apiKey: string | undefined, authHeader?: "authorization" | "x-chroma-token") =>
+		createKnowledge({
+			embedder: createLexicalEmbedder(),
+			vector: {
+				kind: "chroma",
+				url: proxy.url,
+				...(apiKey === undefined ? {} : { apiKey }),
+				...(authHeader === undefined ? {} : { authHeader }),
+			},
+		}).search({ query: "telefon", brand: "psizone", locale: "ro" });
+
+	it("without a token, search fails as a configuration error naming CHROMA_API_KEY, not as no content", async () => {
+		const failed = search(undefined);
+		await expect(failed).rejects.toBeInstanceOf(ChromaAccessError);
+		await expect(search(undefined)).rejects.toThrow(/HTTP 401\): set CHROMA_API_KEY/);
+	});
+
+	it("with a wrong token, it says the token is not the server's, and never prints it", async () => {
+		const error = await search("wrong-token").then(
+			() => undefined,
+			(e: unknown) => e,
+		);
+		expect(error).toBeInstanceOf(ChromaAccessError);
+		expect(String(error)).toMatch(/refused the token \(HTTP 401\)/);
+		expect(String(error)).not.toContain("wrong-token");
+	});
+
+	it("with the token as Bearer or as X-Chroma-Token, the sidecar lets it through", async () => {
+		expect(await search(TOKEN)).toEqual([]);
+		expect(await search(TOKEN, "x-chroma-token")).toEqual([]);
 	});
 });
 

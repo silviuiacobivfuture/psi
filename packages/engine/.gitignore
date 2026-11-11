@@ -1,0 +1,3 @@
+# Studio runs and traces (studio/index.ts), and mastra dev/build output
+.data/
+.mastra/

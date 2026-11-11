@@ -34,6 +34,7 @@ export function libsqlStore(config: LibSQLStoreConfig): VectorStore {
 	const store = createLibSQLVector(config);
 	return {
 		info: { kind: "libsql", location: config.url.split("?")[0] ?? config.url },
+		vector: store,
 		async ownIndexes() {
 			return (await store.listIndexes()).filter(isOwnIndex);
 		},

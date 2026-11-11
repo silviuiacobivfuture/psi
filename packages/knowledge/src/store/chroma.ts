@@ -1,4 +1,5 @@
 import { ChromaVector } from "@mastra/chroma";
+import { explainChromaError } from "./chroma-errors";
 import { decodeChromaMetadata, encodeChromaMetadata } from "./chroma-metadata";
 import type { ChromaAuthHeader, ParsedChromaConfig } from "./config";
 import { isOwnIndex } from "./indexes";
@@ -90,14 +91,26 @@ export function createChromaVector(config: ParsedChromaConfig, id = "psi-knowled
 	});
 }
 
-/** The vector store port over Chroma (one collection per index, cosine space). */
+/**
+ * The vector store port over Chroma (one collection per index, cosine space). Every call's
+ * authentication or connection failure becomes a `ChromaAccessError` naming the setting to fix,
+ * so a missing or wrong token reads as configuration, never as empty content.
+ */
 export function chromaStore(config: ParsedChromaConfig): VectorStore {
 	const endpoint = chromaEndpoint(config.url);
 	const store = createChromaVector(config);
+	const guard = async <T>(run: () => Promise<T>): Promise<T> => {
+		try {
+			return await run();
+		} catch (error) {
+			throw explainChromaError(error, endpoint.origin, config.apiKey !== undefined);
+		}
+	};
 	return {
 		info: { kind: "chroma", location: `${endpoint.origin}/${config.tenant}/${config.database}` },
+		vector: store,
 		async ownIndexes() {
-			const all = await store.listIndexes();
+			const all = await guard(() => store.listIndexes());
 			if (all.length >= CHROMA_LIST_PAGE) {
 				throw new Error(
 					`Chroma database ${config.database} lists ${all.length} collections, a full page: ` +
@@ -115,24 +128,30 @@ export function chromaStore(config: ParsedChromaConfig): VectorStore {
 			}
 		},
 		async dimension(index) {
-			return (await store.describeIndex({ indexName: index })).dimension;
+			return (await guard(() => store.describeIndex({ indexName: index }))).dimension;
 		},
 		async createIndex(index, dimension) {
-			await store.createIndex({ indexName: index, dimension, metric: "cosine" });
+			await guard(() => store.createIndex({ indexName: index, dimension, metric: "cosine" }));
 		},
 		async upsert(index, rows) {
-			await store.upsert({
-				indexName: index,
-				vectors: rows.vectors.map((v) => [...v]),
-				metadata: rows.metadata.map(encodeChromaMetadata),
-				ids: [...rows.ids],
-			});
+			await guard(() =>
+				store.upsert({
+					indexName: index,
+					vectors: rows.vectors.map((v) => [...v]),
+					metadata: rows.metadata.map(encodeChromaMetadata),
+					ids: [...rows.ids],
+				}),
+			);
 		},
 		async deleteEntries(index, entryIds) {
-			await store.deleteVectors({ indexName: index, filter: { entryId: { $in: [...entryIds] } } });
+			await guard(() =>
+				store.deleteVectors({ indexName: index, filter: { entryId: { $in: [...entryIds] } } }),
+			);
 		},
 		async query(index, vector, topK) {
-			const rows = await store.query({ indexName: index, queryVector: [...vector], topK });
+			const rows = await guard(() =>
+				store.query({ indexName: index, queryVector: [...vector], topK }),
+			);
 			// Chroma has no score floor: keep what LibSQL keeps, rows scoring above 0.
 			return rows
 				.filter((r) => r.score > 0)

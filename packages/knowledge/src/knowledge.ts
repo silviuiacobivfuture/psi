@@ -1,3 +1,4 @@
+import type { MastraVector } from "@mastra/core/vector";
 import { z } from "zod";
 import { chunkMarkdown } from "./chunk";
 import {
@@ -43,6 +44,12 @@ export interface KnowledgeStore extends Knowledge {
 	readonly embedder: EmbedderInfo;
 	/** The vector store in use (LibSQL or Chroma) and where; no secrets. */
 	readonly store: VectorStoreInfo;
+	/**
+	 * Mastra's vector store underneath (`ChromaVector` or `LibSQLVector`), for registering with a
+	 * Mastra instance (`new Mastra({ vectors: { chroma: kb.vector } })`). Searching it directly
+	 * skips the retrievability rule; `search` is the way to read content.
+	 */
+	readonly vector: MastraVector;
 	/** Closes the database connection (a no-op on Chroma, which holds none). */
 	close(): Promise<void>;
 }
@@ -199,6 +206,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		remove,
 		embedder: describeEmbedder(embedder),
 		store: store.info,
+		vector: store.vector,
 		close: () => store.close(),
 	};
 }

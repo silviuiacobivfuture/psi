@@ -49,6 +49,7 @@ export {
 	type IngestReport,
 	type KnowledgeStore,
 } from "./knowledge";
+export { ChromaAccessError } from "./store/chroma-errors";
 export {
 	CHROMA_AUTH_HEADERS,
 	type ChromaAuthHeader,
