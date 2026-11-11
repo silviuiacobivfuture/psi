@@ -5,6 +5,7 @@ resources:
   - arc-controller.yaml
   - arc-runners.yaml
   - argocd-config.yaml
+  - autorizare.yaml
   - cert-manager.yaml
   - cluster-dns.yaml
   - cnpg.yaml

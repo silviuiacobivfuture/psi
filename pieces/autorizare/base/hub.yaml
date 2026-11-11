@@ -165,7 +165,7 @@ data:
   # Set by the overlay: the one Authentik's issuer for the hub's broker client.
   HUB_UPSTREAM_ISSUER: "https://auth.example.invalid/application/o/autorizare-hub/"
 ---
-# The hub has no page of its own at `/`: a person who opens id.<apex> is sent
+# The hub has no page of its own at `/`: a person who opens <hub host> is sent
 # to the estate's front door at the apex. Only the bare root matches.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -173,7 +173,7 @@ metadata:
   name: hub-root-to-front
 spec:
   redirectRegex:
-    regex: "^https?://id\\.([^/]+)/?$"
+    regex: "^https?://[^./]+\\.([^/]+)/?$"
     replacement: "https://${1}/"
     permanent: false
 ---

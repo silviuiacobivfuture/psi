@@ -1158,15 +1158,19 @@
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 42
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166], options: {delimiter: "/hub/callback", index: -1}}]
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166], options: {delimiter: ".", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166h], options: {delimiter: "          url: https://id.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 42}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 46
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167], options: {delimiter: "/hub/signed-out", index: -1}}]
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167], options: {delimiter: ".", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167h], options: {delimiter: "          url: https://id.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 46}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 52
@@ -1179,8 +1183,10 @@
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 82
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169]}]
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169], options: {delimiter: ".", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169h], options: {delimiter: "      meta_launch_url: https://id.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169h], options: {delimiter: "      meta_launch_url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 82}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 2

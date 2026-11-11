@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# PSI's additions to SEB's autorizare piece (Polaris and the sign-in hub), passed to the
+# renderer as the estate's layer: tools/estate-pieces.mjs --estate-components estate/seb-components.
+#
+#   hub/clients.json      the hub's client registry — every application that signs in through
+#                         sso.psizone.ro. PSI runs one today: Polaris's console. An application
+#                         added to the estate adds its client here (and its secret path to
+#                         seed-hub-clients.sh). Mounted at /estate/hub in the hub AND in Polaris,
+#                         which reads the same file for the changelog, the bell and the search.
+#   email.generated.yaml  Polaris's sender (EMAIL_*), from gitops/services/plunk/senders/polaris.json.
+#
+# The estate's name on the hub's pages is its BRAND_TITLE, Psi. The hub's host label (sso) is
+# the identity's HUB_HOST_PREFIX, which the piece reads from the whitelabel component.
+resources:
+  - email.generated.yaml
+
+configMapGenerator:
+  - name: estate-hub-registry
+    files:
+      - clients.json=hub/clients.json
+
+patches:
+  - target: { kind: ConfigMap, name: autorizare-hub-config }
+    patch: |-
+      - op: add
+        path: /data/ESTATE_NAME
+        value: "Psi"
+      - op: add
+        path: /data/HUB_CLIENTS_FILE
+        value: "/estate/hub/clients.json"
+  - target: { kind: ConfigMap, name: autorizare-config }
+    patch: |-
+      - op: add
+        path: /data/HUB_CLIENTS_FILE
+        value: "/estate/hub/clients.json"
+  - target: { kind: Deployment, name: autorizare-hub }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - { name: estate-hub-registry, configMap: { name: estate-hub-registry } }
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
+  - target: { kind: Deployment, name: autorizare-svc }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: { name: estate-hub-registry, configMap: { name: estate-hub-registry } }
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
