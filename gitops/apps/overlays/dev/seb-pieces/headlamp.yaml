@@ -88,31 +88,10 @@ spec:
         # Tailscale-operator ingress (matches gitops/platform/argocd/ingress.yaml).
         # Tailscale terminates TLS and proxies to the headlamp Service :80.
         # Host = headlamp.<tailnet>.ts.net — the registered OIDC redirect host.
+        # A mesh door: an estate with no mesh (MESH: none) has no Tailscale operator, so the bundle builder
+        # cuts this block there (tools/bundle/mesh-pieces.mjs) and gitops/services/public-doors carries
+        # Headlamp instead. extraManifests is then empty.
         extraManifests:
-          - |
-            apiVersion: networking.k8s.io/v1
-            kind: Ingress
-            metadata:
-              name: headlamp
-              namespace: headlamp
-              annotations:
-                # Homepage hub auto-discovery → "Observability" group.
-                gethomepage.dev/enabled: "true"
-                gethomepage.dev/name: "Headlamp"
-                gethomepage.dev/description: "Kubernetes console"
-                gethomepage.dev/group: "Observability"
-                gethomepage.dev/icon: "si-kubernetes"
-                gethomepage.dev/href: "https://headlamp.psizone.ro"
-            spec:
-              ingressClassName: tailscale
-              defaultBackend:
-                service:
-                  name: headlamp
-                  port:
-                    number: 80
-              tls:
-                - hosts:
-                    - headlamp
   destination:
     server: https://kubernetes.default.svc
     namespace: headlamp
