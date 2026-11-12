@@ -64,6 +64,10 @@ FRONT_HOST_PREFIX: portal
 HUB_HOST_PREFIX: sso
 HUB_NAME: Psi Sign-in
 HUB_TILE_TITLE: PSI
+# The applications holding an authorization-model pin (secret/apps/<app>/autorizare), which the
+# model-pin alarm watches. psi's only one is the platform's sign-in tile policy; none of psi's
+# own applications pins a model yet.
+MODEL_PIN_HOLDERS: authentik-tiles
 
 # ── secret references (paths and field names only) ──────────────────────────
 REF_DNS_TOKEN_PATH: secret/platform/dns/token
