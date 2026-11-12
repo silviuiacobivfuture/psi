@@ -22,7 +22,6 @@ resources:
   - otel-logging.yaml
   - plane-platform.yaml
   - plane.yaml
-  - platform-secrets.yaml
   - plunk.yaml
   - public-doors.yaml
   - stalwart.yaml
