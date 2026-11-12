@@ -19,3 +19,4 @@ cert-manager
 platform-rbac
 db-backup
 external-dns
+arc-controller

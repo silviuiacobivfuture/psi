@@ -20,3 +20,4 @@ resources:
   - seb-platform-rbac.yaml
   - seb-db-backup.yaml
   - seb-external-dns.yaml
+  - seb-arc-controller.yaml
