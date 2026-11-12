@@ -923,7 +923,8 @@ spec:
               # app:install errors when already present, so check first. These
               # five are the Teams-shaped surface: SSO, Office, chat/calls,
               # calendar, contacts.
-              for app in user_oidc richdocuments spreed calendar contacts; do
+              # Then the estate's own (NC_APPS, empty unless the estate sets it).
+              for app in user_oidc richdocuments spreed calendar contacts $NC_APPS; do
                 if occ app:list --output=json | grep -q "\"$app\""; then
                   occ app:enable "$app" >/dev/null
                 else
@@ -941,6 +942,17 @@ spec:
               # out for no reason (owner, 2026-11-03).
               if [ "$(occ config:app:get survey_client enabled)" = "yes" ]; then
                 occ app:disable survey_client >/dev/null
+              fi
+
+              # ---- External sites: the estate's links ------------------------
+              # max_site is the app's id counter; kept at the highest declared id so
+              # a link added in the UI never reuses one. A malformed declaration
+              # fails here (jq), before anything is written.
+              if [ -n "$NC_EXTERNAL_SITES" ]; then
+                MAX_SITE="$(printf %s "$NC_EXTERNAL_SITES" | jq -er 'keys | map(tonumber) | max')"
+                occ config:app:set external sites --value="$(printf %s "$NC_EXTERNAL_SITES" | jq -c .)" --type=string >/dev/null
+                occ config:app:set external max_site --value="$MAX_SITE" --type=integer >/dev/null
+                echo "external sites asserted (highest id $MAX_SITE)"
               fi
 
               occ user_oidc:provider Authentik \
@@ -1242,6 +1254,11 @@ spec:
               value: nextcloud-occ
             - name: CHANNELS_PATH
               value: platform/talk/channels
+            - name: NC_APPS
+              value: dicomviewer forms external integration_giphy announcementcenter
+                notes
+            - name: NC_EXTERNAL_SITES
+              value: '{"1":{"id":1,"name":"PSIZONE","url":"https://psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"2":{"id":2,"name":"EQ-SYNC","url":"https://eqsync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"3":{"id":3,"name":"Hemi-Sync","url":"https://hemisync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"4":{"id":4,"name":"Blog","url":"https://blog.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true}}'
             image: registry.psizone.ro/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
             name: occ
             resources:
