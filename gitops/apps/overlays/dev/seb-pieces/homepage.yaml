@@ -99,9 +99,16 @@ spec:
           # An empty list REPLACES the chart's default bookmarks rather than falling back to them.
           bookmarks: []
 
-          # The header, one row, the same on both sides: the name, the date, search.
-          # No cluster load here: it means nothing to the Business side, and Netdata
-          # carries it on the Tehnic side.
+          # The header: the name, the date, search — the same on both sides. Below it, on the
+          # Tehnic side ONLY, a "Starea serverului" strip: the cluster's CPU and memory from
+          # metrics-server (the kubernetes widget; the homepage ServiceAccount may read
+          # nodes.metrics.k8s.io) and the server's disk (the resources widget, `/` of the
+          # node's root filesystem). custom.css hides the strip unless custom.js has marked
+          # the Tehnic tab active, so the Business side never sees it, not even for a frame.
+          # WHY the strip is declared at all (2026-11-12): homepage's image is prerendered
+          # with its skeleton widgets (resources: cpu, memory, disk). With no widget of that
+          # kind here, the first load after a restart drew the skeleton's load bars and then
+          # swapped them out — the "server load" flash. Declaring and styling it ends that.
           widgets:
             - greeting:
                 text_size: xl
@@ -116,6 +123,19 @@ spec:
             - search:
                 provider: duckduckgo
                 target: _blank
+            - kubernetes:
+                cluster:
+                  show: true
+                  cpu: true
+                  memory: true
+                  showLabel: true
+                  label: Starea serverului
+                nodes:
+                  show: false
+            - resources:
+                label: Disc
+                disk: /
+                expanded: true
 
           # Every tile, in reading order: the Business groups first, then Tehnic.
           # A tile's name says what it is FOR; the product sits last in its description.
@@ -800,9 +820,47 @@ spec:
                 .service-card:has(a[href^="/glosar/"]):hover { background: var(--surface-2); box-shadow: var(--shadow-glow); }
                 a.service-title-text[href^="/glosar/"] .service-name::after { content: "Deschide glosarul →"; }
 
+                /* "Starea serverului": a calm strip under the header, on the Tehnic side only.
+                   custom.js sets data-pz-side from the selected tab; until it has, the strip
+                   stays hidden, so it never flashes on Business. The numbers are text (percent
+                   and amounts) — the bars only repeat them, status is never colour alone. */
+                .information-widget-kubernetes, .information-widget-resources { display: none !important; }
+                html[data-pz-side="tehnic"] .information-widget-kubernetes,
+                html[data-pz-side="tehnic"] .information-widget-resources { display: flex !important; }
+                #widgets-wrap::before { content: ""; order: 2; flex-basis: 100%; height: 0; }
+                .information-widget-greeting { order: 0; }
+                #information-widgets-right { order: 1; }
+                .information-widget-kubernetes, .information-widget-resources {
+                  order: 3;
+                  flex: 0 1 auto;
+                  margin-top: var(--space-3);
+                  padding: var(--space-2) var(--space-4);
+                  background: var(--surface-1);
+                  border: 1px solid var(--line);
+                  border-radius: var(--radius-md);
+                  font-family: var(--font-mono);
+                  color: var(--ink-muted);
+                }
+                .information-widget-kubernetes { margin-right: var(--space-2); }
+
                 @media (prefers-reduced-motion: reduce) {
                   *, *::before, *::after { transition: none !important; animation: none !important; }
                 }
+
+              # Marks which side is open (data-pz-side on <html>) from the selected tab, so
+              # custom.css can show "Starea serverului" on Tehnic only. It only reads the tab
+              # homepage has already selected; it changes nothing on the page.
+              custom.js: |
+                (function () {
+                  function side() {
+                    var sel = document.querySelector('#myTab [aria-selected="true"]');
+                    var name = sel ? sel.textContent : (location.hash || "#business").slice(1);
+                    document.documentElement.setAttribute("data-pz-side", name.trim().toLowerCase());
+                  }
+                  side();
+                  window.addEventListener("hashchange", side);
+                  new MutationObserver(side).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-selected"] });
+                })();
 
           # The two glossaries behind the "Ce înseamnă? · Glosar" tiles, one per side, and
           # their stylesheet (the same psi tokens as custom.css). Mounted as a directory at
@@ -1247,6 +1305,8 @@ spec:
             subPath:
               - path: custom.css
                 mountPath: /app/config/custom.css
+              - path: custom.js
+                mountPath: /app/config/custom.js
           # The glossaries, as files homepage serves from its public dir.
           glosar:
             enabled: true
