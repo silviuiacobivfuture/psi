@@ -365,6 +365,15 @@ spec:
                     namespace: reference
                     app: reference
                     podSelector: app=reference
+                # Behind Authentik's gate. The service is an API: /health is the one page a browser
+                # can read; the notes themselves reach people through Polaris's bell.
+                - Note de versiune:
+                    icon: mdi-timeline-text-outline
+                    href: https://changelog.psizone.ro/health
+                    description: Serviciul notelor de versiune, per aplicație — notele le citești în clopoțelul din Polaris · Changelog
+                    namespace: changelog
+                    app: changelog
+                    podSelector: app=changelog
             - Acces și securitate:
                 - Conturi și autentificare:
                     icon: authentik.png
@@ -380,6 +389,23 @@ spec:
                     namespace: openbao
                     app: openbao
                     podSelector: app.kubernetes.io/name=openbao,component=server
+                # Polaris runs again since 2026-11-12 (the hub migrates first, the control plane follows).
+                - Drepturi de acces:
+                    icon: mdi-shield-key-outline
+                    href: https://access.psizone.ro
+                    description: Cine ce are voie să facă, cu catalogul drepturilor și jurnalul schimbărilor · Polaris
+                    namespace: autorizare
+                    app: autorizare
+                    podSelector: app=autorizare-svc
+                # The hub has no home page of its own (its root leads to the front door); what it
+                # publishes for a person or an integrator is its OpenID discovery document.
+                - Furnizorul de identitate:
+                    icon: mdi-account-key-outline
+                    href: https://sso.psizone.ro/.well-known/openid-configuration
+                    description: Confirmă aplicațiilor cine ești, după standardul OpenID; se deschide configurația lui publică · Polaris id
+                    namespace: autorizare
+                    app: autorizare
+                    podSelector: app=autorizare-hub
             - Comunicare și automatizări:
                 - Automatizări:
                     icon: mdi-sitemap-outline
@@ -436,21 +462,14 @@ spec:
                     namespace: nx-cache
                     app: nx-cache
                     podSelector: app=nx-cache
-                # Tailnet-only Ingress today, so no psizone.ro link to give.
-                - Note de versiune:
-                    icon: mdi-timeline-text-outline
-                    description: "Livrare: Notele de versiune per aplicație — încă fără adresă publică · Changelog"
-                    namespace: changelog
-                    app: changelog
-                    podSelector: app=changelog
-                # access.psizone.ro answers 503 while Polaris is down (2026-11-12), so the
-                # tile carries its status and no link until it answers again.
-                - Drepturi de acces:
-                    icon: mdi-shield-key-outline
-                    description: "Acces și securitate: Cine ce are voie să facă · Polaris — oprit temporar, până la reparația de pornire"
-                - Furnizorul de identitate:
-                    icon: mdi-account-key-outline
-                    description: "Acces și securitate: Autentificarea OpenID pentru fiecare aplicație — fără interfață · Polaris id — oprit temporar"
+                # The arc-runners namespace: its runner pods exist only while a job runs, so the
+                # status follows the scale set's listener (arc-systems), which is what starts them.
+                - Runner-ele CI:
+                    icon: si-githubactions
+                    description: "Livrare: Pornesc runner-ele pentru fiecare job CI, la cerere — fără interfață · ARC runner scale set"
+                    namespace: arc-systems
+                    app: arc-runners
+                    podSelector: app.kubernetes.io/component=runner-scale-set-listener,actions.github.com/scale-set-namespace=arc-runners
                 # No Ingress by design: its API auth is an unscoped preshared key. Every
                 # application asks it whether an action is permitted, so its status going
                 # dark is the first sign authorization has stopped everywhere.
@@ -1182,7 +1201,7 @@ spec:
                 <dt id="cicd"><a href="#cicd">CI/CD</a> <span class="also">integrare și livrare continuă</span></dt>
                 <dd>Bandă automată: la fiecare schimbare, codul e verificat (teste), construit și livrat, fără pași manuali. <strong>CI</strong> = verificarea și construirea; <strong>CD</strong> = livrarea.<span class="ex">Ca o linie de producție cu control de calitate la fiecare stație.</span></dd>
                 <dt id="runner"><a href="#runner">Runner</a> <span class="also">Rulări CI · ARC</span></dt>
-                <dd>Calculatorul care execută efectiv pașii benzii CI/CD. La Psizone, runner-ele GitHub Actions rulează în propriul cluster, pornite la nevoie de ARC.</dd>
+                <dd>Calculatorul care execută efectiv pașii benzii CI/CD. La Psizone, runner-ele GitHub Actions rulează în propriul cluster, pornite la nevoie de ARC. Cardul „Runner-ele CI” arată dacă piesa care le pornește merge.</dd>
                 <dt id="build"><a href="#build">Build</a> <span class="also">construire</span></dt>
                 <dd>Transformarea codului sursă într-o aplicație gata de pornit.<span class="ex">Rețeta (codul) devine prăjitura (aplicația).</span></dd>
                 <dt id="cache-build"><a href="#cache-build">Cache de build</a> <span class="also">Nx</span></dt>
@@ -1198,7 +1217,7 @@ spec:
                 <dt id="argocd"><a href="#argocd">Argo CD</a> <span class="also">Ce rulează în cluster</span></dt>
                 <dd>Unealta care aplică GitOps: compară ce scrie în depozit cu ce rulează și le aduce la același lucru. Ecranul ei arată ce versiune e livrată și dacă e „sincronizată”.</dd>
                 <dt id="changelog"><a href="#changelog">Note de versiune</a> <span class="also">changelog</span></dt>
-                <dd>Lista, pe aplicații, cu ce s-a schimbat de la o versiune la alta, scrisă pentru cei care folosesc aplicația. Serviciul rulează, dar încă nu are adresă publică.</dd>
+                <dd>Lista, pe aplicații, cu ce s-a schimbat de la o versiune la alta, scrisă pentru cei care folosesc aplicația. Serviciul are adresa changelog.psizone.ro, după autentificare; e un serviciu pentru aplicații (cardul deschide pagina lui de stare), iar notele le citești în clopoțelul din Polaris.</dd>
                 <dt id="teste"><a href="#teste">Teste</a></dt>
                 <dd>Programe care verifică automat că aplicațiile fac ce trebuie, la fiecare schimbare, înainte de livrare.</dd>
                 <dt id="reguli-verificate"><a href="#reguli-verificate">Regulile verificate</a></dt>
@@ -1217,9 +1236,9 @@ spec:
                 <dt id="authentik"><a href="#authentik">Authentik</a> <span class="also">Conturi și autentificare</span></dt>
                 <dd>Aplicația care ține conturile și grupurile echipei și pagina de autentificare (auth.psizone.ro). Tot aici se pune protecția cu al doilea factor (cod din telefon).</dd>
                 <dt id="polaris"><a href="#polaris">Polaris</a> <span class="also">Drepturi de acces</span></dt>
-                <dd>Serviciul care ține evidența drepturilor: cine ce are voie să facă în fiecare aplicație, cu un catalog al drepturilor și un jurnal (audit) al schimbărilor.</dd>
+                <dd>Serviciul care ține evidența drepturilor: cine ce are voie să facă în fiecare aplicație, cu un catalog al drepturilor și un jurnal (audit) al schimbărilor. Se deschide la access.psizone.ro, după autentificare.</dd>
                 <dt id="openid"><a href="#openid">Furnizorul de identitate</a> <span class="also">Polaris id · OpenID</span></dt>
-                <dd>Partea care le confirmă aplicațiilor cine ești, după un standard comun (OpenID). Nu are ecran propriu.</dd>
+                <dd>Partea care le confirmă aplicațiilor cine ești, după un standard comun (OpenID), la sso.psizone.ro. Nu are ecran propriu: cardul deschide configurația lui publică, pe care o citesc aplicațiile.</dd>
                 <dt id="openfga"><a href="#openfga">OpenFGA</a> <span class="also">Motorul de autorizare</span></dt>
                 <dd>Motorul care răspunde, de mii de ori pe zi, la întrebarea „are voie persoana asta să facă asta?”. Polaris îi spune regulile; aplicațiile îl întreabă direct. Nu are ecran.</dd>
                 <dt id="secret"><a href="#secret">Secret</a></dt>
