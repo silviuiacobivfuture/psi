@@ -36,8 +36,6 @@ platform-secrets
 plunk
 reference
 reloader
-reportportal
-reportportal-platform
 system-upgrade-controller
 tailscale-operator
 talk-hpb

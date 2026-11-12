@@ -318,13 +318,6 @@ spec:
                     namespace: test-reports
                     app: test-reports
                     podSelector: app.kubernetes.io/name=test-reports
-                - Istoricul testelor:
-                    icon: mdi-chart-box-outline
-                    href: https://reports.psizone.ro
-                    description: Rulări de teste, tendințe și analiza eșecurilor · ReportPortal
-                    namespace: reportportal
-                    app: reportportal
-                    podSelector: component=reportportal-ui
                 - Documentația tehnică:
                     icon: mdi-book-open-variant
                     href: https://reference.psizone.ro
@@ -1136,8 +1129,6 @@ spec:
                 <dd>Programe care verifică automat că aplicațiile fac ce trebuie, la fiecare schimbare, înainte de livrare.</dd>
                 <dt id="reguli-verificate"><a href="#reguli-verificate">Regulile verificate</a></dt>
                 <dd>Pagina (tests.psizone.ro) care arată ce reguli trebuie să respecte fiecare aplicație și dacă testele le confirmă.</dd>
-                <dt id="reportportal"><a href="#reportportal">ReportPortal</a> <span class="also">Istoricul testelor</span></dt>
-                <dd>Arhiva rulărilor de teste: ce a trecut, ce a picat, tendințe în timp și analiza eșecurilor.</dd>
                 <dt id="documentatie"><a href="#documentatie">Documentația tehnică</a> <span class="also">Reference</span></dt>
                 <dd>Referința pentru dezvoltatori: cum se folosesc serviciile platformei și ce oferă fiecare.</dd>
                 </dl>
