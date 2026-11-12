@@ -23,8 +23,8 @@ data:
     \"First user already created\" (403) is success — the instance is claimed.\n//
     Anything else fails the job loudly, by status and message.\nconst base = process.env.AFFINE_URL
     ?? \"http://affine:3010\";\nconst email = process.env.ADMIN_EMAIL ?? \"\";\nconst
-    password = process.env.ADMIN_PASSWORD ?? \"\";\nfor (const [k, v] of [[\"ADMIN_EMAIL\",
-    email], [\"ADMIN_PASSWORD\", password]]) {\n\tif (!v) {\n\t\tprocess.stderr.write(`MISSING
+    password = process.env.ADMIN_PASSWORD ?? \"\";\nfor (const [k, v] of [\n\t[\"ADMIN_EMAIL\",
+    email],\n\t[\"ADMIN_PASSWORD\", password],\n]) {\n\tif (!v) {\n\t\tprocess.stderr.write(`MISSING
     REQUIRED SECRET: ${k}\\n`);\n\t\tprocess.exit(1);\n\t}\n}\nconst sleep = (ms)
     => new Promise((r) => setTimeout(r, ms));\nlet up = false;\nfor (let i = 0; i
     < 90 && !up; i++) {\n\ttry {\n\t\tup = (await fetch(`${base}/info`)).ok;\n\t}
@@ -78,11 +78,11 @@ data:
     null, 2), { mode: 0o600 });\n// Read back: what AFFiNE will parse is exactly what
     was meant.\nconst back = JSON.parse(readFileSync(file, \"utf8\"));\nif (back.oauth[\"providers.oidc\"].issuer
     !== env(\"OIDC_ISSUER\") || back.auth.allowSignup !== false) {\n\tprocess.stderr.write(`FATAL:
-    ${file} does not read back as written\\n`);\n\tprocess.exit(1);\n}\nprocess.stdout.write(`wrote
-    ${file}: sign-in ${env(\"OIDC_ISSUER\")}, files in ${env(\"S3_BUCKET\")} at ${env(\"S3_ENDPOINT\")}\\n`);\n"
+    ${file} does not read back as written\\n`);\n\tprocess.exit(1);\n}\nprocess.stdout.write(\n\t`wrote
+    ${file}: sign-in ${env(\"OIDC_ISSUER\")}, files in ${env(\"S3_BUCKET\")} at ${env(\"S3_ENDPOINT\")}\\n`,\n);\n"
 kind: ConfigMap
 metadata:
-  name: affine-scripts-t6t86bmt54
+  name: affine-scripts-8k77c86m66
   namespace: affine
 ---
 apiVersion: v1
@@ -390,7 +390,7 @@ spec:
           sizeLimit: 16Mi
         name: generated
       - configMap:
-          name: affine-scripts-t6t86bmt54
+          name: affine-scripts-8k77c86m66
         name: scripts
 ---
 apiVersion: apps/v1
@@ -681,7 +681,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: affine-scripts-t6t86bmt54
+          name: affine-scripts-8k77c86m66
         name: scripts
 ---
 apiVersion: external-secrets.io/v1
