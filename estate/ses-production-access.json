@@ -1,0 +1,7 @@
+{
+	"_doc": "psi's request for SES production access, sent ONLY by the account owner: SEB's ses-account-bootstrap.sh --request-production with SES_PRODUCTION_ACCESS_FILE pointing here (SEB branch SEB-psi-upn-recovery). A true description of psi's mail, read by a person at AWS; never the first estate's text. Until AWS grants it, the account (441658446625, eu-central-1) is in the sandbox and SES refuses every recipient that is not a verified identity — measured 2026-11-12: a send from noreply@psizone.ro to the operator's own address was refused 'Email address is not verified', the sender passing.",
+	"MailType": "TRANSACTIONAL",
+	"WebsiteURL": "https://psizone.ro",
+	"ContactLanguage": "EN",
+	"UseCaseDescription": "Psi (psizone.ro) runs a small private set of internal tools for its own team of four people: single sign-on, project tracking, file sharing, automations and a team mail server. We send transactional mail only, to these team members: sign-in and password-reset links, account invitations, and notifications from our own tools (from noreply@psizone.ro and noreply@<tool>.psizone.ro). The team's own mailboxes on post.psizone.ro also relay the members' ordinary person-to-person mail through SES. No marketing, no newsletters, no purchased or imported lists: every recipient is a member of the team or someone a member writes to personally. Volume is a few dozen messages a day. DKIM is set up for psizone.ro and DMARC is published."
+}
