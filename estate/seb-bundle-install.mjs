@@ -15,7 +15,7 @@
 // Up to date (.seb-bundle/.installed names the lock's digest): nothing is fetched.
 // Otherwise the bundle is pulled BY DIGEST in Node (lib/oci-pull.mjs), every artefact checked
 // against bundle.json (lib/bundle-check.mjs), staged, and only then swapped in, so a failed
-// install never leaves a half-written .seb-bundle/. Failure: `SEB BUNDLE NOT INSTALLED: <why>`.
+// install never leaves a half-written .seb-bundle/, and made READ-ONLY (lib/read-only.mjs). Failure: `SEB BUNDLE NOT INSTALLED: <why>`.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -24,6 +24,7 @@ import { checkBundle } from "./lib/bundle-check.mjs";
 import { parseLock } from "./lib/lock.mjs";
 import { layerFromArchive } from "./lib/oci-archive.mjs";
 import { pullLayer } from "./lib/oci-pull.mjs";
+import { sealTree, unsealTree } from "./lib/read-only.mjs";
 
 const STAMP = ".installed";
 
@@ -83,6 +84,7 @@ export async function install(repo, env = process.env, archive = undefined) {
 		return { code: 0, message: `SEB bundle: .seb-bundle/ already holds ${lock.digest}` };
 
 	const staging = join(repo, ".seb-bundle.staging");
+	unsealTree(staging);
 	rmSync(staging, { recursive: true, force: true });
 	mkdirSync(staging, { recursive: true });
 	const at = lock.source.slice("oci://".length);
@@ -99,8 +101,11 @@ export async function install(repo, env = process.env, archive = undefined) {
 		if (x.status !== 0) throw new Error(`extracting ${ref}: ${(x.stderr ?? "").trim()}`);
 		const checked = checkBundle(staging, ref, lock.version);
 		writeFileSync(join(staging, STAMP), `${lock.digest}\n`);
+		unsealTree(dest);
 		rmSync(dest, { recursive: true, force: true });
 		renameSync(staging, dest);
+		// Read-only from here on (lib/read-only.mjs): SEB's code is never edited in an estate.
+		sealTree(dest);
 		return {
 			code: 0,
 			message: `SEB bundle: installed ${lock.source}@${lock.digest} (${lock.version})${archive === undefined ? "" : ` from ${archive}`}: ${checked.length} artefact(s)`,
