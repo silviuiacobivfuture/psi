@@ -48,6 +48,19 @@ spec:
           requests: { cpu: 25m, memory: 128Mi }
           limits:   { cpu: 500m, memory: 384Mi }
 
+        # homepage serves the page PRERENDERED AT IMAGE BUILD (English, no tabs, the skeleton's
+        # load widgets) until something calls /api/revalidate; until 2026-11-12 that was the
+        # first browser holding an older config hash, which then reloaded — the "server load"
+        # flash after every restart. postStart revalidates before the pod turns Ready, so no
+        # visitor ever gets the build-time page. 127.0.0.1:3000 passes the allowed-hosts check.
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - sh
+                - -c
+                - for i in $(seq 1 60); do wget -qO- http://127.0.0.1:3000/api/revalidate >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0
+
         # Kyverno baseline+restricted policies on this cluster require non-root + no
         # privilege escalation. The gethomepage image runs fine as an unprivileged user.
         # This chart maps top-level `podSecurityContext` → pod and `securityContext` →
@@ -129,11 +142,11 @@ spec:
                   cpu: true
                   memory: true
                   showLabel: true
-                  label: Starea serverului
+                  label: Starea serverului · procesor și memorie
                 nodes:
                   show: false
             - resources:
-                label: Disc
+                label: Starea serverului · disc
                 disk: /
                 expanded: true
 
@@ -823,14 +836,16 @@ spec:
                 /* "Starea serverului": a calm strip under the header, on the Tehnic side only.
                    custom.js sets data-pz-side from the selected tab; until it has, the strip
                    stays hidden, so it never flashes on Business. The numbers are text (percent
-                   and amounts) — the bars only repeat them, status is never colour alone. */
-                .information-widget-kubernetes, .information-widget-resources { display: none !important; }
+                   and amounts) — the bars only repeat them, status is never colour alone.
+                   homepage 1.2 gives the resources widget no information-widget-* class, so it
+                   is the one header widget without one. */
+                .information-widget-kubernetes, #widgets-wrap > .widget-container:not([class*="information-widget-"]) { display: none !important; }
                 html[data-pz-side="tehnic"] .information-widget-kubernetes,
-                html[data-pz-side="tehnic"] .information-widget-resources { display: flex !important; }
+                html[data-pz-side="tehnic"] #widgets-wrap > .widget-container:not([class*="information-widget-"]) { display: flex !important; }
                 #widgets-wrap::before { content: ""; order: 2; flex-basis: 100%; height: 0; }
                 .information-widget-greeting { order: 0; }
                 #information-widgets-right { order: 1; }
-                .information-widget-kubernetes, .information-widget-resources {
+                .information-widget-kubernetes, #widgets-wrap > .widget-container:not([class*="information-widget-"]) {
                   order: 3;
                   flex: 0 1 auto;
                   margin-top: var(--space-3);
