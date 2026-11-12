@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - arc-runners.yaml
   - autorizare.yaml
-  - harbor.yaml
   - health-digest.yaml
   - homepage.yaml
   - n8n.yaml

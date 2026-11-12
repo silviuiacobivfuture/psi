@@ -35,3 +35,4 @@ resources:
   - seb-nextcloud-platform.yaml
   - seb-plane-platform.yaml
   - seb-nextcloud.yaml
+  - seb-harbor.yaml
