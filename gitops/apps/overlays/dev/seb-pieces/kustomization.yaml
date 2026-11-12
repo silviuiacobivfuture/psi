@@ -9,7 +9,6 @@ resources:
   - harbor.yaml
   - health-digest.yaml
   - homepage.yaml
-  - kyverno.yaml
   - n8n.yaml
   - netdata.yaml
   - nextcloud-platform.yaml
