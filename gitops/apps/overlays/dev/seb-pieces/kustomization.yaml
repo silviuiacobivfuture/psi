@@ -8,7 +8,6 @@ resources:
   - argocd-config.yaml
   - autorizare.yaml
   - cert-manager.yaml
-  - cluster-dns.yaml
   - cnpg.yaml
   - db-backup.yaml
   - external-dns.yaml
