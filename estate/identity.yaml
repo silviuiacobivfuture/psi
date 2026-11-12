@@ -63,6 +63,7 @@ FRONT_HOST_PREFIX: portal
 # ── hub ─────────────────────────────────────────────────────────────────────
 HUB_HOST_PREFIX: sso
 HUB_NAME: Psi Sign-in
+HUB_TILE_TITLE: PSI
 
 # ── secret references (paths and field names only) ──────────────────────────
 REF_DNS_TOKEN_PATH: secret/platform/dns/token
