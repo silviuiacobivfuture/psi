@@ -26,7 +26,7 @@ data:
   ENVIRONMENT: dev
   ESTATE_BRAND_DIR: /estate-brand
   ESTATE_DOMAIN: psizone.ro
-  ESTATE_ORG_ID: ""
+  ESTATE_ORG_ID: o-psi-not-yet-founded
   HUB_CLIENTS_FILE: /estate/hub/clients.json
   HUB_HOST_PREFIX: sso
   NOTIFY_URL: http://talk-webhook.nextcloud.svc
@@ -119,7 +119,7 @@ metadata:
   name: autorizare-hub
   namespace: autorizare
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: autorizare-hub
@@ -221,6 +221,38 @@ spec:
           runAsUser: 65534
           seccompProfile:
             type: RuntimeDefault
+      - command:
+        - /autorizaremigrate
+        env:
+        - name: DATABASE_MIGRATE_URL
+          valueFrom:
+            secretKeyRef:
+              key: uri
+              name: autorizare-db-app
+        - name: DB_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: autorizare-app-credentials
+        image: registry.psizone.ro/psi/autorizare-svc:REPLACE_ME
+        name: migrate
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 25m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -249,7 +281,7 @@ metadata:
   name: autorizare-svc
   namespace: autorizare
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: autorizare-svc
@@ -495,7 +527,7 @@ metadata:
   name: autorizare-hub
   namespace: autorizare
 spec:
-  minAvailable: 2
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: autorizare-hub
@@ -506,7 +538,7 @@ metadata:
   name: autorizare-svc
   namespace: autorizare
 spec:
-  minAvailable: 2
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: autorizare-svc
