@@ -6,14 +6,14 @@
 # estate/ and templates/ (configMapGenerator in kustomization.yaml).
 #
 #   THE BRAND (auth.dev's default brand, the one every screen reads):
-#     title "Recomex"; the logo is the five applications' marks and the name,
-#     one file per theme (`%(theme)s` → logo-dark.svg / logo-light.svg); the
-#     favicon is Polaris, the access mark; the flow background is the night sky
-#     (fundal.svg). All four are GENERATED from the design system by
-#     packages/rmx-ui/scripts/authentik-assets.mjs. The stylesheet is read from the
+#     title from the identity (BRAND_TITLE); the logo is Polaris's mark and
+#     the name, per theme (`%(theme)s` → logo-dark.svg / logo-light.svg); the favicon
+#     is Polaris; the flow background is psi's ambient field (fundal.svg Night, the
+#     stylesheet picks fundal-light.svg for Gold). All GENERATED from psi's design
+#     system (brand/signin-theme.json) by SEB's authentik-assets.mjs. Stylesheet: the
 #     mounted estate/recomex.css with !File, so the CSS is reviewed as a CSS file
 #     and lives in exactly one place. Theme "automatic": the person's system
-#     preference decides between the night sky and the light theme.
+#     preference decides between Psizone Night and Psizone Gold.
 #   THE WORDS Authentik lets us set: every flow title a person can reach, and the
 #     labels of the fields on the account pages. Authentik's own interface text
 #     (buttons, hints, errors) is not configurable and ships without Romanian;

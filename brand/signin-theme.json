@@ -1,0 +1,65 @@
+{
+	"$comment": "Psi's look on the sign-in (Authentik, auth.psizone.ro): which token of psi's design system plays each role the sign-in stylesheet paints with. Read by SEB's packages/rmx-ui/scripts/authentik-assets.mjs (setting SIGNIN_THEME); every value comes from the token file as written. Light is Psizone Gold, dark is Psizone Night. The ground is psi's ambient field (packages/ui/src/components.css .pz-ambient, intensity low: opacity 0.32, x0.8 in light) at rest. Regenerate from a SEB checkout (branch SEB-authentik-estate-theme or later) with psi's whitelabel config in place: ESTATE_CONFIG=<psi>/brand/estate.config.json ESTATE_STYLESHEET=<psi>/brand/estate.css SIGNIN_THEME=<psi>/brand/signin-theme.json node packages/rmx-ui/scripts/authentik-assets.mjs, then copy recomex.css, fundal*.svg, logo-*.svg, mail-logo.png and sources.json into gitops/platform/authentik/estate/.",
+	"tokens": "../packages/design/theme.generated.css",
+	"themes": {
+		"light": "[data-theme=\"psizone-light\"]",
+		"dark": "[data-theme=\"psizone-dark\"]"
+	},
+	"shared": "@theme static",
+	"scalars": {
+		"radius": "radius-sm",
+		"radius-field": "radius-md",
+		"radius-card": "radius-lg",
+		"radius-pill": "radius-pill",
+		"font-sans": "font-sans",
+		"font-display": "font-display",
+		"font-mono": "font-mono"
+	},
+	"roles": {
+		"background": "bg",
+		"foreground": "ink",
+		"card": "surface-1",
+		"card-foreground": "ink",
+		"popover": "surface-2",
+		"popover-foreground": "ink",
+		"primary": "accent",
+		"primary-hover": "accent-hover",
+		"primary-foreground": "on-accent",
+		"secondary": "surface-2",
+		"secondary-foreground": "ink",
+		"muted": "surface-2",
+		"muted-foreground": "ink-muted",
+		"faint-foreground": "ink-faint",
+		"accent": "accent-soft",
+		"accent-foreground": "ink",
+		"link": "glow-1",
+		"destructive": "danger",
+		"destructive-foreground": "bg",
+		"border": "line",
+		"edge": "line-strong",
+		"input": "line-control",
+		"ring": "focus",
+		"success": "surface-2",
+		"success-foreground": "success",
+		"warning": "surface-2",
+		"warning-foreground": "warning",
+		"danger": "surface-2",
+		"danger-foreground": "danger",
+		"info": "surface-2",
+		"info-foreground": "info",
+		"scrim": "surface-glass",
+		"shadow": "shadow-float",
+		"glow-1": "glow-1",
+		"glow-2": "glow-2",
+		"glow-3": "glow-3"
+	},
+	"ground": {
+		"blur": "blur-ambient",
+		"opacity": { "light": 0.256, "dark": 0.32 },
+		"blobs": [
+			{ "colour": "glow-1", "width": 0.46, "left": -0.08, "top": -0.18 },
+			{ "colour": "glow-2", "width": 0.4, "right": -0.06, "top": 0.06 },
+			{ "colour": "glow-3", "width": 0.34, "left": 0.34, "bottom": -0.24 }
+		]
+	}
+}

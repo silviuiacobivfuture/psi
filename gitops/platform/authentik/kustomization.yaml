@@ -122,6 +122,7 @@ configMapGenerator:
       - estate/logo-dark.svg
       - estate/logo-light.svg
       - estate/fundal.svg
+      - estate/fundal-light.svg
       - estate/mail-logo.png
       - estate/restart.html
       - estate/n8n-down.html
