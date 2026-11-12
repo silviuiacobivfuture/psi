@@ -237,7 +237,11 @@ function publish(/** @type {string} */ kubeconfig, /** @type {object} */ entry) 
 		JSON.stringify(entry),
 	);
 	if (!r.ok)
-		throw new Error(r.err.replace(/^publish failed: /, "") || "the publish command failed");
+		throw new Error(
+			r.err
+				.replace(/^publish failed: /, "")
+				.replace(/\n?command terminated with exit code \d+$/, "") || "the publish command failed",
+		);
 	let answer;
 	try {
 		answer = JSON.parse(r.out.split("\n").pop() ?? "");
