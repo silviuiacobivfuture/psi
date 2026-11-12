@@ -9,5 +9,6 @@ resources:
   - argocd.yaml
   - headlamp.yaml
   - openbao.yaml
+  - openbao-api.yaml
   - hub.yaml
   - netdata.yaml
