@@ -9,3 +9,4 @@ resources:
   - platform-lock.yaml
   - seb-reference.yaml
   - seb-traefik-accesslog.yaml
+  - seb-pdfcraft.yaml

@@ -51,7 +51,7 @@ def main() -> int:
     if not palette:
         sys.exit("found no palette variables — has the build changed shape?")
     # One colour per line, so an upgrade's diff reads as a list of colours.
-    rows = [f"  {json.dumps(k)}: {json.dumps(v)}" for k, v in sorted(palette.items())]
+    rows = [f"\t{json.dumps(k)}: {json.dumps(v)}" for k, v in sorted(palette.items())]
     OUT.write_text("{\n" + ",\n".join(rows) + "\n}\n", encoding="utf-8")
     print(f"wrote {OUT} ({len(palette)} colours)")
     return 0
