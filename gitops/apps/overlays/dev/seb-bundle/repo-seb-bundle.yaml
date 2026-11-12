@@ -1,9 +1,6 @@
-# PREPARED, NOT WIRED: no kustomization lists this file yet. It is Argo CD's read credential for
-# the SEB bundle in psi's Harbor (oci://registry.psizone.ro/seb/bundle), the same as RMX's
-# (gitops/apps/overlays/dev/rmx/seb-pieces/repo-seb-bundle.yaml there). It is listed, together with
-# the by-digest Applications, in the change that takes psi's first SEB bundle (SEB docs/lockdown.md,
-# L1): until psi's Harbor holds a signed bundle and estate/platform.lock names its digest, there is
-# nothing for Argo CD to read.
+# Argo CD's read credential for the SEB bundle in psi's Harbor (oci://registry.psizone.ro/seb/bundle),
+# the same as RMX's. Listed by this directory's kustomization (estate/seb-upgrade.sh keeps it), beside
+# the lock and the by-digest Applications (SEB docs/lockdown.md, L1).
 #
 # The credential is the cluster's image-pull robot, already in OpenBao at secret/platform/harbor/pull.
 apiVersion: external-secrets.io/v1

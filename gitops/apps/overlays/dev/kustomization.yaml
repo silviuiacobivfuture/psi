@@ -10,6 +10,9 @@ resources:
   # The estate's own applications (gitops/apps/overlays/dev/apps/): psi's sites.
   - apps
   - seb-pieces
+  # SEB's bundle, by digest (estate/seb-upgrade.sh): Argo's read credential for it, the lock for
+  # Harbor housekeeping, and the Applications of the pieces estate/seb-pieces.dev switches to it.
+  - seb-bundle
   # The RMX list (business applications). Its own kustomization; see rmx/.
   - ../../base
   - harbor-route.yaml
