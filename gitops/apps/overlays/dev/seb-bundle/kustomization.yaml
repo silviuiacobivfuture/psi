@@ -25,3 +25,4 @@ resources:
   - seb-cnpg.yaml
   - seb-kyverno-policies.yaml
   - seb-platform-secrets.yaml
+  - seb-external-secrets.yaml

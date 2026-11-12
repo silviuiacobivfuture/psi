@@ -24,3 +24,4 @@ velero
 cnpg
 kyverno-policies
 platform-secrets
+external-secrets
