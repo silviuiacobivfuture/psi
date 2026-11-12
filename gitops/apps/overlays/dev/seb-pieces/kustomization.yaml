@@ -34,6 +34,5 @@ resources:
   - plunk.yaml
   - public-doors.yaml
   - stalwart.yaml
-  - system-upgrade-controller.yaml
   - test-reports.yaml
   - velero.yaml

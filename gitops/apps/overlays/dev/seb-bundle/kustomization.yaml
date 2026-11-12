@@ -14,3 +14,4 @@ resources:
   - seb-convex.yaml
   - seb-headlamp.yaml
   - seb-reloader.yaml
+  - seb-system-upgrade-controller.yaml
