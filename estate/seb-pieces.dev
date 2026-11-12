@@ -27,3 +27,4 @@ platform-secrets
 external-secrets
 hcloud-csi
 kyverno
+argocd-config

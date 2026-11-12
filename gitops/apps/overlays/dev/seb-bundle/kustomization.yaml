@@ -28,3 +28,4 @@ resources:
   - seb-external-secrets.yaml
   - seb-hcloud-csi.yaml
   - seb-kyverno.yaml
+  - seb-argocd-config.yaml

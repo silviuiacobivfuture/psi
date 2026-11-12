@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - affine.yaml
   - arc-runners.yaml
-  - argocd-config.yaml
   - autorizare.yaml
   - harbor.yaml
   - health-digest.yaml
