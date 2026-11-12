@@ -20,7 +20,7 @@ export function Faq({ locale }: { locale: Locale }): JSX.Element {
 					<p class="eq-overline">{m.faq_overline({}, o)}</p>
 					<h2 class="display eq-h2 pz-rise mt-5 text-ink">{m.faq_title({}, o)}</h2>
 					<a
-						class="mt-8 inline-block text-data text-ink underline underline-offset-4"
+						class="pz-tap mt-8 inline-flex items-center text-data text-ink underline underline-offset-4"
 						href={href(locale, "faq")}
 					>
 						{m.fp_all({}, o)}

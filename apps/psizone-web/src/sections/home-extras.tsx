@@ -11,26 +11,28 @@ import { ProgrammeCards } from "./programme-cards";
 export function Trust({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	return (
-		<section class="mx-auto max-w-6xl px-5 py-24 md:py-32" aria-labelledby="repere">
-			<div class="flex flex-wrap items-end justify-between gap-6">
-				<div>
-					<p class="text-overline uppercase text-ink-muted">{m.trust_overline({}, o)}</p>
-					<h2 id="repere" class="display pz-rise mt-4 max-w-3xl text-display-lg text-ink">
-						{m.trust_title({}, o)}
-					</h2>
+		<section class="gold-band" aria-labelledby="repere">
+			<div class="mx-auto max-w-6xl px-5 py-20 md:py-28">
+				<div class="flex flex-wrap items-end justify-between gap-6">
+					<div>
+						<p class="text-overline uppercase">{m.trust_overline({}, o)}</p>
+						<h2 id="repere" class="display pz-rise mt-4 max-w-3xl text-display-lg">
+							{m.trust_title({}, o)}
+						</h2>
+					</div>
+					<Button variant="outline" arrow href={`${base(locale)}/povestea`}>
+						{m.trust_link({}, o)}
+					</Button>
 				</div>
-				<Button variant="glass" arrow href={`${base(locale)}/povestea`}>
-					{m.trust_link({}, o)}
-				</Button>
+				<ul class="gold-band__grid mt-12 grid sm:grid-cols-2 lg:grid-cols-4">
+					{TRUST_MARKS.map((t) => (
+						<li class="pz-rise flex flex-col gap-3 p-6">
+							<span class="display text-display-md">{t.value[locale]}</span>
+							<span class="text-body">{t.label[locale]}</span>
+						</li>
+					))}
+				</ul>
 			</div>
-			<ul class="mt-12 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-				{TRUST_MARKS.map((t) => (
-					<li class="pz-rise flex flex-col gap-3 bg-bg p-6">
-						<span class="display text-display-md text-glow-1">{t.value[locale]}</span>
-						<span class="text-body text-ink-muted">{t.label[locale]}</span>
-					</li>
-				))}
-			</ul>
 		</section>
 	);
 }

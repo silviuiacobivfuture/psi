@@ -1,3 +1,4 @@
+export type { BookingOffer, ProposedSlot, RetrievalSettings, SettingsProvider } from "@psi/engine";
 export {
 	type AskControl,
 	createMemoryRateLimiter,
@@ -6,7 +7,25 @@ export {
 	type MemoryRateLimitOptions,
 	type RateLimiter,
 } from "@psi/engine";
+export {
+	decodeSlot,
+	type HoldResult,
+	type OfferedSlot,
+	type SchedulingClient,
+	SchedulingUnavailable,
+	type SlotsResult,
+	type SubmitResult,
+	toLocal,
+} from "@psi/scheduling";
 export type { Brand, Knowledge, Locale, Passage, Source } from "./contract";
+export {
+	CONVERSATION_TURNS,
+	type ConversationTurn,
+	continueConversation,
+	DISPLAY_TURNS,
+	historyOf,
+	parseConversation,
+} from "./conversation";
 export {
 	type AskInput,
 	AskInputSchema,
@@ -34,3 +53,5 @@ export {
 	PSI_SCORER,
 	type PsiEngineOptions,
 } from "./psi-engine";
+export { type PsiScheduling, schedulingFromEnv, schedulingPort } from "./scheduling";
+export { settingsFromEnv } from "./settings";

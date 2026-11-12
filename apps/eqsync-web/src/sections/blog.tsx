@@ -1,6 +1,7 @@
-import { brandListingUrl, latestFor, longDate } from "@psi/content";
+import { brandListingUrl, longDate } from "@psi/content";
 import { ArticleFeed, Button } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { latestArticles } from "../cms";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -10,7 +11,7 @@ import { m } from "../paraglide/messages.js";
  */
 export function FromTheBlog({ locale }: { locale: Locale }): JSX.Element | null {
 	const o = at(locale);
-	const articles = latestFor("eqsync", locale, 3);
+	const articles = latestArticles(locale, 3);
 	if (articles.length === 0) return null;
 	return (
 		<section id="blog" class="scroll-mt-28" aria-labelledby="din-blog">

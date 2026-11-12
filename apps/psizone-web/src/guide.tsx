@@ -1,4 +1,6 @@
 import type { GuideLabels } from "@psi/ui";
+import type { BookingValues } from "./booking";
+import { ChatBooking } from "./chat-booking";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 
@@ -10,11 +12,30 @@ const PHONES: ReadonlyArray<{ display: string; tel: string }> = [
 
 /**
  * Psizone's words for the guide's answer region. The crisis copy is fixed and factual, never
- * generated: 112, then the centre's phones.
+ * generated: 112, then the centre's phones. A booking question gets the free times inside the
+ * conversation (`ChatBooking`); `prefill` fills its contact fields for a signed-in visitor.
  */
-export function guideLabels(locale: Locale): GuideLabels {
+export function guideLabels(
+	locale: Locale,
+	opts: {
+		prefill?: Pick<BookingValues, "name" | "email" | "phone">;
+		/** The estate account's line in the in-chat form (signed in, or the way to sign in). */
+		account?: Parameters<typeof ChatBooking>[0]["account"];
+	} = {},
+): GuideLabels {
 	const o = at(locale);
 	return {
+		booking: {
+			render: (offer) => (
+				<ChatBooking
+					locale={locale}
+					offer={offer}
+					{...(opts.prefill === undefined ? {} : { prefill: opts.prefill })}
+					{...(opts.account === undefined ? {} : { account: opts.account })}
+				/>
+			),
+			summary: m.guide_booking_summary({}, o),
+		},
 		thinking: m.guide_thinking({}, o),
 		footer: m.guide_footer({}, o),
 		contact: { label: m.guide_source_contact({}, o), href: `${base(locale)}/contact` },
@@ -40,6 +61,7 @@ export function guideLabels(locale: Locale): GuideLabels {
 			injection: m.guide_refusal_injection({}, o),
 			abuse: m.guide_refusal_abuse({}, o),
 			rate_limited: m.guide_refusal_rate_limited({}, o),
+			exchange_limit: m.guide_refusal_exchange_limit({}, o),
 			no_content: m.guide_refusal_no_content({}, o),
 			unavailable: m.guide_refusal_unavailable({}, o),
 		},

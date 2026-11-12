@@ -169,11 +169,17 @@ export interface ModelOptions {
 	 * their model's error into a bare tripwire; this is how the engine still reports what failed.
 	 */
 	onError?: (error: Error) => void;
+	/**
+	 * OpenRouter's `provider.data_collection`. `deny` (the default) routes only to providers that
+	 * do not store or train on prompts; `allow` is what `:free` models need, for development with
+	 * dummy data only (the consumer decides when it is allowed).
+	 */
+	dataCollection?: "deny" | "allow";
 }
 
 /**
  * An OpenRouter chat model as Mastra takes it. Routing denies providers that may store or train
- * on prompts: questions can carry personal or health details.
+ * on prompts by default: questions can carry personal or health details.
  */
 export function openRouterModel(opts: ModelOptions): ChatModel {
 	const provider = createOpenRouter({
@@ -182,7 +188,7 @@ export function openRouterModel(opts: ModelOptions): ChatModel {
 		...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
 	});
 	return forMastra(
-		provider.chat(opts.modelId, { provider: { data_collection: "deny" } }),
+		provider.chat(opts.modelId, { provider: { data_collection: opts.dataCollection ?? "deny" } }),
 		opts.onError,
 	);
 }

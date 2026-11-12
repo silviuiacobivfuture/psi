@@ -1,5 +1,6 @@
-import { GlassCard } from "@psi/ui";
+import { GlassCard, OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
@@ -45,7 +46,7 @@ export function ContactPage(props: PageProps): JSX.Element {
 						<div>
 							<dt class="text-data text-ink-faint">{m.cp_phone_label({}, o)}</dt>
 							<dd class="mt-2 text-body text-ink">
-								<a class="underline underline-offset-4" href={PHONE_TEL}>
+								<a class="pz-tap underline underline-offset-4" href={PHONE_TEL}>
 									{m.cp_phone({}, o)}
 								</a>
 							</dd>
@@ -56,6 +57,7 @@ export function ContactPage(props: PageProps): JSX.Element {
 			</Band>
 			<Band overline={m.cp_consult_overline({}, o)} title={m.cp_consult_title({}, o)} tinted>
 				<Para>{m.cp_consult_text({}, o)}</Para>
+				<OfferingPrices class="mt-8" items={prices(locale, ["sedinta-1-1"])} />
 				<Pending locale={locale}>{m.cp_consult_pending({}, o)}</Pending>
 			</Band>
 			<NextSteps

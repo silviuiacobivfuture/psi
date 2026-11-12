@@ -38,6 +38,29 @@ export const Slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Source = z.object({ label: Localized, href: z.string().url() });
 
+/** The longest a standfirst may be, in words, in each locale: it answers the headline. */
+export const STANDFIRST_MAX_WORDS = 60;
+
+/** Words in a text, as a reader counts them. */
+export function wordCount(text: string): number {
+	return text.split(/\s+/u).filter((w) => w.length > 0).length;
+}
+
+/** A standfirst in both locales, each at most `STANDFIRST_MAX_WORDS` words. */
+export const Standfirst = Localized.refine(
+	(s) => wordCount(s.ro) <= STANDFIRST_MAX_WORDS && wordCount(s.en) <= STANDFIRST_MAX_WORDS,
+	{ message: `a standfirst is at most ${STANDFIRST_MAX_WORDS} words in each locale` },
+);
+
+/** The article's cover image (from the CMS's media library): absolute URL and alt text. */
+export const Cover = z.object({
+	src: z.string().url(),
+	alt: Localized,
+	width: z.number().int().positive().nullable().default(null),
+	height: z.number().int().positive().nullable().default(null),
+});
+export type Cover = z.infer<typeof Cover>;
+
 const Base = {
 	slug: Slug,
 	brand: BrandSchema,
@@ -58,23 +81,30 @@ const InReview = z.object({
 });
 
 /**
- * Written, not yet reviewed. It carries the repository files its facts come from, so the reviewer
- * can check every sentence; it has no author or reviewer until a person signs it.
+ * Written, not yet reviewed. An AI-drafted text carries the files its facts come from
+ * (`provenance`), so the reviewer can check every sentence; it has no author or reviewer until a
+ * person signs it.
  */
-const Draft = z.object({
-	...Base,
-	status: z.literal("draft"),
-	kind: z.enum(["editorial", "health"]),
-	aiDrafted: z.boolean(),
-	/** ≤ 60 words; it answers the headline. */
-	standfirst: Localized,
-	draftedAt: IsoDate,
-	body: z.array(Block).min(1),
-	sources: z.array(Source).default([]),
-	provenance: z.array(z.string().trim().min(1)).min(1),
-	author: z.null(),
-	reviewer: z.null(),
-});
+const Draft = z
+	.object({
+		...Base,
+		status: z.literal("draft"),
+		kind: z.enum(["editorial", "health"]),
+		aiDrafted: z.boolean(),
+		/** ≤ 60 words; it answers the headline. */
+		standfirst: Standfirst,
+		draftedAt: IsoDate,
+		body: z.array(Block).min(1),
+		sources: z.array(Source).default([]),
+		cover: Cover.nullable().default(null),
+		provenance: z.array(z.string().trim().min(1)).default([]),
+		author: z.null(),
+		reviewer: z.null(),
+	})
+	.refine((d) => !d.aiDrafted || d.provenance.length > 0, {
+		message: "an AI-drafted text names where its facts come from (provenance)",
+		path: ["provenance"],
+	});
 
 const Person = z.object({ name: z.string().trim().min(1), credentials: Localized });
 
@@ -82,10 +112,11 @@ const PublishedBase = {
 	...Base,
 	status: z.literal("published"),
 	/** ≤ 60 words; it answers the headline. */
-	standfirst: Localized,
+	standfirst: Standfirst,
 	publishedAt: IsoDate,
 	body: z.array(Block).min(1),
 	sources: z.array(Source).default([]),
+	cover: Cover.nullable().default(null),
 };
 
 /** About how we work, not about health: written by the editors, no clinical reviewer. */

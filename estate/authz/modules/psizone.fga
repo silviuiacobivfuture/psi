@@ -1,0 +1,43 @@
+module psizone
+
+# GENERATED FROM apps/psizone-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type psizone_account
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_psizone_account_view from parent_platform
+    define editor: [user, group#member] or perm_psizone_account_manage from parent_platform
+    define eraser: [user, group#member] or perm_psizone_account_erase from parent_platform
+
+type psizone_booking_request
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_psizone_bookings_view from parent_platform
+    define editor: [user, group#member] or perm_psizone_bookings_manage from parent_platform
+
+type psizone_guide_thread
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_psizone_guide_memory_view from parent_platform
+    define forgetter: [user, group#member] or perm_psizone_guide_memory_forget from parent_platform
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_psizone_reception: [user, group#member]
+    define role_psizone_privacy_officer: [user, group#member]
+    define perm_psizone_account_view: [user, group#member] or perm_psizone_account_manage or perm_psizone_account_erase or role_psizone_privacy_officer or administrator
+    define perm_psizone_account_manage: [user, group#member] or administrator
+    define perm_psizone_account_erase: [user, group#member] or role_psizone_privacy_officer or administrator
+    define perm_psizone_bookings_view: [user, group#member] or perm_psizone_bookings_manage or role_psizone_reception or administrator
+    define perm_psizone_bookings_manage: [user, group#member] or role_psizone_reception or administrator
+    define perm_psizone_guide_memory_view: [user, group#member] or perm_psizone_guide_memory_forget or administrator
+    define perm_psizone_guide_memory_forget: [user, group#member] or administrator
+    # app_psizone_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_psizone_access: perm_psizone_account_view or perm_psizone_account_manage or perm_psizone_account_erase or perm_psizone_bookings_view or perm_psizone_bookings_manage or perm_psizone_guide_memory_view or perm_psizone_guide_memory_forget

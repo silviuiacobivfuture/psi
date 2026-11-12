@@ -47,9 +47,23 @@ export {
 export { GuideMessage, type GuideMessageProps, type GuideSource } from "./components/guide-message";
 export { HubCard, type HubCardProps, type Hue } from "./components/hub-card";
 export { ArrowIcon } from "./components/icons";
+export {
+	ImageCredits,
+	type ImageCreditsLabels,
+	type ImageCreditsProps,
+} from "./components/image-credits";
 export { type Brand, Logo, type LogoProps } from "./components/logo";
 export { Masthead, type MastheadProps } from "./components/masthead";
 export { NavBar, type NavBarProps, type NavLink } from "./components/nav-bar";
+export { type OfferingPriceItem, OfferingPrices } from "./components/offering-prices";
+export {
+	type ImageAsset,
+	type ImageCredit,
+	type ImageVariant,
+	Picture,
+	type PictureProps,
+	type PictureSpec,
+} from "./components/picture";
 export { PractitionerCard, type PractitionerCardProps } from "./components/practitioner-card";
 export { ProductCard, type ProductCardProps } from "./components/product-card";
 export { ProgramTracker, type ProgramTrackerProps } from "./components/program-tracker";
@@ -58,7 +72,7 @@ export { Prose } from "./components/prose";
 export { ReadingProgress } from "./components/reading-progress";
 export { SoundWaves, type SoundWavesProps } from "./components/sound-waves";
 export { StatusBadge, type StatusBadgeProps } from "./components/status-badge";
-export { TextField, type TextFieldProps } from "./components/text-field";
+export { type FieldAutocomplete, TextField, type TextFieldProps } from "./components/text-field";
 export { ThemeToggle, type ThemeToggleProps } from "./components/theme-toggle";
 export { Timeline, type TimelineChapter, type TimelineProps } from "./components/timeline";
 export { cx } from "./cx";
@@ -76,11 +90,13 @@ export {
 export {
 	type AskSignals,
 	type GuideAnswerRequest,
+	historyFor,
 	MAX_ASK_LENGTH,
 	parseAnswerTarget,
 	parseAskSignals,
 	questionFor,
 	streamGuideAnswer,
+	TURNS_SIGNAL,
 } from "./guide-stream";
 export { applyIndexingPolicy } from "./robots";
 export {

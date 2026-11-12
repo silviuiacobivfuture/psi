@@ -5,6 +5,7 @@ import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Closing, Footer } from "../sections/closing";
+import { GroupPhoto } from "../sections/group-photo";
 import { Header } from "../sections/header";
 import { HubMethods } from "../sections/hub-methods";
 import type { Theme } from "../theme";
@@ -37,7 +38,7 @@ export function HubPage({
 			<main id="continut">
 				<AmbientField intensity="low" class="pz-arc -mt-20">
 					<div class="mx-auto max-w-6xl px-5 pb-28 pt-44">
-						<a class="text-body-sm text-ink-muted hover:text-ink" href={`${b}/#pentru-cine`}>
+						<a class="pz-tap text-body-sm text-ink-muted hover:text-ink" href={`${b}/#pentru-cine`}>
 							{`← ${m.hub_back({}, o)}`}
 						</a>
 						<p class="mt-10 text-overline uppercase tracking-[0.14em] text-ink-muted">
@@ -65,12 +66,17 @@ export function HubPage({
 					</div>
 				</AmbientField>
 				<section class="mx-auto max-w-6xl px-5 py-24">
-					<p class="text-overline uppercase tracking-[0.14em] text-ink-muted">
-						{m.hub_coming_overline({}, o)}
-					</p>
-					<h2 class="display pz-rise mt-4 max-w-3xl text-display-lg text-ink">
-						{m.hub_coming_title({}, o)}
-					</h2>
+					<div class="grid items-end gap-10 lg:grid-cols-[1fr_440px]">
+						<div>
+							<p class="text-overline uppercase tracking-[0.14em] text-ink-muted">
+								{m.hub_coming_overline({}, o)}
+							</p>
+							<h2 class="display pz-rise mt-4 max-w-3xl text-display-lg text-ink">
+								{m.hub_coming_title({}, o)}
+							</h2>
+						</div>
+						<GroupPhoto group={hub.group} locale={locale} />
+					</div>
 					<div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 						{hub.spokes.map((s) => (
 							<ArticleCard

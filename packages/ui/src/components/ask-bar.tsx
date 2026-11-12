@@ -25,12 +25,15 @@ export function AskBar({
 	suggestions = [],
 	class: className,
 }: AskBarProps): JSX.Element {
-	const post = `@post('${action}')`;
+	// Never retried: a retry would re-post the emptied field. A dropped stream shows the
+	// answer region's own fallback instead (see `GuideAnswer`).
+	const post = `@post('${action}', {retry: 'never'})`;
 	return (
 		<search>
 			<form
 				class={cx("pz-ask", className)}
 				data-signals:question__ifmissing="''"
+				data-signals__ifmissing="{guideTurns: []}"
 				data-on:submit__prevent={`$question.trim() && ${post}`}
 				data-indicator="asking"
 				aria-controls={target}
@@ -44,6 +47,7 @@ export function AskBar({
 						placeholder={placeholder}
 						aria-label={label}
 						autocomplete="off"
+						enterkeyhint="send"
 					/>
 					<button
 						type="submit"

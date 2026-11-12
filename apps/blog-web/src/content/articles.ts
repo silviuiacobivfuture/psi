@@ -1,30 +1,25 @@
 import {
 	type Article,
-	ARTICLES as CATALOGUE,
 	type DraftArticle,
-	INCLUDE_DRAFTS,
 	isPublished,
 	isReadable,
-	isVisible,
 	type PublishedArticle,
 	type ReadableArticle,
 	readingMinutes,
 	type Topic,
 } from "@psi/content";
 import type { BlogBrand } from "../brands";
+import { currentArticles, currentIndex } from "./store";
 
-export { isPublished, isReadable, readingMinutes };
+export { currentArticles, currentIndex, isPublished, isReadable, readingMinutes };
 
 /**
- * The articles this blog may show: published ones, backlog titles, and drafts only where drafts
- * are allowed (staging and local; never production, see `includeDraftsFrom`).
+ * The articles this blog may show (store.ts): published ones, backlog titles, and drafts only
+ * where drafts are allowed (staging and local; never production, see `includeDraftsFrom`), from
+ * the CMS when CMS_URL is set and from the repository otherwise.
  */
-export const ARTICLES: ReadonlyArray<Article> = CATALOGUE.filter((a) =>
-	isVisible(a, INCLUDE_DRAFTS),
-);
-
 export function findArticle(slug: string): Article | undefined {
-	return ARTICLES.find((a) => a.slug === slug);
+	return currentArticles().find((a) => a.slug === slug);
 }
 
 /** What the index is narrowed to (`?brand=`, `?topic=`); unset means everything. */
@@ -41,28 +36,31 @@ function matches(a: Article, f: ArticleFilter): boolean {
 
 /** Published articles, newest first. */
 export function published(f: ArticleFilter = {}): ReadonlyArray<PublishedArticle> {
-	return ARTICLES.filter(isPublished)
+	return currentArticles()
+		.filter(isPublished)
 		.filter((a) => matches(a, f))
 		.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || a.slug.localeCompare(b.slug));
 }
 
 /** Unreviewed drafts (staging only), newest first, for the owner to review. */
 export function drafts(f: ArticleFilter = {}): ReadonlyArray<DraftArticle> {
-	return ARTICLES.filter((a): a is DraftArticle => a.status === "draft")
+	return currentArticles()
+		.filter((a): a is DraftArticle => a.status === "draft")
 		.filter((a) => matches(a, f))
 		.sort((a, b) => b.draftedAt.localeCompare(a.draftedAt) || a.slug.localeCompare(b.slug));
 }
 
 /** Articles still being written and reviewed, in backlog order. */
 export function inProgress(f: ArticleFilter = {}): ReadonlyArray<Article> {
-	return ARTICLES.filter((a) => a.status === "in-review")
+	return currentArticles()
+		.filter((a) => a.status === "in-review")
 		.filter((a) => matches(a, f))
 		.sort((a, b) => (a.backlogNo ?? 99) - (b.backlogNo ?? 99));
 }
 
 /** Topics that have at least one article, in the order they first appear. */
 export function usedTopics(): ReadonlyArray<Topic> {
-	return [...new Set(ARTICLES.map((a) => a.topic))];
+	return [...new Set(currentArticles().map((a) => a.topic))];
 }
 
 export type { ReadableArticle };

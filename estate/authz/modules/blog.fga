@@ -1,0 +1,24 @@
+module blog
+
+# GENERATED FROM apps/blog-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type blog_saved_article
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_blog_saved_view from parent_platform
+    define editor: [user, group#member] or perm_blog_saved_manage from parent_platform
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_blog_privacy_officer: [user, group#member]
+    define perm_blog_saved_view: [user, group#member] or perm_blog_saved_manage or role_blog_privacy_officer or administrator
+    define perm_blog_saved_manage: [user, group#member] or administrator
+    # app_blog_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_blog_access: perm_blog_saved_view or perm_blog_saved_manage

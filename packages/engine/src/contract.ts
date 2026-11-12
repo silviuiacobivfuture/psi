@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { EngineCatalog } from "./catalog";
 
 /** The page a passage comes from, with its review stamp (null when not reviewed). */
 export interface Source {
@@ -23,6 +24,11 @@ export interface KnowledgeQuery {
 	scope: string;
 	locale: string;
 	topK?: number;
+	/**
+	 * How this search may retrieve, from the runtime settings: `lexical` skips embeddings, `deep`
+	 * widens and fuses. A knowledge that has one tier ignores it.
+	 */
+	mode?: { tier: "auto" | "lexical"; deep: boolean; embedModel?: string };
 }
 
 /**
@@ -31,6 +37,8 @@ export interface KnowledgeQuery {
  */
 export interface EngineKnowledge {
 	search(query: KnowledgeQuery): Promise<ReadonlyArray<Passage>>;
+	/** The knowledge base's shape, for the agent's catalog tools; without it, only search. */
+	catalog?: EngineCatalog;
 }
 
 export const SourceSchema: z.ZodType<Source> = z.object({

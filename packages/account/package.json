@@ -1,0 +1,34 @@
+{
+	"name": "@psi/account",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "One estate account across psi's sites: Authentik sign-in (OIDC code + PKCE), server-side sessions, and every decision a Check against OpenFGA (Polaris's data plane). Ships no text.",
+	"exports": {
+		".": "./src/index.ts",
+		"./dev/mock-issuer": "./dev/mock-issuer.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --maxWorkers=2 --exclude '**/*.live.test.*'",
+		"local:up": "tsx dev/local.ts up",
+		"local:down": "tsx dev/local.ts down",
+		"test:live": "vitest run --maxWorkers=2 src/authz.live.test.ts src/postgres.live.test.ts src/postgres-journey.live.test.ts src/journey.live.test.tsx",
+		"sso": "tsx dev/sso.ts"
+	},
+	"dependencies": {
+		"@psi/guide": "workspace:*",
+		"@psi/ui": "workspace:*",
+		"hono": "^4.13.18",
+		"jose": "^6.2.17",
+		"openid-client": "^6.8.9",
+		"postgres": "^3.4.9",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"tsx": "^4.23.15",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

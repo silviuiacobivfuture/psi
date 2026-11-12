@@ -1,5 +1,6 @@
-import { Button, Prose } from "@psi/ui";
+import { Button, OfferingPrices, Prose } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices, withoutPriceTodo } from "../cms";
 import { HUBS } from "../content/hubs";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { at, base } from "../i18n";
@@ -76,7 +77,13 @@ export function RaceMeUpPage(props: Props): JSX.Element {
 			</section>
 			<section class="mx-auto grid max-w-6xl gap-10 px-5 pb-24 lg:grid-cols-[1.2fr_1fr]">
 				<p class="display text-display-md text-glow-1">{m.programmes_section_title({}, o)}</p>
-				<TodoBlock locale={locale} items={RACE_ME_UP.todo} />
+				<div class="space-y-8">
+					<OfferingPrices items={prices(locale, ["race-me-up"])} />
+					<TodoBlock
+						locale={locale}
+						items={withoutPriceTodo(RACE_ME_UP.todo, prices(locale, ["race-me-up"]).length > 0)}
+					/>
+				</div>
 			</section>
 			<Closing locale={locale} />
 		</PageShell>

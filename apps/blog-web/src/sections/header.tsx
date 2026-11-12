@@ -1,13 +1,15 @@
 import { Compass, type CompassGroup, Masthead, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { accountGroups } from "../account";
 import { type BlogBrand, BRANDS } from "../brands";
-import { ARTICLES, usedTopics } from "../content/articles";
+import { currentArticles, usedTopics } from "../content/articles";
 import { EDITORIAL_POLICY } from "../content/editorial-policy";
 import { brandName, topicLabel } from "../content/topics";
 import { dateline } from "../dates";
 import { estateGroup } from "../estate";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { SitePwaTools } from "../pwa/site";
 import { routes } from "../routes";
 import { THEMES } from "../theme";
 
@@ -34,7 +36,8 @@ function compassGroups(locale: Locale): ReadonlyArray<CompassGroup> {
 					label: topicLabel(t, locale),
 					href: `${home}?topic=${t}#articole`,
 					// The titles make the topic findable by what is in it ("panică" finds anxiety).
-					hint: ARTICLES.filter((a) => a.topic === t)
+					hint: currentArticles()
+						.filter((a) => a.topic === t)
 						.map((a) => a.title[locale])
 						.join(" · "),
 				})),
@@ -49,6 +52,7 @@ function compassGroups(locale: Locale): ReadonlyArray<CompassGroup> {
 				{ label: m.footer_rss({}, o), href: routes.rss(locale) },
 			],
 		},
+		...accountGroups(locale),
 		estateGroup(locale),
 	];
 }
@@ -101,6 +105,7 @@ export function Header({
 							{m.lang_switch({}, o)}
 						</a>
 						<ThemeToggle themes={THEMES} label={m.theme_toggle({}, o)} />
+						<SitePwaTools locale={locale} />
 					</>
 				}
 			/>

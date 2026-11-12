@@ -1,4 +1,5 @@
 import type { Passage, Source } from "../contract";
+import type { Evidence, EvidencePage } from "./faithfulness";
 
 /** A passage as the model sees it: numbered by its source, so `[n]` cites the source. */
 export interface NumberedPassage {
@@ -70,6 +71,29 @@ export class SourceLedger {
 		const out: Record<string, string> = {};
 		for (const [n, texts] of this.#texts) out[String(n)] = texts.join("\n");
 		return out;
+	}
+
+	/** Every source shown, as a page a sentence may point to. */
+	pages(): ReadonlyArray<EvidencePage> {
+		return [...this.#byNumber.values()].map((e) => ({
+			n: e.n,
+			title: e.source.title,
+			url: e.source.url,
+		}));
+	}
+
+	/** Everything shown so far this turn, for the faithfulness checks. */
+	evidence(): Evidence {
+		return {
+			passage: (n) => this.passageText(n),
+			all: [...this.#texts.values()].flat().join("\n"),
+			pages: this.pages(),
+		};
+	}
+
+	/** Counts source `n` as cited (a sentence pointed to its page without a number). */
+	citeSource(n: number): void {
+		this.#cite(n);
 	}
 
 	/**

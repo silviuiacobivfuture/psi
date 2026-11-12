@@ -38,7 +38,7 @@ export function Club({ locale }: { locale: Locale }): JSX.Element {
 						{m.club_title_1({}, o)} <em>{m.club_title_2({}, o)}</em>
 					</h2>
 					<p class="mt-6 max-w-xl text-body-lg text-ink-muted">{m.club_text({}, o)}</p>
-					<p class="mt-5 max-w-xl border-l-2 border-glow-2 pl-4 text-body-sm text-ink">
+					<p class="mt-5 max-w-xl border-l-2 border-glow-2 pl-4 text-body text-ink">
 						{m.club_note({}, o)}
 					</p>
 					<div class="mt-9 flex flex-wrap items-center gap-5">
@@ -49,7 +49,7 @@ export function Club({ locale }: { locale: Locale }): JSX.Element {
 						>
 							{m.club_cta({}, o)}
 						</Button>
-						<a class="text-link text-body" href="#ex-dec">
+						<a class="pz-tap text-link text-body" href="#ex-dec">
 							{m.club_listen({}, o)}
 						</a>
 					</div>

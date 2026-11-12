@@ -10,7 +10,8 @@
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
-		"ingest-seed": "tsx src/seed/ingest.ts"
+		"ingest-seed": "tsx src/seed/ingest.ts",
+		"ingest-demo": "PSI_DEMO_KNOWLEDGE=true tsx src/demo/ingest.ts"
 	},
 	"dependencies": {
 		"@mastra/chroma": "^1.1.5",

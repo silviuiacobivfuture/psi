@@ -1,0 +1,169 @@
+# The owner path, staff roles and strangers for module `psizone`. Hand-written; the generated
+# psizone.closure.fga.yaml proves the permission closure. Run: fga model test --tests '<this file>'
+name: psizone-owner
+model_file: ../fga.mod
+
+tuples:
+  - user: user:staff_role_psizone_privacy_officer
+    relation: role_psizone_privacy_officer
+    object: platform:psi
+  - user: user:staff_role_psizone_reception
+    relation: role_psizone_reception
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_account:r1
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_booking_request:r1
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_guide_thread:r1
+
+tests:
+  - name: psizone_account — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: viewer
+        object: psizone_account:r1
+      - user: user:owner
+        relation: editor
+        object: psizone_account:r1
+      - user: user:owner
+        relation: eraser
+        object: psizone_account:r1
+    check:
+      - user: user:owner
+        object: psizone_account:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+          eraser: true
+      - user: user:stranger
+        object: psizone_account:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+          eraser: false
+  - name: psizone_account — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: psizone_account:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+          eraser: false
+      - user: user:staff_role_psizone_privacy_officer
+        object: psizone_account:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: false
+          eraser: true
+      - user: user:staff_role_psizone_reception
+        object: psizone_account:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+          eraser: false
+  - name: psizone_booking_request — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: viewer
+        object: psizone_booking_request:r1
+      - user: user:owner
+        relation: editor
+        object: psizone_booking_request:r1
+    check:
+      - user: user:owner
+        object: psizone_booking_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+      - user: user:stranger
+        object: psizone_booking_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+  - name: psizone_booking_request — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: psizone_booking_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+      - user: user:staff_role_psizone_reception
+        object: psizone_booking_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+      - user: user:staff_role_psizone_privacy_officer
+        object: psizone_booking_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+  - name: psizone_guide_thread — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: viewer
+        object: psizone_guide_thread:r1
+      - user: user:owner
+        relation: forgetter
+        object: psizone_guide_thread:r1
+    check:
+      - user: user:owner
+        object: psizone_guide_thread:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          forgetter: true
+      - user: user:stranger
+        object: psizone_guide_thread:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          forgetter: false
+  - name: psizone_guide_thread — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: psizone_guide_thread:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          forgetter: false
+      - user: user:staff_role_psizone_privacy_officer
+        object: psizone_guide_thread:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          forgetter: false
+      - user: user:staff_role_psizone_reception
+        object: psizone_guide_thread:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          forgetter: false

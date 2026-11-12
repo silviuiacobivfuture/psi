@@ -1,4 +1,10 @@
 /*
+ * The small-screen and touch rules. Imported here because every app loads effects.css right after
+ * components.css: an @import must open its file, and these rules must follow the components.
+ */
+@import "./mobile.css";
+
+/*
  * The psi signature effects, shared by every brand; each theme tints them through its roles.
  * Every animated effect stops under prefers-reduced-motion. Only glow-1 and ink ever colour text.
  */

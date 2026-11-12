@@ -87,7 +87,7 @@ export function Pending({ locale, children }: { locale: Locale; children: Child 
 	return (
 		<div class="rounded-lg border border-dashed border-line p-6">
 			<StatusBadge tone="info">{m.pending_badge({}, at(locale))}</StatusBadge>
-			<p class="mt-4 max-w-2xl text-body-sm text-ink-muted">{children}</p>
+			<p class="mt-4 max-w-2xl text-body text-ink-muted">{children}</p>
 		</div>
 	);
 }

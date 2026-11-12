@@ -74,7 +74,7 @@ export function Compass({
 	const submit = [
 		`const q = ${QUERY}`,
 		`const a = ${firstMatch}`,
-		`if (q && a) { window.location.href = a.href } else if (q) { $compassOpen = true; $compassChat = true; @post('${guideAction}') }`,
+		`if (q && a) { window.location.href = a.href } else if (q) { $compassOpen = true; $compassChat = true; @post('${guideAction}', {retry: 'never'}) }`,
 	].join("; ");
 	const keys = [
 		"if (evt.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName ?? '')) { evt.preventDefault(); $compassOpen = true; el.querySelector('.pz-compass__input').focus() }",
@@ -84,7 +84,7 @@ export function Compass({
 		<nav
 			class={cx("pz-compass", className)}
 			aria-label={label}
-			data-signals="{compassOpen: false, compassQuery: '', compassChat: false}"
+			data-signals="{compassOpen: false, compassQuery: '', compassTurns: [], compassChat: false}"
 			data-class:is-open="$compassOpen"
 			data-on:keydown__window={keys}
 		>
@@ -149,6 +149,7 @@ export function Compass({
 					placeholder={placeholder}
 					aria-label={placeholder}
 					autocomplete="off"
+					enterkeyhint="go"
 					data-on:focus="$compassOpen = true"
 				/>
 				<span class="pz-compass__kbd" aria-hidden="true">

@@ -23,3 +23,4 @@ export {
 	shape,
 	systemText,
 } from "./helpers";
+export { MemorySchedulingStore, type SchedulingCall } from "./memory-scheduling";

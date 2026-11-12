@@ -1,0 +1,62 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/hemisync-web/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "hemisync",
+	"version": 1,
+	"scope_resolvers": {
+		"hemisync_session_request": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"hemisync_exercise": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"hemisync_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#perm_hemisync_exercises_listen",
+		"platform#perm_hemisync_sessions_manage",
+		"platform#perm_hemisync_sessions_view",
+		"platform#role_hemisync_reception"
+	],
+	"features": [
+		{
+			"key": "sessions",
+			"name": {
+				"ro": "Cereri de sesiune",
+				"en": "Session requests"
+			}
+		},
+		{
+			"key": "exercises",
+			"name": {
+				"ro": "Exerciții gratuite",
+				"en": "Free exercises"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "hemisync:reception",
+			"name": {
+				"ro": "Recepție Hemi-Sync",
+				"en": "Hemi-Sync reception"
+			},
+			"description": {
+				"ro": "Răspunde cererilor de sesiune.",
+				"en": "Answers session requests."
+			},
+			"scope_type": "platform",
+			"relation": "role_hemisync_reception",
+			"grants": ["hemisync_session_request#viewer", "hemisync_session_request#editor"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

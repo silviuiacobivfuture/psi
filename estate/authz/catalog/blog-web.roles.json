@@ -1,0 +1,50 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/blog-web/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "blog",
+	"version": 1,
+	"scope_resolvers": {
+		"blog_saved_article": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"blog_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#perm_blog_saved_manage",
+		"platform#perm_blog_saved_view",
+		"platform#role_blog_privacy_officer"
+	],
+	"features": [
+		{
+			"key": "saved",
+			"name": {
+				"ro": "Articole salvate",
+				"en": "Saved articles"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "blog:privacy_officer",
+			"name": {
+				"ro": "Responsabil protecția datelor (blog)",
+				"en": "Data protection officer (blog)"
+			},
+			"description": {
+				"ro": "Exportă lista de lectură la cererea persoanei.",
+				"en": "Exports the reading list at the person's request."
+			},
+			"scope_type": "platform",
+			"relation": "role_blog_privacy_officer",
+			"grants": ["blog_saved_article#viewer"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

@@ -33,7 +33,7 @@ export function LegalPage(props: PageProps & { kind: LegalKind }): JSX.Element {
 				<Button variant="glass" arrow href={`https://eq-sync.ro${PAGES[kind].ro}`}>
 					{m.lp_live_cta({}, o)}
 				</Button>
-				<p class="text-data text-ink-faint">{m.footer_trader({}, o)}</p>
+				<small class="block text-data text-ink-faint">{m.footer_trader({}, o)}</small>
 			</section>
 		</PageShell>
 	);

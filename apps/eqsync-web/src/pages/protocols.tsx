@@ -1,5 +1,6 @@
 import { GlassCard, StatusBadge } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
@@ -38,6 +39,8 @@ export function ProtocolsPage(props: PageProps): JSX.Element {
 		m.pp_cat_9({}, o),
 		m.pp_cat_10({}, o),
 	];
+	// A category's price, when the CMS has published one under its anchor (offering slug = id).
+	const priced = new Map(prices(locale).map((p) => [p.slug, p]));
 	const how = [
 		{ n: "01", title: m.pp_how_1_title({}, o), text: m.pp_how_1_text({}, o) },
 		{ n: "02", title: m.pp_how_2_title({}, o), text: m.pp_how_2_text({}, o) },
@@ -67,8 +70,11 @@ export function ProtocolsPage(props: PageProps): JSX.Element {
 								<h3 class="display text-headline text-ink">{name}</h3>
 								<p class="text-body-sm text-ink-muted">{m.pp_cat_count({}, o)}</p>
 								<StatusBadge tone="neutral" class="mt-auto">
-									{m.protocol_price_soon({}, o)}
+									{priced.get(CATEGORY_IDS[i] ?? "")?.price ?? m.protocol_price_soon({}, o)}
 								</StatusBadge>
+								{priced.get(CATEGORY_IDS[i] ?? "")?.demoLabel ? (
+									<StatusBadge tone="warning">{priced.get(CATEGORY_IDS[i] ?? "")?.demoLabel}</StatusBadge>
+								) : null}
 							</GlassCard>
 						</li>
 					))}

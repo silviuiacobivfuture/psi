@@ -21,7 +21,8 @@ import { LOCALES, type Locale } from "./contract";
  * - `out_of_scope`: a request for a diagnosis, medication or individual treatment advice, a
  *   question the guide cannot take as asked (empty, too long, malformed), or an answer that broke
  *   a brand rule (Psizone recommending Hemi-Sync or EQ-SYNC on a clinical question).
- * - `injection`, `abuse`, `rate_limited`, `no_content`, `unavailable`: see the engine.
+ * - `injection`, `abuse`, `rate_limited`, `exchange_limit`, `no_content`, `unavailable`: see the
+ *   engine.
  */
 export type { RefusalReason };
 

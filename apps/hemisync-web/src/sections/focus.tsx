@@ -32,8 +32,8 @@ export function Focus({ locale }: { locale: Locale }): JSX.Element {
 					]}
 				/>
 				<div class="mt-16 flex flex-wrap items-baseline justify-between gap-6">
-					<p class="text-body-sm text-ink-faint">{m.focus_note({}, o)}</p>
-					<a class="text-link text-body" href={href(locale, "focus")}>
+					<p class="text-body text-ink-faint">{m.focus_note({}, o)}</p>
+					<a class="pz-tap text-link text-body" href={href(locale, "focus")}>
 						{m.focus_more({}, o)}
 					</a>
 				</div>

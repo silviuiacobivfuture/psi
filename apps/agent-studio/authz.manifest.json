@@ -1,0 +1,117 @@
+{
+	"$comment": "Mastra Studio for staff (apps/agent-studio, studio.psizone.ro). One object, agent_studio:psi. Studio asks Check(user:<sub>, view|operate, agent_studio:psi) through @psi/account's OpenFGA client and stores no role. Until psi's OpenFGA has a store and model for it, src/auth/authorize.ts (groupAuthorizer) evaluates the same two relations from the directory groups app-agent-studio-viewer and app-agent-studio-operator, which Authentik vouches for (userinfo), never from a request header. AGENT_STUDIO_MODE=read-only (the default) refuses operate to everyone.",
+	"app": "agent-studio",
+	"module": "agent-studio",
+	"version": 1,
+	"features": [
+		{
+			"key": "studio",
+			"name": {
+				"ro": "Studio",
+				"en": "Studio"
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Deschide Studio: agenți, fluxuri, urme, conversații",
+						"en": "Open Studio: agents, workflows, traces, threads"
+					},
+					"grants": ["agent_studio#view"],
+					"effect": "read"
+				},
+				{
+					"key": "operate",
+					"name": {
+						"ro": "Rulează agenți, instrumente și fluxuri (cheltuie credit OpenRouter)",
+						"en": "Run agents, tools and workflows (spends OpenRouter credit)"
+					},
+					"grants": ["agent_studio#operate"],
+					"effect": "write"
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "agent_studio",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				},
+				{
+					"name": "view",
+					"from": ["[user, group#member]", "operate", "administrator from parent_platform"]
+				},
+				{
+					"name": "operate",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "agent-studio:viewer",
+			"name": {
+				"ro": "Observator Studio",
+				"en": "Studio viewer"
+			},
+			"description": {
+				"ro": "Vede agenții, urmele și conversațiile; nu rulează nimic.",
+				"en": "Sees agents, traces and threads; runs nothing."
+			},
+			"scope_type": "platform",
+			"grants": ["agent_studio#view"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "agent-studio:operator",
+			"name": {
+				"ro": "Operator Studio",
+				"en": "Studio operator"
+			},
+			"description": {
+				"ro": "Rulează agenți, instrumente și fluxuri când Studio e în modul operate.",
+				"en": "Runs agents, tools and workflows when Studio is in operate mode."
+			},
+			"scope_type": "platform",
+			"grants": ["agent_studio#view", "agent_studio#operate"],
+			"assignable": true,
+			"max_duration": null
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": ["authentik"],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": ["autorizare"],
+			"selected": "autorizare"
+		}
+	},
+	"public_reasons": [
+		{
+			"key": "health_probe",
+			"description": {
+				"ro": "/health răspunde fără date, pentru sondele kubelet.",
+				"en": "/health answers with no data, for the kubelet's probes."
+			}
+		},
+		{
+			"key": "auth_capabilities",
+			"description": {
+				"ro": "/api/auth/capabilities spune paginii Studio dacă e nevoie de autentificare; nu întoarce date.",
+				"en": "/api/auth/capabilities tells Studio's page whether sign-in is needed; it returns no data."
+			}
+		}
+	]
+}

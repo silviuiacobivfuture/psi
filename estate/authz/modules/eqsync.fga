@@ -1,0 +1,30 @@
+module eqsync
+
+# GENERATED FROM apps/eqsync-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type eqsync_programme_enrollment
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_eqsync_programme_view from parent_platform
+    define editor: [user, group#member] or perm_eqsync_programme_manage from parent_platform
+
+type eqsync_protocol_licence
+  relations
+    define parent_platform: [platform]
+    define listener: [user, group#member] or perm_eqsync_protocols_listen from parent_platform
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_eqsync_programme_support: [user, group#member]
+    define perm_eqsync_programme_view: [user, group#member] or perm_eqsync_programme_manage or role_eqsync_programme_support or administrator
+    define perm_eqsync_programme_manage: [user, group#member] or administrator
+    define perm_eqsync_protocols_listen: [user, group#member] or administrator
+    # app_eqsync_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_eqsync_access: perm_eqsync_programme_view or perm_eqsync_programme_manage or perm_eqsync_protocols_listen

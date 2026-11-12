@@ -9,12 +9,14 @@
 		"./components.css": "./src/components.css",
 		"./datastar.js": "./assets/datastar.js",
 		"./effects.css": "./src/effects.css",
+		"./mobile.css": "./src/mobile.css",
 		"./compass.css": "./src/compass.css",
 		"./brand-eqsync.css": "./src/brand-eqsync.css",
 		"./brand-hemisync.css": "./src/brand-hemisync.css",
 		"./brand-blog.css": "./src/brand-blog.css",
 		"./flat.css": "./src/flat.css",
-		"./timeline.css": "./src/timeline.css"
+		"./timeline.css": "./src/timeline.css",
+		"./imagery.css": "./src/imagery.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

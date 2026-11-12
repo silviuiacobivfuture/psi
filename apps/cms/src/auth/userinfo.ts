@@ -7,6 +7,8 @@ const UserInfo = z.object({
 	email_verified: z.boolean().optional(),
 	name: z.string().optional(),
 	preferred_username: z.string().optional(),
+	/** Directory group names (Authentik puts them in the `profile` scope): the interim authorizer's input. */
+	groups: z.array(z.string()).optional(),
 });
 
 /** Authentik's fixed endpoints, derived from the application's issuer. */
@@ -23,12 +25,21 @@ export function endpoints(issuer: string): {
 	};
 }
 
-/** The fields cms keeps of a person signed in through the directory. */
-export function toUser(raw: unknown): { sub: string; email: string; name: string } {
+/**
+ * The fields cms keeps of a person signed in through the directory, refreshed at every sign-in.
+ * The groups are a mirror of the directory's answer, never edited in the CMS.
+ */
+export function toUser(raw: unknown): {
+	sub: string;
+	email: string;
+	name: string;
+	directoryGroups: string[];
+} {
 	const u = UserInfo.parse(raw);
 	return {
 		sub: u.sub,
 		email: u.email.toLowerCase(),
 		name: u.name ?? u.preferred_username ?? u.email,
+		directoryGroups: u.groups ?? [],
 	};
 }

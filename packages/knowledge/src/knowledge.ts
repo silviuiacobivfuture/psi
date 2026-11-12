@@ -1,5 +1,6 @@
 import type { MastraVector } from "@mastra/core/vector";
 import { z } from "zod";
+import type { Catalog } from "./catalog/catalog";
 import { chunkMarkdown } from "./chunk";
 import {
 	type Brand,
@@ -40,6 +41,10 @@ export interface KnowledgeStore extends Knowledge {
 	ingest(entries: ReadonlyArray<KnowledgeEntryInput>): Promise<IngestReport>;
 	/** Removes every chunk of these entries from every index this package owns. */
 	remove(ids: ReadonlyArray<string>): Promise<void>;
+	/** True when this embedder's index for the brand and locale exists (something was ingested). */
+	indexed(brand: Brand, locale: Locale): Promise<boolean>;
+	/** The catalog kept in step with ingest and remove, when one was given. */
+	readonly catalog: Catalog | undefined;
 	/** The embedder in use. */
 	readonly embedder: EmbedderInfo;
 	/** The vector store in use (LibSQL or Chroma) and where; no secrets. */
@@ -69,6 +74,8 @@ export interface CreateKnowledgeOptions {
 	 * `chromaFromEnv`), else LibSQL at `url`.
 	 */
 	vector?: VectorConfig;
+	/** A catalog to keep in step: every ingest adds its retrievable entries, every remove removes. */
+	catalog?: Catalog;
 }
 
 const EntryIds = z.array(z.string().trim().min(1));
@@ -94,6 +101,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		for (const index of await ownIndexes()) {
 			await store.deleteEntries(index, parsed);
 		}
+		opts.catalog?.remove(parsed);
 	}
 
 	async function ensureIndex(index: string, dimension: number): Promise<void> {
@@ -169,6 +177,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 			if (group.vectors.length === 0) continue;
 			await store.upsert(index, { ids: group.ids, vectors: group.vectors, metadata: group.meta });
 		}
+		await opts.catalog?.add(entries);
 		return {
 			embedder: { ...describeEmbedder(embedder), dimension },
 			store: store.info,
@@ -204,6 +213,9 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		search,
 		ingest,
 		remove,
+		indexed: async (brand, locale) =>
+			(await ownIndexes()).includes(indexName(brand, locale, embedder.space)),
+		catalog: opts.catalog,
 		embedder: describeEmbedder(embedder),
 		store: store.info,
 		vector: store.vector,

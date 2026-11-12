@@ -1,0 +1,15 @@
+{
+	"name": "@psi/agent-studio",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"projectType": "application",
+	"sourceRoot": "apps/agent-studio/src",
+	"targets": {
+		"build": {
+			"command": "pnpm --filter @psi/agent-studio build",
+			"outputs": ["{projectRoot}/.mastra/output"]
+		},
+		"test": { "command": "pnpm --filter @psi/agent-studio test" },
+		"type-check": { "command": "pnpm --filter @psi/agent-studio type-check" },
+		"lint": { "command": "biome check --config-path .mono/biome.json apps/agent-studio" }
+	}
+}

@@ -1,11 +1,13 @@
 import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { accountGroups } from "../account";
 import { HUBS } from "../content/hubs";
 import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { SitePwaTools } from "../pwa/site";
 import { THEMES, type Theme } from "../theme";
 
 /**
@@ -75,6 +77,7 @@ export function Header({
 				{ label: m.cta_book({}, o), href: `${b}/contact` },
 			],
 		},
+		...accountGroups(locale),
 		estateGroup(locale),
 	];
 	return (
@@ -83,20 +86,28 @@ export function Header({
 				{m.skip_to_content({}, o)}
 			</a>
 			<header class="pointer-events-none absolute inset-x-0 top-0 z-40">
-				<div class="mx-auto flex max-w-6xl items-center px-5 py-6">
-					<span class="pointer-events-auto">
-						<Logo size={30} href={`${b}/`} />
-					</span>
-					<span class="pointer-events-auto ml-auto">
-						<DayNight
-							day="psizone-light"
-							night="psizone-dark"
-							current={theme}
-							label={m.theme_toggle({}, o)}
-							dayLabel={m.theme_day({}, o)}
-							nightLabel={m.theme_night({}, o)}
-						/>
-					</span>
+				<div class="h-1.5 bg-accent" aria-hidden="true" />
+				<div class="border-b border-accent">
+					<div class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4">
+						<span class="pointer-events-auto">
+							<Logo size={30} href={`${b}/`} />
+						</span>
+						<span class="pointer-events-auto ml-auto hidden min-[480px]:block">
+							<DayNight
+								day="psizone-light"
+								night="psizone-dark"
+								current={theme}
+								label={m.theme_toggle({}, o)}
+								dayLabel={m.theme_day({}, o)}
+								nightLabel={m.theme_night({}, o)}
+							/>
+						</span>
+						<span class="pointer-events-auto max-[479px]:ml-auto">
+							<Button size="sm" href={`${b}/contact`}>
+								{m.header_cta({}, o)}
+							</Button>
+						</span>
+					</div>
 				</div>
 			</header>
 			<Compass
@@ -122,6 +133,7 @@ export function Header({
 							{m.lang_switch({}, o)}
 						</a>
 						<ThemeToggle themes={THEMES} label={m.theme_toggle({}, o)} />
+						<SitePwaTools locale={locale} />
 					</>
 				}
 			/>

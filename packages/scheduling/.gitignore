@@ -1,0 +1,2 @@
+# Nothing secret lives here: the CLI credentials are in <repo>/.data/convex/secrets
+.env.local

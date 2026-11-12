@@ -1,8 +1,10 @@
 import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { accountGroups } from "../account";
 import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { SitePwaTools } from "../pwa/site";
 import { href } from "../routes";
 import { THEMES } from "../theme";
 import { programmeHref } from "./programmes";
@@ -71,6 +73,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				{ label: m.nav_guide({}, o), href: `${b}/#ghid` },
 			],
 		},
+		...accountGroups(locale),
 		estateGroup(locale),
 	];
 	return (
@@ -105,6 +108,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 							{m.lang_switch({}, o)}
 						</a>
 						<ThemeToggle themes={THEMES} label={m.theme_toggle({}, o)} />
+						<SitePwaTools locale={locale} />
 					</>
 				}
 			/>

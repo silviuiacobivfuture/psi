@@ -45,6 +45,30 @@ export interface LanguagePack {
 	courtesies: ReadonlyArray<string>;
 	/** Next-step phrases (booking, contact, reading on) that make a short sentence not a claim. */
 	nextSteps: ReadonlyArray<string>;
+	/**
+	 * Word beginnings (folded) of effect and promise claims ("cures", "treats", "guarantees"): an
+	 * unsupported sentence carrying one stops the answer instead of being left out.
+	 */
+	claimMarkers?: ReadonlyArray<string>;
+	/**
+	 * Warm phrases (folded) of an opener or a closing line ("of course", "glad to help", "cu drag"):
+	 * a short sentence carrying one and no fact is not a claim, so it is kept, never dropped.
+	 */
+	warmth?: ReadonlyArray<string>;
+	/**
+	 * Small talk, on folded text: a greeting, "what can you do?", "can we just talk?". A question
+	 * that is only small talk gets the profile's `welcome`, with no retrieval and no model call.
+	 */
+	smallTalk?: ReadonlyArray<RegExp>;
+	/**
+	 * The small-talk vocabulary (folded): greetings, thanks, "who", "you", "talk", "help"… A short
+	 * message made only of these words (a typo allowed) is small talk.
+	 */
+	smallTalkWords?: ReadonlyArray<string>;
+	/** Thank-you words (folded): small talk made of these and small-talk words is a thank-you. */
+	thanksWords?: ReadonlyArray<string>;
+	/** Asking to book (on folded text): such a question gets free times when the profile schedules. */
+	bookingIntent?: ReadonlyArray<RegExp>;
 	/** Prompt injection requests, on folded text. */
 	injection: ReadonlyArray<RegExp>;
 	/** Obscenities, slurs, insults and threats, on folded text. */
@@ -72,6 +96,12 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 	abbreviations: Words,
 	courtesies: Words,
 	nextSteps: Words,
+	claimMarkers: Words.optional(),
+	warmth: Words.optional(),
+	smallTalk: Patterns.optional(),
+	smallTalkWords: Words.optional(),
+	thanksWords: Words.optional(),
+	bookingIntent: Patterns.optional(),
 	injection: Patterns,
 	abuse: Patterns,
 	pii: z.array(RegexRuleSchema).readonly(),

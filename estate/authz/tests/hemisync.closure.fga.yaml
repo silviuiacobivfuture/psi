@@ -1,0 +1,548 @@
+# GENERATED FROM apps/hemisync-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# The closure, proven by the engine — direct tuples AND the via-set hop.
+# See authz/tools/gen/closure_tests.py.
+name: hemisync-closure
+model_file: ../fga.mod
+
+tuples:
+  - user: user:c_platform_administrator
+    relation: administrator
+    object: platform:psi
+  - user: user:c_platform_auditor
+    relation: auditor
+    object: platform:psi
+  - user: user:c_platform_break_glass_opener
+    relation: break_glass_opener
+    object: platform:psi
+  - user: user:c_platform_changelog_manager
+    relation: changelog_manager
+    object: platform:psi
+  - user: user:c_platform_grantor
+    relation: grantor
+    object: platform:psi
+  - user: user:c_platform_model_releaser
+    relation: model_releaser
+    object: platform:psi
+  - user: user:c_platform_org_eraser
+    relation: org_eraser
+    object: platform:psi
+  - user: user:c_platform_org_restorer
+    relation: org_restorer
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_manage
+    relation: perm_blog_saved_manage
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_view
+    relation: perm_blog_saved_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_manage
+    relation: perm_eqsync_programme_manage
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_view
+    relation: perm_eqsync_programme_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_protocols_listen
+    relation: perm_eqsync_protocols_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_exercises_listen
+    relation: perm_hemisync_exercises_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_manage
+    relation: perm_hemisync_sessions_manage
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_view
+    relation: perm_hemisync_sessions_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_erase
+    relation: perm_psizone_account_erase
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_manage
+    relation: perm_psizone_account_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_view
+    relation: perm_psizone_account_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_manage
+    relation: perm_psizone_bookings_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_view
+    relation: perm_psizone_bookings_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_forget
+    relation: perm_psizone_guide_memory_forget
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_view
+    relation: perm_psizone_guide_memory_view
+    object: platform:psi
+  - user: user:c_platform_program_manager
+    relation: program_manager
+    object: platform:psi
+  - user: user:c_platform_role_blog_privacy_officer
+    relation: role_blog_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_admin
+    relation: role_cms_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_admin
+    relation: role_cms_ai_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_clinical_reviewer
+    relation: role_cms_clinical_reviewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_editor
+    relation: role_cms_editor
+    object: platform:psi
+  - user: user:c_platform_role_cms_publisher
+    relation: role_cms_publisher
+    object: platform:psi
+  - user: user:c_platform_role_cms_reader
+    relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_eqsync_programme_support
+    relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_hemisync_reception
+    relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_psizone_privacy_officer
+    relation: role_psizone_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_psizone_reception
+    relation: role_psizone_reception
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: hemisync_exercise:closure
+  - user: platform:psi
+    relation: parent_platform
+    object: hemisync_session_request:closure
+
+tests:
+  - name: hemisync_session_request#viewer is conferred by exactly ['administrator', 'perm_hemisync_sessions_manage', 'perm_hemisync_sessions_view', 'role_hemisync_reception']
+    check:
+      - user: user:c_platform_administrator
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_auditor
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_break_glass_opener
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_changelog_manager
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_grantor
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_model_releaser
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_eraser
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_restorer
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_account_erase
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_program_manager
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_editor
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_publisher
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_reader
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_reception
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+  - name: hemisync_session_request#editor is conferred by exactly ['administrator', 'perm_hemisync_sessions_manage', 'role_hemisync_reception']
+    check:
+      - user: user:c_platform_administrator
+        object: hemisync_session_request:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_auditor
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_break_glass_opener
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_changelog_manager
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_grantor
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_model_releaser
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_eraser
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_restorer
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_program_manager
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_editor
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_publisher
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_reader
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_hemisync_reception
+        object: hemisync_session_request:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_psizone_reception
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+  - name: hemisync_exercise#listener is conferred by exactly ['administrator', 'perm_hemisync_exercises_listen']
+    check:
+      - user: user:c_platform_administrator
+        object: hemisync_exercise:closure
+        assertions:
+          listener: true
+      - user: user:c_platform_auditor
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_break_glass_opener
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_changelog_manager
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_grantor
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_model_releaser
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_org_eraser
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_org_restorer
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: hemisync_exercise:closure
+        assertions:
+          listener: true
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_program_manager
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_admin
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_editor
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_publisher
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_cms_reader
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_hemisync_reception
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_psizone_reception
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false

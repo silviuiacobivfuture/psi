@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LocaleCodeSchema } from "./contract";
 import { type RefusalReason, RefusalReasonSchema } from "./events";
 import { type RuleSet, RuleSetsSchema } from "./rules";
+import { type ProfileScheduling, ProfileSchedulingSchema } from "./scheduling/port";
 
 /** What a profile says in one locale: its voice, its policy rules and its allowed next steps. */
 export interface ProfileLocale {
@@ -14,6 +15,14 @@ export interface ProfileLocale {
 	policy: ReadonlyArray<string>;
 	/** The next steps a short uncited sentence may offer, as the prompt names them. */
 	nextSteps: string;
+	/**
+	 * The guide's own short, warm reply to small talk ("hi", "what can you do?", "can we just
+	 * talk?"): who it is and what it can help with, written by the profile's owner. Sent as it is,
+	 * with no retrieval and no model call. Without it, small talk is answered like any question.
+	 */
+	welcome?: string;
+	/** The guide's own reply to a thank-you ("mulțumesc", "thanks a lot"); the welcome otherwise. */
+	thanks?: string;
 }
 
 /**
@@ -69,6 +78,11 @@ export interface Profile {
 	nextStepPhrases?: ReadonlyArray<string>;
 	screening?: ScreeningPrompts;
 	refusalPolicy?: RefusalPolicy;
+	/**
+	 * Opts the profile into scheduling: a separate agent with the scheduling tools, for this
+	 * tenant's services (needs `createEngine({ scheduling })`). The grounded answers never see it.
+	 */
+	scheduling?: ProfileScheduling;
 }
 
 const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
@@ -76,6 +90,8 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 		voice: z.string().trim().min(1),
 		policy: z.array(z.string().trim().min(1)).readonly(),
 		nextSteps: z.string().trim().min(1),
+		welcome: z.string().trim().min(1).max(600).optional(),
+		thanks: z.string().trim().min(1).max(300).optional(),
 	})
 	.strict();
 
@@ -111,6 +127,7 @@ export const ProfileSchema: z.ZodType<Profile> = z
 			})
 			.strict()
 			.optional(),
+		scheduling: ProfileSchedulingSchema.optional(),
 	})
 	.strict();
 

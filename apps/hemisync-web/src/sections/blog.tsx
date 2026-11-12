@@ -1,6 +1,7 @@
-import { brandListingUrl, latestFor, longDate } from "@psi/content";
+import { brandListingUrl, longDate } from "@psi/content";
 import { ArticleFeed } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { latestArticles } from "../cms";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -10,7 +11,7 @@ import { m } from "../paraglide/messages.js";
  */
 export function FromTheBlog({ locale }: { locale: Locale }): JSX.Element | null {
 	const o = at(locale);
-	const articles = latestFor("hemisync", locale, 3);
+	const articles = latestArticles(locale, 3);
 	if (articles.length === 0) return null;
 	return (
 		<section
@@ -25,7 +26,7 @@ export function FromTheBlog({ locale }: { locale: Locale }): JSX.Element | null 
 						{m.blog_title_1({}, o)} <em>{m.blog_title_2({}, o)}</em>
 					</h2>
 				</div>
-				<a class="text-link text-body" href={brandListingUrl(locale, "hemisync")}>
+				<a class="pz-tap text-link text-body" href={brandListingUrl(locale, "hemisync")}>
 					{m.blog_all({}, o)}
 				</a>
 			</div>

@@ -4,7 +4,10 @@
 @import "@psi/ui/effects.css";
 @import "@psi/ui/compass.css";
 @import "../../../packages/ui/src/brand-eqsync.css";
+@import "@psi/ui/imagery.css";
 @source "../../../packages/ui/src";
+@source "../../../packages/account/src";
+@source "../../../packages/pwa/src";
 
 /*
  * Page-level craft for the EQ-SYNC landing: nocturnal, sonic, precise.
@@ -351,6 +354,28 @@ html {
 }
 .eq-footer-links a:hover {
 	color: var(--ink);
+}
+
+/* Touch: each footer link is a 44px row; the rows stand close, since each already has its air. */
+@media (pointer: coarse) {
+	.eq-footer-links {
+		gap: 0;
+	}
+	.eq-footer-links a {
+		display: inline-flex;
+		align-items: center;
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* Phones and tablets: the mono running text reads at the body size. */
+@media (max-width: 1023.98px) {
+	.eq-row__text,
+	.eq-step p,
+	.eq-faq__a {
+		font-size: var(--text-body);
+	}
 }
 
 /*

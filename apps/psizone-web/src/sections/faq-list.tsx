@@ -1,4 +1,6 @@
+import { OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import type { FaqEntry } from "../content/faq";
 import { base, type Locale } from "../i18n";
 
@@ -29,7 +31,10 @@ export function FaqList({
 					</summary>
 					<div class="max-w-2xl space-y-3 pb-7">
 						<p class="text-body-lg text-ink-muted">{e.a[locale]}</p>
-						{e.placeholder ? (
+						{/* "Cât costă?": the published prices replace the placeholder (cms.ts). */}
+						{e.id === "cost" && prices(locale).length > 0 ? (
+							<OfferingPrices items={prices(locale)} />
+						) : e.placeholder ? (
 							<p class="rounded-md border border-dashed border-line-control px-4 py-3 text-body-sm text-ink-muted">
 								{`[${e.placeholder[locale]}]`}
 							</p>

@@ -2,11 +2,27 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 
+export type FieldAutocomplete =
+	| "name"
+	| "given-name"
+	| "family-name"
+	| "email"
+	| "tel"
+	| "organization"
+	| "off";
+
+const AUTOCOMPLETE_BY_TYPE: Readonly<Record<string, FieldAutocomplete>> = {
+	email: "email",
+	tel: "tel",
+};
+
 export interface TextFieldProps {
 	id: string;
 	name: string;
 	label: string;
 	type?: "text" | "email" | "tel";
+	/** What the browser may fill in; defaults to the type ("email", "tel"), so a phone offers it. */
+	autocomplete?: FieldAutocomplete;
 	hint?: string;
 	/** Already-translated error text; the caller prefixes it ("Eroare: …"). */
 	error?: string;
@@ -22,6 +38,7 @@ export function TextField({
 	name,
 	label,
 	type = "text",
+	autocomplete = AUTOCOMPLETE_BY_TYPE[type],
 	hint,
 	error,
 	placeholder,
@@ -41,6 +58,7 @@ export function TextField({
 				id={id}
 				name={name}
 				type={type}
+				autocomplete={autocomplete}
 				placeholder={placeholder}
 				value={value}
 				required={required}

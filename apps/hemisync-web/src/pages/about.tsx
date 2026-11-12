@@ -43,10 +43,10 @@ export function AboutPage(props: PageProps): JSX.Element {
 			<Band overline={m.hero_overline({}, o)} title={m.ab_monroe_title({}, o)}>
 				<Para>{m.ab_monroe_text({}, o)}</Para>
 				<p class="flex flex-wrap gap-6">
-					<a class="text-link text-body" href={MONROE} rel="noopener">
+					<a class="pz-tap text-link text-body" href={MONROE} rel="noopener">
 						{m.ab_monroe_link({}, o)}
 					</a>
-					<a class="text-link text-body" href={href(locale, "trademarks")}>
+					<a class="pz-tap text-link text-body" href={href(locale, "trademarks")}>
 						{m.lg_trademarks_title({}, o)}
 					</a>
 				</p>

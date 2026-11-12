@@ -1,4 +1,6 @@
+import { OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href, type ProgrammeSlug } from "../routes";
@@ -39,6 +41,7 @@ export function ProgrammePage(props: PageProps & { slug: ProgrammeSlug }): JSX.E
 			</Band>
 			<Band overline={m.nav_sessions({}, o)} title={m.pr_format_title({}, o)} wash>
 				<Para>{m.pg_request({}, o)}</Para>
+				<OfferingPrices class="mt-8" items={prices(locale, [slug])} />
 				<Pending locale={locale}>{m.pr_format_pending({}, o)}</Pending>
 			</Band>
 			<section class="mx-auto max-w-7xl px-6 py-20 md:px-14 md:py-28">

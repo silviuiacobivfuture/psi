@@ -12,12 +12,14 @@ describe("endpoints", () => {
 });
 
 describe("toUser", () => {
-	it("keeps sub, a lower-cased e-mail and the name", () => {
+	it("keeps sub, a lower-cased e-mail, the name and the directory groups", () => {
 		expect(toUser({ sub: "s1", email: "A@Psizone.ro", name: "Ana", groups: ["x"] })).toEqual({
 			sub: "s1",
 			email: "a@psizone.ro",
 			name: "Ana",
+			directoryGroups: ["x"],
 		});
+		expect(toUser({ sub: "s1", email: "a@b.ro" }).directoryGroups).toEqual([]);
 	});
 	it("falls back to the username, then the e-mail, for the name", () => {
 		expect(toUser({ sub: "s", email: "a@b.ro", preferred_username: "ana" }).name).toBe("ana");

@@ -2,6 +2,7 @@ import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Locale } from "./i18n";
+import { PwaHeadTags } from "./pwa/site";
 import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
 
@@ -31,7 +32,10 @@ export function Layout({
 			<html lang={locale} data-theme={theme} data-finish="flat">
 				<head>
 					<meta charset="utf-8" />
-					<meta name="viewport" content="width=device-width, initial-scale=1" />
+					<meta
+						name="viewport"
+						content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+					/>
 					<title>{title}</title>
 					<meta name="description" content={description} />
 					<meta name="color-scheme" content="dark light" />
@@ -43,6 +47,7 @@ export function Layout({
 						description={description}
 						alternate={alternate}
 					/>
+					<PwaHeadTags locale={locale} />
 					<link rel="preconnect" href="https://fonts.googleapis.com" />
 					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 					<link rel="stylesheet" href={FONTS} />

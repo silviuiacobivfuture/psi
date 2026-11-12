@@ -1,0 +1,12 @@
+# The build context is the repository root; this keeps it to what the build reads.
+**/node_modules
+**/.next
+**/.mastra
+**/dist
+.nx
+.git
+.env
+**/.env
+**/.env.*
+**/.data
+.seb-bundle

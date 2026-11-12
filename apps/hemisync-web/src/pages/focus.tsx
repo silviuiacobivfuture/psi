@@ -27,7 +27,7 @@ export function FocusLevels({ locale }: { locale: Locale }): JSX.Element {
 			/>
 			<div class="mt-10 flex flex-wrap items-center gap-4">
 				<StatusBadge tone="warning">{m.fo_21_badge({}, o)}</StatusBadge>
-				<p class="text-body-sm text-ink-faint">{m.focus_note({}, o)}</p>
+				<p class="text-body text-ink-faint">{m.focus_note({}, o)}</p>
 			</div>
 		</div>
 	);
@@ -55,7 +55,7 @@ export function FocusPage(props: PageProps): JSX.Element {
 			</section>
 			<Band overline={m.nav_programmes({}, o)} title={m.fo_map_title({}, o)} wash>
 				<Para>{m.fo_map_gateway({}, o)}</Para>
-				<a class="text-link text-body" href={programmeHref(locale, "gateway-voyage")}>
+				<a class="pz-tap text-link text-body" href={programmeHref(locale, "gateway-voyage")}>
 					{m.gateway_title({}, o)}
 				</a>
 				<Pending locale={locale}>{m.fo_map_pending({}, o)}</Pending>

@@ -1,0 +1,54 @@
+# The ONLY way to Studio is through Traefik, i.e. through the Authentik gate (the pdfcraft pattern,
+# pieces/pdfcraft/base/networkpolicy.yaml). Without this any pod in the cluster could call the
+# ClusterIP Service and skip the forward-auth middleware; the pod's own check would still refuse
+# it, but it should never be asked.
+#
+#   INGRESS  :4360 from the Traefik pods in kube-system — namespace AND pod label in ONE `from`
+#            element (an AND; two elements would be an OR, and a pod label is something any pod
+#            can put on itself). Kubelet probes come from node addresses: the dev overlay adds them.
+#   EGRESS   DNS; Chroma's auth sidecar (pod port 8080 in ns chroma); Authentik's server pods
+#            (:9000, the userinfo endpoint that confirms each gate token, in-cluster); and HTTPS
+#            out to OpenRouter (the models).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-studio
+spec:
+  podSelector:
+    matchLabels: { app: agent-studio }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+      ports:
+        - { protocol: TCP, port: 4360 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: chroma }
+          podSelector:
+            matchLabels: { app: chroma }
+      ports:
+        - { protocol: TCP, port: 8080 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: authentik }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
+      ports:
+        - { protocol: TCP, port: 9000 }
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - { protocol: TCP, port: 443 }

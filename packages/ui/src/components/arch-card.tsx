@@ -4,6 +4,7 @@ import { cx } from "../cx";
 import type { DawnImage } from "./dawn-landscape";
 import { DawnRidges } from "./dawn-ridges";
 import { ArrowIcon } from "./icons";
+import { Picture, type PictureSpec } from "./picture";
 
 export interface ArchCardProps {
 	/** Unique on the page: names the SVG gradients of the drawn window. */
@@ -16,6 +17,8 @@ export interface ArchCardProps {
 	more?: string;
 	/** A photograph in the arch; without one, a drawn landscape at the hue's hour. */
 	image?: DawnImage;
+	/** A responsive photograph from the app's image manifest; preferred over `image`. */
+	picture?: PictureSpec;
 	/** 1 dawn, 2 morning sky, 3 dusk. Rotate across a row. */
 	hue?: 1 | 2 | 3;
 	class?: string;
@@ -30,13 +33,16 @@ export function ArchCard({
 	text,
 	more,
 	image,
+	picture,
 	hue = 1,
 	class: className,
 }: ArchCardProps): JSX.Element {
 	return (
 		<a class={cx("hs-arch", `hs-arch--${hue}`, className)} href={href}>
 			<span class="hs-arch__window">
-				{image ? (
+				{picture ? (
+					<Picture {...picture} class="hs-arch__picture" imgClass="hs-arch__img" />
+				) : image ? (
 					<img
 						class="hs-arch__img"
 						src={image.src}

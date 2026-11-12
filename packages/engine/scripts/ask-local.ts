@@ -3,12 +3,18 @@ import { parseArgs } from "node:util";
 import type { EngineFailure, Passage } from "@psi/engine";
 import { createPsiEngine } from "@psi/guide";
 import type { Knowledge } from "@psi/knowledge";
-import { chromaFromEnv, createKnowledge, createLexicalEmbedder } from "@psi/knowledge";
+import {
+	chromaFromEnv,
+	createKnowledge,
+	createLexicalEmbedder,
+	embedderFromEnv,
+} from "@psi/knowledge";
 import { z } from "zod";
 
 /**
  * One question end to end against the LOCAL Chroma (`CHROMA_URL`, default http://localhost:8000),
- * searched with the lexical embedder the local seed was written with:
+ * searched as the sites search it: with `--key-from`, the OpenRouter embedder (`PSI_EMBED_MODEL`),
+ * else the lexical one:
  *
  *   pnpm --filter @psi/engine ask --question "Cum vă pot suna?"
  *   pnpm --filter @psi/engine ask --key-from ../../apps/psizone-web/.env
@@ -41,7 +47,10 @@ process.env.OPENROUTER_API_KEY = "";
 
 const store = createKnowledge({
 	vector: chromaFromEnv() ?? { kind: "chroma", url: "http://localhost:8000" },
-	embedder: createLexicalEmbedder(),
+	embedder:
+		apiKey === undefined
+			? createLexicalEmbedder()
+			: embedderFromEnv({ ...process.env, OPENROUTER_API_KEY: apiKey }),
 });
 
 /** Records what each search found, so the run can show retrieval happened. */

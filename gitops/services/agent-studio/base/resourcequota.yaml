@@ -1,0 +1,25 @@
+# Guard-rails for the agent-studio namespace (the per-service base convention): the LimitRange
+# backfills any container that names no resources, the quota caps the namespace. Sized for the
+# app (req 100m/384Mi, lim 1/1Gi) + a rollout surge + the initContainer.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: agent-studio
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 250m, memory: 256Mi }
+      max: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agent-studio
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "3"
+    limits.memory: 3Gi
+    pods: "4"

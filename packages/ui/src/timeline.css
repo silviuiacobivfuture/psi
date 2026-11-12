@@ -124,6 +124,14 @@
 			animation-timeline: view();
 			animation-range: entry 20% entry 70%;
 		}
+		/* Phones: one column against the screen's edge, so a card rises from depth instead of
+		   swinging in from the side (a sideways swing would push it past the edge). */
+		@media (max-width: 760px) {
+			.pz-timeline__card,
+			.pz-timeline__chapter.is-right .pz-timeline__card {
+				animation-name: pz-tl-depth-phone;
+			}
+		}
 	}
 }
 
@@ -155,6 +163,21 @@
 	0% {
 		opacity: 0;
 		transform: translate3d(48px, 40px, -220px) rotateY(-18deg) rotateX(8deg);
+	}
+	35%,
+	65% {
+		opacity: 1;
+		transform: none;
+	}
+	100% {
+		opacity: 0.35;
+		transform: translate3d(0, -24px, -140px) rotateX(-10deg);
+	}
+}
+@keyframes pz-tl-depth-phone {
+	0% {
+		opacity: 0;
+		transform: translate3d(0, 40px, -160px) rotateX(8deg);
 	}
 	35%,
 	65% {

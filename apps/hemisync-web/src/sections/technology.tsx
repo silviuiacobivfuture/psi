@@ -60,7 +60,10 @@ export function Technology({
 						<Chip tone="ai">{m.tech_chip_3({}, o)}</Chip>
 					</div>
 					{more ? (
-						<a class="text-link mt-8 inline-block text-body" href={href(locale, "technology")}>
+						<a
+							class="pz-tap text-link mt-8 inline-flex items-center text-body"
+							href={href(locale, "technology")}
+						>
 							{m.tech_more({}, o)}
 						</a>
 					) : null}

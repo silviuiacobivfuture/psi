@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readDataCollection } from "../env/flags";
 import { createLexicalEmbedder } from "./lexical";
 import { createOpenRouterEmbedder, DEFAULT_EMBED_MODEL } from "./openrouter";
 import type { Embedder } from "./types";
@@ -16,7 +17,8 @@ const EmbedEnv = z.object({
 
 /**
  * OpenRouter embeddings when `OPENROUTER_API_KEY` is set (model from `PSI_EMBED_MODEL`, default
- * `openai/text-embedding-3-small`); otherwise the lexical development fallback.
+ * `openai/text-embedding-3-small`, routed with `PSI_OPENROUTER_DATA_COLLECTION`, default `deny`);
+ * otherwise the lexical development fallback.
  */
 export function embedderFromEnv(env: Record<string, string | undefined> = process.env): Embedder {
 	const e = EmbedEnv.parse({
@@ -24,7 +26,11 @@ export function embedderFromEnv(env: Record<string, string | undefined> = proces
 		PSI_EMBED_MODEL: env.PSI_EMBED_MODEL,
 	});
 	if (e.OPENROUTER_API_KEY !== undefined) {
-		return createOpenRouterEmbedder({ apiKey: e.OPENROUTER_API_KEY, model: e.PSI_EMBED_MODEL });
+		return createOpenRouterEmbedder({
+			apiKey: e.OPENROUTER_API_KEY,
+			model: e.PSI_EMBED_MODEL,
+			dataCollection: readDataCollection(env),
+		});
 	}
 	return createLexicalEmbedder();
 }

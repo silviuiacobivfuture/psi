@@ -1,3 +1,4 @@
+import { RequestContext } from "@mastra/core/request-context";
 import {
 	type AskContext,
 	type AskControl,
@@ -6,22 +7,25 @@ import {
 	type ThreadAgent,
 } from "./ask-context";
 import { screen } from "./ask-screen";
+import { isBookingIntent, offerTimes } from "./booking";
 import { within } from "./deadline";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
+import { AnswerTurn, MAX_TOOL_CALLS, TURN_KEY } from "./grounding/agent-tools";
 import { type ActiveCrossReference, AnswerGate, type GateStep } from "./grounding/answer-gate";
 import type { EngineScore } from "./grounding/faithfulness";
-import { scopeSearch, searchKnowledgeTools } from "./grounding/knowledge-tool";
-import { renderPassages, SourceLedger } from "./grounding/ledger";
+import { scopeSearch } from "./grounding/knowledge-tool";
+import { SourceLedger } from "./grounding/ledger";
 import type { LanguagePack } from "./language/pack";
 import { forgetAnswer, type ThreadKey } from "./memory";
 import { instructionsFor, languageNote } from "./prompt";
 import { matchesRules } from "./rules";
 import { screenWithModel } from "./screening/model";
+import { createSmallTalk } from "./small-talk";
 
 /** Longest answer the model may write, in tokens; room is left for the model's own reasoning. */
 const MAX_OUTPUT_TOKENS = 4_096;
-/** Model steps per answer: the answer, or one more search and then the answer. */
-const MAX_STEPS = 3;
+/** Model steps per answer: up to `MAX_TOOL_CALLS` tool rounds, then the answer. */
+const MAX_STEPS = MAX_TOOL_CALLS + 2;
 /** Low, so the answer stays close to the passages' wording. */
 export const ANSWER_TEMPERATURE = 0.1;
 
@@ -31,8 +35,16 @@ function refusal(reason: RefusalReason): ReadonlyArray<EngineEvent> {
 	return [{ type: "refusal", reason }, { type: "done" }];
 }
 
-async function scored(ctx: AskContext, answer: string, ledger: SourceLedger): Promise<EngineScore> {
-	const score = await ctx.faithfulness.score(answer, ledger.passageTexts());
+async function scored(
+	ctx: AskContext,
+	answer: string,
+	ledger: SourceLedger,
+	dropped: number,
+): Promise<EngineScore> {
+	const score = await ctx.faithfulness.score(answer, ledger.passageTexts(), {
+		pages: ledger.pages(),
+		dropped,
+	});
 	try {
 		ctx.onScore?.(score);
 	} catch {
@@ -51,6 +63,31 @@ function conversation(input: AskInput, useHistory: boolean): Array<ModelMessage>
 			)
 		: [];
 	return [...earlier, { role: "user", content: input.question }];
+}
+
+/**
+ * The profile's own welcome when the question is only small talk ("hi", "what can you do?") in
+ * one of its packs: no retrieval, no model call, no claim to check.
+ */
+function smallTalkReply(ctx: AskContext, input: AskInput): string | undefined {
+	const own = ctx.profile.locales[input.locale];
+	if (own?.welcome === undefined) return undefined;
+	const talk = createSmallTalk([...ctx.packs.values()]);
+	if (!talk.is(input.question)) return undefined;
+	return talk.isThanks(input.question) ? (own.thanks ?? own.welcome) : own.welcome;
+}
+
+/**
+ * When retrieval found nothing and the question names no topic at all (only function and
+ * small-talk words), the profile's welcome, which says what the guide can help with, is a better
+ * reply than "no reviewed answer".
+ */
+function welcomeInstead(ctx: AskContext, input: AskInput): string | undefined {
+	const welcome = ctx.profile.locales[input.locale]?.welcome;
+	if (welcome === undefined) return undefined;
+	return createSmallTalk([...ctx.packs.values()]).hasDomainTerms(input.question)
+		? undefined
+		: welcome;
 }
 
 /** The profile's cross-reference rules that this question triggers. */
@@ -88,7 +125,18 @@ export async function* runAsk(
 		yield* refusal(screened.reason);
 		return;
 	}
-	const { input } = screened;
+	const { input, settings } = screened;
+	if (ctx.booking !== undefined && isBookingIntent(input.question, [...ctx.packs.values()])) {
+		yield { type: "booking", offer: await offerTimes(ctx.booking, input.question) };
+		yield { type: "done" };
+		return;
+	}
+	const welcome = smallTalkReply(ctx, input);
+	if (welcome !== undefined) {
+		yield { type: "text", delta: welcome };
+		yield { type: "done" };
+		return;
+	}
 	if (ctx.agent === undefined) {
 		report(ctx, "model", new ConfigurationError("no OpenRouter API key (OPENROUTER_API_KEY)"));
 		yield* refusal("unavailable");
@@ -116,7 +164,15 @@ export async function* runAsk(
 			locale: input.locale,
 			timeoutMs: ctx.timeouts.retrievalMs,
 			signal: controller.signal,
+			mode: {
+				tier: settings.embeddings === "lexical" ? "lexical" : "auto",
+				deep: settings.deepSearch,
+				...(settings.embedModel === undefined ? {} : { embedModel: settings.embedModel }),
+			},
 		});
+		// The probe: one search before any model call, so a question nothing answers is refused
+		// for free. Its passages are NOT shown to the model and not registered: the agent reads
+		// content only through its tools, and only what they return can be cited.
 		let passages: Awaited<ReturnType<typeof search>>;
 		try {
 			passages = await search(input.question);
@@ -126,12 +182,20 @@ export async function* runAsk(
 			return;
 		}
 		if (passages.length === 0) {
+			const welcome = welcomeInstead(ctx, input);
+			if (welcome !== undefined) {
+				yield { type: "text", delta: welcome };
+				yield { type: "done" };
+				return;
+			}
 			yield* refusal("no_content");
 			return;
 		}
-		const numbered = ledger.register(passages);
+		const turn = new AnswerTurn(ledger, input.locale, search);
 
-		if (ctx.screeningModel !== undefined) {
+		// The model detectors run only at the strict level, and fail OPEN: the deterministic rules
+		// have already run, so a detector outage never blocks a legitimate visitor.
+		if (ctx.screeningModel !== undefined && settings.screeningLevel === "strict") {
 			// The guardrails turn a provider error into a bare tripwire; keep the error itself.
 			let providerError: unknown;
 			const verdict = await screenWithModel({
@@ -145,8 +209,8 @@ export async function* runAsk(
 				runnerName: `${ctx.resourceId}-screening`,
 			});
 			if (verdict.kind === "failed") report(ctx, "screening", providerError ?? verdict.error);
-			if (verdict.kind !== "pass") {
-				yield* refusal(verdict.kind === "refuse" ? verdict.reason : "unavailable");
+			if (verdict.kind === "refuse") {
+				yield* refusal(verdict.reason);
 				return;
 			}
 		}
@@ -163,8 +227,8 @@ export async function* runAsk(
 		const since = Date.now();
 		const started = agent.stream(conversation(input, !threaded), {
 			instructions,
-			system: `${note === "" ? "" : `${note}\n`}${pack.prompt.passagesPreamble}\n${renderPassages(numbered)}`,
-			toolsets: { knowledge: searchKnowledgeTools(search, ledger, pack.name) },
+			...(note === "" ? {} : { system: note }),
+			requestContext: new RequestContext([[TURN_KEY, turn]]),
 			maxSteps: MAX_STEPS,
 			maxProcessorRetries: 0,
 			abortSignal: controller.signal,
@@ -200,7 +264,7 @@ export async function* runAsk(
 			if (step.check === "language") {
 				report(ctx, "model", new Error("answer not in the configured language"));
 			} else if (step.reason === "no_content" && step.check !== "sentinel") {
-				await scored(ctx, gate.rawText, ledger);
+				await scored(ctx, gate.rawText, ledger, gate.dropped);
 			}
 			return { type: "refusal", reason: step.reason };
 		};
@@ -256,9 +320,14 @@ export async function* runAsk(
 			yield* refusal("no_content");
 			return;
 		}
-		// The whole answer, scored by Mastra's scorer: at least one claim, every claim supported.
-		const score = await scored(ctx, gate.rawText, ledger);
-		if (!score.passed) {
+		// What went out, scored by Mastra's scorer and reported. The gate decides: it let out only
+		// supported sentences, so an answer passes when at least one of them is a claim. The scorer
+		// reads the same text with the same checks; a disagreement is reported, never shown.
+		const score = await scored(ctx, gate.keptText, ledger, gate.dropped);
+		if (score.passed !== gate.claims > 0) {
+			report(ctx, "model", new Error("the scorer and the answer gate disagree"));
+		}
+		if (gate.claims === 0) {
 			yield* refusal("no_content");
 			return;
 		}

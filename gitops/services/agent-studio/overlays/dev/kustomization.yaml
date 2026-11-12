@@ -1,0 +1,26 @@
+# agent-studio on dev. CI moves newTag after each image it pushes; never edit it by hand.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agent-studio
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/agent-studio
+    newTag: "unbuilt"
+patches:
+  # Kubelet health probes through the default-deny policy: they arrive from the node the pod runs
+  # on — its InternalIP, or its cni0 gateway when flannel SNATs a same-node connection. The same
+  # addresses psi's pdfcraft admits (gitops/seb-pieces/pdfcraft/rendered.yaml); re-read them from
+  # the live nodes before the first sync (docs/plans/agent-studio.md).
+  - target: { kind: NetworkPolicy, name: agent-studio }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 4360 }

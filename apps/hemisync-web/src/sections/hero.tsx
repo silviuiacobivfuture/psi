@@ -1,14 +1,15 @@
 import { ArrowIcon, Button, DawnLandscape, GlassCard, Logo } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
+import { heroPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { programmeHref } from "./programmes";
 
-/** "Călătoria ta spre interior *începe aici.*" in the sky of a drawn dawn; mist rises from the valley. */
+/** "Călătoria ta spre interior *începe aici.*" in the sky of a Carpathian dawn. */
 export function Hero({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	return (
-		<DawnLandscape id="hero-dawn">
+		<DawnLandscape id="hero-dawn" picture={heroPicture(locale)}>
 			<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 pb-8 pt-8 md:px-14 md:pb-14 md:pt-10">
 				<header>
 					<Logo size={30} href={`${base(locale)}/`} />
@@ -30,12 +31,15 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 							<Button arrow href={`${base(locale)}/#programe`}>
 								{m.cta_programmes({}, o)}
 							</Button>
-							<a class="text-link text-body-sm" href={programmeHref(locale, "gateway-voyage")}>
+							<a
+								class="pz-tap text-link text-body-sm"
+								href={programmeHref(locale, "gateway-voyage")}
+							>
 								{m.programme_more({}, o)}
 							</a>
 						</div>
 						<a
-							class="text-link mt-5 flex items-center gap-2 border-t border-line pt-4 text-body-sm"
+							class="pz-tap text-link mt-5 flex items-center gap-2 border-t border-line pt-4 text-body-sm"
 							href="#exercitii"
 						>
 							{m.hero_listen({}, o)}

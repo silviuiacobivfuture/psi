@@ -1,0 +1,51 @@
+/*
+ * Photography, flat. <Picture> lays its <img> out as if the <picture> were not there, so frame
+ * classes (a cover, an arch, an avatar) size the image directly. The dominant colour paints the
+ * box until the bytes arrive; nothing is blurred, nothing glows. Overlays over a photograph are a
+ * solid token colour at an opacity, never a gradient.
+ */
+.pz-picture {
+	display: contents;
+}
+.pz-picture__img {
+	display: block;
+}
+
+/*
+ * A photograph in a frame of its own: rounded, hairline-edged, filling the box it is given. In the
+ * components layer, so a page's margin and aspect utilities still apply to the frame.
+ */
+@layer components {
+	.pz-photo {
+		position: relative;
+		margin: 0;
+		overflow: hidden;
+		border-radius: var(--radius-lg);
+		background: var(--surface-2);
+		border: 1px solid var(--line);
+	}
+	.pz-photo .pz-picture__img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	/* In a grid cell the frame takes the row's height; the image never sets it. */
+	.pz-photo--fill .pz-picture__img {
+		position: absolute;
+		inset: 0;
+	}
+}
+
+/* Hemi-Sync: no mist drawn over a photograph; the scrim is ink at an opacity. */
+.hs-dawn--photo .hs-mist,
+.hs-arch__window:has(.hs-arch__picture) .hs-mist {
+	display: none;
+}
+.hs-dawn--photo .hs-dawn__scrim {
+	background: var(--ink);
+	opacity: 0.38;
+}
+[data-theme="hemisync-dark"] .hs-dawn--photo .hs-dawn__scrim {
+	background: var(--bg);
+	opacity: 0.55;
+}

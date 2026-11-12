@@ -3,6 +3,7 @@ import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import { DawnRidges } from "./dawn-ridges";
+import { Picture, type PictureSpec } from "./picture";
 
 export interface DawnImage {
 	src: string;
@@ -17,6 +18,8 @@ export interface DawnImage {
 export interface DawnLandscapeProps {
 	/** A landscape photograph. Without one, a drawn dawn (sky, ranges, sun) stands in. */
 	image?: DawnImage;
+	/** A responsive photograph from the app's image manifest; preferred over `image`. */
+	picture?: PictureSpec;
 	/** Unique on the page: names the SVG gradients. */
 	id?: string;
 	class?: string;
@@ -29,14 +32,18 @@ export interface DawnLandscapeProps {
  */
 export function DawnLandscape({
 	image,
+	picture,
 	id = "hs-dawn",
 	class: className,
 	children,
 }: DawnLandscapeProps): JSX.Element {
+	const photo = image !== undefined || picture !== undefined;
 	return (
-		<div class={cx("hs-dawn", image ? "hs-dawn--photo" : "hs-dawn--drawn", className)}>
+		<div class={cx("hs-dawn", photo ? "hs-dawn--photo" : "hs-dawn--drawn", className)}>
 			<div class="hs-dawn__media">
-				{image ? (
+				{picture ? (
+					<Picture {...picture} class="hs-dawn__picture" imgClass="hs-dawn__img" />
+				) : image ? (
 					<img
 						class="hs-dawn__img"
 						src={image.src}

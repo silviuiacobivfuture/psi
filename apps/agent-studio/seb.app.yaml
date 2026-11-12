@@ -1,0 +1,94 @@
+# agent-studio's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
+# manifests are, which secrets it reads. SEB's doctor derives its health checks from it
+# (doctor/plan.mjs): the ExternalSecrets synced with every required key, the OpenBao paths
+# present, the workload, the host. The host is public (psi has no mesh) and gated: the Ingress
+# chains agent-studio's forward-auth Middleware to Authentik's outpost. Plan: docs/plans/agent-studio.md.
+schema: seb.app/v1
+key: agent-studio
+name: agent-studio
+displayName: Agent Studio
+namespace: agent-studio
+note: Mastra Studio for staff. Read-only unless AGENT_STUDIO_MODE=operate; every request is confirmed with Authentik in the pod as well as at the edge.
+components:
+  - name: agent-studio
+    path: apps/agent-studio
+    namespace: agent-studio
+    gitops: gitops/services/agent-studio
+    image: psi/agent-studio
+    build:
+      workflow: .github/workflows/apps.yml
+      dockerfile: apps/agent-studio/Dockerfile
+      context: .
+    port: 4360
+    hosts:
+      - prefix: studio
+        exposure: public
+        ingress: agent-studio
+        middleware: agent-studio-agent-studio-forwardauth@kubernetescrd
+        gate: enforce
+    overlayImages:
+      - psi/agent-studio
+    workloads:
+      - name: agent-studio
+        kind: Deployment
+        images:
+          - psi/agent-studio
+        restartOnSecretChange: true
+        envFrom: [agent-studio-env]
+        requiredEnv:
+          - OPENROUTER_API_KEY
+          - CHROMA_API_KEY
+        initContainers: [assert-secrets]
+        probes:
+          startup: { path: /health, port: 4360 }
+          readiness: { path: /health, port: 4360 }
+          liveness: { path: /health, port: 4360 }
+externalSecrets:
+  - name: agent-studio-env
+    namespace: agent-studio
+    target: agent-studio-env
+    manifest: gitops/services/agent-studio/base/externalsecret.yaml
+    template: [OPENROUTER_API_KEY, CHROMA_API_KEY]
+  - name: harbor-pull
+    namespace: agent-studio
+    target: harbor-pull
+    manifest: gitops/services/agent-studio/base/harbor-pull-externalsecret.yaml
+secrets:
+  - path: apps/agent-studio/env
+    owner: agent-studio
+    keys:
+      - name: OPENROUTER_API_KEY
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: agent-studio/agent-studio-env, env: OPENROUTER_API_KEY }]
+groups:
+  - name: app-agent-studio-viewer
+    state: present
+    declaredIn: gitops/platform/authentik/blueprints-agent-studio.yaml
+    role: viewer
+  - name: app-agent-studio-operator
+    state: present
+    declaredIn: gitops/platform/authentik/blueprints-agent-studio.yaml
+    role: operator
+consumes:
+  - service: chroma
+    env: [CHROMA_URL, CHROMA_API_KEY]
+egress: [openrouter.ai, auth.psizone.ro]
+ci:
+  workflows:
+    - file: .github/workflows/apps.yml
+      images: [psi/agent-studio]
+      buildArgs: [REGISTRY_HOST, REGISTRY_PROJECT_MIRROR]
+      bumps: [gitops/services/agent-studio/overlays/dev/kustomization.yaml]
+health:
+  secretChecks:
+    - label: agent-studio environment
+      externalSecret: agent-studio/agent-studio-env
+      secret: agent-studio-env
+      keys: [OPENROUTER_API_KEY, CHROMA_API_KEY]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/agent-studio/env]
+  keys: []
+findings: []

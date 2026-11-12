@@ -5,7 +5,10 @@
 @import "@psi/ui/compass.css";
 /* Not in @psi/ui's package exports yet, so imported by path. */
 @import "../../../packages/ui/src/brand-hemisync.css";
+@import "@psi/ui/imagery.css";
 @source "../../../packages/ui/src";
+@source "../../../packages/account/src";
+@source "../../../packages/pwa/src";
 
 /* Page-level craft for the Hemi-Sync landing; shared pieces live in @psi/ui. */
 

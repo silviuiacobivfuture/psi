@@ -83,7 +83,10 @@ describe("memory", () => {
 		);
 		expect(sent).toContain("user:Cum decurge o evaluare?");
 		expect(sent).toContain("assistant:Evaluarea durează două ore [1].");
-		expect(sent[sent.length - 1]).toBe("user:Pot participa și eu?");
+		// After the question, this turn's own search: the model searched before answering.
+		const asked = sent.lastIndexOf("user:Pot participa și eu?");
+		expect(asked).toBeGreaterThan(sent.indexOf("assistant:Evaluarea durează două ore [1]."));
+		expect(sent.slice(asked + 1).some((m) => m.startsWith("tool:"))).toBe(true);
 
 		const memory = openMemory(url);
 		const { threads } = await memory.listThreads({});

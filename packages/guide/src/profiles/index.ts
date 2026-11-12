@@ -1,10 +1,11 @@
-import type { Profile, ProfileLocale } from "@psi/engine";
+import type { Profile, ProfileLocale, ProfileScheduling } from "@psi/engine";
 import { BRANDS, type Brand, type Locale } from "../contract";
 import { CRISIS } from "./crisis";
 import { NEXT_STEP_PHRASES, NEXT_STEPS, POLICY } from "./policy";
 import { CLINICAL, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
 import { SCREENING } from "./screening";
 import { VOICES } from "./voices";
+import { THANKS, WELCOMES } from "./welcome";
 
 /** Each brand's guide, as its agent is named. */
 const NAMES: Readonly<Record<Brand, string>> = {
@@ -14,9 +15,23 @@ const NAMES: Readonly<Record<Brand, string>> = {
 	blog: "Ghidul blogului psi",
 };
 
+/**
+ * Which brands schedule, and what (docs/plans/scheduling.md). Psizone first: evaluation requests.
+ * EQ-SYNC's online sessions and Hemi-Sync's session requests join once their services exist.
+ */
+const SCHEDULING: Readonly<Partial<Record<Brand, ProfileScheduling>>> = {
+	psizone: { tenant: "psizone", services: ["evaluation"] },
+};
+
 /** One brand's wording in one locale: its voice, psi's policy and next steps. */
 function wording(brand: Brand, locale: Locale): ProfileLocale {
-	return { voice: VOICES[brand][locale], policy: POLICY[locale], nextSteps: NEXT_STEPS[locale] };
+	return {
+		voice: VOICES[brand][locale],
+		policy: POLICY[locale],
+		nextSteps: NEXT_STEPS[locale],
+		welcome: WELCOMES[brand][locale],
+		thanks: THANKS[brand][locale],
+	};
 }
 
 /**
@@ -40,6 +55,7 @@ function profileFor(brand: Brand): Profile {
 		nextStepPhrases: NEXT_STEP_PHRASES,
 		screening: SCREENING,
 		refusalPolicy: { invalidInput: "out_of_scope" },
+		...(SCHEDULING[brand] === undefined ? {} : { scheduling: SCHEDULING[brand] }),
 	};
 }
 

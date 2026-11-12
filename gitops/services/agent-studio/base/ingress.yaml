@@ -1,0 +1,69 @@
+# studio.psizone.ro — public address, staff only. psi has no mesh (estate/identity.yaml MESH: none),
+# so a private tool opens at <tool>.psizone.ro behind sign-in, as pdf.<apex> does.
+#
+# ONE Ingress, ALL of it gated: the page, its assets and the API it calls are same-origin, so the
+# browser's Authentik session cookie reaches the gate on every request.
+#
+# THE GATE: agent-studio-forwardauth (this namespace) → the embedded outpost. The outpost matches
+# the Host EXACTLY against the `agent-studio` proxy provider (mode forward_single, external_host
+# https://studio.psizone.ro) before the domain-wide provider, so this host is judged by the
+# agent-studio application's own bindings (app-agent-studio-viewer, app-agent-studio-operator,
+# authentik Admins). Signed out → 302 to auth.psizone.ro. That needs the provider in the embedded
+# outpost's provider list (blueprints-providers.yaml). Until then the domain-wide provider answers
+# for this host, its token carries ITS issuer, and the pod refuses every request (401).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-studio
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: agent-studio-agent-studio-forwardauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Agent Studio"
+    gethomepage.dev/description: "Mastra Studio for the guides — agents, traces, threads"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/icon: "mdi-robot-outline"
+    gethomepage.dev/pod-selector: "app=agent-studio"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [studio.psizone.ro]
+      secretName: agent-studio-tls
+  rules:
+    - host: studio.psizone.ro
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agent-studio
+                port: { name: http }
+---
+# The outpost's CALLBACK on this host, with the estate's restart in front of the gate: a callback
+# the outpost refuses (state from another browser or session) is answered by the sign-in restart
+# page instead of a blank 400. Order is the mechanism (gitops/platform/authentik/sso-restart.yaml).
+# The backend is never reached — the outpost answers the callback itself.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-studio-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [studio.psizone.ro]
+      secretName: agent-studio-tls
+  rules:
+    - host: studio.psizone.ro
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: agent-studio
+                port: { name: http }

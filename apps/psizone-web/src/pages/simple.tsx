@@ -1,8 +1,9 @@
-import { AmbientField, Button, PractitionerCard, StatusBadge } from "@psi/ui";
+import { AmbientField, Button, Picture, PractitionerCard, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { TEAM } from "../content/team";
 import { at, base, type Locale } from "../i18n";
+import { teamPicture } from "../imagery";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Closing, Footer } from "../sections/closing";
@@ -55,6 +56,9 @@ export function TeamPage(props: PageProps): JSX.Element {
 	return (
 		<Shell {...props} title={m.team_title({}, o)} lead={m.team_page_lead({}, o)}>
 			<section class="mx-auto max-w-6xl px-5 py-20">
+				<figure class="pz-photo pz-rise mb-12 aspect-[3/2] sm:aspect-[2/1]">
+					<Picture {...teamPicture(props.locale)} />
+				</figure>
 				<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 					{TEAM.map((p) => (
 						<PractitionerCard class="pz-rise" name={p.name} role={p.role(o)} />

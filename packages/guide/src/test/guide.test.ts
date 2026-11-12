@@ -96,8 +96,11 @@ describe("a grounded answer", () => {
 			"evaluare",
 			"aba",
 		]);
+		// The probe, then the agent's own search (its passages are the only ones it can cite);
+		// with the demo off each asks for three times the topK, so demo twins never crowd it.
 		expect(knowledge.calls).toEqual([
-			{ query: "Cum decurge o evaluare?", brand: "psizone", locale: "ro", topK: 5 },
+			{ query: "Cum decurge o evaluare?", brand: "psizone", locale: "ro", topK: 15 },
+			{ query: "Cum decurge o evaluare?", brand: "psizone", locale: "ro", topK: 15 },
 		]);
 
 		const body = chatBody(server.requests[0]);
@@ -110,8 +113,12 @@ describe("a grounded answer", () => {
 			.map((m) => messageText(m.content))
 			.join("\n");
 		expect(system).toContain("ghidul Psizone");
-		expect(system).toContain("[1] Cum decurge o evaluare");
-		expect(system).toContain("<passages>");
+		// No passage in the prompt: the passages reach the model only as the tool's result.
+		expect(system).not.toContain("<passages>");
+		expect(system).not.toContain("include o discuție cu părinții");
+		expect(JSON.stringify(body.messages.filter((m) => m.role === "tool"))).toContain(
+			"include o discuție cu părinții",
+		);
 	});
 
 	it("answers in English with the English instructions", async () => {
@@ -130,7 +137,7 @@ describe("a grounded answer", () => {
 		expect(system).toContain("the Psizone guide");
 	});
 
-	it("numbers passages from a follow-up searchKnowledge call with the rest", async () => {
+	it("numbers only the passages a tool returned (the probe's are never shown or citable)", async () => {
 		const extra = passage(
 			{ ...EVALUATION, id: "pret", title: "Prețuri" },
 			"Evaluarea costă 600 de lei.",
@@ -138,7 +145,7 @@ describe("a grounded answer", () => {
 		const { guide, knowledge } = await guideWith(
 			[
 				{ kind: "tool", query: "preț evaluare" },
-				{ kind: "text", chunks: ["Evaluarea costă 600 de lei [4]."] },
+				{ kind: "text", chunks: ["Evaluarea costă 600 de lei [1]."] },
 			],
 			[FOUND, { kind: "passages", passages: [extra] }],
 		);

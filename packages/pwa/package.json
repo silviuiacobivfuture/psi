@@ -1,0 +1,41 @@
+{
+	"name": "@psi/pwa",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "psi's Progressive Web App layer: per-brand web app manifests, icons, the service worker, install UX and opt-in Web Push (VAPID) notifications. Ships no text.",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsx scripts/build-bundles.ts",
+		"check": "tsx scripts/build-bundles.ts --check",
+		"icons": "tsx scripts/icons.ts",
+		"vapid": "tsx scripts/vapid.ts",
+		"type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.client.json",
+		"test": "vitest run --maxWorkers=2",
+		"notify": "tsx scripts/notify.ts"
+	},
+	"dependencies": {
+		"@psi/account": "workspace:*",
+		"@psi/design": "workspace:*",
+		"@psi/scheduling": "workspace:*",
+		"@psi/ui": "workspace:*",
+		"postgres": "^3.4.9",
+		"web-push": "^4.0.0",
+		"zod": "^3.25.76"
+	},
+	"peerDependencies": {
+		"hono": "^4.13.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"@types/web-push": "^3.6.4",
+		"esbuild": "^0.25.12",
+		"hono": "^4.13.18",
+		"sharp": "0.35.5",
+		"tsx": "^4.23.15",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

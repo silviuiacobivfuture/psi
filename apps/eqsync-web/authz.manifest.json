@@ -1,0 +1,121 @@
+{
+	"$schema": "../../../seb/authz/manifest.schema.json",
+	"$comment": "EQ-SYNC's account resources (docs/plans/accounts.md). Every object is scoped to the estate's platform (platform:psi): psi's visitors belong to no organisation. The OWNER of a record is a per-record grant the application supplies at Check time as a contextual tuple, read from its own row (the system of record); nothing about a visitor is persisted in OpenFGA. Staff reach records only through the catalog roles below, granted in Polaris. No role reads guide memory or clinical data; none exists here.",
+	"app": "eqsync-web",
+	"module": "eqsync",
+	"version": 1,
+	"permission_model": "relational",
+	"generated_dir": "src/authz",
+	"features": [
+		{
+			"key": "programme",
+			"name": {
+				"ro": "Programul de 21 de zile",
+				"en": "The 21-day programme"
+			},
+			"description": {
+				"ro": "Înscrierea și progresul în program.",
+				"en": "Enrolment and progress in the programme."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Vizualizare progres",
+						"en": "View progress"
+					},
+					"grants": ["eqsync_programme_enrollment#viewer"],
+					"effect": "read"
+				},
+				{
+					"key": "manage",
+					"name": {
+						"ro": "Actualizare progres",
+						"en": "Update progress"
+					},
+					"grants": ["eqsync_programme_enrollment#editor"],
+					"effect": "write",
+					"implies": ["programme:view"]
+				}
+			]
+		},
+		{
+			"key": "protocols",
+			"name": {
+				"ro": "Protocoale",
+				"en": "Protocols"
+			},
+			"description": {
+				"ro": "Protocoalele deținute de o persoană.",
+				"en": "The protocols a person owns."
+			},
+			"permissions": [
+				{
+					"key": "listen",
+					"name": {
+						"ro": "Ascultare protocol",
+						"en": "Listen to a protocol"
+					},
+					"grants": ["eqsync_protocol_licence#listener"],
+					"effect": "read"
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "eqsync_programme_enrollment",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				}
+			]
+		},
+		{
+			"type": "eqsync_protocol_licence",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "eqsync:programme_support",
+			"name": {
+				"ro": "Suport program",
+				"en": "Programme support"
+			},
+			"scope_type": "platform",
+			"permissions": ["programme:view"],
+			"assignable": true,
+			"max_duration": null,
+			"description": {
+				"ro": "Vede stadiul înscrierii pentru a ajuta o persoană care cere sprijin.",
+				"en": "Sees enrolment status to help a person who asks for support."
+			}
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": ["authentik"],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": ["autorizare"],
+			"selected": "autorizare"
+		}
+	}
+}

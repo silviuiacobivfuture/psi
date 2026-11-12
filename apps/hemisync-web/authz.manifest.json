@@ -1,0 +1,121 @@
+{
+	"$schema": "../../../seb/authz/manifest.schema.json",
+	"$comment": "Hemi-Sync's account resources (docs/plans/accounts.md). Every object is scoped to the estate's platform (platform:psi): psi's visitors belong to no organisation. The OWNER of a record is a per-record grant the application supplies at Check time as a contextual tuple, read from its own row (the system of record); nothing about a visitor is persisted in OpenFGA. Staff reach records only through the catalog roles below, granted in Polaris. No role reads guide memory or clinical data; none exists here.",
+	"app": "hemisync-web",
+	"module": "hemisync",
+	"version": 1,
+	"permission_model": "relational",
+	"generated_dir": "src/authz",
+	"features": [
+		{
+			"key": "sessions",
+			"name": {
+				"ro": "Cereri de sesiune",
+				"en": "Session requests"
+			},
+			"description": {
+				"ro": "Cererile de sesiune trimise de pe Hemi-Sync.",
+				"en": "Session requests sent from Hemi-Sync."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Vizualizare cereri",
+						"en": "View requests"
+					},
+					"grants": ["hemisync_session_request#viewer"],
+					"effect": "read"
+				},
+				{
+					"key": "manage",
+					"name": {
+						"ro": "Gestionare cereri",
+						"en": "Manage requests"
+					},
+					"grants": ["hemisync_session_request#editor"],
+					"effect": "write",
+					"implies": ["sessions:view"]
+				}
+			]
+		},
+		{
+			"key": "exercises",
+			"name": {
+				"ro": "Exerciții gratuite",
+				"en": "Free exercises"
+			},
+			"description": {
+				"ro": "Accesul la exercițiile gratuite, pentru cine are cont.",
+				"en": "Access to the free exercises, for account holders."
+			},
+			"permissions": [
+				{
+					"key": "listen",
+					"name": {
+						"ro": "Ascultare exercițiu",
+						"en": "Listen to an exercise"
+					},
+					"grants": ["hemisync_exercise#listener"],
+					"effect": "read"
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "hemisync_session_request",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				}
+			]
+		},
+		{
+			"type": "hemisync_exercise",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "hemisync:reception",
+			"name": {
+				"ro": "Recepție Hemi-Sync",
+				"en": "Hemi-Sync reception"
+			},
+			"scope_type": "platform",
+			"permissions": ["sessions:view", "sessions:manage"],
+			"assignable": true,
+			"max_duration": null,
+			"description": {
+				"ro": "Răspunde cererilor de sesiune.",
+				"en": "Answers session requests."
+			}
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": ["authentik"],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": ["autorizare"],
+			"selected": "autorizare"
+		}
+	}
+}

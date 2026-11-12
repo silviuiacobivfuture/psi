@@ -1,0 +1,30 @@
+module hemisync
+
+# GENERATED FROM apps/hemisync-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type hemisync_session_request
+  relations
+    define parent_platform: [platform]
+    define viewer: [user, group#member] or perm_hemisync_sessions_view from parent_platform
+    define editor: [user, group#member] or perm_hemisync_sessions_manage from parent_platform
+
+type hemisync_exercise
+  relations
+    define parent_platform: [platform]
+    define listener: [user, group#member] or perm_hemisync_exercises_listen from parent_platform
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_hemisync_reception: [user, group#member]
+    define perm_hemisync_sessions_view: [user, group#member] or perm_hemisync_sessions_manage or role_hemisync_reception or administrator
+    define perm_hemisync_sessions_manage: [user, group#member] or role_hemisync_reception or administrator
+    define perm_hemisync_exercises_listen: [user, group#member] or administrator
+    # app_hemisync_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_hemisync_access: perm_hemisync_sessions_view or perm_hemisync_sessions_manage or perm_hemisync_exercises_listen

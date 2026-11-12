@@ -1,0 +1,12 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
+		"noEmit": true,
+		"noUncheckedIndexedAccess": true,
+		"types": ["node"]
+	},
+	"include": ["src", "scripts"],
+	"exclude": ["src/worker", "src/client"]
+}

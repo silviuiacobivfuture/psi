@@ -1,0 +1,32 @@
+module cms
+
+# GENERATED FROM apps/cms/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type cms_brand
+  relations
+    define parent_platform: [platform]
+    define read: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_editor from parent_platform or role_cms_publisher from parent_platform or role_cms_clinical_reviewer from parent_platform or role_cms_reader from parent_platform or role_cms_ai_admin from parent_platform
+    define write: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_editor from parent_platform or role_cms_publisher from parent_platform
+    define publish: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_publisher from parent_platform
+    define clinical_review: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_clinical_reviewer from parent_platform
+    define manage_media: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_editor from parent_platform or role_cms_publisher from parent_platform
+    define admin: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform
+    define ai_admin: [user, group#member] or administrator from parent_platform or role_cms_admin from parent_platform or role_cms_ai_admin from parent_platform
+
+# The module's roles, as relations somebody can actually hold.
+extend type platform
+  relations
+    define role_cms_admin: [user, group#member]
+    define role_cms_ai_admin: [user, group#member]
+    define role_cms_clinical_reviewer: [user, group#member]
+    define role_cms_editor: [user, group#member]
+    define role_cms_publisher: [user, group#member]
+    define role_cms_reader: [user, group#member]
+    # app_cms_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_cms_access: role_cms_admin or role_cms_ai_admin or role_cms_clinical_reviewer or role_cms_editor or role_cms_publisher or role_cms_reader or administrator

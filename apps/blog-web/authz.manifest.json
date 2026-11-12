@@ -1,0 +1,86 @@
+{
+	"$schema": "../../../seb/authz/manifest.schema.json",
+	"$comment": "The blog's account resources (docs/plans/accounts.md). Every object is scoped to the estate's platform (platform:psi): psi's visitors belong to no organisation. The OWNER of a record is a per-record grant the application supplies at Check time as a contextual tuple, read from its own row (the system of record); nothing about a visitor is persisted in OpenFGA. Staff reach records only through the catalog roles below, granted in Polaris. No role reads guide memory or clinical data; none exists here.",
+	"app": "blog-web",
+	"module": "blog",
+	"version": 1,
+	"permission_model": "relational",
+	"generated_dir": "src/authz",
+	"features": [
+		{
+			"key": "saved",
+			"name": {
+				"ro": "Articole salvate",
+				"en": "Saved articles"
+			},
+			"description": {
+				"ro": "Lista de lectură a unei persoane.",
+				"en": "A person's reading list."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Vizualizare listă",
+						"en": "View the list"
+					},
+					"grants": ["blog_saved_article#viewer"],
+					"effect": "read"
+				},
+				{
+					"key": "manage",
+					"name": {
+						"ro": "Gestionare listă",
+						"en": "Manage the list"
+					},
+					"grants": ["blog_saved_article#editor"],
+					"effect": "write",
+					"implies": ["saved:view"]
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "blog_saved_article",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "blog:privacy_officer",
+			"name": {
+				"ro": "Responsabil protecția datelor (blog)",
+				"en": "Data protection officer (blog)"
+			},
+			"scope_type": "platform",
+			"permissions": ["saved:view"],
+			"assignable": true,
+			"max_duration": null,
+			"description": {
+				"ro": "Exportă lista de lectură la cererea persoanei.",
+				"en": "Exports the reading list at the person's request."
+			}
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": ["authentik"],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": ["autorizare"],
+			"selected": "autorizare"
+		}
+	}
+}

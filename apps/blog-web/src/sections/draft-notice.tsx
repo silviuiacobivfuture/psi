@@ -24,12 +24,16 @@ export function DraftNotice({
 				{a.kind === "health" ? m.draft_note_health({}, o) : m.draft_note({}, o)}
 				{a.aiDrafted ? ` ${m.draft_ai({}, o)}` : ""}
 			</p>
-			<p class="bl-overline mt-6">{m.draft_provenance({}, o)}</p>
-			<ul class="mt-3 space-y-1 font-mono text-[12px] leading-5 text-ink-muted">
-				{a.provenance.map((p) => (
-					<li>{p}</li>
-				))}
-			</ul>
+			{a.provenance.length > 0 ? (
+				<>
+					<p class="bl-overline mt-6">{m.draft_provenance({}, o)}</p>
+					<ul class="mt-3 space-y-1 font-mono text-[12px] leading-5 text-ink-muted">
+						{a.provenance.map((p) => (
+							<li>{p}</li>
+						))}
+					</ul>
+				</>
+			) : null}
 		</div>
 	);
 }

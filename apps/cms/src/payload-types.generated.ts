@@ -68,8 +68,12 @@ export interface Config {
   blocks: {};
   collections: {
     articles: Article;
+    'knowledge-entries': KnowledgeEntry;
+    offerings: Offering;
     people: Person;
     media: Media;
+    'review-events': ReviewEvent;
+    'analytics-daily': AnalyticsDaily;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -79,8 +83,12 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    'knowledge-entries': KnowledgeEntriesSelect<false> | KnowledgeEntriesSelect<true>;
+    offerings: OfferingsSelect<false> | OfferingsSelect<true>;
     people: PeopleSelect<false> | PeopleSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'review-events': ReviewEventsSelect<false> | ReviewEventsSelect<true>;
+    'analytics-daily': AnalyticsDailySelect<false> | AnalyticsDailySelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -91,8 +99,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('ro' | 'en') | ('ro' | 'en')[];
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'ai-settings': AiSetting;
+  };
+  globalsSelect: {
+    'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
+  };
   locale: 'ro' | 'en';
   widgets: {
     collections: CollectionsWidget;
@@ -128,22 +140,11 @@ export interface UserAuthOperations {
 export interface Article {
   id: number;
   title: string;
-  slug: string;
-  brand: 'psizone' | 'eqsync' | 'hemisync';
-  topic:
-    | 'autism'
-    | 'adhd'
-    | 'adolescenti'
-    | 'integrare-senzoriala'
-    | 'logopedie'
-    | 'qeeg'
-    | 'anxietate-depresie'
-    | 'editorial';
-  backlogNo?: number | null;
-  status: 'in-review' | 'published';
-  kind?: ('health' | 'editorial') | null;
+  /**
+   * Answers the headline, in 60 words at most.
+   */
   standfirst?: string | null;
-  publishedAt?: string | null;
+  cover?: (number | null) | Media;
   body?:
     | (
         | {
@@ -182,23 +183,57 @@ export interface Article {
         id?: string | null;
       }[]
     | null;
+  aiDrafted?: boolean | null;
+  /**
+   * The files or documents every fact comes from, for the reviewer.
+   */
+  provenance?:
+    | {
+        entry: string;
+        id?: string | null;
+      }[]
+    | null;
   authorTeam?: string | null;
   author?: (number | null) | Person;
+  /**
+   * Set by the clinical reviewer's approval, never typed in.
+   */
   reviewer?: (number | null) | Person;
   reviewedAt?: string | null;
+  slug: string;
+  brand: 'psizone' | 'eqsync' | 'hemisync';
+  topic:
+    | 'autism'
+    | 'adhd'
+    | 'adolescenti'
+    | 'integrare-senzoriala'
+    | 'logopedie'
+    | 'qeeg'
+    | 'anxietate-depresie'
+    | 'editorial'
+    | 'cum-lucram'
+    | 'programul-eqsync'
+    | 'explorarea-constiintei';
+  kind: 'health' | 'editorial';
+  backlogNo?: number | null;
+  publishedAt?: string | null;
+  workflow?: {
+    stage?: ('draft' | 'in_review' | 'changes_requested' | 'approved') | null;
+    submittedAt?: string | null;
+    submittedBy?: (number | null) | User;
+  };
+  authorUser?: (number | null) | User;
+  review?: {
+    state?: ('pending' | 'changes_requested' | 'approved') | null;
+    reviewerUser?: (number | null) | User;
+    reviewerName?: string | null;
+    approvedAt?: string | null;
+    approvedHash?: string | null;
+    notes?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "people".
- */
-export interface Person {
-  id: number;
-  name: string;
-  credentials: string;
-  updatedAt: string;
-  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -207,8 +242,6 @@ export interface Person {
 export interface Media {
   id: number;
   alt: string;
-  prefix?: string | null;
-  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -220,6 +253,44 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumb?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    hero?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "people".
+ */
+export interface Person {
+  id: number;
+  name: string;
+  credentials: string;
+  user?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -228,9 +299,17 @@ export interface Media {
 export interface User {
   id: number;
   name?: string | null;
+  /**
+   * Copied from Authentik at every sign-in; never edited here.
+   */
+  directoryGroups?: string[] | null;
   sub?: string | null;
   updatedAt: string;
   createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  hasAPIKey?: boolean | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -248,6 +327,112 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-entries".
+ */
+export interface KnowledgeEntry {
+  id: number;
+  brand: 'psizone' | 'eqsync' | 'hemisync' | 'blog';
+  kind: 'clinical' | 'programme' | 'operational' | 'editorial';
+  question: string;
+  slug?: string | null;
+  answer: string;
+  citePath: string;
+  audience?: string | null;
+  hub?: string | null;
+  method?: string | null;
+  workflow?: {
+    stage?: ('draft' | 'in_review' | 'changes_requested' | 'approved') | null;
+    submittedAt?: string | null;
+    submittedBy?: (number | null) | User;
+  };
+  authorUser?: (number | null) | User;
+  review?: {
+    state?: ('pending' | 'changes_requested' | 'approved') | null;
+    reviewerUser?: (number | null) | User;
+    reviewerName?: string | null;
+    approvedAt?: string | null;
+    approvedHash?: string | null;
+    notes?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "offerings".
+ */
+export interface Offering {
+  id: number;
+  title: string;
+  summary?: string | null;
+  price: {
+    mode: 'fixed' | 'range' | 'from' | 'on_request';
+    amount?: number | null;
+    from?: number | null;
+    to?: number | null;
+    currency?: 'RON' | null;
+  };
+  priceNote?: string | null;
+  brand: 'psizone' | 'eqsync' | 'hemisync';
+  slug: string;
+  kind: 'service' | 'programme' | 'protocol';
+  validFrom?: string | null;
+  sortOrder?: number | null;
+  demo?: boolean | null;
+  workflow?: {
+    stage?: ('draft' | 'in_review' | 'changes_requested' | 'approved') | null;
+    submittedAt?: string | null;
+    submittedBy?: (number | null) | User;
+  };
+  authorUser?: (number | null) | User;
+  review?: {
+    state?: ('pending' | 'changes_requested' | 'approved') | null;
+    reviewerUser?: (number | null) | User;
+    reviewerName?: string | null;
+    approvedAt?: string | null;
+    approvedHash?: string | null;
+    notes?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-events".
+ */
+export interface ReviewEvent {
+  id: number;
+  collectionSlug: string;
+  documentId: string;
+  brand?: string | null;
+  title?: string | null;
+  locale?: string | null;
+  action: 'submit' | 'approve' | 'reject' | 'publish' | 'unpublish' | 'invalidate' | 'delete';
+  actor?: (number | null) | User;
+  authorizer?: string | null;
+  contentHash?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-daily".
+ */
+export interface AnalyticsDaily {
+  id: number;
+  day: string;
+  brand: string;
+  slug: string;
+  locale: string;
+  topic: string;
+  metric: 'view' | 'depth_25' | 'depth_50' | 'depth_75' | 'depth_100' | 'guide_asked' | 'guide_unanswered';
+  count: number;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -278,12 +463,28 @@ export interface PayloadLockedDocument {
         value: number | Article;
       } | null)
     | ({
+        relationTo: 'knowledge-entries';
+        value: number | KnowledgeEntry;
+      } | null)
+    | ({
+        relationTo: 'offerings';
+        value: number | Offering;
+      } | null)
+    | ({
         relationTo: 'people';
         value: number | Person;
       } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'review-events';
+        value: number | ReviewEvent;
+      } | null)
+    | ({
+        relationTo: 'analytics-daily';
+        value: number | AnalyticsDaily;
       } | null)
     | ({
         relationTo: 'users';
@@ -337,14 +538,8 @@ export interface PayloadMigration {
  */
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
-  slug?: T;
-  brand?: T;
-  topic?: T;
-  backlogNo?: T;
-  status?: T;
-  kind?: T;
   standfirst?: T;
-  publishedAt?: T;
+  cover?: T;
   body?:
     | T
     | {
@@ -389,12 +584,125 @@ export interface ArticlesSelect<T extends boolean = true> {
         href?: T;
         id?: T;
       };
+  aiDrafted?: T;
+  provenance?:
+    | T
+    | {
+        entry?: T;
+        id?: T;
+      };
   authorTeam?: T;
   author?: T;
   reviewer?: T;
   reviewedAt?: T;
+  slug?: T;
+  brand?: T;
+  topic?: T;
+  kind?: T;
+  backlogNo?: T;
+  publishedAt?: T;
+  workflow?:
+    | T
+    | {
+        stage?: T;
+        submittedAt?: T;
+        submittedBy?: T;
+      };
+  authorUser?: T;
+  review?:
+    | T
+    | {
+        state?: T;
+        reviewerUser?: T;
+        reviewerName?: T;
+        approvedAt?: T;
+        approvedHash?: T;
+        notes?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-entries_select".
+ */
+export interface KnowledgeEntriesSelect<T extends boolean = true> {
+  brand?: T;
+  kind?: T;
+  question?: T;
+  slug?: T;
+  answer?: T;
+  citePath?: T;
+  audience?: T;
+  hub?: T;
+  method?: T;
+  workflow?:
+    | T
+    | {
+        stage?: T;
+        submittedAt?: T;
+        submittedBy?: T;
+      };
+  authorUser?: T;
+  review?:
+    | T
+    | {
+        state?: T;
+        reviewerUser?: T;
+        reviewerName?: T;
+        approvedAt?: T;
+        approvedHash?: T;
+        notes?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "offerings_select".
+ */
+export interface OfferingsSelect<T extends boolean = true> {
+  title?: T;
+  summary?: T;
+  price?:
+    | T
+    | {
+        mode?: T;
+        amount?: T;
+        from?: T;
+        to?: T;
+        currency?: T;
+      };
+  priceNote?: T;
+  brand?: T;
+  slug?: T;
+  kind?: T;
+  validFrom?: T;
+  sortOrder?: T;
+  demo?: T;
+  workflow?:
+    | T
+    | {
+        stage?: T;
+        submittedAt?: T;
+        submittedBy?: T;
+      };
+  authorUser?: T;
+  review?:
+    | T
+    | {
+        state?: T;
+        reviewerUser?: T;
+        reviewerName?: T;
+        approvedAt?: T;
+        approvedHash?: T;
+        notes?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -403,6 +711,7 @@ export interface ArticlesSelect<T extends boolean = true> {
 export interface PeopleSelect<T extends boolean = true> {
   name?: T;
   credentials?: T;
+  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -412,8 +721,6 @@ export interface PeopleSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  prefix?: T;
-  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -425,6 +732,71 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumb?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        hero?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-events_select".
+ */
+export interface ReviewEventsSelect<T extends boolean = true> {
+  collectionSlug?: T;
+  documentId?: T;
+  brand?: T;
+  title?: T;
+  locale?: T;
+  action?: T;
+  actor?: T;
+  authorizer?: T;
+  contentHash?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-daily_select".
+ */
+export interface AnalyticsDailySelect<T extends boolean = true> {
+  day?: T;
+  brand?: T;
+  slug?: T;
+  locale?: T;
+  topic?: T;
+  metric?: T;
+  count?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -432,9 +804,14 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  directoryGroups?: T;
   sub?: T;
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  hasAPIKey?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -490,6 +867,156 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings".
+ */
+export interface AiSetting {
+  id: number;
+  psizone: {
+    embeddings: 'openrouter' | 'lexical';
+    /**
+     * Another model is another vector space: the knowledge is re-indexed.
+     */
+    embedModel: 'openai/text-embedding-3-small' | 'openai/text-embedding-3-large';
+    deepSearch?: boolean | null;
+    guideEnabled?: boolean | null;
+    /**
+     * How many questions a visitor may ask within the window: per session, per browser and per fingerprint, separately.
+     */
+    exchangeLimit: number;
+    exchangeWindowHours: number;
+    /**
+     * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
+     */
+    screeningLevel: 'standard' | 'strict';
+    updatedBy?: string | null;
+    updatedAt?: string | null;
+  };
+  eqsync: {
+    embeddings: 'openrouter' | 'lexical';
+    /**
+     * Another model is another vector space: the knowledge is re-indexed.
+     */
+    embedModel: 'openai/text-embedding-3-small' | 'openai/text-embedding-3-large';
+    deepSearch?: boolean | null;
+    guideEnabled?: boolean | null;
+    /**
+     * How many questions a visitor may ask within the window: per session, per browser and per fingerprint, separately.
+     */
+    exchangeLimit: number;
+    exchangeWindowHours: number;
+    /**
+     * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
+     */
+    screeningLevel: 'standard' | 'strict';
+    updatedBy?: string | null;
+    updatedAt?: string | null;
+  };
+  hemisync: {
+    embeddings: 'openrouter' | 'lexical';
+    /**
+     * Another model is another vector space: the knowledge is re-indexed.
+     */
+    embedModel: 'openai/text-embedding-3-small' | 'openai/text-embedding-3-large';
+    deepSearch?: boolean | null;
+    guideEnabled?: boolean | null;
+    /**
+     * How many questions a visitor may ask within the window: per session, per browser and per fingerprint, separately.
+     */
+    exchangeLimit: number;
+    exchangeWindowHours: number;
+    /**
+     * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
+     */
+    screeningLevel: 'standard' | 'strict';
+    updatedBy?: string | null;
+    updatedAt?: string | null;
+  };
+  blog: {
+    embeddings: 'openrouter' | 'lexical';
+    /**
+     * Another model is another vector space: the knowledge is re-indexed.
+     */
+    embedModel: 'openai/text-embedding-3-small' | 'openai/text-embedding-3-large';
+    deepSearch?: boolean | null;
+    guideEnabled?: boolean | null;
+    /**
+     * How many questions a visitor may ask within the window: per session, per browser and per fingerprint, separately.
+     */
+    exchangeLimit: number;
+    exchangeWindowHours: number;
+    /**
+     * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
+     */
+    screeningLevel: 'standard' | 'strict';
+    updatedBy?: string | null;
+    updatedAt?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings_select".
+ */
+export interface AiSettingsSelect<T extends boolean = true> {
+  psizone?:
+    | T
+    | {
+        embeddings?: T;
+        embedModel?: T;
+        deepSearch?: T;
+        guideEnabled?: T;
+        exchangeLimit?: T;
+        exchangeWindowHours?: T;
+        screeningLevel?: T;
+        updatedBy?: T;
+        updatedAt?: T;
+      };
+  eqsync?:
+    | T
+    | {
+        embeddings?: T;
+        embedModel?: T;
+        deepSearch?: T;
+        guideEnabled?: T;
+        exchangeLimit?: T;
+        exchangeWindowHours?: T;
+        screeningLevel?: T;
+        updatedBy?: T;
+        updatedAt?: T;
+      };
+  hemisync?:
+    | T
+    | {
+        embeddings?: T;
+        embedModel?: T;
+        deepSearch?: T;
+        guideEnabled?: T;
+        exchangeLimit?: T;
+        exchangeWindowHours?: T;
+        screeningLevel?: T;
+        updatedBy?: T;
+        updatedAt?: T;
+      };
+  blog?:
+    | T
+    | {
+        embeddings?: T;
+        embedModel?: T;
+        deepSearch?: T;
+        guideEnabled?: T;
+        exchangeLimit?: T;
+        exchangeWindowHours?: T;
+        screeningLevel?: T;
+        updatedBy?: T;
+        updatedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -46,7 +46,7 @@ export function Offer({ locale }: { locale: Locale }): JSX.Element {
 					}
 				/>
 			</div>
-			<p class="mt-8 text-data text-ink-faint">{m.of_note({}, o)}</p>
+			<p class="mt-8 text-body text-ink-faint">{m.of_note({}, o)}</p>
 		</section>
 	);
 }

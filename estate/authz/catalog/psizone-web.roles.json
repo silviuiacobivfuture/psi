@@ -1,0 +1,94 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/psizone-web/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "psizone",
+	"version": 1,
+	"scope_resolvers": {
+		"psizone_account": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"psizone_booking_request": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"psizone_guide_thread": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"psizone_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#perm_psizone_account_erase",
+		"platform#perm_psizone_account_manage",
+		"platform#perm_psizone_account_view",
+		"platform#perm_psizone_bookings_manage",
+		"platform#perm_psizone_bookings_view",
+		"platform#perm_psizone_guide_memory_forget",
+		"platform#perm_psizone_guide_memory_view",
+		"platform#role_psizone_privacy_officer",
+		"platform#role_psizone_reception"
+	],
+	"features": [
+		{
+			"key": "account",
+			"name": {
+				"ro": "Cont",
+				"en": "Account"
+			}
+		},
+		{
+			"key": "bookings",
+			"name": {
+				"ro": "Cereri de programare",
+				"en": "Booking requests"
+			}
+		},
+		{
+			"key": "guide_memory",
+			"name": {
+				"ro": "Memoria ghidului",
+				"en": "Guide memory"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "psizone:reception",
+			"name": {
+				"ro": "Recepție",
+				"en": "Reception"
+			},
+			"description": {
+				"ro": "Răspunde cererilor de programare.",
+				"en": "Answers booking requests."
+			},
+			"scope_type": "platform",
+			"relation": "role_psizone_reception",
+			"grants": ["psizone_booking_request#viewer", "psizone_booking_request#editor"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "psizone:privacy_officer",
+			"name": {
+				"ro": "Responsabil protecția datelor",
+				"en": "Data protection officer"
+			},
+			"description": {
+				"ro": "Exportă și șterge conturi la cererea persoanei.",
+				"en": "Exports and erases accounts at the person's request."
+			},
+			"scope_type": "platform",
+			"relation": "role_psizone_privacy_officer",
+			"grants": ["psizone_account#viewer", "psizone_account#eraser"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

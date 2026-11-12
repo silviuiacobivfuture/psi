@@ -12,12 +12,16 @@ import {
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
+import { account, guideForRequest } from "./account";
+import { registerAccountRoutes } from "./account-routes";
+import { registerCmsRevalidate } from "./cms";
 import { ESTATE, SITE } from "./estate";
 import { ANSWER_CLASS, guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
 import { registerPages } from "./pages/register";
+import { registerPwa } from "./pwa/routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
@@ -27,6 +31,10 @@ const PORT = Number.parseInt(process.env.PORT ?? "4330", 10);
 export const app = new Hono({ strict: false });
 applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
 app.use(contextStorage());
+// The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); /cont below.
+account.mount(app);
+// The installable app and its notifications (docs/plans/pwa.md): manifest, /sw.js, push API, /cont/notificari.
+registerPwa(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -35,6 +43,8 @@ app.get("/sitemap.xml", async (c) =>
 );
 
 app.get("/healthz", (c) => c.text("ok"));
+// The shared CMS's signed webhook: published prices refresh at once (cms.ts).
+registerCmsRevalidate(app);
 app.get("/assets/datastar.js", (c) =>
 	c.body(DATASTAR, 200, {
 		"content-type": "text/javascript; charset=utf-8",
@@ -53,16 +63,18 @@ for (const [locale, prefix] of [
 			<HomePage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={origin} />,
 		);
 	});
+	registerAccountRoutes(app, locale);
 	app.post(`${prefix}/ghid`, async (c) => {
 		const signals = parseAskSignals(await c.req.json().catch(() => null));
 		const target = parseAnswerTarget(c.req.query("target"));
 		const question = signals === null ? null : questionFor(target, signals);
 		if (question === null) return c.body(null, 204);
 		return streamGuideAnswer(c, {
-			guide,
+			guide: await guideForRequest(c, guide),
 			locale,
 			question,
 			target,
+			signals,
 			labels: guideLabels(locale),
 			class: ANSWER_CLASS,
 		});

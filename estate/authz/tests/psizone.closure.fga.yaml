@@ -1,0 +1,1119 @@
+# GENERATED FROM apps/psizone-web/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# The closure, proven by the engine — direct tuples AND the via-set hop.
+# See authz/tools/gen/closure_tests.py.
+name: psizone-closure
+model_file: ../fga.mod
+
+tuples:
+  - user: user:c_platform_administrator
+    relation: administrator
+    object: platform:psi
+  - user: user:c_platform_auditor
+    relation: auditor
+    object: platform:psi
+  - user: user:c_platform_break_glass_opener
+    relation: break_glass_opener
+    object: platform:psi
+  - user: user:c_platform_changelog_manager
+    relation: changelog_manager
+    object: platform:psi
+  - user: user:c_platform_grantor
+    relation: grantor
+    object: platform:psi
+  - user: user:c_platform_model_releaser
+    relation: model_releaser
+    object: platform:psi
+  - user: user:c_platform_org_eraser
+    relation: org_eraser
+    object: platform:psi
+  - user: user:c_platform_org_restorer
+    relation: org_restorer
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_manage
+    relation: perm_blog_saved_manage
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_view
+    relation: perm_blog_saved_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_manage
+    relation: perm_eqsync_programme_manage
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_view
+    relation: perm_eqsync_programme_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_protocols_listen
+    relation: perm_eqsync_protocols_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_exercises_listen
+    relation: perm_hemisync_exercises_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_manage
+    relation: perm_hemisync_sessions_manage
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_view
+    relation: perm_hemisync_sessions_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_erase
+    relation: perm_psizone_account_erase
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_manage
+    relation: perm_psizone_account_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_view
+    relation: perm_psizone_account_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_manage
+    relation: perm_psizone_bookings_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_view
+    relation: perm_psizone_bookings_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_forget
+    relation: perm_psizone_guide_memory_forget
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_view
+    relation: perm_psizone_guide_memory_view
+    object: platform:psi
+  - user: user:c_platform_program_manager
+    relation: program_manager
+    object: platform:psi
+  - user: user:c_platform_role_blog_privacy_officer
+    relation: role_blog_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_admin
+    relation: role_cms_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_admin
+    relation: role_cms_ai_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_clinical_reviewer
+    relation: role_cms_clinical_reviewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_editor
+    relation: role_cms_editor
+    object: platform:psi
+  - user: user:c_platform_role_cms_publisher
+    relation: role_cms_publisher
+    object: platform:psi
+  - user: user:c_platform_role_cms_reader
+    relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_eqsync_programme_support
+    relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_hemisync_reception
+    relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_psizone_privacy_officer
+    relation: role_psizone_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_psizone_reception
+    relation: role_psizone_reception
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_account:closure
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_booking_request:closure
+  - user: platform:psi
+    relation: parent_platform
+    object: psizone_guide_thread:closure
+
+tests:
+  - name: psizone_account#viewer is conferred by exactly ['administrator', 'perm_psizone_account_erase', 'perm_psizone_account_manage', 'perm_psizone_account_view', 'role_psizone_privacy_officer']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_account:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_auditor
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_grantor
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_model_releaser
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_eraser
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_restorer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_account:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_account:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_program_manager
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+  - name: psizone_account#editor is conferred by exactly ['administrator', 'perm_psizone_account_manage']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_account:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_auditor
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_grantor
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_model_releaser
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_eraser
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_restorer
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_account:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_program_manager
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          editor: false
+  - name: psizone_account#eraser is conferred by exactly ['administrator', 'perm_psizone_account_erase', 'role_psizone_privacy_officer']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_account:closure
+        assertions:
+          eraser: true
+      - user: user:c_platform_auditor
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_grantor
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_model_releaser
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_org_eraser
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_org_restorer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_account:closure
+        assertions:
+          eraser: true
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_program_manager
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          eraser: true
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+  - name: psizone_booking_request#viewer is conferred by exactly ['administrator', 'perm_psizone_bookings_manage', 'perm_psizone_bookings_view', 'role_psizone_reception']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_auditor
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_grantor
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_model_releaser
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_eraser
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_restorer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_program_manager
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: true
+  - name: psizone_booking_request#editor is conferred by exactly ['administrator', 'perm_psizone_bookings_manage', 'role_psizone_reception']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_booking_request:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_auditor
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_grantor
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_model_releaser
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_eraser
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_org_restorer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: true
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_program_manager
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_booking_request:closure
+        assertions:
+          editor: true
+  - name: psizone_guide_thread#viewer is conferred by exactly ['administrator', 'perm_psizone_guide_memory_forget', 'perm_psizone_guide_memory_view']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_auditor
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_grantor
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_model_releaser
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_eraser
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_org_restorer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: true
+      - user: user:c_platform_program_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+  - name: psizone_guide_thread#forgetter is conferred by exactly ['administrator', 'perm_psizone_guide_memory_forget']
+    check:
+      - user: user:c_platform_administrator
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: true
+      - user: user:c_platform_auditor
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_break_glass_opener
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_changelog_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_grantor
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_model_releaser
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_org_eraser
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_org_restorer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: true
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_program_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_editor
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_publisher
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_reader
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_hemisync_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_psizone_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false

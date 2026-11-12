@@ -5,7 +5,10 @@
 @import "@psi/ui/compass.css";
 /* @psi/ui does not export brand-blog.css yet; imported by path until it does. */
 @import "../../../packages/ui/src/brand-blog.css";
+@import "@psi/ui/imagery.css";
 @source "../../../packages/ui/src";
+@source "../../../packages/account/src";
+@source "../../../packages/pwa/src";
 
 /* Page-level craft for the Blog: paper, quiet, editorial. Shared pieces live in @psi/ui. */
 

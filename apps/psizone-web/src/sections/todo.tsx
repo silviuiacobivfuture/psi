@@ -24,7 +24,7 @@ export function TodoBlock({
 			class={`rounded-lg border border-dashed border-line-control bg-surface-1 p-6 md:p-8 ${className}`}
 		>
 			<StatusBadge tone="info">{m.todo_overline({}, o)}</StatusBadge>
-			<p class="mt-4 max-w-xl text-body-sm text-ink-muted">{m.todo_text({}, o)}</p>
+			<p class="mt-4 max-w-xl text-body text-ink-muted">{m.todo_text({}, o)}</p>
 			<ul class="mt-5 space-y-2">
 				{items.map((x) => (
 					<li class="text-body text-ink-muted">{`[${x[locale]}]`}</li>

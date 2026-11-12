@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { z } from "zod";
 
 /**
  * A stand-in for the OpenRouter HTTP API (`POST /chat/completions`, OpenAI-style SSE), so tests
@@ -33,8 +34,13 @@ export type ScreenScript = Partial<Record<ScreenKind, ScreenReply>>;
 
 export interface FakeOpenRouter {
 	baseURL: string;
-	/** The streaming answer requests (the answering agent). */
+	/**
+	 * The streaming answer requests (the answering agent), after its first search. The request
+	 * that only triggered the automatic search is in `searches`.
+	 */
 	requests: ReadonlyArray<FakeRequest>;
+	/** Requests answered with the automatic `searchKnowledge` call (no tool result yet). */
+	searches: ReadonlyArray<FakeRequest>;
 	/** The non-streaming guardrail requests, by the processor that sent them. */
 	screenings: ReadonlyArray<FakeRequest & { kind: ScreenKind }>;
 	/** Responses the client hung up on before they were complete. */
@@ -106,6 +112,44 @@ const VERDICTS: Readonly<Record<ScreenKind, Record<"clean" | "flag", object>>> =
 	},
 };
 
+const ChatMessages = z.object({
+	messages: z.array(
+		z.object({
+			role: z.string(),
+			content: z.union([z.string(), z.array(z.unknown()), z.null()]).optional(),
+		}),
+	),
+});
+
+/**
+ * True when the conversation already holds a tool result: the model has searched this turn. A
+ * request without one gets a `searchKnowledge` call first (the model always looks things up
+ * before answering), so a scripted text reply always follows a search, as with a real model.
+ */
+function hasSearched(body: unknown): boolean {
+	const parsed = ChatMessages.safeParse(body);
+	if (!parsed.success) return false;
+	const messages = parsed.data.messages;
+	const lastUser = messages.map((m) => m.role).lastIndexOf("user");
+	return messages.slice(lastUser + 1).some((m) => m.role === "tool");
+}
+
+/** The last user message's text, for the automatic search's query. */
+function lastQuestion(body: unknown): string {
+	const parsed = ChatMessages.safeParse(body);
+	if (!parsed.success) return "question";
+	const user = [...parsed.data.messages].reverse().find((m) => m.role === "user");
+	const content = user?.content;
+	if (typeof content === "string") return content;
+	const part = Array.isArray(content)
+		? content.find(
+				(p): p is { text: string } =>
+					typeof p === "object" && p !== null && "text" in p && typeof p.text === "string",
+			)
+		: undefined;
+	return part?.text ?? "question";
+}
+
 function isStreaming(body: unknown): boolean {
 	return typeof body === "object" && body !== null && "stream" in body && body.stream === true;
 }
@@ -168,8 +212,10 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 export async function startFakeOpenRouter(
 	script: ReadonlyArray<FakeReply>,
 	screen: ScreenScript = {},
+	options: { autoSearch?: boolean } = {},
 ): Promise<FakeOpenRouter> {
 	const requests: Array<FakeRequest> = [];
+	const searches: Array<FakeRequest> = [];
 	const screenings: Array<FakeRequest & { kind: ScreenKind }> = [];
 	const open = new Set<ServerResponse>();
 	let cut = 0;
@@ -186,6 +232,17 @@ export async function startFakeOpenRouter(
 				replyScreen(res, kind, screen[kind] ?? { kind: "clean" });
 				return;
 			}
+			const next = script[Math.min(requests.length + 1, script.length) - 1];
+			if (
+				next !== undefined &&
+				next.kind === "text" &&
+				options.autoSearch !== false &&
+				!hasSearched(body)
+			) {
+				searches.push({ path: req.url ?? "", body });
+				void reply(res, { kind: "tool", query: lastQuestion(body) }, searches.length + 1000);
+				return;
+			}
 			requests.push({ path: req.url ?? "", body });
 			const answer = script[Math.min(requests.length, script.length) - 1] ?? {
 				kind: "status",
@@ -200,6 +257,7 @@ export async function startFakeOpenRouter(
 	return {
 		baseURL: `http://127.0.0.1:${port}/api/v1`,
 		requests,
+		searches,
 		screenings,
 		cutOff: () => cut,
 		close: () =>

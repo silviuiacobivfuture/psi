@@ -18,6 +18,7 @@
 		"@openrouter/ai-sdk-provider": "^3.1.0",
 		"@psi/engine": "workspace:*",
 		"@psi/knowledge": "workspace:*",
+		"@psi/scheduling": "workspace:*",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {

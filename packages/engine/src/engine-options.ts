@@ -7,10 +7,13 @@ import { z } from "zod";
 import type { EngineFailure } from "./ask-context";
 import { EngineKnowledgeSchema } from "./contract";
 import type { EngineScore } from "./grounding/faithfulness";
+import type { EngineIngest } from "./ingest-workflow";
 import { LanguagePackSchema } from "./language/pack";
 import { ModelIdSchema } from "./model";
 import { ProfileSchema } from "./profile";
+import { SchedulingPortSchema } from "./scheduling/port";
 import type { RateLimiter } from "./screening/rate-limit";
+import type { SettingsProvider } from "./settings";
 
 const Millis = z.number().int().positive().max(600_000);
 
@@ -32,6 +35,16 @@ const VectorSchema: z.ZodType<MastraVector> = z.custom<MastraVector>(
 export const EngineOptionsSchema = z.object({
 	profiles: z.array(ProfileSchema).min(1).readonly(),
 	knowledge: EngineKnowledgeSchema,
+	settings: fn<SettingsProvider>("settings").optional(),
+	ingest: z
+		.custom<EngineIngest>(
+			(value) =>
+				hasMethods(value, ["ingest"]) &&
+				(Reflect.get(Object(value), "sets") === undefined ||
+					typeof Reflect.get(Object(value), "sets") === "object"),
+			{ message: "ingest must have an ingest function (and optional named sets)" },
+		)
+		.optional(),
 	vectors: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/), VectorSchema).optional(),
 	model: z
 		.object({
@@ -39,6 +52,7 @@ export const EngineOptionsSchema = z.object({
 			apiKey: z.string().trim().min(1).optional(),
 			baseURL: z.string().url().optional(),
 			screeningId: ModelIdSchema.optional(),
+			dataCollection: z.enum(["deny", "allow"]).optional(),
 		})
 		.strict(),
 	screening: z
@@ -47,6 +61,11 @@ export const EngineOptionsSchema = z.object({
 			rateLimiter: z
 				.custom<RateLimiter>((value) => hasMethods(value, ["take"]), {
 					message: "rateLimiter must have a take function",
+				})
+				.optional(),
+			exchangeLimiter: z
+				.custom<RateLimiter>((value) => hasMethods(value, ["take"]), {
+					message: "exchangeLimiter must have a take function",
 				})
 				.optional(),
 		})
@@ -78,4 +97,5 @@ export const EngineOptionsSchema = z.object({
 		.optional(),
 	onFailure: fn<(failure: EngineFailure) => void>("onFailure").optional(),
 	onScore: fn<(score: EngineScore) => void>("onScore").optional(),
+	scheduling: SchedulingPortSchema.optional(),
 });

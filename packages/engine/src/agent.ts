@@ -1,7 +1,8 @@
-import { Agent } from "@mastra/core/agent";
+import { Agent, type ToolsInput } from "@mastra/core/agent";
 import type { MastraModelConfig } from "@mastra/core/llm";
 import { noopLogger } from "@mastra/core/logger";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
+import type { RequestContext } from "@mastra/core/request-context";
 import type { Memory } from "@mastra/memory";
 
 /**
@@ -19,11 +20,16 @@ export interface ProfileAgentOptions {
 	model: MastraModelConfig;
 	/** Given only to the agent that serves threads; the other one can never store anything. */
 	memory?: Memory;
+	/**
+	 * The agent's tools: fixed (the scheduling agent's), or hydrated per call from the request
+	 * context (the grounded-answer agent's catalog tools, see `grounding/agent-tools.ts`).
+	 */
+	tools?: ToolsInput | ((ctx: { requestContext: RequestContext }) => Promise<ToolsInput>);
 }
 
 /**
- * One profile's Mastra agent. Tools are supplied per call (they are bound to that answer's
- * ledger). Provider retries and Mastra's default error processors are off: the engine fails fast
+ * One profile's Mastra agent. Its tools are hydrated per call and find the answer's ledger in the
+ * request context. Provider retries and Mastra's default error processors are off: the engine fails fast
  * to `unavailable` rather than waiting through backoff. The agent's logger is silenced: Mastra
  * logs failed requests with their bodies, which carry visitors' questions; failures reach the app
  * through `onFailure`. The only input processor is the token limit; the guardrails run before the
@@ -39,6 +45,7 @@ export function createProfileAgent(opts: ProfileAgentOptions): Agent {
 		errorProcessorDefaults: false,
 		inputProcessors: [new TokenLimiterProcessor({ limit: MAX_PROMPT_TOKENS })],
 		...(opts.memory === undefined ? {} : { memory: opts.memory }),
+		...(opts.tools === undefined ? {} : { tools: opts.tools }),
 	});
 	agent.__setLogger(noopLogger);
 	return agent;

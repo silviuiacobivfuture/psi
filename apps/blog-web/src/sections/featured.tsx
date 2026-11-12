@@ -1,6 +1,7 @@
 import type { PublishedArticle } from "@psi/content";
 import { ArticleCover } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { coverPicture } from "../covers";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
@@ -24,7 +25,11 @@ export function Featured({
 				tabindex={-1}
 				aria-label={a.title[locale]}
 			>
-				<ArticleCover hue={1}>
+				<ArticleCover
+					hue={1}
+					image={a.cover === null ? undefined : { src: a.cover.src, alt: a.cover.alt[locale] }}
+					picture={a.cover === null ? coverPicture(a.slug, locale, "featured") : undefined}
+				>
 					<span class="bl-cover-mark">¶</span>
 				</ArticleCover>
 			</a>

@@ -45,7 +45,7 @@ export function MethodPage(props: PageProps): JSX.Element {
 						</li>
 					))}
 				</ol>
-				<p class="text-body-sm text-ink-muted">
+				<p class="text-body text-ink-muted">
 					{m.faq_4_a({}, o)}{" "}
 					<a class="underline underline-offset-4" href={href(locale, "safety")}>
 						{m.nav_safety({}, o)}

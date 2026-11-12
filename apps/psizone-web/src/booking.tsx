@@ -20,14 +20,93 @@ export const BookingRequest = z
 			.default(""),
 		forWhom: z.enum(["child", "teen", "adult"]),
 		when: z.enum(["morning", "afternoon", "any"]).default("any"),
+		/** A free slot's id when scheduling is on; empty (or absent) means "call me back". */
+		slot: z.string().max(120).default(""),
 		consent: z.literal("yes"),
 	})
 	.refine((v) => v.email !== "" || v.phone !== "", { path: ["contact"] });
 
-export type BookingErrors = Partial<Record<"name" | "contact" | "forWhom" | "consent", string>>;
-export type BookingValues = Partial<
-	Record<"name" | "email" | "phone" | "forWhom" | "when", string>
+/** The confirm step's form: the hold it confirms and the contact typed in the first step. */
+export const BookingConfirmation = z.object({
+	reference: z.string().trim().min(8).max(12),
+	holdToken: z.string().trim().min(16).max(64),
+	name: z.string().trim().min(2).max(80),
+	email: z.string().trim().max(120).default(""),
+	phone: z.string().trim().max(20).default(""),
+	forWhom: z.enum(["child", "teen", "adult"]),
+	when: z.enum(["morning", "afternoon", "any"]).default("any"),
+	consent: z.literal("yes"),
+});
+
+/**
+ * Which booking form a request belongs to: the contact page's, or the one inside the guide's
+ * conversation (the compass can open it on /contact too). Every step answers with the same id, so
+ * Datastar patches the form that was sent and never the other one.
+ */
+export const FormIdSchema = z.enum(["booking", "chat-booking"]).catch("booking");
+export type FormId = z.infer<typeof FormIdSchema>;
+const FIELD_PREFIX: Readonly<Record<FormId, string>> = { booking: "b", "chat-booking": "cb" };
+
+export type BookingErrors = Partial<
+	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
 >;
+export type BookingValues = Partial<
+	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot", string>
+>;
+
+/** One bookable time as the form offers it, already in words for the locale. */
+export interface SlotChoice {
+	id: string;
+	time: string;
+}
+
+/** A day of free times. */
+export interface SlotDay {
+	day: string;
+	slots: ReadonlyArray<SlotChoice>;
+}
+
+const INTL_LOCALE: Readonly<Record<Locale, string>> = { ro: "ro-RO", en: "en-GB" };
+
+/** "marți, 18 noiembrie" and "10:15", in the practice's zone (daylight saving included). */
+export function wallClock(
+	start: number,
+	timeZone: string,
+	locale: Locale,
+): { day: string; time: string } {
+	const tag = INTL_LOCALE[locale];
+	const day = new Intl.DateTimeFormat(tag, {
+		timeZone,
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+	}).format(start);
+	const time = new Intl.DateTimeFormat(tag, {
+		timeZone,
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23",
+	}).format(start);
+	return { day, time };
+}
+
+/** Free slots grouped by local day, at most `days` days. */
+export function slotDays(
+	slots: ReadonlyArray<{ id: string; start: number }>,
+	timeZone: string,
+	locale: Locale,
+	days = 4,
+): ReadonlyArray<SlotDay> {
+	const grouped = new Map<string, SlotChoice[]>();
+	for (const slot of slots) {
+		const { day, time } = wallClock(slot.start, timeZone, locale);
+		const list = grouped.get(day) ?? [];
+		if (list.length === 0 && grouped.size >= days) break;
+		list.push({ id: slot.id, time });
+		grouped.set(day, list);
+	}
+	return [...grouped].map(([day, list]) => ({ day, slots: list }));
+}
 
 /** Maps the parser's issues to the field errors a person reads. */
 export function errorsFor(
@@ -70,20 +149,68 @@ function Choice({
 	);
 }
 
+/** The free evaluation times, by day, and "call me instead" (the callback flow, as before). */
+function SlotPicker({
+	locale,
+	days,
+	values,
+	errors,
+}: {
+	locale: Locale;
+	days: ReadonlyArray<SlotDay>;
+	values: BookingValues;
+	errors: BookingErrors;
+}): JSX.Element {
+	const o = at(locale);
+	const chosen = values.slot ?? "";
+	return (
+		<fieldset class="space-y-4">
+			<legend class="pz-field__label">{m.form_slot({}, o)}</legend>
+			<p class="text-body-sm text-ink-muted">{m.form_slot_hint({}, o)}</p>
+			{days.map((day) => (
+				<div class="space-y-2">
+					<p class="text-body-sm text-ink">{day.day}</p>
+					<div class="flex flex-wrap gap-2">
+						{day.slots.map((slot) => (
+							<Choice name="slot" value={slot.id} label={slot.time} checked={chosen === slot.id} />
+						))}
+					</div>
+				</div>
+			))}
+			<div class="flex flex-wrap gap-2">
+				<Choice name="slot" value="" label={m.form_slot_callback({}, o)} checked={chosen === ""} />
+			</div>
+			{errors.slot ? <p class="text-body-sm text-danger">{errors.slot}</p> : null}
+		</fieldset>
+	);
+}
+
 /** The form region, re-rendered by the server after every submit (patched by id). */
 export function BookingForm({
 	locale,
 	values = {},
 	errors = {},
+	slots = [],
+	id = "booking",
+	account,
 }: {
 	locale: Locale;
 	values?: BookingValues;
 	errors?: BookingErrors;
+	/** Free evaluation times; empty when scheduling is off, which keeps the callback form. */
+	slots?: ReadonlyArray<SlotDay>;
+	id?: FormId;
+	/**
+	 * The estate account, when sign-in is available: a signed-in person is told the form was filled
+	 * from their profile (and the request lands in their account); anyone else is invited to sign in.
+	 */
+	account?: { signedIn: true } | { signedIn: false; signInHref: string };
 }): JSX.Element {
 	const o = at(locale);
+	const f = FIELD_PREFIX[id];
 	return (
 		<form
-			id="booking"
+			id={id}
 			method="post"
 			action={`${base(locale)}/programare`}
 			class="space-y-7"
@@ -91,8 +218,19 @@ export function BookingForm({
 			data-on:submit__prevent={`@post('${base(locale)}/programare', {contentType: 'form'})`}
 			data-indicator="sending"
 		>
+			<input type="hidden" name="form" value={id} />
+			{account === undefined ? null : account.signedIn ? (
+				<p class="text-body-sm text-ink-muted">{m.form_signed_in({}, o)}</p>
+			) : (
+				<p class="text-body-sm text-ink-muted">
+					{`${m.form_sign_in_hint({}, o)} `}
+					<a class="underline" href={account.signInHref}>
+						{m.form_sign_in({}, o)}
+					</a>
+				</p>
+			)}
 			<TextField
-				id="b-name"
+				id={`${f}-name`}
 				name="name"
 				label={m.form_name({}, o)}
 				value={values.name}
@@ -100,7 +238,7 @@ export function BookingForm({
 			/>
 			<div class="grid gap-5 sm:grid-cols-2">
 				<TextField
-					id="b-email"
+					id={`${f}-email`}
 					name="email"
 					type="email"
 					label={m.form_email({}, o)}
@@ -109,7 +247,7 @@ export function BookingForm({
 					hint={errors.contact ? undefined : m.form_contact_hint({}, o)}
 				/>
 				<TextField
-					id="b-phone"
+					id={`${f}-phone`}
 					name="phone"
 					type="tel"
 					label={m.form_phone({}, o)}
@@ -140,6 +278,9 @@ export function BookingForm({
 				</div>
 				{errors.forWhom ? <p class="text-body-sm text-danger">{errors.forWhom}</p> : null}
 			</fieldset>
+			{slots.length > 0 ? (
+				<SlotPicker locale={locale} days={slots} values={values} errors={errors} />
+			) : null}
 			<fieldset class="space-y-3">
 				<legend class="pz-field__label">{m.form_when({}, o)}</legend>
 				<div class="flex flex-wrap gap-2">
@@ -181,14 +322,158 @@ export function BookingForm({
 }
 
 /** What replaces the form once the request is valid. Honest about not being connected yet. */
-export function BookingDone({ locale, name }: { locale: Locale; name: string }): JSX.Element {
+export function BookingDone({
+	locale,
+	name,
+	id = "booking",
+}: {
+	locale: Locale;
+	name: string;
+	id?: FormId;
+}): JSX.Element {
 	const o = at(locale);
 	return (
-		<div id="booking">
+		<div id={id}>
 			<GlassCard class="pz-edge space-y-4">
 				<h2 class="display text-headline text-ink">{m.form_ok_title({ name }, o)}</h2>
 				<p class="text-body text-ink-muted">{m.form_ok_text({}, o)}</p>
 				<StatusBadge tone="warning">{m.form_not_connected({}, o)}</StatusBadge>
+			</GlassCard>
+		</div>
+	);
+}
+
+/** What the confirm step shows and carries: the hold, and what the person typed in step one. */
+export interface HeldBooking {
+	reference: string;
+	holdToken: string;
+	start: number;
+	expiresAt: number;
+	practitionerName: string;
+	timeZone: string;
+	values: z.infer<typeof BookingRequest>;
+}
+
+/**
+ * The confirm step: the slot is held (no personal data stored yet), and nothing is requested
+ * until the person presses confirm. "Pick another time" releases the hold.
+ */
+export function BookingConfirm({
+	locale,
+	held,
+	id = "booking",
+}: {
+	locale: Locale;
+	held: HeldBooking;
+	id?: FormId;
+}): JSX.Element {
+	const o = at(locale);
+	const { day, time } = wallClock(held.start, held.timeZone, locale);
+	const minutes = Math.max(1, Math.round((held.expiresAt - Date.now()) / 60_000));
+	const prefix = base(locale);
+	const carried: ReadonlyArray<readonly [string, string]> = [
+		["reference", held.reference],
+		["holdToken", held.holdToken],
+		["name", held.values.name],
+		["email", held.values.email],
+		["phone", held.values.phone],
+		["forWhom", held.values.forWhom],
+		["when", held.values.when],
+		["consent", "yes"],
+		["form", id],
+	];
+	return (
+		<form
+			id={id}
+			method="post"
+			action={`${prefix}/programare/confirma`}
+			class="space-y-6"
+			data-indicator="sending"
+		>
+			{carried.map(([name, value]) => (
+				<input type="hidden" name={name} value={value} />
+			))}
+			<h2 class="display text-headline text-ink">{m.confirm_title({}, o)}</h2>
+			<p class="text-body text-ink">{m.confirm_text({ time, day, minutes: String(minutes) }, o)}</p>
+			<p class="text-body-sm text-ink-muted">
+				{m.confirm_with({ practitioner: held.practitionerName }, o)}
+			</p>
+			<div class="flex flex-wrap gap-3">
+				<Button
+					type="submit"
+					size="lg"
+					arrow
+					attrs={{
+						"data-on:click__prevent": `@post('${prefix}/programare/confirma', {contentType: 'form'})`,
+						"data-attr:disabled": "$sending",
+					}}
+				>
+					{m.confirm_submit({}, o)}
+				</Button>
+				<Button
+					type="submit"
+					variant="ghost"
+					attrs={{
+						formaction: `${prefix}/programare/renunta`,
+						"data-on:click__prevent": `@post('${prefix}/programare/renunta', {contentType: 'form'})`,
+						"data-attr:disabled": "$sending",
+					}}
+				>
+					{m.confirm_change({}, o)}
+				</Button>
+			</div>
+		</form>
+	);
+}
+
+/** The request is in: the reference, and the cancel code shown this once. */
+export function BookingRequested({
+	locale,
+	name,
+	reference,
+	cancelCode,
+	start,
+	timeZone,
+	id = "booking",
+	inAccount,
+}: {
+	locale: Locale;
+	name: string;
+	reference: string;
+	cancelCode: string;
+	start: number;
+	timeZone: string;
+	id?: FormId;
+	/** The person's account bookings page, when the request was made signed in. */
+	inAccount?: string;
+}): JSX.Element {
+	const o = at(locale);
+	const { day, time } = wallClock(start, timeZone, locale);
+	return (
+		<div id={id}>
+			<GlassCard class="pz-edge space-y-4">
+				<h2 class="display text-headline text-ink">{m.requested_title({ name }, o)}</h2>
+				<p class="text-body text-ink-muted">{m.requested_text({ time, day }, o)}</p>
+				<dl class="space-y-3">
+					<div>
+						<dt class="text-body-sm text-ink-muted">{m.requested_reference({}, o)}</dt>
+						<dd class="font-mono text-title text-ink" data-reference>
+							{reference}
+						</dd>
+					</div>
+					<div>
+						<dt class="text-body-sm text-ink-muted">{m.requested_cancel({}, o)}</dt>
+						<dd class="font-mono text-body text-ink">{cancelCode}</dd>
+					</div>
+				</dl>
+				{inAccount === undefined ? null : (
+					<p class="text-body-sm text-ink-muted">
+						{`${m.requested_in_account({}, o)} `}
+						<a class="underline" href={inAccount}>
+							{m.requested_in_account_link({}, o)}
+						</a>
+					</p>
+				)}
 			</GlassCard>
 		</div>
 	);

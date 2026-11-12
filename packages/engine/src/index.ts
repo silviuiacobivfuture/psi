@@ -8,6 +8,15 @@ export {
 	type EngineTimeouts,
 	type FailureStage,
 } from "./ask-context";
+export { type BookingOffer, type BookingScope, isBookingIntent, offerTimes } from "./booking";
+export {
+	type CatalogItem,
+	CatalogItemsSchema,
+	type CatalogLookup,
+	catalogEntry,
+	catalogItems,
+	type EngineCatalog,
+} from "./catalog";
 export {
 	type EngineKnowledge,
 	EngineKnowledgeSchema,
@@ -41,16 +50,38 @@ export {
 	RefusalReasonSchema,
 } from "./events";
 export {
+	AnswerTurn,
+	createProfileTools,
+	FIND_PAGE_TOOL,
+	GET_ENTRY_TOOL,
+	LIST_TOPICS_TOOL,
+	MAX_TOOL_CALLS,
+	type ProfileToolsOptions,
+	RESULT_BUDGET_CHARS,
+	TURN_KEY,
+} from "./grounding/agent-tools";
+export {
 	createFaithfulness,
 	type EngineScore,
+	type Evidence,
+	type EvidencePage,
+	evidenceFrom,
 	FAITHFULNESS_THRESHOLD,
 	type Faithfulness,
 	type FaithfulnessOptions,
-	type PassageLookup,
 	type SentenceVerdict,
+	type Severity,
 	type Unfaithful,
 } from "./grounding/faithfulness";
 export { SEARCH_TOOL_ID } from "./grounding/knowledge-tool";
+export {
+	createIngestWorkflow,
+	type EngineIngest,
+	type EngineIngestReport,
+	EngineIngestReportSchema,
+	INGEST_KNOWLEDGE_WORKFLOW,
+	type IngestKnowledgeWorkflow,
+} from "./ingest-workflow";
 export {
 	createLanguageDetector,
 	type DetectedLanguage,
@@ -75,15 +106,67 @@ export {
 } from "./profile";
 export { instructionsFor, languageNote, NO_CONTENT_SENTINEL } from "./prompt";
 export { matchesRules, type RuleSet, RuleSetSchema } from "./rules";
+export {
+	createSchedulingAgent,
+	type ProfileSchedulingAgent,
+	schedulingInstructions,
+	schedulingRules,
+} from "./scheduling/agent";
+export {
+	type ProfileScheduling,
+	ProfileSchedulingSchema,
+	type SchedulingCancel,
+	SchedulingCancelSchema,
+	type SchedulingMode,
+	type SchedulingPort,
+	SchedulingPortSchema,
+	type SchedulingSearch,
+	type SchedulingSlot,
+	SchedulingSlotSchema,
+	type SchedulingSlots,
+	SchedulingSlotsSchema,
+} from "./scheduling/port";
+export {
+	CANCEL_REQUEST_TOOL,
+	type CancelRequestOutput,
+	CancelRequestOutputSchema,
+	createSchedulingRegistryTools,
+	createSchedulingTools,
+	FIND_AVAILABILITY_TOOL,
+	type FindAvailabilityOutput,
+	FindAvailabilityOutputSchema,
+	type ProposedSlot,
+	REQUEST_APPOINTMENT_TOOL,
+	type RequestAppointmentOutput,
+	RequestAppointmentOutputSchema,
+	runCancelRequest,
+	runFindAvailability,
+	runRequestAppointment,
+	SCHEDULING_TIMEOUT_MS,
+	SCHEDULING_TOOL_IDS,
+	type SchedulingInputSchemas,
+	type SchedulingRegistryTools,
+	type SchedulingTools,
+	schedulingInputSchemas,
+} from "./scheduling/tools";
 export { messageText, type ScreeningRules, screenInput } from "./screening/chain";
 export {
 	createMemoryRateLimiter,
 	DEFAULT_RATE_LIMIT,
 	type MemoryRateLimitOptions,
 	type RateLimiter,
+	type RatePolicy,
 } from "./screening/rate-limit";
 export { isAbusive, isInjection } from "./screening/rules";
 export { cleanText } from "./screening/unicode";
+export {
+	createSettingsSource,
+	DEFAULT_SETTINGS,
+	type RetrievalSettings,
+	RetrievalSettingsSchema,
+	type SettingsProvider,
+	type SettingsSource,
+} from "./settings";
 export { KNOWLEDGE_TOOL } from "./studio-tool";
 export { fold, matchesAny } from "./text/normalize";
 export { createSentences, type Sentences } from "./text/sentences";

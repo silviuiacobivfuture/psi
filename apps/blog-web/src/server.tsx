@@ -10,8 +10,13 @@ import {
 	streamGuideAnswer,
 } from "@psi/ui";
 import { type Context, Hono } from "hono";
+import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
+import { account, guideForRequest } from "./account";
+import { registerAccountRoutes } from "./account-routes";
+import { countingGuide, trackable } from "./analytics/index";
 import { brandFrom } from "./brands";
+import { registerCmsRoutes, startCms } from "./cms-routes";
 import { findArticle } from "./content/articles";
 import { topicFrom } from "./content/topics";
 import { ESTATE, SITE } from "./estate";
@@ -21,6 +26,7 @@ import type { Locale } from "./i18n";
 import { ArticlePage } from "./pages/article";
 import { IndexPage } from "./pages/index";
 import { NotFoundPage } from "./pages/not-found";
+import { registerPwa } from "./pwa/routes";
 import { rssFeed } from "./rss";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
@@ -30,6 +36,11 @@ const PORT = Number.parseInt(process.env.PORT ?? "4340", 10);
 
 export const app = new Hono({ strict: false });
 applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+app.use(contextStorage());
+// The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); pages below.
+account.mount(app);
+// The installable app and its notifications (docs/plans/pwa.md); before the CMS routes, so a publish is announced.
+registerPwa(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -55,6 +66,8 @@ app.get("/assets/datastar.js", (c) =>
 );
 app.use("/assets/*", serveStatic({ root: "./public" }));
 app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
+// The shared CMS: revalidation webhook, live preview, reading beacon (cms-routes.ts).
+registerCmsRoutes(app);
 
 for (const [locale, prefix, segment] of [
 	["ro", "", "articole"],
@@ -80,6 +93,7 @@ for (const [locale, prefix, segment] of [
 				locale={locale}
 				theme={themeFrom(getCookie(c, "theme"))}
 				origin={originOf(c)}
+				beacon={trackable(c)}
 			/>,
 		);
 	});
@@ -96,16 +110,18 @@ for (const [locale, prefix, segment] of [
 			"content-type": "application/rss+xml; charset=utf-8",
 		});
 	});
+	registerAccountRoutes(app, locale, prefix);
 	app.post(`${prefix}/ghid`, async (c) => {
 		const signals = parseAskSignals(await c.req.json().catch(() => null));
 		const target = parseAnswerTarget(c.req.query("target"));
 		const question = signals === null ? null : questionFor(target, signals);
 		if (question === null) return c.body(null, 204);
 		return streamGuideAnswer(c, {
-			guide,
+			guide: countingGuide(await guideForRequest(c, guide), locale, trackable(c)),
 			locale,
 			question,
 			target,
+			signals,
 			labels: guideLabels(locale),
 			class: answerClass(target),
 		});
@@ -115,6 +131,7 @@ for (const [locale, prefix, segment] of [
 app.notFound((c) => notFound(c, c.req.path.startsWith("/en/") ? "en" : "ro"));
 
 if (process.env.NODE_ENV !== "test") {
+	await startCms();
 	serve({ fetch: app.fetch, port: PORT }, (info) =>
 		console.log(`blog-web on http://localhost:${info.port}`),
 	);

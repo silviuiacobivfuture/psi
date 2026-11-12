@@ -19,7 +19,9 @@ import {
 import type { EngineKnowledge } from "./contract";
 import { EngineOptionsSchema } from "./engine-options";
 import { type AskInput, askInputSchema, type EngineEvent } from "./events";
+import { createProfileTools } from "./grounding/agent-tools";
 import { createFaithfulness, type EngineScore } from "./grounding/faithfulness";
+import { createIngestWorkflow, type EngineIngest } from "./ingest-workflow";
 import { createLanguageDetector } from "./language/detect";
 import { BUNDLED_LANGUAGES } from "./language/index";
 import type { LanguagePack } from "./language/pack";
@@ -27,8 +29,12 @@ import { openMemory } from "./memory";
 import { openRouterModel, readOpenRouterKey } from "./model";
 import type { Profile } from "./profile";
 import { instructionsFor } from "./prompt";
+import { createSchedulingAgent, type ProfileSchedulingAgent } from "./scheduling/agent";
+import type { ProfileScheduling, SchedulingPort } from "./scheduling/port";
+import { createSchedulingRegistryTools } from "./scheduling/tools";
 import type { RateLimiter } from "./screening/rate-limit";
 import { createMemoryRateLimiter } from "./screening/rate-limit";
+import { createSettingsSource, type SettingsProvider } from "./settings";
 import { createKnowledgeTool } from "./studio-tool";
 import { createGroundedAnswerWorkflow } from "./workflow";
 
@@ -42,6 +48,11 @@ export interface EngineModelOptions {
 	baseURL?: string;
 	/** The slug for the model guardrails; defaults to `id`. */
 	screeningId?: string;
+	/**
+	 * OpenRouter's `provider.data_collection` for the answering and the guardrail models; `deny`
+	 * by default. `allow` is for `:free` models in development with dummy data only.
+	 */
+	dataCollection?: "deny" | "allow";
 }
 
 export interface EngineScreeningOptions {
@@ -52,12 +63,25 @@ export interface EngineScreeningOptions {
 	model?: boolean;
 	/** Counts questions per `AskControl.clientId`; defaults to an in-memory limiter (10 a minute). */
 	rateLimiter?: RateLimiter;
+	/**
+	 * Counts exchanges per `AskControl.visitorKeys`, with the settings' `exchangeLimit` and
+	 * `exchangeWindowHours` (default 20 a day). Defaults to an in-memory store (one process); pass
+	 * a shared one (any `RateLimiter` honouring the per-call policy) for several instances.
+	 */
+	exchangeLimiter?: RateLimiter;
 }
 
 export interface EngineOptions {
 	/** The personas the engine answers as; one Mastra agent each. */
 	profiles: ReadonlyArray<Profile>;
 	knowledge: EngineKnowledge;
+	/**
+	 * The admin's runtime settings (`RetrievalSettings`), read once per answer and parsed; on
+	 * failure the last good ones, then the defaults. Without it, the defaults.
+	 */
+	settings?: SettingsProvider;
+	/** The knowledge base's ingest; registers the `ingest-knowledge` workflow (`ingestKnowledge`). */
+	ingest?: EngineIngest;
 	/** Vector stores to register with Mastra (`mastra.getVector(name)`), e.g. `{ chroma }`. */
 	vectors?: Readonly<Record<string, MastraVector>>;
 	model: EngineModelOptions;
@@ -86,6 +110,11 @@ export interface EngineOptions {
 	onFailure?: (failure: EngineFailure) => void;
 	/** Called with the faithfulness score of every answer that was scored; no visitor content. */
 	onScore?: (score: EngineScore) => void;
+	/**
+	 * The scheduling store (`@psi/scheduling`'s client fits). Profiles with `scheduling` get a
+	 * separate scheduling agent and Mastra registers the scheduling tools; without it, none exist.
+	 */
+	scheduling?: SchedulingPort;
 }
 
 /** One profile's answers. */
@@ -95,6 +124,8 @@ export interface ProfileGuide {
 	readonly agent: Agent;
 	/** Streams one answer. Never throws: failures arrive as `refusal` events. */
 	ask(input: AskInput, control?: AskControl): AsyncIterable<EngineEvent>;
+	/** The profile's scheduling agent and tools, when it opted in and a store was given. */
+	readonly scheduling?: ProfileSchedulingAgent;
 }
 
 export interface Engine {
@@ -152,22 +183,27 @@ export function createEngine(options: EngineOptions): Engine {
 	const prefix = opts.idPrefix ?? "engine";
 	const table = languageTable(opts.languages ?? []);
 	const apiKey = opts.model.apiKey ?? readOpenRouterKey(process.env);
-	const baseURL = opts.model.baseURL === undefined ? {} : { baseURL: opts.model.baseURL };
+	const routing = {
+		...(opts.model.baseURL === undefined ? {} : { baseURL: opts.model.baseURL }),
+		dataCollection: opts.model.dataCollection ?? "deny",
+	};
 	// Without a key the agents are still built, so Mastra and Studio can list them; asks refuse.
-	const model = openRouterModel({ apiKey: apiKey ?? "", modelId: opts.model.id, ...baseURL });
+	const model = openRouterModel({ apiKey: apiKey ?? "", modelId: opts.model.id, ...routing });
 	const screeningId = opts.model.screeningId ?? opts.model.id;
 	const screeningModel =
 		apiKey === undefined || opts.screening?.model === false
 			? undefined
 			: (onError: (error: Error) => void) =>
-					openRouterModel({ apiKey, modelId: screeningId, ...baseURL, onError });
+					openRouterModel({ apiKey, modelId: screeningId, ...routing, onError });
 	const rateLimiter = opts.screening?.rateLimiter ?? createMemoryRateLimiter();
+	const exchangeLimiter = opts.screening?.exchangeLimiter ?? createMemoryRateLimiter();
 	const timeouts: EngineTimeouts = { ...DEFAULT_TIMEOUTS, ...opts.timeouts };
 	const allPacks = [...new Set(opts.profiles.flatMap((p) => [...profilePacks(p, table).values()]))];
 	const faithfulness = createFaithfulness({
 		scorerId: opts.scorerId ?? "faithfulness",
 		packs: allPacks,
 		nextSteps: opts.profiles.flatMap((profile) => profile.nextStepPhrases ?? []),
+		knownNames: opts.profiles.map((profile) => profile.name),
 	});
 	const memoryUrl = opts.memory?.url;
 	let memory: ReturnType<typeof openMemory> | undefined;
@@ -187,6 +223,13 @@ export function createEngine(options: EngineOptions): Engine {
 			name: profile.name,
 			instructions: instructionsFor(firstPack, firstLocale),
 			model,
+			tools: createProfileTools({
+				profile,
+				knowledge: opts.knowledge,
+				defaultLocale,
+				languageName: (locale) => packs.get(locale)?.name ?? locale,
+				retrievalMs: timeouts.retrievalMs,
+			}),
 		};
 		const agent = createProfileAgent(agentOptions);
 		let threads: ThreadAgent | undefined;
@@ -223,17 +266,52 @@ export function createEngine(options: EngineOptions): Engine {
 			knowledge: opts.knowledge,
 			timeouts,
 			rateLimiter,
+			exchangeLimiter,
+			settings: createSettingsSource({
+				...(opts.settings === undefined ? {} : { provider: opts.settings }),
+				timeoutMs: timeouts.screeningMs,
+				onError: (error) => {
+					try {
+						opts.onFailure?.({
+							profile: profile.id,
+							stage: "settings",
+							error:
+								error instanceof Error
+									? `${error.name}: ${error.message}`.slice(0, 300)
+									: "unknown error",
+						});
+					} catch {
+						// A failing log hook must not change the answer.
+					}
+				},
+			}),
 			onFailure: opts.onFailure,
 			onScore: opts.onScore,
 			screeningModel,
 			agent: apiKey === undefined ? undefined : agent,
 			threadAgent,
 			resourceId: `${prefix}-${profile.id}`,
+			...(opts.scheduling === undefined || profile.scheduling === undefined
+				? {}
+				: { booking: { port: opts.scheduling, scope: profile.scheduling } }),
 		};
+		const scheduling =
+			opts.scheduling === undefined || profile.scheduling === undefined
+				? undefined
+				: createSchedulingAgent({
+						id: `${agentOptions.id}-scheduling`,
+						profile,
+						scope: profile.scheduling,
+						pack: firstPack,
+						locale: firstLocale,
+						port: opts.scheduling,
+						model,
+					});
 		guides.set(profile.id, {
 			profile,
 			agent,
 			ask: (input, control) => runAsk(ctx, input, control),
+			...(scheduling === undefined ? {} : { scheduling }),
 		});
 	}
 
@@ -244,14 +322,28 @@ export function createEngine(options: EngineOptions): Engine {
 	};
 	const profileIds = nonEmpty(ids, "profiles");
 	const agents: Record<string, Agent> = {};
-	for (const [id, entry] of guides) agents[id] = entry.agent;
+	const schedulingScopes: Record<string, ProfileScheduling> = {};
+	for (const [id, entry] of guides) {
+		agents[id] = entry.agent;
+		if (entry.scheduling === undefined) continue;
+		agents[`${id}-scheduling`] = entry.scheduling.agent;
+		schedulingScopes[id] = entry.scheduling.scope;
+	}
+	const schedulingTools =
+		opts.scheduling === undefined || Object.keys(schedulingScopes).length === 0
+			? {}
+			: createSchedulingRegistryTools(opts.scheduling, schedulingScopes);
 	const mastra = new Mastra({
 		agents,
 		...(opts.vectors === undefined ? {} : { vectors: { ...opts.vectors } }),
 		scorers: { [faithfulness.scorer.id]: faithfulness.scorer },
-		tools: { searchKnowledge: createKnowledgeTool(opts.profiles, opts.knowledge) },
+		tools: {
+			searchKnowledge: createKnowledgeTool(opts.profiles, opts.knowledge),
+			...schedulingTools,
+		},
 		workflows: {
 			groundedAnswer: createGroundedAnswerWorkflow(profileIds, (id, input) => guide(id).ask(input)),
+			...(opts.ingest === undefined ? {} : { ingestKnowledge: createIngestWorkflow(opts.ingest) }),
 		},
 		logger: opts.logger ?? noopLogger,
 		...(opts.storage === undefined ? {} : { storage: opts.storage }),

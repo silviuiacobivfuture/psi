@@ -2,9 +2,9 @@ import type { Brand, Locale } from "@psi/knowledge";
 import { z } from "zod";
 
 /**
- * The knowledge contract, from `@psi/knowledge` (type-only: nothing of that package runs inside
- * the guide unless the app hands a `Knowledge` in). Whatever a `Knowledge` returns is parsed by
- * the engine before it is trusted.
+ * The knowledge contract, from `@psi/knowledge`. The guide runs only that package's flags, its
+ * demo marker and its entry schema itself; search and ingest run in the `Knowledge` the app hands
+ * in. Whatever a `Knowledge` returns is parsed by the engine before it is trusted.
  */
 export type { Brand, Knowledge, Locale, Passage, Source } from "@psi/knowledge";
 

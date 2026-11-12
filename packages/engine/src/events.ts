@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { BookingOffer } from "./booking";
 import type { Source } from "./contract";
 
 /**
@@ -12,6 +13,8 @@ import type { Source } from "./contract";
  * - `abuse`: the question harasses, insults or threatens (the language packs' rules, unless the
  *   profile exempts it, or Mastra's `ModerationProcessor`).
  * - `rate_limited`: the app's client asked too many questions too fast.
+ * - `exchange_limit`: the visitor used up the exchanges the settings allow per window (any one of
+ *   their keys: session, browser, fingerprint). Distinct from `rate_limited`, which is a burst.
  * - `no_content`: nothing reviewed answers the question, or the answer was not faithful to the
  *   passages it cites.
  * - `unavailable`: no API key, a provider, knowledge or configuration failure, a timeout, an
@@ -23,6 +26,7 @@ export type RefusalReason =
 	| "injection"
 	| "abuse"
 	| "rate_limited"
+	| "exchange_limit"
 	| "no_content"
 	| "unavailable";
 
@@ -32,6 +36,7 @@ export const REFUSAL_REASONS = [
 	"injection",
 	"abuse",
 	"rate_limited",
+	"exchange_limit",
 	"no_content",
 	"unavailable",
 ] as const satisfies ReadonlyArray<RefusalReason>;
@@ -49,6 +54,8 @@ export type EngineEvent =
 	| { type: "text"; delta: string }
 	| { type: "sources"; sources: ReadonlyArray<Source> }
 	| { type: "refusal"; reason: RefusalReason }
+	/** Free times to book, offered in the conversation; the app renders its own confirm step. */
+	| { type: "booking"; offer: BookingOffer }
 	| { type: "done" };
 
 export type HistoryRole = "user" | "guide";

@@ -54,7 +54,7 @@ export function ExerciseList({ locale }: { locale: Locale }): JSX.Element {
 						playLabel={m.exercise_play({ title: x.title }, o)}
 						pauseLabel={m.exercise_pause({ title: x.title }, o)}
 					/>
-					<p class="mt-3 px-5 text-body-sm text-ink-muted">{x.text}</p>
+					<p class="mt-3 px-5 text-body text-ink-muted">{x.text}</p>
 				</li>
 			))}
 		</ol>
@@ -73,7 +73,7 @@ export function Exercises({ locale }: { locale: Locale }): JSX.Element {
 						{m.exercises_title_1({}, o)} <em>{m.exercises_title_2({}, o)}</em>
 					</h2>
 					<p class="mt-6 max-w-md text-body-lg text-ink-muted">{m.exercises_lead({}, o)}</p>
-					<p class="mt-8 flex max-w-md gap-3 text-body-sm text-ink-muted">
+					<p class="mt-8 flex max-w-md gap-3 text-body text-ink-muted">
 						<svg
 							class="mt-0.5 shrink-0 text-glow-1"
 							width="20"
@@ -91,7 +91,10 @@ export function Exercises({ locale }: { locale: Locale }): JSX.Element {
 						</svg>
 						{m.exercises_headphones({}, o)}
 					</p>
-					<a class="text-link mt-8 inline-block text-body" href={href(locale, "exercises")}>
+					<a
+						class="pz-tap text-link mt-8 inline-flex items-center text-body"
+						href={href(locale, "exercises")}
+					>
 						{m.exercises_all({}, o)}
 					</a>
 				</div>

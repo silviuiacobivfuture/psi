@@ -1,0 +1,171 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/cms/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "cms",
+	"version": 1,
+	"scope_resolvers": {
+		"cms_brand": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#role_cms_admin",
+		"platform#role_cms_ai_admin",
+		"platform#role_cms_clinical_reviewer",
+		"platform#role_cms_editor",
+		"platform#role_cms_publisher",
+		"platform#role_cms_reader"
+	],
+	"features": [
+		{
+			"key": "content",
+			"name": {
+				"ro": "Conținut",
+				"en": "Content"
+			}
+		},
+		{
+			"key": "review",
+			"name": {
+				"ro": "Revizuire clinică",
+				"en": "Clinical review"
+			}
+		},
+		{
+			"key": "media",
+			"name": {
+				"ro": "Media",
+				"en": "Media"
+			}
+		},
+		{
+			"key": "admin",
+			"name": {
+				"ro": "Administrare",
+				"en": "Administration"
+			}
+		},
+		{
+			"key": "ai",
+			"name": {
+				"ro": "Setări AI",
+				"en": "AI settings"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "cms:admin",
+			"name": {
+				"ro": "Administrator CMS",
+				"en": "CMS administrator"
+			},
+			"description": {
+				"ro": "Tot ce poate face CMS-ul, pe toate brandurile.",
+				"en": "Everything the CMS does, on every brand."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_admin",
+			"super_admin": true,
+			"grants": [
+				"cms_brand#read",
+				"cms_brand#write",
+				"cms_brand#publish",
+				"cms_brand#clinical_review",
+				"cms_brand#manage_media",
+				"cms_brand#admin",
+				"cms_brand#ai_admin"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:editor",
+			"name": {
+				"ro": "Editor",
+				"en": "Editor"
+			},
+			"description": {
+				"ro": "Scrie ciorne și încarcă imagini; nu publică.",
+				"en": "Writes drafts and uploads images; does not publish."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_editor",
+			"grants": ["cms_brand#read", "cms_brand#write", "cms_brand#manage_media"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:publisher",
+			"name": {
+				"ro": "Publicator",
+				"en": "Publisher"
+			},
+			"description": {
+				"ro": "Publică conținutul aprobat.",
+				"en": "Publishes approved content."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_publisher",
+			"grants": [
+				"cms_brand#read",
+				"cms_brand#write",
+				"cms_brand#publish",
+				"cms_brand#manage_media"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:clinical_reviewer",
+			"name": {
+				"ro": "Revizor clinic",
+				"en": "Clinical reviewer"
+			},
+			"description": {
+				"ro": "Aprobă sau respinge, pe fiecare limbă, textul clinic scris de altcineva.",
+				"en": "Approves or rejects, per language, clinical text someone else wrote."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_clinical_reviewer",
+			"grants": ["cms_brand#read", "cms_brand#clinical_review"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:reader",
+			"name": {
+				"ro": "Cititor (serviciu)",
+				"en": "Reader (service)"
+			},
+			"description": {
+				"ro": "Citește ciornele, fără a scrie: blogul de staging și previzualizarea.",
+				"en": "Reads drafts without writing: the staging blog and the preview."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_reader",
+			"grants": ["cms_brand#read"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:ai_admin",
+			"name": {
+				"ro": "Administrator AI",
+				"en": "AI administrator"
+			},
+			"description": {
+				"ro": "Schimbă setările AI ale brandului; citește conținutul.",
+				"en": "Changes the brand's AI settings; reads content."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_ai_admin",
+			"grants": ["cms_brand#read", "cms_brand#ai_admin"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

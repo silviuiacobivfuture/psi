@@ -1,7 +1,22 @@
-import { type Block, type CollectionConfig, ValidationError } from "payload";
-import { publishedOrSignedIn, signedIn } from "./access";
-import { type ArticleDraft, missingForPublish } from "./publishable";
-import { BRANDS, SLUG, TOPICS } from "./vocabulary";
+import type { Block, CollectionConfig, FieldHook } from "payload";
+import {
+	createByBrand,
+	deleteByBrand,
+	readByBrand,
+	readVersionsByBrand,
+	serverOnly,
+	signedInOnly,
+	updateByBrand,
+} from "../authz/access";
+import { L } from "../labels";
+import { previewUrl } from "../preview/url";
+import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
+import { reviewGate } from "../review/gate";
+import type { ReviewSpec } from "../review/spec";
+import { announceArticle, announceDeleted } from "../webhook/hooks";
+import { asArticleDraft, missingForPublish } from "./publishable";
+import { validator, validSlug, validStandfirst } from "./validate";
+import { BRANDS, TOPIC_LABELS, TOPICS } from "./vocabulary";
 
 const text = (name: string, label: { ro: string; en: string }): Block["fields"][number] => ({
 	name,
@@ -11,7 +26,7 @@ const text = (name: string, label: { ro: string; en: string }): Block["fields"][
 	label,
 });
 
-/** The body's blocks, the same four the blog renders (packages/content/src/schema.ts). */
+/** The body's blocks, the same four the blog renders (@psi/content `Block`). */
 const BODY: Block[] = [
 	{
 		slug: "p",
@@ -50,47 +65,189 @@ const BODY: Block[] = [
 	},
 ];
 
-const TOPIC_LABELS: Readonly<Record<(typeof TOPICS)[number], { ro: string; en: string }>> = {
-	autism: { ro: "Autism", en: "Autism" },
-	adhd: { ro: "ADHD", en: "ADHD" },
-	adolescenti: { ro: "Adolescenți", en: "Teenagers" },
-	"integrare-senzoriala": { ro: "Integrare senzorială", en: "Sensory integration" },
-	logopedie: { ro: "Logopedie", en: "Speech therapy" },
-	qeeg: { ro: "QEEG", en: "QEEG" },
-	"anxietate-depresie": { ro: "Anxietate și depresie", en: "Anxiety and depression" },
-	editorial: { ro: "Editorial", en: "Editorial" },
+/** Romanian title → slug when the slug is left empty: lower case, no diacritics, dashes. */
+export function slugify(title: string): string {
+	return title
+		.normalize("NFD")
+		.replace(/\p{M}/gu, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 80)
+		.replace(/-+$/g, "");
+}
+
+const slugFromTitle: FieldHook = ({ value, siblingData }) => {
+	if (typeof value === "string" && value !== "") return value;
+	const t: unknown = siblingData.title;
+	return typeof t === "string" && t.trim() !== "" ? slugify(t) : value;
 };
 
-/** The blog's articles: localised content, typed body blocks, the clinical-review rule enforced. */
+/**
+ * Every article is approved before it is published: a health article by a clinical reviewer
+ * (`clinical_review`), any other by a publisher (`publish`). Both locales are reviewed: the blog
+ * publishes only articles written in Romanian and English.
+ */
+export const articleReview: ReviewSpec = {
+	slug: "articles",
+	reviewed: [
+		"title",
+		"slug",
+		"standfirst",
+		"body",
+		"sources",
+		"cover",
+		"kind",
+		"topic",
+		"brand",
+		"authorTeam",
+		"author",
+	],
+	// Fully unlocalised only: the body's blocks and the sources carry per-locale text, and are
+	// read per locale from the stored draft (a structural change shows in every locale's hash).
+	shared: ["slug", "cover", "kind", "topic", "brand", "author"],
+	titleField: "title",
+	requiredLocales: ["ro", "en"],
+	signsReviewer: true,
+	stampsPublishedAt: true,
+	required: () => true,
+	clinical: (doc) => doc.kind === "health",
+	missing: (doc) => missingForPublish(asArticleDraft(doc)),
+};
+
+/** The blog's articles: @psi/content's schema, authored per locale, through the review gate. */
 export const Articles: CollectionConfig = {
 	slug: "articles",
 	labels: {
 		singular: { ro: "Articol", en: "Article" },
 		plural: { ro: "Articole", en: "Articles" },
 	},
-	admin: { useAsTitle: "title", defaultColumns: ["title", "brand", "topic", "status"] },
-	access: { read: publishedOrSignedIn, create: signedIn, update: signedIn, delete: signedIn },
+	admin: {
+		useAsTitle: "title",
+		defaultColumns: ["title", "brand", "topic", "kind", "workflow", "_status", "updatedAt"],
+		listSearchableFields: ["title", "slug"],
+		livePreview: { url: ({ data, locale }) => previewUrl(data.id, locale.code) },
+		preview: (doc, { locale }) => previewUrl(doc.id, locale),
+	},
+	versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
+	access: {
+		read: readByBrand,
+		readVersions: readVersionsByBrand,
+		create: createByBrand,
+		update: updateByBrand,
+		delete: deleteByBrand,
+	},
 	hooks: {
-		beforeValidate: [
-			({ data, originalDoc }) => {
-				const merged: ArticleDraft = { ...(originalDoc ?? {}), ...(data ?? {}) };
-				const missing = missingForPublish(merged);
-				if (missing.length > 0)
-					throw new ValidationError({
-						collection: "articles",
-						errors: missing.map((path) => ({ path, message: "required to publish" })),
-					});
-				return data;
-			},
-		],
+		beforeChange: [reviewGate(articleReview)],
+		afterChange: [announceArticle],
+		afterDelete: [announceDeleted],
 	},
 	fields: [
 		{
-			name: "title",
-			type: "text",
-			localized: true,
-			required: true,
-			label: { ro: "Titlu", en: "Title" },
+			type: "tabs",
+			tabs: [
+				{
+					label: { ro: "Text", en: "Text" },
+					fields: [
+						{ name: "title", type: "text", localized: true, required: true, label: L.title },
+						{
+							name: "standfirst",
+							type: "textarea",
+							localized: true,
+							label: L.standfirst,
+							admin: {
+								description: {
+									ro: "Răspunde titlului, în cel mult 60 de cuvinte.",
+									en: "Answers the headline, in 60 words at most.",
+								},
+							},
+							validate: validator(validStandfirst),
+						},
+						{ name: "cover", type: "upload", relationTo: "media", label: L.cover },
+						{ name: "body", type: "blocks", blocks: BODY, label: L.body },
+					],
+				},
+				{
+					label: { ro: "Surse și proveniență", en: "Sources and provenance" },
+					fields: [
+						{
+							name: "sources",
+							type: "array",
+							label: L.sources,
+							fields: [
+								{
+									name: "label",
+									type: "text",
+									localized: true,
+									required: true,
+									label: { ro: "Titlu", en: "Label" },
+								},
+								{ name: "href", type: "text", required: true, label: { ro: "Link", en: "Link" } },
+							],
+						},
+						{ name: "aiDrafted", type: "checkbox", defaultValue: false, label: L.aiDrafted },
+						{
+							name: "provenance",
+							type: "array",
+							label: L.provenance,
+							access: { read: signedInOnly },
+							admin: {
+								description: {
+									ro: "Fișierele sau documentele din care vine fiecare fapt, pentru revizor.",
+									en: "The files or documents every fact comes from, for the reviewer.",
+								},
+							},
+							fields: [{ name: "entry", type: "text", required: true, label: L.provenanceEntry }],
+						},
+					],
+				},
+				{
+					label: { ro: "Semnătură", en: "Byline" },
+					fields: [
+						{
+							name: "authorTeam",
+							type: "text",
+							localized: true,
+							label: { ro: "Echipa (articol editorial)", en: "Team (editorial article)" },
+						},
+						{
+							name: "author",
+							type: "relationship",
+							relationTo: "people",
+							label: { ro: "Autor (articol de sănătate)", en: "Author (health article)" },
+						},
+						{
+							name: "reviewer",
+							type: "relationship",
+							relationTo: "people",
+							label: L.reviewerPerson,
+							access: serverOnly,
+							admin: {
+								readOnly: true,
+								description: {
+									ro: "Pus de aprobarea revizorului clinic, nu se scrie de mână.",
+									en: "Set by the clinical reviewer's approval, never typed in.",
+								},
+							},
+						},
+						{
+							name: "reviewedAt",
+							type: "date",
+							label: L.reviewedAt,
+							access: serverOnly,
+							admin: { readOnly: true },
+						},
+					],
+				},
+			],
+		},
+		{
+			name: "reviewPanel",
+			type: "ui",
+			admin: {
+				position: "sidebar",
+				components: { Field: "/components/ReviewPanel#ReviewPanel" },
+			},
 		},
 		{
 			name: "slug",
@@ -98,23 +255,34 @@ export const Articles: CollectionConfig = {
 			required: true,
 			unique: true,
 			index: true,
-			label: { ro: "Adresă (slug)", en: "Slug" },
-			validate: (v: string | null | undefined): true | string =>
-				typeof v === "string" && SLUG.test(v) ? true : "lower-case-words-with-dashes",
+			label: L.slug,
+			admin: { position: "sidebar" },
+			hooks: { beforeValidate: [slugFromTitle] },
+			validate: validator(validSlug, true),
 		},
-		{
-			name: "brand",
-			type: "select",
-			required: true,
-			label: { ro: "Brand", en: "Brand" },
-			options: BRANDS.map((b) => ({ value: b, label: b })),
-		},
+		brandField(BRANDS),
 		{
 			name: "topic",
 			type: "select",
 			required: true,
 			label: { ro: "Temă", en: "Topic" },
+			admin: { position: "sidebar" },
 			options: TOPICS.map((t) => ({ value: t, label: TOPIC_LABELS[t] })),
+		},
+		{
+			name: "kind",
+			type: "select",
+			required: true,
+			defaultValue: "health",
+			label: L.kind,
+			admin: { position: "sidebar" },
+			options: [
+				{
+					value: "health",
+					label: { ro: "Sănătate (revizuire clinică)", en: "Health (clinical review)" },
+				},
+				{ value: "editorial", label: { ro: "Editorial", en: "Editorial" } },
+			],
 		},
 		{
 			name: "backlogNo",
@@ -122,68 +290,16 @@ export const Articles: CollectionConfig = {
 			min: 1,
 			max: 20,
 			label: { ro: "Nr. în plan", en: "Backlog no." },
+			admin: { position: "sidebar" },
 		},
 		{
-			name: "status",
-			type: "select",
-			required: true,
-			defaultValue: "in-review",
-			label: { ro: "Stare", en: "Status" },
-			options: [
-				{ value: "in-review", label: { ro: "În revizuire", en: "In review" } },
-				{ value: "published", label: { ro: "Publicat", en: "Published" } },
-			],
+			name: "publishedAt",
+			type: "date",
+			label: L.publishedAt,
+			admin: { position: "sidebar" },
 		},
-		{
-			name: "kind",
-			type: "select",
-			label: { ro: "Tip", en: "Kind" },
-			options: [
-				{ value: "health", label: { ro: "Sănătate", en: "Health" } },
-				{ value: "editorial", label: { ro: "Editorial", en: "Editorial" } },
-			],
-		},
-		{
-			name: "standfirst",
-			type: "textarea",
-			localized: true,
-			label: { ro: "Șapou", en: "Standfirst" },
-		},
-		{ name: "publishedAt", type: "date", label: { ro: "Publicat la", en: "Published on" } },
-		{ name: "body", type: "blocks", blocks: BODY, label: { ro: "Conținut", en: "Body" } },
-		{
-			name: "sources",
-			type: "array",
-			label: { ro: "Surse", en: "Sources" },
-			fields: [
-				{
-					name: "label",
-					type: "text",
-					localized: true,
-					required: true,
-					label: { ro: "Titlu", en: "Label" },
-				},
-				{ name: "href", type: "text", required: true, label: { ro: "Link", en: "Link" } },
-			],
-		},
-		{
-			name: "authorTeam",
-			type: "text",
-			localized: true,
-			label: { ro: "Echipa (editorial)", en: "Team (editorial)" },
-		},
-		{
-			name: "author",
-			type: "relationship",
-			relationTo: "people",
-			label: { ro: "Autor", en: "Author" },
-		},
-		{
-			name: "reviewer",
-			type: "relationship",
-			relationTo: "people",
-			label: { ro: "Revizor clinic", en: "Clinical reviewer" },
-		},
-		{ name: "reviewedAt", type: "date", label: { ro: "Revizuit la", en: "Reviewed on" } },
+		workflowField,
+		authorUserField,
+		reviewField,
 	],
 };

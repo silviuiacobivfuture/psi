@@ -1,4 +1,13 @@
-import { type AskControl, type EngineTimeouts, ModelIdSchema, type RateLimiter } from "@psi/engine";
+import {
+	type AskControl,
+	type EngineTimeouts,
+	type FailureStage,
+	ModelIdSchema,
+	type RateLimiter,
+	type SchedulingPort,
+	SchedulingPortSchema,
+	type SettingsProvider,
+} from "@psi/engine";
 import { z } from "zod";
 import { type Brand, BrandSchema, type Knowledge } from "./contract";
 import type { AskInput, GuideEvent } from "./events";
@@ -12,7 +21,7 @@ export type GuideTimeouts = EngineTimeouts;
  * the passages or the answer. Every failure makes the answer `unavailable`.
  */
 export interface GuideFailure {
-	stage: "retrieval" | "model" | "screening" | "rate_limit";
+	stage: FailureStage;
 	error: string;
 }
 
@@ -25,6 +34,8 @@ export interface GuideScore {
 	supported: number;
 	/** True when the answer may be shown: at least one claim, and every claim supported. */
 	passed: boolean;
+	/** Sentences left out of the answer as unsupported (they invented no fact). */
+	dropped: number;
 }
 
 export interface GuideOptions {
@@ -49,6 +60,24 @@ export interface GuideOptions {
 	 * minute per client), which suits development and a single instance only.
 	 */
 	rateLimiter?: RateLimiter;
+	/**
+	 * Counts exchanges per visitor key (`AskControl.visitorKeys`: session cookie, browser cookie,
+	 * fingerprint), with the settings' `exchangeLimit` per `exchangeWindowHours` (default 20 a
+	 * day). In memory by default (one process); pass a shared `RateLimiter` for several instances.
+	 */
+	exchangeLimiter?: RateLimiter;
+	/**
+	 * The admin's runtime settings provider (`RetrievalSettings`: `guideEnabled`, `exchangeLimit`,
+	 * `exchangeWindowHours`, the retrieval switches), cached by the caller; parsed per answer, with
+	 * the last good value and then the defaults as fallbacks. Defaults to `PSI_GUIDE_SETTINGS`.
+	 */
+	settings?: SettingsProvider;
+	/**
+	 * The scheduling store's engine port (`schedulingFromEnv(...).scheduling.port`). For a brand
+	 * that schedules (Psizone), a booking question is answered in the conversation with free times
+	 * the app renders as its confirm step; nothing is ever held or booked by the guide.
+	 */
+	scheduling?: SchedulingPort;
 	/**
 	 * Mastra's model guardrails (`PromptInjectionDetector`, `ModerationProcessor`): two small model
 	 * calls per answered question. On by default.
@@ -102,6 +131,18 @@ const GuideOptionsSchema = z.object({
 			{ message: "rateLimiter must have a take function" },
 		)
 		.optional(),
+	exchangeLimiter: z
+		.custom<RateLimiter>(
+			(value) =>
+				typeof value === "object" &&
+				value !== null &&
+				"take" in value &&
+				typeof value.take === "function",
+			{ message: "exchangeLimiter must have a take function" },
+		)
+		.optional(),
+	settings: z.custom<SettingsProvider>((value) => typeof value === "function").optional(),
+	scheduling: SchedulingPortSchema.optional(),
 	modelScreening: z.boolean().optional(),
 	screeningModel: ModelIdSchema.optional(),
 });
@@ -130,6 +171,7 @@ export function createGuide(options: GuideOptions): Guide {
 							claims: score.claims,
 							supported: score.supported,
 							passed: score.passed,
+							dropped: score.dropped,
 						}),
 				}),
 	});

@@ -1,5 +1,6 @@
-import { Button } from "@psi/ui";
+import { Button, OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
@@ -25,7 +26,7 @@ export function ClubPage(props: PageProps): JSX.Element {
 				title={m.cl_title({}, o)}
 				lead={m.club_text({}, o)}
 			>
-				<p class="mt-8 max-w-xl border-l-2 border-glow-2 pl-4 text-body-sm text-ink">
+				<p class="mt-8 max-w-xl border-l-2 border-glow-2 pl-4 text-body text-ink">
 					{m.club_note({}, o)}
 				</p>
 			</PageHero>
@@ -36,6 +37,7 @@ export function ClubPage(props: PageProps): JSX.Element {
 				</Button>
 			</Band>
 			<Band overline={m.cl_how_overline({}, o)} title={m.cl_how_title({}, o)} wash>
+				<OfferingPrices class="mt-8" items={prices(locale, ["club"])} />
 				<Pending locale={locale}>{m.cl_pending({}, o)}</Pending>
 			</Band>
 			<NextSteps

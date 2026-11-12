@@ -1,0 +1,88 @@
+# The owner path, staff roles and strangers for module `hemisync`. Hand-written; the generated
+# hemisync.closure.fga.yaml proves the permission closure. Run: fga model test --tests '<this file>'
+name: hemisync-owner
+model_file: ../fga.mod
+
+tuples:
+  - user: user:staff_role_hemisync_reception
+    relation: role_hemisync_reception
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: hemisync_session_request:r1
+  - user: platform:psi
+    relation: parent_platform
+    object: hemisync_exercise:r1
+
+tests:
+  - name: hemisync_session_request — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: viewer
+        object: hemisync_session_request:r1
+      - user: user:owner
+        relation: editor
+        object: hemisync_session_request:r1
+    check:
+      - user: user:owner
+        object: hemisync_session_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+      - user: user:stranger
+        object: hemisync_session_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+  - name: hemisync_session_request — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: hemisync_session_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+      - user: user:staff_role_hemisync_reception
+        object: hemisync_session_request:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+  - name: hemisync_exercise — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: listener
+        object: hemisync_exercise:r1
+    check:
+      - user: user:owner
+        object: hemisync_exercise:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: true
+      - user: user:stranger
+        object: hemisync_exercise:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false
+  - name: hemisync_exercise — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: hemisync_exercise:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false
+      - user: user:staff_role_hemisync_reception
+        object: hemisync_exercise:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false

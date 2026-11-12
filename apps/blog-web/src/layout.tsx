@@ -2,6 +2,7 @@ import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Locale } from "./i18n";
+import { PwaHeadTags } from "./pwa/site";
 import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
 
@@ -57,6 +58,7 @@ export function Layout({
 						alternate={alternate}
 						ogType={ogType}
 					/>
+					<PwaHeadTags locale={locale} />
 					<link rel="alternate" type="application/rss+xml" title={feed.title} href={feed.href} />
 					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 					<link rel="preconnect" href="https://fonts.googleapis.com" />

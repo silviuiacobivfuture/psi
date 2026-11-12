@@ -20,7 +20,7 @@ export function Closing({ locale }: { locale: Locale }): JSX.Element {
 						<Button size="lg" arrow href={`${b}/#programe`}>
 							{m.cta_programmes({}, o)}
 						</Button>
-						<a class="text-link text-body" href={`${b}/#exercitii`}>
+						<a class="pz-tap text-link text-body" href={`${b}/#exercitii`}>
 							{m.cta_exercises({}, o)}
 						</a>
 					</div>
@@ -62,7 +62,7 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<ul class="space-y-2 text-body-sm">
 						{explore.map((l) => (
 							<li>
-								<a class="text-ink-muted hover:text-ink" href={l.href}>
+								<a class="pz-tap text-ink-muted hover:text-ink" href={l.href}>
 									{l.label}
 								</a>
 							</li>
@@ -74,7 +74,7 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<ul class="space-y-2 text-body-sm">
 						{legal.map((l) => (
 							<li>
-								<a class="text-ink-muted hover:text-ink" href={l.href}>
+								<a class="pz-tap text-ink-muted hover:text-ink" href={l.href}>
 									{l.label}
 								</a>
 							</li>

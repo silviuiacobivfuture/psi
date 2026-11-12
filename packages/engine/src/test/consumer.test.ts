@@ -254,7 +254,7 @@ describe("failing cleanly", () => {
 		]);
 	});
 
-	it("a key without credits (HTTP 402): the guardrails fail closed, named, before the answer model", async () => {
+	it("a key without credits (HTTP 402), strict level: the guardrails fail open, named, then the answer model's 402", async () => {
 		const server = await startFakeOpenRouter([{ kind: "status", status: 402 }], {
 			injection: { kind: "status", status: 402 },
 			moderation: { kind: "status", status: 402 },
@@ -266,14 +266,16 @@ describe("failing cleanly", () => {
 			knowledge: new FakeKnowledge([FOUND]),
 			model: { id: "acme/small-model", apiKey: "no-credits", baseURL: server.baseURL },
 			timeouts: { screeningMs: 2_000 },
+			settings: async () => ({ screeningLevel: "strict" }),
 			onFailure: (failure) => failures.push(failure),
 		});
 		const events = await collect(
 			engine.guide("harbour-bikes").ask({ question: "How do I rent a bike?", locale: "en" }),
 		);
 		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
-		expect(server.requests).toHaveLength(0);
-		expect(failures.map((f) => f.stage)).toEqual(["screening"]);
+		expect(server.screenings).toHaveLength(2);
+		expect(server.requests).toHaveLength(1);
+		expect(failures.map((f) => f.stage)).toEqual(["screening", "model"]);
 		expect(failures[0]?.error).toContain("(HTTP 402): the OpenRouter key has no credits");
 	});
 

@@ -36,8 +36,8 @@ export function EstateRow({ label, links, class: className }: EstateRowProps): J
 							aria-current={link.current ? "true" : undefined}
 							class={
 								link.current
-									? "text-ink underline decoration-line-strong underline-offset-4"
-									: "text-ink-muted underline-offset-4 hover:text-ink hover:underline"
+									? "pz-tap text-ink underline decoration-line-strong underline-offset-4"
+									: "pz-tap text-ink-muted underline-offset-4 hover:text-ink hover:underline"
 							}
 						>
 							{link.label}

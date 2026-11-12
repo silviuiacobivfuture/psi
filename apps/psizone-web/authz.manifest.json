@@ -1,0 +1,251 @@
+{
+	"$schema": "../../../seb/authz/manifest.schema.json",
+	"$comment": "Psizone's account resources (docs/plans/accounts.md). Every object is scoped to the estate's platform (platform:psi): psi's visitors belong to no organisation. The OWNER of a record is a per-record grant the application supplies at Check time as a contextual tuple, read from its own row (the system of record); nothing about a visitor is persisted in OpenFGA. Staff reach records only through the catalog roles below, granted in Polaris. No role reads guide memory or clinical data; none exists here.",
+	"app": "psizone-web",
+	"module": "psizone",
+	"version": 1,
+	"permission_model": "relational",
+	"generated_dir": "src/authz",
+	"features": [
+		{
+			"key": "account",
+			"name": {
+				"ro": "Cont",
+				"en": "Account"
+			},
+			"description": {
+				"ro": "Contul estate al unei persoane: profil minim și consimțăminte.",
+				"en": "A person's estate account: minimal profile and consents."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Vizualizare cont",
+						"en": "View an account"
+					},
+					"grants": [
+						"psizone_account#viewer"
+					],
+					"effect": "read",
+					"description": {
+						"ro": "Citește profilul minim și consimțămintele (export GDPR).",
+						"en": "Reads the minimal profile and consents (GDPR export)."
+					}
+				},
+				{
+					"key": "manage",
+					"name": {
+						"ro": "Gestionare cont",
+						"en": "Manage an account"
+					},
+					"grants": [
+						"psizone_account#editor"
+					],
+					"effect": "write",
+					"implies": [
+						"account:view"
+					],
+					"description": {
+						"ro": "Schimbă profilul și consimțămintele (persoana însăși; niciun rol de personal).",
+						"en": "Changes the profile and consents (the person themselves; no staff role)."
+					}
+				},
+				{
+					"key": "erase",
+					"name": {
+						"ro": "Ștergere cont",
+						"en": "Erase an account"
+					},
+					"grants": [
+						"psizone_account#eraser"
+					],
+					"effect": "write",
+					"implies": [
+						"account:view"
+					],
+					"description": {
+						"ro": "Șterge contul și tot ce ține de el, la cererea persoanei.",
+						"en": "Erases the account and everything it holds, at the person's request."
+					}
+				}
+			]
+		},
+		{
+			"key": "bookings",
+			"name": {
+				"ro": "Cereri de programare",
+				"en": "Booking requests"
+			},
+			"description": {
+				"ro": "Cererile de programare trimise de pe Psizone.",
+				"en": "Booking requests sent from Psizone."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Vizualizare cereri",
+						"en": "View requests"
+					},
+					"grants": [
+						"psizone_booking_request#viewer"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "manage",
+					"name": {
+						"ro": "Gestionare cereri",
+						"en": "Manage requests"
+					},
+					"grants": [
+						"psizone_booking_request#editor"
+					],
+					"effect": "write",
+					"implies": [
+						"bookings:view"
+					]
+				}
+			]
+		},
+		{
+			"key": "guide_memory",
+			"name": {
+				"ro": "Memoria ghidului",
+				"en": "Guide memory"
+			},
+			"description": {
+				"ro": "Conversațiile cu ghidul păstrate cu acordul persoanei. Niciun rol de personal nu le citește.",
+				"en": "Guide conversations kept with the person's consent. No staff role reads them."
+			},
+			"permissions": [
+				{
+					"key": "view",
+					"name": {
+						"ro": "Citire memorie",
+						"en": "Read memory"
+					},
+					"grants": [
+						"psizone_guide_thread#viewer"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "forget",
+					"name": {
+						"ro": "Ștergere memorie",
+						"en": "Forget memory"
+					},
+					"grants": [
+						"psizone_guide_thread#forgetter"
+					],
+					"effect": "write",
+					"implies": [
+						"guide_memory:view"
+					]
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "psizone_account",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": [
+						"[platform]"
+					]
+				}
+			]
+		},
+		{
+			"type": "psizone_booking_request",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": [
+						"[platform]"
+					]
+				}
+			]
+		},
+		{
+			"type": "psizone_guide_thread",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": [
+						"[platform]"
+					]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "psizone:reception",
+			"name": {
+				"ro": "Recepție",
+				"en": "Reception"
+			},
+			"scope_type": "platform",
+			"permissions": [
+				"bookings:view",
+				"bookings:manage"
+			],
+			"assignable": true,
+			"max_duration": null,
+			"description": {
+				"ro": "Răspunde cererilor de programare.",
+				"en": "Answers booking requests."
+			}
+		},
+		{
+			"key": "psizone:privacy_officer",
+			"name": {
+				"ro": "Responsabil protecția datelor",
+				"en": "Data protection officer"
+			},
+			"scope_type": "platform",
+			"permissions": [
+				"account:view",
+				"account:erase"
+			],
+			"assignable": true,
+			"max_duration": null,
+			"description": {
+				"ro": "Exportă și șterge conturi la cererea persoanei.",
+				"en": "Exports and erases accounts at the person's request."
+			}
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": [
+				"authentik"
+			],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": [
+				"autorizare"
+			],
+			"selected": "autorizare"
+		}
+	}
+}

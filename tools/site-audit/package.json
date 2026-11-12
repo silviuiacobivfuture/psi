@@ -11,7 +11,8 @@
 		"crawl:hemisync": "node scripts/crawl-site.mjs --site https://www.hemi-sync.ro --out data/crawl/hemi-sync",
 		"audit:urls": "node scripts/build-url-list.mjs",
 		"audit:check": "node scripts/validate-audit.mjs",
-		"audit:redirects": "node scripts/make-redirects.mjs"
+		"audit:redirects": "node scripts/make-redirects.mjs",
+		"audit:mobile": "node scripts/mobile-audit.mjs"
 	},
 	"dependencies": {
 		"cheerio": "1.0.0",

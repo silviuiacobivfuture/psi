@@ -1,6 +1,8 @@
+import { Picture } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
+import { methodPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
 import { HeadphonesIcon } from "./headphones-icon";
@@ -77,9 +79,12 @@ export function Method({
 							<p>{m.method_step_2({}, o)}</p>
 						</li>
 					</ol>
+					<figure class="pz-photo eq-photo pz-rise mt-10 aspect-[3/2]">
+						<Picture {...methodPicture(locale)} />
+					</figure>
 					{more ? (
 						<a
-							class="mt-10 inline-block text-data text-ink underline underline-offset-4"
+							class="pz-tap mt-10 inline-flex items-center text-data text-ink underline underline-offset-4"
 							href={href(locale, "method")}
 						>
 							{m.mp_more({}, o)}

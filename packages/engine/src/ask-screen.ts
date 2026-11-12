@@ -7,8 +7,11 @@ import { matchesRules } from "./rules";
 import { screenInput } from "./screening/chain";
 import { RateDecisionSchema } from "./screening/rate-limit";
 import { cleanText } from "./screening/unicode";
+import type { RetrievalSettings } from "./settings";
 
 const ClientIdSchema = z.string().trim().min(1).max(256).optional();
+const VisitorKeysSchema = z.array(z.string().trim().min(1).max(256)).max(8).default([]);
+const HOUR_MS = 3_600_000;
 
 /** The question as sent, if any, before validation, so crisis language is never missed. */
 function rawQuestion(raw: unknown): string | undefined {
@@ -44,21 +47,58 @@ async function rateLimit(
 }
 
 /**
+ * Counts one exchange on every visitor key (each on its own, so all are counted even when one is
+ * over), with the settings' limit and window. Over on any key refuses; the limiter failing refuses
+ * (fails closed).
+ */
+async function exchangeLimit(
+	ctx: AskContext,
+	control: AskControl | undefined,
+	settings: RetrievalSettings,
+): Promise<RefusalReason | undefined> {
+	try {
+		const keys = VisitorKeysSchema.parse(control?.visitorKeys);
+		if (keys.length === 0) return undefined;
+		const policy = {
+			limit: settings.exchangeLimit,
+			windowMs: Math.round(settings.exchangeWindowHours * HOUR_MS),
+		};
+		const decisions = await within(
+			Promise.all(
+				keys.map((key) => Promise.resolve().then(() => ctx.exchangeLimiter.take(key, policy))),
+			),
+			ctx.timeouts.screeningMs,
+			"exchange limiter",
+		);
+		return decisions.every((d) => RateDecisionSchema.parse(d)) ? undefined : "exchange_limit";
+	} catch (error) {
+		report(ctx, "rate_limit", error);
+		return "unavailable";
+	}
+}
+
+/**
  * The guardrails that need no model, before anything leaves the process: crisis (on the raw and
- * the cleaned text, so invisible characters cannot hide it), the rate limit, validation, the
- * deterministic chain (`screenInput`) and scope.
+ * the cleaned text, so invisible characters cannot hide it, and never limited), the runtime
+ * settings (a switched-off guide is `unavailable`), the rate limit, the exchange limit,
+ * validation, the deterministic chain (`screenInput`) and scope.
  */
 export async function screen(
 	ctx: AskContext,
 	raw: unknown,
 	control: AskControl | undefined,
-): Promise<{ input: AskInput } | { reason: RefusalReason }> {
+): Promise<{ input: AskInput; settings: RetrievalSettings } | { reason: RefusalReason }> {
 	const invalidInput = ctx.profile.refusalPolicy?.invalidInput ?? "out_of_scope";
 	const question = rawQuestion(raw);
 	if (question !== undefined && (isCrisis(ctx, question) || isCrisis(ctx, cleanText(question)))) {
 		return { reason: "crisis" };
 	}
-	const limited = await rateLimit(ctx, control);
+	const settings = await ctx.settings.current();
+	if (!settings.guideEnabled) {
+		report(ctx, "disabled", new Error("the guide is switched off (guideEnabled: false)"));
+		return { reason: "unavailable" };
+	}
+	const limited = (await rateLimit(ctx, control)) ?? (await exchangeLimit(ctx, control, settings));
 	if (limited !== undefined) return { reason: limited };
 	const parsed = ctx.inputSchema.safeParse(raw);
 	if (!parsed.success) return { reason: invalidInput };
@@ -73,5 +113,5 @@ export async function screen(
 	if (matchesRules(screened.input.question, ctx.profile.outOfScope ?? [])) {
 		return { reason: "out_of_scope" };
 	}
-	return screened;
+	return { input: screened.input, settings };
 }

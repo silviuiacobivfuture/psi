@@ -6,6 +6,7 @@ import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Closing, Footer } from "../sections/closing";
 import { Header } from "../sections/header";
+import { StoryPhoto } from "../sections/story-photo";
 import type { Theme } from "../theme";
 
 /** After which paragraph the story's turning line is set apart. */
@@ -50,6 +51,7 @@ export function StoryPage({
 						<p class="mt-8 max-w-2xl text-body-lg text-ink-muted">{m.story_lead({}, o)}</p>
 					</div>
 				</AmbientField>
+				<StoryPhoto locale={locale} />
 
 				<section class="mx-auto max-w-6xl px-5 py-24" aria-labelledby="istoric">
 					<p class="text-overline uppercase tracking-[0.14em] text-ink-muted">

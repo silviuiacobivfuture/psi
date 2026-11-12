@@ -1,6 +1,7 @@
 import type { Agent } from "@mastra/core/agent";
 import type { Memory } from "@mastra/memory";
 import type { z } from "zod";
+import type { BookingScope } from "./booking";
 import type { EngineKnowledge } from "./contract";
 import type { AskInput } from "./events";
 import type { EngineScore, Faithfulness } from "./grounding/faithfulness";
@@ -10,6 +11,7 @@ import type { ChatModel } from "./model";
 import type { Profile } from "./profile";
 import type { ScreeningRules } from "./screening/chain";
 import type { RateLimiter } from "./screening/rate-limit";
+import type { SettingsSource } from "./settings";
 
 /** Time budgets for one answer, in milliseconds. */
 export interface EngineTimeouts {
@@ -31,7 +33,19 @@ export const DEFAULT_TIMEOUTS: EngineTimeouts = {
 };
 
 /** Which stage of an answer failed. */
-export type FailureStage = "retrieval" | "model" | "screening" | "rate_limit";
+export type FailureStage =
+	| "retrieval"
+	| "model"
+	| "screening"
+	| "rate_limit"
+	/** The settings provider failed; the last good settings (or the defaults) were used. */
+	| "settings"
+	/** The guide is switched off (`guideEnabled: false`). */
+	| "disabled"
+	/** Embeddings failed or the breaker is open: the search fell back to the lexical tier. */
+	| "embeddings_degraded"
+	/** The configured embedding model has no index yet: lexical until a re-ingest builds it. */
+	| "index_missing";
 
 /**
  * Why a stage failed, for the app's logs. It names the profile, the stage and the error, never
@@ -52,6 +66,13 @@ export interface AskControl {
 	 * an e-mail. Without it the engine does not rate-limit.
 	 */
 	clientId?: string;
+	/**
+	 * The visitor's keys for the exchange limit (e.g. a session cookie id, a browser cookie id, a
+	 * daily-salted fingerprint hash), each counted on its own: over the limit on any one refuses
+	 * `exchange_limit`. Never a name, an e-mail or a raw address. Without keys no exchange limit
+	 * applies.
+	 */
+	visitorKeys?: ReadonlyArray<string>;
 }
 
 /** A setting the engine needs and was not given: it names the setting, never a secret. */
@@ -80,6 +101,9 @@ export interface AskContext {
 	knowledge: EngineKnowledge;
 	timeouts: EngineTimeouts;
 	rateLimiter: RateLimiter;
+	/** Counts exchanges per visitor key, with the settings' limit and window. */
+	exchangeLimiter: RateLimiter;
+	settings: SettingsSource;
 	onFailure: ((failure: EngineFailure) => void) | undefined;
 	onScore: ((score: EngineScore) => void) | undefined;
 	/**
@@ -93,6 +117,8 @@ export interface AskContext {
 	threadAgent: (() => ThreadAgent) | undefined;
 	/** The memory resource this profile's threads belong to. */
 	resourceId: string;
+	/** Booking inside the conversation, when the profile schedules and a store was given. */
+	booking?: BookingScope;
 }
 
 function describe(error: unknown): string {

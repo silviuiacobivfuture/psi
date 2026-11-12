@@ -246,3 +246,28 @@ skipped and the skip names the reason. The seed tests call `createKnowledge` wit
 with `CHROMA_URL` set they follow it and write the seed into the configured Chroma database: point
 the tests at a local Chroma only, never at the estate's. Only the network is stubbed: the OpenRouter tests
 pass a fake `fetch` to the provider, so the live endpoint is not exercised by the suite.
+
+## Demo knowledge (development only)
+
+`src/demo/` holds fictional FAQ-style entries for every brand, ro and en: 128 in all. Each brand
+and locale has 15 retrievable entries (2 of them `clinical`, stamped "DEMO Reviewer") and 1
+unreviewed clinical entry the rule skips. Every entry is marked (`demo-` id, "[DEMO]" title,
+`/demo/…` URL, a notice in its body, `demo: true`) and makes no medical claim. They load only with
+`PSI_DEMO_KNOWLEDGE=true`, which throws in production (`NODE_ENV` or `SITE_ENV` = `production`):
+
+```sh
+CHROMA_URL=http://localhost:8000 pnpm ingest-demo --key-from ../../apps/psizone-web/.env  # OpenRouter
+CHROMA_URL=http://localhost:8000 pnpm ingest-demo                                         # lexical
+```
+
+The key is read from the file, never from the shell, and never printed.
+`PSI_OPENROUTER_DATA_COLLECTION` (`deny` by default, `allow` refused in production) routes the
+embedder, as it does the guide's models.
+
+## Catalog and tiers
+
+`createCatalog()` holds the retrievable entries this process knows (pass it to `createKnowledge({
+catalog })` to keep it in step with ingest and remove). It backs BM25 (`catalog/bm25.ts`) and the
+guide's catalog tools. `createTieredSearch` puts semantic search, lexical BM25, deep fusion (RRF)
+and a circuit breaker behind one search; see `packages/engine/README.md`, "Retrieval tiers".
+`kb.indexed(brand, locale)` says whether the embedder's index exists.

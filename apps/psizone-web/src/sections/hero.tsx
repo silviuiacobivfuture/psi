@@ -1,28 +1,53 @@
-import { AskBar, Button, GuideMessage } from "@psi/ui";
+import { AskBar, Button, GuideMessage, Picture } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
+import { heroPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 
 /** The centre's main public number, as published on psizone.ro. */
 const PHONE = { display: "0748 017 752", tel: "+40748017752" } as const;
 
 /**
- * The hero: the promise, two actions, the phone; beside it the centre in a photograph (a framed
- * placeholder until the shoot) over a soft beige disc, with the years of experience on a card.
+ * The hero: the promise, two actions, the phone; beside it a stage of rings and solid discs
+ * around an arched photo slot, the years counting up on a gold box. Under both, the documented
+ * facts rise in sequence. Flat; motion lives in styles.css and stops under reduced motion.
  */
 export function Hero({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	const b = base(locale);
+	const years = Number.parseInt(m.hero_stat_value({}, o), 10);
+	const words = m.hero_title({}, o).split(" ");
+	const audience = [
+		m.hero_audience_children({}, o),
+		m.hero_audience_adults({}, o),
+		m.hero_audience_seniors({}, o),
+	];
 	return (
 		<section class="hero -mt-20 overflow-hidden">
-			<div class="mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-36 md:pt-44 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
+			<div class="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-44 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
 				<div>
-					<p class="text-overline uppercase tracking-[0.14em] text-ink-muted">
+					<p class="hero-in text-overline uppercase tracking-[0.14em] text-ink-muted" style="--i:0">
 						{m.hero_overline({}, o)}
 					</p>
-					<h1 class="display mt-6 text-display-xl text-ink">{m.hero_title({}, o)}</h1>
-					<p class="mt-8 max-w-xl text-body-lg text-ink-muted">{m.hero_lead({}, o)}</p>
-					<div class="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+					<h1 class="display mt-6 text-display-xl text-ink">
+						{words.map((w, i) => (
+							<>
+								<span class="hero-word" style={`--i:${i + 1}`}>
+									{w}
+								</span>{" "}
+							</>
+						))}
+					</h1>
+					<p
+						class="hero-in mt-8 max-w-xl text-body-lg text-ink-muted"
+						style={`--i:${words.length + 1}`}
+					>
+						{m.hero_lead({}, o)}
+					</p>
+					<div
+						class="hero-in mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center"
+						style={`--i:${words.length + 2}`}
+					>
 						<Button size="lg" href={`${b}/contact`}>
 							{m.hero_cta_book({}, o)}
 						</Button>
@@ -30,7 +55,7 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 							{m.hero_cta_services({}, o)}
 						</Button>
 					</div>
-					<p class="mt-8 text-body text-ink-muted">
+					<p class="hero-in mt-8 text-body text-ink-muted" style={`--i:${words.length + 3}`}>
 						{`${m.hero_call({}, o)} `}
 						<a class="font-semibold text-glow-1 hover:underline" href={`tel:${PHONE.tel}`}>
 							{PHONE.display}
@@ -38,14 +63,46 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 					</p>
 				</div>
 				<div class="hero-visual">
-					<span class="hero-visual__disc" aria-hidden="true" />
-					<figure class="hero-visual__photo">
-						<figcaption>{m.hero_photo_placeholder({}, o)}</figcaption>
-					</figure>
-					<p class="hero-visual__stat">
-						<span class="hero-visual__value">{m.hero_stat_value({}, o)}</span>
-						<span class="hero-visual__label">{m.hero_stat_label({}, o)}</span>
-					</p>
+					<span class="hero-visual__layer hero-visual__layer--far" aria-hidden="true">
+						<span class="hero-visual__disc" />
+						<span class="hero-visual__emblem" />
+						<span class="hero-visual__ring hero-visual__ring--outer">
+							<span class="hero-visual__dot hero-visual__dot--gold" />
+						</span>
+						<span class="hero-visual__ring hero-visual__ring--inner">
+							<span class="hero-visual__dot hero-visual__dot--teal" />
+						</span>
+						<span class="hero-visual__bead hero-visual__bead--champagne" />
+					</span>
+					<div class="hero-visual__layer hero-visual__layer--near">
+						<figure class="hero-visual__photo hero-visual__photo--image">
+							<Picture {...heroPicture(locale)} imgClass="hero-visual__img" />
+						</figure>
+						<p class="hero-visual__stat">
+							<span class="hero-visual__value" style={`--to:${years}`}>
+								<span class="sr-only">{years}</span>
+								<span class="hero-visual__count" aria-hidden="true" />
+							</span>
+							<span class="hero-visual__label">{m.hero_stat_label({}, o)}</span>
+						</p>
+					</div>
+				</div>
+				<div class="hero-facts lg:col-span-2">
+					<ul class="hero-facts__group" aria-label={m.hero_audience_label({}, o)}>
+						{audience.map((label, i) => (
+							<li class="hero-fact hero-fact--pill" style={`--i:${i}`}>
+								{label}
+							</li>
+						))}
+					</ul>
+					<ul class="hero-facts__group">
+						<li class="hero-fact" style="--i:3">
+							{m.hero_fact_first({}, o)}
+						</li>
+						<li class="hero-fact hero-fact--teal" style="--i:4">
+							{m.hero_fact_method({}, o)}
+						</li>
+					</ul>
 				</div>
 			</div>
 		</section>

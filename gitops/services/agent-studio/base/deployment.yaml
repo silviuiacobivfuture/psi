@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-studio
+  labels: { app: agent-studio }
+  annotations:
+    # Rolls the pods when agent-studio-env changes (OpenBao -> ESO -> Secret -> roll).
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  # One writer for the libSQL file under /app/.data: never two pods at once.
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: agent-studio }
+  template:
+    metadata:
+      labels: { app: agent-studio }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # FIRST: fail LOUD on a missing or blank secret, before Studio boots (src/config.ts
+        # refuses a production start without its auth settings too). `${VAR:-}` survives kubelet
+        # expansion; assert each key literally. Adding a key = adding its line.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: agent-studio-env }
+          command:
+            - sh
+            - -c
+            - >-
+              m=0;
+              [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; };
+              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; };
+              [ "$m" = 0 ] && echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: studio
+          image: registry.psizone.ro/psi/agent-studio
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          ports:
+            - { name: http, containerPort: 4360 }
+          envFrom:
+            - secretRef: { name: agent-studio-env }
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: PORT, value: "4360" }
+            # Studio's page tells the browser to call <this>/api.
+            - { name: AGENT_STUDIO_PUBLIC_URL, value: "https://studio.psizone.ro" }
+            # read-only: nobody runs agents, tools or workflows, whatever group they hold. The owner
+            # changes this to `operate` deliberately (docs/plans/agent-studio.md, Risks).
+            - { name: AGENT_STUDIO_MODE, value: read-only }
+            # The check runs as Mastra server middleware, so Studio's page works without a Mastra
+            # Enterprise licence (apps/agent-studio/src/auth/edge-guard.ts).
+            - { name: AGENT_STUDIO_AUTH_SURFACE, value: edge-guard }
+            # The edge gate's application: its tokens carry this issuer; userinfo confirms each.
+            - { name: AUTHENTIK_GATE_ISSUER, value: "https://auth.psizone.ro/application/o/agent-studio/" }
+            # In-cluster, as the forward-auth Middleware calls it: no hairpin through the public
+            # address. Userinfo looks the token up by its string; the Host does not matter to it.
+            - { name: AUTHENTIK_USERINFO_URL, value: "http://authentik-server.authentik.svc.cluster.local/application/o/userinfo/" }
+            # `authentik Admins` is the gate's break-glass binding; it may look, never run.
+            - { name: AGENT_STUDIO_VIEW_GROUPS, value: "app-agent-studio-viewer,authentik Admins" }
+            - { name: AGENT_STUDIO_OPERATE_GROUPS, value: "app-agent-studio-operator" }
+            # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
+            # sidecar, SEARCH only (src/mastra/index.ts registers no ingest workflow).
+            - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            - { name: AGENT_STUDIO_SCHEDULING, value: "off" }
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /app/.data }
+      volumes:
+        # Studio's runs and traces (libSQL). Ephemeral on purpose for a first deployment: a
+        # restart forgets them. A PVC (hcloud-volumes, 10Gi minimum) is the plan's next step.
+        - name: data
+          emptyDir: { sizeLimit: 1Gi }

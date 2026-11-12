@@ -1,6 +1,8 @@
-import { ArchCard } from "@psi/ui";
+import { ArchCard, OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices } from "../cms";
 import { at, type Locale } from "../i18n";
+import { programmePicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href, PROGRAMME_SLUGS, type ProgrammeSlug } from "../routes";
 import { programmeHref } from "../sections/programmes";
@@ -61,6 +63,7 @@ export function ProgrammeArches({
 					text={c.text}
 					more={m.programme_more({}, at(locale))}
 					href={programmeHref(locale, c.slug)}
+					picture={programmePicture(locale, c.slug)}
 				/>
 			))}
 		</div>
@@ -101,6 +104,7 @@ export function ProgrammesPage(props: PageProps): JSX.Element {
 			</section>
 			<Band id="sesiuni" overline={m.nav_sessions({}, o)} title={m.pg_sessions_title({}, o)} wash>
 				<Para>{m.pg_request({}, o)}</Para>
+				<OfferingPrices class="mt-8" items={prices(locale, PROGRAMME_SLUGS)} />
 				<Pending locale={locale}>{m.pg_sessions_pending({}, o)}</Pending>
 			</Band>
 			<Band

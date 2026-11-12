@@ -1,7 +1,12 @@
 import type { ToolsInput } from "@mastra/core/agent";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { type EngineKnowledge, type Passage, PassagesSchema } from "../contract";
+import {
+	type EngineKnowledge,
+	type KnowledgeQuery,
+	type Passage,
+	PassagesSchema,
+} from "../contract";
 import { within } from "../deadline";
 import type { NumberedPassage, SourceLedger } from "./ledger";
 
@@ -20,13 +25,21 @@ export interface ScopeOptions {
 	locale: string;
 	timeoutMs: number;
 	signal: AbortSignal;
+	/** How the search may retrieve (the runtime settings). */
+	mode?: KnowledgeQuery["mode"];
 }
 
 /** Binds `EngineKnowledge.search` to a scope and locale; the result is parsed, never trusted as is. */
 export function scopeSearch(opts: ScopeOptions): ScopedSearch {
 	return async (query) => {
 		const found = await within(
-			opts.knowledge.search({ query, scope: opts.scope, locale: opts.locale, topK: TOP_K }),
+			opts.knowledge.search({
+				query,
+				scope: opts.scope,
+				locale: opts.locale,
+				topK: TOP_K,
+				...(opts.mode === undefined ? {} : { mode: opts.mode }),
+			}),
 			opts.timeoutMs,
 			"knowledge search",
 			opts.signal,

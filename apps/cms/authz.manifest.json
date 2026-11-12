@@ -1,0 +1,306 @@
+{
+	"$comment": "The psi CMS (apps/cms). Permissions are decided per brand: object cms_brand:<psizone|eqsync|hemisync|blog> (one admin for the four sites). The CMS asks Check(user:<sub>, <relation>, cms_brand:<brand>) and ListObjects(cms_brand, <relation>) and stores no role. Until psi's OpenFGA is reachable from the CMS, src/authz/interim.ts evaluates these same roles from CMS_ROLE_ASSIGNMENTS (docs/plans/blog-platform.md).",
+	"app": "cms",
+	"module": "cms",
+	"version": 1,
+	"features": [
+		{
+			"key": "content",
+			"name": {
+				"ro": "Conținut",
+				"en": "Content"
+			},
+			"permissions": [
+				{
+					"key": "read",
+					"name": {
+						"ro": "Citește conținutul, inclusiv ciornele",
+						"en": "Read content, drafts included"
+					},
+					"grants": ["cms_brand#read"],
+					"effect": "read"
+				},
+				{
+					"key": "write",
+					"name": {
+						"ro": "Scrie și modifică ciorne",
+						"en": "Write and edit drafts"
+					},
+					"grants": ["cms_brand#write"],
+					"effect": "write"
+				},
+				{
+					"key": "publish",
+					"name": {
+						"ro": "Publică (doar conținut aprobat clinic)",
+						"en": "Publish (clinically approved content only)"
+					},
+					"grants": ["cms_brand#publish"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "review",
+			"name": {
+				"ro": "Revizuire clinică",
+				"en": "Clinical review"
+			},
+			"permissions": [
+				{
+					"key": "clinical_review",
+					"name": {
+						"ro": "Aprobă sau respinge textul altcuiva",
+						"en": "Approve or reject someone else's text"
+					},
+					"grants": ["cms_brand#clinical_review"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "media",
+			"name": {
+				"ro": "Media",
+				"en": "Media"
+			},
+			"permissions": [
+				{
+					"key": "manage_media",
+					"name": {
+						"ro": "Încarcă și gestionează imagini",
+						"en": "Upload and manage images"
+					},
+					"grants": ["cms_brand#manage_media"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "admin",
+			"name": {
+				"ro": "Administrare",
+				"en": "Administration"
+			},
+			"permissions": [
+				{
+					"key": "admin",
+					"name": {
+						"ro": "Șterge conținut, vede persoanele",
+						"en": "Delete content, see people"
+					},
+					"grants": ["cms_brand#admin"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "ai",
+			"name": {
+				"ro": "Setări AI",
+				"en": "AI settings"
+			},
+			"permissions": [
+				{
+					"key": "ai_admin",
+					"name": {
+						"ro": "Schimbă setările AI ale brandului (încorporări, căutare, ghid)",
+						"en": "Change the brand's AI settings (embeddings, search, guide)"
+					},
+					"grants": ["cms_brand#ai_admin"],
+					"effect": "write"
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "cms_brand",
+			"scope": {
+				"scope_type": "platform",
+				"relation": "parent_platform"
+			},
+			"relations": [
+				{
+					"name": "parent_platform",
+					"from": ["[platform]"]
+				},
+				{
+					"name": "read",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "write",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "publish",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "clinical_review",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "manage_media",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "admin",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "ai_admin",
+					"from": ["[user, group#member]", "administrator from parent_platform"]
+				}
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "cms:admin",
+			"name": {
+				"ro": "Administrator CMS",
+				"en": "CMS administrator"
+			},
+			"description": {
+				"ro": "Tot ce poate face CMS-ul, pe toate brandurile.",
+				"en": "Everything the CMS does, on every brand."
+			},
+			"scope_type": "platform",
+			"super_admin": true,
+			"grants": [
+				"cms_brand#read",
+				"cms_brand#write",
+				"cms_brand#publish",
+				"cms_brand#clinical_review",
+				"cms_brand#manage_media",
+				"cms_brand#admin",
+				"cms_brand#ai_admin"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:editor",
+			"name": {
+				"ro": "Editor",
+				"en": "Editor"
+			},
+			"description": {
+				"ro": "Scrie ciorne și încarcă imagini; nu publică.",
+				"en": "Writes drafts and uploads images; does not publish."
+			},
+			"scope_type": "platform",
+			"grants": ["cms_brand#read", "cms_brand#write", "cms_brand#manage_media"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:publisher",
+			"name": {
+				"ro": "Publicator",
+				"en": "Publisher"
+			},
+			"description": {
+				"ro": "Publică conținutul aprobat.",
+				"en": "Publishes approved content."
+			},
+			"scope_type": "platform",
+			"grants": [
+				"cms_brand#read",
+				"cms_brand#write",
+				"cms_brand#publish",
+				"cms_brand#manage_media"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:clinical_reviewer",
+			"name": {
+				"ro": "Revizor clinic",
+				"en": "Clinical reviewer"
+			},
+			"description": {
+				"ro": "Aprobă sau respinge, pe fiecare limbă, textul clinic scris de altcineva.",
+				"en": "Approves or rejects, per language, clinical text someone else wrote."
+			},
+			"scope_type": "platform",
+			"grants": ["cms_brand#read", "cms_brand#clinical_review"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:reader",
+			"name": {
+				"ro": "Cititor (serviciu)",
+				"en": "Reader (service)"
+			},
+			"description": {
+				"ro": "Citește ciornele, fără a scrie: blogul de staging și previzualizarea.",
+				"en": "Reads drafts without writing: the staging blog and the preview."
+			},
+			"scope_type": "platform",
+			"grants": ["cms_brand#read"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:ai_admin",
+			"name": {
+				"ro": "Administrator AI",
+				"en": "AI administrator"
+			},
+			"description": {
+				"ro": "Schimbă setările AI ale brandului; citește conținutul.",
+				"en": "Changes the brand's AI settings; reads content."
+			},
+			"scope_type": "platform",
+			"grants": ["cms_brand#read", "cms_brand#ai_admin"],
+			"assignable": true,
+			"max_duration": null
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": {
+			"supported": ["authentik"],
+			"selected": "authentik"
+		},
+		"authorization": {
+			"supported": ["autorizare"],
+			"selected": "autorizare"
+		}
+	},
+	"public_reasons": [
+		{
+			"key": "sign_in",
+			"description": {
+				"ro": "Intrarea: /api/users/oauth/authorize și /api/users/oauth/callback (Authentik).",
+				"en": "Signing in: /api/users/oauth/authorize and /api/users/oauth/callback (Authentik)."
+			}
+		},
+		{
+			"key": "health_probe",
+			"description": {
+				"ro": "/healthz răspunde fără date.",
+				"en": "/healthz answers with no data."
+			}
+		},
+		{
+			"key": "published_content",
+			"description": {
+				"ro": "Siturile citesc anonim doar conținutul publicat (și aprobat clinic).",
+				"en": "The sites read only published (and clinically approved) content anonymously."
+			}
+		},
+		{
+			"key": "analytics_ingest",
+			"description": {
+				"ro": "/api/analytics/ingest primește contoare zilnice doar cu cheia colectorului blogului.",
+				"en": "/api/analytics/ingest takes daily counters only with the blog collector's key."
+			}
+		}
+	]
+}

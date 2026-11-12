@@ -53,7 +53,7 @@ export function PageShell({
 				<AmbientField intensity="low" class="pz-arc -mt-20">
 					<div class="mx-auto max-w-6xl px-5 pb-20 pt-44">
 						{back ? (
-							<a class="text-body-sm text-ink-muted hover:text-ink" href={back.href}>
+							<a class="pz-tap text-body-sm text-ink-muted hover:text-ink" href={back.href}>
 								{`← ${back.label}`}
 							</a>
 						) : null}

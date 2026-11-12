@@ -1,6 +1,7 @@
-import { Button, Chip, DayIndex, SoundWaves } from "@psi/ui";
+import { Button, Chip, DayIndex, Picture, SoundWaves } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
+import { heroPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
 import { HeadphonesIcon } from "./headphones-icon";
@@ -43,6 +44,9 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 						label={m.hero_day_label({ day: String(DAY), total: String(TOTAL) }, o)}
 						caption={m.hero_caption({}, o)}
 					/>
+					<figure class="pz-photo eq-photo mt-10 aspect-[16/9]">
+						<Picture {...heroPicture(locale)} />
+					</figure>
 				</div>
 			</div>
 			<SoundWaves class="absolute inset-x-0 bottom-6" height={150} />

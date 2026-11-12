@@ -1,4 +1,6 @@
+import { OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { prices, withoutPriceTodo } from "../cms";
 import { FAQ } from "../content/faq";
 import { VISIT_STEPS, VISIT_TODO } from "../content/visit";
 import { at, base } from "../i18n";
@@ -39,9 +41,16 @@ export function FirstVisitPage(props: Props): JSX.Element {
 					))}
 				</ol>
 				<div class="space-y-8 self-start">
-					<TodoBlock locale={locale} items={VISIT_TODO} />
+					<OfferingPrices items={prices(locale, ["prima-vizita"])} />
+					<TodoBlock
+						locale={locale}
+						items={withoutPriceTodo(VISIT_TODO, prices(locale, ["prima-vizita"]).length > 0)}
+					/>
 					<p class="text-body text-ink-muted">
-						<a class="font-semibold text-glow-1 hover:underline" href={`${b}/intrebari-frecvente`}>
+						<a
+							class="pz-tap font-semibold text-glow-1 hover:underline"
+							href={`${b}/intrebari-frecvente`}
+						>
 							{`${m.nav_faq({}, o)} →`}
 						</a>
 					</p>

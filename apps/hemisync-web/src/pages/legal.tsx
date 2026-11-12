@@ -47,7 +47,7 @@ export function LegalPage(props: PageProps & { kind: LegalKind }): JSX.Element {
 						<Button variant="glass" arrow href={`${LIVE}${PAGES[kind].ro}`}>
 							{m.lg_live_cta({}, o)}
 						</Button>
-						<a class="text-link text-body" href={href(locale, "trademarks")}>
+						<a class="pz-tap text-link text-body" href={href(locale, "trademarks")}>
 							{m.lg_trademarks_title({}, o)}
 						</a>
 					</div>

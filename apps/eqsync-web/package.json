@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"description": "eq-sync.ro \u2014 the EQ-SYNC landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
+	"description": "eq-sync.ro — the EQ-SYNC landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
 	"scripts": {
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
 		"css": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --minify",
@@ -17,10 +17,13 @@
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.19.0",
+		"@psi/account": "workspace:*",
+		"@psi/cms-client": "workspace:*",
 		"@psi/content": "workspace:*",
 		"@psi/design": "workspace:*",
 		"@psi/guide": "workspace:*",
 		"@psi/knowledge": "workspace:*",
+		"@psi/pwa": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76"

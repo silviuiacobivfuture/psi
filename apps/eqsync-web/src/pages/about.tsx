@@ -42,7 +42,7 @@ export function AboutPage(props: PageProps): JSX.Element {
 			</Band>
 			<Band overline={m.ap_company_overline({}, o)} title={m.ap_company_title({}, o)} tinted>
 				<Para>{m.ap_company_text({}, o)}</Para>
-				<p class="text-data text-ink-faint">{m.footer_trader({}, o)}</p>
+				<small class="block text-data text-ink-faint">{m.footer_trader({}, o)}</small>
 			</Band>
 			<NextSteps
 				locale={locale}

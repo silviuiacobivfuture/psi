@@ -1,0 +1,23 @@
+{
+	"name": "@psi/cms-client",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "The psi sites' typed client of the shared CMS (cms.psizone.ro): articles, per-brand AI settings, signed previews and revalidation webhooks, reading counters; zod at every boundary",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --minWorkers=1 --maxWorkers=2"
+	},
+	"dependencies": {
+		"@psi/content": "workspace:*",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

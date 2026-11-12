@@ -1,9 +1,11 @@
 import type { Article } from "@psi/content";
 import { ArticleCover, Button, ReadingProgress, StatusBadge } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { PreviewReload, ReadingBeacon } from "../analytics/beacon";
 import { SITES } from "../brands";
 import { EDITORIAL_POLICY } from "../content/editorial-policy";
 import { brandName, topicHub, topicLabel } from "../content/topics";
+import { coverPicture } from "../covers";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
@@ -51,11 +53,17 @@ export function ArticlePage({
 	locale,
 	theme,
 	origin,
+	beacon = false,
+	previewFrom,
 }: {
 	article: Article;
 	locale: Locale;
 	theme: Theme;
 	origin: string;
+	/** Count this reading (first-party, cookieless; false for DNT/GPC and in the preview). */
+	beacon?: boolean;
+	/** In the CMS's live preview: the CMS origin whose saves reload this page. */
+	previewFrom?: string;
 }): JSX.Element {
 	const o = at(locale);
 	const other: Locale = locale === "ro" ? "en" : "ro";
@@ -80,6 +88,8 @@ export function ArticlePage({
 			ogType="article"
 		>
 			{a.status !== "in-review" ? <ReadingProgress /> : null}
+			{beacon && a.status !== "in-review" ? <ReadingBeacon slug={a.slug} locale={locale} /> : null}
+			{previewFrom !== undefined ? <PreviewReload cmsOrigin={previewFrom} /> : null}
 			<Header locale={locale} otherHref={routes.article(other, a.slug)} brand={a.brand} />
 			<main id="continut">
 				<article class="px-4 pt-10 sm:px-6 md:pt-16">
@@ -115,7 +125,13 @@ export function ArticlePage({
 								</div>
 							) : null}
 							<div class="mx-auto mt-12 max-w-[880px]">
-								<ArticleCover hue={1}>
+								<ArticleCover
+									hue={1}
+									image={
+										a.cover === null ? undefined : { src: a.cover.src, alt: a.cover.alt[locale] }
+									}
+									picture={a.cover === null ? coverPicture(a.slug, locale, "article") : undefined}
+								>
 									<span class="bl-cover-mark">¶</span>
 								</ArticleCover>
 							</div>

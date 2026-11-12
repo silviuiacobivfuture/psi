@@ -4,9 +4,11 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { METHODS } from "./content/methods";
 import { RACE_ME_UP } from "./content/race-me-up";
 import type { Locale } from "./i18n";
+import { CreditsPage } from "./pages/credits";
 import { FaqPage, FirstVisitPage } from "./pages/info";
 import { MethodPage, MethodsIndexPage } from "./pages/method";
 import { ProgrammesIndexPage, RaceMeUpPage } from "./pages/programmes";
+import { CREDITS_PATH } from "./sections/credits-path";
 import { type Theme, themeFrom } from "./theme";
 
 interface PageContext {
@@ -52,5 +54,9 @@ export function registerContentPages(app: Hono, locale: Locale, prefix: string):
 	app.get(
 		`${prefix}/intrebari-frecvente`,
 		page((p) => <FaqPage {...p} />),
+	);
+	app.get(
+		`${prefix}${CREDITS_PATH}`,
+		page((p) => <CreditsPage {...p} />),
 	);
 }

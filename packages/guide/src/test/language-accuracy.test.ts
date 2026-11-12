@@ -115,7 +115,7 @@ describe("accuracy", () => {
 		);
 		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
 		expect(scores).toEqual([
-			{ scorer: "psi-faithfulness", score: 1, claims: 1, supported: 1, passed: true },
+			{ scorer: "psi-faithfulness", score: 1, claims: 1, supported: 1, passed: true, dropped: 0 },
 		]);
 		expect(JSON.stringify(scores)).not.toContain("SECRETQ");
 	});
@@ -147,6 +147,27 @@ describe("accuracy", () => {
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
 		expect(shape(events)).toEqual(["thinking", "text", "refusal:no_content", "done"]);
 		expect(answerText(events)).toBe("Evaluarea durează două ore [1].");
+	});
+
+	it("leaves out an unsupported sentence that invents nothing, and answers with the rest", async () => {
+		const { guide, scores } = await startGuide({
+			replies: [
+				{
+					kind: "text",
+					chunks: [
+						"Evaluarea durează două ore [1]. ",
+						"Echipa noastră lucrează cu multă răbdare și atenție [1]. ",
+						"Te așteptăm la o programare.",
+					],
+				},
+			],
+		});
+		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
+		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
+		expect(answerText(events)).toBe("Evaluarea durează două ore [1]. Te așteptăm la o programare.");
+		expect(scores).toEqual([
+			{ scorer: "psi-faithfulness", score: 1, claims: 1, supported: 1, passed: true, dropped: 1 },
+		]);
 	});
 
 	it("an abbreviation mid-sentence does not cut the sentence before its citation", async () => {
@@ -193,7 +214,7 @@ describe("accuracy", () => {
 		expect(shape(events).slice(-2)).toEqual(["refusal:no_content", "done"]);
 		expect(events.some((event) => event.type === "sources")).toBe(false);
 		expect(scores).toEqual([
-			{ scorer: "psi-faithfulness", score: 0, claims: 0, supported: 0, passed: false },
+			{ scorer: "psi-faithfulness", score: 0, claims: 0, supported: 0, passed: false, dropped: 0 },
 		]);
 	});
 
@@ -215,7 +236,8 @@ describe("accuracy", () => {
 			guide.ask({ question: "Cum decurge o evaluare?", locale: "ro", history }),
 		);
 		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
-		const sent = chatBody(server.requests[0]).messages.filter((m) => m.role !== "system");
+		// The first model request, before its search: the history and the question.
+		const sent = chatBody(server.searches[0]).messages.filter((m) => m.role !== "system");
 		expect(sent.length).toBeLessThan(history.length + 1);
 		expect(messageText(sent[sent.length - 1]?.content)).toBe("Cum decurge o evaluare?");
 		expect(JSON.stringify(sent).length / 4).toBeLessThan(MAX_PROMPT_TOKENS);

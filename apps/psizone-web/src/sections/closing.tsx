@@ -1,4 +1,4 @@
-import { AmbientField, Button, EstateRow, Logo } from "@psi/ui";
+import { Button, EstateRow } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
@@ -8,18 +8,21 @@ export function Closing({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	return (
 		<section id="programare" class="px-5 pb-24">
-			<AmbientField class="mx-auto max-w-6xl rounded-xl border border-line">
+			<div class="gold-band mx-auto max-w-6xl rounded-xl">
 				<div class="flex flex-col items-start gap-8 px-8 py-20 md:px-16 md:py-28">
-					<h2 class="display max-w-3xl text-display-lg text-ink">{m.cta_title({}, o)}</h2>
-					<p class="max-w-xl text-body-lg text-ink-muted">{m.cta_text({}, o)}</p>
+					<h2 class="display max-w-3xl text-display-lg">{m.cta_title({}, o)}</h2>
+					<p class="max-w-xl text-body-lg">{m.cta_text({}, o)}</p>
 					<Button size="lg" arrow href={`${base(locale)}/contact`}>
 						{m.cta_book({}, o)}
 					</Button>
 				</div>
-			</AmbientField>
+			</div>
 		</section>
 	);
 }
+
+/** A proper name, the same in every language. */
+const BRAND_NAME = "Psizone";
 
 export function Footer({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
@@ -28,7 +31,10 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 		<footer class="border-t border-line">
 			<div class="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-14 md:flex-row md:items-end md:justify-between">
 				<div class="space-y-3">
-					<Logo size={28} brand="psizone" href={`${b}/`} />
+					{/* The centre's own lockup (from psizone.ro) signs the page and leads home. */}
+					<a class="brand-lockup" href={`${b}/`}>
+						<span class="sr-only">{BRAND_NAME}</span>
+					</a>
 					<p class="max-w-sm text-body-sm text-ink-muted">{m.footer_tagline({}, o)}</p>
 				</div>
 				<nav class="flex flex-wrap gap-6 text-body-sm text-ink-muted" aria-label="Footer">

@@ -7,8 +7,18 @@ import { z } from "zod";
  * Without a `clientId` the engine does not limit.
  */
 export interface RateLimiter {
-	/** Counts one question for the client; false when the client is over its limit. */
-	take(clientId: string): boolean | Promise<boolean>;
+	/**
+	 * Counts one question for the client; false when the client is over its limit. With a
+	 * `policy`, that limit and window apply (the exchange limit, from the runtime settings);
+	 * without one, the limiter's own.
+	 */
+	take(clientId: string, policy?: RatePolicy): boolean | Promise<boolean>;
+}
+
+/** A limit and its window, per call. */
+export interface RatePolicy {
+	limit: number;
+	windowMs: number;
 }
 
 export interface MemoryRateLimitOptions {
@@ -34,6 +44,8 @@ const MemoryRateLimitOptionsSchema = z.object({
 interface Window {
 	start: number;
 	count: number;
+	/** This window's length: the policy's, or the limiter's own. */
+	span: number;
 }
 
 /**
@@ -49,21 +61,25 @@ export function createMemoryRateLimiter(options: MemoryRateLimitOptions = {}): R
 
 	const sweep = (at: number): void => {
 		for (const [key, window] of windows) {
-			if (at - window.start >= windowMs) windows.delete(key);
+			if (at - window.start >= window.span) windows.delete(key);
 		}
 	};
 
 	return {
-		take(clientId) {
+		take(clientId, policy) {
 			const at = now();
+			const max = policy?.limit ?? limit;
+			const span = policy?.windowMs ?? windowMs;
 			const current = windows.get(clientId);
-			if (current === undefined || at - current.start >= windowMs) {
+			// The current policy decides, so a changed limit or window applies at once.
+			if (current === undefined || at - current.start >= span) {
 				if (windows.size >= SWEEP_AT) sweep(at);
-				windows.set(clientId, { start: at, count: 1 });
-				return true;
+				windows.set(clientId, { start: at, count: 1, span });
+				return max >= 1;
 			}
 			current.count += 1;
-			return current.count <= limit;
+			current.span = span;
+			return current.count <= max;
 		},
 	};
 }

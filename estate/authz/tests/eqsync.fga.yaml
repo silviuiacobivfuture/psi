@@ -1,0 +1,88 @@
+# The owner path, staff roles and strangers for module `eqsync`. Hand-written; the generated
+# eqsync.closure.fga.yaml proves the permission closure. Run: fga model test --tests '<this file>'
+name: eqsync-owner
+model_file: ../fga.mod
+
+tuples:
+  - user: user:staff_role_eqsync_programme_support
+    relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: eqsync_programme_enrollment:r1
+  - user: platform:psi
+    relation: parent_platform
+    object: eqsync_protocol_licence:r1
+
+tests:
+  - name: eqsync_programme_enrollment — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: viewer
+        object: eqsync_programme_enrollment:r1
+      - user: user:owner
+        relation: editor
+        object: eqsync_programme_enrollment:r1
+    check:
+      - user: user:owner
+        object: eqsync_programme_enrollment:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: true
+      - user: user:stranger
+        object: eqsync_programme_enrollment:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+  - name: eqsync_programme_enrollment — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: eqsync_programme_enrollment:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: false
+          editor: false
+      - user: user:staff_role_eqsync_programme_support
+        object: eqsync_programme_enrollment:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: false
+  - name: eqsync_protocol_licence — the row's owner (its per-record grant, supplied at Check time) holds it; a stranger does not
+    tuples:
+      - user: user:owner
+        relation: listener
+        object: eqsync_protocol_licence:r1
+    check:
+      - user: user:owner
+        object: eqsync_protocol_licence:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: true
+      - user: user:stranger
+        object: eqsync_protocol_licence:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false
+  - name: eqsync_protocol_licence — without the row's tuple nothing persisted grants the owner anything; staff only by role
+    check:
+      - user: user:owner
+        object: eqsync_protocol_licence:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false
+      - user: user:staff_role_eqsync_programme_support
+        object: eqsync_protocol_licence:r1
+        context:
+          now: "2026-11-12T10:00:00Z"
+        assertions:
+          listener: false

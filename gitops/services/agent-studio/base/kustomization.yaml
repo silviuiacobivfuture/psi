@@ -1,0 +1,17 @@
+# agent-studio — Mastra Studio for staff (apps/agent-studio), at studio.psizone.ro. Every request
+# passes Authentik's gate at the edge (the agent-studio proxy provider,
+# gitops/platform/authentik/blueprints-agent-studio.yaml) and is checked again in the pod
+# (apps/agent-studio/src/auth). Read-only unless AGENT_STUDIO_MODE says operate.
+# Plan and registration: docs/plans/agent-studio.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agent-studio
+resources:
+  - resourcequota.yaml
+  - externalsecret.yaml
+  - harbor-pull-externalsecret.yaml
+  - deployment.yaml
+  - service.yaml
+  - middleware-forwardauth.yaml
+  - ingress.yaml
+  - networkpolicy.yaml

@@ -1,0 +1,10 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ES2022", "WebWorker"],
+		"noEmit": true,
+		"noUncheckedIndexedAccess": true,
+		"types": []
+	},
+	"include": ["src/worker", "src/sw-rules.ts", "src/worker-config.ts"]
+}

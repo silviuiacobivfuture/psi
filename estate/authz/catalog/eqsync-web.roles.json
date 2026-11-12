@@ -1,0 +1,62 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/eqsync-web/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "eqsync",
+	"version": 1,
+	"scope_resolvers": {
+		"eqsync_programme_enrollment": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"eqsync_protocol_licence": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"eqsync_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#perm_eqsync_programme_manage",
+		"platform#perm_eqsync_programme_view",
+		"platform#perm_eqsync_protocols_listen",
+		"platform#role_eqsync_programme_support"
+	],
+	"features": [
+		{
+			"key": "programme",
+			"name": {
+				"ro": "Programul de 21 de zile",
+				"en": "The 21-day programme"
+			}
+		},
+		{
+			"key": "protocols",
+			"name": {
+				"ro": "Protocoale",
+				"en": "Protocols"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "eqsync:programme_support",
+			"name": {
+				"ro": "Suport program",
+				"en": "Programme support"
+			},
+			"description": {
+				"ro": "Vede stadiul înscrierii pentru a ajuta o persoană care cere sprijin.",
+				"en": "Sees enrolment status to help a person who asks for support."
+			},
+			"scope_type": "platform",
+			"relation": "role_eqsync_programme_support",
+			"grants": ["eqsync_programme_enrollment#viewer"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

@@ -1,7 +1,7 @@
 import { type Article, latestFor, related, summaryFor } from "@psi/content";
 import { ArticleList, ArticleListRow } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { findArticle } from "../content/articles";
+import { currentIndex, findArticle } from "../content/articles";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
@@ -19,11 +19,12 @@ export function Related({
 	locale: Locale;
 }): JSX.Element | null {
 	const o = at(locale);
-	const self = summaryFor(a.slug, locale);
+	const index = currentIndex();
+	const self = summaryFor(a.slug, locale, index);
 	const next = (
 		self !== undefined
-			? related(self, 3)
-			: latestFor(a.brand, locale, 4).filter((s) => s.slug !== a.slug)
+			? related(self, 3, index)
+			: latestFor(a.brand, locale, 4, index).filter((s) => s.slug !== a.slug)
 	)
 		.slice(0, 3)
 		.flatMap((s) => {
