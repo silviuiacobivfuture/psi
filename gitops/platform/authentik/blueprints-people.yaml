@@ -67,6 +67,18 @@ data:
           email: nicholas.turcu@icloud.com
           type: internal
           is_active: true
+      # Lucian Sergiu Trifan (owner, 2026-11-12): "make him full rights admin for now" … "ill
+      # remove some of his rights after a while". Every grant is a line of his in
+      # blueprints-groups.yaml, the same set as adi_rar's; removing a right removes that line.
+      - model: authentik_core.user
+        state: created
+        identifiers:
+          username: lucian.trifan
+        attrs:
+          name: Lucian Sergiu Trifan
+          email: trifan.lucian.sergiu@gmail.com
+          type: internal
+          is_active: true
       # SIGN-IN NAME AND MAILBOX (owner, 2026-11-12), one entry per person, attributes only
       # (the people above are `state: created` and never rewritten; `attributes` is written
       # whole, so every key a person carries is listed here):
@@ -112,6 +124,14 @@ data:
             upn: nicholas.turcu@psizone.ro
             mail_address: nicholas.turcu@post.psizone.ro
             mail_account: nicholas.turcu
+      - model: authentik_core.user
+        identifiers:
+          username: lucian.trifan
+        attrs:
+          attributes:
+            upn: lucian.trifan@psizone.ro
+            mail_address: lucian.trifan@post.psizone.ro
+            mail_account: lucian.trifan
       # ROBOT, not a person: the login hub's dev end-to-end login and kill-a-pod
       # proof. `.invalid` so it is classed as a robot and can never receive a
       # mail. Created only; its password and TOTP come from OpenBao
