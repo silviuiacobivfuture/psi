@@ -7,7 +7,6 @@ resources:
   - arc-runners.yaml
   - argocd-config.yaml
   - autorizare.yaml
-  - cert-manager.yaml
   - cnpg.yaml
   - db-backup.yaml
   - external-dns.yaml
