@@ -32,3 +32,4 @@ resources:
   - seb-test-reports.yaml
   - seb-stalwart.yaml
   - seb-affine.yaml
+  - seb-nextcloud-platform.yaml
