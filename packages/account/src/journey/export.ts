@@ -11,8 +11,7 @@ export async function exportOf(
 	stores: Stores,
 	subject: string,
 ): Promise<Record<string, unknown>> {
-	const iso = (ms: number | null) =>
-		ms === null ? null : new Date(ms).toISOString();
+	const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 	const [account, profile, consents, saved, conversations] = await Promise.all([
 		stores.accounts.get(subject),
 		stores.profiles.get(subject),
@@ -33,17 +32,15 @@ export async function exportOf(
 	);
 	let reservations: unknown = [];
 	try {
-		reservations = ((await j.o.reservations?.requests(subject)) ?? []).map(
-			(r) => ({
-				reference: r.reference,
-				status: r.status,
-				mode: r.mode,
-				start: iso(r.start),
-				end: iso(r.end),
-				practitioner: r.practitionerName,
-				submittedAt: iso(r.submittedAt),
-			}),
-		);
+		reservations = ((await j.o.reservations?.requests(subject)) ?? []).map((r) => ({
+			reference: r.reference,
+			status: r.status,
+			mode: r.mode,
+			start: iso(r.start),
+			end: iso(r.end),
+			practitioner: r.practitionerName,
+			submittedAt: iso(r.submittedAt),
+		}));
 	} catch {
 		reservations = "unavailable";
 	}

@@ -4,13 +4,7 @@ import type { Child } from "hono/jsx";
 import { z } from "zod";
 import { type SignedIn, sameOrigin } from "../guard";
 import { PURPOSES, type Purpose } from "../stores/types";
-import {
-	accountRef,
-	formOf,
-	type JourneyOptions,
-	PRIVATE,
-	WORDING_VERSION,
-} from "./context";
+import { accountRef, formOf, type JourneyOptions, PRIVATE, WORDING_VERSION } from "./context";
 import { exportOf } from "./export";
 import type { JourneyKey, Say } from "./labels";
 import { registerHistoryRoutes } from "./routes-history";
@@ -69,8 +63,7 @@ export interface Journey {
 
 function journeyOf(o: JourneyOptions): Journey {
 	const say = o.say;
-	const path = (page: JourneyPage, rest = "") =>
-		`${o.base}${JOURNEY_PAGES[page]}${rest}`;
+	const path = (page: JourneyPage, rest = "") => `${o.base}${JOURNEY_PAGES[page]}${rest}`;
 	const unavailable = (c: Context) =>
 		o.render(c, {
 			title: say("account_unavailable_title"),
@@ -82,33 +75,25 @@ function journeyOf(o: JourneyOptions): Journey {
 		say,
 		path,
 		unavailable,
-		foreign: (c) =>
-			!sameOrigin(c.req.raw.headers, c.req.method, o.account.origin),
+		foreign: (c) => !sameOrigin(c.req.raw.headers, c.req.method, o.account.origin),
 		async gate(c, relation, back = "home") {
 			const person = await o.account.person(c);
 			if (person === null) {
 				// A write whose session ended: back through sign-in to the page it came from, never a blank 401.
-				if (c.req.method !== "GET")
-					return c.redirect(o.account.signInHref(path(back)), 303);
+				if (c.req.method !== "GET") return c.redirect(o.account.signInHref(path(back)), 303);
 				const here = new URL(c.req.url);
 				return o.render(c, {
 					title: say("account_title"),
 					body: (
 						<SignInInvite
 							say={say}
-							signInHref={o.account.signInHref(
-								`${here.pathname}${here.search}`,
-							)}
+							signInHref={o.account.signInHref(`${here.pathname}${here.search}`)}
 							signInReady={o.account.status.identity === "ready"}
 						/>
 					),
 				});
 			}
-			const decision = await o.account.decide(
-				c,
-				relation,
-				accountRef(person.subject),
-			);
+			const decision = await o.account.decide(c, relation, accountRef(person.subject));
 			if (decision === "allowed") return person;
 			if (decision === "unavailable") return unavailable(c);
 			return c.body(null, 404);
@@ -162,19 +147,13 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 		if (person instanceof Response) return person;
 		const stores = await o.account.stores();
 		const timeline = await timelineOf(j, stores, person.subject);
-		const extra =
-			o.homeExtra === undefined ? undefined : await o.homeExtra(c, person);
+		const extra = o.homeExtra === undefined ? undefined : await o.homeExtra(c, person);
 		return j.page(
 			c,
 			person,
 			"home",
 			"account_title",
-			<HomeBody
-				say={say}
-				locale={o.locale}
-				timeline={timeline}
-				extra={extra}
-			/>,
+			<HomeBody say={say} locale={o.locale} timeline={timeline} extra={extra} />,
 		);
 	});
 
@@ -214,8 +193,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 		await (await o.account.stores()).profiles.save(
 			person.subject,
 			{
-				displayName:
-					form.data.displayName === "" ? null : form.data.displayName,
+				displayName: form.data.displayName === "" ? null : form.data.displayName,
 				phone: form.data.phone === "" ? null : form.data.phone,
 				preferredContact: form.data.preferredContact,
 				language: form.data.language,
@@ -229,9 +207,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 		c.header("cache-control", PRIVATE["cache-control"]);
 		const person = await j.gate(c, "viewer");
 		if (person instanceof Response) return person;
-		const records = await (await o.account.stores()).consents.list(
-			person.subject,
-		);
+		const records = await (await o.account.stores()).consents.list(person.subject);
 		return j.page(
 			c,
 			person,
@@ -252,10 +228,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 		const person = await j.gate(c, "editor", "consents");
 		if (person instanceof Response) return person;
 		const form = ConsentForm.safeParse(await formOf(c));
-		if (
-			!form.success ||
-			!(o.purposes ?? ["guide_memory"]).includes(form.data.purpose)
-		)
+		if (!form.success || !(o.purposes ?? ["guide_memory"]).includes(form.data.purpose))
 			return c.redirect(path("consents"), 303);
 		const consents = (await o.account.stores()).consents;
 		const purpose: Purpose = form.data.purpose;
@@ -263,9 +236,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 			await consents.grant(person.subject, purpose, WORDING_VERSION, now());
 		else await consents.withdraw(person.subject, purpose, now());
 		return c.redirect(
-			form.data.back === "conversations"
-				? path("conversations")
-				: path("consents"),
+			form.data.back === "conversations" ? path("conversations") : path("consents"),
 			303,
 		);
 	});
@@ -309,8 +280,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 			return c.redirect(o.dataHome, 303);
 		const person = await j.gate(c, "eraser", "data");
 		if (person instanceof Response) return person;
-		const typed =
-			(await formOf(c)).confirm?.trim().toLocaleUpperCase(o.locale) ?? "";
+		const typed = (await formOf(c)).confirm?.trim().toLocaleUpperCase(o.locale) ?? "";
 		if (typed !== say("account_erase_word").toLocaleUpperCase(o.locale)) {
 			return c.redirect(`${path("data")}?mismatch=1`, 303);
 		}

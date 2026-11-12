@@ -55,10 +55,7 @@ export interface AccountConfig {
 
 /** The issuer a site uses when OIDC_ISSUER is unset: its own Authentik application. */
 export function defaultIssuer(env: Env, slug: string): string {
-	const base = (env.AUTHENTIK_URL?.trim() || DEFAULT_AUTHENTIK_URL).replace(
-		/\/+$/,
-		"",
-	);
+	const base = (env.AUTHENTIK_URL?.trim() || DEFAULT_AUTHENTIK_URL).replace(/\/+$/, "");
 	return `${base}/application/o/${slug}/`;
 }
 
@@ -66,16 +63,8 @@ function missingKeys(env: Env, keys: ReadonlyArray<string>): string[] {
 	return keys.filter((k) => !nonEmpty.safeParse(env[k] ?? "").success);
 }
 
-function parseIdentity(
-	env: Env,
-	slug: string,
-	production: boolean,
-): Part<IdentityConfig> {
-	const missing = missingKeys(env, [
-		"OIDC_CLIENT_ID",
-		"OIDC_CLIENT_SECRET",
-		"SESSION_SECRET",
-	]);
+function parseIdentity(env: Env, slug: string, production: boolean): Part<IdentityConfig> {
+	const missing = missingKeys(env, ["OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "SESSION_SECRET"]);
 	if (missing.length > 0) return { kind: "missing", keys: missing };
 	const issuer = z
 		.string()
@@ -87,9 +76,7 @@ function parseIdentity(
 	}
 	const insecure = env.OIDC_ALLOW_INSECURE_LOOPBACK === "true";
 	if (insecure && production) {
-		throw new Error(
-			"account: OIDC_ALLOW_INSECURE_LOOPBACK is refused in production",
-		);
+		throw new Error("account: OIDC_ALLOW_INSECURE_LOOPBACK is refused in production");
 	}
 	const url = new URL(issuer);
 	if (url.protocol !== "https:" && !(insecure && LOOPBACK.has(url.hostname))) {
@@ -108,12 +95,7 @@ function parseIdentity(
 }
 
 function parseAuthz(env: Env): Part<AuthzConfig> {
-	const keys = [
-		"OPENFGA_ENDPOINT",
-		"OPENFGA_STORE_ID",
-		"OPENFGA_MODEL_ID",
-		"OPENFGA_TOKEN",
-	];
+	const keys = ["OPENFGA_ENDPOINT", "OPENFGA_STORE_ID", "OPENFGA_MODEL_ID", "OPENFGA_TOKEN"];
 	const missing = missingKeys(env, keys);
 	if (missing.length > 0) return { kind: "missing", keys: missing };
 	return {

@@ -1,0 +1,54 @@
+{
+	"apps": [
+		{
+			"key": "polaris",
+			"name": "Polaris",
+			"description": {
+				"ro": "Acces și autorizare",
+				"en": "Access and authorization"
+			},
+			"mark": [
+				{
+					"d": "M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z",
+					"fill": "film"
+				},
+				{
+					"d": "M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z",
+					"fill": "solid"
+				}
+			],
+			"search": {
+				"served": true,
+				"host": "polaris",
+				"path": "/v1/estate/search"
+			},
+			"module": "autorizare",
+			"impersonable": false,
+			"email": {
+				"light": {
+					"page": "#f9fafd",
+					"card": "#fcfeff",
+					"text": "#0e192e",
+					"muted": "#525d70",
+					"line": "#e1e5ed",
+					"action": "#1059ac",
+					"actionText": "#f9fafd"
+				},
+				"dark": {
+					"page": "#0c0f15",
+					"card": "#161a21",
+					"text": "#eaedf2",
+					"muted": "#a5adba",
+					"line": "#262b33",
+					"action": "#589cf6",
+					"actionText": "#0b0f18"
+				},
+				"brand": {
+					"from": "#586474",
+					"to": "#424d63"
+				}
+			}
+		}
+	],
+	"screens": {}
+}

@@ -1,10 +1,4 @@
-import {
-	guideFor,
-	JOURNEY_PAGES,
-	prefillFor,
-	refererPath,
-	sameOrigin,
-} from "@psi/account";
+import { guideFor, JOURNEY_PAGES, prefillFor, refererPath, sameOrigin } from "@psi/account";
 import type { Guide } from "@psi/guide";
 import { accountHashOf } from "@psi/scheduling";
 import type { Context } from "hono";
@@ -18,9 +12,7 @@ import { base, type Locale } from "./i18n";
  * request so it appears in /cont/programari. Nothing here decides access: that is the journey's, via OpenFGA.
  * A write from another origin (the estate's sites are same-site with each other) is treated as anonymous.
  */
-export type AccountLine =
-	| { signedIn: true }
-	| { signedIn: false; signInHref: string };
+export type AccountLine = { signedIn: true } | { signedIn: false; signInHref: string };
 
 export interface BookingAccount {
 	/** What the form says about the account; undefined when sign-in is not configured here. */
@@ -48,8 +40,7 @@ export async function bookingAccount(
 	locale: Locale,
 	fallback: string,
 ): Promise<BookingAccount> {
-	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin))
-		return { prefill: {} };
+	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin)) return { prefill: {} };
 	const ready = account.status.identity === "ready";
 	const person = await account.person(c);
 	if (person === null) {
@@ -83,7 +74,6 @@ export function accountLine(who: BookingAccount): { account?: AccountLine } {
 
 /** The guide for this request: it remembers only for a signed-in person who consented, on this origin. */
 export function guideForRequest(c: Context, guide: Guide): Promise<Guide> {
-	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin))
-		return Promise.resolve(guide);
+	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin)) return Promise.resolve(guide);
 	return guideFor(account, c, guide, "psizone");
 }

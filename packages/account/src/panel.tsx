@@ -43,9 +43,7 @@ export function AccountPanel({
 		return (
 			<div class="mx-auto max-w-xl" data-account="signed-out">
 				<GlassCard class="p-8">
-					<h2 class="display text-display-md text-ink">
-						{labels.signedOutTitle}
-					</h2>
+					<h2 class="display text-display-md text-ink">{labels.signedOutTitle}</h2>
 					<p class="mt-3 text-body text-ink-muted">{labels.signedOutLead}</p>
 					<div class="mt-6">
 						{signInReady ? (

@@ -1,0 +1,20 @@
+{
+	"_doc": "PSI's Authentik group → Novu access (the SEB default, apps/novu-sso/mapping.json, names the first estate's organisation and account). The organisation is the one novu-bootstrap.sh creates, named MAIL_SENDER_NAME (Psi); the service account is secret/apps/novu/admin email (OPS_EMAIL). Authentik group → Novu access. THE source of truth for who may use the Novu dashboard and with which role, re-synced on every sign-in (lib/access.mjs). Every grant applies in every organisation listed here; the first is where a sign-in lands unless ?org= names another (/sso/orgs lists them). Roles are Novu community's own two: admin (everything, members' list) or member. A person in several groups gets the HIGHEST role. The service account is novu-bootstrap.sh's password account (the tailnet break-glass door); it is never signed in or re-roled through SSO. Every group named here must also be bound at the Novu gate (gitops/platform/authentik/blueprints-providers.yaml, application `novu`) — a mapped group the gate refuses is a role nobody can use; tests/policy.test.mjs compares the two lists.",
+	"version": 1,
+	"serviceAccount": "ops@psizone.ro",
+	"organizations": ["Psi"],
+	"grants": [
+		{
+			"group": "app-novu-admin",
+			"role": "admin"
+		},
+		{
+			"group": "platform-admins",
+			"role": "admin"
+		},
+		{
+			"group": "app-novu-member",
+			"role": "member"
+		}
+	]
+}

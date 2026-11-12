@@ -15,13 +15,8 @@ const EVENT_KEY: Readonly<Record<TimelineKind, JourneyKey>> = {
 	conversation: "account_event_conversation",
 };
 
-export const PURPOSE_KEYS: Readonly<
-	Record<Purpose, readonly [JourneyKey, JourneyKey]>
-> = {
-	guide_memory: [
-		"account_purpose_guide_memory_title",
-		"account_purpose_guide_memory_text",
-	],
+export const PURPOSE_KEYS: Readonly<Record<Purpose, readonly [JourneyKey, JourneyKey]>> = {
+	guide_memory: ["account_purpose_guide_memory_title", "account_purpose_guide_memory_text"],
 	booking_contact: [
 		"account_purpose_booking_contact_title",
 		"account_purpose_booking_contact_text",
@@ -49,9 +44,7 @@ export function HomeBody({
 			{extra}
 			<Section title={say("account_timeline_title")}>
 				{timeline.length === 0 ? (
-					<p class="text-body text-ink-muted">
-						{say("account_timeline_empty")}
-					</p>
+					<p class="text-body text-ink-muted">{say("account_timeline_empty")}</p>
 				) : (
 					<ol class="flex flex-col divide-y divide-line" data-timeline>
 						{timeline.map((e) => (
@@ -71,10 +64,7 @@ export function HomeBody({
 										</>
 									)}
 								</span>
-								<time
-									class="text-body-sm text-ink-muted"
-									datetime={new Date(e.at).toISOString()}
-								>
+								<time class="text-body-sm text-ink-muted" datetime={new Date(e.at).toISOString()}>
 									{when(locale, e.at)}
 								</time>
 							</li>
@@ -100,12 +90,7 @@ export function ProfileBody({
 	profile: Omit<Profile, "updatedAt">;
 	invalid: boolean;
 }): JSX.Element {
-	const radio = (
-		name: string,
-		value: string,
-		checked: boolean,
-		label: string,
-	) => (
+	const radio = (name: string, value: string, checked: boolean, label: string) => (
 		<label class="flex items-center gap-2 text-body text-ink">
 			<input type="radio" name={name} value={value} checked={checked} />
 			{label}
@@ -114,16 +99,8 @@ export function ProfileBody({
 	return (
 		<Section title={say("account_profile_title")}>
 			<p class="text-body text-ink-muted">{say("account_profile_lead")}</p>
-			{invalid ? (
-				<StatusBadge tone="danger">
-					{say("account_profile_invalid")}
-				</StatusBadge>
-			) : null}
-			<form
-				method="post"
-				action={`${base}${JOURNEY_PAGES.profile}`}
-				class="flex flex-col gap-4"
-			>
+			{invalid ? <StatusBadge tone="danger">{say("account_profile_invalid")}</StatusBadge> : null}
+			<form method="post" action={`${base}${JOURNEY_PAGES.profile}`} class="flex flex-col gap-4">
 				<TextField
 					id="account-name"
 					name="displayName"
@@ -132,13 +109,9 @@ export function ProfileBody({
 					value={profile.displayName ?? ""}
 				/>
 				<div>
-					<p class="text-body-sm text-ink-muted">
-						{say("account_profile_email")}
-					</p>
+					<p class="text-body-sm text-ink-muted">{say("account_profile_email")}</p>
 					<p class="text-body text-ink">{email ?? ""}</p>
-					<p class="text-body-sm text-ink-muted">
-						{say("account_profile_email_note")}
-					</p>
+					<p class="text-body-sm text-ink-muted">{say("account_profile_email_note")}</p>
 				</div>
 				<TextField
 					id="account-phone"
@@ -148,9 +121,7 @@ export function ProfileBody({
 					value={profile.phone ?? ""}
 				/>
 				<fieldset class="flex flex-col gap-2">
-					<legend class="text-body-sm text-ink-muted">
-						{say("account_profile_contact")}
-					</legend>
+					<legend class="text-body-sm text-ink-muted">{say("account_profile_contact")}</legend>
 					{radio(
 						"preferredContact",
 						"email",
@@ -165,21 +136,9 @@ export function ProfileBody({
 					)}
 				</fieldset>
 				<fieldset class="flex flex-col gap-2">
-					<legend class="text-body-sm text-ink-muted">
-						{say("account_profile_language")}
-					</legend>
-					{radio(
-						"language",
-						"ro",
-						profile.language === "ro",
-						say("account_lang_ro"),
-					)}
-					{radio(
-						"language",
-						"en",
-						profile.language === "en",
-						say("account_lang_en"),
-					)}
+					<legend class="text-body-sm text-ink-muted">{say("account_profile_language")}</legend>
+					{radio("language", "ro", profile.language === "ro", say("account_lang_ro"))}
+					{radio("language", "en", profile.language === "en", say("account_lang_en"))}
 				</fieldset>
 				<div>
 					<Button type="submit">{say("account_profile_save")}</Button>
@@ -211,16 +170,11 @@ export function ConsentsBody({
 				const open = mine.some((r) => r.withdrawnAt === null);
 				const [title, text] = PURPOSE_KEYS[purpose];
 				return (
-					<div
-						class="rounded-2xl border border-line p-4"
-						data-purpose={purpose}
-					>
+					<div class="rounded-2xl border border-line p-4" data-purpose={purpose}>
 						<h3 class="text-body-lg text-ink">{say(title)}</h3>
 						<p class="mt-1 text-body text-ink-muted">{say(text)}</p>
 						<ul class="mt-2 text-body-sm text-ink-muted">
-							{mine.length === 0 ? (
-								<li>{say("account_consent_never")}</li>
-							) : null}
+							{mine.length === 0 ? <li>{say("account_consent_never")}</li> : null}
 							{mine.map((r) => (
 								<li>
 									{`${say("account_consent_granted_on")} ${when(locale, r.grantedAt)}`}
@@ -230,25 +184,11 @@ export function ConsentsBody({
 								</li>
 							))}
 						</ul>
-						<form
-							method="post"
-							action={`${base}${JOURNEY_PAGES.consents}`}
-							class="mt-3"
-						>
+						<form method="post" action={`${base}${JOURNEY_PAGES.consents}`} class="mt-3">
 							<input type="hidden" name="purpose" value={purpose} />
-							<input
-								type="hidden"
-								name="action"
-								value={open ? "withdraw" : "grant"}
-							/>
-							<Button
-								type="submit"
-								size="sm"
-								variant={open ? "outline" : "primary"}
-							>
-								{say(
-									open ? "account_consent_withdraw" : "account_consent_grant",
-								)}
+							<input type="hidden" name="action" value={open ? "withdraw" : "grant"} />
+							<Button type="submit" size="sm" variant={open ? "outline" : "primary"}>
+								{say(open ? "account_consent_withdraw" : "account_consent_grant")}
 							</Button>
 						</form>
 					</div>
@@ -288,21 +228,14 @@ export function DataBody({
 			<Section title={say("account_export_title")}>
 				<p class="text-body text-ink-muted">{say("account_export_text")}</p>
 				<div>
-					<Button
-						href={`${base}${JOURNEY_PAGES.data}/export`}
-						variant="outline"
-					>
+					<Button href={`${base}${JOURNEY_PAGES.data}/export`} variant="outline">
 						{say("account_export_button")}
 					</Button>
 				</div>
 			</Section>
 			<Section title={say("account_erase_title")}>
 				<p class="text-body text-ink-muted">{say("account_erase_text")}</p>
-				{mismatch ? (
-					<StatusBadge tone="danger">
-						{say("account_erase_mismatch")}
-					</StatusBadge>
-				) : null}
+				{mismatch ? <StatusBadge tone="danger">{say("account_erase_mismatch")}</StatusBadge> : null}
 				<form
 					method="post"
 					action={`${base}${JOURNEY_PAGES.data}/sterge`}

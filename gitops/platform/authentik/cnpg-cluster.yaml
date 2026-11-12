@@ -122,8 +122,8 @@ spec:
       # this cluster's own name. No new bucket and no new credential: a backup
       # that needs its own secret is a backup that stops when that secret rotates
       # and nobody notices.
-      destinationPath: s3://rmx-tfstate-dev/cnpg/authentik-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      destinationPath: s3://psi-tfstate-dev/cnpg/authentik-db
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           name: authentik-backup-s3

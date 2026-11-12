@@ -20,11 +20,7 @@ export interface ReservationsPort {
 	requests(subject: string): Promise<ReadonlyArray<OwnReservation>>;
 	cancel(subject: string, reference: string): Promise<boolean>;
 	/** An anonymous request, with its proof (reference + cancel code). */
-	link(
-		subject: string,
-		reference: string,
-		cancelCode: string,
-	): Promise<boolean>;
+	link(subject: string, reference: string, cancelCode: string): Promise<boolean>;
 	/** Erasure: the requests stay with the clinic, no longer tied to the account. */
 	unlink(subject: string): Promise<void>;
 }

@@ -2,6 +2,19 @@ apiVersion: v1
 data:
   admin.enabled: "true"
   kustomize.buildOptions: --enable-helm
+  oidc.config: |
+    name: Authentik
+    issuer: https://auth.psizone.ro/application/o/argocd/
+    clientID: $authentikClientID
+    clientSecret: $authentikClientSecret
+    requestedScopes:
+      - openid
+      - profile
+      - email
+      - groups
+    requestedIDTokenClaims:
+      groups:
+        essential: true
   resource.customizations.ignoreDifferences.external-secrets.io_ExternalSecret: |
     jqPathExpressions:
       - '.spec.data[]?.remoteRef.conversionStrategy'
@@ -54,6 +67,7 @@ data:
       - '.spec.stopDelay'
       - '.spec.storage.resizeInUseVolumes'
       - '.spec.switchoverDelay'
+  url: https://argocd.psizone.ro
 kind: ConfigMap
 metadata:
   labels:
@@ -233,6 +247,7 @@ metadata:
     gethomepage.dev/description: GitOps — what is deployed, and syncing it
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Delivery
+    gethomepage.dev/href: https://argocd.psizone.ro
     gethomepage.dev/icon: argo-cd.png
     gethomepage.dev/name: Argo CD
     gethomepage.dev/pod-selector: app.kubernetes.io/name=argocd-server

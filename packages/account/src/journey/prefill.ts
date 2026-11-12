@@ -10,10 +10,7 @@ export interface Prefill {
 	phone: string;
 }
 
-export async function prefillFor(
-	account: Account,
-	c: Context,
-): Promise<Prefill | null> {
+export async function prefillFor(account: Account, c: Context): Promise<Prefill | null> {
 	const person = await account.person(c);
 	if (person === null) return null;
 	const profile = await (await account.stores()).profiles.get(person.subject);
@@ -37,8 +34,7 @@ export async function guideFor(
 	const person = await account.person(c);
 	if (person === null) return guide;
 	const stores = await account.stores();
-	if (!(await stores.consents.current(person.subject, "guide_memory")))
-		return guide;
+	if (!(await stores.consents.current(person.subject, "guide_memory"))) return guide;
 	return rememberingGuide(guide, {
 		conversations: stores.conversations,
 		subject: person.subject,

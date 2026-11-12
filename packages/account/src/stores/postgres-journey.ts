@@ -1,11 +1,6 @@
 import type { Sql } from "postgres";
 import { z } from "zod";
-import {
-	type ConsentStore,
-	type ConversationStore,
-	type ProfileStore,
-	PURPOSES,
-} from "./types";
+import { type ConsentStore, type ConversationStore, type ProfileStore, PURPOSES } from "./types";
 
 /**
  * The signed-in journey's tables (docs/plans/accounts.md §3): the profile, consents (the table is in
@@ -91,8 +86,7 @@ export function journeyStores(sql: Sql): {
 	return {
 		profiles: {
 			async get(subject) {
-				const rows =
-					await sql`SELECT display_name, phone, preferred_contact, language, updated_at
+				const rows = await sql`SELECT display_name, phone, preferred_contact, language, updated_at
 					FROM account_profile WHERE subject = ${subject}`;
 				if (rows[0] === undefined) return null;
 				const r = ProfileRow.parse(rows[0]);
@@ -114,8 +108,7 @@ export function journeyStores(sql: Sql): {
 		},
 		consents: {
 			async list(subject) {
-				const rows =
-					await sql`SELECT purpose, wording_version, granted_at, withdrawn_at
+				const rows = await sql`SELECT purpose, wording_version, granted_at, withdrawn_at
 					FROM account_consent WHERE subject = ${subject} ORDER BY granted_at DESC`;
 				return rows.map((row) => {
 					const r = ConsentRow.parse(row);
@@ -123,8 +116,7 @@ export function journeyStores(sql: Sql): {
 						purpose: r.purpose,
 						wordingVersion: r.wording_version,
 						grantedAt: r.granted_at.getTime(),
-						withdrawnAt:
-							r.withdrawn_at === null ? null : r.withdrawn_at.getTime(),
+						withdrawnAt: r.withdrawn_at === null ? null : r.withdrawn_at.getTime(),
 					};
 				});
 			},

@@ -24,9 +24,7 @@
 						"ro": "Vizualizare cont",
 						"en": "View an account"
 					},
-					"grants": [
-						"psizone_account#viewer"
-					],
+					"grants": ["psizone_account#viewer"],
 					"effect": "read",
 					"description": {
 						"ro": "Citește profilul minim și consimțămintele (export GDPR).",
@@ -39,13 +37,9 @@
 						"ro": "Gestionare cont",
 						"en": "Manage an account"
 					},
-					"grants": [
-						"psizone_account#editor"
-					],
+					"grants": ["psizone_account#editor"],
 					"effect": "write",
-					"implies": [
-						"account:view"
-					],
+					"implies": ["account:view"],
 					"description": {
 						"ro": "Schimbă profilul și consimțămintele (persoana însăși; niciun rol de personal).",
 						"en": "Changes the profile and consents (the person themselves; no staff role)."
@@ -57,13 +51,9 @@
 						"ro": "Ștergere cont",
 						"en": "Erase an account"
 					},
-					"grants": [
-						"psizone_account#eraser"
-					],
+					"grants": ["psizone_account#eraser"],
 					"effect": "write",
-					"implies": [
-						"account:view"
-					],
+					"implies": ["account:view"],
 					"description": {
 						"ro": "Șterge contul și tot ce ține de el, la cererea persoanei.",
 						"en": "Erases the account and everything it holds, at the person's request."
@@ -88,9 +78,7 @@
 						"ro": "Vizualizare cereri",
 						"en": "View requests"
 					},
-					"grants": [
-						"psizone_booking_request#viewer"
-					],
+					"grants": ["psizone_booking_request#viewer"],
 					"effect": "read"
 				},
 				{
@@ -99,13 +87,9 @@
 						"ro": "Gestionare cereri",
 						"en": "Manage requests"
 					},
-					"grants": [
-						"psizone_booking_request#editor"
-					],
+					"grants": ["psizone_booking_request#editor"],
 					"effect": "write",
-					"implies": [
-						"bookings:view"
-					]
+					"implies": ["bookings:view"]
 				}
 			]
 		},
@@ -126,9 +110,7 @@
 						"ro": "Citire memorie",
 						"en": "Read memory"
 					},
-					"grants": [
-						"psizone_guide_thread#viewer"
-					],
+					"grants": ["psizone_guide_thread#viewer"],
 					"effect": "read"
 				},
 				{
@@ -137,13 +119,9 @@
 						"ro": "Ștergere memorie",
 						"en": "Forget memory"
 					},
-					"grants": [
-						"psizone_guide_thread#forgetter"
-					],
+					"grants": ["psizone_guide_thread#forgetter"],
 					"effect": "write",
-					"implies": [
-						"guide_memory:view"
-					]
+					"implies": ["guide_memory:view"]
 				}
 			]
 		}
@@ -158,9 +136,7 @@
 			"relations": [
 				{
 					"name": "parent_platform",
-					"from": [
-						"[platform]"
-					]
+					"from": ["[platform]"]
 				}
 			]
 		},
@@ -173,9 +149,7 @@
 			"relations": [
 				{
 					"name": "parent_platform",
-					"from": [
-						"[platform]"
-					]
+					"from": ["[platform]"]
 				}
 			]
 		},
@@ -188,9 +162,7 @@
 			"relations": [
 				{
 					"name": "parent_platform",
-					"from": [
-						"[platform]"
-					]
+					"from": ["[platform]"]
 				}
 			]
 		}
@@ -203,10 +175,7 @@
 				"en": "Reception"
 			},
 			"scope_type": "platform",
-			"permissions": [
-				"bookings:view",
-				"bookings:manage"
-			],
+			"permissions": ["bookings:view", "bookings:manage"],
 			"assignable": true,
 			"max_duration": null,
 			"description": {
@@ -221,10 +190,7 @@
 				"en": "Data protection officer"
 			},
 			"scope_type": "platform",
-			"permissions": [
-				"account:view",
-				"account:erase"
-			],
+			"permissions": ["account:view", "account:erase"],
 			"assignable": true,
 			"max_duration": null,
 			"description": {
@@ -236,15 +202,11 @@
 	"group_bindings": [],
 	"providers": {
 		"identity": {
-			"supported": [
-				"authentik"
-			],
+			"supported": ["authentik"],
 			"selected": "authentik"
 		},
 		"authorization": {
-			"supported": [
-				"autorizare"
-			],
+			"supported": ["autorizare"],
 			"selected": "autorizare"
 		}
 	}

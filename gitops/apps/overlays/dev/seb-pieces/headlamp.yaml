@@ -102,7 +102,7 @@ spec:
                 gethomepage.dev/description: "Kubernetes console"
                 gethomepage.dev/group: "Observability"
                 gethomepage.dev/icon: "si-kubernetes"
-                gethomepage.dev/href: "https://headlamp.mesh.psizone.ro"
+                gethomepage.dev/href: "https://headlamp.psizone.ro"
             spec:
               ingressClassName: tailscale
               defaultBackend:

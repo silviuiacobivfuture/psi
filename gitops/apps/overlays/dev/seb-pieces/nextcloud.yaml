@@ -107,13 +107,13 @@ spec:
               # git (this is the dev overlay's app, like harbor's externalURL).
               # Only the keys come from the secret — the chart falls back to these
               # literals per-field when secretKeys.<field> is unset (_helpers.tpl:313).
-              host: fsn1.your-objectstorage.com
+              host: nbg1.your-objectstorage.com
               port: "443"
               ssl: true
-              region: fsn1
+              region: nbg1
               # bucket: set by `parameters` below (an estate value).
               # Hetzner Object Storage is path-style; virtual-host style resolves
-              # <bucket>.fsn1... which is NOT in their wildcard cert.
+              # <bucket>.nbg1... which is NOT in their wildcard cert.
               usePathStyle: true
               autoCreate: false # the bucket is Tofu-managed, not app-managed
               existingSecret: nextcloud-s3

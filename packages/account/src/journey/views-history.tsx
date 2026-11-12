@@ -27,10 +27,7 @@ function ReservationRow({
 	cancellable: boolean;
 }): JSX.Element {
 	return (
-		<li
-			class="flex flex-wrap items-center justify-between gap-3 py-3"
-			data-reference={r.reference}
-		>
+		<li class="flex flex-wrap items-center justify-between gap-3 py-3" data-reference={r.reference}>
 			<div class="min-w-[12rem] flex-1">
 				<p class="text-body text-ink">{when(locale, r.start)}</p>
 				<p class="text-body-sm text-ink-muted">
@@ -38,21 +35,12 @@ function ReservationRow({
 				</p>
 			</div>
 			<StatusBadge
-				tone={
-					r.status === "confirmed"
-						? "success"
-						: r.status === "requested"
-							? "info"
-							: "neutral"
-				}
+				tone={r.status === "confirmed" ? "success" : r.status === "requested" ? "info" : "neutral"}
 			>
 				{say(STATUS_KEY[r.status])}
 			</StatusBadge>
 			{cancellable ? (
-				<form
-					method="post"
-					action={`${base}${JOURNEY_PAGES.bookings}/anuleaza`}
-				>
+				<form method="post" action={`${base}${JOURNEY_PAGES.bookings}/anuleaza`}>
 					<input type="hidden" name="reference" value={r.reference} />
 					<Button type="submit" size="sm" variant="ghost">
 						{say("account_bookings_cancel")}
@@ -92,10 +80,7 @@ export function BookingsBody({
 		);
 	}
 	const upcoming = (rows ?? [])
-		.filter(
-			(r) =>
-				r.end > now && (r.status === "requested" || r.status === "confirmed"),
-		)
+		.filter((r) => r.end > now && (r.status === "requested" || r.status === "confirmed"))
 		.sort((a, b) => a.start - b.start);
 	const past = (rows ?? []).filter((r) => !upcoming.includes(r));
 	return (
@@ -103,63 +88,36 @@ export function BookingsBody({
 			<Section title={say("account_bookings_title")}>
 				<p class="text-body text-ink-muted">{say("account_bookings_lead")}</p>
 				{rows === null ? (
-					<StatusBadge tone="warning">
-						{say("account_unavailable_lead")}
-					</StatusBadge>
+					<StatusBadge tone="warning">{say("account_unavailable_lead")}</StatusBadge>
 				) : null}
 				{rows !== null && rows.length === 0 ? (
-					<p class="text-body text-ink-muted">
-						{say("account_bookings_empty")}
-					</p>
+					<p class="text-body text-ink-muted">{say("account_bookings_empty")}</p>
 				) : null}
 				{upcoming.length > 0 ? (
 					<div>
-						<h3 class="text-body-lg text-ink">
-							{say("account_bookings_upcoming")}
-						</h3>
-						<ul
-							class="flex flex-col divide-y divide-line"
-							data-bookings="upcoming"
-						>
+						<h3 class="text-body-lg text-ink">{say("account_bookings_upcoming")}</h3>
+						<ul class="flex flex-col divide-y divide-line" data-bookings="upcoming">
 							{upcoming.map((r) => (
-								<ReservationRow
-									say={say}
-									base={base}
-									locale={locale}
-									r={r}
-									cancellable
-								/>
+								<ReservationRow say={say} base={base} locale={locale} r={r} cancellable />
 							))}
 						</ul>
 					</div>
 				) : null}
 				{past.length > 0 ? (
 					<div>
-						<h3 class="text-body-lg text-ink">
-							{say("account_bookings_past")}
-						</h3>
+						<h3 class="text-body-lg text-ink">{say("account_bookings_past")}</h3>
 						<ul class="flex flex-col divide-y divide-line" data-bookings="past">
 							{past.map((r) => (
-								<ReservationRow
-									say={say}
-									base={base}
-									locale={locale}
-									r={r}
-									cancellable={false}
-								/>
+								<ReservationRow say={say} base={base} locale={locale} r={r} cancellable={false} />
 							))}
 						</ul>
 					</div>
 				) : null}
 			</Section>
 			<Section title={say("account_bookings_link_title")}>
-				<p class="text-body text-ink-muted">
-					{say("account_bookings_link_lead")}
-				</p>
+				<p class="text-body text-ink-muted">{say("account_bookings_link_lead")}</p>
 				{linkFailed ? (
-					<StatusBadge tone="danger">
-						{say("account_bookings_link_failed")}
-					</StatusBadge>
+					<StatusBadge tone="danger">{say("account_bookings_link_failed")}</StatusBadge>
 				) : null}
 				<form
 					method="post"
@@ -171,11 +129,7 @@ export function BookingsBody({
 						name="reference"
 						label={say("account_bookings_link_reference")}
 					/>
-					<TextField
-						id="link-code"
-						name="code"
-						label={say("account_bookings_link_code")}
-					/>
+					<TextField id="link-code" name="code" label={say("account_bookings_link_code")} />
 					<div>
 						<Button type="submit" variant="outline">
 							{say("account_bookings_link_button")}
@@ -208,14 +162,10 @@ export function ConversationsBody({
 }): JSX.Element {
 	return (
 		<Section title={say("account_conversations_title")}>
-			<p class="text-body text-ink-muted">
-				{say("account_conversations_lead")}
-			</p>
+			<p class="text-body text-ink-muted">{say("account_conversations_lead")}</p>
 			{consented ? null : (
 				<div class="flex flex-col gap-3">
-					<p class="text-body text-ink-muted">
-						{say("account_conversations_off")}
-					</p>
+					<p class="text-body text-ink-muted">{say("account_conversations_off")}</p>
 					<form method="post" action={`${base}${JOURNEY_PAGES.consents}`}>
 						<input type="hidden" name="purpose" value="guide_memory" />
 						<input type="hidden" name="action" value="grant" />
@@ -227,15 +177,10 @@ export function ConversationsBody({
 				</div>
 			)}
 			{consented && conversations.length === 0 ? (
-				<p class="text-body text-ink-muted">
-					{say("account_conversations_empty")}
-				</p>
+				<p class="text-body text-ink-muted">{say("account_conversations_empty")}</p>
 			) : null}
 			{conversations.map(({ conversation, turns }) => (
-				<article
-					class="rounded-2xl border border-line p-4"
-					data-conversation={conversation.id}
-				>
+				<article class="rounded-2xl border border-line p-4" data-conversation={conversation.id}>
 					<header class="flex flex-wrap items-center justify-between gap-2">
 						<p class="text-body-lg text-ink">
 							{`${siteNames[conversation.site] ?? conversation.site} · ${when(locale, conversation.updatedAt)}`}
@@ -252,26 +197,17 @@ export function ConversationsBody({
 					<dl class="mt-3 flex flex-col gap-2">
 						{turns.map((t) => (
 							<>
-								<dt class="text-body-sm text-ink-muted">
-									{say("account_conversations_you")}
-								</dt>
+								<dt class="text-body-sm text-ink-muted">{say("account_conversations_you")}</dt>
 								<dd class="text-body text-ink">{t.question}</dd>
-								<dt class="text-body-sm text-ink-muted">
-									{say("account_conversations_guide")}
-								</dt>
-								<dd class="whitespace-pre-line text-body text-ink-muted">
-									{t.answer}
-								</dd>
+								<dt class="text-body-sm text-ink-muted">{say("account_conversations_guide")}</dt>
+								<dd class="whitespace-pre-line text-body text-ink-muted">{t.answer}</dd>
 							</>
 						))}
 					</dl>
 				</article>
 			))}
 			{conversations.length > 1 ? (
-				<form
-					method="post"
-					action={`${base}${JOURNEY_PAGES.conversations}/sterge-tot`}
-				>
+				<form method="post" action={`${base}${JOURNEY_PAGES.conversations}/sterge-tot`}>
 					<Button type="submit" size="sm" variant="outline">
 						{say("account_conversations_delete_all")}
 					</Button>

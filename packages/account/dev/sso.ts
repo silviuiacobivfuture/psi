@@ -15,11 +15,7 @@
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { readBlock, writeBlock } from "./env-block";
-import {
-	type MockClient,
-	type MockPerson,
-	startMockIssuer,
-} from "./mock-issuer";
+import { type MockClient, type MockPerson, startMockIssuer } from "./mock-issuer";
 
 const PORT = 4351;
 const ORIGIN = `http://localhost:${PORT}`;
@@ -116,23 +112,17 @@ const clients: MockClient[] = APPS.map((app) => ({
 	clientSecret: secrets[secretKey(app.slug)] ?? "",
 	redirectUris: [app.callback],
 	postLogoutRedirectUris: [app.home],
-	...(app.backchannel
-		? { logoutUri: `${new URL(app.home).origin}/auth/backchannel-logout` }
-		: {}),
+	...(app.backchannel ? { logoutUri: `${new URL(app.home).origin}/auth/backchannel-logout` } : {}),
 }));
 
 for (const client of clients) {
 	if (client.slug === "cms") continue;
-	const changed = writeBlock(
-		join(ROOT, "apps", client.slug, ".env"),
-		"local sso",
-		[
-			`OIDC_ISSUER=${ORIGIN}/application/o/${client.slug}/`,
-			"OIDC_ALLOW_INSECURE_LOOPBACK=true",
-			`OIDC_CLIENT_ID=${client.clientId}`,
-			`OIDC_CLIENT_SECRET=${client.clientSecret}`,
-		],
-	);
+	const changed = writeBlock(join(ROOT, "apps", client.slug, ".env"), "local sso", [
+		`OIDC_ISSUER=${ORIGIN}/application/o/${client.slug}/`,
+		"OIDC_ALLOW_INSECURE_LOOPBACK=true",
+		`OIDC_CLIENT_ID=${client.clientId}`,
+		`OIDC_CLIENT_SECRET=${client.clientSecret}`,
+	]);
 	if (changed)
 		console.log(
 			`apps/${client.slug}/.env: OIDC lines written (restart that dev server to read them)`,

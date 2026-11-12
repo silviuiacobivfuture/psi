@@ -59,9 +59,7 @@ export function JourneyShell({
 					<p class="text-overline uppercase tracking-[0.14em] text-ink-muted">
 						{say("account_signed_in_as")}
 					</p>
-					<p class="mt-1 truncate text-body-lg text-ink">
-						{person.name ?? person.email ?? ""}
-					</p>
+					<p class="mt-1 truncate text-body-lg text-ink">{person.name ?? person.email ?? ""}</p>
 					{person.email !== null && person.name !== null ? (
 						<p class="truncate text-body-sm text-ink-muted">{person.email}</p>
 					) : null}
@@ -95,13 +93,7 @@ export function JourneyShell({
 }
 
 /** A titled card inside a page. */
-export function Section({
-	title,
-	children,
-}: {
-	title: string;
-	children?: Child;
-}): JSX.Element {
+export function Section({ title, children }: { title: string; children?: Child }): JSX.Element {
 	return (
 		<GlassCard class="p-6">
 			<h2 class="text-headline text-ink">{title}</h2>
@@ -123,26 +115,18 @@ export function SignInInvite({
 	return (
 		<div class="mx-auto max-w-xl" data-account="signed-out">
 			<GlassCard class="p-8">
-				<h2 class="display text-display-md text-ink">
-					{say("account_signed_out_title")}
-				</h2>
-				<p class="mt-3 text-body text-ink-muted">
-					{say("account_signed_out_lead")}
-				</p>
+				<h2 class="display text-display-md text-ink">{say("account_signed_out_title")}</h2>
+				<p class="mt-3 text-body text-ink-muted">{say("account_signed_out_lead")}</p>
 				<div class="mt-6">
 					{signInReady ? (
 						<Button href={signInHref} arrow>
 							{say("account_sign_in")}
 						</Button>
 					) : (
-						<StatusBadge tone="warning">
-							{say("account_unavailable")}
-						</StatusBadge>
+						<StatusBadge tone="warning">{say("account_unavailable")}</StatusBadge>
 					)}
 				</div>
-				<p class="mt-6 text-body-sm text-ink-muted">
-					{say("account_privacy_note")}
-				</p>
+				<p class="mt-6 text-body-sm text-ink-muted">{say("account_privacy_note")}</p>
 			</GlassCard>
 		</div>
 	);
@@ -153,12 +137,8 @@ export function Unavailable({ say }: { say: Say }): JSX.Element {
 	return (
 		<div class="mx-auto max-w-xl">
 			<GlassCard class="p-8">
-				<h2 class="text-headline text-ink">
-					{say("account_unavailable_title")}
-				</h2>
-				<p class="mt-3 text-body text-ink-muted">
-					{say("account_unavailable_lead")}
-				</p>
+				<h2 class="text-headline text-ink">{say("account_unavailable_title")}</h2>
+				<p class="mt-3 text-body text-ink-muted">{say("account_unavailable_lead")}</p>
 			</GlassCard>
 		</div>
 	);
@@ -169,9 +149,7 @@ export function ComingSoon({ say }: { say: Say }): JSX.Element {
 	return (
 		<div class="mx-auto max-w-xl" data-account="coming-soon">
 			<GlassCard class="p-8">
-				<h2 class="display text-display-md text-ink">
-					{say("account_soon_title")}
-				</h2>
+				<h2 class="display text-display-md text-ink">{say("account_soon_title")}</h2>
 				<p class="mt-3 text-body text-ink-muted">{say("account_soon_text")}</p>
 			</GlassCard>
 		</div>

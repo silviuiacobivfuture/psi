@@ -7,10 +7,8 @@ import type { Stores } from "./stores/types";
 
 /** The journey's Postgres stores against the local Postgres `local:up` runs. FAILS when it is not running. */
 const url =
-	readBlock(
-		join(import.meta.dirname, "..", "..", "..", "apps/blog-web/.env"),
-		LOCAL_BLOCK,
-	).ACCOUNT_DATABASE_URL ?? "";
+	readBlock(join(import.meta.dirname, "..", "..", "..", "apps/blog-web/.env"), LOCAL_BLOCK)
+		.ACCOUNT_DATABASE_URL ?? "";
 const run = Date.now();
 let stores: Stores;
 
@@ -56,9 +54,11 @@ describe("journey stores on Postgres (live)", () => {
 		expect(older?.turns).toBe(5);
 		const psizone = await stores.conversations.forSite(s, "psizone");
 		if (psizone === null) throw new Error("no conversation");
-		expect(
-			(await stores.conversations.turns(psizone.id, 3)).map((t) => t.question),
-		).toEqual(["q3", "q4", "q5"]);
+		expect((await stores.conversations.turns(psizone.id, 3)).map((t) => t.question)).toEqual([
+			"q3",
+			"q4",
+			"q5",
+		]);
 		await stores.conversations.removeAll(s);
 		expect(await stores.conversations.list(s)).toEqual([]);
 	});
@@ -85,9 +85,7 @@ describe("journey stores on Postgres (live)", () => {
 		expect(await stores.conversations.list(other)).toHaveLength(1);
 		await stores.consents.grant(s, "guide_memory", "v2", run + 3);
 		const history = await stores.consents.list(s);
-		expect(
-			history.map((c) => [c.wordingVersion, c.withdrawnAt === null]),
-		).toEqual([
+		expect(history.map((c) => [c.wordingVersion, c.withdrawnAt === null])).toEqual([
 			["v2", true],
 			["v1", false],
 		]);

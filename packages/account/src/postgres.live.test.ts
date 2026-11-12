@@ -8,10 +8,8 @@ import type { Stores } from "./stores/types";
 
 /** Against the local Postgres `local:up` runs. FAILS when it is not running, never skips. */
 const url =
-	readBlock(
-		join(import.meta.dirname, "..", "..", "..", "apps/blog-web/.env"),
-		LOCAL_BLOCK,
-	).ACCOUNT_DATABASE_URL ?? "";
+	readBlock(join(import.meta.dirname, "..", "..", "..", "apps/blog-web/.env"), LOCAL_BLOCK)
+		.ACCOUNT_DATABASE_URL ?? "";
 const subject = `live-${Date.now()}`;
 let stores: Stores;
 
@@ -54,20 +52,12 @@ describe("Postgres stores (live)", () => {
 	});
 
 	it("saves an article once per person, and an account's erasure cascades through every row", async () => {
-		const a = await stores.savedArticles.save(
-			subject,
-			"despre-anxietate",
-			Date.now(),
-		);
-		const again = await stores.savedArticles.save(
-			subject,
-			"despre-anxietate",
-			Date.now(),
-		);
+		const a = await stores.savedArticles.save(subject, "despre-anxietate", Date.now());
+		const again = await stores.savedArticles.save(subject, "despre-anxietate", Date.now());
 		expect(again.id).toBe(a.id);
-		expect(
-			(await stores.savedArticles.list(subject)).map((s) => s.slug),
-		).toEqual(["despre-anxietate"]);
+		expect((await stores.savedArticles.list(subject)).map((s) => s.slug)).toEqual([
+			"despre-anxietate",
+		]);
 		expect(await stores.savedArticles.get("not-a-uuid")).toBeNull();
 		const sql = postgres(url, { max: 1, onnotice: () => {} });
 		await sql`DELETE FROM account WHERE subject = ${subject}`;

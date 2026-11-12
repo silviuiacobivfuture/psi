@@ -85,7 +85,7 @@ spec:
             - secretRef: { name: cms-env }
           env:
             - { name: SERVER_URL, value: "https://cms.psizone.ro" }
-            - { name: OIDC_ISSUER, value: "https://sso.psizone.ro/application/o/cms/" }
+            - { name: OIDC_ISSUER, value: "https://auth.psizone.ro/application/o/cms/" }
             - { name: S3_BUCKET, value: psi-cms-dev }
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }

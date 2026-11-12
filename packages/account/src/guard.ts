@@ -41,11 +41,7 @@ const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
  * The sites are same-site with each other, so `SameSite=Lax` alone lets one post to another. A write is accepted
  * only from this site's own origin (the CMS's rule).
  */
-export function sameOrigin(
-	headers: Headers,
-	method: string,
-	origin: string,
-): boolean {
+export function sameOrigin(headers: Headers, method: string, origin: string): boolean {
 	const o = headers.get("origin");
 	if (o !== null && o !== origin) return false;
 	if (SAFE.has(method.toUpperCase())) return true;
@@ -136,14 +132,10 @@ export function createGuard(deps: GuardDeps): Guard {
 			const rec = await store.read(hash);
 			const now = deps.now();
 			if (rec !== null) {
-				if (
-					now - rec.lastSeenAt > IDLE_MS ||
-					now - rec.createdAt > ABSOLUTE_MS
-				) {
+				if (now - rec.lastSeenAt > IDLE_MS || now - rec.createdAt > ABSOLUTE_MS) {
 					await store.remove(hash);
 				} else {
-					if (now - rec.lastSeenAt > TOUCH_EVERY_MS)
-						await store.touch(hash, now);
+					if (now - rec.lastSeenAt > TOUCH_EVERY_MS) await store.touch(hash, now);
 					found = {
 						subject: rec.subject,
 						user: `user:${rec.subject}`,
@@ -191,14 +183,8 @@ export function createGuard(deps: GuardDeps): Guard {
 				}
 				// A write whose session ended: through sign-in back to the page it was sent from (same
 				// origin only), never a blank 401 — a signed-out person is never left at a dead end.
-				const back = refererPath(
-					c.req.header("referer"),
-					new URL(c.req.url).host,
-				);
-				return c.redirect(
-					`${deps.signInPath}?return=${encodeURIComponent(back)}`,
-					303,
-				);
+				const back = refererPath(c.req.header("referer"), new URL(c.req.url).host);
+				return c.redirect(`${deps.signInPath}?return=${encodeURIComponent(back)}`, 303);
 			};
 		},
 
@@ -234,20 +220,13 @@ export function createGuard(deps: GuardDeps): Guard {
 					{
 						tuplesFor: (req) => {
 							const r = records.find((x) => x.object === req.object);
-							return r === undefined
-								? []
-								: recordTuples({ ...r, platform: PLATFORM });
+							return r === undefined ? [] : recordTuples({ ...r, platform: PLATFORM });
 						},
 					},
 				);
 				for (const r of records) {
-					const a = answers.get(
-						checkKey({ user: who.user, relation, object: r.object }),
-					);
-					out.set(
-						r.object,
-						a === undefined ? "unavailable" : a ? "allowed" : "denied",
-					);
+					const a = answers.get(checkKey({ user: who.user, relation, object: r.object }));
+					out.set(r.object, a === undefined ? "unavailable" : a ? "allowed" : "denied");
 				}
 			} catch (err) {
 				const d = toDecision(err);
@@ -261,11 +240,9 @@ export function createGuard(deps: GuardDeps): Guard {
 			return async (c, next) => {
 				if ((await load(c)) === null) return signIn(c, next);
 				const record = await resolve(c);
-				const decision =
-					record === null ? "denied" : await guard.decide(c, relation, record);
+				const decision = record === null ? "denied" : await guard.decide(c, relation, record);
 				if (decision === "allowed") return next();
-				if (decision === "unavailable")
-					return answers?.unavailable?.(c) ?? c.body(null, 503);
+				if (decision === "unavailable") return answers?.unavailable?.(c) ?? c.body(null, 503);
 				return answers?.denied?.(c) ?? c.body(null, 404);
 			};
 		},

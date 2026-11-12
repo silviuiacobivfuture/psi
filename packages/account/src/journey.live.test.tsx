@@ -19,8 +19,7 @@ import type { Stores } from "./stores/types";
  * every page and write, allowed and denied. Fails, never skips, when OpenFGA is not running.
  */
 const ROOT = join(import.meta.dirname, "..", "..", "..");
-const key =
-	readBlock(join(ROOT, "apps/blog-web/.env"), LOCAL_BLOCK).OPENFGA_TOKEN ?? "";
+const key = readBlock(join(ROOT, "apps/blog-web/.env"), LOCAL_BLOCK).OPENFGA_TOKEN ?? "";
 const ORIGIN = "http://journey.test";
 const ANA = "local-ana";
 const BOGDAN = "local-bogdan";
@@ -83,8 +82,7 @@ function fakeReservations(): ReservationsPort & {
 		},
 		/** The proof: the anonymous request's reference AND its cancel code, as the store checks them. */
 		async link(subject: string, reference: string, cancelCode: string) {
-			if (reference !== ANONYMOUS.reference || cancelCode !== ANONYMOUS_CODE)
-				return false;
+			if (reference !== ANONYMOUS.reference || cancelCode !== ANONYMOUS_CODE) return false;
 			rows[subject] = [...(rows[subject] ?? []), ANONYMOUS];
 			return true;
 		},
@@ -199,8 +197,7 @@ async function setup(
 		...(extra.noReservations === true ? {} : { reservations: port }),
 		...(extra.dataHome === undefined ? {} : { dataHome: extra.dataHome }),
 		now: () => NOW,
-		render: (c, page) =>
-			c.html(<main>{page.body}</main>, page.status === 503 ? 503 : 200),
+		render: (c, page) => c.html(<main>{page.body}</main>, page.status === 503 ? 503 : 200),
 	});
 	return { app, stores, port, account };
 }
@@ -215,12 +212,8 @@ const as = (id: string | null, init: RequestInit = {}) => {
 	}
 	return { ...init, headers };
 };
-const go = (
-	app: Hono,
-	path: string,
-	id: string | null,
-	init: RequestInit = {},
-) => app.fetch(new Request(`${ORIGIN}${path}`, as(id, init)));
+const go = (app: Hono, path: string, id: string | null, init: RequestInit = {}) =>
+	app.fetch(new Request(`${ORIGIN}${path}`, as(id, init)));
 
 describe("the signed-in journey (live OpenFGA)", () => {
 	it("invites a signed-out visitor in, back to the page they asked for, and never answers a write", async () => {
@@ -245,18 +238,13 @@ describe("the signed-in journey (live OpenFGA)", () => {
 			body: "displayName=x",
 		});
 		expect(write.status).toBe(303);
-		expect(write.headers.get("location")).toBe(
-			"/auth/sign-in?return=%2Fcont%2Fprofil",
-		);
+		expect(write.headers.get("location")).toBe("/auth/sign-in?return=%2Fcont%2Fprofil");
 	});
 
 	it("shows and changes the person's own profile; refuses another origin's write", async () => {
 		const { app, stores } = await setup();
-		expect(await (await go(app, "/cont/profil", ANA_ID)).text()).toContain(
-			"account_profile_title",
-		);
-		const body =
-			"displayName=Ana+Test&phone=%2B40+700+000+000&preferredContact=phone&language=en";
+		expect(await (await go(app, "/cont/profil", ANA_ID)).text()).toContain("account_profile_title");
+		const body = "displayName=Ana+Test&phone=%2B40+700+000+000&preferredContact=phone&language=en";
 		const saved = await go(app, "/cont/profil", ANA_ID, {
 			method: "POST",
 			body,
@@ -314,20 +302,14 @@ describe("the signed-in journey (live OpenFGA)", () => {
 			body: "reference=ANON-0001&code=AAAA-AAAA-AAAA-AAAA",
 		});
 		expect(wrong.headers.get("location")).toBe("/cont/programari?link=failed");
-		expect(
-			await (await go(app, "/cont/programari", ANA_ID)).text(),
-		).not.toContain("ANON-0001");
+		expect(await (await go(app, "/cont/programari", ANA_ID)).text()).not.toContain("ANON-0001");
 		const right = await go(app, "/cont/programari/leaga", ANA_ID, {
 			method: "POST",
 			body: `reference=ANON-0001&code=${ANONYMOUS_CODE}`,
 		});
 		expect(right.headers.get("location")).toBe("/cont/programari?ok=linked");
-		expect(await (await go(app, "/cont/programari", ANA_ID)).text()).toContain(
-			"ANON-0001",
-		);
-		expect(
-			await (await go(app, "/cont/programari", BOGDAN_ID)).text(),
-		).not.toContain("ANON-0001");
+		expect(await (await go(app, "/cont/programari", ANA_ID)).text()).toContain("ANON-0001");
+		expect(await (await go(app, "/cont/programari", BOGDAN_ID)).text()).not.toContain("ANON-0001");
 	});
 
 	it("lists only the person's own reservations and cancels only those", async () => {
@@ -362,17 +344,13 @@ describe("the signed-in journey (live OpenFGA)", () => {
 		});
 		const [anas] = await stores.conversations.list(ANA);
 		const [bogdans] = await stores.conversations.list(BOGDAN);
-		if (anas === undefined || bogdans === undefined)
-			throw new Error("no conversation");
+		if (anas === undefined || bogdans === undefined) throw new Error("no conversation");
 		const page = await (await go(app, "/cont/conversatii", ANA_ID)).text();
 		expect(page).toContain("Ce este o evaluare?");
 		expect(page).not.toContain("privat");
-		const denied = await go(
-			app,
-			`/cont/conversatii/${bogdans.id}/sterge`,
-			ANA_ID,
-			{ method: "POST" },
-		);
+		const denied = await go(app, `/cont/conversatii/${bogdans.id}/sterge`, ANA_ID, {
+			method: "POST",
+		});
 		expect(denied.status).toBe(404);
 		expect(await stores.conversations.get(bogdans.id)).not.toBeNull();
 		await go(app, `/cont/conversatii/${anas.id}/sterge`, ANA_ID, {
@@ -431,9 +409,7 @@ describe("the signed-in journey (live OpenFGA)", () => {
 			noReservations: true,
 		});
 		expect(await (await go(app, "/cont/date", ANA_ID)).text()).toContain(home);
-		expect(
-			(await go(app, "/cont/date/export", ANA_ID)).headers.get("location"),
-		).toBe(home);
+		expect((await go(app, "/cont/date/export", ANA_ID)).headers.get("location")).toBe(home);
 		const erase = await go(app, "/cont/date/sterge", ANA_ID, {
 			method: "POST",
 			body: "confirm=account_erase_word",
@@ -473,9 +449,7 @@ describe("the signed-in journey (live OpenFGA)", () => {
 			method: "POST",
 			body: "purpose=programme_progress&action=grant",
 		});
-		expect(await stores.consents.current(ANA, "programme_progress")).toBe(
-			false,
-		);
+		expect(await stores.consents.current(ANA, "programme_progress")).toBe(false);
 	});
 
 	it("fails closed: OpenFGA away answers 503 and shows nothing", async () => {

@@ -53,7 +53,10 @@ spec:
         # ca vreun pas să ruleze — cea mai mare întârziere care se putea scoate fără
         # hardware nou. NU costă bani: mașinile sunt plătite oricum. Costă capacitate
         # rezervată, și încape.
-        minRunners: 4
+        # psi (2026-11-12): ONE server (CPX62, the account's core limit allows one), about 4Gi of
+        # reservable memory left after the estate. One warm runner reserving 3Gi; the RMX numbers
+        # above assume two agent nodes. Raise when psi's dedicated CI workers join.
+        minRunners: 1
         # 8, raised from 4 (2026-09-03), on a MEASUREMENT rather than a feeling.
         #
         # The earlier note said queue pressure was mostly superseded runs and
@@ -100,7 +103,7 @@ spec:
         # patru în total (32Gi din 35). Cinci la 8Gi nu ar încăpea; iar mai puțini
         # și mai mari nu ajută: la 11Gi intră doar UNUL pe nod, adică doi în total.
         # Patru × 8Gi este maximul de memorie per construire fără a pierde paralelism.
-        maxRunners: 4
+        maxRunners: 1
         # RESOURCES, declared for the first time — and placed where the chart
         # actually reads them, which is NOT where they look like they belong.
         #
@@ -279,7 +282,7 @@ spec:
                     # cer 16.8 din 16 și al patrulea stătea Pending „Insufficient
                     # cpu". Fără limită de CPU, cererea e doar ponderea programării:
                     # un runner tot folosește tot procesorul liber.
-                    cpu: "4"
+                    cpu: "2"
                     # 8Gi, urcat de la 5Gi MĂSURAȚI, fiindcă s-a cerut explicit mai
                     # multă memorie per construire în locul unui al cincilea runner.
                     # Vârful instalării rămâne 5129Mi pe 230 de eșantioane; cei 3Gi
@@ -299,7 +302,7 @@ spec:
                     # runneri, 5Gi 1 + 2 = trei, 4Gi 1 + 3 = patru. Plafonul nu se
                     # schimbă. O cerere mai mare lasă un runner Pending pentru totdeauna
                     # (scripts/tests/kubelet-memory.test.sh).
-                    memory: 4Gi
+                    memory: 3Gi
                   limits:
                     # 7Gi — roughly 40% above the observed peak, NOT a multiple of
                     # a number sampled at idle. That mistake capped this container
@@ -339,7 +342,7 @@ spec:
       # Estate values: filled from the identity by the estate's upgrade step, never written here.
       parameters:
         - name: githubConfigUrl
-          value: https://github.com/silviuiacobivfuture
+          value: https://github.com/silviuiacobivfuture/psi
           forceString: true
         - name: template.spec.initContainers[1].image
           value: registry.psizone.ro/mirror/docker.io/library/docker:dind@sha256:97545b7bab66319a476800a85b008b25c06681733d484909e2a776281e41574f

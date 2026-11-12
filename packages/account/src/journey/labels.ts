@@ -104,10 +104,7 @@ export const JOURNEY_KEYS = [
 export type JourneyKey = (typeof JOURNEY_KEYS)[number];
 
 /** A paraglide message with no parameters. */
-export type Message = (
-	inputs?: undefined,
-	options?: { locale?: "ro" | "en" },
-) => string;
+export type Message = (inputs?: undefined, options?: { locale?: "ro" | "en" }) => string;
 
 /** The site's messages, as far as the journey needs them. */
 export type JourneyMessages = Readonly<Record<JourneyKey, Message>>;

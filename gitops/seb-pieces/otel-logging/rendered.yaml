@@ -1,0 +1,384 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - namespaces
+  - nodes
+  - events
+  - replicationcontrollers
+  - services
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  - deployments
+  - daemonsets
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-collector
+subjects:
+- kind: ServiceAccount
+  name: otel-collector
+  namespace: observability
+---
+apiVersion: v1
+data:
+  agent-config.yaml: |
+    # OTel agent (DaemonSet) — DEV. Ships node + container + network typologies to
+    # their Axiom datasets (EU). Axiom routes by the X-Axiom-Dataset header, so each
+    # typology has its own otlphttp exporter. Dataset names = psi-dev-* (Tofu).
+    extensions:
+      # Persist filelog read offsets across restarts (mounted hostPath /var/lib/otelcol).
+      file_storage:
+        directory: /var/lib/otelcol
+
+    receivers:
+      # Container/pod stdout-stderr. The `container` operator parses CRI/containerd
+      # format and extracts k8s.namespace.name / k8s.pod.name / k8s.container.name
+      # from the file path; k8sattributes then enriches with node + labels.
+      filelog:
+        include: [/var/log/pods/*/*/*.log]
+        start_at: end
+        include_file_path: true
+        storage: file_storage
+        operators:
+          - type: container
+            add_metadata_from_filepath: true
+
+      # Node/system/process logs (journald: k3s, containerd, kubelet, sshd, kernel).
+      # Requires journalctl — provided by the custom otel-collector-journald image.
+      journald:
+        directory: /var/log/journal
+
+    processors:
+      batch: {}
+
+      # Enrich container logs with k8s metadata (node, workload, labels) for filtering.
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.node.name
+            - k8s.deployment.name
+            - k8s.daemonset.name
+            - k8s.statefulset.name
+          labels:
+            - tag_name: app
+              key: app
+              from: pod
+        pod_association:
+          - sources:
+              - { from: resource_attribute, name: k8s.pod.uid }
+          - sources:
+              - { from: resource_attribute, name: k8s.namespace.name }
+              - { from: resource_attribute, name: k8s.pod.name }
+
+      # Tag node logs with the node name + a source marker for easy Axiom filtering.
+      resource/node:
+        attributes:
+          - { key: host.name, value: "${env:K8S_NODE_NAME}", action: upsert }
+          - { key: log.source, value: node, action: insert }
+
+      resource/containers:
+        attributes:
+          - { key: log.source, value: containers, action: insert }
+
+      resource/network:
+        attributes:
+          - { key: log.source, value: network, action: insert }
+
+    connectors:
+      # Split pod logs by namespace: kube-system (Traefik ingress, CoreDNS, kube-proxy)
+      # = network typology; everything else = workload containers. Add namespaces here
+      # to re-route more sources without touching exporters.
+      routing:
+        default_pipelines: [logs/containers]
+        table:
+          - statement: route() where attributes["k8s.namespace.name"] == "kube-system"
+            pipelines: [logs/network]
+
+    exporters:
+      otlphttp/containers:
+        logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+        compression: gzip
+        headers:
+          Authorization: "Bearer ${env:AXIOM_TOKEN}"
+          X-Axiom-Dataset: psi-dev-containers
+      otlphttp/network:
+        logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+        compression: gzip
+        headers:
+          Authorization: "Bearer ${env:AXIOM_TOKEN}"
+          X-Axiom-Dataset: psi-dev-network
+      otlphttp/node:
+        logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+        compression: gzip
+        headers:
+          Authorization: "Bearer ${env:AXIOM_TOKEN}"
+          X-Axiom-Dataset: psi-dev-node
+
+    service:
+      extensions: [file_storage]
+      pipelines:
+        # Container logs in → enrich → route by namespace.
+        logs/in:
+          receivers: [filelog]
+          processors: [k8sattributes, batch]
+          exporters: [routing]
+        logs/containers:
+          receivers: [routing]
+          processors: [resource/containers, batch]
+          exporters: [otlphttp/containers]
+        logs/network:
+          receivers: [routing]
+          processors: [resource/network, batch]
+          exporters: [otlphttp/network]
+        # Node/process logs (journald) → node dataset.
+        logs/node:
+          receivers: [journald]
+          processors: [resource/node, batch]
+          exporters: [otlphttp/node]
+kind: ConfigMap
+metadata:
+  name: otel-agent-k6f6m6ck2f
+  namespace: observability
+---
+apiVersion: v1
+data:
+  cluster-config.yaml: |
+    # OTel cluster collector (Deployment singleton) — DEV. Kubernetes events →
+    # psi-dev-node. Separate from the agent so events aren't duplicated
+    # per node.
+    receivers:
+      k8sobjects:
+        auth_type: serviceAccount
+        objects:
+          - name: events
+            mode: watch
+            group: events.k8s.io
+
+    processors:
+      batch: {}
+      resource/events:
+        attributes:
+          - { key: log.source, value: k8s-events, action: insert }
+
+    exporters:
+      otlphttp/events:
+        logs_endpoint: https://eu-central-1.aws.edge.axiom.co/v1/logs
+        compression: gzip
+        headers:
+          Authorization: "Bearer ${env:AXIOM_TOKEN}"
+          X-Axiom-Dataset: psi-dev-node
+
+    service:
+      pipelines:
+        logs:
+          receivers: [k8sobjects]
+          processors: [resource/events, batch]
+          exporters: [otlphttp/events]
+kind: ConfigMap
+metadata:
+  name: otel-cluster-db659mbtt7
+  namespace: observability
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: otel-cluster
+  name: otel-cluster
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-cluster
+  template:
+    metadata:
+      labels:
+        app: otel-cluster
+    spec:
+      containers:
+      - args:
+        - --config=/conf/cluster-config.yaml
+        env:
+        - name: AXIOM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: AXIOM_TOKEN
+              name: axiom-token
+        image: registry.psizone.ro/psi/otel-collector-journald:0.111.0
+        name: otel-collector
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 25m
+            memory: 96Mi
+        volumeMounts:
+        - mountPath: /conf
+          name: config
+      imagePullSecrets:
+      - name: harbor-pull
+      serviceAccountName: otel-collector
+      volumes:
+      - configMap:
+          name: otel-cluster-db659mbtt7
+        name: config
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: otel-agent
+  name: otel-agent
+  namespace: observability
+spec:
+  selector:
+    matchLabels:
+      app: otel-agent
+  template:
+    metadata:
+      labels:
+        app: otel-agent
+    spec:
+      containers:
+      - args:
+        - --config=/conf/agent-config.yaml
+        env:
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: AXIOM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: AXIOM_TOKEN
+              name: axiom-token
+        image: registry.psizone.ro/psi/otel-collector-journald:0.111.0
+        name: otel-collector
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /conf
+          name: config
+        - mountPath: /var/log/pods
+          name: varlogpods
+          readOnly: true
+        - mountPath: /var/lib/docker/containers
+          name: varlibdockercontainers
+          readOnly: true
+        - mountPath: /var/log/journal
+          name: journal
+          readOnly: true
+        - mountPath: /etc/machine-id
+          name: machineid
+          readOnly: true
+        - mountPath: /var/lib/otelcol
+          name: checkpoints
+      imagePullSecrets:
+      - name: harbor-pull
+      securityContext:
+        runAsUser: 0
+      serviceAccountName: otel-collector
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - configMap:
+          name: otel-agent-k6f6m6ck2f
+        name: config
+      - hostPath:
+          path: /var/log/pods
+        name: varlogpods
+      - hostPath:
+          path: /var/lib/docker/containers
+        name: varlibdockercontainers
+      - hostPath:
+          path: /var/log/journal
+        name: journal
+      - hostPath:
+          path: /etc/machine-id
+        name: machineid
+      - hostPath:
+          path: /var/lib/otelcol
+          type: DirectoryOrCreate
+        name: checkpoints
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-pull
+  namespace: observability
+spec:
+  data:
+  - remoteRef:
+      key: platform/harbor/pull
+      property: username
+    secretKey: username
+  - remoteRef:
+      key: platform/harbor/pull
+      property: password
+    secretKey: password
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: harbor-pull
+    template:
+      data:
+        .dockerconfigjson: |
+          {"auths":{"registry.psizone.ro":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}
+      type: kubernetes.io/dockerconfigjson

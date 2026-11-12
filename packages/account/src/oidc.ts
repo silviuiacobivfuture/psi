@@ -69,10 +69,7 @@ export interface RelyingParty {
 	): Promise<{ url: URL; tx: LoginTransaction }>;
 	finish(callbackUrl: URL, tx: LoginTransaction): Promise<SignedInTokens>;
 	/** The provider's end-session URL, so signing out here signs out of Authentik and, through it, every site. */
-	endSession(
-		idTokenHint: string,
-		postLogoutRedirectUri: string,
-	): Promise<URL | null>;
+	endSession(idTokenHint: string, postLogoutRedirectUri: string): Promise<URL | null>;
 	/** Verifies an OIDC Back-Channel Logout token against the issuer's keys. Throws on anything invalid. */
 	verifyLogout(logoutToken: string): Promise<LogoutRequest>;
 	issuer: string;
@@ -83,18 +80,10 @@ export function createRelyingParty(cfg: IdentityConfig): RelyingParty {
 	const configuration = (): Promise<client.Configuration> => {
 		if (discovered === null) {
 			discovered = client
-				.discovery(
-					new URL(cfg.issuer),
-					cfg.clientId,
-					cfg.clientSecret,
-					undefined,
-					{
-						execute: cfg.allowInsecureLoopback
-							? [client.allowInsecureRequests]
-							: [],
-						timeout: 10,
-					},
-				)
+				.discovery(new URL(cfg.issuer), cfg.clientId, cfg.clientSecret, undefined, {
+					execute: cfg.allowInsecureLoopback ? [client.allowInsecureRequests] : [],
+					timeout: 10,
+				})
 				.catch((err: unknown) => {
 					discovered = null;
 					throw err;
@@ -137,8 +126,7 @@ export function createRelyingParty(cfg: IdentityConfig): RelyingParty {
 				idTokenExpected: true,
 			});
 			const idToken = tokens.id_token;
-			if (idToken === undefined)
-				throw new Error("account: the provider returned no id_token");
+			if (idToken === undefined) throw new Error("account: the provider returned no id_token");
 			const claims = IdClaims.parse(tokens.claims());
 			return {
 				identity: {
@@ -154,8 +142,7 @@ export function createRelyingParty(cfg: IdentityConfig): RelyingParty {
 
 		async endSession(idTokenHint, postLogoutRedirectUri) {
 			const config = await configuration();
-			if (config.serverMetadata().end_session_endpoint === undefined)
-				return null;
+			if (config.serverMetadata().end_session_endpoint === undefined) return null;
 			return client.buildEndSessionUrl(config, {
 				id_token_hint: idTokenHint,
 				post_logout_redirect_uri: postLogoutRedirectUri,
@@ -165,8 +152,7 @@ export function createRelyingParty(cfg: IdentityConfig): RelyingParty {
 		async verifyLogout(logoutToken) {
 			const config = await configuration();
 			const meta = config.serverMetadata();
-			if (meta.jwks_uri === undefined)
-				throw new Error("account: the provider publishes no JWKS");
+			if (meta.jwks_uri === undefined) throw new Error("account: the provider publishes no JWKS");
 			jwks ??= createRemoteJWKSet(new URL(meta.jwks_uri));
 			const { payload } = await jwtVerify(logoutToken, jwks, {
 				issuer: meta.issuer,
@@ -176,8 +162,7 @@ export function createRelyingParty(cfg: IdentityConfig): RelyingParty {
 			const claims = LogoutClaims.parse(payload);
 			if (!(BACKCHANNEL_EVENT in claims.events))
 				throw new Error("account: not a back-channel logout event");
-			if (claims.sid !== undefined)
-				return { kind: "sid", issuer: claims.iss, sid: claims.sid };
+			if (claims.sid !== undefined) return { kind: "sid", issuer: claims.iss, sid: claims.sid };
 			if (claims.sub !== undefined)
 				return { kind: "subject", issuer: claims.iss, subject: claims.sub };
 			throw new Error("account: a logout token names neither sid nor sub");

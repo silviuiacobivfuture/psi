@@ -136,14 +136,11 @@ export async function postgresStores(url: string): Promise<Stores> {
 				await sql`DELETE FROM account_session WHERE id_hash = ${idHash}`;
 			},
 			async removeBySid(issuer, sid) {
-				return (
-					await sql`DELETE FROM account_session WHERE issuer = ${issuer} AND sid = ${sid}`
-				).count;
+				return (await sql`DELETE FROM account_session WHERE issuer = ${issuer} AND sid = ${sid}`)
+					.count;
 			},
 			async removeBySubject(subject) {
-				return (
-					await sql`DELETE FROM account_session WHERE subject = ${subject}`
-				).count;
+				return (await sql`DELETE FROM account_session WHERE subject = ${subject}`).count;
 			},
 		},
 		accounts: {
@@ -184,8 +181,7 @@ export async function postgresStores(url: string): Promise<Stores> {
 				return rows.map(toSaved);
 			},
 			async save(subject, slug, ms) {
-				const rows =
-					await sql`INSERT INTO blog_saved_article (subject, slug, saved_at)
+				const rows = await sql`INSERT INTO blog_saved_article (subject, slug, saved_at)
 					VALUES (${subject}, ${slug}, ${at(ms)})
 					ON CONFLICT (subject, slug) DO UPDATE SET slug = EXCLUDED.slug
 					RETURNING id::text AS id, subject, slug, saved_at`;

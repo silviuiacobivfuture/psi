@@ -902,6 +902,31 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: email-sender
+  namespace: reportportal
+spec:
+  data:
+  - remoteRef:
+      key: apps/reportportal/plunk
+      property: secret_key
+    secretKey: secret_key
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: email-sender
+    template:
+      data:
+        EMAIL_API_KEY: '{{ .secret_key }}'
+        EMAIL_API_URL: http://plunk.plunk.svc.cluster.local
+        EMAIL_FROM: noreply@reports.psizone.ro
+        EMAIL_FROM_NAME: ReportPortal
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: reportportal-backup-s3
   namespace: reportportal
 spec:
@@ -1136,7 +1161,7 @@ spec:
       data:
         compression: gzip
       destinationPath: s3://psi-tfstate-dev/cnpg/reportportal-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           key: AWS_ACCESS_KEY_ID

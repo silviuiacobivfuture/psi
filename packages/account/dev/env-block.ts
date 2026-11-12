@@ -8,24 +8,15 @@ const begin = (name: string): string =>
 	`# >>> @psi/account ${name} (managed by packages/account/dev; do not edit)`;
 const end = (name: string): string => `# <<< @psi/account ${name}`;
 
-function bounds(
-	text: string,
-	name: string,
-): { start: number; stop: number } | null {
+function bounds(text: string, name: string): { start: number; stop: number } | null {
 	// Matched on the marker's stable prefix, so a block written under an older wording is still found and replaced.
 	const start = text.indexOf(`# >>> @psi/account ${name} (`);
 	const close = text.indexOf(end(name));
-	return start >= 0 && close > start
-		? { start, stop: close + end(name).length }
-		: null;
+	return start >= 0 && close > start ? { start, stop: close + end(name).length } : null;
 }
 
 /** Replaces the block (creating the file at mode 600). Returns false when the block already held exactly these lines. */
-export function writeBlock(
-	file: string,
-	name: string,
-	lines: ReadonlyArray<string>,
-): boolean {
+export function writeBlock(file: string, name: string, lines: ReadonlyArray<string>): boolean {
 	const current = existsSync(file) ? readFileSync(file, "utf8") : "";
 	const block = `${begin(name)}\n${lines.join("\n")}\n${end(name)}`;
 	const at = bounds(current, name);
@@ -48,8 +39,7 @@ export function readBlock(file: string, name: string): Record<string, string> {
 	if (at === null) return out;
 	for (const line of text.slice(at.start, at.stop).split("\n")) {
 		const eq = line.indexOf("=");
-		if (eq > 0 && !line.startsWith("#"))
-			out[line.slice(0, eq)] = line.slice(eq + 1);
+		if (eq > 0 && !line.startsWith("#")) out[line.slice(0, eq)] = line.slice(eq + 1);
 	}
 	return out;
 }

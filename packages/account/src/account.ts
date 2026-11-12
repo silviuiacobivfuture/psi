@@ -1,10 +1,6 @@
 import type { Context, Hono, MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import {
-	type AuthzClient,
-	createAuthzClient,
-	StaticTokenSource,
-} from "./authz/client";
+import { type AuthzClient, createAuthzClient, StaticTokenSource } from "./authz/client";
 import { type AccountConfig, type Env, loadAccountConfig } from "./config";
 import { createGuard, type Guard } from "./guard";
 import { createRelyingParty } from "./oidc";
@@ -80,21 +76,15 @@ export function createAccount(opts: CreateAccountOptions): Account {
 	const env = opts.env ?? process.env;
 	const config: AccountConfig = loadAccountConfig(env, opts.site.slug);
 	const now = opts.now ?? Date.now;
-	const onWarn =
-		opts.onWarn ??
-		((m: string) => console.warn(`[account:${opts.site.key}] ${m}`));
+	const onWarn = opts.onWarn ?? ((m: string) => console.warn(`[account:${opts.site.key}] ${m}`));
 	const home = opts.site.home ?? "/";
 	const cookieName = `psi-${opts.site.key}-session`;
 	const txnCookieName = `psi-${opts.site.key}-txn`;
 	const checkedCookieName = `psi-${opts.site.key}-sso-checked`;
 
-	const identity =
-		config.identity.kind === "ready" ? config.identity.config : null;
+	const identity = config.identity.kind === "ready" ? config.identity.config : null;
 	const rp = identity === null ? null : createRelyingParty(identity);
-	const txnSealer =
-		identity === null
-			? null
-			: createSealer(identity.sessionSecret, "login-txn");
+	const txnSealer = identity === null ? null : createSealer(identity.sessionSecret, "login-txn");
 
 	const authz =
 		config.authz.kind === "ready"
@@ -187,10 +177,8 @@ export function createAccount(opts: CreateAccountOptions): Account {
 			const load = guard.session();
 			return async (c, next) => {
 				await load(c, async () => {});
-				if (guard.current(c) !== null || rp === null || c.req.method !== "GET")
-					return next();
-				if (getCookie(c, checkedCookieName, "host") !== undefined)
-					return next();
+				if (guard.current(c) !== null || rp === null || c.req.method !== "GET") return next();
+				if (getCookie(c, checkedCookieName, "host") !== undefined) return next();
 				setCookie(c, checkedCookieName, "1", {
 					path: "/",
 					secure: true,
@@ -201,10 +189,7 @@ export function createAccount(opts: CreateAccountOptions): Account {
 				});
 				const here = new URL(c.req.url);
 				const back = encodeURIComponent(`${here.pathname}${here.search}`);
-				return c.redirect(
-					`${AUTH_PATHS.signIn}?prompt=none&return=${back}`,
-					302,
-				);
+				return c.redirect(`${AUTH_PATHS.signIn}?prompt=none&return=${back}`, 302);
 			};
 		},
 	};

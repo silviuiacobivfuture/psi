@@ -20,10 +20,7 @@ const reachable = await fetch(`${URL}/version`, {
 })
 	.then((res) => res.ok)
 	.catch(() => false);
-const ready =
-	reachable &&
-	existsSync(KEY_FILE) &&
-	existsSync(join(dirname(KEY_FILE), "admin-key"));
+const ready = reachable && existsSync(KEY_FILE) && existsSync(join(dirname(KEY_FILE), "admin-key"));
 
 const TENANT = `test-acct-${Date.now().toString(36)}`;
 const MIN = 60_000;
@@ -31,15 +28,11 @@ const ANA = accountHashOf("local-ana");
 const BOGDAN = accountHashOf("local-bogdan");
 
 function convexRun(fn: string, args: Record<string, string>): unknown {
-	const out = execFileSync(
-		join(PKG, "scripts/convex.sh"),
-		["run", fn, JSON.stringify(args)],
-		{
-			cwd: PKG,
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "pipe"],
-		},
-	);
+	const out = execFileSync(join(PKG, "scripts/convex.sh"), ["run", fn, JSON.stringify(args)], {
+		cwd: PKG,
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "pipe"],
+	});
 	return JSON.parse(out);
 }
 
@@ -84,9 +77,7 @@ async function book(index: number, accountHash?: string) {
 
 describe.skipIf(!ready)("a person's own requests on the local Convex", () => {
 	beforeAll(() => {
-		z.object({ practitioner: z.string() }).parse(
-			convexRun("seed:fixture", { tenant: TENANT }),
-		);
+		z.object({ practitioner: z.string() }).parse(convexRun("seed:fixture", { tenant: TENANT }));
 	});
 	afterAll(() => {
 		convexRun("seed:dropFixture", { tenant: TENANT });
@@ -95,32 +86,22 @@ describe.skipIf(!ready)("a person's own requests on the local Convex", () => {
 	it("lists an account's requests to that account only, and refuses a malformed hash", async () => {
 		const accounts = accountClientOn(createTransport(config()));
 		const mine = await book(3, ANA);
-		expect((await accounts.requests(ANA)).map((r) => r.reference)).toContain(
-			mine.reference,
-		);
-		expect(
-			(await accounts.requests(BOGDAN)).map((r) => r.reference),
-		).not.toContain(mine.reference);
+		expect((await accounts.requests(ANA)).map((r) => r.reference)).toContain(mine.reference);
+		expect((await accounts.requests(BOGDAN)).map((r) => r.reference)).not.toContain(mine.reference);
 		expect(await accounts.requests("not-a-hash")).toEqual([]);
 	});
 
 	it("cancels only for the owning account", async () => {
 		const accounts = accountClientOn(createTransport(config()));
 		const mine = await book(6, ANA);
-		expect(
-			await accounts.cancel({ reference: mine.reference, accountHash: BOGDAN }),
-		).toEqual({
+		expect(await accounts.cancel({ reference: mine.reference, accountHash: BOGDAN })).toEqual({
 			ok: false,
 			reason: "not_found",
 		});
-		expect(
-			await accounts.cancel({ reference: mine.reference, accountHash: ANA }),
-		).toEqual({
+		expect(await accounts.cancel({ reference: mine.reference, accountHash: ANA })).toEqual({
 			ok: true,
 		});
-		const row = (await accounts.requests(ANA)).find(
-			(r) => r.reference === mine.reference,
-		);
+		const row = (await accounts.requests(ANA)).find((r) => r.reference === mine.reference);
 		expect(row?.status).toBe("cancelled");
 	});
 
@@ -134,9 +115,9 @@ describe.skipIf(!ready)("a person's own requests on the local Convex", () => {
 				accountHash: ANA,
 			}),
 		).toEqual({ ok: false, reason: "not_found" });
-		expect(
-			(await accounts.requests(ANA)).map((r) => r.reference),
-		).not.toContain(anonymous.reference);
+		expect((await accounts.requests(ANA)).map((r) => r.reference)).not.toContain(
+			anonymous.reference,
+		);
 		expect(
 			await accounts.link({
 				reference: anonymous.reference,

@@ -55,18 +55,13 @@ export interface AccountSchedulingClient {
 	cancel(input: {
 		reference: string;
 		accountHash: string;
-	}): Promise<
-		| { ok: true }
-		| { ok: false; reason: "not_found" | "hold_expired" | "not_allowed" }
-	>;
+	}): Promise<{ ok: true } | { ok: false; reason: "not_found" | "hold_expired" | "not_allowed" }>;
 	/** Proof of an anonymous request: its reference and the cancel code shown once. */
 	link(input: {
 		reference: string;
 		cancelCode: string;
 		accountHash: string;
-	}): Promise<
-		{ ok: true; reference: string } | { ok: false; reason: "not_found" }
-	>;
+	}): Promise<{ ok: true; reference: string } | { ok: false; reason: "not_found" }>;
 	/** Erasure: the account's requests stay with the clinic, no longer tied to it. */
 	unlink(accountHash: string): Promise<number>;
 }
@@ -95,8 +90,7 @@ export function accountClientOn(transport: Transport): AccountSchedulingClient {
 		async link(input) {
 			const reference = canonicalCode(input.reference, 8);
 			const code = canonicalCode(input.cancelCode, 16);
-			if (reference === undefined || code === undefined)
-				return { ok: false, reason: "not_found" };
+			if (reference === undefined || code === undefined) return { ok: false, reason: "not_found" };
 			return transport.call(RawLinkSchema, (c) =>
 				c.mutation(
 					api.account.link,
@@ -112,11 +106,7 @@ export function accountClientOn(transport: Transport): AccountSchedulingClient {
 		},
 		async unlink(accountHash) {
 			const raw = await transport.call(RawUnlinkSchema, (c) =>
-				c.mutation(
-					api.account.unlink,
-					{ key, accountHash },
-					{ skipQueue: true },
-				),
+				c.mutation(api.account.unlink, { key, accountHash }, { skipQueue: true }),
 			);
 			return raw.ok ? raw.unlinked : 0;
 		},

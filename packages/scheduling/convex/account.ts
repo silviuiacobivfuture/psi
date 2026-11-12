@@ -28,9 +28,7 @@ export const forAccount = query({
 			return { ok: false as const, reason: "invalid" as const };
 		const rows = await ctx.db
 			.query("appointments")
-			.withIndex("by_account_start", (q) =>
-				q.eq("accountHash", args.accountHash),
-			)
+			.withIndex("by_account_start", (q) => q.eq("accountHash", args.accountHash))
 			.order("desc")
 			.take(LIMIT);
 		const out = [];
@@ -76,8 +74,7 @@ export const cancelForAccount = mutation({
 			return { ok: false as const, reason: "not_found" as const };
 		}
 		const now = Date.now();
-		if (row.end <= now)
-			return { ok: false as const, reason: "not_allowed" as const };
+		if (row.end <= now) return { ok: false as const, reason: "not_allowed" as const };
 		const next = transition(row, { type: "cancel" }, now);
 		if (!next.ok) return { ok: false as const, reason: next.reason };
 		await ctx.db.patch(row._id, { status: next.next, updatedAt: now });
@@ -105,10 +102,7 @@ export const link = mutation({
 		) {
 			return { ok: false as const, reason: "not_found" as const };
 		}
-		if (
-			row.accountHash !== undefined &&
-			!sameSecret(row.accountHash, args.accountHash)
-		) {
+		if (row.accountHash !== undefined && !sameSecret(row.accountHash, args.accountHash)) {
 			return { ok: false as const, reason: "not_found" as const };
 		}
 		await ctx.db.patch(row._id, {
@@ -128,13 +122,10 @@ export const unlink = mutation({
 			return { ok: false as const, reason: "invalid" as const };
 		const rows = await ctx.db
 			.query("appointments")
-			.withIndex("by_account_start", (q) =>
-				q.eq("accountHash", args.accountHash),
-			)
+			.withIndex("by_account_start", (q) => q.eq("accountHash", args.accountHash))
 			.collect();
 		const now = Date.now();
-		for (const row of rows)
-			await ctx.db.patch(row._id, { accountHash: undefined, updatedAt: now });
+		for (const row of rows) await ctx.db.patch(row._id, { accountHash: undefined, updatedAt: now });
 		return { ok: true as const, unlinked: rows.length };
 	},
 });

@@ -68,15 +68,7 @@ async function waitFor(url: string, init?: RequestInit): Promise<void> {
 function waitForPostgres(): void {
 	for (let i = 0; i < 60; i++) {
 		try {
-			docker(
-				"exec",
-				DB_CONTAINER,
-				"pg_isready",
-				"-U",
-				"account",
-				"-d",
-				"account",
-			);
+			docker("exec", DB_CONTAINER, "pg_isready", "-U", "account", "-d", "account");
 			return;
 		} catch {
 			execFileSync("sleep", ["0.5"]);
@@ -180,9 +172,7 @@ function down(): void {
 	console.log("removed psi-account-openfga and psi-account-db");
 }
 
-const isMain =
-	process.argv[1] !== undefined &&
-	fileURLToPath(import.meta.url) === process.argv[1];
+const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
 	const command = process.argv[2];
 	if (command === "up") await up();

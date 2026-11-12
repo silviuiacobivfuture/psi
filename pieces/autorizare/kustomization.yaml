@@ -45,16 +45,16 @@ patches:
       - op: replace
         path: /data/HUB_UPSTREAM_ISSUER
         value: https://WLAUTHHOST/application/o/autorizare-hub/
-  # The hub's real host, kept out of the base like the console's: `id.` is the
-  # label, WLDOMAIN the apex the replacements below fill in.
+  # The hub's real host, kept out of the base like the console's: the label is the
+  # estate's HUB_HOST_PREFIX (default `id`), WLDOMAIN the apex — both filled in below.
   - target: { kind: Ingress, name: autorizare-hub }
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: id.WLDOMAIN
+        value: WLHUB.WLDOMAIN
       - op: replace
         path: /spec/tls/0/hosts/0
-        value: id.WLDOMAIN
+        value: WLHUB.WLDOMAIN
 
 components:
   # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
@@ -99,6 +99,20 @@ replacements:
       - select: { kind: ConfigMap, name: autorizare-config }
         fieldPaths: [data.AUTHENTIK_API_URL, data.NOVU_PUBLIC_API_URL, data.NOVU_PUBLIC_WS_URL]
         options: { delimiter: ".", index: 1 }
+  # The hub's label, <HUB_HOST_PREFIX>.<apex>: its Ingress, and the setting the hub and the
+  # control plane read (hubconfig HostPrefix, config HubHostPrefix) so the issuer they build
+  # is the host the Ingress answers at.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX }
+    targets:
+      - select: { kind: Ingress, name: autorizare-hub }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 0 }
+      - select: { kind: ConfigMap, name: autorizare-hub-config }
+        fieldPaths: [data.HUB_HOST_PREFIX]
+        options: { create: true }
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.HUB_HOST_PREFIX]
+        options: { create: true }
   # The console's host, once filled in, into the URLs that carry it (slash-split index 2).
   - source: { kind: Ingress, name: autorizare-svc, fieldPath: spec.rules.0.host }
     targets:
@@ -112,6 +126,10 @@ replacements:
     targets:
       - select: { kind: Ingress, name: autorizare-hub }
         fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+      # The console's issuer pin, https://<hub host>: it moves with the hub's host.
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.OIDC_ISSUER_URL]
         options: { delimiter: "/", index: 2 }
   # The estate's slug: the platform object and the robots' domain (below), the
   # machine-credential deny policy,

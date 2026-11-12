@@ -82,9 +82,7 @@ export function ReadingList({
 	return (
 		<AccountSection title={m.account_saved_title({}, o)}>
 			{saved === null || partial ? (
-				<StatusBadge tone="warning">
-					{m.account_saved_unavailable({}, o)}
-				</StatusBadge>
+				<StatusBadge tone="warning">{m.account_saved_unavailable({}, o)}</StatusBadge>
 			) : null}
 			{saved !== null && saved.length === 0 && !partial ? (
 				<p class="text-body text-ink-muted">{m.account_saved_empty({}, o)}</p>
@@ -93,10 +91,7 @@ export function ReadingList({
 				<ul class="mt-2 flex flex-col divide-y divide-line" data-saved-list>
 					{saved.map((s) => (
 						<li class="flex flex-wrap items-center justify-between gap-3 py-3">
-							<a
-								class="min-w-0 flex-1 text-body text-ink hover:underline"
-								href={s.href}
-							>
+							<a class="min-w-0 flex-1 text-body text-ink hover:underline" href={s.href}>
 								{s.title}
 							</a>
 							<form method="post" action={accountPaths.remove(locale, s.id)}>
@@ -123,9 +118,7 @@ export function SaveConfirmPage({
 	return (
 		<AccountFrame {...frame} title={m.account_save_title({}, o)}>
 			<AccountSection title={title}>
-				<p class="text-body text-ink-muted">
-					{m.account_save_lead({ title }, o)}
-				</p>
+				<p class="text-body text-ink-muted">{m.account_save_lead({ title }, o)}</p>
 				<form class="mt-6" method="post" action={accountPaths.save(locale)}>
 					<input type="hidden" name="articol" value={slug} />
 					<Button type="submit" arrow>
@@ -142,9 +135,7 @@ export function AccountUnavailablePage(frame: Frame): JSX.Element {
 	const o = at(frame.locale);
 	return (
 		<AccountFrame {...frame} title={m.account_unavailable_title({}, o)}>
-			<p class="text-body text-ink-muted">
-				{m.account_unavailable_lead({}, o)}
-			</p>
+			<p class="text-body text-ink-muted">{m.account_unavailable_lead({}, o)}</p>
 		</AccountFrame>
 	);
 }

@@ -35,18 +35,11 @@ export class AuthzError extends Error {
 }
 
 /** OpenFGA's own codes meaning the pinned model is unusable (D5: re-pin, do not retry). */
-const MODEL_PIN_CODES = new Set([
-	"authorization_model_not_found",
-	"invalid_authorization_model",
-]);
+const MODEL_PIN_CODES = new Set(["authorization_model_not_found", "invalid_authorization_model"]);
 
 /** Maps an OpenFGA HTTP status (and its `{code}` body field) onto the union. */
-export function classify(
-	status: number,
-	upstreamCode: string | undefined,
-): AuthzErrorCode {
-	if (upstreamCode !== undefined && MODEL_PIN_CODES.has(upstreamCode))
-		return "model_stale";
+export function classify(status: number, upstreamCode: string | undefined): AuthzErrorCode {
+	if (upstreamCode !== undefined && MODEL_PIN_CODES.has(upstreamCode)) return "model_stale";
 	if (status === 401) return "unauthenticated";
 	if (status === 403) return "forbidden";
 	if (status === 404) return "not_found";

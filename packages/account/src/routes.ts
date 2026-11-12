@@ -72,20 +72,13 @@ export function mountAuthRoutes(app: Hono, d: RouteDeps): void {
 			prefix: "host",
 		});
 		const opened = sealed === undefined ? null : d.txnSealer.open(sealed);
-		const tx =
-			opened === null
-				? null
-				: LoginTransactionSchema.safeParse(safeJson(opened));
+		const tx = opened === null ? null : LoginTransactionSchema.safeParse(safeJson(opened));
 		if (tx === null || !tx.success) return c.redirect(d.home, 302);
 		// A refusal at the provider (access_denied, the person cancelled) ends here, signed out.
-		if (c.req.query("error") !== undefined)
-			return c.redirect(tx.data.returnTo, 302);
+		if (c.req.query("error") !== undefined) return c.redirect(tx.data.returnTo, 302);
 		const search = new URL(c.req.url).search;
 		try {
-			const signed = await d.rp.finish(
-				new URL(`${redirectUri}${search}`),
-				tx.data,
-			);
+			const signed = await d.rp.finish(new URL(`${redirectUri}${search}`), tx.data);
 			const stores = await d.stores();
 			const now = d.now();
 			await stores.accounts.signedIn(signed.identity, now);
@@ -113,8 +106,7 @@ export function mountAuthRoutes(app: Hono, d: RouteDeps): void {
 	});
 
 	app.post(AUTH_PATHS.signOut, async (c) => {
-		if (!sameOrigin(c.req.raw.headers, c.req.method, d.origin))
-			return c.body(null, 403);
+		if (!sameOrigin(c.req.raw.headers, c.req.method, d.origin)) return c.body(null, 403);
 		return signOutEverywhere(c, d);
 	});
 
@@ -123,13 +115,11 @@ export function mountAuthRoutes(app: Hono, d: RouteDeps): void {
 		if (d.rp === null) return c.body(null, 503, noStore);
 		const body = await c.req.parseBody();
 		const token = body.logout_token;
-		if (typeof token !== "string" || token === "")
-			return c.body(null, 400, noStore);
+		if (typeof token !== "string" || token === "") return c.body(null, 400, noStore);
 		try {
 			const req = await d.rp.verifyLogout(token);
 			const stores = await d.stores();
-			if (req.kind === "sid")
-				await stores.sessions.removeBySid(req.issuer, req.sid);
+			if (req.kind === "sid") await stores.sessions.removeBySid(req.issuer, req.sid);
 			else await stores.sessions.removeBySubject(req.subject);
 			return c.body(null, 200, noStore);
 		} catch (err) {
@@ -143,10 +133,7 @@ export function mountAuthRoutes(app: Hono, d: RouteDeps): void {
  * Ends this site's session and continues to the provider's end-session, so Authentik ends its own session and
  * back-channels every other site: signing out here is signing out of the estate. Used by sign-out and by erasure.
  */
-export async function signOutEverywhere(
-	c: Context,
-	d: RouteDeps,
-): Promise<Response> {
+export async function signOutEverywhere(c: Context, d: RouteDeps): Promise<Response> {
 	const id = getCookie(c, d.cookieName, "host");
 	deleteCookie(c, d.cookieName, { path: "/", secure: true, prefix: "host" });
 	if (id === undefined || id === "") return c.redirect(d.home, 303);
@@ -159,9 +146,7 @@ export async function signOutEverywhere(
 		const end = await d.rp.endSession(rec.idToken, `${d.origin}${d.home}`);
 		return c.redirect(end?.href ?? d.home, 303);
 	} catch (err) {
-		d.onWarn(
-			`sign-out: the issuer is unreachable; signed out here only (${String(err)})`,
-		);
+		d.onWarn(`sign-out: the issuer is unreachable; signed out here only (${String(err)})`);
 		return c.redirect(d.home, 303);
 	}
 }

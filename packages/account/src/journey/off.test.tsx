@@ -39,12 +39,7 @@ describe("accounts off in production", () => {
 		app.get("/", (c) => c.text("home"));
 		const at = (path: string, init?: RequestInit) =>
 			app.fetch(new Request(`https://blog.psizone.ro${path}`, init));
-		for (const path of [
-			"/cont",
-			"/cont/programari",
-			"/en/cont/date",
-			"/cont/salvate/nou",
-		]) {
+		for (const path of ["/cont", "/cont/programari", "/en/cont/date", "/cont/salvate/nou"]) {
 			const res = await at(path);
 			expect(res.status).toBe(200);
 			expect(await res.text()).toContain('data-account="coming-soon"');
@@ -53,9 +48,7 @@ describe("accounts off in production", () => {
 		const signIn = await at("/auth/sign-in?return=%2F");
 		expect(signIn.status).toBe(302);
 		expect(signIn.headers.get("location")).toBe("/cont");
-		expect(
-			(await at("/auth/backchannel-logout", { method: "POST" })).status,
-		).toBe(302);
+		expect((await at("/auth/backchannel-logout", { method: "POST" })).status).toBe(302);
 		expect(await (await at("/")).text()).toBe("home");
 	});
 });

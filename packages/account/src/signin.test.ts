@@ -23,9 +23,7 @@ const accounts: Record<string, Account> = {};
 function siteApp(name: keyof typeof SITES, account: Account): Hono {
 	const app = new Hono();
 	account.mount(app);
-	app.get("/cont", account.recognise(), (c) =>
-		c.json({ person: account.current(c) }),
-	);
+	app.get("/cont", account.recognise(), (c) => c.json({ person: account.current(c) }));
 	app.get("/privat", account.requireSignIn(), (c) => c.text("ok"));
 	app.get("/", (c) => c.text(name));
 	return app;
@@ -44,8 +42,7 @@ beforeAll(async () => {
 		})),
 		deliverLogout: async (uri, body) => {
 			const target = apps[new URL(uri).origin];
-			if (target !== undefined)
-				await target(new Request(uri, { method: "POST", body }));
+			if (target !== undefined) await target(new Request(uri, { method: "POST", body }));
 		},
 	});
 	for (const name of ["blog", "eqsync"] as const) {
@@ -72,10 +69,7 @@ afterAll(async () => {
 	await mock.close();
 });
 
-async function person(
-	b: ReturnType<typeof createBrowser>,
-	origin: string,
-): Promise<unknown> {
+async function person(b: ReturnType<typeof createBrowser>, origin: string): Promise<unknown> {
 	const { res } = await b.go(`${origin}/cont`);
 	const body: unknown = await res.json();
 	return body;
@@ -86,15 +80,11 @@ describe("sign-in round trip", () => {
 		const b = createBrowser(apps);
 		expect(await person(b, SITES.blog.origin)).toEqual({ person: null });
 
-		const { res, trail } = await b.go(
-			`${SITES.blog.origin}/auth/sign-in?return=%2Fcont`,
-		);
+		const { res, trail } = await b.go(`${SITES.blog.origin}/auth/sign-in?return=%2Fcont`);
 		expect(trail[1]).toContain(`${mock.origin}/application/o/authorize/`);
 		const authorize = new URL(trail[1] ?? "");
 		expect(authorize.searchParams.get("code_challenge_method")).toBe("S256");
-		expect(authorize.searchParams.get("redirect_uri")).toBe(
-			`${SITES.blog.origin}/auth/callback`,
-		);
+		expect(authorize.searchParams.get("redirect_uri")).toBe(`${SITES.blog.origin}/auth/callback`);
 		expect(trail.at(-1)).toBe(`${SITES.blog.origin}/cont`);
 		expect(await res.json()).toEqual({
 			person: {
@@ -133,18 +123,12 @@ describe("sign-in round trip", () => {
 			method: "POST",
 			headers: { origin: SITES.blog.origin, "sec-fetch-site": "same-origin" },
 		});
-		expect(trail[1]).toContain(
-			`${mock.origin}/application/o/blog-web/end-session/`,
-		);
-		expect(
-			new URL(trail[1] ?? "").searchParams.get("id_token_hint"),
-		).toBeTruthy();
+		expect(trail[1]).toContain(`${mock.origin}/application/o/blog-web/end-session/`);
+		expect(new URL(trail[1] ?? "").searchParams.get("id_token_hint")).toBeTruthy();
 		expect(trail.at(-1)).toBe(`${SITES.blog.origin}/`);
 		expect(await person(b, SITES.blog.origin)).toEqual({ person: null });
 		// eqsync's cookie is still in the browser, but its server-side session is gone.
-		expect(
-			b.cookies(SITES.eqsync.origin).has("__Host-psi-eqsync-session"),
-		).toBe(true);
+		expect(b.cookies(SITES.eqsync.origin).has("__Host-psi-eqsync-session")).toBe(true);
 		expect(await person(b, SITES.eqsync.origin)).toEqual({ person: null });
 	});
 
@@ -159,9 +143,7 @@ describe("sign-in round trip", () => {
 
 		const stranger = createBrowser(apps);
 		const first = await stranger.go(`${SITES.eqsync.origin}/cont`);
-		expect(first.trail.some((u) => u.includes("error=login_required"))).toBe(
-			true,
-		);
+		expect(first.trail.some((u) => u.includes("error=login_required"))).toBe(true);
 		expect(await first.res.json()).toEqual({ person: null });
 		const again = await stranger.go(`${SITES.eqsync.origin}/cont`);
 		expect(again.trail).toEqual([`${SITES.eqsync.origin}/cont`]);
@@ -170,9 +152,7 @@ describe("sign-in round trip", () => {
 	it("sends a signed-out visitor of a protected page to sign-in and back", async () => {
 		const b = createBrowser(apps);
 		const { trail } = await b.go(`${SITES.eqsync.origin}/privat`);
-		expect(trail[1]).toBe(
-			`${SITES.eqsync.origin}/auth/sign-in?return=%2Fprivat`,
-		);
+		expect(trail[1]).toBe(`${SITES.eqsync.origin}/auth/sign-in?return=%2Fprivat`);
 		expect(trail.at(-1)).toBe(`${SITES.eqsync.origin}/privat`);
 	});
 
@@ -196,9 +176,7 @@ describe("sign-in round trip", () => {
 
 	it("refuses a callback whose state it did not start, and sets no session", async () => {
 		const b = createBrowser(apps);
-		const { res } = await b.go(
-			`${SITES.blog.origin}/auth/callback?code=forged&state=forged`,
-		);
+		const { res } = await b.go(`${SITES.blog.origin}/auth/callback?code=forged&state=forged`);
 		expect(res.status).toBe(200);
 		expect(b.cookies(SITES.blog.origin).size).toBe(0);
 	});
@@ -244,9 +222,7 @@ describe("sign-in round trip", () => {
 		});
 		const app = new Hono();
 		account.mount(app);
-		const res = await app.fetch(
-			new Request("http://hemisync.test/auth/sign-in"),
-		);
+		const res = await app.fetch(new Request("http://hemisync.test/auth/sign-in"));
 		expect(res.status).toBe(503);
 		expect(res.headers.getSetCookie()).toEqual([]);
 	});

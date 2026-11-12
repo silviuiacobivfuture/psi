@@ -1,0 +1,27 @@
+{
+	"_doc": "PSI's Authentik group → Plunk access (the SEB default, apps/plunk-sso/mapping.json, names the first estate's service account). Authentik group → Plunk access. THE source of truth for who may use Plunk and with which role, re-synced on every sign-in (lib/access.mjs). `managed` = every project in projects.json except the robots'. Roles are Plunk's own: ADMIN (domains, settings, members' view) or MEMBER (templates, campaigns, contacts). OWNER is never mappable: it is the service account's, which owns every project so no person can delete one. A person in several groups gets the HIGHEST role per project. Every group named here must also be bound at the Plunk gate (gitops/platform/authentik/blueprints-providers.yaml, application `plunk`) — a mapped group the gate refuses is a role nobody can use; doctor.sh compares the two lists.",
+	"version": 1,
+	"serviceAccount": "svc-plunk@psizone.ro",
+	"grants": [
+		{
+			"group": "app-plunk-admin",
+			"projects": "managed",
+			"role": "ADMIN"
+		},
+		{
+			"group": "app-plunk-user",
+			"projects": "managed",
+			"role": "MEMBER"
+		},
+		{
+			"group": "platform-admins",
+			"projects": "managed",
+			"role": "ADMIN"
+		},
+		{
+			"group": "app-plunk-e2e",
+			"projects": ["e2e"],
+			"role": "MEMBER"
+		}
+	]
+}

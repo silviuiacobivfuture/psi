@@ -4,13 +4,9 @@
  */
 import type { MockPerson } from "./mock-issuer";
 
-const html = (text: string): string =>
-	text.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+const html = (text: string): string => text.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
-export function chooserPage(
-	authorize: URL,
-	people: ReadonlyArray<MockPerson>,
-): string {
+export function chooserPage(authorize: URL, people: ReadonlyArray<MockPerson>): string {
 	const rows = people
 		.map((person) => {
 			const href = new URL(authorize);

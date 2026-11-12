@@ -15,13 +15,8 @@ const FULL = {
 
 describe("account configuration", () => {
 	it("defaults the issuer to the site's own Authentik application at auth.psizone.ro", () => {
-		expect(defaultIssuer({}, "blog-web")).toBe(
-			"https://auth.psizone.ro/application/o/blog-web/",
-		);
-		const c = loadAccountConfig(
-			{ ...FULL, NODE_ENV: "production" },
-			"blog-web",
-		);
+		expect(defaultIssuer({}, "blog-web")).toBe("https://auth.psizone.ro/application/o/blog-web/");
+		const c = loadAccountConfig({ ...FULL, NODE_ENV: "production" }, "blog-web");
 		expect(c.identity).toMatchObject({
 			kind: "ready",
 			config: { issuer: "https://auth.psizone.ro/application/o/blog-web/" },
@@ -40,10 +35,7 @@ describe("account configuration", () => {
 		expect(c.enabled).toBe(false);
 		expect(c.identity.kind).toBe("missing");
 		expect(c.authz.kind).toBe("missing");
-		expect(
-			loadAccountConfig({ ...FULL, NODE_ENV: "production" }, "blog-web")
-				.enabled,
-		).toBe(true);
+		expect(loadAccountConfig({ ...FULL, NODE_ENV: "production" }, "blog-web").enabled).toBe(true);
 	});
 
 	it("in production, a partial configuration fails loud, naming every missing key at once", () => {
@@ -60,9 +52,9 @@ describe("account configuration", () => {
 			"MISSING REQUIRED SECRET: OIDC_CLIENT_SECRET, ACCOUNT_DATABASE_URL, OPENFGA_ENDPOINT, OPENFGA_STORE_ID, OPENFGA_MODEL_ID, OPENFGA_TOKEN",
 		);
 		const { OPENFGA_TOKEN: _dropped, ...almost } = FULL;
-		expect(() =>
-			loadAccountConfig({ ...almost, NODE_ENV: "production" }, "blog-web"),
-		).toThrow("MISSING REQUIRED SECRET: OPENFGA_TOKEN");
+		expect(() => loadAccountConfig({ ...almost, NODE_ENV: "production" }, "blog-web")).toThrow(
+			"MISSING REQUIRED SECRET: OPENFGA_TOKEN",
+		);
 	});
 
 	it("boots outside production with what is missing reported, never thrown", () => {
@@ -76,10 +68,7 @@ describe("account configuration", () => {
 
 	it("refuses plain http to a non-loopback issuer, the loopback flag in production, and a short secret", () => {
 		expect(() =>
-			loadAccountConfig(
-				{ ...FULL, OIDC_ISSUER: "http://auth.psizone.ro/application/o/x/" },
-				"x",
-			),
+			loadAccountConfig({ ...FULL, OIDC_ISSUER: "http://auth.psizone.ro/application/o/x/" }, "x"),
 		).toThrow("https");
 		expect(() =>
 			loadAccountConfig(
@@ -91,9 +80,7 @@ describe("account configuration", () => {
 				"x",
 			),
 		).toThrow("refused in production");
-		expect(() =>
-			loadAccountConfig({ ...FULL, SESSION_SECRET: "short" }, "x"),
-		).toThrow("32");
+		expect(() => loadAccountConfig({ ...FULL, SESSION_SECRET: "short" }, "x")).toThrow("32");
 		expect(
 			loadAccountConfig(
 				{

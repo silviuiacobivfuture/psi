@@ -67,8 +67,8 @@ spec:
     # release note is read, which is days, not quarters.
     retentionPolicy: "14d"
     barmanObjectStore:
-      destinationPath: s3://rmx-tfstate-dev/cnpg/changelog-db
-      endpointURL: https://fsn1.your-objectstorage.com
+      destinationPath: s3://psi-tfstate-dev/cnpg/changelog-db
+      endpointURL: https://nbg1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
           name: changelog-backup-s3

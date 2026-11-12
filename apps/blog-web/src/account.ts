@@ -54,8 +54,7 @@ const ARTICLE_PATH = /^(?:\/en)?\/(?:articole|articles)\/([^/?#]+)\/?$/;
 export function accountGroup(locale: Locale): CompassGroup {
 	const o = at(locale);
 	const slug = ARTICLE_PATH.exec(tryGetContext()?.req.path ?? "")?.[1];
-	const article =
-		slug === undefined ? undefined : findArticle(decodeURIComponent(slug));
+	const article = slug === undefined ? undefined : findArticle(decodeURIComponent(slug));
 	return {
 		label: m.account_group({}, o),
 		items: [

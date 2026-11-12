@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Completion half of the version bump: git snapshots the commit tree BEFORE commit-msg runs, so
+# the version files staged there are folded in here with a guarded amend, only when nothing
+# else is staged. See scripts/version-bump.mjs.
+node scripts/version-bump.mjs --post-commit

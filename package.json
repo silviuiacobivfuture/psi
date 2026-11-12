@@ -12,8 +12,9 @@
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",
 		"postinstall": "node scripts/postinstall.mjs",
-		"prepare": "husky",
+		"prepare": "[ -d .git ] || [ -f .git ] || exit 0; husky && git config core.hooksPath .husky",
 		"new-app": "node scripts/new-app.mjs",
+		"changelog": "node scripts/changelog.mjs",
 		"dev:sso": "pnpm --filter @psi/account sso",
 		"build": "nx run-many -t build",
 		"test": "nx run-many -t test --parallel=1",

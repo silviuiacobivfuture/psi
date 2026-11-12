@@ -35,9 +35,7 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 			"viewer",
 			rows.map((r) => bookingRef(r.reference, subject)),
 		);
-		const answers = rows.map((r) =>
-			decisions.get(bookingRef(r.reference, subject).object),
-		);
+		const answers = rows.map((r) => decisions.get(bookingRef(r.reference, subject).object));
 		if (answers.some((d) => d === "unavailable")) return null;
 		return rows.filter((_, i) => answers[i] === "allowed");
 	}
@@ -75,8 +73,7 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 		const person = await j.gate(c, "viewer", "bookings");
 		if (person instanceof Response) return person;
 		const reference = Reference.safeParse((await formOf(c)).reference);
-		if (!reference.success || o.reservations === undefined)
-			return c.body(null, 404);
+		if (!reference.success || o.reservations === undefined) return c.body(null, 404);
 		// The owner comes from the system of record: the store's rows for this account, never the form.
 		let mine: ReadonlyArray<OwnReservation>;
 		try {
@@ -86,16 +83,11 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 		}
 		const row = mine.find((r) => r.reference === reference.data.toUpperCase());
 		if (row === undefined) return c.body(null, 404);
-		const decision = await o.account.decide(
-			c,
-			"editor",
-			bookingRef(row.reference, person.subject),
-		);
+		const decision = await o.account.decide(c, "editor", bookingRef(row.reference, person.subject));
 		if (decision === "unavailable") return j.unavailable(c);
 		if (decision !== "allowed") return c.body(null, 404);
 		try {
-			if (!(await o.reservations.cancel(person.subject, row.reference)))
-				return c.body(null, 404);
+			if (!(await o.reservations.cancel(person.subject, row.reference))) return c.body(null, 404);
 		} catch {
 			return j.unavailable(c);
 		}
@@ -111,15 +103,8 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 			return c.redirect(`${path("bookings")}?link=failed`, 303);
 		}
 		try {
-			const linked = await o.reservations.link(
-				person.subject,
-				form.data.reference,
-				form.data.code,
-			);
-			return c.redirect(
-				`${path("bookings")}?${linked ? "ok=linked" : "link=failed"}`,
-				303,
-			);
+			const linked = await o.reservations.link(person.subject, form.data.reference, form.data.code);
+			return c.redirect(`${path("bookings")}?${linked ? "ok=linked" : "link=failed"}`, 303);
 		} catch {
 			return j.unavailable(c);
 		}
@@ -139,9 +124,7 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 			"viewer",
 			all.map((x) => threadRef(x.id, x.subject)),
 		);
-		const answers = all.map((x) =>
-			decisions.get(threadRef(x.id, x.subject).object),
-		);
+		const answers = all.map((x) => decisions.get(threadRef(x.id, x.subject).object));
 		if (answers.some((d) => d === "unavailable")) return j.unavailable(c);
 		const shown = all.filter((_, i) => answers[i] === "allowed");
 		const conversations = await Promise.all(
@@ -175,17 +158,13 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 		o.account.can(
 			"forgetter",
 			async (c) => {
-				const row = await (await o.account.stores()).conversations.get(
-					c.req.param("id") ?? "",
-				);
+				const row = await (await o.account.stores()).conversations.get(c.req.param("id") ?? "");
 				return row === null ? null : threadRef(row.id, row.subject);
 			},
 			{ unavailable: j.unavailable },
 		),
 		async (c) => {
-			await (await o.account.stores()).conversations.remove(
-				c.req.param("id") ?? "",
-			);
+			await (await o.account.stores()).conversations.remove(c.req.param("id") ?? "");
 			return c.redirect(path("conversations"), 303);
 		},
 	);
@@ -199,8 +178,7 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 		const all = await stores.conversations.list(person.subject);
 		const refs = all.map((x) => threadRef(x.id, x.subject));
 		const decisions = await o.account.decideMany(c, "forgetter", refs);
-		if (refs.some((ref) => decisions.get(ref.object) === "unavailable"))
-			return j.unavailable(c);
+		if (refs.some((ref) => decisions.get(ref.object) === "unavailable")) return j.unavailable(c);
 		for (const [i, x] of all.entries()) {
 			const ref = refs[i];
 			if (ref !== undefined && decisions.get(ref.object) === "allowed") {

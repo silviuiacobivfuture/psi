@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { type Consistency, ConsistencyPolicy, toWire } from "./consistency";
 import { AuthzError, classify } from "./errors";
-import {
-	type ContextualClaims,
-	type ContextualTuple,
-	claimsToTuples,
-} from "./tuples";
+import { type ContextualClaims, type ContextualTuple, claimsToTuples } from "./tuples";
 
 /**
  * psi's OpenFGA client, built to SEB's TypeScript SDK contract (docs/autorizare/03-contracts §7): decisions go
@@ -77,10 +73,7 @@ export interface AuthzClientOptions {
 export interface AuthzClient {
 	check(req: CheckRequest, facts?: CallFacts): Promise<boolean>;
 	/** Keyed by `checkKey(req)`. An entry OpenFGA gave no answer for is ABSENT — never read it as `false`. */
-	batchCheck(
-		reqs: ReadonlyArray<CheckRequest>,
-		facts?: BatchFacts,
-	): Promise<Map<string, boolean>>;
+	batchCheck(reqs: ReadonlyArray<CheckRequest>, facts?: BatchFacts): Promise<Map<string, boolean>>;
 	listObjects(req: ListObjectsRequest, facts?: CallFacts): Promise<string[]>;
 	/** Forces HIGHER_CONSISTENCY for `ms` after this caller's own write. */
 	afterWrite(ms?: number): void;
@@ -89,9 +82,7 @@ export interface AuthzClient {
 /** OpenFGA's default ceiling on one BatchCheck. */
 export const MAX_CHECKS_PER_BATCH = 50;
 
-export function checkKey(
-	req: Pick<CheckRequest, "user" | "relation" | "object">,
-): string {
+export function checkKey(req: Pick<CheckRequest, "user" | "relation" | "object">): string {
 	return `${req.user}#${req.relation}@${req.object}`;
 }
 
@@ -118,16 +109,12 @@ export function createAuthzClient(opts: AuthzClientOptions): AuthzClient {
 	}
 	const doFetch = opts.fetch ?? globalThis.fetch.bind(globalThis);
 	const retries = opts.retries ?? 2;
-	const sleep =
-		opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+	const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
 	const consistency = new ConsistencyPolicy(opts.now ?? Date.now);
 	const base = opts.endpoint.replace(/\/+$/, "");
 
 	async function post(path: string, body: unknown): Promise<unknown> {
-		let last: AuthzError = new AuthzError(
-			"unavailable",
-			"authz: OpenFGA unreachable",
-		);
+		let last: AuthzError = new AuthzError("unavailable", "authz: OpenFGA unreachable");
 		for (let attempt = 0; attempt <= retries; attempt++) {
 			let res: Response;
 			try {
@@ -148,10 +135,7 @@ export function createAuthzClient(opts: AuthzClientOptions): AuthzClient {
 				try {
 					return await res.json();
 				} catch {
-					throw new AuthzError(
-						"unknown",
-						"authz: OpenFGA answered a body that is not JSON",
-					);
+					throw new AuthzError("unknown", "authz: OpenFGA answered a body that is not JSON");
 				}
 			}
 			const parsed = ErrorBody.safeParse(await res.json().catch(() => ({})));
@@ -181,10 +165,7 @@ export function createAuthzClient(opts: AuthzClientOptions): AuthzClient {
 			(claims?.context && "now" in claims.context)
 		) {
 			// Accepting a caller's `now` would let anyone revive an expired grant (AUTZ-5).
-			throw new AuthzError(
-				"invalid",
-				"authz: `now` is supplied by the client, never the caller",
-			);
+			throw new AuthzError("invalid", "authz: `now` is supplied by the client, never the caller");
 		}
 		const tuples = [
 			...(claims ? claimsToTuples(claims, subject) : []),
@@ -196,9 +177,7 @@ export function createAuthzClient(opts: AuthzClientOptions): AuthzClient {
 			now: new Date(opts.now ? opts.now() : Date.now()).toISOString(),
 		};
 		return {
-			...(tuples.length > 0
-				? { contextual_tuples: { tuple_keys: tuples } }
-				: {}),
+			...(tuples.length > 0 ? { contextual_tuples: { tuple_keys: tuples } } : {}),
 			context,
 		};
 	}
@@ -225,12 +204,8 @@ export function createAuthzClient(opts: AuthzClientOptions): AuthzClient {
 			const entries = [...unique.entries()];
 			for (let i = 0; i < entries.length; i += MAX_CHECKS_PER_BATCH) {
 				const chunk = entries.slice(i, i + MAX_CHECKS_PER_BATCH);
-				const byCorrelation = new Map(
-					chunk.map(([key], index) => [`c${index}`, key]),
-				);
-				const strongest = chunk.some(
-					([, r]) => r.consistency === "higher-consistency",
-				)
+				const byCorrelation = new Map(chunk.map(([key], index) => [`c${index}`, key]));
+				const strongest = chunk.some(([, r]) => r.consistency === "higher-consistency")
 					? "higher-consistency"
 					: undefined;
 				const body = {

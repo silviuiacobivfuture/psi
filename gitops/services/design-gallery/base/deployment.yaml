@@ -1,0 +1,37 @@
+# The design language gallery (apps/design-gallery): psi's tokens, primitives and patterns,
+# rendered. Internal — served behind the estate's sign-in (ingress.yaml). No secrets.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: design-gallery
+  labels: { app: design-gallery }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: design-gallery } }
+  template:
+    metadata:
+      labels: { app: design-gallery }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          # Built from psi cd1883c with deploy/site.Dockerfile (APP=design-gallery), pinned by digest.
+          image: registry.psizone.ro/psi/design-gallery@sha256:bfec7459ed6fe36393a591bf09dba8c631ad7cc446a9669c8e17af6acefd3eab
+          ports: [{ name: http, containerPort: 3000 }]
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: NODE_ENV, value: production }
+          readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          resources:
+            requests: { cpu: 25m, memory: 96Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }

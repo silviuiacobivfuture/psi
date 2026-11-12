@@ -30,10 +30,6 @@ export class ConsistencyPolicy {
 	}
 }
 
-export function toWire(
-	value: Consistency,
-): "MINIMIZE_LATENCY" | "HIGHER_CONSISTENCY" {
-	return value === "higher-consistency"
-		? "HIGHER_CONSISTENCY"
-		: "MINIMIZE_LATENCY";
+export function toWire(value: Consistency): "MINIMIZE_LATENCY" | "HIGHER_CONSISTENCY" {
+	return value === "higher-consistency" ? "HIGHER_CONSISTENCY" : "MINIMIZE_LATENCY";
 }

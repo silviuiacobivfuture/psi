@@ -47,24 +47,20 @@ describe("the remembering guide", () => {
 			{ role: "user", text: "Cât durează?" },
 			{ role: "guide", text: "O evaluare durează o oră." },
 		];
-		await drain(
-			guide.ask({ question: "Și prețul?", locale: "ro", history: pageTurns }),
-		);
+		await drain(guide.ask({ question: "Și prețul?", locale: "ro", history: pageTurns }));
 		expect(inner.seen[1]).toEqual(pageTurns);
 		// A later visit: nothing on the page, both remembered turns come back from the account.
 		await drain(guide.ask({ question: "Unde?", locale: "ro" }));
-		expect(
-			inner.seen[2]?.filter((t) => t.role === "user").map((t) => t.text),
-		).toEqual(["Cât durează?", "Și prețul?"]);
+		expect(inner.seen[2]?.filter((t) => t.role === "user").map((t) => t.text)).toEqual([
+			"Cât durează?",
+			"Și prețul?",
+		]);
 	});
 
 	it("never keeps a refused answer", async () => {
 		const stores = memoryStores();
 		const guide = rememberingGuide(
-			fakeGuide([
-				{ type: "refusal", reason: "out_of_scope" },
-				{ type: "done" },
-			]),
+			fakeGuide([{ type: "refusal", reason: "out_of_scope" }, { type: "done" }]),
 			{ conversations: stores.conversations, subject: "s", site: "psizone" },
 		);
 		await drain(guide.ask({ question: "x", locale: "ro" }));

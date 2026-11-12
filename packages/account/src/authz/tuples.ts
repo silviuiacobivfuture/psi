@@ -28,18 +28,12 @@ export interface ContextualClaims {
 export function requireQualified(value: string): void {
 	const colon = value.indexOf(":");
 	if (colon <= 0 || colon === value.length - 1) {
-		throw new AuthzError(
-			"invalid",
-			`authz: "${value}" is not a qualified id (type:id)`,
-		);
+		throw new AuthzError("invalid", `authz: "${value}" is not a qualified id (type:id)`);
 	}
 }
 
 /** Claims → contextual tuples, exactly as SEB's SDK `claimsToTuples` does it. */
-export function claimsToTuples(
-	claims: ContextualClaims,
-	subject: string,
-): ContextualTuple[] {
+export function claimsToTuples(claims: ContextualClaims, subject: string): ContextualTuple[] {
 	const user = claims.user ?? subject;
 	requireQualified(user);
 	const tuples: ContextualTuple[] = [];

@@ -1,0 +1,4 @@
+{
+	"$comment": "Each app under apps/: {\"tenant\": \"<slug>\", \"language\": \"<ro|en|…>\"} or {\"none\": \"<why it has no changelog>\"}. Undeclared apps are held to the full rule. CLAUDE.md, \"Changelog\".",
+	"apps": {}
+}

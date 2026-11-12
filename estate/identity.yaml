@@ -29,7 +29,7 @@ BUCKET_PREFIX: psi
 DNS_PROVIDER: cloudflare
 DNS_ZONE: psizone.ro
 DNS_APEX: foreign
-SES_REGION: eu-west-1
+SES_REGION: eu-central-1
 REGISTRY_HOST: registry.psizone.ro
 REGISTRY_PROJECT_APPS: psi
 REGISTRY_PROJECT_MIRROR: mirror
@@ -42,7 +42,7 @@ ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
 PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
-AUTHENTIK_HOST_PREFIX: sso
+AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
 PLANE_HOST_PREFIX: work
@@ -56,7 +56,7 @@ PDFCRAFT_HOST_PREFIX: pdf
 FRONT_HOST_PREFIX: portal
 
 # ── hub ─────────────────────────────────────────────────────────────────────
-HUB_HOST_PREFIX: login
+HUB_HOST_PREFIX: sso
 HUB_NAME: Psi Sign-in
 
 # ── secret references (paths and field names only) ──────────────────────────

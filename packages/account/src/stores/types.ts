@@ -81,11 +81,7 @@ export interface Stores {
 }
 
 /** The purposes a person may consent to, one by one (docs/plans/accounts.md §3). */
-export const PURPOSES = [
-	"guide_memory",
-	"booking_contact",
-	"programme_progress",
-] as const;
+export const PURPOSES = ["guide_memory", "booking_contact", "programme_progress"] as const;
 export type Purpose = (typeof PURPOSES)[number];
 
 /** What a person tells us about themselves beyond what Authentik sends. Nothing clinical. */
@@ -99,11 +95,7 @@ export interface Profile {
 
 export interface ProfileStore {
 	get(subject: string): Promise<Profile | null>;
-	save(
-		subject: string,
-		profile: Omit<Profile, "updatedAt">,
-		at: number,
-	): Promise<void>;
+	save(subject: string, profile: Omit<Profile, "updatedAt">, at: number): Promise<void>;
 }
 
 /** One grant of one purpose; a withdrawal closes it. History is kept: a new grant is a new row. */
@@ -118,12 +110,7 @@ export interface ConsentStore {
 	/** Every grant, newest first. */
 	list(subject: string): Promise<ConsentRecord[]>;
 	current(subject: string, purpose: Purpose): Promise<boolean>;
-	grant(
-		subject: string,
-		purpose: Purpose,
-		wordingVersion: string,
-		at: number,
-	): Promise<void>;
+	grant(subject: string, purpose: Purpose, wordingVersion: string, at: number): Promise<void>;
 	/**
 	 * Closes the open grant AND deletes what was kept under it, in the same transaction:
 	 * withdrawing `guide_memory` deletes every remembered conversation.

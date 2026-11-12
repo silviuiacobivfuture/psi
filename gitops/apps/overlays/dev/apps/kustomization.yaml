@@ -8,3 +8,5 @@ resources:
   - blog-web.yaml
   - chroma.yaml
   - cms.yaml
+  - doors.yaml
+  - design-gallery.yaml

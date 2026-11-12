@@ -73,7 +73,9 @@ export function ProtocolsPage(props: PageProps): JSX.Element {
 									{priced.get(CATEGORY_IDS[i] ?? "")?.price ?? m.protocol_price_soon({}, o)}
 								</StatusBadge>
 								{priced.get(CATEGORY_IDS[i] ?? "")?.demoLabel ? (
-									<StatusBadge tone="warning">{priced.get(CATEGORY_IDS[i] ?? "")?.demoLabel}</StatusBadge>
+									<StatusBadge tone="warning">
+										{priced.get(CATEGORY_IDS[i] ?? "")?.demoLabel}
+									</StatusBadge>
 								) : null}
 							</GlassCard>
 						</li>

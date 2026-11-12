@@ -6,11 +6,7 @@ import { z } from "zod";
 import { readBlock } from "../dev/env-block";
 import { FGA_URL, LOCAL_BLOCK } from "../dev/local";
 import { createAccount } from "./account";
-import {
-	type AuthzClient,
-	createAuthzClient,
-	StaticTokenSource,
-} from "./authz/client";
+import { type AuthzClient, createAuthzClient, StaticTokenSource } from "./authz/client";
 import { recordTuples } from "./authz/tuples";
 import { PLATFORM } from "./guard";
 import { hashSessionId } from "./seal";
@@ -24,8 +20,7 @@ import { memoryStores } from "./stores/memory";
  * The one persisted tuple (a staff role) is written straight to the local admin API, standing in for Polaris.
  */
 const ROOT = join(import.meta.dirname, "..", "..", "..");
-const key =
-	readBlock(join(ROOT, "apps/blog-web/.env"), LOCAL_BLOCK).OPENFGA_TOKEN ?? "";
+const key = readBlock(join(ROOT, "apps/blog-web/.env"), LOCAL_BLOCK).OPENFGA_TOKEN ?? "";
 const headers = {
 	authorization: `Bearer ${key}`,
 	"content-type": "application/json",

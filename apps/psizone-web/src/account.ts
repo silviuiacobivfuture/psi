@@ -1,9 +1,4 @@
-import {
-	createAccount,
-	type ReservationsPort,
-	type Say,
-	sayer,
-} from "@psi/account";
+import { createAccount, type ReservationsPort, type Say, sayer } from "@psi/account";
 import {
 	accountClientOn,
 	accountHashOf,
@@ -60,9 +55,7 @@ export const reservations: ReservationsPort | undefined = SCHEDULING.ok
 			return {
 				requests: (subject) => own.requests(accountHashOf(subject)),
 				async cancel(subject, reference) {
-					return (
-						await own.cancel({ reference, accountHash: accountHashOf(subject) })
-					).ok;
+					return (await own.cancel({ reference, accountHash: accountHashOf(subject) })).ok;
 				},
 				async link(subject, reference, cancelCode) {
 					return (

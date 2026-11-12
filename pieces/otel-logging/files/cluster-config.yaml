@@ -1,5 +1,5 @@
 # OTel cluster collector (Deployment singleton) — DEV. Kubernetes events →
-# WLSLUG-dev-k8s-events. Separate from the agent so events aren't duplicated
+# WLSLUG-dev-node. Separate from the agent so events aren't duplicated
 # per node.
 receivers:
   k8sobjects:
@@ -21,7 +21,7 @@ exporters:
     compression: gzip
     headers:
       Authorization: "Bearer ${env:AXIOM_TOKEN}"
-      X-Axiom-Dataset: WLSLUG-dev-k8s-events
+      X-Axiom-Dataset: WLSLUG-dev-node
 
 service:
   pipelines:
