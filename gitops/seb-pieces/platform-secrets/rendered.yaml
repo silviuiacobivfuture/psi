@@ -1227,31 +1227,6 @@ kind: ExternalSecret
 metadata:
   labels:
     seb.platform/piece: platform-secrets
-  name: operator-oauth
-  namespace: tailscale
-spec:
-  data:
-  - remoteRef:
-      key: platform/tailscale/oauth
-      property: client_id
-    secretKey: client_id
-  - remoteRef:
-      key: platform/tailscale/oauth
-      property: client_secret
-    secretKey: client_secret
-  refreshInterval: 1h
-  secretStoreRef:
-    kind: ClusterSecretStore
-    name: openbao
-  target:
-    creationPolicy: Owner
-    name: operator-oauth
----
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  labels:
-    seb.platform/piece: platform-secrets
   name: velero-credentials
   namespace: velero
 spec:
