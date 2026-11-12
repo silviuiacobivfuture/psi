@@ -1,6 +1,6 @@
 {
 	"name": "@psi/psizone-web",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"description": "psizone.ro \u2014 the Psizone landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",

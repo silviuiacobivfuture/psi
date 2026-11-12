@@ -1,5 +1,8 @@
+# hemisync-web on dev. CI moves newTag after each image it pushes; never edit it by hand.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
-# Image built from psi fa5b962-2319 (deploy/site.Dockerfile), pinned by digest above.
+images:
+  - name: registry.psizone.ro/psi/hemisync-web
+    newTag: "live-1"

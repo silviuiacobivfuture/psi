@@ -1,4 +1,8 @@
+# design-gallery on dev. CI moves newTag after each image it pushes; never edit it by hand.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
+images:
+  - name: registry.psizone.ro/psi/design-gallery
+    newTag: "cd1883c"
