@@ -165,11 +165,43 @@ each must do.
 - **Everything as code**: no console clicks, no lasting `kubectl apply` by hand, no secrets
   pasted. Anything that changes the running estate is stated before it is pushed.
 
-## Changelog
+## Changelog (HARD RULE — enforced at commit, for people and agents alike)
 
-A business-facing change (a feature, a bug a user would notice, a breaking change) carries its
-entry in the changed app's own changelog, if it has one. Infra, gitops, CI, refactors, tests,
-dependency bumps: no entry. Entries never mention agents or AI.
+**A business-facing commit to an app carries its changelog entry, recorded as a trailer.**
+Business-facing = `feat`, `fix`, `perf`, any `!`, or a `BREAKING CHANGE:` footer, staging files
+under `apps/<app>/`. `.husky/commit-msg` (`scripts/changelog-trailer.mjs`) refuses it otherwise
+and prints exactly what to run. Merge, `fixup!`/`squash!`, reverts and the CI deploy commits
+(`[skip ci]`, author `estate-ci`) are exempt; docs, refactor, test, ci, chore need nothing.
+
+- **Where an app's entries go: `changelog.json`** at the root. Each app is either
+  `{"tenant": "<slug>", "language": "<ro|en|…>"}` (its tenant in the estate's changelog
+  service, the language its entries are written in) or `{"none": "<why it has no changelog>"}`.
+  An app not declared is held to the full rule. A new tenant is provisioned from the hub
+  registry (its `estate.changelog` clients), not here.
+- **The command** (one for everybody; agents always pass every flag, it never prompts without a
+  terminal):
+  `pnpm changelog --app <app> --category <feature|improvement|bugfix|breaking|security|note>
+  --title "…" --body "…" [--version x.y.z] [--json]`. It publishes through the service's own
+  command in its pod — no key on this machine — over **this estate's** kubeconfig only
+  (`~/.estates/<slug>/infrastructure/hetzner/kubeconfig-<env>.yaml`), verified by the
+  cluster's own ingress hosts; it refuses, publishing nothing, when it cannot reach it.
+- **The trailer**, the message's LAST paragraph, one per app the commit touches:
+  `Changelog: <app> <entry id>` (the line the command prints), or
+  `Changelog: <app> none — <why its users see nothing to announce>`. With one app the `<app>`
+  may be dropped; `Changelog: none — <reason>` covers every app. A reason is 8+ characters.
+- **Tone:** written for the app's users, in its declared language: what they can now do or what
+  stopped going wrong. Never agents, AI, tooling, refactors or internal churn; it reads as if one
+  competent developer made the change on purpose. Infra, gitops, CI, tests, dependency bumps:
+  no entry (and no business-facing type either).
+- **Never `--no-verify` past it.** "none" is a statement that users see nothing; it is not a
+  way to skip writing the entry.
+- **Delegating:** restate this rule — the command, the trailer, the tone — in every delegation
+  prompt that may commit to an app. Subagents see the refusal, not this file.
+- **psi today:** no app under `apps/` has a changelog tenant yet (the hub registry declares only
+  Polaris's), so `changelog.json` declares none and every business-facing app commit states
+  `Changelog: <app> none — <reason>` until its tenant is provisioned and declared. Entries are in
+  English (`ESTATE_LOCALE: en`).
+
 
 ## Commits and versions
 
