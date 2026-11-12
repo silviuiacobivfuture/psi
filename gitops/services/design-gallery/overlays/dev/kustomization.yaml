@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/design-gallery
-    newTag: "e3769ab"
+    newTag: "f83c18c"
