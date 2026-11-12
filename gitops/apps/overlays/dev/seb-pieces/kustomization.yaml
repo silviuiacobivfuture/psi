@@ -9,7 +9,6 @@ resources:
   - homepage.yaml
   - n8n.yaml
   - netdata.yaml
-  - nextcloud.yaml
   - novu.yaml
   - nx-cache.yaml
   - openfga.yaml

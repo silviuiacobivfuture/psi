@@ -34,3 +34,4 @@ resources:
   - seb-affine.yaml
   - seb-nextcloud-platform.yaml
   - seb-plane-platform.yaml
+  - seb-nextcloud.yaml
