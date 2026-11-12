@@ -120,7 +120,8 @@ data:
         identifiers:
           name: WLSLUG-set-password-identification
         attrs:
-          user_fields: [email, username]
+          # upn: a person's sign-in address when it is not their e-mail (blueprints-people.yaml).
+          user_fields: [email, username, upn]
       - model: authentik_stages_email.emailstage
         id: email
         identifiers:
@@ -215,7 +216,9 @@ data:
         attrs:
           # Restated as it is live (2026-10-22): the serializer validates the
           # stage as a whole and refuses one with neither user fields nor sources.
-          user_fields: [email, username]
+          # upn: a person's sign-in address when it is not their e-mail, kept in the
+          # user attribute `upn` (blueprints-people.yaml); e-mail and username still work.
+          user_fields: [email, username, upn]
           recovery_flow: !KeyOf flow
       # The ONE brand, found as the default rather than by its domain: keyed by
       # domain, renaming the host (auth.dev → auth, 2026-10-24) would have

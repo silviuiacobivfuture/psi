@@ -67,32 +67,51 @@ data:
           email: nicholas.turcu@icloud.com
           type: internal
           is_active: true
-      # MAILBOXES (owner, 2026-11-12): which mailbox on post.psizone.ro each person owns
-      # (estate/seb-components/stalwart). The mail server reads it from the `mail` scope's
-      # `mail_account` claim (blueprints-providers.yaml), so a person whose username is not
-      # their mailbox name still signs in to their own mailbox. These entries set ONLY the
-      # attribute (the people above are `state: created` and never rewritten); the four had
-      # no other attributes on 2026-11-12, and `attributes` is written whole.
+      # SIGN-IN NAME AND MAILBOX (owner, 2026-11-12), one entry per person, attributes only
+      # (the people above are `state: created` and never rewritten; `attributes` is written
+      # whole, so every key a person carries is listed here):
+      #   upn           the address they type at the sign-in page, name@psizone.ro. Both
+      #                 identification stages search [email, username, upn]
+      #                 (blueprints-recovery.yaml), so it signs in AND starts "forgot
+      #                 password". It is NOT their e-mail: `email` stays the external address
+      #                 every application knows them by and the one recovery mail goes to.
+      #   mail_address  the mailbox they own on the estate's mail server, whole
+      #                 (name@post.psizone.ro; name@psizone.ro should psizone.ro's mail move
+      #                 off Zoho). The `mail` scope hands it to Stalwart (blueprints-providers.yaml).
+      #   mail_account  the same mailbox's local part, read by the mail scope until it reads
+      #                 mail_address; drop it once nothing does.
       - model: authentik_core.user
         identifiers:
           username: WLOPERATOR
         attrs:
-          attributes: { mail_account: silviu.iacob }
+          attributes:
+            upn: silviu.iacob@psizone.ro
+            mail_address: silviu.iacob@post.psizone.ro
+            mail_account: silviu.iacob
       - model: authentik_core.user
         identifiers:
           username: turcu_daniela
         attrs:
-          attributes: { mail_account: dana.turcu }
+          attributes:
+            upn: dana.turcu@psizone.ro
+            mail_address: dana.turcu@post.psizone.ro
+            mail_account: dana.turcu
       - model: authentik_core.user
         identifiers:
           username: adi_rar
         attrs:
-          attributes: { mail_account: adi.turcu }
+          attributes:
+            upn: adi.turcu@psizone.ro
+            mail_address: adi.turcu@post.psizone.ro
+            mail_account: adi.turcu
       - model: authentik_core.user
         identifiers:
           username: nicholas.turcu
         attrs:
-          attributes: { mail_account: nicholas.turcu }
+          attributes:
+            upn: nicholas.turcu@psizone.ro
+            mail_address: nicholas.turcu@post.psizone.ro
+            mail_account: nicholas.turcu
       # ROBOT, not a person: the login hub's dev end-to-end login and kill-a-pod
       # proof. `.invalid` so it is classed as a robot and can never receive a
       # mail. Created only; its password and TOTP come from OpenBao
