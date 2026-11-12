@@ -28,3 +28,4 @@ external-secrets
 hcloud-csi
 kyverno
 argocd-config
+test-reports

@@ -29,3 +29,4 @@ resources:
   - seb-hcloud-csi.yaml
   - seb-kyverno.yaml
   - seb-argocd-config.yaml
+  - seb-test-reports.yaml
