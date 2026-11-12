@@ -22,6 +22,10 @@ path "secret/data/platform/talk/channels" { capabilities=["read"] }
 path "secret/data/platform/test-reports/ingest" { capabilities=["read"] }
 # The Nx remote cache bearer (CI kit, SEB 1.7) — replaces the GitHub secret NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN.
 path "secret/data/platform/nx-cache/token" { capabilities=["read"] }
+# SEB's cosign signing key (fields key, password): the image workflows and genesis' image step
+# sign what they push by digest. Deploy tier only — a run that can read it can sign anything as
+# SEB; never the gate or preview tier.
+path "secret/data/platform/seb/cosign" { capabilities=["read"] }
 path "secret/data/apps/*" { capabilities=["read"] }
 # n8n holds what takes it over: `app.owner_password_hash`, which n8n applies at its next start, the
 # `sso.api_key` and the `encryption.key`. Only eso, admin and root reach them (RUNBOOK 2026-11-05).

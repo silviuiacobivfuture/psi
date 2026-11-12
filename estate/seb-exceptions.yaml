@@ -1,0 +1,30 @@
+# psi's changes to SEB pieces that NO declared slot covers (schema/slots/<piece>.yaml in SEB).
+# The estate's CI gate (SEB's tools/estate/slots.mjs) refuses any other out-of-slot change an estate
+# component makes, counts these and prints them, and refuses an entry here that no longer covers
+# anything. Each one is a debt: it ends when SEB declares a slot for it, or psi stops needing it.
+exceptions:
+  - id: psi-polaris-first-start
+    piece: autorizare
+    target: Deployment/autorizare-hub
+    paths: ["/spec/template/spec/initContainers/*"]
+    reason: psi's Polaris hold (2026-11-12) — the hub runs Polaris's migrations in an init container so a new estate can start at all (the control plane's secret needs a client only the migrated hub can mint); goes when SEB's piece orders first start itself.
+  - id: psi-hub-registry-mount-by-position
+    piece: autorizare
+    target: "Deployment/autorizare-*"
+    paths: ["/spec/template/spec/volumes", "/spec/template/spec/volumes/*", "/spec/template/spec/containers[#0]/volumeMounts", "/spec/template/spec/containers[#0]/volumeMounts/*"]
+    reason: psi mounts its hub client registry into the hub and Polaris by appending to the first container's mounts, unnamed; SEB's estate-files slot covers it once the patch names the mount (estate-hub-registry).
+  - id: psi-novu-sso-mapping-by-position
+    piece: novu
+    target: Deployment/novu-sso
+    paths: ["/spec/template/spec/containers[#0]/env/*", "/spec/template/spec/containers[#0]/volumeMounts/*", "/spec/template/spec/volumes/*"]
+    reason: psi mounts its Novu sign-in mapping (NOVU_SSO_MAPPING) by appending to the first container, unnamed; a mapping slot replaces it.
+  - id: psi-novu-no-tailnet-doors
+    piece: novu
+    target: "Ingress/novu-*"
+    paths: ["/"]
+    reason: psi runs no mesh for Novu's dashboard and API, so it deletes the two tailnet-only Ingresses rather than leave doors pointing at nothing.
+  - id: psi-stalwart-unreleased
+    piece: stalwart
+    target: "**"
+    paths: ["**"]
+    reason: Stalwart (mail) is not in any SEB release yet; its slots arrive with the piece, and this goes then.
