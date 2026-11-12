@@ -22,6 +22,7 @@ metadata:
 apiVersion: v1
 data:
   plan.ndjson.tmpl: |
+    {"@type":"reconcile","object":"Tracer","matchOn":["@type"],"value":{"console":{"@type":"Stdout","enable":true,"level":"info","ansi":false,"buffered":false,"lossy":false,"multiline":false}}}
     {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"dom":{"name":"@MAILBOX_DOMAIN@","enable":true,"description":"The estate's mailboxes"}}}
     {"@type":"reconcile","object":"Certificate","matchOn":["certificate"],"value":{"cert":{"certificate":{"@type":"Text","value":"@TLS_CRT@"},"privateKey":{"@type":"Text","secret":"@TLS_KEY@"}}}}
     {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_account","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true},"allowIdTokenClaims":true}}}
@@ -71,7 +72,7 @@ data:
     grep -c . /work/plan.ndjson | sed 's/^/plan lines: /'
 kind: ConfigMap
 metadata:
-  name: stalwart-plan-6h2bgt29mk
+  name: stalwart-plan-kcbckb6h9b
   namespace: stalwart
 ---
 apiVersion: v1
@@ -98,30 +99,6 @@ spec:
     targetPort: http
   selector:
     app.kubernetes.io/name: stalwart
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: stalwart-mail
-  namespace: stalwart
-spec:
-  externalTrafficPolicy: Local
-  ports:
-  - name: smtp
-    port: 25
-    targetPort: smtp
-  - name: submissions
-    port: 465
-    targetPort: submissions
-  - name: submission
-    port: 587
-    targetPort: submission
-  - name: imaps
-    port: 993
-    targetPort: imaps
-  selector:
-    app.kubernetes.io/name: stalwart
-  type: LoadBalancer
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -188,12 +165,16 @@ spec:
         - containerPort: 8080
           name: http
         - containerPort: 25
+          hostPort: 25
           name: smtp
         - containerPort: 465
+          hostPort: 465
           name: submissions
         - containerPort: 587
+          hostPort: 587
           name: submission
         - containerPort: 993
+          hostPort: 993
           name: imaps
         readinessProbe:
           periodSeconds: 10
@@ -392,7 +373,7 @@ spec:
               sizeLimit: 16Mi
             name: tmp
           - configMap:
-              name: stalwart-plan-6h2bgt29mk
+              name: stalwart-plan-kcbckb6h9b
             name: plan
           - configMap:
               name: stalwart-mailboxes
@@ -518,7 +499,7 @@ spec:
           sizeLimit: 16Mi
         name: tmp
       - configMap:
-          name: stalwart-plan-6h2bgt29mk
+          name: stalwart-plan-kcbckb6h9b
         name: plan
       - configMap:
           name: stalwart-mailboxes
