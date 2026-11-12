@@ -253,10 +253,12 @@ describe("refused — nothing reaches the publish command", () => {
 	test("the service refuses (an unprovisioned tenant): its reason, verbatim", () => {
 		const r = changelog(estate(), FLAGS, {
 			...GOOD,
-			FAKE_EXEC_ERR: 'publish failed: no "shop" tenant — provision the estate first',
+			FAKE_EXEC_ERR:
+				'publish failed: no "shop" tenant — provision the estate first\ncommand terminated with exit code 1',
 		});
 		assert.equal(r.status, 1);
-		assert.match(r.err, /changelog: no "shop" tenant/);
+		assert.match(r.err, /changelog: no "shop" tenant — provision the estate first\n$/);
+		assert.doesNotMatch(r.err, /command terminated/, "kubectl's own exit line is not the reason");
 	});
 
 	test("the service answers no id", () => {
