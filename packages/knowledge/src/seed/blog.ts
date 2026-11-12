@@ -115,7 +115,7 @@ const POLICY: Record<Locale, ReadonlyArray<string>> = {
 
 const ABOUT: Record<Locale, ReadonlyArray<string>> = {
 	ro: [
-		"## Blogul Psizone, EQ-SYNC și Hemi-Sync",
+		"## Blogul Psizone și Hemi-Sync",
 		"",
 		"Răspunsuri clare la întrebări despre copii, minte și liniște, scrise de specialiști și revizuite clinic înainte de publicare. Întrebări reale, cu răspunsuri pe care un specialist le semnează cu numele lui.",
 		"",
@@ -126,7 +126,7 @@ const ABOUT: Record<Locale, ReadonlyArray<string>> = {
 		"Scris de oameni, revizuit de clinicieni, citit în liniște.",
 	],
 	en: [
-		"## The Psizone, EQ-SYNC and Hemi-Sync blog",
+		"## The Psizone and Hemi-Sync blog",
 		"",
 		"Clear answers to questions about children, the mind and calm, written by specialists and clinically reviewed before publication. Real questions, with answers a specialist signs with their own name.",
 		"",

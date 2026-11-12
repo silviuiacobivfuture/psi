@@ -29,10 +29,6 @@ export const EQ_SYNC: RichPage = {
 					ro: "La Psizone îl folosim într-un spațiu senzorial amenajat, ca să ajute la relaxare și la reglarea stării. Nu cere niciun efort: stai și asculți. Îl putem integra în ședințe de neurofeedback, de TMS sau de terapie ocupațională.",
 					en: "At Psizone we use it in a sensory space set up for it, to support relaxation and the regulation of your state. It asks for no effort: you rest and listen. We can build it into neurofeedback, TMS or occupational therapy sessions.",
 				},
-				{
-					ro: "EQ-SYNC are și un site al lui, eq-sync.ro, unde îl poți afla în detaliu.",
-					en: "EQ-SYNC also has a site of its own, eq-sync.ro, where you can learn about it in detail.",
-				},
 			],
 		},
 		{
@@ -137,8 +133,8 @@ export const EQ_SYNC: RichPage = {
 					en: "EQ-SYNC rarely stands alone. It usually comes alongside something else: before a psychotherapy session, to help you enter the conversation more calmly, or after neurofeedback, as a moment of recovery. With children who have sensory needs we combine it with sensory therapy.",
 				},
 				{
-					ro: "Seara, când lumea se liniștește, este momentul pentru care a fost gândit programul: ritm, respirație, somn. Aici descriem doar ce facem în cabinet. Pentru partea de acasă și pentru detalii despre program, ne găsești pe eq-sync.ro.",
-					en: "Evening, when the world quiets down, is the moment the programme was designed for: rhythm, breath, sleep. Here we describe only what we do in the practice. For the at-home side and for details of the programme, you will find us on eq-sync.ro.",
+					ro: "Seara, când lumea se liniștește, este momentul pentru care a fost gândit programul: ritm, respirație, somn. Aici descriem doar ce facem în cabinet, nu o rutină pentru acasă.",
+					en: "Evening, when the world quiets down, is the moment the programme was designed for: rhythm, breath, sleep. Here we describe only what we do in the practice, not a routine for home.",
 				},
 				{
 					ro: "Dacă îl încerci și nu ți se potrivește, nu insistăm. O metodă blândă nu trebuie să fie și o obligație.",
@@ -179,8 +175,12 @@ export const EQ_SYNC: RichPage = {
 			h2: { ro: "Unde folosim EQ-SYNC la Psizone?", en: "Where do we use EQ-SYNC at Psizone?" },
 			paras: [
 				{
-					ro: "Apare în planurile care combină mai multe metode, de exemplu alături de neurofeedback, TMS, terapie senzorială sau psihoterapie. Pe paginile de temă nu îl prezentăm ca metodă clinică de sine stătătoare. Este un program al nostru, pe care îl poți descoperi și pe eq-sync.ro.",
-					en: "It appears in plans that combine several methods, for example alongside neurofeedback, TMS, sensory therapy or psychotherapy. On the topic pages we do not present it as a stand-alone clinical method. It is a programme of ours, which you can also discover on eq-sync.ro.",
+					ro: "Apare în planurile care combină mai multe metode, de exemplu alături de neurofeedback, TMS, terapie senzorială sau psihoterapie. Pe paginile de temă nu îl prezentăm ca metodă clinică de sine stătătoare.",
+					en: "It appears in plans that combine several methods, for example alongside neurofeedback, TMS, sensory therapy or psychotherapy. On the topic pages we do not present it as a stand-alone clinical method.",
+				},
+				{
+					ro: "Pentru că programul se așază de obicei într-un plan mai larg, ritmul lui îl stabilim împreună cu tine și cu ceilalți specialiști: cât de des, în ce moment al zilei și după ce alte ședințe. Ajustăm după cum te simți, nu după un calendar rigid.",
+					en: "Because the programme usually sits inside a wider plan, we set its rhythm together with you and the other specialists: how often, at what time of day and after which other sessions. We adjust to how you feel, not to a rigid calendar.",
 				},
 			],
 		},
@@ -230,16 +230,12 @@ export const EQ_SYNC: RichPage = {
 		{
 			q: { ro: "Unde aflu mai multe despre EQ-SYNC?", en: "Where can I learn more about EQ-SYNC?" },
 			a: {
-				ro: "Pe site-ul lui, eq-sync.ro, sau întrebând ghidul de pe această pagină. Dacă ești deja în plan la noi, poți întreba și psihologul la prima ședință.",
-				en: "On its own site, eq-sync.ro, or by asking the guide on this page. If you are already in a plan with us, you can also ask your psychologist at the first session.",
+				ro: "Întrebând ghidul de pe această pagină. Dacă ești deja în plan la noi, poți întreba și psihologul la prima ședință.",
+				en: "By asking the guide on this page. If you are already in a plan with us, you can also ask your psychologist at the first session.",
 			},
 		},
 	],
 	links: [
-		{
-			label: { ro: "EQ-SYNC, pe eq-sync.ro", en: "EQ-SYNC, on eq-sync.ro" },
-			href: "https://eq-sync.ro/",
-		},
 		{ label: { ro: "Neurofeedback", en: "Neurofeedback" }, href: "/metode/neurofeedback" },
 		{ label: { ro: "TMS", en: "TMS" }, href: "/metode/tms" },
 		{

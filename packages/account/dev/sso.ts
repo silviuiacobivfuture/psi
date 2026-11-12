@@ -14,6 +14,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
+import { isRetired } from "@psi/ui";
 import { readBlock, writeBlock } from "./env-block";
 import { type MockClient, type MockPerson, startMockIssuer } from "./mock-issuer";
 
@@ -37,15 +38,17 @@ const APPS = [
 			["hemisync-web", 4330],
 			["blog-web", 4340],
 		] as const
-	).map(([slug, port]) => ({
-		slug,
-		callback: `http://localhost:${port}/auth/callback`,
-		home: `http://localhost:${port}/`,
-		backchannel: true,
-		// An agent's own test instance of the same site (port + 200, e.g. 4510), beside the owner's showcase on
-		// 43x0: sign-in and sign-out work there too; back-channel logout still goes to the showcase port only.
-		testPort: port + 200,
-	})),
+	)
+		.filter(([slug]) => !isRetired(slug.replace(/-web$/, "")))
+		.map(([slug, port]) => ({
+			slug,
+			callback: `http://localhost:${port}/auth/callback`,
+			home: `http://localhost:${port}/`,
+			backchannel: true,
+			// An agent's own test instance of the same site (port + 200, e.g. 4510), beside the owner's showcase on
+			// 43x0: sign-in and sign-out work there too; back-channel logout still goes to the showcase port only.
+			testPort: port + 200,
+		})),
 ] as const;
 
 /** Clearly fake people, one per role the local estate shows. Groups follow the `app-<app>-<role>` convention. */

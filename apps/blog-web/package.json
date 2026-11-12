@@ -1,6 +1,6 @@
 {
 	"name": "@psi/blog-web",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"private": true,
 	"type": "module",
 	"description": "The shared blog of Psizone, EQ-SYNC and Hemi-Sync: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",

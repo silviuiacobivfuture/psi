@@ -5,7 +5,9 @@ import {
 	type ArticleSummary,
 	buildIndex,
 	INCLUDE_DRAFTS,
+	live,
 	ORIGINS,
+	RETIRED_SITES,
 } from "@psi/content";
 import { type ArticleFinding, type EngineArticles, fold } from "@psi/engine";
 import type { Brand } from "./contract";
@@ -17,12 +19,27 @@ import type { Brand } from "./contract";
  * programme of the same practice and may also point to Psizone's; Hemi-Sync keeps to its own; the
  * blog is the shared reading space and lists all three.
  */
-export const ARTICLE_POLICY: Readonly<Record<Brand, ReadonlyArray<ArticleBrand>>> = {
+const DECLARED_POLICY: Readonly<Record<Brand, ReadonlyArray<ArticleBrand>>> = {
 	psizone: ["psizone"],
 	eqsync: ["eqsync", "psizone"],
 	hemisync: ["hemisync"],
 	blog: ["psizone", "eqsync", "hemisync"],
 };
+
+/** The declared table without a retired brand's articles: none is listed or cited. */
+export function articlePolicy(
+	retired: ReadonlyArray<string> = RETIRED_SITES,
+): Readonly<Record<Brand, ReadonlyArray<ArticleBrand>>> {
+	return {
+		psizone: live(DECLARED_POLICY.psizone, retired),
+		eqsync: live(DECLARED_POLICY.eqsync, retired),
+		hemisync: live(DECLARED_POLICY.hemisync, retired),
+		blog: live(DECLARED_POLICY.blog, retired),
+	};
+}
+
+/** What the guides read: the declared table minus the retired sites (`RETIRED_SITES`). */
+export const ARTICLE_POLICY = articlePolicy();
 
 /** Words that say "articles" or "something about" and no subject. */
 const FILLER = new Set(
@@ -80,6 +97,8 @@ export interface PsiArticlesOptions {
 	blogOrigin?: string;
 	/** Whether drafts are shown, as on the blog; defaults to the blog's own policy (never in production). */
 	includeDrafts?: boolean;
+	/** Sites withdrawn from the guides; defaults to `RETIRED_SITES`. */
+	retired?: ReadonlyArray<string>;
 }
 
 /**
@@ -93,8 +112,11 @@ export function psiArticles(options: PsiArticlesOptions = {}): EngineArticles {
 	const index = buildIndex(catalogue, {
 		blogOrigin: options.blogOrigin ?? ORIGINS.blog,
 		includeDrafts: options.includeDrafts ?? INCLUDE_DRAFTS,
+		retired: options.retired,
 	});
-	const policy = new Map<string, ReadonlyArray<string>>(Object.entries(ARTICLE_POLICY));
+	const policy = new Map<string, ReadonlyArray<string>>(
+		Object.entries(articlePolicy(options.retired)),
+	);
 	const bySlug = new Map(catalogue.map((a) => [a.slug, a]));
 	const entries = index.map((s) => entryOf(s, bySlug.get(s.slug)));
 	return {

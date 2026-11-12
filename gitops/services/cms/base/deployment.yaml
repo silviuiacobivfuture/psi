@@ -102,9 +102,8 @@ spec:
             # The scheduling store (packages/scheduling): the Convex backend's in-cluster Service
             # (its NetworkPolicy admits this namespace and pod, gitops/services/scheduling-backend).
             - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
-            - { name: SITE_WEBHOOK_URLS, value: "http://psizone-web.psizone-web.svc,http://eqsync-web.eqsync-web.svc,http://hemisync-web.hemisync-web.svc,http://blog-web.blog-web.svc" }
+            - { name: SITE_WEBHOOK_URLS, value: "http://psizone-web.psizone-web.svc,http://hemisync-web.hemisync-web.svc,http://blog-web.blog-web.svc" }
             - { name: PSIZONE_CONTROL_URL, value: "http://psizone-web.psizone-web.svc" }
-            - { name: EQSYNC_CONTROL_URL, value: "http://eqsync-web.eqsync-web.svc" }
             - { name: HEMISYNC_CONTROL_URL, value: "http://hemisync-web.hemisync-web.svc" }
             - { name: BLOG_CONTROL_URL, value: "http://blog-web.blog-web.svc" }
             - { name: BLOG_PREVIEW_URL, value: "https://blog.psizone.ro" }

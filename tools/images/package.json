@@ -1,6 +1,6 @@
 {
 	"name": "@psi/images",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's image pipeline: fetches licensed originals into .data/, writes AVIF, WebP and JPEG at responsive widths into each app's public/assets/images, and a typed manifest per app",
@@ -10,6 +10,7 @@
 		"generate": "tsx src/build.ts"
 	},
 	"devDependencies": {
+		"@psi/content": "workspace:*",
 		"@types/node": "^24.19.2",
 		"sharp": "0.35.5",
 		"tsx": "^4.23.15",

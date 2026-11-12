@@ -1,3 +1,4 @@
+import { live, RETIRED_SITES } from "@psi/content";
 import type { Brand } from "../contract";
 
 /** What a visitor may need, as the guide sorts it: the routing table's rows. */
@@ -44,8 +45,12 @@ export const CLINICAL_NEEDS: ReadonlyArray<Need> = [
  * only ever recommends itself; EQ-SYNC is a wellness programme and sends clinical needs to
  * Psizone; Hemi-Sync is exploration, not therapy, and recommends nothing for a clinical need; the
  * blog routes every need to the brand that fits and never Hemi-Sync for a clinical one.
+ *
+ * This is the DECLARED table, retired sites included; `ROUTES` is what the guides read.
  */
-export const ROUTES: Readonly<Record<Brand, Readonly<Record<Need, ReadonlyArray<Brand>>>>> = {
+export const DECLARED_ROUTES: Readonly<
+	Record<Brand, Readonly<Record<Need, ReadonlyArray<Brand>>>>
+> = {
 	psizone: {
 		"child-development": ["psizone"],
 		"teen-support": ["psizone"],
@@ -87,3 +92,30 @@ export const ROUTES: Readonly<Record<Brand, Readonly<Record<Need, ReadonlyArray<
 		general: ["psizone", "eqsync", "hemisync"],
 	},
 };
+
+/** The table without a retired site as a destination: a need it served falls to the next brand. */
+export function liveRoutes(
+	retired: ReadonlyArray<string> = RETIRED_SITES,
+): Readonly<Record<Brand, Readonly<Record<Need, ReadonlyArray<Brand>>>>> {
+	const lived = (
+		row: Readonly<Record<Need, ReadonlyArray<Brand>>>,
+	): Readonly<Record<Need, ReadonlyArray<Brand>>> => ({
+		"child-development": live(row["child-development"], retired),
+		"teen-support": live(row["teen-support"], retired),
+		"adult-mental-health": live(row["adult-mental-health"], retired),
+		evaluation: live(row.evaluation, retired),
+		"sleep-calm": live(row["sleep-calm"], retired),
+		"meditation-exploration": live(row["meditation-exploration"], retired),
+		"booking-contact": live(row["booking-contact"], retired),
+		general: live(row.general, retired),
+	});
+	return {
+		psizone: lived(DECLARED_ROUTES.psizone),
+		eqsync: lived(DECLARED_ROUTES.eqsync),
+		hemisync: lived(DECLARED_ROUTES.hemisync),
+		blog: lived(DECLARED_ROUTES.blog),
+	};
+}
+
+/** What the guides route by: `DECLARED_ROUTES` minus the retired sites (`RETIRED_SITES`). */
+export const ROUTES = liveRoutes();

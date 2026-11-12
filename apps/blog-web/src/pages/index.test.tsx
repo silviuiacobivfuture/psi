@@ -34,13 +34,13 @@ describe("the index shows pictures", () => {
 	});
 
 	it("never renders more than a page of cards for a filtered listing", () => {
-		const html = render({ brand: "eqsync" });
+		const html = render({ brand: "psizone" });
 		expect(cardMedia(html).length).toBeLessThanOrEqual(PAGE_SIZE);
 	});
 
 	it("says which page it is on when a listing has several", () => {
-		const total = listing({ brand: "eqsync" }).length;
-		const html = render({ brand: "eqsync", page: 2 });
+		const total = listing({ brand: "psizone" }).length;
+		const html = render({ brand: "psizone", page: 2 });
 		if (total > PAGE_SIZE) expect(html).toContain('rel="prev"');
 		else expect(html).not.toContain('rel="next"');
 	});

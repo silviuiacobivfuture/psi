@@ -46,6 +46,8 @@ jobs:
             list="$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | sed -n 's|^apps/\([^/]*\)/.*|\1|p' | sort -u \
               | while read -r a; do [ -f "apps/$a/Dockerfile" ] && echo "$a"; done || true)"
           fi
+          # An app with a DEPRECATED.md is retired: it is not built or deployed.
+          list="$(printf '%s\n' "$list" | while read -r a; do [ -n "$a" ] && [ ! -f "apps/$a/DEPRECATED.md" ] && echo "$a"; done || true)"
           echo "apps=$(printf '%s\n' "$list" | sed '/^$/d' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
 
   deploy:

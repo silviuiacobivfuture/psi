@@ -1,9 +1,12 @@
 "use client";
 import { NavGroup, useTranslation } from "@payloadcms/ui";
+import { live } from "@psi/content/retired";
 import { type ReactElement, useEffect, useState } from "react";
 import type { CustomKey } from "../i18n";
 
-const BRANDS = ["psizone", "eqsync", "hemisync", "blog"] as const;
+const ALL_BRANDS = ["psizone", "eqsync", "hemisync", "blog"] as const;
+/** The brand switch lists the live brands only (`RETIRED_SITES`). */
+const BRANDS = live(ALL_BRANDS);
 const COOKIE = "psi-cms-brand";
 
 /**
@@ -25,7 +28,7 @@ const PLATFORM: ReadonlyArray<readonly [string, CustomKey]> = [
 	["/admin/globals/ai-settings", "psi:navAiSettings"],
 ];
 
-const BRAND_NAME: Readonly<Record<(typeof BRANDS)[number], CustomKey>> = {
+const BRAND_NAME: Readonly<Record<(typeof ALL_BRANDS)[number], CustomKey>> = {
 	psizone: "psi:brandName_psizone",
 	eqsync: "psi:brandName_eqsync",
 	hemisync: "psi:brandName_hemisync",

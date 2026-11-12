@@ -1,3 +1,4 @@
+import { live } from "@psi/content";
 import { type NextRequest, NextResponse } from "next/server";
 import { RETURN_COOKIE, RETURN_MAX_AGE, safeReturnTo } from "./platform/return-to";
 
@@ -6,7 +7,7 @@ import { RETURN_COOKIE, RETURN_MAX_AGE, safeReturnTo } from "./platform/return-t
  * the way in, server-side, so it survives the sign-in round trip. Only a known brand is kept; the
  * filter is a preference, never a permission (every view asks the estate).
  */
-const BRANDS = new Set(["psizone", "eqsync", "hemisync", "blog"]);
+const BRANDS = new Set(live(["psizone", "eqsync", "hemisync", "blog"]));
 export const BRAND_COOKIE = "psi-cms-brand";
 
 /**

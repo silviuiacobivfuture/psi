@@ -3,8 +3,8 @@ import { answerText, chatBody, collect, MemorySchedulingStore, shape } from "@ps
 import { afterEach, describe, expect, it } from "vitest";
 import { BRANDS, type Brand } from "../contract";
 import { PSI_PROFILES } from "../profiles";
-import { CLINICAL_NEEDS, NEEDS, ROUTES } from "../services/needs";
-import { SERVICES } from "../services/registry";
+import { CLINICAL_NEEDS, DECLARED_ROUTES, liveRoutes, NEEDS, ROUTES } from "../services/needs";
+import { DECLARED_SERVICES, SERVICES } from "../services/registry";
 import { psiServices } from "../services/services";
 import { closeAll, startGuide } from "./harness";
 
@@ -62,7 +62,7 @@ describe("the routing policy table", () => {
 		for (const need of NEEDS) {
 			for (const brand of ROUTES.psizone[need]) expect(brand).toBe("psizone");
 		}
-		for (const need of CLINICAL_NEEDS) expect(ROUTES.eqsync[need]).toEqual(["psizone"]);
+		for (const need of CLINICAL_NEEDS) expect(DECLARED_ROUTES.eqsync[need]).toEqual(["psizone"]);
 		for (const need of CLINICAL_NEEDS) expect(ROUTES.hemisync[need]).toEqual([]);
 	});
 
@@ -70,11 +70,23 @@ describe("the routing policy table", () => {
 		const asked = async (need: string) =>
 			(await none.find({ profile: "blog", locale: "ro", need })).services;
 		expect(brandsOf(await asked("child-development"))).toEqual(["psizone"]);
-		expect(brandsOf(await asked("sleep-calm"))).toEqual(["eqsync", "psizone"]);
-		expect(brandsOf(await asked("meditation-exploration"))).toEqual(["hemisync", "eqsync"]);
+		// EQ-SYNC is retired: sleep and calm go to Psizone, meditation to Hemi-Sync.
+		expect(brandsOf(await asked("sleep-calm"))).toEqual(["psizone"]);
+		expect(brandsOf(await asked("meditation-exploration"))).toEqual(["hemisync"]);
+		expect(brandsOf(await asked("general"))).toEqual(["psizone", "hemisync"]);
 		for (const need of CLINICAL_NEEDS) {
 			expect(brandsOf(await asked(need))).not.toContain("hemisync");
 		}
+	});
+
+	it("routes to no retired site, and the declared table returns when the list is emptied", () => {
+		for (const brand of BRANDS) {
+			for (const need of NEEDS) expect(ROUTES[brand][need]).not.toContain("eqsync");
+		}
+		expect(SERVICES.some((s) => s.brand === "eqsync")).toBe(false);
+		expect(DECLARED_SERVICES.some((s) => s.brand === "eqsync")).toBe(true);
+		expect(liveRoutes([])).toEqual(DECLARED_ROUTES);
+		expect(liveRoutes(["eqsync"]).blog["sleep-calm"]).toEqual(["psizone"]);
 	});
 
 	it("gives no service at all for a need the brand does not serve, and says so", async () => {
@@ -160,15 +172,16 @@ describe("recommendServices facts and prices", () => {
 		expect(action?.kind === "link" ? action.href : "").toContain("?ghid=programare");
 	});
 
-	it("EQ-SYNC's free programme is a link to its sign-up and says it is a wellness tool, not a treatment", async () => {
-		const found = await psiServices({ bookingInChat: () => false }).find({
-			profile: "eqsync",
-			locale: "ro",
-			need: "sleep-calm",
-		});
-		const free = found.services.find((s) => s.id === "eqsync-free");
-		expect(free?.action).toMatchObject({ kind: "link", label: "Începe programul gratuit" });
-		expect(found.note).toContain("not a medical device");
+	it("recommends nothing of the retired EQ-SYNC programme, to any guide, for any need", async () => {
+		const services = psiServices({ bookingInChat: () => false });
+		for (const profile of BRANDS) {
+			for (const need of NEEDS) {
+				const found = await services.find({ profile, locale: "ro", need });
+				expect(found.services.map((s) => s.id)).not.toContain("eqsync-free");
+				expect(found.services.map((s) => s.id)).not.toContain("eqsync-protocols");
+				expect(found.note).not.toContain("EQ-SYNC");
+			}
+		}
 	});
 });
 

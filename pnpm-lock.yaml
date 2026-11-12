@@ -255,67 +255,6 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
 
-  apps/eqsync-web:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.0
-        version: 1.19.19(hono@4.13.18)
-      '@psi/account':
-        specifier: workspace:*
-        version: link:../../packages/account
-      '@psi/cms-client':
-        specifier: workspace:*
-        version: link:../../packages/cms-client
-      '@psi/content':
-        specifier: workspace:*
-        version: link:../../packages/content
-      '@psi/design':
-        specifier: workspace:*
-        version: link:../../packages/design
-      '@psi/guide':
-        specifier: workspace:*
-        version: link:../../packages/guide
-      '@psi/knowledge':
-        specifier: workspace:*
-        version: link:../../packages/knowledge
-      '@psi/pwa':
-        specifier: workspace:*
-        version: link:../../packages/pwa
-      '@psi/site-control':
-        specifier: workspace:*
-        version: link:../../packages/site-control
-      '@psi/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      hono:
-        specifier: ^4.13.18
-        version: 4.13.18
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
-    devDependencies:
-      '@inlang/paraglide-js':
-        specifier: ^3.2.2
-        version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
-      '@tailwindcss/cli':
-        specifier: ^4.3.5
-        version: 4.3.5
-      esbuild:
-        specifier: ^0.25.0
-        version: 0.25.12
-      tailwindcss:
-        specifier: ^4.3.5
-        version: 4.3.5
-      tsx:
-        specifier: ^4.20.0
-        version: 4.23.15
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-      vitest:
-        specifier: ^2.1.9
-        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
-
   apps/hemisync-web:
     dependencies:
       '@hono/node-server':
@@ -730,6 +669,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../content
       '@psi/design':
         specifier: workspace:*
         version: link:../design
@@ -752,6 +694,9 @@ importers:
 
   tools/images:
     devDependencies:
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2

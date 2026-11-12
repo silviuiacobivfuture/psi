@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { isRetired } from "@psi/content/retired";
 import { readCredits } from "./credits";
 import { type Encoded, encode, FORMATS } from "./encode";
 import { allJobs, type Output } from "./jobs";
@@ -78,6 +79,8 @@ async function main(): Promise<void> {
 		if (!credited.has(job.name)) throw new Error(`${job.name}: missing from credits.json`);
 		for (const out of job.outputs) {
 			if (only !== undefined && out.app !== only) continue;
+			// A retired site (RETIRED_SITES) gets no images: its folder is left alone.
+			if (isRetired(out.app.replace(/-web$/, ""))) continue;
 			const entry = await render(job.name, out).catch((err: unknown) => {
 				throw new Error(
 					`${job.name} → ${out.app}: ${err instanceof Error ? err.message : String(err)}`,

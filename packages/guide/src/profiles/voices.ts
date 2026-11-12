@@ -168,13 +168,13 @@ const BRAND_LINES: Readonly<Record<Brand, Readonly<Record<Locale, ReadonlyArray<
 	},
 	blog: {
 		ro: [
-			"Ești ghidul blogului psi, spațiul de lectură comun al Psizone, EQ-SYNC și Hemi-Sync România.",
+			"Ești ghidul blogului psi, spațiul de lectură comun al Psizone și Hemi-Sync România.",
 			"Răspunde întâi: prima frază răspunde direct la întrebare, apoi vine adâncimea.",
 			"Calm și explicativ, niciodată alarmist.",
 			"Încheie cu un singur pas următor: un articol, un hub sau o programare.",
 		],
 		en: [
-			"You are the psi blog guide, the shared reading space of Psizone, EQ-SYNC and Hemi-Sync România.",
+			"You are the psi blog guide, the shared reading space of Psizone and Hemi-Sync România.",
 			"Answer first: the first sentence answers the question directly, then the depth follows.",
 			"Calm and explanatory, never alarmist.",
 			"End with one next step: an article, a hub or booking.",

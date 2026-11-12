@@ -64,7 +64,6 @@ spec:
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
-            - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
             - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
             - { name: BLOG_URL, value: "https://blog.psizone.ro" }
           readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }

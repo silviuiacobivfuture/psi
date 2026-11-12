@@ -6,6 +6,7 @@ import {
 	SITES,
 	type Site,
 } from "@psi/cms-client";
+import { isRetired } from "@psi/content";
 import type { Field, GlobalAfterChangeHook, GlobalBeforeChangeHook, GlobalConfig } from "payload";
 import { z } from "zod";
 import { brandsFor, can, mayEnterAdmin } from "../authz/access";
@@ -31,6 +32,8 @@ function group(site: Site): Field {
 	return {
 		name: site,
 		type: "group",
+		// Hidden, not removed: a retired site's settings stay in the database (RETIRED_SITES).
+		admin: { hidden: isRetired(site) },
 		label: SITE_LABELS[site],
 		access: {
 			read: ({ req }) => brandsFor(req, "read").then((b) => b.includes(site)),

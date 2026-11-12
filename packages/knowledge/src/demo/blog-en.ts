@@ -77,7 +77,6 @@ export const DEMO_BLOG_EN: ReadonlyArray<DemoEntry> = demoSet("blog", "en", [
 			"The demo blog has one RSS feed per brand, so you can follow only what interests you:",
 			"",
 			"- `/demo/feed/psizone.xml` for Psizone articles;",
-			"- `/demo/feed/eq-sync.xml` for EQ-SYNC articles;",
 			"- `/demo/feed/hemi-sync.xml` for Hemi-Sync articles.",
 			"",
 			"Copy the address of the feed you want into your RSS reader. Each feed contains the title, the date and the first paragraph of the articles, not the full text. Drafts and topics marked “in progress” do not appear in the feeds.",
@@ -128,7 +127,7 @@ export const DEMO_BLOG_EN: ReadonlyArray<DemoEntry> = demoSet("blog", "en", [
 			"",
 			"The demo blog sends a newsletter every two weeks, with the articles published in the meantime and the new topics marked “in progress”. The schedule is fictional.",
 			"",
-			"You can subscribe through the form at the end of any article and choose a single brand or all three. Every message ends with an unsubscribe link that works in a single click. The newsletter carries no advertising and brings nothing that is not already on the blog.",
+			"You can subscribe through the form at the end of any article and choose a single brand or all of them. Every message ends with an unsubscribe link that works in a single click. The newsletter carries no advertising and brings nothing that is not already on the blog.",
 		],
 	},
 	{
@@ -186,7 +185,7 @@ export const DEMO_BLOG_EN: ReadonlyArray<DemoEntry> = demoSet("blog", "en", [
 		body: [
 			"## Articles for a single brand",
 			"",
-			"The demo blog is shared by Psizone, EQ-SYNC and Hemi-Sync, but you can always see only one brand's articles. On the front page, above the list, there are three filters with the brand names; pick one and the list narrows.",
+			"The demo blog is shared by Psizone and Hemi-Sync, but you can always see only one brand's articles. On the front page, above the list, there are filters with the brand names; pick one and the list narrows.",
 			"",
 			"Each article carries the label of its brand under the title. Click it and you reach that brand's page on the blog, with all of its articles. To receive only one brand's news, use its dedicated RSS feed or choose the brand when you subscribe to the newsletter.",
 		],

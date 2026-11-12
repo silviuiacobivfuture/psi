@@ -1,3 +1,4 @@
+import { isRetired } from "@psi/content";
 import { type Env, env } from "../env";
 import { interimAuthorizer } from "./interim";
 import { openFgaAuthorizer } from "./openfga";
@@ -23,7 +24,21 @@ let current: Authorizer | undefined;
 
 /** The adapter AUTHZ_ADAPTER names; the OpenFGA one needs OPENFGA_* (env.ts refuses otherwise). */
 export function authorizerFor(e: Env): Authorizer {
-	return withBreakGlass(adapterFor(e), e.BREAKGLASS_EMAIL);
+	return withoutRetired(withBreakGlass(adapterFor(e), e.BREAKGLASS_EMAIL));
+}
+
+/**
+ * A retired site (`RETIRED_SITES`) has no brand to act on: nobody, the break-glass administrator
+ * included, is granted anything on it, so it drops out of every picker, tab, filter and write.
+ * Its data stays in the database untouched.
+ */
+export function withoutRetired(inner: Authorizer): Authorizer {
+	return {
+		kind: inner.kind,
+		async brands(s: Subject, relation: Relation): Promise<Brand[]> {
+			return (await inner.brands(s, relation)).filter((b) => !isRetired(b));
+		},
+	};
 }
 
 function adapterFor(e: Env): Authorizer {

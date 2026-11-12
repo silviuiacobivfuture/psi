@@ -1,7 +1,7 @@
 import { type Article, parseCatalogue } from "@psi/content";
 import { createKnowledge, createLexicalEmbedder } from "@psi/knowledge";
 import { describe, expect, it } from "vitest";
-import { ARTICLE_POLICY, psiArticles } from "../articles";
+import { ARTICLE_POLICY, articlePolicy, psiArticles } from "../articles";
 import { BRANDS } from "../contract";
 import { articleEntries, knowledgeIngest } from "../ingest";
 
@@ -64,8 +64,10 @@ const query = (
 		locale: string;
 		limit: number;
 	}> = {},
+	// The declared segregation, no site retired; the retirement has its own describe below.
+	retired: ReadonlyArray<string> = [],
 ) =>
-	psiArticles({ articles: SOURCE, blogOrigin: BLOG, includeDrafts: false }).find({
+	psiArticles({ articles: SOURCE, blogOrigin: BLOG, includeDrafts: false, retired }).find({
 		profile,
 		locale: "ro",
 		limit: 20,
@@ -73,8 +75,17 @@ const query = (
 	});
 
 describe("ARTICLE_POLICY", () => {
-	it("is the whole segregation, per guide", () => {
+	it("is the whole segregation, per guide, without the retired sites", () => {
 		expect(ARTICLE_POLICY).toEqual({
+			psizone: ["psizone"],
+			eqsync: ["psizone"],
+			hemisync: ["hemisync"],
+			blog: ["psizone", "hemisync"],
+		});
+	});
+
+	it("is the whole declared segregation, per guide, when no site is retired", () => {
+		expect(articlePolicy([])).toEqual({
 			psizone: ["psizone"],
 			eqsync: ["eqsync", "psizone"],
 			hemisync: ["hemisync"],
@@ -85,7 +96,7 @@ describe("ARTICLE_POLICY", () => {
 	it("covers every guide, and only the blog's guide sees every brand", () => {
 		expect(Object.keys(ARTICLE_POLICY).sort()).toEqual([...BRANDS].sort());
 		for (const brand of BRANDS) {
-			expect(ARTICLE_POLICY[brand].length === 3).toBe(brand === "blog");
+			expect(articlePolicy([])[brand].length === 3).toBe(brand === "blog");
 		}
 	});
 
@@ -118,6 +129,33 @@ describe("ARTICLE_POLICY", () => {
 	it("gives an unknown guide nothing", async () => {
 		const r = await query("someone-else");
 		expect(r).toEqual({ total: 0, articles: [], topics: [], brands: [] });
+	});
+});
+
+describe("a retired site in the guides", () => {
+	const hidden = (profile: string, over: Parameters<typeof query>[1] = {}) =>
+		query(profile, over, ["eqsync"]);
+
+	it("is never listed, cited or filtered to, whichever guide asks", async () => {
+		for (const profile of ["psizone", "eqsync", "hemisync", "blog"]) {
+			const r = await hidden(profile);
+			expect(r.articles.some((a) => a.brand === "eqsync")).toBe(false);
+			expect(r.brands).not.toContain("eqsync");
+		}
+		const asked = await hidden("blog", { brand: "eqsync" });
+		expect(asked.articles).toEqual([]);
+		expect((await hidden("blog", { query: "casti-eq" })).articles).toEqual([]);
+		expect((await hidden("blog")).total).toBe(4);
+	});
+
+	it("leaves the other brands untouched, and everything returns when the list is emptied", async () => {
+		expect((await hidden("blog")).brands).toEqual(["psizone", "hemisync"]);
+		expect((await hidden("psizone")).total).toBe((await query("psizone")).total);
+		expect((await query("blog")).total).toBe(5);
+	});
+
+	it("keeps the retired brand's articles out of the guide's knowledge index", () => {
+		expect(articleEntries().some((e) => e.brand === "eqsync")).toBe(false);
 	});
 });
 

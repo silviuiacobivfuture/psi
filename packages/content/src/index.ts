@@ -38,6 +38,7 @@ export {
 	related,
 	summaryFor,
 } from "./query";
+export { isRetired, live, RETIRED_SITES } from "./retired";
 export { articleUrl, blogPaths, brandListingUrl } from "./routes";
 export {
 	Article,

@@ -263,8 +263,8 @@ export const METHODS: ReadonlyArray<Method> = [
 		compass: false,
 		name: { ro: "EQ-Sync", en: "EQ-Sync" },
 		lead: {
-			ro: "Una dintre cele două metode proprii, brevetate. Un program ghidat prin sunet, cu site-ul lui.",
-			en: "One of the team's two own, patented methods. A sound-guided programme with its own site.",
+			ro: "Una dintre cele două metode proprii, brevetate. Un program ghidat prin sunet.",
+			en: "One of the team's two own, patented methods. A sound-guided programme.",
 		},
 		what: [],
 		atPsizone: [],
@@ -275,10 +275,6 @@ export const METHODS: ReadonlyArray<Method> = [
 				en: "What EQ-Sync is and who it is for.",
 			},
 		],
-		external: {
-			href: "https://eq-sync.ro/",
-			label: { ro: "Despre EQ-Sync, pe eq-sync.ro", en: "About EQ-Sync, on eq-sync.ro" },
-		},
 	},
 ];
 

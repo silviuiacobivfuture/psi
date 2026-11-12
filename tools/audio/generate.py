@@ -445,7 +445,9 @@ def main() -> int:
     ap.add_argument("--only", choices=[p.slug for p in PIECES], action="append")
     ap.add_argument("--report", type=Path, help="directory for the spectrogram PNGs")
     args = ap.parse_args()
-    chosen = [p for p in PIECES if not args.only or p.slug in args.only]
+    # A piece whose app is retired (apps/<app>/DEPRECATED.md) is not generated: the folder is left alone.
+    live = [p for p in PIECES if not (REPO / Path(p.outputs[0]).parts[0] / Path(p.outputs[0]).parts[1] / "DEPRECATED.md").exists()]
+    chosen = [p for p in live if not args.only or p.slug in args.only]
     results = [build(p, args.report, True) for p in chosen]
     total = sum(int(r["bytes"]) for r in results)  # type: ignore[call-overload]
     print(f"total {total} bytes ({total / 1e6:.2f} MB)")

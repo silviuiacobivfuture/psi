@@ -1,5 +1,7 @@
 packages:
   - "apps/*"
+  # Retired 2026-11-12 (owner): apps/eqsync-web/DEPRECATED.md. Remove this line to revive.
+  - "!apps/eqsync-web"
   - "packages/*"
   - "tools/*"
 

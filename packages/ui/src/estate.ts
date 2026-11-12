@@ -3,11 +3,24 @@
  * the environment (parsed with zod at the app's boundary; this package ships no parser) and links
  * to the others only through what is built here: the footer's estate row and a compass group.
  * The policy is `docs/brands/linking.md`.
+ *
+ * A retired site (`RETIRED_SITES`, the one switch, defined in `@psi/content/retired`) stays
+ * declared here, so stored data and types still parse, but it is no longer linked or required.
  */
+import { isRetired, live, RETIRED_SITES } from "@psi/content/retired";
+
+export { isRetired, live, RETIRED_SITES };
 
 /** The sites, in the order every footer lists them. */
 export const ESTATE_SITES = ["psizone", "eqsync", "hemisync", "blog"] as const;
 export type EstateSite = (typeof ESTATE_SITES)[number];
+
+/** The sites that are not retired: what is linked, listed and required at boot. */
+export function liveSites(
+	retired: ReadonlyArray<string> = RETIRED_SITES,
+): ReadonlyArray<EstateSite> {
+	return live(ESTATE_SITES, retired);
+}
 
 /** One canonical origin per site, without a trailing slash (`https://blog.psizone.ro`). */
 export type EstateOrigins = Readonly<Record<EstateSite, string>>;
@@ -30,12 +43,15 @@ export const ESTATE_LOCAL: EstateOrigins = {
 
 /**
  * The raw value for every site (the variable, or the local default), for the app to parse. In
- * production a missing variable is an error: a local default there would link visitors to
- * localhost (it once did, for the blog).
+ * production a missing variable is an error for every live site (a local default there would
+ * link visitors to localhost; it once did, for the blog); a retired site's is optional.
  */
-export function estateInput(env: NodeJS.ProcessEnv = process.env): Record<EstateSite, string> {
+export function estateInput(
+	env: NodeJS.ProcessEnv = process.env,
+	retired: ReadonlyArray<string> = RETIRED_SITES,
+): Record<EstateSite, string> {
 	if (env.NODE_ENV === "production") {
-		const missing = ESTATE_SITES.filter((s) => (env[ESTATE_ENV[s]] ?? "").trim() === "");
+		const missing = liveSites(retired).filter((s) => (env[ESTATE_ENV[s]] ?? "").trim() === "");
 		if (missing.length > 0) {
 			throw new Error(
 				`estate: ${missing.map((s) => ESTATE_ENV[s]).join(", ")} must be set in production`,
@@ -67,8 +83,9 @@ export function estateLinks(
 	labels: Readonly<Record<EstateSite, string>>,
 	current: EstateSite,
 	localePrefix: string,
+	retired: ReadonlyArray<string> = RETIRED_SITES,
 ): ReadonlyArray<EstateLink> {
-	return ESTATE_SITES.map((site) => ({
+	return liveSites(retired).map((site) => ({
 		site,
 		label: labels[site],
 		href: `${origins[site]}${localePrefix || "/"}`,

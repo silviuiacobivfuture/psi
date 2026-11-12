@@ -36,6 +36,14 @@ Applies to main agents AND subagents; restate it in every delegation prompt.
 Genesis owns `gitops/` (except an app's own folders), `pieces/`, `components/` and
 `estate/openbao/`. Do not hand-edit what it writes; re-run it.
 
+## EQ-SYNC is retired (HARD RULE)
+
+`apps/eqsync-web` (and `gitops/services/eqsync-web`) is retired as of 2026-11-12, on the owner's
+order. Do not read, edit, test, search, plan for or mention it, and do not re-enable it without the
+owner. It is excluded from tools: `.claude/settings.json` denies Read/Edit on both folders, the
+root `.ignore` hides them from search, and the pnpm workspace no longer contains the app. The one
+switch is `RETIRED_SITES` in `packages/content/src/retired.ts`; every consumer reads it.
+
 ## Commands
 
 ```bash

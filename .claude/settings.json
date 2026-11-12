@@ -18,5 +18,17 @@
 				]
 			}
 		]
+	},
+	"permissions": {
+		"deny": [
+			"Read(/apps/eqsync-web/**)",
+			"Read(apps/eqsync-web/**)",
+			"Read(/gitops/services/eqsync-web/**)",
+			"Read(gitops/services/eqsync-web/**)",
+			"Edit(/apps/eqsync-web/**)",
+			"Edit(apps/eqsync-web/**)",
+			"Edit(/gitops/services/eqsync-web/**)",
+			"Edit(gitops/services/eqsync-web/**)"
+		]
 	}
 }

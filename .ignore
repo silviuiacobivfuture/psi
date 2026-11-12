@@ -1,0 +1,4 @@
+# EQ-SYNC is retired (2026-11-12, owner): hidden from ripgrep, ast-grep and file pickers.
+# See apps/eqsync-web/DEPRECATED.md. Remove these two lines to revive.
+apps/eqsync-web/
+gitops/services/eqsync-web/

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ARTICLES } from "./articles/catalogue";
+import { articleKnowledge } from "./knowledge";
 import { includeDraftsFrom, originsFrom } from "./origins";
 import { buildIndex, byTopic, latestFor, related, summaryFor } from "./query";
 import { articleUrl, blogPaths, brandListingUrl } from "./routes";
 
 const BLOG = "https://blog.psizone.ro";
-const staging = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: true });
-const production = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: false });
+// The whole content (no site retired): these tests read the catalogue, not the retirement switch.
+const staging = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: true, retired: [] });
+const production = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: false, retired: [] });
 
 describe("buildIndex", () => {
 	it("summarises readable articles in both locales, never backlog stubs", () => {
@@ -44,6 +46,30 @@ describe("buildIndex", () => {
 			expect(a.readingMinutes).toBeGreaterThanOrEqual(1);
 			if (a.status === "draft") expect(a.reviewer).toBeNull();
 		}
+	});
+});
+
+describe("retired sites", () => {
+	const hidden = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: true });
+
+	it("leave every listing by default, while the content stays", () => {
+		expect(staging.some((a) => a.brand === "eqsync")).toBe(true);
+		expect(hidden.some((a) => a.brand === "eqsync")).toBe(false);
+		expect(hidden.some((a) => a.brand === "psizone")).toBe(true);
+		expect(latestFor("eqsync", "en", 5, hidden)).toEqual([]);
+		expect(byTopic("programul-eqsync", "ro", undefined, hidden)).toEqual([]);
+	});
+
+	it("come back when the list is emptied, and no other brand is touched", () => {
+		const restored = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: true, retired: [] });
+		expect(restored).toEqual(staging);
+		const others = staging.filter((a) => a.brand !== "eqsync");
+		expect(hidden).toEqual(others);
+	});
+
+	it("keep a retired brand's articles out of the guide's knowledge index", () => {
+		expect(articleKnowledge().some((e) => e.brand === "eqsync")).toBe(false);
+		expect(articleKnowledge(ARTICLES, []).some((e) => e.brand === "eqsync")).toBe(true);
 	});
 });
 

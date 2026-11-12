@@ -13,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isRetired } from "@psi/ui";
 import { z } from "zod";
 import { writeBlock } from "./env-block";
 
@@ -32,12 +33,15 @@ const DB_PORT = 55451;
 export const LOCAL_BLOCK = "local dev";
 
 /** The four sites: their Authentik slug, dev origin and the directory holding their .env. */
-export const DEV_SITES = [
+const ALL_DEV_SITES = [
 	{ app: "psizone-web", origin: "http://localhost:4310" },
 	{ app: "eqsync-web", origin: "http://localhost:4320" },
 	{ app: "hemisync-web", origin: "http://localhost:4330" },
 	{ app: "blog-web", origin: "http://localhost:4340" },
 ] as const;
+
+/** Without a retired site (`RETIRED_SITES`): its folder gets no .env block. */
+export const DEV_SITES = ALL_DEV_SITES.filter((s) => !isRetired(s.app.replace(/-web$/, "")));
 
 const docker = (...args: string[]): string =>
 	execFileSync("docker", args, {

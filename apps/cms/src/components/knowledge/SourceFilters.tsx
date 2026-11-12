@@ -1,5 +1,6 @@
 "use client";
 import { useTranslation } from "@payloadcms/ui";
+import { live } from "@psi/content/retired";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactElement } from "react";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { SOURCE_LANGUAGES, SOURCE_STATUSES } from "../../knowledge/source-doc";
  * brand filter, and the full filter builder stays available). Each is a link that sets Payload's
  * own `where` query, so the list, its counts and its pagination stay Payload's.
  */
-const BRANDS = ["psizone", "eqsync", "hemisync", "blog"] as const;
+const BRANDS = live(["psizone", "eqsync", "hemisync", "blog"] as const);
 const Status = z.enum(SOURCE_STATUSES);
 
 function href(path: string, params: URLSearchParams, field: string, value: string | null): string {

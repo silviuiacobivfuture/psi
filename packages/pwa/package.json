@@ -1,6 +1,6 @@
 {
 	"name": "@psi/pwa",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's Progressive Web App layer: per-brand web app manifests, icons, the service worker, install UX and opt-in Web Push (VAPID) notifications. Ships no text.",

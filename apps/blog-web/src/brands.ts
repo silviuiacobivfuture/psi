@@ -1,7 +1,18 @@
-import { BRANDS, type Brand, BrandSchema, ORIGINS } from "@psi/content";
+import {
+	BRANDS as ALL_BRANDS,
+	type Brand,
+	BrandSchema,
+	isRetired,
+	live,
+	ORIGINS,
+} from "@psi/content";
 
-/** The three brands the blog publishes for; the list itself lives in `@psi/content`. */
-export { BRANDS, BrandSchema };
+/**
+ * The brands the blog publishes for (the filter chips, the feeds): `@psi/content`'s list without
+ * the retired ones.
+ */
+export const BRANDS: ReadonlyArray<Brand> = live(ALL_BRANDS);
+export { BrandSchema };
 export type BlogBrand = Brand;
 
 /**
@@ -14,8 +25,8 @@ export const SITES: Readonly<Record<BlogBrand, string>> = {
 	hemisync: ORIGINS.hemisync,
 };
 
-/** `?brand=` on the index: a known brand filters, anything else means all brands. */
+/** `?brand=` on the index: a live brand filters, anything else (a retired one too) means all brands. */
 export function brandFrom(query: string | undefined): BlogBrand | undefined {
 	const parsed = BrandSchema.safeParse(query);
-	return parsed.success ? parsed.data : undefined;
+	return parsed.success && !isRetired(parsed.data) ? parsed.data : undefined;
 }

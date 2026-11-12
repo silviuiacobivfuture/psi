@@ -1258,7 +1258,7 @@ spec:
               value: dicomviewer forms external integration_giphy announcementcenter
                 notes
             - name: NC_EXTERNAL_SITES
-              value: '{"1":{"id":1,"name":"PSIZONE","url":"https://psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"2":{"id":2,"name":"EQ-SYNC","url":"https://eqsync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"3":{"id":3,"name":"Hemi-Sync","url":"https://hemisync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"4":{"id":4,"name":"Blog","url":"https://blog.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true}}'
+              value: '{"1":{"id":1,"name":"PSIZONE","url":"https://psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"3":{"id":3,"name":"Hemi-Sync","url":"https://hemisync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"4":{"id":4,"name":"Blog","url":"https://blog.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true}}'
             image: registry.psizone.ro/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
             name: occ
             resources:

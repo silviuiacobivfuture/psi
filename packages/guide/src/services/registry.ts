@@ -1,3 +1,4 @@
+import { isRetired } from "@psi/content";
 import type { Brand } from "../contract";
 import type { Need } from "./needs";
 
@@ -37,7 +38,8 @@ const FIRST_VISIT: Text = {
 	en: "By phone or in the chat you tell us what worries you, and we tell you what comes next and what it costs; the first conversation is about you, not about a diagnosis.",
 };
 
-export const SERVICES: ReadonlyArray<ServiceDef> = [
+/** Every service ever declared, retired sites' included (revival re-lists them). */
+export const DECLARED_SERVICES: ReadonlyArray<ServiceDef> = [
 	{
 		id: "psizone-speech",
 		brand: "psizone",
@@ -313,3 +315,8 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 		start: "page",
 	},
 ];
+
+/** The services the guides may recommend: the declared ones minus a retired site's. */
+export const SERVICES: ReadonlyArray<ServiceDef> = DECLARED_SERVICES.filter(
+	(d) => !isRetired(d.brand),
+);

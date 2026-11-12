@@ -13,6 +13,7 @@
 import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { MARKS } from "@psi/design/logos";
+import { live } from "@psi/ui";
 import sharp from "sharp";
 import { PWA_BRANDS, type PwaBrand, token } from "../src/brand";
 import { ICON_FILES } from "../src/manifest";
@@ -108,7 +109,8 @@ async function badge(brand: PwaBrand, size: number): Promise<Buffer> {
 		.toBuffer();
 }
 
-for (const brand of PWA_BRANDS) {
+// A retired site (RETIRED_SITES) gets no icons: its app folder is left alone.
+for (const brand of live(PWA_BRANDS)) {
 	const out = `${REPO}${APP_DIR[brand]}/public/assets/pwa`;
 	mkdirSync(out, { recursive: true });
 	for (const icon of ICON_FILES) {

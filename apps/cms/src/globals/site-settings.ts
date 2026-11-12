@@ -1,4 +1,5 @@
 import { SITES, type Site, SOCIAL_NETWORKS } from "@psi/cms-client";
+import { isRetired } from "@psi/content";
 import type { Field, GlobalAfterChangeHook, GlobalConfig, TextField } from "payload";
 import { z } from "zod";
 import { brandsFor, can, mayEnterAdmin } from "../authz/access";
@@ -48,7 +49,9 @@ function group(site: Site): Field {
 			read: ({ req }) => brandsFor(req, "read").then((b) => b.includes(site)),
 			update: ({ req }) => can(req, SECTIONS.siteSettings.act, site),
 		},
+		// Hidden, not removed: a retired site's settings stay in the database (RETIRED_SITES).
 		admin: {
+			hidden: isRetired(site),
 			description: {
 				ro: "Un câmp gol păstrează ce arată situl acum.",
 				en: "An empty field keeps what the site shows today.",

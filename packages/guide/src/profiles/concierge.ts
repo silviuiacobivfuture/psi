@@ -41,8 +41,8 @@ const BRAND: Readonly<Record<Brand, Readonly<Record<Locale, string>>>> = {
 		en: "Recommend the free exercises first, then the Monroe Institute® programmes; recommend nothing for a clinical need, and point gently to a specialist instead.",
 	},
 	blog: {
-		ro: `Ghidul blogului duce omul la brandul potrivit: nevoile clinice (un copil, dezvoltare, terapie, evaluare, atenție, anxietate) la Psizone; liniștea, stresul și somnul de seară la EQ-SYNC (programul gratuit de 21 de zile) și, dacă somnul sau starea îl îngrijorează, și la o evaluare Psizone; meditația și explorarea la Hemi-Sync. Hemi-Sync nu apare niciodată la o întrebare clinică. O programare se începe în conversația Psizone (butonul de sub răspuns), sau la telefon: ${PHONES}.`,
-		en: `The blog's guide leads the person to the fitting brand: clinical needs (a child, development, therapy, evaluation, attention, anxiety) to Psizone; calm, stress and evening sleep to EQ-SYNC (the free 21-day programme) and, if sleep or mood worries them, also to a Psizone evaluation; meditation and exploration to Hemi-Sync. Hemi-Sync never appears for a clinical question. A booking starts in the Psizone conversation (the button under the reply), or by phone: ${PHONES}.`,
+		ro: `Ghidul blogului duce omul la brandul potrivit: nevoile clinice (un copil, dezvoltare, terapie, evaluare, atenție, anxietate) la Psizone; liniștea, stresul și somnul de seară tot la Psizone (o evaluare, dacă somnul sau starea îl îngrijorează); meditația și explorarea la Hemi-Sync. Hemi-Sync nu apare niciodată la o întrebare clinică. O programare se începe în conversația Psizone (butonul de sub răspuns), sau la telefon: ${PHONES}.`,
+		en: `The blog's guide leads the person to the fitting brand: clinical needs (a child, development, therapy, evaluation, attention, anxiety) to Psizone; calm, stress and evening sleep also to Psizone (an evaluation, if sleep or mood worries them); meditation and exploration to Hemi-Sync. Hemi-Sync never appears for a clinical question. A booking starts in the Psizone conversation (the button under the reply), or by phone: ${PHONES}.`,
 	},
 };
 

@@ -26,9 +26,8 @@ describe("the demo sounds' files", () => {
 			expect(Math.abs(info.seconds - d.seconds)).toBeLessThan(1);
 		});
 	}
-	it("stay within the size budget with the EQ-SYNC sample (12 MB for all four)", () => {
-		const sample = readFileSync("../eqsync-web/public/assets/sample.mp3").length;
-		expect(total + sample).toBeLessThanOrEqual(12 * 1024 * 1024);
+	it("stay within the size budget (12 MB for all)", () => {
+		expect(total).toBeLessThanOrEqual(12 * 1024 * 1024);
 	});
 });
 

@@ -4,6 +4,7 @@ import {
 	type ArticleSummary,
 	buildIndex,
 	INCLUDE_DRAFTS,
+	isRetired,
 	isVisible,
 	ORIGINS,
 	ARTICLES as REPO,
@@ -48,7 +49,8 @@ interface Snapshot {
 }
 
 function snapshot(articles: ReadonlyArray<Article>, source: Snapshot["source"]): Snapshot {
-	const visible = articles.filter((a) => isVisible(a, INCLUDE_DRAFTS));
+	// A retired brand's articles stay in the content but are served nowhere (404).
+	const visible = articles.filter((a) => isVisible(a, INCLUDE_DRAFTS) && !isRetired(a.brand));
 	return {
 		articles: visible,
 		index: buildIndex(visible, { blogOrigin: ORIGINS.blog, includeDrafts: INCLUDE_DRAFTS }),

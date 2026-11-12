@@ -4,6 +4,11 @@ How the four public sites link to each other, and what each one may say about th
 asked for "more content/visibility, proper linking and synergy between the platforms" (2026-11-12);
 this page is that decision written down, and the code follows it.
 
+> **EQ-SYNC is retired (2026-11-12, owner's order; temporary).** `RETIRED_SITES` in
+> `packages/content/src/retired.ts` is the one switch: while a site is listed there, the estate row,
+> the compass group and every cross-link omit it, its URL is optional at boot, and the blog, the
+> guides and the CMS hide its brand. Empty the list to bring it back (see `apps/eqsync-web/DEPRECATED.md`).
+
 ## The sites
 
 | Site | App (local) | Env var (canonical origin) | Dev/staging host today |

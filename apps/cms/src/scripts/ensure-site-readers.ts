@@ -9,10 +9,11 @@
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import config from "@payload-config";
+import { live } from "@psi/content";
 import { getPayload } from "payload";
 import { z } from "zod";
 
-const SITES = ["psizone", "eqsync", "hemisync"] as const;
+const SITES = live(["psizone", "eqsync", "hemisync"] as const);
 const DOMAIN = "service.psizone.test";
 
 const Env = z.object({ SERVICE_KEYS_OUT: z.string().min(1) });

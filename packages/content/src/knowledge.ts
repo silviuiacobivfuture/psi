@@ -1,5 +1,6 @@
 import { ARTICLES } from "./articles/catalogue";
 import { LOCALES, type Locale } from "./locale";
+import { isRetired, RETIRED_SITES } from "./retired";
 import { articleUrl } from "./routes";
 import { type Article, isReadable, type ReadableArticle } from "./schema";
 
@@ -39,28 +40,33 @@ function text(a: ReadableArticle, locale: Locale): string {
 	return lines.join("\n\n");
 }
 
+/** A retired brand's articles are not indexed, in its own index or the blog's. */
 export function articleKnowledge(
 	articles: ReadonlyArray<Article> = ARTICLES,
+	retired: ReadonlyArray<string> = RETIRED_SITES,
 ): ArticleKnowledgeEntry[] {
-	return articles.filter(isReadable).flatMap((a) =>
-		LOCALES.flatMap((locale): ArticleKnowledgeEntry[] => {
-			const health = a.kind === "health";
-			const reviewed = a.status === "published" && a.kind === "health" ? a.reviewer : null;
-			const base = {
-				locale,
-				kind: health ? ("clinical" as const) : ("editorial" as const),
-				title: a.title[locale],
-				url: articleUrl(locale, a.slug),
-				body: text(a, locale),
-				hub: a.topic,
-				status: a.status,
-				reviewedBy: reviewed?.name ?? null,
-				reviewedAt: reviewed?.reviewedAt ?? null,
-			};
-			return [
-				{ ...base, id: `content.ar.${a.slug}.${locale}`, brand: a.brand },
-				{ ...base, id: `content.ar.${a.slug}.${locale}.blog`, brand: "blog" },
-			];
-		}),
-	);
+	return articles
+		.filter(isReadable)
+		.filter((a) => !isRetired(a.brand, retired))
+		.flatMap((a) =>
+			LOCALES.flatMap((locale): ArticleKnowledgeEntry[] => {
+				const health = a.kind === "health";
+				const reviewed = a.status === "published" && a.kind === "health" ? a.reviewer : null;
+				const base = {
+					locale,
+					kind: health ? ("clinical" as const) : ("editorial" as const),
+					title: a.title[locale],
+					url: articleUrl(locale, a.slug),
+					body: text(a, locale),
+					hub: a.topic,
+					status: a.status,
+					reviewedBy: reviewed?.name ?? null,
+					reviewedAt: reviewed?.reviewedAt ?? null,
+				};
+				return [
+					{ ...base, id: `content.ar.${a.slug}.${locale}`, brand: a.brand },
+					{ ...base, id: `content.ar.${a.slug}.${locale}.blog`, brand: "blog" },
+				];
+			}),
+		);
 }

@@ -174,13 +174,6 @@ spec:
                     namespace: psizone-web
                     app: psizone-web
                     podSelector: app=psizone-web
-                - EQ-SYNC:
-                    icon: mdi-waveform
-                    href: https://eqsync.psizone.ro
-                    description: Site-ul programului sonor de 21 de zile
-                    namespace: eqsync-web
-                    app: eqsync-web
-                    podSelector: app=eqsync-web
                 - Hemi-Sync România:
                     icon: mdi-weather-sunset-up
                     href: https://hemisync.psizone.ro

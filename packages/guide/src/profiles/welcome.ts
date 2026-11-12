@@ -37,8 +37,8 @@ const INTROS: Copy = {
 		en: "Hello. I'm the Hemi-Sync guide: I'll help you choose a free exercise or a programme and begin exploring. For example:",
 	},
 	blog: {
-		ro: "Bună. Sunt ghidul blogului: te ajut să găsești un articol și pasul potrivit pentru tine, la Psizone, EQ-SYNC sau Hemi-Sync. De exemplu:",
-		en: "Hello. I'm the blog's guide: I'll help you find an article and the right step for you, at Psizone, EQ-SYNC or Hemi-Sync. For example:",
+		ro: "Bună. Sunt ghidul blogului: te ajut să găsești un articol și pasul potrivit pentru tine, la Psizone sau Hemi-Sync. De exemplu:",
+		en: "Hello. I'm the blog's guide: I'll help you find an article and the right step for you, at Psizone or Hemi-Sync. For example:",
 	},
 };
 

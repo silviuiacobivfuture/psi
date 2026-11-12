@@ -1,8 +1,8 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"pwa_name": "Blog — Psizone, EQ-SYNC, Hemi-Sync",
+	"pwa_name": "Blog — Psizone, Hemi-Sync",
 	"pwa_short_name": "psi Blog",
-	"pwa_description": "Articles on the mind, sleep, attention and sound, from Psizone, EQ-SYNC and Hemi-Sync România.",
+	"pwa_description": "Articles on the mind, sleep, attention and sound, from Psizone and Hemi-Sync România.",
 	"pwa_install": "Install the app",
 	"pwa_ios_title": "Add to Home Screen",
 	"pwa_ios_steps": "In Safari, tap Share, then “Add to Home Screen”.",

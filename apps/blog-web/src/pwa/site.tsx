@@ -1,5 +1,6 @@
-import { createPwa } from "@psi/pwa";
-import { ESTATE_SITES } from "@psi/ui";
+import { isRetired } from "@psi/content";
+import { createPwa, TopicSchema } from "@psi/pwa";
+import { liveSites } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account } from "../account";
 import { ESTATE, SITE, siteNames } from "../estate";
@@ -19,12 +20,15 @@ export function notificationsPath(locale: Locale): string {
 export const pwa = createPwa({
 	brand: "blog",
 	origin: ESTATE[SITE],
-	origins: ESTATE_SITES.map((s) => ESTATE[s]),
+	origins: liveSites().map((s) => ESTATE[s]),
 	prefixes: { ro: "", en: "/en" },
 	theme: "blog-light",
 	messages: m,
 	siteNames,
-	topics: ["articles:psizone", "articles:eqsync", "articles:hemisync"],
+	// Every brand's articles except a retired brand's (RETIRED_SITES).
+	topics: TopicSchema.options.filter(
+		(t) => t.startsWith("articles:") && !isRetired(t.slice("articles:".length)),
+	),
 	identity: account,
 	notificationsPath,
 });

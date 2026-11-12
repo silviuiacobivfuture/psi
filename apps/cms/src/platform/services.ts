@@ -1,4 +1,5 @@
 import { type ControlClient, createControlClient, type Site, signWebhook } from "@psi/cms-client";
+import { isRetired } from "@psi/content";
 import {
 	createSchedulingClient,
 	createStaffSchedulingClient,
@@ -40,8 +41,9 @@ export function tenantOf(brand: Site): string | null {
 
 const clients = new Map<Site, ControlClient | null>();
 
-/** The site's control client, or null when its URL or the shared secret is not configured. */
+/** The site's control client, or null when its URL or the shared secret is not configured (or the site is retired). */
 export function controlFor(brand: Site): ControlClient | null {
+	if (isRetired(brand)) return null;
 	if (clients.has(brand)) return clients.get(brand) ?? null;
 	const e = env();
 	const origin = CONTROL_URL[brand](e);

@@ -1,5 +1,5 @@
 import { createPwa } from "@psi/pwa";
-import { ESTATE_SITES, requestPath } from "@psi/ui";
+import { liveSites, requestPath } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account } from "../account";
 import { ESTATE, SITE, siteNames } from "../estate";
@@ -19,7 +19,7 @@ export function notificationsPath(locale: Locale): string {
 export const pwa = createPwa({
 	brand: "psizone",
 	origin: ESTATE[SITE],
-	origins: ESTATE_SITES.map((s) => ESTATE[s]),
+	origins: liveSites().map((s) => ESTATE[s]),
 	prefixes: { ro: "", en: "/en" },
 	theme: "psizone-light",
 	messages: m,

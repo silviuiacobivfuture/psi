@@ -5,7 +5,8 @@
 	"type": "module",
 	"description": "The estate's shared content index: what every psi site may show of another (articles, brands, cross-links) until the CMS serves it.",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./retired": "./src/retired.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

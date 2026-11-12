@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withBreakGlass } from "./index";
+import { withBreakGlass, withoutRetired } from "./index";
 import { interimAuthorizer, parseAssignments } from "./interim";
 import { ROLES } from "./manifest";
 import { openFgaAuthorizer } from "./openfga";
@@ -138,5 +138,29 @@ describe("break-glass", () => {
 	});
 	it("does not extend to a directory account with the same e-mail", async () => {
 		expect(await none.brands(person("break@psizone.ro", [], "sub-1"), "admin")).toEqual([]);
+	});
+});
+
+describe("a retired site", () => {
+	const inner = withBreakGlass(
+		interimAuthorizer("a@b.ro=cms:admin;e@b.ro=cms:editor@eqsync"),
+		"Break@Psizone.ro",
+	);
+	const hidden = withoutRetired(inner);
+
+	it("is granted to nobody, the break-glass account included, on any relation", async () => {
+		expect(await inner.brands(person("a@b.ro", [], "s"), "read")).toContain("eqsync");
+		for (const who of [person("a@b.ro", [], "s"), person("break@psizone.ro", [], null)]) {
+			expect(await hidden.brands(who, "admin")).toEqual(["psizone", "hemisync", "blog"]);
+			expect(await hidden.brands(who, "read")).not.toContain("eqsync");
+		}
+		expect(await hidden.brands(person("e@b.ro", [], "s"), "write")).toEqual([]);
+	});
+
+	it("leaves the other brands exactly as the adapter answers", async () => {
+		const who = person("a@b.ro", [], "s");
+		expect(await hidden.brands(who, "read")).toEqual(
+			(await inner.brands(who, "read")).filter((b) => b !== "eqsync"),
+		);
 	});
 });

@@ -2,6 +2,7 @@ import { ARTICLES } from "./articles/catalogue";
 import type { Brand } from "./brands";
 import { LOCALES, type Locale } from "./locale";
 import { INCLUDE_DRAFTS, ORIGINS } from "./origins";
+import { isRetired, RETIRED_SITES } from "./retired";
 import { type Article, isReadable, type Topic } from "./schema";
 import { type ArticleSummary, summarize } from "./summary";
 
@@ -10,6 +11,8 @@ export interface IndexOptions {
 	blogOrigin: string;
 	/** Drafts are shown only where they may be (staging, local); never in production. */
 	includeDrafts: boolean;
+	/** Brands withdrawn from every listing (default: the estate's retired sites). */
+	retired?: ReadonlyArray<string>;
 }
 
 /** Whether an article may be shown at all under a draft policy. Backlog stubs always may. */
@@ -29,6 +32,7 @@ export function buildIndex(
 ): ReadonlyArray<ArticleSummary> {
 	return articles
 		.filter(isReadable)
+		.filter((a) => !isRetired(a.brand, options.retired ?? RETIRED_SITES))
 		.filter((a) => isVisible(a, options.includeDrafts))
 		.flatMap((a) => LOCALES.map((locale) => summarize(a, locale, options.blogOrigin)))
 		.sort(newestFirst);

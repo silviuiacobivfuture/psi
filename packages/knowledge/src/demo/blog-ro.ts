@@ -77,7 +77,6 @@ export const DEMO_BLOG_RO: ReadonlyArray<DemoEntry> = demoSet("blog", "ro", [
 			"Blogul demonstrativ are câte un flux RSS pentru fiecare brand, ca să urmărești doar ce te interesează:",
 			"",
 			"- `/demo/feed/psizone.xml` pentru articolele Psizone;",
-			"- `/demo/feed/eq-sync.xml` pentru articolele EQ-SYNC;",
 			"- `/demo/feed/hemi-sync.xml` pentru articolele Hemi-Sync.",
 			"",
 			"Copiază adresa fluxului dorit în cititorul tău RSS. Fiecare flux conține titlul, data și primul paragraf al articolelor, nu textul complet. Ciornele și subiectele marcate „în lucru” nu apar în fluxuri.",
@@ -128,7 +127,7 @@ export const DEMO_BLOG_RO: ReadonlyArray<DemoEntry> = demoSet("blog", "ro", [
 			"",
 			"Blogul demonstrativ trimite un newsletter o dată la două săptămâni, cu articolele apărute între timp și cu subiectele noi intrate „în lucru”. Calendarul este fictiv.",
 			"",
-			"Te poți abona din formularul de la finalul oricărui articol și poți alege un singur brand sau pe toate trei. Fiecare mesaj are la final un link de dezabonare, care funcționează dintr-un singur clic. Newsletterul nu conține reclame și nu aduce nimic ce nu există deja pe blog.",
+			"Te poți abona din formularul de la finalul oricărui articol și poți alege un singur brand sau pe toate. Fiecare mesaj are la final un link de dezabonare, care funcționează dintr-un singur clic. Newsletterul nu conține reclame și nu aduce nimic ce nu există deja pe blog.",
 		],
 	},
 	{
@@ -186,7 +185,7 @@ export const DEMO_BLOG_RO: ReadonlyArray<DemoEntry> = demoSet("blog", "ro", [
 		body: [
 			"## Articolele unui singur brand",
 			"",
-			"Blogul demonstrativ este comun pentru Psizone, EQ-SYNC și Hemi-Sync, dar poți vedea oricând doar articolele unui brand. Pe prima pagină, deasupra listei, ai trei filtre cu numele brandurilor; alege unul și lista se restrânge.",
+			"Blogul demonstrativ este comun pentru Psizone și Hemi-Sync, dar poți vedea oricând doar articolele unui brand. Pe prima pagină, deasupra listei, ai filtre cu numele brandurilor; alege unul și lista se restrânge.",
 			"",
 			"Fiecare articol poartă sub titlu eticheta brandului căruia îi aparține. Dacă dai clic pe ea, ajungi la pagina acelui brand de pe blog, cu toate articolele lui. Ca să primești doar noutățile unui brand, folosește fluxul RSS dedicat sau alege brandul când te abonezi la newsletter.",
 		],
