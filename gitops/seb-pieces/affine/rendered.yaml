@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine
   namespace: affine
 spec:
@@ -82,6 +84,8 @@ data:
     ${file}: sign-in ${env(\"OIDC_ISSUER\")}, files in ${env(\"S3_BUCKET\")} at ${env(\"S3_ENDPOINT\")}\\n`,\n);\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-scripts-8k77c86m66
   namespace: affine
 ---
@@ -95,6 +99,8 @@ data:
   S3_REGION: nbg1
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-settings
   namespace: affine
 ---
@@ -103,6 +109,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: affine
+    seb.platform/piece: affine
   name: affine
   namespace: affine
 spec:
@@ -118,6 +125,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: affine-redis
+    seb.platform/piece: affine
   name: affine-redis
   namespace: affine
 spec:
@@ -131,6 +139,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine
   namespace: affine
 spec:
@@ -154,6 +164,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: affine
+    seb.platform/piece: affine
   name: affine
   namespace: affine
 spec:
@@ -401,6 +412,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: affine-redis
+    seb.platform/piece: affine
   name: affine-redis
   namespace: affine
 spec:
@@ -491,6 +503,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: affine
   name: affine-db-dump
   namespace: affine
 spec:
@@ -624,6 +638,8 @@ metadata:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    seb.platform/piece: affine
   name: affine-first-admin
   namespace: affine
 spec:
@@ -687,6 +703,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-app
   namespace: affine
 spec:
@@ -743,6 +761,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-backup-s3
   namespace: affine
 spec:
@@ -766,6 +786,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-db-app
   namespace: affine
 spec:
@@ -794,6 +816,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-first-admin
   namespace: affine
 spec:
@@ -813,6 +837,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-redis
   namespace: affine
 spec:
@@ -844,6 +870,8 @@ metadata:
     gethomepage.dev/weight: "20"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: affine
   name: affine
   namespace: affine
 spec:
@@ -870,6 +898,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: affine
   name: affine-callback
   namespace: affine
 spec:
@@ -896,6 +926,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,affine-affine-local-auth-off@kubernetescrd
+  labels:
+    seb.platform/piece: affine
   name: affine-local-auth
   namespace: affine
 spec:
@@ -936,6 +968,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: affine
   name: affine-db
   namespace: affine
 spec:
@@ -992,6 +1026,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-db-base
   namespace: affine
 spec:
@@ -1004,6 +1040,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: affine
   name: affine-local-auth-off
   namespace: affine
 spec:

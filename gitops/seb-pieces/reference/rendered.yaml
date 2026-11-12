@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: reference
   name: reference
   namespace: reference
 spec:
@@ -14,6 +16,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: reference
   name: reference
   namespace: reference
 spec:
@@ -26,6 +30,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: reference
   name: reference
   namespace: reference
 spec:
@@ -46,6 +52,7 @@ kind: Deployment
 metadata:
   labels:
     app: reference
+    seb.platform/piece: reference
   name: reference
   namespace: reference
 spec:
@@ -100,6 +107,8 @@ metadata:
     gethomepage.dev/pod-selector: app=reference
     gethomepage.dev/weight: "40"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  labels:
+    seb.platform/piece: reference
   name: reference
   namespace: reference
 spec:

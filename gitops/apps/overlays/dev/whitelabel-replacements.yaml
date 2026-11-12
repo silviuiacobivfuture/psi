@@ -16,6 +16,26 @@
 - source:
     kind: ConfigMap
     name: whitelabel
+    fieldPath: data.GIT_OWNER
+  targets:
+  - select:
+      kind: ApplicationSet
+      name: previews-dev
+    fieldPaths:
+    - spec.generators.0.pullRequest.github.owner
+- source:
+    kind: ConfigMap
+    name: whitelabel
+    fieldPath: data.GIT_REPO
+  targets:
+  - select:
+      kind: ApplicationSet
+      name: previews-dev
+    fieldPaths:
+    - spec.generators.0.pullRequest.github.repo
+- source:
+    kind: ConfigMap
+    name: whitelabel
     fieldPath: data.REGISTRY_HOST
   targets:
   - select:

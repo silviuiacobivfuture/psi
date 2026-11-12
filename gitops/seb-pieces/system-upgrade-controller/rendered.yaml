@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   labels:
     pod-security.kubernetes.io/enforce: privileged
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -11,6 +12,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
     controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: plans.upgrade.cattle.io
 spec:
   group: upgrade.cattle.io
@@ -1317,12 +1320,16 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade
   namespace: system-upgrade
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade-controller
   namespace: system-upgrade
 rules:
@@ -1351,6 +1358,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade-controller
 rules:
 - apiGroups:
@@ -1428,6 +1437,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade-controller-drainer
 rules:
 - apiGroups:
@@ -1464,6 +1475,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade
   namespace: system-upgrade
 roleRef:
@@ -1478,6 +1491,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1491,6 +1506,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade-drainer
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1510,6 +1527,8 @@ data:
   REMOVE_OIDC_DROPIN: "false"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: apiserver-oidc-flags
   namespace: system-upgrade
 ---
@@ -1528,6 +1547,8 @@ data:
   SYSTEM_UPGRADE_PLAN_POLLING_INTERVAL: 15m
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: default-controller-env
   namespace: system-upgrade
 ---
@@ -1542,6 +1563,8 @@ data:
   ETCD_SNAPSHOT_SCHEDULE_CRON: 0 */6 * * *
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: etcd-s3-flags
   namespace: system-upgrade
 ---
@@ -1706,6 +1729,8 @@ data:
     echo "done"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: k3s-datastore-copy
   namespace: system-upgrade
 ---
@@ -1938,12 +1963,16 @@ data:
   KM_MODE: apply
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: kubelet-memory
   namespace: system-upgrade
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: system-upgrade-controller
   namespace: system-upgrade
 spec:
@@ -2058,6 +2087,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: platform-infra
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: k3s-datastore-copy
   namespace: system-upgrade
 spec:
@@ -2218,6 +2249,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: apiserver-oidc
   namespace: system-upgrade
 spec:
@@ -2237,6 +2270,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: etcd-s3
   namespace: system-upgrade
 spec:
@@ -2260,6 +2295,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: k3s-datastore-s3
   namespace: system-upgrade
 spec:
@@ -2285,6 +2322,8 @@ kind: Plan
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: apiserver-oidc
   namespace: system-upgrade
 spec:
@@ -2441,6 +2480,8 @@ kind: Plan
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: etcd-s3
   namespace: system-upgrade
 spec:
@@ -2583,6 +2624,8 @@ kind: Plan
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: kubelet-memory-agent
   namespace: system-upgrade
 spec:
@@ -2606,13 +2649,15 @@ spec:
     - name: KM_ROLE
       value: agent
     image: registry.psizone.ro/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
-  version: kubelet-memory-apply-4e666188
+  version: kubelet-memory-apply-12e277c6-max-pods-250
 ---
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "4"
+  labels:
+    seb.platform/piece: system-upgrade-controller
   name: kubelet-memory-server
   namespace: system-upgrade
 spec:
@@ -2644,4 +2689,4 @@ spec:
     - name: KM_ROLE
       value: server
     image: registry.psizone.ro/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
-  version: kubelet-memory-apply-4e666188
+  version: kubelet-memory-apply-12e277c6-max-pods-250

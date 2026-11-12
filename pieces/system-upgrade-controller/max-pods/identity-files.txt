@@ -1,0 +1,5 @@
+# Filled from the estate's identity by the bundle builder, only when this component is taken
+# (tools/bundle/identity-components.mjs).
+kustomization.yaml
+agent.yaml
+server.yaml

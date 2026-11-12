@@ -10,6 +10,7 @@ resources:
   - cert-manager.yaml
   - cluster-dns.yaml
   - cnpg.yaml
+  - convex.yaml
   - db-backup.yaml
   - external-dns.yaml
   - external-secrets.yaml
@@ -34,6 +35,7 @@ resources:
   - platform-rbac.yaml
   - platform-secrets.yaml
   - plunk.yaml
+  - public-doors.yaml
   - reference.yaml
   - reloader.yaml
   - stalwart.yaml

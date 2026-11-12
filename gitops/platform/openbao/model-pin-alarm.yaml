@@ -2,19 +2,19 @@
 #
 # THE GAP THIS CLOSES (RUNBOOK 2026-10-29). Every autorizare-svc rollout releases
 # the model its image carries (the release-model initContainer). Pins move only
-# with infrastructure/hetzner/scripts/repin-model.sh — deliberately, never
+# with the estate's pin procedure (REPIN_COMMAND names it) — deliberately, never
 # automatically (root CLAUDE.md rule 3), and this alarm keeps it that way: it
 # MOVES NOTHING. On 2026-10-29 Polaris released 01M6499DBGB5QH605SR0W43BA9 and
 # all six consumers stayed on the previous model for hours; the mirror refused
-# every feed for Sirius, Altair and Pulsar, and only a hand-run doctor noticed.
+# every feed for three business applications, and only a hand-run doctor noticed.
 #
 # WHAT IT COMPARES, every 5 minutes:
 #   * the RELEASE — GET /v1/catalog/model on autorizare-svc, in-cluster. The
 #     endpoint applications pin from; unauthenticated by design (a model id is
 #     not a secret); no database access, no Convex key.
 #   * each consumer's PIN — from the pin RECORD at
-#     secret/platform/automation/model-pins, written by repin-model.sh (and its
-#     --record mode) as `<app>: v<version>:<model id>`. NOT from
+#     secret/platform/automation/model-pins, written by the estate's pin procedure
+#     (and its --record mode) as `<app>: v<version>:<model id>`. NOT from
 #     secret/apps/<app>/autorizare itself: those paths also hold machine
 #     credentials (AUTORIZARE_CLIENT_SECRET, POLARIS_WEBHOOK_SECRET), and KV v2
 #     grants read per PATH, never per field — reading the pin there means reading
@@ -30,7 +30,7 @@
 # WHAT IT POSTS, to #infra through the one translator into Talk
 # (pieces/nextcloud-platform/base/talk-webhook.yaml), ONCE PER NEW STATE:
 #   * a consumer TRAILS or is UNPINNED → fail, naming the apps, both ids and
-#     `infrastructure/hetzner/scripts/repin-model.sh <env> --current`;
+#     the estate's pin procedure (`$REPIN_COMMAND --current` when it is set);
 #   * a consumer UNKNOWN, or Polaris unreadable → warn, "cannot tell";
 #   * back to all current → ok, once. The same state on the next tick posts
 #     nothing: an alarm that repeats every five minutes is an alarm somebody mutes.
@@ -75,7 +75,8 @@ data:
     STATE_PATH="${STATE_PATH:-platform/automation/model-pin-alarm}"
     SA_TOKEN="${SA_TOKEN:-/var/run/secrets/kubernetes.io/serviceaccount/token}"
     W="${WORK_DIR:-/work}"
-    REPIN="infrastructure/hetzner/scripts/repin-model.sh $ENV_NAME"
+    # The estate's own pin procedure (its consumers are the estate's), when it names one.
+    REPIN="${REPIN_COMMAND:-}"
     umask 077
     trap 'rm -f "$W/hdr.bao" "$W/hdr.notify" "$W/login.json" "$W/resp"' EXIT
     printf 'X-Notify-Token: %s\n' "$NOTIFY_TOKEN" > "$W/hdr.notify"
@@ -170,11 +171,15 @@ data:
       if [ -n "$BEHIND" ]; then
         SEV=fail; MSG="[$ENV_NAME] Authorization model pins are behind Polaris's release: $BEHIND"
         { echo "Until they move, a Convex mirror refuses every feed and a secret-pinned service decides under the old model."
-          echo "Fix (one operation, every consumer): $REPIN --current"; } >> "$W/detail"
+          if [ -n "$REPIN" ]; then echo "Fix (one operation, every consumer): $REPIN --current"
+          else echo "Fix (one operation, every consumer): the estate's pin procedure, onto the current release — never a bare bao kv patch"; fi; } >> "$W/detail"
       else
         SEV=warn; MSG="[$ENV_NAME] Cannot tell whether these authorization pins are current: $UNSURE"
       fi
-      [ -z "$UNSURE" ] || echo "Re-read every pin (moves none): $REPIN --record" >> "$W/detail"
+      if [ -n "$UNSURE" ]; then
+        if [ -n "$REPIN" ]; then echo "Re-read every pin (moves none): $REPIN --record" >> "$W/detail"
+        else echo "Re-read every pin (moves none) with the estate's pin procedure, which rewrites the record" >> "$W/detail"; fi
+      fi
     fi
 
     if [ -n "$SEV" ]; then
@@ -207,7 +212,7 @@ metadata:
   name: model-pin-alarm
   namespace: openbao
   annotations:
-    alerts.recomex.eu/owner: ops@recomex.eu
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   schedule: "*/5 * * * *"
   # Forbid: two ticks reading the same state would post the same message twice.

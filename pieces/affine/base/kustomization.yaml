@@ -1,0 +1,32 @@
+# AFFiNE — the estate's documents, notes and whiteboards (docs.<apex>; AFFiNE Community
+# Edition, upstream's unchanged image). Order is documentation only.
+#
+#   affine.yaml        the server (one replica, Recreate: its init container migrates)
+#   first-admin.yaml   the instance's first account, made by us before anyone else can
+#   cnpg-cluster.yaml  its Postgres (pgvector is in the CNPG image), WAL + weekly base backup
+#   db-dump.yaml       the 6-hourly logical dump
+#   redis.yaml         its queues and caches
+#   ingress.yaml       docs.<apex>, all of it behind the Authentik gate
+#
+# Files (images, attachments) live in the estate's object storage, bucket
+# <BUCKET_PREFIX>-affine-<env> (infrastructure/hetzner/environments/<env>, versioned), and
+# the server reads and writes them itself: no browser talks to the bucket.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - resourcequota.yaml
+  - settings.yaml
+  - externalsecrets.yaml
+  - cnpg-cluster.yaml
+  - db-dump.yaml
+  - redis.yaml
+  - affine.yaml
+  - first-admin.yaml
+  - ingress.yaml
+configMapGenerator:
+  # The two scripts the server's image runs with its own node (affine.yaml, first-admin.yaml).
+  # The name hash rolls the pod when either changes.
+  - name: affine-scripts
+    files:
+      - write-config.mjs
+      - first-admin.mjs

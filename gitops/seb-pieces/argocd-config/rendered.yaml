@@ -73,6 +73,7 @@ metadata:
   labels:
     app.kubernetes.io/name: argocd-cm
     app.kubernetes.io/part-of: argocd
+    seb.platform/piece: argocd-config
   name: argocd-cm
   namespace: argocd
 ---
@@ -84,6 +85,7 @@ metadata:
   labels:
     app.kubernetes.io/name: argocd-cmd-params-cm
     app.kubernetes.io/part-of: argocd
+    seb.platform/piece: argocd-config
   name: argocd-cmd-params-cm
   namespace: argocd
 ---
@@ -135,6 +137,8 @@ data:
       send: [talk-sync-failed]
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: argocd-config
   name: argocd-notifications-cm
   namespace: argocd
 ---
@@ -161,12 +165,15 @@ metadata:
   labels:
     app.kubernetes.io/name: argocd-rbac-cm
     app.kubernetes.io/part-of: argocd
+    seb.platform/piece: argocd-config
   name: argocd-rbac-cm
   namespace: argocd
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: argocd-config
   name: argocd-authentik-oidc
   namespace: argocd
 spec:
@@ -196,6 +203,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: argocd-config
   name: argocd-notifications-token
   namespace: argocd
 spec:
@@ -215,6 +224,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: argocd-config
   name: repo-platform
   namespace: argocd
 spec:
@@ -251,6 +262,8 @@ metadata:
     gethomepage.dev/icon: argo-cd.png
     gethomepage.dev/name: Argo CD
     gethomepage.dev/pod-selector: app.kubernetes.io/name=argocd-server
+  labels:
+    seb.platform/piece: argocd-config
   name: argocd-tailnet
   namespace: argocd
 spec:

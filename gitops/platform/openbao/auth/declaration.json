@@ -8,7 +8,10 @@
 		"an entity) except the protected bootstrap paths in auth_model.py. Undeclared AUTH METHODS",
 		"are reported, never disabled. Policy texts: policies/<name>.hcl, one file per name below.",
 		"Engine: openbao_auth.py (CLI), auth_model.py (rules), auth_bao.py (HTTP). Procedure:",
-		"infrastructure/hetzner/RUNBOOK.md, 2026-10-29 'OpenBao auth configuration reconciled from git'."
+		"infrastructure/hetzner/RUNBOOK.md, 2026-10-29 'OpenBao auth configuration reconciled from git'.",
+		"${…}: a value of the estate's identity, filled in when tools/estate-repo.mjs renders the",
+		"estate's repository (gitops/identity-files.txt). A redirect the identity names twice (no mesh:",
+		"the tailnet and the mesh are both the apex) is written once."
 	],
 	"mounts": {
 		"oidc": "oidc",
@@ -23,7 +26,6 @@
 		"signin",
 		"eso",
 		"github-ci",
-		"github-ci-preview",
 		"github-ci-gate",
 		"secret-watcher",
 		"model-pin-alarm",
@@ -31,7 +33,6 @@
 		"reportportal-config",
 		"authentik-invoice-token",
 		"authentik-autorizare-token",
-		"authentik-vega-token",
 		"authentik-plane-sso-token",
 		"authentik-plunk-sso-token",
 		"authentik-novu-sso-token",
@@ -43,7 +44,10 @@
 		"oidc": {
 			"oidc_discovery_url": "https://auth.psizone.ro/application/o/openbao/",
 			"default_role": "signin",
-			"oidc_client_id": { "kv": "platform/authentik/openbao-oidc", "field": "client_id" },
+			"oidc_client_id": {
+				"kv": "platform/authentik/openbao-oidc",
+				"field": "client_id"
+			},
 			"oidc_client_secret": {
 				"kv": "platform/authentik/openbao-oidc",
 				"field": "client_secret",
@@ -60,7 +64,12 @@
 			"role_type": "oidc",
 			"user_claim": "sub",
 			"groups_claim": "groups",
-			"oidc_scopes": ["openid", "profile", "email", "groups"],
+			"oidc_scopes": [
+				"openid",
+				"profile",
+				"email",
+				"groups"
+			],
 			"allowed_redirect_uris": [
 				"https://openbao.psizone.ro/ui/vault/auth/oidc/oidc/callback",
 				"https://openbao.psizone.ro/oidc/callback",
@@ -76,7 +85,9 @@
 		"oidc": {
 			"signin": {
 				"_why": "The DEFAULT role: a login with no secret path, no default policy. Bound to every group that may use OpenBao at all; their real power comes from the identity groups below.",
-				"token_policies": ["signin"],
+				"token_policies": [
+					"signin"
+				],
 				"token_no_default_policy": true,
 				"bound_claims": {
 					"groups": [
@@ -90,7 +101,9 @@
 				}
 			},
 			"reader": {
-				"token_policies": ["reader"],
+				"token_policies": [
+					"reader"
+				],
 				"bound_claims": {
 					"groups": [
 						"app-openbao-read",
@@ -103,8 +116,15 @@
 			},
 			"admin": {
 				"_why": "Selected explicitly at login (Role field = admin). bound_claims keep everyone else off it.",
-				"token_policies": ["admin"],
-				"bound_claims": { "groups": ["platform-admins", "app-openbao-admin"] }
+				"token_policies": [
+					"admin"
+				],
+				"bound_claims": {
+					"groups": [
+						"platform-admins",
+						"app-openbao-admin"
+					]
+				}
 			}
 		},
 		"github-actions": {
@@ -113,126 +133,233 @@
 				"_why": "DEPLOY: only a push, a dispatch or the schedule on an environment branch. A pull request carries ref refs/pull/<n>/merge and is refused; so is any other branch.",
 				"role_type": "jwt",
 				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
+				"bound_audiences": [
+					"https://github.com/silviuiacobivfuture"
+				],
 				"bound_claims_type": "glob",
 				"bound_claims": {
 					"repository": "silviuiacobivfuture/psi",
-					"ref": ["refs/heads/dev", "refs/heads/prod"],
+					"ref": [
+						"refs/heads/dev",
+						"refs/heads/prod"
+					],
 					"ref_type": "branch",
-					"event_name": ["push", "workflow_dispatch", "schedule"]
+					"event_name": [
+						"push",
+						"workflow_dispatch",
+						"schedule"
+					]
 				},
-				"token_policies": ["github-ci"],
-				"token_ttl": 3600
-			},
-			"github-ci-preview": {
-				"_why": "PREVIEW: a pull request into dev building its preview image (rmx-brs.yml, rmx-sign.yml preview-build). Holds the Harbor PUSH robot because the preview image is pushed into the same Harbor project as every other image — a dedicated preview robot is an owner call (PLATFORM-19).",
-				"role_type": "jwt",
-				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
-				"bound_claims_type": "glob",
-				"bound_claims": {
-					"repository": "silviuiacobivfuture/psi",
-					"event_name": "pull_request",
-					"base_ref": "dev"
-				},
-				"token_policies": ["github-ci-preview"],
+				"token_policies": [
+					"github-ci"
+				],
 				"token_ttl": 3600
 			},
 			"github-ci-gate": {
 				"_why": "GATE: any run of this repository. Write-only reporting bearers and the pull-only Harbor robot — nothing that publishes, deploys or reads an application secret.",
 				"role_type": "jwt",
 				"user_claim": "repository",
-				"bound_audiences": ["https://github.com/silviuiacobivfuture"],
+				"bound_audiences": [
+					"https://github.com/silviuiacobivfuture"
+				],
 				"bound_claims_type": "glob",
-				"bound_claims": { "repository": "silviuiacobivfuture/psi" },
-				"token_policies": ["github-ci-gate"],
+				"bound_claims": {
+					"repository": "silviuiacobivfuture/psi"
+				},
+				"token_policies": [
+					"github-ci-gate"
+				],
 				"token_ttl": 900
 			}
 		},
 		"kubernetes": {
 			"eso": {
-				"bound_service_account_names": ["external-secrets"],
-				"bound_service_account_namespaces": ["external-secrets"],
-				"token_policies": ["eso"]
+				"bound_service_account_names": [
+					"external-secrets"
+				],
+				"bound_service_account_namespaces": [
+					"external-secrets"
+				],
+				"token_policies": [
+					"eso"
+				]
 			},
 			"secret-watcher": {
-				"bound_service_account_names": ["secret-watcher"],
-				"bound_service_account_namespaces": ["openbao"],
-				"token_policies": ["secret-watcher"]
+				"bound_service_account_names": [
+					"secret-watcher"
+				],
+				"bound_service_account_namespaces": [
+					"openbao"
+				],
+				"token_policies": [
+					"secret-watcher"
+				]
 			},
 			"model-pin-alarm": {
 				"_why": "The model-pin alarm CronJob (model-pin-alarm.yaml): the pin record, the pin paths' METADATA and its own state. No secret value.",
-				"bound_service_account_names": ["model-pin-alarm"],
-				"bound_service_account_namespaces": ["openbao"],
-				"token_policies": ["model-pin-alarm"],
+				"bound_service_account_names": [
+					"model-pin-alarm"
+				],
+				"bound_service_account_namespaces": [
+					"openbao"
+				],
+				"token_policies": [
+					"model-pin-alarm"
+				],
 				"token_ttl": 600
 			},
 			"nextcloud-occ": {
-				"bound_service_account_names": ["nextcloud-occ"],
-				"bound_service_account_namespaces": ["nextcloud"],
-				"token_policies": ["nextcloud-occ"]
+				"bound_service_account_names": [
+					"nextcloud-occ"
+				],
+				"bound_service_account_namespaces": [
+					"nextcloud"
+				],
+				"token_policies": [
+					"nextcloud-occ"
+				]
 			},
 			"reportportal-config": {
-				"bound_service_account_names": ["reportportal-config"],
-				"bound_service_account_namespaces": ["reportportal"],
-				"token_policies": ["reportportal-config"]
+				"bound_service_account_names": [
+					"reportportal-config"
+				],
+				"bound_service_account_namespaces": [
+					"reportportal"
+				],
+				"token_policies": [
+					"reportportal-config"
+				]
 			},
 			"authentik-invoice-token": {
-				"bound_service_account_names": ["authentik-invoice-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-invoice-token"]
+				"bound_service_account_names": [
+					"authentik-invoice-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-invoice-token"
+				]
 			},
 			"authentik-autorizare-token": {
-				"bound_service_account_names": ["authentik-autorizare-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-autorizare-token"]
-			},
-			"authentik-vega-token": {
-				"bound_service_account_names": ["authentik-vega-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-vega-token"]
+				"bound_service_account_names": [
+					"authentik-autorizare-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-autorizare-token"
+				]
 			},
 			"authentik-novu-sso-token": {
-				"bound_service_account_names": ["authentik-novu-sso-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-novu-sso-token"]
+				"bound_service_account_names": [
+					"authentik-novu-sso-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-novu-sso-token"
+				]
 			},
 			"authentik-plunk-sso-token": {
-				"bound_service_account_names": ["authentik-plunk-sso-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-plunk-sso-token"]
+				"bound_service_account_names": [
+					"authentik-plunk-sso-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-plunk-sso-token"
+				]
 			},
 			"authentik-plane-sso-token": {
-				"bound_service_account_names": ["authentik-plane-sso-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-plane-sso-token"]
+				"bound_service_account_names": [
+					"authentik-plane-sso-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-plane-sso-token"
+				]
 			},
 			"authentik-n8n-sso-token": {
-				"bound_service_account_names": ["authentik-n8n-sso-token"],
-				"bound_service_account_namespaces": ["authentik"],
-				"token_policies": ["authentik-n8n-sso-token"]
+				"bound_service_account_names": [
+					"authentik-n8n-sso-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-n8n-sso-token"
+				]
 			},
 			"openbao-auth-reconcile": {
-				"bound_service_account_names": ["openbao-auth-reconcile"],
-				"bound_service_account_namespaces": ["openbao"],
-				"token_policies": ["openbao-auth-reconcile"],
+				"bound_service_account_names": [
+					"openbao-auth-reconcile"
+				],
+				"bound_service_account_namespaces": [
+					"openbao"
+				],
+				"token_policies": [
+					"openbao-auth-reconcile"
+				],
 				"token_ttl": 600
 			},
 			"openbao-auth-audit": {
-				"bound_service_account_names": ["openbao-auth-audit"],
-				"bound_service_account_namespaces": ["openbao"],
-				"token_policies": ["openbao-auth-audit"],
+				"bound_service_account_names": [
+					"openbao-auth-audit"
+				],
+				"bound_service_account_namespaces": [
+					"openbao"
+				],
+				"token_policies": [
+					"openbao-auth-audit"
+				],
 				"token_ttl": 600
 			}
 		}
 	},
 	"groups": {
 		"_why": "External groups: the NAME must equal the Authentik group name (ROLES.md). Each is aliased to the oidc mount's CURRENT accessor every run, so a re-enabled mount cannot strand them (2026-06-19).",
-		"app-openbao-admin": { "mount": "oidc", "policies": ["admin"] },
-		"app-openbao-developer": { "mount": "oidc", "policies": ["developer", "reader"] },
-		"app-openbao-read": { "mount": "oidc", "policies": ["reader"] },
-		"app-openbao-signin": { "mount": "oidc", "policies": ["signin"] },
-		"platform-admins": { "mount": "oidc", "policies": ["admin"] },
-		"platform-members": { "mount": "oidc", "policies": ["reader"] }
+		"app-openbao-admin": {
+			"mount": "oidc",
+			"policies": [
+				"admin"
+			]
+		},
+		"app-openbao-developer": {
+			"mount": "oidc",
+			"policies": [
+				"developer",
+				"reader"
+			]
+		},
+		"app-openbao-read": {
+			"mount": "oidc",
+			"policies": [
+				"reader"
+			]
+		},
+		"app-openbao-signin": {
+			"mount": "oidc",
+			"policies": [
+				"signin"
+			]
+		},
+		"platform-admins": {
+			"mount": "oidc",
+			"policies": [
+				"admin"
+			]
+		},
+		"platform-members": {
+			"mount": "oidc",
+			"policies": [
+				"reader"
+			]
+		}
 	}
 }

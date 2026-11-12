@@ -1,0 +1,46 @@
+# Files of SEB's gitops tree that carry ${KEY} identity placeholders, filled from the estate's
+# identity by tools/estate-repo.mjs when it renders the estate's repository (paths from the
+# repository root). Only where a replacement cannot reach: a file a script or an engine reads as
+# it is, or a value inside one multi-line string. Everywhere else the whitelabel component's
+# replacements fill the values.
+gitops/platform/openbao/auth/declaration.json
+# The previews' hosts sit inside a kustomize patch the ApplicationSet carries as one string, which
+# a replacement cannot reach by part.
+gitops/apps/overlays/dev/previews.yaml
+gitops/apps/overlays/prod/previews.yaml
+# A page Authentik serves as it is (the n8n outage page names who to write to).
+gitops/platform/authentik/estate/n8n-down.html
+# The sign-in's own files, served from /static/dist/assets/<ESTATE_SLUG>/ (the authentik-estate
+# ConfigMap: generated, so its content is out of a replacement's reach), the page template that
+# loads them, and where they are served and mounted.
+gitops/platform/authentik/estate/estate.css
+gitops/platform/authentik/estate/ro.js
+gitops/platform/authentik/estate/restart.html
+gitops/platform/authentik/templates/skeleton.html
+gitops/platform/authentik/sso-restart.yaml
+gitops/apps/overlays/dev/authentik.yaml
+# The estate's label domain in annotation and label KEYS (alerts.<ESTATE_LABEL_DOMAIN>/owner,
+# platform.<ESTATE_LABEL_DOMAIN>/source), which no replacement can write, and in the replacements
+# and selectors that name those keys.
+gitops/apps/overlays/dev/authentik-platform.yaml
+gitops/apps/overlays/dev/changelog.yaml
+gitops/apps/overlays/dev/harbor-route.yaml
+gitops/apps/overlays/dev/kustomization.yaml
+gitops/apps/overlays/dev/secret-store.yaml
+gitops/apps/overlays/prod/kustomization.yaml
+gitops/platform/authentik/autorizare-token-reconcile.yaml
+gitops/platform/authentik/blueprint-discovery.yaml
+gitops/platform/authentik/cnpg-cluster.yaml
+gitops/platform/authentik/identity/fields.yaml
+gitops/platform/authentik/n8n-sso-token-reconcile.yaml
+gitops/platform/authentik/novu-sso-token-reconcile.yaml
+gitops/platform/authentik/plane-sso-token-reconcile.yaml
+gitops/platform/authentik/plunk-sso-token-reconcile.yaml
+gitops/platform/openbao/audit-notify.yaml
+gitops/platform/openbao/auth/reconcile.yaml
+gitops/platform/openbao/model-pin-alarm.yaml
+gitops/platform/openbao/secret-watcher.yaml
+gitops/platform/openbao/whitelabel-replacements.yaml
+gitops/services/changelog/base/cnpg-cluster.yaml
+gitops/services/changelog/base/deployment.yaml
+gitops/services/changelog/overlays/dev/whitelabel-replacements.yaml

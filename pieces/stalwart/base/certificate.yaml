@@ -1,0 +1,13 @@
+# The mail server's own certificate (SMTP STARTTLS, submissions, IMAPS): <MAIL_HOST>, issued by
+# cert-manager (DNS-01). Stalwart holds certificates in its database, so the configuration
+# plan reads this Secret and writes it there; the daily re-apply (config-job.yaml) carries
+# each renewal in.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: stalwart-mail
+spec:
+  secretName: stalwart-tls
+  dnsNames: [post.WLDOMAIN]
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  privateKey: { algorithm: RSA, size: 2048, rotationPolicy: Always }

@@ -13,6 +13,14 @@
     "project": "default",
     "ignoreDifferences": [
       {
+        "group": "apps",
+        "kind": "Deployment",
+        "name": "stalwart",
+        "jsonPointers": [
+          "/spec/replicas"
+        ]
+      },
+      {
         "group": "external-secrets.io",
         "kind": "ExternalSecret",
         "jqPathExpressions": [
@@ -39,7 +47,8 @@
       },
       "syncOptions": [
         "CreateNamespace=true",
-        "ServerSideApply=true"
+        "ServerSideApply=true",
+        "RespectIgnoreDifferences=true"
       ]
     }
   }

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: convex-backend
+  labels: { app: convex-backend }
+spec:
+  selector: { app: convex-backend }
+  ports:
+    - name: cloud
+      port: 3210
+      targetPort: cloud
+    - name: site
+      port: 3211
+      targetPort: site
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: convex-dashboard
+  labels: { app: convex-dashboard }
+spec:
+  selector: { app: convex-dashboard }
+  ports:
+    - name: http
+      port: 6791
+      targetPort: http

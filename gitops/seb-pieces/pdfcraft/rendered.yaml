@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -21,6 +23,8 @@ kind: ConfigMap
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft-bar-8b2t45k955
   namespace: pdfcraft
 ---
@@ -1095,12 +1099,16 @@ data:
     transform, translate };\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft-nginx-td2khkhdhg
   namespace: pdfcraft
 ---
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -1114,6 +1122,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -1134,6 +1144,8 @@ kind: Deployment
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -1261,6 +1273,8 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -1284,6 +1298,8 @@ metadata:
     gethomepage.dev/weight: "30"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:
@@ -1310,6 +1326,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft-callback
   namespace: pdfcraft
 spec:
@@ -1333,6 +1351,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  labels:
+    seb.platform/piece: pdfcraft
   name: pdfcraft
   namespace: pdfcraft
 spec:

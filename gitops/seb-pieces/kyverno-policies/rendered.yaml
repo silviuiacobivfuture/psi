@@ -2,12 +2,71 @@ apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   annotations:
+    policies.kyverno.io/category: Supply Chain
+    policies.kyverno.io/description: An object labelled seb.platform/piece is deployed
+      from the signed SEB bundle; any update or delete not made by Argo CD's application
+      controller is reported.
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: All
+    policies.kyverno.io/title: Only Argo CD Changes SEB Objects
+  labels:
+    seb.platform/piece: kyverno-policies
+  name: audit-seb-object-changes
+spec:
+  background: false
+  failurePolicy: Ignore
+  rules:
+  - exclude:
+      any:
+      - subjects:
+        - kind: ServiceAccount
+          name: argocd-application-controller
+          namespace: argocd
+      - subjects:
+        - kind: User
+          name: system:kube-controller-manager
+      - subjects:
+        - kind: Group
+          name: system:serviceaccounts:kube-system
+      - subjects:
+        - kind: Group
+          name: system:serviceaccounts:kyverno
+      - subjects:
+        - kind: ServiceAccount
+          name: reloader-reloader
+          namespace: reloader
+    match:
+      any:
+      - resources:
+          kinds:
+          - '*'
+          operations:
+          - UPDATE
+          - DELETE
+          selector:
+            matchExpressions:
+            - key: seb.platform/piece
+              operator: Exists
+    name: only-argo-changes-seb-objects
+    validate:
+      deny: {}
+      failureAction: Audit
+      message: '{{ request.userInfo.username }} changed a SEB object ({{ request.operation
+        }}): SEB objects change only through Argo CD, from the signed bundle. Change
+        the estate''s slot or its release instead.'
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  annotations:
     policies.kyverno.io/category: Pod Security Standards (Baseline)
     policies.kyverno.io/description: Pods may not share the host network/PID/IPC namespaces
       nor mount hostPath volumes — these break the container isolation boundary.
     policies.kyverno.io/severity: high
     policies.kyverno.io/subject: Pod, Volume
     policies.kyverno.io/title: Disallow Host Namespaces and hostPath
+  labels:
+    seb.platform/piece: kyverno-policies
   name: disallow-host-namespaces-and-hostpath
 spec:
   background: true
@@ -92,6 +151,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod
     policies.kyverno.io/title: Disallow Latest Image Tag
+  labels:
+    seb.platform/piece: kyverno-policies
   name: disallow-latest-tag
 spec:
   background: true
@@ -170,6 +231,8 @@ metadata:
     policies.kyverno.io/severity: high
     policies.kyverno.io/subject: Pod
     policies.kyverno.io/title: Disallow Privileged Containers
+  labels:
+    seb.platform/piece: kyverno-policies
   name: disallow-privileged
 spec:
   background: true
@@ -272,6 +335,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod
     policies.kyverno.io/title: Harbor pull secret for Plane's own-built images
+  labels:
+    seb.platform/piece: kyverno-policies
   name: mutate-plane-harbor-pull
 spec:
   rules:
@@ -310,6 +375,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Job
     policies.kyverno.io/title: Inject resources on Plane's migrator Job
+  labels:
+    seb.platform/piece: kyverno-policies
   name: mutate-plane-migrator-resources
 spec:
   rules:
@@ -359,6 +426,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Deployment
     policies.kyverno.io/title: Disable service-link env injection for Plane
+  labels:
+    seb.platform/piece: kyverno-policies
   name: mutate-plane-service-links
 spec:
   rules:
@@ -404,6 +473,8 @@ metadata:
     policies.kyverno.io/subject: Deployment, StatefulSet, Job
     policies.kyverno.io/title: Inject Reloader + alert-owner annotations on ReportPortal
       workloads
+  labels:
+    seb.platform/piece: kyverno-policies
   name: mutate-reportportal-annotations
 spec:
   rules:
@@ -472,6 +543,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Deployment, StatefulSet, CronJob
     policies.kyverno.io/title: Require alert-owner annotation
+  labels:
+    seb.platform/piece: kyverno-policies
   name: require-alert-annotation
 spec:
   background: true
@@ -527,6 +600,8 @@ metadata:
     policies.kyverno.io/severity: low
     policies.kyverno.io/subject: Ingress
     policies.kyverno.io/title: Require hub (gethomepage) annotations
+  labels:
+    seb.platform/piece: kyverno-policies
   name: require-hub-annotation
 spec:
   background: true
@@ -592,6 +667,8 @@ metadata:
     policies.kyverno.io/subject: Deployment, StatefulSet, DaemonSet
     policies.kyverno.io/title: Require Reloader annotation on env-injected Secret
       consumers
+  labels:
+    seb.platform/piece: kyverno-policies
   name: require-reloader-annotation
 spec:
   background: true
@@ -649,6 +726,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod
     policies.kyverno.io/title: Require Resource Requests and Limits
+  labels:
+    seb.platform/piece: kyverno-policies
   name: require-requests-limits
 spec:
   background: true
@@ -705,6 +784,8 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod
     policies.kyverno.io/title: Require runAsNonRoot
+  labels:
+    seb.platform/piece: kyverno-policies
   name: require-run-as-non-root
 spec:
   background: true
@@ -750,3 +831,114 @@ spec:
               runAsNonRoot: "true"
       message: runAsNonRoot must be true at the pod or container securityContext level.
   validationFailureAction: Enforce
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  annotations:
+    policies.kyverno.io/category: Supply Chain
+    policies.kyverno.io/description: An image SEB builds, and the SEB bundle an Argo
+      CD Application deploys, must carry SEB's cosign signature. Audit first; the
+      estate switches it to Enforce through its slot.
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod, Application
+    policies.kyverno.io/title: SEB Images And Bundle Are Signed
+  labels:
+    seb.platform/piece: kyverno-policies
+  name: verify-seb-signatures
+spec:
+  background: false
+  failurePolicy: Ignore
+  rules:
+  - match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    name: seb-images-signed
+    verifyImages:
+    - attestors:
+      - entries:
+        - keys:
+            ctlog:
+              ignoreSCT: true
+            publicKeys: |
+              -----BEGIN PUBLIC KEY-----
+              MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECurOJN2EuRaiDbaZBnmUt+mGaoC1
+              /+xmxHcynCypy596SeJXDP50liUgESQVHf+07tt6yj7OSZIrk9Q2f5OEPw==
+              -----END PUBLIC KEY-----
+            rekor:
+              ignoreTlog: true
+            signatureAlgorithm: sha256
+      failureAction: Audit
+      imageReferences:
+      - registry.psizone.ro/psi/autorizare-svc*
+      - registry.psizone.ro/psi/estate-front*
+      - registry.psizone.ro/psi/nx-cache-svc*
+      - registry.psizone.ro/psi/changelog*
+      - registry.psizone.ro/psi/otel-collector-journald*
+      - registry.psizone.ro/psi/n8n-sso*
+      - registry.psizone.ro/psi/novu-sso*
+      - registry.psizone.ro/psi/novu-bridge*
+      - registry.psizone.ro/psi/plunk-sso*
+      - registry.psizone.ro/psi/plane-backend-sso*
+      mutateDigest: false
+      required: true
+      verifyDigest: false
+  - imageExtractors:
+      Application:
+      - key: name
+        name: seb-bundle
+        path: /spec/info/*
+        value: value
+    match:
+      any:
+      - resources:
+          kinds:
+          - argoproj.io/v1alpha1/Application
+    name: seb-bundle-signed
+    verifyImages:
+    - attestors:
+      - entries:
+        - keys:
+            ctlog:
+              ignoreSCT: true
+            publicKeys: |
+              -----BEGIN PUBLIC KEY-----
+              MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECurOJN2EuRaiDbaZBnmUt+mGaoC1
+              /+xmxHcynCypy596SeJXDP50liUgESQVHf+07tt6yj7OSZIrk9Q2f5OEPw==
+              -----END PUBLIC KEY-----
+            rekor:
+              ignoreTlog: true
+            signatureAlgorithm: sha256
+      failureAction: Audit
+      imageReferences:
+      - registry.psizone.ro/seb/bundle@*
+      mutateDigest: false
+      required: true
+      verifyDigest: true
+  - match:
+      any:
+      - resources:
+          kinds:
+          - argoproj.io/v1alpha1/Application
+    name: seb-bundle-named
+    preconditions:
+      all:
+      - key: '{{ request.object.spec.source.repoURL || '''' }}'
+        operator: Equals
+        value: oci://registry.psizone.ro/seb/bundle
+    validate:
+      deny:
+        conditions:
+          any:
+          - key: '{{ request.object.spec.info[?name==''seb-bundle''].value | [0] ||
+              '''' }}'
+            operator: NotEquals
+            value: registry.psizone.ro/seb/bundle@{{ request.object.spec.source.targetRevision
+              }}
+      failureAction: Audit
+      message: 'This Application deploys from the SEB bundle but does not name it
+        by digest in spec.info (name seb-bundle): its signature cannot be verified.
+        Re-run the estate''s upgrade.'
+  webhookTimeoutSeconds: 30

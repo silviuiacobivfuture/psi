@@ -30,6 +30,7 @@ data:
   CONTROL_PLANE_SERVER_TYPE: dev=cpx62
   AGENT_SERVER_TYPE: dev=cpx62
   AGENT_COUNT: dev=0
+  KUBELET_MAX_PODS: "250"
   OBJECT_STORAGE_REGION: nbg1
   OBJECT_STORAGE_ENDPOINT: "https://nbg1.your-objectstorage.com"
   BUCKET_PREFIX: psi

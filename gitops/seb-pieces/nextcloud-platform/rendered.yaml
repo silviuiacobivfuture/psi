@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud
   namespace: nextcloud
 spec:
@@ -14,12 +16,16 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-occ
   namespace: nextcloud
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-occ
   namespace: nextcloud
 rules:
@@ -56,6 +62,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-occ
   namespace: nextcloud
 roleRef:
@@ -513,6 +521,8 @@ data:
         ThreadingHTTPServer(("", 8080), Handler).serve_forever()
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-webhook-app
   namespace: nextcloud
 ---
@@ -521,6 +531,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: nextcloud-redis
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-redis
   namespace: nextcloud
 spec:
@@ -534,6 +545,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-webhook
   namespace: nextcloud
 spec:
@@ -547,6 +560,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud
   namespace: nextcloud
 spec:
@@ -570,6 +585,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: nextcloud-redis
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-redis
   namespace: nextcloud
 spec:
@@ -654,6 +670,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     reloader.stakater.com/auto: "true"
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-webhook
   namespace: nextcloud
 spec:
@@ -753,6 +771,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-files-copy
   namespace: nextcloud
 spec:
@@ -858,6 +878,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-occ-reconcile
   namespace: nextcloud
 spec:
@@ -1298,6 +1320,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: collabora-admin
   namespace: nextcloud
 spec:
@@ -1321,6 +1345,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: email-sender
   namespace: nextcloud
 spec:
@@ -1346,6 +1372,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-admin
   namespace: nextcloud
 spec:
@@ -1369,6 +1397,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-backup-s3
   namespace: nextcloud
 spec:
@@ -1392,6 +1422,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-db-app
   namespace: nextcloud
 spec:
@@ -1420,6 +1452,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-oidc
   namespace: nextcloud
 spec:
@@ -1443,6 +1477,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-redis
   namespace: nextcloud
 spec:
@@ -1462,6 +1498,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-s3
   namespace: nextcloud
 spec:
@@ -1485,6 +1523,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: plane-api
   namespace: nextcloud
 spec:
@@ -1504,6 +1544,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-bot
   namespace: nextcloud
 spec:
@@ -1523,6 +1565,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-secrets
   namespace: nextcloud
 spec:
@@ -1546,6 +1590,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-webhook-token
   namespace: nextcloud
 spec:
@@ -1576,6 +1622,8 @@ metadata:
     gethomepage.dev/pod-selector: app.kubernetes.io/name=talk-webhook
     gethomepage.dev/weight: "50"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: talk-webhook
   namespace: nextcloud
 spec:
@@ -1602,6 +1650,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-db
   namespace: nextcloud
 spec:
@@ -1655,6 +1705,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: nextcloud-platform
   name: nextcloud-db-base
   namespace: nextcloud
 spec:

@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk
   namespace: plunk
 spec:
@@ -156,6 +158,8 @@ data:
     }
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-senders-f54m6gh828
   namespace: plunk
 ---
@@ -394,6 +398,8 @@ data:
     }
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-sso-web-m7gkcttm7g
   namespace: plunk
 ---
@@ -402,6 +408,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plunk
+    seb.platform/piece: plunk
   name: plunk
   namespace: plunk
 spec:
@@ -417,6 +424,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plunk-redis
+    seb.platform/piece: plunk
   name: plunk-redis
   namespace: plunk
 spec:
@@ -432,6 +440,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plunk
+    seb.platform/piece: plunk
   name: plunk-smtp
   namespace: plunk
 spec:
@@ -450,6 +459,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plunk-sso
+    seb.platform/piece: plunk
   name: plunk-sso
   namespace: plunk
 spec:
@@ -463,6 +473,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk
   namespace: plunk
 spec:
@@ -486,6 +498,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: plunk
+    seb.platform/piece: plunk
   name: plunk
   namespace: plunk
 spec:
@@ -732,6 +745,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: plunk-sso
+    seb.platform/piece: plunk
   name: plunk-sso
   namespace: plunk
 spec:
@@ -872,6 +886,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: plunk-redis
+    seb.platform/piece: plunk
   name: plunk-redis
   namespace: plunk
 spec:
@@ -962,6 +977,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: plunk
   name: plunk-db-dump
   namespace: plunk
 spec:
@@ -1093,6 +1110,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: plunk
   name: plunk-reconcile
   namespace: plunk
 spec:
@@ -1183,6 +1202,8 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-smtp
   namespace: plunk
 spec:
@@ -1196,6 +1217,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: email-sender
   namespace: plunk
 spec:
@@ -1221,6 +1244,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: harbor-pull
   namespace: plunk
 spec:
@@ -1250,6 +1275,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-app
   namespace: plunk
 spec:
@@ -1306,6 +1333,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-backup-s3
   namespace: plunk
 spec:
@@ -1329,6 +1358,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-db-app
   namespace: plunk
 spec:
@@ -1357,6 +1388,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-redis
   namespace: plunk
 spec:
@@ -1376,6 +1409,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-sso-directory
   namespace: plunk
 spec:
@@ -1408,6 +1443,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plunk-plunk-session-check@kubernetescrd,plunk-plunk-body-limit@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "1"
+  labels:
+    seb.platform/piece: plunk
   name: plunk
   namespace: plunk
 spec:
@@ -1435,6 +1472,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-body-limit@kubernetescrd
+  labels:
+    seb.platform/piece: plunk
   name: plunk-api
   namespace: plunk
 spec:
@@ -1461,6 +1500,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: plunk
   name: plunk-callback
   namespace: plunk
 spec:
@@ -1488,6 +1529,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-credential-redirect@kubernetescrd
+  labels:
+    seb.platform/piece: plunk
   name: plunk-credential-routes
   namespace: plunk
 spec:
@@ -1536,6 +1579,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: plunk-plunk-body-limit@kubernetescrd
+  labels:
+    seb.platform/piece: plunk
   name: plunk-public
   namespace: plunk
 spec:
@@ -1598,6 +1643,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: plunk
   name: plunk-sso
   namespace: plunk
 spec:
@@ -1624,6 +1671,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: plunk
   name: plunk-db
   namespace: plunk
 spec:
@@ -1677,6 +1726,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-db-base
   namespace: plunk
 spec:
@@ -1689,6 +1740,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-api-sso
   namespace: plunk
 spec:
@@ -1716,6 +1769,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-body-limit
   namespace: plunk
 spec:
@@ -1725,6 +1780,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-credential-redirect
   namespace: plunk
 spec:
@@ -1736,6 +1793,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plunk
   name: plunk-session-check
   namespace: plunk
 spec:

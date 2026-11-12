@@ -1,12 +1,16 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping
   namespace: harbor
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-app-images
   namespace: argocd
 rules:
@@ -20,6 +24,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-pod-images
 rules:
 - apiGroups:
@@ -32,6 +38,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-app-images
   namespace: argocd
 roleRef:
@@ -46,6 +54,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-pod-images
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -407,6 +417,8 @@ data:
     [ "${HH_SOURCE_ONLY:-0}" = 1 ] || main
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-script-ft6t6944c6
   namespace: harbor
 ---
@@ -415,6 +427,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-reconcile
   namespace: harbor
 spec:
@@ -496,6 +510,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-housekeeping-run-now
   namespace: harbor
 spec:
@@ -575,6 +591,8 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-oidc-reconcile
   namespace: harbor
 spec:
@@ -664,6 +682,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-backup-s3
   namespace: authentik
 spec:
@@ -687,6 +707,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-db-app
   namespace: authentik
 spec:
@@ -715,6 +737,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-db-creds
   namespace: authentik
 spec:
@@ -743,6 +767,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-email
   namespace: authentik
 spec:
@@ -766,6 +792,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-env
   namespace: authentik
 spec:
@@ -808,6 +836,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-estate-tiles
   namespace: authentik
 spec:
@@ -848,6 +878,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-github-oauth
   namespace: authentik
 spec:
@@ -878,6 +910,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-google-oauth
   namespace: authentik
 spec:
@@ -908,6 +942,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-n8n-scim
   namespace: authentik
 spec:
@@ -927,6 +963,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: authentik-oidc-clients
   namespace: authentik
 spec:
@@ -1025,6 +1063,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: cloudflare-api-token
   namespace: cert-manager
 spec:
@@ -1044,6 +1084,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: cloudflare-api-token
   namespace: external-dns
 spec:
@@ -1063,6 +1105,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-admin
   namespace: harbor
 spec:
@@ -1082,6 +1126,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: harbor-oidc
   namespace: harbor
 spec:
@@ -1105,6 +1151,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: headlamp-oidc
   namespace: headlamp
 spec:
@@ -1135,6 +1183,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: hcloud-token
   namespace: kube-system
 spec:
@@ -1154,6 +1204,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: axiom-token
   namespace: observability
 spec:
@@ -1173,6 +1225,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: operator-oauth
   namespace: tailscale
 spec:
@@ -1196,6 +1250,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: platform-secrets
   name: velero-credentials
   namespace: velero
 spec:

@@ -1,0 +1,115 @@
+# Two hosts, BOTH behind the Authentik gate, so every browser entry starts at the estate's
+# sign-in and nobody types a password into a mail page:
+#   <WEBMAIL_HOST>  the webmail (Roundcube, webmail.yaml): reading and writing mail. Behind the
+#                   `webmail` forward_single provider, then Roundcube's own OIDC sign-in, which
+#                   redirects straight to Authentik (oauth_login_redirect).
+#   <MAIL_HOST>     Stalwart's own pages: /account (app passwords for phones, filters) and
+#                   /admin (administration). Behind the `mail` forward_single provider, then
+#                   Stalwart's sign-in at the same Authentik (the `mail-oidc` public client).
+# Both: app-mail-user, app-mail-admin, platform-admins. Calendars and contacts are NOT published:
+# no CalDAV/CardDAV host is advertised (they stay in the estate's Nextcloud).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webmail
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Mail"
+    gethomepage.dev/description: "Webmail"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "25"
+    gethomepage.dev/icon: "mdi-email"
+    gethomepage.dev/href: "https://webmail.WLDOMAIN/"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=webmail"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [webmail.WLDOMAIN]
+      secretName: webmail-tls
+  rules:
+    - host: webmail.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: webmail
+                port: { name: http }
+---
+# The outpost's CALLBACK on each host, with the estate's restart in front of the gate
+# (gitops/platform/authentik/sso-restart.yaml; the sso-restart gate refuses a gated host
+# without it). The backend is never reached — the outpost answers the callback.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webmail-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [webmail.WLDOMAIN]
+      secretName: webmail-tls
+  rules:
+    - host: webmail.WLDOMAIN
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: webmail
+                port: { name: http }
+---
+# <MAIL_HOST>: Stalwart's pages, on the certificate the mail ports use (certificate.yaml).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-admin
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [post.WLDOMAIN]
+      secretName: stalwart-tls
+  rules:
+    - host: post.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: stalwart
+                port: { name: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-admin-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [post.WLDOMAIN]
+      secretName: stalwart-tls
+  rules:
+    - host: post.WLDOMAIN
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: stalwart
+                port: { name: http }

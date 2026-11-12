@@ -1,12 +1,16 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: otel-logging
   name: otel-collector
   namespace: observability
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: otel-logging
   name: otel-collector
 rules:
 - apiGroups:
@@ -46,6 +50,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: otel-logging
   name: otel-collector
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -179,6 +185,8 @@ data:
           exporters: [otlphttp/node]
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: otel-logging
   name: otel-agent-k6f6m6ck2f
   namespace: observability
 ---
@@ -186,7 +194,7 @@ apiVersion: v1
 data:
   cluster-config.yaml: |
     # OTel cluster collector (Deployment singleton) — DEV. Kubernetes events →
-    # psi-dev-node. Separate from the agent so events aren't duplicated
+    # psi-dev-k8s-events. Separate from the agent so events aren't duplicated
     # per node.
     receivers:
       k8sobjects:
@@ -208,7 +216,7 @@ data:
         compression: gzip
         headers:
           Authorization: "Bearer ${env:AXIOM_TOKEN}"
-          X-Axiom-Dataset: psi-dev-node
+          X-Axiom-Dataset: psi-dev-k8s-events
 
     service:
       pipelines:
@@ -218,7 +226,9 @@ data:
           exporters: [otlphttp/events]
 kind: ConfigMap
 metadata:
-  name: otel-cluster-db659mbtt7
+  labels:
+    seb.platform/piece: otel-logging
+  name: otel-cluster-69t4t7mg9m
   namespace: observability
 ---
 apiVersion: apps/v1
@@ -228,6 +238,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: otel-cluster
+    seb.platform/piece: otel-logging
   name: otel-cluster
   namespace: observability
 spec:
@@ -266,7 +277,7 @@ spec:
       serviceAccountName: otel-collector
       volumes:
       - configMap:
-          name: otel-cluster-db659mbtt7
+          name: otel-cluster-69t4t7mg9m
         name: config
 ---
 apiVersion: apps/v1
@@ -276,6 +287,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: otel-agent
+    seb.platform/piece: otel-logging
   name: otel-agent
   namespace: observability
 spec:
@@ -358,6 +370,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: otel-logging
   name: harbor-pull
   namespace: observability
 spec:

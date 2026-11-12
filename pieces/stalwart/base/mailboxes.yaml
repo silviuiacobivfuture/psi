@@ -1,0 +1,12 @@
+# The estate's mailboxes, made before their owners first sign in so they receive mail from the
+# start (an OIDC directory otherwise makes a mailbox only at the first sign-in). One local part
+# per line; the address is <line>@<MAILBOX_DOMAIN>. SEB names nobody: an estate lists its people
+# in its own layer (components/estate/stalwart), which replaces this data.
+# The owner signs in through Authentik; the directory maps them to this mailbox by the
+# `mail_address` claim (their Authentik attribute mail_address, else their username).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-mailboxes
+data:
+  mailboxes: ""

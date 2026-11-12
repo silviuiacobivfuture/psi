@@ -40,8 +40,8 @@ spec:
   generators:
     - pullRequest:
         github:
-          owner: RecomExpert
-          repo: platform
+          owner: WLGITOWNER
+          repo: WLGITREPO
           tokenRef:
             secretName: github-pr-creds
             key: token
@@ -53,8 +53,8 @@ spec:
     metadata:
       name: "preview-{{.number}}-changelog"
       labels:
-        platform.recomex.eu/preview: prod
-        platform.recomex.eu/pr: "{{.number}}"
+        platform.psizone.ro/preview: prod
+        platform.psizone.ro/pr: "{{.number}}"
     spec:
       project: default
       source:
@@ -63,7 +63,7 @@ spec:
         path: gitops/services/changelog/overlays/prod
         kustomize:
           # Per-PR namespace isolation + own host (rule + TLS SAN). Requires a
-          # wildcard *.recomex.eu DNS/cert (or adjust to a preview subdomain).
+          # wildcard *.<apex> DNS/cert (or adjust to a preview subdomain).
           namespace: "preview-pr-{{.number}}"
           patches:
             - target:
@@ -71,10 +71,10 @@ spec:
               patch: |
                 - op: replace
                   path: /spec/rules/0/host
-                  value: changelog-pr-{{.number}}.recomex.eu
+                  value: changelog-pr-{{.number}}.psizone.ro
                 - op: replace
                   path: /spec/tls/0/hosts/0
-                  value: changelog-pr-{{.number}}.recomex.eu
+                  value: changelog-pr-{{.number}}.psizone.ro
             # Per-PR isolated Neon branch (secret/previews/changelog/pr-<n>/env).
             - target:
                 kind: ExternalSecret

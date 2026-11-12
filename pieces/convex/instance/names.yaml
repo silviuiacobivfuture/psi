@@ -1,0 +1,12 @@
+# Local-config scratch values the replacements compose an instance's names from (never rendered).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: convex-names
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  API: convex-WLINSTANCE
+  SITE: convex-WLINSTANCE-site
+  DASH: convex-WLINSTANCE-dash
+  BUCKET: WLBUCKET-tfstate-dev

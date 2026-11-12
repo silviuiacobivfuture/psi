@@ -7,10 +7,9 @@
 #                      never the admin one): the policy only asks
 #   OPENFGA_STORE_ID   the one store
 #   OPENFGA_MODEL_ID   the PIN — never "latest". It is a secret-pinned service
-#                      like the estate's pinned applications: CXE_SECRET_PINNED in
-#                      infrastructure/hetzner/scripts/lib-convex-env.sh carries
-#                      it, so repin-model.sh moves it with every other pin and
-#                      doctor.sh fails while it trails the current release
+#                      like the estate's pinned applications: the estate's pin
+#                      procedure moves it with every other pin, and doctor.sh
+#                      fails while it trails the current release
 #   OPENFGA_TOKEN      the preshared key, the SAME value every reader reads
 #   HUB_PERSON_LOOKUP_URL    the hub's internal person lookup (its own listener,
 #                            no Ingress): who an account is, in the engine's terms

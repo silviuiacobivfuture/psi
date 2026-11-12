@@ -3,11 +3,16 @@
 # component makes, counts these and prints them, and refuses an entry here that no longer covers
 # anything. Each one is a debt: it ends when SEB declares a slot for it, or psi stops needing it.
 exceptions:
-  - id: psi-polaris-first-start
+  - id: psi-hub-mfa-optional
+    piece: autorizare
+    target: ConfigMap/autorizare-hub-config
+    paths: ["/data/HUB_REQUIRE_MFA"]
+    reason: psi's TOTP is optional (owner, 2026-11-12, temporary) — the hub must not refuse a password-only sign-in for lacking "mfa", and the hub restarts when the setting changes; goes when SEB declares an MFA slot or psi turns TOTP back on.
+  - id: psi-hub-mfa-restart
     piece: autorizare
     target: Deployment/autorizare-hub
-    paths: ["/spec/template/spec/initContainers/*"]
-    reason: psi's Polaris hold (2026-11-12) — the hub runs Polaris's migrations in an init container so a new estate can start at all (the control plane's secret needs a client only the migrated hub can mint); goes when SEB's piece orders first start itself.
+    paths: ["/spec/template/metadata/annotations"]
+    reason: the hub reads its ConfigMap only at start; this annotation (psi.estate/hub-require-mfa) restarts it when the TOTP setting above changes. Goes with psi-hub-mfa-optional.
   - id: psi-hub-registry-mount-by-position
     piece: autorizare
     target: "Deployment/autorizare-*"
@@ -23,8 +28,3 @@ exceptions:
     target: "Ingress/novu-*"
     paths: ["/"]
     reason: psi runs no mesh for Novu's dashboard and API, so it deletes the two tailnet-only Ingresses rather than leave doors pointing at nothing.
-  - id: psi-stalwart-unreleased
-    piece: stalwart
-    target: "**"
-    paths: ["**"]
-    reason: Stalwart (mail) is not in any SEB release yet; its slots arrive with the piece, and this goes then.

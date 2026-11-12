@@ -1,0 +1,72 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: convex
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Convex API - WLINSTANCE"
+    gethomepage.dev/description: "WLPURPOSE - client + admin API"
+    gethomepage.dev/group: "Services"
+    gethomepage.dev/icon: "convex.png"
+    gethomepage.dev/pod-selector: "app=convex-backend"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - convex-WLINSTANCE.WLDOMAIN
+        - convex-WLINSTANCE-site.WLDOMAIN
+      secretName: convex-tls
+  rules:
+    - host: convex-WLINSTANCE.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: convex-backend
+                port:
+                  name: cloud
+    - host: convex-WLINSTANCE-site.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: convex-backend
+                port:
+                  name: site
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: convex-dashboard
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Convex Data - WLINSTANCE"
+    gethomepage.dev/description: "WLPURPOSE - data browser (Authentik-gated)"
+    gethomepage.dev/group: "Services"
+    gethomepage.dev/icon: "convex.png"
+    gethomepage.dev/pod-selector: "app=convex-dashboard"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [convex-WLINSTANCE-dash.WLDOMAIN]
+      secretName: convex-dashboard-tls
+  rules:
+    - host: convex-WLINSTANCE-dash.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: convex-dashboard
+                port:
+                  name: http

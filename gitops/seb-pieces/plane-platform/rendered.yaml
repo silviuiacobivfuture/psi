@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane
   namespace: plane
 spec:
@@ -14,18 +16,24 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-smtp-reconcile
   namespace: plane
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-reconcile
   namespace: plane
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-smtp-reconcile
   namespace: plane
 rules:
@@ -46,6 +54,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-reconcile
   namespace: plane
 rules:
@@ -66,6 +76,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-smtp-reconcile
   namespace: plane
 roleRef:
@@ -80,6 +92,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-reconcile
   namespace: plane
 roleRef:
@@ -196,6 +210,8 @@ data:
     print("reconcile OK (/api/instances/ now reports is_smtp_configured true)")
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-smtp-reconcile-script
   namespace: plane
 ---
@@ -217,6 +233,8 @@ data:
         raise SystemExit(1)
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-reconcile-script
   namespace: plane
 ---
@@ -225,6 +243,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plane-rabbitmq
+    seb.platform/piece: plane-platform
   name: plane-rabbitmq
   namespace: plane
 spec:
@@ -241,6 +260,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: plane-redis
+    seb.platform/piece: plane-platform
   name: plane-redis
   namespace: plane
 spec:
@@ -254,6 +274,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane
   namespace: plane
 spec:
@@ -277,6 +299,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: plane-redis
+    seb.platform/piece: plane-platform
   name: plane-redis
   namespace: plane
 spec:
@@ -363,6 +386,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: plane-rabbitmq
+    seb.platform/piece: plane-platform
   name: plane-rabbitmq
   namespace: plane
 spec:
@@ -485,6 +509,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-assert-secrets
   namespace: plane
 spec:
@@ -555,6 +581,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-smtp-reconcile
   namespace: plane
 spec:
@@ -689,6 +717,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-reconcile
   namespace: plane
 spec:
@@ -774,6 +804,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: email-sender
   namespace: plane
 spec:
@@ -799,6 +831,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: harbor-pull
   namespace: plane
 spec:
@@ -828,6 +862,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-app-secrets
   namespace: plane
 spec:
@@ -912,6 +948,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-backup-s3
   namespace: plane
 spec:
@@ -935,6 +973,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-db-app
   namespace: plane
 spec:
@@ -963,6 +1003,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-doc-store
   namespace: plane
 spec:
@@ -995,6 +1037,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-live-secrets
   namespace: plane
 spec:
@@ -1022,6 +1066,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-rabbitmq
   namespace: plane
 spec:
@@ -1049,6 +1095,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-redis
   namespace: plane
 spec:
@@ -1068,6 +1116,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-sso-directory
   namespace: plane
 spec:
@@ -1099,6 +1149,8 @@ metadata:
     gethomepage.dev/weight: "10"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plane-plane-body-limit@kubernetescrd
+  labels:
+    seb.platform/piece: plane-platform
   name: plane
   namespace: plane
 spec:
@@ -1245,6 +1297,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: plane-plane-body-limit@kubernetescrd
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-api
   namespace: plane
 spec:
@@ -1293,6 +1347,8 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: plane-plane-credential-redirect@kubernetescrd
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-credential-routes
   namespace: plane
 spec:
@@ -1356,6 +1412,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,plane-plane-session-check@kubernetescrd,plane-plane-body-limit@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "1"
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-web
   namespace: plane
 spec:
@@ -1382,6 +1440,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-db
   namespace: plane
 spec:
@@ -1435,6 +1495,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-db-base
   namespace: plane
 spec:
@@ -1447,6 +1509,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-body-limit
   namespace: plane
 spec:
@@ -1456,6 +1520,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-credential-redirect
   namespace: plane
 spec:
@@ -1467,6 +1533,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: plane-platform
   name: plane-session-check
   namespace: plane
 spec:

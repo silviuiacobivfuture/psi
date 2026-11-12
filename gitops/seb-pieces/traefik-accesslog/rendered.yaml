@@ -1,6 +1,8 @@
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
+  labels:
+    seb.platform/piece: traefik-accesslog
   name: traefik
   namespace: kube-system
 spec:

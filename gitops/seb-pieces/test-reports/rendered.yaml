@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports
   namespace: test-reports
 spec:
@@ -1382,12 +1384,16 @@ data:
         return int((now - stamped).total_seconds())
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports-app-cktcgkd9fk
   namespace: test-reports
 ---
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports
   namespace: test-reports
 spec:
@@ -1401,6 +1407,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports
   namespace: test-reports
 spec:
@@ -1421,6 +1429,8 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports-data
   namespace: test-reports
 spec:
@@ -1437,6 +1447,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     reloader.stakater.com/auto: "true"
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports
   namespace: test-reports
 spec:
@@ -1560,6 +1572,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports-weekly-digest
   namespace: test-reports
 spec:
@@ -1712,6 +1726,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: talk-webhook-token
   namespace: test-reports
 spec:
@@ -1731,6 +1747,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports-ingest
   namespace: test-reports
 spec:
@@ -1761,6 +1779,8 @@ metadata:
     gethomepage.dev/pod-selector: app.kubernetes.io/name=test-reports
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports
   namespace: test-reports
 spec:
@@ -1787,6 +1807,8 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  labels:
+    seb.platform/piece: test-reports
   name: test-reports-ingest
   namespace: test-reports
 spec:

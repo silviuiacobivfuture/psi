@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -82,6 +84,8 @@ data:
     ${item.summary} ${item.html_url ?? \"\"}`);\nprocess.exit(1);\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-advisory-watch-fg9b5bc8tk
   namespace: n8n
 ---
@@ -93,6 +97,8 @@ data:
   N8N_WEBHOOK_URL: https://n8n-hooks.psizone.ro/
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-host
   namespace: n8n
 ---
@@ -114,6 +120,8 @@ data:
     []\n}\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-mapping
   namespace: n8n
 ---
@@ -122,6 +130,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: n8n
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -138,6 +147,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: n8n
+    seb.platform/piece: n8n
   name: n8n-broker
   namespace: n8n
 spec:
@@ -154,6 +164,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: n8n-sso
+    seb.platform/piece: n8n
   name: n8n-sso
   namespace: n8n
 spec:
@@ -167,6 +178,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -192,6 +205,7 @@ metadata:
   labels:
     app.kubernetes.io/component: main
     app.kubernetes.io/name: n8n
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -461,6 +475,7 @@ metadata:
   labels:
     app.kubernetes.io/component: runner
     app.kubernetes.io/name: n8n
+    seb.platform/piece: n8n
   name: n8n-runner
   namespace: n8n
 spec:
@@ -578,6 +593,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: n8n-sso
+    seb.platform/piece: n8n
   name: n8n-sso
   namespace: n8n
 spec:
@@ -704,6 +720,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: n8n
   name: n8n-advisory-watch
   namespace: n8n
 spec:
@@ -765,6 +783,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: n8n
   name: n8n-db-dump
   namespace: n8n
 spec:
@@ -894,6 +914,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: email-sender
   namespace: n8n
 spec:
@@ -919,6 +941,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: harbor-pull
   namespace: n8n
 spec:
@@ -948,6 +972,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-app
   namespace: n8n
 spec:
@@ -995,6 +1021,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-backup-s3
   namespace: n8n
 spec:
@@ -1018,6 +1046,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-db-app
   namespace: n8n
 spec:
@@ -1046,6 +1076,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-runner
   namespace: n8n
 spec:
@@ -1065,6 +1097,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso
   namespace: n8n
 spec:
@@ -1112,6 +1146,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-n8n-down@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd,n8n-n8n-body-limit@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "1"
+  labels:
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -1139,6 +1175,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: n8n-n8n-refuse-all@kubernetescrd
+  labels:
+    seb.platform/piece: n8n
   name: n8n-api-closed
   namespace: n8n
 spec:
@@ -1228,6 +1266,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: n8n
   name: n8n-callback
   namespace: n8n
 spec:
@@ -1254,6 +1294,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-n8n-down@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso
   namespace: n8n
 spec:
@@ -1280,6 +1322,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: n8n-n8n-hooks-strip@kubernetescrd,n8n-n8n-webhook-rate@kubernetescrd,n8n-n8n-body-limit@kubernetescrd
+  labels:
+    seb.platform/piece: n8n
   name: n8n-webhooks
   namespace: n8n
 spec:
@@ -1338,6 +1382,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n
   namespace: n8n
 spec:
@@ -1425,6 +1471,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-runner
   namespace: n8n
 spec:
@@ -1473,6 +1521,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso
   namespace: n8n
 spec:
@@ -1544,6 +1594,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: n8n
   name: n8n-db
   namespace: n8n
 spec:
@@ -1598,6 +1650,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-db-base
   namespace: n8n
 spec:
@@ -1610,6 +1664,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-intercept
   namespace: n8n
 spec:
@@ -1630,6 +1686,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-launch
   namespace: n8n
 spec:
@@ -1649,6 +1707,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-page
   namespace: n8n
 spec:
@@ -1669,6 +1729,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-press
   namespace: n8n
 spec:
@@ -1698,6 +1760,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-body-limit
   namespace: n8n
 spec:
@@ -1707,6 +1771,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-hooks-strip
   namespace: n8n
 spec:
@@ -1721,6 +1787,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-refuse-all
   namespace: n8n
 spec:
@@ -1731,6 +1799,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-intercept
   namespace: n8n
 spec:
@@ -1742,6 +1812,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-launch
   namespace: n8n
 spec:
@@ -1753,6 +1825,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-press
   namespace: n8n
 spec:
@@ -1764,6 +1838,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-press-start
   namespace: n8n
 spec:
@@ -1775,6 +1851,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-webhook-rate
   namespace: n8n
 spec:
@@ -1786,6 +1864,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: ServersTransport
 metadata:
+  labels:
+    seb.platform/piece: n8n
   name: n8n-sso-page
   namespace: n8n
 spec:

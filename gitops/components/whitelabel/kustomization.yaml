@@ -3,6 +3,7 @@ kind: Component
 # The white-label values every overlay reads through kustomize `replacements`. GENERATED from the
 # estate identity file:
 #   node tools/identity/load.mjs configmap <identity.yaml> > whitelabel-config.yaml
-# This export ships it rendered from examples/lumen/identity.yaml; render it from YOUR identity before use.
+# SEB ships it rendered from its test fixture; every estate render (tools/estate-repo.mjs, the bundle
+# builder) renders it again from the estate's own identity.
 resources:
   - whitelabel-config.yaml

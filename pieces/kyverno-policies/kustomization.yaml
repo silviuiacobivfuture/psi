@@ -50,6 +50,11 @@ resources:
   # require-reloader-annotation, require-alert-annotation and require-run-as-non-root
   # can all stay ENFORCE instead of excluding the namespace.
   - mutate-reportportal-annotations.yaml
+  # SUPPLY CHAIN, AUDIT (docs/lockdown.md): SEB's images and the bundle carry SEB's signature, and
+  # only Argo CD changes an object a SEB piece deployed. Each switches to Enforce through its
+  # estate slot (schema/slots/kyverno-policies.yaml), never by editing the policy.
+  - verify-seb-signatures.yaml
+  - audit-seb-object-changes.yaml
   # Scratch values (local-config, never rendered).
   - estate-values.yaml
 
@@ -62,8 +67,16 @@ resources:
 components:
   - ../../components/whitelabel
   - ../../components/alert-owner/key
+  - ../../components/seb-signing
   - ../../components/estate/kyverno-policies
 replacements:
+  # SEB's release-signing public key, from its one copy (components/seb-signing/cosign.pub).
+  - source: { kind: ConfigMap, name: seb-signing, fieldPath: "data.[cosign.pub]" }
+    targets:
+      - select: { kind: ClusterPolicy, name: verify-seb-signatures }
+        fieldPaths:
+          - spec.rules.[name=seb-images-signed].verifyImages.0.attestors.0.entries.0.keys.publicKeys
+          - spec.rules.[name=seb-bundle-signed].verifyImages.0.attestors.0.entries.0.keys.publicKeys
   - path: whitelabel-replacements.yaml
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
     targets:

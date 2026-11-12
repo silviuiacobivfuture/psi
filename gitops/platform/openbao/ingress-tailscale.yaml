@@ -15,7 +15,7 @@ metadata:
     gethomepage.dev/description: "Secrets store"
     gethomepage.dev/group: "Platform"
     gethomepage.dev/icon: "si-openbao"
-    gethomepage.dev/href: "https://openbao.tailf6f2e6.ts.net"
+    gethomepage.dev/href: "https://openbao.WLTAILNET"
     # Ingress name `openbao` would derive `app.kubernetes.io/name=openbao`, which
     # ALSO matches the agent-injector pod. Pin component=server so the dot tracks
     # the StatefulSet pod (openbao-0) only.

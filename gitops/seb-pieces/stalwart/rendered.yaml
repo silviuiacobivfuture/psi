@@ -1,9 +1,71 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    seb.platform/piece: stalwart
+  name: stalwart-backup
+  namespace: stalwart
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    seb.platform/piece: stalwart
+  name: stalwart-backup
+  namespace: stalwart
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - stalwart
+  resources:
+  - deployments
+  - deployments/scale
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    seb.platform/piece: stalwart
+  name: stalwart-backup
+  namespace: stalwart
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: stalwart-backup
+subjects:
+- kind: ServiceAccount
+  name: stalwart-backup
+  namespace: stalwart
+---
+apiVersion: v1
 data:
   config.json: |
     {"@type":"RocksDb","path":"/var/lib/stalwart/data"}
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-config
   namespace: stalwart
 ---
@@ -17,6 +79,8 @@ data:
     lucian.trifan
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-mailboxes
   namespace: stalwart
 ---
@@ -81,6 +145,8 @@ data:
     grep -c . /work/plan.ndjson | sed 's/^/plan lines: /'
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-plan-5kdcd7c7gt
   namespace: stalwart
 ---
@@ -95,6 +161,8 @@ data:
   WEBMAIL_LANGUAGE: ro_RO
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-settings
   namespace: stalwart
 ---
@@ -108,6 +176,8 @@ data:
     # The image's default site is replaced by apache.conf's.
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-apache-6k69b564th
   namespace: stalwart
 ---
@@ -174,6 +244,8 @@ data:
     }
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-config-h4c5226td4
   namespace: stalwart
 ---
@@ -188,6 +260,8 @@ data:
     ln -sfn /var/roundcube/estate_theme /var/www/html/plugins/estate_theme
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-tasks-g454fk8h58
   namespace: stalwart
 ---
@@ -540,7 +614,7 @@ data:
     does not control. */\n/*\n * The hand-written part of psi's webmail look, appended
     after the colours webmail-theme.py\n * generates from Elastic's own stylesheet.
     Only what a colour map cannot do: psi's faces, the\n * logo, labels that must
-    never be cut, and the message frame. Tokens are psi's sign-in's\n * (recomex.css):
+    never be cut, and the message frame. Tokens are psi's sign-in\n * stylesheet's:
     Psizone Gold in light, Psizone Night in dark (Roundcube's own dark mode, which\n
     * follows the system preference until the person picks one with \"Mod întunecat\").\n
     */\n:root {\n\t--psi-font: \"Manrope\", \"Segoe UI\", system-ui, sans-serif;\n\t--psi-display:
@@ -628,12 +702,16 @@ data:
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 48" width="130" height="48"><title>Psi</title><g transform="translate(0 0)"><defs><linearGradient id="t-polaris" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#586474"/><stop offset="1" stop-color="#424d63"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#t-polaris)"/><path d="M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z" fill="#ffffff"/></g><text x="68" y="36" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5" fill="#16120A">Psi</text></svg>
 kind: ConfigMap
 metadata:
-  name: webmail-theme-fgkd9m25b6
+  labels:
+    seb.platform/piece: stalwart
+  name: webmail-theme-7d856mh8td
   namespace: stalwart
 ---
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart
   namespace: stalwart
 spec:
@@ -647,6 +725,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-mail
   namespace: stalwart
 spec:
@@ -663,6 +743,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: webmail
   namespace: stalwart
 spec:
@@ -678,6 +760,8 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-data
   namespace: stalwart
 spec:
@@ -692,6 +776,8 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-data
   namespace: stalwart
 spec:
@@ -709,6 +795,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: stalwart
+    seb.platform/piece: stalwart
   name: stalwart
   namespace: stalwart
 spec:
@@ -854,6 +941,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app.kubernetes.io/name: webmail
+    seb.platform/piece: stalwart
   name: webmail
   namespace: stalwart
 spec:
@@ -991,7 +1079,7 @@ spec:
           sizeLimit: 256Mi
         name: html
       - configMap:
-          name: webmail-theme-fgkd9m25b6
+          name: webmail-theme-7d856mh8td
         name: theme
       - configMap:
           name: webmail-config-h4c5226td4
@@ -1021,6 +1109,223 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: stalwart
+  name: stalwart-backup
+  namespace: stalwart
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: stalwart-backup
+        spec:
+          containers:
+          - args:
+            - |
+              set -eu
+              start() {
+                rc=$?
+                echo "starting the server again"
+                kubectl -n "$NS" scale deploy/stalwart --replicas=1
+                kubectl -n "$NS" rollout status deploy/stalwart --timeout=300s || rc=1
+                exit "$rc"
+              }
+              trap start EXIT
+              trap 'exit 143' TERM INT
+              echo "stopping the server"
+              kubectl -n "$NS" scale deploy/stalwart --replicas=0
+              i=0
+              while [ -n "$(kubectl -n "$NS" get pods -l app.kubernetes.io/name=stalwart -o name)" ]; do
+                i=$((i + 1)); [ "$i" -le 120 ] || { echo "FATAL: the server's pod did not stop in 120 s" >&2; touch /work/failed; exit 1; }
+                sleep 1
+              done
+              touch /work/stopped
+              i=0
+              until [ -e /work/copied ]; do
+                [ ! -e /work/failed ] || { echo "FATAL: the archive failed" >&2; exit 1; }
+                i=$((i + 1)); [ "$i" -le 600 ] || { echo "FATAL: no archive in 600 s" >&2; touch /work/failed; exit 1; }
+                sleep 1
+              done
+              echo "archived while stopped"
+            command:
+            - /bin/sh
+            - -c
+            env:
+            - name: HOME
+              value: /work
+            - name: NS
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            image: registry.psizone.ro/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+            name: control
+            resources:
+              limits:
+                cpu: 200m
+                memory: 128Mi
+              requests:
+                cpu: 10m
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /work
+              name: work
+          - args:
+            - |
+              set -eu
+              i=0
+              until [ -e /work/stopped ]; do
+                [ ! -e /work/failed ] || exit 1
+                i=$((i + 1)); [ "$i" -le 300 ] || { touch /work/failed; exit 1; }
+                sleep 1
+              done
+              if tar -C /data -czf /work/stalwart.tar.gz.part data && mv /work/stalwart.tar.gz.part /work/stalwart.tar.gz; then
+                sha256sum /work/stalwart.tar.gz | cut -d' ' -f1 >/work/stalwart.tar.gz.sha256
+                ls -l /work/stalwart.tar.gz
+                touch /work/copied
+              else
+                echo "FATAL: tar failed" >&2; touch /work/failed; exit 1
+              fi
+            command:
+            - sh
+            - -c
+            image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+            name: copy
+            resources:
+              limits:
+                cpu: "1"
+                memory: 256Mi
+              requests:
+                cpu: 50m
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /data
+              name: data
+              readOnly: true
+            - mountPath: /work
+              name: work
+          - args:
+            - |
+              set -eu
+              i=0
+              until [ -e /work/copied ]; do
+                [ ! -e /work/failed ] || exit 1
+                i=$((i + 1)); [ "$i" -le 900 ] || exit 1
+                sleep 1
+              done
+              KEY="${PREFIX}/stalwart-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+              aws s3 cp --only-show-errors /work/stalwart.tar.gz "s3://${BUCKET}/${KEY}"
+              aws s3 cp --only-show-errors /work/stalwart.tar.gz.sha256 "s3://${BUCKET}/${KEY}.sha256"
+              echo "uploaded s3://${BUCKET}/${KEY}"
+              KEEP=14
+              aws s3 ls "s3://${BUCKET}/${PREFIX}/" | awk '{print $4}' | grep -E '^stalwart-.*\.tar\.gz$' \
+                | sort -r | tail -n +$((KEEP + 1)) | while read -r f; do
+                  aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}"; aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}.sha256" || true
+                done
+            command:
+            - /bin/sh
+            - -c
+            env:
+            - name: HOME
+              value: /work
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  key: AWS_ACCESS_KEY_ID
+                  name: stalwart-backup-s3
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: AWS_SECRET_ACCESS_KEY
+                  name: stalwart-backup-s3
+            - name: AWS_REGION
+              value: nbg1
+            - name: AWS_ENDPOINT_URL
+              value: https://nbg1.your-objectstorage.com
+            - name: AWS_S3_ADDRESSING_STYLE
+              value: path
+            - name: AWS_REQUEST_CHECKSUM_CALCULATION
+              value: when_required
+            - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+              value: when_required
+            - name: BUCKET
+              value: psi-tfstate-dev
+            - name: PREFIX
+              value: mail-backups/stalwart
+            image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+            name: upload
+            resources:
+              limits:
+                cpu: 250m
+                memory: 256Mi
+              requests:
+                cpu: 50m
+                memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /work
+              name: work
+          enableServiceLinks: false
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 2000
+            runAsGroup: 2000
+            runAsNonRoot: true
+            runAsUser: 2000
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: stalwart-backup
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: stalwart-data
+              readOnly: true
+          - emptyDir:
+              sizeLimit: 4Gi
+            name: work
+      ttlSecondsAfterFinished: 172800
+  schedule: 47 3 * * *
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-config
   namespace: stalwart
 spec:
@@ -1151,6 +1456,8 @@ metadata:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-config
   namespace: stalwart
 spec:
@@ -1271,6 +1578,8 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-mail
   namespace: stalwart
 spec:
@@ -1288,6 +1597,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-admin
   namespace: stalwart
 spec:
@@ -1312,6 +1623,33 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: stalwart
+  name: stalwart-backup-s3
+  namespace: stalwart
+spec:
+  data:
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: access_key_id
+    secretKey: AWS_ACCESS_KEY_ID
+  - remoteRef:
+      key: platform/object-storage/dev
+      property: secret_access_key
+    secretKey: AWS_SECRET_ACCESS_KEY
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: stalwart-backup-s3
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-ses
   namespace: stalwart
 spec:
@@ -1339,6 +1677,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-app
   namespace: stalwart
 spec:
@@ -1361,6 +1701,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-admin
   namespace: stalwart
 spec:
@@ -1387,6 +1729,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: stalwart
   name: stalwart-admin-callback
   namespace: stalwart
 spec:
@@ -1422,6 +1766,8 @@ metadata:
     gethomepage.dev/weight: "25"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: stalwart
   name: webmail
   namespace: stalwart
 spec:
@@ -1448,6 +1794,8 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  labels:
+    seb.platform/piece: stalwart
   name: webmail-callback
   namespace: stalwart
 spec:

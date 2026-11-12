@@ -1,5 +1,5 @@
 {
-  "_doc": "n8n's own mail: invitations and forgot-password. READY, NOT IN USE: nothing reads this sender until pieces/n8n/mail/ is named in overlays/dev, which waits for its DNS (AWS granted SES production access on 2026-11-04; n8n.recomex.eu is the one sender domain not verified) and for the owner's choice to turn it on. n8n takes SMTP only: it reads this sender's key from email-sender as the relay password (plunk-smtp.<apex>:587, user plunk). One sender for every n8n instance.",
+  "_doc": "n8n's own mail: invitations and forgot-password. READY, NOT IN USE: nothing reads this sender until pieces/n8n/mail/ is named in overlays/dev, which waits for its DNS (AWS granted SES production access on 2026-11-04; n8n.<apex> is the one sender domain not verified) and for the owner's choice to turn it on. n8n takes SMTP only: it reads this sender's key from email-sender as the relay password (plunk-smtp.<apex>:587, user plunk). One sender for every n8n instance.",
   "version": 1,
   "key": "n8n",
   "name": "n8n — automatizări",

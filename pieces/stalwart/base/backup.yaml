@@ -1,0 +1,214 @@
+# The mail server's consistent backup: once a day the server is STOPPED, its data directory
+# (RocksDB, the messages included) is archived, the server is started again, and the archive
+# goes to s3://<BUCKET_PREFIX>-tfstate-dev/mail-backups/stalwart/ (keep 14).
+#
+# Why stopped: Stalwart v1 has no online backup. `stalwart --export` refuses while the server
+# holds RocksDB's lock ("Resource temporarily unavailable"), RocksDB's checkpoint API is not
+# exposed, and the export is documented as a migration tool, not a backup. The maintainers'
+# supported recipe is "stop the server, copy the directory storage.data points at, restart"
+# (support.stalw.art/t/386: "RocksDB is consistent on shutdown"). Velero's 6-hourly copy of the
+# live volume is only crash-consistent; this is the copy a restore should use.
+#
+# The outage: the mail ports close for the seconds the archive takes (78 MB: under 10 s).
+# Senders' servers treat a refused connection as temporary and retry; phones reconnect.
+#
+# Three containers, one pod, coordinated by files on a shared emptyDir:
+#   control  scales the server to 0, waits until its pod is gone, says `stopped`; then waits for
+#            `copied` (or `failed`), and ALWAYS scales back to 1 on exit (trap), however it ends.
+#   copy     waits for `stopped`, archives /data/data (read-only mount), says `copied`.
+#   upload   waits for `copied`, uploads the archive and its sha256, prunes to 14.
+# Argo leaves the scale alone: tools/estate-pieces.json ignores the Deployment's replicas.
+# Restore: infrastructure/hetzner/scripts/restore-stalwart.sh. Freshness: doctor.sh (stalwart).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stalwart-backup
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stalwart-backup
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    resourceNames: ["stalwart"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stalwart-backup
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-backup }
+subjects:
+  - { kind: ServiceAccount, name: stalwart-backup }
+---
+# The object-storage key, the same one every database dump uses.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: stalwart-backup-s3
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: stalwart-backup-s3, creationPolicy: Owner }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stalwart-backup
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  # 03:47, away from the configuration job (04:17) and Velero (:00).
+  schedule: "47 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      # Never retried: every attempt is an outage. The next day's run, and doctor, follow up.
+      backoffLimit: 0
+      activeDeadlineSeconds: 1200
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: stalwart-backup }
+        spec:
+          restartPolicy: Never
+          serviceAccountName: stalwart-backup
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 2000
+            runAsGroup: 2000
+            fsGroup: 2000
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: data
+              persistentVolumeClaim: { claimName: stalwart-data, readOnly: true }
+            - name: work
+              emptyDir: { sizeLimit: 4Gi }
+          containers:
+            - name: control
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              env:
+                - { name: HOME, value: /work }
+                - name: NS
+                  valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  start() {
+                    rc=$?
+                    echo "starting the server again"
+                    kubectl -n "$NS" scale deploy/stalwart --replicas=1
+                    kubectl -n "$NS" rollout status deploy/stalwart --timeout=300s || rc=1
+                    exit "$rc"
+                  }
+                  trap start EXIT
+                  trap 'exit 143' TERM INT
+                  echo "stopping the server"
+                  kubectl -n "$NS" scale deploy/stalwart --replicas=0
+                  i=0
+                  while [ -n "$(kubectl -n "$NS" get pods -l app.kubernetes.io/name=stalwart -o name)" ]; do
+                    i=$((i + 1)); [ "$i" -le 120 ] || { echo "FATAL: the server's pod did not stop in 120 s" >&2; touch /work/failed; exit 1; }
+                    sleep 1
+                  done
+                  touch /work/stopped
+                  i=0
+                  until [ -e /work/copied ]; do
+                    [ ! -e /work/failed ] || { echo "FATAL: the archive failed" >&2; exit 1; }
+                    i=$((i + 1)); [ "$i" -le 600 ] || { echo "FATAL: no archive in 600 s" >&2; touch /work/failed; exit 1; }
+                    sleep 1
+                  done
+                  echo "archived while stopped"
+              securityContext: &restricted
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { cpu: 200m, memory: 128Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+            - name: copy
+              image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  i=0
+                  until [ -e /work/stopped ]; do
+                    [ ! -e /work/failed ] || exit 1
+                    i=$((i + 1)); [ "$i" -le 300 ] || { touch /work/failed; exit 1; }
+                    sleep 1
+                  done
+                  if tar -C /data -czf /work/stalwart.tar.gz.part data && mv /work/stalwart.tar.gz.part /work/stalwart.tar.gz; then
+                    sha256sum /work/stalwart.tar.gz | cut -d' ' -f1 >/work/stalwart.tar.gz.sha256
+                    ls -l /work/stalwart.tar.gz
+                    touch /work/copied
+                  else
+                    echo "FATAL: tar failed" >&2; touch /work/failed; exit 1
+                  fi
+              securityContext: *restricted
+              resources:
+                requests: { cpu: 50m, memory: 32Mi }
+                limits: { cpu: "1", memory: 256Mi }
+              volumeMounts:
+                - { name: data, mountPath: /data, readOnly: true }
+                - { name: work, mountPath: /work }
+            - name: upload
+              image: WLREGISTRY/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              env:
+                - { name: HOME, value: /work }
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: stalwart-backup-s3, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: stalwart-backup-s3, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: OBJECT_STORAGE_REGION }
+                - { name: AWS_ENDPOINT_URL, value: OBJECT_STORAGE_ENDPOINT }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required }
+                - { name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required }
+                - { name: BUCKET, value: BUCKET_PREFIX-tfstate-dev }
+                - { name: PREFIX, value: mail-backups/stalwart }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  i=0
+                  until [ -e /work/copied ]; do
+                    [ ! -e /work/failed ] || exit 1
+                    i=$((i + 1)); [ "$i" -le 900 ] || exit 1
+                    sleep 1
+                  done
+                  KEY="${PREFIX}/stalwart-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+                  aws s3 cp --only-show-errors /work/stalwart.tar.gz "s3://${BUCKET}/${KEY}"
+                  aws s3 cp --only-show-errors /work/stalwart.tar.gz.sha256 "s3://${BUCKET}/${KEY}.sha256"
+                  echo "uploaded s3://${BUCKET}/${KEY}"
+                  KEEP=14
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" | awk '{print $4}' | grep -E '^stalwart-.*\.tar\.gz$' \
+                    | sort -r | tail -n +$((KEEP + 1)) | while read -r f; do
+                      aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}"; aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}.sha256" || true
+                    done
+              securityContext: *restricted
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }

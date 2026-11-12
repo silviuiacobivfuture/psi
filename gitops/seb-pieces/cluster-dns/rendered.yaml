@@ -4,5 +4,7 @@ data:
     rewrite stop name exact plunk-smtp.psizone.ro plunk-smtp.plunk.svc.cluster.local answer auto
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: cluster-dns
   name: coredns-custom
   namespace: kube-system

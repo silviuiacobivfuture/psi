@@ -1,0 +1,4 @@
+{
+	"$comment": "Components this piece takes only when the estate's identity moves a value off the default the piece renders (tools/bundle/identity-components.mjs). max-pods: KUBELET_MAX_PODS, absent or 110 (the kubelet's own default) takes nothing.",
+	"max-pods": { "key": "KUBELET_MAX_PODS", "unless": "110" }
+}
