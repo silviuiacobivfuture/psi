@@ -39,15 +39,13 @@ patches:
       - op: add
         path: /data/HUB_CLIENTS_FILE
         value: "/estate/hub/clients.json"
-      # The estate's own organisation (docs/autorizare/07 "An application's program"). Psi has not
-      # founded it yet — an organisation is created through Polaris, so it cannot exist before Polaris
-      # first runs — and Polaris refuses to start without the setting. Until it is founded this names
-      # an organisation that does not exist and cannot collide with a real one (real ids are o-<32 hex>).
-      # Psi declares no application programs today, so nothing reads it. Founding it: sign in to
-      # access.psizone.ro as the platform administrator, create the organisation, put its id here.
+      # The estate's own organisation (docs/autorizare/07 "An application's program"): „Psi”
+      # (slug psi), founded on 2026-11-12 through Polaris's own CreateOrg, with an administrator
+      # invitation for the operator (silviu.iacob@ivfuture.ro). An organisation is created through
+      # Polaris, so it could not exist before Polaris first ran.
       - op: replace
         path: /data/ESTATE_ORG_ID
-        value: "o-psi-not-yet-founded"
+        value: "o-01a1ce922e3d71f990932be31d8d07fb"
   - target: { kind: Deployment, name: autorizare-hub }
     patch: |-
       - op: add

@@ -26,7 +26,7 @@ data:
   ENVIRONMENT: dev
   ESTATE_BRAND_DIR: /estate-brand
   ESTATE_DOMAIN: psizone.ro
-  ESTATE_ORG_ID: o-psi-not-yet-founded
+  ESTATE_ORG_ID: o-01a1ce922e3d71f990932be31d8d07fb
   HUB_CLIENTS_FILE: /estate/hub/clients.json
   HUB_HOST_PREFIX: sso
   NOTIFY_URL: http://talk-webhook.nextcloud.svc
