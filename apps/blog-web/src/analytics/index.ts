@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { DEPTHS, type Depth } from "@psi/cms-client";
 import type { Guide } from "@psi/guide";
+import type { GuideCountReporter } from "@psi/site-control";
 import type { Context } from "hono";
 import { z } from "zod";
 import { findArticle } from "../content/articles";
@@ -123,3 +124,13 @@ export function countingGuide(guide: Guide, locale: Locale, count: boolean): Gui
 		},
 	};
 }
+
+/**
+ * The compass's invitation counters (opened, nudge shown, nudge clicked) go to the same
+ * collector as the questions: a number per day and locale, never a person.
+ */
+export const guideCounts: GuideCountReporter = {
+	count: (metric, locale) =>
+		collector.count({ brand: "blog", slug: "", locale, topic: null, metric }),
+	flush: () => collector.flush(),
+};

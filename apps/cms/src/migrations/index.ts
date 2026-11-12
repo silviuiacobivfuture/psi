@@ -7,6 +7,7 @@ import * as migration_20261112_014550_control_plane from "./20261112_014550_cont
 import * as migration_20261112_022246_knowledge_sources from "./20261112_022246_knowledge_sources";
 import * as migration_20261112_054256_ai_behaviour_studio from "./20261112_054256_ai_behaviour_studio";
 import * as migration_20261112_062828_article_seo_faq from "./20261112_062828_article_seo_faq";
+import * as migration_20261112_091500_guide_uptake from "./20261112_091500_guide_uptake";
 
 export const migrations = [
 	{
@@ -53,5 +54,10 @@ export const migrations = [
 		up: migration_20261112_062828_article_seo_faq.up,
 		down: migration_20261112_062828_article_seo_faq.down,
 		name: "20261112_062828_article_seo_faq",
+	},
+	{
+		up: migration_20261112_091500_guide_uptake.up,
+		down: migration_20261112_091500_guide_uptake.down,
+		name: "20261112_091500_guide_uptake",
 	},
 ];

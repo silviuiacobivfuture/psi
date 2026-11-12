@@ -70,6 +70,10 @@ const roStrings = {
 	guide: "Ghidul",
 	guideAsked: "Întrebări puse",
 	guideUnanswered: "Fără răspuns (nimic în cunoștințe)",
+	guideUptake: "Invitația ghidului",
+	guideOpened: "Deschideri",
+	guideNudgeShown: "Invitații afișate",
+	guideNudgeClicked: "Invitații accesate",
 	guideNote:
 		"Textul întrebărilor nu se păstrează: poate conține date de sănătate. Se numără doar câte au rămas fără răspuns.",
 	noData: "—",
@@ -139,6 +143,10 @@ const enStrings: typeof roStrings = {
 	guide: "The guide",
 	guideAsked: "Questions asked",
 	guideUnanswered: "Unanswered (nothing in the knowledge)",
+	guideUptake: "The guide's invitation",
+	guideOpened: "Opens",
+	guideNudgeShown: "Nudges shown",
+	guideNudgeClicked: "Nudges clicked",
 	guideNote:
 		"The questions' text is not kept: it may hold health data. Only how many went unanswered is counted.",
 	noData: "—",

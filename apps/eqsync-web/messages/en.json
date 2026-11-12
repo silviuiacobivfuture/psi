@@ -384,7 +384,19 @@
 	"compass_tab_pages": "Pages",
 	"compass_views": "Guide or pages",
 	"compass_new_message": "New message",
-	"compass_chat_placeholder": "Write a message…",
+	"compass_chat_placeholder": "Tell me about your evening…",
 	"compass_suggestions": "Ask the guide",
-	"logo_endorsement": "by Psizone"
+	"logo_endorsement": "by Psizone",
+	"invite_label": "Cannot sleep? Ask me",
+	"invite_ph_1": "How have you been sleeping lately?",
+	"invite_ph_2": "What can I do when my mind will not stop at night?",
+	"invite_ph_3": "How do I start the free programme?",
+	"invite_ph_start": "Ask what you need to know before you begin…",
+	"invite_close": "Dismiss the invitation",
+	"nudge_home": "Looking for a calmer evening? Tell me what yours are like.",
+	"nudge_start": "Shall I help you start the free 21-day programme?",
+	"nudge_page": "Would you like a short explanation of this page?",
+	"nudge_q_home": "I want a calmer evening. Where do I start?",
+	"nudge_q_start": "How do I start the free programme?",
+	"nudge_q_page": "Briefly explain this page to me."
 }

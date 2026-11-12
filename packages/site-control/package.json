@@ -1,6 +1,6 @@
 {
 	"name": "@psi/site-control",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"description": "What every psi site mounts for the control plane (the CMS's /admin/platform): signed read-only status and staff actions under /__control, the /admin redirect, and the Compass's staff-only Administrare link. Ships no text of its own beyond what the site passes.",

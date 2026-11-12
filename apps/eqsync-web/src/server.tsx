@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { guideSignal } from "@psi/site-control";
 import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
@@ -12,7 +13,7 @@ import { registerCmsRevalidate } from "./cms";
 import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
-import { guide } from "./guide-client";
+import { guide, guideCounts } from "./guide-client";
 import type { Locale } from "./i18n";
 import { pageRegistry, pageResolver } from "./page-context";
 import { HomePage } from "./pages/home";
@@ -66,6 +67,8 @@ for (const [locale, prefix] of [
 		);
 	});
 	registerAccountRoutes(app, locale);
+	// What the compass reports about its invitation: opened, nudge shown, nudge clicked (counters only).
+	app.post(`${prefix}/ghid/signal`, guideSignal({ reporter: guideCounts, locale }));
 	// The guide: a question streams its answer; the compass also restores and resets its chat here.
 	app.post(`${prefix}/ghid`, (c) =>
 		answerGuidePost(c, {

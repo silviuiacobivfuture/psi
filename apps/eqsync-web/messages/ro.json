@@ -384,7 +384,19 @@
 	"compass_tab_pages": "Pagini",
 	"compass_views": "Ghid sau pagini",
 	"compass_new_message": "Mesaj nou",
-	"compass_chat_placeholder": "Scrie un mesaj…",
+	"compass_chat_placeholder": "Spune-mi cum e seara ta…",
 	"compass_suggestions": "Întreabă ghidul",
-	"logo_endorsement": "de la Psizone"
+	"logo_endorsement": "de la Psizone",
+	"invite_label": "Nu poți dormi? Întreabă-mă",
+	"invite_ph_1": "Cum dormi în ultima vreme?",
+	"invite_ph_2": "Ce fac când mintea nu se oprește seara?",
+	"invite_ph_3": "Cum încep programul gratuit?",
+	"invite_ph_start": "Întreabă ce trebuie să știi înainte să începi…",
+	"invite_close": "Închide invitația",
+	"nudge_home": "Cauți mai multă liniște seara? Spune-mi cum arată seara ta.",
+	"nudge_start": "Te ajut să începi programul gratuit de 21 de zile?",
+	"nudge_page": "Vrei să-ți explic pe scurt pagina asta?",
+	"nudge_q_home": "Vreau mai multă liniște seara. De unde încep?",
+	"nudge_q_start": "Cum încep programul gratuit?",
+	"nudge_q_page": "Explică-mi pe scurt pagina asta."
 }

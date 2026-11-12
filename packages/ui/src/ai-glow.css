@@ -1,0 +1,143 @@
+/*
+ * The guide's glow: one recognisable halo for every place a visitor can ask the AI, the compass's
+ * capsule and a page's own ask bar. A slow turning ring in the brand's lights and a soft aura
+ * that breathes behind it; brighter when the pointer or the keyboard is on it. Reduced motion
+ * keeps the ring and the aura, still.
+ *
+ * Psizone wears the flat finish, which allows no glow elsewhere; the AI input is the one element
+ * that glows there (owner, 2026-11-12).
+ */
+
+@property --pz-spin {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 0deg;
+}
+
+/*
+ * The lights, per brand: the guide's own colour (the label, the edge, the nudge) and the ring's
+ * stops. The blog keeps its second and third lights for cover art: it glows teal only.
+ */
+.pz-compass,
+.pz-ask {
+	--pz-aura: var(--glow-2);
+	/* The same colour with enough body to read as an edge on paper (borders, the label's dot). */
+	--pz-aura-edge: color-mix(in oklab, var(--pz-aura) 62%, var(--ink));
+	--pz-ring-stops: var(--glow-1), var(--glow-3), var(--glow-2), var(--glow-1);
+	--pz-halo:
+		0 0 22px 2px color-mix(in oklab, var(--glow-2) 55%, transparent),
+		0 0 56px 6px color-mix(in oklab, var(--glow-1) 32%, transparent);
+}
+/* On paper the light needs more body to be seen. */
+[data-theme$="light"] .pz-compass,
+[data-theme$="light"] .pz-ask {
+	--pz-halo:
+		0 0 20px 3px color-mix(in oklab, var(--glow-1) 48%, transparent),
+		0 0 50px 8px color-mix(in oklab, var(--glow-2) 42%, transparent);
+}
+/* Psizone: its guide's turquoise and the luminous golds; the deep gold stays out of the blur. */
+[data-theme^="psizone"] .pz-compass,
+[data-theme^="psizone"] .pz-ask {
+	--pz-ring-stops: var(--glow-3), var(--glow-2), var(--accent), var(--glow-3);
+	--pz-halo:
+		0 0 22px 2px color-mix(in oklab, var(--glow-2) 58%, transparent),
+		0 0 54px 6px color-mix(in oklab, var(--glow-3) 34%, transparent);
+}
+[data-theme="psizone-light"] .pz-compass,
+[data-theme="psizone-light"] .pz-ask {
+	--pz-halo:
+		0 0 20px 3px color-mix(in oklab, var(--glow-2) 55%, transparent),
+		0 0 48px 8px color-mix(in oklab, var(--accent) 34%, transparent);
+}
+[data-theme^="blog"] .pz-compass,
+[data-theme^="blog"] .pz-ask {
+	--pz-aura: var(--glow-1);
+	--pz-ring-stops:
+		var(--glow-1), color-mix(in oklab, var(--glow-1) 35%, transparent), var(--glow-1);
+	--pz-halo:
+		0 0 22px 2px color-mix(in oklab, var(--glow-1) 50%, transparent),
+		0 0 48px 4px color-mix(in oklab, var(--glow-1) 24%, transparent);
+}
+
+.pz-compass__bar,
+.pz-ask__bar {
+	position: relative;
+}
+
+/* The ring: a 2px edge of the brand's lights, turning slowly. */
+.pz-compass__bar::before,
+.pz-ask__bar::before {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	padding: 2px;
+	pointer-events: none;
+	opacity: 0.9;
+	background: conic-gradient(from var(--pz-spin), var(--pz-ring-stops));
+	-webkit-mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask:
+		linear-gradient(#000 0 0) content-box exclude,
+		linear-gradient(#000 0 0);
+	animation: pz-aura-spin 9s linear infinite;
+	transition: opacity 0.3s;
+}
+
+/* The aura: a soft light outside the edge (an outer shadow shows only outside the box). */
+.pz-compass__bar::after,
+.pz-ask__bar::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
+	pointer-events: none;
+	opacity: 0.55;
+	box-shadow: var(--pz-halo);
+	animation: pz-aura-breathe 6s ease-in-out infinite;
+	transition: opacity 0.3s;
+}
+.pz-compass__bar:hover::after,
+.pz-compass__bar:focus-within::after,
+.pz-ask__bar:hover::after,
+.pz-ask__bar:focus-within::after {
+	animation: none;
+	opacity: 1;
+}
+
+@keyframes pz-aura-spin {
+	to {
+		--pz-spin: 360deg;
+	}
+}
+@keyframes pz-aura-breathe {
+	50% {
+		opacity: 0.95;
+	}
+}
+
+/*
+ * The flat finish hides the edge light of every `.pz-edge` and removes shadows. The AI input is
+ * the one element that glows there (owner, 2026-11-12): the ring comes back, and the halo is a
+ * real shadow again.
+ */
+[data-finish="flat"] .pz-compass .pz-compass__bar::before,
+[data-finish="flat"] .pz-ask .pz-ask__bar::before {
+	display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-compass__bar::before,
+	.pz-ask__bar::before,
+	.pz-compass__bar::after,
+	.pz-ask__bar::after {
+		animation: none;
+	}
+	.pz-compass__bar::after,
+	.pz-ask__bar::after {
+		opacity: 0.75;
+	}
+}

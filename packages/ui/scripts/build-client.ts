@@ -1,15 +1,15 @@
 /**
- * Writes src/client/compass-chat.generated.ts from src/client/compass-chat.ts (Node strips the
+ * Writes src/client/compass-chat.generated.ts from the page scripts in src/client (Node strips the
  * types of this script itself). `--check` fails when the generated file is out of date.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { compileClient, generatedModule } from "../src/client/build.ts";
+import { CLIENT_SOURCES, compileClients, generatedModule } from "../src/client/build.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const OUT = `${ROOT}src/client/compass-chat.generated.ts`;
 const text = generatedModule(
-	compileClient(readFileSync(`${ROOT}src/client/compass-chat.ts`, "utf8")),
+	compileClients(CLIENT_SOURCES.map((f) => readFileSync(`${ROOT}src/client/${f}`, "utf8"))),
 );
 
 if (process.argv.includes("--check")) {

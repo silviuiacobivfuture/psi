@@ -1,4 +1,4 @@
-import { STAFF_LINK_PATH } from "@psi/site-control";
+import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
 import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
@@ -9,6 +9,7 @@ import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
 import { guideStart } from "../guide-start";
 import { at, base, type Locale } from "../i18n";
+import { psizoneInvite } from "../invite";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
 import { THEMES, type Theme } from "../theme";
@@ -126,6 +127,7 @@ export function Header({
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
 				startWith={guideStart(locale)}
+				invite={psizoneInvite(locale, currentPath())}
 				chat={{
 					storageKey: "psi.chat.psizone",
 					suggestions: copy.chips,

@@ -32,7 +32,14 @@ export interface Report {
 	brands: Array<{ brand: string; views: number; readThrough: number | null }>;
 	topics: Array<{ topic: string; views: number }>;
 	days: Array<{ day: string; views: number }>;
-	guide: { asked: number; unanswered: number };
+	guide: {
+		asked: number;
+		unanswered: number;
+		/** How the invitation fares: the capsule opened, the nudge shown, the nudge clicked. */
+		opened: number;
+		nudgeShown: number;
+		nudgeClicked: number;
+	};
 }
 
 const ratio = (a: number, b: number): number | null => (b === 0 ? null : Math.min(1, a / b));
@@ -46,10 +53,13 @@ export function buildReport(rows: ReadonlyArray<Row>, since: string): Report {
 	const brands = new Map<string, { views: number; full: number }>();
 	const topics = new Map<string, number>();
 	const days = new Map<string, number>();
-	const guide = { asked: 0, unanswered: 0 };
+	const guide = { asked: 0, unanswered: 0, opened: 0, nudgeShown: 0, nudgeClicked: 0 };
 	for (const r of rows) {
 		if (r.metric === "guide_asked") guide.asked += r.count;
 		if (r.metric === "guide_unanswered") guide.unanswered += r.count;
+		if (r.metric === "guide_opened") guide.opened += r.count;
+		if (r.metric === "guide_nudge_shown") guide.nudgeShown += r.count;
+		if (r.metric === "guide_nudge_clicked") guide.nudgeClicked += r.count;
 		if (r.slug === "") continue;
 		const key = `${r.brand}/${r.slug}`;
 		const line = articles.get(key) ?? {

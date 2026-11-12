@@ -4,6 +4,7 @@ export {
 	type CountBrand,
 	countingScope,
 	createGuideCountReporter,
+	currentPath,
 	type GuideCountReporter,
 	type GuideMetric,
 	guideCountsFromEnv,
@@ -11,6 +12,7 @@ export {
 	mayCountRequest,
 } from "./guide-counts";
 export { countingGuide, type GuideCounters, type GuidePort, guidePort } from "./guide-port";
+export { GUIDE_SIGNALS, guideSignal } from "./guide-signal";
 export { mountSiteControl, type SiteControl, type SiteControlOptions } from "./mount";
 export { pushPort } from "./push-port";
 export { STAFF_PATH, type StaffCheck, staffCheck } from "./staff";

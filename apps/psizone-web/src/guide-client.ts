@@ -8,6 +8,9 @@ import { aiSettings } from "./ai-settings";
 /** The scheduling store (Convex) when configured: booking questions then get free times in the chat. */
 const SCHEDULING = schedulingFromEnv(process.env);
 
+/** The CMS's reading counters (CMS_URL, ANALYTICS_INGEST_TOKEN): the day's questions, and how the invitation fares. */
+export const guideCounts = guideCountsFromEnv(process.env, "psizone");
+
 /**
  * The one guide this site talks to: Psizone's Mastra agent on OpenRouter (OPENROUTER_API_KEY),
  * reading the knowledge base at PSI_KNOWLEDGE_DB_URL (local default: .data/knowledge.db, seeded by
@@ -36,6 +39,5 @@ export const guide: Guide & GuideCounters = countingGuide(
 		// The store's and the embedder's connections open at boot, not on the first visitor's turn.
 		warmUp: true,
 	}),
-	// The day's question totals go to the CMS's reading counters (CMS_URL, ANALYTICS_INGEST_TOKEN).
-	{ reporter: guideCountsFromEnv(process.env, "psizone") },
+	{ reporter: guideCounts },
 );

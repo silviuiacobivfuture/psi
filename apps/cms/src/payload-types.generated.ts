@@ -580,7 +580,17 @@ export interface AnalyticsDaily {
   slug: string;
   locale: string;
   topic: string;
-  metric: 'view' | 'depth_25' | 'depth_50' | 'depth_75' | 'depth_100' | 'guide_asked' | 'guide_unanswered';
+  metric:
+    | 'view'
+    | 'depth_25'
+    | 'depth_50'
+    | 'depth_75'
+    | 'depth_100'
+    | 'guide_asked'
+    | 'guide_unanswered'
+    | 'guide_opened'
+    | 'guide_nudge_shown'
+    | 'guide_nudge_clicked';
   count: number;
 }
 /**

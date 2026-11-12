@@ -187,6 +187,11 @@ export async function AnalyticsView(props: AdminViewServerProps): Promise<ReactE
 					{say("guideAsked")}: {r.guide.asked} · {say("guideUnanswered")}: {r.guide.unanswered} (
 					{pct(r.guide.asked === 0 ? null : r.guide.unanswered / r.guide.asked)})
 				</p>
+				<p>
+					{say("guideUptake")}: {say("guideOpened")} {r.guide.opened} · {say("guideNudgeShown")}{" "}
+					{r.guide.nudgeShown} · {say("guideNudgeClicked")} {r.guide.nudgeClicked} (
+					{pct(r.guide.nudgeShown === 0 ? null : r.guide.nudgeClicked / r.guide.nudgeShown)})
+				</p>
 				<p style={{ color: "var(--theme-elevation-600)" }}>{say("guideNote")}</p>
 			</section>
 		</Shell>

@@ -6,11 +6,17 @@ import { z } from "zod";
 /**
  * The guide's daily totals, sent to the CMS's reading counters (`POST /api/analytics/ingest`,
  * `Authorization: Bearer ANALYTICS_INGEST_TOKEN`, the blog collector's contract): how many
- * questions were asked today, per brand and locale, and how many the knowledge could not answer.
+ * questions were asked today, per brand and locale, how many the knowledge could not answer, and
+ * how the invitation fares (the capsule opened, the nudge shown, the nudge clicked).
  * Never the question, never who asked. A visitor with Do-Not-Track or GPC is not counted, nor a
  * crawler or a prefetch (the blog's rule).
  */
-export type GuideMetric = "guide_asked" | "guide_unanswered";
+export type GuideMetric =
+	| "guide_asked"
+	| "guide_unanswered"
+	| "guide_opened"
+	| "guide_nudge_shown"
+	| "guide_nudge_clicked";
 export type CountBrand = "psizone" | "eqsync" | "hemisync";
 
 export interface GuideCountReporter {
@@ -32,16 +38,25 @@ export function mayCountRequest(h: Headers): boolean {
 	return ua !== "" && !BOTS.test(ua);
 }
 
-const countable = new AsyncLocalStorage<boolean>();
+const scope = new AsyncLocalStorage<{ countable: boolean; path: string }>();
 
-/** Marks each request countable or not; mount before the routes that ask the guide. */
+/**
+ * Marks each request countable or not, and remembers its path for the page being rendered (the
+ * compass's nudge fits the page); mount before the routes that ask the guide.
+ */
 export function countingScope(): MiddlewareHandler {
-	return (c, next) => countable.run(mayCountRequest(c.req.raw.headers), next);
+	return (c, next) =>
+		scope.run({ countable: mayCountRequest(c.req.raw.headers), path: c.req.path }, next);
 }
 
 /** Outside a request (a test, a script) nothing is counted. */
 export function mayCountNow(): boolean {
-	return countable.getStore() === true;
+	return scope.getStore()?.countable === true;
+}
+
+/** The path of the request being rendered ("/" outside one). */
+export function currentPath(): string {
+	return scope.getStore()?.path ?? "/";
 }
 
 export function createGuideCountReporter(o: {

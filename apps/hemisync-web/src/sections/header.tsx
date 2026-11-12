@@ -1,10 +1,11 @@
-import { STAFF_LINK_PATH } from "@psi/site-control";
+import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
 import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
+import { hemisyncInvite } from "../invite";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
 import { href } from "../routes";
@@ -140,6 +141,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				groups={groups}
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
+				invite={hemisyncInvite(locale, currentPath())}
 				chat={{
 					storageKey: "psi.chat.hemisync",
 					suggestions: copy.chips,

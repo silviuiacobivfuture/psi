@@ -1,4 +1,4 @@
-import { STAFF_LINK_PATH } from "@psi/site-control";
+import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
 import { Compass, type CompassGroup, Masthead, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
@@ -10,6 +10,7 @@ import { dateline } from "../dates";
 import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
 import { at, type Locale } from "../i18n";
+import { blogInvite } from "../invite";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
 import { routes } from "../routes";
@@ -97,6 +98,7 @@ export function Header({
 				groups={compassGroups(locale)}
 				guideAction={`${routes.guide(locale)}?target=compass-answer`}
 				answerId="compass-answer"
+				invite={blogInvite(locale, currentPath())}
 				chat={{
 					storageKey: "psi.chat.blog",
 					suggestions: copy.chips,

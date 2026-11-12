@@ -1,0 +1,161 @@
+/*
+ * What makes the compass noticed: the label on the capsule's upper edge, the example questions in
+ * the field, and the nudge, a small speech bubble that rises above the capsule once per session.
+ * The words are the server's; the page script only unhides the bubble.
+ */
+
+/* ---------- The label ---------- */
+
+.pz-compass__invite {
+	position: absolute;
+	top: -13px;
+	left: 62px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	max-width: calc(100% - 96px);
+	height: 26px;
+	padding: 0 12px 0 10px;
+	border: 1px solid var(--pz-aura-edge);
+	border-radius: var(--radius-pill);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 650 12.5px / 1 var(--pz-label);
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	cursor: pointer;
+	transition:
+		opacity 0.25s,
+		translate 0.3s;
+}
+.pz-compass__invite-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--pz-aura-edge);
+}
+/* While the field is in use, or the nudge speaks, the label is quiet. */
+.pz-compass.is-open .pz-compass__invite,
+.pz-compass.is-nudging .pz-compass__invite,
+.pz-compass__bar:focus-within .pz-compass__invite,
+.pz-compass__bar:has(.pz-compass__input:not(:placeholder-shown)) .pz-compass__invite {
+	opacity: 0;
+	translate: 0 6px;
+	pointer-events: none;
+}
+@media (max-width: 640px) {
+	.pz-compass__invite {
+		left: 54px;
+		max-width: calc(100% - 76px);
+	}
+}
+
+/* ---------- The example questions ---------- */
+
+.pz-compass__input::placeholder {
+	color: var(--ink-muted);
+	transition: opacity 0.24s ease;
+}
+.pz-compass__input.is-swapping::placeholder {
+	opacity: 0;
+}
+
+/* ---------- The nudge ---------- */
+
+.pz-compass__nudge {
+	width: min(720px, 100%);
+	display: flex;
+	justify-content: flex-start;
+	padding-left: 18px;
+	pointer-events: none;
+}
+.pz-compass__nudge[hidden],
+.pz-compass.is-open .pz-compass__nudge,
+.pz-compass.is-yielding .pz-compass__nudge {
+	display: none;
+}
+.pz-compass__nudge-card {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	max-width: min(440px, 100%);
+	border: 1px solid var(--pz-aura-edge);
+	border-radius: 20px 20px 20px 6px;
+	background: var(--surface-1);
+	box-shadow: var(--shadow-float);
+	pointer-events: auto;
+	animation: pz-nudge-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* The tail, towards the orb. */
+.pz-compass__nudge-card::after {
+	content: "";
+	position: absolute;
+	left: 22px;
+	bottom: -7px;
+	width: 12px;
+	height: 12px;
+	border-right: 1px solid var(--pz-aura-edge);
+	border-bottom: 1px solid var(--pz-aura-edge);
+	background: var(--surface-1);
+	rotate: 45deg;
+}
+.pz-compass__nudge-ask {
+	flex: 1;
+	min-width: 0;
+	padding: 14px 4px 14px 18px;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	font: 500 15px / 1.4 var(--pz-body);
+	text-align: left;
+	cursor: pointer;
+}
+.pz-compass__nudge-ask:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.pz-compass__nudge-close {
+	flex: none;
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	margin: 6px 6px 0 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--ink-muted);
+	cursor: pointer;
+}
+.pz-compass__nudge-close:hover {
+	background: var(--surface-2);
+}
+@keyframes pz-nudge-rise {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.97);
+	}
+}
+@media (max-width: 640px) {
+	.pz-compass__nudge {
+		padding-left: 8px;
+	}
+	.pz-compass__nudge-ask {
+		font-size: 14.5px;
+	}
+}
+[data-finish="flat"] .pz-compass__nudge-card {
+	box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+	.pz-compass__nudge-card {
+		animation: none;
+	}
+	.pz-compass__invite {
+		transition: none;
+	}
+}

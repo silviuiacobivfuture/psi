@@ -5,6 +5,9 @@ import { countingGuide, type GuideCounters, guideCountsFromEnv } from "@psi/site
 import { devLog } from "@psi/ui";
 import { aiSettings } from "./ai-settings";
 
+/** The CMS's reading counters (CMS_URL, ANALYTICS_INGEST_TOKEN): the day's questions, and how the invitation fares. */
+export const guideCounts = guideCountsFromEnv(process.env, "hemisync");
+
 /**
  * The one guide this site talks to: Hemi-Sync România's Mastra agent on OpenRouter (OPENROUTER_API_KEY),
  * reading the knowledge base at PSI_KNOWLEDGE_DB_URL (local default: .data/knowledge.db, seeded by
@@ -31,6 +34,5 @@ export const guide: Guide & GuideCounters = countingGuide(
 		// The store's and the embedder's connections open at boot, not on the first visitor's turn.
 		warmUp: true,
 	}),
-	// The day's question totals go to the CMS's reading counters (CMS_URL, ANALYTICS_INGEST_TOKEN).
-	{ reporter: guideCountsFromEnv(process.env, "hemisync") },
+	{ reporter: guideCounts },
 );

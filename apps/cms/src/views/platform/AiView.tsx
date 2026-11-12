@@ -23,10 +23,18 @@ const Counters = z.object({
 	docs: z.array(z.object({ metric: z.string(), count: z.number() }).passthrough()),
 });
 
-async function unanswered30(
+const GUIDE_METRICS = [
+	"guide_asked",
+	"guide_unanswered",
+	"guide_opened",
+	"guide_nudge_shown",
+	"guide_nudge_clicked",
+];
+
+async function guide30(
 	props: AdminViewServerProps,
 	brand: Brand,
-): Promise<{ asked: number; unanswered: number }> {
+): Promise<{ asked: number; unanswered: number; opened: number; shown: number; clicked: number }> {
 	const { req } = props.initPageResult;
 	const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
 	const page = Counters.parse(
@@ -36,7 +44,7 @@ async function unanswered30(
 				and: [
 					{ brand: { equals: brand } },
 					{ day: { greater_than_equal: since } },
-					{ metric: { in: ["guide_asked", "guide_unanswered"] } },
+					{ metric: { in: GUIDE_METRICS } },
 				],
 			},
 			pagination: false,
@@ -48,7 +56,13 @@ async function unanswered30(
 	);
 	const sum = (m: string) =>
 		page.docs.filter((d) => d.metric === m).reduce((n, d) => n + d.count, 0);
-	return { asked: sum("guide_asked"), unanswered: sum("guide_unanswered") };
+	return {
+		asked: sum("guide_asked"),
+		unanswered: sum("guide_unanswered"),
+		opened: sum("guide_opened"),
+		shown: sum("guide_nudge_shown"),
+		clicked: sum("guide_nudge_clicked"),
+	};
 }
 
 async function settingsOf(props: AdminViewServerProps, brand: Brand): Promise<AiSettings | null> {
@@ -99,7 +113,13 @@ export async function AiView(props: AdminViewServerProps): Promise<ReactElement>
 		control?.agent(actor) ?? null,
 		control?.status(actor) ?? null,
 		settingsOf(props, brand),
-		unanswered30(props, brand).catch(() => ({ asked: 0, unanswered: 0 })),
+		guide30(props, brand).catch(() => ({
+			asked: 0,
+			unanswered: 0,
+			opened: 0,
+			shown: 0,
+			clicked: 0,
+		})),
 		questionsSince(req, today()).catch((): Partial<Record<Brand, Questions>> => ({})),
 	]);
 	const kb = status?.ok ? status.data.knowledge : null;
@@ -224,6 +244,9 @@ export async function AiView(props: AdminViewServerProps): Promise<ReactElement>
 				<p>
 					{say("unanswered30")}: {counted.unanswered} / {counted.asked}
 					{` · ${say("todayQuestions")}: ${todayQ.asked} (${todayQ.unanswered} ${say("todayUnanswered")})`}
+				</p>
+				<p>
+					{say("uptake30")}: {counted.opened} / {counted.shown} / {counted.clicked}
 				</p>
 			</section>
 			{operator && control !== null ? (

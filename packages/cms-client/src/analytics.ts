@@ -15,6 +15,9 @@ export const METRICS = [
 	"depth_100",
 	"guide_asked",
 	"guide_unanswered",
+	"guide_opened",
+	"guide_nudge_shown",
+	"guide_nudge_clicked",
 ] as const;
 export const MetricSchema = z.enum(METRICS);
 export type Metric = z.infer<typeof MetricSchema>;

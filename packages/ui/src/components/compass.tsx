@@ -17,11 +17,13 @@ import {
 	suggest,
 	UNPICK,
 } from "./compass-actions";
+import { type CompassInvite, InviteLabel, Nudge } from "./compass-invite";
 import { type CompassGroup, matches, STAFF_KEYWORDS, staffFilter } from "./compass-match";
 import { jsString } from "./guide-exchange";
 import { GuideMessage } from "./guide-message";
 import { ArrowIcon } from "./icons";
 
+export type { CompassInvite, CompassNudge } from "./compass-invite";
 export {
 	type CompassGroup,
 	type CompassItem,
@@ -96,6 +98,12 @@ export interface CompassProps {
 	 * validated query, never from free text.
 	 */
 	startWith?: string;
+	/**
+	 * What makes the capsule noticed: its label, the example questions the field cycles through and
+	 * the page's one nudge (the first placeholder replaces `placeholder` on screen; `placeholder`
+	 * stays the field's accessible name).
+	 */
+	invite?: CompassInvite;
 	class?: string;
 }
 
@@ -212,14 +220,22 @@ export function Compass({
 	staffLink,
 	staffKeywords = STAFF_KEYWORDS,
 	startWith,
+	invite,
 	class: className,
 }: CompassProps): JSX.Element {
 	const { labels } = chat;
-	const placeholders = `$compassChat ? ${JSON.stringify(labels.placeholder)} : ${JSON.stringify(placeholder)}`;
+	const shown = invite?.placeholders[0] ?? placeholder;
+	const placeholders = `$compassChat ? ${JSON.stringify(labels.placeholder)} : ${JSON.stringify(shown)}`;
 	return (
 		<nav
 			class={cx("pz-compass", className)}
 			aria-label={label}
+			{...(invite === undefined
+				? {}
+				: {
+						"data-invite-key": chat.storageKey,
+						...(invite.signalUrl === undefined ? {} : { "data-signal-url": invite.signalUrl }),
+					})}
 			data-signals={SIGNALS}
 			data-init={
 				startWith === undefined
@@ -326,12 +342,14 @@ export function Compass({
 					</div>
 				) : null}
 			</div>
+			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
 			<form
 				class="pz-compass__bar pz-edge"
 				aria-controls={answerId}
 				data-on:submit__prevent={submit(guideAction)}
 				data-on:psi-guide-ask={askEvent(guideAction)}
 			>
+				{invite ? <InviteLabel label={invite.label} /> : null}
 				<button
 					type="button"
 					class="pz-compass__orb"
@@ -347,7 +365,10 @@ export function Compass({
 					rows={1}
 					maxlength={500}
 					data-bind="compassQuery"
-					placeholder={placeholder}
+					placeholder={shown}
+					{...(invite !== undefined && invite.placeholders.length > 1
+						? { "data-cycle": JSON.stringify(invite.placeholders) }
+						: {})}
 					data-attr:placeholder={placeholders}
 					aria-label={placeholder}
 					autocomplete="off"

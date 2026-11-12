@@ -28,7 +28,9 @@ export {
 	type CompassChat,
 	type CompassChatLabels,
 	type CompassGroup,
+	type CompassInvite,
 	type CompassItem,
+	type CompassNudge,
 	type CompassProps,
 	fold,
 } from "./components/compass";
@@ -172,6 +174,7 @@ export {
 	streamGuideAnswer,
 	TURNS_SIGNAL,
 } from "./guide-stream";
+export { barePath } from "./invite-path";
 export {
 	createPageRegistry,
 	type PageRegistry,

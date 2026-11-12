@@ -436,7 +436,21 @@
 	"compass_tab_pages": "Pages",
 	"compass_views": "Guide or pages",
 	"compass_new_message": "New message",
-	"compass_chat_placeholder": "Write a message…",
+	"compass_chat_placeholder": "What would you like to explore?",
 	"compass_suggestions": "Ask the guide",
-	"logo_endorsement": "by Psizone"
+	"logo_endorsement": "by Psizone",
+	"invite_label": "Where to begin? Ask the guide",
+	"invite_ph_1": "What would you like to explore?",
+	"invite_ph_2": "Which programme should I start with?",
+	"invite_ph_3": "What is a Focus level?",
+	"invite_ph_programme": "Ask which programme suits you…",
+	"invite_close": "Dismiss the invitation",
+	"nudge_home": "Where to begin? Tell me what you would like to explore and I will show you a programme.",
+	"nudge_programme": "Looking for a programme? Tell me what you would like to explore.",
+	"nudge_contact": "Shall I help you choose a programme or a workshop?",
+	"nudge_page": "Would you like a short explanation of this page?",
+	"nudge_q_home": "Which programme should I start with?",
+	"nudge_q_programme": "Which programme suits me for a first step?",
+	"nudge_q_contact": "I would like to join a programme. Can you help me choose?",
+	"nudge_q_page": "Briefly explain this page to me."
 }

@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { decodeSlot } from "@psi/guide";
+import { guideSignal } from "@psi/site-control";
 import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
@@ -28,7 +29,7 @@ import { registerContentPages } from "./content-routes";
 import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
-import { guide } from "./guide-client";
+import { guide, guideCounts } from "./guide-client";
 import { at, type Locale } from "./i18n";
 import { pageRegistry, pageResolver } from "./page-context";
 import { ContactPage } from "./pages/contact";
@@ -282,6 +283,8 @@ for (const [locale, prefix] of [
 			/>,
 		);
 	});
+	// What the compass reports about its invitation: opened, nudge shown, nudge clicked (counters only).
+	app.post(`${prefix}/ghid/signal`, guideSignal({ reporter: guideCounts, locale }));
 	// The guide: a question streams its answer; the compass also restores and resets its chat here.
 	app.post(`${prefix}/ghid`, async (c) => {
 		// Signed in: the in-chat form is pre-filled, and the guide remembers only with consent.

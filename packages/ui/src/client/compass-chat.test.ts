@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { compileClient, generatedModule } from "./build";
+import { CLIENT_SOURCES, compileClients, generatedModule } from "./build";
 import { COMPASS_CHAT_JS } from "./compass-chat.generated";
 
 interface Chat {
@@ -274,15 +274,14 @@ describe("the compass chat's kept conversation", () => {
 
 describe("the inlined bundle", () => {
 	it("is compiled from the current source (run `pnpm --filter @psi/ui build:client`)", () => {
-		const source = readFileSync(
-			fileURLToPath(new URL("./compass-chat.ts", import.meta.url)),
-			"utf8",
+		const sources = CLIENT_SOURCES.map((f) =>
+			readFileSync(fileURLToPath(new URL(`./${f}`, import.meta.url)), "utf8"),
 		);
 		const generated = readFileSync(
 			fileURLToPath(new URL("./compass-chat.generated.ts", import.meta.url)),
 			"utf8",
 		);
-		expect(generated).toBe(generatedModule(compileClient(source)));
+		expect(generated).toBe(generatedModule(compileClients(sources)));
 		expect(COMPASS_CHAT_JS).not.toContain("</script");
 	});
 });
