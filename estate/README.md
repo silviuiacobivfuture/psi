@@ -8,6 +8,7 @@ What makes this repository THIS estate, and how it consumes SEB.
 | `theme.env`                      | the estate's look as SEB's builds take it (declaration, stylesheet, hub clients, model, sign-in theme); every key required, SEB has no default estate |
 | `authz.json`                     | inputs to SEB's permissions generator: the platform's manifest plus every `apps/*/authz.manifest.json`                                |
 | `platform.lock`                  | the SEB release this estate runs, and the digest of its bundle in the estate's Harbor                                                 |
+| `cluster-ca-<env>.pem`           | the estate's record of its cluster's certificate authority (SEB `cluster-ca.sh --record`): every lifecycle script refuses a cluster that does not publish it. Public, not a secret |
 | `seb-pieces.<env>`               | which SEB pieces each environment runs                                                                                                |
 | `seb-components/`                | the estate's own components for the pieces that read one                                                                              |
 | `seb-bundle-install.mjs`, `lib/` | installs the locked bundle into `.seb-bundle/` (run by `pnpm install` and by CI)                                                      |
