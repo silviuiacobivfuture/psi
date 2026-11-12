@@ -154,7 +154,7 @@ data:
     $config['plugins'] = array_values(array_unique(array_merge($config['plugins'] ?? [], ['estate_theme'])));
     // The estate's mark, when its layer supplies one (components/estate/stalwart): logo.svg, and
     // logo-dark.svg for the skin's dark mode.
-    $theme = '/var/www/html/plugins/estate_theme/';
+    $theme = '/var/roundcube/estate_theme/';
     if (is_file($theme . 'logo.svg')) {
         $config['skin_logo'] = ['elastic:*' => 'plugins/estate_theme/logo.svg'];
         if (is_file($theme . 'logo-dark.svg')) {
@@ -163,7 +163,21 @@ data:
     }
 kind: ConfigMap
 metadata:
-  name: webmail-config-4bg46d9f88
+  name: webmail-config-94kdb7bttm
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  link-theme.sh: |
+    #!/bin/sh
+    # Roundcube image post-setup task: the estate's theme plugin joins the copied docroot. It is
+    # mounted beside it (/var/roundcube/estate_theme), never inside: a mount inside the docroot makes
+    # the kubelet create plugins/ as root, and the image (running as www-data) then cannot copy itself.
+    set -e
+    ln -sfn /var/roundcube/estate_theme /var/www/html/plugins/estate_theme
+kind: ConfigMap
+metadata:
+  name: webmail-tasks-g454fk8h58
   namespace: stalwart
 ---
 apiVersion: v1
@@ -516,8 +530,11 @@ spec:
         volumeMounts:
         - mountPath: /var/www/html
           name: html
-        - mountPath: /var/www/html/plugins/estate_theme
+        - mountPath: /var/roundcube/estate_theme
           name: theme
+          readOnly: true
+        - mountPath: /entrypoint-tasks/post-setup
+          name: tasks
           readOnly: true
         - mountPath: /var/roundcube/config
           name: config
@@ -586,7 +603,7 @@ spec:
           name: webmail-theme-d69m8448dg
         name: theme
       - configMap:
-          name: webmail-config-4bg46d9f88
+          name: webmail-config-94kdb7bttm
         name: config
       - name: data
         persistentVolumeClaim:
@@ -603,6 +620,10 @@ spec:
       - configMap:
           name: webmail-apache-6k69b564th
         name: apache
+      - configMap:
+          defaultMode: 365
+          name: webmail-tasks-g454fk8h58
+        name: tasks
 ---
 apiVersion: batch/v1
 kind: CronJob
