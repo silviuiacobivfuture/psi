@@ -87,27 +87,28 @@ describe("a second consumer, with its own profiles", () => {
 		expect(knowledge.calls[0]).toMatchObject({ scope: "bikes", locale: "en", topK: 5 });
 		const system = systemText(server.requests[0]);
 		expect(system).toContain("You are the Harbour Bikes helper");
-		expect(system).toContain("5. Never give legal or insurance advice");
+		expect(system).toContain("8. Never give legal or insurance advice");
 		expect(system).toContain("(booking a bike, visiting the desk)");
 		expect(system).not.toMatch(/psi|psizone|hemi|eq-sync/i);
 	});
 
-	it("refuses with its own crisis and scope rules, before any search", async () => {
-		const { engine, knowledge, server } = await engineWith([{ kind: "text", chunks: ["x"] }]);
+	it("refuses with its own crisis rules before any search; steers its scope in conversation", async () => {
+		const { engine, knowledge, server } = await engineWith([
+			{ kind: "text", chunks: ["That is one for a lawyer; I can help with renting a bike."] },
+		]);
 		const bikes = engine.guide("harbour-bikes");
 		expect(
 			shape(
 				await collect(bikes.ask({ question: "My friend crashed and is bleeding", locale: "en" })),
 			),
 		).toEqual(["refusal:crisis", "done"]);
-		expect(
-			shape(await collect(bikes.ask({ question: "Can I sue the rental?", locale: "en" }))),
-		).toEqual(["refusal:out_of_scope", "done"]);
 		expect(knowledge.calls).toHaveLength(0);
 		expect(server.requests).toHaveLength(0);
+		const scope = await collect(bikes.ask({ question: "Can I sue the rental?", locale: "en" }));
+		expect(shape(scope)).toEqual(["thinking", "text", "done"]);
 	});
 
-	it("stops an answer that breaks its cross-reference rule mid-stream", async () => {
+	it("leaves out the sentence that breaks its cross-reference rule", async () => {
 		const { engine } = await engineWith([
 			{
 				kind: "text",
@@ -120,8 +121,9 @@ describe("a second consumer, with its own profiles", () => {
 		const events = await collect(
 			engine.guide("harbour-bikes").ask({ question: "Can my kids rent a bike?", locale: "en" }),
 		);
-		expect(shape(events)).toEqual(["thinking", "text", "refusal:out_of_scope", "done"]);
-		expect(answerText(events)).not.toMatch(/motorbike/);
+		// Streamed, regenerated once (a `replace` resets it), then corrected without the sentence.
+		expect(shape(events).slice(-3)).toEqual(["replace", "sources", "done"]);
+		expect(answerText(events)).toBe("Bikes are rented by the hour at the harbour desk [1].");
 	});
 
 	it("speaks a language it added itself, with that pack's prompt and rules", async () => {
@@ -274,7 +276,8 @@ describe("failing cleanly", () => {
 		);
 		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
 		expect(server.screenings).toHaveLength(2);
-		expect(server.requests).toHaveLength(1);
+		// The answer model is tried twice: unavailable only after its retry.
+		expect(server.requests).toHaveLength(2);
 		expect(failures.map((f) => f.stage)).toEqual(["screening", "model"]);
 		expect(failures[0]?.error).toContain("(HTTP 402): the OpenRouter key has no credits");
 	});

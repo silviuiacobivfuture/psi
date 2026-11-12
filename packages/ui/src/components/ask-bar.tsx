@@ -35,6 +35,7 @@ export function AskBar({
 				data-signals:question__ifmissing="''"
 				data-signals__ifmissing="{guideTurns: []}"
 				data-on:submit__prevent={`$question.trim() && ${post}`}
+				data-on:psi-guide-ask={`$question = evt.detail; ${post}`}
 				data-indicator="asking"
 				aria-controls={target}
 			>

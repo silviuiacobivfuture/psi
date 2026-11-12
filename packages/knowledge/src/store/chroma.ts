@@ -12,6 +12,9 @@ import type { VectorStore } from "./types";
  */
 export const CHROMA_LIST_PAGE = 100;
 
+/** How many rows one `get` reads while the catalog is rebuilt from a collection. */
+const ROWS_PAGE = 300;
+
 /** Where the Chroma server is: the parts `ChromaClient` takes (it has no path prefix). */
 export interface ChromaEndpoint {
 	ssl: boolean;
@@ -130,6 +133,10 @@ export function chromaStore(config: ParsedChromaConfig): VectorStore {
 		async dimension(index) {
 			return (await guard(() => store.describeIndex({ indexName: index }))).dimension;
 		},
+		async describe(index) {
+			const d = await guard(() => store.describeIndex({ indexName: index }));
+			return { dimension: d.dimension, count: d.count };
+		},
 		async createIndex(index, dimension) {
 			await guard(() => store.createIndex({ indexName: index, dimension, metric: "cosine" }));
 		},
@@ -147,6 +154,18 @@ export function chromaStore(config: ParsedChromaConfig): VectorStore {
 			await guard(() =>
 				store.deleteVectors({ indexName: index, filter: { entryId: { $in: [...entryIds] } } }),
 			);
+		},
+		async rows(index) {
+			const collection = await guard(() => store.getCollection({ indexName: index }));
+			const out: unknown[] = [];
+			for (let offset = 0; ; offset += ROWS_PAGE) {
+				const page = await guard(() =>
+					collection.get({ limit: ROWS_PAGE, offset, include: ["metadatas"] }),
+				);
+				for (const m of page.metadatas) out.push(decodeChromaMetadata(m));
+				if (page.ids.length < ROWS_PAGE) break;
+			}
+			return out;
 		},
 		async query(index, vector, topK) {
 			const rows = await guard(() =>

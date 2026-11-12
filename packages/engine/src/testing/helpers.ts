@@ -9,10 +9,14 @@ export async function collect(events: AsyncIterable<EngineEvent>): Promise<Array
 	return out;
 }
 
-/** The event types in order, with consecutive `text` events folded into one. */
+/**
+ * The event types in order, with consecutive `text` events folded into one. A `thinking` with a
+ * `stage` (a progress hint while a tool runs or a reply is regenerated) is left out; see `stages`.
+ */
 export function shape(events: ReadonlyArray<EngineEvent>): Array<string> {
 	const out: Array<string> = [];
 	for (const event of events) {
+		if (event.type === "thinking" && event.stage !== undefined) continue;
 		const label = event.type === "refusal" ? `refusal:${event.reason}` : event.type;
 		if (label === "text" && out[out.length - 1] === "text") continue;
 		out.push(label);
@@ -20,9 +24,19 @@ export function shape(events: ReadonlyArray<EngineEvent>): Array<string> {
 	return out;
 }
 
-/** The streamed answer text. */
+/** The progress stages the turn announced, in order. */
+export function stages(events: ReadonlyArray<EngineEvent>): Array<string> {
+	return events.flatMap((e) => (e.type === "thinking" && e.stage !== undefined ? [e.stage] : []));
+}
+
+/** The answer text as the visitor ends up seeing it: `text` appends, `replace` resets. */
 export function answerText(events: ReadonlyArray<EngineEvent>): string {
-	return events.map((event) => (event.type === "text" ? event.delta : "")).join("");
+	let text = "";
+	for (const event of events) {
+		if (event.type === "text") text += event.delta;
+		else if (event.type === "replace") text = event.text;
+	}
+	return text;
 }
 
 const ContentSchema = z.union([z.string(), z.array(z.object({ text: z.string() })), z.null()]);

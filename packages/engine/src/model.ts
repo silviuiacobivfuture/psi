@@ -175,7 +175,17 @@ export interface ModelOptions {
 	 * dummy data only (the consumer decides when it is allowed).
 	 */
 	dataCollection?: "deny" | "allow";
+	/**
+	 * OpenRouter's `provider.sort`: among the providers the data policy allows, try the fastest
+	 * first (`latency`, the default: a chat waits for the first token), or by `throughput` or
+	 * `price`. Without a sort OpenRouter balances by price, and a slow or failing provider can hold
+	 * a turn until its fallback.
+	 */
+	sort?: ProviderSort;
 }
+
+/** How OpenRouter orders the providers it may route to. */
+export type ProviderSort = "latency" | "throughput" | "price";
 
 /**
  * An OpenRouter chat model as Mastra takes it. Routing denies providers that may store or train
@@ -188,7 +198,9 @@ export function openRouterModel(opts: ModelOptions): ChatModel {
 		...(opts.baseURL === undefined ? {} : { baseURL: opts.baseURL }),
 	});
 	return forMastra(
-		provider.chat(opts.modelId, { provider: { data_collection: opts.dataCollection ?? "deny" } }),
+		provider.chat(opts.modelId, {
+			provider: { data_collection: opts.dataCollection ?? "deny", sort: opts.sort ?? "latency" },
+		}),
 		opts.onError,
 	);
 }

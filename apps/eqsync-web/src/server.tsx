@@ -2,21 +2,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import {
-	applyIndexingPolicy,
-	parseAnswerTarget,
-	parseAskSignals,
-	questionFor,
-	streamGuideAnswer,
-} from "@psi/ui";
+import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { account, guideForRequest } from "./account";
 import { registerAccountRoutes } from "./account-routes";
 import { registerCmsRevalidate } from "./cms";
+import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
-import { ANSWER_CLASS, guideLabels } from "./guide";
+import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
 import { HomePage } from "./pages/home";
@@ -29,12 +24,17 @@ const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datasta
 const PORT = Number.parseInt(process.env.PORT ?? "4320", 10);
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+installDevLog(app);
+applyIndexingPolicy(app, process.env, {
+	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
+});
 app.use(contextStorage());
 // The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); /cont below.
 account.mount(app);
 // The installable app and its notifications (docs/plans/pwa.md): manifest, /sw.js, push API, /cont/notificari.
 registerPwa(app);
+// The control plane (the CMS's /admin/platform): signed /__control/*, /admin → there, the Compass's staff link.
+mountControl(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -64,21 +64,15 @@ for (const [locale, prefix] of [
 		);
 	});
 	registerAccountRoutes(app, locale);
-	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = parseAskSignals(await c.req.json().catch(() => null));
-		const target = parseAnswerTarget(c.req.query("target"));
-		const question = signals === null ? null : questionFor(target, signals);
-		if (question === null) return c.body(null, 204);
-		return streamGuideAnswer(c, {
-			guide: await guideForRequest(c, guide),
+	// The guide: a question streams its answer; the compass also restores and resets its chat here.
+	app.post(`${prefix}/ghid`, (c) =>
+		answerGuidePost(c, {
 			locale,
-			question,
-			target,
-			signals,
 			labels: guideLabels(locale),
-			class: ANSWER_CLASS,
-		});
-	});
+			guide: () => guideForRequest(c, guide),
+			memory: () => accountMemory(account, c, "eqsync"),
+		}),
+	);
 }
 registerPages(app);
 

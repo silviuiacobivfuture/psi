@@ -17,27 +17,30 @@ import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ESTATE, SITE, siteNames } from "./estate";
 import type { Locale } from "./i18n";
+import { phones, postalAddress, socialLinks } from "./site-settings";
 import type { Theme } from "./theme";
 
 const ORIGIN = ESTATE[SITE];
 
 /**
  * Psizone's public facts, exactly as the live psizone.ro/contact published them (read 2026-11-11,
- * docs/plans/psizone-web.md §0.5). The address is an open owner question (Gen. Alexandru Cernat 126
- * on the live site, Al. I. Cuza 72 in the 2024 press); no postal code, hours or legal name exist yet.
+ * docs/plans/psizone-web.md §0.5), with the phones, address and social profiles the owners set in
+ * the CMS (site-settings.ts; unset = these). No postal code, hours or legal name exist yet.
  */
-const PSIZONE: OrganizationFacts = {
-	type: "MedicalClinic",
-	name: "Psizone",
-	url: `${ORIGIN}/`,
-	telephones: ["+40748017752", "+40752466792"],
-	address: {
-		streetAddress: "Str. General Alexandru Cernat nr. 126",
-		addressLocality: "Galați",
-		addressCountry: "RO",
-	},
-	taxID: "39469941",
-};
+function organization(): JsonLdNode {
+	const facts: OrganizationFacts = {
+		type: "MedicalClinic",
+		name: "Psizone",
+		url: `${ORIGIN}/`,
+		telephones: phones().map((p) => p.tel),
+		address: postalAddress(),
+		taxID: "39469941",
+	};
+	// `organizationJsonLd` has no social field yet; schema.org's is `sameAs`, printed only when set.
+	const sameAs = socialLinks().map((s) => s.url);
+	const org = organizationJsonLd(facts);
+	return sameAs.length === 0 ? org : { ...org, sameAs };
+}
 
 /** canonical, hreflang, Open Graph, Twitter, theme-color and JSON-LD for one page. */
 export function SiteHead({
@@ -55,7 +58,7 @@ export function SiteHead({
 }): JSX.Element {
 	const page = localisedPage(ORIGIN, locale, alternate);
 	const name = siteNames(locale)[SITE];
-	const org = organizationJsonLd(PSIZONE);
+	const org = organization();
 	const crumbs = breadcrumbJsonLd([
 		{ name, url: page.home },
 		{ name: pageName(title, name), url: page.canonical },

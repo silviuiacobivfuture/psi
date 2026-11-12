@@ -167,6 +167,20 @@ export async function postgresStores(url: string): Promise<Stores> {
 					lastSeenAt: r.last_seen_at.getTime(),
 				};
 			},
+			async byEmail(email) {
+				const rows = await sql`SELECT subject, email, name, created_at, last_seen_at FROM account
+					WHERE lower(email) = ${email.trim().toLowerCase()} ORDER BY last_seen_at DESC LIMIT 20`;
+				return rows.map((raw) => {
+					const r = AccountRow.parse(raw);
+					return {
+						subject: r.subject,
+						email: r.email,
+						name: r.name,
+						createdAt: r.created_at.getTime(),
+						lastSeenAt: r.last_seen_at.getTime(),
+					};
+				});
+			},
 			async erase(subject) {
 				// Every account table hangs off `account` with ON DELETE CASCADE: one statement, one transaction.
 				await sql`DELETE FROM account WHERE subject = ${subject}`;

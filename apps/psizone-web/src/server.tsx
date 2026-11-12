@@ -3,13 +3,7 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { decodeSlot, SchedulingUnavailable, schedulingFromEnv } from "@psi/guide";
-import {
-	applyIndexingPolicy,
-	parseAnswerTarget,
-	parseAskSignals,
-	questionFor,
-	streamGuideAnswer,
-} from "@psi/ui";
+import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
@@ -31,6 +25,7 @@ import { accountLine, bookingAccount, guideForRequest } from "./booking-account"
 import { registerCmsRevalidate } from "./cms";
 import { HUBS } from "./content/hubs";
 import { registerContentPages } from "./content-routes";
+import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
@@ -91,12 +86,17 @@ function formFields(body: Record<string, unknown>): Record<string, string> {
 }
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+installDevLog(app);
+applyIndexingPolicy(app, process.env, {
+	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
+});
 app.use(contextStorage());
 // The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); /cont below.
 account.mount(app);
 // The installable app and its notifications (docs/plans/pwa.md): manifest, /sw.js, push API, /cont/notificari.
 registerPwa(app);
+// The control plane (the CMS's /admin/platform): signed /__control/*, /admin → there, the Compass's staff link.
+mountControl(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -317,20 +317,18 @@ for (const [locale, prefix] of [
 			/>,
 		);
 	});
+	// The guide: a question streams its answer; the compass also restores and resets its chat here.
 	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = parseAskSignals(await c.req.json().catch(() => null));
-		const target = parseAnswerTarget(c.req.query("target"));
-		const question = signals === null ? null : questionFor(target, signals);
-		if (question === null) return c.body(null, 204);
 		// Signed in: the in-chat form is pre-filled, and the guide remembers only with consent.
 		const who = await bookingAccount(c, locale, "/contact");
-		return streamGuideAnswer(c, {
-			guide: await guideForRequest(c, guide),
+		return answerGuidePost(c, {
 			locale,
-			question,
-			target,
-			signals,
-			labels: guideLabels(locale, { prefill: who.prefill, ...accountLine(who) }),
+			labels: guideLabels(locale, {
+				prefill: who.prefill,
+				...accountLine(who),
+			}),
+			guide: () => guideForRequest(c, guide),
+			memory: () => accountMemory(account, c, "psizone"),
 		});
 	});
 }

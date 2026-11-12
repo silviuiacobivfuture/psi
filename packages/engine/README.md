@@ -30,7 +30,7 @@ them from its own i18n.
 | The grounded-answer flow | `@psi/engine` | `ask.ts`, `ask-screen.ts`, `ask-context.ts`, `workflow.ts` |
 | Screening: unicode, injection, abuse, PII, rate limit, Mastra detectors | `@psi/engine` | `screening/*` |
 | Language detection and per-language data (ro, en) | `@psi/engine` | `language/*` |
-| Retrieval tool, ledger and citations, per-sentence gate, faithfulness | `@psi/engine` | `grounding/*` |
+| Conversation turn, retries, claims post-check, ledger and citations, faithfulness scorer | `@psi/engine` | `converse.ts`, `grounding/*` |
 | Prompt assembly (language, voice, numbered rules) | `@psi/engine` | `prompt.ts` |
 | Memory (LibSQL threads, forgetting refused answers) | `@psi/engine` | `memory.ts` |
 | Event stream and input schema | `@psi/engine` | `events.ts`, `contract.ts` |
@@ -147,27 +147,60 @@ when it has at least two markers and twice the runner-up's; otherwise the text i
    - the abuse rules: the packs' patterns minus the profile's exemptions, on the question only;
    - Mastra's `RegexFilterProcessor`: the `pii` preset plus the packs' rules.
 
-   Then the profile's scope rules.
+   The profile's scope rules (a diagnosis, a medication) do **not** refuse: the question is
+   marked, and the agent gets a note to steer it, warmly, towards a specialist.
 2. In-chat booking (`booking.ts`): a booking question (the packs' `bookingIntent`) for a profile
    that schedules gets free times from the scheduling store as a `booking` event. No model, no
    retrieval; nothing is held or booked (the app's confirm step does that).
-3. Small talk (`small-talk.ts`): a greeting, "who are you", "can we talk", a thank-you (by
-   vocabulary, typo-tolerant) gets the profile's `welcome` or `thanks`, with no model call.
-4. The probe: one search (`EngineKnowledge.search`, the configured locale) before any model
-   call. Nothing found is `no_content`, or the welcome when the question names no topic. The
-   probe's passages are **not** shown to the model and not citable.
-5. At the `strict` screening level only: Mastra's `PromptInjectionDetector` and
+3. At the `strict` screening level only: Mastra's `PromptInjectionDetector` and
    `ModerationProcessor`, in parallel, both failing open.
-6. The profile's agent, with its hydrated tools (below). It learns content only through them;
-   every passage a tool returns is registered in this answer's ledger.
-7. The per-sentence gate, for each sentence: the sentinel, the profile's cross-reference rules,
-   the language, and faithfulness against every passage shown this turn (exact figures and
-   names; an unsupported sentence that invents nothing is left out, an invented fact or promise
-   stops the answer). Nothing goes out before the first citing sentence; the separators between
-   sentences (spaces, paragraph breaks) go out exactly as the model wrote them.
-8. The scorer on what went out (reported through `onScore`, with `dropped`); the gate decides.
+4. **The conversation** (`converse.ts`): the profile's agent, with its persona and voice, the
+   locale instruction, the last 10 turns of history and its hydrated tools (below). **The model
+   decides** when to look things up: a greeting, small talk, a test, a typo, gibberish, a
+   feeling, thanks or a meta question gets a short conversational reply (1-3 sentences, varied,
+   offering help; it may call `listTopics` to suggest topics); a factual question (services,
+   method, programmes, prices, hours, contact, conditions) must go through `searchKnowledge`,
+   `servicesList`, `contactDetails`, `findPage` or `getEntry` first and cite what they return as
+   `[n]`. There is no probe and no per-sentence gate. The reply **streams** as the model writes
+   it (a citation is never cut in two; text before a tool call is reset). The finished reply is
+   then checked, and a failed check shows as a `replace` event (`{ type: "replace", text }`:
+   reset the message's text to `text`; later `text` events append), `""` before a regenerated
+   reply streams in, or the corrected full text when sentences were left out. The rules are in
+   the prompt, so a check rarely fires; each firing is reported (stage `check`, counts only):
+   - **Language** (judged after the first 80 characters, so a wrong-language reply stops early):
+     not in the locale, it is regenerated once with a stricter note; still not,
+     the profile's canned line goes out (never `unavailable`).
+   - **Claims** (`grounding/claims-check.ts`): a sentence with a figure (a number, a price, a
+     phone number, a date, a time) or a clinical, "free" or effect term (the packs' `factTerms`
+     and `claimMarkers`) that no tool result, topic list or profile text carries is flagged, as is
+     a sentence breaking a cross-reference rule. Flagged: regenerated once with "only facts from
+     the tool results"; still flagged, those sentences are left out; nothing left, the profile's
+     `unknown` line ("I couldn't find that in our pages; our team can tell you").
+   - **Grammar** (the packs' `grammarErrors`: in Romanian "pot" + an indicative, "ghidesc",
+     "îmi pare că"): regenerated once with the pack's `grammar` note, then left out.
+   - **Repeat**: identical to the previous reply, regenerated once; a closing question already
+     asked in the conversation is left out without a regeneration.
+   - **Provider failure** (network, 5xx, a timeout, an unfinished reply): retried once; then a
+     small-talk turn gets the profile's canned `welcome`, `followUp` or `thanks`, any other turn
+     `unavailable`. At most two model calls per turn.
+5. The scorer on a cited reply, reported through `onScore` (never shown, never deciding).
 
-The flow stays a stream, because the gate decides sentence by sentence what may go out.
+While the agent works, `thinking` carries an optional `stage`: `searching` when a tool call
+starts, `checking` before a regeneration (additive: an app may ignore it). Every turn reports
+where its time went through `onTiming` (`EngineTiming`, counts and milliseconds only): the
+screen, each model call's first provider chunk, first text, rounds and length, each tool call's
+time and result count, and the outcome. The sites log it as `guide.timing` in the local debug log.
+
+Latency: OpenRouter routes by `provider.sort: "latency"` by default (`model.sort`; the guide reads
+`PSI_OPENROUTER_SORT`), within the data policy; a model call whose provider sends nothing within
+8 s is retried at once; the agent is asked to make several tool calls in one round (Mastra runs
+them concurrently); `ProfileGuide.warm()` (the guide's `warmUp: true`) opens the store's and the
+embedder's connections at boot. In `@psi/knowledge`, a search reuses the index list for 60 s and
+a query's embedding (the 256 most recent), and the catalog refreshes in the background once a
+mirror exists.
+
+An aborted turn (the visitor sent a newer question, or left) ends with `done` alone: it renders
+nothing, is not reported and is never `unavailable`. The canned lines are only fallbacks.
 `grounded-answer` (`workflow.ts`) is the same flow as a one-step Mastra workflow. Its input is
 `{ profile, question, locale }` and its output is
 `{ answer, sources, refusal, events }`, so Studio and any Mastra client can run it.
@@ -238,8 +271,8 @@ store's own model (`PSI_EMBED_MODEL`).
 | Unicode cleaning, look-alike folding | yes | yes | no |
 | Injection and abuse rules | yes | yes | no |
 | PII redaction | yes | yes | no |
-| Scope rules (diagnosis, medication, treatment) | yes | yes | no |
-| Accuracy gate and faithfulness | yes | yes | no |
+| Scope rules (diagnosis, medication, treatment): steered in conversation | yes | yes | no |
+| Claims post-check (figures, clinical terms) | yes | yes | no |
 | Mastra `PromptInjectionDetector` (model) | no | yes, fails open | level |
 | Mastra `ModerationProcessor` (model) | no | yes, fails open | level |
 
@@ -257,7 +290,7 @@ stored raw (`PSI_GUIDE_FINGERPRINT_SECRET` derives the salt when instances share
 ### Conversation mode (`@psi/ui`, `@psi/guide`)
 
 The page keeps the turns in a Datastar signal (`guideTurns`, `compassTurns`): earlier turns show
-above the question, the last 6 answered turns go to `ask` as `history`, refused turns stay
+above the question, the last 10 answered turns go to `ask` as `history`, refused turns stay
 visible but are never sent. Nothing is stored on the server; memory (`threadId`) stays
 consent-only.
 
@@ -301,12 +334,12 @@ that still holds them never shows them.
 
 | Situation | Answer | `onFailure` |
 | --- | --- | --- |
-| No OpenRouter key | `unavailable`, before retrieval | `model`: `ConfigurationError: no OpenRouter API key (OPENROUTER_API_KEY)` |
+| No OpenRouter key | small talk: the canned line; otherwise `unavailable` | `model`: `ConfigurationError: no OpenRouter API key (OPENROUTER_API_KEY)` |
 | A key without credits, model screening on | `unavailable`, after retrieval, before the answer model | `screening`: `ProviderError: AI_APICallError (HTTP 402): the OpenRouter key has no credits for this model` |
 | The same, model screening off | `unavailable` | `model`: the same 402 text |
-| OpenRouter embeddings without credits (`@psi/knowledge` picks them when a key is set) | `unavailable` | `retrieval`: `AI_APICallError: Insufficient credits…` |
-| Chroma without a token, or with a wrong one | `unavailable` (never `no_content`) | `retrieval`: `ChromaAccessError: Chroma at <origin> requires a token (HTTP 401): set CHROMA_API_KEY`, or `… refused the token (HTTP 401): CHROMA_API_KEY is not the server's token` |
-| Chroma unreachable | `unavailable` | `retrieval`: `ChromaAccessError: Chroma at <origin> is unreachable: check CHROMA_URL` |
+| OpenRouter embeddings without credits (`@psi/knowledge` picks them when a key is set) | the search falls back to the lexical tier | `retrieval`: `AI_APICallError: Insufficient credits…` |
+| Chroma without a token, or with a wrong one | the search tool fails; the agent replies without facts | `retrieval`: `ChromaAccessError: Chroma at <origin> requires a token (HTTP 401): set CHROMA_API_KEY`, or `… refused the token (HTTP 401): CHROMA_API_KEY is not the server's token` |
+| Chroma unreachable | the same | `retrieval`: `ChromaAccessError: Chroma at <origin> is unreachable: check CHROMA_URL` |
 
 Statuses 401, 403 and 429 from OpenRouter are named the same way. No message carries a key or a
 token.
@@ -394,8 +427,8 @@ curl -s -X POST localhost:4360/api/workflows/groundedAnswer/start-async -H 'cont
   -d '{"inputData":{"profile":"psizone","question":"Cum vă pot suna?","locale":"ro"}}'
 ```
 
-Chatting with an agent directly in Studio skips the engine's flow (no screening, no passages, no
-gate). The workflow is the flow.
+Chatting with an agent directly in Studio skips the engine's flow (no screening, no claims
+post-check). The workflow is the flow.
 
 ## One question end to end
 

@@ -14,6 +14,26 @@ export type AppointmentEvent =
 	| { type: "expire" }
 	| { type: "reschedule" };
 
+/**
+ * Why the team declined or cancelled, as a closed list the staff console offers: administrative,
+ * never clinical, never free text (the store holds no reason for a visit, schema header).
+ */
+export const DECISION_REASONS = [
+	"practitioner_unavailable",
+	"schedule_conflict",
+	"client_request",
+	"duplicate",
+	"no_response",
+	"administrative",
+] as const;
+
+export type DecisionReason = (typeof DECISION_REASONS)[number];
+
+/** A reason is kept only for what ends a request or appointment: a decline or a cancel. */
+export function keepsReason(decision: "confirm" | "decline" | "cancel"): boolean {
+	return decision !== "confirm";
+}
+
 export type TransitionRefusal = "hold_expired" | "not_allowed";
 
 export type Transition =
@@ -29,7 +49,12 @@ export interface LifecycleState {
 const TABLE: Readonly<
 	Record<AppointmentStatus, Partial<Record<AppointmentEvent["type"], AppointmentStatus>>>
 > = {
-	held: { submit: "requested", release: "cancelled", cancel: "cancelled", expire: "expired" },
+	held: {
+		submit: "requested",
+		release: "cancelled",
+		cancel: "cancelled",
+		expire: "expired",
+	},
 	requested: {
 		confirm: "confirmed",
 		decline: "declined",

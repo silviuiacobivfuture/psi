@@ -100,18 +100,16 @@ describe("memory", () => {
 	});
 
 	it.each([
-		["refused at the end of the answer", ["Lucrăm cu psihoterapie [1]. Încearcă Hemi-Sync."]],
 		[
-			"refused mid-answer (the run is aborted)",
-			["Lucrăm cu psihoterapie [1]. ", "Încearcă Hemi-Sync. ", "Apoi ", "mai mult [1]."],
+			"regenerated for a sentence nothing supports",
+			{ kind: "text", chunks: ["Lucrăm cu psihoterapie [1]. Încearcă Hemi-Sync."], delayMs: 30 },
 		],
-		["the no-content sentinel", ["NO_CONTENT"]],
-	])("removes an answer %s from the thread, keeping the question", async (_label, chunks) => {
-		const { guide, url } = await setUp([{ kind: "text", chunks, delayMs: 30 }]);
-		const events = await collect(
+		["the provider failed twice", { kind: "status", status: 500 }],
+	] as const)("removes a reply %s from the thread, keeping the question", async (_label, reply) => {
+		const { guide, url } = await setUp([reply]);
+		await collect(
 			guide.ask({ question: "Ce faceți pentru anxietate?", locale: "ro", threadId: THREAD }),
 		);
-		expect(events.some((event) => event.type === "refusal")).toBe(true);
 		// Let Mastra finish saving the run first, so the check below cannot pass before the save.
 		await new Promise((resolve) => setTimeout(resolve, 1_000));
 		const memory = openMemory(url);
@@ -121,7 +119,10 @@ describe("memory", () => {
 					threadId: `psizone-${THREAD}`,
 					resourceId: "psi-guide-psizone",
 				});
-				expect(messages.map((m) => m.role)).toEqual(["user"]);
+				// The first (discarded) reply is gone; only the questions and at most the kept reply stay.
+				const assistant = messages.filter((m) => m.role === "assistant");
+				expect(assistant.length).toBeLessThanOrEqual(1);
+				expect(JSON.stringify(assistant)).not.toMatch(/hemi/i);
 			},
 			{ timeout: 8_000, interval: 200 },
 		);

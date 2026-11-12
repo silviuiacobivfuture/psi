@@ -1,6 +1,7 @@
+import { STAFF_LINK_PATH } from "@psi/site-control";
 import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { accountGroups } from "../account";
+import { account, accountGroups } from "../account";
 import { HUBS } from "../content/hubs";
 import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
@@ -62,7 +63,11 @@ export function Header({
 				})),
 				{ label: m.nav_programmes({}, o), href: `${b}/programe` },
 				...hubItem("sport"),
-				{ label: RACE_ME_UP.name, href: `${b}${RACE_ME_UP.path}`, hint: RACE_ME_UP.lead[locale] },
+				{
+					label: RACE_ME_UP.name,
+					href: `${b}${RACE_ME_UP.path}`,
+					hint: RACE_ME_UP.lead[locale],
+				},
 			],
 		},
 		{
@@ -118,6 +123,27 @@ export function Header({
 				groups={groups}
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
+				chat={{
+					storageKey: "psi.chat.psizone",
+					suggestions: [m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)],
+					labels: {
+						greeting: m.guide_intro({}, o),
+						disclaimer: m.guide_footer({}, o),
+						newChat: m.compass_new_chat({}, o),
+						close: m.compass_close({}, o),
+						guideTab: m.compass_tab_guide({}, o),
+						pagesTab: m.compass_tab_pages({}, o),
+						views: m.compass_views({}, o),
+						newMessage: m.compass_new_message({}, o),
+						placeholder: m.compass_chat_placeholder({}, o),
+						suggestions: m.compass_suggestions({}, o),
+						dropped: m.guide_dropped({}, o),
+						retry: m.guide_retry({}, o),
+						unanswered: m.guide_unanswered({}, o),
+					},
+				}}
+				// Staff only: the page never reads the session; accounts off → no link (/admin still works).
+				staffLink={account.enabled ? `${STAFF_LINK_PATH}?l=${locale}` : undefined}
 				action={
 					<Button size="sm" href={`${b}/contact`}>
 						{m.cta_book({}, o)}

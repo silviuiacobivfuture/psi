@@ -9,6 +9,14 @@ export const TRAIL_ACTIONS = [
 	"unpublish",
 	"invalidate",
 	"delete",
+	// The control plane's actions (/admin/platform), on `collectionSlug: "platform"`.
+	"ingest",
+	"decide",
+	"schedule",
+	"account_view",
+	"account_export",
+	"account_erase",
+	"push_test",
 ] as const;
 export type TrailAction = (typeof TRAIL_ACTIONS)[number];
 

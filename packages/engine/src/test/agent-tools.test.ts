@@ -130,7 +130,7 @@ describe("the agent's tools", () => {
 		expect(JSON.stringify(server.requests[0]?.body)).toContain("harbour desk, from 9 to 18");
 	});
 
-	it("refuses a citation to a passage no tool returned", async () => {
+	it("drops a citation to a passage no tool returned, and cites nothing", async () => {
 		const server = await startFakeOpenRouter(
 			[{ kind: "text", chunks: ["Bikes are rented by the hour at the harbour desk [1]."] }],
 			{},
@@ -145,7 +145,8 @@ describe("the agent's tools", () => {
 		const events = await collect(
 			engine.guide("harbour-bikes").ask({ question: "How do I rent a bike?", locale: "en" }),
 		);
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
+		expect(answerText(events)).not.toContain("[1]");
 	});
 
 	it(`allows at most ${MAX_TOOL_CALLS} tool calls; later ones return nothing`, async () => {
@@ -160,8 +161,8 @@ describe("the agent's tools", () => {
 		const events = await collect(
 			engine.guide("harbour-bikes").ask({ question: "How do I rent a bike?", locale: "en" }),
 		);
-		// The probe plus the tool calls within the budget reached the knowledge; the extra one did not.
-		expect(knowledge.queries).toHaveLength(1 + MAX_TOOL_CALLS);
+		// The tool calls within the budget reached the knowledge; the extra one did not.
+		expect(knowledge.queries).toHaveLength(MAX_TOOL_CALLS);
 		expect(JSON.stringify(server.requests.at(-1)?.body)).toContain("Tool call limit");
 		expect(shape(events).at(-1)).toBe("done");
 	});

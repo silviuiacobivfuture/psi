@@ -64,6 +64,9 @@ export function registerAccountRoutes(app: Hono, locale: Locale, prefix: string)
 		say: accountSay(locale),
 		siteNames: siteNames(locale),
 		dataHome: `${ESTATE.psizone}${prefix}/cont/date`,
+		bookHref: `${ESTATE.psizone}${prefix}/contact`,
+		readingHref: `${prefix}/`,
+		savedListHref: `${prefix}/cont#salvate`,
 		savedArticle: (slug) => {
 			const article = findArticle(slug);
 			return article === undefined

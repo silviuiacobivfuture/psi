@@ -22,14 +22,32 @@ const Reviewer = z
 /** An ISO date (`2026-11-11`) or ISO date-time with offset; null when not reviewed. */
 const ReviewDate = z.union([z.string().date(), z.string().datetime({ offset: true })]).nullable();
 
-/** The page an entry comes from: an absolute http(s) URL or a site-relative path (`/contact`). */
+/**
+ * A source the guide cites by title without a link (an uploaded document that is not
+ * public-downloadable): `cite:<anything>`. Renderers show the title only.
+ */
+export const CITE_ONLY_PREFIX = "cite:";
+
+/** True when the source must be cited without a link. */
+export function isCiteOnly(url: string): boolean {
+	return url.startsWith(CITE_ONLY_PREFIX);
+}
+
+/**
+ * The page an entry comes from: an absolute http(s) URL, a site-relative path (`/contact`), or
+ * `cite:<id>` for a source cited without a link.
+ */
 const SourceUrl = z
 	.string()
 	.trim()
 	.min(1)
-	.refine((u) => (u.startsWith("/") && !u.startsWith("//")) || /^https?:\/\/[^\s]+$/.test(u), {
-		message: "url must be a site-relative path (/…) or an http(s) URL",
-	});
+	.refine(
+		(u) =>
+			(u.startsWith("/") && !u.startsWith("//")) ||
+			/^https?:\/\/[^\s]+$/.test(u) ||
+			/^cite:[^\s]+$/.test(u),
+		{ message: "url must be a site-relative path (/…), an http(s) URL or cite:<id>" },
+	);
 
 /** Ids end up in vector ids and SQL filter values: keep them to a safe, readable alphabet. */
 const EntryId = z

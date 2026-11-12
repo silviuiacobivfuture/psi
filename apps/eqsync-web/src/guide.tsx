@@ -2,9 +2,6 @@ import type { GuideLabels } from "@psi/ui";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 
-/** The answer region's spacing under the guide section's and the compass's asking fields. */
-export const ANSWER_CLASS = "mt-6 space-y-3";
-
 /**
  * EQ-SYNC's words for the guide's answer region. A refusal points to the frequently asked
  * questions. The crisis copy is fixed and factual, never generated: 112.
@@ -13,8 +10,18 @@ export function guideLabels(locale: Locale): GuideLabels {
 	const o = at(locale);
 	return {
 		thinking: m.guide_thinking({}, o),
+		stages: {
+			searching: m.guide_stage_searching({}, o),
+			checking: m.guide_stage_checking({}, o),
+		},
+		retry: m.guide_retry({}, o),
+		dropped: m.guide_dropped({}, o),
+		unanswered: m.guide_unanswered({}, o),
 		footer: m.guide_footer({}, o),
-		contact: { label: m.guide_source_faq({}, o), href: `${base(locale)}/#intrebari` },
+		contact: {
+			label: m.guide_source_faq({}, o),
+			href: `${base(locale)}/#intrebari`,
+		},
 		reviewedBy: (name, date) => m.guide_reviewed_by({ name, date }, o),
 		refusals: {
 			crisis: <p class="font-semibold">{m.guide_refusal_crisis({}, o)}</p>,

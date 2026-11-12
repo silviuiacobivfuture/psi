@@ -8,12 +8,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 /** A self-contained server (`output: standalone`), traced from the repository root (pnpm links). */
 const config: NextConfig = {
 	output: "standalone",
+	// A second local dev server (another port) needs its own build directory; unset everywhere else.
+	distDir: process.env.NEXT_DIST_DIR ?? ".next",
 	outputFileTracingRoot: join(here, "../.."),
 	poweredByHeader: false,
 	// Next 16 writes an AGENTS.md into the app on `next dev`; psi keeps its agent rules in CLAUDE.md.
 	agentRules: false,
 	// psi's workspace packages ship TypeScript source; the guide's vector store stays a runtime dependency.
-	transpilePackages: ["@psi/cms-client", "@psi/content", "@psi/knowledge"],
+	transpilePackages: ["@psi/cms-client", "@psi/content", "@psi/knowledge", "@psi/scheduling"],
 	serverExternalPackages: [
 		"@mastra/libsql",
 		"@libsql/client",

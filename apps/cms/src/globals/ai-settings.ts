@@ -180,6 +180,8 @@ const announce: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
 export const AiSettingsGlobal: GlobalConfig = {
 	slug: "ai-settings",
 	label: { ro: "Setări AI", en: "AI settings" },
+	// In the "Platformă / Platform" group of the admin navigation (components/AdminNav.tsx).
+	admin: { group: false },
 	access: {
 		read: ({ req }) => mayEnterAdmin(req),
 		update: async ({ req }) => (await brandsFor(req, "ai_admin")).length > 0,

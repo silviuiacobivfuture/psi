@@ -19,6 +19,13 @@ export const RELATIONS = [
 	"manage_media",
 	"admin",
 	"ai_admin",
+	/** The control plane: one relation per section's actions. */
+	"ai_operator",
+	"calendar_viewer",
+	"calendar_manager",
+	"privacy_officer",
+	"notifications_admin",
+	"site_manager",
 ] as const;
 export type Relation = (typeof RELATIONS)[number];
 

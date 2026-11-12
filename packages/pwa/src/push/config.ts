@@ -73,7 +73,17 @@ export function readPushConfig(env: NodeJS.ProcessEnv = process.env): PushConfig
 	const present = PUSH_KEYS.filter((k) => e[k] !== undefined);
 	const database = e.PWA_DATABASE_URL ?? e.ACCOUNT_DATABASE_URL;
 
-	if (present.length === 0) {
+	// Outside production the hook's key alone is fine: the workstation's own pair, with the hook on.
+	const localHook =
+		!production && present.length === 1 && present[0] === "PWA_NOTIFY_SECRET"
+			? e.PWA_NOTIFY_SECRET
+			: undefined;
+	if (localHook !== undefined && localHook.length < 32) {
+		throw new PushConfigError(
+			"push is misconfigured: PWA_NOTIFY_SECRET shorter than 32 characters",
+		);
+	}
+	if (present.length === 0 || localHook !== undefined) {
 		if (production) {
 			return {
 				vapid: null,
@@ -86,7 +96,7 @@ export function readPushConfig(env: NodeJS.ProcessEnv = process.env): PushConfig
 		const local = readLocalVapid();
 		return {
 			vapid: local,
-			notifySecret: null,
+			notifySecret: localHook ?? null,
 			store:
 				database !== undefined ? postgresStore(database) : () => Promise.resolve(filePushStore()),
 			storage: database !== undefined ? "postgres" : "file",

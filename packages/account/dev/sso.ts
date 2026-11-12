@@ -42,6 +42,9 @@ const APPS = [
 		callback: `http://localhost:${port}/auth/callback`,
 		home: `http://localhost:${port}/`,
 		backchannel: true,
+		// An agent's own test instance of the same site (port + 200, e.g. 4510), beside the owner's showcase on
+		// 43x0: sign-in and sign-out work there too; back-channel logout still goes to the showcase port only.
+		testPort: port + 200,
 	})),
 ] as const;
 
@@ -110,8 +113,14 @@ const clients: MockClient[] = APPS.map((app) => ({
 	slug: app.slug,
 	clientId: `${app.slug}-local`,
 	clientSecret: secrets[secretKey(app.slug)] ?? "",
-	redirectUris: [app.callback],
-	postLogoutRedirectUris: [app.home],
+	redirectUris: [
+		app.callback,
+		...("testPort" in app ? [`http://localhost:${app.testPort}/auth/callback`] : []),
+	],
+	postLogoutRedirectUris: [
+		app.home,
+		...("testPort" in app ? [`http://localhost:${app.testPort}/`] : []),
+	],
 	...(app.backchannel ? { logoutUri: `${new URL(app.home).origin}/auth/backchannel-logout` } : {}),
 }));
 

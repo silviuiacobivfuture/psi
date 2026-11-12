@@ -23,7 +23,9 @@ const fetchOf = (path: string, accept = "*/*", method = "GET"): RequestFacts => 
 	mode: "cors",
 	accept,
 });
-const headers = (h: Record<string, string>) => ({ get: (n: string) => h[n.toLowerCase()] ?? null });
+const headers = (h: Record<string, string>) => ({
+	get: (n: string) => h[n.toLowerCase()] ?? null,
+});
 
 describe("what is NEVER cached", () => {
 	it.each([
@@ -56,6 +58,19 @@ describe("what is NEVER cached", () => {
 		for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
 			expect(strategyFor(nav("/", method), ORIGIN)).toBe("bypass");
 			expect(strategyFor(fetchOf("/assets/app.css", "*/*", method), ORIGIN)).toBe("bypass");
+		}
+	});
+
+	it("never answers the compass chat: its questions, restores and resets (never the offline page)", () => {
+		const datastar = "text/event-stream, text/html, application/json";
+		for (const path of [
+			"/ghid?target=compass-answer",
+			"/en/ghid?target=compass-answer",
+			"/ghid?target=guide-answer",
+		]) {
+			expect(strategyFor(fetchOf(path, datastar, "POST"), ORIGIN)).toBe("bypass");
+			expect(strategyFor(fetchOf(path, datastar), ORIGIN)).toBe("bypass");
+			expect(strategyFor(nav(path), ORIGIN)).toBe("bypass");
 		}
 	});
 
@@ -110,15 +125,21 @@ describe("what is cached, and how", () => {
 describe("storable", () => {
 	const ok = { status: 200, type: "basic" };
 	it("keeps a plain 200", () => {
-		expect(storable({ ...ok, headers: headers({ "cache-control": "public, max-age=60" }) })).toBe(
-			true,
-		);
+		expect(
+			storable({
+				...ok,
+				headers: headers({ "cache-control": "public, max-age=60" }),
+			}),
+		).toBe(true);
 		expect(storable({ ...ok, headers: headers({}) })).toBe(true);
 	});
 	it("never keeps private, no-store, partial or opaque responses", () => {
-		expect(storable({ ...ok, headers: headers({ "cache-control": "private, no-store" }) })).toBe(
-			false,
-		);
+		expect(
+			storable({
+				...ok,
+				headers: headers({ "cache-control": "private, no-store" }),
+			}),
+		).toBe(false);
 		expect(storable({ ...ok, headers: headers({ "cache-control": "no-store" }) })).toBe(false);
 		expect(storable({ ...ok, headers: headers({ "cache-control": "private" }) })).toBe(false);
 		expect(storable({ status: 206, type: "basic", headers: headers({}) })).toBe(false);

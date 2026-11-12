@@ -20,10 +20,18 @@ export {
 	isBlocking,
 	overlaps,
 } from "./conflicts";
-export { CONTACT_LIMITS, type Contact, cleanContact, contactProblem } from "./contact";
+export {
+	CONTACT_LIMITS,
+	type Contact,
+	cleanContact,
+	contactProblem,
+} from "./contact";
 export {
 	type AppointmentEvent,
+	DECISION_REASONS,
+	type DecisionReason,
 	isFinal,
+	keepsReason,
 	type LifecycleState,
 	type Transition,
 	type TransitionRefusal,

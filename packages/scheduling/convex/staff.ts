@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ruleProblem } from "../src/domain/catalog";
-import { transition } from "../src/domain/lifecycle";
+import { keepsReason, transition } from "../src/domain/lifecycle";
 import { isOffered } from "../src/domain/slots";
 import { DAY_MINUTES, isLocalDate, MINUTE_MS } from "../src/domain/time";
 import { mutation, query } from "./_generated/server";
@@ -13,7 +13,12 @@ import {
 	tenantBySlug,
 } from "./calendar";
 import { requireServer } from "./guard";
-import { actorValidator, modeValidator, serverKeyValidator } from "./validators";
+import {
+	actorValidator,
+	decisionReasonValidator,
+	modeValidator,
+	serverKeyValidator,
+} from "./validators";
 
 /**
  * The team's side. The app calls these only after OpenFGA allowed the signed-in staff member on
@@ -64,13 +69,18 @@ export const calendar = query({
 	},
 });
 
-/** Confirm, decline or cancel a request or appointment. */
+/**
+ * Confirm, decline or cancel a request or appointment. A decline or a cancel may carry a reason
+ * from the closed list (never free text); a confirm keeps none. The answer carries the start and,
+ * for a request a signed-in person made, its account hash, so the app can notify that account.
+ */
 export const decide = mutation({
 	args: {
 		key: serverKeyValidator,
 		tenant: v.string(),
 		reference: v.string(),
 		decision: v.union(v.literal("confirm"), v.literal("decline"), v.literal("cancel")),
+		reason: v.optional(decisionReasonValidator),
 		actor: actorValidator,
 	},
 	handler: async (ctx, args) => {
@@ -85,9 +95,16 @@ export const decide = mutation({
 		await ctx.db.patch(row._id, {
 			status: next.next,
 			decidedBy: args.actor.subject,
+			decisionReason: keepsReason(args.decision) ? args.reason : undefined,
 			updatedAt: now,
 		});
-		return { ok: true as const, status: next.next };
+		return {
+			ok: true as const,
+			status: next.next,
+			reference: row.reference,
+			start: row.start,
+			...(row.accountHash === undefined ? {} : { accountHash: row.accountHash }),
+		};
 	},
 });
 
@@ -133,11 +150,18 @@ export const reschedule = mutation({
 			exceptionsOf(ctx, row.practitioner, args.start, blockedUntil, tenant.timeZone),
 			busyAround(ctx, row.practitioner, args.start, blockedUntil, now, row._id),
 		]);
-		const calendar = { timeZone: tenant.timeZone, service: spec, rules, exceptions, busy, now };
+		const calendar = {
+			timeZone: tenant.timeZone,
+			service: spec,
+			rules,
+			exceptions,
+			busy,
+			now,
+		};
 		if (!isOffered(calendar, args.start, args.mode)) {
 			return { ok: false as const, reason: "slot_taken" as const };
 		}
-		const { _id, _creationTime, ...kept } = row;
+		const { _id, _creationTime, decisionReason: _reason, ...kept } = row;
 		const moved = await ctx.db.insert("appointments", {
 			...kept,
 			mode: args.mode,
@@ -151,11 +175,17 @@ export const reschedule = mutation({
 		});
 		await ctx.db.patch(_id, {
 			status: leave.next,
+			decisionReason: undefined,
 			rescheduledTo: moved,
 			decidedBy: args.actor.subject,
 			updatedAt: now,
 		});
-		return { ok: true as const, reference: args.newReference, start: args.start, end };
+		return {
+			ok: true as const,
+			reference: args.newReference,
+			start: args.start,
+			end,
+		};
 	},
 });
 

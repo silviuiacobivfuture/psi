@@ -24,7 +24,10 @@ export interface Frame {
 	origin: string;
 }
 
-/** The blog's paper, masthead and Compass around every account page; never indexed. */
+/**
+ * The blog's paper, masthead and Compass around every account page, and nothing else: no hero. The account header
+ * and sections come from @psi/account, in the masthead's container. Never indexed.
+ */
 export function AccountFrame({
 	locale,
 	theme,
@@ -52,11 +55,7 @@ export function AccountFrame({
 			noindex
 		>
 			<Header locale={locale} otherHref={accountPaths.home(other)} />
-			<main id="continut" class="mx-auto max-w-[1200px] px-4 pb-28 sm:px-6">
-				<div class="max-w-[680px] pb-12 pt-20 md:pt-28">
-					<h1 class="bl-hero-title">{title}</h1>
-					<p class="bl-standfirst mt-6">{m.account_lead({}, o)}</p>
-				</div>
+			<main id="continut" class="mx-auto max-w-[1200px] px-4 pb-32 pt-10 sm:px-6 md:pt-14">
 				{children}
 			</main>
 			<Footer locale={locale} />
@@ -80,30 +79,32 @@ export function ReadingList({
 }): JSX.Element {
 	const o = at(locale);
 	return (
-		<AccountSection title={m.account_saved_title({}, o)}>
-			{saved === null || partial ? (
-				<StatusBadge tone="warning">{m.account_saved_unavailable({}, o)}</StatusBadge>
-			) : null}
-			{saved !== null && saved.length === 0 && !partial ? (
-				<p class="text-body text-ink-muted">{m.account_saved_empty({}, o)}</p>
-			) : null}
-			{saved !== null && saved.length > 0 ? (
-				<ul class="mt-2 flex flex-col divide-y divide-line" data-saved-list>
-					{saved.map((s) => (
-						<li class="flex flex-wrap items-center justify-between gap-3 py-3">
-							<a class="min-w-0 flex-1 text-body text-ink hover:underline" href={s.href}>
-								{s.title}
-							</a>
-							<form method="post" action={accountPaths.remove(locale, s.id)}>
-								<Button type="submit" variant="ghost" size="sm">
-									{m.account_saved_remove({}, o)}
-								</Button>
-							</form>
-						</li>
-					))}
-				</ul>
-			) : null}
-		</AccountSection>
+		<div id="salvate" class="scroll-mt-24">
+			<AccountSection title={m.account_saved_title({}, o)}>
+				{saved === null || partial ? (
+					<StatusBadge tone="warning">{m.account_saved_unavailable({}, o)}</StatusBadge>
+				) : null}
+				{saved !== null && saved.length === 0 && !partial ? (
+					<p class="text-body text-ink-muted">{m.account_saved_empty({}, o)}</p>
+				) : null}
+				{saved !== null && saved.length > 0 ? (
+					<ul class="mt-2 flex flex-col divide-y divide-line" data-saved-list>
+						{saved.map((s) => (
+							<li class="flex flex-wrap items-center justify-between gap-3 py-3">
+								<a class="min-w-0 flex-1 text-body text-ink hover:underline" href={s.href}>
+									{s.title}
+								</a>
+								<form method="post" action={accountPaths.remove(locale, s.id)}>
+									<Button type="submit" variant="ghost" size="sm">
+										{m.account_saved_remove({}, o)}
+									</Button>
+								</form>
+							</li>
+						))}
+					</ul>
+				) : null}
+			</AccountSection>
+		</div>
 	);
 }
 
@@ -117,6 +118,9 @@ export function SaveConfirmPage({
 	const o = at(locale);
 	return (
 		<AccountFrame {...frame} title={m.account_save_title({}, o)}>
+			<h1 class="display mb-8 font-display text-display-md text-ink">
+				{m.account_save_title({}, o)}
+			</h1>
 			<AccountSection title={title}>
 				<p class="text-body text-ink-muted">{m.account_save_lead({ title }, o)}</p>
 				<form class="mt-6" method="post" action={accountPaths.save(locale)}>
@@ -135,6 +139,9 @@ export function AccountUnavailablePage(frame: Frame): JSX.Element {
 	const o = at(frame.locale);
 	return (
 		<AccountFrame {...frame} title={m.account_unavailable_title({}, o)}>
+			<h1 class="display mb-6 font-display text-display-md text-ink">
+				{m.account_unavailable_title({}, o)}
+			</h1>
 			<p class="text-body text-ink-muted">{m.account_unavailable_lead({}, o)}</p>
 		</AccountFrame>
 	);

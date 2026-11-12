@@ -1,6 +1,7 @@
 import {
 	type AskControl,
 	type EngineTimeouts,
+	type EngineTiming,
 	type FailureStage,
 	ModelIdSchema,
 	type RateLimiter,
@@ -8,9 +9,11 @@ import {
 	SchedulingPortSchema,
 	type SettingsProvider,
 } from "@psi/engine";
+import type { KnowledgeStore } from "@psi/knowledge";
 import { z } from "zod";
 import { type Brand, BrandSchema, type Knowledge } from "./contract";
 import type { AskInput, GuideEvent } from "./events";
+import { type GuideOperations, guideOperations } from "./operations";
 import { createPsiEngine } from "./psi-engine";
 
 /** Time budgets for one answer, in milliseconds (see the engine's `EngineTimeouts`). */
@@ -40,7 +43,8 @@ export interface GuideScore {
 
 export interface GuideOptions {
 	brand: Brand;
-	knowledge: Knowledge;
+	/** What the guide searches; a `@psi/knowledge` store also gives the control plane its rebuild. */
+	knowledge: Knowledge | KnowledgeStore;
 	/** OpenRouter key; defaults to `OPENROUTER_API_KEY`. Without one every answer is `unavailable`. */
 	apiKey?: string;
 	/** OpenRouter model slug; defaults to `PSI_GUIDE_MODEL`, then `DEFAULT_MODEL`. */
@@ -55,6 +59,11 @@ export interface GuideOptions {
 	onFailure?: (failure: GuideFailure) => void;
 	/** Called with the faithfulness score of every answer that was scored; carries no visitor content. */
 	onScore?: (score: GuideScore) => void;
+	/**
+	 * Called after every turn with where its time went (the screen, each model call's first chunk
+	 * and first text, each tool call): counts and milliseconds only, no visitor content.
+	 */
+	onTiming?: (timing: EngineTiming) => void;
 	/**
 	 * Counts questions per `AskControl.clientId`. Defaults to an in-memory limiter (10 questions a
 	 * minute per client), which suits development and a single instance only.
@@ -85,6 +94,11 @@ export interface GuideOptions {
 	modelScreening?: boolean;
 	/** OpenRouter model slug for the guardrails; defaults to the answering model. */
 	screeningModel?: string;
+	/**
+	 * Warms the guide at creation, in the background (settings, catalog, one search: the store's
+	 * and the embedder's connections), so the first visitor does not pay for it. Off by default.
+	 */
+	warmUp?: boolean;
 }
 
 export interface Guide {
@@ -93,6 +107,8 @@ export interface Guide {
 	readonly model: string;
 	/** Streams one answer. Never throws: failures arrive as `refusal` events. */
 	ask(input: AskInput, control?: AskControl): AsyncIterable<GuideEvent>;
+	/** Staff-only facts and the rebuild, for the control plane (absent on a hand-made guide). */
+	readonly operations?: GuideOperations;
 }
 
 const KnowledgeSchema: z.ZodType<Knowledge> = z.custom<Knowledge>(
@@ -121,6 +137,9 @@ const GuideOptionsSchema = z.object({
 		.custom<(failure: GuideFailure) => void>((value) => typeof value === "function")
 		.optional(),
 	onScore: z.custom<(score: GuideScore) => void>((value) => typeof value === "function").optional(),
+	onTiming: z
+		.custom<(timing: EngineTiming) => void>((value) => typeof value === "function")
+		.optional(),
 	rateLimiter: z
 		.custom<RateLimiter>(
 			(value) =>
@@ -144,6 +163,7 @@ const GuideOptionsSchema = z.object({
 	settings: z.custom<SettingsProvider>((value) => typeof value === "function").optional(),
 	scheduling: SchedulingPortSchema.optional(),
 	modelScreening: z.boolean().optional(),
+	warmUp: z.boolean().optional(),
 	screeningModel: ModelIdSchema.optional(),
 });
 
@@ -154,7 +174,7 @@ const GuideOptionsSchema = z.object({
  * `PSI_GUIDE_MODEL`); they are read once, here.
  */
 export function createGuide(options: GuideOptions): Guide {
-	const { brand, onFailure, onScore, ...rest } = GuideOptionsSchema.parse(options);
+	const { brand, onFailure, onScore, warmUp, ...rest } = GuideOptionsSchema.parse(options);
 	const engine = createPsiEngine({
 		...rest,
 		brands: [brand],
@@ -176,5 +196,12 @@ export function createGuide(options: GuideOptions): Guide {
 				}),
 	});
 	const profile = engine.guide(brand);
-	return { brand, model: engine.model, ask: (input, control) => profile.ask(input, control) };
+	if (warmUp === true) void profile.warm();
+	const store = "ingest" in options.knowledge ? options.knowledge : undefined;
+	return {
+		brand,
+		model: engine.model,
+		ask: (input, control) => profile.ask(input, control),
+		operations: guideOperations(engine, brand, store),
+	};
 }

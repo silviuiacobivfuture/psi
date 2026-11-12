@@ -1,4 +1,5 @@
 import type { Stores } from "../stores/types";
+import type { ReservationsPort } from "./ports";
 import type { Journey } from "./routes";
 
 /**
@@ -6,9 +7,18 @@ import type { Journey } from "./routes";
  * the profile, every consent with its history, saved articles, remembered conversations word for word,
  * and their reservations. Nothing about anyone else, and nothing derived.
  */
-export async function exportOf(
+export function exportOf(
 	j: Journey,
 	stores: Stores,
+	subject: string,
+): Promise<Record<string, unknown>> {
+	return exportAccount(stores, j.o.reservations, subject);
+}
+
+/** The same export without a request: the control plane's privacy officer, on the person's behalf. */
+export async function exportAccount(
+	stores: Stores,
+	reservationsPort: ReservationsPort | undefined,
 	subject: string,
 ): Promise<Record<string, unknown>> {
 	const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
@@ -32,7 +42,7 @@ export async function exportOf(
 	);
 	let reservations: unknown = [];
 	try {
-		reservations = ((await j.o.reservations?.requests(subject)) ?? []).map((r) => ({
+		reservations = ((await reservationsPort?.requests(subject)) ?? []).map((r) => ({
 			reference: r.reference,
 			status: r.status,
 			mode: r.mode,

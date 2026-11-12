@@ -37,6 +37,47 @@ export {
 } from "./articles-index";
 export { articleFromPayload, type Mapped, PayloadArticle, toArticleInput } from "./articles-map";
 export {
+	type ControlClient,
+	type ControlClientOptions,
+	type ControlProblem,
+	type ControlResult,
+	createControlClient,
+} from "./control/client";
+export {
+	AccountHit,
+	AccountHits,
+	AccountRef,
+	AccountSearch,
+	AgentInfo,
+	EraseResult,
+	IngestRequest,
+	IngestResult,
+	KnowledgeIndex,
+	KnowledgeStatus,
+	LastIngest,
+	PartState,
+	PersonView,
+	PushStats,
+	PushTestRequest,
+	PushTestResult,
+	SiteStatus,
+	StaffAnswer,
+	StaffQuery,
+	TestAnswerLine,
+	TestQuestion,
+} from "./control/contract";
+export { type ControlPorts, handleControl } from "./control/handler";
+export {
+	CONTROL_ACTOR_HEADER,
+	CONTROL_MAX_AGE_MS,
+	CONTROL_PREFIX,
+	CONTROL_SENT_AT_HEADER,
+	CONTROL_SIGNATURE_HEADER,
+	signControl,
+	type VerifiedControl,
+	verifyControl,
+} from "./control/signing";
+export {
 	createOfferingsClient,
 	formatPrice,
 	type LocalizedOffering,
@@ -66,3 +107,22 @@ export {
 	verifyPreview,
 	verifyWebhook,
 } from "./signing";
+export {
+	Address,
+	createSiteSettingsClient,
+	OpeningHours,
+	orToday,
+	Phone,
+	SITE_SETTINGS_UNSET,
+	SiteSettings,
+	type SiteSettingsClient,
+	type SiteSettingsClientOptions,
+	SOCIAL_NETWORKS,
+	SocialLink,
+	siteSettingsFor,
+	siteSettingsFromEnv,
+	TOGGLES,
+	type Toggle,
+	ToggleValue,
+	toggleOn,
+} from "./site-settings";

@@ -201,6 +201,36 @@ export async function postgresPushStore(url: string): Promise<PushStore> {
 				await sql`INSERT INTO pwa_claim (key, at) VALUES (${key}, ${at}) ON CONFLICT DO NOTHING`;
 			return won.count > 0;
 		},
+		async stats(site) {
+			const subs =
+				await sql`SELECT topics, subject IS NOT NULL AS linked, failures FROM pwa_subscription WHERE site = ${site}`;
+			const [claims] =
+				await sql`SELECT count(*)::int AS n FROM pwa_claim WHERE key LIKE 'article:%'`;
+			const Sub = z.object({
+				topics: z.array(TopicSchema.or(z.string())),
+				linked: z.boolean(),
+				failures: z.coerce.number(),
+			});
+			const byTopic: Partial<Record<z.infer<typeof TopicSchema>, number>> = {};
+			let signedIn = 0;
+			let failing = 0;
+			for (const raw of subs) {
+				const r = Sub.parse(raw);
+				for (const t of r.topics) {
+					const topic = TopicSchema.safeParse(t);
+					if (topic.success) byTopic[topic.data] = (byTopic[topic.data] ?? 0) + 1;
+				}
+				if (r.linked) signedIn++;
+				if (r.failures > 0) failing++;
+			}
+			return {
+				byTopic,
+				total: subs.length,
+				signedIn,
+				failing,
+				announced: z.object({ n: z.number() }).parse(claims).n,
+			};
+		},
 		async close() {
 			await sql.end({ timeout: 5 });
 		},

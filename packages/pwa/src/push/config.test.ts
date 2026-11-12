@@ -61,4 +61,19 @@ describe("readPushConfig", () => {
 			expect(String(err)).not.toContain(PUBLIC);
 		}
 	});
+	it("outside production, takes the hook's key alone (the workstation's pair, the hook on)", () => {
+		const c = readPushConfig({ NODE_ENV: "development", PWA_NOTIFY_SECRET: "s".repeat(40) });
+		expect(c.notifySecret).toHaveLength(40);
+		expect(c.storage).toBe("file");
+	});
+
+	it("in production, still refuses the hook's key without a VAPID pair", () => {
+		expect(() =>
+			readPushConfig({
+				NODE_ENV: "production",
+				PWA_NOTIFY_SECRET: "s".repeat(40),
+				ACCOUNT_DATABASE_URL: "postgresql://x/y",
+			}),
+		).toThrow(PushConfigError);
+	});
 });

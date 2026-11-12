@@ -38,10 +38,17 @@ export interface VectorStore {
 	checkIndexName(name: string): void;
 	/** The vector dimension an existing index was created with. */
 	dimension(index: string): Promise<number>;
+	/** An existing index's dimension and how many chunks it holds (the control plane's status). */
+	describe(index: string): Promise<{ dimension: number; count: number }>;
 	createIndex(index: string, dimension: number): Promise<void>;
 	upsert(index: string, rows: ChunkRows): Promise<void>;
 	/** Deletes every chunk of these entries from one index. */
 	deleteEntries(index: string, entryIds: ReadonlyArray<string>): Promise<void>;
+	/**
+	 * Every row's metadata in one index (still to be parsed), complete and in no order: what the
+	 * catalog is rebuilt from, so a process that did not ingest an entry still holds it lexically.
+	 */
+	rows(index: string): Promise<ReadonlyArray<unknown>>;
 	/** The nearest rows scoring above 0, best first. */
 	query(
 		index: string,

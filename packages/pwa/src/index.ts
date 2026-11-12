@@ -31,6 +31,8 @@ export {
 	type NewSubscription,
 	type PlannedReminder,
 	type PushStore,
+	type PushStoreStats,
+	statsOf,
 } from "./push/store";
 export { filePushStore } from "./push/store-file";
 export { postgresPushStore } from "./push/store-postgres";

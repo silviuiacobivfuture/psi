@@ -8,6 +8,7 @@ import {
 	updateByBrand,
 } from "../authz/access";
 import { brandListFilter } from "../brand/filter";
+import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
 import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
 import { reviewGate } from "../review/gate";
@@ -68,8 +69,8 @@ export const Offerings: CollectionConfig = {
 	indexes: [{ fields: ["brand", "slug"], unique: true }],
 	hooks: {
 		beforeChange: [reviewGate(offeringReview)],
-		afterChange: [announceChange("offerings")],
-		afterDelete: [announceDeletion("offerings")],
+		afterChange: [announceChange("offerings"), indexContent("offerings")],
+		afterDelete: [announceDeletion("offerings"), unindexContent("offerings")],
 	},
 	fields: [
 		{ name: "title", type: "text", localized: true, required: true, label: L.title },

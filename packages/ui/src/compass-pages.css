@@ -1,0 +1,81 @@
+/*
+ * The compass's destinations view: the groups of pages, filtered as the field is typed in, and
+ * the ask row that comes first (Enter asks the guide; the arrow keys pick a destination).
+ */
+
+.pz-compass__groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 20px 28px;
+}
+.pz-compass__group ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.pz-compass__group-label {
+	margin: 0 0 6px;
+	font: 700 11px / 16px var(--pz-label);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.pz-compass__item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0 -10px;
+	padding: 8px 10px;
+	border-radius: var(--radius-sm);
+	color: var(--ink);
+	text-decoration: none;
+	font: 400 20px / 1.2 var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 72;
+	overflow-wrap: anywhere;
+	transition: background 0.2s;
+}
+.pz-compass__item small {
+	font: 450 13px / 18px var(--pz-body);
+	color: var(--ink-muted);
+}
+.pz-compass__item:hover {
+	background: var(--surface-2);
+}
+.pz-compass__item.is-picked {
+	background: var(--surface-2);
+	box-shadow: inset 0 0 0 1px var(--line-control);
+}
+
+/* The ask row: first, and highlighted unless the arrow keys picked a destination. */
+.pz-compass__ask {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	margin: 0 0 16px;
+	padding: 10px 12px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--ink-muted);
+	font: 450 14px / 20px var(--pz-body);
+	text-align: left;
+	cursor: pointer;
+}
+.pz-compass:not(:has(.pz-compass__item.is-picked)) .pz-compass__ask,
+.pz-compass__ask.is-picked {
+	background: var(--surface-2);
+	border-color: var(--line);
+	color: var(--ink);
+}
+
+.pz-compass__ask-group {
+	margin-bottom: 24px;
+}
+
+/* Nothing matches: the empty destinations take no room. */
+.pz-compass__groups:not(:has(.pz-compass__group:not([style*="display: none"]))) {
+	display: none;
+}

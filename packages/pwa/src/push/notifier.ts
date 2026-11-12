@@ -22,6 +22,11 @@ export interface Notifier {
 	readonly reminders: ReminderPort;
 	/** Sends the reminders now due; the app calls it on a timer (`startReminderClock`). */
 	tick(now?: number): Promise<number>;
+	/**
+	 * A test push to every device of one account on this site (the control plane's "send a test
+	 * to me": the staff member's own subject, never someone else's).
+	 */
+	testAccount(subject: string, site: SubscriptionRecord["site"]): Promise<NotifyReport>;
 }
 
 export interface NotifierOptions {
@@ -183,6 +188,14 @@ export function createNotifier(opts: NotifierOptions): Notifier {
 		reminders: {
 			schedule: plan,
 			cancel: (reference) => opts.store.cancelReminders(reference),
+		},
+		async testAccount(subject, site) {
+			const to = (await opts.store.forSubject(subject)).filter((s) => s.site === site);
+			if (to.length === 0) return none("no-account");
+			return deliver(to, (x) => ({ v: 1, kind: "test", locale: x.locale, url: "/", tag: "test" }), {
+				ttl: 60,
+				urgency: "high",
+			});
 		},
 		async tick(at = now()) {
 			let sent = 0;

@@ -13,15 +13,29 @@ const person = (email: string, groups: string[] = [], sub: string | null = "s1")
 });
 
 describe("the manifest's roles", () => {
-	it("are the four editorial roles, the reader and the AI administrator", () => {
+	it("are the editorial roles, the reader, the AI administrator and the control plane's", () => {
 		expect([...ROLES.keys()].sort()).toEqual([
 			"cms:admin",
 			"cms:ai_admin",
+			"cms:ai_operator",
+			"cms:calendar_manager",
+			"cms:calendar_viewer",
 			"cms:clinical_reviewer",
 			"cms:editor",
+			"cms:notifications_admin",
+			"cms:privacy_officer",
 			"cms:publisher",
 			"cms:reader",
+			"cms:site_manager",
 		]);
+	});
+	it("give the administrator every relation, and every control-plane role read access", () => {
+		expect(ROLES.get("cms:admin")?.size).toBe(13);
+		for (const k of ["ai_operator", "calendar_viewer", "privacy_officer", "notifications_admin"]) {
+			expect(ROLES.get(`cms:${k}`)?.has("read")).toBe(true);
+		}
+		expect(ROLES.get("cms:calendar_viewer")?.has("calendar_manager")).toBe(false);
+		expect(ROLES.get("cms:editor")?.has("privacy_officer")).toBe(false);
 	});
 	it("never let an editor publish or review", () => {
 		const editor = ROLES.get("cms:editor");
@@ -61,8 +75,19 @@ describe("interim authorizer", () => {
 		["an unknown brand", "a@b.ro=cms:editor@acme"],
 		["no e-mail", "ana=cms:editor"],
 		["no role", "a@b.ro"],
-	])("refuses %s", (_why, raw) => {
-		expect(() => parseAssignments(raw)).toThrow("CMS_ROLE_ASSIGNMENTS");
+	])("skips and reports %s, never throwing", (_why, raw) => {
+		const { assignments, problems } = parseAssignments(raw);
+		expect(problems[0]).toContain("CMS_ROLE_ASSIGNMENTS");
+		expect([...assignments.values()].every((g) => g.size === 0)).toBe(true);
+	});
+	it("keeps the good entries beside a bad one", async () => {
+		const seen: string[] = [];
+		const b = interimAuthorizer("a@b.ro=cms:owner;c@d.ro=cms:editor@eqsync+cms:owner", (m) =>
+			seen.push(m),
+		);
+		expect(seen).toHaveLength(2);
+		expect(await b.brands(person("c@d.ro"), "write")).toEqual(["eqsync"]);
+		expect(await b.brands(person("a@b.ro"), "read")).toEqual([]);
 	});
 });
 

@@ -17,27 +17,31 @@ import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ESTATE, SITE, siteNames } from "./estate";
 import type { Locale } from "./i18n";
+import { phones, postalAddress, socialLinks } from "./site-settings";
 import type { Theme } from "./theme";
 
 const ORIGIN = ESTATE[SITE];
 
 /**
- * The trader as the live eq-sync.ro publishes it (docs/plans/eqsync-web.md, "Trader"). No parent
- * relation to Psizone is printed: EQSYNC SRL is its own legal entity.
+ * The trader as the live eq-sync.ro publishes it (docs/plans/eqsync-web.md, "Trader"), with the
+ * phones, address and social profiles the owners set in the CMS (site-settings.ts; unset = these).
+ * No parent relation to Psizone is printed: EQSYNC SRL is its own legal entity.
  */
-const EQSYNC: OrganizationFacts = {
-	type: "Organization",
-	name: "EQ-SYNC",
-	legalName: "EQSYNC SRL",
-	url: `${ORIGIN}/`,
-	telephones: ["+40773819193"],
-	address: {
-		streetAddress: "Str. Gheorghe Doja nr. 6, bl. 3A, sc. 2, et. 2, ap. 29",
-		addressLocality: "Galați",
-		addressCountry: "RO",
-	},
-	taxID: "55664251",
-};
+function organization(locale: Locale): JsonLdNode {
+	const facts: OrganizationFacts = {
+		type: "Organization",
+		name: "EQ-SYNC",
+		legalName: "EQSYNC SRL",
+		url: `${ORIGIN}/`,
+		telephones: phones(locale).map((p) => p.tel),
+		address: postalAddress(),
+		taxID: "55664251",
+	};
+	// `organizationJsonLd` has no social field yet; schema.org's is `sameAs`, printed only when set.
+	const sameAs = socialLinks().map((s) => s.url);
+	const org = organizationJsonLd(facts);
+	return sameAs.length === 0 ? org : { ...org, sameAs };
+}
 
 /** canonical, hreflang, Open Graph, Twitter, theme-color and JSON-LD for one page. */
 export function SiteHead({
@@ -56,10 +60,7 @@ export function SiteHead({
 	const page = localisedPage(ORIGIN, locale, alternate);
 	const name = siteNames(locale)[SITE];
 	const jsonLd: JsonLdNode[] = page.isHome
-		? [
-				webSiteJsonLd({ name, url: `${ORIGIN}/`, inLanguage: ["ro", "en"] }),
-				organizationJsonLd(EQSYNC),
-			]
+		? [webSiteJsonLd({ name, url: `${ORIGIN}/`, inLanguage: ["ro", "en"] }), organization(locale)]
 		: [
 				breadcrumbJsonLd([
 					{ name, url: page.home },

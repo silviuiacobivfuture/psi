@@ -6,6 +6,7 @@ import { type CatalogItem, catalogEntry, catalogItems, type EngineCatalog } from
 import type { EngineKnowledge, Passage } from "../contract";
 import type { Profile } from "../profile";
 import { fold } from "../text/normalize";
+import type { ToolTiming } from "../timing";
 import { type ScopedSearch, SEARCH_TOOL_ID, scopeSearch } from "./knowledge-tool";
 import { type NumberedPassage, SourceLedger } from "./ledger";
 
@@ -33,6 +34,10 @@ export class AnswerTurn {
 	readonly ledger: SourceLedger;
 	readonly locale: string;
 	readonly search: ScopedSearch;
+	/** What the tools showed beyond passages (the topic names and titles), for the claims check. */
+	readonly shown: Array<string> = [];
+	/** Each tool call's time and result size, for the turn's timing. */
+	readonly timings: Array<ToolTiming> = [];
 	#calls = 0;
 
 	constructor(ledger: SourceLedger, locale: string, search: ScopedSearch) {
@@ -142,10 +147,19 @@ function turnOf(opts: ProfileToolsOptions, requestContext: RequestContext | unde
 
 async function register(
 	turn: AnswerTurn,
+	tool: string,
 	load: () => Promise<ReadonlyArray<Passage>>,
 ): Promise<PassagesResult> {
 	if (!turn.take()) return { passages: [], note: LIMIT_NOTE };
-	return { passages: turn.ledger.register(withinBudget(await load())) };
+	const started = Date.now();
+	try {
+		const passages = turn.ledger.register(withinBudget(await load()));
+		turn.timings.push({ tool, ms: Date.now() - started, passages: passages.length });
+		return { passages };
+	} catch (error) {
+		turn.timings.push({ tool, ms: Date.now() - started, passages: 0 });
+		throw error;
+	}
 }
 
 /** The catalog tools, hydrated with the catalog's current shape for one locale. */
@@ -164,13 +178,17 @@ function catalogTools(
 			description: `List the topics of ${opts.profile.name}'s reviewed content (${topics.size} topics, ${items.length} entries), with a few entry titles each. Returns no content: use searchKnowledge or getEntry to read.`,
 			inputSchema: z.object({}),
 			outputSchema: TopicsOutput,
-			execute: async () => ({
-				topics: [...topics].map(([topic, list]) => ({
+			execute: async (_input, ctx) => {
+				const listed = [...topics].map(([topic, list]) => ({
 					topic,
 					entries: list.length,
 					titles: list.slice(0, TITLES_PER_TOPIC).map((i) => i.title),
-				})),
-			}),
+				}));
+				turnFor(ctx).shown.push(
+					...listed.flatMap((t) => [t.topic.replace(/[-_]+/g, " "), ...t.titles]),
+				);
+				return { topics: listed };
+			},
 		}),
 		[FIND_PAGE_TOOL]: createTool({
 			id: FIND_PAGE_TOOL,
@@ -179,7 +197,7 @@ function catalogTools(
 			outputSchema: PassagesOutput,
 			execute: async ({ titleOrUrl }, ctx) => {
 				const turn = turnFor(ctx);
-				return register(turn, async () => {
+				return register(turn, FIND_PAGE_TOOL, async () => {
 					const pages = matchPages(items, titleOrUrl);
 					const found = await Promise.all(
 						pages.map((p) => catalogEntry(catalog, scope, turn.locale, p.id)),
@@ -202,7 +220,7 @@ function catalogTools(
 			outputSchema: PassagesOutput,
 			execute: async ({ id }, ctx) => {
 				const turn = turnFor(ctx);
-				return register(turn, () => catalogEntry(catalog, scope, turn.locale, id));
+				return register(turn, GET_ENTRY_TOOL, () => catalogEntry(catalog, scope, turn.locale, id));
 			},
 		});
 	}
@@ -216,7 +234,7 @@ function catalogTools(
 			outputSchema: PassagesOutput,
 			execute: async (_input, ctx) => {
 				const turn = turnFor(ctx);
-				return register(turn, async () =>
+				return register(turn, lookup.id, async () =>
 					(
 						await Promise.all(chosen.map((id) => catalogEntry(catalog, scope, turn.locale, id)))
 					).flat(),
@@ -251,6 +269,12 @@ export function createProfileTools(
 		const items =
 			catalog === undefined ? [] : await catalogItems(catalog, opts.profile.knowledgeScope, locale);
 		const topics = enumOf(items.map((i) => i.topic));
+		// The tools' descriptions name the catalog's topics and titles: what the model saw there may
+		// be named in a reply (a sad visitor pointed to the "anxiety and depression" hub).
+		const held = requestContext.get(TURN_KEY);
+		if (held instanceof AnswerTurn) {
+			held.shown.push(...items.flatMap((i) => [i.topic.replace(/[-_]+/g, " "), i.title]));
+		}
 		const query = z
 			.string()
 			.trim()
@@ -280,7 +304,7 @@ export function createProfileTools(
 			execute: async (input, ctx) => {
 				const turn = turnFor(ctx);
 				const topic = "topic" in input && typeof input.topic === "string" ? input.topic : undefined;
-				return register(turn, async () => {
+				return register(turn, SEARCH_TOOL_ID, async () => {
 					const found = await turn.search(input.query);
 					const only = inTopic(topic);
 					const narrowed = only === undefined ? found : found.filter((p) => only.has(p.source.id));

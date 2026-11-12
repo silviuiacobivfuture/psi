@@ -79,26 +79,28 @@ describe("the configured language comes first", () => {
 		expect(tools[0]?.function.parameters.properties.query.description).toContain("Romanian");
 	});
 
-	it("an answer written in the other language is refused as unavailable, never shown", async () => {
+	it("an answer still in the other language after its retry: the canned line, never unavailable", async () => {
 		const { guide, failures } = await startGuide({
 			replies: [{ kind: "text", chunks: ["The evaluation takes two hours [1]."] }],
 			searches: [FOUND_EN],
 		});
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
+		expect(shape(events).slice(-2)).toEqual(["replace", "done"]);
+		expect(answerText(events)).not.toContain("two hours");
 		expect(failures).toEqual([
-			{ stage: "model", error: "Error: answer not in the configured language" },
+			{ stage: "check", error: "Error: regenerated: another language" },
+			{ stage: "model", error: "Error: reply not in the configured language after a retry" },
 		]);
 	});
 });
 
 describe("accuracy", () => {
-	it("asks the model for a low temperature", async () => {
+	it("asks the model for a moderate temperature (varied conversation; facts come from the tools)", async () => {
 		const { guide, server } = await startGuide();
 		await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
 		const body = z.object({ temperature: z.number() }).parse(server.requests[0]?.body);
 		expect(body.temperature).toBe(ANSWER_TEMPERATURE);
-		expect(ANSWER_TEMPERATURE).toBeLessThanOrEqual(0.2);
+		expect(ANSWER_TEMPERATURE).toBeLessThanOrEqual(0.6);
 	});
 
 	it("reports the score of a faithful answer through onScore, with no visitor content", async () => {
@@ -121,18 +123,27 @@ describe("accuracy", () => {
 	});
 
 	it.each([
-		["a figure the cited passage lacks", "Evaluarea durează 3 ore [1]."],
-		["a claim the cited passage does not support", "Terapia ABA vindecă autismul complet [2]."],
-		["a citation to a passage it was never shown", "Evaluarea durează două ore [9]."],
-	])("no_content: %s, never shown", async (_label, answer) => {
-		const { guide, scores } = await startGuide({ replies: [{ kind: "text", chunks: [answer] }] });
+		["a figure the passages lack", "Evaluarea durează 3 ore [1].", "3 ore"],
+		["an effect the passages do not state", "Terapia ABA vindecă autismul complet [2].", "vindecă"],
+	])("%s: regenerated once, then replaced by the honest line", async (_label, answer, invented) => {
+		const { guide, server } = await startGuide({ replies: [{ kind: "text", chunks: [answer] }] });
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
-		expect(scores).toHaveLength(1);
-		expect(scores[0]?.passed).toBe(false);
+		expect(shape(events).slice(-2)).toEqual(["replace", "done"]);
+		expect(answerText(events)).not.toContain(invented);
+		expect(answerText(events)).toContain("Nu am găsit asta în paginile noastre");
+		expect(server.requests).toHaveLength(2);
 	});
 
-	it("no_content: an unfaithful sentence after a faithful one stops the answer there", async () => {
+	it("a citation to a passage it was never shown is dropped", async () => {
+		const { guide } = await startGuide({
+			replies: [{ kind: "text", chunks: ["Evaluarea durează două ore [9]."] }],
+		});
+		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
+		expect(answerText(events)).toBe("Evaluarea durează două ore.");
+		expect(events.some((event) => event.type === "sources")).toBe(false);
+	});
+
+	it("an unsupported effect after a supported sentence: that sentence is left out", async () => {
 		const { guide } = await startGuide({
 			replies: [
 				{
@@ -145,11 +156,12 @@ describe("accuracy", () => {
 			],
 		});
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "text", "refusal:no_content", "done"]);
+		// Streamed, reset for the regeneration, then corrected: the final text is what stays.
+		expect(shape(events).slice(-3)).toEqual(["replace", "sources", "done"]);
 		expect(answerText(events)).toBe("Evaluarea durează două ore [1].");
 	});
 
-	it("leaves out an unsupported sentence that invents nothing, and answers with the rest", async () => {
+	it("keeps a warm sentence that states no figure or clinical fact", async () => {
 		const { guide, scores } = await startGuide({
 			replies: [
 				{
@@ -164,10 +176,10 @@ describe("accuracy", () => {
 		});
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
 		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
-		expect(answerText(events)).toBe("Evaluarea durează două ore [1]. Te așteptăm la o programare.");
-		expect(scores).toEqual([
-			{ scorer: "psi-faithfulness", score: 1, claims: 1, supported: 1, passed: true, dropped: 1 },
-		]);
+		expect(answerText(events)).toBe(
+			"Evaluarea durează două ore [1]. Echipa noastră lucrează cu multă răbdare și atenție [1]. Te așteptăm la o programare.",
+		);
+		expect(scores).toHaveLength(1);
 	});
 
 	it("an abbreviation mid-sentence does not cut the sentence before its citation", async () => {
@@ -206,23 +218,21 @@ describe("accuracy", () => {
 		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
 	});
 
-	it("no_content: an answer that makes no claim fails the Mastra scorer", async () => {
+	it("reports an answer that makes no claim as failing the Mastra scorer", async () => {
 		const { guide, scores } = await startGuide({
 			replies: [{ kind: "text", chunks: ["Da [1]."] }],
 		});
-		const events = await collect(guide.ask({ question: "Pot veni?", locale: "ro" }));
-		expect(shape(events).slice(-2)).toEqual(["refusal:no_content", "done"]);
-		expect(events.some((event) => event.type === "sources")).toBe(false);
+		await collect(guide.ask({ question: "Pot veni?", locale: "ro" }));
 		expect(scores).toEqual([
 			{ scorer: "psi-faithfulness", score: 0, claims: 0, supported: 0, passed: false, dropped: 0 },
 		]);
 	});
 
-	it("does not score a refusal that is not about accuracy", async () => {
+	it("does not score a conversational reply that cites nothing", async () => {
 		const { guide, scores } = await startGuide({
-			replies: [{ kind: "text", chunks: ["NO_CONTENT"] }],
+			replies: [{ kind: "text", chunks: ["Bună, cu ce te pot ajuta?"] }],
 		});
-		await collect(guide.ask({ question: "Aveți parcare?", locale: "ro" }));
+		await collect(guide.ask({ question: "salut", locale: "ro" }));
 		expect(scores).toHaveLength(0);
 	});
 

@@ -1,6 +1,7 @@
 import type { PayloadRequest } from "payload";
 import { OAuth2Plugin } from "payload-oauth2";
 import type { Env } from "../env";
+import { returnToFrom } from "../platform/return-to";
 import { endpoints, toUser } from "./userinfo";
 
 /**
@@ -28,7 +29,8 @@ export function authentikSignIn(env: Env): ReturnType<typeof OAuth2Plugin> {
 			if (!r.ok) throw new Error(`userinfo answered ${r.status}`);
 			return toUser(await r.json());
 		},
-		successRedirect: (): string => "/admin",
+		successRedirect: (req: PayloadRequest): string =>
+			returnToFrom(req.headers.get("cookie")) ?? "/admin",
 		failureRedirect: (_req: PayloadRequest, error?: unknown): string => {
 			_req.payload.logger.error({ err: error }, "sign-in through the directory failed");
 			return "/admin/login?sso=failed";

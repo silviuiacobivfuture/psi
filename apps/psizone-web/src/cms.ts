@@ -21,6 +21,7 @@ import { z } from "zod";
 import { aiSettings } from "./ai-settings";
 import { at, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
+import { siteSettings } from "./site-settings";
 
 /**
  * Prices and the latest blog articles from the shared CMS (`offerings`, published only; locally http://localhost:4350). With no
@@ -91,7 +92,7 @@ export function prices(locale: Locale, slugs?: ReadonlyArray<string>): PriceItem
 	});
 }
 
-/** POST /__cms/revalidate: the CMS's signed webhook; a change to offerings re-reads them. */
+/** POST /__cms/revalidate: the CMS's signed webhook; a change to offerings or site settings re-reads them. */
 export function registerCmsRevalidate(app: Hono): void {
 	app.post(REVALIDATE_PATH, (c) =>
 		handleRevalidate(c.req.raw, env.CMS_REVALIDATE_SECRET, {
@@ -103,6 +104,11 @@ export function registerCmsRevalidate(app: Hono): void {
 			},
 			"ai-settings": (e) => {
 				if (e.sites.includes("psizone")) aiSettings?.invalidate();
+			},
+			"site-settings": async (e) => {
+				if (!e.sites.includes("psizone") || siteSettings === null) return;
+				siteSettings.invalidate();
+				await siteSettings.refresh();
 			},
 		}),
 	);

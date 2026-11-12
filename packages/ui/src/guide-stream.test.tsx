@@ -2,11 +2,15 @@
 import { type AskInput, type Guide, type GuideEvent, historyOf } from "@psi/guide";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import type { GuideLabels } from "./components/guide-answer";
+import type { GuideLabels } from "./components/guide-labels";
 import { parseAnswerTarget, parseAskSignals, questionFor, streamGuideAnswer } from "./guide-stream";
 
 const labels: GuideLabels = {
 	thinking: "T",
+	stages: { searching: "SEARCHING", checking: "CHECKING" },
+	retry: "RETRY",
+	dropped: "DROPPED",
+	unanswered: "UNANSWERED",
 	footer: "F",
 	contact: { label: "C", href: "/c" },
 	reviewedBy: (name, date) => `R ${name} ${date}`,
@@ -59,8 +63,20 @@ describe("streamGuideAnswer", () => {
 			{
 				type: "sources",
 				sources: [
-					{ id: "a", title: "A", url: "/a", reviewedBy: "Dr X", reviewedAt: "2026-01-02" },
-					{ id: "b", title: "B", url: "/b", reviewedBy: null, reviewedAt: null },
+					{
+						id: "a",
+						title: "A",
+						url: "/a",
+						reviewedBy: "Dr X",
+						reviewedAt: "2026-01-02",
+					},
+					{
+						id: "b",
+						title: "B",
+						url: "/b",
+						reviewedBy: null,
+						reviewedAt: null,
+					},
 				],
 			},
 			{ type: "done" },
@@ -75,7 +91,7 @@ describe("streamGuideAnswer", () => {
 		expect(done).toContain('data-done=""');
 		expect(done).toContain('<a class="pz-msg__source" href="/a">A · R Dr X 2026-01-02</a>');
 		expect(done).toContain('<a class="pz-msg__source" href="/b">B</a>');
-		expect(done).toContain('<p class="mt-3 text-body-sm text-ink-faint">F</p>');
+		expect(done).toContain('<p class="pz-msg__footer">F</p>');
 		for (const html of out) expect(html).not.toContain("\n");
 	});
 
@@ -90,6 +106,50 @@ describe("streamGuideAnswer", () => {
 		expect(out[2]).toContain("<p>OOS</p>");
 		expect(out[2]).toContain('href="/c">C</a>');
 		expect(out[2]).not.toContain("Partial.");
+	});
+
+	it("starts the reply over on replace, then keeps appending, and remembers the final text", async () => {
+		const app = new Hono();
+		app.post("/", (c) =>
+			streamGuideAnswer(c, {
+				guide: fakeGuide([
+					{ type: "thinking" },
+					{ type: "text", delta: "Wrong one." },
+					{ type: "replace", text: "" },
+					{ type: "text", delta: "Right " },
+					{ type: "text", delta: "one." },
+					{ type: "replace", text: "Right one, corrected." },
+					{ type: "done" },
+				]),
+				locale: "ro",
+				question: "Q",
+				target: "compass-answer",
+				labels,
+			}),
+		);
+		const lines = (await (await app.request("/", { method: "POST" })).text()).split("\n");
+		const out = lines
+			.filter((l) => l.startsWith("data: elements "))
+			.map((l) => l.slice("data: elements ".length));
+		// thinking, "Wrong one.", thinking again (replace with no text), two deltas, the full text, done.
+		expect(out).toHaveLength(7);
+		expect(out[2]).toContain("T");
+		expect(out[2]).not.toContain("Wrong one.");
+		expect(out[4]).toContain(">Right one.</span>");
+		expect(out[5]).toContain(">Right one, corrected.</span>");
+		expect(out[6]).toContain('data-done=""');
+		expect(out[6]).not.toContain("Wrong one.");
+		const turns = lines.find((l) => l.startsWith('data: signals {"compassTurns"')) ?? "";
+		expect(JSON.parse(turns.slice("data: signals ".length)).compassTurns.at(-1)).toEqual({
+			role: "guide",
+			text: "Right one, corrected.",
+		});
+	});
+
+	it("treats a reply with no words as broken, never as an empty answer", async () => {
+		const out = await patches([{ type: "thinking" }, { type: "done" }]);
+		expect(out.at(-1)).toContain("<p>U</p>");
+		expect(out.at(-1)).not.toContain('data-done=""');
 	});
 
 	it("renders the app's crisis block as given, with no sources", async () => {
@@ -163,13 +223,23 @@ describe("conversation mode", () => {
 		{ role: "guide", text: "Luni-vineri, 9-18 [1]." },
 	];
 
-	it("passes the field's earlier turns as history, shows them, and appends the answered turn", async () => {
+	it("passes the field's earlier turns as history, sends only the new exchange, and appends the answered turn", async () => {
 		const { seen, lines } = await converse(
 			[{ type: "text", delta: "Sâmbăta e închis [1]." }, { type: "done" }],
-			{ question: "x", guideTurns: earlier, compassTurns: [{ role: "user", text: "other" }] },
+			{
+				question: "x",
+				guideTurns: earlier,
+				compassTurns: [{ role: "user", text: "other" }],
+			},
 		);
 		expect(seen[0]?.history).toEqual(earlier);
-		expect(lines.find((l) => l.startsWith("data: elements "))).toContain("Când e deschis?");
+		// Only the new exchange is sent, appended to the transcript; earlier ones stay as they are.
+		const first = lines.findIndex((l) => l.startsWith("data: elements "));
+		expect(lines[first - 2]).toBe("data: selector #guide-answer");
+		expect(lines[first - 1]).toBe("data: mode append");
+		expect(lines[first]).toContain("Și sâmbăta?");
+		const sent = lines.filter((l) => l.startsWith("data: elements ")).join();
+		expect(sent).not.toContain("Când e deschis?");
 		const patch = lines.find((l) => l.startsWith('data: signals {"guideTurns"'));
 		expect(JSON.parse((patch ?? "").slice("data: signals ".length))).toEqual({
 			guideTurns: [
@@ -300,8 +370,8 @@ describe("conversation mode", () => {
 		expect(kept[0]?.text.startsWith("t10 ")).toBe(true);
 		for (const t of kept) expect(t.text.length).toBeLessThanOrEqual(4000);
 		const history = historyOf(kept);
-		expect(history).toHaveLength(6);
-		expect(history[0]?.text.startsWith("t24 ")).toBe(true);
+		expect(history).toHaveLength(10);
+		expect(history[0]?.text.startsWith("t20 ")).toBe(true);
 	});
 });
 
@@ -321,48 +391,9 @@ describe("the asking field", () => {
 		const lines = (await (await app.request("/", { method: "POST" })).text())
 			.split("\n")
 			.filter((l) => l.startsWith("data: "));
-		expect(lines[0]).toBe('data: signals {"question": "", "compassQuery": ""}');
-		expect(lines[1]?.startsWith("data: elements ")).toBe(true);
+		expect(lines[0]).toBe('data: signals {"question": ""}');
+		expect(lines[1]).toBe("data: selector #guide-answer");
+		expect(lines[3]?.startsWith("data: elements ")).toBe(true);
 		expect(lines.at(-1)?.startsWith('data: signals {"guideTurns":')).toBe(true);
-	});
-});
-
-describe("booking inside the conversation", () => {
-	it("renders the app's booking step for an offer and remembers the summary turn", async () => {
-		const offering: Guide = {
-			brand: "psizone",
-			model: "test",
-			async *ask() {
-				yield {
-					type: "booking",
-					offer: { service: "evaluation", status: "ok", timeZone: "Europe/Bucharest", slots: [] },
-				};
-				yield { type: "done" };
-			},
-		};
-		const app = new Hono();
-		app.post("/", (c) =>
-			streamGuideAnswer(c, {
-				guide: offering,
-				locale: "ro",
-				question: "Vreau o programare",
-				target: "compass-answer",
-				labels: {
-					...labels,
-					booking: {
-						render: (offer) => <form id="booking">{offer.service}</form>,
-						summary: "SLOTS",
-					},
-				},
-			}),
-		);
-		const lines = (await (await app.request("/", { method: "POST" })).text()).split("\n");
-		const last = lines.filter((l) => l.startsWith("data: elements ")).at(-1) ?? "";
-		expect(last).toContain('<form id="booking">evaluation</form>');
-		const turns = lines.find((l) => l.startsWith('data: signals {"compassTurns"')) ?? "";
-		expect(JSON.parse(turns.slice("data: signals ".length)).compassTurns.at(-1)).toEqual({
-			role: "guide",
-			text: "SLOTS",
-		});
 	});
 });

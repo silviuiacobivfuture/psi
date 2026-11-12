@@ -16,6 +16,8 @@ export interface PwaToolsProps {
 	labels: PwaToolsLabels;
 	/** The notifications page in this locale; absent while push is off (no link is shown). */
 	notificationsHref?: string;
+	/** False hides the install invitation and the iOS note (a site's `installPrompt` setting). */
+	install?: boolean;
 }
 
 /** The Datastar wiring every PWA control shares: the client's `psipwa` event fills these signals. */
@@ -41,7 +43,11 @@ const BUTTON = "pz-btn pz-btn--glass pz-btn--sm";
  * installed (`beforeinstallprompt`); on iPhone and iPad, which have no such prompt, a short
  * "Add to Home Screen" note instead; and, while push is on, a link to the notifications page. No pop-up.
  */
-export function PwaTools({ labels, notificationsHref }: PwaToolsProps): JSX.Element {
+export function PwaTools({
+	labels,
+	notificationsHref,
+	install = true,
+}: PwaToolsProps): JSX.Element {
 	return (
 		<span
 			class="contents"
@@ -49,19 +55,23 @@ export function PwaTools({ labels, notificationsHref }: PwaToolsProps): JSX.Elem
 			data-on:psipwa__window={PWA_LISTEN}
 			data-init={PWA_INIT}
 		>
-			<button
-				type="button"
-				class={BUTTON}
-				style={{ display: "none" }}
-				data-show="$pwaInstallable && !$pwaStandalone"
-				data-on:click="window.psiPwa && window.psiPwa.install()"
-			>
-				{labels.install}
-			</button>
-			<details class="pz-pwa-ios w-full" style={{ display: "none" }} data-show="$pwaIos">
-				<summary class={`${BUTTON} cursor-pointer list-none`}>{labels.iosTitle}</summary>
-				<p class="mt-2 text-body-sm text-ink-muted">{labels.iosSteps}</p>
-			</details>
+			{install ? (
+				<>
+					<button
+						type="button"
+						class={BUTTON}
+						style={{ display: "none" }}
+						data-show="$pwaInstallable && !$pwaStandalone"
+						data-on:click="window.psiPwa && window.psiPwa.install()"
+					>
+						{labels.install}
+					</button>
+					<details class="pz-pwa-ios w-full" style={{ display: "none" }} data-show="$pwaIos">
+						<summary class={`${BUTTON} cursor-pointer list-none`}>{labels.iosTitle}</summary>
+						<p class="mt-2 text-body-sm text-ink-muted">{labels.iosSteps}</p>
+					</details>
+				</>
+			) : null}
 			{notificationsHref !== undefined ? (
 				<a class={BUTTON} href={notificationsHref}>
 					{labels.notifications}

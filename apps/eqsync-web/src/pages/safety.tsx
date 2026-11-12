@@ -1,4 +1,3 @@
-import { StatusBadge } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
@@ -31,11 +30,7 @@ export function SafetyPage(props: PageProps): JSX.Element {
 				overline={m.footer_legal_label({}, o)}
 				title={m.nav_safety({}, o)}
 				lead={m.footer_disclaimer({}, o)}
-			>
-				<StatusBadge tone="warning" class="ml-3 mt-8">
-					{m.sp_review_badge({}, o)}
-				</StatusBadge>
-			</PageHero>
+			/>
 			<section class="mx-auto max-w-6xl px-5 py-20 md:py-28">
 				<ol class="eq-rows">
 					{rows.map((r, i) => (

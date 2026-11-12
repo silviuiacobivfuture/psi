@@ -684,9 +684,9 @@ body {
 
 /* Psizone: organic futurism. Drifting aurora orbs, soft pills (the defaults above). */
 
-/* EQ-SYNC: nocturnal sound. Mono labels, gold action, horizontal sound bands instead of orbs, slightly tighter corners. */
+/* EQ-SYNC: nocturnal sound. Serif reading text, mono labels, gold action, slightly tighter corners. */
 [data-theme^="eqsync"] {
-	--pz-body: var(--font-mono);
+	--pz-body: var(--font-display);
 	--pz-label: var(--font-mono);
 }
 [data-theme^="eqsync"] .pz-btn,

@@ -7,12 +7,12 @@ import {
 } from "./events";
 
 /**
- * How many earlier turns a follow-up sends as `history` (three questions and their answers). The
+ * How many earlier turns a follow-up sends as `history` (five questions and their answers). The
  * conversation lives only in the visitor's page (a Datastar signal) and travels with the next
  * question: nothing is stored on the server, so no consent is needed. Memory (`threadId`) stays
  * consent-only.
  */
-export const CONVERSATION_TURNS = 6;
+export const CONVERSATION_TURNS = 10;
 /** How many turns the page keeps on screen (ten exchanges). */
 export const DISPLAY_TURNS = 20;
 

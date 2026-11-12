@@ -15,6 +15,16 @@ export const statusValidator = v.union(
 	v.literal("expired"),
 );
 
+/** Why the team declined or cancelled: `DECISION_REASONS`, a closed list, never clinical. */
+export const decisionReasonValidator = v.union(
+	v.literal("practitioner_unavailable"),
+	v.literal("schedule_conflict"),
+	v.literal("client_request"),
+	v.literal("duplicate"),
+	v.literal("no_response"),
+	v.literal("administrative"),
+);
+
 export const channelValidator = v.union(v.literal("form"), v.literal("guide"), v.literal("staff"));
 
 export const localeValidator = v.union(v.literal("ro"), v.literal("en"));

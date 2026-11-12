@@ -96,10 +96,9 @@ describe("a grounded answer", () => {
 			"evaluare",
 			"aba",
 		]);
-		// The probe, then the agent's own search (its passages are the only ones it can cite);
-		// with the demo off each asks for three times the topK, so demo twins never crowd it.
+		// Only the agent's own search (no probe); with the demo off it asks for three times the
+		// topK, so demo twins never crowd it.
 		expect(knowledge.calls).toEqual([
-			{ query: "Cum decurge o evaluare?", brand: "psizone", locale: "ro", topK: 15 },
 			{ query: "Cum decurge o evaluare?", brand: "psizone", locale: "ro", topK: 15 },
 		]);
 
@@ -137,7 +136,7 @@ describe("a grounded answer", () => {
 		expect(system).toContain("the Psizone guide");
 	});
 
-	it("numbers only the passages a tool returned (the probe's are never shown or citable)", async () => {
+	it("cites only the passages a tool returned", async () => {
 		const extra = passage(
 			{ ...EVALUATION, id: "pret", title: "Prețuri" },
 			"Evaluarea costă 600 de lei.",
@@ -147,17 +146,14 @@ describe("a grounded answer", () => {
 				{ kind: "tool", query: "preț evaluare" },
 				{ kind: "text", chunks: ["Evaluarea costă 600 de lei [1]."] },
 			],
-			[FOUND, { kind: "passages", passages: [extra] }],
+			[{ kind: "passages", passages: [extra] }],
 		);
 		const events = await collect(guide.ask({ question: "Cât costă evaluarea?", locale: "ro" }));
 		expect(shape(events)).toEqual(["thinking", "text", "sources", "done"]);
 		expect(answerText(events)).toBe("Evaluarea costă 600 de lei [1].");
 		const sources = events.find((event) => event.type === "sources");
 		expect(sources?.type === "sources" ? sources.sources.map((s) => s.id) : []).toEqual(["pret"]);
-		expect(knowledge.calls.map((call) => call.query)).toEqual([
-			"Cât costă evaluarea?",
-			"preț evaluare",
-		]);
+		expect(knowledge.calls.map((call) => call.query)).toEqual(["preț evaluare"]);
 	});
 
 	it("uses PSI_GUIDE_MODEL when no model option is given", async () => {
@@ -187,34 +183,32 @@ describe("refusals", () => {
 		expect(shape(events)).toEqual(["refusal:crisis", "done"]);
 	});
 
-	it("out_of_scope: a diagnosis request never reaches the model", async () => {
-		const { guide, server, knowledge } = await guideWith(
-			[{ kind: "text", chunks: ["x"] }],
-			[FOUND],
-		);
+	it("a diagnosis request: no refusal card, the agent steers it to a specialist", async () => {
+		const steer =
+			"Înțeleg grija ta. Asta se lămurește într-o evaluare cu un specialist; vrei să-ți spun cum faci o programare?";
+		const { guide, server } = await guideWith([{ kind: "text", chunks: [steer] }], [FOUND]);
 		const events = await collect(guide.ask({ question: "Copilul meu are ADHD?", locale: "ro" }));
-		expect(shape(events)).toEqual(["refusal:out_of_scope", "done"]);
-		expect(server.requests).toHaveLength(0);
-		expect(knowledge.calls).toHaveLength(0);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
+		expect(answerText(events)).toBe(steer);
+		const system = chatBody(server.requests[0])
+			.messages.filter((m) => m.role === "system")
+			.map((m) => messageText(m.content))
+			.join("\n");
+		expect(system).toContain("Întrebarea cere un diagnostic");
 	});
 
-	it("no_content: empty retrieval refuses without calling the model", async () => {
-		const { guide, server } = await guideWith(
-			[{ kind: "text", chunks: ["x"] }],
+	it("a question nothing covers: an honest reply in conversation, never no_content", async () => {
+		const honest = "Nu avem asta pe site; colegii îți răspund din pagina de contact.";
+		const { guide } = await guideWith(
+			[{ kind: "text", chunks: [honest] }],
 			[{ kind: "passages", passages: [] }],
 		);
 		const events = await collect(guide.ask({ question: "Aveți parcare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
-		expect(server.requests).toHaveLength(0);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
+		expect(answerText(events)).toBe(honest);
 	});
 
-	it("no_content: the model says the passages do not answer", async () => {
-		const { guide } = await guideWith([{ kind: "text", chunks: ["NO_", "CONTENT"] }], [FOUND]);
-		const events = await collect(guide.ask({ question: "Aveți parcare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
-	});
-
-	it("no_content: a percentage the passages do not hold stops the answer", async () => {
+	it("a percentage the passages do not hold is regenerated, then left out", async () => {
 		const { guide } = await guideWith(
 			[
 				{
@@ -225,18 +219,18 @@ describe("refusals", () => {
 			[FOUND],
 		);
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "text", "refusal:no_content", "done"]);
-		expect(answerText(events)).not.toContain("86");
+		// Streamed, reset for the regeneration, then corrected: the final text is what stays.
+		expect(shape(events).slice(-3)).toEqual(["replace", "sources", "done"]);
+		expect(answerText(events)).toBe("Evaluarea durează două ore [1].");
 	});
 
-	it("no_content: an answer that cites no passage is not grounded", async () => {
+	it("an answer that cites no passage goes out without sources", async () => {
 		const { guide } = await guideWith(
 			[{ kind: "text", chunks: ["Evaluarea durează două ore."] }],
 			[FOUND],
 		);
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		// The uncited sentence is refused before it is let out, so no text reaches the app.
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
 	});
 
 	it("unavailable: the answer was cut off before the model finished", async () => {
@@ -250,7 +244,7 @@ describe("refusals", () => {
 		expect(failures[0]?.error).toContain("length");
 	});
 
-	it("out_of_scope: Psizone naming Hemi-Sync on a clinical question is stopped", async () => {
+	it("Psizone naming Hemi-Sync on a clinical question: that sentence is left out", async () => {
 		const { guide } = await guideWith(
 			[
 				{
@@ -277,8 +271,9 @@ describe("refusals", () => {
 		const events = await collect(
 			guide.ask({ question: "Ce faceți pentru anxietate?", locale: "ro" }),
 		);
-		expect(shape(events)).toEqual(["thinking", "text", "refusal:out_of_scope", "done"]);
-		expect(answerText(events)).not.toMatch(/hemi/i);
+		// Streamed, reset for the regeneration, then corrected: the final text is what stays.
+		expect(shape(events).slice(-3)).toEqual(["replace", "sources", "done"]);
+		expect(answerText(events)).toBe("Pentru anxietate lucrăm cu psihoterapie [1].");
 	});
 
 	it("unavailable: no API key, without touching the knowledge base", async () => {
@@ -293,7 +288,8 @@ describe("refusals", () => {
 		const { guide, server, failures } = await guideWith([{ kind: "status", status: 500 }], [FOUND]);
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
 		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
-		expect(server.requests).toHaveLength(1);
+		// Unavailable only after one retry.
+		expect(server.requests).toHaveLength(2);
 		expect(failures).toHaveLength(1);
 		expect(failures[0]?.stage).toBe("model");
 		expect(JSON.stringify(failures)).not.toContain("evaluare");
@@ -307,23 +303,17 @@ describe("refusals", () => {
 		expect(Date.now() - started).toBeLessThan(2_500);
 	});
 
-	it("unavailable: the knowledge base throws", async () => {
-		const { guide } = await guideWith([{ kind: "text", chunks: ["x"] }], [{ kind: "throw" }]);
+	it.each([
+		["throws", { kind: "throw" }],
+		["never answers (retrieval timeout)", { kind: "hang" }],
+	] as const)("the knowledge base %s: the agent still replies, never unavailable", async (_what, search) => {
+		const sorry = "Nu pot căuta acum în pagini; colegii îți răspund din pagina de contact.";
+		const { guide } = await guideWith([{ kind: "text", chunks: [sorry] }], [search]);
 		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
 	});
 
-	it("unavailable: the knowledge base never answers (retrieval timeout)", async () => {
-		const { guide, server } = await guideWith(
-			[{ kind: "text", chunks: ["x"] }],
-			[{ kind: "hang" }],
-		);
-		const events = await collect(guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
-		expect(server.requests).toHaveLength(0);
-	});
-
-	it("stops the model call when the caller stops reading", async () => {
+	it("stops the model call when the caller aborts mid-reply", async () => {
 		const { guide, server } = await guideWith(
 			[
 				{
@@ -334,23 +324,24 @@ describe("refusals", () => {
 			],
 			[FOUND],
 		);
-		const seen: Array<string> = [];
-		for await (const event of guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" })) {
-			seen.push(event.type);
-			if (event.type === "text") break;
-		}
-		expect(seen).toEqual(["thinking", "text"]);
+		const control = new AbortController();
+		setTimeout(() => control.abort(), 200);
+		const events = await collect(
+			guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }, { signal: control.signal }),
+		);
+		// What streamed before the abort is never finished: no sources, no refusal, `done` alone.
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
 		expect(server.requests).toHaveLength(1);
 		await vi.waitFor(() => expect(server.cutOff()).toBe(1));
 	});
 
-	it("unavailable: the caller aborts", async () => {
+	it("an aborted turn renders nothing: done alone, never unavailable", async () => {
 		const { guide } = await guideWith([{ kind: "hang" }], [FOUND]);
 		const control = new AbortController();
 		setTimeout(() => control.abort(), 50);
 		const events = await collect(
 			guide.ask({ question: "Cum decurge o evaluare?", locale: "ro" }, { signal: control.signal }),
 		);
-		expect(shape(events)).toEqual(["thinking", "refusal:unavailable", "done"]);
+		expect(shape(events)).toEqual(["thinking", "done"]);
 	});
 });

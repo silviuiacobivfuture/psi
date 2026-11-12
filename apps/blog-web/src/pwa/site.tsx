@@ -5,6 +5,7 @@ import { account } from "../account";
 import { ESTATE, SITE, siteNames } from "../estate";
 import { base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { installPrompt } from "../site-settings";
 
 /** The notifications page, under the account (Romanian slug in both locales). */
 export function notificationsPath(locale: Locale): string {
@@ -38,5 +39,6 @@ export function PwaHeadTags({ locale }: { locale: Locale }): JSX.Element {
 
 /** The Compass's install and notification entries. */
 export function SitePwaTools({ locale }: { locale: Locale }): JSX.Element {
-	return pwa.tools(locale);
+	// None when the owners hid them in the CMS (`installPrompt`).
+	return pwa.tools(locale, { install: installPrompt() });
 }

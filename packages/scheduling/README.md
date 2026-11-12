@@ -6,7 +6,7 @@ authorization model and the hosting decision are in `docs/plans/scheduling.md`.
 | Part | Where |
 | --- | --- |
 | Domain, pure functions: wall time and DST (`time.ts`), slot generation (`slots.ts`), what blocks a calendar (`conflicts.ts`), the hold/request/appointment lifecycle (`lifecycle.ts`), retention, reminders (interface), contact rules, references and codes | `src/domain/` |
-| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed | `convex/` |
+| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
 | Server clients for Hono apps (`ConvexHttpClient`, every answer parsed with zod, a deadline per call) | `src/client.ts` (visitor), `src/staff-client.ts` (team) |
 | Configuration from the environment | `src/config.ts` |
 
@@ -50,6 +50,7 @@ packages/scheduling/scripts/local-backend.sh env       # stores the CLI admin ke
                                                        # and sets PSI_SCHEDULING_KEY in the deployment
 pnpm --filter @psi/scheduling convex:deploy            # scripts/convex.sh deploy --yes: schema + functions + crons
 pnpm --filter @psi/scheduling convex:seed              # scripts/convex.sh run seed:demo: DEMO practitioners, rules, services
+packages/scheduling/scripts/convex.sh run seed:demoRequests # three DEMO requests on rule-valid slots (skips if already there)
 packages/scheduling/scripts/local-backend.sh app-env apps/psizone-web/.env
                                                        # appends CONVEX_URL and PSI_SCHEDULING_KEY if absent
 packages/scheduling/scripts/local-backend.sh down      # removes the container; the data stays

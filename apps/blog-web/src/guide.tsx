@@ -1,13 +1,8 @@
-import type { AnswerTarget, GuideLabels } from "@psi/ui";
+import type { GuideLabels } from "@psi/ui";
 import { EDITORIAL_POLICY } from "./content/editorial-policy";
 import { at, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { routes } from "./routes";
-
-/** The answer region's spacing: the ask bar's sits under the bar, the compass's fills its panel. */
-export function answerClass(target: AnswerTarget): string {
-	return target === "guide-answer" ? "mt-5 space-y-3" : "space-y-3";
-}
 
 /**
  * The Blog's words for the guide's answer region. A refusal points to how articles are written
@@ -17,6 +12,13 @@ export function guideLabels(locale: Locale): GuideLabels {
 	const o = at(locale);
 	return {
 		thinking: m.guide_thinking({}, o),
+		stages: {
+			searching: m.guide_stage_searching({}, o),
+			checking: m.guide_stage_checking({}, o),
+		},
+		retry: m.guide_retry({}, o),
+		dropped: m.guide_dropped({}, o),
+		unanswered: m.guide_unanswered({}, o),
 		footer: m.guide_footer({}, o),
 		contact: {
 			label: EDITORIAL_POLICY.title[locale],

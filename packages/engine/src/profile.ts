@@ -16,13 +16,26 @@ export interface ProfileLocale {
 	/** The next steps a short uncited sentence may offer, as the prompt names them. */
 	nextSteps: string;
 	/**
-	 * The guide's own short, warm reply to small talk ("hi", "what can you do?", "can we just
-	 * talk?"): who it is and what it can help with, written by the profile's owner. Sent as it is,
-	 * with no retrieval and no model call. Without it, small talk is answered like any question.
+	 * The guide's own short, warm reply to small talk ("hi", "what can you do?"): who it is and
+	 * what it can help with. Only a FALLBACK: sent as written when the model is unreachable (no
+	 * key, a provider failure) or still answers in another language after its retry; the model
+	 * replies to small talk otherwise.
 	 */
 	welcome?: string;
-	/** The guide's own reply to a thank-you ("mulțumesc", "thanks a lot"); the welcome otherwise. */
+	/** The fallback reply to a thank-you ("mulțumesc", "thanks a lot"); the welcome otherwise. */
 	thanks?: string;
+	/** The fallback mid-conversation (after an answered turn): no greeting. The welcome otherwise. */
+	followUp?: string;
+	/**
+	 * The honest line when a reply stated only facts nothing supports, even after its retry: "I
+	 * don't have that on our site; our team can tell you". Sent with the profile's contact.
+	 */
+	unknown?: string;
+	/**
+	 * Facts the profile's owner states (a phone number, the opening hours), which a reply may
+	 * carry without a tool result.
+	 */
+	facts?: ReadonlyArray<string>;
 }
 
 /**
@@ -92,6 +105,9 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 		nextSteps: z.string().trim().min(1),
 		welcome: z.string().trim().min(1).max(600).optional(),
 		thanks: z.string().trim().min(1).max(300).optional(),
+		followUp: z.string().trim().min(1).max(600).optional(),
+		unknown: z.string().trim().min(1).max(600).optional(),
+		facts: z.array(z.string().trim().min(1).max(600)).readonly().optional(),
 	})
 	.strict();
 

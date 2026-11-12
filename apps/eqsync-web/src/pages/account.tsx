@@ -7,9 +7,12 @@ import { m } from "../paraglide/messages.js";
 import { Footer } from "../sections/closing";
 import { Header } from "../sections/header";
 import type { Theme } from "../theme";
-import { PageHero } from "./shell";
 
-/** A page of the account journey in this site's own shell and theme: /cont and everything under it. */
+/**
+ * A page of the account journey in this site's chrome (header, Compass, footer) and nothing else: no hero. The
+ * account header, sections and content come from @psi/account and sit in the site's own container, so they share
+ * the header's grid.
+ */
 export function AccountFrame({
 	locale,
 	theme,
@@ -35,15 +38,8 @@ export function AccountFrame({
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
 		>
 			<Header locale={locale} otherHref={otherHref} />
-			<main id="continut">
-				<PageHero
-					locale={locale}
-					overline={m.account_group({}, o)}
-					title={title}
-					lead={m.account_lead({}, o)}
-					draft={false}
-				/>
-				<section class="mx-auto max-w-6xl px-5 py-20">{children}</section>
+			<main id="continut" class="mx-auto max-w-6xl px-5 pb-32 pt-28 md:pt-32">
+				{children}
 			</main>
 			<Footer locale={locale} />
 		</Layout>

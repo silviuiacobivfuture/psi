@@ -32,7 +32,12 @@ export interface JourneyOptions {
 	dataHome?: string;
 	/** The purposes this site offers; only those that change something here. Default: guide memory. */
 	purposes?: ReadonlyArray<Purpose>;
-	/** A saved article's title and link, for the timeline; absent: the slug is shown. */
+	/** Where "book an appointment" leads (Psizone's booking page, absolute on the other sites). */
+	bookHref?: string;
+	/** Where to find articles to save (the blog), and the full reading list. */
+	readingHref?: string;
+	savedListHref?: string;
+	/** A saved article's title and link, for the overview and the timeline; absent: the slug is shown. */
 	savedArticle?: (slug: string) => { title: string; href: string } | undefined;
 	/** Something the site adds above the timeline on /cont (the blog's reading list). */
 	homeExtra?: (c: Context, person: SignedIn) => Promise<Child>;
@@ -78,3 +83,20 @@ export async function formOf(c: Context): Promise<Record<string, string>> {
 }
 
 export const PRIVATE = { "cache-control": "private, no-store" } as const;
+
+/**
+ * A saved-article resolver over a catalogue (the sites pass @psi/content's `INDEX` and `articleUrl`): the title in
+ * the page's language when there is one, else in the other.
+ */
+export function savedArticleIn(
+	index: ReadonlyArray<{ slug: string; locale: string; title: string }>,
+	locale: "ro" | "en",
+	href: (slug: string) => string,
+): (slug: string) => { title: string; href: string } | undefined {
+	return (slug) => {
+		const hit =
+			index.find((a) => a.slug === slug && a.locale === locale) ??
+			index.find((a) => a.slug === slug);
+		return hit === undefined ? undefined : { title: hit.title, href: href(slug) };
+	};
+}

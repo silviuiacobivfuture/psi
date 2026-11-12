@@ -1,5 +1,7 @@
 import { en } from "@payloadcms/translations/languages/en";
 import { ro } from "@payloadcms/translations/languages/ro";
+import { knowledgeEn, knowledgeRo } from "./i18n-knowledge";
+import { platformEn, platformRo } from "./i18n-platform";
 
 /** cms's own interface strings, beside Payload's (which come in Romanian and English). */
 const roStrings = {
@@ -140,8 +142,11 @@ const enStrings: typeof roStrings = {
 	noData: "—",
 };
 
-export const custom = { ro: { psi: roStrings }, en: { psi: enStrings } } as const;
-export type PsiKey = keyof typeof roStrings;
+export const custom = {
+	ro: { psi: { ...roStrings, ...platformRo, ...knowledgeRo } },
+	en: { psi: { ...enStrings, ...platformEn, ...knowledgeEn } },
+} as const;
+export type PsiKey = keyof typeof roStrings | keyof typeof platformRo | keyof typeof knowledgeRo;
 export type CustomKey = `psi:${PsiKey}`;
 
 export const i18n = {
@@ -149,3 +154,8 @@ export const i18n = {
 	supportedLanguages: { ro, en },
 	translations: custom,
 };
+
+/** A flash key from a URL is a message only if the admin knows it (checked, not cast). */
+export function isPsiKey(k: string): k is PsiKey {
+	return Object.hasOwn(custom.ro.psi, k);
+}

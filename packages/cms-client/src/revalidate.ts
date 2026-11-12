@@ -31,6 +31,11 @@ export const RevalidateEvent = z.discriminatedUnion("kind", [
 		sites: z.array(SiteSchema).min(1),
 		sentAt: z.string().datetime(),
 	}),
+	z.object({
+		kind: z.literal("site-settings"),
+		sites: z.array(SiteSchema).min(1),
+		sentAt: z.string().datetime(),
+	}),
 ]);
 export type RevalidateEvent = z.infer<typeof RevalidateEvent>;
 
@@ -80,6 +85,7 @@ export async function handleRevalidate(
 	}
 	if (e.data.kind === "articles") await handlers.articles?.(e.data);
 	else if (e.data.kind === "offerings") await handlers.offerings?.(e.data);
+	else if (e.data.kind === "site-settings") await handlers["site-settings"]?.(e.data);
 	else await handlers["ai-settings"]?.(e.data);
 	return new Response(null, { status: 204 });
 }

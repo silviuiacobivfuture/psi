@@ -452,6 +452,27 @@ describe("the signed-in journey (live OpenFGA)", () => {
 		expect(await stores.consents.current(ANA, "programme_progress")).toBe(false);
 	});
 
+	it("opens on an overview of the person's own things, each card with one action", async () => {
+		const { app, stores } = await setup();
+		await stores.consents.grant(ANA, "guide_memory", "v1", NOW);
+		await stores.conversations.append(ANA, "psizone", {
+			question: "q",
+			answer: "a",
+			at: NOW,
+		});
+		const html = await (await go(app, "/cont", ANA_ID)).text();
+		expect(html).toContain("data-overview");
+		// Next appointment: Ana's own upcoming request (allowed by OpenFGA), never Bogdan's.
+		expect(html).toContain("account_card_next_action");
+		expect(html).not.toContain("account_card_next_empty");
+		expect(html).toContain("account_card_memory_on");
+		expect(html).toContain("account_card_memory_count · 1");
+		expect(html).toContain("account_card_saved_empty");
+		expect(html).toContain('aria-current="page"');
+		const bogdan = await (await go(app, "/cont", BOGDAN_ID)).text();
+		expect(bogdan).toContain("account_card_memory_off");
+	});
+
 	it("fails closed: OpenFGA away answers 503 and shows nothing", async () => {
 		const { app } = await setup("http://127.0.0.1:9");
 		const res = await go(app, "/cont/programari", ANA_ID);

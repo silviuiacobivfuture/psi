@@ -7,9 +7,11 @@ import { PURPOSES, type Purpose } from "../stores/types";
 import { accountRef, formOf, type JourneyOptions, PRIVATE, WORDING_VERSION } from "./context";
 import { exportOf } from "./export";
 import type { JourneyKey, Say } from "./labels";
+import { overviewOf } from "./overview";
 import { registerHistoryRoutes } from "./routes-history";
 import { timelineOf } from "./timeline";
-import { ConsentsBody, DataBody, HomeBody, ProfileBody } from "./views-manage";
+import { ConsentsBody, DataBody, ProfileBody } from "./views-manage";
+import { HomeBody } from "./views-overview";
 import {
 	ComingSoon,
 	JOURNEY_PAGES,
@@ -146,14 +148,24 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 		const person = await j.gate(c, "viewer");
 		if (person instanceof Response) return person;
 		const stores = await o.account.stores();
-		const timeline = await timelineOf(j, stores, person.subject);
+		const [timeline, overview] = await Promise.all([
+			timelineOf(j, stores, person.subject),
+			overviewOf(j, c, stores, person.subject),
+		]);
 		const extra = o.homeExtra === undefined ? undefined : await o.homeExtra(c, person);
 		return j.page(
 			c,
 			person,
 			"home",
 			"account_title",
-			<HomeBody say={say} locale={o.locale} timeline={timeline} extra={extra} />,
+			<HomeBody
+				say={say}
+				base={o.base}
+				overview={overview}
+				locale={o.locale}
+				timeline={timeline}
+				extra={extra}
+			/>,
 		);
 	});
 
@@ -253,6 +265,7 @@ export function registerJourney(app: Hono, o: JourneyOptions): void {
 			<DataBody
 				say={say}
 				base={o.base}
+				signOutAction={o.account.signOutAction}
 				mismatch={c.req.query("mismatch") === "1"}
 				{...(o.reservations === undefined && o.dataHome !== undefined
 					? { elsewhere: o.dataHome }

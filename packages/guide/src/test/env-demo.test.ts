@@ -40,6 +40,7 @@ describe("the guide's environment", () => {
 			modelScreening: true,
 			dataCollection: "deny",
 			demo: false,
+			sort: "latency",
 		});
 	});
 

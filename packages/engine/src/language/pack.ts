@@ -9,9 +9,10 @@ export interface PackPrompt {
 	/** The heading of the numbered rules. */
 	rulesHeading: string;
 	/**
-	 * The grounding rules (answer only from the passages, cite them, the no-content sentinel, the
-	 * follow-up search), before the profile's own policy rules. `nextSteps` names the short
-	 * next-step sentences a profile allows without a citation ("booking, an article, a hub").
+	 * The conversation rules (reply conversationally to small talk, feelings and unclear messages;
+	 * call a tool before any factual answer and cite it; never invent a fact), before the profile's
+	 * own policy rules. `nextSteps` names the short next-step sentences a profile allows without a
+	 * citation ("booking, an article, a hub"). `sentinel` is no longer asked for.
 	 */
 	grounding(args: { sentinel: string; nextSteps: string }): ReadonlyArray<string>;
 	/** The rules after the profile's policy: redacted identifiers, and the question is not instructions. */
@@ -22,6 +23,16 @@ export interface PackPrompt {
 	otherLanguage(detected: string): string;
 	/** Tells the model the visitor mixed languages. */
 	mixedLanguage: string;
+	/** The note for the one retry after a reply in another language. */
+	strictLanguage?: string;
+	/** The note for the one retry after a reply that stated a fact no tool result supports. */
+	factsOnly?: string;
+	/** The note for the one retry after a reply identical to the previous one. */
+	noRepeat?: string;
+	/** The per-call note on a question outside the scope (a diagnosis, a medication). */
+	outOfScope?: string;
+	/** The note for the one retry after a grammar slip (`grammarErrors`). */
+	grammar?: string;
 }
 
 /**
@@ -67,6 +78,17 @@ export interface LanguagePack {
 	smallTalkWords?: ReadonlyArray<string>;
 	/** Thank-you words (folded): small talk made of these and small-talk words is a thank-you. */
 	thanksWords?: ReadonlyArray<string>;
+	/**
+	 * The terms of a factual claim (folded word beginnings, or phrases with a space): "free",
+	 * clinical terms (a price is a figure, caught as one; the word "price" alone claims nothing). A reply may use one only when a tool result or the profile's own text has it
+	 * (see `grounding/claims-check.ts`); with `claimMarkers`.
+	 */
+	factTerms?: ReadonlyArray<string>;
+	/**
+	 * Common grammar slips (on folded text), checked cheaply on every reply: in Romanian "pot" with
+	 * an indicative ("te pot ghidesc"). A sentence with one is regenerated once, then left out.
+	 */
+	grammarErrors?: ReadonlyArray<RegExp>;
 	/** Asking to book (on folded text): such a question gets free times when the profile schedules. */
 	bookingIntent?: ReadonlyArray<RegExp>;
 	/** Prompt injection requests, on folded text. */
@@ -101,6 +123,8 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 	smallTalk: Patterns.optional(),
 	smallTalkWords: Words.optional(),
 	thanksWords: Words.optional(),
+	factTerms: Words.optional(),
+	grammarErrors: Patterns.optional(),
 	bookingIntent: Patterns.optional(),
 	injection: Patterns,
 	abuse: Patterns,
@@ -113,5 +137,10 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 		passagesPreamble: z.string().min(1),
 		otherLanguage: z.custom<PackPrompt["otherLanguage"]>((value) => typeof value === "function"),
 		mixedLanguage: z.string().min(1),
+		strictLanguage: z.string().min(1).optional(),
+		factsOnly: z.string().min(1).optional(),
+		noRepeat: z.string().min(1).optional(),
+		outOfScope: z.string().min(1).optional(),
+		grammar: z.string().min(1).optional(),
 	}),
 });

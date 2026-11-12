@@ -81,6 +81,14 @@ export function memoryStores(): Stores {
 				const r = accounts.get(subject);
 				return r === undefined ? null : { ...r };
 			},
+			async byEmail(email) {
+				const want = email.trim().toLowerCase();
+				return [...accounts.values()]
+					.filter((r) => r.email?.toLowerCase() === want)
+					.sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+					.slice(0, 20)
+					.map((r) => ({ ...r }));
+			},
 			async erase(subject) {
 				accounts.delete(subject);
 				for (const link of links) if (link.endsWith(`\u0000${subject}`)) links.delete(link);

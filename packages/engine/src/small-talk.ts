@@ -10,9 +10,13 @@ function words(text: string): Array<string> {
 		.filter((w) => w !== "");
 }
 
-/** Edit distance at most one (a typo: one letter added, dropped, changed or two swapped). */
+/**
+ * Edit distance at most one (a typo: one letter added, dropped, changed or two swapped), with the
+ * same first letter, so "helo" meets "hello" but "suna" (call) never becomes "buna" (hello).
+ */
 function nearlyEqual(a: string, b: string): boolean {
 	if (a === b) return true;
+	if (a[0] !== b[0]) return false;
 	if (Math.abs(a.length - b.length) > 1) return false;
 	if (a.length === b.length) {
 		const diff = [...a].map((ch, i) => (ch === b[i] ? -1 : i)).filter((i) => i >= 0);
@@ -56,7 +60,14 @@ export function createSmallTalk(packs: ReadonlyArray<LanguagePack>): SmallTalk {
 			const folded = fold(text);
 			if (patterns.some((p) => p.test(folded))) return true;
 			const all = words(text);
-			return all.length > 0 && all.length <= MAX_WORDS && vocabulary.size > 0 && all.every(known);
+			// Small-talk words and function words only ("pai ce stii nu stiu", "so?"); any other
+			// word is a topic, and the message a question.
+			return (
+				all.length > 0 &&
+				all.length <= MAX_WORDS &&
+				all.every((w) => known(w) || stopwords.has(w)) &&
+				all.some(known)
+			);
 		},
 		isThanks(text) {
 			const all = words(text);

@@ -1,19 +1,9 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 import { Button, StatusBadge, TextField } from "@psi/ui";
-import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { ConsentRecord, Profile, Purpose } from "../stores/types";
 import type { JourneyKey, Say } from "./labels";
-import type { TimelineEvent, TimelineKind } from "./ports";
-import { JOURNEY_PAGES, Section, when } from "./views-shell";
-
-const EVENT_KEY: Readonly<Record<TimelineKind, JourneyKey>> = {
-	booking: "account_event_booking",
-	consent_granted: "account_event_consent_granted",
-	consent_withdrawn: "account_event_consent_withdrawn",
-	saved: "account_event_saved",
-	conversation: "account_event_conversation",
-};
+import { JOURNEY_PAGES, Section, TYPE, when } from "./views-shell";
 
 export const PURPOSE_KEYS: Readonly<Record<Purpose, readonly [JourneyKey, JourneyKey]>> = {
 	guide_memory: ["account_purpose_guide_memory_title", "account_purpose_guide_memory_text"],
@@ -26,55 +16,6 @@ export const PURPOSE_KEYS: Readonly<Record<Purpose, readonly [JourneyKey, Journe
 		"account_purpose_programme_progress_text",
 	],
 };
-
-/** /cont: what happened lately, newest first, and whatever the site adds (the blog's reading list). */
-export function HomeBody({
-	say,
-	locale,
-	timeline,
-	extra,
-}: {
-	say: Say;
-	locale: "ro" | "en";
-	timeline: ReadonlyArray<TimelineEvent>;
-	extra?: Child;
-}): JSX.Element {
-	return (
-		<>
-			{extra}
-			<Section title={say("account_timeline_title")}>
-				{timeline.length === 0 ? (
-					<p class="text-body text-ink-muted">{say("account_timeline_empty")}</p>
-				) : (
-					<ol class="flex flex-col divide-y divide-line" data-timeline>
-						{timeline.map((e) => (
-							<li class="flex flex-wrap items-baseline justify-between gap-2 py-3">
-								<span class="text-body text-ink">
-									{say(EVENT_KEY[e.kind])}
-									{e.detail === "" ? null : (
-										<>
-											{" · "}
-											{e.href === undefined ? (
-												<span class="text-ink-muted">{e.detail}</span>
-											) : (
-												<a class="text-ink-muted underline" href={e.href}>
-													{e.detail}
-												</a>
-											)}
-										</>
-									)}
-								</span>
-								<time class="text-body-sm text-ink-muted" datetime={new Date(e.at).toISOString()}>
-									{when(locale, e.at)}
-								</time>
-							</li>
-						))}
-					</ol>
-				)}
-			</Section>
-		</>
-	);
-}
 
 /** /cont/profil: name, phone, how to reach the person, language. The e-mail is Authentik's, shown only. */
 export function ProfileBody({
@@ -171,7 +112,7 @@ export function ConsentsBody({
 				const [title, text] = PURPOSE_KEYS[purpose];
 				return (
 					<div class="rounded-2xl border border-line p-4" data-purpose={purpose}>
-						<h3 class="text-body-lg text-ink">{say(title)}</h3>
+						<h3 class={`text-title ${TYPE.heading}`}>{say(title)}</h3>
 						<p class="mt-1 text-body text-ink-muted">{say(text)}</p>
 						<ul class="mt-2 text-body-sm text-ink-muted">
 							{mine.length === 0 ? <li>{say("account_consent_never")}</li> : null}
@@ -204,27 +145,43 @@ export function DataBody({
 	base,
 	mismatch,
 	elsewhere,
+	signOutAction,
 }: {
 	say: Say;
 	base: string;
 	mismatch: boolean;
 	/** This site keeps no reservations: export and erasure happen on the account's data page there. */
 	elsewhere?: string;
+	signOutAction: string;
 }): JSX.Element {
+	const security = (
+		<Section title={say("account_security_title")}>
+			<p class="text-body text-ink-muted">{say("account_security_text")}</p>
+			<form method="post" action={signOutAction}>
+				<Button type="submit" variant="outline">
+					{say("account_sign_out")}
+				</Button>
+			</form>
+		</Section>
+	);
 	if (elsewhere !== undefined) {
 		return (
-			<Section title={say("account_data_title")}>
-				<p class="text-body text-ink-muted">{say("account_data_elsewhere")}</p>
-				<div>
-					<Button href={elsewhere} variant="outline" arrow>
-						{say("account_data_elsewhere_button")}
-					</Button>
-				</div>
-			</Section>
+			<>
+				{security}
+				<Section title={say("account_data_title")}>
+					<p class="text-body text-ink-muted">{say("account_data_elsewhere")}</p>
+					<div>
+						<Button href={elsewhere} variant="outline" arrow>
+							{say("account_data_elsewhere_button")}
+						</Button>
+					</div>
+				</Section>
+			</>
 		);
 	}
 	return (
 		<>
+			{security}
 			<Section title={say("account_export_title")}>
 				<p class="text-body text-ink-muted">{say("account_export_text")}</p>
 				<div>

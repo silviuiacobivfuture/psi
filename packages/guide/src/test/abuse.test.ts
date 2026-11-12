@@ -189,11 +189,16 @@ describe("ordinary questions pass every guardrail", () => {
 });
 
 describe("model screening", () => {
-	it("costs nothing when retrieval finds nothing", async () => {
-		const { guide, server } = await startGuide({ searches: [{ kind: "passages", passages: [] }] });
+	it("a question nothing covers is answered in conversation, in one model call", async () => {
+		const { guide, server } = await startGuide({
+			replies: [
+				{ kind: "text", chunks: ["Nu avem asta pe site; ne poți scrie din pagina de contact."] },
+			],
+			searches: [{ kind: "passages", passages: [] }],
+		});
 		const events = await collect(guide.ask({ question: "Aveți parcare?", locale: "ro" }));
-		expect(shape(events)).toEqual(["thinking", "refusal:no_content", "done"]);
-		expect(server.screenings).toHaveLength(0);
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
+		expect(server.requests).toHaveLength(1);
 	});
 
 	it("sees only the cleaned, redacted question, at temperature 0", async () => {
@@ -259,8 +264,8 @@ describe("rate limit", () => {
 		);
 		expect(shape(first)).toEqual(["thinking", "text", "sources", "done"]);
 		expect(shape(second)).toEqual(["refusal:rate_limited", "done"]);
-		// The first question's probe and its tool search; nothing for the second.
-		expect(knowledge.calls).toHaveLength(2);
+		// The first question's tool search; nothing for the second.
+		expect(knowledge.calls).toHaveLength(1);
 	});
 
 	it("counts each client apart and does not limit without a clientId", async () => {

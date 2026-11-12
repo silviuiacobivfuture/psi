@@ -49,6 +49,8 @@ export interface AccountStore {
 	/** Creates the account on first sign-in, links `(issuer, subject)`, refreshes e-mail and name. */
 	signedIn(identity: Identity, at: number): Promise<void>;
 	get(subject: string): Promise<AccountRecord | null>;
+	/** The accounts holding this e-mail (as Authentik last sent it), case-insensitive; at most 20. */
+	byEmail(email: string): Promise<AccountRecord[]>;
 	/** Erasure: the account and, by cascade, every row that hangs off it, in one transaction. */
 	erase(subject: string): Promise<void>;
 }

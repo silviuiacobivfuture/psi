@@ -120,6 +120,35 @@ export class SourceLedger {
 		return this.#cited.length;
 	}
 
+	/**
+	 * A renumbering of its own, independent of `rewriteCitations`: the streamed text and the
+	 * checked final text are each renumbered from scratch, so a sentence left out never leaves a
+	 * gap in the numbers or a source in the list.
+	 */
+	citer(): { rewrite(text: string): string; sources(): ReadonlyArray<Source> } {
+		const cited: Array<Entry> = [];
+		const cite = (n: number): number | undefined => {
+			const entry = this.#byNumber.get(n);
+			if (entry === undefined) return undefined;
+			const at = cited.indexOf(entry);
+			if (at >= 0) return at + 1;
+			cited.push(entry);
+			return cited.length;
+		};
+		return {
+			rewrite: (text) =>
+				text.replace(CITATION, (_match, list: string) =>
+					list
+						.split(/[,;]/)
+						.map((raw) => cite(Number.parseInt(raw.trim(), 10)))
+						.filter((k): k is number => k !== undefined)
+						.map((k) => `[${k}]`)
+						.join(""),
+				),
+			sources: () => cited.map((entry) => entry.source),
+		};
+	}
+
 	/** The sources the answer cited, in citation order (empty when it cited none). */
 	citedSources(): ReadonlyArray<Source> {
 		return this.#cited.map((entry) => entry.source);

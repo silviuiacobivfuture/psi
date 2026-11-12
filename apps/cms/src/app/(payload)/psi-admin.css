@@ -1,0 +1,163 @@
+/*
+ * psi's identity on Payload's admin, through what Payload supports: its CSS variables and the
+ * stable BEM classes of its components. Psizone's gold (packages/design, "Psizone · Gold" and
+ * "· Night") is the accent; Fraunces, psi's display face, sets page titles. Payload's own
+ * light/dark switch (`html[data-theme]`) picks the variant.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&display=swap");
+
+:root {
+	--psi-gold: #a97b24;
+	--psi-gold-hover: #b8892f;
+	--psi-on-gold: #1a1405;
+	--psi-gold-soft: rgba(169, 123, 36, 0.12);
+	--psi-focus: #0d7a70;
+	--psi-ok: #12704a;
+	--psi-warn: #b7791f;
+	--psi-bad: #b42318;
+	--psi-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+	--accessibility-outline: 2px solid var(--psi-focus);
+}
+
+html[data-theme="dark"] {
+	--psi-gold: #c2983f;
+	--psi-gold-hover: #d2aa50;
+	--psi-on-gold: #1a1405;
+	--psi-gold-soft: rgba(194, 152, 63, 0.16);
+	--psi-focus: #40d9c9;
+	--psi-ok: #3fb37f;
+	--psi-warn: #e0a53a;
+	--psi-bad: #f97066;
+}
+
+/* Page titles in psi's display face. */
+h1,
+.doc-header__title,
+.list-header h1,
+.dashboard__label {
+	font-family: var(--psi-display);
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+/* The accent: primary buttons, the pill toggles, links inside psi's own pages. */
+.btn--style-primary:not(.btn--disabled) {
+	--bg-color: var(--psi-gold);
+	--color: var(--psi-on-gold);
+	--hover-bg: var(--psi-gold-hover);
+	--hover-color: var(--psi-on-gold);
+}
+
+.psi-view a:not(.btn) {
+	color: var(--psi-gold);
+	text-underline-offset: 3px;
+}
+
+.psi-view a:not(.btn):hover {
+	color: var(--psi-gold-hover);
+}
+
+.psi-view button,
+.psi-view select,
+.psi-view input,
+.psi-view textarea {
+	accent-color: var(--psi-gold);
+}
+
+.psi-view button:not(:disabled) {
+	border: 1px solid var(--psi-gold);
+	background: var(--psi-gold);
+	color: var(--psi-on-gold);
+	border-radius: 999px;
+}
+
+.psi-view button:not(:disabled):hover {
+	background: var(--psi-gold-hover);
+}
+
+/* The wordmark on the sign-in page. */
+.psi-logo {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.psi-logo__word {
+	font-family: var(--psi-display);
+	font-size: 40px;
+	font-weight: 400;
+	letter-spacing: -0.02em;
+	color: var(--theme-elevation-1000);
+}
+
+/* The nav's active and hovered links carry the gold. */
+.nav__link:hover,
+.nav__link.active {
+	color: var(--psi-gold);
+}
+
+/* Stat cards and state dots in psi's views. */
+.psi-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: calc(var(--base) / 1.5);
+	margin-top: var(--base);
+}
+
+.psi-card {
+	border: 1px solid var(--theme-elevation-150);
+	border-radius: 12px;
+	padding: calc(var(--base) / 1.5) var(--base);
+	background: var(--theme-elevation-50);
+}
+
+.psi-card__label {
+	font-size: 0.8em;
+	color: var(--theme-elevation-600);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.psi-card__value {
+	font-family: var(--psi-display);
+	font-size: 2em;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	margin-top: 4px;
+}
+
+.psi-card__note {
+	font-size: 0.85em;
+	color: var(--theme-elevation-600);
+}
+
+.psi-dot {
+	display: inline-block;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+}
+
+.psi-dot--on {
+	background: var(--psi-ok);
+}
+
+.psi-dot--warn {
+	background: var(--psi-warn);
+}
+
+.psi-dot--bad {
+	background: var(--psi-bad);
+}
+
+.psi-brand-card {
+	border: 1px solid var(--theme-elevation-150);
+	border-top: 3px solid var(--psi-gold);
+	border-radius: 12px;
+	padding: var(--base);
+	margin-top: calc(var(--base) * 1.25);
+}
+
+.psi-view .psi-card__value a {
+	text-decoration: none;
+}

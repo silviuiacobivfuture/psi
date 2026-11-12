@@ -44,7 +44,10 @@ export function Layout({
 			<html lang={locale} data-theme={theme}>
 				<head>
 					<meta charset="utf-8" />
-					<meta name="viewport" content="width=device-width, initial-scale=1" />
+					<meta
+						name="viewport"
+						content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+					/>
 					<title>{title}</title>
 					<meta name="description" content={description} />
 					<meta name="color-scheme" content="light dark" />

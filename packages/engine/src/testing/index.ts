@@ -21,6 +21,7 @@ export {
 	collect,
 	messageText,
 	shape,
+	stages,
 	systemText,
 } from "./helpers";
 export { MemorySchedulingStore, type SchedulingCall } from "./memory-scheduling";

@@ -9,7 +9,6 @@ export function Closing({ locale }: { locale: Locale }): JSX.Element {
 	return (
 		<section id="incepe" class="scroll-mt-28 px-5 pb-24">
 			<div class="eq-closing relative mx-auto max-w-6xl overflow-hidden rounded-lg border border-line">
-				<div class="eq-bands" aria-hidden="true" />
 				<div class="relative flex flex-col items-start gap-8 px-8 pb-44 pt-20 md:px-16 md:pt-28">
 					<h2 class="display eq-h2 eq-h2--xl max-w-3xl text-ink">{m.closing_title({}, o)}</h2>
 					<p class="max-w-xl text-body text-ink-muted">{m.closing_text({}, o)}</p>

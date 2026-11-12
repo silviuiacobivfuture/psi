@@ -9,6 +9,7 @@ import { z } from "zod";
 import { beaconRoute, startAnalytics } from "./analytics/index";
 import { refreshContent, startContent } from "./content/store";
 import { previewRoute } from "./preview";
+import { siteSettings } from "./site-settings";
 
 /**
  * Everything this site exchanges with the shared CMS (cms.psizone.ro; locally http://localhost:4350),
@@ -52,6 +53,11 @@ export function registerCmsRoutes(app: Hono): void {
 			},
 			"ai-settings": (e) => {
 				if (e.sites.includes("blog")) aiSettings?.invalidate();
+			},
+			"site-settings": async (e) => {
+				if (!e.sites.includes("blog") || siteSettings === null) return;
+				siteSettings.invalidate();
+				await siteSettings.refresh();
 			},
 		}),
 	);

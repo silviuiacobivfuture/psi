@@ -48,6 +48,7 @@ export {
 	REFUSAL_REASONS,
 	type RefusalReason,
 	RefusalReasonSchema,
+	type ThinkingStage,
 } from "./events";
 export {
 	AnswerTurn,
@@ -170,4 +171,10 @@ export {
 export { KNOWLEDGE_TOOL } from "./studio-tool";
 export { fold, matchesAny } from "./text/normalize";
 export { createSentences, type Sentences } from "./text/sentences";
+export {
+	type AttemptTiming,
+	type EngineTiming,
+	EngineTimingSchema,
+	type ToolTiming,
+} from "./timing";
 export { GROUNDED_ANSWER_WORKFLOW, type GroundedAnswer } from "./workflow";

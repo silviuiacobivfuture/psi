@@ -132,7 +132,10 @@ const api = {
 		await deferred.prompt();
 		const choice = await deferred.userChoice;
 		deferred = null;
-		set({ installable: false, standalone: choice.outcome === "accepted" || state.standalone });
+		set({
+			installable: false,
+			standalone: choice.outcome === "accepted" || state.standalone,
+		});
 	},
 	/** Called from a click: asks for permission (the browser's prompt) only now. */
 	async subscribe(topic: string): Promise<void> {
@@ -172,7 +175,10 @@ const api = {
 		const sub = await current().catch(() => null);
 		if (sub === null) return;
 		const res = await post("/pwa/push/test", own(sub));
-		set({ tested: res.ok, error: res.status === 429 ? "too-soon" : res.ok ? "" : "failed" });
+		set({
+			tested: res.ok,
+			error: res.status === 429 ? "too-soon" : res.ok ? "" : "failed",
+		});
 		if (res.ok) setTimeout(() => set({ tested: false }), 6000);
 	},
 };
@@ -189,7 +195,22 @@ window.addEventListener("appinstalled", () => {
 	set({ installable: false, standalone: true });
 });
 
-if ("serviceWorker" in navigator) {
+/**
+ * On a workstation (localhost, 127.0.0.1, ::1) there is no worker at all, and one left over from an
+ * earlier run is unregistered with its caches: a dev server restarts constantly, and a worker would
+ * answer with stale pages or the offline page in between.
+ */
+const local = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+if ("serviceWorker" in navigator && local) {
+	navigator.serviceWorker
+		.getRegistrations()
+		.then(async (registrations) => {
+			await Promise.all(registrations.map((r) => r.unregister()));
+			const names = await caches.keys();
+			await Promise.all(names.filter((n) => n.startsWith("psi-pwa-")).map((n) => caches.delete(n)));
+		})
+		.catch(() => undefined);
+} else if ("serviceWorker" in navigator) {
 	navigator.serviceWorker
 		.register("/sw.js", { scope: "/", updateViaCache: "none" })
 		.then(async () => {

@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     articles: Article;
     'knowledge-entries': KnowledgeEntry;
+    'knowledge-sources': KnowledgeSource;
     offerings: Offering;
     people: Person;
     media: Media;
@@ -84,6 +85,7 @@ export interface Config {
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     'knowledge-entries': KnowledgeEntriesSelect<false> | KnowledgeEntriesSelect<true>;
+    'knowledge-sources': KnowledgeSourcesSelect<false> | KnowledgeSourcesSelect<true>;
     offerings: OfferingsSelect<false> | OfferingsSelect<true>;
     people: PeopleSelect<false> | PeopleSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -101,9 +103,11 @@ export interface Config {
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('ro' | 'en') | ('ro' | 'en')[];
   globals: {
     'ai-settings': AiSetting;
+    'site-settings': SiteSetting;
   };
   globalsSelect: {
     'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: 'ro' | 'en';
   widgets: {
@@ -363,6 +367,93 @@ export interface KnowledgeEntry {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-sources".
+ */
+export interface KnowledgeSource {
+  id: number;
+  brand: 'psizone' | 'eqsync' | 'hemisync' | 'blog';
+  title: string;
+  language: 'ro' | 'en';
+  kind: 'operational' | 'programme' | 'editorial' | 'clinical';
+  /**
+   * Only public sources are indexed; the others are never sent anywhere.
+   */
+  sensitivity: 'public' | 'internal' | 'confidential';
+  /**
+   * Otherwise the guide cites the source by its title, with no link.
+   */
+  downloadable?: boolean | null;
+  topics?: string[] | null;
+  audience?: string | null;
+  origin: 'file' | 'url';
+  /**
+   * https only, only the brand's domains and psizone.ro.
+   */
+  sourceUrl?: string | null;
+  refetch?: boolean | null;
+  status?:
+    | (
+        | 'uploaded'
+        | 'awaiting_approval'
+        | 'extracting'
+        | 'chunked'
+        | 'embedding'
+        | 'indexed'
+        | 'indexed_lexical'
+        | 'private'
+        | 'rejected'
+        | 'removed'
+        | 'failed'
+      )
+    | null;
+  error?: string | null;
+  chars?: number | null;
+  sectionCount?: number | null;
+  chunks?: number | null;
+  indexedAt?: string | null;
+  embedder?: string | null;
+  contentHash?: string | null;
+  inIndex?: boolean | null;
+  approval?: {
+    state?: ('pending' | 'approved' | 'rejected') | null;
+    by?: string | null;
+    byName?: string | null;
+    at?: string | null;
+    hash?: string | null;
+  };
+  sections?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  indexedIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  indexedFingerprint?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "offerings".
  */
 export interface Offering {
@@ -412,7 +503,21 @@ export interface ReviewEvent {
   brand?: string | null;
   title?: string | null;
   locale?: string | null;
-  action: 'submit' | 'approve' | 'reject' | 'publish' | 'unpublish' | 'invalidate' | 'delete';
+  action:
+    | 'submit'
+    | 'approve'
+    | 'reject'
+    | 'publish'
+    | 'unpublish'
+    | 'invalidate'
+    | 'delete'
+    | 'ingest'
+    | 'decide'
+    | 'schedule'
+    | 'account_view'
+    | 'account_export'
+    | 'account_erase'
+    | 'push_test';
   actor?: (number | null) | User;
   authorizer?: string | null;
   contentHash?: string | null;
@@ -465,6 +570,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'knowledge-entries';
         value: number | KnowledgeEntry;
+      } | null)
+    | ({
+        relationTo: 'knowledge-sources';
+        value: number | KnowledgeSource;
       } | null)
     | ({
         relationTo: 'offerings';
@@ -658,6 +767,55 @@ export interface KnowledgeEntriesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-sources_select".
+ */
+export interface KnowledgeSourcesSelect<T extends boolean = true> {
+  brand?: T;
+  title?: T;
+  language?: T;
+  kind?: T;
+  sensitivity?: T;
+  downloadable?: T;
+  topics?: T;
+  audience?: T;
+  origin?: T;
+  sourceUrl?: T;
+  refetch?: T;
+  status?: T;
+  error?: T;
+  chars?: T;
+  sectionCount?: T;
+  chunks?: T;
+  indexedAt?: T;
+  embedder?: T;
+  contentHash?: T;
+  inIndex?: T;
+  approval?:
+    | T
+    | {
+        state?: T;
+        by?: T;
+        byName?: T;
+        at?: T;
+        hash?: T;
+      };
+  sections?: T;
+  indexedIds?: T;
+  indexedFingerprint?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -959,6 +1117,191 @@ export interface AiSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * An empty field keeps what the site shows today.
+   */
+  psizone: {
+    phones?:
+      | {
+          tel: string;
+          display?: string | null;
+          labelRo?: string | null;
+          labelEn?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    addresses?:
+      | {
+          labelRo?: string | null;
+          labelEn?: string | null;
+          street: string;
+          city: string;
+          country?: string | null;
+          mapUrl?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    openingHours?:
+      | {
+          daysRo: string;
+          daysEn: string;
+          hours: string;
+          id?: string | null;
+        }[]
+      | null;
+    social?:
+      | {
+          network: 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+    heroYears?: number | null;
+    bookingInChat: 'inherit' | 'on' | 'off';
+    accountsSignIn: 'inherit' | 'on' | 'off';
+    installPrompt: 'inherit' | 'on' | 'off';
+  };
+  /**
+   * An empty field keeps what the site shows today.
+   */
+  eqsync: {
+    phones?:
+      | {
+          tel: string;
+          display?: string | null;
+          labelRo?: string | null;
+          labelEn?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    addresses?:
+      | {
+          labelRo?: string | null;
+          labelEn?: string | null;
+          street: string;
+          city: string;
+          country?: string | null;
+          mapUrl?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    openingHours?:
+      | {
+          daysRo: string;
+          daysEn: string;
+          hours: string;
+          id?: string | null;
+        }[]
+      | null;
+    social?:
+      | {
+          network: 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+    heroYears?: number | null;
+    bookingInChat: 'inherit' | 'on' | 'off';
+    accountsSignIn: 'inherit' | 'on' | 'off';
+    installPrompt: 'inherit' | 'on' | 'off';
+  };
+  /**
+   * An empty field keeps what the site shows today.
+   */
+  hemisync: {
+    phones?:
+      | {
+          tel: string;
+          display?: string | null;
+          labelRo?: string | null;
+          labelEn?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    addresses?:
+      | {
+          labelRo?: string | null;
+          labelEn?: string | null;
+          street: string;
+          city: string;
+          country?: string | null;
+          mapUrl?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    openingHours?:
+      | {
+          daysRo: string;
+          daysEn: string;
+          hours: string;
+          id?: string | null;
+        }[]
+      | null;
+    social?:
+      | {
+          network: 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+    heroYears?: number | null;
+    bookingInChat: 'inherit' | 'on' | 'off';
+    accountsSignIn: 'inherit' | 'on' | 'off';
+    installPrompt: 'inherit' | 'on' | 'off';
+  };
+  /**
+   * An empty field keeps what the site shows today.
+   */
+  blog: {
+    phones?:
+      | {
+          tel: string;
+          display?: string | null;
+          labelRo?: string | null;
+          labelEn?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    addresses?:
+      | {
+          labelRo?: string | null;
+          labelEn?: string | null;
+          street: string;
+          city: string;
+          country?: string | null;
+          mapUrl?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    openingHours?:
+      | {
+          daysRo: string;
+          daysEn: string;
+          hours: string;
+          id?: string | null;
+        }[]
+      | null;
+    social?:
+      | {
+          network: 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+    heroYears?: number | null;
+    bookingInChat: 'inherit' | 'on' | 'off';
+    accountsSignIn: 'inherit' | 'on' | 'off';
+    installPrompt: 'inherit' | 'on' | 'off';
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ai-settings_select".
  */
 export interface AiSettingsSelect<T extends boolean = true> {
@@ -1013,6 +1356,187 @@ export interface AiSettingsSelect<T extends boolean = true> {
         screeningLevel?: T;
         updatedBy?: T;
         updatedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  psizone?:
+    | T
+    | {
+        phones?:
+          | T
+          | {
+              tel?: T;
+              display?: T;
+              labelRo?: T;
+              labelEn?: T;
+              id?: T;
+            };
+        addresses?:
+          | T
+          | {
+              labelRo?: T;
+              labelEn?: T;
+              street?: T;
+              city?: T;
+              country?: T;
+              mapUrl?: T;
+              id?: T;
+            };
+        openingHours?:
+          | T
+          | {
+              daysRo?: T;
+              daysEn?: T;
+              hours?: T;
+              id?: T;
+            };
+        social?:
+          | T
+          | {
+              network?: T;
+              url?: T;
+              id?: T;
+            };
+        heroYears?: T;
+        bookingInChat?: T;
+        accountsSignIn?: T;
+        installPrompt?: T;
+      };
+  eqsync?:
+    | T
+    | {
+        phones?:
+          | T
+          | {
+              tel?: T;
+              display?: T;
+              labelRo?: T;
+              labelEn?: T;
+              id?: T;
+            };
+        addresses?:
+          | T
+          | {
+              labelRo?: T;
+              labelEn?: T;
+              street?: T;
+              city?: T;
+              country?: T;
+              mapUrl?: T;
+              id?: T;
+            };
+        openingHours?:
+          | T
+          | {
+              daysRo?: T;
+              daysEn?: T;
+              hours?: T;
+              id?: T;
+            };
+        social?:
+          | T
+          | {
+              network?: T;
+              url?: T;
+              id?: T;
+            };
+        heroYears?: T;
+        bookingInChat?: T;
+        accountsSignIn?: T;
+        installPrompt?: T;
+      };
+  hemisync?:
+    | T
+    | {
+        phones?:
+          | T
+          | {
+              tel?: T;
+              display?: T;
+              labelRo?: T;
+              labelEn?: T;
+              id?: T;
+            };
+        addresses?:
+          | T
+          | {
+              labelRo?: T;
+              labelEn?: T;
+              street?: T;
+              city?: T;
+              country?: T;
+              mapUrl?: T;
+              id?: T;
+            };
+        openingHours?:
+          | T
+          | {
+              daysRo?: T;
+              daysEn?: T;
+              hours?: T;
+              id?: T;
+            };
+        social?:
+          | T
+          | {
+              network?: T;
+              url?: T;
+              id?: T;
+            };
+        heroYears?: T;
+        bookingInChat?: T;
+        accountsSignIn?: T;
+        installPrompt?: T;
+      };
+  blog?:
+    | T
+    | {
+        phones?:
+          | T
+          | {
+              tel?: T;
+              display?: T;
+              labelRo?: T;
+              labelEn?: T;
+              id?: T;
+            };
+        addresses?:
+          | T
+          | {
+              labelRo?: T;
+              labelEn?: T;
+              street?: T;
+              city?: T;
+              country?: T;
+              mapUrl?: T;
+              id?: T;
+            };
+        openingHours?:
+          | T
+          | {
+              daysRo?: T;
+              daysEn?: T;
+              hours?: T;
+              id?: T;
+            };
+        social?:
+          | T
+          | {
+              network?: T;
+              url?: T;
+              id?: T;
+            };
+        heroYears?: T;
+        bookingInChat?: T;
+        accountsSignIn?: T;
+        installPrompt?: T;
       };
   updatedAt?: T;
   createdAt?: T;

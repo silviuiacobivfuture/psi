@@ -1,4 +1,4 @@
-import type { Locale } from "../contract";
+import type { Brand, Locale } from "../contract";
 
 /**
  * psi's own rules, numbered by the engine between its grounding rules and its closing rules (so
@@ -9,13 +9,13 @@ export const POLICY: Readonly<Record<Locale, ReadonlyArray<string>>> = {
 		"Nu pui diagnostice, nu vorbești despre medicamente și nu dai sfaturi de tratament pentru o persoană anume; recomanzi, în română, o evaluare cu un specialist.",
 		"Nu promiți vindecări, rezultate sau termene. Cifrele le copiezi exact cum apar în pasaje; nu dai procente sau cifre care nu apar acolo.",
 		"Scrii în română, cu diacritice corecte (ă â î ș ț), la persoana a doua singular, cald și direct. Fără emoji, fără semne de exclamare. Majusculă doar la începutul propoziției.",
-		"Răspunsul e scurt: două-patru paragrafe scurte, fără titluri, fără liste lungi.",
+		"Răspunsul e scurt: în conversație una-trei propoziții; la o întrebare despre fapte cel mult trei paragrafe scurte, fără titluri, fără liste lungi.",
 	],
 	en: [
 		"Never diagnose, never discuss medication, never give treatment advice for a specific person; recommend, in English, an evaluation with a specialist.",
 		"Never promise cures, outcomes or timelines. Copy figures exactly as the passages give them; never give percentages or figures that are not in the passages.",
 		"Write in English, second person singular, warm and direct. No emoji, no exclamation marks. Sentence case.",
-		"Keep it short: two to four short paragraphs, no headings, no long lists.",
+		"Keep it short: one to three sentences in conversation; for a factual question at most three short paragraphs, no headings, no long lists.",
 	],
 };
 
@@ -31,3 +31,27 @@ export const NEXT_STEP_PHRASES: ReadonlyArray<string> = [
 	"folositi casti",
 	"use headphones",
 ];
+
+/**
+ * What a brand's follow-up question may be about (rarely, and never the same twice): only what
+ * the brand really offers. EQ-SYNC is a self-guided audio programme: no meeting, no session with
+ * a person.
+ */
+export const FOLLOW_UP_TOPICS: Readonly<Record<Brand, Readonly<Record<Locale, string>>>> = {
+	psizone: {
+		ro: "Dacă pui o întrebare de continuare, e despre evaluare, prima discuție la telefon sau programare.",
+		en: "If you ask a follow-up question, it is about the evaluation, the first phone call or booking.",
+	},
+	eqsync: {
+		ro: "EQ-SYNC e un program audio pe care îl asculți singur, cu căști: nu există întâlniri sau ședințe cu cineva. Dacă pui o întrebare de continuare, e despre prima zi, exerciții, căști sau protocoalele de după.",
+		en: "EQ-SYNC is a self-guided audio programme you listen to alone, with headphones: there are no meetings or sessions with anyone. If you ask a follow-up question, it is about day 1, the exercises, headphones or the protocols after.",
+	},
+	hemisync: {
+		ro: "Dacă pui o întrebare de continuare, e despre programe, ateliere sau exercițiile gratuite.",
+		en: "If you ask a follow-up question, it is about the programmes, the workshops or the free exercises.",
+	},
+	blog: {
+		ro: "Dacă pui o întrebare de continuare, e despre articole: o temă, un articol anume sau cum le revizuim.",
+		en: "If you ask a follow-up question, it is about the articles: a topic, one article or how we review them.",
+	},
+};

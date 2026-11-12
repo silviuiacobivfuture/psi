@@ -1,7 +1,19 @@
 import { v } from "convex/values";
-import type { Mode } from "../src/domain/catalog";
+import type { Audience, Mode } from "../src/domain/catalog";
+import { type Contact, cleanContact, contactProblem } from "../src/domain/contact";
+import { generateSlots, type Slot } from "../src/domain/slots";
+import { DAY_MINUTES, MINUTE_MS, toLocal } from "../src/domain/time";
+import { makeReference, type RandomBytes } from "../src/domain/tokens";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx } from "./_generated/server";
+import {
+	appointmentByReference,
+	busyAround,
+	exceptionsOf,
+	rulesOf,
+	serviceSpec,
+	tenantBySlug,
+} from "./calendar";
 
 /**
  * Seeding, for local development and tests only. Internal: reachable with the deployment's admin
@@ -47,7 +59,12 @@ async function upsertPractitioner(
 		await ctx.db.patch(found._id, { displayName, active: true });
 		return found._id;
 	}
-	return ctx.db.insert("practitioners", { tenant, slug, displayName, active: true });
+	return ctx.db.insert("practitioners", {
+		tenant,
+		slug,
+		displayName,
+		active: true,
+	});
 }
 
 async function upsertService(
@@ -68,7 +85,12 @@ async function upsertService(
 async function replaceRules(
 	ctx: MutationCtx,
 	practitioner: Id<"practitioners">,
-	windows: ReadonlyArray<{ weekday: number; start: number; end: number; modes: Mode[] }>,
+	windows: ReadonlyArray<{
+		weekday: number;
+		start: number;
+		end: number;
+		modes: Mode[];
+	}>,
 ): Promise<void> {
 	const old = await ctx.db
 		.query("rules")
@@ -88,8 +110,18 @@ export const demo = internalMutation({
 			ctx,
 			ana,
 			WEEKDAYS.flatMap((weekday) => [
-				{ weekday, start: 9 * 60, end: 13 * 60, modes: ["onsite"] satisfies Mode[] },
-				{ weekday, start: 14 * 60, end: 18 * 60, modes: ["onsite"] satisfies Mode[] },
+				{
+					weekday,
+					start: 9 * 60,
+					end: 13 * 60,
+					modes: ["onsite"] satisfies Mode[],
+				},
+				{
+					weekday,
+					start: 14 * 60,
+					end: 18 * 60,
+					modes: ["onsite"] satisfies Mode[],
+				},
 			]),
 		);
 		await upsertService(
@@ -129,6 +161,127 @@ export const demo = internalMutation({
 			[mihai],
 		);
 		return { tenants: ["psizone", "eqsync", "hemisync"] };
+	},
+});
+
+/** Three fictional people asking for the DEMO evaluation; every name says DEMO, no address is real. */
+const DEMO_ASKERS: ReadonlyArray<{ contact: Contact; audience: Audience }> = [
+	{
+		contact: { name: "DEMO Client Unu", phone: "0700 000 001" },
+		audience: "adult",
+	},
+	{
+		contact: { name: "DEMO Client Doi", email: "demo.doi@example.invalid" },
+		audience: "child",
+	},
+	{
+		contact: { name: "DEMO Client Trei", phone: "0700 000 003" },
+		audience: "teen",
+	},
+];
+const DEMO_WINDOW_DAYS = 14;
+
+const mathRandom: RandomBytes = (length) =>
+	Uint8Array.from({ length }, () => Math.floor(Math.random() * 256));
+
+/** One free slot on each of the first days that have one, a little later each day. */
+function spreadSlots(slots: ReadonlyArray<Slot>, timeZone: string, count: number): Slot[] {
+	const byDate = new Map<string, Slot[]>();
+	for (const slot of slots) {
+		const date = toLocal(slot.start, timeZone).date;
+		byDate.set(date, [...(byDate.get(date) ?? []), slot]);
+	}
+	return [...byDate.values()].slice(0, count).flatMap((day, i) => {
+		const slot = day[Math.min(i * 2, day.length - 1)];
+		return slot === undefined ? [] : [slot];
+	});
+}
+
+/**
+ * Three `requested` DEMO appointments for psizone's DEMO evaluation in the coming days, on slots
+ * the rules offer and nothing blocks (chosen by the slot engine), so the staff console has
+ * something to confirm or decline. Skips when this seed's DEMO requests already wait in the
+ * window. Needs `seed:demo` first.
+ */
+export const demoRequests = internalMutation({
+	args: {},
+	handler: async (ctx): Promise<{ created: number; references: string[] }> => {
+		const tenant = await tenantBySlug(ctx, "psizone");
+		const practitioner = await ctx.db
+			.query("practitioners")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", "psizone").eq("slug", "demo-ana"))
+			.unique();
+		const service = await ctx.db
+			.query("services")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", "psizone").eq("slug", "evaluation"))
+			.unique();
+		if (tenant === undefined || practitioner === null || service === null) {
+			throw new Error("no DEMO calendar: run seed:demo first");
+		}
+		const now = Date.now();
+		const to = now + DEMO_WINDOW_DAYS * DAY_MINUTES * MINUTE_MS;
+		const waiting = await ctx.db
+			.query("appointments")
+			.withIndex("by_tenant_start", (q) =>
+				q.eq("tenant", "psizone").gte("start", now).lt("start", to),
+			)
+			.collect();
+		const seeded = new Set(DEMO_ASKERS.map((asker) => asker.contact.name));
+		const demo = waiting.filter(
+			(row) =>
+				row.status === "requested" && row.contact !== undefined && seeded.has(row.contact.name),
+		);
+		if (demo.length > 0) return { created: 0, references: demo.map((row) => row.reference) };
+		const spec = serviceSpec(service);
+		const [rules, exceptions, busy] = await Promise.all([
+			rulesOf(ctx, practitioner._id),
+			exceptionsOf(ctx, practitioner._id, now, to, tenant.timeZone),
+			busyAround(ctx, practitioner._id, now, to, now),
+		]);
+		const slots = generateSlots({
+			timeZone: tenant.timeZone,
+			service: spec,
+			rules,
+			exceptions,
+			busy,
+			from: now,
+			to,
+			now,
+			mode: "onsite",
+		});
+		const references: string[] = [];
+		const picked = spreadSlots(slots, tenant.timeZone, DEMO_ASKERS.length);
+		for (const [i, slot] of picked.entries()) {
+			const asker = DEMO_ASKERS[i];
+			if (asker === undefined || contactProblem(asker.contact) !== undefined) continue;
+			let reference = makeReference(mathRandom);
+			while ((await appointmentByReference(ctx, reference)) !== undefined) {
+				reference = makeReference(mathRandom);
+			}
+			const holdTokenHash = [...mathRandom(32)]
+				.map((byte) => byte.toString(16).padStart(2, "0"))
+				.join("");
+			await ctx.db.insert("appointments", {
+				tenant: tenant.slug,
+				practitioner: practitioner._id,
+				service: service._id,
+				mode: "onsite",
+				start: slot.start,
+				end: slot.end,
+				blockedUntil: slot.end + spec.bufferMinutes * MINUTE_MS,
+				status: "requested",
+				reference,
+				holdTokenHash,
+				contact: cleanContact(asker.contact),
+				audience: asker.audience,
+				locale: "ro",
+				channel: "form",
+				submittedAt: now,
+				updatedAt: now,
+			});
+			references.push(reference);
+		}
+		return { created: references.length, references };
 	},
 });
 

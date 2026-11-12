@@ -77,36 +77,6 @@ html {
 	color: var(--ink);
 }
 
-/* Horizontal bands of light: wide flat ellipses, still. The waves are the only thing that moves. */
-.eq-bands {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	background:
-		radial-gradient(
-			70% 16% at 72% 34%,
-			color-mix(in oklab, var(--glow-2) 14%, transparent),
-			transparent 72%
-		),
-		radial-gradient(
-			60% 12% at 24% 58%,
-			color-mix(in oklab, var(--glow-1) 8%, transparent),
-			transparent 72%
-		),
-		radial-gradient(
-			90% 18% at 50% 86%,
-			color-mix(in oklab, var(--glow-2) 9%, transparent),
-			transparent 74%
-		),
-		repeating-linear-gradient(
-			180deg,
-			color-mix(in oklab, var(--ink) 2.5%, transparent) 0 1px,
-			transparent 1px 7px
-		);
-	-webkit-mask: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
-	mask: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
-}
-
 /* Hero entrance: once, slowly. */
 .eq-in {
 	animation: eq-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -152,7 +122,7 @@ html {
 }
 .eq-row__text {
 	max-width: 46ch;
-	font: 400 15px / 1.7 var(--font-mono);
+	font: 400 17px / 1.65 var(--font-body);
 	color: var(--ink-muted);
 }
 @media (min-width: 900px) {
@@ -178,7 +148,7 @@ html {
 	color: var(--ink-faint);
 }
 .eq-step p {
-	font: 400 15px / 1.7 var(--font-mono);
+	font: 400 17px / 1.65 var(--font-body);
 	color: var(--ink-muted);
 }
 
@@ -332,7 +302,7 @@ html {
 .eq-faq__a {
 	padding: 0 36px 28px calc(3rem + 12px);
 	max-width: 62ch;
-	font: 400 15px / 1.75 var(--font-mono);
+	font: 400 17px / 1.65 var(--font-body);
 	color: var(--ink-muted);
 }
 
@@ -369,7 +339,7 @@ html {
 	}
 }
 
-/* Phones and tablets: the mono running text reads at the body size. */
+/* Phones and tablets: the running text reads at the body size. */
 @media (max-width: 1023.98px) {
 	.eq-row__text,
 	.eq-step p,
@@ -385,18 +355,26 @@ html {
 @supports (animation-timeline: scroll()) {
 	.pz-compass__action {
 		overflow: hidden;
+		white-space: nowrap;
 		animation: eq-reveal linear both;
 		animation-timeline: scroll(root);
 		animation-range: 0 100vh;
 	}
 }
+/* The slot opens in one step (never half-open, never a clipped label), then the button fades in. */
 @keyframes eq-reveal {
 	0%,
-	72% {
+	79.9% {
 		max-width: 0;
 		margin-left: -10px;
 		opacity: 0;
 		visibility: hidden;
+	}
+	80% {
+		max-width: 18rem;
+		margin-left: 0;
+		opacity: 0;
+		visibility: visible;
 	}
 	100% {
 		max-width: 18rem;

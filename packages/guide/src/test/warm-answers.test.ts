@@ -70,14 +70,15 @@ describe("warm, conversational answers (the live answers of 2026-11-12)", () => 
 		expect(scores[0]?.claims).toBeGreaterThanOrEqual(2);
 	});
 
-	it("still refuses the warm answer with an invented phone number", async () => {
+	it("never shows an invented phone number: regenerated once, then that sentence is left out", async () => {
 		const { guide } = await startGuide({
 			replies: [{ kind: "text", chunks: tokens(WARM_EN.replace("0752 466 792", "0752 466 000")) }],
 			searches: [BOOKING_EN],
 		});
 		const events = await collect(guide.ask({ question: "How do I book?", locale: "en" }));
-		expect(shape(events).slice(-2)).toEqual(["refusal:no_content", "done"]);
+		expect(shape(events)).not.toContain("refusal:no_content");
 		expect(answerText(events)).not.toContain("466 000");
+		expect(answerText(events)).toContain("We don't ask for medical details");
 	});
 });
 
@@ -101,7 +102,7 @@ describe("the separators the model wrote", () => {
 
 	it("keeps one separator where a sentence was left out", async () => {
 		const answer =
-			"Poți suna direct la centrul Psizone, la 0748 017 752 [2]. Echipa lucrează cu multă răbdare și atenție [2].\n\nNu îți cerem detalii medicale în cerere [2].";
+			"Poți suna direct la centrul Psizone, la 0748 017 752 [2]. Prima discuție costă 200 de lei [2].\n\nNu îți cerem detalii medicale în cerere [2].";
 		const { guide } = await startGuide({
 			replies: [{ kind: "text", chunks: tokens(answer, 4) }],
 			searches: [BOOKING_RO],
@@ -109,7 +110,56 @@ describe("the separators the model wrote", () => {
 		const text = answerText(
 			await collect(guide.ask({ question: "Cum vă pot suna?", locale: "ro" })),
 		);
-		expect(text).not.toContain("răbdare");
+		expect(text).not.toContain("200");
 		expect(text).toMatch(/\[1\]\.\s+Nu îți cerem/);
+	});
+});
+
+describe("chatty and meta questions", () => {
+	it.each([
+		[
+			"ro",
+			"pai ce stii nu stiu",
+			"Știu ce scrie în articolele noastre revizuite; spune-mi ce te interesează.",
+		],
+		["ro", "si deci?", "Putem continua oricând: despre ce ai vrea să citești?"],
+		[
+			"en",
+			"what do you even know?",
+			"I know what our reviewed articles say; tell me what interests you.",
+		],
+		["en", "so?", "Happy to keep going: what would you like to read about?"],
+	] as const)("%s %j: the model replies in conversation, without a search", async (locale, question, reply) => {
+		const { guide, server, knowledge } = await startGuide({
+			brand: "blog",
+			replies: [{ kind: "text", chunks: [reply] }],
+			autoSearch: false,
+		});
+		const events = await collect(guide.ask({ question, locale }));
+		expect(shape(events)).toEqual(["thinking", "text", "done"]);
+		expect(answerText(events)).toBe(reply);
+		expect(knowledge.calls).toHaveLength(0);
+		expect(server.requests).toHaveLength(1);
+	});
+});
+
+describe("the canned lines, only when the provider fails", () => {
+	it("welcome first, the follow-up mid-conversation, the thanks line for a thank-you", async () => {
+		const { guide } = await startGuide({
+			brand: "blog",
+			replies: [{ kind: "status", status: 503 }],
+		});
+		const history = [
+			{ role: "user", text: "Cum sunt revizuite articolele?" },
+			{ role: "guide", text: "Fiecare articol trece prin două citiri [1]." },
+		] as const;
+		const events = await collect(guide.ask({ question: "si deci?", locale: "ro", history }));
+		expect(answerText(events)).toBe(
+			"Spune-mi ce te interesează și caut printre articole. De exemplu: „Cum sunt revizuite articolele?”, „Ce articole aveți despre somn?” sau „Cum urmăresc articolele unui singur site?”",
+		);
+		const first = await collect(guide.ask({ question: "si deci?", locale: "ro" }));
+		expect(answerText(first).startsWith("Bună.")).toBe(true);
+		const thanks = await collect(guide.ask({ question: "mersi", locale: "ro", history }));
+		expect(answerText(thanks)).toBe("Cu drag! Lectură plăcută.");
 	});
 });
