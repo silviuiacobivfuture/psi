@@ -303,6 +303,8 @@ spec:
             env:
             - name: STALWART_URL
               value: http://stalwart:8080
+            - name: HOME
+              value: /tmp
             - name: STALWART_USER
               valueFrom:
                 secretKeyRef:
@@ -332,6 +334,8 @@ spec:
             - mountPath: /work
               name: work
               readOnly: true
+            - mountPath: /tmp
+              name: tmp
           enableServiceLinks: false
           initContainers:
           - command:
@@ -384,6 +388,9 @@ spec:
           - emptyDir:
               sizeLimit: 4Mi
             name: work
+          - emptyDir:
+              sizeLimit: 16Mi
+            name: tmp
           - configMap:
               name: stalwart-plan-6h2bgt29mk
             name: plan
@@ -422,6 +429,8 @@ spec:
         env:
         - name: STALWART_URL
           value: http://stalwart:8080
+        - name: HOME
+          value: /tmp
         - name: STALWART_USER
           valueFrom:
             secretKeyRef:
@@ -451,6 +460,8 @@ spec:
         - mountPath: /work
           name: work
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       enableServiceLinks: false
       initContainers:
       - command:
@@ -503,6 +514,9 @@ spec:
       - emptyDir:
           sizeLimit: 4Mi
         name: work
+      - emptyDir:
+          sizeLimit: 16Mi
+        name: tmp
       - configMap:
           name: stalwart-plan-6h2bgt29mk
         name: plan
