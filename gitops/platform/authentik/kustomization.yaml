@@ -32,11 +32,11 @@ resources:
   - blueprints-recovery.yaml
   # The people moved onto this directory (doc 18, step 6). Also in blueprints.configMaps.
   - blueprints-people.yaml
-  # Romanian mail templates, mounted at /templates/recomex/ via global.volumes in
+  # Romanian mail templates, mounted at /templates/<slug>/ via global.volumes in
   # gitops/apps/overlays/dev/authentik.yaml (NOT a blueprint; no configMaps entry).
   - email-templates.yaml
   # The dedicated token for autorizare, and the one script every token reconciler
-  # runs (step 2) — the applications' (invoice, vega) included, in apps/.
+  # runs (step 2) — the applications' included, in apps/.
   - autorizare-token-reconcile.yaml
   - plane-sso-token-reconcile.yaml
   - plunk-sso-token-reconcile.yaml
@@ -70,9 +70,10 @@ resources:
   - cms-oidc-externalsecret.yaml
   # The working fields the estate's values are built in (never rendered). See below.
   - identity/lines.yaml
+  - identity/backup-bucket.yaml
 
 # The applications' part: their groups, sign-ins and token reconcilers
-# (generated group/sso blueprints, invoice and vega API tokens), their estate
+# (generated group/sso blueprints, the applications' API tokens), their estate
 # tiles (spliced into blueprints-estate-tiles.yaml) and their tile icons (merged
 # into the authentik-estate ConfigMap below). A Component, so it can add to the
 # platform's own objects. See apps/.
@@ -97,8 +98,8 @@ replacements:
 
 # The estate's look, as FILES Authentik serves and reads (gitops/apps/overlays/dev/
 # authentik.yaml mounts both, on server AND worker):
-#   authentik-estate     → /web/dist/assets/recomex/  — served at
-#                          /static/dist/assets/recomex/: the stylesheet the brand
+#   authentik-estate     → /web/dist/assets/<slug>/  — served at
+#                          /static/dist/assets/<slug>/: the stylesheet the brand
 #                          blueprint reads with !File, the Romanian layer, the
 #                          logo, favicon and night background; and the mail's
 #                          logo, also mounted as /web/icons/icon_left_brand.png,
@@ -119,7 +120,8 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     files:
-      - estate/recomex.css
+      # Served as <ESTATE_SLUG>.css: tools/estate-repo.mjs fills the key's token.
+      - psi.css=estate/estate.css
       - estate/ro.js
       - estate/favicon.svg
       - estate/logo-dark.svg

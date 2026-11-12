@@ -1,4 +1,4 @@
-# Public HTTPS endpoint for Authentik at auth.recomex.eu — Traefik + a real
+# Public HTTPS endpoint for Authentik at its public host (AUTHENTIK_HOST) — Traefik + a real
 # Let's Encrypt cert (same pattern as WLREGISTRY).
 #
 # WHY public: Authentik is an IdP. In-cluster app SERVERS (Argo/Harbor/OpenBao)
@@ -9,7 +9,7 @@
 # login endpoint is exposed (GitHub-gated); the dashboards stay tailnet-only.
 #
 # The OIDC providers use this host as the issuer base
-# (https://auth.recomex.eu/application/o/<slug>/). The tailnet ingress
+# (https://<AUTHENTIK_HOST>/application/o/<slug>/). The tailnet ingress
 # (ingress-tailscale.yaml) stays for direct admin UI access.
 apiVersion: networking.k8s.io/v1
 kind: Ingress

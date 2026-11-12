@@ -1,7 +1,7 @@
 /*
  * PSI'S LOOK ON THE SIGN-IN — Authentik's brand stylesheet (auth.psizone.ro).
  *
- * Read by the blueprint (`branding_custom_css: !File …/recomex.css`, see
+ * Read by the blueprint (`branding_custom_css: !File …/psi.css`, see
  * blueprints-theme.yaml). Authentik 2026.5 puts it in the page head AND adopts
  * it into the shadow root of every one of its web components, so the token
  * block below is declared for both `:root` and `:host`.
@@ -214,10 +214,10 @@ html[data-theme="dark"],
  * background, fundal.svg — Night); the light theme takes its own field. The
  * account pages have no flow background, so the body carries the same field. */
 html[data-theme="light"] {
-	--ak-global--background-image: url("/static/dist/assets/recomex/fundal-light.svg");
+	--ak-global--background-image: url("/static/dist/assets/psi/fundal-light.svg");
 }
 html[data-theme="dark"] {
-	--ak-global--background-image: url("/static/dist/assets/recomex/fundal.svg");
+	--ak-global--background-image: url("/static/dist/assets/psi/fundal.svg");
 }
 html[data-theme] body,
 html[data-theme] body:has(ak-flow-executor) {
@@ -280,10 +280,10 @@ footer[name="site-footer"] [name="flow-links"] {
  * from the brand's single URL, where `%(theme)s` is not resolved; these two
  * rules reach them alone. */
 html[data-theme="dark"] .pf-c-brand img.branding-logo {
-	content: url("/static/dist/assets/recomex/logo-dark.svg");
+	content: url("/static/dist/assets/psi/logo-dark.svg");
 }
 html[data-theme="light"] .pf-c-brand img.branding-logo {
-	content: url("/static/dist/assets/recomex/logo-light.svg");
+	content: url("/static/dist/assets/psi/logo-light.svg");
 }
 
 /* ── Fields: psi's `.pz-input` ────────────────────────────────────────────── */

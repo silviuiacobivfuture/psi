@@ -19,7 +19,7 @@
 # Every application a person can open carries `meta_icon`: its tile in "Aplicațiile
 # mele" is otherwise a letter. The icon is a FILE in estate/ (app-<slug>.svg, its
 # source and licence in estate/app-icons.json), served by the directory itself at
-# /static/dist/assets/recomex/ — never a URL on somebody else's host: the Novu
+# /static/dist/assets/<slug>/ — never a URL on somebody else's host: the Novu
 # tile pointed at a CDN path that never existed and showed a broken image.
 # doctor.sh's "Authentik library tiles" layer fetches each one.
 #
@@ -126,7 +126,7 @@ data:
           slug: harbor
         attrs:
           name: Harbor
-          meta_icon: /static/dist/assets/recomex/app-harbor.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-harbor.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, harbor]]
           meta_launch_url: https://WLREGISTRY
 
@@ -155,17 +155,13 @@ data:
             - matching_mode: strict
               url: https://argocd.WLTAILNET/auth/callback
             - matching_mode: strict
-              url: https://argocd.WLMESH/auth/callback
-            - matching_mode: strict
               url: https://argocd.WLTAILNET/api/dex/callback
-            - matching_mode: strict
-              url: https://argocd.WLMESH/api/dex/callback
       - model: authentik_core.application
         identifiers:
           slug: argocd
         attrs:
           name: Argo CD
-          meta_icon: /static/dist/assets/recomex/app-argocd.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-argocd.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, argocd]]
           meta_launch_url: https://argocd.WLTAILNET
 
@@ -193,14 +189,12 @@ data:
           redirect_uris:
             - matching_mode: strict
               url: https://headlamp.WLTAILNET/oidc-callback
-            - matching_mode: strict
-              url: https://headlamp.WLMESH/oidc-callback
       - model: authentik_core.application
         identifiers:
           slug: headlamp
         attrs:
           name: Headlamp
-          meta_icon: /static/dist/assets/recomex/app-headlamp.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-headlamp.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, headlamp]]
           meta_launch_url: https://headlamp.WLTAILNET
 
@@ -230,11 +224,7 @@ data:
             - matching_mode: strict
               url: https://openbao.WLTAILNET/ui/vault/auth/oidc/oidc/callback
             - matching_mode: strict
-              url: https://openbao.WLMESH/ui/vault/auth/oidc/oidc/callback
-            - matching_mode: strict
               url: https://openbao.WLTAILNET/oidc/callback
-            - matching_mode: strict
-              url: https://openbao.WLMESH/oidc/callback
             - matching_mode: strict
               url: http://localhost:8250/oidc/callback
       - model: authentik_core.application
@@ -242,7 +232,7 @@ data:
           slug: openbao
         attrs:
           name: OpenBao
-          meta_icon: /static/dist/assets/recomex/app-openbao.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-openbao.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, openbao]]
           meta_launch_url: https://openbao.WLTAILNET
 
@@ -287,7 +277,7 @@ data:
           slug: nextcloud
         attrs:
           name: Nextcloud
-          meta_icon: /static/dist/assets/recomex/app-nextcloud.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-nextcloud.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, nextcloud]]
           meta_launch_url: https://cloud.WLDOMAIN
 
@@ -346,7 +336,7 @@ data:
         attrs:
           mode: forward_domain
           external_host: https://WLAUTHHOST
-          cookie_domain: psizone.ro
+          cookie_domain: WLDOMAIN
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
           access_token_validity: hours=24
@@ -362,7 +352,7 @@ data:
           meta_launch_url: blank://blank
       # ---- Plane's tile in "My applications" ------------------------------------
       # Plane is signed into through the domain gate above, which has no launch URL,
-      # so without this the library showed "RecomEx Forward Auth" and no Plane. This
+      # so without this the library showed the domain gate's own tile and no Plane. This
       # application carries NO provider — it is the tile, nothing more; access is
       # still decided at the gate. Its bindings match who the gate admits (the Plane
       # role groups and platform-admins, not the e2e robots), so the tile appears
@@ -372,7 +362,7 @@ data:
           slug: plane
         attrs:
           name: Plane
-          meta_icon: /static/dist/assets/recomex/app-plane.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-plane.svg
           meta_launch_url: https://plane.WLDOMAIN
           meta_description: Proiecte, sarcini și rapoarte de testare
       - model: authentik_policies.policybinding
@@ -481,7 +471,7 @@ data:
           slug: pdfcraft
         attrs:
           name: PDF Studio
-          meta_icon: /static/dist/assets/recomex/app-pdfcraft.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-pdfcraft.svg
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, pdfcraft]]
           meta_launch_url: https://pdf.WLDOMAIN
       # Same two-binding shape as Nextcloud and Plane (engine mode `any`):
@@ -527,7 +517,7 @@ data:
           slug: novu
         attrs:
           name: Novu
-          meta_icon: /static/dist/assets/recomex/app-novu.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-novu.svg
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, novu]]
           meta_launch_url: https://novu.WLDOMAIN
           meta_description: Notificări — fluxuri, abonați, activitate
@@ -576,7 +566,7 @@ data:
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, plunk]]
           meta_launch_url: https://plunk.WLDOMAIN
           meta_description: E-mail — trimitere, primire, șabloane, campanii
-          meta_icon: /static/dist/assets/recomex/app-plunk.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-plunk.svg
       # EVERY group apps/plunk-sso/mapping.json names is bound here (engine mode
       # `any`): a mapped group the gate refused would be a role nobody can use.
       - model: authentik_policies.policybinding
@@ -652,7 +642,7 @@ data:
           name: AFFiNE
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, affine]]
           meta_launch_url: https://WLAFFINEPREFIX.WLDOMAIN/
-          meta_icon: /static/dist/assets/recomex/app-affine.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-affine.svg
           meta_description: Documente, notițe și table albe
       - model: authentik_policies.policybinding
         identifiers:
@@ -730,6 +720,7 @@ data:
           target: !Find [authentik_core.application, [slug, affine-oidc]]
           group: !Find [authentik_core.group, [name, app-affine-admin]]
         attrs: { negate: false, enabled: true, order: 2 }
+      # seb:app-only stalwart
       # ---- Mail: the estate's own mail server (pieces/stalwart) --------------------
       # TWO hosts, each behind TWO Authentik checks (the AFFiNE shape), so every browser entry
       # starts here and nobody types a password into a mail page:
@@ -883,6 +874,7 @@ data:
         state: absent
         identifiers:
           name: webmail-oidc
+      # seb:app-only end
       # ---- Tailnet dashboard gates (proxy MODE) --------------------------------
       # These apps can't speak OIDC natively (netdata/hub) or shouldn't (headlamp:
       # OIDC would require reconfiguring the k3s apiserver). Instead the embedded
@@ -907,7 +899,7 @@ data:
         identifiers: { slug: netdata }
         attrs:
           name: Netdata
-          meta_icon: /static/dist/assets/recomex/app-netdata.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-netdata.svg
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, netdata]]
       - model: authentik_providers_proxy.proxyprovider
         identifiers: { name: hub }
@@ -924,7 +916,7 @@ data:
         attrs:
           # psi's hub (hub.psizone.ro, "Psizone · hub"), named plainly.
           name: Hub
-          meta_icon: /static/dist/assets/recomex/app-hub.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-hub.svg
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, hub]]
       # Headlamp embedded-outpost proxy gate REMOVED — Headlamp moved to NATIVE k8s OIDC
       # (the apiserver trusts Authentik via the SUC drop-in; identity enforced at the API
@@ -1023,7 +1015,7 @@ data:
           # chosen a password yet, to their invitation (apps/n8n-sso/src/setup.ts).
           meta_launch_url: https://n8n.WLDOMAIN/sso/setup
           meta_description: Automatizări — fluxuri de lucru și webhook-uri
-          meta_icon: /static/dist/assets/recomex/app-n8n.svg
+          meta_icon: /static/dist/assets/WLSLUG/app-n8n.svg
       - model: authentik_policies.policybinding
         identifiers:
           target: !Find [authentik_core.application, [slug, n8n]]

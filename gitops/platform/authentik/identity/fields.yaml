@@ -33,16 +33,27 @@
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL}
   targets:
     - select: {kind: Cluster, name: authentik-db}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-blueprint-discovery}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-autorizare-token-reconcile}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-plane-sso-token-reconcile}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-plunk-sso-token-reconcile}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-novu-sso-token-reconcile}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-n8n-sso-token-reconcile}
-      fieldPaths: ["metadata.annotations.[alerts.recomex.eu/owner]"]
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
+# ── the database's archive: the estate's object storage, its bucket <BUCKET_PREFIX>-tfstate-dev ──
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX}
+  targets:
+    - select: {kind: ConfigMap, name: authentik-backup-bucket}
+      fieldPaths: [data.BUCKET]
+      options: {delimiter: "-", index: 0}
+- source: {kind: ConfigMap, name: authentik-backup-bucket, fieldPath: data.BUCKET}
+  targets:
+    - select: {kind: Cluster, name: authentik-db}
+      fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+      options: {delimiter: "/", index: 2}

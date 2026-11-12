@@ -13,7 +13,7 @@
 # THE ONE MECHANISM (it replaced novu's own copy):
 #   Middleware `sso-restart` — Traefik errors: a 400 from what follows it in the
 #   chain is replaced by estate/restart.html, served by authentik-server from
-#   /static/dist/assets/recomex/ on any Host (measured). The status stays 400;
+#   /static/dist/assets/<slug>/ on any Host (measured). The status stays 400;
 #   the address stays the callback, which is what the page reads. A callback the
 #   outpost ACCEPTS is its 302 + Set-Cookie, untouched (measured against Traefik
 #   3.6.13 for novu). Read estate/restart.html for where it sends the browser and
@@ -39,7 +39,7 @@ spec:
   errors:
     status: ["400"]
     service: { name: authentik-server, port: 80 }
-    query: /static/dist/assets/recomex/restart.html
+    query: /static/dist/assets/psi/restart.html
 ---
 # n8n's down-state: what Traefik would answer bare when n8n or n8n-sso is away, as one plain page.
 # Authentik serves it, so it does not depend on what it reports. docs/n8n/01-identity.md H13.
@@ -52,7 +52,7 @@ spec:
   errors:
     status: ["502-504"]
     service: { name: authentik-server, port: 80 }
-    query: /static/dist/assets/recomex/n8n-down.html
+    query: /static/dist/assets/psi/n8n-down.html
 ---
 # auth.<apex>'s own callback — where the forward_domain provider lands every
 # domain-gated host's sign-in. Longer than authentik-public's `/`, so Traefik
