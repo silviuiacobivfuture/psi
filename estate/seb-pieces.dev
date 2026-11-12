@@ -18,3 +18,4 @@ cluster-dns
 cert-manager
 platform-rbac
 db-backup
+external-dns

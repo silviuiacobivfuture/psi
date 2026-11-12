@@ -19,3 +19,4 @@ resources:
   - seb-cert-manager.yaml
   - seb-platform-rbac.yaml
   - seb-db-backup.yaml
+  - seb-external-dns.yaml
