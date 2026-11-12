@@ -1,6 +1,7 @@
-import { AudioPlayer, Chip } from "@psi/ui";
+import { AudioPlayer, Chip, Picture } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
+import { sectionPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { HeadphonesIcon } from "./headphones-icon";
 
@@ -14,6 +15,9 @@ export function Sample({ locale }: { locale: Locale }): JSX.Element {
 					<p class="eq-overline">{m.sample_overline({}, o)}</p>
 					<h2 class="display eq-h2 pz-rise mt-5 text-ink">{m.sample_title({}, o)}</h2>
 					<p class="pz-rise mt-6 max-w-md text-body text-ink-muted">{m.sample_text({}, o)}</p>
+					<figure class="pz-photo eq-photo pz-rise mt-10 aspect-[4/3] max-w-md">
+						<Picture {...sectionPicture(locale, "quietLights")} position="50% 35%" />
+					</figure>
 				</div>
 				<div class="pz-rise lg:col-span-6 lg:col-start-7">
 					<AudioPlayer
@@ -21,6 +25,7 @@ export function Sample({ locale }: { locale: Locale }): JSX.Element {
 						class="eq-player"
 						title={m.sample_player_title({}, o)}
 						meta={m.sample_player_meta({}, o)}
+						describedBy="sample-heard"
 						src="/assets/sample.mp3"
 						duration={120}
 						playLabel={m.sample_play({}, o)}
@@ -33,6 +38,10 @@ export function Sample({ locale }: { locale: Locale }): JSX.Element {
 						</Chip>
 						<span class="text-data text-ink-faint">{m.sample_note({}, o)}</span>
 					</div>
+					<p id="sample-heard" class="mt-5 max-w-prose text-body text-ink-muted">
+						{m.sample_heard({}, o)}
+					</p>
+					<p class="mt-3 max-w-prose text-data text-ink-faint">{m.sample_safety({}, o)}</p>
 				</div>
 			</div>
 		</section>

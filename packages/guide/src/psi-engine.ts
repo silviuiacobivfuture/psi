@@ -18,8 +18,9 @@ import { BRANDS, type Brand, type Knowledge } from "./contract";
 import { knowledgeIngest } from "./ingest";
 import { engineKnowledge, knowledgeVectors } from "./knowledge";
 import { DEFAULT_MODEL, readGuideEnv } from "./model";
-import { PSI_PROFILES } from "./profiles";
+import { PSI_PROFILES, schedulesInChat } from "./profiles";
 import { psiRetrieval } from "./retrieval";
+import { psiServices } from "./services/services";
 import { settingsFromEnv } from "./settings";
 
 /** The id prefix of psi's agents, memory and threads (`psi-guide-psizone`). */
@@ -110,19 +111,24 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 						}
 					},
 				});
+	const catalog =
+		retrieval === undefined
+			? undefined
+			: engineCatalog(retrieval.catalog, { demo: env.demo, sync: retrieval.sync });
 	return createEngine({
 		profiles: (options.brands ?? BRANDS).map((brand) => PSI_PROFILES[brand]),
 		knowledge: engineKnowledge(options.knowledge, {
 			demo: env.demo,
-			...(retrieval === undefined
+			...(retrieval === undefined || catalog === undefined
 				? {}
-				: {
-						tiered: retrieval.tiered,
-						ready: retrieval.ready,
-						catalog: engineCatalog(retrieval.catalog, { demo: env.demo, sync: retrieval.sync }),
-					}),
+				: { tiered: retrieval.tiered, ready: retrieval.ready, catalog }),
 		}),
 		articles: options.articles ?? psiArticles(),
+		services: psiServices({
+			...(catalog === undefined ? {} : { catalog }),
+			// A brand books in its chat when it schedules and the store is reachable.
+			bookingInChat: (brand) => options.scheduling !== undefined && schedulesInChat(brand),
+		}),
 		vectors: knowledgeVectors(options.knowledge),
 		...(store === undefined
 			? {}

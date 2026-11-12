@@ -108,6 +108,7 @@ describe("a grounded answer", () => {
 		expect(body.tool_choice).not.toBe("required");
 		expect(body.tools?.map((tool) => tool.function.name).sort()).toEqual([
 			"findArticles",
+			"recommendServices",
 			"searchKnowledge",
 		]);
 		const system = body.messages

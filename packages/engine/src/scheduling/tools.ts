@@ -84,10 +84,15 @@ function enumOf(values: ReadonlyArray<string>): z.ZodEnum<[string, ...string[]]>
 	return z.enum([first ?? "none", ...rest]);
 }
 
+/** A service key: one of the profile's list when it has one, else any well-formed key (the store checks it). */
+function serviceSlug(services: ReadonlyArray<string>) {
+	return services.length === 0 ? z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/) : enumOf(services);
+}
+
 function findAvailabilityInput(services: ReadonlyArray<string>) {
 	return z
 		.object({
-			service: enumOf(services).describe("The service to find times for"),
+			service: serviceSlug(services).describe("The service to find times for"),
 			fromDate: z
 				.string()
 				.regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -111,7 +116,7 @@ function findAvailabilityInput(services: ReadonlyArray<string>) {
 function requestAppointmentInput(services: ReadonlyArray<string>) {
 	return z
 		.object({
-			service: enumOf(services),
+			service: serviceSlug(services),
 			slotId: z.string().min(1).max(200).describe("The slotId findAvailability returned"),
 			startsAt: z
 				.string()

@@ -110,6 +110,8 @@ export type CancelResult =
 
 export interface ServiceInfo {
 	slug: string;
+	/** The name the team gave it, in both languages (absent on services seeded before names). */
+	name?: { ro: string; en: string };
 	durationMinutes: number;
 	modes: ReadonlyArray<Mode>;
 	location?: string;

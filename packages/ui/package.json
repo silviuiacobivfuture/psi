@@ -1,6 +1,6 @@
 {
 	"name": "@psi/ui",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's component library: typed server-rendered TSX (hono/jsx), Datastar for behaviour, styled by the psi design language",

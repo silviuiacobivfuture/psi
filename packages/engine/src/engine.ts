@@ -22,6 +22,7 @@ import { type AskInput, askInputSchema, type EngineEvent } from "./events";
 import { createProfileTools } from "./grounding/agent-tools";
 import type { EngineArticles } from "./grounding/article-tool";
 import { createFaithfulness, type EngineScore } from "./grounding/faithfulness";
+import type { EngineServices } from "./grounding/services-tool";
 import { createIngestWorkflow, type EngineIngest } from "./ingest-workflow";
 import { createLanguageDetector } from "./language/detect";
 import { BUNDLED_LANGUAGES } from "./language/index";
@@ -87,6 +88,8 @@ export interface EngineOptions {
 	settings?: SettingsProvider;
 	/** The blog's articles the guides may list and recommend (`findArticles`); none without it. */
 	articles?: EngineArticles;
+	/** The services the guides may recommend (`recommendServices`); none without it. */
+	services?: EngineServices;
 	/** The knowledge base's ingest; registers the `ingest-knowledge` workflow (`ingestKnowledge`). */
 	ingest?: EngineIngest;
 	/** Vector stores to register with Mastra (`mastra.getVector(name)`), e.g. `{ chroma }`. */
@@ -254,6 +257,7 @@ export function createEngine(options: EngineOptions): Engine {
 				languageName: (locale) => packs.get(locale)?.name ?? locale,
 				retrievalMs: timeouts.retrievalMs,
 				...(opts.articles === undefined ? {} : { articles: opts.articles }),
+				...(opts.services === undefined ? {} : { services: opts.services }),
 			}),
 		};
 		const agent = createProfileAgent(agentOptions);

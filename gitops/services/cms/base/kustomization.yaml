@@ -8,6 +8,7 @@ resources:
   - resourcequota.yaml
   - cnpg-cluster.yaml
   - externalsecret.yaml
+  - scheduling-externalsecret.yaml
   - harbor-pull-externalsecret.yaml
   - deployment.yaml
   - service.yaml

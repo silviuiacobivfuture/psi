@@ -47,7 +47,19 @@ export const SchedulingCancelSchema = z.discriminatedUnion("ok", [
 ]);
 export type SchedulingCancel = z.infer<typeof SchedulingCancelSchema>;
 
+/** A service the store offers a tenant today: its key, and its name in both languages when it has one. */
+export interface ServiceEntry {
+	slug: string;
+	name?: { ro: string; en: string };
+}
+
 export interface SchedulingPort {
+	/**
+	 * The tenant's active services right now, read from the store (the app caches it briefly). When
+	 * the port has it, the booking dialogue offers exactly these and the profile's own list is only
+	 * a fallback; without it the profile's list is the truth.
+	 */
+	catalogue?(tenant: string): Promise<ReadonlyArray<ServiceEntry>>;
 	findSlots(search: SchedulingSearch): Promise<SchedulingSlots>;
 	cancel(input: { reference: string; cancelCode: string }): Promise<SchedulingCancel>;
 }
@@ -67,11 +79,14 @@ export const SchedulingPortSchema: z.ZodType<SchedulingPort> = z.custom<Scheduli
 /** What one profile may schedule: its tenant in the store and the services it offers. */
 export interface ProfileScheduling {
 	tenant: string;
+	/** The services the profile offers when the port cannot say (see `SchedulingPort.catalogue`); may be empty. */
 	services: ReadonlyArray<string>;
+	/** Names per service slug, in both languages, when the live catalogue gave them. */
+	names?: Readonly<Record<string, { ro: string; en: string }>>;
 }
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
 
 export const ProfileSchedulingSchema: z.ZodType<ProfileScheduling> = z
-	.object({ tenant: Slug, services: z.array(Slug).min(1).readonly() })
+	.object({ tenant: Slug, services: z.array(Slug).readonly() })
 	.strict();

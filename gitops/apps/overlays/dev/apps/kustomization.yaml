@@ -10,3 +10,5 @@ resources:
   - cms.yaml
   - doors.yaml
   - design-gallery.yaml
+  - scheduling-backend.yaml
+  - scheduling-deploy.yaml

@@ -23,6 +23,7 @@ import type * as setupSupport from "../setupSupport.js";
 import type * as staff from "../staff.js";
 import type * as staffBoard from "../staffBoard.js";
 import type * as staffCatalog from "../staffCatalog.js";
+import type * as staffClients from "../staffClients.js";
 import type * as staffRequests from "../staffRequests.js";
 import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   staff: typeof staff;
   staffBoard: typeof staffBoard;
   staffCatalog: typeof staffCatalog;
+  staffClients: typeof staffClients;
   staffRequests: typeof staffRequests;
   staffRooms: typeof staffRooms;
   staffSchedule: typeof staffSchedule;

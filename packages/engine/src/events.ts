@@ -26,6 +26,15 @@ import type { Source } from "./contract";
 /** What the guide is busy with, while it works (see the `thinking` event). */
 export type ThinkingStage = "searching" | "checking";
 
+/**
+ * A next step the visitor can take with one click. `ask` sends `text` into the conversation as the
+ * visitor's own message (the booking dialogue on a site that schedules); `link` opens `href`
+ * (a page, or another psi site's chat with the booking started).
+ */
+export type GuideAction =
+	| { kind: "ask"; label: string; text: string }
+	| { kind: "link"; label: string; href: string };
+
 export type RefusalReason =
 	| "crisis"
 	| "out_of_scope"
@@ -70,6 +79,12 @@ export type EngineEvent =
 	 */
 	| { type: "replace"; text: string }
 	| { type: "sources"; sources: ReadonlyArray<Source> }
+	/**
+	 * Next steps shown as buttons under the reply: a service the reply names (booking, a sign-up,
+	 * a page) or the handoff to another site's booking. The app labels nothing: each carries its
+	 * own words, in the asked locale.
+	 */
+	| { type: "actions"; actions: ReadonlyArray<GuideAction> }
 	| { type: "refusal"; reason: RefusalReason }
 	/** Free times to book, offered in the conversation; the app renders its own confirm step. */
 	| { type: "booking"; offer: BookingOffer }
@@ -80,6 +95,43 @@ export type HistoryRole = "user" | "guide";
 export interface HistoryTurn {
 	role: HistoryRole;
 	text: string;
+	/** The title of the page the visitor was on when this turn was asked or answered. */
+	page?: string;
+}
+
+/** What a page is: an article of the blog, a hub, a method, or any other page of a site. */
+export const PAGE_KINDS = ["article", "hub", "method", "page"] as const;
+export type PageKind = (typeof PAGE_KINDS)[number];
+
+/** Where a page's text stands: published, a draft, or a title waiting for its clinical review. */
+export const PAGE_STATUSES = ["published", "draft", "in-review"] as const;
+export type PageStatus = (typeof PAGE_STATUSES)[number];
+
+/** The longest each part of a page's context may be, in characters (and sections). */
+export const PAGE_LIMITS = {
+	title: 200,
+	url: 300,
+	lead: 700,
+	heading: 160,
+	headings: 30,
+	excerpt: 2_600,
+} as const;
+
+/**
+ * The page the visitor is reading, as the APP's server resolved it from its own content (never
+ * text the browser sent). `excerpt` is the text the model may state as fact; it exists only for
+ * a `published` page (the schema drops it for any other status). A draft or an in-review page
+ * carries its title, its lead and its headings only.
+ */
+export interface PageContext {
+	kind: PageKind;
+	status: PageStatus;
+	title: string;
+	/** Where the page lives: a site-relative path or an absolute http(s) address. */
+	url: string;
+	lead?: string;
+	headings: ReadonlyArray<string>;
+	excerpt?: string;
 }
 
 export interface AskInput<TLocale extends string = string> {
@@ -98,6 +150,11 @@ export interface AskInput<TLocale extends string = string> {
 	 * the page carries from turn to turn. Untrusted: a time it names is checked against the store.
 	 */
 	booking?: BookingState;
+	/**
+	 * The page the visitor is on, resolved by the app's server from its own content. Context for the
+	 * answer, never instructions; without it the guide knows nothing of where the visitor is.
+	 */
+	page?: PageContext;
 }
 
 /** The longest question the engine takes, in characters (after trimming). */
@@ -110,7 +167,41 @@ export const MAX_HISTORY_TURN_LENGTH = 4000;
 const HistoryTurnSchema: z.ZodType<HistoryTurn> = z.object({
 	role: z.enum(["user", "guide"]),
 	text: z.string().trim().min(1).max(MAX_HISTORY_TURN_LENGTH),
+	page: z.string().trim().min(1).max(PAGE_LIMITS.title).optional(),
 });
+
+const PageUrl = z
+	.string()
+	.trim()
+	.min(1)
+	.max(PAGE_LIMITS.url)
+	.refine((u) => (u.startsWith("/") && !u.startsWith("//")) || /^https?:\/\/[^\s]+$/.test(u), {
+		message: "a page url is a site-relative path or an http(s) address",
+	});
+
+/**
+ * The page context at the boundary. A body is kept only for a `published` page: for a draft or a
+ * page in review the schema removes it, so an unreviewed text can never reach the model through
+ * a caller's mistake.
+ */
+export const PageContextSchema: z.ZodType<PageContext, z.ZodTypeDef, unknown> = z
+	.object({
+		kind: z.enum(PAGE_KINDS),
+		status: z.enum(PAGE_STATUSES),
+		title: z.string().trim().min(1).max(PAGE_LIMITS.title),
+		url: PageUrl,
+		lead: z.string().trim().min(1).max(PAGE_LIMITS.lead).optional(),
+		headings: z
+			.array(z.string().trim().min(1).max(PAGE_LIMITS.heading))
+			.max(PAGE_LIMITS.headings)
+			.readonly(),
+		excerpt: z.string().trim().min(1).max(PAGE_LIMITS.excerpt).optional(),
+	})
+	.strict()
+	.transform((page): PageContext => {
+		const { excerpt, ...rest } = page;
+		return page.status === "published" && excerpt !== undefined ? { ...rest, excerpt } : rest;
+	});
 
 const BaseAskInputSchema = z
 	.object({
@@ -122,6 +213,7 @@ const BaseAskInputSchema = z
 			.regex(/^[A-Za-z0-9_-]{16,128}$/)
 			.optional(),
 		booking: BookingStateSchema.optional(),
+		page: PageContextSchema.optional(),
 	})
 	.strict();
 

@@ -12,6 +12,24 @@ export {
 	type WeeklyRule,
 } from "./catalog";
 export {
+	type ClientInput,
+	type ContactPoint,
+	type DuplicateReport,
+	duplicatesInFile,
+	emailKey,
+	IMPORT_MAX_ROWS,
+	type ImportProblem,
+	identityKeys,
+	NOTE_MAX,
+	nameKey,
+	parseCsv,
+	phoneKey,
+	type ReadClients,
+	readClients,
+	TEMPLATE_COLUMNS,
+	templateCsv,
+} from "./clients";
+export {
 	APPOINTMENT_STATUSES,
 	type AppointmentStatus,
 	type Booked,

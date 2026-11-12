@@ -36,9 +36,9 @@ export function parseCSV(text) {
 	};
 }
 export const toCSV = (head, rows) =>
-	`${[head, ...rows.map((r) => head.map((h) => r[h]))]
+	[head, ...rows.map((r) => head.map((h) => r[h]))]
 		.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
-		.join("\n")}\n`;
+		.join("\n") + "\n";
 export const normUrl = (u) => {
 	try {
 		const x = new URL(u);

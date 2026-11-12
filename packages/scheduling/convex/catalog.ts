@@ -24,6 +24,8 @@ export const services = query({
 			}
 			services.push({
 				slug: row.slug,
+				// The name the team gave it, per language, for the chat to match a visitor's words.
+				...(row.name === undefined ? {} : { name: row.name }),
 				durationMinutes: row.durationMinutes,
 				modes: row.modes,
 				...(row.location === undefined ? {} : { location: row.location }),

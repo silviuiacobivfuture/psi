@@ -5,15 +5,17 @@ import { type AskContext, report, type ThreadAgent } from "./ask-context";
 import { CREATIVITY_TEMPERATURE } from "./behaviour";
 import type { Source } from "./contract";
 import { within } from "./deadline";
-import type { AskInput, EngineEvent, HistoryTurn } from "./events";
+import type { AskInput, EngineEvent, GuideAction, HistoryTurn } from "./events";
 import { AnswerTurn, MAX_TOOL_CALLS, TURN_KEY } from "./grounding/agent-tools";
 import { type ArticleLink, mentionedArticles } from "./grounding/article-tool";
 import { createClaimsCheck } from "./grounding/claims-check";
 import type { EvidencePage } from "./grounding/faithfulness";
 import type { ScopedSearch } from "./grounding/knowledge-tool";
 import { SourceLedger, withoutCitations } from "./grounding/ledger";
+import { mentionedServices, type ServiceFact } from "./grounding/services-tool";
 import type { LanguagePack } from "./language/pack";
 import { forgetAnswer, type ThreadKey } from "./memory";
+import { earlierPages, pageEvidence, pagePassage, renderPage } from "./page-context";
 import type { ProfileLocale } from "./profile";
 import { matchesRules } from "./rules";
 import { fold } from "./text/normalize";
@@ -41,6 +43,8 @@ export type ReplyOutcome =
 			sources: ReadonlyArray<Source>;
 			/** Articles the reply names, linked whether or not it wrote the address. */
 			articles: ReadonlyArray<Source>;
+			/** The next steps (buttons) of the services the reply names. */
+			actions: ReadonlyArray<GuideAction>;
 			/** What the scorer reads: the tool results, the pages, the sentences left out. */
 			scoring: {
 				passages: Readonly<Record<string, string>>;
@@ -65,6 +69,7 @@ type Attempt =
 			ledger: SourceLedger;
 			shown: ReadonlyArray<string>;
 			articles: ReadonlyArray<ArticleLink>;
+			services: ReadonlyArray<ServiceFact>;
 	  }
 	/** Clearly in another language after its first sentences: stopped early, to be retried. */
 	| { kind: "language" }
@@ -160,6 +165,18 @@ async function* attempt(
 	const { ctx, input, signal } = args;
 	const ledger = new SourceLedger();
 	const turn = new AnswerTurn(ledger, input.locale, args.search);
+	// The page the visitor is reading: a published page's excerpt is the first, citable source.
+	const passage = input.page === undefined ? undefined : pagePassage(input.page);
+	const numbered = passage === undefined ? undefined : ledger.register([passage])[0];
+	const pageSection =
+		input.page === undefined
+			? undefined
+			: renderPage(
+					args.pack,
+					input.page,
+					numbered?.n,
+					earlierPages(input.history ?? [], input.page),
+				);
 	const threads: ThreadAgent | undefined =
 		input.threadId !== undefined && ctx.threadAgent !== undefined ? ctx.threadAgent() : undefined;
 	const agent: Agent | undefined = threads?.agent ?? ctx.agent;
@@ -168,7 +185,11 @@ async function* attempt(
 		input.threadId === undefined
 			? undefined
 			: { threadId: `${ctx.profile.id}-${input.threadId}`, resourceId: ctx.resourceId };
-	const system = [...args.notes, ...(note === undefined ? [] : [note])].join("\n\n");
+	const system = [
+		...args.notes,
+		...(pageSection === undefined ? [] : [pageSection]),
+		...(note === undefined ? [] : [note]),
+	].join("\n\n");
 	const t0 = Date.now();
 	const timing: AttemptTiming = { firstChunkMs: -1, firstTextMs: null, rounds: 1, ms: 0 };
 	try {
@@ -261,7 +282,14 @@ async function* attempt(
 			yield { type: "text", delta: rest };
 		}
 		if (raw.trim() === "") return { kind: "error", error: new Error("empty reply") };
-		return { kind: "ok", text: raw.trim(), ledger, shown: turn.shown, articles: turn.articles };
+		return {
+			kind: "ok",
+			text: raw.trim(),
+			ledger,
+			shown: turn.shown,
+			articles: turn.articles,
+			services: turn.services,
+		};
 	} catch (error) {
 		return { kind: "error", error };
 	} finally {
@@ -292,6 +320,7 @@ function ownText(args: ConverseArgs): ReadonlyArray<string> {
 					...(own.unknown === undefined ? [] : [own.unknown]),
 				]),
 		...args.ownCopy,
+		...(input.page === undefined ? [] : pageEvidence(input.page)),
 		...earlier,
 	];
 }
@@ -425,6 +454,7 @@ async function* decide(
 						kind: "reply",
 						sources: citer.sources(),
 						articles: mentionedArticles(text, result.articles),
+						actions: mentionedServices(text, result.services),
 						scoring: {
 							passages: result.ledger.passageTexts(),
 							pages: result.ledger.pages(),

@@ -5,9 +5,15 @@ import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { draftStatus } from "./article-meta";
 
+/** The web addresses among a draft's provenance: repository paths mean nothing to a reader. */
+function webSources(provenance: ReadonlyArray<string>): string[] {
+	return provenance.filter((p) => /^https?:\/\//.test(p));
+}
+
 /**
- * Above an unreviewed draft (staging only): what it is, that AI helped write it, and where every
- * fact comes from, so the reviewer can check it line by line.
+ * Above an unreviewed draft: what it is and that AI helped write it, then where its facts come
+ * from, collapsed (open on demand) and limited to web addresses. The reviewer sees the full
+ * provenance, repository files included, in the CMS.
  */
 export function DraftNotice({
 	article: a,
@@ -24,15 +30,15 @@ export function DraftNotice({
 				{a.kind === "health" ? m.draft_note_health({}, o) : m.draft_note({}, o)}
 				{a.aiDrafted ? ` ${m.draft_ai({}, o)}` : ""}
 			</p>
-			{a.provenance.length > 0 ? (
-				<>
-					<p class="bl-overline mt-6">{m.draft_provenance({}, o)}</p>
+			{webSources(a.provenance).length > 0 ? (
+				<details class="bl-provenance mt-5">
+					<summary class="bl-overline">{m.draft_provenance({}, o)}</summary>
 					<ul class="mt-3 space-y-1 font-mono text-[12px] leading-5 text-ink-muted">
-						{a.provenance.map((p) => (
-							<li>{p}</li>
+						{webSources(a.provenance).map((p) => (
+							<li class="break-words">{p}</li>
 						))}
 					</ul>
-				</>
+				</details>
 			) : null}
 		</div>
 	);

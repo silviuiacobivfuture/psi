@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { published } from "../content/articles";
+import { listing } from "../content/articles";
 import { IndexPage, PAGE_SIZE } from "./index";
 
 function render(props: Partial<Parameters<typeof IndexPage>[0]> = {}): string {
@@ -14,8 +14,7 @@ function cardMedia(html: string): Array<string | undefined> {
 		.map((chunk) => /<img [^>]*>/.exec(chunk.slice(0, 1200))?.[0]);
 }
 
-// The topic photo pools land in the next release; this release ships the hand-picked covers only.
-describe.skip("the index shows pictures", () => {
+describe("the index shows pictures", () => {
 	it("gives every card a photo with alt text, and the lead story its photo", () => {
 		const html = render();
 		const media = cardMedia(html);
@@ -40,7 +39,7 @@ describe.skip("the index shows pictures", () => {
 	});
 
 	it("says which page it is on when a listing has several", () => {
-		const total = published({ brand: "eqsync" }).length;
+		const total = listing({ brand: "eqsync" }).length;
 		const html = render({ brand: "eqsync", page: 2 });
 		if (total > PAGE_SIZE) expect(html).toContain('rel="prev"');
 		else expect(html).not.toContain('rel="next"');

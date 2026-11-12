@@ -3,7 +3,7 @@ import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
 import { FromTheBlog } from "../sections/blog";
-import { ExerciseList } from "../sections/exercises";
+import { DemoSounds } from "../sections/demo-sounds";
 import { DocSections, seo } from "./doc";
 import { Band, NextSteps, PageHero, type PageProps, PageShell, Para, Pending } from "./shell";
 
@@ -33,12 +33,8 @@ export function ExercisesPage(props: PageProps): JSX.Element {
 				<Para>{m.exercises_headphones({}, o)}</Para>
 				<Para>{m.tech_headphones({}, o)}</Para>
 			</Band>
-			<section class="hs-wash">
-				<div class="mx-auto max-w-4xl px-6 py-20 md:px-14 md:py-28">
-					<ExerciseList locale={locale} />
-				</div>
-			</section>
-			<DocSections page="ex" locale={locale} wash={false} />
+			<DemoSounds locale={locale} />
+			<DocSections page="ex" locale={locale} wash={false} photos={{ s02: "restingSunset" }} />
 			<Band overline={m.ep_more_overline({}, o)} title={m.ep_more_title({}, o)}>
 				<Pending locale={locale}>{m.ep_more_pending({}, o)}</Pending>
 				<Para>{m.pg_start_text({}, o)}</Para>

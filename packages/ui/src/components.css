@@ -431,6 +431,20 @@ body {
 	gap: 6px;
 	margin-top: 10px;
 }
+.pz-msg__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+.pz-msg__action {
+	height: 40px;
+	padding: 0 18px;
+	font-size: 14px;
+	text-decoration: none;
+	white-space: normal;
+	text-align: center;
+}
 .pz-msg__source {
 	font: 600 12px / 24px var(--pz-body);
 	padding: 0 10px;

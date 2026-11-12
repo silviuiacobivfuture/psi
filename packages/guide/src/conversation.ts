@@ -6,6 +6,7 @@ import {
 	MAX_HISTORY_TURNS,
 	type RefusalReason,
 } from "./events";
+import { parsePagePath } from "./page-context";
 
 /**
  * How many earlier turns a follow-up sends as `history` (five questions and their answers). The
@@ -23,6 +24,12 @@ export interface ConversationTurn extends HistoryTurn {
 	refused?: RefusalReason;
 	/** Set on the guide's turn when it was a booking step: where the booking conversation stands. */
 	booking?: BookingState;
+	/**
+	 * The path of the page the visitor was on when the turn was asked (the guide's answer carries
+	 * its question's). Only a path: the page's title is looked up again by the server, so what a
+	 * browser keeps can never put words in the model's context.
+	 */
+	page?: string;
 }
 
 const REASONS = [
@@ -44,6 +51,7 @@ const TurnsSchema = z
 				text: z.string(),
 				refused: z.enum(REASONS).optional(),
 				booking: BookingStateSchema.optional(),
+				page: z.string().optional(),
 			})
 			.strict(),
 	)
@@ -67,14 +75,16 @@ export function parseConversation(raw: unknown): ReadonlyArray<ConversationTurn>
 	const parsed = TurnsSchema.safeParse(raw);
 	if (!parsed.success) return [];
 	const turns = parsed.data
-		.map(
-			(t): ConversationTurn => ({
+		.map((t): ConversationTurn => {
+			const page = parsePagePath(t.page);
+			return {
 				role: t.role,
 				text: bounded(t.text),
 				...(t.refused === undefined ? {} : { refused: t.refused }),
 				...(t.booking === undefined ? {} : { booking: t.booking }),
-			}),
-		)
+				...(page === undefined ? {} : { page }),
+			};
+		})
 		.filter((t) => t.text !== "" || t.refused !== undefined);
 	return lastOf(turns, DISPLAY_TURNS);
 }
@@ -82,17 +92,22 @@ export function parseConversation(raw: unknown): ReadonlyArray<ConversationTurn>
 /**
  * The `history` a follow-up sends: the last `keep` turns of answered exchanges. A refused
  * exchange (the question and its refusal) is left out, so it never steers the next answer.
+ * `titleOf` gives the title of a turn's page (looked up by the server); a turn whose page it does
+ * not know carries none.
  */
 export function historyOf(
 	turns: ReadonlyArray<ConversationTurn>,
 	keep: number = CONVERSATION_TURNS,
+	titleOf: (path: string) => string | undefined = () => undefined,
 ): ReadonlyArray<HistoryTurn> {
 	const out: Array<HistoryTurn> = [];
 	turns.forEach((turn, i) => {
 		const next = turns[i + 1];
 		if (turn.refused !== undefined) return;
 		if (turn.role === "user" && next?.role === "guide" && next.refused !== undefined) return;
-		if (turn.text !== "") out.push({ role: turn.role, text: turn.text });
+		if (turn.text === "") return;
+		const page = turn.page === undefined ? undefined : titleOf(turn.page);
+		out.push({ role: turn.role, text: turn.text, ...(page === undefined ? {} : { page }) });
 	});
 	return lastOf(out, Math.min(keep, MAX_HISTORY_TURNS));
 }
@@ -120,6 +135,7 @@ export function continueConversation(
 	turns: ReadonlyArray<ConversationTurn>,
 	question: string,
 	reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
+	page?: string,
 ): ReadonlyArray<ConversationTurn> {
 	const guide: ConversationTurn =
 		"refused" in reply
@@ -129,5 +145,10 @@ export function continueConversation(
 					text: reply.answer,
 					...(reply.booking === undefined ? {} : { booking: reply.booking }),
 				};
-	return parseConversation([...turns, { role: "user", text: question }, guide]);
+	const at = page === undefined ? {} : { page };
+	return parseConversation([
+		...turns,
+		{ role: "user", text: question, ...at },
+		{ ...guide, ...at },
+	]);
 }

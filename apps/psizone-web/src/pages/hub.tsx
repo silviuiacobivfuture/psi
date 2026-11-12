@@ -59,6 +59,7 @@ export function HubPage({
 								placeholder={m.hub_ask_placeholder({ topic: title }, o)}
 								sendLabel={m.ask_send({}, o)}
 								suggestions={hub.spokes.map((s) => s(o))}
+								page={{ kind: "hub", id: hub.id }}
 							/>
 							<div id="guide-answer" class="mt-4" aria-live="polite">
 								<GuideMessage>{guideCopy(locale).welcome}</GuideMessage>

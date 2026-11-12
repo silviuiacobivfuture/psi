@@ -18,6 +18,8 @@ interface Turn {
 	refused?: string;
 	/** Where a booking conversation stands (the server parses it; the page only keeps it). */
 	booking?: object;
+	/** The path of the page the turn was asked on (the server parses it again; the page only keeps it). */
+	page?: string;
 }
 interface ChatState {
 	turns: Turn[];
@@ -46,6 +48,7 @@ const MAX_TURNS = 20;
 const MAX_TEXT = 4000;
 const MAX_PENDING = 500;
 const MAX_DRAFT = 2000;
+const MAX_PAGE = 200;
 // The refusal reasons of the guide's contract (`RefusalReason`).
 const REASONS =
 	"crisis out_of_scope injection abuse rate_limited exchange_limit no_content unavailable".split(
@@ -70,6 +73,8 @@ function readTurn(value: unknown): Turn | null {
 	if (typeof refused === "string") turn.refused = refused;
 	const booking = field(value, "booking");
 	if (typeof booking === "object" && booking !== null) turn.booking = booking;
+	const page = field(value, "page");
+	if (typeof page === "string" && page !== "") turn.page = page.slice(0, MAX_PAGE);
 	return turn;
 }
 
@@ -438,6 +443,11 @@ window.psiChat = window.psiChat ?? chatStore();
  */
 function yieldToInline(nav: HTMLElement, form: HTMLFormElement): void {
 	if (!("IntersectionObserver" in window)) return;
+	// The compass can be parsed before the page's own ask boxes exist: look once the page is in.
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", () => yieldToInline(nav, form), { once: true });
+		return;
+	}
 	const boxes = [
 		...document.querySelectorAll<HTMLElement>(".pz-ask, .bl-guide, [data-guide-inline]"),
 	].filter((el) => !nav.contains(el));

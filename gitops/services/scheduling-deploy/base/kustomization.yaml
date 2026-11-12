@@ -3,11 +3,11 @@
 # key from OpenBao. The image (psi/scheduling-deploy) is built by .github/workflows/apps.yml from
 # apps/scheduling-deploy/Dockerfile; CI moves its tag in the overlay, so every change to the
 # functions (packages/**) redeploys them. This Job runs NO seed: production starts empty.
+# The `harbor-pull` Secret it uses is created by scheduling-backend (same namespace): one owner.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: scheduling
 resources:
-  - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
   - networkpolicy.yaml
   - job.yaml

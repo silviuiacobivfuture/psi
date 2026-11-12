@@ -83,6 +83,11 @@ spec:
             - containerPort: 8080
           envFrom:
             - secretRef: { name: cms-env }
+            # OPTIONAL by design: the scheduling server key (secret/apps/scheduling/env). Absent, the
+            # CMS scheduling page says "not configured" and nothing else changes; this never blocks a
+            # deploy. envFrom is read at start: Reloader rolls the pod when the Secret CHANGES; after
+            # the key first appears (Secret created) roll once by hand.
+            - secretRef: { name: cms-scheduling, optional: true }
           env:
             - { name: SERVER_URL, value: "https://cms.psizone.ro" }
             - { name: OIDC_ISSUER, value: "https://auth.psizone.ro/application/o/cms/" }
@@ -94,6 +99,9 @@ spec:
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            # The scheduling store (packages/scheduling): the Convex backend's in-cluster Service
+            # (its NetworkPolicy admits this namespace and pod, gitops/services/scheduling-backend).
+            - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
             - { name: SITE_WEBHOOK_URLS, value: "http://psizone-web.psizone-web.svc,http://eqsync-web.eqsync-web.svc,http://hemisync-web.hemisync-web.svc,http://blog-web.blog-web.svc" }
             - { name: PSIZONE_CONTROL_URL, value: "http://psizone-web.psizone-web.svc" }
             - { name: EQSYNC_CONTROL_URL, value: "http://eqsync-web.eqsync-web.svc" }

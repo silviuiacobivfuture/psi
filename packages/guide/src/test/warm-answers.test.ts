@@ -155,7 +155,7 @@ describe("the canned lines, only when the provider fails", () => {
 		] as const;
 		const events = await collect(guide.ask({ question: "si deci?", locale: "ro", history }));
 		expect(answerText(events)).toBe(
-			"Spune-mi ce te interesează și caut printre articole. De exemplu: „Cum sunt revizuite articolele?”, „Ce articole aveți despre somn?” sau „Cum urmăresc articolele unui singur site?”",
+			"Spune-mi ce te interesează și caut printre articole. De exemplu: „Caut ajutor pentru copilul meu”, „Nu dorm bine, ce pot face?” sau „Vreau să fac o programare”",
 		);
 		const first = await collect(guide.ask({ question: "si deci?", locale: "ro" }));
 		expect(answerText(first).startsWith("Bună.")).toBe(true);

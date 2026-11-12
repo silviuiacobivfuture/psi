@@ -272,3 +272,21 @@ html {
 .bl-guide .pz-msg {
 	max-width: 100%;
 }
+
+/* A draft's sources: closed by default, a quiet disclosure. */
+.bl-provenance summary {
+	cursor: pointer;
+	list-style: none;
+}
+.bl-provenance summary::-webkit-details-marker {
+	display: none;
+}
+.bl-provenance summary::after {
+	content: " +";
+}
+.bl-provenance[open] summary::after {
+	content: " –";
+}
+.bl-provenance li {
+	overflow-wrap: anywhere;
+}

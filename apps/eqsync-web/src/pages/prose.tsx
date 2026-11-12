@@ -1,9 +1,10 @@
 import { brandListingUrl } from "@psi/content";
-import type { JsonLdNode } from "@psi/ui";
+import { type JsonLdNode, Picture } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { articleSummary } from "../cms";
 import { at, type Locale } from "../i18n";
+import { type SectionPhoto, sectionPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href, type PageId } from "../routes";
 import { PROSE, type ProseKey, type SectionSpec } from "./content-spec";
@@ -41,14 +42,16 @@ function Section({
 	k,
 	s,
 	links,
+	photo,
 }: {
 	locale: Locale;
 	k: ProseKey;
 	s: SectionSpec;
 	links: ReadonlyArray<string> | undefined;
+	photo: SectionPhoto | undefined;
 }): JSX.Element {
-	return (
-		<section id={s.id} class="scroll-mt-28 space-y-5">
+	const body = (
+		<>
 			<h2 class="display text-headline text-ink">{msg(locale, `${k}_${s.id}_h`)}</h2>
 			{Array.from({ length: s.p }, (_, i) => (
 				<p class="max-w-2xl text-body text-ink-muted">{msg(locale, `${k}_${s.id}_p${i + 1}`)}</p>
@@ -56,22 +59,39 @@ function Section({
 			{s.l > 0 ? (
 				<ul class="max-w-2xl list-disc space-y-3 pl-5 text-body text-ink-muted marker:text-ink-faint">
 					{Array.from({ length: s.l }, (_, i) => {
-						const text = msg(locale, `${k}_${s.id}_l${i + 1}`);
+						const item = msg(locale, `${k}_${s.id}_l${i + 1}`);
 						const url = links?.[i];
 						return (
 							<li>
 								{url !== undefined ? (
 									<a class="underline underline-offset-4" href={url} rel="noopener" target="_blank">
-										{text}
+										{item}
 									</a>
 								) : (
-									text
+									item
 								)}
 							</li>
 						);
 					})}
 				</ul>
 			) : null}
+		</>
+	);
+	if (photo === undefined) {
+		return (
+			<section id={s.id} class="scroll-mt-28 space-y-5">
+				{body}
+			</section>
+		);
+	}
+	return (
+		<section id={s.id} class="scroll-mt-28">
+			<div class="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-start">
+				<div class="space-y-5 lg:col-span-7">{body}</div>
+				<figure class="pz-photo eq-photo pz-rise aspect-[4/3] w-full max-w-sm sm:aspect-[4/5] lg:sticky lg:top-28 lg:col-span-5 lg:max-w-none">
+					<Picture {...sectionPicture(locale, photo)} />
+				</figure>
+			</div>
 		</section>
 	);
 }
@@ -161,6 +181,10 @@ export interface ProsePageProps extends PageProps {
 	lead?: string;
 	/** The `links` list items of a section, by section id (see `SectionSpec.links`). */
 	links?: Readonly<Record<string, ReadonlyArray<string>>>;
+	/** A photograph beside a section, by section id. */
+	photos?: Readonly<Record<string, SectionPhoto>>;
+	/** A photograph in the hero's right column. */
+	heroPhoto?: SectionPhoto;
 	related: ReadonlyArray<PageId>;
 	articles?: ReadonlyArray<string>;
 	jsonLd?: ReadonlyArray<JsonLdNode>;
@@ -173,7 +197,7 @@ export interface ProsePageProps extends PageProps {
 
 /** An inner page made of a hero, a table of contents, question sections, and "read next". */
 export function ProsePage(props: ProsePageProps): JSX.Element {
-	const { locale, k, related, articles, links, before, after, toc = true } = props;
+	const { locale, k, related, articles, links, photos, before, after, toc = true } = props;
 	return (
 		<PageShell
 			locale={locale}
@@ -184,12 +208,18 @@ export function ProsePage(props: ProsePageProps): JSX.Element {
 			description={props.description}
 			jsonLd={props.jsonLd}
 		>
-			<PageHero locale={locale} overline={props.overline} title={props.h1} lead={props.lead} />
+			<PageHero
+				locale={locale}
+				overline={props.overline}
+				title={props.h1}
+				lead={props.lead}
+				photo={props.heroPhoto}
+			/>
 			{before}
 			<article class="mx-auto max-w-6xl space-y-16 px-5 py-16 md:py-24">
 				{toc ? <Toc locale={locale} k={k} /> : null}
 				{PROSE[k].map((s) => (
-					<Section locale={locale} k={k} s={s} links={links?.[s.id]} />
+					<Section locale={locale} k={k} s={s} links={links?.[s.id]} photo={photos?.[s.id]} />
 				))}
 			</article>
 			{after}

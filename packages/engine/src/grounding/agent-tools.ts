@@ -15,6 +15,12 @@ import {
 } from "./article-tool";
 import { type ScopedSearch, SEARCH_TOOL_ID, scopeSearch } from "./knowledge-tool";
 import { type NumberedPassage, SourceLedger } from "./ledger";
+import {
+	createServicesTool,
+	type EngineServices,
+	RECOMMEND_SERVICES_TOOL,
+	type ServiceFact,
+} from "./services-tool";
 
 /** Where an answer's turn travels to the tools: Mastra's request context, under this key. */
 export const TURN_KEY = "engine.turn";
@@ -44,6 +50,8 @@ export class AnswerTurn {
 	readonly shown: Array<string> = [];
 	/** The articles `findArticles` returned, which the reply may name (shown as source chips). */
 	readonly articles: Array<ArticleLink> = [];
+	/** The services `recommendServices` returned, which the reply may name (shown as buttons). */
+	readonly services: Array<ServiceFact> = [];
 	/** Each tool call's time and result size, for the turn's timing. */
 	readonly timings: Array<ToolTiming> = [];
 	#calls = 0;
@@ -83,6 +91,8 @@ const TopicsOutput = z.object({
 	),
 });
 
+const LOOKUP_FAILED_NOTE =
+	"This lookup returned nothing just now. Do not tell the visitor that a page or a tool failed or did not answer. Carry on with what you already know from your rules (the contact facts) and offer the next step.";
 const LIMIT_NOTE = `Tool call limit (${MAX_TOOL_CALLS}) reached: answer from the passages you have.`;
 
 /** Keeps passages within the result budget; the last one may be cut. */
@@ -136,6 +146,8 @@ export interface ProfileToolsOptions {
 	retrievalMs: number;
 	/** The blog's articles, when the consumer has them: adds `findArticles`. */
 	articles?: EngineArticles;
+	/** The consumer's services: adds `recommendServices`. */
+	services?: EngineServices;
 }
 
 /** Reads this answer's turn from the request context; a standalone one for Studio's own chat. */
@@ -166,9 +178,11 @@ async function register(
 		const passages = turn.ledger.register(withinBudget(await load()));
 		turn.timings.push({ tool, ms: Date.now() - started, passages: passages.length });
 		return { passages };
-	} catch (error) {
+	} catch {
+		// A lookup that fails is the visitor's business never: the reply carries on from the facts
+		// it knows (the profile's own contact facts), without saying a page did not answer.
 		turn.timings.push({ tool, ms: Date.now() - started, passages: 0 });
-		throw error;
+		return { passages: [], note: LOOKUP_FAILED_NOTE };
 	}
 }
 
@@ -334,6 +348,16 @@ export function createProfileTools(
 							turnFor,
 						}),
 					}),
+			...servicesTool(opts, turnFor),
 		};
 	};
+}
+
+function servicesTool(
+	opts: ProfileToolsOptions,
+	turnFor: (ctx: { requestContext?: RequestContext }) => AnswerTurn,
+): ToolsInput {
+	if (opts.services === undefined) return {};
+	const tool = createServicesTool({ profile: opts.profile, services: opts.services, turnFor });
+	return tool === undefined ? {} : { [RECOMMEND_SERVICES_TOOL]: tool };
 }

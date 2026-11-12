@@ -146,6 +146,25 @@ describe("the compass chat's kept conversation", () => {
 		]);
 	});
 
+	it("keeps the page each turn was asked on across a reload, and nothing else it was given", () => {
+		const { chat, items } = browser();
+		chat.load(KEY);
+		chat.save(KEY, {
+			turns: [
+				{ role: "user", text: "ce spune?", page: "/articole/x", title: "not kept" },
+				{ role: "guide", text: "Răspuns.", page: "" },
+			],
+			pending: "",
+			draft: "",
+			remembered: false,
+		});
+		vi.advanceTimersByTime(200);
+		expect(JSON.parse(items.get(KEY) ?? "{}").turns).toEqual([
+			{ role: "user", text: "ce spune?", page: "/articole/x" },
+			{ role: "guide", text: "Răspuns." },
+		]);
+	});
+
 	it("expires after 24 hours without activity", () => {
 		const { chat, items } = browser();
 		items.set(

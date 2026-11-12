@@ -10,6 +10,8 @@ export interface AudioPlayerProps {
 	/** Seconds. */
 	duration: number;
 	meta?: string;
+	/** Id of the element that describes what the listener will hear (the transcript equivalent). */
+	describedBy?: string;
 	playLabel: string;
 	pauseLabel: string;
 	class?: string;
@@ -32,6 +34,7 @@ export function AudioPlayer({
 	src,
 	duration,
 	meta,
+	describedBy,
 	playLabel,
 	pauseLabel,
 	class: className,
@@ -58,6 +61,7 @@ export function AudioPlayer({
 				type="button"
 				class="pz-player__play"
 				aria-label={playLabel}
+				aria-describedby={describedBy}
 				data-attr:aria-label={`${playing} ? ${JSON.stringify(pauseLabel)} : ${JSON.stringify(playLabel)}`}
 				data-on:click={`$${s}Audio.paused ? $${s}Audio.play() : $${s}Audio.pause()`}
 			>

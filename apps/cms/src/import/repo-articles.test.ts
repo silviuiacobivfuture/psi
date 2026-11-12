@@ -1,5 +1,5 @@
 import { articleFromPayload } from "@psi/cms-client";
-import { ARTICLES, type DraftArticle, isReadable } from "@psi/content";
+import { ARTICLES, type Article, type DraftArticle, isReadable } from "@psi/content";
 import { describe, expect, it } from "vitest";
 import { createData, englishData, toImport } from "./repo-articles";
 
@@ -95,8 +95,18 @@ describe("importing the repository's articles", () => {
 		expect(all.some((a) => a.slug === "cum-scriem-si-revizuim-articolele")).toBe(true);
 	});
 	it("imports a backlog title as a title-only draft from the content strategy", () => {
-		const stub = all.find((a) => a.status === "in-review");
-		if (stub === undefined) throw new Error("no backlog title");
+		// A fixed backlog title: the repository's own backlog empties as its articles are written.
+		const stub: Article = {
+			slug: "un-titlu-din-backlog",
+			brand: "psizone",
+			topic: "autism",
+			backlogNo: 1,
+			aiDrafted: false,
+			status: "in-review",
+			author: null,
+			reviewer: null,
+			title: { ro: "Un titlu din backlog", en: "A backlog title" },
+		};
 		const ro = createData(stub);
 		expect(ro).toMatchObject({
 			brand: stub.brand,

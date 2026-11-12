@@ -41,7 +41,7 @@ function run(
 	} = {},
 ): { posts: Posted[]; location: { href: string } } {
 	const posts: Posted[] = [];
-	const location = { href: "/here" };
+	const location = { href: "/here", pathname: "/copii/adhd" };
 	const nav = {
 		querySelector: (sel: string) =>
 			sel.includes("is-picked") ? (env.picked ?? null) : { removeAttribute() {}, focus() {} },
@@ -76,7 +76,12 @@ describe("sending from the compass", () => {
 		expect(posts).toEqual([
 			{
 				url: ACTION,
-				payload: { compassOp: "ask", compassQuery: "Echipa", compassTurns: [] },
+				payload: {
+					compassOp: "ask",
+					compassQuery: "Echipa",
+					compassTurns: [],
+					compassPage: { path: "/copii/adhd" },
+				},
 			},
 		]);
 		expect(location.href).toBe("/here");
@@ -122,6 +127,7 @@ describe("sending from the compass", () => {
 				{ role: "guide", text: "Z." },
 				{ role: "user", text: "first" },
 			],
+			compassPage: { path: "/copii/adhd" },
 		});
 		expect(s.compassPending).toBe("second");
 	});
@@ -133,6 +139,7 @@ describe("sending from the compass", () => {
 			compassOp: "ask",
 			compassQuery: "lost",
 			compassTurns: [],
+			compassPage: { path: "/copii/adhd" },
 		});
 		expect(s.compassQuery).toBe("draft");
 	});

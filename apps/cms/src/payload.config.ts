@@ -29,6 +29,8 @@ import { migrations } from "./migrations";
 import { aiEndpoints } from "./platform/endpoints-ai";
 import { peopleEndpoints } from "./platform/endpoints-people";
 import { schedulingEndpoints } from "./platform/endpoints-scheduling";
+import { schedulingClientsEndpoints } from "./platform/endpoints-scheduling-clients";
+import { schedulingRoomsEndpoints } from "./platform/endpoints-scheduling-rooms";
 import { schedulingSetupEndpoints } from "./platform/endpoints-scheduling-setup";
 import { reviewEndpoints } from "./review/endpoints";
 import { statusEndpoint } from "./review/status";
@@ -143,6 +145,8 @@ export default buildConfig({
 		...studioEndpoints,
 		...schedulingEndpoints,
 		...schedulingSetupEndpoints,
+		...schedulingRoomsEndpoints,
+		...schedulingClientsEndpoints,
 		...peopleEndpoints,
 	],
 	editor: lexicalEditor(),

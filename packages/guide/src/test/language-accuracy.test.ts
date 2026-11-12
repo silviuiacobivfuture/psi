@@ -69,14 +69,15 @@ describe("the configured language comes first", () => {
 				z.object({
 					function: z.object({
 						parameters: z.object({
-							properties: z.object({ query: z.object({ description: z.string() }) }),
+							properties: z.object({ query: z.object({ description: z.string() }).optional() }),
 						}),
 					}),
 				}),
 			),
 		});
 		const tools = ToolsSchema.parse(server.requests[0]?.body).tools;
-		expect(tools[0]?.function.parameters.properties.query.description).toContain("Romanian");
+		const search = tools.find((t) => t.function.parameters.properties.query !== undefined);
+		expect(search?.function.parameters.properties.query?.description).toContain("Romanian");
 	});
 
 	it("an answer still in the other language after its retry: the canned line, never unavailable", async () => {

@@ -3,6 +3,111 @@
 import type { ImageAsset, ImageCredit } from "@psi/ui";
 
 export const IMAGES = {
+	autumnSnow: {
+		width: 960,
+		height: 720,
+		placeholder: "#b8b8c8",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-autumn-snow-480.ed500f51d0.avif" },
+			{ width: 960, src: "/assets/images/hs-autumn-snow-960.5b9192db62.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-autumn-snow-480.14a71e928c.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-autumn-snow-480.750b9b3045.jpg" },
+		],
+	},
+	benchDusk: {
+		width: 960,
+		height: 720,
+		placeholder: "#081818",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-bench-dusk-480.4176e9601e.avif" },
+			{ width: 960, src: "/assets/images/hs-bench-dusk-960.751f85564c.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-bench-dusk-480.337f7bc70c.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-bench-dusk-480.554d2e9334.jpg" },
+		],
+	},
+	cabinAutumn: {
+		width: 960,
+		height: 720,
+		placeholder: "#4898e8",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-cabin-autumn-480.812e6fe9aa.avif" },
+			{ width: 960, src: "/assets/images/hs-cabin-autumn-960.e3d87a8718.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-cabin-autumn-480.63642ef9e6.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-cabin-autumn-480.cd9dc99131.jpg" },
+		],
+	},
+	ciucasGold: {
+		width: 960,
+		height: 720,
+		placeholder: "#d8b888",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-ciucas-gold-480.ef2864020d.avif" },
+			{ width: 960, src: "/assets/images/hs-ciucas-gold-960.067949ce65.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-ciucas-gold-480.08623ddb8f.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-ciucas-gold-480.c513b4aa4b.jpg" },
+		],
+	},
+	cloudHill: {
+		width: 960,
+		height: 720,
+		placeholder: "#483838",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-cloud-hill-480.f488ad67e6.avif" },
+			{ width: 960, src: "/assets/images/hs-cloud-hill-960.6bdf81d971.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-cloud-hill-480.b0a4b3cffb.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-cloud-hill-480.70b8535704.jpg" },
+		],
+	},
+	duskRidges: {
+		width: 960,
+		height: 720,
+		placeholder: "#080808",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-dusk-ridges-480.bd4163c748.avif" },
+			{ width: 960, src: "/assets/images/hs-dusk-ridges-960.5ebc2d0d9f.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-dusk-ridges-480.c597a928ee.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-dusk-ridges-480.f99744039f.jpg" },
+		],
+	},
+	frostFirs: {
+		width: 960,
+		height: 720,
+		placeholder: "#080808",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-frost-firs-480.4a2dafab45.avif" },
+			{ width: 960, src: "/assets/images/hs-frost-firs-960.88f6042bd5.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-frost-firs-480.18f3139c0d.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-frost-firs-480.8c09940962.jpg" },
+		],
+	},
 	gateway: {
 		width: 960,
 		height: 1200,
@@ -67,6 +172,51 @@ export const IMAGES = {
 			{ width: 640, src: "/assets/images/hs-lucid-640.c00ebeea39.jpg" },
 		],
 	},
+	mistHill: {
+		width: 960,
+		height: 720,
+		placeholder: "#a8a8a8",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-mist-hill-480.78f8db5cc1.avif" },
+			{ width: 960, src: "/assets/images/hs-mist-hill-960.217325f458.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-mist-hill-480.99f64c2143.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-mist-hill-480.e718dcd14b.jpg" },
+		],
+	},
+	mistyFirs: {
+		width: 960,
+		height: 720,
+		placeholder: "#f8f8f8",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-misty-firs-480.828a240478.avif" },
+			{ width: 960, src: "/assets/images/hs-misty-firs-960.bf4d54aa5b.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-misty-firs-480.c2c5158bd8.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-misty-firs-480.3fcdbd3a79.jpg" },
+		],
+	},
+	restingSunset: {
+		width: 960,
+		height: 720,
+		placeholder: "#181818",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-resting-sunset-480.2c144b8be9.avif" },
+			{ width: 960, src: "/assets/images/hs-resting-sunset-960.d7dad679f1.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-resting-sunset-480.3c19c0f3d9.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-resting-sunset-480.35c3917365.jpg" },
+		],
+	},
 	syncCreation: {
 		width: 960,
 		height: 1200,
@@ -89,12 +239,105 @@ export const IMAGES = {
 			{ width: 640, src: "/assets/images/hs-synccreation-640.616a16d11d.jpg" },
 		],
 	},
+	valleyMist: {
+		width: 960,
+		height: 720,
+		placeholder: "#181828",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-valley-mist-480.b778237a4d.avif" },
+			{ width: 960, src: "/assets/images/hs-valley-mist-960.3d26279293.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-valley-mist-480.3601170a1e.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-valley-mist-480.c0b1990538.jpg" },
+		],
+	},
+	whiteMist: {
+		width: 960,
+		height: 720,
+		placeholder: "#e8e8e8",
+		avif: [
+			{ width: 480, src: "/assets/images/hs-white-mist-480.882247732d.avif" },
+			{ width: 960, src: "/assets/images/hs-white-mist-960.ad60c1e737.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/hs-white-mist-480.30a5c4034c.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/hs-white-mist-480.b8e7ab9955.jpg" },
+		],
+	},
 } as const satisfies Record<string, ImageAsset>;
 
 export type ImageKey = keyof typeof IMAGES;
 
 /** Where each image on this site comes from; the credits page lists them. */
 export const IMAGE_CREDITS: ReadonlyArray<ImageCredit> = [
+	{
+		title: "Autumn carpathians",
+		author: "Alexey Okhrimenko",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Autumn_carpathians_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Man sitting bench sunset",
+		author: "Frank McKenna",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Man_sitting_bench_sunset_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Cabin on the mountain side",
+		author: "Felicia Birloi",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Cabin_on_the_mountain_side_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Ciucaș Peak, Romania",
+		author: "David Marcu",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Ciucaș_Peak,_Romania_(Unsplash_Defzr230Q7I).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Carpathian Mountains",
+		author: "Lee Key",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Carpathian_Mountains_(Unsplash_fLihgcZE7bM).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Carpathian Mountains",
+		author: "Paul Itkin",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Carpathian_Mountains_(Unsplash_z3vY38f0Go4).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Carpathian Mountains",
+		author: "Paul Itkin",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Carpathian_Mountains_(Unsplash_jW8taU5eFmo).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
 	{
 		title: "Alone in the unspoilt wilderness",
 		author: "David Marcu",
@@ -123,6 +366,33 @@ export const IMAGE_CREDITS: ReadonlyArray<ImageCredit> = [
 		modifications: "Cropped to the slot's ratio, resized to responsive widths and re-encoded as AVIF, WebP and JPEG with metadata stripped",
 	},
 	{
+		title: "Carpathian Mountains",
+		author: "Lee Key",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Carpathian_Mountains_(Unsplash_alpqdm9yhb4).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Misty shroud over a forest",
+		author: "Jay Mantri",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Misty_shroud_over_a_forest_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Teliu, Romania",
+		author: "Anton Darius",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Teliu,_Romania_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
 		title: "Vârful Curcubăta Mare 1849m",
 		author: "Larisa Birta",
 		sourceUrl: "https://commons.wikimedia.org/wiki/File:V%C3%A2rful_Curcub%C4%83ta_Mare_1849m_(Unsplash).jpg",
@@ -130,5 +400,23 @@ export const IMAGE_CREDITS: ReadonlyArray<ImageCredit> = [
 		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
 		attributionRequired: false,
 		modifications: "Cropped to the slot's ratio, resized to responsive widths and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Sunset over a misty valley",
+		author: "Neven Krcmarek",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Sunset_over_a_misty_valley_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Carpathian Mountains",
+		author: "Paul Itkin",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Carpathian_Mountains_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
 	},
 ];

@@ -2,6 +2,7 @@ import type { RegexRule } from "@mastra/core/processors";
 import { z } from "zod";
 import type { ContactRoute, ConversationStyle } from "../behaviour";
 import { LocaleCodeSchema } from "../contract";
+import type { PageKind, PageStatus } from "../events";
 
 /** What a language pack contributes to the system prompt, in its own language. */
 export interface PackPrompt {
@@ -48,6 +49,43 @@ export interface PackPrompt {
 	outOfScope?: string;
 	/** The note for the one retry after a grammar slip (`grammarErrors`). */
 	grammar?: string;
+	/** The page the visitor is reading; without it the page context is not sent. */
+	page?: PagePrompt;
+}
+
+/**
+ * How a pack words the page the visitor is reading (see `renderPage`): the section's fence, what
+ * "this page" means, and what the model may do with the page in each state. Without it a pack's
+ * guide is not told where the visitor is.
+ */
+export interface PagePrompt {
+	/** The line that opens the section; says it is context, never instructions. */
+	heading: string;
+	/** The line that closes it. */
+	end: string;
+	/** "This article", "this page", "here" mean the page below: answer about it, never ask which. */
+	deixis: string;
+	labels: {
+		kind: Readonly<Record<PageKind, string>>;
+		title: string;
+		address: string;
+		status: string;
+		lead: string;
+		/** The label of the lead of an unreviewed page: shown to place the page, never to be repeated. */
+		leadUnreviewed: string;
+		headings: string;
+		excerpt: string;
+	};
+	/** The state of the page's text, in a sentence. */
+	status: Readonly<Record<PageStatus, string>>;
+	/** What the model does with the page text of a published page with an excerpt (cite it as [n]). */
+	withText(n: number): string;
+	/** A published page whose text is not passed: describe it by its title and headings only. */
+	withoutText: string;
+	/** A draft or in-review page: no fact from it; say so, offer the reviewed knowledge. */
+	unreviewed: string;
+	/** The pages the visitor asked earlier questions on in this conversation, when not this one. */
+	earlier(titles: ReadonlyArray<string>): string;
 }
 
 /** How a pack words the team's notes section (see `PackPrompt.teamNotes`). */
@@ -173,6 +211,7 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 		noRepeat: z.string().min(1).optional(),
 		outOfScope: z.string().min(1).optional(),
 		grammar: z.string().min(1).optional(),
+		page: z.custom<PagePrompt>((value) => typeof value === "object" && value !== null).optional(),
 		contactRoute: z
 			.custom<NonNullable<PackPrompt["contactRoute"]>>((value) => typeof value === "function")
 			.optional(),

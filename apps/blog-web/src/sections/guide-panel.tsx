@@ -1,3 +1,4 @@
+import type { PageTarget } from "@psi/guide";
 import { AskBar, GuideMessage } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
@@ -10,11 +11,14 @@ export function GuidePanel({
 	placeholder,
 	intro,
 	suggestions = [],
+	page,
 }: {
 	locale: Locale;
 	placeholder: string;
 	intro: string;
 	suggestions?: ReadonlyArray<string>;
+	/** The article this panel is under: every question carries it, so "this article" is understood. */
+	page?: PageTarget;
 }): JSX.Element {
 	const o = at(locale);
 	return (
@@ -26,6 +30,7 @@ export function GuidePanel({
 				placeholder={placeholder}
 				sendLabel={m.ask_send({}, o)}
 				suggestions={suggestions}
+				{...(page === undefined ? {} : { page })}
 			/>
 			<div id="guide-answer" class="mt-5" aria-live="polite">
 				<GuideMessage>{intro}</GuideMessage>

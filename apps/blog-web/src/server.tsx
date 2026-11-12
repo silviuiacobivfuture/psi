@@ -19,6 +19,7 @@ import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
+import { pageResolver } from "./page-context";
 import { ArticlePage } from "./pages/article";
 import { IndexPage } from "./pages/index";
 import { NotFoundPage } from "./pages/not-found";
@@ -121,6 +122,7 @@ for (const [locale, prefix, segment] of [
 			labels: guideLabels(locale),
 			guide: async () => countingGuide(await guideForRequest(c, guide), locale, trackable(c)),
 			memory: () => accountMemory(account, c, "blog"),
+			page: pageResolver,
 		}),
 	);
 }

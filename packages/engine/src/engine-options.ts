@@ -8,6 +8,7 @@ import type { EngineFailure } from "./ask-context";
 import { EngineKnowledgeSchema } from "./contract";
 import type { EngineArticles } from "./grounding/article-tool";
 import type { EngineScore } from "./grounding/faithfulness";
+import type { EngineServices } from "./grounding/services-tool";
 import type { EngineIngest } from "./ingest-workflow";
 import { LanguagePackSchema } from "./language/pack";
 import { ModelIdSchema } from "./model";
@@ -41,6 +42,11 @@ export const EngineOptionsSchema = z.object({
 	articles: z
 		.custom<EngineArticles>((value) => hasMethods(value, ["find"]), {
 			message: "articles must have a find function",
+		})
+		.optional(),
+	services: z
+		.custom<EngineServices>((value) => hasMethods(value, ["find"]), {
+			message: "services must have a find function",
 		})
 		.optional(),
 	ingest: z

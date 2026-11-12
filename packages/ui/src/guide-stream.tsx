@@ -7,9 +7,13 @@ import {
 	type ConversationTurn,
 	continueConversation,
 	type Guide,
+	type GuideAction,
 	historyOf,
 	type Locale,
+	type PageContext,
+	type PageRef,
 	parseConversation,
+	parsePageRef,
 	type RefusalReason,
 	type Source,
 } from "@psi/guide";
@@ -40,12 +44,22 @@ export interface AskSignals {
 	guideTurns?: ReadonlyArray<ConversationTurn>;
 	/** The compass's conversation so far (`$compassTurns`), parsed and bounded. */
 	compassTurns?: ReadonlyArray<ConversationTurn>;
+	/** The page the ask bar is on (`$guidePage`): a reference only, the server finds the page. */
+	guidePage?: PageRef;
+	/** The page the compass is on (`$compassPage`), as a reference. */
+	compassPage?: PageRef;
 }
 
 /** The signal that holds each answer region's conversation. */
 export const TURNS_SIGNAL: Readonly<Record<AnswerTarget, "guideTurns" | "compassTurns">> = {
 	"guide-answer": "guideTurns",
 	"compass-answer": "compassTurns",
+};
+
+/** The signal that holds each answer region's page reference. */
+export const PAGE_SIGNAL: Readonly<Record<AnswerTarget, "guidePage" | "compassPage">> = {
+	"guide-answer": "guidePage",
+	"compass-answer": "compassPage",
 };
 
 const AskBodySchema = z
@@ -56,6 +70,8 @@ const AskBodySchema = z
 		compassOp: z.enum(COMPASS_OPS).optional(),
 		guideTurns: z.unknown().optional(),
 		compassTurns: z.unknown().optional(),
+		guidePage: z.unknown().optional(),
+		compassPage: z.unknown().optional(),
 	})
 	.passthrough();
 
@@ -81,6 +97,8 @@ export function parseAskSignals(body: unknown): AskSignals | null {
 	const parsed = AskBodySchema.safeParse(body);
 	if (!parsed.success) return null;
 	const { question, compassQuery, compassPending, compassOp } = parsed.data;
+	const guidePage = parsePageRef(parsed.data.guidePage);
+	const compassPage = parsePageRef(parsed.data.compassPage);
 	return {
 		question,
 		compassQuery,
@@ -88,6 +106,9 @@ export function parseAskSignals(body: unknown): AskSignals | null {
 		...(compassOp === undefined ? {} : { compassOp }),
 		guideTurns: parseConversation(withoutEmptyRefusals(parsed.data.guideTurns)),
 		compassTurns: parseConversation(withoutEmptyRefusals(parsed.data.compassTurns)),
+		// A malformed reference is no reference, never a refused question.
+		...(guidePage === undefined ? {} : { guidePage }),
+		...(compassPage === undefined ? {} : { compassPage }),
 	};
 }
 
@@ -103,8 +124,15 @@ export function historyFor(
  * The `history` sent to the guide: answered exchanges only. A question left unanswered (replaced
  * by a newer one, or cut off) and a refused exchange never steer the next answer.
  */
-export function guideHistory(turns: ReadonlyArray<ConversationTurn>): ReturnType<typeof historyOf> {
-	return historyOf(turns.filter((t, i) => t.role !== "user" || turns[i + 1]?.role === "guide"));
+export function guideHistory(
+	turns: ReadonlyArray<ConversationTurn>,
+	titleOf?: (path: string) => string | undefined,
+): ReturnType<typeof historyOf> {
+	return historyOf(
+		turns.filter((t, i) => t.role !== "user" || turns[i + 1]?.role === "guide"),
+		undefined,
+		titleOf,
+	);
 }
 
 /** Parses the `target` query parameter; anything unknown is the page's own answer region. */
@@ -131,6 +159,16 @@ export interface GuideAnswerRequest {
 	 * every question stands alone.
 	 */
 	signals?: AskSignals | null;
+	/**
+	 * The page the visitor is on, resolved by the server from its own content (never from text the
+	 * browser sent), with the page's path for the turns' notes and `titleOf` for the pages earlier
+	 * turns were asked on.
+	 */
+	page?: {
+		context: PageContext | undefined;
+		path: string | undefined;
+		titleOf?: (path: string) => string | undefined;
+	};
 	/** Who is asking, for the rate limit. Defaults to an anonymous hash of the client address. */
 	clientId?: string;
 	/**
@@ -165,10 +203,20 @@ export function anonymousClientId(c: Context): string | undefined {
  */
 export function streamGuideAnswer(
 	c: Context,
-	{ guide, locale, question, target, labels, signals, clientId, visitorKeys }: GuideAnswerRequest,
+	{
+		guide,
+		locale,
+		question,
+		target,
+		labels,
+		signals,
+		clientId,
+		visitorKeys,
+		page,
+	}: GuideAnswerRequest,
 ): Response {
 	const turns = historyFor(target, signals);
-	const history = guideHistory(turns);
+	const history = guideHistory(turns, page?.titleOf);
 	// Where a booking conversation stands travels with the page's turns, like the history.
 	const booking = bookingStateOf(turns);
 	// Cookies are set before the stream starts, while headers can still change.
@@ -202,7 +250,7 @@ export function streamGuideAnswer(
 		const remember = async (
 			reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
 		) => {
-			const next = continueConversation(turns, question, reply);
+			const next = continueConversation(turns, question, reply, page?.path);
 			const pending = target === "compass-answer" ? { compassPending: "" } : {};
 			await stream.writeSSE({
 				event: "datastar-patch-signals",
@@ -213,6 +261,7 @@ export function streamGuideAnswer(
 		stream.onAbort(() => abort.abort());
 		let text = "";
 		let sources: ReadonlyArray<Source> = [];
+		let actions: ReadonlyArray<GuideAction> = [];
 		let refused: RefusalReason | null = null;
 		let offer: BookingOffer | undefined;
 		let finished = false;
@@ -231,6 +280,7 @@ export function streamGuideAnswer(
 					locale,
 					...(history.length === 0 ? {} : { history }),
 					...(booking === undefined ? {} : { booking }),
+					...(page?.context === undefined ? {} : { page: page.context }),
 				},
 				{
 					signal: abort.signal,
@@ -264,10 +314,14 @@ export function streamGuideAnswer(
 						// later `text` deltas append to it. What was cited before no longer applies.
 						text = event.text;
 						sources = [];
+						actions = [];
 						await patch(text === "" ? { kind: "thinking" } : { kind: "writing", text });
 						break;
 					case "sources":
 						sources = event.sources;
+						break;
+					case "actions":
+						actions = event.actions;
 						break;
 					case "booking":
 						offer = event.offer;
@@ -296,7 +350,12 @@ export function streamGuideAnswer(
 								...(offer.state === undefined ? {} : { booking: offer.state }),
 							});
 						} else if (refused === null) {
-							await patch({ kind: "done", text, sources });
+							await patch({
+								kind: "done",
+								text,
+								sources,
+								...(actions.length === 0 ? {} : { actions }),
+							});
 							await remember({ answer: text });
 						} else {
 							await remember({ refused });

@@ -1,5 +1,7 @@
+import { Picture } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
+import { sectionPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 
 /** Three ruled rows, like an index: number, name, one plain line. */
@@ -16,6 +18,9 @@ export function Problem({ locale }: { locale: Locale }): JSX.Element {
 				<div class="lg:sticky lg:top-32 lg:col-span-5 lg:self-start">
 					<p class="eq-overline">{m.problem_overline({}, o)}</p>
 					<h2 class="display eq-h2 pz-rise mt-5 text-ink">{m.problem_title({}, o)}</h2>
+					<figure class="pz-photo eq-photo pz-rise mt-10 aspect-[4/3] max-w-sm sm:aspect-[4/5]">
+						<Picture {...sectionPicture(locale, "moonHalo")} />
+					</figure>
 				</div>
 				<ol class="eq-rows lg:col-span-7 lg:pt-10">
 					{rows.map((r) => (

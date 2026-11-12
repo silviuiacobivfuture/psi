@@ -155,8 +155,8 @@ export const article: ArticleInput = {
 		{
 			type: "p",
 			text: {
-				ro: "Poți încerca o frază simplă, seara, când s-a mai liniștit: „Am observat că te străduiești enorm. Vrei să-mi spui ce a fost greu azi?” Nu cere explicații, nu corecta. Doar ascultă. Mulți copii nu au cuvinte pentru ce trăiesc, dar au nevoie să știe că cineva a văzut efortul.",
-				en: "You can try one simple sentence in the evening, once she has settled: “I noticed you try enormously hard. Do you want to tell me what was difficult today?” Do not demand explanations, do not correct. Just listen. Many children have no words for what they live through, but they need to know someone saw the effort.",
+				ro: "Poți încerca o frază simplă, seara, când s-a mai liniștit: „Am observat că te străduiești enorm. Vrei să-mi spui ce a fost greu azi?” Nu cere explicații, nu corecta. Doar ascultă, chiar dacă răspunsul e scurt sau vine abia a doua zi. Mulți copii nu au cuvinte pentru ce trăiesc, dar au nevoie să știe că cineva a văzut efortul.",
+				en: "You can try one simple sentence in the evening, once she has settled: “I noticed you try enormously hard. Do you want to tell me what was difficult today?” Do not demand explanations, do not correct. Just listen, even if the answer is short or only comes the next day. Many children have no words for what they live through, but they need to know someone saw the effort.",
 			},
 		},
 		{

@@ -33,7 +33,7 @@ export function ClubPage(props: PageProps): JSX.Element {
 					{m.club_note({}, o)}
 				</p>
 			</PageHero>
-			<DocSections page="club" locale={locale} />
+			<DocSections page="club" locale={locale} photos={{ s02: "cabinAutumn" }} />
 			<Band overline={m.group_free({}, o)} title={m.ex_dec_title({}, o)}>
 				<Para>{m.ex_dec_text({}, o)}</Para>
 				<Button variant="glass" arrow href={href(locale, "exercises", "ex-dec")}>

@@ -6,8 +6,7 @@ import { coverView } from "./covers";
 
 const LOCALES = ["ro", "en"] as const;
 
-// The topic photo pools land in the next release; this release ships the hand-picked covers only.
-describe.skip("every article has a picture", () => {
+describe("every article has a picture", () => {
 	for (const locale of LOCALES) {
 		it(`gives each article a photo with alt text in ${locale}, in every slot`, () => {
 			expect(currentArticles().length).toBeGreaterThan(0);

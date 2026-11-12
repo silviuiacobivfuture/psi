@@ -5,6 +5,7 @@ import { bookingTurn } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
 import { scopeSearch } from "./grounding/knowledge-tool";
+import { handoffEvents } from "./handoff";
 import type { LanguagePack } from "./language/pack";
 import type { ProfileLocale } from "./profile";
 import { instructionsFor, languageNote, styledLocale } from "./prompt";
@@ -144,6 +145,12 @@ async function* turn(
 			yield { type: "done" };
 			return;
 		}
+	}
+	const handoff = handoffEvents(ctx, input);
+	if (handoff !== undefined) {
+		clock.canned = true;
+		yield* handoff;
+		return;
 	}
 	// What the visitor sees so far: a canned line after streamed text replaces it.
 	const display: Display = { text: "" };
@@ -285,6 +292,7 @@ async function* turn(
 					const chips = [...outcome.sources, ...outcome.articles.filter((a) => !linked.has(a.url))];
 					if (chips.length > 0) yield { type: "sources", sources: chips };
 				}
+				if (outcome.actions.length > 0) yield { type: "actions", actions: outcome.actions };
 				yield { type: "done" };
 				return;
 		}

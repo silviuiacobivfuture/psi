@@ -1,10 +1,13 @@
-import type { SchedulingPort } from "@psi/engine";
+import type { SchedulingPort, ServiceEntry } from "@psi/engine";
 import {
 	createSchedulingClient,
 	readSchedulingEnv,
 	type SchedulingClient,
 	type SchedulingEnvProblem,
 } from "@psi/scheduling";
+
+/** How long the services list is kept before the store is asked again. */
+export const CATALOGUE_TTL_MS = 60_000;
 
 /** psi's scheduling store as an app and the guide use it: one client, also the engine's port. */
 export interface PsiScheduling {
@@ -18,8 +21,24 @@ export interface PsiScheduling {
  * The engine's port: only finding slots and cancelling with a code. The engine never holds the
  * client itself, so no path from a tool reaches `hold` or `submit` (the app's confirm step).
  */
-export function schedulingPort(client: SchedulingClient): SchedulingPort {
+export function schedulingPort(
+	client: SchedulingClient,
+	ttlMs: number = CATALOGUE_TTL_MS,
+): SchedulingPort {
+	const cache = new Map<string, { at: number; entries: ReadonlyArray<ServiceEntry> }>();
 	return {
+		/** The tenant's active services, read from the store and kept for a minute: a change the team makes shows up in the chat within it. */
+		async catalogue(tenant) {
+			const hit = cache.get(tenant);
+			if (hit !== undefined && Date.now() - hit.at < ttlMs) return hit.entries;
+			const found = await client.services(tenant);
+			const entries = (found?.services ?? []).map((s) => ({
+				slug: s.slug,
+				...(s.name === undefined ? {} : { name: s.name }),
+			}));
+			cache.set(tenant, { at: Date.now(), entries });
+			return entries;
+		},
 		findSlots: (search) => client.findSlots(search),
 		cancel: (input) => client.cancel(input),
 	};

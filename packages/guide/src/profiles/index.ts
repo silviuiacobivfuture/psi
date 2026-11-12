@@ -6,12 +6,17 @@ import {
 	type ProfileScheduling,
 } from "@psi/engine";
 import { BRANDS, type Brand, type Locale } from "../contract";
+import { bookingHandoffUrl, CENTRE_PHONES } from "../services/contact";
+import { bookingWordIn } from "../services/services";
+import { CONTACT_FACTS, conciergeRules } from "./concierge";
 import { CRISIS } from "./crisis";
 import { FOLLOW_UP_TOPICS, NEXT_STEP_PHRASES, NEXT_STEPS, policyOf } from "./policy";
-import { CLINICAL, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
+import { CLINICAL, HEMISYNC_ONLY, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
 import { SCREENING } from "./screening";
 import { voiceOf } from "./voices";
 import { FOLLOW_UPS, THANKS, UNKNOWN, WELCOMES } from "./welcome";
+
+const MAIN_PHONE = CENTRE_PHONES[0];
 
 /** Each brand's guide, as its agent is named. */
 const NAMES: Readonly<Record<Brand, string>> = {
@@ -22,11 +27,47 @@ const NAMES: Readonly<Record<Brand, string>> = {
 };
 
 /**
- * Which brands schedule, and what (docs/plans/scheduling.md). Psizone first: evaluation requests.
+ * Which brands schedule (docs/plans/scheduling.md). Psizone first. What each offers is whatever
+ * active services the store has for its tenant.
  * EQ-SYNC's online sessions and Hemi-Sync's session requests join once their services exist.
  */
 const SCHEDULING: Readonly<Partial<Record<Brand, ProfileScheduling>>> = {
-	psizone: { tenant: "psizone", services: ["evaluation"] },
+	// The services come from the store at each turn (the port's catalogue); none are named here.
+	psizone: { tenant: "psizone", services: [] },
+};
+
+/** True when the brand's guide books inside its own chat (it has a scheduling tenant). */
+export function schedulesInChat(brand: Brand): boolean {
+	return SCHEDULING[brand] !== undefined;
+}
+
+/**
+ * Where a booking request goes on a site that cannot book itself: Psizone's chat, with the
+ * booking started. Hemi-Sync's workshops are not Psizone's appointments, so it has none.
+ */
+const HANDOFF_LINES: Readonly<
+	Partial<Record<Brand, Readonly<Record<Locale, { line: string; label: string }>>>>
+> = {
+	blog: {
+		ro: {
+			line: `Sigur, te ajut să începi. Programările se fac în conversația Psizone, unde vezi orele libere și alegi ce ți se potrivește; apasă butonul și continui acolo, cu programarea deja pornită. Dacă preferi telefonul, sună la ${MAIN_PHONE}.`,
+			label: "Începe programarea",
+		},
+		en: {
+			line: `Of course, I can help you start. Appointments are made in the Psizone conversation, where you see the free times and pick what suits you; press the button and carry on there, with the booking already started. If you prefer the phone, call ${MAIN_PHONE}.`,
+			label: "Start booking",
+		},
+	},
+	eqsync: {
+		ro: {
+			line: `EQ-SYNC se ascultă singur, fără programări. Dacă vrei o evaluare la centrul Psizone, o începi în conversația lor: apasă butonul și vezi orele libere, cu programarea deja pornită. Sau sună la ${MAIN_PHONE}.`,
+			label: "Începe programarea la Psizone",
+		},
+		en: {
+			line: `EQ-SYNC is something you listen to alone, with no appointments. If you want an evaluation at the Psizone centre, you start it in their conversation: press the button and see the free times, with the booking already started. Or call ${MAIN_PHONE}.`,
+			label: "Start booking at Psizone",
+		},
+	},
 };
 
 /**
@@ -42,8 +83,20 @@ function styled(
 		voice: voiceOf(brand, locale, style),
 		policy: [
 			...policyOf(locale, style),
+			...conciergeRules(brand, locale),
 			...(style.followUps === "never" ? [] : [FOLLOW_UP_TOPICS[brand][locale]]),
 		],
+	};
+}
+
+function handoffOf(brand: Brand, locale: Locale): Pick<ProfileLocale, "handoff"> {
+	const words = HANDOFF_LINES[brand]?.[locale];
+	if (words === undefined) return {};
+	return {
+		handoff: {
+			...words,
+			href: (question) => bookingHandoffUrl(locale, bookingWordIn(question, locale)),
+		},
 	};
 }
 
@@ -57,6 +110,8 @@ function wording(brand: Brand, locale: Locale): ProfileLocale {
 		thanks: THANKS[brand][locale],
 		followUp: FOLLOW_UPS[brand][locale],
 		unknown: UNKNOWN[brand][locale],
+		facts: CONTACT_FACTS[locale],
+		...handoffOf(brand, locale),
 	};
 }
 
@@ -77,7 +132,9 @@ function profileFor(brand: Brand): Profile {
 		crossReferences:
 			brand === "psizone"
 				? [{ when: CLINICAL, forbid: SISTER_BRANDS, refusal: "out_of_scope" }]
-				: [],
+				: brand === "blog"
+					? [{ when: CLINICAL, forbid: HEMISYNC_ONLY, refusal: "out_of_scope" }]
+					: [],
 		nextStepPhrases: NEXT_STEP_PHRASES,
 		screening: SCREENING,
 		refusalPolicy: { invalidInput: "out_of_scope" },

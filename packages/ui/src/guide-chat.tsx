@@ -1,5 +1,11 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
-import { type ConversationTurn, type Guide, type Locale, parseConversation } from "@psi/guide";
+import {
+	type ConversationTurn,
+	type Guide,
+	type Locale,
+	type PageResolve,
+	parseConversation,
+} from "@psi/guide";
 import type { Context } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { streamSSE } from "hono/streaming";
@@ -10,6 +16,7 @@ import type { GuideMemory } from "./guide-memory";
 import {
 	type AskSignals,
 	MAX_ASK_LENGTH,
+	PAGE_SIGNAL,
 	parseAnswerTarget,
 	parseAskSignals,
 	questionFor,
@@ -31,6 +38,12 @@ export interface GuidePostOptions {
 	 * consent (`accountMemory`); `null` for everyone else. Only read to restore or reset.
 	 */
 	memory?: () => Promise<GuideMemory | null>;
+	/**
+	 * Finds the page a question is asked on in the site's own content (`createPageResolver`): the
+	 * page's reference comes from the browser, its text only ever from here. Without it the guide
+	 * does not know which page the visitor is on.
+	 */
+	page?: PageResolve;
 }
 
 /** The text of the last question in `turns`, if any. */
@@ -161,6 +174,32 @@ async function reset(c: Context, opts: GuidePostOptions, target: AnswerTarget): 
 }
 
 /**
+ * The page a question is asked on: resolved by the site from the posted reference, with the titles
+ * of the pages earlier turns were asked on (each found again by its path, never taken from the
+ * browser). Undefined when the site resolves no pages.
+ */
+function pageFor(
+	opts: GuidePostOptions,
+	signals: AskSignals,
+	target: AnswerTarget,
+	question: string,
+): NonNullable<Parameters<typeof streamGuideAnswer>[1]["page"]> | undefined {
+	const resolve = opts.page;
+	if (resolve === undefined) return undefined;
+	const ref = signals[PAGE_SIGNAL[target]];
+	const titles = new Map<string, string | undefined>();
+	const titleOf = (path: string): string | undefined => {
+		if (!titles.has(path)) titles.set(path, resolve({ path }, opts.locale, "")?.title);
+		return titles.get(path);
+	};
+	return {
+		context: ref === undefined ? undefined : resolve(ref, opts.locale, question),
+		path: ref?.path === "" ? undefined : ref?.path,
+		titleOf,
+	};
+}
+
+/**
  * The one `/ghid` route every site mounts (POST, `?target=`): a question streams its answer; for
  * the compass, `compassOp: "restore"` sends the transcript back and `"reset"` starts over. One URL
  * on purpose: Datastar cancels the previous request to the same URL, so a new question cancels a
@@ -181,6 +220,7 @@ export async function answerGuidePost(c: Context, opts: GuidePostOptions): Promi
 	const question = questionFor(target, signals);
 	if (question === null) return c.body(null, 204);
 	return streamGuideAnswer(c, {
+		page: pageFor(opts, signals, target, question),
 		guide: await opts.guide(),
 		locale: opts.locale,
 		question,

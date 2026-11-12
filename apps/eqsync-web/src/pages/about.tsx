@@ -23,6 +23,7 @@ export function AboutPage(props: PageProps): JSX.Element {
 			overline={m.ap_overline({}, o)}
 			h1={m.ap_title({}, o)}
 			lead={m.ap_lead({}, o)}
+			heroPhoto="moonHalo"
 			toc={false}
 			before={
 				<Band overline={m.ap_person_overline({}, o)} title={m.ap_person_name({}, o)}>

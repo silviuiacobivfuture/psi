@@ -18,6 +18,8 @@ export type SchedulingCall =
  */
 export class MemorySchedulingStore implements SchedulingPort {
 	readonly calls: SchedulingCall[] = [];
+	/** Set to make the store answer `catalogue` (the live services list). */
+	catalogue?: SchedulingPort["catalogue"];
 	failing = false;
 	private readonly free = new Map<string, SchedulingSlot[]>();
 	private readonly requests = new Map<

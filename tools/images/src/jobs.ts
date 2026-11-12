@@ -1,4 +1,5 @@
 import type { Credit } from "./credits";
+import { SITE_PHOTO_JOBS } from "./jobs-sites";
 import type { Crop, Grade } from "./transform";
 
 export type App = "psizone-web" | "eqsync-web" | "hemisync-web" | "blog-web";
@@ -131,6 +132,9 @@ export const JOBS: ReadonlyArray<Job> = [
 			{ app: "hemisync-web", key: "lucid", crop: { aspect: 4 / 5 }, widths: ARCH, role: "other" },
 		],
 	},
+
+	// Photographs inside the long pages of EQ-SYNC and Hemi-Sync (jobs-sites.ts).
+	...SITE_PHOTO_JOBS,
 
 	// Blog covers: one per article, in its brand's feel.
 	{ name: "blog-psizone-editorial", outputs: [cover("psizoneEditorial", "warm")] },

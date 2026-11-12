@@ -211,3 +211,66 @@ describe("hemisync old-site images", () => {
 		}
 	});
 });
+
+/** Photographs under section headings: how many each page carries. */
+const SECTION_IMAGE =
+	/\/assets\/images\/hs-(dusk|mist|cloud|frost|resting|ciucas|bench|valley|autumn|white|cabin)/;
+const PHOTOS: ReadonlyArray<{ path: (l: "ro" | "en") => string; images: number }> = [
+	...(
+		[
+			["technology", 2],
+			["focus", 2],
+			["exercises", 1],
+			["programmes", 1],
+			["club", 1],
+			["about", 1],
+			["history", 2],
+			["glossary", 1],
+			["start", 1],
+			["meditation", 2],
+			["archive", 1],
+			["faq", 1],
+		] as const
+	).map(([id, images]) => ({ path: (l: "ro" | "en") => PAGES[id][l], images })),
+	...PROGRAMME_SLUGS.map((slug) => ({
+		path: (l: "ro" | "en") => programmeHref(l, slug),
+		images: 1,
+	})),
+	...WORKSHOP_IDS.map((id) => ({ path: (l: "ro" | "en") => workshopHref(l, id), images: 1 })),
+];
+
+const imgTags = (page: string): ReadonlyArray<string> => page.match(/<img [^>]*>/g) ?? [];
+const attribute = (img: string, name: string) => new RegExp(`${name}="([^"]*)"`).exec(img)?.[1];
+
+describe("hemisync section photographs", () => {
+	for (const locale of ["ro", "en"] as const) {
+		for (const { path, images } of PHOTOS) {
+			it(`${path(locale)}: ${images} lazy photograph(s) with alt, size and files on disk`, async () => {
+				const found = imgTags(await html(path(locale))).filter((i) =>
+					SECTION_IMAGE.test(attribute(i, "src") ?? ""),
+				);
+				expect(found).toHaveLength(images);
+				for (const img of found) {
+					expect((attribute(img, "alt") ?? "").length, img).toBeGreaterThan(20);
+					expect(Number(attribute(img, "width")), img).toBeGreaterThan(0);
+					expect(Number(attribute(img, "height")), img).toBeGreaterThan(0);
+					expect(attribute(img, "loading"), img).toBe("lazy");
+					for (const src of (attribute(img, "srcset") ?? "").split(", ")) {
+						expect(existsSync(`public${src.split(" ")[0]}`), src).toBe(true);
+					}
+				}
+			});
+		}
+	}
+
+	it("describes each photograph differently in Romanian and in English", async () => {
+		for (const { path } of PHOTOS) {
+			const alts = async (l: "ro" | "en") =>
+				imgTags(await html(path(l)))
+					.filter((i) => SECTION_IMAGE.test(attribute(i, "src") ?? ""))
+					.map((i) => attribute(i, "alt"));
+			const [ro, en] = [await alts("ro"), await alts("en")];
+			for (const [i, alt] of ro.entries()) expect(alt, path("ro")).not.toBe(en[i]);
+		}
+	});
+});

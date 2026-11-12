@@ -160,3 +160,41 @@ describe("the little markdown in an answer", () => {
 		);
 	});
 });
+
+describe("the next steps under an answer", () => {
+	const answer: ReadonlyArray<GuideEvent> = [
+		{ type: "text", delta: "Logopedia ți se potrivește." },
+		{
+			type: "actions",
+			actions: [
+				{
+					kind: "link",
+					label: "Începe programarea",
+					href: "https://landing.psizone.ro/?ghid=programare",
+				},
+				{ kind: "ask", label: "Programează-te", text: "Vreau o programare pentru $logopedie" },
+				{ kind: "link", label: "Rău", href: "javascript:alert(1)" },
+			],
+		},
+		{ type: "done" },
+	];
+
+	it("renders a link as a button, an ask as a click that sends the message, and drops an unsafe address", async () => {
+		const out = (await lines(answer, { compassQuery: "Q" })).join("\n");
+		expect(out).toContain('href="https://landing.psizone.ro/?ghid=programare"');
+		expect(out).toContain("Începe programarea");
+		expect(out).toContain("psi-guide-ask");
+		expect(out).toContain("Programează-te");
+		// `$` is escaped so the message can never read as a signal.
+		expect(out).not.toContain("$logopedie");
+		expect(out).not.toContain("javascript:");
+		expect(out).not.toContain("Rău");
+	});
+
+	it("shows none when the reply earned none", async () => {
+		const out = (
+			await lines([{ type: "text", delta: "A." }, { type: "done" }], { compassQuery: "Q" })
+		).join("\n");
+		expect(out).not.toContain("pz-msg__actions");
+	});
+});

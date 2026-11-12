@@ -30,6 +30,14 @@ export {
 	type SchedulingEnvProblem,
 } from "./config";
 export type { Audience, Mode } from "./domain/catalog";
+export {
+	type ClientInput,
+	duplicatesInFile,
+	IMPORT_MAX_ROWS,
+	type ImportProblem,
+	readClients,
+	templateCsv,
+} from "./domain/clients";
 export type { AppointmentStatus } from "./domain/conflicts";
 export type { Contact } from "./domain/contact";
 export { DECISION_REASONS, type DecisionReason } from "./domain/lifecycle";
@@ -42,7 +50,9 @@ export {
 	type BoardResult,
 	type CalendarResult,
 	type ChangedResult,
+	type ClientsResult,
 	type ClosureResult,
+	type CreateClientResult,
 	type CreatePractitionerResult,
 	type CreateRoomResult,
 	type CreateServiceResult,
@@ -50,7 +60,9 @@ export {
 	type DaysOffResult,
 	type DayWindow,
 	type DecideResult,
+	type EraseClientResult,
 	type ExceptionResult,
+	type ImportResult,
 	type NewRoom,
 	type NewService,
 	type PeriodDay,

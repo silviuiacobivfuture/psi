@@ -139,8 +139,22 @@ export const article: ArticleInput = {
 		{
 			type: "p",
 			text: {
+				ro: "Cum se spune asta celor din casă? Poți încerca: „Vreau să mă trezesc sâmbătă la 7:30, nu la 10:30, ca luni să nu fie atât de greu. După aceea putem lenevi împreună, cu cafeaua.” O trezire mai devreme devine mai ușoară când are o recompensă: o cafea făcută cu calm, un mic dejun lung, o plimbare. Weekendul rămâne weekend, doar că începe puțin mai devreme.",
+				en: "How do you say this to the people at home? You could try: “I want to wake at 7:30 on Saturday, not 10:30, so Monday isn’t so hard. After that we can laze about together, with coffee.” An earlier wake-up gets easier when it has a reward: coffee made unhurriedly, a long breakfast, a walk. The weekend stays a weekend, it just begins a little earlier.",
+			},
+		},
+		{
+			type: "p",
+			text: {
 				ro: "Să nu uităm că NHS dă un sfat mai strict celor cu insomnie: scoală-te la aceeași oră în fiecare zi și nu dormi mai mult după o noapte proastă, iar ziua nu dormi. Dacă ai insomnie, compromisul de o oră poate fi prea larg. Dacă dormi bine în general și vrei doar un weekend mai blând, e un început bun.",
 				en: "We should not forget that the NHS gives stricter advice to people with insomnia: get up at the same time every day, do not sleep longer after a bad night, and do not nap in the day. If you have insomnia, the one-hour compromise may be too wide. If you generally sleep well and only want a gentler weekend, it is a good start.",
+			},
+		},
+		{
+			type: "p",
+			text: {
+				ro: "Dacă într-o săptămână nu reușești, nu începi de la zero. Reîntoarce-te la ora aleasă în ziua următoare. Ceasul corpului nu ține minte greșelile, ține minte repetiția. Trei dimineți apropiate una de alta spun mai mult decât o săptămână perfectă urmată de o lună de ocolișuri.",
+				en: "If you fail in one week, you do not start from zero. Return to your chosen hour the next day. The body clock does not remember mistakes, it remembers repetition. Three mornings close to one another say more than one perfect week followed by a month of detours.",
 			},
 		},
 		{

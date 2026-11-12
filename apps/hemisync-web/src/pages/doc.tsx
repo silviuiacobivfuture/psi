@@ -1,8 +1,9 @@
-import { Chip } from "@psi/ui";
+import { Chip, Picture } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { articleHref } from "../cms";
 import { at, type Locale } from "../i18n";
+import { type SectionPhoto, sectionPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { PAGE_IDS, PAGES, PROGRAMME_SLUGS, WORKSHOP_IDS, workshopHref } from "../routes";
 import { programmeHref } from "../sections/programmes";
@@ -206,6 +207,7 @@ export function DocSections({
 	locale,
 	wash = true,
 	first = 1,
+	photos = {},
 }: {
 	page: string;
 	locale: Locale;
@@ -213,24 +215,34 @@ export function DocSections({
 	wash?: boolean;
 	/** The first section to show (1-based): a page shows some above its own blocks. */
 	first?: number;
+	/** A photograph under a section's heading, by section id (`s02`). */
+	photos?: Readonly<Record<string, SectionPhoto>>;
 }): JSX.Element {
 	return (
 		<>
 			{sections(page)
 				.slice(first - 1)
-				.map((s, i) => (
-					<section id={s.id} class={wash && i % 2 === 0 ? "hs-wash scroll-mt-8" : "scroll-mt-8"}>
-						<div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-16 md:px-14 md:py-24 lg:grid-cols-[5fr_7fr]">
-							<div>
-								{s.overline ? <p class="hs-overline">{text(s.overline, locale)}</p> : null}
-								<h2 class="display mt-4 text-display-md text-ink">{text(s.heading, locale)}</h2>
+				.map((s, i) => {
+					const photo = photos[s.id];
+					return (
+						<section id={s.id} class={wash && i % 2 === 0 ? "hs-wash scroll-mt-8" : "scroll-mt-8"}>
+							<div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-16 md:px-14 md:py-24 lg:grid-cols-[5fr_7fr]">
+								<div class={photo ? "lg:sticky lg:top-8 lg:self-start" : undefined}>
+									{s.overline ? <p class="hs-overline">{text(s.overline, locale)}</p> : null}
+									<h2 class="display mt-4 text-display-md text-ink">{text(s.heading, locale)}</h2>
+									{photo ? (
+										<figure class="pz-photo pz-rise mt-8 aspect-[4/3] w-full max-w-xl lg:max-w-none">
+											<Picture {...sectionPicture(locale, photo)} />
+										</figure>
+									) : null}
+								</div>
+								<div class="space-y-6">
+									<Blocks blocks={s.blocks} locale={locale} />
+								</div>
 							</div>
-							<div class="space-y-6">
-								<Blocks blocks={s.blocks} locale={locale} />
-							</div>
-						</div>
-					</section>
-				))}
+						</section>
+					);
+				})}
 		</>
 	);
 }
@@ -240,47 +252,60 @@ export function FaqBlock({
 	page,
 	locale,
 	after = {},
+	photos = {},
 }: {
 	page: string;
 	locale: Locale;
 	after?: Readonly<Record<string, Child>>;
+	/** A photograph under a group's heading, by group id (`g01`). */
+	photos?: Readonly<Record<string, SectionPhoto>>;
 }): JSX.Element {
 	return (
 		<>
-			{faqGroups(page).map((g) => (
-				<section id={g.id} class="grid scroll-mt-8 gap-8 lg:grid-cols-[5fr_7fr]">
-					<h2 class="display text-display-md text-ink">{text(g.heading, locale)}</h2>
-					<div class="space-y-6">
-						<div class="divide-y divide-line border-y border-line">
-							{g.items.map((it) => (
-								<details class="group py-2">
-									<summary class="flex cursor-pointer list-none items-baseline justify-between gap-6 py-4 text-body-lg text-ink">
-										<h3 class="font-[inherit] text-[length:inherit] font-normal">
-											{text(it.q, locale)}
-										</h3>
-										<svg
-											class="shrink-0 text-glow-1 transition-transform group-open:rotate-45"
-											width="14"
-											height="14"
-											viewBox="0 0 14 14"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="1.5"
-											aria-hidden="true"
-										>
-											<path d="M7 1v12M1 7h12" />
-										</svg>
-									</summary>
-									<p class="max-w-2xl pb-5 text-body text-ink-muted">
-										{inline(text(it.a, locale), locale)}
-									</p>
-								</details>
-							))}
+			{faqGroups(page).map((g) => {
+				const photo = photos[g.id];
+				return (
+					<section id={g.id} class="grid scroll-mt-8 gap-8 lg:grid-cols-[5fr_7fr]">
+						<div class={photo ? "lg:sticky lg:top-8 lg:self-start" : undefined}>
+							<h2 class="display text-display-md text-ink">{text(g.heading, locale)}</h2>
+							{photo ? (
+								<figure class="pz-photo pz-rise mt-8 aspect-[4/3] w-full max-w-xl lg:max-w-none">
+									<Picture {...sectionPicture(locale, photo)} />
+								</figure>
+							) : null}
 						</div>
-						{after[g.id] ?? null}
-					</div>
-				</section>
-			))}
+						<div class="space-y-6">
+							<div class="divide-y divide-line border-y border-line">
+								{g.items.map((it) => (
+									<details class="group py-2">
+										<summary class="flex cursor-pointer list-none items-baseline justify-between gap-6 py-4 text-body-lg text-ink">
+											<h3 class="font-[inherit] text-[length:inherit] font-normal">
+												{text(it.q, locale)}
+											</h3>
+											<svg
+												class="shrink-0 text-glow-1 transition-transform group-open:rotate-45"
+												width="14"
+												height="14"
+												viewBox="0 0 14 14"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="1.5"
+												aria-hidden="true"
+											>
+												<path d="M7 1v12M1 7h12" />
+											</svg>
+										</summary>
+										<p class="max-w-2xl pb-5 text-body text-ink-muted">
+											{inline(text(it.a, locale), locale)}
+										</p>
+									</details>
+								))}
+							</div>
+							{after[g.id] ?? null}
+						</div>
+					</section>
+				);
+			})}
 		</>
 	);
 }

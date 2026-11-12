@@ -1,7 +1,8 @@
-import { AmbientField, AskBar, Button, GlassCard, GuideMessage } from "@psi/ui";
+import { AmbientField, AskBar, Button, GlassCard, GuideMessage, Picture } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
+import { sectionPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 
 /** Clubul Delfinului, framed as a listening community; the complementary-care line is up front. */
@@ -10,26 +11,14 @@ export function Club({ locale }: { locale: Locale }): JSX.Element {
 	return (
 		<section id="club" class="mx-auto max-w-7xl px-6 py-24 md:px-14 md:py-36">
 			<div class="grid items-center gap-12 lg:grid-cols-[5fr_7fr]">
-				<div class="hs-arch hs-arch--3 pz-rise mx-auto w-full max-w-sm" aria-hidden="true">
+				<div class="hs-arch hs-arch--3 pz-rise mx-auto w-full max-w-sm">
 					<span class="hs-arch__window">
 						<span class="hs-arch__sky" />
-						<svg
-							class="absolute inset-x-0 bottom-0 h-1/2 w-full"
-							viewBox="0 0 400 200"
-							preserveAspectRatio="none"
-							aria-hidden="true"
-						>
-							<path
-								d="M0 120 C 60 100 100 140 160 118 S 260 96 320 116 S 380 124 400 112 V200 H0Z"
-								fill="var(--hs-ridge-3)"
-								opacity="0.55"
-							/>
-							<path
-								d="M0 150 C 80 132 120 166 200 146 S 330 130 400 148 V200 H0Z"
-								fill="var(--hs-ridge-5)"
-								opacity="0.85"
-							/>
-						</svg>
+						<Picture
+							{...sectionPicture(locale, "mistyFirs")}
+							class="hs-arch__picture"
+							imgClass="hs-arch__img"
+						/>
 						<span class="hs-mist hs-mist--soft" />
 					</span>
 				</div>

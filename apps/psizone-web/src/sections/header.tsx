@@ -7,6 +7,7 @@ import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
+import { guideStart } from "../guide-start";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
@@ -124,6 +125,7 @@ export function Header({
 				groups={groups}
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
+				startWith={guideStart(locale)}
 				chat={{
 					storageKey: "psi.chat.psizone",
 					suggestions: copy.chips,

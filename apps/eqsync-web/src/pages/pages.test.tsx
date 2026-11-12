@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { ALIASES, PAGES, type PageId } from "../routes";
@@ -6,6 +7,7 @@ import { Header } from "../sections/header";
 import { sitemap } from "../seo";
 import { PROSE } from "./content-spec";
 import { FaqPage } from "./faq";
+import { HomePage } from "./home";
 import { msg, sectionKeys } from "./prose";
 import { registerPages } from "./register";
 
@@ -197,6 +199,83 @@ describe("navigation to the new pages", () => {
 			const r = await app.request(from);
 			expect(r.status).toBe(301);
 			expect(r.headers.get("location")).toBe(PAGES[id].en);
+		}
+	});
+});
+
+/** The photographs of each page: how many `<img>` the content area carries, and how many load eagerly. */
+const PHOTOS: ReadonlyArray<{ path: { ro: string; en: string }; images: number; eager: number }> = [
+	{ path: PAGES.method, images: 4, eager: 0 },
+	{ path: PAGES.science, images: 2, eager: 0 },
+	{ path: PAGES.listen, images: 2, eager: 0 },
+	{ path: PAGES.who, images: 2, eager: 0 },
+	{ path: PAGES.glossary, images: 1, eager: 1 },
+	{ path: PAGES.about, images: 1, eager: 1 },
+	{ path: PAGES.protocols, images: 1, eager: 1 },
+	{ path: PAGES.faq, images: 1, eager: 1 },
+];
+
+const homeApp = new Hono();
+for (const [path, locale] of [
+	["/", "ro"],
+	["/en", "en"],
+] as const) {
+	homeApp.get(path, (c) =>
+		c.html(<HomePage locale={locale} theme="eqsync-dark" origin="http://localhost" />),
+	);
+}
+
+const imgs = (html: string): ReadonlyArray<string> => html.match(/<img [^>]*>/g) ?? [];
+const attr = (img: string, name: string) => new RegExp(`${name}="([^"]*)"`).exec(img)?.[1];
+
+describe("photographs", () => {
+	for (const locale of LOCALES) {
+		for (const { path, images, eager } of PHOTOS) {
+			it(`${path[locale]} (${locale}): ${images} photographs, each with alt, size and files on disk`, async () => {
+				const r = await app.request(path[locale]);
+				expect(r.status).toBe(200);
+				const found = imgs(main(await r.text())).filter((i) =>
+					attr(i, "src")?.startsWith("/assets/images/"),
+				);
+				expect(found).toHaveLength(images);
+				for (const img of found) {
+					expect((attr(img, "alt") ?? "").length, img).toBeGreaterThan(20);
+					expect(Number(attr(img, "width")), img).toBeGreaterThan(0);
+					expect(Number(attr(img, "height")), img).toBeGreaterThan(0);
+					for (const src of (attr(img, "srcset") ?? "").split(", ")) {
+						const file = src.split(" ")[0] ?? "";
+						expect(existsSync(`public${file}`), file).toBe(true);
+					}
+				}
+				expect(found.filter((i) => attr(i, "loading") === "eager")).toHaveLength(eager);
+				expect(found.filter((i) => attr(i, "loading") === "lazy")).toHaveLength(images - eager);
+			});
+		}
+	}
+
+	for (const [path, locale] of [
+		["/", "ro"],
+		["/en", "en"],
+	] as const) {
+		it(`${path} (${locale}): the hero, Problem, Method and Sample photographs have alt and size`, async () => {
+			const found = imgs(main(await (await homeApp.request(path)).text())).filter((i) =>
+				attr(i, "src")?.startsWith("/assets/images/"),
+			);
+			expect(found).toHaveLength(4);
+			for (const img of found) {
+				expect((attr(img, "alt") ?? "").length, img).toBeGreaterThan(20);
+				expect(Number(attr(img, "width")), img).toBeGreaterThan(0);
+			}
+			expect(found.filter((i) => attr(i, "loading") === "eager")).toHaveLength(1);
+		});
+	}
+
+	it("describes each photograph differently in Romanian and in English", async () => {
+		for (const { path } of PHOTOS) {
+			const ro = imgs(main(await (await app.request(path.ro)).text())).map((i) => attr(i, "alt"));
+			const en = imgs(main(await (await app.request(path.en)).text())).map((i) => attr(i, "alt"));
+			expect(ro.length).toBe(en.length);
+			for (const [i, alt] of ro.entries()) expect(alt, path.ro).not.toBe(en[i]);
 		}
 	});
 });

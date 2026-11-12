@@ -3,58 +3,50 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
+import { DEMO_SOUNDS } from "./demo-sounds";
 
-/** The four free exercises on the home page of hemi-sync.ro. Lengths are shown only where the site states one. */
+/**
+ * The free listening on the home page: the team's three binaural demos (DEMO_SOUNDS), each with
+ * what you will hear. The Monroe-titled exercises it used to list had no audio the site may play;
+ * they come back when the licence is confirmed in writing.
+ */
 export function ExerciseList({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
-	const items: ReadonlyArray<{
-		id: string;
-		title: string;
-		meta: string;
-		text: string;
-		seconds?: number;
-	}> = [
-		{
-			id: "ex-intro",
-			title: m.ex_intro_title({}, o),
-			meta: m.ex_intro_meta({}, o),
-			text: m.ex_intro_text({}, o),
+	const texts = {
+		"demo-descent": {
+			title: m.demo_descent_title({}, o),
+			meta: m.demo_descent_meta({}, o),
+			text: m.demo_descent_text({}, o),
 		},
-		{
-			id: "ex-dec",
-			title: m.ex_dec_title({}, o),
-			meta: m.ex_dec_meta({}, o),
-			text: m.ex_dec_text({}, o),
+		"demo-breath": {
+			title: m.demo_breath_title({}, o),
+			meta: m.demo_breath_meta({}, o),
+			text: m.demo_breath_text({}, o),
 		},
-		{
-			id: "ex-forgiveness",
-			title: m.ex_forgiveness_title({}, o),
-			meta: m.ex_forgiveness_meta({}, o),
-			text: m.ex_forgiveness_text({}, o),
+		"demo-sleep": {
+			title: m.demo_sleep_title({}, o),
+			meta: m.demo_sleep_meta({}, o),
+			text: m.demo_sleep_text({}, o),
 		},
-		{
-			id: "ex-season",
-			title: m.ex_season_title({}, o),
-			meta: m.ex_season_meta({}, o),
-			text: m.ex_season_text({}, o),
-			seconds: 27 * 60 + 2,
-		},
-	];
+	} as const;
 	return (
 		<ol class="space-y-5">
-			{items.map((x) => (
+			{DEMO_SOUNDS.map((d) => (
 				<li class="pz-rise">
 					<AudioPlayer
-						id={x.id}
-						class={x.seconds === undefined ? "hs-player--wide hs-player--open" : "hs-player--wide"}
-						title={x.title}
-						meta={x.meta}
-						src="/assets/sample.mp3"
-						duration={x.seconds ?? 0}
-						playLabel={m.exercise_play({ title: x.title }, o)}
-						pauseLabel={m.exercise_pause({ title: x.title }, o)}
+						id={`home-${d.id}`}
+						class="hs-player--wide"
+						title={texts[d.id].title}
+						meta={texts[d.id].meta}
+						describedBy={`home-${d.id}-heard`}
+						src={d.src}
+						duration={d.seconds}
+						playLabel={m.exercise_play({ title: texts[d.id].title }, o)}
+						pauseLabel={m.exercise_pause({ title: texts[d.id].title }, o)}
 					/>
-					<p class="mt-3 px-5 text-body text-ink-muted">{x.text}</p>
+					<p id={`home-${d.id}-heard`} class="mt-3 px-5 text-body text-ink-muted">
+						{texts[d.id].text}
+					</p>
 				</li>
 			))}
 		</ol>

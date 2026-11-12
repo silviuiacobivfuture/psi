@@ -66,11 +66,19 @@ export {
 	type AskInput,
 	askInputSchema,
 	type EngineEvent,
+	type GuideAction,
 	type HistoryRole,
 	type HistoryTurn,
 	MAX_HISTORY_TURN_LENGTH,
 	MAX_HISTORY_TURNS,
 	MAX_QUESTION_LENGTH,
+	PAGE_KINDS,
+	PAGE_LIMITS,
+	PAGE_STATUSES,
+	type PageContext,
+	PageContextSchema,
+	type PageKind,
+	type PageStatus,
 	REFUSAL_REASONS,
 	type RefusalReason,
 	RefusalReasonSchema,
@@ -110,6 +118,17 @@ export {
 } from "./grounding/faithfulness";
 export { SEARCH_TOOL_ID } from "./grounding/knowledge-tool";
 export {
+	ACTIONS_PER_REPLY,
+	type EngineServices,
+	mentionedServices,
+	RECOMMEND_SERVICES_TOOL,
+	SERVICES_PER_CALL,
+	type ServiceFact,
+	type ServiceFinding,
+	type ServiceNeed,
+	type ServiceQuery,
+} from "./grounding/services-tool";
+export {
 	createIngestWorkflow,
 	type EngineIngest,
 	type EngineIngestReport,
@@ -130,15 +149,18 @@ export {
 	type LanguagePack,
 	LanguagePackSchema,
 	type PackPrompt,
+	type PagePrompt,
 	type TeamNotesPrompt,
 } from "./language/pack";
 export { ROMANIAN } from "./language/ro";
 export { fileDirectory, openMemory, THREAD_WINDOW } from "./memory";
 export { ModelIdSchema, ProviderError, readOpenRouterKey } from "./model";
+export { earlierPages, pageEvidence, pagePassage, renderPage } from "./page-context";
 export {
 	CRISIS_SCAN_LIMIT,
 	type CrossReferenceRule,
 	type Profile,
+	type ProfileHandoff,
 	type ProfileLocale,
 	ProfileSchema,
 	type RefusalPolicy,
@@ -165,6 +187,7 @@ export {
 	SchedulingSlotSchema,
 	type SchedulingSlots,
 	SchedulingSlotsSchema,
+	type ServiceEntry,
 } from "./scheduling/port";
 export {
 	CANCEL_REQUEST_TOOL,

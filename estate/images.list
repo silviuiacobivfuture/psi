@@ -9,4 +9,3 @@
 # A reference names registry.psizone.ro/mirror/<upstream repository>:<tag>@<digest>.
 # NEW IMAGE / NEW VERSION: add a line, run the script, then reference it.
 moved docker.io/chromadb/chroma 1.5.9 sha256:abcce7c335e2dab9f11ef629296f7309b09cb19ae4b34da32ac7e34ff5773140 # gitops/services/chroma (vector database)
-moved ghcr.io/convex/convex-backend d1fcbeaf939502a23a0f4b7e9095a12e84866294 sha256:edf5c02b395b17d58d0e494b401855da72bc01dda934e45552d6790fe430f368 # gitops/services/scheduling-backend (scheduling store; the index digest is sha256:e9c084e8bd6c1f249012c672193f0988c748824f55a24cdad45f6185a8462f9a)

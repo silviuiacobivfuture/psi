@@ -112,7 +112,7 @@ export function ProgrammesPage(props: PageProps): JSX.Element {
 			<section class="mx-auto max-w-7xl px-6 py-20 md:px-14 md:py-28">
 				<ProgrammeArches locale={locale} cards={programmeCards(locale)} idPrefix="pg" />
 			</section>
-			<DocSections page="progs" locale={locale} wash={false} />
+			<DocSections page="progs" locale={locale} wash={false} photos={{ s02: "ciucasGold" }} />
 			<Band id="sesiuni" overline={m.nav_sessions({}, o)} title={m.pg_sessions_title({}, o)} wash>
 				<Para>{m.pg_request({}, o)}</Para>
 				<OfferingPrices class="mt-8" items={prices(locale, PROGRAMME_SLUGS)} />

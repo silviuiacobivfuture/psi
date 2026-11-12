@@ -15,6 +15,7 @@ export function ListenPage(props: PageProps): JSX.Element {
 			overline={msg(locale, "ls_overline")}
 			h1={msg(locale, "ls_h1")}
 			lead={msg(locale, "ls_lead")}
+			photos={{ headphones: "vinylGrado", evening: "quietLights" }}
 			related={["method", "safety", "faq", "who"]}
 			articles={["de-ce-ai-nevoie-de-casti"]}
 		/>

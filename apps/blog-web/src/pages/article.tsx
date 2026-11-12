@@ -162,11 +162,6 @@ export function ArticlePage({
 					</header>
 					{a.status !== "in-review" ? (
 						<>
-							{a.status === "draft" ? (
-								<div class="mx-auto mt-10 max-w-[680px]">
-									<DraftNotice article={a} locale={locale} />
-								</div>
-							) : null}
 							<div class="mx-auto mt-12 max-w-[880px]">
 								<ArticleCover
 									class="bl-article-cover"
@@ -174,6 +169,11 @@ export function ArticlePage({
 									{...coverView(a, locale, "article")}
 								/>
 							</div>
+							{a.status === "draft" ? (
+								<div class="mx-auto mt-10 max-w-[680px]">
+									<DraftNotice article={a} locale={locale} />
+								</div>
+							) : null}
 							<div class="mt-14">
 								<ArticleBody article={a} locale={locale} />
 							</div>
@@ -195,6 +195,7 @@ export function ArticlePage({
 								locale={locale}
 								placeholder={m.article_ask_placeholder({}, o)}
 								intro={m.article_guide_intro({}, o)}
+								page={{ kind: "article", slug: a.slug }}
 							/>
 						</div>
 					</div>

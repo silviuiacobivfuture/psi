@@ -117,10 +117,39 @@ export default defineSchema({
 		createdBy: v.optional(v.string()),
 	}).index("by_practitioner_date", ["practitioner", "date"]),
 
+	/**
+	 * The clinic's own customers (docs/plans/scheduling.md §6): who they are and how to reach them,
+	 * a guardian for a child, consent flags, a short administrative note for staff. Never read by a
+	 * visitor-facing function and never clinical. Erased on request (`staffClients.eraseClient`).
+	 */
+	clients: defineTable({
+		tenant: v.string(),
+		name: v.string(),
+		kind: audienceValidator,
+		phone: v.optional(v.string()),
+		email: v.optional(v.string()),
+		guardian: v.optional(
+			v.object({ name: v.string(), phone: v.optional(v.string()), email: v.optional(v.string()) }),
+		),
+		staffNotes: v.optional(v.string()),
+		consent: v.object({ contact: v.boolean(), reminders: v.boolean() }),
+		source: v.union(v.literal("import"), v.literal("staff")),
+		createdBy: v.string(),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	}).index("by_tenant_name", ["tenant", "name"]),
+
+	/** What finds a client's duplicates: `p:` phone, `e:` e-mail, `g:` guardian's contact + the child's name. */
+	clientKeys: defineTable({ tenant: v.string(), key: v.string(), client: v.id("clients") })
+		.index("by_tenant_key", ["tenant", "key"])
+		.index("by_client", ["client"]),
+
 	appointments: defineTable({
 		tenant: v.string(),
 		practitioner: v.id("practitioners"),
 		service: v.id("services"),
+		/** The client record the team linked to it, if any. */
+		client: v.optional(v.id("clients")),
 		/** The room an onsite session uses, when its service needs one. */
 		room: v.optional(v.id("rooms")),
 		mode: modeValidator,

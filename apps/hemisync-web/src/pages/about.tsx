@@ -32,7 +32,7 @@ export function AboutPage(props: PageProps): JSX.Element {
 				title={m.ab_title({}, o)}
 				lead={m.footer_tagline({}, o)}
 			/>
-			<DocSections page="about" locale={locale} wash={false} />
+			<DocSections page="about" locale={locale} wash={false} photos={{ s02: "autumnSnow" }} />
 			<Band overline={m.ab_operator_overline({}, o)} title={m.ab_operator_title({}, o)}>
 				<Para>{m.ab_operator_text({}, o)}</Para>
 				<p class="text-body-sm text-ink-faint">{m.ab_operator_ids({}, o)}</p>

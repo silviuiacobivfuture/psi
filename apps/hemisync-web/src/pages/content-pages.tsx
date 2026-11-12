@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { dateLabel, EDITIONS, type Edition, editionsOf, isoRange } from "../content/editions";
 import { ESTATE } from "../estate";
 import { at, type Locale } from "../i18n";
+import type { SectionPhoto } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href, type PAGES, WORKSHOP_IDS, type WorkshopId, workshopHref } from "../routes";
 import { FromTheBlog } from "../sections/blog";
@@ -18,6 +19,7 @@ function ContentShell({
 	page,
 	id,
 	toc = true,
+	photos,
 	next,
 	jsonLd,
 	children,
@@ -27,6 +29,7 @@ function ContentShell({
 	page: string;
 	id: keyof typeof PAGES;
 	toc?: boolean;
+	photos?: Readonly<Record<string, SectionPhoto>>;
 	next: ReadonlyArray<NextLink>;
 	jsonLd?: ReadonlyArray<JsonLdNode>;
 	children?: JSX.Element | null;
@@ -48,7 +51,7 @@ function ContentShell({
 				{toc ? <Toc page={page} locale={locale} /> : null}
 			</PageHero>
 			{extra ?? null}
-			<DocSections page={page} locale={locale} />
+			<DocSections page={page} locale={locale} photos={photos} />
 			{children ?? null}
 			<FromTheBlog locale={locale} />
 			<NextSteps links={next} />
@@ -94,6 +97,7 @@ export function HistoryPage(props: PageProps): JSX.Element {
 			props={props}
 			page="hist"
 			id="history"
+			photos={{ s03: "cloudHill", s06: "mistyFirs" }}
 			next={[
 				{ label: m.next_start({}, o), href: href(locale, "start"), primary: true },
 				{ label: m.next_tech({}, o), href: href(locale, "technology") },
@@ -112,6 +116,7 @@ export function GlossaryPage(props: PageProps): JSX.Element {
 			page="gloss"
 			id="glossary"
 			toc={false}
+			photos={{ s08: "whiteMist" }}
 			next={[
 				{ label: m.next_start({}, o), href: href(locale, "start"), primary: true },
 				{ label: m.next_focus({}, o), href: href(locale, "focus") },
@@ -129,6 +134,7 @@ export function StartPage(props: PageProps): JSX.Element {
 			props={props}
 			page="start"
 			id="start"
+			photos={{ s04: "mistHill" }}
 			next={[
 				{ label: m.next_exercises({}, o), href: href(locale, "exercises"), primary: true },
 				{ label: m.next_meditation({}, o), href: href(locale, "meditation") },
@@ -147,6 +153,7 @@ export function MeditationPage(props: PageProps): JSX.Element {
 			page="med"
 			id="meditation"
 			toc={false}
+			photos={{ s03: "benchDusk", s06: "valleyMist" }}
 			next={[
 				{ label: m.next_exercises({}, o), href: href(locale, "exercises"), primary: true },
 				{ label: m.next_start({}, o), href: href(locale, "start") },
@@ -193,6 +200,17 @@ function EditionList({
 }
 
 /** Message prefix of each workshop type's content. */
+/** The photograph under each workshop page's second section. */
+const WORKSHOP_PHOTO: Readonly<Record<WorkshopId, SectionPhoto>> = {
+	consciousness: "duskRidges",
+	advanced: "ciucasGold",
+	optimise: "cabinAutumn",
+	creative: "valleyMist",
+	connection: "cloudHill",
+	obe: "frostFirs",
+	online: "mistHill",
+};
+
 const PREFIX: Readonly<Record<WorkshopId, string>> = {
 	consciousness: "wcons",
 	advanced: "wadv",
@@ -239,7 +257,7 @@ export function ArchivePage(props: PageProps): JSX.Element {
 			jsonLd={[faqPageJsonLd(faqPlain("wsfaq", locale)), ...eventNodes(locale, EDITIONS)]}
 		>
 			<PageHero locale={locale} overline={h.overline} title={h.h1} lead={h.lead} />
-			<DocSections page="archive" locale={locale} />
+			<DocSections page="archive" locale={locale} photos={{ s02: "autumnSnow" }} />
 			<section class="mx-auto max-w-7xl px-6 py-16 md:px-14 md:py-24">
 				<h2 class="display text-display-md text-ink">{m.arch_editions_h({}, o)}</h2>
 				<div class="mt-10 max-w-3xl">
@@ -311,7 +329,7 @@ export function WorkshopPage(props: PageProps & { id: WorkshopId }): JSX.Element
 					/>
 				</>
 			) : null}
-			<DocSections page={page} locale={locale} />
+			<DocSections page={page} locale={locale} photos={{ s02: WORKSHOP_PHOTO[id] }} />
 			<section id="arhiva" class="mx-auto max-w-7xl scroll-mt-8 px-6 py-16 md:px-14 md:py-24">
 				<h2 class="display text-display-md text-ink">{m.arch_editions_h({}, o)}</h2>
 				<div class="mt-10 max-w-3xl">

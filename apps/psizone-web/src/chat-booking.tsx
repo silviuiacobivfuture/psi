@@ -53,7 +53,13 @@ const NOTICE = {
 	ambiguous: (o: { locale: Locale }) => m.guide_booking_ambiguous({}, o),
 } as const;
 
-function serviceName(slug: string, locale: Locale): string {
+function serviceName(
+	slug: string,
+	locale: Locale,
+	names?: Readonly<Record<string, { ro: string; en: string }>>,
+): string {
+	const named = names?.[slug];
+	if (named !== undefined) return locale === "en" ? named.en : named.ro;
 	const o = at(locale);
 	return slug === "evaluation" ? m.guide_booking_service_evaluation({}, o) : slug;
 }
@@ -117,7 +123,8 @@ export function ChatBooking({
 		return <p>{cancelText(offer.cancel?.status ?? "unavailable", o)}</p>;
 	}
 	if (offer.kind === "services") {
-		const names = offer.services?.map((slug) => serviceName(slug, locale)).join(", ") ?? "";
+		const names =
+			offer.services?.map((slug) => serviceName(slug, locale, offer.names)).join(", ") ?? "";
 		return <p>{m.guide_booking_services({ services: names }, o)}</p>;
 	}
 	if (offer.kind === "confirm" && offer.chosen !== undefined) {

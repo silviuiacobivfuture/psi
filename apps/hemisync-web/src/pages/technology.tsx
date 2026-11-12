@@ -28,7 +28,7 @@ export function TechnologyPage(props: PageProps): JSX.Element {
 				<Toc page="tech" locale={locale} />
 			</PageHero>
 			<Technology locale={locale} more={false} />
-			<DocSections page="tech" locale={locale} />
+			<DocSections page="tech" locale={locale} photos={{ s03: "duskRidges", s06: "frostFirs" }} />
 			<Band overline={m.tp_not_overline({}, o)} title={m.tp_not_title({}, o)}>
 				<Para>{m.tp_not_text({}, o)}</Para>
 				<Para>{m.focus_note({}, o)}</Para>

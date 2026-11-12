@@ -111,6 +111,14 @@ const SISTER_BRAND_PATTERNS: ReadonlyArray<RegExp> = [
 	/\bbinaura/,
 ];
 
+const HEMISYNC_PATTERNS: ReadonlyArray<RegExp> = [/\bhemi ?sync/, /\bmonroe\b/, /\bgateway voyage/];
+
+/**
+ * Hemi-Sync and the Monroe Institute's programmes alone (not EQ-SYNC): what the blog's guide may
+ * not name on a clinical question, while it may still lead a poor sleeper to EQ-SYNC.
+ */
+export const HEMISYNC_ONLY: ReadonlyArray<RuleSet> = [{ patterns: HEMISYNC_PATTERNS }];
+
 /** Hemi-Sync, EQ-SYNC or their methods, in any spelling: what Psizone may not name clinically. */
 export const SISTER_BRANDS: ReadonlyArray<RuleSet> = [{ patterns: SISTER_BRAND_PATTERNS }];
 

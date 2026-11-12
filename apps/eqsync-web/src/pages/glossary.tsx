@@ -22,6 +22,7 @@ export function GlossaryPage(props: PageProps): JSX.Element {
 			overline={msg(locale, "gl_overline")}
 			h1={msg(locale, "gl_h1")}
 			lead={msg(locale, "gl_lead")}
+			heroPhoto="mountainNight"
 			related={["science", "method", "listen", "faq"]}
 			jsonLd={[
 				definedTermSetJsonLd(

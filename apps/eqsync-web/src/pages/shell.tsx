@@ -1,7 +1,8 @@
-import { Button, type JsonLdNode, StatusBadge } from "@psi/ui";
+import { Button, type JsonLdNode, Picture, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
+import { type SectionPhoto, sectionPicture } from "../imagery";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { href, type PageId } from "../routes";
@@ -52,27 +53,46 @@ export function PageShell({
 	);
 }
 
-/** The page's one H1. Copy approval is tracked in the CMS, never shown to visitors. */
+/**
+ * The page's one H1. Copy approval is tracked in the CMS, never shown to visitors. With a `photo`
+ * it sits in the right column on a wide screen and under the text on a phone; the H1 stays the LCP.
+ */
 export function PageHero({
 	locale,
 	overline,
 	title,
 	lead,
+	photo,
 	children,
 }: {
 	locale: Locale;
 	overline: string;
 	title: string;
 	lead?: string;
+	photo?: SectionPhoto;
 	children?: Child;
 }): JSX.Element {
+	const text = (
+		<>
+			<p class="eq-overline">{overline}</p>
+			<h1 class="display eq-h2 eq-h2--xl mt-6 max-w-4xl text-ink">{title}</h1>
+			{lead ? <p class="mt-8 max-w-2xl text-body text-ink-muted">{lead}</p> : null}
+			{children}
+		</>
+	);
 	return (
 		<section class="relative overflow-hidden border-b border-line">
 			<div class="relative mx-auto max-w-6xl px-5 pb-20 pt-32 md:pb-24 md:pt-44">
-				<p class="eq-overline">{overline}</p>
-				<h1 class="display eq-h2 eq-h2--xl mt-6 max-w-4xl text-ink">{title}</h1>
-				{lead ? <p class="mt-8 max-w-2xl text-body text-ink-muted">{lead}</p> : null}
-				{children}
+				{photo === undefined ? (
+					text
+				) : (
+					<div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-end">
+						<div class="lg:col-span-8">{text}</div>
+						<figure class="pz-photo eq-photo aspect-[4/3] w-full max-w-md sm:aspect-[4/5] sm:max-w-xs lg:col-span-4 lg:max-w-none">
+							<Picture {...sectionPicture(locale, photo)} eager />
+						</figure>
+					</div>
+				)}
 			</div>
 		</section>
 	);

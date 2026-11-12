@@ -8,6 +8,8 @@ export interface ArticleCardProps {
 	title: string;
 	href: string;
 	image?: string;
+	/** What `image` shows; empty marks it decorative (the card's title already names the article). */
+	imageAlt?: string;
 	/** A responsive photograph (3:2); preferred over `image`. Without either, ambient art. */
 	picture?: PictureSpec;
 	topic?: string;
@@ -23,6 +25,7 @@ export function ArticleCard({
 	title,
 	href,
 	image,
+	imageAlt = "",
 	picture,
 	topic,
 	excerpt,
@@ -39,7 +42,7 @@ export function ArticleCard({
 				{picture ? (
 					<Picture {...picture} class="pz-article__picture" imgClass="pz-article__img" />
 				) : image ? (
-					<img src={image} alt="" />
+					<img src={image} alt={imageAlt} loading="lazy" decoding="async" />
 				) : (
 					<AmbientField intensity="high" style={{ height: "100%" }} />
 				)}

@@ -6,7 +6,7 @@ authorization model and the hosting decision are in `docs/plans/scheduling.md`.
 | Part | Where |
 | --- | --- |
 | Domain, pure functions: wall time and DST (`time.ts`), slot generation (`slots.ts`), what blocks a calendar (`conflicts.ts`), the hold/request/appointment lifecycle (`lifecycle.ts`), retention, reminders (interface), contact rules, references and codes | `src/domain/` |
-| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffSetup.createPractitioner / updatePractitioner / createService / setDayRules / addDaysOff` (the team's setup: the first create also makes the tenant, so production needs no seed; each records the acting staff subject), `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
+| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffRooms.createRoom / updateRoom / addRoomClosure / removeRoomClosure / rooms`, `staffSchedule.setAlternating / setPeriod / removePeriod`, `staffBoard.board` (the staff calendar's data), `staffClients.importClients / createClient / clients / linkClient / eraseClient`, `staffSetup.createPractitioner / updatePractitioner / createService / setDayRules / addDaysOff` (the team's setup: the first create also makes the tenant, so production needs no seed; each records the acting staff subject), `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
 | Server clients for Hono apps (`ConvexHttpClient`, every answer parsed with zod, a deadline per call) | `src/client.ts` (visitor), `src/staff-client.ts` (team) |
 | Configuration from the environment | `src/config.ts` |
 
@@ -81,6 +81,7 @@ pnpm --filter @psi/scheduling exec vitest run --maxWorkers=2
   the October repeat, 23- and 25-hour days), checked against `Intl`; rules, exceptions, buffers,
   notice, horizon and modes.
 - `lifecycle.test.ts`: the state machine, hold expiry, what blocks, retention, codes, contact rules.
+- `rooms-schedules.test.ts` (pure): alternating weeks A/B, period schedules that replace the regular week, buffers, DST weeks, room suitability and room conflicts, closures across a 23-hour day. `staff-rooms.test.ts` and `clients.test.ts`: the same and the client import against the local backend (rooms never double-booked under racing holds' room reads, contractors invisible to visitors, dry run writes nothing, duplicates by phone/e-mail/guardian).
 - `staff-setup.test.ts`: against the local backend, in an empty `test-setup-…` tenant like production's first day: creating the tenant, practitioners, services, regular hours, days off, every refusal writing nothing, idempotent repeats, the server key.
 - `convex.test.ts`: against the local backend, in a throwaway `test-…` tenant (internal fixture,
   dropped afterwards): twelve identical and ten overlapping holds racing from separate clients,
@@ -98,9 +99,16 @@ an Argo PostSync Job running `apps/scheduling-deploy/deploy.sh` from the image C
 
 OpenBao (`secret/apps/scheduling/env`: `INSTANCE_NAME`, `INSTANCE_SECRET`, `PSI_SCHEDULING_KEY`;
 `secret/apps/scheduling/admin`: `CONVEX_SELF_HOSTED_ADMIN_KEY`) and the rows in `estate/APP-SECRETS.md`.
-The admin key is derived by the running backend, so it is written after the first start, without echo:
+The admin key is derived from `INSTANCE_NAME` + `INSTANCE_SECRET`, so it is computed locally, with no
+cluster access and no echo (`tools/scheduling/admin-key.sh`; the values go in over stdin, never argv):
 
 ```sh
-kubectl -n scheduling exec scheduling-backend-0 -c backend -- sh -c 'cd /work && ./generate_admin_key.sh' \
-  | tail -n 1 | tr -d '\n' | bao kv put secret/apps/scheduling/admin CONVEX_SELF_HOSTED_ADMIN_KEY=-
+bao kv get -format=json secret/apps/scheduling/env \
+  | jq -r '.data.data | "INSTANCE_NAME=\(.INSTANCE_NAME)\nINSTANCE_SECRET=\(.INSTANCE_SECRET)"' \
+  | tools/scheduling/admin-key.sh \
+  | bao kv put secret/apps/scheduling/admin CONVEX_SELF_HOSTED_ADMIN_KEY=-
 ```
+
+The backend image is built by CI from `apps/scheduling-backend/Dockerfile` (upstream Convex backend,
+pinned by digest, permissions fixed for a non-root user); the CMS reads the store with
+`CONVEX_URL` + the optional `cms-scheduling` Secret (`PSI_SCHEDULING_KEY`).

@@ -283,6 +283,46 @@ function readOrdinal(folded: string): number | undefined {
 	return undefined;
 }
 
+const GENERIC = new Set([
+	"serviciu",
+	"service",
+	"sedinta",
+	"session",
+	"programare",
+	"initiala",
+	"initial",
+	"prima",
+	"first",
+]);
+
+function tokensOf(name: { ro: string; en: string }): string[] {
+	return [...new Set([...fold(name.ro).split(" "), ...fold(name.en).split(" ")])].filter(
+		(t) => t.length >= 5 && !GENERIC.has(t),
+	);
+}
+
+/**
+ * The words that name one service in a message: its full name in either language, or a distinctive
+ * word of it that no other service's name shares ("neurofeedback" in "Sedinta de neurofeedback").
+ */
+export function serviceWords(
+	slug: string,
+	names: Readonly<Record<string, { ro: string; en: string }>>,
+): RegExp | undefined {
+	const own = names[slug];
+	if (own === undefined) return undefined;
+	const others = new Set(
+		Object.entries(names)
+			.filter(([k]) => k !== slug)
+			.flatMap(([, n]) => tokensOf(n)),
+	);
+	const quote = (x: string): string => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const parts = [fold(own.ro), fold(own.en), ...tokensOf(own).filter((t) => !others.has(t))].filter(
+		(x) => x !== "",
+	);
+	return parts.length === 0 ? undefined : new RegExp(`\\b(${parts.map(quote).join("|")})\\b`);
+}
+
 /**
  * Reads what the message says about the booking. `today` is the local day (`YYYY-MM-DD`) that
  * "tomorrow" and "next week" count from; `refining` is true inside a booking conversation, where
@@ -293,6 +333,7 @@ export function readWish(
 	today: string,
 	services: ReadonlyArray<string>,
 	refining: boolean,
+	names: Readonly<Record<string, { ro: string; en: string }>> = {},
 ): Wish {
 	const folded = fold(question)
 		.replace(/\bbuna (dimineata|ziua|seara)\b/g, " ")
@@ -337,7 +378,7 @@ export function readWish(
 		wish.asksServices = true;
 	}
 	for (const slug of services) {
-		const word = SERVICE_WORDS[slug];
+		const word = SERVICE_WORDS[slug] ?? serviceWords(slug, names);
 		if (word?.test(text) === true || text.includes(` ${slug} `)) wish.service = slug;
 	}
 	return wish;

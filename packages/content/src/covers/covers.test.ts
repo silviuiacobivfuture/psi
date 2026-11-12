@@ -13,8 +13,7 @@ const CREDITS = JSON.parse(
 	readFileSync(new URL("../../../design/imagery/credits.json", import.meta.url), "utf8"),
 ) as { images: ReadonlyArray<{ name: string; licence: string }> };
 
-// The topic photo pools land in the next release; this release ships the hand-picked covers only.
-describe.skip("topic pools", () => {
+describe("topic pools", () => {
 	it.each(TOPICS)("%s has a pool of at least four photos", (topic) => {
 		expect(poolKeys(topic).length).toBeGreaterThanOrEqual(4);
 	});
@@ -57,8 +56,7 @@ describe.skip("topic pools", () => {
 	});
 });
 
-// The topic photo pools land in the next release; this release ships the hand-picked covers only.
-describe.skip("coverKey", () => {
+describe("coverKey", () => {
 	it("is stable: the same slug always lands on the same photo", () => {
 		expect(coverKey("un-articol", "autism")).toBe(coverKey("un-articol", "autism"));
 		expect(stableHash("un-articol")).toBe(stableHash("un-articol"));
@@ -80,8 +78,7 @@ describe.skip("coverKey", () => {
 	});
 });
 
-// The topic photo pools land in the next release; this release ships the hand-picked covers only.
-describe.skip("coverFor", () => {
+describe("coverFor", () => {
 	it("gives every article a cover with alt text in both locales", () => {
 		for (const a of ARTICLES) {
 			for (const locale of LOCALES) {

@@ -33,6 +33,7 @@ export function SciencePage(props: PageProps): JSX.Element {
 			overline={msg(locale, "sc_overline")}
 			h1={msg(locale, "sc_h1")}
 			lead={msg(locale, "sc_lead")}
+			photos={{ entrain: "pianistHands", notshow: "lakeStars" }}
 			links={{ sources: SCIENCE_SOURCES }}
 			related={["method", "listen", "glossary", "safety"]}
 			articles={["eqsync-ce-este-si-ce-nu-este"]}

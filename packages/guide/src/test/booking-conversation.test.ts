@@ -84,6 +84,8 @@ describe("Psizone's guide keeps the booking context across turns", () => {
 			modes: ["onsite" as const],
 		}));
 		const port = new MemorySchedulingStore().offer("psizone", "evaluation", slots);
+		// The services come from the store, not from the profile.
+		port.catalogue = async () => [{ slug: "evaluation" }];
 		const guide = createPsiEngine({ knowledge: kb, scheduling: port }).guide("psizone");
 		const first = await collect(
 			guide.ask({

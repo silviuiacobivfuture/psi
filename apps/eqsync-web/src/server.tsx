@@ -14,6 +14,7 @@ import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
+import { pageResolver } from "./page-context";
 import { HomePage } from "./pages/home";
 import { registerPages } from "./pages/register";
 import { registerPwa } from "./pwa/routes";
@@ -72,6 +73,7 @@ for (const [locale, prefix] of [
 			labels: guideLabels(locale),
 			guide: () => guideForRequest(c, guide),
 			memory: () => accountMemory(account, c, "eqsync"),
+			page: pageResolver,
 		}),
 	);
 }

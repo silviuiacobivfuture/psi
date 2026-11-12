@@ -355,7 +355,33 @@ export const dropFixture = internalMutation({
 			for (const r of [...rules, ...exceptions]) await ctx.db.delete(r._id);
 			deleted += rules.length + exceptions.length;
 		}
-		for (const row of [...appointments, ...practitioners, ...services, ...tenants]) {
+		const rooms = await ctx.db
+			.query("rooms")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
+			.collect();
+		const clients = await ctx.db
+			.query("clients")
+			.withIndex("by_tenant_name", (q) => q.eq("tenant", args.tenant))
+			.collect();
+		for (const client of clients) {
+			const keys = await ctx.db
+				.query("clientKeys")
+				.withIndex("by_client", (q) => q.eq("client", client._id))
+				.collect();
+			for (const k of keys) await ctx.db.delete(k._id);
+			deleted += keys.length;
+			await ctx.db.delete(client._id);
+			deleted += 1;
+		}
+		for (const room of rooms) {
+			const closures = await ctx.db
+				.query("roomClosures")
+				.withIndex("by_room_date", (q) => q.eq("room", room._id))
+				.collect();
+			for (const c of closures) await ctx.db.delete(c._id);
+			deleted += closures.length;
+		}
+		for (const row of [...appointments, ...practitioners, ...services, ...rooms, ...tenants]) {
 			await ctx.db.delete(row._id);
 			deleted += 1;
 		}

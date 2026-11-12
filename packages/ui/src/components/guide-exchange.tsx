@@ -1,6 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 import {
 	type BookingOffer,
+	type GuideAction,
 	type GuideEvent,
 	isCiteOnly,
 	type RefusalReason,
@@ -8,7 +9,7 @@ import {
 } from "@psi/guide";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { GuideLabels } from "./guide-labels";
-import { GuideMessage, type GuideSource } from "./guide-message";
+import { GuideMessage, type GuideMessageAction, type GuideSource } from "./guide-message";
 
 /** What the guide is doing while it prepares an answer (the engine's optional `thinking.stage`). */
 export type ThinkingStage = NonNullable<Extract<GuideEvent, { type: "thinking" }>["stage"]>;
@@ -17,7 +18,13 @@ export type ThinkingStage = NonNullable<Extract<GuideEvent, { type: "thinking" }
 export type GuidePhase =
 	| { kind: "thinking"; stage?: ThinkingStage }
 	| { kind: "writing"; text: string }
-	| { kind: "done"; text: string; sources: ReadonlyArray<Source> }
+	| {
+			kind: "done";
+			text: string;
+			sources: ReadonlyArray<Source>;
+			/** The next steps (buttons) of the services the reply named, or the booking handoff. */
+			actions?: ReadonlyArray<GuideAction>;
+	  }
 	| { kind: "refused"; reason: RefusalReason }
 	/** Free times to book, offered in the conversation (a brand that schedules). */
 	| { kind: "booking"; offer: BookingOffer }
@@ -77,6 +84,29 @@ function sourceLink(source: Source, labels: GuideLabels): GuideSource {
 /** Citation markers ("[1]") of an answer shown without its sources (a restored transcript). */
 export function withoutCitations(text: string): string {
 	return text.replace(/\s*\[\d+(?:\s*[,–-]\s*\d+)*\]/g, "").replace(/[ \t]+([.,;:!?])/g, "$1");
+}
+
+/**
+ * Asks `text` as the visitor's own message from the field that owns this exchange's transcript
+ * (the same path as a suggestion chip), so a button can start a conversation step such as a booking.
+ */
+export function askExpression(text: string): string {
+	return `const region = el.closest('.pz-exchange')?.parentElement; const f = region?.id ? document.querySelector('form[aria-controls="' + region.id + '"]') : null; f?.dispatchEvent(new CustomEvent('psi-guide-ask', { detail: ${jsString(text)} }))`;
+}
+
+/** A button's address: a path on this site or an absolute https address, never a script. */
+function safeAction(href: string): string | undefined {
+	return /^\/(?![/\\])[^\s"'<>\\]*$/.test(href) || /^https?:\/\/[^\s"'<>\\]+$/.test(href)
+		? href
+		: undefined;
+}
+
+function actionButtons(actions: ReadonlyArray<GuideAction>): ReadonlyArray<GuideMessageAction> {
+	return actions.flatMap((a): ReadonlyArray<GuideMessageAction> => {
+		if (a.kind === "ask") return [{ label: a.label, onClick: askExpression(a.text) }];
+		const href = safeAction(a.href);
+		return href === undefined ? [] : [{ label: a.label, href }];
+	});
 }
 
 /** A link the answer may carry: a path on this site, never another origin or a script. */
@@ -220,7 +250,10 @@ function Reply({
 			);
 		case "done":
 			return (
-				<GuideMessage sources={phase.sources.map((s) => sourceLink(s, labels))}>
+				<GuideMessage
+					sources={phase.sources.map((s) => sourceLink(s, labels))}
+					actions={actionButtons(phase.actions ?? [])}
+				>
 					<span class="pz-stream" data-done="">
 						<Paragraphs text={restored === true ? withoutCitations(phase.text) : phase.text} />
 					</span>

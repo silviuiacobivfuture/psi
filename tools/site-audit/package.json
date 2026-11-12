@@ -1,6 +1,6 @@
 {
 	"name": "@psi/site-audit",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"private": true,
 	"type": "module",
 	"description": "Lossless export, crawl and rule-based content audit of psizone.ro, eq-sync.ro and hemi-sync.ro before the rebuild",

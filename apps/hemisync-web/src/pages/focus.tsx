@@ -54,7 +54,7 @@ export function FocusPage(props: PageProps): JSX.Element {
 			<section class="mx-auto max-w-7xl px-6 py-20 md:px-14 md:py-28">
 				<FocusLevels locale={locale} />
 			</section>
-			<DocSections page="focus" locale={locale} />
+			<DocSections page="focus" locale={locale} photos={{ s02: "mistHill", s06: "whiteMist" }} />
 			<Band overline={m.nav_programmes({}, o)} title={m.fo_map_title({}, o)} wash>
 				<a class="pz-tap text-link text-body" href={programmeHref(locale, "gateway-voyage")}>
 					{m.gateway_title({}, o)}

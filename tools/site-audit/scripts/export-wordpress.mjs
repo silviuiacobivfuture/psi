@@ -153,7 +153,7 @@ async function writeDocs(dir, items, extra = () => ({})) {
 			words: body.split(/\s+/).filter(Boolean).length,
 			...extra(it),
 		});
-		await fs.writeFile(path.join(OUT, dir, `${slug}.md`), `${fm + body}\n`);
+		await fs.writeFile(path.join(OUT, dir, `${slug}.md`), fm + body + "\n");
 	}
 }
 
@@ -314,7 +314,7 @@ async function main() {
 	];
 	await fs.writeFile(
 		path.join(OUT, "redirects.csv"),
-		`${rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")}\n`,
+		rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n") + "\n",
 	);
 
 	const summary = {

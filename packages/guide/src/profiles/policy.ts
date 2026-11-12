@@ -89,8 +89,8 @@ export const NEXT_STEP_PHRASES: ReadonlyArray<string> = [
  */
 export const FOLLOW_UP_TOPICS: Readonly<Record<Brand, Readonly<Record<Locale, string>>>> = {
 	psizone: {
-		ro: "Dacă pui o întrebare de continuare, e despre evaluare, prima discuție la telefon sau programare.",
-		en: "If you ask a follow-up question, it is about the evaluation, the first phone call or booking.",
+		ro: "Dacă pui o întrebare de continuare, e despre pentru cine este, evaluare, prima discuție la telefon sau programare.",
+		en: "If you ask a follow-up question, it is about who it is for, the evaluation, the first phone call or booking.",
 	},
 	eqsync: {
 		ro: "EQ-SYNC e un program audio pe care îl asculți singur, cu căști: nu există întâlniri sau ședințe cu cineva. Dacă pui o întrebare de continuare, e despre prima zi, exerciții, căști sau protocoalele de după.",
@@ -101,7 +101,7 @@ export const FOLLOW_UP_TOPICS: Readonly<Record<Brand, Readonly<Record<Locale, st
 		en: "If you ask a follow-up question, it is about the programmes, the workshops or the free exercises.",
 	},
 	blog: {
-		ro: "Dacă pui o întrebare de continuare, e despre articole: o temă, un articol anume sau cum le revizuim.",
-		en: "If you ask a follow-up question, it is about the articles: a topic, one article or how we review them.",
+		ro: "Dacă pui o întrebare de continuare, e despre ce îl aduce pe om aici: pentru cine este, ce a încercat deja, o temă sau un articol.",
+		en: "If you ask a follow-up question, it is about what brings the person here: who it is for, what they have already tried, a topic or an article.",
 	},
 };

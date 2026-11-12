@@ -22,6 +22,36 @@ export const IMAGES = {
 			{ width: 768, src: "/assets/images/eq-hero-headphones-768.a21b12c649.jpg" },
 		],
 	},
+	lakeStars: {
+		width: 960,
+		height: 1200,
+		placeholder: "#080808",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-lake-stars-480.692c2f217c.avif" },
+			{ width: 960, src: "/assets/images/eq-lake-stars-960.cf9752d0fc.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-lake-stars-480.d338bc329f.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-lake-stars-480.9026025fb7.jpg" },
+		],
+	},
+	lampNight: {
+		width: 960,
+		height: 1200,
+		placeholder: "#283828",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-lamp-night-480.42024a2d81.avif" },
+			{ width: 960, src: "/assets/images/eq-lamp-night-960.f49a36f3c8.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-lamp-night-480.82c2df3fc0.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-lamp-night-480.b83d417c25.jpg" },
+		],
+	},
 	method: {
 		width: 1200,
 		height: 800,
@@ -41,6 +71,156 @@ export const IMAGES = {
 			{ width: 768, src: "/assets/images/eq-method-headphones-768.2fc8f4395d.jpg" },
 		],
 	},
+	moonHalo: {
+		width: 960,
+		height: 1200,
+		placeholder: "#080808",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-moon-halo-480.a72731d0e6.avif" },
+			{ width: 960, src: "/assets/images/eq-moon-halo-960.24d18cf57c.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-moon-halo-480.28b83ee897.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-moon-halo-480.a0637e6a1c.jpg" },
+		],
+	},
+	moonTrees: {
+		width: 960,
+		height: 1200,
+		placeholder: "#182818",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-moon-trees-480.616e54719f.avif" },
+			{ width: 960, src: "/assets/images/eq-moon-trees-960.1ffb6bdcd3.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-moon-trees-480.85731da805.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-moon-trees-480.0fcbfb0f37.jpg" },
+		],
+	},
+	mountainNight: {
+		width: 960,
+		height: 1200,
+		placeholder: "#081848",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-mountain-night-480.a7b72df25f.avif" },
+			{ width: 960, src: "/assets/images/eq-mountain-night-960.f79d967b0a.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-mountain-night-480.7c0ff7d9bc.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-mountain-night-480.edd550c369.jpg" },
+		],
+	},
+	pianistHands: {
+		width: 960,
+		height: 1200,
+		placeholder: "#383838",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-pianist-hands-480.8eecb0f4c5.avif" },
+			{ width: 960, src: "/assets/images/eq-pianist-hands-960.e3c8140891.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-pianist-hands-480.25f1d74f47.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-pianist-hands-480.6ccdead849.jpg" },
+		],
+	},
+	purpleSky: {
+		width: 960,
+		height: 1200,
+		placeholder: "#080808",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-purple-sky-480.cb6e3d8760.avif" },
+			{ width: 960, src: "/assets/images/eq-purple-sky-960.6b89483056.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-purple-sky-480.63a9e511c4.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-purple-sky-480.0a8e81a8fe.jpg" },
+		],
+	},
+	quietLights: {
+		width: 960,
+		height: 1200,
+		placeholder: "#181828",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-quiet-lights-480.73476192ef.avif" },
+			{ width: 960, src: "/assets/images/eq-quiet-lights-960.afdee760c9.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-quiet-lights-480.f54b454aed.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-quiet-lights-480.1d83691936.jpg" },
+		],
+	},
+	readingBlanket: {
+		width: 960,
+		height: 1200,
+		placeholder: "#f8f8f8",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-reading-blanket-480.2f2875806c.avif" },
+			{ width: 960, src: "/assets/images/eq-reading-blanket-960.1a23b27af2.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-reading-blanket-480.be9476e59a.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-reading-blanket-480.9498c8dc5b.jpg" },
+		],
+	},
+	starsBlue: {
+		width: 960,
+		height: 1200,
+		placeholder: "#080818",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-stars-blue-480.de040edc44.avif" },
+			{ width: 960, src: "/assets/images/eq-stars-blue-960.dbaf779386.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-stars-blue-480.62f9e81837.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-stars-blue-480.a8ec4b4458.jpg" },
+		],
+	},
+	turntableDark: {
+		width: 960,
+		height: 1200,
+		placeholder: "#282828",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-turntable-dark-480.91abdd6cde.avif" },
+			{ width: 960, src: "/assets/images/eq-turntable-dark-960.b1a990dfc8.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-turntable-dark-480.0884eca8dd.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-turntable-dark-480.b910aa367b.jpg" },
+		],
+	},
+	vinylGrado: {
+		width: 960,
+		height: 1200,
+		placeholder: "#684838",
+		avif: [
+			{ width: 480, src: "/assets/images/eq-vinyl-grado-480.24047ab23e.avif" },
+			{ width: 960, src: "/assets/images/eq-vinyl-grado-960.14038dba7c.avif" },
+		],
+		webp: [
+			{ width: 480, src: "/assets/images/eq-vinyl-grado-480.a3f4ec41bf.webp" },
+		],
+		jpeg: [
+			{ width: 480, src: "/assets/images/eq-vinyl-grado-480.1845d94e9e.jpg" },
+		],
+	},
 } as const satisfies Record<string, ImageAsset>;
 
 export type ImageKey = keyof typeof IMAGES;
@@ -57,6 +237,24 @@ export const IMAGE_CREDITS: ReadonlyArray<ImageCredit> = [
 		modifications: "Cropped to the slot's ratio, resized to responsive widths and re-encoded as AVIF, WebP and JPEG with metadata stripped",
 	},
 	{
+		title: "Stars in a lake",
+		author: "Wil Stewart",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Stars_in_a_lake_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Dark Walk Alone",
+		author: "Sven Scheuermeier",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Dark_Walk_Alone_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
 		title: "Lee Campbell 2017-01-17",
 		author: "Lee Campbell",
 		sourceUrl: "https://commons.wikimedia.org/wiki/File:Lee_Campbell_2017-01-17_(Unsplash).jpg",
@@ -64,5 +262,95 @@ export const IMAGE_CREDITS: ReadonlyArray<ImageCredit> = [
 		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
 		attributionRequired: false,
 		modifications: "Cropped to the slot's ratio, resized to responsive widths and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Moon with a halo around",
+		author: "Hoàng Duy Lê",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Moon_with_a_halo_around_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Yellow moon through treetops",
+		author: "Noah Silliman",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Yellow_moon_through_treetops_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Starry sky over rough mountains",
+		author: "Korney Violin",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Starry_sky_over_rough_mountains_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Pianist's hands in black and white",
+		author: "Jamille Queiroz",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Pianist's_hands_in_black_and_white_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Sublime purple night sky",
+		author: "Vincentiu Solomon",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Sublime_purple_night_sky_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Quiet Moments",
+		author: "Niti K.",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Quiet_Moments_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Getting cozy with a book",
+		author: "Alice Hampson",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Getting_cozy_with_a_book_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Stars Dark Blue Night",
+		author: "Paul Volkmer",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Stars_Dark_Blue_Night_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Top view of a turntable",
+		author: "Mink Mingle",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Top_view_of_a_turntable_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
+	},
+	{
+		title: "Vinyl + Grado Headphones",
+		author: "Mark Solarski",
+		sourceUrl: "https://commons.wikimedia.org/wiki/File:Vinyl_+_Grado_Headphones_(Unsplash).jpg",
+		licence: "CC0 1.0",
+		licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+		attributionRequired: false,
+		modifications: "Cropped to the slot's ratio, resized to 480 and 960 px wide and re-encoded as AVIF, WebP and JPEG with metadata stripped",
 	},
 ];

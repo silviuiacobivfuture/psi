@@ -79,6 +79,7 @@ export function FaqPage(props: PageProps): JSX.Element {
 				overline={msg(locale, "fx_overline")}
 				title={msg(locale, "fx_h1")}
 				lead={msg(locale, "fx_lead")}
+				photo="purpleSky"
 			>
 				<nav aria-label={m.c_faq_group_nav({}, o)} class="mt-10">
 					<ul class="flex flex-wrap gap-x-6 gap-y-3 text-body-sm text-ink-muted">

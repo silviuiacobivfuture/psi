@@ -29,6 +29,7 @@ import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import { at, type Locale } from "./i18n";
+import { pageResolver } from "./page-context";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
 import { PreparingPage, TeamPage } from "./pages/simple";
@@ -53,7 +54,15 @@ if (!SCHEDULING.ok && SCHEDULING.problem !== "no_url") {
 	console.error(`scheduling: off (${SCHEDULING.problem})`);
 }
 const scheduling = SCHEDULING.ok ? SCHEDULING.scheduling.client : undefined;
-const EVALUATION = { tenant: "psizone", service: "evaluation" } as const;
+const TENANT = "psizone";
+
+/** The service the contact page offers times for: the store's first active one (an "evaluation" when it has one), or none. */
+async function bookableService(): Promise<string | undefined> {
+	if (scheduling === undefined) return undefined;
+	const found = await scheduling.services(TENANT);
+	const slugs = found?.services.map((s) => s.slug) ?? [];
+	return slugs.find((s) => s === "evaluation") ?? slugs[0];
+}
 const TWO_WEEKS_MS = 14 * 86_400_000;
 
 function schedulingFailed(error: unknown): void {
@@ -65,9 +74,12 @@ function schedulingFailed(error: unknown): void {
 async function evaluationSlots(locale: Locale): Promise<ReadonlyArray<SlotDay>> {
 	if (scheduling === undefined) return [];
 	try {
+		const service = await bookableService();
+		if (service === undefined) return [];
 		const now = Date.now();
 		const found = await scheduling.findSlots({
-			...EVALUATION,
+			tenant: TENANT,
+			service,
 			from: now,
 			to: now + TWO_WEEKS_MS,
 			limit: 24,
@@ -218,8 +230,11 @@ for (const [locale, prefix] of [
 			);
 		if (slot === undefined) return retry();
 		try {
+			const service = await bookableService();
+			if (service === undefined) return retry();
 			const held = await scheduling.hold({
-				...EVALUATION,
+				tenant: TENANT,
+				service,
 				practitioner: slot.practitioner,
 				start: slot.start,
 				mode: slot.mode,
@@ -320,6 +335,7 @@ for (const [locale, prefix] of [
 			}),
 			guide: () => guideForRequest(c, guide),
 			memory: () => accountMemory(account, c, "psizone"),
+			page: pageResolver,
 		});
 	});
 }

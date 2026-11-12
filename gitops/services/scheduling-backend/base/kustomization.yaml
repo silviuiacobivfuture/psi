@@ -8,6 +8,7 @@ kind: Kustomization
 namespace: scheduling
 resources:
   - resourcequota.yaml
+  - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
   - pvc.yaml
   - statefulset.yaml

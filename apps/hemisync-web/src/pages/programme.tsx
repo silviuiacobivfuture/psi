@@ -2,6 +2,7 @@ import { OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { prices } from "../cms";
 import { at } from "../i18n";
+import type { SectionPhoto } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { href, type ProgrammeSlug } from "../routes";
 import { FromTheBlog } from "../sections/blog";
@@ -16,6 +17,13 @@ const PAGE: Readonly<Record<ProgrammeSlug, string>> = {
 	"gateway-voyage": "pgv",
 	"sync-creation": "psc",
 	"lucid-dreaming": "pld",
+};
+
+/** The photograph under one section of each programme page. */
+const PHOTOS: Readonly<Record<ProgrammeSlug, Readonly<Record<string, SectionPhoto>>>> = {
+	"gateway-voyage": { s03: "valleyMist" },
+	"sync-creation": { s02: "cloudHill" },
+	"lucid-dreaming": { s02: "frostFirs" },
 };
 
 /**
@@ -41,7 +49,7 @@ export function ProgrammePage(props: PageProps & { slug: ProgrammeSlug }): JSX.E
 			description={s.description}
 		>
 			<PageHero locale={locale} overline={card?.eyebrow ?? ""} title={title} lead={card?.text} />
-			<DocSections page={page} locale={locale} wash={false} />
+			<DocSections page={page} locale={locale} wash={false} photos={PHOTOS[slug]} />
 			{slug === "gateway-voyage" ? (
 				<Band overline={m.pr_explore_overline({}, o)} title={m.pr_explore_title({}, o)}>
 					<FocusLevels locale={locale} />

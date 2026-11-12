@@ -5,40 +5,40 @@ type Copy = Readonly<Record<Brand, Readonly<Record<Locale, string>>>>;
 /** Three questions to start from, per brand: the end of the welcome and of the follow-up line. */
 const EXAMPLES: Copy = {
 	psizone: {
-		ro: "„Cum fac o programare?”, „Ce date cere formularul?” sau „Cum decurge prima discuție?”",
-		en: '"How do I book an evaluation?", "What does the request form ask for?" or "How does the first conversation go?"',
+		ro: "„Am o îngrijorare legată de copilul meu”, „Vreau o evaluare” sau „Cât costă o evaluare?”",
+		en: '"I\'m worried about my child", "I\'d like an evaluation" or "How much does an evaluation cost?"',
 	},
 	eqsync: {
-		ro: "„Cum funcționează programul gratuit?”, „Ce căști îmi trebuie?” sau „Ce se întâmplă după cele 21 de zile?”",
-		en: '"How does the free programme work?", "What headphones do I need?" or "What happens after the 21 days?"',
+		ro: "„Vreau mai multă liniște seara”, „Cum încep programul gratuit?” sau „Ce căști îmi trebuie?”",
+		en: '"I want more calm in the evening", "How do I start the free programme?" or "What headphones do I need?"',
 	},
 	hemisync: {
-		ro: "„Ce exerciții gratuite aveți?”, „Ce sunt nivelurile Focus?” sau „Cum funcționează clubul?”",
-		en: '"Which exercises are free?", "What are the Focus levels?" or "How does the club work?"',
+		ro: "„Vreau să încerc meditația”, „Cu ce program să încep?” sau „Ce exerciții sunt gratuite?”",
+		en: '"I\'d like to try meditation", "Which programme should I start with?" or "Which exercises are free?"',
 	},
 	blog: {
-		ro: "„Cum sunt revizuite articolele?”, „Ce articole aveți despre somn?” sau „Cum urmăresc articolele unui singur site?”",
-		en: '"How are the articles reviewed?", "Which articles do you have about sleep?" or "How do I follow one site\'s articles?"',
+		ro: "„Caut ajutor pentru copilul meu”, „Nu dorm bine, ce pot face?” sau „Vreau să fac o programare”",
+		en: '"I\'m looking for help for my child", "I don\'t sleep well, what can I do?" or "I\'d like to book an appointment"',
 	},
 };
 
 /** Who the guide is and what it helps with, before the examples. */
 const INTROS: Copy = {
 	psizone: {
-		ro: "Bună, mă bucur că ai scris. Sunt ghidul Psizone și te pot ajuta cu întrebări despre programări, despre cum lucrăm și despre paginile noastre. De exemplu, mă poți întreba:",
-		en: "Hello, I'm glad you wrote. I'm the Psizone guide, and I can help with questions about appointments, how we work and what our pages cover. For example, you could ask:",
+		ro: "Bună, mă bucur că ai scris. Sunt ghidul Psizone: te ascult, îți spun ce putem face pentru tine și te ajut să începi, de la o întrebare la o programare. De exemplu, mă poți întreba:",
+		en: "Hello, I'm glad you wrote. I'm the Psizone guide: I'll listen, tell you what we can do for you and help you start, from a question to a booking. For example, you could ask:",
 	},
 	eqsync: {
-		ro: "Bună. Sunt ghidul EQ-SYNC și te pot ajuta cu întrebări despre program, exerciții, căști și contul tău. De exemplu:",
-		en: "Hi. I'm the EQ-SYNC guide, and I can help with questions about the programme, the exercises, headphones and your account. For example:",
+		ro: "Bună. Sunt ghidul EQ-SYNC: te ajut să vezi dacă programul gratuit ți se potrivește și cum începi, plus întrebări despre exerciții și căști. De exemplu:",
+		en: "Hi. I'm the EQ-SYNC guide: I'll help you see whether the free programme suits you and how to start, plus questions about the exercises and headphones. For example:",
 	},
 	hemisync: {
-		ro: "Bună. Sunt ghidul Hemi-Sync și te pot ajuta cu întrebări despre programe, exercițiile gratuite, ateliere și club. De exemplu:",
-		en: "Hello. I'm the Hemi-Sync guide, and I can help with questions about the programmes, the free exercises, workshops and the club. For example:",
+		ro: "Bună. Sunt ghidul Hemi-Sync: te ajut să alegi un exercițiu gratuit sau un program și să începi explorarea. De exemplu:",
+		en: "Hello. I'm the Hemi-Sync guide: I'll help you choose a free exercise or a programme and begin exploring. For example:",
 	},
 	blog: {
-		ro: "Bună. Sunt ghidul blogului și te pot ajuta să găsești articole și să afli cum le scriem și le revizuim. De exemplu:",
-		en: "Hello. I'm the blog's guide, and I can help you find articles and learn how we write and review them. For example:",
+		ro: "Bună. Sunt ghidul blogului: te ajut să găsești un articol și pasul potrivit pentru tine, la Psizone, EQ-SYNC sau Hemi-Sync. De exemplu:",
+		en: "Hello. I'm the blog's guide: I'll help you find an article and the right step for you, at Psizone, EQ-SYNC or Hemi-Sync. For example:",
 	},
 };
 

@@ -6,6 +6,10 @@ export type {
 	BookingOffer,
 	BookingState,
 	ConversationStyle,
+	GuideAction,
+	PageContext,
+	PageKind,
+	PageStatus,
 	ProposedSlot,
 	RetrievalSettings,
 	SettingsProvider,
@@ -70,6 +74,23 @@ export {
 	guideOperations,
 	INGEST_WORKFLOW_KEY,
 } from "./operations";
+export {
+	articleContext,
+	articleSlugOf,
+	createPageResolver,
+	EXCERPT_CHARS,
+	excerptOf,
+	type PageRef,
+	type PageResolve,
+	type PageResolverOptions,
+	type PageSection,
+	type PageTarget,
+	parsePagePath,
+	parsePageRef,
+	type SitePage,
+	type SitePages,
+	sitePageContext,
+} from "./page-context";
 export { ALL_PSI_PROFILES, PSI_PROFILES } from "./profiles";
 export {
 	createPsiEngine,

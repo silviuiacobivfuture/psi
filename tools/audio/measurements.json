@@ -1,0 +1,101 @@
+{
+	"bitrate_kbps": 96,
+	"pieces": [
+		{
+			"slug": "seara",
+			"files": ["apps/eqsync-web/public/assets/sample.mp3"],
+			"seconds": 120,
+			"bytes": 1440818,
+			"mp3": {
+				"frames": 5002,
+				"channel_modes": [0],
+				"kbps_rate": [[96, 48000]]
+			},
+			"integrated_lufs": -21.95,
+			"true_peak_dbtp": -13.15,
+			"lr_correlation": 0.0,
+			"carriers_hz": [200.0, 150.0, 250.0],
+			"stereo_check": {
+				"left_track_max_err_hz": 0.091,
+				"right_track_max_err_hz": 0.08,
+				"beat_max_err_hz": 0.1,
+				"fft_max_err_hz": 0.0,
+				"min_beat_hz": 5.926,
+				"max_beat_hz": 10.039
+			},
+			"spectrogram": "/tmp/claude-1000/-home-dev-Documents-PERSONAL-psi/5b536c7d-dc4b-4366-9801-1de06a15d2c0/scratchpad/audio/seara-spectrogram.png"
+		},
+		{
+			"slug": "coborare",
+			"files": ["apps/hemisync-web/public/assets/demo-coborare.mp3"],
+			"seconds": 240,
+			"bytes": 2880854,
+			"mp3": {
+				"frames": 10002,
+				"channel_modes": [0],
+				"kbps_rate": [[96, 48000]]
+			},
+			"integrated_lufs": -21.94,
+			"true_peak_dbtp": -13.22,
+			"lr_correlation": -0.0,
+			"carriers_hz": [200.0, 160.0, 240.0],
+			"stereo_check": {
+				"left_track_max_err_hz": 0.083,
+				"right_track_max_err_hz": 0.102,
+				"beat_max_err_hz": 0.112,
+				"fft_max_err_hz": 0.0,
+				"min_beat_hz": 5.929,
+				"max_beat_hz": 14.042
+			},
+			"spectrogram": "/tmp/claude-1000/-home-dev-Documents-PERSONAL-psi/5b536c7d-dc4b-4366-9801-1de06a15d2c0/scratchpad/audio/coborare-spectrogram.png"
+		},
+		{
+			"slug": "respiratie",
+			"files": ["apps/hemisync-web/public/assets/demo-respiratie.mp3"],
+			"seconds": 180,
+			"bytes": 2160848,
+			"mp3": {
+				"frames": 7502,
+				"channel_modes": [0],
+				"kbps_rate": [[96, 48000]]
+			},
+			"integrated_lufs": -21.95,
+			"true_peak_dbtp": -12.49,
+			"lr_correlation": 0.002,
+			"carriers_hz": [225.0, 180.0, 150.0],
+			"stereo_check": {
+				"left_track_max_err_hz": 0.102,
+				"right_track_max_err_hz": 0.112,
+				"beat_max_err_hz": 0.137,
+				"fft_max_err_hz": 0.001,
+				"min_beat_hz": 9.863,
+				"max_beat_hz": 10.131
+			},
+			"spectrogram": "/tmp/claude-1000/-home-dev-Documents-PERSONAL-psi/5b536c7d-dc4b-4366-9801-1de06a15d2c0/scratchpad/audio/respiratie-spectrogram.png"
+		},
+		{
+			"slug": "somn",
+			"files": ["apps/hemisync-web/public/assets/demo-somn.mp3"],
+			"seconds": 300,
+			"bytes": 3600831,
+			"mp3": {
+				"frames": 12502,
+				"channel_modes": [0],
+				"kbps_rate": [[96, 48000]]
+			},
+			"integrated_lufs": -21.95,
+			"true_peak_dbtp": -13.76,
+			"lr_correlation": -0.0,
+			"carriers_hz": [187.5, 150.0, 225.0],
+			"stereo_check": {
+				"left_track_max_err_hz": 0.069,
+				"right_track_max_err_hz": 0.075,
+				"beat_max_err_hz": 0.107,
+				"fft_max_err_hz": 0.0,
+				"min_beat_hz": 2.919,
+				"max_beat_hz": 6.107
+			},
+			"spectrogram": "/tmp/claude-1000/-home-dev-Documents-PERSONAL-psi/5b536c7d-dc4b-4366-9801-1de06a15d2c0/scratchpad/audio/somn-spectrogram.png"
+		}
+	]
+}

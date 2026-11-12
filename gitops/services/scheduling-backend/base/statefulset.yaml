@@ -2,16 +2,13 @@
 # ReadWriteOnce volume. A StatefulSet terminates the old pod before it creates the new one, so the
 # volume is never mounted twice.
 #
-# WHY THE `stage` INITCONTAINER: the upstream image runs as root and its binary and scripts are
-# mode 0744 root:root, so a non-root user (which the cluster's Kyverno requires) gets "Permission
-# denied" on ./convex-local-backend (verified). `stage` runs the SAME pinned image as uid 1000,
-# copies the five files (world-readable) into an emptyDir and makes them executable; the backend
-# then runs from /work. No derived image to build, and the upstream digest stays the only moving
-# part. The data directory stays /convex/data (the image's default), on the volume.
-#
-# The image is the estate's Harbor MIRROR of ghcr.io/convex/convex-backend, pinned by the linux/amd64
-# manifest digest (estate/images.list; the index digest is sha256:e9c084e8...). Mirror project is
-# public, so no pull secret.
+# THE IMAGE: registry.psizone.ro/psi/scheduling-backend, built by .github/workflows/apps.yml from
+# apps/scheduling-backend/Dockerfile: the upstream Convex backend (pinned there by its linux/amd64
+# manifest digest) with its binary and scripts made executable and /convex/data owned by uid 1000, so
+# it runs directly as a non-root user (the cluster's Kyverno requires one). CI moves the tag in the
+# overlay (images: newTag); "unbuilt" until the first build, so the pod shows ImagePullBackOff until
+# then. The `psi` Harbor project is private: harbor-pull (harbor-pull-externalsecret.yaml, shared by
+# the scheduling-deploy Job in this namespace). The data directory stays /convex/data, on the volume.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -31,6 +28,8 @@ spec:
     metadata:
       labels: { app: scheduling-backend }
     spec:
+      imagePullSecrets:
+        - name: harbor-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -61,29 +60,9 @@ spec:
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
             readOnlyRootFilesystem: true
-        - name: stage
-          image: registry.psizone.ro/mirror/ghcr.io/convex/convex-backend:d1fcbeaf939502a23a0f4b7e9095a12e84866294@sha256:edf5c02b395b17d58d0e494b401855da72bc01dda934e45552d6790fe430f368
-          command:
-            - bash
-            - -c
-            - cd /convex && cp convex-local-backend generate_key run_backend.sh read_credentials.sh generate_admin_key.sh /work/ && chmod 755 /work/*
-          volumeMounts:
-            - { name: work, mountPath: /work }
-          resources:
-            requests: { cpu: 20m, memory: 32Mi }
-            limits: { cpu: 500m, memory: 256Mi }
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities: { drop: ["ALL"] }
-            seccompProfile: { type: RuntimeDefault }
-            readOnlyRootFilesystem: true
       containers:
         - name: backend
-          image: registry.psizone.ro/mirror/ghcr.io/convex/convex-backend:d1fcbeaf939502a23a0f4b7e9095a12e84866294@sha256:edf5c02b395b17d58d0e494b401855da72bc01dda934e45552d6790fe430f368
-          command: ["/work/run_backend.sh"]
-          workingDir: /work
+          image: registry.psizone.ro/psi/scheduling-backend
           ports:
             - { name: api, containerPort: 3210 }
           envFrom:
@@ -98,7 +77,6 @@ spec:
             - { name: REDACT_LOGS_TO_CLIENT, value: "true" }
           volumeMounts:
             - { name: data, mountPath: /convex/data }
-            - { name: work, mountPath: /work }
           resources:
             # measured ~180Mi idle locally (SQLite, no load); limit leaves room for the working set
             requests: { cpu: 100m, memory: 256Mi }
@@ -106,6 +84,9 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            # verified locally: the backend writes only under /convex/data
+            readOnlyRootFilesystem: true
           startupProbe:
             httpGet: { path: /version, port: api }
             periodSeconds: 5
@@ -120,5 +101,3 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: scheduling-backend-data }
-        - name: work
-          emptyDir: { sizeLimit: 512Mi }

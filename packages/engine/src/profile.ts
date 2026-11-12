@@ -5,6 +5,13 @@ import { type RefusalReason, RefusalReasonSchema } from "./events";
 import { type RuleSet, RuleSetsSchema } from "./rules";
 import { type ProfileScheduling, ProfileSchedulingSchema } from "./scheduling/port";
 
+/** See `ProfileLocale.handoff`. */
+export interface ProfileHandoff {
+	line: string;
+	label: string;
+	href: (question: string) => string;
+}
+
 /** What a profile says in one locale: its voice, its policy rules and its allowed next steps. */
 export interface ProfileLocale {
 	/** Who the persona is and how it speaks, in this locale (from the brand book, say). */
@@ -37,6 +44,13 @@ export interface ProfileLocale {
 	 * carry without a tool result.
 	 */
 	facts?: ReadonlyArray<string>;
+	/**
+	 * Where a booking request goes when this site cannot book itself (it has no scheduling store):
+	 * `line` is the guide's warm reply, `label` the button, `href` the address that opens the
+	 * sister site's chat with the booking started (given the visitor's message, so it can carry the
+	 * service they named). The reply is sent without asking the model.
+	 */
+	handoff?: ProfileHandoff;
 	/**
 	 * The voice and policy rewritten for the owner's conversation style (warmth, length, address,
 	 * follow-ups), when the profile's own text states any of these. Called only for a style other
@@ -116,6 +130,14 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 		followUp: z.string().trim().min(1).max(600).optional(),
 		unknown: z.string().trim().min(1).max(600).optional(),
 		facts: z.array(z.string().trim().min(1).max(600)).readonly().optional(),
+		handoff: z
+			.object({
+				line: z.string().trim().min(1).max(600),
+				label: z.string().trim().min(1).max(60),
+				href: z.custom<ProfileHandoff["href"]>((value) => typeof value === "function"),
+			})
+			.strict()
+			.optional(),
 		restyle: z
 			.custom<NonNullable<ProfileLocale["restyle"]>>((value) => typeof value === "function")
 			.optional(),

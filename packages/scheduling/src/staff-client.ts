@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { api } from "../convex/_generated/api";
 import type { SchedulingConfig } from "./config";
 import type { Audience, Mode } from "./domain/catalog";
+import type { ClientInput } from "./domain/clients";
 import type { AppointmentStatus } from "./domain/conflicts";
 import type { DecisionReason } from "./domain/lifecycle";
 import { canonicalCode, makeReference } from "./domain/tokens";
@@ -10,13 +11,17 @@ import {
 	RawBoardSchema,
 	RawCalendarSchema,
 	RawChangedSchema,
+	RawClientsSchema,
 	RawClosureSchema,
+	RawCreateClientSchema,
 	RawCreatePractitionerSchema,
 	RawCreateRoomSchema,
 	RawCreateServiceSchema,
 	RawDaysOffSchema,
 	RawDecideSchema,
+	RawEraseClientSchema,
 	RawExceptionSchema,
+	RawImportSchema,
 	RawPeriodSchema,
 	RawRemovedSchema,
 	RawRemoveSchema,
@@ -30,6 +35,15 @@ import {
 	RawUpdateServiceSchema,
 	type StaffRequestSchema,
 } from "./results";
+import type {
+	DayWindow,
+	NewRoom,
+	NewService,
+	PeriodDay,
+	RoomRequirement,
+	ServiceName,
+	ServicePatch,
+} from "./staff-types";
 import { createTransport, type Transport } from "./transport";
 
 /**
@@ -62,86 +76,14 @@ export type ClosureResult = z.infer<typeof RawClosureSchema>;
 export type PeriodResult = z.infer<typeof RawPeriodSchema>;
 export type ChangedResult = z.infer<typeof RawChangedSchema>;
 export type RemovedResult = z.infer<typeof RawRemovedSchema>;
-export type BoardResult = z.infer<typeof RawBoardSchema>;
-
-/** What a room is, as the team writes it. */
-export interface NewRoom {
-	/** Lowercase letters, digits and hyphens; its key for good. */
-	slug: string;
-	name: string;
-	/** One of `ROOM_KINDS`. */
-	kind: string;
-	capacity: number;
-	suits: Audience[];
-	/** Short tags (`eeg`, `snoezelen`) a service may require. */
-	equipment: string[];
-}
-
-/** The room an onsite session of a service needs. */
-export interface RoomRequirement {
-	roomKind: string;
-	roomEquipment?: string[];
-	roomAudiences?: Audience[];
-}
-
-/** One weekday of a period schedule. */
-export interface PeriodDay {
-	weekday: number;
-	windows: DayWindow[];
-}
-
-/** A service's name in both languages. */
-export interface ServiceName {
-	ro: string;
-	en: string;
-}
-
-/** What `createService` takes: every setting stated, the slug its key for good. */
-export interface NewService {
-	/** Lowercase letters, digits and hyphens (2 to 41 characters); never changes. */
-	slug: string;
-	name: ServiceName;
-	durationMinutes: number;
-	bufferMinutes: number;
-	stepMinutes: number;
-	minNoticeMinutes: number;
-	horizonDays: number;
-	holdMinutes: number;
-	modes: Mode[];
-	/** For onsite sessions: the address key the app renders. */
-	location?: string;
-	/** Practitioner ids of this tenant who offer it. */
-	practitioners: string[];
-}
-
-/** One opening of a regular day: minutes after local midnight, and the modes it offers. */
-export interface DayWindow {
-	start: number;
-	end: number;
-	modes: Mode[];
-}
 /** One row of the tenant-wide list; it never carries the account hash. */
 export type StaffRequest = z.infer<typeof StaffRequestSchema>;
 export type StaffRequestsResult = z.infer<typeof RawStaffRequestsSchema>;
-
-/** What `updateService` may change; anything left out stays as it is. */
-export interface ServicePatch {
-	name?: ServiceName;
-	durationMinutes?: number;
-	bufferMinutes?: number;
-	stepMinutes?: number;
-	minNoticeMinutes?: number;
-	horizonDays?: number;
-	holdMinutes?: number;
-	modes?: Mode[];
-	/** Practitioner ids of this tenant who offer it (replaces the list). */
-	practitioners?: string[];
-	/** The room kind an onsite session needs; null: none. */
-	roomKind?: string | null;
-	roomEquipment?: string[];
-	roomAudiences?: Audience[];
-	active?: boolean;
-}
+export type ImportResult = z.infer<typeof RawImportSchema>;
+export type CreateClientResult = z.infer<typeof RawCreateClientSchema>;
+export type ClientsResult = z.infer<typeof RawClientsSchema>;
+export type EraseClientResult = z.infer<typeof RawEraseClientSchema>;
+export type BoardResult = z.infer<typeof RawBoardSchema>;
 
 /**
  * The team's side of the store. Nothing here checks who the actor is: call it only after
@@ -297,6 +239,36 @@ export interface StaffSchedulingClient {
 		actor: StaffActor;
 	}): Promise<RemoveResult>;
 	rooms(input: { tenant: string; fromDate: string }): Promise<RoomsResult>;
+	/**
+	 * Imports clients read from the owner's CSV (`readClients`, at most 500 rows per call). With
+	 * `commit: false` nothing is written: the answer is what would be created and which rows are
+	 * duplicates (by phone, e-mail or a guardian's contact with the child's name).
+	 */
+	importClients(input: {
+		tenant: string;
+		rows: ReadonlyArray<{ line: number; client: ClientInput }>;
+		commit: boolean;
+		actor: StaffActor;
+	}): Promise<ImportResult>;
+	createClient(input: {
+		tenant: string;
+		client: ClientInput;
+		actor: StaffActor;
+	}): Promise<CreateClientResult>;
+	clients(input: { tenant: string; prefix: string }): Promise<ClientsResult>;
+	/** Links a request or appointment to a client of the same tenant. */
+	linkClient(input: {
+		tenant: string;
+		reference: string;
+		client: string;
+		actor: StaffActor;
+	}): Promise<ChangedResult>;
+	/** Erases a client and unlinks their appointments. */
+	eraseClient(input: {
+		tenant: string;
+		client: string;
+		actor: StaffActor;
+	}): Promise<EraseClientResult>;
 	/** The calendar for `days` (at most 14) from a local date. */
 	board(input: { tenant: string; fromDate: string; days: number }): Promise<BoardResult>;
 	/** Closes whole days, `from` to `to` inclusive (at most 62), for these practitioners; closed days stay as they are. */
@@ -416,6 +388,28 @@ export function staffClientOn(transport: Transport): StaffSchedulingClient {
 			),
 		rooms: (input) =>
 			transport.call(RawRoomsSchema, (c) => c.query(api.staffRooms.rooms, { key, ...input })),
+		importClients: ({ rows, ...input }) =>
+			transport.call(RawImportSchema, (c) =>
+				c.mutation(
+					api.staffClients.importClients,
+					{ key, ...input, rows: [...rows] },
+					{ skipQueue: true },
+				),
+			),
+		createClient: (input) =>
+			transport.call(RawCreateClientSchema, (c) =>
+				c.mutation(api.staffClients.createClient, { key, ...input }, { skipQueue: true }),
+			),
+		clients: (input) =>
+			transport.call(RawClientsSchema, (c) => c.query(api.staffClients.clients, { key, ...input })),
+		linkClient: (input) =>
+			transport.call(RawChangedSchema, (c) =>
+				c.mutation(api.staffClients.linkClient, { key, ...input }, { skipQueue: true }),
+			),
+		eraseClient: (input) =>
+			transport.call(RawEraseClientSchema, (c) =>
+				c.mutation(api.staffClients.eraseClient, { key, ...input }, { skipQueue: true }),
+			),
 		board: (input) =>
 			transport.call(RawBoardSchema, (c) => c.query(api.staffBoard.board, { key, ...input })),
 		createService: ({ service, ...input }) =>
@@ -448,3 +442,13 @@ export function staffClientOn(transport: Transport): StaffSchedulingClient {
 			),
 	};
 }
+
+export type {
+	DayWindow,
+	NewRoom,
+	NewService,
+	PeriodDay,
+	RoomRequirement,
+	ServiceName,
+	ServicePatch,
+} from "./staff-types";

@@ -107,6 +107,7 @@ export const RawServicesSchema = z.discriminatedUnion("ok", [
 		services: z.array(
 			z.object({
 				slug: z.string(),
+				name: z.object({ ro: z.string(), en: z.string() }).optional(),
 				durationMinutes: z.number().int().positive(),
 				modes: z.array(ModeSchema),
 				location: z.string().optional(),
@@ -405,4 +406,51 @@ export const RawStaffRequestsSchema = z.discriminatedUnion("ok", [
 		requests: z.array(StaffRequestSchema),
 	}),
 	z.object({ ok: z.literal(false), reason: z.literal("unknown_tenant") }),
+]);
+
+const DuplicateSchema = z.object({
+	line: z.number().int(),
+	with: z.enum(["file", "store"]),
+	by: z.enum(["phone", "email", "guardian"]),
+	otherLine: z.number().int().optional(),
+});
+
+/** What an import did, or with `committed: false` would do (nothing is written then). */
+export const RawImportSchema = z.discriminatedUnion("ok", [
+	z.object({
+		ok: z.literal(true),
+		committed: z.boolean(),
+		total: z.number().int(),
+		created: z.number().int(),
+		duplicates: z.array(DuplicateSchema),
+	}),
+	z.object({ ok: z.literal(false), reason: z.literal("invalid") }),
+]);
+
+export const RawCreateClientSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), id: z.string().min(1) }),
+	z.object({ ok: z.literal(false), reason: z.enum(["invalid", "duplicate"]) }),
+]);
+
+export const RawClientsSchema = z.object({
+	ok: z.literal(true),
+	clients: z.array(
+		z.object({
+			id: z.string().min(1),
+			name: z.string(),
+			kind: AudienceSchema,
+			phone: z.string().optional(),
+			email: z.string().optional(),
+			guardian: z
+				.object({ name: z.string(), phone: z.string().optional(), email: z.string().optional() })
+				.optional(),
+			staffNotes: z.string().optional(),
+			consent: z.object({ contact: z.boolean(), reminders: z.boolean() }),
+		}),
+	),
+});
+
+export const RawEraseClientSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), unlinked: z.number().int().nonnegative() }),
+	z.object({ ok: z.literal(false), reason: z.literal("not_found") }),
 ]);

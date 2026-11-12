@@ -19,7 +19,7 @@ import {
  */
 export function schedulingRules(services: ReadonlyArray<string>): ReadonlyArray<string> {
 	return [
-		`You help the visitor find a time for: ${services.join(", ")}. You do nothing else here; for any other question, say the guide on the page answers it.`,
+		`You help the visitor find a time for ${services.length === 0 ? "the practice's services" : services.join(", ")}. You do nothing else here; for any other question, say the guide on the page answers it.`,
 		`Propose only times that ${FIND_AVAILABILITY_TOOL} returned, with the date and time exactly as it gave them. Never invent, round or move a time.`,
 		`When the visitor picks one of those times, call ${REQUEST_APPOINTMENT_TOOL}. It books nothing: it shows the visitor a confirmation form. Say the request is sent only once they confirm in that form.`,
 		"Never say a time is booked, reserved or confirmed.",

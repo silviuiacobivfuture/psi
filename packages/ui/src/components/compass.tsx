@@ -12,11 +12,13 @@ import {
 	restoreOnOpen,
 	SIGNALS,
 	save,
+	send,
 	submit,
 	suggest,
 	UNPICK,
 } from "./compass-actions";
 import { type CompassGroup, matches, STAFF_KEYWORDS, staffFilter } from "./compass-match";
+import { jsString } from "./guide-exchange";
 import { GuideMessage } from "./guide-message";
 import { ArrowIcon } from "./icons";
 
@@ -88,6 +90,12 @@ export interface CompassProps {
 	staffLink?: string;
 	/** The only words the staff group's "Administrare" link answers to. */
 	staffKeywords?: ReadonlyArray<string>;
+	/**
+	 * A message the page asks the guide as the visitor's own when it loads, opening the chat: the
+	 * way another psi site hands a booking over (`?ghid=programare`). The app builds it from a
+	 * validated query, never from free text.
+	 */
+	startWith?: string;
 	class?: string;
 }
 
@@ -203,6 +211,7 @@ export function Compass({
 	tools,
 	staffLink,
 	staffKeywords = STAFF_KEYWORDS,
+	startWith,
 	class: className,
 }: CompassProps): JSX.Element {
 	const { labels } = chat;
@@ -212,7 +221,11 @@ export function Compass({
 			class={cx("pz-compass", className)}
 			aria-label={label}
 			data-signals={SIGNALS}
-			data-init={load(guideAction, chat.storageKey)}
+			data-init={
+				startWith === undefined
+					? load(guideAction, chat.storageKey)
+					: `${load(guideAction, chat.storageKey)}; ${send(guideAction, jsString(startWith), false)}`
+			}
 			data-effect={save(chat.storageKey)}
 			data-class:is-open="$compassOpen"
 			data-class:is-chat="$compassChat"

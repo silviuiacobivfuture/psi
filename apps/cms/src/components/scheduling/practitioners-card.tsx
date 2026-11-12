@@ -179,6 +179,14 @@ export function PractitionersCard({
 						placeholder={t("psi:scPracNamePlaceholder")}
 						onChange={(e) => setName(e.currentTarget.value)}
 					/>
+					<label className="psi-check">
+						<input
+							type="checkbox"
+							checked={external}
+							onChange={(e) => setExternal(e.currentTarget.checked)}
+						/>
+						{t("psi:scPracExternal")}
+					</label>
 					<button
 						className="psi-btn psi-btn--primary"
 						type="submit"

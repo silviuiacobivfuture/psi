@@ -52,6 +52,7 @@ export function ProtocolsPage(props: PageProps): JSX.Element {
 			overline={m.protocols_overline({}, o)}
 			h1={m.pp_title({}, o)}
 			lead={m.protocols_text({}, o)}
+			heroPhoto="turntableDark"
 			before={
 				<section class="mx-auto max-w-6xl px-5 pt-20 md:pt-28">
 					<p class="eq-overline">{m.pp_cat_overline({}, o)}</p>

@@ -120,6 +120,19 @@ EQ-SYNC and Hemi-Sync get the same pair (`hemisync_session_request` already exis
 - **Secrets**: the server key and the admin key live in OpenBao in the estate; locally in files
   with mode 600 under `<repo>/.data/convex/secrets` (gitignored).
 
+### Clients (staff-side records)
+
+`clients` holds the clinic's own customers for the team to link to requests and appointments: a
+name, a phone and/or e-mail (stored as the team wrote them; duplicates are found by a normalised
+phone, e-mail, or a guardian's contact with the child's name), `child`/`teen`/`adult`, a guardian
+for a minor, consent flags (contact, reminders), and a short **administrative** staff-only note
+(500 characters; never why they come: nothing clinical is asked for, imported or stored here). No
+visitor-facing function reads it. A client is kept while the relationship lasts and erased on
+request (`staffClients.eraseClient`: the record, its keys, and the link on their appointments).
+The import (`POST /api/platform/scheduling/setup/clients/import`, `calendar_manager`) takes the CSV
+template (`GET …/clients/template`), is a **dry run unless `commit: true`**, refuses bad rows with
+their line and reason, skips duplicates, and logs counts only.
+
 ## 7. Hosting Convex (the owner decides)
 
 | Option | For | Against |
@@ -178,7 +191,7 @@ through to the grounded answer, state kept for two turns.
 | --- | --- | --- | --- |
 | S1 | Owner decision: self-host (recommended) or Convex Cloud EU | section 7 | — |
 | S2 | Deploy the backend in the estate: StatefulSet, PVC, Service, NetworkPolicy, ExternalSecrets for instance secret, admin key and server key; `convex deploy` in CI with the admin key | `gitops/`, `estate/APP-SECRETS.md` | S1 |
-| S3 | Real practitioners, services and weekly rules (owner, with each person's consent to be shown) replacing the DEMO seed; an admin import | `convex/staffSetup.ts`, CMS `/admin/platform/scheduling` Setup tab | built (staff functions, studio UI); the owner enters the real people. Remaining: the chat offers only the slug `evaluation` (guide profile) |
+| S3 | Real practitioners, rooms, services and schedules (weekly, alternating A/B, periods, days off, contractors) entered by the team, replacing the DEMO seed; staff calendar; clients and a CSV import | `convex/staffSetup.ts`, `staffRooms.ts`, `staffSchedule.ts`, `staffBoard.ts`, `staffClients.ts`; CMS `/admin/platform/scheduling` (Calendar, Requests, Setup) | built; the owner enters the real people and rooms and hands over the clients CSV. The chat offers the tenant's active services from the store (catalogue, cached 60 s) |
 | S4 | Authz: add `psizone_calendar` (and the EQ-SYNC/Hemi-Sync pairs) to the manifests; staff tuples from Polaris | `apps/psizone-web/authz.manifest.json` (accounts owner) | `@psi/account` |
 | S5 | Staff console: requests to confirm or decline, calendar, exceptions, reschedule, behind `account.requireSignIn()` and `account.can("editor", resolve)` | a staff app or `/cont/echipa` | S4 |
 | S6 | Notifications: the team on a new request, the visitor on submit and decision (Plunk), reminders through `ReminderPort` | `@psi/scheduling` + a sender | S2 |

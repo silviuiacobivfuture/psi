@@ -44,6 +44,7 @@ export function StoryCard({
 			excerpt={a.status === "in-review" ? m.in_review_row({}, o) : a.standfirst[locale]}
 			picture={cover.picture}
 			image={cover.image?.src}
+			imageAlt={cover.image?.alt}
 			status={statusOf(a, locale)}
 			meta={metaOf(a, locale)}
 		/>

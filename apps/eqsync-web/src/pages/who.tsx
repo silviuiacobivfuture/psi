@@ -15,6 +15,7 @@ export function WhoPage(props: PageProps): JSX.Element {
 			overline={msg(locale, "wh_overline")}
 			h1={msg(locale, "wh_h1")}
 			lead={msg(locale, "wh_lead")}
+			photos={{ evening: "readingBlanket", sleep: "starsBlue" }}
 			related={["method", "listen", "science", "safety", "faq"]}
 			articles={["programul-gratuit-de-21-de-zile"]}
 		/>

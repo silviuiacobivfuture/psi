@@ -116,6 +116,8 @@ export const availability = query({
 					modes: r.modes,
 					...(r.validFrom === undefined ? {} : { validFrom: r.validFrom }),
 					...(r.validUntil === undefined ? {} : { validUntil: r.validUntil }),
+					...(r.week === undefined ? {} : { week: r.week }),
+					...(r.override === true ? { override: true } : {}),
 				})),
 			exceptions: [...exceptions]
 				.sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? 0) - (b.start ?? 0))

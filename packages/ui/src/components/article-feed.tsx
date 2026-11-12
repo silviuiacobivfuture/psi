@@ -66,6 +66,7 @@ export function ArticleFeed<T extends FeedArticle>({
 						title={a.title}
 						picture={pictureOf(a)}
 						image={a.cover?.kind === "url" ? a.cover.src : undefined}
+						imageAlt={a.cover?.kind === "url" ? a.cover.alt : undefined}
 						status={a.status === "draft" ? labels.draft : undefined}
 						excerpt={a.standfirst}
 						meta={labels.meta(a)}

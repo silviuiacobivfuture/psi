@@ -35,6 +35,7 @@ export function FaqPage(props: PageProps): JSX.Element {
 				<FaqBlock
 					page="faq"
 					locale={locale}
+					photos={{ g01: "mistyFirs" }}
 					after={{ g04: <Pending locale={locale}>{m.hf_safety_pending({}, o)}</Pending> }}
 				/>
 			</div>

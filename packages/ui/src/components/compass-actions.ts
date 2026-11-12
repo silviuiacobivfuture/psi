@@ -29,7 +29,11 @@ function post(action: string, payload: string): string {
  */
 export function send(action: string, question: string, fromField: boolean): string {
 	const clear = fromField ? "$compassQuery = ''; " : "";
-	const ask = post(action, "{compassOp: 'ask', compassQuery: q, compassTurns: $compassTurns}");
+	// The page the question is asked on: its path only; the server finds the page in its own content.
+	const ask = post(
+		action,
+		"{compassOp: 'ask', compassQuery: q, compassTurns: $compassTurns, compassPage: {path: window.location.pathname}}",
+	);
 	return `const q = String(${question}).trim(); if (q !== '' && q.length <= ${MAX_ASK}) { if ($compassPending !== '' && $compassPending !== q) { $compassTurns = [...$compassTurns, {role: 'user', text: $compassPending}].slice(-${MAX_TURNS}) }; ${clear}$compassPending = q; $compassChat = true; $compassOpen = true; ${ask} }`;
 }
 

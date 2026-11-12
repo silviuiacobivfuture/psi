@@ -100,6 +100,7 @@ export function SchedulingStudio({
 			<div className="psi-studio">
 				<div className="psi-studio__controls">
 					<PractitionersCard people={setup.practitioners} rooms={setup.rooms} t={t} {...common} />
+					<RoomsCard rooms={setup.rooms} today={setup.today} t={t} {...common} />
 					<ServicesCard
 						services={setup.services}
 						people={setup.practitioners}
@@ -107,7 +108,7 @@ export function SchedulingStudio({
 						t={t}
 						{...common}
 					/>
-					<RoomsCard rooms={setup.rooms} today={setup.today} t={t} {...common} />
+
 					<HoursCard
 						people={setup.practitioners}
 						services={setup.services}

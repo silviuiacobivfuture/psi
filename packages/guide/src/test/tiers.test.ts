@@ -70,6 +70,7 @@ describe("retrieval tiers in psi's guides", () => {
 			"findPage",
 			"getEntry",
 			"listTopics",
+			"recommendServices",
 			"searchKnowledge",
 			"servicesList",
 		]);

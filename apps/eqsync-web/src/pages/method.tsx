@@ -21,6 +21,7 @@ export function MethodPage(props: PageProps): JSX.Element {
 			overline={msg(locale, "mx_overline")}
 			h1={msg(locale, "mx_h1")}
 			lead={msg(locale, "mx_lead")}
+			photos={{ entrain: "turntableDark", session: "lampNight", days: "moonTrees" }}
 			before={<Method locale={locale} more={false} />}
 			after={<Path locale={locale} />}
 			related={["science", "listen", "glossary", "who", "protocols", "faq"]}
