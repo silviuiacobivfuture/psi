@@ -40,6 +40,23 @@ export interface WeeklyRule {
 	validFrom?: LocalDate;
 	/** Last date the rule applies (inclusive). */
 	validUntil?: LocalDate;
+	/** Only in the alternating week A or B (see `weekOf`); absent means every week. */
+	week?: "A" | "B";
+	/**
+	 * A period schedule: while any override rule covers a date, the practitioner's other rules do
+	 * not apply to it (school-holiday hours replace the regular week instead of adding to it).
+	 */
+	override?: boolean;
+}
+
+/** What a service needs of a room for an onsite session; absent fields ask for nothing. */
+export interface RoomNeed {
+	/** The kind of room (`therapy`, `multisensory`, `neurofeedback`, `qeeg`, `group`). */
+	kind: string;
+	/** Equipment tags the room must have. */
+	equipment: ReadonlyArray<string>;
+	/** Who the room must suit (all of them). */
+	audiences: ReadonlyArray<Audience>;
 }
 
 /**
@@ -98,6 +115,7 @@ export function ruleProblem(rule: WeeklyRule): string | undefined {
 	if (!Number.isInteger(rule.start) || !Number.isInteger(rule.end)) return "times";
 	if (rule.start < 0 || rule.end > 1440 || rule.start >= rule.end) return "times";
 	if (rule.modes.length === 0) return "a rule needs a mode";
+	if (rule.override === true && rule.validFrom === undefined) return "a period needs a start";
 	if (rule.validFrom !== undefined && rule.validUntil !== undefined) {
 		if (rule.validFrom > rule.validUntil) return "validity";
 	}

@@ -6,6 +6,7 @@ import { HUBS } from "../content/hubs";
 import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { estateGroup } from "../estate";
+import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
@@ -25,6 +26,7 @@ export function Header({
 	theme: Theme;
 }): JSX.Element {
 	const o = at(locale);
+	const copy = guideCopy(locale);
 	const b = base(locale);
 	const hub = (id: string) => HUBS.find((h) => h.id === id);
 	const hubItem = (id: string) => {
@@ -91,11 +93,10 @@ export function Header({
 				{m.skip_to_content({}, o)}
 			</a>
 			<header class="pointer-events-none absolute inset-x-0 top-0 z-40">
-				<div class="h-1.5 bg-accent" aria-hidden="true" />
-				<div class="border-b border-accent">
+				<div class="border-b border-line">
 					<div class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4">
 						<span class="pointer-events-auto">
-							<Logo size={30} href={`${b}/`} />
+							<Logo size={48} href={`${b}/`} />
 						</span>
 						<span class="pointer-events-auto ml-auto hidden min-[480px]:block">
 							<DayNight
@@ -125,9 +126,9 @@ export function Header({
 				answerId="compass-answer"
 				chat={{
 					storageKey: "psi.chat.psizone",
-					suggestions: [m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)],
+					suggestions: copy.chips,
 					labels: {
-						greeting: m.guide_intro({}, o),
+						greeting: copy.welcome,
 						disclaimer: m.guide_footer({}, o),
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),

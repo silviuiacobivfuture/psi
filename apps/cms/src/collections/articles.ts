@@ -15,6 +15,7 @@ import { authorUserField, brandField, reviewField, workflowField } from "../revi
 import { reviewGate } from "../review/gate";
 import type { ReviewSpec } from "../review/spec";
 import { announceArticle, announceDeleted } from "../webhook/hooks";
+import { seoTab } from "./article-seo";
 import { asArticleDraft, missingForPublish } from "./publishable";
 import { validator, validSlug, validStandfirst } from "./validate";
 import { BRANDS, TOPIC_LABELS, TOPICS } from "./vocabulary";
@@ -97,6 +98,9 @@ export const articleReview: ReviewSpec = {
 		"standfirst",
 		"body",
 		"sources",
+		"seo",
+		"faq",
+		"related",
 		"cover",
 		"kind",
 		"topic",
@@ -106,7 +110,9 @@ export const articleReview: ReviewSpec = {
 	],
 	// Fully unlocalised only: the body's blocks and the sources carry per-locale text, and are
 	// read per locale from the stored draft (a structural change shows in every locale's hash).
-	shared: ["slug", "cover", "kind", "topic", "brand", "author"],
+	shared: ["slug", "cover", "kind", "topic", "brand", "author", "related"],
+	// Added after articles were first approved: empty, they leave an earlier approval valid.
+	optional: ["seo", "faq", "related"],
 	titleField: "title",
 	requiredLocales: ["ro", "en"],
 	signsReviewer: true,
@@ -202,6 +208,7 @@ export const Articles: CollectionConfig = {
 						},
 					],
 				},
+				seoTab,
 				{
 					label: { ro: "Semnătură", en: "Byline" },
 					fields: [

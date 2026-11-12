@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { AI_SETTINGS_DEFAULTS, createAiSettingsClient, settingsFor } from "./ai-settings";
+import { describe, expect, it, vi } from "vitest";
+import { BEHAVIOUR_DEFAULTS } from "./ai-behaviour";
+import {
+	AI_SETTINGS_DEFAULTS,
+	ANNOUNCE_REREAD_MS,
+	createAiSettingsClient,
+	liveGuideCopy,
+	settingsFor,
+} from "./ai-settings";
 
 const group = {
 	embeddings: "lexical",
@@ -14,8 +21,27 @@ const group = {
 };
 
 describe("settingsFor", () => {
-	it("reads one site's group", () => {
-		expect(settingsFor({ blog: group }, "blog")).toEqual(group);
+	it("reads one site's group, today's behaviour when the group has none", () => {
+		expect(settingsFor({ blog: group }, "blog")).toEqual({
+			...group,
+			behaviour: BEHAVIOUR_DEFAULTS,
+		});
+	});
+	it("never turns a group unreadable over its behaviour (a newer CMS, a model this site lacks)", () => {
+		const s = settingsFor(
+			{
+				blog: {
+					...group,
+					behaviour: { version: 2, model: "acme/future", style: { warmth: "low" } },
+				},
+			},
+			"blog",
+		);
+		expect(s?.guideEnabled).toBe(false);
+		expect(s?.behaviour).toEqual({
+			...BEHAVIOUR_DEFAULTS,
+			style: { ...BEHAVIOUR_DEFAULTS.style, warmth: "low" },
+		});
 	});
 	it("is null for a group this key may not read", () => {
 		expect(settingsFor({ blog: group }, "psizone")).toBeNull();
@@ -91,5 +117,47 @@ describe("createAiSettingsClient", () => {
 		s.client.invalidate();
 		await s.client.get();
 		expect(s.calls()).toBe(2);
+	});
+	it("re-reads at once after an announcement, and once more after the CMS's save commits", async () => {
+		vi.useFakeTimers();
+		try {
+			const s = setup([ok(), ok(), ok()]);
+			await s.client.get();
+			await s.client.refreshAfterAnnounce();
+			expect(s.calls()).toBe(2);
+			await vi.advanceTimersByTimeAsync(ANNOUNCE_REREAD_MS);
+			expect(s.calls()).toBe(3);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe("liveGuideCopy", () => {
+	const defaults = {
+		welcome: "Bună.",
+		chips: ["A?", "B?", "C?"],
+		outOfScope: "Specialist.",
+		unknown: "Nu e pe site.",
+		exchangeLimit: "Pe mâine.",
+	};
+	it("is the site's own copy without a client, and the studio's lines over it with one", async () => {
+		expect(liveGuideCopy(null, "ro", defaults)).toEqual(defaults);
+		const client = createAiSettingsClient({
+			cmsUrl: "http://cms.test",
+			apiKey: "k",
+			site: "blog",
+			fetch: async () =>
+				new Response(
+					JSON.stringify({
+						blog: { ...group, behaviour: { copy: { ro: { welcome: "Salut!" } } } },
+					}),
+				),
+		});
+		// The first render never waits for the CMS: the built-in copy, while the read goes out.
+		expect(liveGuideCopy(client, "ro", defaults)).toEqual(defaults);
+		await client.get();
+		expect(liveGuideCopy(client, "ro", defaults)).toEqual({ ...defaults, welcome: "Salut!" });
+		expect(liveGuideCopy(client, "en", defaults)).toEqual(defaults);
 	});
 });

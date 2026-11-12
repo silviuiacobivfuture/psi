@@ -814,27 +814,41 @@ body {
 	border-left: 2px solid var(--glow-1);
 }
 
-/* Logo: one component, the right brand per theme. */
+/* Logo: one component, the right brand per theme. The marks are one family (see logos/). */
 .pz-logo__brand {
 	display: none;
 	align-items: center;
 	gap: 10px;
 }
 .pz-logo--auto .pz-logo__brand--psizone,
-.pz-logo--psizone .pz-logo__brand--psizone {
+.pz-logo--psizone .pz-logo__brand--psizone,
+.pz-logo--eqsync .pz-logo__brand--eqsync,
+.pz-logo--hemisync .pz-logo__brand--hemisync,
+.pz-logo--blog .pz-logo__brand--blog {
 	display: inline-flex;
 }
 [data-theme^="eqsync"] .pz-logo--auto .pz-logo__brand--psizone,
-[data-theme^="hemisync"] .pz-logo--auto .pz-logo__brand--psizone {
+[data-theme^="hemisync"] .pz-logo--auto .pz-logo__brand--psizone,
+[data-theme^="blog"] .pz-logo--auto .pz-logo__brand--psizone {
 	display: none;
 }
 [data-theme^="eqsync"] .pz-logo--auto .pz-logo__brand--eqsync,
-.pz-logo--eqsync .pz-logo__brand--eqsync {
+[data-theme^="hemisync"] .pz-logo--auto .pz-logo__brand--hemisync,
+[data-theme^="blog"] .pz-logo--auto .pz-logo__brand--blog {
 	display: inline-flex;
 }
-[data-theme^="hemisync"] .pz-logo--auto .pz-logo__brand--hemisync,
-.pz-logo--hemisync .pz-logo__brand--hemisync {
+/* The mark: lead hue for the frame and subject, the second voice for the one detail that is its own. */
+.pz-logo__mark {
+	flex: none;
+	color: var(--glow-1);
+}
+.pz-logo__mark .t2 {
+	color: var(--glow-2);
+}
+.pz-logo__stack {
 	display: inline-flex;
+	flex-direction: column;
+	gap: 0.35em;
 }
 .pz-logo__eq {
 	font: 600 1em / 1 var(--font-mono);
@@ -854,6 +868,27 @@ body {
 	text-transform: none;
 	color: var(--ink-muted);
 	margin-left: 6px;
+}
+.pz-logo__blog {
+	font: 420 1.3em / 1 var(--font-display);
+	font-variation-settings:
+		"SOFT" 100,
+		"opsz" 72;
+	letter-spacing: -0.02em;
+}
+/* "by Psizone": Psizone's compact emblem in the ink of the line, so it signs the work without recolouring it. */
+.pz-logo__by {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5em;
+	font: 500 0.78em / 1 var(--font-sans);
+	letter-spacing: 0.04em;
+	color: var(--ink-muted);
+	white-space: nowrap;
+}
+.pz-logo__by .pz-logo__mark,
+.pz-logo__by .pz-logo__mark .t2 {
+	color: currentColor;
 }
 
 /* Article card (blog) */
@@ -889,6 +924,15 @@ body {
 	object-fit: cover;
 	display: block;
 }
+.pz-article__media--photo {
+	height: auto;
+	aspect-ratio: 3 / 2;
+}
+.pz-article__picture {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
 .pz-article__body {
 	display: flex;
 	flex-direction: column;
@@ -909,9 +953,19 @@ body {
 	color: var(--ink-muted);
 }
 .pz-article__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 2px 10px;
 	margin: var(--space-2) 0 0;
 	font: 500 13px / 20px var(--font-mono);
 	color: var(--ink-muted);
+}
+.pz-article__status {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0.8;
 }
 [data-theme^="blog"] .pz-article:hover {
 	box-shadow: none;

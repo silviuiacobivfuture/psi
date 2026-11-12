@@ -502,6 +502,10 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
+    devDependencies:
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
 
   packages/design: {}
 
@@ -559,6 +563,9 @@ importers:
       '@openrouter/ai-sdk-provider':
         specifier: ^3.1.0
         version: 3.1.0(ai@7.0.170(zod@3.25.76))(zod@3.25.76)
+      '@psi/content':
+        specifier: workspace:*
+        version: link:../content
       '@psi/engine':
         specifier: workspace:*
         version: link:../engine

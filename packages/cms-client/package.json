@@ -5,7 +5,9 @@
 	"type": "module",
 	"description": "The psi sites' typed client of the shared CMS (cms.psizone.ro): articles, per-brand AI settings, signed previews and revalidation webhooks, reading counters; zod at every boundary",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./behaviour": "./src/ai-behaviour.ts",
+		"./control-contract": "./src/control/contract.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

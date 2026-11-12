@@ -59,10 +59,7 @@
 	box-shadow: 0 0 0 2px var(--focus);
 }
 
-/* Orbs become solid circles: the brand's gold for the mark, turquoise for the guide. */
-[data-finish="flat"] .pz-logo svg circle {
-	fill: var(--accent);
-}
+/* Orbs become solid circles: turquoise for the guide. */
 [data-finish="flat"] .pz-ask__orb,
 [data-finish="flat"] .pz-msg__avatar,
 [data-finish="flat"] .pz-compass__orb {

@@ -3,6 +3,39 @@
  * cms.psizone.ro. Zod at every boundary; no Payload import, so a Hono site stays React-free.
  */
 export {
+	AiBehaviour,
+	BEHAVIOUR_DEFAULTS,
+	BEHAVIOUR_VERSION,
+	behaviourFrom,
+	CHIP_MAX,
+	CHIPS,
+	CONTACT_ROUTES,
+	COPY_KEYS,
+	COPY_LINE_MAX,
+	COPY_LOCALES,
+	ConversationStyle,
+	CopyDefaults,
+	type CopyKey,
+	CREATIVITY,
+	copyWithDefaults,
+	EXTRA_INSTRUCTIONS_MAX,
+	FIXED_TEMPERATURE_MODELS,
+	FOLLOW_UPS,
+	FORMALITY,
+	GUIDE_MODELS,
+	GuideCopy,
+	type GuideModel,
+	GuideModelSchema,
+	guideCopyFor,
+	LENGTHS,
+	presetOf,
+	TONE_PRESETS,
+	TOPIC_MAX,
+	TOPICS_MAX,
+	type TonePreset,
+	WARMTH,
+} from "./ai-behaviour";
+export {
 	AI_SETTINGS_DEFAULTS,
 	AiSettings,
 	type AiSettingsClient,
@@ -11,6 +44,7 @@ export {
 	createAiSettingsClient,
 	EMBED_MODELS,
 	EmbedModelSchema,
+	liveGuideCopy,
 	SITES,
 	type Site,
 	SiteSchema,
@@ -57,6 +91,7 @@ export {
 	LastIngest,
 	PartState,
 	PersonView,
+	PREVIEW_HISTORY_TURNS,
 	PushStats,
 	PushTestRequest,
 	PushTestResult,
@@ -65,6 +100,7 @@ export {
 	StaffQuery,
 	TestAnswerLine,
 	TestQuestion,
+	TestStage,
 } from "./control/contract";
 export { type ControlPorts, handleControl } from "./control/handler";
 export {

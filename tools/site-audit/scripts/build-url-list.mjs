@@ -75,7 +75,7 @@ if (await exists("data/crawl"))
 			const r = JSON.parse(line);
 			const cur = map.get(normUrl(r.url));
 			add(r.url, {
-				crawl_file: path.join("data/crawl", site, "pages", r.slug + ".md"),
+				crawl_file: path.join("data/crawl", site, "pages", `${r.slug}.md`),
 				words: cur?.words || r.words,
 				title: cur?.title || r.title,
 				in_sitemap: r.in_sitemap ? "yes" : "no",

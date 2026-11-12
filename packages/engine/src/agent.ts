@@ -4,6 +4,7 @@ import { noopLogger } from "@mastra/core/logger";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
 import type { RequestContext } from "@mastra/core/request-context";
 import type { Memory } from "@mastra/memory";
+import { z } from "zod";
 
 /**
  * The most prompt tokens one model call may carry (instructions, passages, history). Mastra's
@@ -12,12 +13,32 @@ import type { Memory } from "@mastra/memory";
  */
 export const MAX_PROMPT_TOKENS = 12_000;
 
+/** The request-context key a turn names its answering model under (the owner's choice). */
+export const MODEL_KEY = "engine.model";
+
+const ModelSlug = z.string().min(1);
+
+/**
+ * The model one call answers with: the slug the turn put in its request context, else the
+ * engine's default (Studio, warm-up and operations calls carry no turn).
+ */
+export function turnModel(
+	modelFor: (slug: string) => MastraModelConfig,
+	fallback: string,
+): (ctx: { requestContext: RequestContext }) => MastraModelConfig {
+	return ({ requestContext }) => {
+		const asked = ModelSlug.safeParse(requestContext.get(MODEL_KEY));
+		return modelFor(asked.success ? asked.data : fallback);
+	};
+}
+
 export interface ProfileAgentOptions {
 	id: string;
 	name: string;
 	/** The default instructions; each answer replaces them with the asked locale's. */
 	instructions: string;
-	model: MastraModelConfig;
+	/** A model, or one chosen per call from the request context (see `turnModel`). */
+	model: MastraModelConfig | ((ctx: { requestContext: RequestContext }) => MastraModelConfig);
 	/** Given only to the agent that serves threads; the other one can never store anything. */
 	memory?: Memory;
 	/**

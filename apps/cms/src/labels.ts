@@ -32,6 +32,22 @@ export const L = {
 	aiDrafted: { ro: "Scris cu ajutorul AI", en: "Drafted with AI" },
 	provenance: { ro: "Proveniența faptelor", en: "Where the facts come from" },
 	provenanceEntry: { ro: "Fișier sau sursă", en: "File or source" },
+	seo: { ro: "SEO (căutare și previzualizări)", en: "SEO (search and previews)" },
+	seoTitle: { ro: "Titlu SEO (max. 65 de caractere)", en: "SEO title (≤ 65 characters)" },
+	seoDescription: {
+		ro: "Descriere SEO (70–170 de caractere)",
+		en: "SEO description (70–170 characters)",
+	},
+	seoKeywords: {
+		ro: "Cuvinte-cheie (în limba articolului)",
+		en: "Keywords (in the article's language)",
+	},
+	seoKeyword: { ro: "Cuvânt-cheie", en: "Keyword" },
+	faq: { ro: "Întrebări frecvente (max. 10)", en: "Frequently asked questions (max. 10)" },
+	faqQuestion: { ro: "Întrebare", en: "Question" },
+	faqAnswer: { ro: "Răspuns", en: "Answer" },
+	related: { ro: "Articole înrudite (max. 8)", en: "Related articles (max. 8)" },
+	relatedSlug: { ro: "Adresa (slug) articolului", en: "Article slug" },
 	review: { ro: "Revizuire (pe limbă)", en: "Review (per language)" },
 	workflow: { ro: "Flux editorial", en: "Editorial workflow" },
 	stage: { ro: "Etapă", en: "Stage" },
@@ -53,6 +69,14 @@ export const V = {
 		en: "this slug is reserved by the blog's routes",
 	},
 	standfirst: { ro: "șapoul are cel mult 60 de cuvinte", en: "the standfirst is at most 60 words" },
+	seoTitle: {
+		ro: "titlul SEO are cel mult 65 de caractere",
+		en: "the SEO title is at most 65 characters",
+	},
+	seoDescription: {
+		ro: "descrierea SEO are între 70 și 170 de caractere",
+		en: "the SEO description is 70 to 170 characters",
+	},
 	answerLength: {
 		ro: "un răspuns are între 80 și 250 de cuvinte",
 		en: "an answer is 80 to 250 words",

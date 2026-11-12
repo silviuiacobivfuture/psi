@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readBehaviour, type TurnBehaviour } from "./behaviour";
 import { within } from "./deadline";
 
 /**
@@ -29,6 +30,12 @@ export interface RetrievalSettings {
 	 * scope, PII and the accuracy gate are not configurable.
 	 */
 	screeningLevel: "standard" | "strict";
+	/**
+	 * How the profile converses (style, the team's notes, topics, model, creativity, copy).
+	 * Undefined: the profile exactly as written. Read field by field (`readBehaviour`), so an
+	 * unreadable part never discards the rest of the settings.
+	 */
+	behaviour?: TurnBehaviour;
 }
 
 export const DEFAULT_SETTINGS: RetrievalSettings = {
@@ -60,8 +67,25 @@ export const RetrievalSettingsSchema: z.ZodType<
 			.number()
 			.min(1 / 60)
 			.max(24 * 31),
+		behaviour: z.unknown().transform(readBehaviour),
 	})
 	.partial();
+
+/**
+ * The settings for one turn: the provider's, with a per-turn override on top (the control
+ * plane's preview of unsaved settings). The override is parsed like a provider's answer; when
+ * part of it is unreadable, only its behaviour is taken. It is never remembered: the next turn
+ * starts from the provider's again.
+ */
+export function settingsForTurn(base: RetrievalSettings, override: unknown): RetrievalSettings {
+	if (override === undefined || override === null) return base;
+	const parsed = RetrievalSettingsSchema.safeParse(override);
+	if (parsed.success) return { ...base, ...parsed.data };
+	const raw = z.object({ behaviour: z.unknown() }).passthrough().safeParse(override);
+	return raw.success && raw.data.behaviour !== undefined
+		? { ...base, behaviour: readBehaviour(raw.data.behaviour) }
+		: base;
+}
 
 /** Where the settings come from: the app's provider, or none (the defaults). */
 export type SettingsProvider = () => Promise<unknown>;

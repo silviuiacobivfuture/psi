@@ -1,6 +1,7 @@
 import {
 	createEngine,
 	type Engine,
+	type EngineArticles,
 	type EngineFailure,
 	type EngineOptions,
 	type EngineScore,
@@ -11,6 +12,7 @@ import {
 	type SettingsProvider,
 } from "@psi/engine";
 import type { KnowledgeStore } from "@psi/knowledge";
+import { psiArticles } from "./articles";
 import { engineCatalog } from "./catalog";
 import { BRANDS, type Brand, type Knowledge } from "./contract";
 import { knowledgeIngest } from "./ingest";
@@ -64,6 +66,12 @@ export interface PsiEngineOptions {
 	 * get a scheduling agent and Mastra registers the scheduling tools.
 	 */
 	scheduling?: SchedulingPort;
+	/**
+	 * The blog's articles the guides may list and recommend (`findArticles`), each guide only its
+	 * brands' (`ARTICLE_POLICY`); defaults to the repository's catalogue under the blog's own
+	 * visibility policy.
+	 */
+	articles?: EngineArticles;
 }
 
 /**
@@ -114,6 +122,7 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 						catalog: engineCatalog(retrieval.catalog, { demo: env.demo, sync: retrieval.sync }),
 					}),
 		}),
+		articles: options.articles ?? psiArticles(),
 		vectors: knowledgeVectors(options.knowledge),
 		...(store === undefined
 			? {}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>EQ-SYNC</title>
+<style>svg{color:#1F5FC4}.t2{color:#1F6F86}@media(prefers-color-scheme:dark){svg{color:#6FA8FF}.t2{color:#5FC4D6}}</style>
+<circle cx="32" cy="32" r="25.4" stroke-width="3.4"/><path class="t2" fill="currentColor" stroke="none" d="M32 .5c2.3 1.9 2.9 4.5 0 7.3-2.9-2.8-2.3-5.4 0-7.3z"/>
+<path d="M36.48 21.33A4.8 4.8 0 1 0 31.95 14.8A4 4 0 0 1 36.48 21.33z" fill="currentColor" stroke="none"/><path d="M15.5 34.2C18.5 29.67 20.75 29.67 23.75 34.2C26.75 38.73 29 38.73 32 34.2C35 29.67 37.25 29.67 40.25 34.2C43.25 38.73 45.5 38.73 48.5 34.2" stroke-width="3"/><path class="t2" d="M16.5 44.8C19.32 41.33 21.43 41.33 24.25 44.8C27.07 48.27 29.18 48.27 32 44.8C34.82 41.33 36.93 41.33 39.75 44.8C42.57 48.27 44.68 48.27 47.5 44.8" stroke-width="3"/>
+</svg>

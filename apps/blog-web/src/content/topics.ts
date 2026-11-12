@@ -17,6 +17,16 @@ const LABELS: Readonly<Record<Topic, Text>> = {
 	"cum-lucram": (o) => m.topic_cum_lucram({}, o),
 	"programul-eqsync": (o) => m.topic_programul_eqsync({}, o),
 	"explorarea-constiintei": (o) => m.topic_explorarea_constiintei({}, o),
+	"cuplu-familie": (o) => m.topic_cuplu_familie({}, o),
+	"post-avc": (o) => m.topic_post_avc({}, o),
+	"psiho-oncologie": (o) => m.topic_psiho_oncologie({}, o),
+	sport: (o) => m.topic_sport({}, o),
+	psihoterapie: (o) => m.topic_psihoterapie({}, o),
+	neuromodulare: (o) => m.topic_neuromodulare({}, o),
+	parinti: (o) => m.topic_parinti({}, o),
+	"creier-si-minte": (o) => m.topic_creier_si_minte({}, o),
+	"sunet-si-creier": (o) => m.topic_sunet_si_creier({}, o),
+	"meditatie-si-relaxare": (o) => m.topic_meditatie_si_relaxare({}, o),
 };
 
 /** The hub on the brand's site that a topic belongs to, when that hub is live. */

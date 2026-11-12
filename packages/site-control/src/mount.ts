@@ -2,6 +2,7 @@ import type { Account, ReservationsPort } from "@psi/account";
 import {
 	type AiSettingsClient,
 	type ControlPorts,
+	type CopyDefaults,
 	handleControl,
 	type KnowledgeStatus,
 	type PartState,
@@ -33,6 +34,11 @@ export interface SiteControlOptions {
 	scheduling: { state: PartState; reason?: string };
 	/** The Compass link's words, from the site's own messages. */
 	staffLink: (locale: "ro" | "en") => StaffLinkWords;
+	/**
+	 * The guide's built-in copy, from the site's own messages (greeting, chips, redirect, "not on
+	 * our site", exchange limit): the CMS studio shows it as each field's placeholder.
+	 */
+	guideCopy?: (locale: "ro" | "en") => CopyDefaults;
 	now?: () => number;
 	fetch?: typeof fetch;
 }
@@ -64,6 +70,7 @@ export function mountSiteControl(app: Hono, o: SiteControlOptions): SiteControl 
 					guide: o.guide,
 					now,
 					screeningLevel: async () => (await settings())?.screeningLevel ?? "standard",
+					...(o.guideCopy === undefined ? {} : { copyDefaults: o.guideCopy }),
 				});
 
 	async function knowledge(): Promise<KnowledgeStatus> {

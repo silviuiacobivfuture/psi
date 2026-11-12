@@ -56,6 +56,21 @@
 .pz-compass__bar.is-multiline {
 	border-radius: 28px;
 }
+/* A page's own ask box is on screen: the capsule sinks out of view, and rises back after it. */
+.pz-compass__bar {
+	translate: 0 0;
+	opacity: 1;
+	transition:
+		box-shadow 0.3s,
+		border-radius 0.2s,
+		translate 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+		opacity 0.35s ease;
+}
+.pz-compass.is-yielding:not(.is-open) .pz-compass__bar {
+	translate: 0 calc(100% + 40px);
+	opacity: 0;
+	pointer-events: none;
+}
 .pz-compass__bar:focus-within {
 	box-shadow:
 		var(--shadow-float),

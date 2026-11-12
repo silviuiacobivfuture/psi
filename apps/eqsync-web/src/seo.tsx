@@ -50,12 +50,15 @@ export function SiteHead({
 	title,
 	description,
 	alternate,
+	jsonLd: extra = [],
 }: {
 	locale: Locale;
 	theme: Theme;
 	title: string;
 	description: string;
 	alternate: { locale: Locale; href: string };
+	/** Page-specific structured data, printed after the breadcrumb. */
+	jsonLd?: ReadonlyArray<JsonLdNode>;
 }): JSX.Element {
 	const page = localisedPage(ORIGIN, locale, alternate);
 	const name = siteNames(locale)[SITE];
@@ -66,6 +69,7 @@ export function SiteHead({
 					{ name, url: page.home },
 					{ name: pageName(title, name), url: page.canonical },
 				]),
+				...extra,
 			];
 	return (
 		<SeoHead
@@ -89,4 +93,26 @@ export function SiteHead({
  */
 export async function sitemap(app: Hono): Promise<string> {
 	return sitemapXml(await servedEntries(app, pagePaths(app)));
+}
+
+/**
+ * A glossary as schema.org's `DefinedTermSet`: each term with its name and first definition.
+ * (`@psi/ui` has no builder for it; the facts are the page's own.)
+ */
+export function definedTermSetJsonLd(
+	name: string,
+	url: string,
+	terms: ReadonlyArray<{ name: string; description: string }>,
+): JsonLdNode {
+	return {
+		"@context": "https://schema.org",
+		"@type": "DefinedTermSet",
+		name,
+		url,
+		hasDefinedTerm: terms.map((t) => ({
+			"@type": "DefinedTerm",
+			name: t.name,
+			description: t.description,
+		})),
+	};
 }

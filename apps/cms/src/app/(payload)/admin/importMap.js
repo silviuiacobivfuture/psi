@@ -12,6 +12,7 @@ import { SignInWithDirectory as SignInWithDirectory_985c3fe440d71baf76c9873edae5
 import { AnalyticsView as AnalyticsView_79c4a2cabf7e57f2feac890ba89bb722 } from "../../../views/AnalyticsView";
 import { AccountsView as AccountsView_8a2184ce56cbf0e187bdb7015dac611e } from "../../../views/platform/AccountsView";
 import { AiView as AiView_ad071725a9399a9645748ec1ecca8552 } from "../../../views/platform/AiView";
+import { BehaviourView as BehaviourView_f466f3c82508e8789e8ff4a9512e868d } from "../../../views/platform/BehaviourView";
 import { NotificationsView as NotificationsView_b81a834a8c8bfcc6f86c7a1eab8107bf } from "../../../views/platform/NotificationsView";
 import { OverviewView as OverviewView_c0b6da0ccf97a3edf58449276231ad02 } from "../../../views/platform/OverviewView";
 import { SchedulingView as SchedulingView_dc73f1c4119984f8448544473b09a09a } from "../../../views/platform/SchedulingView";
@@ -32,6 +33,7 @@ export const importMap = {
 	"/views/ReviewQueueView#ReviewQueueView": ReviewQueueView_11490c505551989a6e7782637665ad17,
 	"/views/AnalyticsView#AnalyticsView": AnalyticsView_79c4a2cabf7e57f2feac890ba89bb722,
 	"/views/platform/OverviewView#OverviewView": OverviewView_c0b6da0ccf97a3edf58449276231ad02,
+	"/views/platform/BehaviourView#BehaviourView": BehaviourView_f466f3c82508e8789e8ff4a9512e868d,
 	"/views/platform/AiView#AiView": AiView_ad071725a9399a9645748ec1ecca8552,
 	"/views/platform/SchedulingView#SchedulingView": SchedulingView_dc73f1c4119984f8448544473b09a09a,
 	"/views/platform/AccountsView#AccountsView": AccountsView_8a2184ce56cbf0e187bdb7015dac611e,

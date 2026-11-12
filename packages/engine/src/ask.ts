@@ -1,11 +1,13 @@
 import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
 import { screen } from "./ask-screen";
-import { isBookingIntent, offerTimes } from "./booking";
+import { CREATIVITY_TEMPERATURE, DEFAULT_BEHAVIOUR, type TurnBehaviour } from "./behaviour";
+import { bookingTurn } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
 import { scopeSearch } from "./grounding/knowledge-tool";
 import type { LanguagePack } from "./language/pack";
-import { instructionsFor, languageNote } from "./prompt";
+import type { ProfileLocale } from "./profile";
+import { instructionsFor, languageNote, styledLocale } from "./prompt";
 import { screenWithModel } from "./screening/model";
 import { createSmallTalk } from "./small-talk";
 
@@ -37,14 +39,25 @@ function isSmallTalk(ctx: AskContext, input: AskInput): boolean {
 	return talk.is(input.question) || !talk.hasDomainTerms(input.question);
 }
 
-/** The pack and the profile's wording for the asked locale (validation guarantees both). */
-function localeOf(ctx: AskContext, locale: string): { pack: LanguagePack; instructions: string } {
+/**
+ * The pack, the profile's wording in the owner's style and the system prompt for the asked locale
+ * (validation guarantees the locale exists).
+ */
+function localeOf(
+	ctx: AskContext,
+	locale: string,
+	behaviour: TurnBehaviour,
+): { pack: LanguagePack; own: ProfileLocale; instructions: string } {
 	const pack = ctx.packs.get(locale);
 	const own = ctx.profile.locales[locale];
 	if (pack === undefined || own === undefined) {
 		throw new ConfigurationError(`profile ${ctx.profile.id} has no locale ${locale}`);
 	}
-	return { pack, instructions: instructionsFor(pack, own) };
+	return {
+		pack,
+		own: styledLocale(own, behaviour),
+		instructions: instructionsFor(pack, own, behaviour),
+	};
 }
 
 /**
@@ -115,10 +128,22 @@ async function* turn(
 		return;
 	}
 	const { input, settings, outOfScope } = screened;
-	if (ctx.booking !== undefined && isBookingIntent(input.question, [...ctx.packs.values()])) {
-		yield { type: "booking", offer: await offerTimes(ctx.booking, input.question) };
-		yield { type: "done" };
-		return;
+	const behaviour = settings.behaviour ?? DEFAULT_BEHAVIOUR;
+	const copy = behaviour.copy[input.locale] ?? {};
+	if (ctx.booking !== undefined) {
+		const offer = await bookingTurn(
+			ctx.booking,
+			{
+				question: input.question,
+				...(input.booking === undefined ? {} : { state: input.booking }),
+			},
+			[...ctx.packs.values()],
+		);
+		if (offer !== undefined) {
+			yield { type: "booking", offer };
+			yield { type: "done" };
+			return;
+		}
 	}
 	// What the visitor sees so far: a canned line after streamed text replaces it.
 	const display: Display = { text: "" };
@@ -149,7 +174,7 @@ async function* turn(
 	if (aborted()) controller.abort();
 	const deadline = setTimeout(abort, ctx.timeouts.totalMs);
 	try {
-		const { pack, instructions } = localeOf(ctx, input.locale);
+		const { pack, own, instructions } = localeOf(ctx, input.locale, behaviour);
 		const search = scopeSearch({
 			knowledge: ctx.knowledge,
 			scope: ctx.profile.knowledgeScope,
@@ -203,6 +228,15 @@ async function* turn(
 				signal: controller.signal,
 				callerSignal: signal,
 				clock,
+				own,
+				// The owner's lines the reply may say as written: "not on our site" always, the redirect
+				// only on a turn that is out of scope (it never licenses a fact anywhere else).
+				ownCopy: [
+					...(copy.unknown === undefined ? [] : [copy.unknown]),
+					...(copy.outOfScope === undefined || !outOfScope ? [] : [copy.outOfScope]),
+				],
+				temperature: CREATIVITY_TEMPERATURE[behaviour.creativity],
+				...(behaviour.model === undefined ? {} : { model: behaviour.model }),
 			},
 			display,
 		);
@@ -224,8 +258,7 @@ async function* turn(
 				return;
 			}
 			case "unknown": {
-				const own = ctx.profile.locales[input.locale];
-				const line = own?.unknown ?? cannedLine(ctx, input);
+				const line = copy.unknown ?? own.unknown ?? cannedLine(ctx, input);
 				if (line === undefined) {
 					yield* refusal("no_content");
 					return;
@@ -247,7 +280,11 @@ async function* turn(
 						// Scoring and its hook never change the reply.
 					}
 				}
-				if (outcome.sources.length > 0) yield { type: "sources", sources: outcome.sources };
+				{
+					const linked = new Set(outcome.sources.map((s) => s.url));
+					const chips = [...outcome.sources, ...outcome.articles.filter((a) => !linked.has(a.url))];
+					if (chips.length > 0) yield { type: "sources", sources: chips };
+				}
 				yield { type: "done" };
 				return;
 		}

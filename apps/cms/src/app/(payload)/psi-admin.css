@@ -11,6 +11,7 @@
 	--psi-gold-hover: #b8892f;
 	--psi-on-gold: #1a1405;
 	--psi-gold-soft: rgba(169, 123, 36, 0.12);
+	--psi-thumb: #ffffff;
 	--psi-focus: #0d7a70;
 	--psi-ok: #12704a;
 	--psi-warn: #b7791f;
@@ -24,6 +25,7 @@ html[data-theme="dark"] {
 	--psi-gold-hover: #d2aa50;
 	--psi-on-gold: #1a1405;
 	--psi-gold-soft: rgba(194, 152, 63, 0.16);
+	--psi-thumb: #f4efe4;
 	--psi-focus: #40d9c9;
 	--psi-ok: #3fb37f;
 	--psi-warn: #e0a53a;

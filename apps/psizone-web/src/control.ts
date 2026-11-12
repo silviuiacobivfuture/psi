@@ -5,6 +5,7 @@ import type { Hono } from "hono";
 import { account, reservations } from "./account";
 import { aiSettings } from "./ai-settings";
 import { guide } from "./guide-client";
+import { guideCopyDefaults } from "./guide-copy";
 import { at } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { pwa } from "./pwa/site";
@@ -41,5 +42,6 @@ export function mountControl(app: Hono): SiteControl {
 		pwa,
 		scheduling: schedulingState(process.env),
 		staffLink: staffLinkWords,
+		guideCopy: guideCopyDefaults,
 	});
 }

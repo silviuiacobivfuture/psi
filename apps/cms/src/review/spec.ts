@@ -22,6 +22,11 @@ export interface ReviewSpec {
 	 * A field with localised text inside (blocks, arrays) is never shared: it is read per locale.
 	 */
 	shared: ReadonlyArray<string>;
+	/**
+	 * Reviewed fields added after documents were first approved: part of the approved content only
+	 * once they hold something, so an approval given before the field existed stays valid.
+	 */
+	optional?: ReadonlyArray<string>;
 	/** The localised field whose presence means "this locale exists". */
 	titleField: string;
 	/** Locales that must exist before publishing (the blog needs both). */
@@ -81,8 +86,20 @@ export function reviewedContent(
 	doc: Record<string, unknown>,
 ): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
-	for (const k of spec.reviewed) out[k] = k === "cover" ? idOf(doc[k] ?? null) : (doc[k] ?? null);
+	for (const k of spec.reviewed) {
+		if (spec.optional?.includes(k) && isEmpty(doc[k])) continue;
+		out[k] = k === "cover" ? idOf(doc[k] ?? null) : (doc[k] ?? null);
+	}
 	return out;
+}
+
+/** Nothing written: null, blank text, an empty list, or an object whose every value is empty. */
+export function isEmpty(v: unknown): boolean {
+	if (v === null || v === undefined) return true;
+	if (typeof v === "string") return v.trim() === "";
+	if (Array.isArray(v)) return v.every(isEmpty);
+	if (typeof v === "object") return Object.entries(v).every(([k, x]) => k === "id" || isEmpty(x));
+	return false;
 }
 
 /** A locale "exists" when its title is a non-blank string. */

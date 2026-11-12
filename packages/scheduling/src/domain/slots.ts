@@ -28,6 +28,8 @@ export interface SlotQuery {
 	now: number;
 	/** Only slots that offer this mode. */
 	mode?: Mode;
+	/** A Monday: the week it falls in is week A, the next B, and so on (see `weekOf`). */
+	abAnchor?: LocalDate;
 }
 
 /** A start that can be booked: [start, end), and the modes it can be held in. */
@@ -43,11 +45,40 @@ interface Window {
 	modes: ReadonlyArray<Mode>;
 }
 
-function appliesOn(rule: WeeklyRule, date: LocalDate, weekday: number): boolean {
-	if (rule.weekday !== weekday) return false;
+const DEFAULT_ANCHOR: LocalDate = "1970-01-05";
+const DAY_MS = DAY_MINUTES * MINUTE_MS;
+
+/** Whole days from `a` to `b` (calendar dates, no clock, so no daylight-saving drift). */
+function daysBetween(a: LocalDate, b: LocalDate): number {
+	return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY_MS);
+}
+
+/**
+ * Which alternating week a date is in: the Monday-to-Sunday week holding `anchor` is A, the next
+ * B, then A again; weeks before the anchor alternate the same way.
+ */
+export function weekOf(date: LocalDate, anchor: LocalDate = DEFAULT_ANCHOR): "A" | "B" {
+	const monday = (d: LocalDate): LocalDate => addDays(d, -(weekdayOf(d) - 1));
+	const weeks = Math.round(daysBetween(monday(anchor), monday(date)) / 7);
+	return Math.abs(weeks) % 2 === 0 ? "A" : "B";
+}
+
+function covers(rule: WeeklyRule, date: LocalDate): boolean {
 	if (rule.validFrom !== undefined && date < rule.validFrom) return false;
 	if (rule.validUntil !== undefined && date > rule.validUntil) return false;
 	return true;
+}
+
+function appliesOn(
+	rule: WeeklyRule,
+	date: LocalDate,
+	weekday: number,
+	week: "A" | "B",
+	overridden: boolean,
+): boolean {
+	if (rule.weekday !== weekday || !covers(rule, date)) return false;
+	if (rule.week !== undefined && rule.week !== week) return false;
+	return !overridden || rule.override === true;
 }
 
 function subtract(window: Window, cutStart: number, cutEnd: number): ReadonlyArray<Window> {
@@ -64,13 +95,16 @@ export function windowsOn(
 	rules: ReadonlyArray<WeeklyRule>,
 	exceptions: ReadonlyArray<DayException>,
 	allModes: ReadonlyArray<Mode>,
+	abAnchor?: LocalDate,
 ): ReadonlyArray<Window> {
 	const weekday = weekdayOf(date);
+	const week = weekOf(date, abAnchor);
+	const overridden = rules.some((rule) => rule.override === true && covers(rule, date));
 	const today = exceptions.filter((e) => e.date === date);
 	if (today.some((e) => e.kind === "closed" && e.start === undefined)) return [];
 	let windows: ReadonlyArray<Window> = [
 		...rules
-			.filter((rule) => appliesOn(rule, date, weekday))
+			.filter((rule) => appliesOn(rule, date, weekday, week, overridden))
 			.map((rule) => ({ start: rule.start, end: rule.end, modes: rule.modes })),
 		...today.flatMap((e) =>
 			e.kind === "open" && e.start !== undefined && e.end !== undefined
@@ -130,7 +164,13 @@ export function generateSlots(query: SlotQuery): ReadonlyArray<Slot> {
 	const lastDate = toLocal(latest, timeZone).date;
 	let date = toLocal(earliest, timeZone).date;
 	for (let day = 0; day < MAX_SEARCH_DAYS && date <= lastDate; day += 1, date = addDays(date, 1)) {
-		for (const window of windowsOn(date, query.rules, query.exceptions, service.modes)) {
+		for (const window of windowsOn(
+			date,
+			query.rules,
+			query.exceptions,
+			service.modes,
+			query.abAnchor,
+		)) {
 			const modes = modesFor(window, query);
 			if (modes.length === 0) continue;
 			const windowEnd = boundary(date, window.end, timeZone);

@@ -1,6 +1,10 @@
 import config from "@payload-config";
 import "@payloadcms/next/css";
 import "./psi-admin.css";
+import "./psi-studio.css";
+import "./psi-studio-fields.css";
+import "./psi-studio-panels.css";
+import "./psi-scheduling.css";
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts";
 import type { ServerFunctionClient } from "payload";
 import type { ReactNode } from "react";

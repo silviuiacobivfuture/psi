@@ -63,6 +63,8 @@ export async function rulesOf(
 		modes: row.modes,
 		...(row.validFrom === undefined ? {} : { validFrom: row.validFrom }),
 		...(row.validUntil === undefined ? {} : { validUntil: row.validUntil }),
+		...(row.week === undefined ? {} : { week: row.week }),
+		...(row.override === true ? { override: true } : {}),
 	}));
 }
 

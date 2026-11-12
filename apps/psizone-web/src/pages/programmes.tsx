@@ -1,9 +1,10 @@
-import { Button, OfferingPrices, Prose } from "@psi/ui";
+import { Button, OfferingPrices, Picture, Prose } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { prices, withoutPriceTodo } from "../cms";
 import { HUBS } from "../content/hubs";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { at, base } from "../i18n";
+import { oldSitePicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import { Closing } from "../sections/closing";
 import { ProgrammeCards } from "../sections/programme-cards";
@@ -22,6 +23,8 @@ export function ProgrammesIndexPage(props: Props): JSX.Element {
 			eyebrow={m.nav_programmes({}, o)}
 			title={m.programmes_title({}, o)}
 			lead={m.programmes_lead({}, o)}
+			seoTitle={m.programmes_seo_title({}, o)}
+			description={m.programmes_seo_description({}, o)}
 		>
 			<section class="mx-auto max-w-6xl px-5 py-20">
 				<ProgrammeCards locale={props.locale} />
@@ -45,6 +48,8 @@ export function RaceMeUpPage(props: Props): JSX.Element {
 			eyebrow={m.rmu_eyebrow({}, o)}
 			title={RACE_ME_UP.name}
 			lead={RACE_ME_UP.lead[locale]}
+			seoTitle={RACE_ME_UP.seo.title[locale]}
+			description={RACE_ME_UP.seo.description[locale]}
 			badge={m.draft_badge({}, o)}
 		>
 			<section class="mx-auto grid max-w-6xl gap-14 px-5 py-20 lg:grid-cols-[1.2fr_1fr]">
@@ -73,6 +78,26 @@ export function RaceMeUpPage(props: Props): JSX.Element {
 							<li class="border-l-2 border-line-control pl-4 text-body-lg text-ink">{x[locale]}</li>
 						))}
 					</ul>
+				</div>
+			</section>
+			<section class="mx-auto max-w-6xl px-5 pb-20" aria-labelledby="pista">
+				<h2 id="pista" class="display text-display-md text-ink">
+					{m.rmu_photos_title({}, o)}
+				</h2>
+				<div class="mt-8 grid gap-5 sm:grid-cols-2">
+					{RACE_ME_UP.photos.map((ph) => (
+						<figure class="pz-photo pz-rise">
+							<Picture
+								{...oldSitePicture(
+									ph.file,
+									ph.width,
+									ph.height,
+									ph.alt[locale],
+									"(min-width: 1152px) 548px, (min-width: 640px) 48vw, calc(100vw - 40px)",
+								)}
+							/>
+						</figure>
+					))}
 				</div>
 			</section>
 			<section class="mx-auto grid max-w-6xl gap-10 px-5 pb-24 lg:grid-cols-[1.2fr_1fr]">

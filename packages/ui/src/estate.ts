@@ -28,8 +28,20 @@ export const ESTATE_LOCAL: EstateOrigins = {
 	blog: "http://localhost:4340",
 };
 
-/** The raw value for every site (the variable, or the local default), for the app to parse. */
+/**
+ * The raw value for every site (the variable, or the local default), for the app to parse. In
+ * production a missing variable is an error: a local default there would link visitors to
+ * localhost (it once did, for the blog).
+ */
 export function estateInput(env: NodeJS.ProcessEnv = process.env): Record<EstateSite, string> {
+	if (env.NODE_ENV === "production") {
+		const missing = ESTATE_SITES.filter((s) => (env[ESTATE_ENV[s]] ?? "").trim() === "");
+		if (missing.length > 0) {
+			throw new Error(
+				`estate: ${missing.map((s) => ESTATE_ENV[s]).join(", ")} must be set in production`,
+			);
+		}
+	}
 	return {
 		psizone: env[ESTATE_ENV.psizone] ?? ESTATE_LOCAL.psizone,
 		eqsync: env[ESTATE_ENV.eqsync] ?? ESTATE_LOCAL.eqsync,

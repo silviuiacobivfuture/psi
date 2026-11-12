@@ -4,8 +4,16 @@ import { prices } from "../cms";
 import { at, type Locale } from "../i18n";
 import { programmePicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
-import { href, PROGRAMME_SLUGS, type ProgrammeSlug } from "../routes";
+import {
+	href,
+	PROGRAMME_SLUGS,
+	type ProgrammeSlug,
+	type WorkshopId,
+	workshopHref,
+} from "../routes";
+import { FromTheBlog } from "../sections/blog";
 import { programmeHref } from "../sections/programmes";
+import { DocSections, seo } from "./doc";
 import { Band, NextSteps, PageHero, type PageProps, PageShell, Para, Pending } from "./shell";
 
 /** One programme's card text, from the home's own copy. */
@@ -77,21 +85,23 @@ export function ProgrammeArches({
 export function ProgrammesPage(props: PageProps): JSX.Element {
 	const { locale } = props;
 	const o = at(locale);
-	const workshops = [
-		m.ws_1({}, o),
-		m.ws_2({}, o),
-		m.ws_3({}, o),
-		m.ws_4({}, o),
-		m.ws_5({}, o),
-		m.ws_6({}, o),
-		m.ws_7({}, o),
+	const workshops: ReadonlyArray<{ id: WorkshopId; label: string }> = [
+		{ id: "consciousness", label: m.ws_1({}, o) },
+		{ id: "advanced", label: m.ws_2({}, o) },
+		{ id: "creative", label: m.ws_3({}, o) },
+		{ id: "connection", label: m.ws_4({}, o) },
+		{ id: "optimise", label: m.ws_5({}, o) },
+		{ id: "obe", label: m.ws_6({}, o) },
+		{ id: "online", label: m.ws_7({}, o) },
 	];
+	const s = seo("progs", locale);
 	return (
 		<PageShell
 			{...props}
 			otherHref={href(locale === "ro" ? "en" : "ro", "programmes")}
 			title={m.nav_programmes({}, o)}
-			description={m.meta_description({}, o)}
+			seoTitle={s.seoTitle}
+			description={s.description}
 		>
 			<PageHero
 				locale={locale}
@@ -102,6 +112,7 @@ export function ProgrammesPage(props: PageProps): JSX.Element {
 			<section class="mx-auto max-w-7xl px-6 py-20 md:px-14 md:py-28">
 				<ProgrammeArches locale={locale} cards={programmeCards(locale)} idPrefix="pg" />
 			</section>
+			<DocSections page="progs" locale={locale} wash={false} />
 			<Band id="sesiuni" overline={m.nav_sessions({}, o)} title={m.pg_sessions_title({}, o)} wash>
 				<Para>{m.pg_request({}, o)}</Para>
 				<OfferingPrices class="mt-8" items={prices(locale, PROGRAMME_SLUGS)} />
@@ -114,18 +125,26 @@ export function ProgrammesPage(props: PageProps): JSX.Element {
 			>
 				<ul class="divide-y divide-line border-y border-line">
 					{workshops.map((w) => (
-						<li class="py-4 text-body-lg text-ink">{w}</li>
+						<li class="py-4 text-body-lg">
+							<a class="text-link" href={workshopHref(locale, w.id)}>
+								{w.label}
+							</a>
+						</li>
 					))}
 				</ul>
-				<Pending locale={locale}>{m.pg_workshops_pending({}, o)}</Pending>
+				<a class="pz-tap text-link text-body" href={href(locale, "archive")}>
+					{m.arch_all({}, o)}
+				</a>
 			</Band>
 			<Band overline={m.group_free({}, o)} title={m.pg_start_title({}, o)} wash>
 				<Para>{m.pg_start_text({}, o)}</Para>
 			</Band>
+			<FromTheBlog locale={locale} />
 			<NextSteps
 				links={[
-					{ label: m.nav_exercises({}, o), href: href(locale, "exercises"), primary: true },
+					{ label: m.next_start({}, o), href: href(locale, "start"), primary: true },
 					{ label: m.gateway_title({}, o), href: programmeHref(locale, "gateway-voyage") },
+					{ label: m.next_workshops({}, o), href: href(locale, "archive") },
 					{ label: m.nav_faq({}, o), href: href(locale, "faq") },
 				]}
 			/>

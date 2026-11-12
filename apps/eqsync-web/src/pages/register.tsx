@@ -7,12 +7,16 @@ import { themeFrom } from "../theme";
 import { AboutPage } from "./about";
 import { ContactPage } from "./contact";
 import { FaqPage } from "./faq";
+import { GlossaryPage } from "./glossary";
 import { LegalPage } from "./legal";
+import { ListenPage } from "./listen";
 import { MethodPage } from "./method";
 import { ProtocolsPage } from "./protocols";
 import { SafetyPage } from "./safety";
+import { SciencePage } from "./science";
 import type { PageProps } from "./shell";
 import { SignupPage } from "./signup";
+import { WhoPage } from "./who";
 
 const RENDER: Readonly<Record<PageId, (props: PageProps) => JSX.Element>> = {
 	method: MethodPage,
@@ -20,6 +24,10 @@ const RENDER: Readonly<Record<PageId, (props: PageProps) => JSX.Element>> = {
 	faq: FaqPage,
 	about: AboutPage,
 	safety: SafetyPage,
+	science: SciencePage,
+	listen: ListenPage,
+	glossary: GlossaryPage,
+	who: WhoPage,
 	contact: ContactPage,
 	signup: SignupPage,
 	terms: (p) => LegalPage({ ...p, kind: "terms" }),

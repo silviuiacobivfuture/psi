@@ -1,3 +1,4 @@
+import { articleKnowledge } from "@psi/content";
 import type { EngineIngest, EngineIngestReport } from "@psi/engine";
 import {
 	type Catalog,
@@ -13,10 +14,18 @@ import { z } from "zod";
 const Entries = z.array(KnowledgeEntrySchema);
 
 /**
+ * The repository's blog articles as knowledge entries (`@psi/content`), parsed. Drafts and
+ * unreviewed clinical ones are in the set on purpose: the store's own rule reports them as skipped.
+ */
+export function articleEntries(): ReadonlyArray<KnowledgeEntry> {
+	return Entries.parse(articleKnowledge());
+}
+
+/**
  * `@psi/knowledge`'s ingest as the engine's ingest port, for the `ingest-knowledge` workflow. The
  * entries are parsed here (zod); the knowledge base applies its retrievability rule, names its
  * indexes, chunks with `MDocument`, embeds and upserts into the vector store registered with
- * Mastra. Named sets: `seed` always, `demo` only when `demo` is on. Demo entries given as a
+ * Mastra. Named sets: `seed` and `articles` always, `demo` only when `demo` is on. Demo entries given as a
  * payload are refused when it is off.
  */
 export function knowledgeIngest(
@@ -24,7 +33,9 @@ export function knowledgeIngest(
 	opts: { demo: boolean; catalog?: Catalog },
 ): EngineIngest {
 	return {
-		sets: opts.demo ? { seed: () => SEED, demo: () => DEMO } : { seed: () => SEED },
+		sets: opts.demo
+			? { seed: () => SEED, articles: articleEntries, demo: () => DEMO }
+			: { seed: () => SEED, articles: articleEntries },
 		async ingest(input: ReadonlyArray<unknown>): Promise<EngineIngestReport> {
 			const entries: ReadonlyArray<KnowledgeEntry> = Entries.parse(input);
 			if (!opts.demo && entries.some((e) => isDemoId(e.id))) {

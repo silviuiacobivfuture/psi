@@ -7,6 +7,29 @@ const Origin = z
 
 const Secret32 = z.string().min(32);
 
+/**
+ * Local verification only: `psizone=test-psizone-sched,eqsync=…` points a brand's Scheduling page
+ * at another tenant of the same store, so a trial never touches the brand's real calendar. The
+ * services read it through `tenantOf`, which ignores it in production.
+ */
+const TenantBrand = z.enum(["psizone", "eqsync", "hemisync"]);
+const TenantOverrides = z
+	.string()
+	.optional()
+	.transform((v, ctx) => {
+		const out: Partial<Record<z.infer<typeof TenantBrand>, string>> = {};
+		for (const part of (v ?? "").split(",").filter((p) => p.trim() !== "")) {
+			const m = /^\s*([a-z]+)=([a-z0-9][a-z0-9-]{1,40})\s*$/.exec(part);
+			const brand = TenantBrand.safeParse(m?.[1]);
+			if (m === null || !brand.success || m[2] === undefined) {
+				ctx.addIssue({ code: z.ZodIssueCode.custom, message: "brand=tenant,brand=tenant" });
+				return z.NEVER;
+			}
+			out[brand.data] = m[2];
+		}
+		return out;
+	});
+
 /** A comma-separated list of origins (the blogs the CMS notifies on publish). */
 const Origins = z
 	.string()
@@ -95,6 +118,7 @@ const Env = z
 		/** The scheduling store (Convex) and its server key: the Scheduling section's staff client. */
 		CONVEX_URL: z.string().url().optional(),
 		PSI_SCHEDULING_KEY: z.string().min(32).optional(),
+		SCHEDULING_TENANT_OVERRIDES: TenantOverrides,
 		/** The PWA hook's key (shared with the sites): a confirm or decline notifies the person. */
 		PWA_NOTIFY_SECRET: Secret32.optional(),
 		/** Mastra Studio, for the AI section's deep-inspection link: https://studio.psizone.ro */

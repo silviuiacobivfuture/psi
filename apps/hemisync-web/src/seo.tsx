@@ -27,12 +27,15 @@ export function SiteHead({
 	title,
 	description,
 	alternate,
+	extraJsonLd = [],
 }: {
 	locale: Locale;
 	theme: Theme;
 	title: string;
 	description: string;
 	alternate: { locale: Locale; href: string };
+	/** Page-specific structured data (FAQPage, Event), printed after the breadcrumbs. */
+	extraJsonLd?: ReadonlyArray<JsonLdNode>;
 }): JSX.Element {
 	const page = localisedPage(ORIGIN, locale, alternate);
 	const name = siteNames(locale)[SITE];
@@ -59,7 +62,7 @@ export function SiteHead({
 			ogLocale={OG_LOCALE[locale] ?? locale}
 			ogLocaleAlternates={[OG_LOCALE[alternate.locale] ?? alternate.locale]}
 			themeColor={themeColor(theme)}
-			jsonLd={jsonLd}
+			jsonLd={[...jsonLd, ...extraJsonLd]}
 		/>
 	);
 }
@@ -71,4 +74,48 @@ export function SiteHead({
  */
 export async function sitemap(app: Hono): Promise<string> {
 	return sitemapXml(await servedEntries(app, pagePaths(app)));
+}
+
+/** The facts of one past or future event; nothing here is ever guessed (no price, no organiser). */
+export interface EventFacts {
+	name: string;
+	description: string;
+	/** ISO dates (`2023-04-01`). */
+	startDate: string;
+	endDate: string;
+	/** In person: the city; online: undefined. */
+	city?: string;
+	/** Absolute URL of the page that describes the event. */
+	url: string;
+	inLanguage: string;
+	online: boolean;
+}
+
+/** schema.org `Event` for a workshop edition: dates, place or online, language, no offers. */
+export function eventJsonLd(f: EventFacts): JsonLdNode {
+	return {
+		"@context": "https://schema.org",
+		"@type": "Event",
+		name: f.name,
+		description: f.description,
+		startDate: f.startDate,
+		endDate: f.endDate,
+		url: f.url,
+		inLanguage: f.inLanguage,
+		eventStatus: "https://schema.org/EventScheduled",
+		eventAttendanceMode: f.online
+			? "https://schema.org/OnlineEventAttendanceMode"
+			: "https://schema.org/OfflineEventAttendanceMode",
+		location: f.online
+			? { "@type": "VirtualLocation", url: f.url }
+			: {
+					"@type": "Place",
+					name: f.city ?? "",
+					address: {
+						"@type": "PostalAddress",
+						addressLocality: f.city ?? "",
+						addressCountry: "RO",
+					},
+				},
+	};
 }

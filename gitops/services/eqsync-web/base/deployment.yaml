@@ -60,6 +60,7 @@ spec:
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
             - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
             - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
+            - { name: BLOG_URL, value: "https://blog.psizone.ro" }
           readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
           livenessProbe: { httpGet: { path: /, port: http }, periodSeconds: 20, failureThreshold: 6 }
           resources:

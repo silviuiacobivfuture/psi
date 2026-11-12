@@ -64,8 +64,8 @@ export const FAQ: ReadonlyArray<FaqEntry> = [
 			en: "Do I need a diagnosis or a referral?",
 		},
 		a: {
-			ro: "Prima discuție e despre voi, nu despre diagnostic.",
-			en: "The first conversation is about you, not about a diagnosis.",
+			ro: "Nu ai nevoie de un diagnostic ca să ne suni: ne poți contacta și când ai doar preocupări legate de dezvoltare sau de starea ta. Prima discuție e despre voi, nu despre diagnostic.",
+			en: "You do not need a diagnosis to call us: you can contact us when you only have concerns about development or about how you feel. The first conversation is about you, not about a diagnosis.",
 		},
 		placeholder: {
 			ro: "Dacă și când e nevoie de o trimitere de la medic.",
@@ -101,6 +101,42 @@ export const FAQ: ReadonlyArray<FaqEntry> = [
 		},
 	},
 	{
+		id: "durata",
+		q: { ro: "Cât durează terapia?", en: "How long does therapy take?" },
+		a: {
+			ro: "Durata, frecvența și costul depind de nevoile fiecărei persoane și de serviciile din plan. O estimare responsabilă se poate face după evaluarea inițială, de aceea nu dăm termene la telefon.",
+			en: "Duration, frequency and cost depend on each person's needs and on the services in the plan. A responsible estimate is possible after the first evaluation, which is why we do not quote timelines over the phone.",
+		},
+	},
+	{
+		id: "parinti",
+		q: { ro: "Sunt implicați și părinții?", en: "Are parents involved?" },
+		a: {
+			ro: "Da. Colaborarea cu familia ajută strategiile să funcționeze și progresul să se vadă în viața de zi cu zi. Primești explicații și recomandări concrete.",
+			en: "Yes. Working with the family helps strategies work and progress show in everyday life. You receive explanations and concrete recommendations.",
+		},
+	},
+	{
+		id: "neurofeedback",
+		q: {
+			ro: "QEEG și neurofeedbackul înlocuiesc terapia?",
+			en: "Do QEEG and neurofeedback replace therapy?",
+		},
+		a: {
+			ro: "Nu. Pot fi recomandate ca metode complementare, în anumite situații, după evaluarea individuală. Nu înlocuiesc intervențiile psihologice, educaționale sau logopedice și nici recomandările medicale.",
+			en: "No. They can be recommended as complementary methods, in some situations, after the individual evaluation. They do not replace psychological, educational or speech interventions, nor medical advice.",
+		},
+		link: { label: { ro: "Toate metodele", en: "All methods" }, href: "/metode" },
+	},
+	{
+		id: "online",
+		q: { ro: "Se poate face terapia online?", en: "Can therapy be done online?" },
+		a: {
+			ro: "Da. Psihoterapia individuală, cea de familie și de cuplu și hipnoterapia se pot face online, cu o aplicație pe telefon sau calculator, căști și un loc liniștit.",
+			en: "Yes. Individual psychotherapy, family and couple therapy and hypnotherapy can be done online, with an app on a phone or computer, headphones and a quiet place.",
+		},
+	},
+	{
 		id: "sport",
 		q: {
 			ro: "Lucrați și cu sportivi?",
@@ -115,10 +151,13 @@ export const FAQ: ReadonlyArray<FaqEntry> = [
 	{
 		id: "unde",
 		q: { ro: "Unde vă aflați?", en: "Where are you?" },
-		a: { ro: "În Galați.", en: "In Galați." },
+		a: {
+			ro: "În Galați, pe strada General Alexandru Cernat nr. 126, așa cum este publicat pe site-ul centrului.",
+			en: "In Galați, at Strada General Alexandru Cernat 126, as published on the centre's website.",
+		},
 		placeholder: {
-			ro: "Adresa exactă și programul.",
-			en: "The exact address and opening hours.",
+			ro: "Programul centrului.",
+			en: "The centre's opening hours.",
 		},
 	},
 ];

@@ -50,16 +50,23 @@ spec:
           ports: [{ name: http, containerPort: 3000 }]
           envFrom:
             - secretRef: { name: psizone-web-env }
+            # OPTIONAL by design: the scheduling server key (secret/apps/scheduling/env). Absent, the
+            # app finds scheduling off (CONVEX_URL set, no key) and keeps its callback form; this
+            # never blocks a deploy. After the key first appears, roll the pod (envFrom is read at start).
+            - secretRef: { name: psizone-web-scheduling, optional: true }
           env:
             - { name: PORT, value: "3000" }
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
             # sidecar; the token is CHROMA_API_KEY from psizone-web-env.
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            # The scheduling store (packages/scheduling): the Convex backend's in-cluster Service.
+            - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
             - { name: EQSYNC_URL, value: "https://eqsync.psizone.ro" }
             - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
+            - { name: BLOG_URL, value: "https://blog.psizone.ro" }
           readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
           livenessProbe: { httpGet: { path: /, port: http }, periodSeconds: 20, failureThreshold: 6 }
           resources:

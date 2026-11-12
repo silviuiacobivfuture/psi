@@ -1,6 +1,6 @@
-The brand lockup. With `brand="auto"` (default) it shows the brand of the current theme: Psizone in Psizone and Blog themes, EQ-SYNC in EQ-SYNC themes, Hemi-Sync in Hemi-Sync themes. Pass `brand` to force one.
+The brand lockup: a mark and a wordmark. With `brand="auto"` (default) it shows the brand of the current theme: Psizone, EQ-SYNC, Hemi-Sync or the Blog (themes `blog-*`). Pass `brand` to force one (an article's masthead keeps its own brand's logo).
 
-All three are typographic placeholders until the real logo files arrive (Psizone's orb is a stand-in, not the mark). Replace them in `assets/Logos` and in this component when the files exist.
+The four marks are one family, hand-drawn on a 64 grid in `logos/marks/` and drawn inline by `@psi/ui` (`currentColor`: the frame and subject in `glow-1`, the one detail that is the brand's own in `glow-2`, class `t2`). They share Psizone's frame, the triple ring with four cardinal flourishes and a crown leaf at twelve in the second voice; the subject inside is each brand's own: Psizone the brain (its two hemispheres and fissure), EQ-SYNC two tones of sound under a night crescent, Hemi-Sync a dawn sun with short rays rising between two Carpathian peaks, the Blog an open book and its ribbon. Two cuts per mark: `full` from 48px, `compact` (bold ring, filled subject) below it and in favicons. Regenerate every derived file (mono, colour, favicons, `apps/*/public/favicon.svg`, the inline module) with `pnpm --filter @psi/design build:logos`.
 
-- Provide: `size` (px), optional `brand` (`auto` | `psizone` | `eqsync` | `hemisync`), `variant="mark"`, `href`.
-- Don't: recolour, stretch or animate logos.
+- Provide: `size` (px), optional `brand` (`auto` | `psizone` | `eqsync` | `hemisync` | `blog`), `variant="mark"`, `href`, and `endorsement` (the page's "by Psizone" / "de la Psizone", shown under the wordmark of the three sister brands only).
+- Don't: recolour, stretch or animate logos; set the sisters' marks without Psizone's frame.

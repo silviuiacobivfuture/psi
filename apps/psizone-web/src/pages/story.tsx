@@ -36,8 +36,8 @@ export function StoryPage({
 		<Layout
 			locale={locale}
 			theme={theme}
-			title={`${m.story_title({}, o)} — Psizone`}
-			description={m.story_lead({}, o)}
+			title={`${m.story_seo_title({}, o)} — Psizone`}
+			description={m.story_seo_description({}, o)}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
 		>
 			<Header locale={locale} otherHref={otherHref} theme={theme} />

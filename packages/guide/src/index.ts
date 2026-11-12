@@ -1,4 +1,16 @@
-export type { BookingOffer, ProposedSlot, RetrievalSettings, SettingsProvider } from "@psi/engine";
+export type {
+	BookingCancel,
+	BookingCriteria,
+	BookingKind,
+	BookingNotice,
+	BookingOffer,
+	BookingState,
+	ConversationStyle,
+	ProposedSlot,
+	RetrievalSettings,
+	SettingsProvider,
+	TurnBehaviour,
+} from "@psi/engine";
 export {
 	type AskControl,
 	createMemoryRateLimiter,
@@ -6,6 +18,7 @@ export {
 	DEFAULT_TIMEOUTS,
 	type MemoryRateLimitOptions,
 	type RateLimiter,
+	readBehaviour,
 } from "@psi/engine";
 export { CITE_ONLY_PREFIX, isCiteOnly } from "@psi/knowledge";
 export {
@@ -18,8 +31,10 @@ export {
 	type SubmitResult,
 	toLocal,
 } from "@psi/scheduling";
+export { ARTICLE_POLICY, type PsiArticlesOptions, psiArticles } from "./articles";
 export type { Brand, Knowledge, Locale, Passage, Source } from "./contract";
 export {
+	bookingStateOf,
 	CONVERSATION_TURNS,
 	type ConversationTurn,
 	continueConversation,
@@ -46,6 +61,7 @@ export {
 	type GuideScore,
 	type GuideTimeouts,
 } from "./guide";
+export { articleEntries } from "./ingest";
 export { DEFAULT_MODEL } from "./model";
 export {
 	type GuideAgentInfo,

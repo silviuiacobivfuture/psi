@@ -3,6 +3,7 @@ import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { estateGroup } from "../estate";
+import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
@@ -16,6 +17,7 @@ import { programmeHref } from "./programmes";
  */
 export function Header({ locale, otherHref }: { locale: Locale; otherHref: string }): JSX.Element {
 	const o = at(locale);
+	const copy = guideCopy(locale);
 	const b = base(locale);
 	const groups: ReadonlyArray<CompassGroup> = [
 		{
@@ -46,6 +48,11 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					href: href(locale, "programmes", "sesiuni"),
 					hint: m.hint_sessions({}, o),
 				},
+				{
+					label: m.nav_archive({}, o),
+					href: href(locale, "archive"),
+					hint: m.hint_archive({}, o),
+				},
 			],
 		},
 		{
@@ -75,6 +82,26 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					label: m.nav_focus({}, o),
 					href: href(locale, "focus"),
 					hint: m.focus_hint({}, o),
+				},
+				{
+					label: m.nav_start({}, o),
+					href: href(locale, "start"),
+					hint: m.hint_start({}, o),
+				},
+				{
+					label: m.nav_history({}, o),
+					href: href(locale, "history"),
+					hint: m.hint_history({}, o),
+				},
+				{
+					label: m.nav_meditation({}, o),
+					href: href(locale, "meditation"),
+					hint: m.hint_meditation({}, o),
+				},
+				{
+					label: m.nav_glossary({}, o),
+					href: href(locale, "glossary"),
+					hint: m.hint_glossary({}, o),
 				},
 				{
 					label: m.nav_faq({}, o),
@@ -115,9 +142,9 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				answerId="compass-answer"
 				chat={{
 					storageKey: "psi.chat.hemisync",
-					suggestions: [m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)],
+					suggestions: copy.chips,
 					labels: {
-						greeting: m.guide_intro({}, o),
+						greeting: copy.welcome,
 						disclaimer: m.guide_footer({}, o),
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),

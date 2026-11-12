@@ -1,3 +1,4 @@
+import { type BookingState, BookingStateSchema } from "@psi/engine";
 import { z } from "zod";
 import {
 	type HistoryTurn,
@@ -20,6 +21,8 @@ export const DISPLAY_TURNS = 20;
 export interface ConversationTurn extends HistoryTurn {
 	/** Set on the guide's turn when the question was refused; its text is then empty. */
 	refused?: RefusalReason;
+	/** Set on the guide's turn when it was a booking step: where the booking conversation stands. */
+	booking?: BookingState;
 }
 
 const REASONS = [
@@ -40,6 +43,7 @@ const TurnsSchema = z
 				role: z.enum(["user", "guide"]),
 				text: z.string(),
 				refused: z.enum(REASONS).optional(),
+				booking: BookingStateSchema.optional(),
 			})
 			.strict(),
 	)
@@ -64,10 +68,12 @@ export function parseConversation(raw: unknown): ReadonlyArray<ConversationTurn>
 	if (!parsed.success) return [];
 	const turns = parsed.data
 		.map(
-			(t): ConversationTurn =>
-				t.refused === undefined
-					? { role: t.role, text: bounded(t.text) }
-					: { role: t.role, text: bounded(t.text), refused: t.refused },
+			(t): ConversationTurn => ({
+				role: t.role,
+				text: bounded(t.text),
+				...(t.refused === undefined ? {} : { refused: t.refused }),
+				...(t.booking === undefined ? {} : { booking: t.booking }),
+			}),
 		)
 		.filter((t) => t.text !== "" || t.refused !== undefined);
 	return lastOf(turns, DISPLAY_TURNS);
@@ -91,15 +97,37 @@ export function historyOf(
 	return lastOf(out, Math.min(keep, MAX_HISTORY_TURNS));
 }
 
+/**
+ * How many of the guide's latest turns can still carry a booking conversation: the last one, or the
+ * one before it when a question about something else came in between.
+ */
+const BOOKING_TURNS = 2;
+
+/**
+ * Where the visitor's booking conversation stands: the state of the guide's latest booking turn,
+ * looking back over its last two turns only, so a booking flow that moved on is not resumed.
+ */
+export function bookingStateOf(turns: ReadonlyArray<ConversationTurn>): BookingState | undefined {
+	const guideTurns = turns.filter((t) => t.role === "guide" && t.refused === undefined);
+	for (const turn of guideTurns.slice(-BOOKING_TURNS).reverse()) {
+		if (turn.booking !== undefined) return turn.booking;
+	}
+	return undefined;
+}
+
 /** The conversation after one question: the question and the answer (or the refusal) appended. */
 export function continueConversation(
 	turns: ReadonlyArray<ConversationTurn>,
 	question: string,
-	reply: { answer: string } | { refused: RefusalReason },
+	reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
 ): ReadonlyArray<ConversationTurn> {
 	const guide: ConversationTurn =
 		"refused" in reply
 			? { role: "guide", text: "", refused: reply.refused }
-			: { role: "guide", text: reply.answer };
+			: {
+					role: "guide",
+					text: reply.answer,
+					...(reply.booking === undefined ? {} : { booking: reply.booking }),
+				};
 	return parseConversation([...turns, { role: "user", text: question }, guide]);
 }

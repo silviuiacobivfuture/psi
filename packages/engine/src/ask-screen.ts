@@ -7,7 +7,7 @@ import { matchesRules } from "./rules";
 import { screenInput } from "./screening/chain";
 import { RateDecisionSchema } from "./screening/rate-limit";
 import { cleanText } from "./screening/unicode";
-import type { RetrievalSettings } from "./settings";
+import { type RetrievalSettings, settingsForTurn } from "./settings";
 
 const ClientIdSchema = z.string().trim().min(1).max(256).optional();
 const VisitorKeysSchema = z.array(z.string().trim().min(1).max(256)).max(8).default([]);
@@ -96,7 +96,7 @@ export async function screen(
 	if (question !== undefined && (isCrisis(ctx, question) || isCrisis(ctx, cleanText(question)))) {
 		return { reason: "crisis" };
 	}
-	const settings = await ctx.settings.current();
+	const settings = settingsForTurn(await ctx.settings.current(), control?.settings);
 	if (!settings.guideEnabled) {
 		report(ctx, "disabled", new Error("the guide is switched off (guideEnabled: false)"));
 		return { reason: "unavailable" };

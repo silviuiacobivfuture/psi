@@ -19,6 +19,7 @@
 			"!components/**",
 			"!estate/openbao/**",
 			"!packages/ui/assets/**",
+			"!packages/design/logos/marks/**",
 			"!**/project.inlang/cache/**"
 		],
 		"experimentalScannerIgnores": [

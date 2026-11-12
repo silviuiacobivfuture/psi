@@ -38,6 +38,28 @@ describe("the CMS's own content as knowledge", () => {
 		expect(articleEntries({ ...article, _status: "draft" })).toEqual([]);
 	});
 
+	it("puts the FAQ after the body, per locale, skipping a question without an answer in that locale", () => {
+		const faq = [
+			{ q: { ro: "Cât durează?", en: "How long?" }, a: { ro: "Zece minute.", en: "Ten minutes." } },
+			{ q: { ro: "Doare?", en: "Does it hurt?" }, a: { ro: "Nu.", en: null } },
+		];
+		const e = articleEntries({ ...article, faq });
+		expect(e[0]?.body).toBe(
+			"Despre somn.\n\n## Rutina\n\n- ora fixă\n\n## Întrebări frecvente\n\nCât durează?\nZece minute.\n\nDoare?\nNu.",
+		);
+		const en = e.find((x) => x.locale === "en" && x.brand === "psizone");
+		expect(en?.body).toBe(
+			"About sleep.\n\n## Routine\n\n- a set time\n\n## Frequently asked questions\n\nHow long?\nTen minutes.",
+		);
+	});
+
+	it("indexes an older article without a faq exactly as before", () => {
+		expect(articleEntries({ ...article, faq: null })[0]?.body).toBe(
+			"Despre somn.\n\n## Rutina\n\n- ora fixă",
+		);
+		expect(articleEntries({ ...article, faq: [] })[0]?.body).not.toContain("Întrebări");
+	});
+
 	it("an offering is one short factual entry per locale; demo offerings never", () => {
 		const o = {
 			id: 9,

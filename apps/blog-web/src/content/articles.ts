@@ -9,6 +9,7 @@ import {
 	type Topic,
 } from "@psi/content";
 import type { BlogBrand } from "../brands";
+import { type ShelfId, shelfTopics } from "./shelves";
 import { currentArticles, currentIndex } from "./store";
 
 export { currentArticles, currentIndex, isPublished, isReadable, readingMinutes };
@@ -22,15 +23,18 @@ export function findArticle(slug: string): Article | undefined {
 	return currentArticles().find((a) => a.slug === slug);
 }
 
-/** What the index is narrowed to (`?brand=`, `?topic=`); unset means everything. */
+/** What the index is narrowed to (`?brand=`, `?topic=`, `?shelf=`); unset means everything. */
 export interface ArticleFilter {
 	brand?: BlogBrand;
 	topic?: Topic;
+	shelf?: ShelfId;
 }
 
 function matches(a: Article, f: ArticleFilter): boolean {
 	return (
-		(f.brand === undefined || a.brand === f.brand) && (f.topic === undefined || a.topic === f.topic)
+		(f.brand === undefined || a.brand === f.brand) &&
+		(f.topic === undefined || a.topic === f.topic) &&
+		(f.shelf === undefined || shelfTopics(f.shelf).includes(a.topic))
 	);
 }
 
@@ -56,6 +60,11 @@ export function inProgress(f: ArticleFilter = {}): ReadonlyArray<Article> {
 		.filter((a) => a.status === "in-review")
 		.filter((a) => matches(a, f))
 		.sort((a, b) => (a.backlogNo ?? 99) - (b.backlogNo ?? 99));
+}
+
+/** Everything the index lists, in reading order: published newest first, then drafts, then in-progress. */
+export function listing(f: ArticleFilter = {}): ReadonlyArray<Article> {
+	return [...published(f), ...drafts(f), ...inProgress(f)];
 }
 
 /** Topics that have at least one article, in the order they first appear. */

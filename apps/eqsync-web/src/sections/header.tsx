@@ -3,6 +3,7 @@ import { Button, Compass, type CompassGroup, Logo, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { estateGroup } from "../estate";
+import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
@@ -15,6 +16,7 @@ import { THEMES } from "../theme";
  */
 export function Header({ locale, otherHref }: { locale: Locale; otherHref: string }): JSX.Element {
 	const o = at(locale);
+	const copy = guideCopy(locale);
 	const b = base(locale);
 	const groups: ReadonlyArray<CompassGroup> = [
 		{
@@ -61,6 +63,26 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					hint: m.hint_about({}, o),
 				},
 				{
+					label: m.c_nav_science({}, o),
+					href: href(locale, "science"),
+					hint: m.c_hint_science({}, o),
+				},
+				{
+					label: m.c_nav_listen({}, o),
+					href: href(locale, "listen"),
+					hint: m.c_hint_listen({}, o),
+				},
+				{
+					label: m.c_nav_who({}, o),
+					href: href(locale, "who"),
+					hint: m.c_hint_who({}, o),
+				},
+				{
+					label: m.c_nav_glossary({}, o),
+					href: href(locale, "glossary"),
+					hint: m.c_hint_glossary({}, o),
+				},
+				{
 					label: m.nav_safety({}, o),
 					href: href(locale, "safety"),
 					hint: m.hint_safety({}, o),
@@ -88,7 +110,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 			<header class="pointer-events-none absolute inset-x-0 top-0 z-40">
 				<div class="mx-auto flex max-w-6xl items-center px-5 py-6">
 					<span class="pointer-events-auto">
-						<Logo size={30} href={`${b}/`} />
+						<Logo size={30} href={`${b}/`} endorsement={m.logo_endorsement({}, o)} />
 					</span>
 				</div>
 			</header>
@@ -102,9 +124,9 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				answerId="compass-answer"
 				chat={{
 					storageKey: "psi.chat.eqsync",
-					suggestions: [m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)],
+					suggestions: copy.chips,
 					labels: {
-						greeting: m.guide_intro({}, o),
+						greeting: copy.welcome,
 						disclaimer: m.guide_footer({}, o),
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),

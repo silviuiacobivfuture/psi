@@ -100,6 +100,9 @@ spec:
             - { name: HEMISYNC_CONTROL_URL, value: "http://hemisync-web.hemisync-web.svc" }
             - { name: BLOG_CONTROL_URL, value: "http://blog-web.blog-web.svc" }
             - { name: BLOG_PREVIEW_URL, value: "https://blog.psizone.ro" }
+            # The repository's articles arrive as drafts after every deploy (never overwriting
+            # what a person edited); src/import/run-import.ts.
+            - { name: PSI_IMPORT_REPO_ARTICLES, value: "true" }
           resources:
             # psi 2026-11-12: request = measured peak 136Mi ×1.3; limit unchanged
             requests: { cpu: 100m, memory: 192Mi }

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { BRANDS, SLUG, TOPICS, TOPICS_AWAITING_MIGRATION } from "./vocabulary";
+import { BRANDS, SLUG, TOPIC_LABELS, TOPICS, TOPICS_AWAITING_MIGRATION } from "./vocabulary";
 
 /** The quoted members of `export const <name> = [ … ] as const` in an @psi/content source file. */
 async function blogList(file: string, name: string): Promise<string[]> {
@@ -21,6 +21,14 @@ describe("the blog's vocabulary", () => {
 		expect([...TOPICS, ...TOPICS_AWAITING_MIGRATION]).toEqual(
 			await blogList("schema.ts", "TOPICS"),
 		);
+	});
+	it("labels every topic in both languages and awaits none", () => {
+		expect(TOPICS_AWAITING_MIGRATION).toHaveLength(0);
+		for (const t of TOPICS) {
+			expect(TOPIC_LABELS[t].ro.trim()).not.toBe("");
+			expect(TOPIC_LABELS[t].en.trim()).not.toBe("");
+		}
+		expect(Object.keys(TOPIC_LABELS)).toEqual([...TOPICS]);
 	});
 	it.each([
 		["a", true],

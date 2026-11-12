@@ -13,6 +13,7 @@ import {
 	tenantBySlug,
 } from "./calendar";
 import { requireServer } from "./guard";
+import { roomFor, roomPlan } from "./roomPlan";
 import {
 	actorValidator,
 	decisionReasonValidator,
@@ -150,6 +151,7 @@ export const reschedule = mutation({
 			exceptionsOf(ctx, row.practitioner, args.start, blockedUntil, tenant.timeZone),
 			busyAround(ctx, row.practitioner, args.start, blockedUntil, now, row._id),
 		]);
+		const person = await ctx.db.get(row.practitioner);
 		const calendar = {
 			timeZone: tenant.timeZone,
 			service: spec,
@@ -157,13 +159,28 @@ export const reschedule = mutation({
 			exceptions,
 			busy,
 			now,
+			...(person?.abAnchor === undefined ? {} : { abAnchor: person.abAnchor }),
 		};
 		if (!isOffered(calendar, args.start, args.mode)) {
 			return { ok: false as const, reason: "slot_taken" as const };
 		}
-		const { _id, _creationTime, decisionReason: _reason, ...kept } = row;
+		const plan =
+			args.mode === "onsite" && person !== null
+				? await roomPlan(ctx, tenant, service, person, {
+						from: args.start,
+						to: blockedUntil,
+						now,
+						except: row._id,
+					})
+				: undefined;
+		const room = plan === undefined ? undefined : roomFor(plan, args.start, blockedUntil);
+		if (plan !== undefined && room === undefined) {
+			return { ok: false as const, reason: "slot_taken" as const };
+		}
+		const { _id, _creationTime, decisionReason: _reason, room: _oldRoom, ...kept } = row;
 		const moved = await ctx.db.insert("appointments", {
 			...kept,
+			...(room === undefined ? {} : { room: ctx.db.normalizeId("rooms", room.id) ?? undefined }),
 			mode: args.mode,
 			start: args.start,
 			end,

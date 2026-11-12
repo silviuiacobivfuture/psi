@@ -1,6 +1,6 @@
 {
 	"name": "@psi/eqsync-web",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"description": "eq-sync.ro — the EQ-SYNC landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",

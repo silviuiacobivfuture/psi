@@ -1,16 +1,20 @@
 import type { Agent } from "@mastra/core/agent";
 import { RequestContext } from "@mastra/core/request-context";
+import { MODEL_KEY } from "./agent";
 import { type AskContext, report, type ThreadAgent } from "./ask-context";
+import { CREATIVITY_TEMPERATURE } from "./behaviour";
 import type { Source } from "./contract";
 import { within } from "./deadline";
 import type { AskInput, EngineEvent, HistoryTurn } from "./events";
 import { AnswerTurn, MAX_TOOL_CALLS, TURN_KEY } from "./grounding/agent-tools";
+import { type ArticleLink, mentionedArticles } from "./grounding/article-tool";
 import { createClaimsCheck } from "./grounding/claims-check";
 import type { EvidencePage } from "./grounding/faithfulness";
 import type { ScopedSearch } from "./grounding/knowledge-tool";
 import { SourceLedger, withoutCitations } from "./grounding/ledger";
 import type { LanguagePack } from "./language/pack";
 import { forgetAnswer, type ThreadKey } from "./memory";
+import type { ProfileLocale } from "./profile";
 import { matchesRules } from "./rules";
 import { fold } from "./text/normalize";
 import type { AttemptTiming, ToolTiming } from "./timing";
@@ -19,8 +23,11 @@ import type { AttemptTiming, ToolTiming } from "./timing";
 const MAX_OUTPUT_TOKENS = 4_096;
 /** Model steps per reply: up to `MAX_TOOL_CALLS` tool rounds, then the reply. */
 const MAX_STEPS = MAX_TOOL_CALLS + 2;
-/** Warm enough to vary a conversational reply; the facts come from the tools, not the model. */
-export const ANSWER_TEMPERATURE = 0.5;
+/**
+ * Warm enough to vary a conversational reply; the facts come from the tools, not the model. The
+ * owner's `balanced` creativity; `precise` and `creative` move it per turn.
+ */
+export const ANSWER_TEMPERATURE = CREATIVITY_TEMPERATURE.balanced;
 /** The most earlier turns the model reads. */
 export const HISTORY_TURNS = 10;
 
@@ -32,6 +39,8 @@ export type ReplyOutcome =
 	| {
 			kind: "reply";
 			sources: ReadonlyArray<Source>;
+			/** Articles the reply names, linked whether or not it wrote the address. */
+			articles: ReadonlyArray<Source>;
 			/** What the scorer reads: the tool results, the pages, the sentences left out. */
 			scoring: {
 				passages: Readonly<Record<string, string>>;
@@ -50,7 +59,13 @@ export type ReplyOutcome =
 	| { kind: "aborted" };
 
 type Attempt =
-	| { kind: "ok"; text: string; ledger: SourceLedger; shown: ReadonlyArray<string> }
+	| {
+			kind: "ok";
+			text: string;
+			ledger: SourceLedger;
+			shown: ReadonlyArray<string>;
+			articles: ReadonlyArray<ArticleLink>;
+	  }
 	/** Clearly in another language after its first sentences: stopped early, to be retried. */
 	| { kind: "language" }
 	| { kind: "error"; error: unknown };
@@ -100,6 +115,14 @@ export interface ConverseArgs {
 	/** The visitor's own signal: aborted means a newer question replaced this one. */
 	callerSignal: AbortSignal | undefined;
 	clock: TurnClock;
+	/** The profile's wording for this turn (in the owner's style), for the claims evidence. */
+	own: ProfileLocale | undefined;
+	/** Copy the owner set that the reply may say as written (the redirect line), as evidence too. */
+	ownCopy: ReadonlyArray<string>;
+	/** This turn's sampling temperature (the owner's creativity). */
+	temperature: number;
+	/** The owner's answering model for this turn; undefined: the engine's. */
+	model?: string;
 }
 
 function conversation(input: AskInput, useHistory: boolean): Array<ModelMessage> {
@@ -153,14 +176,17 @@ async function* attempt(
 			agent.stream(conversation(input, threads === undefined), {
 				instructions: args.instructions,
 				...(system === "" ? {} : { system }),
-				requestContext: new RequestContext([[TURN_KEY, turn]]),
+				requestContext: new RequestContext<unknown>([
+					[TURN_KEY, turn],
+					...(args.model === undefined ? [] : [[MODEL_KEY, args.model] as const]),
+				]),
 				maxSteps: MAX_STEPS,
 				maxProcessorRetries: 0,
 				abortSignal: signal,
 				modelSettings: {
 					maxRetries: 0,
 					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					temperature: ANSWER_TEMPERATURE,
+					temperature: args.temperature,
 				},
 				...(threads !== undefined && key !== undefined
 					? { memory: { thread: key.threadId, resource: key.resourceId } }
@@ -235,7 +261,7 @@ async function* attempt(
 			yield { type: "text", delta: rest };
 		}
 		if (raw.trim() === "") return { kind: "error", error: new Error("empty reply") };
-		return { kind: "ok", text: raw.trim(), ledger, shown: turn.shown };
+		return { kind: "ok", text: raw.trim(), ledger, shown: turn.shown, articles: turn.articles };
 	} catch (error) {
 		return { kind: "error", error };
 	} finally {
@@ -247,9 +273,13 @@ async function* attempt(
 	}
 }
 
-/** What the reply's facts are checked against beyond the tool results: the profile's own text. */
-function ownText(ctx: AskContext, input: AskInput): ReadonlyArray<string> {
-	const own = ctx.profile.locales[input.locale];
+/**
+ * What the reply's facts are checked against beyond the tool results: the profile's own text and
+ * the copy lines the owner wrote for the guide to say. Never the team's free-text instructions:
+ * a note cannot license a fact.
+ */
+function ownText(args: ConverseArgs): ReadonlyArray<string> {
+	const { ctx, input, own } = args;
 	const earlier = (input.history ?? []).filter((t) => t.role === "guide").map((t) => t.text);
 	return [
 		ctx.profile.name,
@@ -261,6 +291,7 @@ function ownText(ctx: AskContext, input: AskInput): ReadonlyArray<string> {
 					...(own.facts ?? []),
 					...(own.unknown === undefined ? [] : [own.unknown]),
 				]),
+		...args.ownCopy,
 		...earlier,
 	];
 }
@@ -377,7 +408,7 @@ async function* decide(
 		}
 		const evidence = {
 			passages: [...Object.values(result.ledger.passageTexts()), ...result.shown],
-			own: ownText(ctx, input),
+			own: ownText(args),
 		};
 		const verdict = claims.check(
 			result.text,
@@ -393,6 +424,7 @@ async function* decide(
 				: {
 						kind: "reply",
 						sources: citer.sources(),
+						articles: mentionedArticles(text, result.articles),
 						scoring: {
 							passages: result.ledger.passageTexts(),
 							pages: result.ledger.pages(),

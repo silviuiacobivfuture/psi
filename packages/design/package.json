@@ -1,15 +1,17 @@
 {
 	"name": "@psi/design",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"description": "The psi design language: eight themes (Psizone, EQ-SYNC, Hemi-Sync, Blog; each dark and light), tokens, brand books, component guides",
 	"exports": {
 		"./tokens.json": "./tokens.json",
-		"./theme.css": "./theme.generated.css"
+		"./theme.css": "./theme.generated.css",
+		"./logos": "./logos/marks.generated.ts"
 	},
 	"scripts": {
-		"build": "node scripts/build-theme.mjs && node scripts/build-palette.mjs",
-		"check": "node scripts/build-theme.mjs --check && node scripts/build-palette.mjs --check"
+		"build": "node scripts/build-theme.mjs && node scripts/build-palette.mjs && node scripts/build-logos.mjs",
+		"check": "node scripts/build-theme.mjs --check && node scripts/build-palette.mjs --check && node scripts/build-logos.mjs --check",
+		"build:logos": "node scripts/build-logos.mjs"
 	}
 }

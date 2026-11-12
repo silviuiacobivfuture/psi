@@ -72,5 +72,5 @@ export const VISIT_TODO: ReadonlyArray<Localised> = [
 		en: "Whether the child comes to the first meeting or only the parents.",
 	},
 	{ ro: "Prețul evaluării.", en: "The price of the evaluation." },
-	{ ro: "Adresa și programul centrului.", en: "The centre's address and opening hours." },
+	{ ro: "Programul centrului.", en: "The centre's opening hours." },
 ];

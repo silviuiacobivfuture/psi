@@ -43,9 +43,16 @@ export const BookingConfirmation = z.object({
  * conversation (the compass can open it on /contact too). Every step answers with the same id, so
  * Datastar patches the form that was sent and never the other one.
  */
-export const FormIdSchema = z.enum(["booking", "chat-booking"]).catch("booking");
+export const FormIdSchema = z
+	.string()
+	.regex(/^(?:booking|chat-booking(?:-[a-z0-9]{4,12})?)$/)
+	.catch("booking");
 export type FormId = z.infer<typeof FormIdSchema>;
-const FIELD_PREFIX: Readonly<Record<FormId, string>> = { booking: "b", "chat-booking": "cb" };
+
+/** The prefix of a form's field ids, so two forms in one page never share an id. */
+function fieldPrefix(id: FormId): string {
+	return id === "booking" ? "b" : id.replace("chat-booking", "cb");
+}
 
 export type BookingErrors = Partial<
 	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
@@ -207,7 +214,7 @@ export function BookingForm({
 	account?: { signedIn: true } | { signedIn: false; signInHref: string };
 }): JSX.Element {
 	const o = at(locale);
-	const f = FIELD_PREFIX[id];
+	const f = fieldPrefix(id);
 	return (
 		<form
 			id={id}
@@ -436,6 +443,7 @@ export function BookingRequested({
 	timeZone,
 	id = "booking",
 	inAccount,
+	cancelInChat = false,
 }: {
 	locale: Locale;
 	name: string;
@@ -446,6 +454,8 @@ export function BookingRequested({
 	id?: FormId;
 	/** The person's account bookings page, when the request was made signed in. */
 	inAccount?: string;
+	/** In the guide's chat: say that the code cancels there too. */
+	cancelInChat?: boolean;
 }): JSX.Element {
 	const o = at(locale);
 	const { day, time } = wallClock(start, timeZone, locale);
@@ -466,6 +476,9 @@ export function BookingRequested({
 						<dd class="font-mono text-body text-ink">{cancelCode}</dd>
 					</div>
 				</dl>
+				{cancelInChat ? (
+					<p class="text-body-sm text-ink-muted">{m.requested_cancel_how({}, o)}</p>
+				) : null}
 				{inAccount === undefined ? null : (
 					<p class="text-body-sm text-ink-muted">
 						{`${m.requested_in_account({}, o)} `}

@@ -1,7 +1,9 @@
 import { type ControlClient, createControlClient, type Site, signWebhook } from "@psi/cms-client";
 import {
+	createSchedulingClient,
 	createStaffSchedulingClient,
 	readSchedulingEnv,
+	type SchedulingClient,
 	type StaffSchedulingClient,
 } from "@psi/scheduling";
 import { z } from "zod";
@@ -23,8 +25,17 @@ const CONTROL_URL: Readonly<Record<Site, (e: Env) => string | undefined>> = {
 /** The brands that take bookings (a scheduling tenant each); the blog has none. */
 export const SCHEDULING_TENANTS = ["psizone", "eqsync", "hemisync"] as const;
 export type Tenant = (typeof SCHEDULING_TENANTS)[number];
-export function tenantOf(brand: Site): Tenant | null {
-	return brand === "blog" ? null : brand;
+
+/**
+ * The scheduling tenant a brand's calendar lives in: the brand itself. For a trial run on a
+ * developer's machine only, SCHEDULING_TENANT_OVERRIDES names another tenant instead; it is never
+ * read in production.
+ */
+export function tenantOf(brand: Site): string | null {
+	if (brand === "blog") return null;
+	const override =
+		process.env.NODE_ENV === "production" ? undefined : env().SCHEDULING_TENANT_OVERRIDES[brand];
+	return override ?? brand;
 }
 
 const clients = new Map<Site, ControlClient | null>();
@@ -43,6 +54,7 @@ export function controlFor(brand: Site): ControlClient | null {
 }
 
 let staff: StaffSchedulingClient | null | undefined;
+let visitor: SchedulingClient | null | undefined;
 
 /** The scheduling store's staff client, or null without CONVEX_URL and PSI_SCHEDULING_KEY. */
 export function schedulingStaff(): StaffSchedulingClient | null {
@@ -54,6 +66,21 @@ export function schedulingStaff(): StaffSchedulingClient | null {
 	});
 	staff = r.ok ? createStaffSchedulingClient(r.config) : null;
 	return staff;
+}
+
+/**
+ * The visitors' own client: what the sites and the guide call to find free times. The setup
+ * page's preview goes through it, so it shows exactly what a visitor would be offered.
+ */
+export function schedulingVisitor(): SchedulingClient | null {
+	if (visitor !== undefined) return visitor;
+	const e = env();
+	const r = readSchedulingEnv({
+		CONVEX_URL: e.CONVEX_URL,
+		PSI_SCHEDULING_KEY: e.PSI_SCHEDULING_KEY,
+	});
+	visitor = r.ok ? createSchedulingClient(r.config) : null;
+	return visitor;
 }
 
 /** Mastra Studio for deep inspection: STUDIO_URL, else the live one or the local one. */

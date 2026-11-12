@@ -14,6 +14,7 @@ import {
 	tenantBySlug,
 } from "./calendar";
 import { requireServer, sameSecret } from "./guard";
+import { roomFor, roomPlan } from "./roomPlan";
 import {
 	audienceValidator,
 	channelValidator,
@@ -75,13 +76,35 @@ export const hold = mutation({
 			exceptionsOf(ctx, practitionerId, args.start, blockedUntil, tenant.timeZone),
 			busyAround(ctx, practitionerId, args.start, blockedUntil, now),
 		]);
-		const calendar = { timeZone: tenant.timeZone, service: spec, rules, exceptions, busy, now };
+		const calendar = {
+			timeZone: tenant.timeZone,
+			service: spec,
+			rules,
+			exceptions,
+			busy,
+			now,
+			...(practitioner.abAnchor === undefined ? {} : { abAnchor: practitioner.abAnchor }),
+		};
 		if (!isOffered(calendar, args.start, args.mode)) {
 			const free = isOffered({ ...calendar, busy: [] }, args.start, args.mode);
 			return {
 				ok: false as const,
 				reason: free ? ("slot_taken" as const) : ("not_offered" as const),
 			};
+		}
+		// An onsite session also needs a suitable room, free for the same span (read here, so a
+		// race for the last room conflicts and one of the two retries into `slot_taken`).
+		const plan =
+			args.mode === "onsite"
+				? await roomPlan(ctx, tenant, service, practitioner, {
+						from: args.start,
+						to: blockedUntil,
+						now,
+					})
+				: undefined;
+		const room = plan === undefined ? undefined : roomFor(plan, args.start, blockedUntil);
+		if (plan !== undefined && room === undefined) {
+			return { ok: false as const, reason: "slot_taken" as const };
 		}
 		if ((await appointmentByReference(ctx, args.reference)) !== undefined) {
 			return { ok: false as const, reason: "retry" as const };
@@ -91,6 +114,7 @@ export const hold = mutation({
 			tenant: tenant.slug,
 			practitioner: practitionerId,
 			service: service._id,
+			...(room === undefined ? {} : { room: ctx.db.normalizeId("rooms", room.id) ?? undefined }),
 			mode: args.mode,
 			start: args.start,
 			end,

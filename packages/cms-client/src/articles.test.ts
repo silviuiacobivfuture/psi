@@ -114,6 +114,79 @@ describe("articleFromPayload: the CMS → blog contract", () => {
 	});
 });
 
+describe("articleFromPayload: seo, faq and related", () => {
+	const seo = {
+		title: both("Somnul copilului", "Child sleep"),
+		description: {
+			ro: "Cum se odihnește un copil și ce poți face seara, pas cu pas, fără presiune.",
+			en: "How a child rests and what you can do in the evening, step by step, without pressure.",
+		},
+		keywords: {
+			ro: [{ id: "k1", keyword: "somn copil" }],
+			en: [
+				{ id: "k2", keyword: "child sleep" },
+				{ id: "k3", keyword: " " },
+			],
+		},
+	};
+	const faq = [
+		{ q: both("De ce?", "Why?"), a: both("Pentru că.", "Because.") },
+		{ q: both("Doar ro", null as unknown as string), a: both("x", "y") },
+	];
+
+	it("carries them to a published and to a draft article", () => {
+		const extra = {
+			seo,
+			faq,
+			related: [{ slug: "alt-articol" }, { slug: "alt-articol" }, { slug: "Bad Slug" }],
+		};
+		for (const patch of [
+			extra,
+			{ ...extra, _status: "draft", aiDrafted: true, provenance: [{ entry: "f.md" }] },
+		]) {
+			const m = articleFromPayload(doc(patch), CMS);
+			expect(m.ok).toBe(true);
+			if (!m.ok || m.article.status === "in-review") return;
+			expect(m.article.seo).toEqual({
+				title: seo.title,
+				description: seo.description,
+				keywords: { ro: ["somn copil"], en: ["child sleep"] },
+			});
+			expect(m.article.faq).toEqual([
+				{ q: both("De ce?", "Why?"), a: both("Pentru că.", "Because.") },
+			]);
+			expect(m.article.related).toEqual(["alt-articol"]);
+		}
+	});
+
+	it("an older document has none, and an incomplete seo or an over-long one does not drop the article", () => {
+		const old = articleFromPayload(doc(), CMS);
+		expect(old.ok && old.article.status === "published" && old.article.seo).toBeNull();
+		expect(old.ok && old.article.status === "published" && old.article.faq).toEqual([]);
+		for (const bad of [
+			{ ...seo, keywords: { ro: [], en: [] } },
+			{ ...seo, title: both("x".repeat(66), "ok") },
+			{ ...seo, description: both("scurt", "scurt") },
+			{ title: seo.title },
+		]) {
+			const m = articleFromPayload(doc({ seo: bad }), CMS);
+			expect(m.ok && m.article.status === "published" && m.article.seo).toBeNull();
+		}
+	});
+
+	it("keeps ten questions and eight related slugs at most", () => {
+		const many = Array.from({ length: 12 }, (_, i) => ({
+			q: both(`q${i}`, `q${i}`),
+			a: both("a", "a"),
+		}));
+		const slugs = Array.from({ length: 10 }, (_, i) => ({ slug: `a-${i}` }));
+		const m = articleFromPayload(doc({ faq: many, related: slugs }), CMS);
+		expect(
+			m.ok && m.article.status === "published" && [m.article.faq.length, m.article.related.length],
+		).toEqual([10, 8]);
+	});
+});
+
 describe("readCmsArticles", () => {
 	it("asks anonymously for published versions only, pages, and keeps the rejects apart", async () => {
 		const urls: string[] = [];

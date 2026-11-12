@@ -5,6 +5,8 @@ import * as migration_20261111_233616_ai_screening_level from "./20261111_233616
 import * as migration_20261111_235929_offerings from "./20261111_235929_offerings";
 import * as migration_20261112_014550_control_plane from "./20261112_014550_control_plane";
 import * as migration_20261112_022246_knowledge_sources from "./20261112_022246_knowledge_sources";
+import * as migration_20261112_054256_ai_behaviour_studio from "./20261112_054256_ai_behaviour_studio";
+import * as migration_20261112_062828_article_seo_faq from "./20261112_062828_article_seo_faq";
 
 export const migrations = [
 	{
@@ -41,5 +43,15 @@ export const migrations = [
 		up: migration_20261112_022246_knowledge_sources.up,
 		down: migration_20261112_022246_knowledge_sources.down,
 		name: "20261112_022246_knowledge_sources",
+	},
+	{
+		up: migration_20261112_054256_ai_behaviour_studio.up,
+		down: migration_20261112_054256_ai_behaviour_studio.down,
+		name: "20261112_054256_ai_behaviour_studio",
+	},
+	{
+		up: migration_20261112_062828_article_seo_faq.up,
+		down: migration_20261112_062828_article_seo_faq.down,
+		name: "20261112_062828_article_seo_faq",
 	},
 ];

@@ -40,7 +40,7 @@ export function AccountFrame({
 		>
 			<Header locale={locale} otherHref={otherHref} />
 			<div class="mx-auto max-w-7xl px-6 pt-8 md:px-14 md:pt-10">
-				<Logo size={30} href={`${base(locale)}/`} />
+				<Logo size={30} href={`${base(locale)}/`} endorsement={m.logo_endorsement({}, o)} />
 			</div>
 			<main id="continut" class="mx-auto max-w-7xl px-6 pb-32 pt-10 md:px-14 md:pt-14">
 				{children}

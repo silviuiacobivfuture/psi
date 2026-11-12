@@ -66,6 +66,7 @@ describe("retrieval tiers in psi's guides", () => {
 		const tools = Object.keys(await engine.guide("psizone").agent.listTools()).sort();
 		expect(tools).toEqual([
 			"contactDetails",
+			"findArticles",
 			"findPage",
 			"getEntry",
 			"listTopics",

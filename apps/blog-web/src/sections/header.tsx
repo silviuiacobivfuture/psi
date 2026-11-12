@@ -8,6 +8,7 @@ import { EDITORIAL_POLICY } from "../content/editorial-policy";
 import { brandName, topicLabel } from "../content/topics";
 import { dateline } from "../dates";
 import { estateGroup } from "../estate";
+import { guideCopy } from "../guide-copy";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
@@ -72,6 +73,7 @@ export function Header({
 	brand?: BlogBrand;
 }): JSX.Element {
 	const o = at(locale);
+	const copy = guideCopy(locale);
 	return (
 		<>
 			<a
@@ -97,9 +99,9 @@ export function Header({
 				answerId="compass-answer"
 				chat={{
 					storageKey: "psi.chat.blog",
-					suggestions: [m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)],
+					suggestions: copy.chips,
 					labels: {
-						greeting: m.guide_intro({}, o),
+						greeting: copy.welcome,
 						disclaimer: m.guide_footer({}, o),
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),

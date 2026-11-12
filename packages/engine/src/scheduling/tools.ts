@@ -39,7 +39,7 @@ const PART_OF_DAY = {
 	any: [0, 1440],
 } as const;
 
-const ProposedSlotSchema = z.object({
+export const ProposedSlotSchema = z.object({
 	slotId: z.string(),
 	startsAt: z.string().datetime(),
 	date: z.string(),
@@ -95,6 +95,13 @@ function findAvailabilityInput(services: ReadonlyArray<string>) {
 				.describe("First day to look at, YYYY-MM-DD, local to the practice; defaults to today"),
 			days: z.number().int().min(1).max(14).default(7).describe("How many days to look at"),
 			partOfDay: z.enum(["morning", "afternoon", "evening", "any"]).default("any"),
+			weekday: z
+				.number()
+				.int()
+				.min(1)
+				.max(7)
+				.optional()
+				.describe("Only this day of the week (1 Monday to 7 Sunday), when the visitor named one"),
 			mode: SchedulingModeSchema.optional().describe("onsite or online, when the visitor said"),
 			limit: z.number().int().min(1).max(10).default(6),
 		})
@@ -183,6 +190,7 @@ export async function runFindAvailability(
 			.flatMap((slot) => propose(slot, found.timeZone))
 			.filter((slot) => slot.date >= firstDay && slot.date < lastDay)
 			.filter((slot) => (input.mode === undefined ? true : slot.mode === input.mode))
+			.filter((slot) => (input.weekday === undefined ? true : slot.weekday === input.weekday))
 			.filter((slot) => {
 				const minutes = Number(slot.time.slice(0, 2)) * 60 + Number(slot.time.slice(3));
 				return minutes >= low && minutes < high;

@@ -1,0 +1,10 @@
+# scheduling-deploy on dev. CI moves newTag after each image it pushes; never edit it by hand.
+# "unbuilt" is the placeholder until the first apps.yml run builds the image and replaces it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/scheduling-deploy
+    newTag: "unbuilt"

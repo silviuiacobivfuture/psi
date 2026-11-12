@@ -33,6 +33,17 @@ export function validStandfirst(value: unknown): true | Problem {
 	return typeof value === "string" && words(value) > STANDFIRST_MAX_WORDS ? "standfirst" : true;
 }
 
+/** The blog's limits (@psi/content `Seo`): a title of at most 65 characters. */
+export function validSeoTitle(value: unknown): true | Problem {
+	return typeof value === "string" && value.length > 65 ? "seoTitle" : true;
+}
+
+/** The blog's limits (@psi/content `Seo`): a description of 70–170 characters. */
+export function validSeoDescription(value: unknown): true | Problem {
+	if (typeof value !== "string" || value === "") return true;
+	return value.length >= 70 && value.length <= 170 ? true : "seoDescription";
+}
+
 export function validAnswer(value: unknown): true | Problem {
 	if (typeof value !== "string" || value.trim() === "") return true;
 	const n = words(value);

@@ -1,3 +1,4 @@
+import type { JsonLdNode } from "@psi/ui";
 import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
@@ -16,6 +17,7 @@ export interface LayoutProps {
 	title: string;
 	description: string;
 	alternate: { locale: Locale; href: string };
+	jsonLd?: ReadonlyArray<JsonLdNode>;
 	children: Child;
 }
 
@@ -25,6 +27,7 @@ export function Layout({
 	title,
 	description,
 	alternate,
+	jsonLd,
 	children,
 }: LayoutProps): JSX.Element {
 	return (
@@ -46,7 +49,9 @@ export function Layout({
 						title={title}
 						description={description}
 						alternate={alternate}
+						extraJsonLd={jsonLd}
 					/>
+					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 					<PwaHeadTags locale={locale} />
 					<link rel="preconnect" href="https://fonts.googleapis.com" />
 					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />

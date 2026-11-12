@@ -126,6 +126,26 @@ describe("the compass chat's kept conversation", () => {
 		expect(JSON.parse(items.get(KEY) ?? "{}").turns).toEqual(turns);
 	});
 
+	it("keeps a turn's booking state across a reload, so a follow-up still knows the booking", () => {
+		const { chat, items } = browser();
+		chat.load(KEY);
+		const booking = {
+			stage: "times",
+			criteria: { service: "evaluation", days: 14, partOfDay: "any" },
+			shown: [],
+		};
+		chat.save(KEY, {
+			turns: [{ role: "guide", text: "Orele libere.", booking }],
+			pending: "",
+			draft: "",
+			remembered: false,
+		});
+		vi.advanceTimersByTime(200);
+		expect(JSON.parse(items.get(KEY) ?? "{}").turns).toEqual([
+			{ role: "guide", text: "Orele libere.", booking },
+		]);
+	});
+
 	it("expires after 24 hours without activity", () => {
 		const { chat, items } = browser();
 		items.set(

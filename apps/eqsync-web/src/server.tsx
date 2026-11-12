@@ -51,6 +51,7 @@ app.get("/assets/datastar.js", (c) =>
 		"cache-control": "public, max-age=86400",
 	}),
 );
+app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/assets/*", serveStatic({ root: "./public" }));
 
 for (const [locale, prefix] of [

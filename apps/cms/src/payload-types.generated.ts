@@ -75,6 +75,7 @@ export interface Config {
     media: Media;
     'review-events': ReviewEvent;
     'analytics-daily': AnalyticsDaily;
+    'ai-settings-versions': AiSettingsVersion;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -91,6 +92,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'review-events': ReviewEventsSelect<false> | ReviewEventsSelect<true>;
     'analytics-daily': AnalyticsDailySelect<false> | AnalyticsDailySelect<true>;
+    'ai-settings-versions': AiSettingsVersionsSelect<false> | AiSettingsVersionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -197,6 +199,38 @@ export interface Article {
         id?: string | null;
       }[]
     | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * The phrases people search for; the first is the main one.
+     */
+    keywords?:
+      | {
+          keyword: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Real questions, answered in 40–120 words; shown on the page and known to the guide.
+   */
+  faq?:
+    | {
+        q: string;
+        a: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Slugs of the articles this one links to. Unknown slugs are ignored.
+   */
+  related?:
+    | {
+        slug: string;
+        id?: string | null;
+      }[]
+    | null;
   authorTeam?: string | null;
   author?: (number | null) | Person;
   /**
@@ -217,7 +251,17 @@ export interface Article {
     | 'editorial'
     | 'cum-lucram'
     | 'programul-eqsync'
-    | 'explorarea-constiintei';
+    | 'explorarea-constiintei'
+    | 'cuplu-familie'
+    | 'post-avc'
+    | 'psiho-oncologie'
+    | 'sport'
+    | 'psihoterapie'
+    | 'neuromodulare'
+    | 'parinti'
+    | 'creier-si-minte'
+    | 'sunet-si-creier'
+    | 'meditatie-si-relaxare';
   kind: 'health' | 'editorial';
   backlogNo?: number | null;
   publishedAt?: string | null;
@@ -541,6 +585,30 @@ export interface AnalyticsDaily {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings-versions".
+ */
+export interface AiSettingsVersion {
+  id: number;
+  brand: 'psizone' | 'eqsync' | 'hemisync' | 'blog';
+  kind: 'draft' | 'published';
+  settings:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  by?: string | null;
+  byId?: string | null;
+  at: string;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -594,6 +662,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'analytics-daily';
         value: number | AnalyticsDaily;
+      } | null)
+    | ({
+        relationTo: 'ai-settings-versions';
+        value: number | AiSettingsVersion;
       } | null)
     | ({
         relationTo: 'users';
@@ -698,6 +770,31 @@ export interface ArticlesSelect<T extends boolean = true> {
     | T
     | {
         entry?: T;
+        id?: T;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?:
+          | T
+          | {
+              keyword?: T;
+              id?: T;
+            };
+      };
+  faq?:
+    | T
+    | {
+        q?: T;
+        a?: T;
+        id?: T;
+      };
+  related?:
+    | T
+    | {
+        slug?: T;
         id?: T;
       };
   authorTeam?: T;
@@ -958,6 +1055,21 @@ export interface AnalyticsDailySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings-versions_select".
+ */
+export interface AiSettingsVersionsSelect<T extends boolean = true> {
+  brand?: T;
+  kind?: T;
+  settings?: T;
+  by?: T;
+  byId?: T;
+  at?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -1049,6 +1161,15 @@ export interface AiSetting {
      * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
      */
     screeningLevel: 'standard' | 'strict';
+    behaviour?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
     updatedBy?: string | null;
     updatedAt?: string | null;
   };
@@ -1069,6 +1190,15 @@ export interface AiSetting {
      * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
      */
     screeningLevel: 'standard' | 'strict';
+    behaviour?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
     updatedBy?: string | null;
     updatedAt?: string | null;
   };
@@ -1089,6 +1219,15 @@ export interface AiSetting {
      * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
      */
     screeningLevel: 'standard' | 'strict';
+    behaviour?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
     updatedBy?: string | null;
     updatedAt?: string | null;
   };
@@ -1109,6 +1248,15 @@ export interface AiSetting {
      * Standard: word rules, personal-data redaction, crisis and scope rules (free). Strict: adds two AI detectors for prompt injection and abusive content (two extra model calls per question).
      */
     screeningLevel: 'standard' | 'strict';
+    behaviour?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
     updatedBy?: string | null;
     updatedAt?: string | null;
   };
@@ -1315,6 +1463,7 @@ export interface AiSettingsSelect<T extends boolean = true> {
         exchangeLimit?: T;
         exchangeWindowHours?: T;
         screeningLevel?: T;
+        behaviour?: T;
         updatedBy?: T;
         updatedAt?: T;
       };
@@ -1328,6 +1477,7 @@ export interface AiSettingsSelect<T extends boolean = true> {
         exchangeLimit?: T;
         exchangeWindowHours?: T;
         screeningLevel?: T;
+        behaviour?: T;
         updatedBy?: T;
         updatedAt?: T;
       };
@@ -1341,6 +1491,7 @@ export interface AiSettingsSelect<T extends boolean = true> {
         exchangeLimit?: T;
         exchangeWindowHours?: T;
         screeningLevel?: T;
+        behaviour?: T;
         updatedBy?: T;
         updatedAt?: T;
       };
@@ -1354,6 +1505,7 @@ export interface AiSettingsSelect<T extends boolean = true> {
         exchangeLimit?: T;
         exchangeWindowHours?: T;
         screeningLevel?: T;
+        behaviour?: T;
         updatedBy?: T;
         updatedAt?: T;
       };

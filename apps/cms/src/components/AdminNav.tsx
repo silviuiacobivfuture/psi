@@ -15,6 +15,7 @@ const COOKIE = "psi-cms-brand";
 const PLATFORM: ReadonlyArray<readonly [string, CustomKey]> = [
 	["/admin/platform", "psi:navOverview"],
 	["/admin/platform/ai", "psi:navAi"],
+	["/admin/platform/ai/behaviour", "psi:navBehaviour"],
 	["/admin/collections/knowledge-sources", "psi:ksNav"],
 	["/admin/collections/knowledge-entries", "psi:navKnowledge"],
 	["/admin/platform/scheduling", "psi:navScheduling"],
@@ -40,9 +41,12 @@ function current(): string {
 	return hit?.slice(COOKIE.length + 1) ?? "";
 }
 
+/** Pages with their own link beneath them: the parent's link is exact (one active link at a time). */
+const EXACT = new Set(["/admin/platform", "/admin/platform/ai"]);
+
 /** Whether this link is the page being shown (its own path, or a page beneath it). */
 function isActive(href: string, path: string): boolean {
-	return href === "/admin/platform" ? path === href : path === href || path.startsWith(`${href}/`);
+	return EXACT.has(href) ? path === href : path === href || path.startsWith(`${href}/`);
 }
 
 /**

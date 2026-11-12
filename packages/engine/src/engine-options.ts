@@ -6,6 +6,7 @@ import type { MastraVector } from "@mastra/core/vector";
 import { z } from "zod";
 import type { EngineFailure } from "./ask-context";
 import { EngineKnowledgeSchema } from "./contract";
+import type { EngineArticles } from "./grounding/article-tool";
 import type { EngineScore } from "./grounding/faithfulness";
 import type { EngineIngest } from "./ingest-workflow";
 import { LanguagePackSchema } from "./language/pack";
@@ -37,6 +38,11 @@ export const EngineOptionsSchema = z.object({
 	profiles: z.array(ProfileSchema).min(1).readonly(),
 	knowledge: EngineKnowledgeSchema,
 	settings: fn<SettingsProvider>("settings").optional(),
+	articles: z
+		.custom<EngineArticles>((value) => hasMethods(value, ["find"]), {
+			message: "articles must have a find function",
+		})
+		.optional(),
 	ingest: z
 		.custom<EngineIngest>(
 			(value) =>

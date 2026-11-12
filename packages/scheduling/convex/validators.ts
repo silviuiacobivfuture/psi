@@ -41,3 +41,6 @@ export const actorValidator = v.object({ subject: v.string() });
 
 /** The shared server key every function demands (see `guard.ts`). */
 export const serverKeyValidator = v.string();
+
+/** A service's name in both languages, as the team wrote it. */
+export const serviceNameValidator = v.object({ ro: v.string(), en: v.string() });

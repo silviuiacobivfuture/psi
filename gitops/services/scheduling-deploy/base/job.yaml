@@ -1,0 +1,65 @@
+# Argo PostSync hook: runs after every sync of this Application has gone healthy (so after a new
+# image tag from CI), replaces the previous run (BeforeHookCreation) and leaves its pod for the logs.
+# Idempotent: `convex env set --force` and `convex deploy` converge on the same state.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scheduling-deploy
+  labels: { app: scheduling-deploy }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 2
+  # Long enough to wait for the admin key on a first install (see externalsecret.yaml).
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels: { app: scheduling-deploy }
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: scheduling-deploy-env }
+          command:
+            - sh
+            - -c
+            - '[ -n "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CONVEX_SELF_HOSTED_ADMIN_KEY" >&2; exit 1; }; [ -n "${PSI_SCHEDULING_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: PSI_SCHEDULING_KEY" >&2; exit 1; }; [ "${#PSI_SCHEDULING_KEY}" -ge 32 ] || { echo "INVALID SECRET: PSI_SCHEDULING_KEY shorter than 32" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: deploy
+          image: registry.psizone.ro/psi/scheduling-deploy
+          envFrom:
+            - secretRef: { name: scheduling-deploy-env }
+          env:
+            - { name: CONVEX_SELF_HOSTED_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+      volumes:
+        - name: tmp
+          emptyDir: {}

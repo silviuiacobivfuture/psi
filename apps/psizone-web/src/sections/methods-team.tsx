@@ -1,9 +1,10 @@
-import { Button, PractitionerCard } from "@psi/ui";
+import { Button } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { METHODS } from "../content/methods";
 import { TEAM } from "../content/team";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { MemberCard } from "./member-card";
 
 /** The clinical methods as doors to their pages; the own methods named only on `/metode`. */
 export function Methods({ locale }: { locale: Locale }): JSX.Element {
@@ -58,7 +59,7 @@ export function Team({ locale }: { locale: Locale }): JSX.Element {
 			</div>
 			<div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 				{TEAM.slice(0, 4).map((p) => (
-					<PractitionerCard class="pz-rise" name={p.name} role={p.role(o)} />
+					<MemberCard member={p} locale={locale} />
 				))}
 			</div>
 		</section>

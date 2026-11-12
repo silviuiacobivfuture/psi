@@ -139,3 +139,26 @@ describe("flattenLocale", () => {
 		expect(flattenLocale({ title: { ro: "R" } }, "en")).toEqual({ title: null });
 	});
 });
+
+describe("an optional reviewed field", () => {
+	const opt: ReviewSpec = {
+		...spec,
+		reviewed: [...spec.reviewed, "seo", "faq"],
+		optional: ["seo", "faq"],
+	};
+	const doc = { title: "t", body: [], kind: "health", cover: null };
+	it("leaves an approval given before the field existed valid while it is empty", () => {
+		const before = contentHash(reviewedContent(spec, doc));
+		expect(contentHash(reviewedContent(opt, doc))).toBe(before);
+		expect(
+			contentHash(reviewedContent(opt, { ...doc, seo: { title: null, keywords: [] }, faq: [] })),
+		).toBe(before);
+	});
+	it("counts once it holds something, so writing it invalidates the approval", () => {
+		const before = contentHash(reviewedContent(opt, doc));
+		expect(
+			contentHash(reviewedContent(opt, { ...doc, faq: [{ id: "a", q: "?", a: "!" }] })),
+		).not.toBe(before);
+		expect(contentHash(reviewedContent(opt, { ...doc, seo: { title: "x" } }))).not.toBe(before);
+	});
+});

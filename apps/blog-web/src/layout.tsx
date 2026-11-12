@@ -1,4 +1,4 @@
-import { Doctype } from "@psi/ui";
+import { Doctype, type JsonLdNode } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Locale } from "./i18n";
@@ -23,6 +23,10 @@ export interface LayoutProps {
 	/** Pages that must not be indexed yet (articles still in review, the 404). */
 	noindex?: boolean;
 	ogType?: "website" | "article";
+	/** Extra structured data for this page (an article, its FAQ), after the site's own. */
+	jsonLd?: ReadonlyArray<JsonLdNode>;
+	/** The phrases this page answers, for `<meta name="keywords">`. */
+	keywords?: ReadonlyArray<string>;
 	children: Child;
 }
 
@@ -36,6 +40,8 @@ export function Layout({
 	feed,
 	noindex = false,
 	ogType = "website",
+	jsonLd = [],
+	keywords = [],
 	children,
 }: LayoutProps): JSX.Element {
 	return (
@@ -51,6 +57,7 @@ export function Layout({
 					<title>{title}</title>
 					<meta name="description" content={description} />
 					<meta name="color-scheme" content="light dark" />
+					{keywords.length > 0 ? <meta name="keywords" content={keywords.join(", ")} /> : null}
 					{noindex ? <meta name="robots" content="noindex" /> : null}
 					<SiteHead
 						locale={locale}
@@ -60,6 +67,7 @@ export function Layout({
 						canonical={canonical}
 						alternate={alternate}
 						ogType={ogType}
+						extraJsonLd={jsonLd}
 					/>
 					<PwaHeadTags locale={locale} />
 					<link rel="alternate" type="application/rss+xml" title={feed.title} href={feed.href} />

@@ -38,7 +38,7 @@ const ORIGIN = SITE.origin;
 const HOSTS = new Set([
 	SITE.host,
 	SITE.host.replace(/^www\./, ""),
-	"www." + SITE.host.replace(/^www\./, ""),
+	`www.${SITE.host.replace(/^www\./, "")}`,
 ]);
 const OUT = path.resolve(opt("out", `data/crawl/${SITE.host.replace(/^www\./, "")}`));
 const MAX = Number(opt("max", 1500));
@@ -78,7 +78,7 @@ const norm = (u) => {
 const slugOf = (u) => {
 	const p = new URL(u).pathname.replace(/^\/|\/$/g, "") || "index";
 	const q = new URL(u).search
-		? "-" + Buffer.from(new URL(u).search).toString("base64url").slice(0, 10)
+		? `-${Buffer.from(new URL(u).search).toString("base64url").slice(0, 10)}`
 		: "";
 	return (
 		decodeURIComponent(p)
@@ -268,7 +268,7 @@ async function main() {
 		await fs.mkdir(path.join(OUT, d), { recursive: true });
 	console.log(`Crawling ${ORIGIN} → ${OUT}`);
 	const { urls: fromSitemaps, sitemaps } = await sitemapUrls();
-	const queue = [norm(ORIGIN + "/"), ...fromSitemaps].filter(Boolean);
+	const queue = [norm(`${ORIGIN}/`), ...fromSitemaps].filter(Boolean);
 	const inSitemap = new Set(fromSitemaps),
 		seen = new Set(),
 		records = [],
@@ -345,8 +345,8 @@ async function main() {
 					}
 				}
 				const slug = slugOf(url);
-				await fs.writeFile(path.join(OUT, "html", slug + ".html"), html);
-				const lkey = x.layout.length + ":" + x.layout.slice(0, 200);
+				await fs.writeFile(path.join(OUT, "html", `${slug}.html`), html);
+				const lkey = `${x.layout.length}:${x.layout.slice(0, 200)}`;
 				if (!layouts.has(lkey)) {
 					layouts.set(lkey, slug);
 					await fs.writeFile(
@@ -355,7 +355,7 @@ async function main() {
 					);
 				}
 				await fs.writeFile(
-					path.join(OUT, "pages", slug + ".md"),
+					path.join(OUT, "pages", `${slug}.md`),
 					yaml({
 						url,
 						status: r.status,
@@ -388,7 +388,7 @@ async function main() {
 					images: x.images,
 					rendered,
 				};
-				await fs.appendFile(jsonlPath, JSON.stringify(rec) + "\n");
+				await fs.appendFile(jsonlPath, `${JSON.stringify(rec)}\n`);
 			}
 			records.push(rec);
 			for (const l of rec.links || []) {

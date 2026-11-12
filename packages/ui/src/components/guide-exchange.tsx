@@ -244,7 +244,7 @@ function Reply({
 					<RefusalText reason="unavailable" labels={labels} />
 				</GuideMessage>
 			) : (
-				<div data-booking-summary={labels.booking.summary}>
+				<div data-booking-summary={labels.booking.summary(phase.offer)}>
 					<GuideMessage class="pz-msg--wide">{labels.booking.render(phase.offer)}</GuideMessage>
 				</div>
 			);

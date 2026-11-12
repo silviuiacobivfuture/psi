@@ -9,9 +9,13 @@
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"library": "tsx scripts/library.ts"
 	},
 	"dependencies": {
 		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"tsx": "^4.23.15"
 	}
 }

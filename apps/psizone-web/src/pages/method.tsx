@@ -2,9 +2,12 @@ import { Button, HubCard, type Hue, Prose } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { HUBS } from "../content/hubs";
 import { METHODS, type Method } from "../content/methods";
+import { RICH_METHODS } from "../content/rich";
 import { at, base } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { richJsonLd } from "../rich-seo";
 import { Closing } from "../sections/closing";
+import { RichBody } from "../sections/rich-body";
 import { TodoBlock } from "../sections/todo";
 import { PageShell, type ShellProps } from "./shell";
 
@@ -73,6 +76,7 @@ export function MethodPage(props: Props & { method: Method }): JSX.Element {
 	const o = at(locale);
 	const b = base(locale);
 	const hubs = HUBS.filter((h) => method.hubs.includes(h.id));
+	const rich = RICH_METHODS[method.id];
 	return (
 		<PageShell
 			{...props}
@@ -80,41 +84,30 @@ export function MethodPage(props: Props & { method: Method }): JSX.Element {
 			back={{ label: m.nav_all_methods({}, o), href: `${b}/metode` }}
 			eyebrow={method.own ? m.method_own_eyebrow({}, o) : m.method_eyebrow({}, o)}
 			title={method.name[locale]}
-			lead={method.lead[locale]}
+			lead={rich ? rich.lead[locale] : method.lead[locale]}
 			badge={method.own ? m.draft_badge({}, o) : m.hub_review_badge({}, o)}
+			{...(rich
+				? {
+						seoTitle: rich.seoTitle[locale],
+						description: rich.seoDescription[locale],
+						jsonLd: richJsonLd(
+							locale,
+							method.path,
+							rich.seoTitle[locale],
+							rich.seoDescription[locale],
+							rich,
+						),
+					}
+				: {})}
 		>
-			<section class="mx-auto grid max-w-6xl gap-14 px-5 py-20 lg:grid-cols-[1.2fr_1fr]">
-				<div class="space-y-14">
-					{method.what.length > 0 ? (
-						<div>
-							<h2 class="display text-display-md text-ink">{m.method_what({}, o)}</h2>
-							<Prose class="mt-6">
-								{method.what.map((p) => (
-									<p>{p[locale]}</p>
-								))}
-							</Prose>
-						</div>
-					) : null}
-					{method.atPsizone.length > 0 ? (
-						<div>
-							<h2 class="display text-display-md text-ink">{m.method_at_psizone({}, o)}</h2>
-							<Prose class="mt-6">
-								{method.atPsizone.map((p) => (
-									<p>{p[locale]}</p>
-								))}
-							</Prose>
-						</div>
-					) : null}
-					{method.external ? (
-						<div>
-							<Button variant="outline" arrow href={method.external.href}>
-								{method.external.label[locale]}
-							</Button>
-						</div>
-					) : null}
+			{rich ? <RichBody locale={locale} page={rich} /> : <MethodDraft {...props} method={method} />}
+			{method.external ? (
+				<div class="mx-auto max-w-6xl px-5 pb-16">
+					<Button variant="outline" arrow href={method.external.href}>
+						{method.external.label[locale]}
+					</Button>
 				</div>
-				<TodoBlock locale={locale} items={method.todo} class="self-start" />
-			</section>
+			) : null}
 			{hubs.length > 0 ? (
 				<section class="border-t border-line bg-surface-1">
 					<div class="mx-auto max-w-6xl px-5 py-20">
@@ -136,5 +129,38 @@ export function MethodPage(props: Props & { method: Method }): JSX.Element {
 			) : null}
 			<Closing locale={locale} />
 		</PageShell>
+	);
+}
+
+/** A method nobody has written up yet: what is known, and what the specialists still owe. */
+function MethodDraft(props: Props & { method: Method }): JSX.Element {
+	const { locale, method } = props;
+	const o = at(locale);
+	return (
+		<section class="mx-auto grid max-w-6xl gap-14 px-5 py-20 lg:grid-cols-[1.2fr_1fr]">
+			<div class="space-y-14">
+				{method.what.length > 0 ? (
+					<div>
+						<h2 class="display text-display-md text-ink">{m.method_what({}, o)}</h2>
+						<Prose class="mt-6">
+							{method.what.map((p) => (
+								<p>{p[locale]}</p>
+							))}
+						</Prose>
+					</div>
+				) : null}
+				{method.atPsizone.length > 0 ? (
+					<div>
+						<h2 class="display text-display-md text-ink">{m.method_at_psizone({}, o)}</h2>
+						<Prose class="mt-6">
+							{method.atPsizone.map((p) => (
+								<p>{p[locale]}</p>
+							))}
+						</Prose>
+					</div>
+				) : null}
+			</div>
+			<TodoBlock locale={locale} items={method.todo} class="self-start" />
+		</section>
 	);
 }

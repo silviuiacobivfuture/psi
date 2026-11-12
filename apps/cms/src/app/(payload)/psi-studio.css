@@ -1,0 +1,396 @@
+/*
+ * The AI behaviour studio (/admin/platform/ai/behaviour): two columns on a wide screen (the
+ * controls, the live preview), one below 1100 px; cards, segmented controls and switches on
+ * native inputs; a sticky action bar. Colours only from the tokens: psi's (psi-admin.css) and
+ * Payload's theme scale, so light and dark follow the admin's own switch.
+ */
+
+.psi-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.psi-studio-cta {
+	border: 1px solid var(--psi-gold);
+	background: var(--psi-gold-soft);
+	border-radius: 12px;
+	padding: 12px 16px;
+}
+
+.psi-view a.psi-studio-cta__link {
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.psi-studio-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.psi-studio-wrap {
+	--psi-line: var(--theme-elevation-150);
+	--psi-soft: var(--theme-elevation-50);
+	--psi-muted: var(--theme-elevation-600);
+	--psi-radius: 14px;
+	padding-bottom: 96px;
+}
+
+.psi-studio {
+	display: grid;
+	grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+	gap: 24px;
+	align-items: start;
+	margin-top: 8px;
+}
+
+.psi-studio__controls {
+	display: grid;
+	gap: 20px;
+	min-width: 0;
+}
+
+.psi-studio__preview {
+	position: sticky;
+	top: 16px;
+	min-width: 0;
+}
+
+@media (max-width: 1100px) {
+	.psi-studio {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.psi-studio__preview {
+		position: static;
+	}
+}
+
+/* Cards */
+.psi-sc {
+	border: 1px solid var(--psi-line);
+	border-radius: var(--psi-radius);
+	background: var(--theme-elevation-0);
+	overflow: hidden;
+}
+
+.psi-sc__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 18px 20px 14px;
+	border-bottom: 1px solid var(--psi-line);
+	background: var(--psi-soft);
+}
+
+.psi-sc__icon {
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	flex: none;
+	border-radius: 10px;
+	color: var(--psi-gold);
+	background: var(--psi-gold-soft);
+}
+
+.psi-sc__titles {
+	flex: 1;
+	min-width: 0;
+}
+
+.psi-sc__title {
+	font-family: var(--psi-display);
+	font-weight: 400;
+	font-size: 1.35rem;
+	line-height: 1.2;
+	margin: 0;
+}
+
+.psi-sc__hint {
+	margin: 4px 0 0;
+	color: var(--psi-muted);
+	font-size: 0.92rem;
+}
+
+.psi-sc__body {
+	display: grid;
+	gap: 18px;
+	padding: 18px 20px 20px;
+}
+
+.psi-sub {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--psi-muted);
+	margin: 6px 0 -6px;
+	font-weight: 600;
+}
+
+/* A labelled row: text left, control right; stacked on a narrow screen. */
+.psi-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.psi-row__text {
+	display: grid;
+	gap: 2px;
+	min-width: 180px;
+	flex: 1 1 220px;
+}
+
+.psi-row__label {
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+.psi-row__help {
+	color: var(--psi-muted);
+	font-size: 0.85rem;
+	margin: 0;
+}
+
+.psi-row__control {
+	flex: 0 1 auto;
+	max-width: 100%;
+}
+
+.psi-note {
+	margin: 0;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--psi-soft);
+	color: var(--psi-muted);
+	font-size: 0.9rem;
+}
+
+.psi-note--warn {
+	border-left: 3px solid var(--psi-warn);
+	color: var(--theme-text);
+}
+
+.psi-note--lock {
+	border-left: 3px solid var(--psi-gold);
+	color: var(--theme-text);
+}
+
+/* The radios behind the segmented controls, presets and model cards: kept in the page (keyboard,
+   screen reader, form state) but never painted; the label around each is what is seen and clicked. */
+.psi-seg__opt input,
+.psi-preset input,
+.psi-model input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	appearance: none;
+	opacity: 0;
+}
+
+/* Segmented control */
+.psi-seg {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	margin: 0;
+	border: 1px solid var(--psi-line);
+	border-radius: 999px;
+	background: var(--psi-soft);
+	min-inline-size: 0;
+}
+
+.psi-seg--lg {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	border-radius: 14px;
+	width: 100%;
+}
+
+.psi-seg__opt {
+	position: relative;
+	display: grid;
+	gap: 2px;
+	padding: 7px 14px;
+	border-radius: 999px;
+	cursor: pointer;
+	color: var(--theme-text);
+	font-size: 0.9rem;
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
+	user-select: none;
+}
+
+.psi-seg--lg .psi-seg__opt {
+	border-radius: 10px;
+	padding: 12px 14px;
+}
+
+.psi-seg--sm .psi-seg__opt {
+	padding: 4px 10px;
+	font-size: 0.8rem;
+}
+
+.psi-seg__opt:hover {
+	background: var(--theme-elevation-100);
+}
+
+.psi-seg__opt:has(input:checked) {
+	background: var(--psi-gold);
+	color: var(--psi-on-gold);
+	font-weight: 600;
+}
+
+.psi-seg__opt:has(input:focus-visible) {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+.psi-seg__label {
+	white-space: nowrap;
+}
+
+.psi-seg__detail {
+	font-size: 0.8rem;
+	font-weight: 400;
+	line-height: 1.35;
+	opacity: 0.85;
+}
+
+/* Tone presets */
+.psi-presets {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-inline-size: 0;
+}
+
+.psi-preset {
+	position: relative;
+	display: grid;
+	gap: 6px;
+	align-content: start;
+	padding: 14px 16px;
+	border: 1px solid var(--psi-line);
+	border-radius: 12px;
+	cursor: pointer;
+	transition:
+		border-color 150ms ease,
+		background-color 150ms ease;
+}
+
+.psi-preset:hover {
+	border-color: var(--theme-elevation-400);
+}
+
+.psi-preset:has(input:checked) {
+	border-color: var(--psi-gold);
+	background: var(--psi-gold-soft);
+	box-shadow: inset 0 0 0 1px var(--psi-gold);
+}
+
+.psi-preset:has(input:focus-visible) {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+.psi-preset__name {
+	font-family: var(--psi-display);
+	font-size: 1.1rem;
+}
+
+.psi-preset__desc {
+	font-size: 0.85rem;
+	color: var(--psi-muted);
+}
+
+.psi-preset__sample {
+	font-size: 0.85rem;
+	font-style: italic;
+	color: var(--theme-text);
+	border-left: 2px solid var(--psi-gold);
+	padding-left: 8px;
+}
+
+/* Switch */
+.psi-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+	position: relative;
+}
+
+.psi-toggle input {
+	position: absolute;
+	opacity: 0;
+	width: 44px;
+	height: 26px;
+	margin: 0;
+	cursor: pointer;
+}
+
+.psi-toggle__track {
+	width: 44px;
+	height: 26px;
+	border-radius: 999px;
+	background: var(--theme-elevation-250);
+	position: relative;
+	transition: background-color 150ms ease;
+	flex: none;
+}
+
+.psi-toggle__thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--psi-thumb);
+	box-shadow: 0 1px 2px color-mix(in srgb, var(--theme-elevation-1000) 30%, transparent);
+	transition: transform 150ms ease;
+}
+
+.psi-toggle input:checked + .psi-toggle__track {
+	background: var(--psi-gold);
+}
+
+.psi-toggle input:checked + .psi-toggle__track .psi-toggle__thumb {
+	transform: translateX(18px);
+}
+
+.psi-toggle input:focus-visible + .psi-toggle__track {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+.psi-toggle input:disabled + .psi-toggle__track {
+	opacity: 0.6;
+}
+
+.psi-toggle__state {
+	font-size: 0.9rem;
+	min-width: 3.5em;
+}

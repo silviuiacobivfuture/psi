@@ -13,6 +13,7 @@ import {
 	tenantBySlug,
 } from "./calendar";
 import { requireServer } from "./guard";
+import { roomPlan, withRooms } from "./roomPlan";
 import { modeValidator, serverKeyValidator } from "./validators";
 
 /** The most slots one call returns, and the longest range it searches. */
@@ -31,25 +32,30 @@ async function practitionerSlots(
 	ctx: QueryCtx,
 	practitioner: Doc<"practitioners">,
 	service: Doc<"services">,
-	timeZone: string,
+	tenant: Doc<"tenants">,
 	range: { from: number; to: number; now: number; mode?: Mode },
 ): Promise<ReadonlyArray<OfferedSlot>> {
+	const timeZone = tenant.timeZone;
 	const [rules, exceptions, busy] = await Promise.all([
 		rulesOf(ctx, practitioner._id),
 		exceptionsOf(ctx, practitioner._id, range.from, range.to, timeZone),
 		busyAround(ctx, practitioner._id, range.from, range.to, range.now),
 	]);
-	return generateSlots({
+	const plan = await roomPlan(ctx, tenant, service, practitioner, range);
+	const spec = serviceSpec(service);
+	const generated = generateSlots({
 		timeZone,
-		service: serviceSpec(service),
+		service: spec,
 		rules,
 		exceptions,
 		busy,
 		from: range.from,
 		to: range.to,
 		now: range.now,
+		...(practitioner.abAnchor === undefined ? {} : { abAnchor: practitioner.abAnchor }),
 		...(range.mode === undefined ? {} : { mode: range.mode }),
-	}).map((slot) => ({
+	});
+	return withRooms(generated, plan, spec.durationMinutes + spec.bufferMinutes).map((slot) => ({
 		practitioner: practitioner._id,
 		practitionerName: practitioner.displayName,
 		start: slot.start,
@@ -94,7 +100,7 @@ export const slots = query({
 				now: args.now,
 				...(args.mode === undefined ? {} : { mode: args.mode }),
 			};
-			found.push(...(await practitionerSlots(ctx, practitioner, service, tenant.timeZone, range)));
+			found.push(...(await practitionerSlots(ctx, practitioner, service, tenant, range)));
 		}
 		found.sort((a, b) => a.start - b.start || a.practitioner.localeCompare(b.practitioner));
 		return {

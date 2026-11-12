@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 /** The bookend: the same dawn, smaller, with one invitation. */
 export function Closing({ locale }: { locale: Locale }): JSX.Element {
@@ -39,6 +40,11 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 		{ label: m.nav_exercises({}, o), href: `${b}/#exercitii` },
 		{ label: m.nav_focus({}, o), href: `${b}/#focus` },
 		{ label: m.nav_club({}, o), href: `${b}/#club` },
+		{ label: m.nav_start({}, o), href: href(locale, "start") },
+		{ label: m.nav_history({}, o), href: href(locale, "history") },
+		{ label: m.nav_glossary({}, o), href: href(locale, "glossary") },
+		{ label: m.nav_archive({}, o), href: href(locale, "archive") },
+		{ label: m.nav_faq({}, o), href: href(locale, "faq") },
 	];
 	const legal = [
 		{ label: m.footer_terms({}, o), href: ro ? "/termeni-si-conditii" : "/en/legal/terms" },

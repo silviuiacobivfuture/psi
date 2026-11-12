@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BookingOffer } from "./booking";
+import { type BookingState, BookingStateSchema } from "./booking-state";
 import type { Source } from "./contract";
 
 /**
@@ -92,6 +93,11 @@ export interface AskInput<TLocale extends string = string> {
 	 * stored thread. Without it nothing is stored.
 	 */
 	threadId?: string;
+	/**
+	 * Where the visitor's booking conversation stands: the `state` of the last `booking` event, which
+	 * the page carries from turn to turn. Untrusted: a time it names is checked against the store.
+	 */
+	booking?: BookingState;
 }
 
 /** The longest question the engine takes, in characters (after trimming). */
@@ -115,6 +121,7 @@ const BaseAskInputSchema = z
 			.string()
 			.regex(/^[A-Za-z0-9_-]{16,128}$/)
 			.optional(),
+		booking: BookingStateSchema.optional(),
 	})
 	.strict();
 

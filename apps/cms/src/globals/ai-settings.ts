@@ -1,7 +1,15 @@
-import { AI_SETTINGS_DEFAULTS, EMBED_MODELS, SITES, type Site } from "@psi/cms-client";
+import {
+	AI_SETTINGS_DEFAULTS,
+	AiBehaviour,
+	behaviourFrom,
+	EMBED_MODELS,
+	SITES,
+	type Site,
+} from "@psi/cms-client";
 import type { Field, GlobalAfterChangeHook, GlobalBeforeChangeHook, GlobalConfig } from "payload";
 import { z } from "zod";
 import { brandsFor, can, mayEnterAdmin } from "../authz/access";
+import { recordPublished } from "../studio/history";
 import { announceAiSettings } from "../webhook/hooks";
 
 /**
@@ -114,6 +122,18 @@ function group(site: Site): Field {
 				},
 			},
 			{
+				// The AI behaviour studio's settings (voice, copy, topics, model): edited there, at
+				// /admin/platform/ai/behaviour, never as raw JSON here; read leniently by the sites.
+				name: "behaviour",
+				type: "json",
+				label: { ro: "Comportamentul AI", en: "AI behaviour" },
+				admin: { hidden: true },
+				validate: (v: unknown): true | string =>
+					v === null || v === undefined || AiBehaviour.safeParse(v).success
+						? true
+						: "behaviour: invalid",
+			},
+			{
 				name: "updatedBy",
 				type: "text",
 				label: { ro: "Schimbat de", en: "Changed by" },
@@ -144,7 +164,14 @@ const SETTINGS = [
 	"screeningLevel",
 ] as const;
 
-/** The brands whose settings differ between two versions of the global. */
+/** One brand's behaviour as a comparable string: normalised, so key order or blanks never count. */
+const behaviourKey = (group: Record<string, unknown> | undefined): string =>
+	JSON.stringify(behaviourFrom(group?.behaviour));
+
+/**
+ * The brands whose settings differ between two versions of the global. The behaviour is an
+ * object: it is compared by value, so saving one brand never stamps or announces the others.
+ */
 export function changedSites(before: unknown, after: unknown): Site[] {
 	const b = Doc.safeParse(before);
 	const a = Doc.safeParse(after);
@@ -152,7 +179,11 @@ export function changedSites(before: unknown, after: unknown): Site[] {
 		const x = Group.safeParse(b.success ? b.data[s] : undefined);
 		const y = Group.safeParse(a.success ? a.data[s] : undefined);
 		if (!y.success) return false;
-		return SETTINGS.some((k) => (x.success ? x.data[k] : undefined) !== y.data[k]);
+		const old = x.success ? x.data : undefined;
+		return (
+			SETTINGS.some((k) => old?.[k] !== y.data[k]) ||
+			("behaviour" in y.data && behaviourKey(old) !== behaviourKey(y.data))
+		);
 	});
 }
 
@@ -171,8 +202,10 @@ const stamp: GlobalBeforeChangeHook = ({ data, originalDoc, req }) => {
 	return out;
 };
 
+/** Records each changed brand in the studio's history, then tells those sites at once. */
 const announce: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
 	const sites = changedSites(previousDoc, doc);
+	for (const site of sites) await recordPublished(req, site, previousDoc, doc);
 	if (sites.length > 0) await announceAiSettings(req, sites);
 	return doc;
 };

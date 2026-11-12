@@ -15,6 +15,7 @@ import {
 	SEED,
 	type Tiered,
 } from "@psi/knowledge";
+import { articleEntries } from "./ingest";
 
 /** psi's retrieval over one knowledge store: the tiers, the catalog behind them, and its seeding. */
 export interface PsiRetrieval {
@@ -47,7 +48,10 @@ export interface PsiRetrievalOptions {
  */
 export function psiRetrieval(store: KnowledgeStore, opts: PsiRetrievalOptions): PsiRetrieval {
 	const catalog = store.catalog ?? createCatalog();
-	const ready = catalog.add([...SEED, ...(opts.demo ? DEMO : [])]).catch(() => undefined);
+	const articles = articleEntries();
+	const ready = catalog
+		.add([...SEED, ...articles, ...(opts.demo ? DEMO : [])])
+		.catch(() => undefined);
 	const others = new Map<string, KnowledgeStore>();
 	const storeFor = (model: string): KnowledgeStore => {
 		if (model === store.embedder.model || store.embedder.kind !== "openrouter") return store;
@@ -66,7 +70,7 @@ export function psiRetrieval(store: KnowledgeStore, opts: PsiRetrievalOptions): 
 		}
 		return other;
 	};
-	const codeHeld = new Set([...SEED, ...DEMO].map((e) => e.id));
+	const codeHeld = new Set([...SEED, ...articles, ...DEMO].map((e) => e.id));
 	const sync = createCatalogSync({
 		source: store,
 		catalog,

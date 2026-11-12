@@ -1,28 +1,24 @@
 import { v } from "convex/values";
 import { ruleProblem, serviceProblem } from "../src/domain/catalog";
+import { ROOM_KINDS } from "../src/domain/rooms";
 import { isLocalDate } from "../src/domain/time";
-import type { Doc } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { serviceSpec, tenantBySlug } from "./calendar";
 import { requireServer } from "./guard";
-import { actorValidator, modeValidator, serverKeyValidator } from "./validators";
+import { cleanName, practitionerOf, sameModes, tenantPractitioners } from "./setupSupport";
+import {
+	actorValidator,
+	audienceValidator,
+	modeValidator,
+	serverKeyValidator,
+	serviceNameValidator,
+} from "./validators";
 
 /**
  * The team's view of a tenant's catalog: its practitioners, services, weekly rules and exceptions,
  * inactive rows included (staff see everything; visitors see only `catalog.services`). The app
  * calls these only after OpenFGA allowed the staff member (plan §5); nothing here is clinical.
  */
-
-/** A practitioner of this tenant, by the id the app holds, or undefined. */
-async function practitionerOf(
-	ctx: QueryCtx,
-	tenant: string,
-	practitioner: string,
-): Promise<Doc<"practitioners"> | undefined> {
-	const id = ctx.db.normalizeId("practitioners", practitioner);
-	const row = id === null ? null : await ctx.db.get(id);
-	return row === null || row.tenant !== tenant ? undefined : row;
-}
 
 /** Every practitioner and service of the tenant, active or not. */
 export const catalog = query({
@@ -49,6 +45,11 @@ export const catalog = query({
 				slug: p.slug,
 				displayName: p.displayName,
 				active: p.active,
+				...(p.updatedBy === undefined ? {} : { updatedBy: p.updatedBy }),
+				...(p.updatedAt === undefined ? {} : { updatedAt: p.updatedAt }),
+				...(p.external === true ? { external: true } : {}),
+				...(p.rooms === undefined || p.rooms.length === 0 ? {} : { rooms: p.rooms }),
+				...(p.abAnchor === undefined ? {} : { abAnchor: p.abAnchor }),
 			})),
 			services: services.map((s) => ({
 				id: s._id,
@@ -63,6 +64,16 @@ export const catalog = query({
 				...(s.location === undefined ? {} : { location: s.location }),
 				practitioners: s.practitioners,
 				active: s.active,
+				...(s.name === undefined ? {} : { name: s.name }),
+				...(s.roomKind === undefined
+					? {}
+					: {
+							roomKind: s.roomKind,
+							roomEquipment: s.roomEquipment ?? [],
+							roomAudiences: s.roomAudiences ?? [],
+						}),
+				...(s.updatedBy === undefined ? {} : { updatedBy: s.updatedBy }),
+				...(s.updatedAt === undefined ? {} : { updatedAt: s.updatedAt }),
 			})),
 		};
 	},
@@ -121,9 +132,11 @@ export const availability = query({
 });
 
 /**
- * Changes a service's length, buffer, notice, horizon or whether it is offered. The changed
- * service must stay within `SERVICE_LIMITS`, the bounds the slot engine and the calendar's
- * overlap reads assume. Appointments already made keep their own start, end and block.
+ * Changes a service: its name, length, grid, buffer, notice, horizon, modes, the practitioners who
+ * offer it, or whether it is offered. The changed service must stay within `SERVICE_LIMITS`, the
+ * bounds the slot engine and the calendar's overlap reads assume, and every practitioner must be
+ * the tenant's. Appointments already made keep their own start, end and block. The slug is the
+ * service's key and never changes.
  */
 export const updateService = mutation({
 	args: {
@@ -131,10 +144,19 @@ export const updateService = mutation({
 		tenant: v.string(),
 		service: v.string(),
 		patch: v.object({
+			name: v.optional(serviceNameValidator),
 			durationMinutes: v.optional(v.number()),
 			bufferMinutes: v.optional(v.number()),
+			stepMinutes: v.optional(v.number()),
 			minNoticeMinutes: v.optional(v.number()),
 			horizonDays: v.optional(v.number()),
+			holdMinutes: v.optional(v.number()),
+			modes: v.optional(v.array(modeValidator)),
+			practitioners: v.optional(v.array(v.string())),
+			/** The room kind an onsite session needs; null: no room needed. */
+			roomKind: v.optional(v.union(v.string(), v.null())),
+			roomEquipment: v.optional(v.array(v.string())),
+			roomAudiences: v.optional(v.array(audienceValidator)),
 			active: v.optional(v.boolean()),
 		}),
 		actor: actorValidator,
@@ -146,17 +168,41 @@ export const updateService = mutation({
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant).eq("slug", args.service))
 			.unique();
 		if (row === null) return { ok: false as const, reason: "not_found" as const };
-		const next = {
-			durationMinutes: args.patch.durationMinutes ?? row.durationMinutes,
-			bufferMinutes: args.patch.bufferMinutes ?? row.bufferMinutes,
-			minNoticeMinutes: args.patch.minNoticeMinutes ?? row.minNoticeMinutes,
-			horizonDays: args.patch.horizonDays ?? row.horizonDays,
-			active: args.patch.active ?? row.active,
-		};
-		if (serviceProblem(serviceSpec({ ...row, ...next })) !== undefined) {
+		const { patch } = args;
+		const name = patch.name === undefined ? row.name : cleanName(patch.name);
+		const practitioners =
+			patch.practitioners === undefined
+				? row.practitioners
+				: await tenantPractitioners(ctx, args.tenant, patch.practitioners);
+		if (practitioners === undefined || (patch.name !== undefined && name === undefined)) {
 			return { ok: false as const, reason: "invalid" as const };
 		}
-		await ctx.db.patch(row._id, next);
+		const next = {
+			durationMinutes: patch.durationMinutes ?? row.durationMinutes,
+			bufferMinutes: patch.bufferMinutes ?? row.bufferMinutes,
+			stepMinutes: patch.stepMinutes ?? row.stepMinutes,
+			minNoticeMinutes: patch.minNoticeMinutes ?? row.minNoticeMinutes,
+			horizonDays: patch.horizonDays ?? row.horizonDays,
+			holdMinutes: patch.holdMinutes ?? row.holdMinutes,
+			modes: patch.modes === undefined ? row.modes : [...new Set(patch.modes)],
+			active: patch.active ?? row.active,
+		};
+		if (
+			serviceProblem(serviceSpec({ ...row, ...next })) !== undefined ||
+			(typeof patch.roomKind === "string" && !ROOM_KINDS.some((k) => k === patch.roomKind))
+		) {
+			return { ok: false as const, reason: "invalid" as const };
+		}
+		await ctx.db.patch(row._id, {
+			...next,
+			practitioners,
+			...(patch.roomKind === undefined ? {} : { roomKind: patch.roomKind ?? undefined }),
+			...(patch.roomEquipment === undefined ? {} : { roomEquipment: patch.roomEquipment }),
+			...(patch.roomAudiences === undefined ? {} : { roomAudiences: patch.roomAudiences }),
+			...(name === undefined ? {} : { name }),
+			updatedBy: args.actor.subject,
+			updatedAt: Date.now(),
+		});
 		return { ok: true as const };
 	},
 });
@@ -193,9 +239,26 @@ export const addRule = mutation({
 		if (!datesSound || ruleProblem(rule) !== undefined) {
 			return { ok: false as const, reason: "invalid" as const };
 		}
+		// The same opening again is the one already there (a double submit adds nothing).
+		const same = (
+			await ctx.db
+				.query("rules")
+				.withIndex("by_practitioner", (q) => q.eq("practitioner", practitioner._id))
+				.collect()
+		).find(
+			(r) =>
+				r.weekday === rule.weekday &&
+				r.start === rule.start &&
+				r.end === rule.end &&
+				r.validFrom === rule.validFrom &&
+				r.validUntil === rule.validUntil &&
+				sameModes(r.modes, rule.modes),
+		);
+		if (same !== undefined) return { ok: true as const, id: same._id };
 		const id = await ctx.db.insert("rules", {
 			practitioner: practitioner._id,
 			...rule,
+			createdBy: args.actor.subject,
 		});
 		return { ok: true as const, id };
 	},

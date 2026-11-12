@@ -16,6 +16,8 @@ interface Turn {
 	role: "user" | "guide";
 	text: string;
 	refused?: string;
+	/** Where a booking conversation stands (the server parses it; the page only keeps it). */
+	booking?: object;
 }
 interface ChatState {
 	turns: Turn[];
@@ -66,6 +68,8 @@ function readTurn(value: unknown): Turn | null {
 	}
 	const turn: Turn = { role, text: text.slice(0, MAX_TEXT) };
 	if (typeof refused === "string") turn.refused = refused;
+	const booking = field(value, "booking");
+	if (typeof booking === "object" && booking !== null) turn.booking = booking;
 	return turn;
 }
 
@@ -427,6 +431,40 @@ function unsent(nav: HTMLElement, form: HTMLFormElement): void {
 
 window.psiChat = window.psiChat ?? chatStore();
 
+/**
+ * While a page's own ask box (an article's "ask the guide" panel, a hub's ask bar) is on screen,
+ * the floating capsule steps aside: it slides down out of view and comes back once that box has
+ * scrolled away. Never while the sheet is open or the capsule holds focus or a draft.
+ */
+function yieldToInline(nav: HTMLElement, form: HTMLFormElement): void {
+	if (!("IntersectionObserver" in window)) return;
+	const boxes = [
+		...document.querySelectorAll<HTMLElement>(".pz-ask, .bl-guide, [data-guide-inline]"),
+	].filter((el) => !nav.contains(el));
+	if (boxes.length === 0) return;
+	const visible = new Set<Element>();
+	const apply = (): void => {
+		const busy =
+			nav.classList.contains("is-open") ||
+			form.contains(document.activeElement) ||
+			(form.querySelector("textarea")?.value ?? "") !== "";
+		nav.classList.toggle("is-yielding", visible.size > 0 && !busy);
+	};
+	const io = new IntersectionObserver(
+		(entries) => {
+			for (const e of entries) {
+				if (e.isIntersecting) visible.add(e.target);
+				else visible.delete(e.target);
+			}
+			apply();
+		},
+		{ rootMargin: "0px 0px -12% 0px", threshold: 0 },
+	);
+	for (const b of boxes) io.observe(b);
+	form.addEventListener("focusin", apply);
+	new MutationObserver(apply).observe(nav, { attributes: true, attributeFilter: ["class"] });
+}
+
 const nav = document.currentScript?.closest<HTMLElement>(".pz-compass") ?? null;
 const body = nav?.querySelector<HTMLElement>(".pz-compass__body") ?? null;
 const pill = nav?.querySelector<HTMLElement>(".pz-compass__pill") ?? null;
@@ -438,6 +476,7 @@ if (nav !== null && body !== null && pill !== null && sheet !== null && form !==
 	fitViewport(nav, form);
 	dragToClose(nav, sheet);
 	unsent(nav, form);
+	yieldToInline(nav, form);
 	if (input !== null) compose(form, input);
 }
 

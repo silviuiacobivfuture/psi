@@ -1,4 +1,4 @@
-import { Button, StatusBadge } from "@psi/ui";
+import { Button, type JsonLdNode, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
@@ -24,11 +24,14 @@ export function PageShell({
 	page,
 	title,
 	description,
+	jsonLd,
 	children,
 }: PageProps & {
 	page: PageId;
 	title: string;
 	description: string;
+	/** Structured data for this page beyond the breadcrumb. */
+	jsonLd?: ReadonlyArray<JsonLdNode>;
 	children: Child;
 }): JSX.Element {
 	const other: Locale = locale === "ro" ? "en" : "ro";
@@ -40,6 +43,7 @@ export function PageShell({
 			title={m.page_title({ title }, at(locale))}
 			description={description}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
+			jsonLd={jsonLd}
 		>
 			<Header locale={locale} otherHref={otherHref} />
 			<main id="continut">{children}</main>

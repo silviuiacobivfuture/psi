@@ -12,6 +12,7 @@ import { countingGuide, trackable } from "./analytics/index";
 import { brandFrom } from "./brands";
 import { registerCmsRoutes, startCms } from "./cms-routes";
 import { findArticle } from "./content/articles";
+import { pageFrom, shelfFrom } from "./content/shelves";
 import { topicFrom } from "./content/topics";
 import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
@@ -81,6 +82,8 @@ for (const [locale, prefix, segment] of [
 				origin={originOf(c)}
 				brand={brandFrom(c.req.query("brand"))}
 				topic={topicFrom(c.req.query("topic"))}
+				shelf={shelfFrom(c.req.query("shelf"))}
+				page={pageFrom(c.req.query("page"))}
 			/>,
 		),
 	);

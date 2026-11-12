@@ -1,11 +1,13 @@
 import type { ControlResult, SiteStatus } from "@psi/cms-client";
 import { redirect } from "next/navigation";
 import type { AdminViewServerProps } from "payload";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { Brand } from "../../authz/types";
 import { scopeFor } from "../../platform/access";
 import { type Questions, questionsSince, today } from "../../platform/questions";
 import { pendingReviews } from "../../platform/reviews";
+import { isReady } from "../../platform/scheduling-model";
+import { loadSetup } from "../../platform/scheduling-setup";
 import { SECTIONS } from "../../platform/sections";
 import { controlFor, schedulingStaff, tenantOf } from "../../platform/services";
 import { cell, Shell, sayer } from "../shell";
@@ -26,7 +28,12 @@ import {
  * question counters every site sends to the CMS. Brands the person may read only; a service that
  * is not configured says so.
  */
-type Scheduling = { reachable: boolean | null; today: number | null };
+type Scheduling = {
+	reachable: boolean | null;
+	today: number | null;
+	/** Whether the chat can offer a time: null while unknown (not configured, unreachable). */
+	ready: boolean | null;
+};
 
 interface BrandRow {
 	brand: Brand;
@@ -39,7 +46,7 @@ interface BrandRow {
 async function schedulingFor(brand: Brand): Promise<Scheduling> {
 	const staff = schedulingStaff();
 	const tenant = tenantOf(brand);
-	if (staff === null || tenant === null) return { reachable: null, today: null };
+	if (staff === null || tenant === null) return { reachable: null, today: null, ready: null };
 	const start = new Date();
 	start.setUTCHours(0, 0, 0, 0);
 	try {
@@ -49,11 +56,12 @@ async function schedulingFor(brand: Brand): Promise<Scheduling> {
 			from: start.getTime(),
 			to: start.getTime() + 62 * 86_400_000,
 		});
-		if (!r.ok) return { reachable: true, today: 0 };
+		const ready = isReady(await loadSetup(staff, brand, tenant));
+		if (!r.ok) return { reachable: true, today: 0, ready };
 		const count = r.requests.filter((q) => (q.submittedAt ?? 0) >= start.getTime()).length;
-		return { reachable: true, today: count };
+		return { reachable: true, today: count, ready };
 	} catch {
-		return { reachable: false, today: null };
+		return { reachable: false, today: null, ready: null };
 	}
 }
 
@@ -64,7 +72,7 @@ function Row({
 }: {
 	name: string;
 	state: ReactElement;
-	detail: string;
+	detail: ReactNode;
 }): ReactElement {
 	return (
 		<tr>
@@ -97,6 +105,7 @@ function schedulingRow(say: Say, brand: Brand, s: Scheduling): ReactElement {
 			/>
 		);
 	}
+	if (s.reachable && s.ready === false) return <Badge state="warn" label={say("scEmpty")} />;
 	return s.reachable ? (
 		<Badge state="on" label={say("siteUp")} />
 	) : (
@@ -173,7 +182,15 @@ function BrandCard({ row, say }: { row: BrandRow; say: Say }): ReactElement {
 				<Row
 					name={say("svcScheduling")}
 					state={schedulingRow(say, row.brand, row.scheduling)}
-					detail=""
+					detail={
+						row.scheduling.ready === false ? (
+							<a href={`/admin/platform/scheduling?brand=${row.brand}&tab=setup`}>
+								{say("scEmptyLink")}
+							</a>
+						) : (
+							""
+						)
+					}
 				/>
 			</Table>
 		</section>

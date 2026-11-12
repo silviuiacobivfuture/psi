@@ -1,5 +1,6 @@
 import { AskBar, GuideMessage } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -22,10 +23,10 @@ export function Guide({ locale }: { locale: Locale }): JSX.Element {
 						label={m.ask_label({}, o)}
 						placeholder={m.ask_placeholder({}, o)}
 						sendLabel={m.ask_send({}, o)}
-						suggestions={[m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)]}
+						suggestions={guideCopy(locale).chips}
 					/>
 					<div id="guide-answer" class="mt-6" aria-live="polite">
-						<GuideMessage>{m.guide_intro({}, o)}</GuideMessage>
+						<GuideMessage>{guideCopy(locale).welcome}</GuideMessage>
 					</div>
 				</div>
 			</div>

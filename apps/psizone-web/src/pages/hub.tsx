@@ -1,6 +1,7 @@
 import { AmbientField, ArticleCard, AskBar, GuideMessage, StatusBadge } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Hub } from "../content/hubs";
+import { guideCopy } from "../guide-copy";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
@@ -60,7 +61,7 @@ export function HubPage({
 								suggestions={hub.spokes.map((s) => s(o))}
 							/>
 							<div id="guide-answer" class="mt-4" aria-live="polite">
-								<GuideMessage>{m.guide_intro({}, o)}</GuideMessage>
+								<GuideMessage>{guideCopy(locale).welcome}</GuideMessage>
 							</div>
 						</div>
 					</div>

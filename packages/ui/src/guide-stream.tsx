@@ -2,6 +2,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import {
 	type BookingOffer,
+	type BookingState,
+	bookingStateOf,
 	type ConversationTurn,
 	continueConversation,
 	type Guide,
@@ -167,6 +169,8 @@ export function streamGuideAnswer(
 ): Response {
 	const turns = historyFor(target, signals);
 	const history = guideHistory(turns);
+	// Where a booking conversation stands travels with the page's turns, like the history.
+	const booking = bookingStateOf(turns);
 	// Cookies are set before the stream starts, while headers can still change.
 	const keys = visitorKeys ?? visitorKeysFor(c);
 	const id = `x${randomBytes(6).toString("hex")}`;
@@ -195,7 +199,9 @@ export function streamGuideAnswer(
 				).toString(),
 			);
 		};
-		const remember = async (reply: { answer: string } | { refused: RefusalReason }) => {
+		const remember = async (
+			reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
+		) => {
 			const next = continueConversation(turns, question, reply);
 			const pending = target === "compass-answer" ? { compassPending: "" } : {};
 			await stream.writeSSE({
@@ -220,7 +226,12 @@ export function streamGuideAnswer(
 			}
 			await patch({ kind: "thinking" });
 			for await (const event of guide.ask(
-				{ question, locale, ...(history.length === 0 ? {} : { history }) },
+				{
+					question,
+					locale,
+					...(history.length === 0 ? {} : { history }),
+					...(booking === undefined ? {} : { booking }),
+				},
 				{
 					signal: abort.signal,
 					clientId: clientId ?? anonymousClientId(c),
@@ -280,7 +291,10 @@ export function streamGuideAnswer(
 						});
 						if (refused === null && offer !== undefined) {
 							await patch({ kind: "booking", offer });
-							await remember({ answer: labels.booking?.summary ?? text });
+							await remember({
+								answer: labels.booking?.summary(offer) ?? text,
+								...(offer.state === undefined ? {} : { booking: offer.state }),
+							});
 						} else if (refused === null) {
 							await patch({ kind: "done", text, sources });
 							await remember({ answer: text });

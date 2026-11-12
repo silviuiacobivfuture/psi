@@ -1,60 +1,33 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
-import { href } from "../routes";
-import { NextSteps, PageHero, type PageProps, PageShell, Pending } from "./shell";
+import { msg, ProsePage } from "./prose";
+import { type PageProps, Pending } from "./shell";
 
 /**
- * /disclaimer: safety and contraindications. Every sentence here already exists on the site
- * (FAQ 4 and 5, the footer disclaimer, the 18+ rule from the Terms, the crisis line); nothing new
- * is said about safety until a named clinician reviews the page.
+ * /disclaimer: safety and contraindications. The epilepsy line is a precaution, not a research
+ * finding, and the page says so. The clinical review is still pending, said plainly below.
  */
 export function SafetyPage(props: PageProps): JSX.Element {
 	const { locale } = props;
 	const o = at(locale);
-	const rows = [
-		{ q: m.faq_4_q({}, o), a: m.faq_4_a({}, o) },
-		{ q: m.faq_5_q({}, o), a: m.faq_5_a({}, o) },
-		{ q: m.fq_age_q({}, o), a: m.fq_age_a({}, o) },
-		{ q: m.faq_1_q({}, o), a: m.faq_1_a({}, o) },
-	];
 	return (
-		<PageShell
+		<ProsePage
 			{...props}
 			page="safety"
-			title={m.nav_safety({}, o)}
-			description={m.footer_disclaimer({}, o)}
-		>
-			<PageHero
-				locale={locale}
-				overline={m.footer_legal_label({}, o)}
-				title={m.nav_safety({}, o)}
-				lead={m.footer_disclaimer({}, o)}
-			/>
-			<section class="mx-auto max-w-6xl px-5 py-20 md:py-28">
-				<ol class="eq-rows">
-					{rows.map((r, i) => (
-						<li class="eq-row">
-							<span class="eq-row__n">{String(i + 1).padStart(2, "0")}</span>
-							<h2 class="eq-row__title">{r.q}</h2>
-							<p class="eq-row__text">{r.a}</p>
-						</li>
-					))}
-				</ol>
-				<p class="mt-12 max-w-2xl border-l-2 border-line pl-4 text-body text-ink">
-					{m.guide_refusal_crisis({}, o)}
-				</p>
-				<div class="mt-12">
+			k="sf"
+			title={msg(locale, "sf_meta_title")}
+			description={msg(locale, "sf_meta_desc")}
+			overline={msg(locale, "sf_overline")}
+			h1={msg(locale, "sf_h1")}
+			lead={msg(locale, "sf_lead")}
+			after={
+				<div class="mx-auto max-w-6xl px-5 pb-16">
 					<Pending locale={locale}>{m.sp_pending({}, o)}</Pending>
 				</div>
-			</section>
-			<NextSteps
-				locale={locale}
-				links={[
-					{ label: m.nav_faq({}, o), href: href(locale, "faq") },
-					{ label: m.nav_contact({}, o), href: href(locale, "contact") },
-				]}
-			/>
-		</PageShell>
+			}
+			related={["listen", "science", "who", "faq"]}
+			articles={["eqsync-ce-este-si-ce-nu-este"]}
+		/>
 	);
 }

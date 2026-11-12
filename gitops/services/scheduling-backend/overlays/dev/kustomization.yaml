@@ -1,0 +1,24 @@
+# The scheduling backend on dev. The image is a third-party one pinned by digest in the base
+# (estate/images.list); no tag for CI to move.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling
+resources:
+  - ../../base
+patches:
+  # Kubelet health probes through the NetworkPolicy: they arrive from the node the pod runs on, its
+  # InternalIP, or its cni0 gateway when flannel SNATs a same-node connection. The same addresses
+  # agent-studio admits (gitops/services/agent-studio/overlays/dev); re-read them from the live
+  # nodes before the first sync.
+  - target: { kind: NetworkPolicy, name: scheduling-backend }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 3210 }

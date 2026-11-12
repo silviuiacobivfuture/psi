@@ -1,4 +1,4 @@
-import { Article, type Block, type Cover } from "@psi/content";
+import { Article, type Block, type Cover, type Faq, Seo, Slug } from "@psi/content";
 import { z } from "zod";
 
 /**
@@ -30,6 +30,14 @@ const PayloadBlock = z.discriminatedUnion("blockType", [
 	}),
 ]);
 
+const Keywords = z
+	.object({
+		ro: z.array(z.object({ keyword: Text })).nullish(),
+		en: z.array(z.object({ keyword: Text })).nullish(),
+	})
+	.partial()
+	.nullish();
+
 export const PayloadArticle = z.object({
 	id: z.union([z.number(), z.string()]),
 	slug: z.string(),
@@ -43,6 +51,9 @@ export const PayloadArticle = z.object({
 	standfirst: Loc,
 	body: z.array(PayloadBlock).nullish(),
 	sources: z.array(z.object({ label: Loc, href: z.string().nullish() })).nullish(),
+	seo: z.object({ title: Loc, description: Loc, keywords: Keywords }).nullish(),
+	faq: z.array(z.object({ q: Loc, a: Loc })).nullish(),
+	related: z.array(z.object({ slug: Text })).nullish(),
 	cover: z.union([Media, z.number(), z.string()]).nullish(),
 	authorTeam: Loc,
 	author: z.union([Person, z.number(), z.string()]).nullish(),
@@ -75,6 +86,41 @@ function block(b: z.infer<typeof PayloadBlock>): Block | undefined {
 	}
 	const text = both(b.text);
 	return text === undefined ? undefined : { type: b.blockType, text };
+}
+
+function keywords(k: z.infer<typeof Keywords>, l: "ro" | "en"): string[] {
+	return (k?.[l] ?? []).flatMap((x) => (x.keyword?.trim() ? [x.keyword.trim()] : []));
+}
+
+/** The SEO block when it is complete and within the blog's limits; otherwise none (the article stays). */
+function seo(s: PayloadArticle["seo"]): Seo | null {
+	if (s === null || s === undefined) return null;
+	const parsed = Seo.safeParse({
+		title: both(s.title),
+		description: both(s.description),
+		keywords: { ro: keywords(s.keywords, "ro"), en: keywords(s.keywords, "en") },
+	});
+	return parsed.success ? parsed.data : null;
+}
+
+/** The questions with both locales written, at most the blog's ten. */
+function faq(rows: PayloadArticle["faq"]): Faq[] {
+	return (rows ?? [])
+		.flatMap((r) => {
+			const q = both(r.q);
+			const a = both(r.a);
+			return q && a ? [{ q, a }] : [];
+		})
+		.slice(0, 10);
+}
+
+/** Valid slugs only, once each, at most the blog's eight. */
+function related(rows: PayloadArticle["related"]): string[] {
+	const slugs = (rows ?? []).flatMap((r) => {
+		const p = Slug.safeParse(r.slug?.trim());
+		return p.success ? [p.data] : [];
+	});
+	return [...new Set(slugs)].slice(0, 8);
 }
 
 function person(p: PayloadArticle["author"]): { name: string; credentials: unknown } | null {
@@ -116,6 +162,9 @@ export function toArticleInput(doc: PayloadArticle, cmsUrl: string): unknown {
 		body,
 		sources,
 		cover: cover(doc.cover, cmsUrl),
+		seo: seo(doc.seo),
+		faq: faq(doc.faq),
+		related: related(doc.related),
 	};
 	if (doc._status === "published") {
 		const kind = doc.kind ?? "health";

@@ -7,6 +7,12 @@ import type { EngineKnowledge, Passage } from "../contract";
 import type { Profile } from "../profile";
 import { fold } from "../text/normalize";
 import type { ToolTiming } from "../timing";
+import {
+	type ArticleLink,
+	createArticlesTool,
+	type EngineArticles,
+	FIND_ARTICLES_TOOL,
+} from "./article-tool";
 import { type ScopedSearch, SEARCH_TOOL_ID, scopeSearch } from "./knowledge-tool";
 import { type NumberedPassage, SourceLedger } from "./ledger";
 
@@ -36,6 +42,8 @@ export class AnswerTurn {
 	readonly search: ScopedSearch;
 	/** What the tools showed beyond passages (the topic names and titles), for the claims check. */
 	readonly shown: Array<string> = [];
+	/** The articles `findArticles` returned, which the reply may name (shown as source chips). */
+	readonly articles: Array<ArticleLink> = [];
 	/** Each tool call's time and result size, for the turn's timing. */
 	readonly timings: Array<ToolTiming> = [];
 	#calls = 0;
@@ -126,6 +134,8 @@ export interface ProfileToolsOptions {
 	/** The language each locale's queries are written in ("Romanian"), for the search tool. */
 	languageName: (locale: string) => string;
 	retrievalMs: number;
+	/** The blog's articles, when the consumer has them: adds `findArticles`. */
+	articles?: EngineArticles;
 }
 
 /** Reads this answer's turn from the request context; a standalone one for Studio's own chat. */
@@ -315,6 +325,15 @@ export function createProfileTools(
 		return {
 			[SEARCH_TOOL_ID]: search,
 			...(catalog === undefined ? {} : catalogTools(opts, catalog, items, turnFor)),
+			...(opts.articles === undefined
+				? {}
+				: {
+						[FIND_ARTICLES_TOOL]: createArticlesTool({
+							profile: opts.profile,
+							articles: opts.articles,
+							turnFor,
+						}),
+					}),
 		};
 	};
 }

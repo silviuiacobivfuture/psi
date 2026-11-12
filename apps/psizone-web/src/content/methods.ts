@@ -87,7 +87,7 @@ export const METHODS: ReadonlyArray<Method> = [
 				en: "The evaluation is where the plan starts and the reference we measure against again at re-evaluation, to show you what has changed.",
 			},
 		],
-		hubs: ["autism", "adhd", "speech"],
+		hubs: ["autism", "adhd", "speech", "stroke"],
 		todo: [
 			{
 				ro: "Ce este QEEG, pe scurt, în cuvintele echipei.",
@@ -121,7 +121,7 @@ export const METHODS: ReadonlyArray<Method> = [
 			},
 			IN_PLAN,
 		],
-		hubs: ["adhd"],
+		hubs: ["adhd", "stroke", "sport"],
 		todo: [WHAT, SESSION, NOT_SUITABLE, PRACTITIONERS],
 	},
 	{
@@ -137,7 +137,7 @@ export const METHODS: ReadonlyArray<Method> = [
 		},
 		what: [],
 		atPsizone: [],
-		hubs: [],
+		hubs: ["stroke"],
 		todo: [
 			WHAT,
 			{
@@ -204,7 +204,7 @@ export const METHODS: ReadonlyArray<Method> = [
 			},
 		],
 		atPsizone: [IN_PLAN],
-		hubs: ["teens", "adults", "couple"],
+		hubs: ["teens", "adults", "couple", "stroke", "oncology", "sport"],
 		todo: [
 			SESSION,
 			{
@@ -214,6 +214,22 @@ export const METHODS: ReadonlyArray<Method> = [
 			NOT_SUITABLE,
 			PRACTITIONERS,
 		],
+	},
+	{
+		id: "integrare-neurosenzoriala",
+		path: "/metode/integrare-neurosenzoriala",
+		own: false,
+		clinical: true,
+		compass: true,
+		name: { ro: "Integrare neurosenzorială", en: "Neurosensory integration" },
+		lead: {
+			ro: "Terapie prin mișcare și stimulare senzorială, într-o sală amenajată pentru asta.",
+			en: "Therapy through movement and sensory stimulation, in a room fitted out for it.",
+		},
+		what: [],
+		atPsizone: [IN_PLAN],
+		hubs: ["sensory", "autism", "adhd"],
+		todo: [],
 	},
 	{
 		id: "criin",

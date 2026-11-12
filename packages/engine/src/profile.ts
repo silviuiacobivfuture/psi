@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ConversationStyle } from "./behaviour";
 import { LocaleCodeSchema } from "./contract";
 import { type RefusalReason, RefusalReasonSchema } from "./events";
 import { type RuleSet, RuleSetsSchema } from "./rules";
@@ -36,6 +37,13 @@ export interface ProfileLocale {
 	 * carry without a tool result.
 	 */
 	facts?: ReadonlyArray<string>;
+	/**
+	 * The voice and policy rewritten for the owner's conversation style (warmth, length, address,
+	 * follow-ups), when the profile's own text states any of these. Called only for a style other
+	 * than `DEFAULT_STYLE`, which `voice` and `policy` are written in. Without it the profile's
+	 * text stays as written and only the pack's rules follow the style.
+	 */
+	restyle?: (style: ConversationStyle) => { voice: string; policy: ReadonlyArray<string> };
 }
 
 /**
@@ -108,6 +116,9 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 		followUp: z.string().trim().min(1).max(600).optional(),
 		unknown: z.string().trim().min(1).max(600).optional(),
 		facts: z.array(z.string().trim().min(1).max(600)).readonly().optional(),
+		restyle: z
+			.custom<NonNullable<ProfileLocale["restyle"]>>((value) => typeof value === "function")
+			.optional(),
 	})
 	.strict();
 

@@ -2,16 +2,16 @@ import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } f
 import { join } from "node:path";
 import { readCredits } from "./credits";
 import { type Encoded, encode, FORMATS } from "./encode";
-import { JOBS, type Output } from "./jobs";
-import { type ManifestEntry, manifestSource } from "./manifest";
-import { appImagesDir, appManifest, ORIGINALS, PUBLIC_PREFIX } from "./paths";
+import { allJobs, type Output } from "./jobs";
+import { coversSource, type ManifestEntry, manifestSource } from "./manifest";
+import { appImagesDir, appManifest, COVERS_MANIFEST, ORIGINALS, PUBLIC_PREFIX } from "./paths";
 import { dominant, frame } from "./transform";
 
 /** AVIF budgets at the 1200px width (or the largest width when it is smaller). */
 const BUDGET = { hero: 120_000, other: 60_000 } as const;
 const BUDGET_WIDTH = 1200;
 /** WebP covers every browser without AVIF up to 1200px; JPEG is a last resort for very old ones. */
-const FALLBACK_MAX = { avif: Number.POSITIVE_INFINITY, webp: 1200, jpeg: 768 } as const;
+const FALLBACK_MAX = { webp: 1200, jpeg: 768 } as const;
 
 function original(name: string): string {
 	const file = readdirSync(ORIGINALS).find((f) => f.replace(/\.[^.]+$/, "") === name);
@@ -27,8 +27,13 @@ async function render(name: string, out: Output): Promise<ManifestEntry> {
 	const f = await frame(original(name), out.crop, out.grade ?? "none", out.saturation);
 	const widths = out.widths.filter((w) => w <= f.width);
 	if (widths.length === 0) throw new Error(`${name}: source ${f.width}px is under every width`);
+	if (out.shared && widths.length < out.widths.length) {
+		throw new Error(`${name}: source ${f.width}px is too small for ${out.widths.join("/")}`);
+	}
 	const top = Math.max(...widths);
-	const budgetWidth = widths.includes(BUDGET_WIDTH) ? BUDGET_WIDTH : top;
+	const want = out.budgetWidth ?? BUDGET_WIDTH;
+	const budgetWidth = widths.includes(want) ? want : top;
+	const caps = { avif: Number.POSITIVE_INFINITY, ...(out.fallbackMax ?? FALLBACK_MAX) };
 	const key = out.key ?? camel(name);
 	const files: Array<Encoded & { src: string }> = [];
 	for (const format of FORMATS) {
@@ -37,7 +42,7 @@ async function render(name: string, out: Output): Promise<ManifestEntry> {
 			budget: format === "avif" ? BUDGET[out.role] : undefined,
 		});
 		// WebP and JPEG are fallbacks for browsers without AVIF, so they stop sooner.
-		const kept = widths.filter((x) => x <= FALLBACK_MAX[format]);
+		const kept = widths.filter((x) => x <= caps[format]);
 		for (const w of kept.length > 0 ? kept : [Math.min(...widths)]) {
 			const e =
 				w === budgetWidth ? lead : await encode(f.image, format, w, { quality: lead.quality });
@@ -67,7 +72,9 @@ async function main(): Promise<void> {
 	const credited = new Set(credits.map((c) => c.name));
 	const namesByApp = new Map<string, Set<string>>();
 	const byApp = new Map<string, ManifestEntry[]>();
-	for (const job of JOBS) {
+	const shared: ManifestEntry[] = [];
+	const sharedNames = new Set<string>();
+	for (const job of allJobs(credits)) {
 		if (!credited.has(job.name)) throw new Error(`${job.name}: missing from credits.json`);
 		for (const out of job.outputs) {
 			if (only !== undefined && out.app !== only) continue;
@@ -76,7 +83,13 @@ async function main(): Promise<void> {
 					`${job.name} → ${out.app}: ${err instanceof Error ? err.message : String(err)}`,
 				);
 			});
-			namesByApp.set(out.app, (namesByApp.get(out.app) ?? new Set()).add(job.name));
+			if (out.shared) {
+				shared.push(entry);
+				sharedNames.add(job.name);
+			} else {
+				namesByApp.set(out.app, (namesByApp.get(out.app) ?? new Set()).add(job.name));
+			}
+			// Shared covers keep their files in the app's folder, so the app's sweep leaves them be.
 			const list = byApp.get(out.app) ?? [];
 			list.push(entry);
 			byApp.set(out.app, list);
@@ -104,14 +117,26 @@ async function main(): Promise<void> {
 		const bytes = [...keep].reduce((n, f) => n + statSync(join(dir, f)).size, 0);
 		total += bytes;
 		const names = namesByApp.get(app) ?? new Set<string>();
+		const own = entries.filter((e) => !shared.includes(e));
+		if (own.length > 0) {
+			writeFileSync(
+				appManifest(app),
+				manifestSource(
+					own,
+					credits.filter((c) => names.has(c.name)),
+				),
+			);
+		}
+		console.log(`${app}: ${keep.size} files, ${(bytes / 1024).toFixed(0)} KB`);
+	}
+	if (shared.length > 0) {
 		writeFileSync(
-			appManifest(app),
-			manifestSource(
-				entries,
-				credits.filter((c) => names.has(c.name)),
+			COVERS_MANIFEST,
+			coversSource(
+				shared,
+				credits.filter((c) => sharedNames.has(c.name)),
 			),
 		);
-		console.log(`${app}: ${keep.size} files, ${(bytes / 1024).toFixed(0)} KB`);
 	}
 	console.log(`total: ${(total / 1024).toFixed(0)} KB`);
 }

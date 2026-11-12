@@ -15,11 +15,21 @@ export const TOPICS = [
 	"cum-lucram",
 	"programul-eqsync",
 	"explorarea-constiintei",
+	"cuplu-familie",
+	"post-avc",
+	"psiho-oncologie",
+	"sport",
+	"psihoterapie",
+	"neuromodulare",
+	"parinti",
+	"creier-si-minte",
+	"sunet-si-creier",
+	"meditatie-si-relaxare",
 ] as const;
 /**
  * Topics @psi/content has and the CMS does not yet: each needs a migration (the topic is a
  * Postgres enum) and regenerated types before it moves into TOPICS above. None today: the last
- * three moved with migration 20261111_232254_blog_platform.
+ * ten moved with migration 20261112_*_article_seo_faq.
  */
 export const TOPICS_AWAITING_MIGRATION = [] as const;
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -36,4 +46,14 @@ export const TOPIC_LABELS: Readonly<Record<(typeof TOPICS)[number], { ro: string
 	"cum-lucram": { ro: "Cum lucrăm", en: "How we work" },
 	"programul-eqsync": { ro: "Programul EQ-SYNC", en: "The EQ-SYNC programme" },
 	"explorarea-constiintei": { ro: "Explorarea conștiinței", en: "Exploring consciousness" },
+	"cuplu-familie": { ro: "Cuplu și familie", en: "Couple and family" },
+	"post-avc": { ro: "Recuperare după AVC", en: "Stroke recovery" },
+	"psiho-oncologie": { ro: "Psiho-oncologie", en: "Psycho-oncology" },
+	sport: { ro: "Sport și performanță", en: "Sport and performance" },
+	psihoterapie: { ro: "Psihoterapie", en: "Psychotherapy" },
+	neuromodulare: { ro: "Neuromodulare", en: "Neuromodulation" },
+	parinti: { ro: "Pentru părinți", en: "For parents" },
+	"creier-si-minte": { ro: "Creier și minte", en: "Brain and mind" },
+	"sunet-si-creier": { ro: "Sunet și creier", en: "Sound and the brain" },
+	"meditatie-si-relaxare": { ro: "Meditație și relaxare", en: "Meditation and relaxation" },
 };

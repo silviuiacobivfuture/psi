@@ -1,0 +1,124 @@
+# Convex self-hosted backend (docs/plans/scheduling.md section 7), one replica, SQLite on a
+# ReadWriteOnce volume. A StatefulSet terminates the old pod before it creates the new one, so the
+# volume is never mounted twice.
+#
+# WHY THE `stage` INITCONTAINER: the upstream image runs as root and its binary and scripts are
+# mode 0744 root:root, so a non-root user (which the cluster's Kyverno requires) gets "Permission
+# denied" on ./convex-local-backend (verified). `stage` runs the SAME pinned image as uid 1000,
+# copies the five files (world-readable) into an emptyDir and makes them executable; the backend
+# then runs from /work. No derived image to build, and the upstream digest stays the only moving
+# part. The data directory stays /convex/data (the image's default), on the volume.
+#
+# The image is the estate's Harbor MIRROR of ghcr.io/convex/convex-backend, pinned by the linux/amd64
+# manifest digest (estate/images.list; the index digest is sha256:e9c084e8...). Mirror project is
+# public, so no pull secret.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: scheduling-backend
+  labels: { app: scheduling-backend }
+  annotations:
+    # INSTANCE_NAME / INSTANCE_SECRET are read at start: Reloader restarts the pod when OpenBao -> ESO
+    # changes the Secret. (Do not rotate them in place: the admin key derives from both.)
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  serviceName: scheduling-backend
+  selector:
+    matchLabels: { app: scheduling-backend }
+  template:
+    metadata:
+      labels: { app: scheduling-backend }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # FIRST: refuse to start without a usable identity. A blank INSTANCE_SECRET would make
+        # the image generate a random one on the volume, silently diverging from OpenBao (and
+        # from the admin key the deploy Job holds).
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: scheduling-backend-env }
+          command:
+            - sh
+            - -c
+            # kubelet expands only $(VAR); ${VAR:-} and ${#VAR} reach sh untouched.
+            - '[ -n "${INSTANCE_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_NAME" >&2; exit 1; }; [ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; case "$INSTANCE_SECRET" in *[!0-9a-f]*) echo "INVALID SECRET: INSTANCE_SECRET must be lowercase hex" >&2; exit 1;; esac; [ "${#INSTANCE_SECRET}" -ge 32 ] || { echo "INVALID SECRET: INSTANCE_SECRET shorter than 32" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+        - name: stage
+          image: registry.psizone.ro/mirror/ghcr.io/convex/convex-backend:d1fcbeaf939502a23a0f4b7e9095a12e84866294@sha256:edf5c02b395b17d58d0e494b401855da72bc01dda934e45552d6790fe430f368
+          command:
+            - bash
+            - -c
+            - cd /convex && cp convex-local-backend generate_key run_backend.sh read_credentials.sh generate_admin_key.sh /work/ && chmod 755 /work/*
+          volumeMounts:
+            - { name: work, mountPath: /work }
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: backend
+          image: registry.psizone.ro/mirror/ghcr.io/convex/convex-backend:d1fcbeaf939502a23a0f4b7e9095a12e84866294@sha256:edf5c02b395b17d58d0e494b401855da72bc01dda934e45552d6790fe430f368
+          command: ["/work/run_backend.sh"]
+          workingDir: /work
+          ports:
+            - { name: api, containerPort: 3210 }
+          envFrom:
+            - secretRef: { name: scheduling-backend-env }
+          env:
+            # The origins are how callers reach the backend: the in-cluster Service. The
+            # HTTP-actions origin is required by the image, but no psi function uses it.
+            - { name: CONVEX_CLOUD_ORIGIN, value: "http://scheduling-backend.scheduling.svc:3210" }
+            - { name: CONVEX_SITE_ORIGIN, value: "http://scheduling-backend.scheduling.svc:3211" }
+            - { name: DISABLE_BEACON, value: "true" }
+            # Function errors reach the client without their detail (a clinic's data stays out of logs).
+            - { name: REDACT_LOGS_TO_CLIENT, value: "true" }
+          volumeMounts:
+            - { name: data, mountPath: /convex/data }
+            - { name: work, mountPath: /work }
+          resources:
+            # measured ~180Mi idle locally (SQLite, no load); limit leaves room for the working set
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          startupProbe:
+            httpGet: { path: /version, port: api }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /version, port: api }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /version, port: api }
+            periodSeconds: 20
+            failureThreshold: 3
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: scheduling-backend-data }
+        - name: work
+          emptyDir: { sizeLimit: 512Mi }

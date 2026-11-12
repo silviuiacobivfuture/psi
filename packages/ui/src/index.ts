@@ -164,8 +164,11 @@ export {
 } from "./guide-stream";
 export { applyIndexingPolicy } from "./robots";
 export {
+	type ArticleFacts,
+	articleJsonLd,
 	breadcrumbJsonLd,
 	type Crumb,
+	faqPageJsonLd,
 	JsonLd,
 	type JsonLdNode,
 	type JsonValue,

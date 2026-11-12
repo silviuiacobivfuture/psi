@@ -7,13 +7,18 @@ import { EQSYNC_CASTI } from "./eqsync-casti";
 import { EQSYNC_CE_ESTE } from "./eqsync-ce-este";
 import { HEMISYNC_EXERCITII } from "./hemisync-exercitii";
 import { HEMISYNC_FOCUS } from "./hemisync-focus";
+import { LIBRARY } from "./library/index.generated";
 import { PSIZONE_CUM_LUCRAM } from "./psizone-cum-lucram";
 import { PSIZONE_PRIMUL_PAS } from "./psizone-primul-pas";
+
+/** The library's slugs: a written library article replaces its backlog placeholder. */
+const WRITTEN = new Set(LIBRARY.map((a) => a.slug));
 
 /** Every article the estate has, in any state. Order is irrelevant: queries sort. */
 const SOURCE: ReadonlyArray<ArticleInput> = [
 	EDITORIAL_POLICY_SOURCE,
-	...BACKLOG,
+	...BACKLOG.filter((a) => !WRITTEN.has(a.slug)),
+	...LIBRARY,
 	PSIZONE_CUM_LUCRAM,
 	PSIZONE_PRIMUL_PAS,
 	EQSYNC_CASTI,

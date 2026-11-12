@@ -1,4 +1,4 @@
-import { AmbientField, Button, Logo, StatusBadge } from "@psi/ui";
+import { AmbientField, Button, type JsonLdNode, Logo, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
@@ -22,12 +22,18 @@ export function PageShell({
 	origin,
 	otherHref,
 	title,
+	seoTitle,
 	description,
+	jsonLd,
 	children,
 }: PageProps & {
 	otherHref: string;
 	title: string;
+	/** The full `<title>` (at most 65 characters, brand included); without one, `title` plus the brand. */
+	seoTitle?: string;
 	description: string;
+	/** Page-specific structured data (FAQPage, Event). */
+	jsonLd?: ReadonlyArray<JsonLdNode>;
 	children: Child;
 }): JSX.Element {
 	const other: Locale = locale === "ro" ? "en" : "ro";
@@ -35,9 +41,10 @@ export function PageShell({
 		<Layout
 			locale={locale}
 			theme={theme}
-			title={m.page_title({ title }, at(locale))}
+			title={seoTitle ?? m.page_title({ title }, at(locale))}
 			description={description}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
+			jsonLd={jsonLd}
 		>
 			<Header locale={locale} otherHref={otherHref} />
 			<main id="continut">{children}</main>
@@ -69,7 +76,7 @@ export function PageHero({
 	return (
 		<AmbientField intensity="low" class="rounded-b-[48px]">
 			<div class="mx-auto max-w-7xl px-6 pb-20 pt-8 md:px-14 md:pb-28 md:pt-10">
-				<Logo size={30} href={`${base(locale)}/`} />
+				<Logo size={30} href={`${base(locale)}/`} endorsement={m.logo_endorsement({}, o)} />
 				<p class="hs-overline mt-16 md:mt-24">{overline}</p>
 				<h1 class="display mt-5 max-w-4xl text-display-lg text-ink">{title}</h1>
 				{lead ? <p class="mt-6 max-w-2xl text-pretty text-body-lg text-ink-muted">{lead}</p> : null}

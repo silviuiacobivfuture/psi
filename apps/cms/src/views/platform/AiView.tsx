@@ -115,6 +115,12 @@ export async function AiView(props: AdminViewServerProps): Promise<ReactElement>
 		<Shell props={props} title={say("aiTitle")} intro={say("aiIntro")}>
 			<BrandTabs path="/admin/platform/ai" brands={scope.brands} brand={brand} />
 			<Flash props={props} say={say} />
+			<p className="psi-studio-cta">
+				<a className="psi-studio-cta__link" href={`/admin/platform/ai/behaviour?brand=${brand}`}>
+					{say("stOpenStudio")} →
+				</a>{" "}
+				<span style={muted}>{say("stOpenStudioHint")}</span>
+			</p>
 			<p>
 				<a href="/admin/globals/ai-settings">{say("navAiSettings")}</a> ·{" "}
 				<a href={studioUrl()} target="_blank" rel="noreferrer">

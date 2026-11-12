@@ -1,51 +1,28 @@
 /**
- * Imports the repository's articles into the CMS as drafts, once: an article whose slug the CMS
- * already has is left alone (re-running changes nothing). Local API, run from apps/cms:
+ * Brings the repository's articles (@psi/content) into the CMS as drafts. Local API, run from
+ * apps/cms:
  *
- *     pnpm import:articles        # = payload run src/scripts/import-repo-articles.ts
+ *     pnpm import:articles              # = payload run src/scripts/import-repo-articles.ts
+ *     pnpm import:articles --dry-run    # prints what it would create / update / skip, writes nothing
+ *
+ * - An article the CMS does not have is created as a draft.
+ * - One it has, that nobody touched since the import (still a draft, no review events, no review
+ *   state, not written in the admin, not edited since), is refreshed when the repository changed.
+ * - Anything a person touched is left alone, and said so.
  *
  * Writes no review, approval or publication: the imported drafts go through the workflow.
  */
 import config from "@payload-config";
-import { ARTICLES } from "@psi/content";
 import { getPayload } from "payload";
-import { createData, englishData, toImport } from "../import/repo-articles";
-import { LOCAL_DRAFT } from "../review/live";
+import { importRepoArticles } from "../import/run-import";
 
-const payload = await getPayload({ config });
-const context = { [LOCAL_DRAFT]: true };
-let created = 0;
-let present = 0;
-for (const a of toImport(ARTICLES)) {
-	const { totalDocs } = await payload.count({
-		collection: "articles",
-		where: { slug: { equals: a.slug } },
-		overrideAccess: true,
-	});
-	if (totalDocs > 0) {
-		present++;
-		payload.logger.info(`import: ${a.slug} already in the CMS, left alone`);
-		continue;
-	}
-	const ro = await payload.create({
-		collection: "articles",
-		locale: "ro",
-		draft: true,
-		overrideAccess: true,
-		context,
-		data: createData(a),
-	});
-	await payload.update({
-		collection: "articles",
-		id: ro.id,
-		locale: "en",
-		draft: true,
-		overrideAccess: true,
-		context,
-		data: englishData(a, ro),
-	});
-	created++;
-	payload.logger.info(`import: ${a.slug} → draft ${ro.id}`);
+const words = process.argv.slice(2);
+if (words.some((w) => w !== "dry-run")) {
+	console.error(
+		`import: unknown argument ${words.join(" ")} (only dry-run; use pnpm import:articles --dry-run)`,
+	);
+	process.exit(2);
 }
-payload.logger.info(`import: ${created} created, ${present} already present`);
-process.exit(0);
+const payload = await getPayload({ config });
+const counts = await importRepoArticles(payload, { dryRun: words.includes("dry-run") });
+process.exit(counts.failed > 0 ? 1 : 0);

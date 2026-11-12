@@ -21,6 +21,11 @@ const pick = (l: z.infer<typeof Loc>, locale: Locale): string | undefined => {
 	const v = l?.[locale]?.trim();
 	return v === undefined || v === "" ? undefined : v;
 };
+/** The heading the questions sit under in the indexed text. */
+const FAQ_HEADING: Readonly<Record<Locale, string>> = {
+	ro: "Întrebări frecvente",
+	en: "Frequently asked questions",
+};
 const Person = z.object({ name: z.string() }).passthrough();
 
 const ArticleDoc = z.object({
@@ -42,6 +47,7 @@ const ArticleDoc = z.object({
 				.passthrough(),
 		)
 		.nullish(),
+	faq: z.array(z.object({ q: Loc, a: Loc })).nullish(),
 	reviewer: z.union([Person, z.number(), z.string()]).nullish(),
 	reviewedAt: z.string().nullish(),
 	_status: z.enum(["draft", "published"]).nullish(),
@@ -73,6 +79,12 @@ export function articleEntries(raw: unknown): KnowledgeEntryInput[] {
 				);
 			} else if (t) lines.push(t);
 		}
+		const questions = (a.faq ?? []).flatMap((f) => {
+			const q = pick(f.q, locale);
+			const answer = pick(f.a, locale);
+			return q && answer ? [`${q}\n${answer}`] : [];
+		});
+		if (questions.length > 0) lines.push(`## ${FAQ_HEADING[locale]}`, ...questions);
 		const body = lines.filter((l) => l.trim() !== "").join("\n\n");
 		if (body === "") return [];
 		const url = `${BLOG_ORIGIN}${locale === "ro" ? `/articole/${a.slug}` : `/en/articles/${a.slug}`}`;

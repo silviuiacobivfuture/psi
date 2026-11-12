@@ -15,6 +15,7 @@ import {
 	INCLUDE_DRAFTS,
 	latestFor,
 	ORIGINS,
+	summaryFor,
 } from "@psi/content";
 import type { Hono } from "hono";
 import { z } from "zod";
@@ -77,6 +78,11 @@ export function latestArticles(locale: ContentLocale, n: number): ReadonlyArray<
 		: latestFor("eqsync", locale, n, articles.index());
 }
 
+/** One article of the blog by slug, when it is visible (published, or a draft where drafts show). */
+export function articleSummary(locale: ContentLocale, slug: string): ArticleSummary | undefined {
+	return summaryFor(slug, locale, articles?.index());
+}
+
 /** This brand's published prices for the given offering slugs (all of them when none are given). */
 export function prices(locale: Locale, slugs?: ReadonlyArray<string>): PriceItem[] {
 	if (offerings === null) return [];
@@ -102,8 +108,11 @@ export function registerCmsRevalidate(app: Hono): void {
 			articles: async () => {
 				await articles?.refresh();
 			},
-			"ai-settings": (e) => {
-				if (e.sites.includes("eqsync")) aiSettings?.invalidate();
+			// Re-read at once (and again after the CMS's save commits): the guide's next answer and
+			// the next page (greeting, chips) use it.
+			"ai-settings": async (e) => {
+				if (!e.sites.includes("eqsync") || aiSettings === null) return;
+				await aiSettings.refreshAfterAnnounce();
 			},
 			"site-settings": async (e) => {
 				if (!e.sites.includes("eqsync") || siteSettings === null) return;

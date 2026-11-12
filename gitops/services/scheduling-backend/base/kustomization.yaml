@@ -1,0 +1,18 @@
+# The scheduling store: the self-hosted, open-source Convex backend (SQLite on a volume), reachable
+# ONLY inside the cluster at http://scheduling-backend.scheduling.svc:3210. No Ingress and no
+# dashboard: psi's servers are its only callers (docs/plans/scheduling.md sections 5 and 7).
+# The functions are deployed to it by the scheduling-deploy Application (same namespace).
+# Secrets: estate/APP-SECRETS.md. First-deploy steps: packages/scheduling/README.md (Deploying).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling
+resources:
+  - resourcequota.yaml
+  - externalsecret.yaml
+  - pvc.yaml
+  - statefulset.yaml
+  - service.yaml
+  - networkpolicy.yaml
+components:
+  # Argo's prune/delete guard on the PVC (the data).
+  - ../../../components/prune-guard

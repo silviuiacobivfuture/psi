@@ -11,7 +11,8 @@ const production = buildIndex(ARTICLES, { blogOrigin: BLOG, includeDrafts: false
 describe("buildIndex", () => {
 	it("summarises readable articles in both locales, never backlog stubs", () => {
 		expect(staging.every((a) => a.standfirst.length > 0)).toBe(true);
-		expect(staging.some((a) => a.slug === "atacul-de-panica")).toBe(false);
+		const stubs = new Set(ARTICLES.filter((a) => a.status === "in-review").map((a) => a.slug));
+		expect(staging.some((a) => stubs.has(a.slug))).toBe(false);
 		const ids = new Set(staging.map((a) => a.id));
 		expect(staging.length).toBe(ids.size * 2);
 	});

@@ -17,3 +17,6 @@ export function appImagesDir(app: string): string {
 export function appManifest(app: string): string {
 	return join(ROOT, "apps", app, "src/images.generated.ts");
 }
+
+/** The covers every site shows (the blog's own and its topic pool): one manifest in @psi/content. */
+export const COVERS_MANIFEST = join(ROOT, "packages/content/src/covers/covers.generated.ts");

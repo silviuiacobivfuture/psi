@@ -49,12 +49,15 @@ export function SiteHead({
 	title,
 	description,
 	alternate,
+	extraJsonLd = [],
 }: {
 	locale: Locale;
 	theme: Theme;
 	title: string;
 	description: string;
 	alternate: { locale: Locale; href: string };
+	/** Page-specific structured data (FAQPage, MedicalWebPage), after the breadcrumb. */
+	extraJsonLd?: ReadonlyArray<JsonLdNode>;
 }): JSX.Element {
 	const page = localisedPage(ORIGIN, locale, alternate);
 	const name = siteNames(locale)[SITE];
@@ -67,7 +70,7 @@ export function SiteHead({
 		? [webSiteJsonLd({ name, url: `${ORIGIN}/`, inLanguage: ["ro", "en"] }), org]
 		: page.path.endsWith("/contact")
 			? [org, crumbs]
-			: [crumbs];
+			: [crumbs, ...extraJsonLd];
 	return (
 		<SeoHead
 			title={title}

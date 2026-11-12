@@ -1,0 +1,21 @@
+# The scheduling store: the self-hosted Convex backend (gitops/services/scheduling-backend).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scheduling-backend
+  namespace: argocd
+  # git-sourced → the overlay stamps targetRevision (= env branch). See BRANCHING.md.
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/scheduling-backend/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scheduling
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

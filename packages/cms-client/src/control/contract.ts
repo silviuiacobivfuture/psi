@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CopyDefaults } from "../ai-behaviour";
 import { SiteSchema } from "../ai-settings";
 
 /**
@@ -85,6 +86,11 @@ export const AgentInfo = z.object({
 	screeningLevel: z.enum(["standard", "strict"]),
 	scheduling: z.boolean(),
 	workflows: z.array(z.string()),
+	/**
+	 * The site's built-in guide copy per locale (greeting, chips, redirect, "not on our site",
+	 * exchange limit), which the studio shows as placeholders. Absent on an older site.
+	 */
+	copyDefaults: z.object({ ro: CopyDefaults, en: CopyDefaults }).optional(),
 });
 export type AgentInfo = z.infer<typeof AgentInfo>;
 
@@ -115,21 +121,49 @@ export const IngestResult = z.discriminatedUnion("ok", [
 ]);
 export type IngestResult = z.infer<typeof IngestResult>;
 
-/** POST /__control/guide/ask: a staff test question (never stored, never counted). */
+/** The studio's preview keeps at most this many earlier turns (the engine reads ten). */
+export const PREVIEW_HISTORY_TURNS = 20;
+
+/**
+ * POST /__control/guide/ask: a staff test question (never stored, never counted). The studio's
+ * preview adds the conversation so far and, optionally, the DRAFT settings to answer with (an
+ * `ai-settings` group, unsaved): they apply to this one answer only and are never kept. An older
+ * site ignores both and answers with its live settings (it then sends no `meta` line).
+ */
 export const TestQuestion = z.object({
-	question: z.string().trim().min(3).max(500),
+	question: z.string().trim().min(1).max(1000),
 	locale: z.enum(["ro", "en"]),
+	history: z
+		.array(z.object({ role: z.enum(["user", "guide"]), text: z.string().trim().min(1).max(4000) }))
+		.max(PREVIEW_HISTORY_TURNS)
+		.optional(),
+	draft: z.record(z.unknown()).optional(),
 });
 export type TestQuestion = z.infer<typeof TestQuestion>;
 
-/** One line of the test answer's NDJSON stream. */
+/** What the guide is busy with while it works (the engine's `thinking` stages). */
+export const TestStage = z.enum(["thinking", "searching", "checking"]);
+
+/**
+ * One line of the test answer's NDJSON stream. `replace` resets the text (a regenerated or
+ * corrected reply); `meta` opens a newer site's stream (whether the draft was applied, and the
+ * model); `timing` closes it (milliseconds to the first text and in all).
+ */
 export const TestAnswerLine = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("text"), text: z.string() }),
+	z.object({ type: z.literal("replace"), text: z.string() }),
+	z.object({ type: z.literal("stage"), stage: TestStage }),
 	z.object({
 		type: z.literal("sources"),
 		sources: z.array(z.object({ title: z.string(), url: z.string() })),
 	}),
 	z.object({ type: z.literal("refusal"), reason: z.string() }),
+	z.object({ type: z.literal("meta"), draftApplied: z.boolean(), model: z.string() }),
+	z.object({
+		type: z.literal("timing"),
+		firstTextMs: z.number().int().nonnegative().nullable(),
+		totalMs: z.number().int().nonnegative(),
+	}),
 	z.object({ type: z.literal("done") }),
 ]);
 export type TestAnswerLine = z.infer<typeof TestAnswerLine>;

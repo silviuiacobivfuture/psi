@@ -102,8 +102,11 @@ export function registerCmsRevalidate(app: Hono): void {
 			articles: async () => {
 				await articles?.refresh();
 			},
-			"ai-settings": (e) => {
-				if (e.sites.includes("psizone")) aiSettings?.invalidate();
+			// Re-read at once (and again after the CMS's save commits): the guide's next answer and
+			// the next page (greeting, chips) use it.
+			"ai-settings": async (e) => {
+				if (!e.sites.includes("psizone") || aiSettings === null) return;
+				await aiSettings.refreshAfterAnnounce();
 			},
 			"site-settings": async (e) => {
 				if (!e.sites.includes("psizone") || siteSettings === null) return;

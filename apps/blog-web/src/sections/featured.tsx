@@ -1,7 +1,7 @@
 import type { PublishedArticle } from "@psi/content";
 import { ArticleCover } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { coverPicture } from "../covers";
+import { coverView } from "../covers";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
@@ -17,6 +17,7 @@ export function Featured({
 }): JSX.Element {
 	const o = at(locale);
 	const href = routes.article(locale, a.slug);
+	const cover = coverView(a, locale, "featured");
 	return (
 		<article class="bl-featured grid items-center gap-8 md:grid-cols-12 md:gap-12">
 			<a
@@ -25,13 +26,7 @@ export function Featured({
 				tabindex={-1}
 				aria-label={a.title[locale]}
 			>
-				<ArticleCover
-					hue={1}
-					image={a.cover === null ? undefined : { src: a.cover.src, alt: a.cover.alt[locale] }}
-					picture={a.cover === null ? coverPicture(a.slug, locale, "featured") : undefined}
-				>
-					<span class="bl-cover-mark">¶</span>
-				</ArticleCover>
+				<ArticleCover hue={1} {...cover} />
 			</a>
 			<div class="md:col-span-5">
 				<p class="bl-overline">

@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import { account } from "./account";
 import { aiSettings } from "./cms-routes";
 import { guide } from "./guide-client";
+import { guideCopyDefaults } from "./guide-copy";
 import { at } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { pwa } from "./pwa/site";
@@ -27,5 +28,6 @@ export function mountControl(app: Hono): SiteControl {
 		pwa,
 		scheduling: { state: "not_configured" },
 		staffLink: staffLinkWords,
+		guideCopy: guideCopyDefaults,
 	});
 }

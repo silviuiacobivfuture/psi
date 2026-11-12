@@ -1,11 +1,19 @@
-import type { Article } from "@psi/content";
-import { ArticleCover, Button, ReadingProgress, StatusBadge } from "@psi/ui";
+import { type Article, articleDate } from "@psi/content";
+import {
+	ArticleCover,
+	articleJsonLd,
+	Button,
+	faqPageJsonLd,
+	type JsonLdNode,
+	ReadingProgress,
+	StatusBadge,
+} from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { PreviewReload, ReadingBeacon } from "../analytics/beacon";
 import { SITES } from "../brands";
 import { EDITORIAL_POLICY } from "../content/editorial-policy";
 import { brandName, topicHub, topicLabel } from "../content/topics";
-import { coverPicture } from "../covers";
+import { coverView } from "../covers";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
@@ -32,6 +40,37 @@ function nextStep(a: Article, locale: Locale): { label: string; href: string } {
 				href: `${site}${hub}`,
 			}
 		: { label: m.next_site({ brand }, o), href: site };
+}
+
+/** The article and its questions as schema.org data (nothing for a backlog title). */
+function structuredData(a: Article, locale: Locale, url: string, origin: string): JsonLdNode[] {
+	if (a.status === "in-review") return [];
+	const health = a.kind === "health";
+	const node = articleJsonLd({
+		type: health ? "MedicalWebPage" : "BlogPosting",
+		headline: a.title[locale],
+		description: a.seo?.description[locale] ?? a.standfirst[locale],
+		url,
+		inLanguage: locale,
+		datePublished: articleDate(a),
+		keywords: a.seo?.keywords[locale],
+		image: a.cover?.src,
+		publisher: { name: m.masthead_title({}, at(locale)), url: `${origin}${routes.home(locale)}` },
+		author:
+			a.status === "published"
+				? "team" in a.author
+					? { name: a.author.team[locale], type: "Organization" }
+					: { name: a.author.name, type: "Person" }
+				: undefined,
+		reviewedBy:
+			a.status === "published" && a.kind === "health"
+				? { name: a.reviewer.name, reviewedAt: a.reviewer.reviewedAt }
+				: undefined,
+		about: topicLabel(a.topic, locale),
+	});
+	return a.faq.length > 0
+		? [node, faqPageJsonLd(a.faq.map((f) => ({ question: f.q[locale], answer: f.a[locale] })))]
+		: [node];
 }
 
 function InReviewNotice({ locale }: { locale: Locale }): JSX.Element {
@@ -72,13 +111,17 @@ export function ArticlePage({
 		a.status === "in-review" ? m.in_review_standfirst({}, o) : a.standfirst[locale];
 	const next = nextStep(a, locale);
 	const brand = brandName(a.brand, locale);
+	const canonical = `${origin}${routes.article(locale, a.slug)}`;
+	const seo = a.status === "in-review" ? null : a.seo;
 	return (
 		<Layout
 			locale={locale}
 			theme={theme}
-			title={`${a.title[locale]} — ${m.masthead_title({}, o)}`}
-			description={standfirst}
-			canonical={`${origin}${routes.article(locale, a.slug)}`}
+			title={seo?.title[locale] ?? `${a.title[locale]} — ${m.masthead_title({}, o)}`}
+			description={seo?.description[locale] ?? standfirst}
+			keywords={seo?.keywords[locale]}
+			jsonLd={structuredData(a, locale, canonical, origin)}
+			canonical={canonical}
 			alternate={{ locale: other, href: `${origin}${routes.article(other, a.slug)}` }}
 			feed={{
 				title: m.rss_brand_title({ brand }, o),
@@ -126,14 +169,10 @@ export function ArticlePage({
 							) : null}
 							<div class="mx-auto mt-12 max-w-[880px]">
 								<ArticleCover
+									class="bl-article-cover"
 									hue={1}
-									image={
-										a.cover === null ? undefined : { src: a.cover.src, alt: a.cover.alt[locale] }
-									}
-									picture={a.cover === null ? coverPicture(a.slug, locale, "article") : undefined}
-								>
-									<span class="bl-cover-mark">¶</span>
-								</ArticleCover>
+									{...coverView(a, locale, "article")}
+								/>
 							</div>
 							<div class="mt-14">
 								<ArticleBody article={a} locale={locale} />

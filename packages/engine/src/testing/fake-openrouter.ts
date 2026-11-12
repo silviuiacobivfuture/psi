@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 export type FakeReply =
 	| { kind: "text"; chunks: ReadonlyArray<string>; delayMs?: number; finish?: string }
-	| { kind: "tool"; query: string }
+	| { kind: "tool"; query: string; tool?: string; input?: object }
 	| { kind: "status"; status: number }
 	| { kind: "hang" };
 
@@ -81,8 +81,8 @@ async function reply(res: ServerResponse, answer: FakeReply, n: number): Promise
 						id: `call-${n}`,
 						type: "function",
 						function: {
-							name: "searchKnowledge",
-							arguments: JSON.stringify({ query: answer.query }),
+							name: answer.tool ?? "searchKnowledge",
+							arguments: JSON.stringify(answer.input ?? { query: answer.query }),
 						},
 					},
 				],

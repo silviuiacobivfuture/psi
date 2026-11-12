@@ -7,7 +7,7 @@ import { type Brand, Logo } from "./logo";
 export interface MastheadProps {
 	homeHref: string;
 	/** Whose article this is: shows that brand's Logo (explicit, never "auto" under the Blog themes). */
-	brand?: Exclude<Brand, "auto">;
+	brand?: Exclude<Brand, "auto" | "blog">;
 	/** The publication's wordmark, shown when no brand is named (the shared index). */
 	title?: string;
 	/** A quiet label after the logo or wordmark, e.g. "Blog". */
@@ -35,7 +35,10 @@ export function Masthead({
 				{brand !== undefined ? (
 					<Logo size={26} brand={brand} />
 				) : (
-					<span class="pz-masthead__title">{title}</span>
+					<>
+						<Logo size={30} brand="blog" variant="mark" />
+						<span class="pz-masthead__title">{title}</span>
+					</>
 				)}
 				{kicker !== undefined ? <span class="pz-masthead__kicker">{kicker}</span> : null}
 			</a>

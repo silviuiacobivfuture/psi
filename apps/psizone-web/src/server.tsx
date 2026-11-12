@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { decodeSlot, SchedulingUnavailable, schedulingFromEnv } from "@psi/guide";
@@ -23,7 +23,6 @@ import {
 } from "./booking";
 import { accountLine, bookingAccount, guideForRequest } from "./booking-account";
 import { registerCmsRevalidate } from "./cms";
-import { HUBS } from "./content/hubs";
 import { registerContentPages } from "./content-routes";
 import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
@@ -32,7 +31,6 @@ import { guide } from "./guide-client";
 import { at, type Locale } from "./i18n";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
-import { HubPage } from "./pages/hub";
 import { PreparingPage, TeamPage } from "./pages/simple";
 import { StoryPage } from "./pages/story";
 import { m } from "./paraglide/messages.js";
@@ -40,7 +38,10 @@ import { registerPwa } from "./pwa/routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
+const DATASTAR = readFileSync(
+	createRequire(import.meta.url).resolve("@psi/ui/datastar.js"),
+	"utf8",
+);
 const PORT = Number.parseInt(process.env.PORT ?? "4310", 10);
 
 /**
@@ -114,6 +115,8 @@ app.get("/assets/datastar.js", (c) =>
 	}),
 );
 app.use("/assets/*", serveStatic({ root: "./public" }));
+// Photographs from the old psizone.ro, converted to webp (public/images/old-site).
+app.use("/images/*", serveStatic({ root: "./public" }));
 app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 
 for (const [locale, prefix] of [
@@ -126,19 +129,6 @@ for (const [locale, prefix] of [
 			<HomePage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={origin} />,
 		);
 	});
-	for (const hub of HUBS) {
-		app.get(`${prefix}${hub.path}`, (c) => {
-			const origin = new URL(c.req.url).origin;
-			return c.html(
-				<HubPage
-					hub={hub}
-					locale={locale}
-					theme={themeFrom(getCookie(c, "theme"))}
-					origin={origin}
-				/>,
-			);
-		});
-	}
 	registerContentPages(app, locale, prefix);
 	registerAccountRoutes(app, locale);
 	app.get(`${prefix}/povestea`, (c) =>
@@ -290,6 +280,7 @@ for (const [locale, prefix] of [
 					name={name}
 					reference={sent.reference}
 					cancelCode={sent.cancelCode}
+					cancelInChat={id !== "booking"}
 					start={sent.start}
 					timeZone={sent.timeZone}
 				/>,

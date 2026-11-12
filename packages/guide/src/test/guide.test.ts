@@ -106,7 +106,10 @@ describe("a grounded answer", () => {
 		expect(body.model).toBe(DEFAULT_MODEL);
 		expect(body.provider?.data_collection).toBe("deny");
 		expect(body.tool_choice).not.toBe("required");
-		expect(body.tools?.map((tool) => tool.function.name)).toEqual(["searchKnowledge"]);
+		expect(body.tools?.map((tool) => tool.function.name).sort()).toEqual([
+			"findArticles",
+			"searchKnowledge",
+		]);
 		const system = body.messages
 			.filter((m) => m.role === "system")
 			.map((m) => messageText(m.content))

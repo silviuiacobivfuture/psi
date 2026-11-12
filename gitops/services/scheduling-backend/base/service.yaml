@@ -1,0 +1,12 @@
+# In-cluster only (ClusterIP, no Ingress). Only the API port: the HTTP-actions port (3211) is not
+# used by any psi function and stays unexposed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: scheduling-backend
+spec:
+  selector: { app: scheduling-backend }
+  ports:
+    - name: api
+      port: 3210
+      targetPort: api

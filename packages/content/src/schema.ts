@@ -22,6 +22,16 @@ export const TOPICS = [
 	"cum-lucram",
 	"programul-eqsync",
 	"explorarea-constiintei",
+	"cuplu-familie",
+	"post-avc",
+	"psiho-oncologie",
+	"sport",
+	"psihoterapie",
+	"neuromodulare",
+	"parinti",
+	"creier-si-minte",
+	"sunet-si-creier",
+	"meditatie-si-relaxare",
 ] as const;
 export const TopicSchema = z.enum(TOPICS);
 export type Topic = z.infer<typeof TopicSchema>;
@@ -51,6 +61,32 @@ export const Standfirst = Localized.refine(
 	(s) => wordCount(s.ro) <= STANDFIRST_MAX_WORDS && wordCount(s.en) <= STANDFIRST_MAX_WORDS,
 	{ message: `a standfirst is at most ${STANDFIRST_MAX_WORDS} words in each locale` },
 );
+
+/** A string list per locale (search phrases, in the words people type). */
+const LocalizedList = z.object({
+	ro: z.array(z.string().trim().min(1)).min(1).max(12),
+	en: z.array(z.string().trim().min(1)).min(1).max(12),
+});
+
+/**
+ * What search engines and link previews show: a title of at most 65 characters and a description
+ * of 70–170, in each locale, plus the phrases people actually search for (the first is the main one).
+ */
+export const Seo = z.object({
+	title: Localized.refine((t) => t.ro.length <= 65 && t.en.length <= 65, {
+		message: "an SEO title is at most 65 characters in each locale",
+	}),
+	description: Localized.refine(
+		(d) => [d.ro, d.en].every((x) => x.length >= 70 && x.length <= 170),
+		{ message: "an SEO description is 70–170 characters in each locale" },
+	),
+	keywords: LocalizedList,
+});
+export type Seo = z.infer<typeof Seo>;
+
+/** A question people ask, answered in 40–120 words: shown on the page and marked up as FAQPage. */
+export const Faq = z.object({ q: Localized, a: Localized });
+export type Faq = z.infer<typeof Faq>;
 
 /** The article's cover image (from the CMS's media library): absolute URL and alt text. */
 export const Cover = z.object({
@@ -98,6 +134,10 @@ const Draft = z
 		sources: z.array(Source).default([]),
 		cover: Cover.nullable().default(null),
 		provenance: z.array(z.string().trim().min(1)).default([]),
+		seo: Seo.nullable().default(null),
+		faq: z.array(Faq).max(10).default([]),
+		/** Slugs of related articles (any brand), for internal links. Unknown slugs are ignored. */
+		related: z.array(Slug).max(8).default([]),
 		author: z.null(),
 		reviewer: z.null(),
 	})
@@ -117,6 +157,9 @@ const PublishedBase = {
 	body: z.array(Block).min(1),
 	sources: z.array(Source).default([]),
 	cover: Cover.nullable().default(null),
+	seo: Seo.nullable().default(null),
+	faq: z.array(Faq).max(10).default([]),
+	related: z.array(Slug).max(8).default([]),
 };
 
 /** About how we work, not about health: written by the editors, no clinical reviewer. */

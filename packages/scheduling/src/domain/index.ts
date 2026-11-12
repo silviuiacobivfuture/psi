@@ -50,6 +50,16 @@ export {
 	retentionAction,
 } from "./retention";
 export {
+	closureSpans,
+	pickRoom,
+	ROOM_KINDS,
+	type RoomCalendar,
+	type RoomClosure,
+	type RoomKind,
+	type RoomSpec,
+	roomSuits,
+} from "./rooms";
+export {
 	generateSlots,
 	isOffered,
 	MAX_SEARCH_DAYS,

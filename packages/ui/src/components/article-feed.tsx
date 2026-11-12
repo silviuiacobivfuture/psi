@@ -2,6 +2,7 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import { ArticleCard } from "./article-card";
+import type { ImageAsset, PictureSpec } from "./picture";
 
 /**
  * What a feed card needs of an article. `@psi/content`'s `ArticleSummary` satisfies it as is; the
@@ -13,6 +14,19 @@ export interface FeedArticle {
 	title: string;
 	standfirst: string;
 	status: "published" | "draft";
+	/** The picture to show; null shows the brand's ambient art. */
+	cover?:
+		| { kind: "set"; alt: string; image: ImageAsset }
+		| { kind: "url"; alt: string; src: string }
+		| null;
+}
+
+const FEED_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 46vw, calc(100vw - 40px)";
+
+function pictureOf(a: FeedArticle): PictureSpec | undefined {
+	return a.cover?.kind === "set"
+		? { image: a.cover.image, alt: a.cover.alt, sizes: FEED_SIZES }
+		: undefined;
 }
 
 /** Every word the feed shows, already translated by the app. The library ships no text. */
@@ -50,7 +64,9 @@ export function ArticleFeed<T extends FeedArticle>({
 					<ArticleCard
 						href={a.url}
 						title={a.title}
-						topic={a.status === "draft" ? labels.draft : undefined}
+						picture={pictureOf(a)}
+						image={a.cover?.kind === "url" ? a.cover.src : undefined}
+						status={a.status === "draft" ? labels.draft : undefined}
 						excerpt={a.standfirst}
 						meta={labels.meta(a)}
 					/>

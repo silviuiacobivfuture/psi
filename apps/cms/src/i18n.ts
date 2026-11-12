@@ -2,6 +2,8 @@ import { en } from "@payloadcms/translations/languages/en";
 import { ro } from "@payloadcms/translations/languages/ro";
 import { knowledgeEn, knowledgeRo } from "./i18n-knowledge";
 import { platformEn, platformRo } from "./i18n-platform";
+import { schedulingEn, schedulingRo } from "./i18n-scheduling";
+import { studioEn, studioRo } from "./i18n-studio";
 
 /** cms's own interface strings, beside Payload's (which come in Romanian and English). */
 const roStrings = {
@@ -143,10 +145,15 @@ const enStrings: typeof roStrings = {
 };
 
 export const custom = {
-	ro: { psi: { ...roStrings, ...platformRo, ...knowledgeRo } },
-	en: { psi: { ...enStrings, ...platformEn, ...knowledgeEn } },
+	ro: { psi: { ...roStrings, ...platformRo, ...knowledgeRo, ...studioRo, ...schedulingRo } },
+	en: { psi: { ...enStrings, ...platformEn, ...knowledgeEn, ...studioEn, ...schedulingEn } },
 } as const;
-export type PsiKey = keyof typeof roStrings | keyof typeof platformRo | keyof typeof knowledgeRo;
+export type PsiKey =
+	| keyof typeof roStrings
+	| keyof typeof platformRo
+	| keyof typeof knowledgeRo
+	| keyof typeof studioRo
+	| keyof typeof schedulingRo;
 export type CustomKey = `psi:${PsiKey}`;
 
 export const i18n = {

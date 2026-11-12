@@ -1,42 +1,29 @@
-import type { StaffAvailability, StaffSchedulingClient } from "@psi/scheduling";
 import { redirect } from "next/navigation";
 import type { AdminViewServerProps } from "payload";
 import type { ReactElement } from "react";
 import { z } from "zod";
 import { brandsFor } from "../../authz/access";
+import type { Brand } from "../../authz/types";
+import { Calendar } from "../../components/scheduling/Calendar";
+import { SchedulingStudio } from "../../components/scheduling/SchedulingStudio";
 import { scopeFor } from "../../platform/access";
+import { isReady, type SetupState } from "../../platform/scheduling-model";
+import { loadSetup } from "../../platform/scheduling-setup";
 import { SECTIONS } from "../../platform/sections";
-import { schedulingStaff, type Tenant, tenantOf } from "../../platform/services";
+import { schedulingStaff, tenantOf } from "../../platform/services";
 import { Shell, sayer } from "../shell";
 import { BrandTabs, Flash, muted, param, type Say } from "./parts";
 import { FILTER_STATUSES, RequestsTable } from "./SchedulingRequests";
-import { SchedulingSetup } from "./SchedulingSetup";
 
 /**
  * /admin/platform/scheduling — the scheduling store through its staff API (Convex): requests
- * (filter, confirm, decline, cancel with an administrative reason), and the setup (practitioners,
- * services, weekly hours, exceptions). Viewing needs `calendar_viewer`; changing needs
- * `calendar_manager`. Scheduling never reads the CMS: this page calls scheduling.
+ * (filter, confirm, decline, cancel with an administrative reason), and the setup studio
+ * (practitioners, services, weekly hours, days off, and what visitors will see). Viewing needs
+ * `calendar_viewer`; changing needs `calendar_manager`. Scheduling never reads the CMS: this page
+ * calls scheduling. A tenant with nothing set up opens on the setup, and says what is missing.
  */
-const Tab = z.enum(["requests", "setup"]).catch("requests");
+const Tab = z.enum(["calendar", "requests", "setup"]).optional().catch(undefined);
 const Status = z.enum(FILTER_STATUSES).optional().catch(undefined);
-type Available = Extract<StaffAvailability, { ok: true }>;
-
-async function setupData(staff: StaffSchedulingClient, tenant: Tenant) {
-	const catalog = await staff.catalog({ tenant });
-	if (!catalog.ok) return null;
-	const fromDate = new Date().toISOString().slice(0, 10);
-	const availability = new Map<string, Available | null>();
-	await Promise.all(
-		catalog.practitioners.map(async (p) => {
-			const a = await staff
-				.availability({ tenant, practitioner: p.id, fromDate })
-				.catch(() => null);
-			availability.set(p.id, a?.ok ? a : null);
-		}),
-	);
-	return { catalog, availability };
-}
 
 function Tabs({
 	brand,
@@ -44,12 +31,13 @@ function Tabs({
 	say,
 }: {
 	brand: string;
-	tab: "requests" | "setup";
+	tab: "calendar" | "requests" | "setup";
 	say: Say;
 }): ReactElement {
-	const link = (t: "requests" | "setup", label: string) => (
+	const link = (t: "calendar" | "requests" | "setup", label: string) => (
 		<a
 			href={`/admin/platform/scheduling?brand=${brand}&tab=${t}`}
+			aria-current={tab === t ? "page" : undefined}
 			style={{ fontWeight: tab === t ? 700 : 400 }}
 		>
 			{label}
@@ -57,10 +45,24 @@ function Tabs({
 	);
 	return (
 		<p style={{ display: "flex", gap: "var(--base)" }}>
+			{link("calendar", say("scTabCalendar"))}
 			{link("requests", say("schedRequests"))}
 			{link("setup", say("schedSetup"))}
 		</p>
 	);
+}
+
+/** The setup, or null when the store cannot be read (the page then says it does not answer). */
+async function setupOf(
+	brand: Brand,
+	tenant: string,
+	staff: NonNullable<ReturnType<typeof schedulingStaff>>,
+): Promise<SetupState | null> {
+	try {
+		return await loadSetup(staff, brand, tenant);
+	} catch {
+		return null;
+	}
 }
 
 export async function SchedulingView(props: AdminViewServerProps): Promise<ReactElement> {
@@ -79,9 +81,20 @@ export async function SchedulingView(props: AdminViewServerProps): Promise<React
 	if (brand === null) return shell(<p>{say("noBrand")}</p>);
 	const tenant = tenantOf(brand);
 	const staff = schedulingStaff();
-	const tab = Tab.parse(param(props, "tab"));
 	const status = Status.parse(param(props, "status") || undefined);
 	const manager = (await brandsFor(req, SECTIONS.scheduling.act)).includes(brand);
+	if (staff === null || tenant === null) {
+		return shell(
+			<>
+				<BrandTabs path="/admin/platform/scheduling" brands={brands} brand={brand} />
+				<p>{say("notConfigured")}</p>
+			</>,
+		);
+	}
+	const setup = await setupOf(brand, tenant, staff);
+	// A tenant with nothing set up opens on the setup: that is the one thing to do.
+	const tab =
+		Tab.parse(param(props, "tab")) ?? (setup !== null && !isReady(setup) ? "setup" : "calendar");
 	const head = (
 		<>
 			<BrandTabs
@@ -95,33 +108,31 @@ export async function SchedulingView(props: AdminViewServerProps): Promise<React
 			{manager ? null : <p style={muted}>{say("needManager")}</p>}
 		</>
 	);
-	if (staff === null || tenant === null)
+	if (setup === null) {
 		return shell(
 			<>
 				{head}
-				<p>{say("notConfigured")}</p>
+				<p>{say("unreachable")}</p>
 			</>,
 		);
+	}
+	if (tab === "calendar") {
+		return shell(
+			<>
+				{head}
+				<Calendar key={brand} initial={setup} canEdit={manager} />
+			</>,
+		);
+	}
+	if (tab === "setup") {
+		return shell(
+			<>
+				{head}
+				<SchedulingStudio key={brand} initial={setup} canEdit={manager} />
+			</>,
+		);
+	}
 	try {
-		if (tab === "setup") {
-			const data = await setupData(staff, tenant);
-			return shell(
-				<>
-					{head}
-					{data === null ? (
-						<p>{say("notFound")}</p>
-					) : (
-						<SchedulingSetup
-							brand={brand}
-							catalog={data.catalog}
-							availability={data.availability}
-							manager={manager}
-							say={say}
-						/>
-					)}
-				</>,
-			);
-		}
 		const now = Date.now();
 		const r = await staff.requests({
 			tenant,
@@ -132,6 +143,12 @@ export async function SchedulingView(props: AdminViewServerProps): Promise<React
 		return shell(
 			<>
 				{head}
+				{isReady(setup) ? null : (
+					<p className="psi-note psi-note--lock">
+						{say("scEmpty")}.{" "}
+						<a href={`/admin/platform/scheduling?brand=${brand}&tab=setup`}>{say("scEmptyLink")}</a>
+					</p>
+				)}
 				{r.ok ? (
 					<RequestsTable
 						brand={brand}
@@ -142,7 +159,7 @@ export async function SchedulingView(props: AdminViewServerProps): Promise<React
 						say={say}
 					/>
 				) : (
-					<p>{say("notFound")}</p>
+					<p>{say("noRequests")}</p>
 				)}
 			</>,
 		);

@@ -1,22 +1,80 @@
-import type { Topic } from "@psi/content";
-import { ArticleList, ArticleListRow, FilterChips } from "@psi/ui";
+import type { Article, Topic } from "@psi/content";
+import { FilterChips } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { type BlogBrand, BRANDS } from "../brands";
-import { type ArticleFilter, drafts, inProgress, published } from "../content/articles";
+import { type ArticleFilter, listing } from "../content/articles";
+import { SHELF_IDS, type ShelfId, shelfLabel, shelfTopics } from "../content/shelves";
 import { brandName, topicLabel } from "../content/topics";
+import { guideCopy } from "../guide-copy";
 import { at, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { routes } from "../routes";
-import { overline, RowMeta } from "../sections/article-meta";
 import { Featured } from "../sections/featured";
 import { Footer } from "../sections/footer";
 import { GuidePanel } from "../sections/guide-panel";
 import { Header } from "../sections/header";
+import { Pager } from "../sections/pager";
+import { StoryGrid } from "../sections/story-card";
 import type { Theme } from "../theme";
 
-function filterHref(locale: Locale, brand?: BlogBrand): string {
-	return `${routes.home(locale)}${brand === undefined ? "" : `?brand=${brand}`}#articole`;
+/** Cards per page of a filtered listing; a shelf on the front page shows a handful. */
+export const PAGE_SIZE = 18;
+export const SHELF_PREVIEW = 6;
+
+interface View {
+	brand?: BlogBrand;
+	topic?: Topic;
+	shelf?: ShelfId;
+	page?: number;
+}
+
+function filterHref(locale: Locale, v: View = {}): string {
+	const q = new URLSearchParams();
+	if (v.brand !== undefined) q.set("brand", v.brand);
+	if (v.shelf !== undefined) q.set("shelf", v.shelf);
+	if (v.topic !== undefined) q.set("topic", v.topic);
+	if (v.page !== undefined && v.page > 1) q.set("page", String(v.page));
+	const query = q.toString();
+	return `${routes.home(locale)}${query === "" ? "" : `?${query}`}#articole`;
+}
+
+/** The front page's shelves: each gathers some topics, newest first, a handful of cards each. */
+function Shelves({
+	articles,
+	locale,
+	brand,
+}: {
+	articles: ReadonlyArray<Article>;
+	locale: Locale;
+	brand?: BlogBrand;
+}): JSX.Element {
+	const o = at(locale);
+	return (
+		<>
+			{SHELF_IDS.map((id) => {
+				const topics = shelfTopics(id);
+				const items = articles.filter((a) => topics.includes(a.topic));
+				if (items.length === 0) return null;
+				return (
+					<section class="bl-shelf" aria-labelledby={`raft-${id}`}>
+						<div class="bl-shelf__head">
+							<h2 id={`raft-${id}`} class="bl-section-title">
+								{shelfLabel(id, locale)}
+							</h2>
+							{items.length > SHELF_PREVIEW ? (
+								<a class="bl-more" href={filterHref(locale, { brand, shelf: id })}>
+									{m.shelf_all({ count: String(items.length) }, o)}
+									<span aria-hidden="true">→</span>
+								</a>
+							) : null}
+						</div>
+						<StoryGrid articles={items.slice(0, SHELF_PREVIEW)} locale={locale} />
+					</section>
+				);
+			})}
+		</>
+	);
 }
 
 export function IndexPage({
@@ -25,19 +83,26 @@ export function IndexPage({
 	origin,
 	brand,
 	topic,
+	shelf,
+	page = 1,
 }: {
 	locale: Locale;
 	theme: Theme;
 	origin: string;
-	brand?: BlogBrand;
-	topic?: Topic;
-}): JSX.Element {
+} & View): JSX.Element {
 	const o = at(locale);
 	const other: Locale = locale === "ro" ? "en" : "ro";
-	const filter: ArticleFilter = { brand, topic };
-	const [featured, ...rest] = published(filter);
+	const filter: ArticleFilter = { brand, topic, shelf };
+	const filtered = brand !== undefined || topic !== undefined || shelf !== undefined;
 	// Drafts are listed only where they may be shown (staging), for the owner to review.
-	const coming = [...rest, ...drafts(filter), ...inProgress(filter)];
+	const all = listing(filter);
+	const first = all[0];
+	const lead = page === 1 && first?.status === "published" ? first : undefined;
+	const rest = all.filter((a) => a !== lead);
+	const pages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
+	const current = Math.min(page, pages);
+	const shown = rest.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+	const view: View = { brand, topic, shelf };
 	return (
 		<Layout
 			locale={locale}
@@ -50,7 +115,7 @@ export function IndexPage({
 		>
 			<Header locale={locale} otherHref={routes.home(other)} />
 			<main id="continut">
-				<section class="mx-auto max-w-[1200px] px-4 pb-20 pt-20 sm:px-6 md:pb-28 md:pt-32">
+				<section class="mx-auto max-w-[1200px] px-4 pb-14 pt-16 sm:px-6 md:pb-20 md:pt-28">
 					<p class="bl-overline">{m.hero_overline({}, o)}</p>
 					<h1 class="bl-hero-title mt-6 md:mt-8">{m.hero_title({}, o)}</h1>
 					<p class="mt-6 max-w-xl text-body-lg text-ink-muted md:mt-8">{m.hero_lead({}, o)}</p>
@@ -58,8 +123,8 @@ export function IndexPage({
 						<GuidePanel
 							locale={locale}
 							placeholder={m.ask_placeholder({}, o)}
-							intro={m.guide_intro({}, o)}
-							suggestions={[m.ask_suggest_1({}, o), m.ask_suggest_2({}, o), m.ask_suggest_3({}, o)]}
+							intro={guideCopy(locale).welcome}
+							suggestions={guideCopy(locale).chips}
 						/>
 					</div>
 				</section>
@@ -72,13 +137,30 @@ export function IndexPage({
 							items={[
 								{
 									label: m.filter_all({}, o),
-									href: filterHref(locale),
+									href: filterHref(locale, { shelf }),
 									current: brand === undefined,
 								},
 								...BRANDS.map((b) => ({
 									label: brandName(b, locale),
-									href: filterHref(locale, b),
+									href: filterHref(locale, { brand: b, shelf }),
 									current: brand === b,
+								})),
+							]}
+						/>
+					</div>
+					<div class="mt-5">
+						<FilterChips
+							label={m.shelves_label({}, o)}
+							items={[
+								{
+									label: m.shelf_filter_all({}, o),
+									href: filterHref(locale, { brand }),
+									current: shelf === undefined,
+								},
+								...SHELF_IDS.map((id) => ({
+									label: shelfLabel(id, locale),
+									href: filterHref(locale, { brand, shelf: id }),
+									current: shelf === id,
 								})),
 							]}
 						/>
@@ -90,42 +172,38 @@ export function IndexPage({
 							</span>
 							<a
 								class="underline decoration-line-strong underline-offset-4 hover:text-ink"
-								href={filterHref(locale, brand)}
+								href={filterHref(locale, { brand, shelf })}
 							>
 								{m.topic_filter_clear({}, o)}
 							</a>
 						</p>
 					) : null}
 
-					{featured !== undefined ? (
+					{lead !== undefined ? (
 						<div class="mt-10 md:mt-14">
-							<Featured article={featured} locale={locale} />
+							<Featured article={lead} locale={locale} />
 						</div>
 					) : null}
 
-					{coming.length > 0 ? (
-						<div class="mt-20 md:mt-28">
-							<div class="mb-8 grid gap-3 md:grid-cols-[200px_minmax(0,1fr)] md:gap-8">
-								<h2 class="bl-overline pt-1">{m.coming_title({}, o)}</h2>
-								<p class="max-w-xl text-body text-ink-muted">{m.coming_text({}, o)}</p>
-							</div>
-							<ArticleList>
-								{coming.map((a) => (
-									<ArticleListRow
-										href={routes.article(locale, a.slug)}
-										title={a.title[locale]}
-										overline={overline(a, locale)}
-										standfirst={
-											a.status === "in-review" ? m.in_review_row({}, o) : a.standfirst[locale]
-										}
-										meta={<RowMeta article={a} locale={locale} />}
+					{shown.length > 0 ? (
+						<div class="bl-shelves">
+							{filtered ? (
+								<>
+									<StoryGrid articles={shown} locale={locale} label={m.list_title({}, o)} />
+									<Pager
+										page={current}
+										pages={pages}
+										locale={locale}
+										href={(n) => filterHref(locale, { ...view, page: n })}
 									/>
-								))}
-							</ArticleList>
+								</>
+							) : (
+								<Shelves articles={rest} locale={locale} brand={brand} />
+							)}
 						</div>
 					) : null}
 
-					{featured === undefined && coming.length === 0 ? (
+					{lead === undefined && shown.length === 0 ? (
 						<div class="mt-14 max-w-xl border-t border-line-strong py-16">
 							<p class="bl-empty-title">
 								{

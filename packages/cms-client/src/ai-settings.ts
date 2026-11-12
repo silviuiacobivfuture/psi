@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+	AiBehaviour,
+	BEHAVIOUR_DEFAULTS,
+	behaviourFrom,
+	type CopyDefaults,
+	copyWithDefaults,
+	guideCopyFor,
+} from "./ai-behaviour";
 
 /**
  * Per-brand AI settings, kept in the shared CMS (Payload global `ai-settings`, one group per site)
@@ -34,6 +42,12 @@ export const AiSettings = z.object({
 	 * the two AI detectors for prompt injection and abusive content (two extra model calls a question).
 	 */
 	screeningLevel: z.enum(["standard", "strict"]),
+	/**
+	 * How the guide behaves (voice, copy, topics, model): the studio's settings, version 1.
+	 * Read leniently, field by field (`behaviourFrom`): an older site ignores what it does not
+	 * know, a newer field never turns the whole group unreadable.
+	 */
+	behaviour: AiBehaviour,
 	/** Who last changed this brand's settings (their name), and when; read-only. */
 	updatedBy: z.string().nullable(),
 	updatedAt: z.string().datetime({ offset: true }).nullable(),
@@ -49,6 +63,7 @@ export const AI_SETTINGS_DEFAULTS: AiSettings = {
 	exchangeLimit: 20,
 	exchangeWindowHours: 24,
 	screeningLevel: "standard",
+	behaviour: BEHAVIOUR_DEFAULTS,
 	updatedBy: null,
 	updatedAt: null,
 };
@@ -63,6 +78,7 @@ const Group = z
 		exchangeLimit: z.number().nullish(),
 		exchangeWindowHours: z.number().nullish(),
 		screeningLevel: z.enum(["standard", "strict"]).nullish(),
+		behaviour: z.unknown(),
 		updatedBy: z.string().nullish(),
 		updatedAt: z.string().nullish(),
 	})
@@ -92,6 +108,7 @@ export function settingsFor(raw: unknown, site: Site): AiSettings | null {
 		exchangeLimit: group.exchangeLimit ?? d.exchangeLimit,
 		exchangeWindowHours: group.exchangeWindowHours ?? d.exchangeWindowHours,
 		screeningLevel: group.screeningLevel ?? d.screeningLevel,
+		behaviour: behaviourFrom(group.behaviour),
 		updatedBy: group.updatedBy ?? null,
 		updatedAt: group.updatedAt ?? null,
 	});
@@ -116,9 +133,18 @@ export interface AiSettingsClient {
 	get(): Promise<AiSettings>;
 	/** What `get` would answer from memory, without a request. */
 	current(): AiSettings;
-	/** Forget the cached answer (the revalidation webhook calls this). */
+	/** Forget the cached answer. */
 	invalidate(): void;
+	/**
+	 * What the revalidation webhook calls: re-read now, and once more a moment later. The CMS
+	 * announces a change from inside its save, before its transaction commits, so the first read
+	 * can still see the old row; the second one cannot.
+	 */
+	refreshAfterAnnounce(): Promise<void>;
 }
+
+/** How long after an announcement the second read goes out. */
+export const ANNOUNCE_REREAD_MS = 1500;
 
 export function createAiSettingsClient(o: AiSettingsClientOptions): AiSettingsClient {
 	const ttl = o.ttlMs ?? 60_000;
@@ -148,17 +174,43 @@ export function createAiSettingsClient(o: AiSettingsClientOptions): AiSettingsCl
 		}
 	}
 
+	async function get(): Promise<AiSettings> {
+		if (now() - fetchedAt < ttl) return known ?? AI_SETTINGS_DEFAULTS;
+		inflight ??= load().finally(() => {
+			inflight = null;
+		});
+		return inflight;
+	}
+
 	return {
-		async get() {
-			if (now() - fetchedAt < ttl) return known ?? AI_SETTINGS_DEFAULTS;
-			inflight ??= load().finally(() => {
-				inflight = null;
-			});
-			return inflight;
-		},
+		get,
 		current: () => known ?? AI_SETTINGS_DEFAULTS,
 		invalidate() {
 			fetchedAt = Number.NEGATIVE_INFINITY;
 		},
+		async refreshAfterAnnounce() {
+			fetchedAt = Number.NEGATIVE_INFINITY;
+			await get();
+			setTimeout(() => {
+				fetchedAt = Number.NEGATIVE_INFINITY;
+				void get();
+			}, ANNOUNCE_REREAD_MS).unref?.();
+		},
 	};
+}
+
+/**
+ * The guide's copy a page renders right now: what the studio published (the last known settings,
+ * never waiting for the CMS), else the site's built-in line. A stale cache is refreshed in the
+ * background, so a change shows on a later render within the cache's lifetime, or at once after
+ * the CMS's webhook.
+ */
+export function liveGuideCopy(
+	client: AiSettingsClient | null,
+	locale: "ro" | "en",
+	defaults: CopyDefaults,
+): CopyDefaults {
+	if (client === null) return defaults;
+	void client.get();
+	return copyWithDefaults(guideCopyFor(client.current().behaviour, locale), defaults);
 }

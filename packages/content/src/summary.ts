@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BrandSchema } from "./brands";
+import { coverFor, SummaryCover } from "./covers/resolve";
 import { type Locale, LocaleSchema } from "./locale";
 import { articleUrl } from "./routes";
 import { articleDate, IsoDate, type ReadableArticle, Slug, TopicSchema } from "./schema";
@@ -26,6 +27,8 @@ export const ArticleSummary = z.object({
 	readingMinutes: z.number().int().min(1),
 	/** The canonical, absolute URL on the blog. */
 	url: z.string().url(),
+	/** The picture every site shows for it: absolute, from the CMS, the hand-picked or the topic pool. */
+	cover: SummaryCover.nullable(),
 });
 export type ArticleSummary = z.infer<typeof ArticleSummary>;
 
@@ -59,5 +62,6 @@ export function summarize(a: ReadableArticle, locale: Locale, blogOrigin: string
 				: null,
 		readingMinutes: readingMinutes(a, locale),
 		url: articleUrl(locale, a.slug, blogOrigin),
+		cover: coverFor(a, locale, blogOrigin),
 	});
 }

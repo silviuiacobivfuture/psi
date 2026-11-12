@@ -1,0 +1,21 @@
+# Deploys the scheduling functions to the backend: a PostSync Job (gitops/services/scheduling-deploy).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scheduling-deploy
+  namespace: argocd
+  # git-sourced → the overlay stamps targetRevision (= env branch). See BRANCHING.md.
+  labels:
+    platform.recomex.eu/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/scheduling-deploy/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scheduling
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

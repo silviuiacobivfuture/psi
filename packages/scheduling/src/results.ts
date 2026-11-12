@@ -179,6 +179,11 @@ export const RawStaffCatalogSchema = z.discriminatedUnion("ok", [
 				slug: z.string(),
 				displayName: z.string(),
 				active: z.boolean(),
+				updatedBy: z.string().optional(),
+				updatedAt: z.number().optional(),
+				external: z.boolean().optional(),
+				rooms: z.array(z.string()).optional(),
+				abAnchor: z.string().optional(),
 			}),
 		),
 		services: z.array(
@@ -195,6 +200,12 @@ export const RawStaffCatalogSchema = z.discriminatedUnion("ok", [
 				location: z.string().optional(),
 				practitioners: z.array(z.string().min(1)),
 				active: z.boolean(),
+				name: z.object({ ro: z.string(), en: z.string() }).optional(),
+				roomKind: z.string().optional(),
+				roomEquipment: z.array(z.string()).optional(),
+				roomAudiences: z.array(AudienceSchema).optional(),
+				updatedBy: z.string().optional(),
+				updatedAt: z.number().optional(),
 			}),
 		),
 	}),
@@ -216,6 +227,8 @@ export const RawStaffAvailabilitySchema = z.discriminatedUnion("ok", [
 				modes: z.array(ModeSchema),
 				validFrom: LocalDateSchema.optional(),
 				validUntil: LocalDateSchema.optional(),
+				week: z.enum(["A", "B"]).optional(),
+				override: z.boolean().optional(),
 			}),
 		),
 		exceptions: z.array(
@@ -240,6 +253,125 @@ export const RawUpdateServiceSchema = z.discriminatedUnion("ok", [
 export const RawAddRuleSchema = z.discriminatedUnion("ok", [
 	z.object({ ok: z.literal(true), id: z.string().min(1) }),
 	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawCreatePractitionerSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), id: z.string().min(1), created: z.boolean() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["invalid", "exists"]) }),
+]);
+
+export const RawUpdatePractitionerSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), upcoming: z.number().int().nonnegative() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawCreateServiceSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), id: z.string().min(1), created: z.boolean() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["invalid", "exists"]) }),
+]);
+
+export const RawSetDayRulesSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), added: z.number().int(), removed: z.number().int() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawDaysOffSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), added: z.number().int().nonnegative() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawCreateRoomSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), id: z.string().min(1), created: z.boolean() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["invalid", "exists"]) }),
+]);
+
+export const RawRoomsSchema = z.discriminatedUnion("ok", [
+	z.object({
+		ok: z.literal(true),
+		rooms: z.array(
+			z.object({
+				id: z.string().min(1),
+				slug: z.string(),
+				name: z.string(),
+				kind: z.string(),
+				capacity: z.number().int().positive(),
+				suits: z.array(AudienceSchema),
+				equipment: z.array(z.string()),
+				active: z.boolean(),
+				closures: z.array(
+					z.object({
+						id: z.string().min(1),
+						date: LocalDateSchema,
+						start: Minutes.optional(),
+						end: Minutes.optional(),
+					}),
+				),
+			}),
+		),
+	}),
+	z.object({ ok: z.literal(false), reason: z.literal("invalid") }),
+]);
+
+export const RawClosureSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), added: z.number().int().nonnegative() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawPeriodSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), added: z.number().int(), removed: z.number().int() }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawChangedSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true) }),
+	z.object({ ok: z.literal(false), reason: z.enum(["not_found", "invalid"]) }),
+]);
+
+export const RawRemovedSchema = z.discriminatedUnion("ok", [
+	z.object({ ok: z.literal(true), removed: z.number().int() }),
+	z.object({ ok: z.literal(false), reason: z.literal("not_found") }),
+]);
+
+/** The staff calendar for a few days: real hours, days off, what is booked, rooms' closures. */
+export const RawBoardSchema = z.discriminatedUnion("ok", [
+	z.object({
+		ok: z.literal(true),
+		timeZone: z.string(),
+		today: LocalDateSchema,
+		hours: z.array(
+			z.object({
+				practitionerId: z.string(),
+				date: LocalDateSchema,
+				start: Minutes,
+				end: Minutes,
+			}),
+		),
+		off: z.array(z.object({ practitionerId: z.string(), date: LocalDateSchema })),
+		appointments: z.array(
+			z.object({
+				reference: z.string(),
+				status: StatusSchema,
+				start: Instant,
+				end: Instant,
+				blockedUntil: Instant,
+				mode: ModeSchema,
+				practitionerId: z.string(),
+				serviceSlug: z.string(),
+				roomId: z.string().optional(),
+				contactName: z.string().optional(),
+			}),
+		),
+		closures: z.array(
+			z.object({
+				id: z.string(),
+				roomId: z.string(),
+				date: LocalDateSchema,
+				start: Minutes.optional(),
+				end: Minutes.optional(),
+			}),
+		),
+	}),
+	z.object({ ok: z.literal(false), reason: z.enum(["unknown_tenant", "invalid"]) }),
 ]);
 
 export const RawRemoveSchema = z.discriminatedUnion("ok", [

@@ -5,7 +5,7 @@ import type { ObservabilityEntrypoint } from "@mastra/core/observability";
 import type { ServerConfig } from "@mastra/core/server";
 import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { MastraVector } from "@mastra/core/vector";
-import { createProfileAgent } from "./agent";
+import { createProfileAgent, turnModel } from "./agent";
 import { runAsk } from "./ask";
 import {
 	type AskContext,
@@ -20,13 +20,14 @@ import type { EngineKnowledge } from "./contract";
 import { EngineOptionsSchema } from "./engine-options";
 import { type AskInput, askInputSchema, type EngineEvent } from "./events";
 import { createProfileTools } from "./grounding/agent-tools";
+import type { EngineArticles } from "./grounding/article-tool";
 import { createFaithfulness, type EngineScore } from "./grounding/faithfulness";
 import { createIngestWorkflow, type EngineIngest } from "./ingest-workflow";
 import { createLanguageDetector } from "./language/detect";
 import { BUNDLED_LANGUAGES } from "./language/index";
 import type { LanguagePack } from "./language/pack";
 import { openMemory } from "./memory";
-import { openRouterModel, type ProviderSort, readOpenRouterKey } from "./model";
+import { type ChatModel, openRouterModel, type ProviderSort, readOpenRouterKey } from "./model";
 import type { Profile } from "./profile";
 import { instructionsFor } from "./prompt";
 import { createSchedulingAgent, type ProfileSchedulingAgent } from "./scheduling/agent";
@@ -84,6 +85,8 @@ export interface EngineOptions {
 	 * failure the last good ones, then the defaults. Without it, the defaults.
 	 */
 	settings?: SettingsProvider;
+	/** The blog's articles the guides may list and recommend (`findArticles`); none without it. */
+	articles?: EngineArticles;
 	/** The knowledge base's ingest; registers the `ingest-knowledge` workflow (`ingestKnowledge`). */
 	ingest?: EngineIngest;
 	/** Vector stores to register with Mastra (`mastra.getVector(name)`), e.g. `{ chroma }`. */
@@ -201,6 +204,15 @@ export function createEngine(options: EngineOptions): Engine {
 	};
 	// Without a key the agents are still built, so Mastra and Studio can list them; asks refuse.
 	const model = openRouterModel({ apiKey: apiKey ?? "", modelId: opts.model.id, ...routing });
+	// One model object per slug the owner chooses (the settings' behaviour), built on first use.
+	const bySlug = new Map<string, ChatModel>([[opts.model.id, model]]);
+	const modelFor = (slug: string): ChatModel => {
+		const known = bySlug.get(slug);
+		if (known !== undefined) return known;
+		const built = openRouterModel({ apiKey: apiKey ?? "", modelId: slug, ...routing });
+		bySlug.set(slug, built);
+		return built;
+	};
 	const screeningId = opts.model.screeningId ?? opts.model.id;
 	const screeningModel =
 		apiKey === undefined || opts.screening?.model === false
@@ -234,13 +246,14 @@ export function createEngine(options: EngineOptions): Engine {
 			id: `${prefix}-${profile.id}`,
 			name: profile.name,
 			instructions: instructionsFor(firstPack, firstLocale),
-			model,
+			model: turnModel(modelFor, opts.model.id),
 			tools: createProfileTools({
 				profile,
 				knowledge: opts.knowledge,
 				defaultLocale,
 				languageName: (locale) => packs.get(locale)?.name ?? locale,
 				retrievalMs: timeouts.retrievalMs,
+				...(opts.articles === undefined ? {} : { articles: opts.articles }),
 			}),
 		};
 		const agent = createProfileAgent(agentOptions);

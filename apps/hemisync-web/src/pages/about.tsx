@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
+import { DocSections, seo } from "./doc";
 import { Band, NextSteps, PageHero, type PageProps, PageShell, Para, Pending } from "./shell";
 
 /** The licensor's own site (docs/brands/RESOURCES.md). */
@@ -16,12 +17,14 @@ const MONROE = "https://www.monroeinstitute.org/";
 export function AboutPage(props: PageProps): JSX.Element {
 	const { locale } = props;
 	const o = at(locale);
+	const s = seo("about", locale);
 	return (
 		<PageShell
 			{...props}
 			otherHref={href(locale === "ro" ? "en" : "ro", "about")}
 			title={m.nav_about({}, o)}
-			description={m.footer_tagline({}, o)}
+			seoTitle={s.seoTitle}
+			description={s.description}
 		>
 			<PageHero
 				locale={locale}
@@ -29,6 +32,7 @@ export function AboutPage(props: PageProps): JSX.Element {
 				title={m.ab_title({}, o)}
 				lead={m.footer_tagline({}, o)}
 			/>
+			<DocSections page="about" locale={locale} wash={false} />
 			<Band overline={m.ab_operator_overline({}, o)} title={m.ab_operator_title({}, o)}>
 				<Para>{m.ab_operator_text({}, o)}</Para>
 				<p class="text-body-sm text-ink-faint">{m.ab_operator_ids({}, o)}</p>
@@ -50,11 +54,14 @@ export function AboutPage(props: PageProps): JSX.Element {
 						{m.lg_trademarks_title({}, o)}
 					</a>
 				</p>
-				<Pending locale={locale}>{m.ab_monroe_pending({}, o)}</Pending>
+				<a class="pz-tap text-link text-body" href={href(locale, "history")}>
+					{m.nav_history({}, o)}
+				</a>
 			</Band>
 			<NextSteps
 				links={[
-					{ label: m.cta_programmes({}, o), href: href(locale, "programmes"), primary: true },
+					{ label: m.next_history({}, o), href: href(locale, "history"), primary: true },
+					{ label: m.cta_programmes({}, o), href: href(locale, "programmes") },
 					{ label: m.nav_contact({}, o), href: href(locale, "contact") },
 				]}
 			/>

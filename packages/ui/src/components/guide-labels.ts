@@ -32,5 +32,5 @@ export interface GuideLabels {
 	 * is the guide's turn as the conversation remembers it. Without it, an offer shows the contact
 	 * link.
 	 */
-	booking?: { render: (offer: BookingOffer) => Child; summary: string };
+	booking?: { render: (offer: BookingOffer) => Child; summary: (offer: BookingOffer) => string };
 }

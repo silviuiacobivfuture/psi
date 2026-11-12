@@ -464,3 +464,28 @@ html {
 	-webkit-mask: url("/assets/brand/psizone-lockup-320.webp") center / contain no-repeat;
 	mask: url("/assets/brand/psizone-lockup-320.webp") center / contain no-repeat;
 }
+
+/* Lists inside long-form text (hub and method pages) get their markers back. */
+.pz-prose ul,
+.pz-prose ol {
+	margin: 0 0 1.1em;
+	padding-left: 1.25em;
+}
+.pz-prose ul {
+	list-style: disc;
+}
+.pz-prose ol {
+	list-style: decimal;
+}
+.pz-prose li {
+	margin: 0.4em 0;
+	padding-left: 0.25em;
+}
+.pz-prose li::marker {
+	color: var(--ink-muted);
+}
+
+/* Portraits sit in the 72px avatar: keep faces, which are near the top of a portrait photograph. */
+.pz-person__picture .pz-picture__img {
+	object-position: 50% 20%;
+}

@@ -64,3 +64,30 @@ export function teamPicture(locale: Locale): PictureSpec {
 		sizes: "(min-width: 1152px) 1112px, calc(100vw - 40px)",
 	};
 }
+
+/**
+ * A photograph from the old psizone.ro, kept as one webp (public/images/old-site). The picture
+ * element needs all three formats, so the jpeg list names the same webp file; every browser that
+ * reads `srcset` reads webp. The frame colour while it loads is a surface token.
+ */
+export function oldSitePicture(
+	file: string,
+	width: number,
+	height: number,
+	alt: string,
+	sizes: string,
+): PictureSpec {
+	const variant = [{ width, src: `/images/old-site/${file}.webp` }];
+	return {
+		image: {
+			width,
+			height,
+			placeholder: "var(--surface-2)",
+			avif: [],
+			webp: variant,
+			jpeg: variant,
+		},
+		alt,
+		sizes,
+	};
+}

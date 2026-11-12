@@ -1,0 +1,630 @@
+/*
+ * The Scheduling setup (/admin/platform/scheduling, "Setup" tab). It reuses the studio's cards,
+ * rows, buttons and switches (psi-studio*.css) and adds only what a list of people, services,
+ * a week of hours and a preview of free times need. Colours only from the tokens: psi's
+ * (psi-admin.css) and Payload's theme scale, so light and dark follow the admin's own switch.
+ */
+
+.psi-sched {
+	display: grid;
+	gap: 20px;
+}
+
+.psi-sched .psi-note--ok {
+	border-left: 3px solid var(--psi-ok);
+	color: var(--theme-text);
+}
+
+.psi-sched__empty {
+	margin: 0 0 12px;
+	font-family: var(--psi-display);
+	font-size: 1.25rem;
+	line-height: 1.3;
+	color: var(--theme-text);
+}
+
+.psi-sched__flash {
+	position: sticky;
+	bottom: 12px;
+	min-height: 0;
+	z-index: 20;
+	display: flex;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.psi-flash {
+	pointer-events: auto;
+	padding: 10px 18px;
+	border-radius: 999px;
+	border: 1px solid var(--psi-line);
+	background: var(--theme-elevation-0);
+	color: var(--theme-text);
+	box-shadow: 0 6px 24px color-mix(in srgb, var(--theme-text) 18%, transparent);
+	font-size: 0.92rem;
+}
+
+.psi-flash--ok {
+	border-color: var(--psi-ok);
+}
+
+.psi-flash--bad {
+	border-color: var(--psi-bad);
+}
+
+/* Steps */
+.psi-steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 20px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.psi-step {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.psi-step__n {
+	display: inline-grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	border: 1px solid var(--psi-gold);
+	color: var(--psi-gold);
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.psi-step--done .psi-step__n {
+	background: var(--psi-ok);
+	border-color: var(--psi-ok);
+	color: var(--theme-elevation-0);
+}
+
+.psi-step--done a {
+	color: var(--psi-muted);
+}
+
+/* Fields inside the cards */
+.psi-sched input[type="text"],
+.psi-sched input[type="time"],
+.psi-sched input[type="date"],
+.psi-sched select {
+	font: inherit;
+	color: var(--theme-text);
+	background: var(--theme-input-bg, var(--theme-elevation-0));
+	border: 1px solid var(--theme-elevation-200);
+	border-radius: 10px;
+	padding: 9px 12px;
+	box-sizing: border-box;
+	min-width: 0;
+}
+
+.psi-sched input[type="text"] {
+	width: min(100%, 320px);
+}
+
+.psi-sched input:focus-visible,
+.psi-sched select:focus-visible {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 1px;
+	border-color: transparent;
+}
+
+.psi-sched input[readonly] {
+	background: var(--psi-soft);
+	color: var(--psi-muted);
+}
+
+.psi-sched label {
+	font-size: 0.9rem;
+}
+
+.psi-dim {
+	color: var(--psi-muted);
+}
+
+.psi-code {
+	font-size: 0.8rem;
+	padding: 2px 8px;
+	border-radius: 6px;
+	background: var(--psi-soft);
+	color: var(--psi-muted);
+}
+
+.psi-inline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.psi-inline--end {
+	justify-content: flex-end;
+}
+
+.psi-checks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-width: 0;
+}
+
+.psi-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 32px;
+	cursor: pointer;
+}
+
+/* People and services */
+.psi-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.psi-list__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	padding: 12px 14px;
+	border: 1px solid var(--psi-line);
+	border-radius: 12px;
+	background: var(--psi-soft);
+}
+
+.psi-list__item--col {
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+}
+
+.psi-list__top {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+
+.psi-list__main {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	min-width: 0;
+}
+
+.psi-list__meta {
+	margin: 0;
+	color: var(--psi-muted);
+	font-size: 0.9rem;
+}
+
+.psi-list__note {
+	flex-basis: 100%;
+}
+
+.psi-tags-inline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.psi-svcform {
+	display: grid;
+	gap: 14px;
+	padding: 16px;
+	border: 1px solid var(--psi-gold);
+	border-radius: 12px;
+	background: var(--theme-elevation-0);
+}
+
+/* The week */
+.psi-week {
+	display: grid;
+	gap: 2px;
+}
+
+.psi-day {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 6px;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--psi-line);
+}
+
+.psi-day:last-child {
+	border-bottom: 0;
+}
+
+.psi-day__name {
+	font-weight: 600;
+}
+
+.psi-day__body {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.psi-day__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 14px;
+}
+
+@media (min-width: 700px) {
+	.psi-day {
+		grid-template-columns: 110px minmax(0, 1fr);
+		gap: 16px;
+	}
+}
+
+.psi-ranges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.psi-range {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px 4px 12px;
+	border-radius: 999px;
+	border: 1px solid var(--psi-gold);
+	background: var(--psi-gold-soft);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.92rem;
+}
+
+.psi-range__mode {
+	font-size: 0.78rem;
+	color: var(--psi-muted);
+}
+
+.psi-rangeform {
+	padding: 12px;
+	border: 1px solid var(--psi-line);
+	border-radius: 12px;
+	background: var(--psi-soft);
+}
+
+.psi-rangeform .psi-note {
+	flex-basis: 100%;
+}
+
+/* The preview */
+.psi-slotday + .psi-slotday {
+	margin-top: 14px;
+}
+
+.psi-slotday__date {
+	margin: 0 0 6px;
+	font-family: var(--psi-display);
+	font-weight: 400;
+	font-size: 1.05rem;
+}
+
+.psi-slots {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.psi-slot {
+	padding: 6px 12px;
+	border-radius: 999px;
+	border: 1px solid var(--psi-line);
+	background: var(--theme-elevation-0);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.92rem;
+}
+
+@media (max-width: 480px) {
+	.psi-sched .psi-row__control {
+		width: 100%;
+	}
+	.psi-sched input[type="text"] {
+		width: 100%;
+	}
+	.psi-list__item {
+		padding: 10px 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.psi-flash {
+		transition: none;
+	}
+}
+
+/* More, quick add */
+.psi-more {
+	margin-top: 4px;
+}
+
+.psi-more > summary {
+	cursor: pointer;
+	color: var(--psi-gold);
+	font-size: 0.88rem;
+	padding: 4px 0;
+}
+
+.psi-more > summary:focus-visible {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+.psi-alt {
+	display: grid;
+	gap: 10px;
+	padding: 12px 14px;
+	border: 1px solid var(--psi-line);
+	border-radius: 12px;
+	background: var(--psi-soft);
+}
+
+.psi-periods {
+	display: grid;
+	gap: 10px;
+	padding-top: 12px;
+	border-top: 1px solid var(--psi-line);
+}
+
+.psi-closures {
+	display: grid;
+	gap: 8px;
+}
+
+.psi-pill--requested {
+	color: var(--psi-warn);
+	border-color: var(--psi-warn);
+}
+
+.psi-pill--confirmed {
+	color: var(--psi-ok);
+	border-color: var(--psi-ok);
+}
+
+/* The calendar */
+.psi-cal__bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.psi-cal__range {
+	font-family: var(--psi-display);
+	font-weight: 400;
+	font-size: 1.15rem;
+}
+
+.psi-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.82rem;
+	color: var(--psi-muted);
+}
+
+.psi-legend__i::before {
+	content: "";
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	margin-right: 6px;
+	border-radius: 3px;
+	vertical-align: -1px;
+	border: 1px solid var(--psi-muted);
+}
+
+.psi-legend__i--requested::before {
+	background: color-mix(in srgb, var(--psi-warn) 35%, transparent);
+	border-color: var(--psi-warn);
+}
+
+.psi-legend__i--confirmed::before {
+	background: color-mix(in srgb, var(--psi-ok) 35%, transparent);
+	border-color: var(--psi-ok);
+}
+
+.psi-legend__i--held::before {
+	border-style: dashed;
+}
+
+.psi-legend__i--closure::before {
+	background: repeating-linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--psi-bad) 40%, transparent) 0 3px,
+		transparent 3px 6px
+	);
+	border-color: var(--psi-bad);
+}
+
+.psi-cal__grid {
+	display: grid;
+	grid-template-columns: 48px repeat(var(--cols), minmax(0, 1fr));
+	border: 1px solid var(--psi-line);
+	border-radius: var(--psi-radius);
+	background: var(--theme-elevation-0);
+	overflow: auto;
+}
+
+.psi-cal__corner,
+.psi-cal__head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	padding: 10px 8px;
+	background: var(--psi-soft);
+	border-bottom: 1px solid var(--psi-line);
+	font-weight: 600;
+	font-size: 0.88rem;
+	text-align: center;
+	min-width: 0;
+}
+
+.psi-cal__head--today {
+	color: var(--psi-gold);
+	box-shadow: inset 0 -3px 0 var(--psi-gold);
+}
+
+.psi-cal__axis {
+	position: relative;
+	border-right: 1px solid var(--psi-line);
+}
+
+.psi-cal__tick {
+	position: absolute;
+	right: 6px;
+	transform: translateY(-50%);
+	font-size: 0.72rem;
+	color: var(--psi-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.psi-cal__col {
+	position: relative;
+	min-width: 110px;
+	border-left: 1px solid var(--psi-line);
+	background-image: linear-gradient(to bottom, var(--psi-line) 1px, transparent 1px);
+	background-size: 100% calc(60px * 0.9);
+}
+
+.psi-cal__col--off {
+	background-color: var(--psi-soft);
+}
+
+.psi-cal__hours {
+	position: absolute;
+	left: 0;
+	right: 0;
+	background: var(--psi-gold-soft);
+	pointer-events: none;
+}
+
+.psi-ev {
+	position: absolute;
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: 2px 6px;
+	border-radius: 6px;
+	border: 1px solid var(--psi-muted);
+	background: var(--theme-elevation-0);
+	color: var(--theme-text);
+	font: inherit;
+	font-size: 0.76rem;
+	line-height: 1.25;
+	text-align: left;
+}
+
+.psi-view .psi-studio-wrap button.psi-ev:not(:disabled) {
+	border-radius: 6px;
+	color: var(--theme-text);
+	cursor: pointer;
+}
+
+.psi-view .psi-studio-wrap button.psi-ev--requested:not(:disabled) {
+	background: color-mix(in srgb, var(--psi-warn) 28%, var(--theme-elevation-0));
+	border-color: var(--psi-warn);
+}
+
+.psi-view .psi-studio-wrap button.psi-ev--confirmed:not(:disabled) {
+	background: color-mix(in srgb, var(--psi-ok) 26%, var(--theme-elevation-0));
+	border-color: var(--psi-ok);
+}
+
+.psi-view .psi-studio-wrap button.psi-ev--held:not(:disabled) {
+	background: var(--theme-elevation-0);
+	border: 1px dashed var(--psi-muted);
+}
+
+.psi-view .psi-studio-wrap button.psi-ev:not(:disabled):hover,
+.psi-view .psi-studio-wrap button.psi-ev--on:not(:disabled) {
+	box-shadow: 0 0 0 2px var(--psi-gold);
+}
+
+.psi-view .psi-studio-wrap button.psi-ev:focus-visible {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 1px;
+}
+
+.psi-ev--closure {
+	background: repeating-linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--psi-bad) 22%, transparent) 0 4px,
+		transparent 4px 8px
+	);
+	border-color: var(--psi-bad);
+	color: var(--theme-text);
+}
+
+.psi-cal__detail {
+	position: sticky;
+	top: 8px;
+	z-index: 5;
+	box-shadow: 0 8px 28px color-mix(in srgb, var(--theme-text) 16%, transparent);
+}
+
+.psi-cal__agenda {
+	display: none;
+}
+
+.psi-view .psi-studio-wrap button.psi-ev--row:not(:disabled) {
+	position: static;
+	display: block;
+	width: 100%;
+	padding: 10px 12px;
+	font-size: 0.92rem;
+}
+
+.psi-quick {
+	margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+	.psi-cal__grid {
+		display: none;
+	}
+	.psi-cal__agenda {
+		display: grid;
+		gap: 12px;
+	}
+	.psi-legend {
+		font-size: 0.78rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.psi-ev {
+		transition: none;
+	}
+}

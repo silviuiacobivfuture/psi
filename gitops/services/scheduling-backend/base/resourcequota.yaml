@@ -1,0 +1,26 @@
+# Per-namespace guard-rails for the namespace `scheduling` (the backend and the deploy Job). The
+# LimitRange backfills any container that omits resources, so the quota never bounces a pod.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: scheduling
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 20m, memory: 32Mi }
+      default: { cpu: 250m, memory: 128Mi }
+      max: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: scheduling
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    requests.storage: 30Gi
+    persistentvolumeclaims: "2"
+    pods: "6"

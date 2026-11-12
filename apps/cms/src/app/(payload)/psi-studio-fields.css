@@ -1,0 +1,428 @@
+/*
+ * The AI behaviour studio, part two: text fields, pills, chips and tags, buttons, the stepper,
+ * the model cards and the locked crisis note. Tokens only (see psi-studio.css).
+ */
+
+/* Text fields */
+.psi-copy {
+	display: grid;
+	gap: 6px;
+}
+
+.psi-copy__head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.psi-studio-wrap textarea,
+.psi-studio-wrap input[type="number"],
+.psi-studio-wrap .psi-chips-edit input,
+.psi-studio-wrap .psi-tags__box,
+.psi-studio-wrap .psi-play__form input {
+	font: inherit;
+	color: var(--theme-text);
+	background: var(--theme-input-bg, var(--theme-elevation-0));
+	border: 1px solid var(--theme-elevation-200);
+	border-radius: 10px;
+	padding: 10px 12px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.psi-studio-wrap textarea {
+	resize: vertical;
+	line-height: 1.5;
+}
+
+.psi-studio-wrap textarea::placeholder,
+.psi-studio-wrap input::placeholder {
+	color: var(--theme-elevation-500);
+}
+
+.psi-studio-wrap textarea:focus-visible,
+.psi-studio-wrap input:focus-visible,
+.psi-studio-wrap .psi-play__form input:focus-visible {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 1px;
+	border-color: transparent;
+}
+
+.psi-studio-wrap textarea:disabled,
+.psi-studio-wrap input:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.psi-count {
+	margin-left: auto;
+	font-size: 0.8rem;
+	color: var(--psi-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.psi-count--near {
+	color: var(--psi-warn);
+	font-weight: 600;
+}
+
+.psi-chips-edit {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-inline-size: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px;
+}
+
+/* Pills, chips, tags */
+.psi-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 9px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	background: var(--psi-soft);
+	color: var(--psi-muted);
+	border: 1px solid var(--psi-line);
+}
+
+.psi-pill--gold {
+	background: var(--psi-gold-soft);
+	color: var(--psi-gold);
+	border-color: transparent;
+}
+
+.psi-pill--ok {
+	color: var(--psi-ok);
+	border-color: var(--psi-ok);
+	background: transparent;
+}
+
+.psi-locked {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	border: 1px dashed var(--theme-elevation-300);
+	color: var(--psi-muted);
+	font-size: 0.9rem;
+}
+
+.psi-view .psi-studio-wrap .psi-chip,
+.psi-view .psi-studio-wrap button.psi-chip:not(:disabled) {
+	border: 1px solid var(--psi-gold);
+	background: transparent;
+	color: var(--theme-text);
+	border-radius: 999px;
+	padding: 6px 12px;
+	font-size: 0.85rem;
+	cursor: pointer;
+	text-align: left;
+}
+
+.psi-view .psi-studio-wrap button.psi-chip:not(:disabled):hover {
+	background: var(--psi-gold-soft);
+}
+
+.psi-view .psi-studio-wrap .psi-chip--quiet,
+.psi-view .psi-studio-wrap button.psi-chip--quiet:not(:disabled) {
+	border-color: var(--psi-line);
+	background: var(--psi-soft);
+}
+
+.psi-view .psi-studio-wrap .psi-chip--add,
+.psi-view .psi-studio-wrap button.psi-chip--add:not(:disabled) {
+	border-style: dashed;
+	border-color: var(--theme-elevation-300);
+	color: var(--psi-muted);
+	padding: 4px 10px;
+	font-size: 0.8rem;
+}
+
+.psi-studio-wrap button.psi-chip:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	border-radius: 999px;
+	padding: 6px 12px;
+}
+
+.psi-tags {
+	display: grid;
+	gap: 8px;
+}
+
+.psi-studio-wrap .psi-tags__box {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+	padding: 6px 8px;
+}
+
+.psi-studio-wrap .psi-tags__box input {
+	flex: 1 1 140px;
+	border: 0;
+	padding: 4px;
+	background: transparent;
+	font: inherit;
+	color: var(--theme-text);
+	min-width: 120px;
+}
+
+.psi-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 4px 3px 10px;
+	border-radius: 999px;
+	background: var(--psi-gold-soft);
+	color: var(--theme-text);
+	font-size: 0.85rem;
+}
+
+.psi-view .psi-studio-wrap .psi-tag__x,
+.psi-view .psi-studio-wrap button.psi-tag__x:not(:disabled) {
+	border: 0;
+	background: transparent;
+	color: var(--psi-muted);
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.psi-view .psi-studio-wrap button.psi-tag__x:not(:disabled):hover {
+	background: var(--theme-elevation-150);
+	color: var(--theme-text);
+}
+
+.psi-tags__suggest {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+}
+
+.psi-tags__suggest-label {
+	font-size: 0.8rem;
+	color: var(--psi-muted);
+	margin-right: 2px;
+}
+
+/* Buttons (the studio's own: the admin's pill style is for its forms) */
+.psi-view .psi-studio-wrap .psi-btn,
+.psi-view .psi-studio-wrap button.psi-btn:not(:disabled) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 9px 18px;
+	border-radius: 999px;
+	font: inherit;
+	font-weight: 600;
+	font-size: 0.92rem;
+	cursor: pointer;
+	border: 1px solid var(--theme-elevation-250);
+	background: var(--theme-elevation-0);
+	color: var(--theme-text);
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease;
+}
+
+.psi-view .psi-studio-wrap button.psi-btn:not(:disabled):hover {
+	background: var(--theme-elevation-100);
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--primary:not(:disabled) {
+	background: var(--psi-gold);
+	border-color: var(--psi-gold);
+	color: var(--psi-on-gold);
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--primary:not(:disabled):hover {
+	background: var(--psi-gold-hover);
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--secondary:not(:disabled) {
+	border-color: var(--psi-gold);
+	color: var(--theme-text);
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--ghost:not(:disabled) {
+	border-color: transparent;
+	background: transparent;
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--ghost:not(:disabled):hover {
+	background: var(--theme-elevation-100);
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--link:not(:disabled) {
+	border: 0;
+	background: transparent;
+	color: var(--psi-gold);
+	padding: 0;
+	font-size: 0.85rem;
+	font-weight: 500;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.psi-view .psi-studio-wrap button.psi-btn--sm:not(:disabled),
+.psi-view .psi-studio-wrap .psi-btn--sm {
+	padding: 5px 12px;
+	font-size: 0.82rem;
+}
+
+.psi-view .psi-studio-wrap .psi-btn--icon,
+.psi-view .psi-studio-wrap button.psi-btn--icon:not(:disabled) {
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	flex: none;
+}
+
+.psi-studio-wrap button.psi-btn:disabled {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 9px 18px;
+	border-radius: 999px;
+	font: inherit;
+	font-weight: 600;
+	font-size: 0.92rem;
+	border: 1px solid var(--theme-elevation-150);
+	background: var(--psi-soft);
+	color: var(--theme-elevation-450);
+	cursor: not-allowed;
+}
+
+.psi-studio-wrap button.psi-btn--icon:disabled {
+	width: 40px;
+	height: 40px;
+	padding: 0;
+}
+
+.psi-studio-wrap button.psi-btn--link:disabled {
+	border: 0;
+	background: transparent;
+	padding: 0;
+}
+
+.psi-studio-wrap button:focus-visible {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+/* Stepper */
+.psi-stepper {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.psi-studio-wrap .psi-stepper input[type="number"] {
+	width: 72px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	padding: 8px 6px;
+	-moz-appearance: textfield;
+}
+
+.psi-stepper input::-webkit-outer-spin-button,
+.psi-stepper input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.psi-stepper__unit {
+	color: var(--psi-muted);
+	font-size: 0.85rem;
+}
+
+/* Models */
+.psi-models {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-inline-size: 0;
+}
+
+.psi-model {
+	position: relative;
+	display: grid;
+	gap: 3px;
+	padding: 12px 14px;
+	border: 1px solid var(--psi-line);
+	border-radius: 12px;
+	cursor: pointer;
+}
+
+.psi-model:has(input:checked) {
+	border-color: var(--psi-gold);
+	background: var(--psi-gold-soft);
+	box-shadow: inset 0 0 0 1px var(--psi-gold);
+}
+
+.psi-model:has(input:focus-visible) {
+	outline: 2px solid var(--psi-focus);
+	outline-offset: 2px;
+}
+
+.psi-model__name {
+	font-weight: 600;
+}
+
+.psi-model__id {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.75rem;
+	color: var(--psi-muted);
+	overflow-wrap: anywhere;
+}
+
+.psi-model__price {
+	font-size: 0.82rem;
+	color: var(--theme-text);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Crisis: locked */
+.psi-crisis {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: 12px;
+	border: 1px solid var(--psi-ok);
+	background: var(--psi-soft);
+}
+
+.psi-crisis p {
+	margin: 4px 0 0;
+	font-size: 0.88rem;
+	color: var(--psi-muted);
+}
+
+.psi-crisis__icon {
+	color: var(--psi-ok);
+	margin-top: 2px;
+}
+
+.psi-crisis .psi-pill {
+	margin-left: auto;
+	flex: none;
+}

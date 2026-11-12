@@ -77,6 +77,14 @@ export function latestArticles(locale: ContentLocale, n: number): ReadonlyArray<
 		: latestFor("hemisync", locale, n, articles.index());
 }
 
+/**
+ * The blog URL of one of this brand's articles by slug, or null while it is not listed (a draft
+ * in production, a slug renamed): a page links to it only when it is there.
+ */
+export function articleHref(locale: ContentLocale, slug: string): string | null {
+	return latestArticles(locale, 500).find((a) => a.slug === slug)?.url ?? null;
+}
+
 /** This brand's published prices for the given offering slugs (all of them when none are given). */
 export function prices(locale: Locale, slugs?: ReadonlyArray<string>): PriceItem[] {
 	if (offerings === null) return [];
@@ -102,8 +110,11 @@ export function registerCmsRevalidate(app: Hono): void {
 			articles: async () => {
 				await articles?.refresh();
 			},
-			"ai-settings": (e) => {
-				if (e.sites.includes("hemisync")) aiSettings?.invalidate();
+			// Re-read at once (and again after the CMS's save commits): the guide's next answer and
+			// the next page (greeting, chips) use it.
+			"ai-settings": async (e) => {
+				if (!e.sites.includes("hemisync") || aiSettings === null) return;
+				await aiSettings.refreshAfterAnnounce();
 			},
 			"site-settings": async (e) => {
 				if (!e.sites.includes("hemisync") || siteSettings === null) return;

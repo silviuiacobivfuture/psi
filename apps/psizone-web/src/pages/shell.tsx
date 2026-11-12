@@ -1,4 +1,4 @@
-import { AmbientField, StatusBadge } from "@psi/ui";
+import { AmbientField, type JsonLdNode, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { base, type Locale } from "../i18n";
@@ -29,6 +29,9 @@ export function PageShell({
 	eyebrow,
 	back,
 	badge,
+	seoTitle,
+	description,
+	jsonLd,
 	children,
 }: ShellProps & {
 	title: string;
@@ -36,6 +39,11 @@ export function PageShell({
 	eyebrow?: string;
 	back?: { label: string; href: string };
 	badge?: string;
+	/** `<title>` text when it should differ from the h1 (the brand suffix is added). */
+	seoTitle?: string;
+	/** Meta description when it should differ from the lead. */
+	description?: string;
+	jsonLd?: ReadonlyArray<JsonLdNode>;
 	children: Child;
 }): JSX.Element {
 	const other: Locale = locale === "ro" ? "en" : "ro";
@@ -44,9 +52,10 @@ export function PageShell({
 		<Layout
 			locale={locale}
 			theme={theme}
-			title={`${title.replace(/\.$/, "")} — Psizone`}
-			description={lead}
+			title={`${(seoTitle ?? title).replace(/\.$/, "")} — Psizone`}
+			description={description ?? lead}
 			alternate={{ locale: other, href: `${origin}${otherHref}` }}
+			{...(jsonLd === undefined ? {} : { jsonLd })}
 		>
 			<Header locale={locale} otherHref={otherHref} theme={theme} />
 			<main id="continut">

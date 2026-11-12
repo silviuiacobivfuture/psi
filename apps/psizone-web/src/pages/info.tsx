@@ -1,4 +1,4 @@
-import { OfferingPrices } from "@psi/ui";
+import { faqPageJsonLd, OfferingPrices } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { prices, withoutPriceTodo } from "../cms";
 import { FAQ } from "../content/faq";
@@ -25,6 +25,8 @@ export function FirstVisitPage(props: Props): JSX.Element {
 			title={m.visit_title({}, o)}
 			lead={m.visit_lead({}, o)}
 			badge={m.draft_badge({}, o)}
+			seoTitle={m.visit_seo_title({}, o)}
+			description={m.visit_seo_description({}, o)}
 		>
 			<section class="mx-auto grid max-w-6xl gap-14 px-5 py-20 lg:grid-cols-[1.3fr_1fr]">
 				<ol class="space-y-10">
@@ -71,6 +73,11 @@ export function FaqPage(props: Props): JSX.Element {
 			title={m.faq_title({}, o)}
 			lead={m.faq_lead({}, o)}
 			badge={m.draft_badge({}, o)}
+			seoTitle={m.faq_seo_title({}, o)}
+			description={m.faq_seo_description({}, o)}
+			jsonLd={[
+				faqPageJsonLd(FAQ.map((e) => ({ question: e.q[props.locale], answer: e.a[props.locale] }))),
+			]}
 		>
 			<section class="mx-auto max-w-4xl px-5 py-20">
 				<FaqList locale={props.locale} entries={FAQ} />

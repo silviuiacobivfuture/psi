@@ -42,7 +42,7 @@ Set the theme on `<html>`. A brand's site uses only its own two themes; the Blog
 
 **Iconography.** Lucide icons (MIT): 24px grid, 1.75–2px stroke, round caps and joins, coloured `ink` or `ink-muted`, `accent` only when active. Always beside a label, except close, send, play and menu. No emoji, no filled or duotone sets.
 
-**Logos.** The `Logo` component shows the current theme's brand. All three are placeholders until the real files arrive: Psizone's gradient orb is a stand-in, not the mark, and EQ-SYNC and Hemi-Sync are typographic. Replace files in the Logos asset group and update `Logo` when they exist.
+**Logos.** The `Logo` component shows the current theme's brand, and the four marks are one family by Psizone: Psizone's emblem (a brain in a triple ring with four cardinal flourishes) is the frame every sister wears, with a crown leaf in the second voice at twelve o'clock, and each brand draws its own subject inside it (EQ-SYNC two tones under a night crescent, Hemi-Sync a dawn sun between two peaks, the Blog an open book with a ribbon). The sister brands may carry the endorsement line "by Psizone" / "de la Psizone" (`endorsement` prop). Sources and derived files (mono, colour, favicons) are in `logos/`; rebuild with `pnpm --filter @psi/design build:logos`.
 
 **Accessibility floor.** Contrast as above in all eight themes; status never by colour alone; every image has alt text or is marked decorative; audio never autoplays; transcripts or summaries accompany guided audio where possible.
 

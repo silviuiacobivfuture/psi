@@ -1,4 +1,4 @@
-export { MAX_PROMPT_TOKENS } from "./agent";
+export { MAX_PROMPT_TOKENS, MODEL_KEY } from "./agent";
 export { ANSWER_TEMPERATURE } from "./ask";
 export {
 	type AskControl,
@@ -8,7 +8,33 @@ export {
 	type EngineTimeouts,
 	type FailureStage,
 } from "./ask-context";
-export { type BookingOffer, type BookingScope, isBookingIntent, offerTimes } from "./booking";
+export {
+	type BehaviourCopy,
+	type ContactRoute,
+	type ConversationStyle,
+	CREATIVITY_TEMPERATURE,
+	type Creativity,
+	cleanNote,
+	DEFAULT_BEHAVIOUR,
+	DEFAULT_STYLE,
+	EXTRA_INSTRUCTIONS_LIMIT,
+	isDefaultStyle,
+	readBehaviour,
+	type TurnBehaviour,
+} from "./behaviour";
+export {
+	type BookingCancel,
+	type BookingCriteria,
+	type BookingKind,
+	type BookingNotice,
+	type BookingOffer,
+	type BookingScope,
+	type BookingState,
+	BookingStateSchema,
+	bookingTurn,
+	isBookingIntent,
+	offerTimes,
+} from "./booking";
 export {
 	type CatalogItem,
 	CatalogItemsSchema,
@@ -62,6 +88,14 @@ export {
 	TURN_KEY,
 } from "./grounding/agent-tools";
 export {
+	ARTICLES_PER_CALL,
+	type ArticleFinding,
+	type ArticleHit,
+	type ArticleQuery,
+	type EngineArticles,
+	FIND_ARTICLES_TOOL,
+} from "./grounding/article-tool";
+export {
 	createFaithfulness,
 	type EngineScore,
 	type Evidence,
@@ -92,7 +126,12 @@ export {
 } from "./language/detect";
 export { ENGLISH } from "./language/en";
 export { BUNDLED_LANGUAGES } from "./language/index";
-export { type LanguagePack, LanguagePackSchema, type PackPrompt } from "./language/pack";
+export {
+	type LanguagePack,
+	LanguagePackSchema,
+	type PackPrompt,
+	type TeamNotesPrompt,
+} from "./language/pack";
 export { ROMANIAN } from "./language/ro";
 export { fileDirectory, openMemory, THREAD_WINDOW } from "./memory";
 export { ModelIdSchema, ProviderError, readOpenRouterKey } from "./model";
@@ -105,7 +144,7 @@ export {
 	type RefusalPolicy,
 	type ScreeningPrompts,
 } from "./profile";
-export { instructionsFor, languageNote, NO_CONTENT_SENTINEL } from "./prompt";
+export { instructionsFor, languageNote, NO_CONTENT_SENTINEL, styledLocale } from "./prompt";
 export { matchesRules, type RuleSet, RuleSetSchema } from "./rules";
 export {
 	createSchedulingAgent,
@@ -167,6 +206,7 @@ export {
 	RetrievalSettingsSchema,
 	type SettingsProvider,
 	type SettingsSource,
+	settingsForTurn,
 } from "./settings";
 export { KNOWLEDGE_TOOL } from "./studio-tool";
 export { fold, matchesAny } from "./text/normalize";

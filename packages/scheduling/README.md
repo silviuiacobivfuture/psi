@@ -6,7 +6,7 @@ authorization model and the hosting decision are in `docs/plans/scheduling.md`.
 | Part | Where |
 | --- | --- |
 | Domain, pure functions: wall time and DST (`time.ts`), slot generation (`slots.ts`), what blocks a calendar (`conflicts.ts`), the hold/request/appointment lifecycle (`lifecycle.ts`), retention, reminders (interface), contact rules, references and codes | `src/domain/` |
-| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
+| Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffSetup.createPractitioner / updatePractitioner / createService / setDayRules / addDaysOff` (the team's setup: the first create also makes the tenant, so production needs no seed; each records the acting staff subject), `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
 | Server clients for Hono apps (`ConvexHttpClient`, every answer parsed with zod, a deadline per call) | `src/client.ts` (visitor), `src/staff-client.ts` (team) |
 | Configuration from the environment | `src/config.ts` |
 
@@ -81,13 +81,26 @@ pnpm --filter @psi/scheduling exec vitest run --maxWorkers=2
   the October repeat, 23- and 25-hour days), checked against `Intl`; rules, exceptions, buffers,
   notice, horizon and modes.
 - `lifecycle.test.ts`: the state machine, hold expiry, what blocks, retention, codes, contact rules.
+- `staff-setup.test.ts`: against the local backend, in an empty `test-setup-…` tenant like production's first day: creating the tenant, practitioners, services, regular hours, days off, every refusal writing nothing, idempotent repeats, the server key.
 - `convex.test.ts`: against the local backend, in a throwaway `test-…` tenant (internal fixture,
   dropped afterwards): twelve identical and ten overlapping holds racing from separate clients,
   exactly one wins; hold, wrong token, submit, cancel with the code, release, an off-grid start,
   another tenant, a wrong server key. It is skipped, with a warning, when the backend is not up.
 
-## Deploying (not done)
+## Deploying (prepared, not yet applied)
 
-`docs/plans/scheduling.md` §7 and §9: a StatefulSet in the estate with the same image digest, an
-in-cluster Service only, the instance secret, admin key and server key from OpenBao, and
-`convex deploy` from CI with `CONVEX_SELF_HOSTED_URL` and `CONVEX_SELF_HOSTED_ADMIN_KEY`.
+`docs/plans/scheduling.md` §7 and §9 (S2). In the cluster the store is `gitops/services/scheduling-backend`
+(StatefulSet, 10Gi SQLite volume, in-cluster Service `http://scheduling-backend.scheduling.svc:3210`,
+NetworkPolicy, no Ingress, no dashboard) and the functions are deployed by `gitops/services/scheduling-deploy`:
+an Argo PostSync Job running `apps/scheduling-deploy/deploy.sh` from the image CI builds
+(`apps/scheduling-deploy/Dockerfile`). It sets `PSI_SCHEDULING_KEY` inside the deployment, then runs
+`convex deploy`; it never runs a function, so the DEMO seed (`seed:demo`) is never called in the cluster.
+
+OpenBao (`secret/apps/scheduling/env`: `INSTANCE_NAME`, `INSTANCE_SECRET`, `PSI_SCHEDULING_KEY`;
+`secret/apps/scheduling/admin`: `CONVEX_SELF_HOSTED_ADMIN_KEY`) and the rows in `estate/APP-SECRETS.md`.
+The admin key is derived by the running backend, so it is written after the first start, without echo:
+
+```sh
+kubectl -n scheduling exec scheduling-backend-0 -c backend -- sh -c 'cd /work && ./generate_admin_key.sh' \
+  | tail -n 1 | tr -d '\n' | bao kv put secret/apps/scheduling/admin CONVEX_SELF_HOSTED_ADMIN_KEY=-
+```

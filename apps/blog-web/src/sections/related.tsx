@@ -1,11 +1,9 @@
 import { type Article, latestFor, related, summaryFor } from "@psi/content";
-import { ArticleList, ArticleListRow } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { currentIndex, findArticle } from "../content/articles";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
-import { routes } from "../routes";
-import { overline, RowMeta } from "./article-meta";
+import { StoryGrid } from "./story-card";
 
 /**
  * Up to three more articles of the same brand (never another brand's), the same topic first: for
@@ -37,17 +35,9 @@ export function Related({
 			<h2 id="mai-citeste" class="bl-overline">
 				{m.related_title({}, o)}
 			</h2>
-			<ArticleList class="mt-5">
-				{next.map((r) => (
-					<ArticleListRow
-						href={routes.article(locale, r.slug)}
-						title={r.title[locale]}
-						overline={overline(r, locale)}
-						standfirst={r.status === "in-review" ? undefined : r.standfirst[locale]}
-						meta={<RowMeta article={r} locale={locale} />}
-					/>
-				))}
-			</ArticleList>
+			<div class="mt-5">
+				<StoryGrid articles={next} locale={locale} />
+			</div>
 		</section>
 	);
 }

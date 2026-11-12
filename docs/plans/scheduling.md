@@ -158,18 +158,32 @@ screening chain in front of it as the grounded path does (crisis rules first, th
 injection, abuse, PII redaction), so a crisis message on a booking turn still gets the fixed
 crisis answer and never reaches a model.
 
+### 8.1 The conversation as built
+
+The chat does not hand a booking turn to the model: the engine reads it (Romanian and English) and
+answers with a `booking` event that the app renders. Each turn leaves a `BookingState` (the
+criteria so far and the times last shown) on the guide's turn in the page; the next question
+carries it back, so "next week, mornings", "Tuesday at 10", "the second one" and "another day"
+refine or pick from what is on screen. Nothing in the state is trusted: a picked time is looked up
+in the store again (`requestAppointment`'s check) before the confirm step, and the hold checks it a
+third time. The confirm step is the booking form in the chat (one fresh form id per offer), which
+posts to `/programare` and `/programare/confirma`, never through the model; its last card shows the
+reference, the one-time cancel code and what happens next. "I want to cancel" asks for both
+codes in the chat and `cancelRequest`'s function answers. A message that is not about booking falls
+through to the grounded answer, state kept for two turns.
+
 ## 9. Tasks
 
 | # | Task | Where | Depends on |
 | --- | --- | --- | --- |
 | S1 | Owner decision: self-host (recommended) or Convex Cloud EU | section 7 | — |
 | S2 | Deploy the backend in the estate: StatefulSet, PVC, Service, NetworkPolicy, ExternalSecrets for instance secret, admin key and server key; `convex deploy` in CI with the admin key | `gitops/`, `estate/APP-SECRETS.md` | S1 |
-| S3 | Real practitioners, services and weekly rules (owner, with each person's consent to be shown) replacing the DEMO seed; an admin import | `convex/seed.ts`, a staff page | owner |
+| S3 | Real practitioners, services and weekly rules (owner, with each person's consent to be shown) replacing the DEMO seed; an admin import | `convex/staffSetup.ts`, CMS `/admin/platform/scheduling` Setup tab | built (staff functions, studio UI); the owner enters the real people. Remaining: the chat offers only the slug `evaluation` (guide profile) |
 | S4 | Authz: add `psizone_calendar` (and the EQ-SYNC/Hemi-Sync pairs) to the manifests; staff tuples from Polaris | `apps/psizone-web/authz.manifest.json` (accounts owner) | `@psi/account` |
 | S5 | Staff console: requests to confirm or decline, calendar, exceptions, reschedule, behind `account.requireSignIn()` and `account.can("editor", resolve)` | a staff app or `/cont/echipa` | S4 |
 | S6 | Notifications: the team on a new request, the visitor on submit and decision (Plunk), reminders through `ReminderPort` | `@psi/scheduling` + a sender | S2 |
-| S7 | The guide's chat hand-off: route booking turns to the scheduling agent behind the screening chain (crisis first), render `requestAppointment` proposals as the confirm card | `@psi/ui` guide, the site | — |
-| S8 | A visitor cancel page (reference + code) | psizone-web | — |
+| S7 | The guide's chat hand-off: booking turns are handled by the engine itself (`packages/engine/src/booking*.ts`, no model) behind the screening chain (crisis first): first request, refinements, a pick by text or click, the confirm step rendered as the booking form in the chat, cancellation with reference and code. The booking state travels with the page's turns (`AskInput.booking`) | `@psi/engine`, `@psi/guide`, `@psi/ui`, `apps/psizone-web/src/chat-booking.tsx` | done |
+| S8 | Cancel with reference + code: in the guide's chat (done); a visitor cancel page on the site | psizone-web | chat done, page open |
 | S9 | EQ-SYNC online sessions (replacing the Calendly link-out), then Hemi-Sync session requests | the sites, `guide/src/profiles` | S3 |
 | S10 | Legal: the privacy notice names the store, the data, the retention and the processor (if any) | legal pages | S1 |
 | S11 | Rate limit and honeypot on `/programare*`; hold quotas per client so a bot cannot hold every slot | psizone-web | — |

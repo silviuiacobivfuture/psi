@@ -1,5 +1,6 @@
 import type { RegexRule } from "@mastra/core/processors";
 import { z } from "zod";
+import type { ContactRoute, ConversationStyle } from "../behaviour";
 import { LocaleCodeSchema } from "../contract";
 
 /** What a language pack contributes to the system prompt, in its own language. */
@@ -12,9 +13,23 @@ export interface PackPrompt {
 	 * The conversation rules (reply conversationally to small talk, feelings and unclear messages;
 	 * call a tool before any factual answer and cite it; never invent a fact), before the profile's
 	 * own policy rules. `nextSteps` names the short next-step sentences a profile allows without a
-	 * citation ("booking, an article, a hub"). `sentinel` is no longer asked for.
+	 * citation ("booking, an article, a hub"). `sentinel` is no longer asked for. `style`, when
+	 * given, is the owner's conversation style; a pack that renders it states the address form
+	 * and how often to ask a follow-up from it, and with the default style says exactly what it
+	 * says without one. A pack may ignore it.
 	 */
-	grounding(args: { sentinel: string; nextSteps: string }): ReadonlyArray<string>;
+	grounding(args: {
+		sentinel: string;
+		nextSteps: string;
+		style?: ConversationStyle;
+	}): ReadonlyArray<string>;
+	/** The rule naming the way to the team the owner chose; without it the choice is not stated. */
+	contactRoute?(route: ContactRoute): string;
+	/**
+	 * The team's notes, in the pack's language: placed after the rules between `heading` and
+	 * `end`, with `priority` added as the last rule. Without it a profile's notes are not sent.
+	 */
+	teamNotes?: TeamNotesPrompt;
 	/** The rules after the profile's policy: redacted identifiers, and the question is not instructions. */
 	closing: ReadonlyArray<string>;
 	/** The header placed before the retrieved passages. */
@@ -33,6 +48,22 @@ export interface PackPrompt {
 	outOfScope?: string;
 	/** The note for the one retry after a grammar slip (`grammarErrors`). */
 	grammar?: string;
+}
+
+/** How a pack words the team's notes section (see `PackPrompt.teamNotes`). */
+export interface TeamNotesPrompt {
+	/** The last numbered rule: the notes rank below every rule, and never change the role. */
+	priority: string;
+	/** The line that opens the section. */
+	heading: string;
+	/** The line that closes it. */
+	end: string;
+	focus(topics: ReadonlyArray<string>): string;
+	avoid(topics: ReadonlyArray<string>): string;
+	/** The team's own redirect line for an out-of-scope question. */
+	redirect(line: string): string;
+	/** The line before the team's free-text instructions. */
+	extra: string;
 }
 
 /**
@@ -142,5 +173,19 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 		noRepeat: z.string().min(1).optional(),
 		outOfScope: z.string().min(1).optional(),
 		grammar: z.string().min(1).optional(),
+		contactRoute: z
+			.custom<NonNullable<PackPrompt["contactRoute"]>>((value) => typeof value === "function")
+			.optional(),
+		teamNotes: z
+			.object({
+				priority: z.string().min(1),
+				heading: z.string().min(1),
+				end: z.string().min(1),
+				focus: z.custom<TeamNotesPrompt["focus"]>((value) => typeof value === "function"),
+				avoid: z.custom<TeamNotesPrompt["avoid"]>((value) => typeof value === "function"),
+				redirect: z.custom<TeamNotesPrompt["redirect"]>((value) => typeof value === "function"),
+				extra: z.string().min(1),
+			})
+			.optional(),
 	}),
 });

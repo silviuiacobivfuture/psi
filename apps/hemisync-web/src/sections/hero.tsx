@@ -12,7 +12,7 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 		<DawnLandscape id="hero-dawn" picture={heroPicture(locale)}>
 			<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-6 pb-8 pt-8 md:px-14 md:pb-14 md:pt-10">
 				<header>
-					<Logo size={30} href={`${base(locale)}/`} />
+					<Logo size={30} href={`${base(locale)}/`} endorsement={m.logo_endorsement({}, o)} />
 				</header>
 				<div class="mt-4 max-w-5xl md:mt-8">
 					<p class="hs-overline pz-rise">{m.hero_overline({}, o)}</p>

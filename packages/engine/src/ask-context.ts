@@ -78,6 +78,12 @@ export interface AskControl {
 	 * applies.
 	 */
 	visitorKeys?: ReadonlyArray<string>;
+	/**
+	 * Settings for this turn only, over the provider's (the control plane's preview of unsaved
+	 * settings), parsed like a provider's answer. Never kept: the next turn reads the provider
+	 * again, and nothing a visitor sends should ever reach this.
+	 */
+	settings?: unknown;
 }
 
 /** A setting the engine needs and was not given: it names the setting, never a secret. */

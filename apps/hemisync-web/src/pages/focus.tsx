@@ -3,8 +3,10 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
+import { FromTheBlog } from "../sections/blog";
 import { programmeHref } from "../sections/programmes";
-import { Band, NextSteps, PageHero, type PageProps, PageShell, Para, Pending } from "./shell";
+import { DocSections, head, Toc } from "./doc";
+import { Band, NextSteps, PageHero, type PageProps, PageShell, Pending } from "./shell";
 
 /**
  * The four documented levels, worded exactly as on the home. Focus 21's name and text are
@@ -37,24 +39,23 @@ export function FocusLevels({ locale }: { locale: Locale }): JSX.Element {
 export function FocusPage(props: PageProps): JSX.Element {
 	const { locale } = props;
 	const o = at(locale);
+	const h = head("focus", locale);
 	return (
 		<PageShell
 			{...props}
 			otherHref={href(locale === "ro" ? "en" : "ro", "focus")}
-			title={m.nav_focus({}, o)}
-			description={m.focus_lead({}, o)}
+			title={h.h1}
+			seoTitle={h.seoTitle}
+			description={h.description}
 		>
-			<PageHero
-				locale={locale}
-				overline={m.focus_overline({}, o)}
-				title={m.nav_focus({}, o)}
-				lead={m.focus_lead({}, o)}
-			/>
+			<PageHero locale={locale} overline={h.overline} title={h.h1} lead={h.lead}>
+				<Toc page="focus" locale={locale} />
+			</PageHero>
 			<section class="mx-auto max-w-7xl px-6 py-20 md:px-14 md:py-28">
 				<FocusLevels locale={locale} />
 			</section>
+			<DocSections page="focus" locale={locale} />
 			<Band overline={m.nav_programmes({}, o)} title={m.fo_map_title({}, o)} wash>
-				<Para>{m.fo_map_gateway({}, o)}</Para>
 				<a class="pz-tap text-link text-body" href={programmeHref(locale, "gateway-voyage")}>
 					{m.gateway_title({}, o)}
 				</a>
@@ -63,9 +64,12 @@ export function FocusPage(props: PageProps): JSX.Element {
 			<Band overline={m.focus_word({}, o)} title={m.fo_beyond_title({}, o)}>
 				<Pending locale={locale}>{m.fo_beyond_pending({}, o)}</Pending>
 			</Band>
+			<FromTheBlog locale={locale} />
 			<NextSteps
 				links={[
-					{ label: m.nav_exercises({}, o), href: href(locale, "exercises"), primary: true },
+					{ label: m.next_exercises({}, o), href: href(locale, "exercises"), primary: true },
+					{ label: m.next_start({}, o), href: href(locale, "start") },
+					{ label: m.next_glossary({}, o), href: href(locale, "glossary") },
 					{ label: m.nav_technology({}, o), href: href(locale, "technology") },
 				]}
 			/>

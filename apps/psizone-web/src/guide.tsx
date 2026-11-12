@@ -2,7 +2,8 @@ import type { SiteSettings } from "@psi/cms-client";
 import type { GuideLabels } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { BookingValues } from "./booking";
-import { ChatBooking } from "./chat-booking";
+import { bookingSummary, ChatBooking } from "./chat-booking";
+import { guideCopy } from "./guide-copy";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { bookingInChat, phones } from "./site-settings";
@@ -39,6 +40,7 @@ export function guideLabels(
 	} = {},
 ): GuideLabels {
 	const o = at(locale);
+	const copy = guideCopy(locale);
 	const inChat = bookingInChat(opts.settings);
 	return {
 		booking: {
@@ -53,7 +55,8 @@ export function guideLabels(
 				) : (
 					<BookingElsewhere locale={locale} />
 				),
-			summary: inChat ? m.guide_booking_summary({}, o) : m.guide_booking_elsewhere({}, o),
+			summary: (offer) =>
+				inChat ? bookingSummary(offer, locale) : m.guide_booking_elsewhere({}, o),
 		},
 		thinking: m.guide_thinking({}, o),
 		stages: {
@@ -86,11 +89,11 @@ export function guideLabels(
 					</p>
 				</div>
 			),
-			out_of_scope: m.guide_refusal_out_of_scope({}, o),
+			out_of_scope: copy.outOfScope,
 			injection: m.guide_refusal_injection({}, o),
 			abuse: m.guide_refusal_abuse({}, o),
 			rate_limited: m.guide_refusal_rate_limited({}, o),
-			exchange_limit: m.guide_refusal_exchange_limit({}, o),
+			exchange_limit: copy.exchangeLimit,
 			no_content: m.guide_refusal_no_content({}, o),
 			unavailable: m.guide_refusal_unavailable({}, o),
 		},

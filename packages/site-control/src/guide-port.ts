@@ -1,18 +1,20 @@
 import type {
 	AgentInfo,
 	ControlPorts,
+	CopyDefaults,
 	IngestResult,
 	LastIngest,
 	Site,
 	TestAnswerLine,
+	TestQuestion,
 } from "@psi/cms-client";
-import type { Guide, GuideEvent } from "@psi/guide";
+import { articleEntries, type Guide, type GuideEvent } from "@psi/guide";
 import { SEED } from "@psi/knowledge";
 import { type GuideCountReporter, mayCountNow } from "./guide-counts";
 
 /**
  * The guide's side of the control plane. The rebuild hands the CMS's published entries (and, when
- * asked, this brand's repository seed) to the engine's `ingestKnowledge` workflow; the test
+ * asked, this brand's repository seed and its blog articles) to the engine's `ingestKnowledge` workflow; the test
  * question is answered by the same guide visitors use, but is never counted and never kept.
  */
 export interface GuideCounters {
@@ -84,6 +86,8 @@ export interface GuidePortOptions {
 	brand: Site;
 	guide: Guide & Partial<GuideCounters>;
 	screeningLevel: () => Promise<"standard" | "strict">;
+	/** The site's built-in guide copy per locale, for the studio's placeholders. */
+	copyDefaults?: (locale: "ro" | "en") => CopyDefaults;
 	now?: () => number;
 }
 
@@ -92,13 +96,41 @@ export interface GuidePort {
 	lastIngest(): LastIngest | null;
 }
 
-async function* testAnswer(events: AsyncIterable<GuideEvent>): AsyncIterable<TestAnswerLine> {
+/**
+ * The guide's events as the control plane's lines: the text as it streams and every `replace`
+ * (a regenerated or corrected reply resets it), what the guide is busy with, the sources, a
+ * refusal; opened by `meta` (the draft was applied, the model) and closed by `timing`, measured
+ * here around this one answer.
+ */
+async function* testAnswer(
+	events: AsyncIterable<GuideEvent>,
+	meta: { draftApplied: boolean; model: string },
+	now: () => number,
+): AsyncIterable<TestAnswerLine> {
+	const start = now();
+	let firstText: number | null = null;
+	yield { type: "meta", ...meta };
 	for await (const e of events) {
-		if (e.type === "text") yield { type: "text", text: e.delta };
+		if (e.type === "text") {
+			firstText ??= now() - start;
+			yield { type: "text", text: e.delta };
+		} else if (e.type === "replace") {
+			firstText ??= now() - start;
+			yield { type: "replace", text: e.text };
+		} else if (e.type === "thinking") yield { type: "stage", stage: e.stage ?? "thinking" };
 		else if (e.type === "sources") {
 			yield { type: "sources", sources: e.sources.map((s) => ({ title: s.title, url: s.url })) };
 		} else if (e.type === "refusal") yield { type: "refusal", reason: e.reason };
 	}
+	yield { type: "timing", firstTextMs: firstText, totalMs: now() - start };
+}
+
+/** The model a draft names (an allow-listed slug), else the guide's own. */
+function draftModel(draft: TestQuestion["draft"], fallback: string): string {
+	const behaviour = draft?.behaviour;
+	if (typeof behaviour !== "object" || behaviour === null || !("model" in behaviour))
+		return fallback;
+	return typeof behaviour.model === "string" && behaviour.model !== "" ? behaviour.model : fallback;
 }
 
 export function guidePort(o: GuidePortOptions): GuidePort {
@@ -123,6 +155,9 @@ export function guidePort(o: GuidePortOptions): GuidePort {
 					screeningLevel: await o.screeningLevel(),
 					scheduling: a.scheduling,
 					workflows: [...a.workflows],
+					...(o.copyDefaults === undefined
+						? {}
+						: { copyDefaults: { ro: o.copyDefaults("ro"), en: o.copyDefaults("en") } }),
 				};
 			},
 			async ingest(request, actor): Promise<IngestResult> {
@@ -130,7 +165,9 @@ export function guidePort(o: GuidePortOptions): GuidePort {
 					return { ok: false, reason: "no knowledge store" };
 				}
 				const own = request.entries.filter((e) => e.brand === o.brand);
-				const seed = request.includeSeed ? SEED.filter((e) => e.brand === o.brand) : [];
+				const seed = request.includeSeed
+					? [...SEED, ...articleEntries()].filter((e) => e.brand === o.brand)
+					: [];
 				const entries = [...seed, ...own];
 				if (entries.length === 0 && request.remove.length === 0) {
 					return { ok: false, reason: "nothing to ingest" };
@@ -173,9 +210,23 @@ export function guidePort(o: GuidePortOptions): GuidePort {
 					store: r.store,
 				};
 			},
-			// Never counted, never kept: the visitors' counter is not the staff's.
-			ask: (q) =>
-				testAnswer((o.guide.uncounted ?? o.guide).ask({ question: q.question, locale: q.locale })),
+			// Never counted, never kept: the visitors' counter is not the staff's. No visitor keys
+			// (no exchange limit), no thread (nothing stored); the draft applies to this answer only.
+			ask: (q) => {
+				const guide = o.guide.uncounted ?? o.guide;
+				return testAnswer(
+					guide.ask(
+						{
+							question: q.question,
+							locale: q.locale,
+							...(q.history === undefined ? {} : { history: q.history }),
+						},
+						q.draft === undefined ? {} : { settings: q.draft },
+					),
+					{ draftApplied: q.draft !== undefined, model: draftModel(q.draft, guide.model) },
+					now,
+				);
+			},
 		},
 	};
 }

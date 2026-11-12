@@ -1,0 +1,79 @@
+/* The front page as a magazine: a lead story, then shelves of image cards. */
+@layer components {
+	.bl-shelves {
+		display: grid;
+		gap: 72px;
+		margin-top: 72px;
+	}
+	.bl-shelf__head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-3) var(--space-6);
+		padding-top: var(--space-5);
+		margin-bottom: var(--space-6);
+		border-top: 1px solid var(--line-strong);
+	}
+	.bl-shelf__head .bl-section-title {
+		font-size: clamp(26px, 1.6vw + 0.9rem, 34px);
+	}
+
+	/* Cards: one column on a phone, two, then three. */
+	.bl-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--space-6) var(--space-5);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	@media (min-width: 640px) {
+		.bl-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (min-width: 1024px) {
+		.bl-grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+	.bl-grid > li {
+		display: flex;
+	}
+	.bl-card .pz-article__body {
+		padding: var(--space-4) var(--space-5) var(--space-5);
+	}
+	.bl-card .pz-article__title {
+		font-size: clamp(21px, 0.8vw + 1rem, 25px);
+		text-wrap: balance;
+	}
+	.bl-card .pz-article__excerpt {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		overflow: hidden;
+	}
+
+	/* The lead story keeps its photo to a sensible height. */
+	.bl-featured__media .pz-cover {
+		aspect-ratio: 3 / 2;
+	}
+
+	/* The article page: a wide, low cover that leaves the opening text in view. */
+	.bl-article-cover {
+		aspect-ratio: 16 / 9;
+		max-height: min(56vh, 495px);
+		width: 100%;
+	}
+
+	.bl-pager {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		margin-top: 56px;
+		padding-top: var(--space-5);
+		border-top: 1px solid var(--line-strong);
+	}
+}

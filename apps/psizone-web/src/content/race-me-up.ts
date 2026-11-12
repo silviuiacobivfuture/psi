@@ -13,6 +13,16 @@ export const RACE_ME_UP = {
 	path: "/programe/race-me-up",
 	/** A proper noun, never translated. */
 	name: "Race Me Up",
+	seo: {
+		title: {
+			ro: "Race Me Up: program pentru copii, Galați",
+			en: "Race Me Up: programme for children, Galați",
+		},
+		description: {
+			ro: "Race Me Up, programul Psizone din Galați care pornește de la pasiunea copiilor pentru mașini și lucrează emoțiile, atenția și răbdarea, împreună cu părinții.",
+			en: "Race Me Up, Psizone's programme in Galați that starts from children's love of cars and works on emotions, attention and patience, together with parents.",
+		},
+	},
 	lead: {
 		ro: "Un program pentru copii și pentru părinții lor, care pornește de la pasiunea copiilor pentru mașini și viteză.",
 		en: "A programme for children and their parents that starts from children's passion for cars and speed.",
@@ -45,6 +55,27 @@ export const RACE_ME_UP = {
 			en: "It works with the parents too, as we ourselves learned to, from the parent's side.",
 		},
 	],
+	/** Two photographs from the old psizone.ro (the owners' own, from a slalom event). */
+	photos: [
+		{
+			file: "motorsport-slalom-1",
+			width: 1400,
+			height: 1050,
+			alt: {
+				ro: "O mașină neagră cu galben, cu numărul de concurs pe portieră, ia un viraj între conuri pe o pistă de slalom.",
+				en: "A black and yellow car with a race number on the door takes a bend between cones on a slalom course.",
+			},
+		},
+		{
+			file: "motorsport-slalom-2",
+			width: 1200,
+			height: 900,
+			alt: {
+				ro: "Aceeași mașină de slalom trece printre conuri, pe o stradă cu arbori, în fața unor steaguri de concurs.",
+				en: "The same slalom car weaves between cones on a tree-lined street, in front of event flags.",
+			},
+		},
+	],
 	todo: [
 		{
 			ro: "Vârstele pentru care e gândit programul.",
@@ -60,8 +91,10 @@ export const RACE_ME_UP = {
 } as const satisfies {
 	path: string;
 	name: string;
+	seo: { title: Localised; description: Localised };
 	lead: Localised;
 	origin: ReadonlyArray<Localised>;
 	aims: ReadonlyArray<Localised>;
+	photos: ReadonlyArray<{ file: string; width: number; height: number; alt: Localised }>;
 	todo: ReadonlyArray<Localised>;
 };

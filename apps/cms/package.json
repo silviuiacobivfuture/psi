@@ -1,19 +1,19 @@
 {
 	"name": "@psi/cms",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's content management: Payload 3 on Next.js, Postgres, the estate's object storage, sign-in through the estate's Authentik",
 	"scripts": {
 		"dev": "next dev --port 3000",
-		"build": "next build",
+		"build": "sh scripts/next-build.sh",
 		"start": "node .next/standalone/apps/cms/server.js",
 		"type-check": "tsc --noEmit",
 		"test": "vitest run --minWorkers=1 --maxWorkers=2",
 		"payload": "payload",
 		"generate:importmap": "payload generate:importmap",
 		"migrate:create": "payload migrate:create",
-		"import:articles": "payload run src/scripts/import-repo-articles.ts",
+		"import:articles": "node src/scripts/import-articles-cli.ts",
 		"ensure:site-readers": "payload run src/scripts/ensure-site-readers.ts"
 	},
 	"dependencies": {

@@ -34,6 +34,7 @@ export function SiteHead({
 	canonical,
 	alternate,
 	ogType,
+	extraJsonLd = [],
 }: {
 	locale: Locale;
 	theme: Theme;
@@ -42,6 +43,7 @@ export function SiteHead({
 	canonical: string;
 	alternate?: { locale: Locale; href: string };
 	ogType: "website" | "article";
+	extraJsonLd?: ReadonlyArray<JsonLdNode>;
 }): JSX.Element {
 	const self = canonicalOf(canonical);
 	const name = siteNames(locale)[SITE];
@@ -74,7 +76,7 @@ export function SiteHead({
 			}
 			type={ogType}
 			themeColor={themeColor(theme)}
-			jsonLd={jsonLd}
+			jsonLd={[...jsonLd, ...extraJsonLd]}
 		/>
 	);
 }

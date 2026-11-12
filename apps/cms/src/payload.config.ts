@@ -9,6 +9,7 @@ import { analyticsIngest } from "./analytics/ingest";
 import { authentikSignIn } from "./auth/authentik";
 import { brandListFilter } from "./brand/filter";
 import { seedBreakGlass } from "./breakglass";
+import { AiSettingsVersions } from "./collections/ai-settings-versions";
 import { AnalyticsDaily } from "./collections/analytics-daily";
 import { Articles, articleReview } from "./collections/articles";
 import { KnowledgeEntries, knowledgeReview } from "./collections/knowledge-entries";
@@ -23,12 +24,15 @@ import { type Env, parseEnv, s3Of } from "./env";
 import { AiSettingsGlobal } from "./globals/ai-settings";
 import { SiteSettingsGlobal } from "./globals/site-settings";
 import { i18n } from "./i18n";
+import { importOnBoot } from "./import/run-import";
 import { migrations } from "./migrations";
 import { aiEndpoints } from "./platform/endpoints-ai";
 import { peopleEndpoints } from "./platform/endpoints-people";
 import { schedulingEndpoints } from "./platform/endpoints-scheduling";
+import { schedulingSetupEndpoints } from "./platform/endpoints-scheduling-setup";
 import { reviewEndpoints } from "./review/endpoints";
 import { statusEndpoint } from "./review/status";
+import { studioEndpoints } from "./studio/endpoints";
 
 const env = parseEnv(process.env);
 /** This directory, from the module URL (the dev bundler's `import.meta.dirname` is not it). */
@@ -81,7 +85,16 @@ export default buildConfig({
 					path: "/platform",
 					exact: true,
 				},
-				platformAi: { Component: "/views/platform/AiView#AiView", path: "/platform/ai" },
+				// The studio first: `/platform/ai` is exact, so it never takes `/platform/ai/behaviour`.
+				platformBehaviour: {
+					Component: "/views/platform/BehaviourView#BehaviourView",
+					path: "/platform/ai/behaviour",
+				},
+				platformAi: {
+					Component: "/views/platform/AiView#AiView",
+					path: "/platform/ai",
+					exact: true,
+				},
 				platformScheduling: {
 					Component: "/views/platform/SchedulingView#SchedulingView",
 					path: "/platform/scheduling",
@@ -119,6 +132,7 @@ export default buildConfig({
 		Media,
 		ReviewEvents,
 		AnalyticsDaily,
+		AiSettingsVersions,
 	],
 	globals: [AiSettingsGlobal, SiteSettingsGlobal],
 	endpoints: [
@@ -126,7 +140,9 @@ export default buildConfig({
 		statusEndpoint(REVIEWED),
 		analyticsIngest,
 		...aiEndpoints,
+		...studioEndpoints,
 		...schedulingEndpoints,
+		...schedulingSetupEndpoints,
 		...peopleEndpoints,
 	],
 	editor: lexicalEditor(),
@@ -143,5 +159,7 @@ export default buildConfig({
 	plugins: [...storage(env), authentikSignIn(env)],
 	onInit: async (payload) => {
 		await seedBreakGlass(payload, env);
+		// The repository's articles as drafts, in the background after boot (deployments set it).
+		importOnBoot(payload, process.env.PSI_IMPORT_REPO_ARTICLES === "true");
 	},
 });

@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { estateRow } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { href } from "../routes";
 
 export function Closing({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
@@ -37,7 +38,12 @@ export function Footer({ locale }: { locale: Locale }): JSX.Element {
 					<a href={`${b}/#metoda`}>{m.nav_method({}, o)}</a>
 					<a href={`${b}/#program`}>{m.nav_program({}, o)}</a>
 					<a href={`${b}/#protocoale`}>{m.nav_protocols({}, o)}</a>
-					<a href={`${b}/#intrebari`}>{m.nav_faq({}, o)}</a>
+					<a href={href(locale, "science")}>{m.c_nav_science({}, o)}</a>
+					<a href={href(locale, "listen")}>{m.c_nav_listen({}, o)}</a>
+					<a href={href(locale, "who")}>{m.c_nav_who({}, o)}</a>
+					<a href={href(locale, "glossary")}>{m.c_nav_glossary({}, o)}</a>
+					<a href={href(locale, "faq")}>{m.nav_faq({}, o)}</a>
+					<a href={href(locale, "safety")}>{m.nav_safety({}, o)}</a>
 				</nav>
 				<nav class="eq-footer-links md:col-span-4" aria-label={m.footer_legal_label({}, o)}>
 					<a href={`${b}/termeni`}>{m.footer_terms({}, o)}</a>
