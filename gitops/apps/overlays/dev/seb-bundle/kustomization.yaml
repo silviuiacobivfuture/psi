@@ -7,3 +7,4 @@ resources:
   - repo-seb-bundle.yaml
   # The lock, for Harbor housekeeping (namespace harbor).
   - platform-lock.yaml
+  - seb-reference.yaml
