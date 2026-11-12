@@ -11,7 +11,6 @@ resources:
   - hcloud-csi.yaml
   - health-digest.yaml
   - homepage.yaml
-  - kyverno-policies.yaml
   - kyverno.yaml
   - n8n.yaml
   - netdata.yaml

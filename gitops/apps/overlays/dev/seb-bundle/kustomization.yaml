@@ -23,3 +23,4 @@ resources:
   - seb-arc-controller.yaml
   - seb-velero.yaml
   - seb-cnpg.yaml
+  - seb-kyverno-policies.yaml
