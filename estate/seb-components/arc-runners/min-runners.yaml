@@ -1,0 +1,4 @@
+# psi (2026-11-12): ONE server (CPX62, the account's core limit allows one), about 4Gi of
+# reservable memory left after the estate. One warm runner reserving 3Gi; the RMX numbers
+# above assume two agent nodes. Raise when psi's dedicated CI workers join.
+minRunners: 1

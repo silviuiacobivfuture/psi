@@ -1,0 +1,415 @@
+# ── Business ────────────────────────────────────────────────────────
+- Glosar:
+    - Ce înseamnă? · Glosar:
+        icon: mdi-book-alphabet
+        href: /glosar/business.html
+        target: _self
+        description: La ce folosește fiecare aplicație — Plane, PsiCloud, CMS — și cuvintele din ele
+- Site-urile noastre:
+    - Psizone:
+        icon: mdi-web
+        href: https://landing.psizone.ro
+        description: Site-ul centrului Psizone
+        namespace: psizone-web
+        app: psizone-web
+        podSelector: app=psizone-web
+    - Hemi-Sync România:
+        icon: mdi-weather-sunset-up
+        href: https://hemisync.psizone.ro
+        description: Programele, produsele și atelierele Hemi-Sync®
+        namespace: hemisync-web
+        app: hemisync-web
+        podSelector: app=hemisync-web
+    - Blogul:
+        icon: mdi-book-open-page-variant-outline
+        href: https://blog.psizone.ro
+        description: Articolele tuturor brandurilor, într-un singur loc
+        namespace: blog-web
+        app: blog-web
+        podSelector: app=blog-web
+# PsiCloud is how the team calls its Nextcloud: one tile per app in its menu
+# (the dashboard excepted), each opening that app directly.
+- PsiCloud:
+    - Fișiere și dosare comune:
+        icon: mdi-folder-outline
+        href: https://cloud.psizone.ro/apps/files/
+        description: Documentele echipei, pe care le editezi direct în browser · Files
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Documente noi:
+        icon: mdi-file-document-edit-outline
+        href: https://cloud.psizone.ro/apps/office/
+        description: Începi un document, un tabel sau o prezentare · Office
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Mesaje și apeluri:
+        icon: mdi-forum-outline
+        href: https://cloud.psizone.ro/apps/spreed/
+        description: Discuții, apeluri și videoconferințe cu echipa · Talk
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Calendar:
+        icon: mdi-calendar-blank-outline
+        href: https://cloud.psizone.ro/apps/calendar/
+        description: Întâlnirile și programul echipei · Calendar
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Contacte:
+        icon: mdi-account-box-outline
+        href: https://cloud.psizone.ro/apps/contacts/
+        description: Agenda cu oamenii și firmele cu care lucrezi · Contacts
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Fotografii:
+        icon: mdi-image-multiple-outline
+        href: https://cloud.psizone.ro/apps/photos/
+        description: Pozele echipei, pe albume · Photos
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    - Activitate:
+        icon: mdi-history
+        href: https://cloud.psizone.ro/apps/activity/
+        description: Ce s-a schimbat recent în fișierele tale · Activity
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+    - Formulare:
+        icon: mdi-form-select
+        href: https://cloud.psizone.ro/apps/forms/
+        description: Chestionare și înscrieri pe care le trimiți oricui · Forms
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+    - Notițe:
+        icon: mdi-note-text-outline
+        href: https://cloud.psizone.ro/apps/notes/
+        description: Notițele tale, sincronizate pe toate dispozitivele · Notes
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+    # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+    - Anunțuri:
+        icon: mdi-bullhorn-outline
+        href: https://cloud.psizone.ro/apps/announcementcenter/
+        description: Anunțurile pentru toată echipa · Announcement center
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=nextcloud
+- Munca de zi cu zi:
+    - Proiecte și sarcini:
+        icon: mdi-clipboard-check-outline
+        href: https://plane.psizone.ro
+        description: Ce e de făcut, cine se ocupă și până când · Plane
+        namespace: plane
+        app: plane
+        podSelector: app.name=plane-plane-web
+    - Unelte PDF:
+        icon: mdi-file-document-outline
+        href: https://pdf.psizone.ro
+        description: Unești, împarți sau micșorezi PDF-uri; fișierele rămân pe calculatorul tău
+        namespace: pdfcraft
+        app: pdfcraft
+        podSelector: app.kubernetes.io/name=pdfcraft
+    - Documente și notițe:
+        icon: mdi-notebook-edit-outline
+        href: https://docs.psizone.ro
+        description: Documente, notițe și table albe, scrise împreună · AFFiNE
+        namespace: affine
+        app: affine
+        podSelector: app.kubernetes.io/name=affine
+    - E-mail:
+        icon: mdi-email-outline
+        href: https://webmail.psizone.ro/
+        description: Căsuța ta nume@post.psizone.ro, în browser · Roundcube
+        namespace: stalwart
+        app: webmail
+        podSelector: app.kubernetes.io/name=webmail
+    - Parole de aplicație (e-mail):
+        icon: mdi-cellphone-key
+        href: https://post.psizone.ro/account
+        description: Pagina serverului de e-mail · parola pentru telefon și administrare · Stalwart
+        namespace: stalwart
+        app: stalwart
+        podSelector: app.kubernetes.io/name=stalwart
+- Conținut și brand:
+    - Conținutul site-urilor:
+        icon: mdi-text-box-edit-outline
+        href: https://cms.psizone.ro/admin
+        description: Scrii și publici articole și pagini pe site-uri · CMS
+        namespace: cms
+        app: cms
+        podSelector: app=cms
+    - Ghidul vizual:
+        icon: mdi-palette-outline
+        href: https://design.psizone.ro
+        description: Culorile, fonturile și componentele fiecărui brand
+        namespace: design-gallery
+        app: design-gallery
+        podSelector: app=design-gallery
+
+# ── Tehnic ──────────────────────────────────────────────────────────
+# The glossary of this side, served by the hub itself (configMaps.glosar below);
+# it opens in the same tab and leads back with "← Înapoi la hub".
+- Glosar tehnic:
+    - Ce înseamnă? · Glosar:
+        icon: mdi-book-alphabet
+        href: /glosar/tehnic.html
+        target: _self
+        description: Cuvintele de pe partea Tehnic — cod, CI/CD, livrare, estate, cluster — pe înțelesul tuturor
+- Livrare:
+    - Codul sursă:
+        icon: si-github
+        href: https://github.com/silviuiacobivfuture/psi
+        description: Depozitul platformei — cod, pull requests, issues · GitHub
+    - Rulări CI:
+        icon: si-githubactions
+        href: https://github.com/silviuiacobivfuture/psi/actions
+        description: Runner-ele GitHub Actions din cluster · ARC
+        namespace: arc-systems
+        app: arc-systems
+        podSelector: app.kubernetes.io/name=gha-rs-controller
+    - Ce rulează în cluster:
+        icon: argo-cd.png
+        href: https://argocd.psizone.ro
+        description: Ce versiune e livrată și sincronizarea ei · Argo CD
+        namespace: argocd
+        app: argocd
+        podSelector: app.kubernetes.io/name=argocd-server
+    - Imaginile aplicațiilor:
+        icon: harbor.png
+        href: https://registry.psizone.ro
+        description: Registrul de imagini de containere · Harbor
+        namespace: harbor
+        app: harbor
+        podSelector: app=harbor,component=core
+    - Regulile verificate:
+        icon: mdi-clipboard-check-multiple-outline
+        href: https://tests.psizone.ro
+        description: Ce reguli respectă fiecare aplicație, verificate automat
+        namespace: test-reports
+        app: test-reports
+        podSelector: app.kubernetes.io/name=test-reports
+    - Documentația tehnică:
+        icon: mdi-book-open-variant
+        href: https://reference.psizone.ro
+        description: Referința pentru dezvoltatori · Reference
+        namespace: reference
+        app: reference
+        podSelector: app=reference
+    # Behind Authentik's gate. The service is an API: /health is the one page a browser
+    # can read; the notes themselves reach people through Polaris's bell.
+    - Note de versiune:
+        icon: mdi-timeline-text-outline
+        href: https://changelog.psizone.ro/health
+        description: Serviciul notelor de versiune, per aplicație — notele le citești în clopoțelul din Polaris · Changelog
+        namespace: changelog
+        app: changelog
+        podSelector: app=changelog
+- Acces și securitate:
+    - Conturi și autentificare:
+        icon: authentik.png
+        href: https://auth.psizone.ro/if/admin/
+        description: Utilizatori, grupuri și porțile de autentificare · Authentik
+        namespace: authentik
+        app: authentik
+        podSelector: app.kubernetes.io/name=authentik,app.kubernetes.io/component=server
+    - Seiful de secrete:
+        icon: si-openbao
+        href: https://openbao.psizone.ro
+        description: Parolele și cheile platformei · OpenBao
+        namespace: openbao
+        app: openbao
+        podSelector: app.kubernetes.io/name=openbao,component=server
+    # Polaris runs again since 2026-11-12 (the hub migrates first, the control plane follows).
+    - Drepturi de acces:
+        icon: mdi-shield-key-outline
+        href: https://access.psizone.ro
+        description: Cine ce are voie să facă, cu catalogul drepturilor și jurnalul schimbărilor · Polaris
+        namespace: autorizare
+        app: autorizare
+        podSelector: app=autorizare-svc
+    # The hub has no home page of its own (its root leads to the front door); what it
+    # publishes for a person or an integrator is its OpenID discovery document.
+    - Furnizorul de identitate:
+        icon: mdi-account-key-outline
+        href: https://sso.psizone.ro/.well-known/openid-configuration
+        description: Confirmă aplicațiilor cine ești, după standardul OpenID; se deschide configurația lui publică · Polaris id
+        namespace: autorizare
+        app: autorizare
+        podSelector: app=autorizare-hub
+- Comunicare și automatizări:
+    - Automatizări:
+        icon: mdi-sitemap-outline
+        href: https://n8n.psizone.ro
+        description: Fluxuri automate și webhook-uri · n8n
+        namespace: n8n
+        app: n8n
+        podSelector: app.kubernetes.io/name=n8n
+    - Notificări:
+        icon: si-novu
+        href: https://novu.psizone.ro
+        description: Fluxuri de notificări, abonați și activitate · Novu
+        namespace: novu
+        app: novu
+        podSelector: app.kubernetes.io/name in (novu-api,novu-dashboard-public)
+    - E-mail:
+        icon: mdi-email-fast-outline
+        href: https://plunk.psizone.ro
+        description: Trimitere, primire, șabloane și campanii · Plunk
+        namespace: plunk
+        app: plunk
+        podSelector: app.kubernetes.io/name=plunk
+- Monitorizare:
+    - Starea serverelor:
+        icon: netdata.png
+        href: https://netdata.psizone.ro
+        description: Procesor, memorie și rețea în timp real, pe noduri și poduri · Netdata
+        namespace: monitoring
+        app: netdata
+        podSelector: app=netdata,role=parent
+    - Consola Kubernetes:
+        icon: si-kubernetes
+        href: https://headlamp.psizone.ro
+        description: Tot ce rulează în cluster, citit și administrat · Headlamp
+        namespace: headlamp
+        app: headlamp
+        podSelector: app.kubernetes.io/name=headlamp
+- Infrastructură:
+    - Consola cloud:
+        icon: hetzner.png
+        href: https://console.hetzner.cloud/
+        description: Servere, rețea și stocare · Hetzner Cloud
+# Every Tehnic tile WITHOUT a screen, gathered last (owner, 2026-11-12: "there
+# isn't really a distinction between what is a UI service and a back service").
+# The sections above hold only what a person opens; each tile here names its
+# section first. custom.css marks these cards "doar stare" and never as links.
+- Rulează în fundal:
+    # No UI and no link, and it must stay that way: the Nx remote cache speaks
+    # a four-verb HTTP protocol to `nx` behind a bearer token shared by every CI
+    # job. When it is down nothing BREAKS, builds just get slow — hence the status.
+    - Cache-ul de build:
+        icon: si-nx
+        description: "Livrare: Cache Nx la distanță — fără interfață, citit de fiecare job CI"
+        namespace: nx-cache
+        app: nx-cache
+        podSelector: app=nx-cache
+    # The arc-runners namespace: its runner pods exist only while a job runs, so the
+    # status follows the scale set's listener (arc-systems), which is what starts them.
+    - Runner-ele CI:
+        icon: si-githubactions
+        description: "Livrare: Pornesc runner-ele pentru fiecare job CI, la cerere — fără interfață · ARC runner scale set"
+        namespace: arc-systems
+        app: arc-runners
+        podSelector: app.kubernetes.io/component=runner-scale-set-listener,actions.github.com/scale-set-namespace=arc-runners
+    # No Ingress by design: its API auth is an unscoped preshared key. Every
+    # application asks it whether an action is permitted, so its status going
+    # dark is the first sign authorization has stopped everywhere.
+    - Motorul de autorizare:
+        icon: mdi-key-chain-variant
+        description: "Acces și securitate: Răspunde fiecărei aplicații dacă o acțiune e permisă — fără interfață · OpenFGA"
+        namespace: openfga
+        app: openfga
+        podSelector: app=openfga
+    - Sincronizarea secretelor:
+        icon: mdi-key-arrow-right
+        description: "Acces și securitate: Aduce secretele din OpenBao în cluster · External Secrets"
+        namespace: external-secrets
+        app: external-secrets
+        podSelector: app.kubernetes.io/name=external-secrets
+    - Alerte în Talk:
+        icon: mdi-bell-badge-outline
+        description: "Comunicare și automatizări: Transformă alertele platformei în mesaje Talk — fără interfață"
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=talk-webhook
+    - Apeluri video:
+        icon: mdi-video-outline
+        description: "Comunicare și automatizări: Serverul de semnalizare pentru apelurile Talk — fără interfață · Talk HPB"
+        namespace: talk-hpb
+        app: talk-hpb
+        podSelector: app.kubernetes.io/name=talk-hpb
+    - Editarea documentelor:
+        icon: si-collaboraonline
+        description: "Comunicare și automatizări: Deschide documentele Office din Fișiere — fără interfață · Collabora"
+        namespace: nextcloud
+        app: nextcloud
+        podSelector: app.kubernetes.io/name=collabora
+    # Its API answers only with a token; a browser has nothing to open there.
+    - Memoria ghidului AI:
+        icon: mdi-vector-polyline
+        description: "Comunicare și automatizări: Baza de date vectorială a site-urilor — doar prin API, cu token · Chroma"
+        namespace: chroma
+        app: chroma
+        podSelector: app=chroma
+    - Jurnale și urme:
+        icon: si-opentelemetry
+        description: "Monitorizare: Colectarea jurnalelor și a urmelor (agent și colector) · OpenTelemetry"
+        namespace: observability
+        app: observability
+        podSelector: app in (otel-agent,otel-cluster)
+    # A CronJob: no pod lives between runs, so no status.
+    - Raportul zilnic:
+        icon: mdi-heart-pulse
+        description: "Monitorizare: Starea clusterului, trimisă zilnic în Talk"
+    - Certificate:
+        icon: cert-manager.png
+        description: "Infrastructură: Certificatele TLS (Let's Encrypt) · cert-manager"
+        namespace: cert-manager
+        app: cert-manager
+        podSelector: app.kubernetes.io/name=cert-manager
+    - Domenii:
+        icon: cloudflare.png
+        description: "Infrastructură: Înregistrările DNS (Cloudflare) · external-dns"
+        namespace: external-dns
+        app: external-dns
+        podSelector: app.kubernetes.io/name=external-dns
+    - Intrarea publică:
+        icon: traefik.png
+        description: "Infrastructură: Primește traficul de pe internet · Traefik"
+        namespace: kube-system
+        app: kube-system
+        podSelector: app.kubernetes.io/name=traefik
+    - Reguli de admitere:
+        icon: kyverno.png
+        description: "Infrastructură: Politicile pe care le respectă orice pod · Kyverno"
+        namespace: kyverno
+        app: kyverno
+        podSelector: app.kubernetes.io/name=kyverno-admission-controller
+    - Baze de date:
+        icon: postgresql.png
+        description: "Infrastructură: Operatorul PostgreSQL — fiecare bază de date din cluster · CloudNativePG"
+        namespace: cnpg-system
+        app: cnpg-system
+        podSelector: app.kubernetes.io/name=cloudnative-pg
+    - Copii de siguranță:
+        icon: velero.png
+        description: "Infrastructură: Salvarea și restaurarea clusterului · Velero"
+        namespace: velero
+        app: velero
+        podSelector: name=velero
+    - Reporniri la rotire:
+        icon: reloader.png
+        description: "Infrastructură: Repornește aplicațiile când li se schimbă secretele · Reloader"
+        namespace: reloader
+        app: reloader
+        podSelector: app.kubernetes.io/name=reloader
+    - Actualizări de sistem:
+        icon: k3s.png
+        description: "Infrastructură: Controlerul de actualizare k3s"
+        namespace: system-upgrade
+        app: system-upgrade
+        podSelector: app.kubernetes.io/name=system-upgrade-controller
+    - Discuri:
+        icon: mdi-harddisk
+        description: "Infrastructură: Volumele persistente Hetzner Cloud · hcloud CSI"
+        namespace: kube-system
+        app: kube-system
+        podSelector: app.kubernetes.io/name=hcloud-csi
