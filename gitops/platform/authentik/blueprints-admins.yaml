@@ -42,49 +42,6 @@ data:
           # app-*-admin entitlements = the taxonomy (ROLES.md): admin on every app,
           # so the binding migration platform-admins→app-*-* can't lock the operator
           # out. NOTE: blueprint sets the group m2m exactly to this list.
-          groups:
-            - !Find [authentik_core.group, [name, platform-admins]]
-            # authentik's built-in superuser group; blueprints-groups.yaml pins its
-            # roster to akadmin + the operator, so it must be listed here too or the
-            # two files remove each other's entry (seen 2026-10-22).
-            - !Find [authentik_core.group, [name, authentik Admins]]
-            - !Find [authentik_core.group, [name, dept-platform]]
-            - !Find [authentik_core.group, [name, app-argocd-admin]]
-            - !Find [authentik_core.group, [name, app-harbor-admin]]
-            - !Find [authentik_core.group, [name, app-openbao-admin]]
-            - !Find [authentik_core.group, [name, app-k8s-admin]]
-            - !Find [authentik_core.group, [name, app-dashboards-view]]
-            - !Find [authentik_core.group, [name, app-signapp-admin]]
-            - !Find [authentik_core.group, [name, app-nextcloud-user]]
-            - !Find [authentik_core.group, [name, app-plane-user]]
-            # Plane Admin role (apps/plane-sso/mapping.yaml); blueprints-groups.yaml
-            # lists the operator in it, so it is listed here too.
-            - !Find [authentik_core.group, [name, app-plane-admin]]
-            - !Find [authentik_core.group, [name, app-pdfcraft-user]]
-            # AFFiNE (pieces/affine); blueprints-groups.yaml lists the operator in both.
-            - !Find [authentik_core.group, [name, app-affine-user]]
-            - !Find [authentik_core.group, [name, app-affine-admin]]
-            # The remaining lower-tier entitlements. They add nothing on top of the
-            # *-admin groups above, but this list REPLACES the whole membership set,
-            # so anything omitted here is REMOVED from the operator on every apply —
-            # and blueprints-groups.yaml lists the operator in every one of them.
-            # Omitting them would make the two files fight, with whichever applied
-            # last winning (2026-08-19). The *-developer groups are deliberately
-            # absent: the operator holds the *-admin ones (2026-10-22).
-            - !Find [authentik_core.group, [name, onboard-admin]]
-            - !Find [authentik_core.group, [name, app-argocd-view]]
-            - !Find [authentik_core.group, [name, app-harbor-push]]
-            - !Find [authentik_core.group, [name, app-harbor-pull]]
-            - !Find [authentik_core.group, [name, app-openbao-read]]
-            - !Find [authentik_core.group, [name, app-k8s-view]]
-            - !Find [authentik_core.group, [name, app-signapp-operator]]
-            - !Find [authentik_core.group, [name, app-signapp-hr]]
-            - !Find [authentik_core.group, [name, app-signapp-view]]
-            # The tailnet and its console; blueprints-groups.yaml lists the operator in each.
-            - !Find [authentik_core.group, [name, tailnet-users]]
-            - !Find [authentik_core.group, [name, app-headplane-admin]]
-            # Moved from the business directory (doc 18, step 5); blueprints-groups.yaml
-            # lists the operator in each, so they are listed here too.
-            - !Find [authentik_core.group, [name, app-invoice-admin]]
-            - !Find [authentik_core.group, [name, app-autorizare-admin]]
-            - !Find [authentik_core.group, [name, autorizare-tenant-recomex]]
+          # No `groups:` (psi 2026-11-12): a group list here REPLACES every membership, so each
+          # re-apply stripped the operator from groups added later (n8n, Novu, Plunk, AFFiNE).
+          # Membership is owned by the group rosters in blueprints-groups.yaml only.
