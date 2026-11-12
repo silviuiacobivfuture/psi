@@ -25,3 +25,4 @@ cnpg
 kyverno-policies
 platform-secrets
 external-secrets
+hcloud-csi

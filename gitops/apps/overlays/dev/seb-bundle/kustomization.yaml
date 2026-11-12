@@ -26,3 +26,4 @@ resources:
   - seb-kyverno-policies.yaml
   - seb-platform-secrets.yaml
   - seb-external-secrets.yaml
+  - seb-hcloud-csi.yaml

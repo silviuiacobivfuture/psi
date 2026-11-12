@@ -7,7 +7,6 @@ resources:
   - argocd-config.yaml
   - autorizare.yaml
   - harbor.yaml
-  - hcloud-csi.yaml
   - health-digest.yaml
   - homepage.yaml
   - kyverno.yaml
