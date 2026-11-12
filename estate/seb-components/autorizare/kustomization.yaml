@@ -8,12 +8,17 @@ kind: Component
 #                         added to the estate adds its client here (and its secret path to
 #                         seed-hub-clients.sh). Mounted at /estate/hub in the hub AND in Polaris,
 #                         which reads the same file for the changelog, the bell and the search.
+#   ../../../brand        the console's brand: the `estate-brand` ConfigMap Polaris refuses to start without.
 #   email.generated.yaml  Polaris's sender (EMAIL_*), from gitops/services/plunk/senders/polaris.json.
 #
 # The estate's name on the hub's pages is its BRAND_TITLE, Psi. The hub's host label (sso) is
 # the identity's HUB_HOST_PREFIX, which the piece reads from the whitelabel component.
 resources:
   - email.generated.yaml
+
+# psi's console brand (declaration, theme, icons), mounted at /estate-brand (brand/kustomization.yaml).
+components:
+  - ../../../brand
 
 configMapGenerator:
   - name: estate-hub-registry

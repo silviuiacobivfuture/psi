@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# psi's CONSOLE BRAND: what Polaris's console shows of this estate, read at start-up from the
+# directory the autorizare piece mounts (ESTATE_BRAND_DIR, /estate-brand). The image carries no
+# estate's look, and Polaris refuses to start, naming the file, when one is missing. The piece's
+# Deployment names the ConfigMap `estate-brand`; kustomize hashes it, so a changed icon rolls it.
+#
+#   estate.config.json   the declaration (applications, names, marks, modules)
+#   estate.css           the theme (OKLCH token roles only)
+#   public/estate/*      GENERATED from the declaration by SEB's packages/rmx-ui/scripts/brand-assets.mjs
+#                        (ESTATE_CONFIG=brand/estate.config.json ESTATE_STYLESHEET=brand/estate.css
+#                        ESTATE_APP_DIRS=polaris=brand, run from a SEB checkout carrying psi's whitelabel)
+configMapGenerator:
+  - name: estate-brand
+    files:
+      - estate.config.json
+      - estate.css
+      - favicon.svg=public/estate/favicon.svg
+      - favicon-32.png=public/estate/favicon-32.png
+      - apple-touch-icon.png=public/estate/apple-touch-icon.png
+      - icon-192.png=public/estate/icon-192.png
+      - icon-512.png=public/estate/icon-512.png
+      - icon-maskable-512.png=public/estate/icon-maskable-512.png
+      - og.png=public/estate/og.png
