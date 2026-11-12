@@ -21,6 +21,7 @@
 			"!estate/mail-dns-*.json",
 			"!packages/ui/assets/**",
 			"!packages/design/logos/marks/**",
+			"!apps/eqsync-web/**",
 			"!**/project.inlang/cache/**"
 		],
 		"experimentalScannerIgnores": [

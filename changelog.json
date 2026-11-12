@@ -1,4 +1,8 @@
 {
 	"$comment": "Each app under apps/: {\"tenant\": \"<slug>\", \"language\": \"<ro|en|…>\"} or {\"none\": \"<why it has no changelog>\"}. Undeclared apps are held to the full rule. CLAUDE.md, \"Changelog\".",
-	"apps": {}
+	"apps": {
+		"eqsync-web": {
+			"none": "retired 2026-11-12 on the owner's order; not built, deployed or changed"
+		}
+	}
 }
