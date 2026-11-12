@@ -540,10 +540,8 @@ textarea:focus,
 	}
 	/* The mailbox address over the folder list fits on one line. */
 	#layout-sidebar > .header .header-title {
-		font-size: 0.85rem;
-		white-space: normal;
-		overflow-wrap: anywhere;
-		line-height: 1.2;
+		font-size: 0.82rem;
+		letter-spacing: -0.01em;
 		text-overflow: clip;
 	}
 }

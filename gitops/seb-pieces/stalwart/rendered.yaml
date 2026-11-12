@@ -578,25 +578,24 @@ data:
     block;\n\t\twhite-space: normal;\n\t\toverflow: visible;\n\t\ttext-overflow: clip;\n\t\tline-height:
     1.15;\n\t\tfont-size: 0.8rem;\n\t}\n\t/* The mailbox address over the folder list
     fits on one line. */\n\t#layout-sidebar > .header .header-title {\n\t\tfont-size:
-    0.85rem;\n\t\twhite-space: normal;\n\t\toverflow-wrap: anywhere;\n\t\tline-height:
-    1.2;\n\t\ttext-overflow: clip;\n\t}\n}\n\n/* ---- the message frame: always readable,
-    plain text and HTML, light and dark ---- */\n/* Elastic keeps HTML messages on
-    white in dark mode (senders paint for white paper). That stays,\n * as a framed
-    sheet with dark ink, so a message that sets no colours is never light-on-white
-    and a\n * newsletter's white never runs into the dark page edge to edge. */\nhtml.dark-mode
-    #messagebody .message-htmlpart {\n\tbackground-color: var(--psi-paper);\n\tcolor:
-    var(--psi-paper-ink);\n\tborder: 1px solid var(--psi-paper-line);\n\tborder-radius:
-    10px;\n\tpadding: 1rem 1.25rem;\n\tmargin: 0.75rem 0;\n}\n#messagebody {\n\tmin-height:
-    4rem;\n}\n\n/* ---- light mode: psi's light rail (Elastic's stock rail is dark
-    slate even in light) ---- */\n@media screen and (min-width: 481px) {\n\thtml:not(.dark-mode)
-    #layout-menu,\n\thtml:not(.dark-mode) #layout-menu .popover-header {\n\t\tbackground-color:
-    #ece3d1 !important;\n\t}\n\thtml:not(.dark-mode) #layout-menu {\n\t\tborder-right:
-    1px solid rgba(46, 34, 10, 0.1);\n\t}\n\thtml:not(.dark-mode) #layout-menu .special-buttons,\n\thtml:not(.dark-mode)
-    #layout-menu .special-buttons a,\n\thtml:not(.dark-mode) #layout-menu .special-buttons
-    a:not(:focus) {\n\t\tbackground: transparent !important;\n\t}\n\thtml:not(.dark-mode)
-    #taskmenu a,\n\thtml:not(.dark-mode) #layout-menu .special-buttons a {\n\t\tcolor:
-    #554c3b;\n\t\tbackground: transparent;\n\t}\n\thtml:not(.dark-mode) #taskmenu
-    a.selected,\n\thtml:not(.dark-mode) #taskmenu a:hover,\n\thtml:not(.dark-mode)
+    0.82rem;\n\t\tletter-spacing: -0.01em;\n\t\ttext-overflow: clip;\n\t}\n}\n\n/*
+    ---- the message frame: always readable, plain text and HTML, light and dark ----
+    */\n/* Elastic keeps HTML messages on white in dark mode (senders paint for white
+    paper). That stays,\n * as a framed sheet with dark ink, so a message that sets
+    no colours is never light-on-white and a\n * newsletter's white never runs into
+    the dark page edge to edge. */\nhtml.dark-mode #messagebody .message-htmlpart
+    {\n\tbackground-color: var(--psi-paper);\n\tcolor: var(--psi-paper-ink);\n\tborder:
+    1px solid var(--psi-paper-line);\n\tborder-radius: 10px;\n\tpadding: 1rem 1.25rem;\n\tmargin:
+    0.75rem 0;\n}\n#messagebody {\n\tmin-height: 4rem;\n}\n\n/* ---- light mode: psi's
+    light rail (Elastic's stock rail is dark slate even in light) ---- */\n@media
+    screen and (min-width: 481px) {\n\thtml:not(.dark-mode) #layout-menu,\n\thtml:not(.dark-mode)
+    #layout-menu .popover-header {\n\t\tbackground-color: #ece3d1 !important;\n\t}\n\thtml:not(.dark-mode)
+    #layout-menu {\n\t\tborder-right: 1px solid rgba(46, 34, 10, 0.1);\n\t}\n\thtml:not(.dark-mode)
+    #layout-menu .special-buttons,\n\thtml:not(.dark-mode) #layout-menu .special-buttons
+    a,\n\thtml:not(.dark-mode) #layout-menu .special-buttons a:not(:focus) {\n\t\tbackground:
+    transparent !important;\n\t}\n\thtml:not(.dark-mode) #taskmenu a,\n\thtml:not(.dark-mode)
+    #layout-menu .special-buttons a {\n\t\tcolor: #554c3b;\n\t\tbackground: transparent;\n\t}\n\thtml:not(.dark-mode)
+    #taskmenu a.selected,\n\thtml:not(.dark-mode) #taskmenu a:hover,\n\thtml:not(.dark-mode)
     #taskmenu a:focus {\n\t\tcolor: #16120a;\n\t\tbackground-color: rgba(169, 123,
     36, 0.16);\n\t}\n\thtml:not(.dark-mode) #taskmenu a.compose,\n\thtml:not(.dark-mode)
     #taskmenu a.compose:hover {\n\t\tcolor: #86650f;\n\t}\n\thtml:not(.dark-mode)
@@ -628,7 +627,7 @@ data:
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 48" width="130" height="48"><title>Psi</title><g transform="translate(0 0)"><defs><linearGradient id="t-polaris" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#586474"/><stop offset="1" stop-color="#424d63"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#t-polaris)"/><path d="M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z" fill="#ffffff"/></g><text x="68" y="36" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5" fill="#16120A">Psi</text></svg>
 kind: ConfigMap
 metadata:
-  name: webmail-theme-cbf9bd5597
+  name: webmail-theme-fgkd9m25b6
   namespace: stalwart
 ---
 apiVersion: v1
@@ -991,7 +990,7 @@ spec:
           sizeLimit: 256Mi
         name: html
       - configMap:
-          name: webmail-theme-cbf9bd5597
+          name: webmail-theme-fgkd9m25b6
         name: theme
       - configMap:
           name: webmail-config-h4c5226td4
