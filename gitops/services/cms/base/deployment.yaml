@@ -94,7 +94,7 @@ spec:
             # Who holds which CMS role until psi's OpenFGA answers the CMS (src/authz/interim.ts).
             # Not a secret — a reviewed binding: the estate's admins (Authentik group platform-admins)
             # are CMS admins on every brand; each admin also by email until the cms provider sends groups. Add editors here: group:app-cms-editor=cms:editor[@brand].
-            - { name: CMS_ROLE_ASSIGNMENTS, value: "group:platform-admins=cms:admin;silviu.iacob@ivfuture.ro=cms:admin;turcu_daniela@icloud.com=cms:admin;adi_rar@yahoo.com=cms:admin;nicholas.turcu@icloud.com=cms:admin;trifan.lucian.sergiu@gmail.com=cms:admin;psizone-reader@service.psizone.ro=cms:reader@psizone;eqsync-reader@service.psizone.ro=cms:reader@eqsync;hemisync-reader@service.psizone.ro=cms:reader@hemisync;blog-reader@service.psizone.ro=cms:reader@psizone+cms:reader@eqsync+cms:reader@hemisync+cms:reader@blog" }
+            - { name: CMS_ROLE_ASSIGNMENTS, value: "group:platform-admins=cms:admin;silviu.iacob@ivfuture.ro=cms:admin;turcu_daniela@icloud.com=cms:admin;adi_rar@yahoo.com=cms:admin;nicholas.turcu@icloud.com=cms:admin;trifan.lucian.sergiu@gmail.com=cms:admin;psizone-reader@service.psizone.ro=cms:reader@psizone;hemisync-reader@service.psizone.ro=cms:reader@hemisync;blog-reader@service.psizone.ro=cms:reader@psizone+cms:reader@hemisync+cms:reader@blog" }
             - { name: S3_BUCKET, value: psi-cms-dev }
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
