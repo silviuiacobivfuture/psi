@@ -6,7 +6,6 @@ resources:
   - arc-runners.yaml
   - argocd-config.yaml
   - autorizare.yaml
-  - cnpg.yaml
   - external-secrets.yaml
   - harbor.yaml
   - hcloud-csi.yaml

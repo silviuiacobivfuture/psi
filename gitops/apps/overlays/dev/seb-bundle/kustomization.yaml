@@ -22,3 +22,4 @@ resources:
   - seb-external-dns.yaml
   - seb-arc-controller.yaml
   - seb-velero.yaml
+  - seb-cnpg.yaml
