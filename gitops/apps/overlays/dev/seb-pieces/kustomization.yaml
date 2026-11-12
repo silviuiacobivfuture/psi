@@ -41,5 +41,4 @@ resources:
   - system-upgrade-controller.yaml
   - talk-hpb.yaml
   - test-reports.yaml
-  - traefik-accesslog.yaml
   - velero.yaml

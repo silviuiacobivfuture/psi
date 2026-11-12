@@ -8,3 +8,4 @@ resources:
   # The lock, for Harbor housekeeping (namespace harbor).
   - platform-lock.yaml
   - seb-reference.yaml
+  - seb-traefik-accesslog.yaml

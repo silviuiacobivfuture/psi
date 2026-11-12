@@ -7,3 +7,4 @@
 # its git Application is removed would deploy it twice under the same name. Switch one piece per
 # commit: list it, re-run the upgrade, remove its git Application, check Argo's diff is empty.
 reference
+traefik-accesslog
