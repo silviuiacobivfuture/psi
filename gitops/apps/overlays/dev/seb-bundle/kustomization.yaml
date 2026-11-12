@@ -31,3 +31,4 @@ resources:
   - seb-argocd-config.yaml
   - seb-test-reports.yaml
   - seb-stalwart.yaml
+  - seb-affine.yaml
