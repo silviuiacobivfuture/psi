@@ -86,6 +86,10 @@ spec:
           env:
             - { name: SERVER_URL, value: "https://cms.psizone.ro" }
             - { name: OIDC_ISSUER, value: "https://auth.psizone.ro/application/o/cms/" }
+            # Who holds which CMS role until psi's OpenFGA answers the CMS (src/authz/interim.ts).
+            # Not a secret — a reviewed binding: the estate's admins (Authentik group platform-admins)
+            # are CMS admins on every brand; the four admins also by email until the cms provider sends groups. Add editors here: group:app-cms-editor=cms:editor[@brand].
+            - { name: CMS_ROLE_ASSIGNMENTS, value: "group:platform-admins=cms:admin;silviu.iacob@ivfuture.ro=cms:admin;turcu_daniela@icloud.com=cms:admin;adi_rar@yahoo.com=cms:admin;nicholas.turcu@icloud.com=cms:admin" }
             - { name: S3_BUCKET, value: psi-cms-dev }
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }

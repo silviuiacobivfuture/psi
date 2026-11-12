@@ -407,16 +407,10 @@ spec:
                 # tile carries its status and no link until it answers again.
                 - Drepturi de acces:
                     icon: mdi-shield-key-outline
-                    description: "Acces și securitate: Cine ce are voie să facă · Polaris; ecranul lui (access.psizone.ro) nu răspunde acum"
-                    namespace: autorizare
-                    app: autorizare
-                    podSelector: app=autorizare-svc
+                    description: "Acces și securitate: Cine ce are voie să facă · Polaris — oprit temporar, până la reparația de pornire"
                 - Furnizorul de identitate:
                     icon: mdi-account-key-outline
-                    description: "Acces și securitate: Autentificarea OpenID pentru fiecare aplicație — fără interfață · Polaris id"
-                    namespace: autorizare
-                    app: autorizare
-                    podSelector: app=autorizare-hub
+                    description: "Acces și securitate: Autentificarea OpenID pentru fiecare aplicație — fără interfață · Polaris id — oprit temporar"
                 # No Ingress by design: its API auth is an unscoped preshared key. Every
                 # application asks it whether an action is permitted, so its status going
                 # dark is the first sign authorization has stopped everywhere.
@@ -485,12 +479,6 @@ spec:
                     namespace: kube-system
                     app: kube-system
                     podSelector: app.kubernetes.io/name=traefik
-                - Rețeaua privată:
-                    icon: si-tailscale
-                    description: "Infrastructură: Intrarea din rețeaua privată (operatorul tailnet) · Tailscale"
-                    namespace: tailscale
-                    app: tailscale
-                    podSelector: app=operator
                 - Reguli de admitere:
                     icon: kyverno.png
                     description: "Infrastructură: Politicile pe care le respectă orice pod · Kyverno"
@@ -1215,8 +1203,6 @@ spec:
                 <dd>DNS e cartea de telefon a internetului: transformă un nume (cloud.psizone.ro) în adresa serverului. external-dns scrie singur înregistrările în Cloudflare.</dd>
                 <dt id="intrarea-publica"><a href="#intrarea-publica">Intrarea publică</a> <span class="also">Traefik</span></dt>
                 <dd>Poarta prin care intră traficul de pe internet; fiecare cerere e trimisă la aplicația potrivită după adresă.<span class="ex">Ca recepția unei clădiri care îndrumă vizitatorii la birouri.</span></dd>
-                <dt id="retea-privata"><a href="#retea-privata">Rețeaua privată</a> <span class="also">Tailscale</span></dt>
-                <dd>O rețea criptată, doar a echipei, prin care se ajunge la serviciile care nu sunt deschise pe internet.</dd>
                 <dt id="kyverno"><a href="#kyverno">Reguli de admitere</a> <span class="also">Kyverno</span></dt>
                 <dd>Paznicul clusterului: verifică fiecare aplicație nouă după reguli de siguranță și o refuză pe cea care nu le respectă.</dd>
                 <dt id="baze-de-date"><a href="#baze-de-date">Baze de date</a> <span class="also">PostgreSQL · CloudNativePG</span></dt>
