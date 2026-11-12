@@ -857,6 +857,8 @@ spec:
                   color: var(--ink-muted);
                 }
                 .information-widget-kubernetes { margin-right: var(--space-2); }
+                #widgets-wrap > .widget-container:not([class*="information-widget-"]) { margin-right: auto; }
+                #widgets-wrap > .widget-container:not([class*="information-widget-"]) .flex-row { gap: var(--space-2); }
 
                 @media (prefers-reduced-motion: reduce) {
                   *, *::before, *::after { transition: none !important; animation: none !important; }
