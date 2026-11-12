@@ -7,4 +7,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/scheduling-deploy
-    newTag: "unbuilt"
+    newTag: "cac58f4"
