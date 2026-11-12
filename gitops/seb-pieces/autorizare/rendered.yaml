@@ -49,7 +49,7 @@ data:
   HUB_BASE_DOMAIN: psizone.ro
   HUB_CLIENTS_FILE: /estate/hub/clients.json
   HUB_HOST_PREFIX: sso
-  HUB_REQUIRE_MFA: "true"
+  HUB_REQUIRE_MFA: "false"
   HUB_UPSTREAM_ISSUER: https://auth.psizone.ro/application/o/autorizare-hub/
   OPENFGA_URL: http://openfga.openfga.svc.cluster.local:8081
   PLATFORM_OBJECT: platform:psi
@@ -2279,6 +2279,8 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        psi.estate/hub-require-mfa: "false"
       labels:
         app: autorizare-hub
     spec:

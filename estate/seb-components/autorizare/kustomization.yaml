@@ -34,6 +34,14 @@ patches:
       - op: add
         path: /data/HUB_CLIENTS_FILE
         value: "/estate/hub/clients.json"
+      # PSI SETTING: TOTP OPTIONAL — TOTP disabled by owner 2026-11-12, temporary. Authentik asks
+      # for a code only from people who added an authenticator themselves
+      # (gitops/platform/authentik/blueprints-mfa.yaml, "PSI SETTING: TOTP OPTIONAL"), so a
+      # password-only sign-in is a normal one and the hub must not refuse it for lacking "mfa".
+      # Turn back on with "true" here (and in the hub's annotation below) AND `configure` there.
+      - op: replace
+        path: /data/HUB_REQUIRE_MFA
+        value: "false"
   - target: { kind: ConfigMap, name: autorizare-config }
     patch: |-
       - op: add
@@ -48,6 +56,10 @@ patches:
         value: "o-01a1ce922e3d71f990932be31d8d07fb"
   - target: { kind: Deployment, name: autorizare-hub }
     patch: |-
+      # The hub reads its ConfigMap at start only; this restarts it when the TOTP setting above changes.
+      - op: add
+        path: /spec/template/metadata/annotations
+        value: { psi.estate/hub-require-mfa: "false" }
       - op: add
         path: /spec/template/spec/volumes
         value:

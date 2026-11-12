@@ -91,9 +91,19 @@ data:
         identifiers:
           name: default-authentication-mfa-validation
         attrs:
-          # ENFORCE: a user with no configured device is routed into a
-          # configuration stage instead of being skipped past or denied.
-          not_configured_action: configure
+          # ┌─ PSI SETTING: TOTP OPTIONAL ─────────────────────────────────────┐
+          # │ TOTP disabled by owner 2026-11-12, temporary ("disable totp for   │
+          # │ now" … "if someone wants to enable it they can do so, but it's    │
+          # │ disabled by default"). `skip`: a person with NO authenticator     │
+          # │ signs in with the password alone and is never sent to enrol one.  │
+          # │ A person who adds the authenticator app themselves (account page, │
+          # │ auth.<apex>/if/user/ → MFA devices) is asked for its code at every│
+          # │ sign-in, because this stage still validates any device it finds. │
+          # │ TO TURN MANDATORY TOTP BACK ON: `configure` here (one line), and  │
+          # │ HUB_REQUIRE_MFA back to "true" in                                 │
+          # │ estate/seb-components/autorizare/kustomization.yaml.              │
+          # └───────────────────────────────────────────────────────────────────┘
+          not_configured_action: skip
           # TOTP is the ONLY factor (see DEVICE CLASSES above).
           device_classes:
             - totp
@@ -151,7 +161,12 @@ data:
         attrs:
           device_classes:
             - totp
-          not_configured_action: deny
+          # `skip`, not `deny`: with TOTP optional (PSI SETTING above) a person with
+          # no device reaches this stage too, and must pass. A person who has one was
+          # either validated at order 30 (so the policy below keeps this stage out) or
+          # has just enrolled it there under `configure`, and is asked for its code
+          # here — skip only ever applies to someone holding no device at all.
+          not_configured_action: skip
           last_auth_threshold: seconds=0
       - model: authentik_policies_expression.expressionpolicy
         id: mfa-not-yet-validated
