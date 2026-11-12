@@ -33,7 +33,6 @@ resources:
   - platform-secrets.yaml
   - plunk.yaml
   - public-doors.yaml
-  - reloader.yaml
   - stalwart.yaml
   - system-upgrade-controller.yaml
   - test-reports.yaml

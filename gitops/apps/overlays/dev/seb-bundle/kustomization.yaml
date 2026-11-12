@@ -13,3 +13,4 @@ resources:
   - seb-talk-hpb.yaml
   - seb-convex.yaml
   - seb-headlamp.yaml
+  - seb-reloader.yaml
