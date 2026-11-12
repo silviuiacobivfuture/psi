@@ -30,3 +30,4 @@ resources:
   - seb-kyverno.yaml
   - seb-argocd-config.yaml
   - seb-test-reports.yaml
+  - seb-stalwart.yaml

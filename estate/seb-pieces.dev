@@ -29,3 +29,4 @@ hcloud-csi
 kyverno
 argocd-config
 test-reports
+stalwart
