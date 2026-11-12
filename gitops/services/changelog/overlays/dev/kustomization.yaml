@@ -7,7 +7,6 @@ resources:
 # commits it → Argo deploys. This is the push-to-deploy hand-off.
 images:
   - name: WLREGISTRY/WLAPPS/changelog
-    # Built by estate-images.sh from SEB apps/changelog for psi; pinned by digest (estate/seb-images.json).
     digest: sha256:bf2b44c9492e8b5dbf6e45c68949fa04a5fe7e342bd1df71b48d13360f531fb7
 # NOTE: no per-overlay Ingress host patch. changelog is TAILNET-ONLY — the base
 # Ingress (ingressClassName: tailscale, defaultBackend, tls.hosts[0]=changelog →

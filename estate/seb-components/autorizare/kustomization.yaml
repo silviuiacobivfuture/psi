@@ -52,3 +52,17 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/volumeMounts/-
         value: { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
+  # psi, 2026-11-12: Polaris is held at ZERO replicas until SEB's first-start order lets it boot on a
+  # new estate (its migrations and model release wait for settings that only exist once it runs). Its
+  # six crash-looping/stuck pods reserved memory on psi's single server and did nothing. Remove these
+  # two patches when the start-order fix lands.
+  - target: { kind: Deployment, name: autorizare-svc }
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+  - target: { kind: Deployment, name: autorizare-hub }
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0

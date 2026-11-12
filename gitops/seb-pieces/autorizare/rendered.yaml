@@ -119,7 +119,7 @@ metadata:
   name: autorizare-hub
   namespace: autorizare
 spec:
-  replicas: 3
+  replicas: 0
   selector:
     matchLabels:
       app: autorizare-hub
@@ -249,7 +249,7 @@ metadata:
   name: autorizare-svc
   namespace: autorizare
 spec:
-  replicas: 3
+  replicas: 0
   selector:
     matchLabels:
       app: autorizare-svc
