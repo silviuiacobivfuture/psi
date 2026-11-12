@@ -11,3 +11,7 @@ resources:
   - email.generated.yaml
 patches:
   - path: sso-mapping.yaml
+  # psi 2026-11-12: request = measured peak 212Mi ×1.5 (database), kept ≥ shared_buffers 256MB + 128Mi; limit unchanged
+  - target: { kind: Cluster, name: plane-db }
+    patch: |-
+      - { op: replace, path: /spec/resources/requests/memory, value: 384Mi }

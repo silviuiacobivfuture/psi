@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# PSI's additions to SEB's openfga piece, passed to the renderer as the estate's layer
+# (tools/estate-pieces.mjs --estate-components estate/seb-components).
+patches:
+  # psi 2026-11-12: request = measured peak 16Mi ×1.3 (floor 64Mi); limit unchanged
+  - target: { kind: Deployment, name: openfga }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: openfga }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 64Mi }

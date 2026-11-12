@@ -40,3 +40,13 @@ patches:
       apiVersion: networking.k8s.io/v1
       kind: Ingress
       metadata: { name: novu-api-tailnet }
+  # psi 2026-11-12: request = measured peak 69Mi ×1.3; limit unchanged
+  - target: { kind: Deployment, name: novu-sso }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: novu-sso }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 96Mi }
+  # psi 2026-11-12: request = measured peak 38Mi ×1.3 (floor 64Mi); limit unchanged
+  - target: { kind: Deployment, name: novu-bridge }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: novu-bridge }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 64Mi }

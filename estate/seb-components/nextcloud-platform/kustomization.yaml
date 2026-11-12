@@ -21,3 +21,7 @@ patches:
       - op: replace
         path: /spec/jobTemplate/spec/template/spec/containers/0/env/23/value
         value: '{"1":{"id":1,"name":"PSIZONE","url":"https://psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"2":{"id":2,"name":"EQ-SYNC","url":"https://eqsync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"3":{"id":3,"name":"Hemi-Sync","url":"https://hemisync.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true},"4":{"id":4,"name":"Blog","url":"https://blog.psizone.ro","lang":"","type":"link","device":"","icon":"external.svg","groups":[],"redirect":true}}'
+  # psi 2026-11-12: request = measured peak 204Mi ×1.5 (database), kept ≥ shared_buffers 256MB + 128Mi; limit unchanged
+  - target: { kind: Cluster, name: nextcloud-db }
+    patch: |-
+      - { op: replace, path: /spec/resources/requests/memory, value: 384Mi }

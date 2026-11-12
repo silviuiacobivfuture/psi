@@ -1646,7 +1646,7 @@ spec:
       memory: 1Gi
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 384Mi
   smartShutdownTimeout: 10
   storage:
     size: 10Gi
