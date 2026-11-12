@@ -669,6 +669,20 @@ data:
           target: !Find [authentik_core.application, [slug, affine]]
           group: !Find [authentik_core.group, [name, app-affine-admin]]
         attrs: { negate: false, enabled: true, order: 2 }
+      # AFFiNE REFUSES a sign-in whose `email_verified` is not true ("Email for this account
+      # is not verified"), and Authentik's own email mapping sends false for an account whose
+      # address was never confirmed by a mail round-trip. The estate's accounts are made by its
+      # administrators (blueprints, invitations, the federated sources), so the address IS the
+      # one the estate vouches for: this mapping, bound to AFFiNE's provider ONLY, says so.
+      # Every other provider keeps the managed email mapping.
+      - model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: affine-email-scope
+        attrs:
+          scope_name: email
+          description: "E-mail, vouched for by the estate (AFFiNE requires email_verified)"
+          expression: |
+            return {"email": request.user.email, "email_verified": True}
       # AFFiNE asks for openid, profile and email (its default scope) and keys a person on
       # `sub`: hashed_user_id, so a changed address never makes a second account. PKCE by
       # the client (AFFiNE always sends it).
@@ -689,7 +703,7 @@ data:
           sub_mode: hashed_user_id
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
-            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, affine-email-scope]]
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
           redirect_uris:
             - matching_mode: strict

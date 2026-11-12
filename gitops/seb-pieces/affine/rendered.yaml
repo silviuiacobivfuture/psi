@@ -890,6 +890,46 @@ spec:
     - docs.psizone.ro
     secretName: affine-tls
 ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,affine-affine-local-auth-off@kubernetescrd
+  name: affine-local-auth
+  namespace: affine
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: docs.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: affine
+            port:
+              name: http
+        path: /api/auth/preflight
+        pathType: Exact
+      - backend:
+          service:
+            name: affine
+            port:
+              name: http
+        path: /api/auth/sign-in
+        pathType: Exact
+      - backend:
+          service:
+            name: affine
+            port:
+              name: http
+        path: /api/auth/magic-link
+        pathType: Exact
+  tls:
+  - hosts:
+    - docs.psizone.ro
+    secretName: affine-tls
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -960,3 +1000,13 @@ spec:
     name: affine-db
   immediate: true
   schedule: 0 0 3 * * 0
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: affine-local-auth-off
+  namespace: affine
+spec:
+  ipAllowList:
+    sourceRange:
+    - 127.0.0.1/32

@@ -664,7 +664,7 @@
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L094h], options: {delimiter: "      meta_launch_url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L094h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 332}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 374
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 388
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L095], options: {delimiter: "/oauth/callback", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.AFFINE_HOST_PREFIX}
@@ -672,22 +672,22 @@
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L095}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L095h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L095h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 374}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 411
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 388}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 425
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L096]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L096}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L096h], options: {delimiter: "      external_host: https://netdata.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L096h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 411}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 427
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 425}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 441
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L097]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L097}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L097h], options: {delimiter: "      external_host: https://hub.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L097h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 427}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 448
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 441}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 462
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L098], options: {delimiter: " =", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MESH_BASE_DOMAIN}
@@ -695,28 +695,28 @@
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L098}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L098h], options: {delimiter: "  # Netdata and the hub claimed the SAME host as the public ones (", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L098h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 448}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 520
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 462}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 534
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L099]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L099}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L099h], options: {delimiter: "      external_host: https://n8n.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L099h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 520}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 535
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 534}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 549
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L100], options: {delimiter: "/sso/setup", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L100}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L100h], options: {delimiter: "      meta_launch_url: https://n8n.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L100h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 535}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 552
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 549}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 566
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L101], options: {delimiter: "-forward-auth]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L101}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L101h], options: {delimiter: "        - !Find [authentik_providers_proxy.proxyprovider, [name, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L101h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 552}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 566}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L102], options: {delimiter: "-internal-admins", index: -1}}]
