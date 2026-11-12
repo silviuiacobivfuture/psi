@@ -426,6 +426,36 @@ data:
             - !Find [authentik_core.user, [username, adi_rar]]
             - !Find [authentik_core.user, [username, nicholas.turcu]]
             - !Find [authentik_core.user, [username, e2e-hub]]
+      # ---- Entitlements: AFFiNE (documents, notes, whiteboards; pieces/affine) ----
+      # Gates <AFFINE_HOST_PREFIX>.<apex> TWICE, with the same three bindings each time
+      # (blueprints-providers.yaml): the `affine` forward_single proxy provider at the edge,
+      # and the `affine-oidc` client AFFiNE signs in with. AFFiNE cannot read a group, so
+      # Authentik IS the access decision; AFFiNE makes the account at the first sign-in.
+      #   app-affine-user   uses AFFiNE: their own workspaces, and the ones they are invited to
+      #   app-affine-admin  the same access, and the people who run the instance: the
+      #                     operator holds AFFiNE's own administrator role (its first account,
+      #                     pieces/affine/base/first-admin.mjs) and grants it in AFFiNE's admin
+      #                     panel to whoever else this group names
+      #   platform-admins   break-glass, as everywhere
+      # Membership declared from the group side; this `users` list REPLACES the membership.
+      - model: authentik_core.group
+        identifiers:
+          name: app-affine-user
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
+            # psi: the same people as app-pdfcraft-user (the Business tab's tools).
+            - !Find [authentik_core.user, [username, turcu_daniela]]
+            - !Find [authentik_core.user, [username, adi_rar]]
+            - !Find [authentik_core.user, [username, nicholas.turcu]]
+      - model: authentik_core.group
+        identifiers:
+          name: app-affine-admin
+        attrs:
+          is_superuser: false
+          users:
+            - !Find [authentik_core.user, [username, WLOPERATOR]]
       # ---- Entitlements + roles: Novu (notification dashboard, novu.WLDOMAIN) ----
       # Authentik groups decide who may use the Novu dashboard AND the role,
       # re-synced on every sign-in by apps/novu-sso (mapping.json):

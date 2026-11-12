@@ -28,6 +28,7 @@ nx-cache
 openfga
 otel-logging
 pdfcraft
+affine
 plane
 plane-platform
 platform-rbac

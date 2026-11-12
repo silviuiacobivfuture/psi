@@ -1,5 +1,13 @@
 {
 	"$comment": "The tile icon of every application in Authentik's 'Aplicațiile mele', by application slug. Served from the authentik-estate ConfigMap at /static/dist/assets/recomex/<file> and named by meta_icon in the blueprints. 'estate' files are GENERATED from @rmx/ui (packages/rmx-ui/scripts/authentik-assets.mjs and authentik-tiles.mjs): an application's own mark, or for the hub (mark 'estate') the six marks three by two. 'vendored' files are the project's official logo, byte for byte as published at 'source' (sha256 recorded). 'derived' files are cut from the official artwork at 'source', as 'derivation' says. Every third-party logo is its owner's trademark, shown only to identify that owner's software. Never hot-link: a logo on somebody else's host breaks the day they move it (the Novu tile, 2026-10-29). Held to these rules by packages/rmx-ui/src/__tests__/authentik-app-icons.test.ts.",
+	"affine": {
+		"file": "app-affine.svg",
+		"kind": "vendored",
+		"mark": "AFFiNE, as its own admin panel's setup page shows it",
+		"source": "https://github.com/toeverything/AFFiNE/blob/v0.27.4/packages/frontend/admin/src/modules/setup/logo.svg",
+		"licence": "MIT (toeverything/AFFiNE, content outside packages/backend: LICENSE-MIT)",
+		"sha256": "e2afb8b60d5fbccb0b871418fe6d9b67812e5f8167ef753ff9e849b27f58647d"
+	},
 	"argocd": {
 		"file": "app-argocd.svg",
 		"kind": "vendored",

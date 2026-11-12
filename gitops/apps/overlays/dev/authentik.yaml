@@ -74,6 +74,12 @@ spec:
             - secretRef:
                 name: authentik-cms-oidc
                 optional: true
+            # AFFiNE's OIDC client (gitops/platform/authentik/affine-oidc-externalsecret.yaml).
+            # OPTIONAL so a client not seeded yet never holds the directory down; the affine-oidc
+            # provider shows an empty client id meanwhile and AFFiNE refuses to start, by name.
+            - secretRef:
+                name: authentik-affine-oidc
+                optional: true
           # The Romanian mail templates (gitops/platform/authentik/email-templates.yaml),
           # under Authentik's email.template_dir (/templates). Read-only.
           volumes:

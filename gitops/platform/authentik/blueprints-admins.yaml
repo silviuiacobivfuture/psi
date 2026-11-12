@@ -61,6 +61,9 @@ data:
             # lists the operator in it, so it is listed here too.
             - !Find [authentik_core.group, [name, app-plane-admin]]
             - !Find [authentik_core.group, [name, app-pdfcraft-user]]
+            # AFFiNE (pieces/affine); blueprints-groups.yaml lists the operator in both.
+            - !Find [authentik_core.group, [name, app-affine-user]]
+            - !Find [authentik_core.group, [name, app-affine-admin]]
             # The remaining lower-tier entitlements. They add nothing on top of the
             # *-admin groups above, but this list REPLACES the whole membership set,
             # so anything omitted here is REMOVED from the operator on every apply —

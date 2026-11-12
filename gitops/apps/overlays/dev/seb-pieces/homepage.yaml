@@ -253,6 +253,13 @@ spec:
                     namespace: pdfcraft
                     app: pdfcraft
                     podSelector: app.kubernetes.io/name=pdfcraft
+                - Documente și notițe:
+                    icon: mdi-notebook-edit-outline
+                    href: https://docs.psizone.ro
+                    description: Documente, notițe și table albe, scrise împreună · AFFiNE
+                    namespace: affine
+                    app: affine
+                    podSelector: app.kubernetes.io/name=affine
             - Conținut și brand:
                 - Conținutul site-urilor:
                     icon: mdi-text-box-edit-outline

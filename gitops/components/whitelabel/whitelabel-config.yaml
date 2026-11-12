@@ -46,7 +46,7 @@ data:
   MESH: none
   ENVIRONMENTS: dev
   # platform-apps
-  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft
+  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,reportportal,test-reports,pdfcraft,affine
   AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
@@ -58,6 +58,7 @@ data:
   REPORTPORTAL_HOST_PREFIX: reports
   TEST_REPORTS_HOST_PREFIX: tests
   PDFCRAFT_HOST_PREFIX: pdf
+  AFFINE_HOST_PREFIX: docs
   # identity
   OPERATOR_USERNAME: silviu
   OPERATOR_NAME: "Silviu Iacob"
