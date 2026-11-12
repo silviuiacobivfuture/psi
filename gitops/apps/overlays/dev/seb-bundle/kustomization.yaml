@@ -17,3 +17,4 @@ resources:
   - seb-system-upgrade-controller.yaml
   - seb-cluster-dns.yaml
   - seb-cert-manager.yaml
+  - seb-platform-rbac.yaml

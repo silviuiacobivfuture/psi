@@ -16,3 +16,4 @@ reloader
 system-upgrade-controller
 cluster-dns
 cert-manager
+platform-rbac
