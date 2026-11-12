@@ -18,3 +18,4 @@ resources:
   - seb-cluster-dns.yaml
   - seb-cert-manager.yaml
   - seb-platform-rbac.yaml
+  - seb-db-backup.yaml
