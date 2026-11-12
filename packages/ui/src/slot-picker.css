@@ -1,0 +1,443 @@
+/*
+ * The slot picker: a service header, a mode toggle and practitioner filter when there is a choice,
+ * a seven-day strip and the chosen day's times by part of the day. Every control is a native radio
+ * laid over its label (the whole face is the hit area, the keyboard is the platform's); state is
+ * drawn from :has(:checked) and never from colour alone. Colour only from the token roles.
+ */
+
+.pz-slots {
+	--slot-h: 48px;
+	display: grid;
+	gap: 18px;
+	min-width: 0;
+	color: var(--ink);
+}
+.pz-slots input[type="radio"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+.pz-slots input[type="radio"]:disabled {
+	cursor: not-allowed;
+}
+.pz-slots fieldset {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+/* Header */
+.pz-slots__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 4px 12px;
+}
+.pz-slots__service {
+	margin: 0;
+	font: 600 var(--text-title, 20px) / 1.25 var(--font-display);
+}
+.pz-slots__len {
+	padding: 3px 10px;
+	border-radius: var(--radius-pill);
+	background: var(--accent-soft);
+	color: var(--ink);
+	font: 600 13px / 1.3 var(--font-body);
+	white-space: nowrap;
+}
+
+/* Mode toggle and practitioner filter */
+.pz-seg {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 4px;
+	padding: 4px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+}
+.pz-seg__item,
+.pz-who__item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0 16px;
+	border-radius: var(--radius-pill);
+	font: 600 15px / 1.2 var(--font-body);
+	text-align: center;
+	transition:
+		background 160ms ease,
+		color 160ms ease,
+		box-shadow 160ms ease;
+}
+.pz-seg__item:hover:not(:has(:checked)) {
+	background: var(--surface-1);
+}
+.pz-seg__item:has(:checked) {
+	background: var(--accent);
+	color: var(--on-accent);
+	box-shadow: var(--shadow-glow);
+}
+.pz-who {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.pz-who__item {
+	border: 1px solid var(--line-control);
+	color: var(--ink);
+}
+.pz-who__item:hover:not(:has(:checked)) {
+	background: var(--surface-2);
+}
+.pz-who__item:has(:checked) {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+}
+
+/* Week strip */
+.pz-week {
+	display: grid;
+	gap: 10px;
+}
+.pz-week__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+.pz-week__range {
+	font: 600 15px / 1.2 var(--font-body);
+	color: var(--ink);
+	text-transform: capitalize;
+	font-variant-numeric: tabular-nums;
+}
+.pz-week__step {
+	display: inline-grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	border: 1px solid var(--line-control);
+	background: transparent;
+	color: var(--ink);
+	cursor: pointer;
+	transition: background 160ms ease;
+}
+.pz-week__step:hover:not(:disabled) {
+	background: var(--surface-2);
+}
+.pz-week__step:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+.pz-week__days {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 4px;
+}
+.pz-day {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	align-content: center;
+	gap: 1px;
+	min-height: 64px;
+	padding: 6px 0 8px;
+	border-radius: var(--radius-md);
+	border: 1px solid transparent;
+	color: var(--ink-faint);
+	transition:
+		background 160ms ease,
+		border-color 160ms ease,
+		transform 160ms ease;
+}
+.pz-day[data-free] {
+	color: var(--ink);
+	background: var(--surface-1);
+	border-color: var(--line);
+}
+.pz-day[data-free]:hover:not(:has(:checked)) {
+	background: var(--surface-2);
+	border-color: var(--line-strong);
+}
+.pz-day__name {
+	font: 600 11px / 1.2 var(--font-label);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-muted);
+}
+.pz-day:not([data-free]) .pz-day__name {
+	color: var(--ink-faint);
+}
+.pz-day__num {
+	font: 600 19px / 1.2 var(--font-body);
+	font-variant-numeric: tabular-nums;
+}
+.pz-day:not([data-free]) .pz-day__num {
+	opacity: 0.7;
+}
+.pz-day__dot {
+	width: 5px;
+	height: 5px;
+	margin-top: 2px;
+	border-radius: 50%;
+	background: transparent;
+}
+.pz-day[data-free] .pz-day__dot {
+	background: var(--accent);
+}
+.pz-day[data-today] {
+	border-color: var(--accent);
+	border-style: dashed;
+}
+.pz-day[data-today]:not([data-free]) {
+	border-style: dashed;
+	border-color: var(--line-strong);
+}
+.pz-day:has(:checked) {
+	background: var(--accent);
+	border-color: var(--accent);
+	border-style: solid;
+	color: var(--on-accent);
+	box-shadow: var(--shadow-glow);
+}
+.pz-day:has(:checked) .pz-day__name {
+	color: var(--on-accent);
+}
+.pz-day:has(:checked) .pz-day__dot {
+	background: var(--on-accent);
+}
+
+/* Times */
+.pz-times {
+	display: grid;
+	gap: 10px;
+}
+.pz-times__part {
+	padding: 0;
+	font: 600 12px / 1.2 var(--font-label);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--ink-muted);
+}
+.pz-times__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+	gap: 8px;
+}
+.pz-slot {
+	position: relative;
+	display: block;
+}
+.pz-slot__face {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: var(--slot-h);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--line-control);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 16px / 1 var(--font-body);
+	font-variant-numeric: tabular-nums;
+	transition:
+		background 160ms ease,
+		border-color 160ms ease,
+		transform 160ms ease,
+		box-shadow 160ms ease;
+}
+.pz-slot:hover .pz-slot__face {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+}
+.pz-slot__tick {
+	display: none;
+}
+.pz-slot:has(:checked) .pz-slot__face {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--on-accent);
+	box-shadow: var(--shadow-glow);
+}
+.pz-slot:has(:checked) .pz-slot__tick {
+	display: block;
+}
+
+/* Focus: the ring sits on the visible face, not on the invisible input */
+.pz-slots :is(.pz-day, .pz-slot, .pz-seg__item, .pz-who__item):has(:focus-visible),
+.pz-slots :is(.pz-week__step, .pz-slots__jump):focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+.pz-slot:has(:focus-visible) {
+	outline: none;
+}
+.pz-slot:has(:focus-visible) .pz-slot__face {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+/* Notice, empty state, live summary */
+.pz-slots__notice {
+	margin: 0;
+	padding: 10px 14px;
+	border-radius: var(--radius-md);
+	border: 1px solid var(--warning);
+	background: var(--warm-soft);
+	font: 600 15px / 1.4 var(--font-body);
+}
+.pz-slots__empty {
+	display: grid;
+	justify-items: start;
+	gap: 10px;
+	padding: 16px;
+	border-radius: var(--radius-md);
+	border: 1px dashed var(--line-strong);
+	color: var(--ink-muted);
+}
+.pz-slots__empty p {
+	margin: 0;
+}
+.pz-slots__jump {
+	min-height: 44px;
+	padding: 0 18px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--accent);
+	background: var(--accent-soft);
+	color: var(--ink);
+	font: 600 15px / 1.2 var(--font-body);
+	cursor: pointer;
+}
+.pz-slots__live {
+	margin: 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
+	color: var(--ink-muted);
+	font: 500 15px / 1.4 var(--font-body);
+}
+
+/* Compact: inside a conversation bubble */
+.pz-slots--compact {
+	gap: 14px;
+}
+.pz-slots--compact .pz-slots__service {
+	font-size: 17px;
+}
+.pz-slots--compact .pz-seg__item {
+	padding: 0 10px;
+	font-size: 14px;
+}
+.pz-slots--compact .pz-week__days {
+	gap: 2px;
+}
+.pz-slots--compact .pz-day {
+	min-height: 60px;
+	padding-inline: 0;
+}
+.pz-slots--compact .pz-day__num {
+	font-size: 17px;
+}
+.pz-slots--compact .pz-times__grid {
+	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+	gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-slots :is(.pz-day, .pz-slot__face, .pz-seg__item, .pz-who__item, .pz-week__step) {
+		transition: none;
+	}
+}
+
+/* Service cards (the booking page) */
+.pz-svcs {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.pz-svcs__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+	gap: 10px;
+	margin-top: 10px;
+}
+.pz-svc {
+	position: relative;
+	display: grid;
+	gap: 4px;
+	align-content: start;
+	min-height: 76px;
+	padding: 14px 16px;
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--line-control);
+	background: var(--surface-1);
+	color: var(--ink);
+	transition:
+		background 160ms ease,
+		border-color 160ms ease,
+		box-shadow 160ms ease;
+}
+.pz-svc input[type="radio"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+.pz-svc:hover:not(:has(:checked)) {
+	background: var(--surface-2);
+	border-color: var(--line-strong);
+}
+.pz-svc:has(:checked) {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+	box-shadow: inset 0 0 0 1px var(--accent);
+}
+.pz-svc:has(:focus-visible) {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+.pz-svc__name {
+	font: 600 17px / 1.25 var(--font-display);
+}
+.pz-svc__meta {
+	font: 500 14px / 1.3 var(--font-body);
+	color: var(--ink-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+	.pz-svc {
+		transition: none;
+	}
+}
+
+/* The way to a call instead of a time */
+.pz-slots__switch {
+	justify-self: start;
+	min-height: 44px;
+	padding: 0 4px;
+	border: 0;
+	background: none;
+	color: var(--ink);
+	font: 600 15px / 1.2 var(--font-body);
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	cursor: pointer;
+}
+.pz-slots__switch:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}

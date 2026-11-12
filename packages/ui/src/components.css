@@ -1,4 +1,5 @@
 /* Psizone components. Every value comes from tokens.css; nothing here re-declares a token. */
+@import "./slot-picker.css";
 body {
 	margin: 0;
 	font-family: var(--pz-body);

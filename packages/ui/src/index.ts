@@ -110,6 +110,16 @@ export {
 } from "./components/progress-signal";
 export { Prose } from "./components/prose";
 export { ReadingProgress } from "./components/reading-progress";
+export {
+	dateWords,
+	ServiceCards,
+	type ServiceCardsProps,
+	SlotPicker,
+	type SlotPickerActions,
+	type SlotPickerLabels,
+	type SlotPickerProps,
+	weekRange,
+} from "./components/slot-picker";
 export { SoundWaves, type SoundWavesProps } from "./components/sound-waves";
 export { StatusBadge, type StatusBadgeProps } from "./components/status-badge";
 export {
@@ -202,3 +212,14 @@ export {
 	servedEntries,
 	sitemapXml,
 } from "./seo/sitemap";
+export {
+	addDays,
+	firstDayWithTimes,
+	isLocalDate,
+	localDate,
+	localTime,
+	mondayOf,
+	type PartOfDay,
+	type PickerSlot,
+	type SlotMode,
+} from "./slot-week";

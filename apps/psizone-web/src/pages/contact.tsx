@@ -1,6 +1,7 @@
 import { AmbientField } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { BookingForm, type SlotDay } from "../booking";
+import { BookingForm } from "../booking";
+import type { Schedule } from "../booking-schedule";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
@@ -14,14 +15,14 @@ export function ContactPage({
 	locale,
 	theme,
 	origin,
-	slots = [],
+	schedule,
 	booking = {},
 }: {
 	locale: Locale;
 	theme: Theme;
 	origin: string;
-	/** Free evaluation times when scheduling is on; none keeps the callback form. */
-	slots?: ReadonlyArray<SlotDay>;
+	/** The calendar when scheduling is on; absent keeps the callback form alone. */
+	schedule?: Schedule;
 	/** The estate account's pre-fill and sign-in line (see booking-account.ts). */
 	booking?: Pick<Parameters<typeof BookingForm>[0], "values" | "account">;
 }): JSX.Element {
@@ -65,7 +66,11 @@ export function ContactPage({
 							<p class="mt-12 max-w-sm text-body-sm text-ink-faint">{m.contact_privacy({}, o)}</p>
 						</div>
 						<div class="pz-edge rounded-xl p-6 backdrop-blur-2xl md:p-10">
-							<BookingForm locale={locale} slots={slots} {...booking} />
+							<BookingForm
+								locale={locale}
+								{...(schedule === undefined ? {} : { schedule })}
+								{...booking}
+							/>
 						</div>
 					</div>
 				</AmbientField>

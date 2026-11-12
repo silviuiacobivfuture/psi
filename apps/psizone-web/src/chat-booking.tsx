@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
 import type { BookingOffer } from "@psi/guide";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { BookingForm, type BookingValues, type SlotDay, slotDays } from "./booking";
+import type { HtmlEscapedString } from "hono/utils/html";
+import { BookingForm, type BookingValues } from "./booking";
+import type { Picker } from "./booking-picker";
+import { scheduleOf } from "./booking-routes";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 
@@ -25,16 +28,6 @@ type FormAccount = Parameters<typeof BookingForm>[0]["account"];
 /** A form id no other form in the page shares: every offer is its own form. */
 export function chatFormId(): string {
 	return `chat-booking-${randomBytes(3).toString("hex")}`;
-}
-
-/** "vineri, 20 noiembrie", from the local date a slot carries (no zone arithmetic needed). */
-function dayOf(date: string, locale: Locale): string {
-	return new Intl.DateTimeFormat(locale === "ro" ? "ro-RO" : "en-GB", {
-		timeZone: "UTC",
-		weekday: "long",
-		day: "numeric",
-		month: "long",
-	}).format(Date.parse(`${date}T12:00:00Z`));
 }
 
 function Contact({ locale }: { locale: Locale }): JSX.Element {
@@ -101,12 +94,31 @@ export function bookingSummary(offer: BookingOffer, locale: Locale): string {
 	}
 }
 
-export function ChatBooking({
+/** The picker's starting choices, from what the engine offered: the service, the mode, the day and the time. */
+function startingChoices(offer: BookingOffer): Record<string, string> {
+	const first = offer.chosen ?? offer.slots[0];
+	const date = first?.date ?? offer.state?.criteria.fromDate ?? "";
+	return {
+		service: offer.service,
+		mode: offer.state?.criteria.mode ?? first?.mode ?? "",
+		week: date,
+		day: date,
+		slot: offer.chosen?.slotId ?? "",
+	};
+}
+
+/**
+ * The offer inside the conversation bubble. Times come as the booking picker (compact): the week
+ * around the offered day, read from the store now, not from the offer's few slots. Picking a time
+ * opens the details in place; the picker's own route refreshes it from there.
+ */
+export async function ChatBooking({
 	locale,
 	offer,
 	prefill = {},
 	account,
 	formId = chatFormId(),
+	source,
 }: {
 	locale: Locale;
 	offer: BookingOffer;
@@ -115,7 +127,9 @@ export function ChatBooking({
 	account?: FormAccount;
 	/** The form's id; by default a fresh one, so two offers in one conversation never clash. */
 	formId?: string;
-}): JSX.Element {
+	/** Where the free times are read from; by default the site's scheduling store. */
+	source?: Picker;
+}): Promise<HtmlEscapedString> {
 	const o = at(locale);
 	const accountProp = account === undefined ? {} : { account };
 	if (offer.kind === "cancel_ask") return <p>{m.guide_booking_cancel_ask({}, o)}</p>;
@@ -127,40 +141,8 @@ export function ChatBooking({
 			offer.services?.map((slug) => serviceName(slug, locale, offer.names)).join(", ") ?? "";
 		return <p>{m.guide_booking_services({ services: names }, o)}</p>;
 	}
-	if (offer.kind === "confirm" && offer.chosen !== undefined) {
-		const chosen = offer.chosen;
-		const day = dayOf(chosen.date, locale);
-		const days: ReadonlyArray<SlotDay> = [
-			{ day, slots: [{ id: chosen.slotId, time: chosen.time }] },
-		];
-		return (
-			<div class="space-y-4">
-				<p>{m.guide_booking_confirm({ time: chosen.time, day }, o)}</p>
-				<BookingForm
-					id={formId}
-					locale={locale}
-					slots={days}
-					values={{ ...prefill, slot: chosen.slotId }}
-					{...accountProp}
-				/>
-			</div>
-		);
-	}
-	const seen = new Set<string>();
-	const unique = offer.slots.filter((slot) => {
-		if (seen.has(slot.slotId)) return false;
-		seen.add(slot.slotId);
-		return true;
-	});
-	const days =
-		offer.status === "ok" && offer.timeZone !== undefined
-			? slotDays(
-					unique.map((slot) => ({ id: slot.slotId, start: Date.parse(slot.startsAt) })),
-					offer.timeZone,
-					locale,
-				)
-			: [];
-	if (days.length === 0) {
+	const schedule = await scheduleOf(startingChoices(offer), source === undefined ? {} : { source });
+	if (schedule === undefined) {
 		return (
 			<div class="space-y-3">
 				<p>{m.guide_booking_none({}, o)}</p>
@@ -168,10 +150,25 @@ export function ChatBooking({
 			</div>
 		);
 	}
+	const lead =
+		offer.kind === "confirm" && offer.chosen !== undefined
+			? m.guide_booking_confirm_picker({}, o)
+			: offer.notice === undefined
+				? m.guide_booking_intro({}, o)
+				: NOTICE[offer.notice](o);
 	return (
 		<div class="space-y-4">
-			<p>{offer.notice === undefined ? m.guide_booking_intro({}, o) : NOTICE[offer.notice](o)}</p>
-			<BookingForm id={formId} locale={locale} slots={days} values={prefill} {...accountProp} />
+			<p>
+				{offer.status === "ok" || offer.kind === "confirm" ? lead : m.guide_booking_none({}, o)}
+			</p>
+			<BookingForm
+				id={formId}
+				locale={locale}
+				schedule={schedule}
+				compact
+				values={prefill}
+				{...accountProp}
+			/>
 		</div>
 	);
 }

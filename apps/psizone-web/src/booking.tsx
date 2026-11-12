@@ -1,6 +1,7 @@
 import { Button, GlassCard, StatusBadge, TextField } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { z } from "zod";
+import { type Schedule, ScheduleSection } from "./booking-schedule";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 
@@ -22,6 +23,10 @@ export const BookingRequest = z
 		when: z.enum(["morning", "afternoon", "any"]).default("any"),
 		/** A free slot's id when scheduling is on; empty (or absent) means "call me back". */
 		slot: z.string().max(120).default(""),
+		/** The service the slot is for; empty means the store's default. */
+		service: z.union([z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/), z.literal("")]).default(""),
+		/** "1" when the form is the booking page's (service cards), so every step re-renders it so. */
+		cards: z.enum(["1", ""]).catch(""),
 		consent: z.literal("yes"),
 	})
 	.refine((v) => v.email !== "" || v.phone !== "", { path: ["contact"] });
@@ -58,20 +63,8 @@ export type BookingErrors = Partial<
 	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
 >;
 export type BookingValues = Partial<
-	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot", string>
+	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service", string>
 >;
-
-/** One bookable time as the form offers it, already in words for the locale. */
-export interface SlotChoice {
-	id: string;
-	time: string;
-}
-
-/** A day of free times. */
-export interface SlotDay {
-	day: string;
-	slots: ReadonlyArray<SlotChoice>;
-}
 
 const INTL_LOCALE: Readonly<Record<Locale, string>> = { ro: "ro-RO", en: "en-GB" };
 
@@ -95,24 +88,6 @@ export function wallClock(
 		hourCycle: "h23",
 	}).format(start);
 	return { day, time };
-}
-
-/** Free slots grouped by local day, at most `days` days. */
-export function slotDays(
-	slots: ReadonlyArray<{ id: string; start: number }>,
-	timeZone: string,
-	locale: Locale,
-	days = 4,
-): ReadonlyArray<SlotDay> {
-	const grouped = new Map<string, SlotChoice[]>();
-	for (const slot of slots) {
-		const { day, time } = wallClock(slot.start, timeZone, locale);
-		const list = grouped.get(day) ?? [];
-		if (list.length === 0 && grouped.size >= days) break;
-		list.push({ id: slot.id, time });
-		grouped.set(day, list);
-	}
-	return [...grouped].map(([day, list]) => ({ day, slots: list }));
 }
 
 /** Maps the parser's issues to the field errors a person reads. */
@@ -156,56 +131,23 @@ function Choice({
 	);
 }
 
-/** The free evaluation times, by day, and "call me instead" (the callback flow, as before). */
-function SlotPicker({
-	locale,
-	days,
-	values,
-	errors,
-}: {
-	locale: Locale;
-	days: ReadonlyArray<SlotDay>;
-	values: BookingValues;
-	errors: BookingErrors;
-}): JSX.Element {
-	const o = at(locale);
-	const chosen = values.slot ?? "";
-	return (
-		<fieldset class="space-y-4">
-			<legend class="pz-field__label">{m.form_slot({}, o)}</legend>
-			<p class="text-body-sm text-ink-muted">{m.form_slot_hint({}, o)}</p>
-			{days.map((day) => (
-				<div class="space-y-2">
-					<p class="text-body-sm text-ink">{day.day}</p>
-					<div class="flex flex-wrap gap-2">
-						{day.slots.map((slot) => (
-							<Choice name="slot" value={slot.id} label={slot.time} checked={chosen === slot.id} />
-						))}
-					</div>
-				</div>
-			))}
-			<div class="flex flex-wrap gap-2">
-				<Choice name="slot" value="" label={m.form_slot_callback({}, o)} checked={chosen === ""} />
-			</div>
-			{errors.slot ? <p class="text-body-sm text-danger">{errors.slot}</p> : null}
-		</fieldset>
-	);
-}
-
 /** The form region, re-rendered by the server after every submit (patched by id). */
 export function BookingForm({
 	locale,
 	values = {},
 	errors = {},
-	slots = [],
+	schedule,
 	id = "booking",
 	account,
+	compact = false,
 }: {
 	locale: Locale;
 	values?: BookingValues;
 	errors?: BookingErrors;
-	/** Free evaluation times; empty when scheduling is off, which keeps the callback form. */
-	slots?: ReadonlyArray<SlotDay>;
+	/** The schedule picker (scheduling on); absent keeps the callback form alone. */
+	schedule?: Schedule;
+	/** Inside a conversation bubble: the picker draws in its compact variant. */
+	compact?: boolean;
 	id?: FormId;
 	/**
 	 * The estate account, when sign-in is available: a signed-in person is told the form was filled
@@ -215,6 +157,10 @@ export function BookingForm({
 }): JSX.Element {
 	const o = at(locale);
 	const f = fieldPrefix(id);
+	const view = schedule?.view;
+	// A time is being chosen: the contact fields wait for one; a call, or a store that cannot be read, skips it.
+	const picking = view?.kind === "ready" && schedule?.callback !== true;
+	const showDetails = !picking || (view?.kind === "ready" && view.data.selected !== undefined);
 	return (
 		<form
 			id={id}
@@ -236,94 +182,118 @@ export function BookingForm({
 					</a>
 				</p>
 			)}
-			<TextField
-				id={`${f}-name`}
-				name="name"
-				label={m.form_name({}, o)}
-				value={values.name}
-				error={errors.name}
-			/>
-			<div class="grid gap-5 sm:grid-cols-2">
-				<TextField
-					id={`${f}-email`}
-					name="email"
-					type="email"
-					label={m.form_email({}, o)}
-					value={values.email}
-					error={errors.contact}
-					hint={errors.contact ? undefined : m.form_contact_hint({}, o)}
-				/>
-				<TextField
-					id={`${f}-phone`}
-					name="phone"
-					type="tel"
-					label={m.form_phone({}, o)}
-					value={values.phone}
-				/>
-			</div>
-			<fieldset class="space-y-3">
-				<legend class="pz-field__label">{m.form_for({}, o)}</legend>
-				<div class="flex flex-wrap gap-2">
-					<Choice
-						name="forWhom"
-						value="child"
-						label={m.form_for_child({}, o)}
-						checked={values.forWhom === "child"}
+			{schedule === undefined ? null : (
+				<ScheduleSection locale={locale} id={id} schedule={schedule} compact={compact} />
+			)}
+			{errors.slot ? <p class="text-body-sm text-danger">{errors.slot}</p> : null}
+			{showDetails ? (
+				<div class="space-y-7">
+					{schedule === undefined ? null : (
+						<>
+							<h3 class="pz-field__label">{m.pick_details({}, o)}</h3>
+							{picking ? (
+								<p class="-mt-4 text-body-sm text-ink-muted">{m.pick_details_hint({}, o)}</p>
+							) : null}
+						</>
+					)}
+					<TextField
+						id={`${f}-name`}
+						name="name"
+						label={m.form_name({}, o)}
+						value={values.name}
+						error={errors.name}
 					/>
-					<Choice
-						name="forWhom"
-						value="teen"
-						label={m.form_for_teen({}, o)}
-						checked={values.forWhom === "teen"}
-					/>
-					<Choice
-						name="forWhom"
-						value="adult"
-						label={m.form_for_adult({}, o)}
-						checked={values.forWhom === "adult"}
-					/>
+					<div class="grid gap-5 sm:grid-cols-2">
+						<TextField
+							id={`${f}-email`}
+							name="email"
+							type="email"
+							label={m.form_email({}, o)}
+							value={values.email}
+							error={errors.contact}
+							hint={errors.contact ? undefined : m.form_contact_hint({}, o)}
+						/>
+						<TextField
+							id={`${f}-phone`}
+							name="phone"
+							type="tel"
+							label={m.form_phone({}, o)}
+							value={values.phone}
+						/>
+					</div>
+					<fieldset class="space-y-3">
+						<legend class="pz-field__label">{m.form_for({}, o)}</legend>
+						<div class="flex flex-wrap gap-2">
+							<Choice
+								name="forWhom"
+								value="child"
+								label={m.form_for_child({}, o)}
+								checked={values.forWhom === "child"}
+							/>
+							<Choice
+								name="forWhom"
+								value="teen"
+								label={m.form_for_teen({}, o)}
+								checked={values.forWhom === "teen"}
+							/>
+							<Choice
+								name="forWhom"
+								value="adult"
+								label={m.form_for_adult({}, o)}
+								checked={values.forWhom === "adult"}
+							/>
+						</div>
+						{errors.forWhom ? <p class="text-body-sm text-danger">{errors.forWhom}</p> : null}
+					</fieldset>
+					{picking ? (
+						<input type="hidden" name="when" value="any" />
+					) : (
+						<fieldset class="space-y-3">
+							<legend class="pz-field__label">{m.form_when({}, o)}</legend>
+							<div class="flex flex-wrap gap-2">
+								<Choice
+									name="when"
+									value="morning"
+									label={m.form_when_morning({}, o)}
+									checked={values.when === "morning"}
+								/>
+								<Choice
+									name="when"
+									value="afternoon"
+									label={m.form_when_afternoon({}, o)}
+									checked={values.when === "afternoon"}
+								/>
+								<Choice
+									name="when"
+									value="any"
+									label={m.form_when_any({}, o)}
+									checked={values.when === undefined || values.when === "any"}
+								/>
+							</div>
+						</fieldset>
+					)}
+					<label class="flex items-start gap-3 text-body-sm text-ink">
+						<input
+							type="checkbox"
+							name="consent"
+							value="yes"
+							class="mt-1 size-5 accent-[var(--accent)]"
+						/>
+						<span>{m.form_consent({}, o)}</span>
+					</label>
+					{errors.consent ? <p class="-mt-4 text-body-sm text-danger">{errors.consent}</p> : null}
+					<Button type="submit" size="lg" arrow attrs={{ "data-attr:disabled": "$sending" }}>
+						{m.form_submit({}, o)}
+					</Button>
 				</div>
-				{errors.forWhom ? <p class="text-body-sm text-danger">{errors.forWhom}</p> : null}
-			</fieldset>
-			{slots.length > 0 ? (
-				<SlotPicker locale={locale} days={slots} values={values} errors={errors} />
-			) : null}
-			<fieldset class="space-y-3">
-				<legend class="pz-field__label">{m.form_when({}, o)}</legend>
-				<div class="flex flex-wrap gap-2">
-					<Choice
-						name="when"
-						value="morning"
-						label={m.form_when_morning({}, o)}
-						checked={values.when === "morning"}
-					/>
-					<Choice
-						name="when"
-						value="afternoon"
-						label={m.form_when_afternoon({}, o)}
-						checked={values.when === "afternoon"}
-					/>
-					<Choice
-						name="when"
-						value="any"
-						label={m.form_when_any({}, o)}
-						checked={values.when === undefined || values.when === "any"}
-					/>
-				</div>
-			</fieldset>
-			<label class="flex items-start gap-3 text-body-sm text-ink">
-				<input
-					type="checkbox"
-					name="consent"
-					value="yes"
-					class="mt-1 size-5 accent-[var(--accent)]"
-				/>
-				<span>{m.form_consent({}, o)}</span>
-			</label>
-			{errors.consent ? <p class="-mt-4 text-body-sm text-danger">{errors.consent}</p> : null}
-			<Button type="submit" size="lg" arrow attrs={{ "data-attr:disabled": "$sending" }}>
-				{m.form_submit({}, o)}
-			</Button>
+			) : (
+				// The details wait for a time: what was typed stays in the form, so a change of week or day loses nothing.
+				(["name", "email", "phone", "forWhom"] as const).map((field) =>
+					values[field] === undefined || values[field] === "" ? null : (
+						<input type="hidden" name={field} value={values[field]} />
+					),
+				)
+			)}
 		</form>
 	);
 }
@@ -386,6 +356,8 @@ export function BookingConfirm({
 		["phone", held.values.phone],
 		["forWhom", held.values.forWhom],
 		["when", held.values.when],
+		["service", held.values.service],
+		["cards", held.values.cards],
 		["consent", "yes"],
 		["form", id],
 	];

@@ -2,6 +2,7 @@ import type { SiteSettings } from "@psi/cms-client";
 import type { GuideLabels } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { BookingValues } from "./booking";
+import type { Picker } from "./booking-picker";
 import { bookingSummary, ChatBooking } from "./chat-booking";
 import { guideCopy } from "./guide-copy";
 import { at, base, type Locale } from "./i18n";
@@ -37,6 +38,8 @@ export function guideLabels(
 		account?: Parameters<typeof ChatBooking>[0]["account"];
 		/** The site settings to read (tests); by default what the CMS said last. */
 		settings?: SiteSettings;
+		/** Where the booking picker reads free times from (tests); by default the site's store. */
+		picker?: Picker;
 	} = {},
 ): GuideLabels {
 	const o = at(locale);
@@ -51,6 +54,7 @@ export function guideLabels(
 						offer={offer}
 						{...(opts.prefill === undefined ? {} : { prefill: opts.prefill })}
 						{...(opts.account === undefined ? {} : { account: opts.account })}
+						{...(opts.picker === undefined ? {} : { source: opts.picker })}
 					/>
 				) : (
 					<BookingElsewhere locale={locale} />
