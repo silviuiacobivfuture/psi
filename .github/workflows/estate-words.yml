@@ -1,0 +1,52 @@
+# The estate's words on a SEB bundle bump: psi's render carries no other estate's identity.
+#
+# A bump of estate/platform.lock takes a new SEB bundle, whose pieces SEB rendered with psi's
+# identity. This job installs that bundle and runs SEB's own refusal (the bundle's
+# tools/estate/words.mjs, the same one SEB's Level 1 proof runs on every SEB change) over what
+# psi deploys: the bundle's rendered pieces and this repository's platform render (gitops/,
+# pieces/, components/). Any word of the first estate (RMX: recomex, RecomExpert, Sirius,
+# Altair, Meridian, Pulsar, Vega, Wise, its domains and business directories) or of SEB's
+# fictional fixture (lumen) is refused, file by file. psi went live branded "Lumen" once because
+# SEB fell back to the fixture's brand; this is the consumer-side half of the guard against it.
+name: estate-words
+
+on:
+  # Only the bump itself: until the lock names a bundle that carries the tool there is nothing to
+  # judge, and the job says so by name rather than passing.
+  push:
+    branches: [dev]
+    paths:
+      - "estate/platform.lock"
+  pull_request:
+    paths:
+      - "estate/platform.lock"
+      - ".github/workflows/estate-words.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: estate-words-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write # the GitHub OIDC token OpenBao verifies (bundle pull)
+
+jobs:
+  words:
+    runs-on: k8s
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/seb-bundle
+        with:
+          openbao-addr: ${{ vars.OPENBAO_ADDR }}
+          openbao-mount: ${{ vars.OPENBAO_JWT_MOUNT }}
+          openbao-audience: ${{ vars.OPENBAO_AUDIENCE }}
+          openbao-role: ${{ vars.OPENBAO_ROLE_GATE }}
+          pull-secret: ${{ vars.REGISTRY_PULL_SECRET }}
+      - name: No other estate's words in psi's render
+        run: |
+          set -euo pipefail
+          tool=.seb-bundle/tools/estate/words.mjs
+          [ -d .seb-bundle/pieces ] || { echo "::error::no SEB bundle installed: estate/platform.lock names no digest, so there is no render to judge"; exit 1; }
+          [ -f "$tool" ] || { echo "::error::the locked SEB bundle carries no tools/estate/words.mjs: it predates SEB's real-estate proof; lock a release that has it"; exit 1; }
+          node "$tool" refuse --self psi .seb-bundle/pieces gitops pieces components

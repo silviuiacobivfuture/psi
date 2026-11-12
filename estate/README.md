@@ -5,6 +5,7 @@ What makes this repository THIS estate, and how it consumes SEB.
 | File                             | What                                                                                                                                  |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `identity.yaml`                  | the estate's settings (domain, registry, git, platform apps). Read only through SEB's `tools/identity/load.mjs`; never a secret in it |
+| `theme.env`                      | the estate's look as SEB's builds take it (declaration, stylesheet, hub clients, model, sign-in theme); every key required, SEB has no default estate |
 | `authz.json`                     | inputs to SEB's permissions generator: the platform's manifest plus every `apps/*/authz.manifest.json`                                |
 | `platform.lock`                  | the SEB release this estate runs, and the digest of its bundle in the estate's Harbor                                                 |
 | `seb-pieces.<env>`               | which SEB pieces each environment runs                                                                                                |
