@@ -11,3 +11,4 @@ resources:
   - openbao.yaml
   - hub.yaml
   - netdata.yaml
+  - openbao-api.yaml

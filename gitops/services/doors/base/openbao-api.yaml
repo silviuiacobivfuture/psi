@@ -1,0 +1,20 @@
+# TEMPORARY: OpenBao's HTTP API at bao-api.psizone.ro, for one secrets-seeding session from the
+# owner's workstation (psi has no private network; the UI door sits behind the estate's sign-in,
+# which a CLI cannot pass). API only (/v1); every call needs an OpenBao token. No address allow-list:
+# Traefik runs externalTrafficPolicy: Cluster and cannot see client addresses (estate-gate notes).
+# Removed again once the session is done.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openbao-api
+  namespace: openbao
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls: [{ hosts: [bao-api.psizone.ro], secretName: openbao-api-tls }]
+  rules:
+    - host: bao-api.psizone.ro
+      http:
+        paths: [{ path: /v1, pathType: Prefix, backend: { service: { name: openbao, port: { number: 8200 } } } }]
