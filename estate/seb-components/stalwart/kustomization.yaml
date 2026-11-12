@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# psi's additions to SEB's stalwart piece: its people's mailboxes (owner, 2026-11-12:
+# "i want emails for silviu.iacob, dana.turcu, adi.turcu, and the other person").
+# Each is <line>@<MAILBOX_DOMAIN> (post.psizone.ro), made by the server's plan before its
+# owner first signs in, so it receives mail from the start. The owner signs in through
+# Authentik and lands on it by the `mail_account` attribute the people blueprint sets
+# (gitops/platform/authentik/blueprints-people.yaml):
+#   silviu.iacob    Authentik silviu          (silviu.iacob@ivfuture.ro)
+#   dana.turcu      Authentik turcu_daniela   (turcu_daniela@icloud.com)
+#   adi.turcu       Authentik adi_rar         (adi_rar@yahoo.com)
+#   nicholas.turcu  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
+patches:
+  - target: { kind: ConfigMap, name: stalwart-mailboxes }
+    patch: |-
+      - op: replace
+        path: /data/mailboxes
+        value: |
+          silviu.iacob
+          dana.turcu
+          adi.turcu
+          nicholas.turcu

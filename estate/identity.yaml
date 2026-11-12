@@ -41,7 +41,7 @@ MESH: none
 ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
-PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine
+PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart
 AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
@@ -54,6 +54,8 @@ REPORTPORTAL_HOST_PREFIX: reports
 TEST_REPORTS_HOST_PREFIX: tests
 PDFCRAFT_HOST_PREFIX: pdf
 AFFINE_HOST_PREFIX: docs
+MAIL_HOST_PREFIX: post
+WEBMAIL_HOST_PREFIX: webmail
 FRONT_HOST_PREFIX: portal
 
 # ── hub ─────────────────────────────────────────────────────────────────────

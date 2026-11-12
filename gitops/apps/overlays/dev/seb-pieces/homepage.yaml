@@ -293,6 +293,13 @@ spec:
                     namespace: affine
                     app: affine
                     podSelector: app.kubernetes.io/name=affine
+                - E-mail:
+                    icon: mdi-email-outline
+                    href: https://webmail.psizone.ro/account
+                    description: Adresa ta @post.psizone.ro și parolele de aplicație pentru telefon · Stalwart
+                    namespace: stalwart
+                    app: stalwart
+                    podSelector: app.kubernetes.io/name=stalwart
             - Conținut și brand:
                 - Conținutul site-urilor:
                     icon: mdi-text-box-edit-outline
@@ -1061,6 +1068,10 @@ spec:
                 <h2 id="zi-cu-zi-h">Munca de zi cu zi</h2>
                 <p>Unde se organizează munca și unelte mici, la îndemână.</p>
                 <dl>
+                <dt id="e-mail"><a href="#e-mail">E-mail</a> <span class="also">post.psizone.ro, Stalwart</span></dt>
+                <dd>Căsuța ta de e-mail a echipei, cu adresa <em>nume@post.psizone.ro</em>. Intri cu contul tău unic; pe telefon o citești cu aplicația de e-mail obișnuită, folosind o parolă de aplicație.<span class="ex">Adresele @psizone.ro rămân unde erau; aceasta este o adresă nouă, separată.</span></dd>
+                <dt id="parola-aplicatie"><a href="#parola-aplicatie">Parolă de aplicație</a> <span class="also">app password</span></dt>
+                <dd>O parolă separată, făcută de tine în pagina E-mail, pe care o pui doar în aplicația de e-mail a telefonului. Dacă pierzi telefonul, o ștergi pe aceea și restul conturilor rămân neatinse.</dd>
                 <dt id="plane"><a href="#plane">Plane</a> <span class="also">Proiecte și sarcini</span></dt>
                 <dd>Aplicația în care ținem evidența a ce e de făcut, cine se ocupă și până când.<span class="ex">Ca un panou cu bilețele, mutate din „de făcut” în „gata”.</span></dd>
                 <dt id="proiect"><a href="#proiect">Proiect</a></dt>

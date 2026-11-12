@@ -36,6 +36,7 @@ resources:
   - plunk.yaml
   - reference.yaml
   - reloader.yaml
+  - stalwart.yaml
   - system-upgrade-controller.yaml
   - talk-hpb.yaml
   - test-reports.yaml

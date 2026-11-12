@@ -1,0 +1,646 @@
+apiVersion: v1
+data:
+  config.json: |
+    {"@type":"RocksDb","path":"/var/lib/stalwart/data"}
+kind: ConfigMap
+metadata:
+  name: stalwart-config
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  mailboxes: |-
+    silviu.iacob
+    dana.turcu
+    adi.turcu
+    nicholas.turcu
+kind: ConfigMap
+metadata:
+  name: stalwart-mailboxes
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  plan.ndjson.tmpl: |
+    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"dom":{"name":"@MAILBOX_DOMAIN@","enable":true,"description":"The estate's mailboxes"}}}
+    {"@type":"reconcile","object":"Certificate","matchOn":["certificate"],"value":{"cert":{"certificate":{"@type":"Text","value":"@TLS_CRT@"},"privateKey":{"@type":"Text","secret":"@TLS_KEY@"}}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_account","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true},"allowIdTokenClaims":true}}}
+    {"@type":"update","object":"Authentication","value":{"directoryId":"#authentik","maxAppPasswords":10}}
+    {"@type":"upsert","object":"MtaRoute","matchOn":["name"],"value":{"ses":{"@type":"Relay","name":"ses","description":"Amazon SES relay","host":"@SES_SMTP_HOST@","port":587,"implicitTls":false,"protocol":"smtp","allowInvalidCerts":false,"authUsername":"@SES_SMTP_USERNAME@","authSecret":{"@type":"Value","secret":"@SES_SMTP_PASSWORD@"}}}}
+    {"@type":"update","object":"MtaOutboundStrategy","value":{"route":{"match":{"0":{"if":"is_local_domain(rcpt_domain)","then":"'local'"}},"else":"'ses'"}}}
+    {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"@MAIL_HOST@","defaultDomainId":"#dom","defaultCertificateId":"#cert","mailExchangers":{"0":{"hostname":"@MAIL_HOST@","priority":10}},"services":{"imap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"smtp":{"cleartext":false,"hostname":"@MAIL_HOST@"},"jmap":{"cleartext":false,"hostname":"@WEBMAIL_HOST@"},"caldav":{"cleartext":false,"hostname":null},"carddav":{"cleartext":false,"hostname":null},"webdav":{"cleartext":false,"hostname":null},"pop3":{"cleartext":false,"hostname":null},"managesieve":{"cleartext":false,"hostname":null}}}}
+    {"@type":"reconcile","object":"NetworkListener","matchOn":["name"],"value":{"http":{"name":"http","protocol":"http","bind":{"[::]:8080":true},"useTls":false,"implicitTls":false},"smtp":{"name":"smtp","protocol":"smtp","bind":{"[::]:25":true},"useTls":true,"implicitTls":false},"submissions":{"name":"submissions","protocol":"smtp","bind":{"[::]:465":true},"useTls":true,"implicitTls":true},"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"useTls":true,"implicitTls":false},"imaps":{"name":"imaps","protocol":"imap","bind":{"[::]:993":true},"useTls":true,"implicitTls":true}}}
+    {"@type":"upsert","object":"Application","matchOn":["description"],"value":{"webui":{"description":"Stalwart Web Interface","enable":true,"oauthClientId":"mail-oidc","oauthScopes":{"mail":true}}}}
+  render-plan.sh: |
+    #!/bin/sh
+    # Renders the Stalwart configuration plan (plan.ndjson.tmpl) into /work/plan.ndjson for
+    # stalwart-cli, which has no shell of its own. Values come from the environment (hosts, from
+    # stalwart-settings) and from files (the certificate and the SES SMTP credential), and every
+    # value is JSON-escaped before it is written. The estate's mailboxes (one local part per line
+    # in /estate/mailboxes) become one Account upsert each, so they exist, and receive mail,
+    # before their owners' first sign-in. Fails loud on any missing input.
+    set -eu
+    need() { [ -s "$1" ] || { echo "MISSING REQUIRED INPUT: $1" >&2; exit 1; }; }
+    for f in /tls/tls.crt /tls/tls.key /ses/username /ses/password /ses/host; do need "$f"; done
+    for v in MAIL_HOST WEBMAIL_HOST MAILBOX_DOMAIN AUTHENTIK_HOST; do
+      eval "x=\${$v:-}"; [ -n "$x" ] || { echo "MISSING REQUIRED INPUT: $v" >&2; exit 1; }
+    done
+    # json <file>: the file's content as a JSON string body (no quotes).
+    json() { sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\r$//' "$1" | awk 'BEGIN{ORS=""} {if (NR>1) print "\\n"; print} END{print "\\n"}'; }
+    jsonv() { printf '%s\n' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk 'BEGIN{ORS=""} {if (NR>1) print "\\n"; print}'; }
+    # Substitute with awk on exact tokens, values through ENVIRON (awk -v would unescape \n).
+    R_CRT="$(json /tls/tls.crt)" R_KEY="$(json /tls/tls.key)" \
+    R_SESU="$(jsonv "$(cat /ses/username)")" R_SESP="$(jsonv "$(cat /ses/password)")" \
+    R_SESH="$(jsonv "$(cat /ses/host)")" \
+    awk '
+    function rep(s, t, v,   i, out) { out=""; while ((i = index(s, t)) > 0) { out = out substr(s, 1, i-1) v; s = substr(s, i+length(t)) } return out s }
+    { l=$0
+      l=rep(l,"@TLS_CRT@",ENVIRON["R_CRT"]); l=rep(l,"@TLS_KEY@",ENVIRON["R_KEY"])
+      l=rep(l,"@SES_SMTP_USERNAME@",ENVIRON["R_SESU"]); l=rep(l,"@SES_SMTP_PASSWORD@",ENVIRON["R_SESP"])
+      l=rep(l,"@SES_SMTP_HOST@",ENVIRON["R_SESH"])
+      l=rep(l,"@MAIL_HOST@",ENVIRON["MAIL_HOST"]); l=rep(l,"@WEBMAIL_HOST@",ENVIRON["WEBMAIL_HOST"])
+      l=rep(l,"@MAILBOX_DOMAIN@",ENVIRON["MAILBOX_DOMAIN"]); l=rep(l,"@AUTHENTIK_HOST@",ENVIRON["AUTHENTIK_HOST"])
+      print l }' /plan/plan.ndjson.tmpl > /work/plan.ndjson
+    # The estate's mailboxes: lines of [a-z0-9._-]; anything else is refused, never skipped.
+    if [ -f /estate/mailboxes ]; then
+      grep -v '^[[:space:]]*\(#\|$\)' /estate/mailboxes | while read -r box; do
+        case "$box" in *[!a-z0-9._-]*|"") echo "INVALID MAILBOX NAME: $box" >&2; exit 1 ;; esac
+        printf '{"@type":"upsert","object":"Account","matchOn":["name","domainId"],"value":{"box-%s":{"@type":"User","name":"%s","domainId":"#dom"}}}\n' "$box" "$box"
+      done >> /work/plan.ndjson
+    fi
+    grep -c . /work/plan.ndjson | sed 's/^/plan lines: /'
+kind: ConfigMap
+metadata:
+  name: stalwart-plan-6h2bgt29mk
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  AUTHENTIK_HOST: auth.psizone.ro
+  MAIL_HOST: post.psizone.ro
+  MAILBOX_DOMAIN: post.psizone.ro
+  STALWART_PUBLIC_URL: https://webmail.psizone.ro
+  WEBMAIL_HOST: webmail.psizone.ro
+kind: ConfigMap
+metadata:
+  name: stalwart-settings
+  namespace: stalwart
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart
+  namespace: stalwart
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: stalwart
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart-mail
+  namespace: stalwart
+spec:
+  externalTrafficPolicy: Local
+  ports:
+  - name: smtp
+    port: 25
+    targetPort: smtp
+  - name: submissions
+    port: 465
+    targetPort: submissions
+  - name: submission
+    port: 587
+    targetPort: submission
+  - name: imaps
+    port: 993
+    targetPort: imaps
+  selector:
+    app.kubernetes.io/name: stalwart
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: stalwart-data
+  namespace: stalwart
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    reloader.stakater.com/auto: "true"
+  labels:
+    app.kubernetes.io/name: stalwart
+  name: stalwart
+  namespace: stalwart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stalwart
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stalwart
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - --config
+        - /etc/stalwart/config.json
+        env:
+        - name: STALWART_RECOVERY_ADMIN
+          valueFrom:
+            secretKeyRef:
+              key: STALWART_RECOVERY_ADMIN
+              name: stalwart-admin
+        - name: STALWART_PUBLIC_URL
+          valueFrom:
+            configMapKeyRef:
+              key: STALWART_PUBLIC_URL
+              name: stalwart-settings
+        - name: STALWART_HOSTNAME
+          value: stalwart
+        image: registry.psizone.ro/mirror/docker.io/stalwartlabs/stalwart:v1.0.3@sha256:e01129152d3684a6350feae33a3c4fc852538ec5fcdbd1ca8de3cb7e493b68d6
+        livenessProbe:
+          failureThreshold: 4
+          periodSeconds: 30
+          tcpSocket:
+            port: http
+        name: stalwart
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 25
+          name: smtp
+        - containerPort: 465
+          name: submissions
+        - containerPort: 587
+          name: submission
+        - containerPort: 993
+          name: imaps
+        readinessProbe:
+          periodSeconds: 10
+          tcpSocket:
+            port: http
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 60
+          periodSeconds: 5
+          tcpSocket:
+            port: http
+        volumeMounts:
+        - mountPath: /var/lib/stalwart
+          name: data
+        - mountPath: /etc/stalwart
+          name: config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      enableServiceLinks: false
+      initContainers:
+      - args:
+        - |
+          [ -n "${STALWART_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: STALWART_PASSWORD (apps/stalwart/admin)" >&2; exit 1; }
+          echo "all required secrets present"
+        command:
+        - sh
+        - -c
+        envFrom:
+        - secretRef:
+            name: stalwart-admin
+        image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+        name: assert-secrets
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+      securityContext:
+        fsGroup: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: stalwart-data
+      - configMap:
+          name: stalwart-config
+        name: config
+      - emptyDir:
+          sizeLimit: 256Mi
+        name: tmp
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+  name: stalwart-config
+  namespace: stalwart
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - args:
+            - apply
+            - --file
+            - /work/plan.ndjson
+            - --no-color
+            env:
+            - name: STALWART_URL
+              value: http://stalwart:8080
+            - name: STALWART_USER
+              valueFrom:
+                secretKeyRef:
+                  key: STALWART_USER
+                  name: stalwart-admin
+            - name: STALWART_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: STALWART_PASSWORD
+                  name: stalwart-admin
+            image: registry.psizone.ro/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+            name: apply
+            resources:
+              limits:
+                cpu: 200m
+                memory: 64Mi
+              requests:
+                cpu: 10m
+                memory: 16Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+            volumeMounts:
+            - mountPath: /work
+              name: work
+              readOnly: true
+          enableServiceLinks: false
+          initContainers:
+          - command:
+            - sh
+            - /scripts/render-plan.sh
+            envFrom:
+            - configMapRef:
+                name: stalwart-settings
+            image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+            name: render
+            resources:
+              limits:
+                cpu: 100m
+                memory: 64Mi
+              requests:
+                cpu: 10m
+                memory: 16Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+            volumeMounts:
+            - mountPath: /work
+              name: work
+            - mountPath: /plan
+              name: plan
+              readOnly: true
+            - mountPath: /scripts
+              name: plan
+              readOnly: true
+            - mountPath: /estate
+              name: mailboxes
+              readOnly: true
+            - mountPath: /tls
+              name: tls
+              readOnly: true
+            - mountPath: /ses
+              name: ses
+              readOnly: true
+          restartPolicy: OnFailure
+          securityContext:
+            runAsGroup: 65532
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - emptyDir:
+              sizeLimit: 4Mi
+            name: work
+          - configMap:
+              name: stalwart-plan-6h2bgt29mk
+            name: plan
+          - configMap:
+              name: stalwart-mailboxes
+            name: mailboxes
+          - name: tls
+            secret:
+              secretName: stalwart-tls
+          - name: ses
+            secret:
+              secretName: stalwart-ses
+  schedule: 17 4 * * *
+  successfulJobsHistoryLimit: 1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  name: stalwart-config
+  namespace: stalwart
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - apply
+        - --file
+        - /work/plan.ndjson
+        - --no-color
+        env:
+        - name: STALWART_URL
+          value: http://stalwart:8080
+        - name: STALWART_USER
+          valueFrom:
+            secretKeyRef:
+              key: STALWART_USER
+              name: stalwart-admin
+        - name: STALWART_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: STALWART_PASSWORD
+              name: stalwart-admin
+        image: registry.psizone.ro/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+        name: apply
+        resources:
+          limits:
+            cpu: 200m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /work
+          name: work
+          readOnly: true
+      enableServiceLinks: false
+      initContainers:
+      - command:
+        - sh
+        - /scripts/render-plan.sh
+        envFrom:
+        - configMapRef:
+            name: stalwart-settings
+        image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+        name: render
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /work
+          name: work
+        - mountPath: /plan
+          name: plan
+          readOnly: true
+        - mountPath: /scripts
+          name: plan
+          readOnly: true
+        - mountPath: /estate
+          name: mailboxes
+          readOnly: true
+        - mountPath: /tls
+          name: tls
+          readOnly: true
+        - mountPath: /ses
+          name: ses
+          readOnly: true
+      restartPolicy: OnFailure
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - emptyDir:
+          sizeLimit: 4Mi
+        name: work
+      - configMap:
+          name: stalwart-plan-6h2bgt29mk
+        name: plan
+      - configMap:
+          name: stalwart-mailboxes
+        name: mailboxes
+      - name: tls
+        secret:
+          secretName: stalwart-tls
+      - name: ses
+        secret:
+          secretName: stalwart-ses
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: stalwart-mail
+  namespace: stalwart
+spec:
+  dnsNames:
+  - post.psizone.ro
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  privateKey:
+    algorithm: RSA
+    rotationPolicy: Always
+    size: 2048
+  secretName: stalwart-tls
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: stalwart-admin
+  namespace: stalwart
+spec:
+  data:
+  - remoteRef:
+      key: apps/stalwart/admin
+      property: password
+    secretKey: password
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: stalwart-admin
+    template:
+      data:
+        STALWART_PASSWORD: '{{ .password }}'
+        STALWART_RECOVERY_ADMIN: admin:{{ .password }}
+        STALWART_USER: admin
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: stalwart-ses
+  namespace: stalwart
+spec:
+  data:
+  - remoteRef:
+      key: apps/stalwart/ses-smtp
+      property: username
+    secretKey: username
+  - remoteRef:
+      key: apps/stalwart/ses-smtp
+      property: password
+    secretKey: password
+  - remoteRef:
+      key: apps/stalwart/ses-smtp
+      property: host
+    secretKey: host
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: stalwart-ses
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    gethomepage.dev/description: Căsuța de e-mail a estate-ului
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Everyday tools
+    gethomepage.dev/href: https://webmail.psizone.ro/account
+    gethomepage.dev/icon: mdi-email
+    gethomepage.dev/name: Mail
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=stalwart
+    gethomepage.dev/weight: "25"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  name: stalwart-webmail
+  namespace: stalwart
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: webmail.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: stalwart
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - webmail.psizone.ro
+    secretName: stalwart-webmail-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  name: stalwart-webmail-callback
+  namespace: stalwart
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: webmail.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: stalwart
+            port:
+              name: http
+        path: /outpost.goauthentik.io/callback
+        pathType: Exact
+  tls:
+  - hosts:
+    - webmail.psizone.ro
+    secretName: stalwart-webmail-tls

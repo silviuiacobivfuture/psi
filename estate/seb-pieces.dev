@@ -29,6 +29,7 @@ openfga
 otel-logging
 pdfcraft
 affine
+stalwart
 plane
 plane-platform
 platform-rbac
