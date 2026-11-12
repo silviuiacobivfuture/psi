@@ -14,7 +14,6 @@ resources:
   - nx-cache.yaml
   - openfga.yaml
   - otel-logging.yaml
-  - plane-platform.yaml
   - plane.yaml
   - plunk.yaml
   - public-doors.yaml
