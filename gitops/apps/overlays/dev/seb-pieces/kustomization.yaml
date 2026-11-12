@@ -26,6 +26,7 @@ resources:
   - novu.yaml
   - nx-cache.yaml
   - openfga.yaml
+  - otel-logging.yaml
   - pdfcraft.yaml
   - plane-platform.yaml
   - plane.yaml
