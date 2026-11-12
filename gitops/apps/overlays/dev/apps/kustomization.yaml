@@ -9,3 +9,4 @@ resources:
   - chroma.yaml
   - cms.yaml
   - doors.yaml
+  - design-gallery.yaml
