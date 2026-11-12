@@ -5,6 +5,7 @@ import {
 	type SitePage,
 	type SitePages,
 } from "@psi/guide";
+import { createPageRegistry } from "@psi/ui";
 import type { Locale } from "./i18n";
 import { faqGroups, hasText, plain, sections, text } from "./pages/doc";
 import { PAGE_IDS, PAGES, type PageId } from "./routes";
@@ -75,8 +76,12 @@ export const SITE_PAGES: SitePages = {
 	},
 };
 
+/** Hemi-Sync's pages are programme and information text, not clinical claims: every page's text may be given. */
+export const pageRegistry = createPageRegistry({ withText: () => true });
+
 /** Where Hemi-Sync's guide finds the page the visitor is on. */
 export const pageResolver: PageResolve = createPageResolver({
 	brand: "hemisync",
 	site: SITE_PAGES,
+	rendered: pageRegistry.lookup,
 });

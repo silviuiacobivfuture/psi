@@ -136,6 +136,35 @@ describe("the compass", () => {
 	});
 });
 
+describe("a booking handed over from another site", () => {
+	const render = (startWith?: string) =>
+		String(
+			<Compass
+				label="L"
+				placeholder="P"
+				toggleLabel="T"
+				askHint="A"
+				groups={[]}
+				guideAction="/ghid?target=compass-answer"
+				answerId="compass-answer"
+				chat={CHAT_PROPS}
+				{...(startWith === undefined ? {} : { startWith })}
+			/>,
+		);
+
+	it("asks the given message on load, after restoring, opening the chat", () => {
+		const html = render("Vreau o programare pentru evaluare");
+		expect(html).toContain("Vreau o programare pentru evaluare");
+		expect(html.indexOf("psiChat?.load")).toBeLessThan(
+			html.indexOf("Vreau o programare pentru evaluare"),
+		);
+	});
+
+	it("asks nothing on load without it", () => {
+		expect(render()).not.toContain("Vreau o programare");
+	});
+});
+
 describe("compassDestinations (the apps' test helper)", () => {
 	it("reads the rendered expressions and lists only real matches", async () => {
 		const { compassDestinations } = await import("../testing");

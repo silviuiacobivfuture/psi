@@ -57,6 +57,33 @@ describe("the remembering guide", () => {
 		]);
 	});
 
+	it("keeps the path of the page a turn was asked on, and hands it back with the turn", async () => {
+		const stores = memoryStores();
+		const guide = rememberingGuide(fakeGuide(ANSWER), {
+			conversations: stores.conversations,
+			subject: "s",
+			site: "psizone",
+			now: () => 1,
+		});
+		await drain(
+			guide.ask({
+				question: "Ce spune?",
+				locale: "ro",
+				page: {
+					kind: "article",
+					status: "published",
+					title: "T",
+					url: "https://blog.example/articole/x?utm=1",
+					headings: [],
+				},
+			}),
+		);
+		await drain(guide.ask({ question: "Fără pagină", locale: "ro" }));
+		const kept = await stores.conversations.forSite("s", "psizone");
+		const turns = await stores.conversations.turns(kept?.id ?? "", 10);
+		expect(turns.map((t) => t.page)).toEqual(["/articole/x", undefined]);
+	});
+
 	it("never keeps a refused answer", async () => {
 		const stores = memoryStores();
 		const guide = rememberingGuide(

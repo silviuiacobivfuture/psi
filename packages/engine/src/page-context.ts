@@ -86,8 +86,11 @@ export function renderPage(
 	if (words === undefined) return undefined;
 	const l = words.labels;
 	const unreviewed = page.status !== "published";
+	const clinical = page.clinical !== false;
 	const body = [
-		...(page.lead === undefined
+		// An unreviewed health page's introduction is not shown at all: it states the conclusions of a
+		// text no clinician has approved, and a prompt asking the model not to repeat it was not enough.
+		...(page.lead === undefined || (unreviewed && clinical)
 			? []
 			: [`${unreviewed ? l.leadUnreviewed : l.lead}: ${inert(page.lead)}`]),
 		...(page.headings.length === 0
@@ -98,14 +101,16 @@ export function renderPage(
 			: []),
 	].join("\n\n");
 	const rule = unreviewed
-		? words.unreviewed
+		? clinical
+			? words.unreviewed
+			: words.unapproved
 		: page.excerpt !== undefined && n !== undefined
 			? words.withText(n)
 			: words.withoutText;
 	return [
 		words.heading,
 		words.deixis,
-		`${l.kind[page.kind]} | ${l.title}: ${inert(page.title)} | ${l.address}: ${inert(page.url)} | ${l.status}: ${words.status[page.status]}`,
+		`${l.kind[page.kind]} | ${l.title}: ${inert(page.title)} | ${l.address}: ${inert(page.url)} | ${l.status}: ${unreviewed && !clinical ? words.statusUnapproved : words.status[page.status]}`,
 		`<page>\n${body}\n</page>`,
 		rule,
 		...(earlier.length === 0 ? [] : [words.earlier(earlier.map(inert))]),

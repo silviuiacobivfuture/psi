@@ -54,6 +54,11 @@ export class AnswerTurn {
 	readonly services: Array<ServiceFact> = [];
 	/** Each tool call's time and result size, for the turn's timing. */
 	readonly timings: Array<ToolTiming> = [];
+	/**
+	 * The address of the page the visitor is reading when its text is unreviewed: `findArticles`
+	 * never returns it, so its standfirst cannot come back as an "article on the same topic".
+	 */
+	hiddenUrl: string | undefined;
 	#calls = 0;
 
 	constructor(ledger: SourceLedger, locale: string, search: ScopedSearch) {

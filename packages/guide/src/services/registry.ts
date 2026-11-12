@@ -18,6 +18,8 @@ export interface ServiceDef {
 	forWhom: Text;
 	whatHappens: Text;
 	firstStep: Text;
+	/** Other names a reply says it by (folded on match), per language. */
+	aka: Readonly<{ ro: ReadonlyArray<string>; en: ReadonlyArray<string> }>;
 	/** The Romanian path on the brand's site, served under `/en` for English. */
 	path: string;
 	/** Folded word beginnings of the offering titles that price this service. */
@@ -37,32 +39,6 @@ const FIRST_VISIT: Text = {
 
 export const SERVICES: ReadonlyArray<ServiceDef> = [
 	{
-		id: "psizone-evaluation",
-		brand: "psizone",
-		needs: [
-			"evaluation",
-			"child-development",
-			"teen-support",
-			"adult-mental-health",
-			"sleep-calm",
-			"general",
-		],
-		name: { ro: "Evaluarea", en: "The evaluation" },
-		forWhom: {
-			ro: "Copii, adolescenți și adulți cu o îngrijorare legată de dezvoltare, atenție, comportament, emoții sau limbaj.",
-			en: "Children, teens and adults with a worry about development, attention, behaviour, emotions or language.",
-		},
-		whatHappens: {
-			ro: "Evaluarea pornește de la o discuție și de la observație; unde ajută, adăugăm o hartă cerebrală QEEG. Din ea facem un singur plan, cu specialiștii potriviți.",
-			en: "The evaluation starts with a conversation and with observation; where it helps, we add a QEEG brain map. From it we make one plan, with the right specialists.",
-		},
-		firstStep: FIRST_VISIT,
-		path: "/metode/evaluare-qeeg",
-		match: ["evaluar", "evaluation", "consult"],
-		bookingWord: { ro: "evaluare", en: "evaluation" },
-		start: "booking",
-	},
-	{
 		id: "psizone-speech",
 		brand: "psizone",
 		needs: ["child-development"],
@@ -76,6 +52,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "Language and speech therapy, inside the child's one plan. We start from an evaluation, to see where the child is now.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: { ro: ["logopedie", "logoped"], en: ["speech therapy"] },
 		path: "/copii/logopedie",
 		match: ["logoped", "speech"],
 		bookingWord: { ro: "logopedie", en: "speech" },
@@ -95,6 +72,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "The evaluation, then an ABA plan (applied behaviour analysis) that explains in plain words what comes next.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: { ro: ["ABA", "evaluarea pentru autism"], en: ["ABA", "autism evaluation"] },
 		path: "/copii/autism",
 		match: ["aba", "autism"],
 		bookingWord: { ro: "evaluare", en: "evaluation" },
@@ -117,6 +95,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "We start from the evaluation and make a plan; our plans include, as needed, psychotherapy and neurofeedback.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: { ro: ["ADHD"], en: ["ADHD"] },
 		path: "/copii/adhd",
 		match: ["adhd", "neurofeedback"],
 		bookingWord: { ro: "evaluare", en: "evaluation" },
@@ -136,6 +115,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "Therapy through movement and sensory stimulation, in a room set up for it.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: { ro: ["integrare senzorială", "integrarea senzorială"], en: ["sensory integration"] },
 		path: "/copii/integrare-senzoriala",
 		match: ["senzori", "sensory"],
 		bookingWord: { ro: "evaluare", en: "evaluation" },
@@ -155,6 +135,10 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "Therapy through conversation, in the plan made after the evaluation, with the right specialist.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: {
+			ro: ["psihoterapie", "terapia pentru adolescenți"],
+			en: ["psychotherapy", "therapy for teens"],
+		},
 		path: "/adolescenti",
 		match: ["psihoterap", "psychotherap", "adolescen", "teen"],
 		bookingWord: { ro: "psihoterapie", en: "psychotherapy" },
@@ -163,7 +147,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 	{
 		id: "psizone-adults",
 		brand: "psizone",
-		needs: ["adult-mental-health", "sleep-calm"],
+		needs: ["adult-mental-health"],
 		name: { ro: "Psihoterapia pentru adulți", en: "Psychotherapy for adults" },
 		forWhom: {
 			ro: "Adulți cu anxietate, atacuri de panică, burnout sau stare proastă care durează.",
@@ -174,9 +158,40 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			en: "Therapy through conversation (cognitive-behavioural, clinical hypnosis), after a first conversation and an evaluation.",
 		},
 		firstStep: FIRST_VISIT,
+		aka: {
+			ro: ["psihoterapie", "terapia pentru adulți"],
+			en: ["psychotherapy", "therapy for adults"],
+		},
 		path: "/adulti/anxietate-depresie",
 		match: ["psihoterap", "psychotherap", "adult"],
 		bookingWord: { ro: "psihoterapie", en: "psychotherapy" },
+		start: "booking",
+	},
+	{
+		id: "psizone-evaluation",
+		brand: "psizone",
+		needs: [
+			"evaluation",
+			"child-development",
+			"teen-support",
+			"adult-mental-health",
+			"sleep-calm",
+			"general",
+		],
+		name: { ro: "Evaluarea", en: "The evaluation" },
+		forWhom: {
+			ro: "Copii, adolescenți și adulți cu o îngrijorare legată de dezvoltare, atenție, comportament, emoții sau limbaj.",
+			en: "Children, teens and adults with a worry about development, attention, behaviour, emotions or language.",
+		},
+		whatHappens: {
+			ro: "Evaluarea pornește de la o discuție și de la observație; unde ajută, adăugăm o hartă cerebrală QEEG. Din ea facem un singur plan, cu specialiștii potriviți.",
+			en: "The evaluation starts with a conversation and with observation; where it helps, we add a QEEG brain map. From it we make one plan, with the right specialists.",
+		},
+		firstStep: FIRST_VISIT,
+		aka: { ro: ["evaluare", "evaluari", "evaluarea inițială"], en: ["evaluation", "assessment"] },
+		path: "/metode/evaluare-qeeg",
+		match: ["evaluar", "evaluation", "consult"],
+		bookingWord: { ro: "evaluare", en: "evaluation" },
 		start: "booking",
 	},
 	{
@@ -195,6 +210,10 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 		firstStep: {
 			ro: "Te înscrii cu adresa de email, o confirmi și pui căștile într-un loc liniștit.",
 			en: "You sign up with your email address, confirm it and put on headphones in a quiet place.",
+		},
+		aka: {
+			ro: ["programul gratuit", "programul EQ-SYNC"],
+			en: ["free programme", "EQ-SYNC programme"],
 		},
 		path: "/inregistrare",
 		match: ["gratuit", "free", "21"],
@@ -218,6 +237,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			ro: "Începi cu programul gratuit; înainte să se închidă, primești un email.",
 			en: "You start with the free programme; you get an email before it closes.",
 		},
+		aka: { ro: ["protocoale", "protocoalele"], en: ["protocols"] },
 		path: "/#protocoale",
 		match: ["protocol"],
 		start: "page",
@@ -239,6 +259,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			ro: "Alegi un exercițiu introductiv și îl asculți în căști.",
 			en: "You pick an introductory exercise and listen with headphones.",
 		},
+		aka: { ro: ["exercițiile gratuite", "exerciții gratuite"], en: ["free exercises"] },
 		path: "/#exercitii",
 		match: ["gratuit", "free", "exercit"],
 		start: "page",
@@ -261,6 +282,10 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			ro: "Începi cu exercițiile gratuite, apoi alegi programul.",
 			en: "You begin with the free exercises, then choose the programme.",
 		},
+		aka: {
+			ro: ["Gateway Voyage", "SyncCreation", "Lucid Dreaming"],
+			en: ["Gateway Voyage", "SyncCreation", "Lucid Dreaming"],
+		},
 		path: "/#programe",
 		match: ["gateway", "synccreation", "lucid", "program", "atelier", "workshop"],
 		start: "page",
@@ -282,6 +307,7 @@ export const SERVICES: ReadonlyArray<ServiceDef> = [
 			ro: "Începi cu exercițiul introductiv gratuit, Intro to DEC.",
 			en: "You begin with the free introductory exercise, Intro to DEC.",
 		},
+		aka: { ro: ["Clubul Delfinului"], en: ["Dolphin Energy Club"] },
 		path: "/#club",
 		match: ["club", "delfin", "dolphin"],
 		start: "page",

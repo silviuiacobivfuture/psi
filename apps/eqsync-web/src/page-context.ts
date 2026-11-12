@@ -5,6 +5,7 @@ import {
 	type SitePage,
 	type SitePages,
 } from "@psi/guide";
+import { createPageRegistry } from "@psi/ui";
 import type { Locale } from "./i18n";
 import { PROSE, type ProseKey } from "./pages/content-spec";
 import { msg } from "./pages/prose";
@@ -23,15 +24,18 @@ const PROSE_PAGES: Readonly<Partial<Record<PageId, ProseKey>>> = {
 };
 
 /**
- * The programme's own pages are live site text the knowledge base also carries as programme
- * content. The science page is the one with research claims: it counts as clinical text with no
- * reviewer yet, so the guide describes it by its headings and never states it as fact.
+ * The programme's pages are live site text, also carried as programme content in the knowledge
+ * base, and none of them shows a clinical-review marker. The science page is the exception in
+ * kind: it states research findings, so the guide describes it by its title and headings and
+ * leaves its text to the reviewed knowledge.
  */
-function reviewOf(id: PageId): SitePage["review"] {
-	return id === "science"
-		? { kind: "clinical", status: "published", reviewedBy: null, reviewedAt: null }
-		: { kind: "programme", status: "published", reviewedBy: null, reviewedAt: null };
-}
+const WITHOUT_TEXT: ReadonlySet<PageId> = new Set<PageId>(["science"]);
+const REVIEW = {
+	kind: "programme",
+	status: "published",
+	reviewedBy: null,
+	reviewedAt: null,
+} as const;
 
 function maybe(locale: Locale, key: string): string | undefined {
 	try {
@@ -66,8 +70,8 @@ function pageOf(id: PageId, locale: Locale): SitePage | undefined {
 		path: PAGES[id][locale],
 		...(lead === undefined ? {} : { lead }),
 		headings: sections.flatMap((s) => (s.heading === undefined ? [] : [s.heading])),
-		sections,
-		review: reviewOf(id),
+		...(WITHOUT_TEXT.has(id) ? {} : { sections }),
+		review: REVIEW,
 	};
 }
 
@@ -85,5 +89,21 @@ export const SITE_PAGES: SitePages = {
 	},
 };
 
+/** The pages with no health claim, whose text the guide may be given: the home, the FAQ, contact, sign-up and the legal pages. */
+const OPEN: ReadonlySet<string> = new Set([
+	"/",
+	"/en",
+	...(["faq", "contact", "signup", "terms", "privacy", "withdrawal"] as const).flatMap((id) =>
+		Object.values(PAGES[id]),
+	),
+]);
+
+/** Every other page of EQ-SYNC as the site renders it. */
+export const pageRegistry = createPageRegistry({ withText: (path) => OPEN.has(path) });
+
 /** Where EQ-SYNC's guide finds the page the visitor is on. */
-export const pageResolver: PageResolve = createPageResolver({ brand: "eqsync", site: SITE_PAGES });
+export const pageResolver: PageResolve = createPageResolver({
+	brand: "eqsync",
+	site: SITE_PAGES,
+	rendered: pageRegistry.lookup,
+});

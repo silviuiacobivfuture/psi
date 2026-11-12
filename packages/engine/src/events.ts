@@ -132,6 +132,12 @@ export interface PageContext {
 	lead?: string;
 	headings: ReadonlyArray<string>;
 	excerpt?: string;
+	/**
+	 * Whether the page's text is health content (a clinician reviews it). Absent means it is: the
+	 * guide then says a clinician is still reviewing a page that is not published; for `false` it
+	 * says the text is not yet approved by the team.
+	 */
+	clinical?: boolean;
 }
 
 export interface AskInput<TLocale extends string = string> {
@@ -196,6 +202,7 @@ export const PageContextSchema: z.ZodType<PageContext, z.ZodTypeDef, unknown> = 
 			.max(PAGE_LIMITS.headings)
 			.readonly(),
 		excerpt: z.string().trim().min(1).max(PAGE_LIMITS.excerpt).optional(),
+		clinical: z.boolean().optional(),
 	})
 	.strict()
 	.transform((page): PageContext => {

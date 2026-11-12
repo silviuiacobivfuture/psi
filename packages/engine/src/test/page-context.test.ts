@@ -56,7 +56,17 @@ afterEach(async () => {
 	fake = undefined;
 });
 
-async function guideWith(replies: ReadonlyArray<FakeReply>) {
+const OTHER = {
+	title: "Alt articol despre biciclete",
+	standfirst: "Altceva.",
+	topic: "biciclete",
+	brand: "bikes",
+	url: "https://blog.example/articles/other",
+	readingMinutes: 3,
+	date: "2026-10-01",
+};
+
+async function guideWith(replies: ReadonlyArray<FakeReply>, withArticles = false) {
 	const server = await startFakeOpenRouter(replies, {}, { autoSearch: false });
 	fake = server;
 	const knowledge = new FakeKnowledge([
@@ -70,6 +80,29 @@ async function guideWith(replies: ReadonlyArray<FakeReply>) {
 		knowledge,
 		model: { id: "acme/small-model", apiKey: "test-key", baseURL: server.baseURL },
 		screening: { model: false },
+		...(withArticles
+			? {
+					articles: {
+						find: () => ({
+							total: 2,
+							articles: [
+								{
+									title: IN_REVIEW.title,
+									standfirst: IN_REVIEW.lead ?? "",
+									topic: "attention",
+									brand: "bikes",
+									url: IN_REVIEW.url,
+									readingMinutes: 5,
+									date: "2026-11-12",
+								},
+								OTHER,
+							],
+							topics: [],
+							brands: [],
+						}),
+					},
+				}
+			: {}),
 	});
 	return { guide: engine.guide("harbour-bikes"), server };
 }
@@ -140,8 +173,17 @@ describe("the page section of a turn", () => {
 		const section = renderPage(ENGLISH, IN_REVIEW, undefined, []) ?? "";
 		expect(section).toContain("still in review by a clinician");
 		expect(section).toContain("What it is");
-		expect(section).toContain("Unreviewed introduction");
+		expect(section).not.toContain(IN_REVIEW.lead);
 		expect(section).not.toContain("[1]");
+	});
+
+	it("says a page without clinical claims is not yet approved, never that a clinician reviews it", () => {
+		const section =
+			renderPage(ENGLISH, { ...IN_REVIEW, status: "draft", clinical: false }, undefined, []) ?? "";
+		expect(section).toContain("has not been approved by the team yet");
+		expect(section).not.toContain("clinician");
+		expect(section).toContain("Unreviewed introduction");
+		expect(section).toContain(IN_REVIEW.lead);
 	});
 
 	it("is written in Romanian for the Romanian pack, and absent for a pack without words", () => {
@@ -217,6 +259,24 @@ describe("a question about 'this article', end to end", () => {
 		]);
 		const events = await collect(guide.ask({ question: ASK, locale: "en", page: IN_REVIEW }));
 		expect(answerText(events)).toBe(UNKNOWN);
+	});
+
+	it("never lists the unreviewed page itself as an article on the same topic", async () => {
+		const { guide, server } = await guideWith(
+			[
+				{ kind: "tool", tool: "findArticles", query: "attention" },
+				{ kind: "text", chunks: ["There is one more article on bikes."] },
+			],
+			true,
+		);
+		await collect(guide.ask({ question: "Anything similar?", locale: "en", page: IN_REVIEW }));
+		const listed = chatBody(server.requests.at(-1))
+			.messages.filter((m) => m.role === "tool")
+			.map((m) => messageText(m.content))
+			.join("\n");
+		expect(listed).toContain(OTHER.title);
+		expect(listed).not.toContain(IN_REVIEW.title);
+		expect(listed).not.toContain(IN_REVIEW.lead);
 	});
 
 	it("without a page, nothing about a page reaches the model", async () => {

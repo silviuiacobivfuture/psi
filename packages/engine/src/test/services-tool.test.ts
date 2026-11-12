@@ -6,6 +6,7 @@ import {
 	mentionedServices,
 	RECOMMEND_SERVICES_TOOL,
 	type ServiceFact,
+	withoutServiceMarks,
 } from "../grounding/services-tool";
 import type { Profile } from "../profile";
 import { answerText, collect, startFakeOpenRouter } from "../testing";
@@ -31,11 +32,25 @@ const BARE: ServiceFact = { id: "bare", name: "Repair desk", brand: "bikes" };
 beforeEach(() => vi.stubEnv("OPENROUTER_API_KEY", ""));
 afterEach(() => vi.unstubAllEnvs());
 
+describe("service marks in a reply", () => {
+	it("are taken out when they name a returned service, and nothing else", () => {
+		expect(withoutServiceMarks("Try the Harbour tour [Harbour tour] now [1].", [TOUR])).toBe(
+			"Try the Harbour tour now [1].",
+		);
+		expect(withoutServiceMarks("See [tour] and [Other].", [TOUR])).toBe("See and [Other].");
+	});
+});
+
 describe("the buttons a reply earns", () => {
 	it("are the actions of the services it names, once each, at most two, in the tool's order", () => {
 		const reply = "Try the Harbour tour, or the weekend rental. The Repair desk helps too.";
 		expect(mentionedServices(reply, [RENT, TOUR, BARE])).toEqual([RENT.action, TOUR.action]);
 		expect(mentionedServices(reply, [TOUR, TOUR])).toEqual([TOUR.action]);
+	});
+
+	it("also follow an alias the reply uses, folded", () => {
+		const rental: ServiceFact = { ...RENT, name: "The weekend rental", aka: ["Weekend hire"] };
+		expect(mentionedServices("A weekend hire suits you.", [rental])).toEqual([RENT.action]);
 	});
 
 	it("are none for a service the reply does not name or that has no action", () => {
@@ -75,7 +90,9 @@ describe("the recommendServices tool", () => {
 	it("returns the consumer's facts and note for the need asked", async () => {
 		const tools = await engineWith(services).guide("harbour-bikes").agent.listTools();
 		const out = await call(tools[RECOMMEND_SERVICES_TOOL], { need: "weekend" });
-		expect(out).toEqual({ services: [RENT], note: "Say the price only as returned." });
+		// The model reads the facts without their ids, which it would otherwise cite as sources.
+		const { id: _id, ...asRead } = RENT;
+		expect(out).toEqual({ services: [asRead], note: "Say the price only as returned." });
 	});
 
 	it("answers a failing lookup with a note that keeps it from the visitor, never an error", async () => {

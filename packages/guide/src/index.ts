@@ -21,6 +21,7 @@ export {
 	DEFAULT_RATE_LIMIT,
 	DEFAULT_TIMEOUTS,
 	type MemoryRateLimitOptions,
+	PageContextSchema,
 	type RateLimiter,
 	readBehaviour,
 } from "@psi/engine";

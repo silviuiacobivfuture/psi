@@ -10,8 +10,6 @@ import { closeAll, startGuide } from "./harness";
 
 afterEach(closeAll);
 
-const FIND = { limit: 3 };
-
 /** A catalog holding only the CMS offerings the test publishes. */
 function catalogWith(
 	offerings: ReadonlyArray<{ id: string; title: string; text: string }>,
@@ -160,7 +158,6 @@ describe("recommendServices facts and prices", () => {
 		const action = blog.services[0]?.action;
 		expect(action?.kind).toBe("link");
 		expect(action?.kind === "link" ? action.href : "").toContain("?ghid=programare");
-		expect(FIND.limit).toBe(3);
 	});
 
 	it("EQ-SYNC's free programme is a link to its sign-up and says it is a wellness tool, not a treatment", async () => {
@@ -347,5 +344,29 @@ describe("a lookup that fails degrades silently", () => {
 		expect(failures.map((f) => f.stage)).not.toContain("model");
 		const second = JSON.stringify(server.requests[0]?.body);
 		expect(second).toContain("Do not tell the visitor");
+	});
+});
+
+describe("the centre's own numbers in the conversation", () => {
+	it("stay as written in the guide's earlier turns, while a visitor's own number is still hidden", async () => {
+		const { guide, server } = await startGuide({
+			autoSearch: false,
+			replies: [{ kind: "text", chunks: ["Poți suna la 0748 017 752."] }],
+		});
+		await collect(
+			guide.ask({
+				question: "și cât costă?",
+				locale: "ro",
+				history: [
+					{ role: "user", text: "Mă puteți suna la 0723 456 789?" },
+					{ role: "guide", text: "Sigur. Noi suntem la 0748 017 752 sau 0752 466 792." },
+				],
+			}),
+		);
+		const sent = JSON.stringify(server.requests[0]?.body);
+		expect(sent).toContain("0748 017 752");
+		expect(sent).toContain("0752 466 792");
+		expect(sent).not.toContain("0723 456 789");
+		expect(sent).toContain("[TELEFON]");
 	});
 });

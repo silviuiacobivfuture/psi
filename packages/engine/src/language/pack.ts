@@ -82,8 +82,12 @@ export interface PagePrompt {
 	withText(n: number): string;
 	/** A published page whose text is not passed: describe it by its title and headings only. */
 	withoutText: string;
-	/** A draft or in-review page: no fact from it; say so, offer the reviewed knowledge. */
+	/** A health page that is a draft or in review: no fact from it; say so, offer the reviewed knowledge. */
 	unreviewed: string;
+	/** A page without clinical claims whose text the team has not approved yet: same, in other words. */
+	unapproved: string;
+	/** The state of such a page, in a sentence (see `status`). */
+	statusUnapproved: string;
 	/** The pages the visitor asked earlier questions on in this conversation, when not this one. */
 	earlier(titles: ReadonlyArray<string>): string;
 }

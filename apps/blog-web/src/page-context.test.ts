@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { currentArticles } from "./content/articles";
 import { guideLabels } from "./guide";
 import type { Locale } from "./i18n";
-import { pageResolver } from "./page-context";
+import { pageRegistry, pageResolver } from "./page-context";
 import { GuidePanel } from "./sections/guide-panel";
 
 const articles = currentArticles();
@@ -140,5 +140,25 @@ describe("the article's panel", () => {
 			}),
 		).replaceAll("&quot;", '"');
 		expect(html).toContain('kind: "article", slug: "neurofeedback-pentru-atentie"');
+	});
+});
+
+describe("every other page, as the server renders it", () => {
+	const page = (title: string) =>
+		`<html><head><title>${title} — Site</title><meta name="description" content="Descriere ${title}"></head><body><main><h1>${title}</h1><p>Text ${title}.</p><h2>Secțiune ${title}</h2><p>Mai mult text.</p></main></body></html>`;
+	pageRegistry.connect(
+		async (path) =>
+			new Response(page(path.replace(/\W+/g, " ").trim()), {
+				headers: { "content-type": "text/html" },
+			}),
+	);
+
+	it("gives a page no resolver knows its title, lead and headings, from the server alone", async () => {
+		await pageRegistry.ensure("/topic/x");
+		const found = pageResolver({ path: "/topic/x" }, "ro", "ce e pe pagina asta?");
+		expect(found?.title).toBeTruthy();
+		expect(found?.lead).toContain("Descriere");
+		expect(found?.headings[0]).toContain("Secțiune");
+		expect(found?.clinical).toBe(false);
 	});
 });

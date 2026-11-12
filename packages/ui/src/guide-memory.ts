@@ -24,7 +24,7 @@ export interface MemoryAccount {
 			turns(
 				id: string,
 				limit: number,
-			): Promise<ReadonlyArray<{ question: string; answer: string }>>;
+			): Promise<ReadonlyArray<{ question: string; answer: string; page?: string }>>;
 			remove(id: string): Promise<void>;
 		};
 	}>;
@@ -52,8 +52,8 @@ export async function accountMemory(
 				if (kept === null) return [];
 				const exchanges = await conversations.turns(kept.id, DISPLAY_TURNS / 2);
 				return exchanges.flatMap((t): ConversationTurn[] => [
-					{ role: "user", text: t.question },
-					{ role: "guide", text: t.answer },
+					{ role: "user", text: t.question, ...(t.page === undefined ? {} : { page: t.page }) },
+					{ role: "guide", text: t.answer, ...(t.page === undefined ? {} : { page: t.page }) },
 				]);
 			},
 			async forget() {

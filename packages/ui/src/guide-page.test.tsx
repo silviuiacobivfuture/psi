@@ -193,6 +193,16 @@ describe("the route resolves the reference itself", () => {
 		expect(asked[0]?.page).toBeUndefined();
 	});
 
+	it("drops a context the engine would refuse, and still answers the question", async () => {
+		const { asked } = await post(
+			"guide-answer",
+			{ question: "ce spune?", guidePage: { path: "/articole/x" } },
+			() => ({ ...ARTICLE, title: "t".repeat(500) }),
+		);
+		expect(asked).toHaveLength(1);
+		expect(asked[0]?.page).toBeUndefined();
+	});
+
 	it("answers the question without a page for a malformed reference or a site that resolves none", async () => {
 		const malformed = await post(
 			"guide-answer",
@@ -207,6 +217,37 @@ describe("the route resolves the reference itself", () => {
 			undefined,
 		);
 		expect(none.asked[0]?.page).toBeUndefined();
+	});
+});
+
+describe("getting pages ready", () => {
+	it("warms the page asked on and the pages earlier turns were asked on, before resolving", async () => {
+		const warmed: string[] = [];
+		const { guide } = spy();
+		const app = new Hono();
+		app.post("/ghid", (c) =>
+			answerGuidePost(c, {
+				locale: "ro",
+				labels,
+				guide: async () => guide,
+				page: () => undefined,
+				warm: async (path) => {
+					warmed.push(path);
+				},
+			}),
+		);
+		const res = await app.request("/ghid?target=compass-answer", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				compassOp: "ask",
+				compassQuery: "x?",
+				compassTurns: [{ role: "user", text: "a", page: "/vechi" }],
+				compassPage: { path: "/acum" },
+			}),
+		});
+		await res.text();
+		expect(warmed.sort()).toEqual(["/acum", "/vechi"]);
 	});
 });
 

@@ -21,6 +21,11 @@ export interface ArticleHit {
 	readingMinutes: number;
 	/** ISO date a reader sees. */
 	date: string;
+	/**
+	 * False for a draft still in review: it may be named and linked as "in review", never quoted
+	 * (its standfirst comes back empty).
+	 */
+	reviewed?: boolean;
 }
 
 export interface ArticleQuery {
@@ -59,6 +64,7 @@ const Hit: z.ZodType<ArticleHit> = z.object({
 	url: z.string(),
 	readingMinutes: z.number(),
 	date: z.string(),
+	reviewed: z.boolean().optional(),
 });
 
 const Output = z.object({
@@ -122,7 +128,7 @@ export interface ArticleToolOptions {
 export function createArticlesTool(opts: ArticleToolOptions) {
 	return createTool({
 		id: FIND_ARTICLES_TOOL,
-		description: `The blog's articles ${opts.profile.name} may recommend. Call it for every question about articles or the blog ("do you have articles", "anything about X", "what can I read") and, once a question is answered, to offer one relevant article as the next step; searchKnowledge does not list articles. Returns title, summary, topic, brand and the article's link, no article text. Name only the articles it returns, and give each link exactly as returned; if none matches, say so and offer the newest it lists.`,
+		description: `The blog's articles ${opts.profile.name} may recommend. Call it for every question about articles or the blog ("do you have articles", "anything about X", "what can I read") and, once a question is answered, to offer one relevant article as the next step; searchKnowledge does not list articles. Returns title, summary, topic, brand and the article's link, no article text. Name only the articles it returns, and give each link exactly as returned; if none matches, say so and offer the newest it lists. An article with reviewed=false is a draft still in review: say it is in review whenever you name it, and never present what it says as established.`,
 		inputSchema: z.object({
 			query: z
 				.string()
@@ -147,9 +153,10 @@ export function createArticlesTool(opts: ArticleToolOptions) {
 				...(input.brand === undefined || input.brand === "" ? {} : { brand: input.brand }),
 				limit: ARTICLES_PER_CALL,
 			});
-			turn.articles.push(...found.articles.map((a) => ({ title: a.title, url: a.url })));
+			const listed = found.articles.filter((a) => a.url !== turn.hiddenUrl);
+			turn.articles.push(...listed.map((a) => ({ title: a.title, url: a.url })));
 			turn.shown.push(
-				...found.articles.flatMap((a) => [
+				...listed.flatMap((a) => [
 					a.title,
 					a.standfirst,
 					a.topic.replace(/[-_]+/g, " "),
@@ -160,16 +167,14 @@ export function createArticlesTool(opts: ArticleToolOptions) {
 			turn.timings.push({
 				tool: FIND_ARTICLES_TOOL,
 				ms: Date.now() - started,
-				passages: found.articles.length,
+				passages: listed.length,
 			});
 			return Output.parse({
-				total: found.total,
-				articles: found.articles,
+				total: found.total - (found.articles.length - listed.length),
+				articles: listed,
 				topics: found.topics,
 				brands: found.brands,
-				...(found.articles.length === 0
-					? { note: "No article matches; say so, do not invent one." }
-					: {}),
+				...(listed.length === 0 ? { note: "No article matches; say so, do not invent one." } : {}),
 			});
 		},
 	});

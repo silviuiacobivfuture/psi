@@ -1,4 +1,5 @@
 import { createPageResolver, type PageResolve, type SitePage, type SitePages } from "@psi/guide";
+import { createPageRegistry } from "@psi/ui";
 import { FAQ } from "./content/faq";
 import { HUBS } from "./content/hubs";
 import { METHODS } from "./content/methods";
@@ -110,5 +111,15 @@ export const SITE_PAGES: SitePages = {
 	},
 };
 
+/** Pages with no clinical claim, whose text the guide may be given: the home, contact, story, team, programmes, the methods index. */
+const OPEN = new Set(["", "/", "/contact", "/povestea", "/echipa", "/programe", "/metode"]);
+
+/** Every other page of Psizone as the site renders it; clinical ones (hubs, methods) are known above. */
+export const pageRegistry = createPageRegistry({ withText: (path) => OPEN.has(plain(path)) });
+
 /** Where Psizone's guide finds the page the visitor is on (articles are the blog's, not read here). */
-export const pageResolver: PageResolve = createPageResolver({ brand: "psizone", site: SITE_PAGES });
+export const pageResolver: PageResolve = createPageResolver({
+	brand: "psizone",
+	site: SITE_PAGES,
+	rendered: pageRegistry.lookup,
+});

@@ -121,10 +121,30 @@ describe("an article page", () => {
 	it("a draft: title, standfirst and headings only, never the body", () => {
 		const page = resolver("blog")(ref("ciorna-psi"), "ro", "ce spune despre ședințe?");
 		expect(page?.status).toBe("draft");
+		expect(page?.clinical).toBe(true);
 		expect(page?.lead).toBe("Rezumat ciorna-psi");
 		expect(page?.headings).toContain("Cum decurg ședințele");
 		expect(page?.excerpt).toBeUndefined();
 		expect(JSON.stringify(page)).not.toContain("patruzeci");
+	});
+
+	it("an editorial draft is marked as not clinical, so it is never said to be in clinical review", () => {
+		const catalogue = parseCatalogue([
+			published("psizone", "editorial-draft", {
+				status: "draft",
+				draftedAt: "2026-11-12",
+				publishedAt: undefined,
+				aiDrafted: false,
+				faq: [],
+				author: null,
+			}),
+		]);
+		const page = createPageResolver({
+			brand: "blog",
+			article: (s) => catalogue.find((a) => a.slug === s),
+			includeDrafts: true,
+		})(ref("editorial-draft"), "ro", "x");
+		expect(page).toMatchObject({ status: "draft", clinical: false });
 	});
 
 	it("a draft is no page where drafts are not shown", () => {

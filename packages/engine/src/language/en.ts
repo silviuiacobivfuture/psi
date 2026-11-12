@@ -280,6 +280,9 @@ export const ENGLISH: LanguagePack = {
 				"The page's text is not given to you here. Say what the page is about from its title and sections, state no facts from it, and for facts call searchKnowledge with the page's topic.",
 			unreviewed:
 				"This page's text is still in review by a clinician. State nothing from it as fact and do not summarise it as if it were approved. Say plainly, in one sentence, that the page is still being reviewed, describe it only by its title and the titles of its sections (without repeating or paraphrasing the introduction, and without saying what conclusions it may reach), call searchKnowledge with its topic to say what the already-reviewed knowledge shows, and offer the next step (a booking or the contact page).",
+			unapproved:
+				"This page's text has not been approved by the team yet. State nothing from it as fact and do not summarise it as if it were final. Say plainly, in one sentence, that the text is not yet approved, describe it only by its title and the titles of its sections (without repeating or paraphrasing the introduction), call searchKnowledge with its topic to say what the already-approved content shows, and offer the next step.",
+			statusUnapproved: "a draft: the text has not been approved by the team yet",
 			earlier: (titles) =>
 				`Earlier in this conversation the visitor asked on other pages (${titles.join("; ")}); now they are on this one. Ground the answer in the page they are on now.`,
 		},

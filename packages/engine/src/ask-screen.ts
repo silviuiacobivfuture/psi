@@ -77,6 +77,12 @@ async function exchangeLimit(
 	}
 }
 
+/** The numbers a profile publishes as its own facts (its phones), which its replies may repeat. */
+function publishedNumbers(ctx: AskContext, locale: string): ReadonlyArray<string> {
+	const facts = ctx.profile.locales[locale]?.facts ?? [];
+	return [...new Set(facts.flatMap((f) => f.match(/\d[\d ]{6,}\d/g) ?? []))];
+}
+
 /**
  * The guardrails that need no model, before anything leaves the process: crisis (on the raw and
  * the cleaned text, so invisible characters cannot hide it, and never limited), the runtime
@@ -107,7 +113,12 @@ export async function screen(
 	if (!parsed.success) return { reason: invalidInput };
 	let screened: Awaited<ReturnType<typeof screenInput>>;
 	try {
-		screened = await screenInput(ctx.screening, parsed.data, invalidInput);
+		screened = await screenInput(
+			ctx.screening,
+			parsed.data,
+			invalidInput,
+			publishedNumbers(ctx, parsed.data.locale),
+		);
 	} catch (error) {
 		report(ctx, "screening", error);
 		return { reason: "unavailable" };

@@ -8,7 +8,7 @@ import type { AnswerTurn } from "./agent-tools";
 
 export const RECOMMEND_SERVICES_TOOL = "recommendServices";
 /** Services one call returns at most. */
-export const SERVICES_PER_CALL = 3;
+export const SERVICES_PER_CALL = 4;
 /** Buttons one reply carries at most. */
 export const ACTIONS_PER_REPLY = 2;
 
@@ -23,6 +23,8 @@ export interface ServiceFact {
 	name: string;
 	/** The brand that offers it ("psizone"), for the guide to name the right place. */
 	brand: string;
+	/** Other names a reply may say it by ("evaluare" for "Evaluarea"): they earn the same button. */
+	aka?: ReadonlyArray<string>;
 	forWhom?: string;
 	whatHappens?: string;
 	firstStep?: string;
@@ -69,8 +71,8 @@ const Action: z.ZodType<GuideAction> = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("link"), label: z.string().min(1), href: z.string().min(1) }),
 ]);
 
-const Fact: z.ZodType<ServiceFact> = z.object({
-	id: z.string().min(1),
+/** What the model reads: the facts without their ids, which it would otherwise cite as sources. */
+const Read = z.object({
 	name: z.string().min(1),
 	brand: z.string().min(1),
 	forWhom: z.string().optional(),
@@ -80,9 +82,8 @@ const Fact: z.ZodType<ServiceFact> = z.object({
 	url: z.string().optional(),
 	action: Action.optional(),
 });
-
 const Output = z.object({
-	services: z.array(Fact),
+	services: z.array(Read),
 	note: z.string().optional(),
 });
 
@@ -107,16 +108,41 @@ export function mentionedServices(
 ): ReadonlyArray<GuideAction> {
 	const said = plain(reply);
 	const seen = new Set<string>();
+	const labels = new Set<string>();
 	const out: Array<GuideAction> = [];
 	for (const s of returned) {
-		if (s.action === undefined || !said.includes(plain(s.name))) continue;
+		if (
+			s.action === undefined ||
+			![s.name, ...(s.aka ?? [])].some((n) => said.includes(plain(n)))
+		) {
+			continue;
+		}
 		const key = s.action.kind === "link" ? s.action.href : s.action.text;
-		if (seen.has(key)) continue;
+		// One button per label: two services both saying "Start booking" would only confuse.
+		if (seen.has(key) || labels.has(s.action.label)) continue;
 		seen.add(key);
+		labels.add(s.action.label);
 		out.push(s.action);
 		if (out.length >= ACTIONS_PER_REPLY) break;
 	}
 	return out;
+}
+
+/**
+ * The reply without "[Service name]" marks: a model that was handed services sometimes cites them
+ * like sources, but they are not numbered passages and a mark names nothing the visitor can open.
+ */
+export function withoutServiceMarks(reply: string, returned: ReadonlyArray<ServiceFact>): string {
+	// "[serviciu]" and "[service]": the model citing the field it read, not a source.
+	const names = returned.flatMap((s) => [s.id, s.name, "serviciu", "service"]);
+	return names.reduce(
+		(text, name) =>
+			text
+				.split(`[${name}]`)
+				.join("")
+				.replace(/[ \t]{2,}/g, " "),
+		reply,
+	);
 }
 
 export interface ServicesToolOptions {
@@ -151,7 +177,9 @@ export function createServicesTool(opts: ServicesToolOptions) {
 		id: RECOMMEND_SERVICES_TOOL,
 		description: `What ${opts.profile.name} can recommend for what the visitor needs: services, programmes or the way to book, each with who it is for, what happens, the first step, the price when one is published, and where to start. Call it as soon as you understand what the visitor needs (or when they ask what we offer, what to do, how to start, or what it costs), then recommend ONE of the results, two at most: say why it fits, what the first step is, the price only if returned, and one clear next step. Needs: ${opts.services.needs
 			.map((n) => `${n.id} (${n.description})`)
-			.join("; ")}. Name only services it returns; never invent a price.`,
+			.join(
+				"; ",
+			)}. Name only services it returns; never invent a price. These are not numbered passages: write no [n] or [id] after them.`,
 		inputSchema: z.object({
 			need: need.describe("The kind of need that best fits what the visitor described"),
 		}),
@@ -182,7 +210,7 @@ export function createServicesTool(opts: ServicesToolOptions) {
 				passages: services.length,
 			});
 			return Output.parse({
-				services,
+				services: services.map(({ id: _id, aka: _aka, ...read }) => read),
 				...(found.note === undefined ? {} : { note: found.note }),
 			});
 		},

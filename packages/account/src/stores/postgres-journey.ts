@@ -32,6 +32,8 @@ export const JOURNEY_SCHEMA = [
 		at               timestamptz NOT NULL
 	)`,
 	"CREATE INDEX IF NOT EXISTS account_conversation_turn_by_conv ON account_conversation_turn (conversation_id, at)",
+	// Additive: the page a turn was asked on (a path); turns kept before have none.
+	"ALTER TABLE account_conversation_turn ADD COLUMN IF NOT EXISTS page text",
 ];
 
 const ProfileRow = z.object({
@@ -59,6 +61,7 @@ const TurnRow = z.object({
 	question: z.string(),
 	answer: z.string(),
 	at: z.date(),
+	page: z.string().nullable(),
 });
 const UUID = z.string().uuid();
 
@@ -162,12 +165,17 @@ export function journeyStores(sql: Sql): {
 			},
 			async turns(id, limit) {
 				if (!UUID.safeParse(id).success) return [];
-				const rows = await sql`SELECT question, answer, at FROM (
-					SELECT question, answer, at FROM account_conversation_turn
+				const rows = await sql`SELECT question, answer, at, page FROM (
+					SELECT question, answer, at, page FROM account_conversation_turn
 					WHERE conversation_id = ${id} ORDER BY at DESC LIMIT ${limit}) t ORDER BY at ASC`;
 				return rows.map((row) => {
 					const r = TurnRow.parse(row);
-					return { question: r.question, answer: r.answer, at: r.at.getTime() };
+					return {
+						question: r.question,
+						answer: r.answer,
+						at: r.at.getTime(),
+						...(r.page === null ? {} : { page: r.page }),
+					};
 				});
 			},
 			async forSite(subject, site) {
@@ -185,8 +193,8 @@ export function journeyStores(sql: Sql): {
 						ON CONFLICT (subject, site) DO UPDATE SET updated_at = EXCLUDED.updated_at
 						RETURNING id::text AS id`;
 					const id = z.object({ id: z.string() }).parse(rows[0]).id;
-					await tx`INSERT INTO account_conversation_turn (conversation_id, question, answer, at)
-						VALUES (${id}, ${turn.question}, ${turn.answer}, ${at(turn.at)})`;
+					await tx`INSERT INTO account_conversation_turn (conversation_id, question, answer, at, page)
+						VALUES (${id}, ${turn.question}, ${turn.answer}, ${at(turn.at)}, ${turn.page ?? null})`;
 				});
 			},
 			async remove(id) {

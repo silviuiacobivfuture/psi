@@ -225,16 +225,19 @@ export function articleContext(
 	question: string,
 	url: string,
 ): PageContext {
-	const title = article.title[locale];
-	if (!isReadable(article))
+	const title = article.title[locale].slice(0, PAGE_LIMITS.title);
+	if (!isReadable(article)) {
+		// A backlog title is a health topic waiting for its text.
 		return { kind: "article", status: "in-review", title, url, headings: [] };
+	}
+	const clinical = article.kind === "health";
 	const headings = bounded([
 		...article.body.flatMap((b) => (b.type === "h2" ? [b.text[locale]] : [])),
 		...article.faq.map((f) => f.q[locale]),
 	]);
 	const lead = leadOf(article.standfirst[locale]);
 	if (article.status === "draft") {
-		return { kind: "article", status: "draft", title, url, ...lead, headings };
+		return { kind: "article", status: "draft", title, url, clinical, ...lead, headings };
 	}
 	const verdict = retrievability({
 		kind: article.kind === "health" ? "clinical" : "editorial",
@@ -243,7 +246,7 @@ export function articleContext(
 		reviewedAt: article.reviewer?.reviewedAt ?? null,
 	});
 	if (!verdict.retrievable) {
-		return { kind: "article", status: "in-review", title, url, ...lead, headings };
+		return { kind: "article", status: "in-review", title, url, clinical, ...lead, headings };
 	}
 	const excerpt = excerptOf(articleSections(article, locale), question);
 	return {
@@ -251,6 +254,7 @@ export function articleContext(
 		status: "published",
 		title,
 		url,
+		clinical,
 		...lead,
 		headings,
 		...(excerpt === "" ? {} : { excerpt }),
@@ -262,8 +266,9 @@ export function sitePageContext(page: SitePage, question: string): PageContext {
 	const verdict = retrievability(page.review);
 	const head = {
 		kind: page.kind,
-		title: page.title,
+		title: page.title.slice(0, PAGE_LIMITS.title),
 		url: page.path,
+		clinical: page.review.kind === "clinical",
 		...leadOf(page.lead),
 		headings: bounded(page.headings),
 	};
@@ -297,6 +302,11 @@ export interface PageResolverOptions {
 	blogOrigin?: string;
 	/** The site's other pages. */
 	site?: SitePages;
+	/**
+	 * Every other page of the site, as the server itself rendered it (title, lead, headings, and
+	 * the text only where the site says it is not clinical): used for a path no `site` entry knows.
+	 */
+	rendered?: (path: string) => SitePage | undefined;
 }
 
 /**
@@ -322,8 +332,11 @@ export function createPageResolver(options: PageResolverOptions): PageResolve {
 			ref.target !== undefined && ref.target.kind !== "article"
 				? ref.target
 				: options.site?.targetOf(ref.path);
-		if (target === undefined) return undefined;
-		const page = options.site?.page(target, locale);
-		return page === undefined ? undefined : sitePageContext(page, question);
+		const known = target === undefined ? undefined : options.site?.page(target, locale);
+		if (known !== undefined) return sitePageContext(known, question);
+		// A typed target the site does not know is forged; a bare path may be any page it renders.
+		if (ref.target !== undefined) return undefined;
+		const rendered = options.rendered?.(ref.path);
+		return rendered === undefined ? undefined : sitePageContext(rendered, question);
 	};
 }

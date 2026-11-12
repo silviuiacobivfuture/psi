@@ -3,6 +3,7 @@ import {
 	type ConversationTurn,
 	type Guide,
 	type Locale,
+	PageContextSchema,
 	type PageResolve,
 	parseConversation,
 } from "@psi/guide";
@@ -21,6 +22,7 @@ import {
 	parseAskSignals,
 	questionFor,
 	streamGuideAnswer,
+	TURNS_SIGNAL,
 } from "./guide-stream";
 
 /** The largest body `/ghid` reads: twenty bounded turns fit with room to spare. */
@@ -44,6 +46,11 @@ export interface GuidePostOptions {
 	 * does not know which page the visitor is on.
 	 */
 	page?: PageResolve;
+	/**
+	 * Gets a page ready for `page` to find (a site that reads its pages as it renders them): called
+	 * with the path of the page a question is asked on and of the pages earlier turns were asked on.
+	 */
+	warm?: (path: string) => Promise<void>;
 }
 
 /** The text of the last question in `turns`, if any. */
@@ -173,6 +180,21 @@ async function reset(c: Context, opts: GuidePostOptions, target: AnswerTarget): 
 	);
 }
 
+/** Readies the pages a question concerns: the one it is asked on, and the earlier turns' pages. */
+async function warmPages(
+	opts: GuidePostOptions,
+	signals: AskSignals,
+	target: AnswerTarget,
+): Promise<void> {
+	if (opts.warm === undefined) return;
+	const paths = new Set<string>();
+	const ref = signals[PAGE_SIGNAL[target]];
+	if (ref !== undefined && ref.path !== "") paths.add(ref.path);
+	for (const turn of signals[TURNS_SIGNAL[target]] ?? [])
+		if (turn.page !== undefined) paths.add(turn.page);
+	await Promise.all([...paths].slice(0, 4).map((p) => opts.warm?.(p)));
+}
+
 /**
  * The page a question is asked on: resolved by the site from the posted reference, with the titles
  * of the pages earlier turns were asked on (each found again by its path, never taken from the
@@ -192,8 +214,12 @@ function pageFor(
 		if (!titles.has(path)) titles.set(path, resolve({ path }, opts.locale, "")?.title);
 		return titles.get(path);
 	};
+	// The engine's schema is strict: a context it would refuse is dropped here, so a page a site
+	// resolved badly never turns the visitor's question into a refusal.
+	const found = ref === undefined ? undefined : resolve(ref, opts.locale, question);
+	const checked = found === undefined ? undefined : PageContextSchema.safeParse(found);
 	return {
-		context: ref === undefined ? undefined : resolve(ref, opts.locale, question),
+		context: checked?.success === true ? checked.data : undefined,
 		path: ref?.path === "" ? undefined : ref?.path,
 		titleOf,
 	};
@@ -219,6 +245,7 @@ export async function answerGuidePost(c: Context, opts: GuidePostOptions): Promi
 	if (target === "compass-answer" && signals.compassOp === "reset") return reset(c, opts, target);
 	const question = questionFor(target, signals);
 	if (question === null) return c.body(null, 204);
+	await warmPages(opts, signals, target);
 	return streamGuideAnswer(c, {
 		page: pageFor(opts, signals, target, question),
 		guide: await opts.guide(),

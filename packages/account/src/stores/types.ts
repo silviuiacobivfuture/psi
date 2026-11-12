@@ -134,6 +134,8 @@ export interface ConversationTurn {
 	question: string;
 	answer: string;
 	at: number;
+	/** The path of the page the question was asked on, when the guide knew it. */
+	page?: string;
 }
 
 export interface ConversationStore {

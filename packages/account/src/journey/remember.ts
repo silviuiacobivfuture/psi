@@ -6,6 +6,17 @@ import {
 } from "@psi/guide";
 import type { ConversationStore } from "../stores/types";
 
+/** The path of a page's address (absolute or site-relative), or undefined. */
+function pathOf(url: string | undefined): string | undefined {
+	if (url === undefined) return undefined;
+	try {
+		const { pathname } = new URL(url, "https://page.invalid");
+		return pathname.length <= 200 ? pathname : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 /**
  * Guide conversation memory for a signed-in person who granted `guide_memory` (docs/plans/accounts.md §3,
  * "History"). The remembered turns are the ACCOUNT's (account_conversation, one per account and site):
@@ -62,6 +73,7 @@ export function rememberingGuide(
 					question: input.question,
 					answer,
 					at: now(),
+					...(pathOf(input.page?.url) === undefined ? {} : { page: pathOf(input.page?.url) }),
 				});
 			}
 		},

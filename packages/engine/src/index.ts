@@ -127,6 +127,7 @@ export {
 	type ServiceFinding,
 	type ServiceNeed,
 	type ServiceQuery,
+	withoutServiceMarks,
 } from "./grounding/services-tool";
 export {
 	createIngestWorkflow,

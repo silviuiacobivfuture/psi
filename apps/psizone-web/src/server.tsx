@@ -29,7 +29,7 @@ import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import { at, type Locale } from "./i18n";
-import { pageResolver } from "./page-context";
+import { pageRegistry, pageResolver } from "./page-context";
 import { ContactPage } from "./pages/contact";
 import { HomePage } from "./pages/home";
 import { PreparingPage, TeamPage } from "./pages/simple";
@@ -336,9 +336,13 @@ for (const [locale, prefix] of [
 			guide: () => guideForRequest(c, guide),
 			memory: () => accountMemory(account, c, "psizone"),
 			page: pageResolver,
+			warm: pageRegistry.ensure,
 		});
 	});
 }
+
+// The guide reads the site's other pages as the site renders them (an anonymous GET of its own app).
+pageRegistry.connect((path) => app.request(path));
 
 if (process.env.NODE_ENV !== "test") {
 	serve({ fetch: app.fetch, port: PORT }, (info) =>

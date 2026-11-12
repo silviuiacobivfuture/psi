@@ -12,7 +12,11 @@ import { createClaimsCheck } from "./grounding/claims-check";
 import type { EvidencePage } from "./grounding/faithfulness";
 import type { ScopedSearch } from "./grounding/knowledge-tool";
 import { SourceLedger, withoutCitations } from "./grounding/ledger";
-import { mentionedServices, type ServiceFact } from "./grounding/services-tool";
+import {
+	mentionedServices,
+	type ServiceFact,
+	withoutServiceMarks,
+} from "./grounding/services-tool";
 import type { LanguagePack } from "./language/pack";
 import { forgetAnswer, type ThreadKey } from "./memory";
 import { earlierPages, pageEvidence, pagePassage, renderPage } from "./page-context";
@@ -165,6 +169,9 @@ async function* attempt(
 	const { ctx, input, signal } = args;
 	const ledger = new SourceLedger();
 	const turn = new AnswerTurn(ledger, input.locale, args.search);
+	if (input.page !== undefined && input.page.status !== "published") {
+		turn.hiddenUrl = input.page.url;
+	}
 	// The page the visitor is reading: a published page's excerpt is the first, citable source.
 	const passage = input.page === undefined ? undefined : pagePassage(input.page);
 	const numbered = passage === undefined ? undefined : ledger.register([passage])[0];
@@ -444,7 +451,11 @@ async function* decide(
 			evidence,
 			(sentence) => (forbidden.length > 0 && matchesRules(sentence, forbidden)) || isSlip(sentence),
 		);
-		const kept = withoutRepeatedCloser(verdict.kept, history, split);
+		const kept = withoutRepeatedCloser(
+			withoutServiceMarks(verdict.kept, result.services),
+			history,
+			split,
+		);
 		const citer = result.ledger.citer();
 		const text = tidy(citer.rewrite(kept));
 		const outcome: ReplyOutcome =

@@ -393,6 +393,9 @@ export const ROMANIAN: LanguagePack = {
 				"Textul paginii nu ți-l dăm aici. Spui despre ce e pagina după titlu și secțiuni, nu afirmi fapte din ea, iar pentru fapte apelezi searchKnowledge cu tema paginii.",
 			unreviewed:
 				"Textul acestei pagini este încă în revizuire la un clinician. Nu afirmi nimic din ea ca fapt și nu o rezumi ca și cum ar fi aprobată. Spui deschis, într-o propoziție, că pagina este încă în revizuire, o descrii doar după titlul și titlurile secțiunilor ei (fără să repeți sau să parafrazezi introducerea și fără să spui ce concluzii ar avea), apelezi searchKnowledge cu tema ei ca să spui ce arată cunoștințele deja revizuite și propui pasul următor (o programare sau pagina de contact).",
+			unapproved:
+				"Textul acestei pagini nu a fost încă aprobat de echipă. Nu afirmi nimic din ea ca fapt și nu o rezumi ca și cum ar fi gata. Spui deschis, într-o propoziție, că textul încă nu a fost aprobat, o descrii doar după titlul și titlurile secțiunilor ei (fără să repeți sau să parafrazezi introducerea), apelezi searchKnowledge cu tema ei ca să spui ce arată conținutul deja aprobat și propui pasul următor.",
+			statusUnapproved: "ciornă: textul încă nu a fost aprobat de echipă",
 			earlier: (titles) =>
 				`Mai devreme, în conversația asta, vizitatorul a întrebat pe alte pagini (${titles.join("; ")}); acum este pe aceasta. Pune răspunsul pe pagina de acum.`,
 		},

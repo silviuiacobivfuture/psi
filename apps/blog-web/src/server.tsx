@@ -19,7 +19,7 @@ import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
-import { pageResolver } from "./page-context";
+import { pageRegistry, pageResolver } from "./page-context";
 import { ArticlePage } from "./pages/article";
 import { IndexPage } from "./pages/index";
 import { NotFoundPage } from "./pages/not-found";
@@ -123,11 +123,15 @@ for (const [locale, prefix, segment] of [
 			guide: async () => countingGuide(await guideForRequest(c, guide), locale, trackable(c)),
 			memory: () => accountMemory(account, c, "blog"),
 			page: pageResolver,
+			warm: pageRegistry.ensure,
 		}),
 	);
 }
 
 app.notFound((c) => notFound(c, c.req.path.startsWith("/en/") ? "en" : "ro"));
+
+// The guide reads the site's other pages as the site renders them (an anonymous GET of its own app).
+pageRegistry.connect((path) => app.request(path));
 
 if (process.env.NODE_ENV !== "test") {
 	await startCms();

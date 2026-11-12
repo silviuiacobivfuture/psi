@@ -126,6 +126,7 @@ function factOf(
 		id: def.id,
 		brand: def.brand,
 		name: def.name[locale],
+		aka: def.aka[locale],
 		forWhom: def.forWhom[locale],
 		whatHappens: def.whatHappens[locale],
 		firstStep: def.firstStep[locale],
@@ -146,6 +147,7 @@ function contactFact(locale: Locale, chat: boolean): ServiceFact {
 	return {
 		id: "psizone-contact",
 		brand: "psizone",
+		aka: locale === "ro" ? ["programare", "programarea"] : ["booking", "appointment"],
 		...CONTACT[locale],
 		url: pageUrl("psizone", locale, "/contact"),
 		action,

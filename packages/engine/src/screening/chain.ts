@@ -119,6 +119,17 @@ async function screenText(
 	}
 }
 
+const KEEP_MARK = "§K";
+
+/** Hides the strings to keep behind marks the redaction rules do not touch. */
+function mask(text: string, keep: ReadonlyArray<string>): string {
+	return keep.reduce((t, k, i) => t.split(k).join(`${KEEP_MARK}${i}${KEEP_MARK}`), text);
+}
+
+function unmask(text: string, keep: ReadonlyArray<string>): string {
+	return keep.reduce((t, k, i) => t.split(`${KEEP_MARK}${i}${KEEP_MARK}`).join(k), text);
+}
+
 /**
  * Runs the deterministic chain over the question and the history. Returns the input as the model
  * may see it (cleaned and redacted), or the refusal a rule matched. A question that is empty once
@@ -130,20 +141,25 @@ export async function screenInput<TLocale extends string>(
 	rules: ScreeningRules,
 	input: AskInput<TLocale>,
 	invalidInput: RefusalReason = "out_of_scope",
+	keep: ReadonlyArray<string> = [],
 ): Promise<{ input: AskInput<TLocale> } | { reason: RefusalReason }> {
 	const question = await screenText(rules, input.question, "user", true);
 	if ("reason" in question) return question;
 	if (question.text.trim().length === 0) return { reason: invalidInput };
 	const history: Array<HistoryTurn> = [];
 	for (const turn of input.history ?? []) {
+		// The guide's own published numbers (the profile's facts) are not the visitor's data: they
+		// pass through, or the model would copy the "[TELEFON]" marker into its next answer.
+		const masked = turn.role === "guide" ? mask(turn.text, keep) : turn.text;
 		const screened = await screenText(
 			rules,
-			turn.text,
+			masked,
 			turn.role === "guide" ? "assistant" : "user",
 			false,
 		);
 		if ("reason" in screened) return screened;
-		if (screened.text.trim().length > 0) history.push({ role: turn.role, text: screened.text });
+		const text = turn.role === "guide" ? unmask(screened.text, keep) : screened.text;
+		if (text.trim().length > 0) history.push({ role: turn.role, text });
 	}
 	return {
 		input: {

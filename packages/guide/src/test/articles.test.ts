@@ -137,8 +137,16 @@ describe("findArticles lookup", () => {
 			url: `${BLOG}/articole/atacul-de-panica-psi`,
 		});
 		expect(Object.keys(r.articles[0] ?? {}).sort()).toEqual(
-			["brand", "date", "readingMinutes", "standfirst", "title", "topic", "url"].sort(),
+			["brand", "date", "readingMinutes", "reviewed", "standfirst", "title", "topic", "url"].sort(),
 		);
+	});
+
+	it("names a draft as unreviewed and never hands over its summary", async () => {
+		const all = [...(await query("blog")).articles, ...(await query("psizone")).articles];
+		for (const a of all) {
+			if (a.reviewed === false) expect(a.standfirst).toBe("");
+			else expect(a.standfirst.length).toBeGreaterThan(0);
+		}
 	});
 
 	it("matches diacritics-free words, SEO keywords and FAQ questions", async () => {

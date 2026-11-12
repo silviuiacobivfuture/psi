@@ -117,7 +117,9 @@ export function psiArticles(options: PsiArticlesOptions = {}): EngineArticles {
 				total: hits.length,
 				articles: hits.slice(0, q.limit).map(({ entry: { summary: s } }) => ({
 					title: s.title,
-					standfirst: s.standfirst,
+					// A draft's summary is unreviewed text: named and linked, never quoted.
+					standfirst: s.status === "published" ? s.standfirst : "",
+					reviewed: s.status === "published",
 					topic: s.topic,
 					brand: s.brand,
 					url: s.url,

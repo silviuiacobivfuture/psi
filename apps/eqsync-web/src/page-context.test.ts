@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { guideLabels } from "./guide";
 import type { Locale } from "./i18n";
-import { pageResolver } from "./page-context";
+import { pageRegistry, pageResolver } from "./page-context";
 
 /** Posts one question to this site's `/ghid` as server.tsx mounts it, and returns what the guide was asked. */
 async function ask(
@@ -95,10 +95,38 @@ describe("the page the visitor is on", () => {
 });
 
 describe("the science page", () => {
-	it("carries research claims no clinician has approved: headings only, said to be in review", async () => {
+	it("states research findings: described by its headings, its text left to the reviewed knowledge", async () => {
 		const input = await ask({ question: "ce spune?", guidePage: { path: "/stiinta" } });
-		expect(input?.page?.status).toBe("in-review");
+		expect(input?.page?.status).toBe("published");
 		expect(input?.page?.headings.length).toBeGreaterThan(0);
 		expect(input?.page?.excerpt).toBeUndefined();
+	});
+});
+
+describe("every other page, as the server renders it", () => {
+	const page = (title: string) =>
+		`<html><head><title>${title} — Site</title><meta name="description" content="Descriere ${title}"></head><body><main><h1>${title}</h1><p>Text ${title}.</p><h2>Secțiune ${title}</h2><p>Mai mult text.</p></main></body></html>`;
+	pageRegistry.connect(
+		async (path) =>
+			new Response(page(path.replace(/\W+/g, " ").trim()), {
+				headers: { "content-type": "text/html" },
+			}),
+	);
+
+	it("gives a page no resolver knows its title, lead and headings, from the server alone", async () => {
+		await pageRegistry.ensure("/despre-orice-altceva");
+		const found = pageResolver({ path: "/despre-orice-altceva" }, "ro", "ce e pe pagina asta?");
+		expect(found?.title).toBeTruthy();
+		expect(found?.lead).toContain("Descriere");
+		expect(found?.headings[0]).toContain("Secțiune");
+		expect(found?.clinical).toBe(false);
+	});
+
+	it("gives the text only of a page the site calls non-clinical", async () => {
+		await pageRegistry.ensure("/contact");
+		const open = pageResolver({ path: "/contact" }, "ro", "ce e pe pagina asta?");
+		expect(open?.excerpt).toContain("Text");
+		const closed = pageResolver({ path: "/despre-orice-altceva" }, "ro", "ce e pe pagina asta?");
+		expect(closed?.excerpt).toBeUndefined();
 	});
 });

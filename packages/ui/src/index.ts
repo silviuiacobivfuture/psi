@@ -162,6 +162,12 @@ export {
 	streamGuideAnswer,
 	TURNS_SIGNAL,
 } from "./guide-stream";
+export {
+	createPageRegistry,
+	type PageRegistry,
+	type PageRegistryOptions,
+	readRenderedPage,
+} from "./page-registry";
 export { applyIndexingPolicy } from "./robots";
 export {
 	type ArticleFacts,
