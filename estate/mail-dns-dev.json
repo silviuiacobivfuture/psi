@@ -1,0 +1,8 @@
+{
+  "dkim": [
+    {
+      "name": "v1-rsa-20261112._domainkey.post.psizone.ro",
+      "content": "v=DKIM1; k=rsa; h=sha256; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu5lgJHNs0KvKUhSxrooJFttmXOZbPOyzDbupSrqyZEIgJXGXV3r8u+/wTAVLr0ioZ3S8XPzaPzUGWjbivx73/Q2NFUZTqltSjbLT4OvxfXnD3xPdB6+o0YgoqDJvwuUzZshTMIT38EoktYYzNW/UUNUIY16xcd0UcuGZNeWufAMOSVzi3z/A/bmg10wM+IBkueG7Tx4wQiMle1FJcis58Uojj3mkCkZOIlsSLgJgRTIOYE/ycD0wCqD89dJhJ0Mwhn1AwqaltCov3LL844Ws6z9FsefqQwXpxtiLikcEqsvclhPjI8OqL7MkckGarRf383LV0SAbMvOjh7I85nZmDQIDAQAB"
+    }
+  ]
+}

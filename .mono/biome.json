@@ -18,6 +18,7 @@
 			"!gitops/**",
 			"!components/**",
 			"!estate/openbao/**",
+			"!estate/mail-dns-*.json",
 			"!packages/ui/assets/**",
 			"!packages/design/logos/marks/**",
 			"!**/project.inlang/cache/**"
