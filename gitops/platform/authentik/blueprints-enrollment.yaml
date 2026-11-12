@@ -100,13 +100,15 @@ data:
       # stock username prompt so user_write has a username to persist.
       - model: authentik_stages_prompt.prompt
         identifiers:
-          field_key: username
-        attrs:
-          # This entry matched (by field_key) the stock username field of the
-          # ACCOUNT page and took it over, so this label is what every person
-          # sees under "Datele contului" (blueprints-theme.yaml).
-          label: Nume de utilizator
+          # By NAME, which is unique. Several prompts share field_key `username`
+          # (the stock enrollment and account-page fields too), so a field_key
+          # lookup is ambiguous: the importer then tried to create this prompt
+          # again and the unique name refused it — the blueprint stood in error
+          # from 11 Nov 2026.
           name: WLSLUG-enrol-username
+        attrs:
+          field_key: username
+          label: Nume de utilizator
           type: username
           required: true
           placeholder: Nume de utilizator
@@ -120,7 +122,7 @@ data:
           fields:
             - !Find [authentik_stages_prompt.prompt, [field_key, enrol_team]]
             - !Find [authentik_stages_prompt.prompt, [field_key, enrol_reason]]
-            - !Find [authentik_stages_prompt.prompt, [field_key, username]]
+            - !Find [authentik_stages_prompt.prompt, [name, WLSLUG-enrol-username]]
 
       # ── WHITELIST: auto-assign groups on enrolment ──────────────────────────
       # THE PROBLEM: enrolment is open to any GitHub account on earth, and every
