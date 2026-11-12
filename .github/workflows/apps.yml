@@ -90,6 +90,16 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           token: ${{ env.GIT_PUSH_TOKEN }}
+      # The image's pnpm install reads the locked SEB bundle; install it here, by digest, so the
+      # build context carries it current and the install inside fetches nothing (it has no
+      # registry login). Pulled with this job's own robot: the deploy tier reads ci-robot.
+      - uses: ./.github/actions/seb-bundle
+        with:
+          openbao-addr: ${{ vars.OPENBAO_ADDR }}
+          openbao-mount: ${{ vars.OPENBAO_JWT_MOUNT }}
+          openbao-audience: ${{ vars.OPENBAO_AUDIENCE }}
+          openbao-role: ${{ vars.OPENBAO_ROLE_DEPLOY }}
+          pull-secret: ${{ vars.REGISTRY_PUSH_SECRET }}
       - name: The estate's registry, from its identity
         run: |
           set -euo pipefail
