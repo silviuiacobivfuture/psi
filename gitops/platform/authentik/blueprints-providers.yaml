@@ -330,6 +330,9 @@ data:
       # the same path. Empty until seeded: the provider then has a blank secret, nothing else.
       affine_client_id:     !Env [AUTHENTIK_OIDC__AFFINE__ID, ""]
       affine_client_secret: !Env [AUTHENTIK_OIDC__AFFINE__SECRET, ""]
+      # The webmail's client secret (pieces/stalwart), from OpenBao platform/authentik/webmail-oidc
+      # through the authentik-webmail-oidc ExternalSecret; Roundcube reads the same path.
+      webmail_client_secret: !Env [AUTHENTIK_OIDC__WEBMAIL__SECRET, ""]
     entries:
       # Domain-level forward-auth proxy provider for the PUBLIC Traefik apps.
       # mode forward_domain → one outpost cookie covers every host under
@@ -731,20 +734,23 @@ data:
           group: !Find [authentik_core.group, [name, app-affine-admin]]
         attrs: { negate: false, enabled: true, order: 2 }
       # ---- Mail: the estate's own mail server (pieces/stalwart) --------------------
-      # Behind TWO Authentik checks, the AFFiNE shape:
-      # 1. The EDGE: the `mail` forward_single provider owns <WEBMAIL_HOST_PREFIX>.<apex>
-      #    (Stalwart's account manager and admin), so a signed-out or unlisted person never
-      #    reaches it. Mail clients do not come this way: IMAP/SMTP use app passwords.
-      # 2. The APPLICATION: Stalwart's web interface signs in at this Authentik itself, as a
-      #    PUBLIC client with PKCE (`mail-oidc`, no secret: it runs in the browser). Stalwart
-      #    validates the access token (a JWT, audience = this client id) and maps the person
-      #    to a mailbox by the `mail_account` claim (the `mail` scope below).
+      # TWO hosts, each behind TWO Authentik checks (the AFFiNE shape), so every browser entry
+      # starts here and nobody types a password into a mail page:
+      # - <WEBMAIL_HOST_PREFIX>.<apex>, the webmail (Roundcube): the `webmail` edge provider,
+      #   then Roundcube's CONFIDENTIAL client `webmail-oidc`, which goes straight to this
+      #   sign-in and hands its access token to the mail server as the IMAP/SMTP credential.
+      # - <MAIL_HOST_PREFIX>.<apex>, Stalwart's own pages (app passwords for phones,
+      #   administration): the `mail` edge provider, then Stalwart's web interface signing in
+      #   here as a PUBLIC client with PKCE (`mail-oidc`, no secret: it runs in the browser).
+      # Stalwart validates either client's access token (a JWT, audience = the client id) and
+      # maps the person to a mailbox by the `mail_address` claim (the `mail` scope below).
+      # Phones and desktop mail apps do not come this way: they use app passwords.
       - model: authentik_providers_proxy.proxyprovider
         identifiers:
           name: mail
         attrs:
           mode: forward_single
-          external_host: https://WLWEBMAILPREFIX.WLDOMAIN
+          external_host: https://WLMAILPREFIX.WLDOMAIN
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
           access_token_validity: hours=24
@@ -752,10 +758,10 @@ data:
         identifiers:
           slug: mail
         attrs:
-          name: Mail
+          name: Mail · parole de aplicație
           provider: !Find [authentik_providers_proxy.proxyprovider, [name, mail]]
-          meta_launch_url: https://WLWEBMAILPREFIX.WLDOMAIN/account
-          meta_description: Căsuța de e-mail și parolele de aplicație pentru telefon
+          meta_launch_url: https://WLMAILPREFIX.WLDOMAIN/account
+          meta_description: Parolele de aplicație pentru telefon și administrarea serverului de e-mail
       - model: authentik_policies.policybinding
         identifiers:
           target: !Find [authentik_core.application, [slug, mail]]
@@ -771,10 +777,11 @@ data:
           target: !Find [authentik_core.application, [slug, mail]]
           group: !Find [authentik_core.group, [name, app-mail-admin]]
         attrs: { negate: false, enabled: true, order: 2 }
-      # The `mail` scope: which mailbox a person owns. Their attribute `mail_account` (a local
-      # part, or a whole address) when the estate set one, else their username; Stalwart
-      # appends <MAILBOX_DOMAIN> to a bare local part. So a person whose username is not their
-      # mailbox name (an estate's existing accounts) still lands on the mailbox made for them.
+      # The `mail` scope: which mailbox a person owns, as the claim `mail_address`. Their
+      # attribute `mail_address` (the whole address, name@<MAILBOX_DOMAIN>) when the estate set
+      # one, else their username, to which Stalwart appends <MAILBOX_DOMAIN>. Their `email`
+      # stays their own external address (sign-in recovery never depends on this server), so
+      # a person whose username or e-mail is not their mailbox still lands on their mailbox.
       - model: authentik_providers_oauth2.scopemapping
         identifiers:
           name: WLSLUG-mail-scope
@@ -782,8 +789,9 @@ data:
           scope_name: mail
           description: "The person's mailbox on the estate's mail server"
           expression: |
-            account = request.user.attributes.get("mail_account") or request.user.username
-            return {"mail_account": account}
+            attrs = request.user.attributes
+            account = attrs.get("mail_address") or attrs.get("mail_account") or request.user.username
+            return {"mail_address": account}
       - model: authentik_providers_oauth2.oauth2provider
         identifiers:
           name: mail-oidc
@@ -805,9 +813,9 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-mail-scope]]
           redirect_uris:
             - matching_mode: strict
-              url: https://WLWEBMAILPREFIX.WLDOMAIN/account/oauth/callback
+              url: https://WLMAILPREFIX.WLDOMAIN/account/oauth/callback
             - matching_mode: strict
-              url: https://WLWEBMAILPREFIX.WLDOMAIN/admin/oauth/callback
+              url: https://WLMAILPREFIX.WLDOMAIN/admin/oauth/callback
       - model: authentik_core.application
         identifiers:
           slug: mail-oidc
@@ -828,6 +836,87 @@ data:
       - model: authentik_policies.policybinding
         identifiers:
           target: !Find [authentik_core.application, [slug, mail-oidc]]
+          group: !Find [authentik_core.group, [name, app-mail-admin]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      - model: authentik_providers_proxy.proxyprovider
+        identifiers:
+          name: webmail
+        attrs:
+          mode: forward_single
+          external_host: https://WLWEBMAILPREFIX.WLDOMAIN
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          access_token_validity: hours=24
+      - model: authentik_core.application
+        identifiers:
+          slug: webmail
+        attrs:
+          name: Mail
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, webmail]]
+          meta_launch_url: https://WLWEBMAILPREFIX.WLDOMAIN/
+          meta_description: Căsuța de e-mail a estate-ului
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail]]
+          group: !Find [authentik_core.group, [name, app-mail-user]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail]]
+          group: !Find [authentik_core.group, [name, app-mail-admin]]
+        attrs: { negate: false, enabled: true, order: 2 }
+      # Roundcube's client: confidential (it runs on the server), its secret from OpenBao
+      # platform/authentik/webmail-oidc (webmail-oidc-externalsecret.yaml), which Roundcube
+      # reads too. offline_access, so Roundcube renews the token the mail server checks.
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: webmail-oidc
+        attrs:
+          client_type: confidential
+          client_id: webmail-oidc
+          client_secret: !Context webmail_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-offline_access]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, WLSLUG-mail-scope]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://WLWEBMAILPREFIX.WLDOMAIN/index.php/login/oauth
+      - model: authentik_core.application
+        identifiers:
+          slug: webmail-oidc
+        attrs:
+          name: Mail (sign-in)
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, webmail-oidc]]
+          meta_launch_url: blank://blank
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail-oidc]]
+          group: !Find [authentik_core.group, [name, app-mail-user]]
+        attrs: { negate: false, enabled: true, order: 0 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail-oidc]]
+          group: !Find [authentik_core.group, [name, platform-admins]]
+        attrs: { negate: false, enabled: true, order: 1 }
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, webmail-oidc]]
           group: !Find [authentik_core.group, [name, app-mail-admin]]
         attrs: { negate: false, enabled: true, order: 2 }
       # ---- Tailnet dashboard gates (proxy MODE) --------------------------------
@@ -994,5 +1083,6 @@ data:
             # END GENERATED n8n instances
             - !Find [authentik_providers_proxy.proxyprovider, [name, affine]]
             - !Find [authentik_providers_proxy.proxyprovider, [name, mail]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, webmail]]
             - !Find [authentik_providers_proxy.proxyprovider, [name, netdata]]
             - !Find [authentik_providers_proxy.proxyprovider, [name, hub]]

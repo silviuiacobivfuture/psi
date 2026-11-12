@@ -80,6 +80,11 @@ spec:
             - secretRef:
                 name: authentik-affine-oidc
                 optional: true
+            # The webmail's OIDC client (gitops/platform/authentik/webmail-oidc-externalsecret.yaml).
+            # OPTIONAL for the same reason as AFFiNE's.
+            - secretRef:
+                name: authentik-webmail-oidc
+                optional: true
           # The Romanian mail templates (gitops/platform/authentik/email-templates.yaml),
           # under Authentik's email.template_dir (/templates). Read-only.
           volumes:

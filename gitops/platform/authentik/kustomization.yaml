@@ -65,6 +65,9 @@ resources:
   # AFFiNE's OIDC client as the env the providers blueprint reads (pieces/affine). Its
   # secretRef in gitops/apps/overlays/dev/authentik.yaml is optional.
   - affine-oidc-externalsecret.yaml
+  # The webmail's OIDC client secret as the env the providers blueprint reads (pieces/stalwart).
+  # Its secretRef in gitops/apps/overlays/dev/authentik.yaml is optional.
+  - webmail-oidc-externalsecret.yaml
   # psi's cms: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
   - blueprints-cms.yaml
   - cms-oidc-externalsecret.yaml

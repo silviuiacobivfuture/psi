@@ -1,15 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# psi's additions to SEB's stalwart piece: its people's mailboxes (owner, 2026-11-12:
-# "i want emails for silviu.iacob, dana.turcu, adi.turcu, and the other person").
-# Each is <line>@<MAILBOX_DOMAIN> (post.psizone.ro), made by the server's plan before its
-# owner first signs in, so it receives mail from the start. The owner signs in through
-# Authentik and lands on it by the `mail_account` attribute the people blueprint sets
-# (gitops/platform/authentik/blueprints-people.yaml):
+# psi's additions to SEB's stalwart piece.
+#
+# MAILBOXES (owner, 2026-11-12: "i want emails for silviu.iacob, dana.turcu, adi.turcu, and the
+# other person"). Each is <line>@<MAILBOX_DOMAIN> (post.psizone.ro), made by the server's plan
+# before its owner first signs in, so it receives mail from the start. The owner signs in through
+# Authentik and lands on it by the `mail_address` attribute of their Authentik account (psi's
+# people blueprint); their Authentik e-mail stays their own external address:
 #   silviu.iacob    Authentik silviu          (silviu.iacob@ivfuture.ro)
 #   dana.turcu      Authentik turcu_daniela   (turcu_daniela@icloud.com)
 #   adi.turcu       Authentik adi_rar         (adi_rar@yahoo.com)
 #   nicholas.turcu  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
+#
+# THE WEBMAIL'S LOOK: webmail.css (psi's sign-in tokens on Roundcube's skin) and psi's mark
+# (logo.svg / logo-dark.svg, the sign-in's logo-light.svg / logo-dark.svg). Romanian by default.
 patches:
   - target: { kind: ConfigMap, name: stalwart-mailboxes }
     patch: |-
@@ -20,3 +24,15 @@ patches:
           dana.turcu
           adi.turcu
           nicholas.turcu
+  - target: { kind: ConfigMap, name: stalwart-settings }
+    patch: |-
+      - op: add
+        path: /data/WEBMAIL_LANGUAGE
+        value: ro_RO
+configMapGenerator:
+  - name: webmail-theme
+    behavior: merge
+    files:
+      - estate.css=webmail.css
+      - logo.svg
+      - logo-dark.svg

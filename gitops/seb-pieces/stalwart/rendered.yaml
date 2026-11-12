@@ -23,13 +23,14 @@ apiVersion: v1
 data:
   plan.ndjson.tmpl: |
     {"@type":"reconcile","object":"Tracer","matchOn":["@type"],"value":{"console":{"@type":"Stdout","enable":true,"level":"info","ansi":false,"buffered":false,"lossy":false,"multiline":false}}}
-    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"dom":{"name":"@MAILBOX_DOMAIN@","enable":true,"description":"The estate's mailboxes"}}}
+    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"dom":{"name":"@MAILBOX_DOMAIN@","enable":true,"description":"The estate's mailboxes","dkimManagement":{"@type":"Automatic","algorithms":{"Dkim1RsaSha256":true},"selectorTemplate":"v{version}-{algorithm}-{date-%Y%m%d}","rotateAfter":7776000000,"retireAfter":604800000,"deleteAfter":2592000000}}}}
+    {"@type":"reconcile","object":"DkimSignature","matchOn":["selector"],"scope":{"@type":"Dkim1Ed25519Sha256"},"value":{}}
     {"@type":"reconcile","object":"Certificate","matchOn":["certificate"],"value":{"cert":{"certificate":{"@type":"Text","value":"@TLS_CRT@"},"privateKey":{"@type":"Text","secret":"@TLS_KEY@"}}}}
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_account","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true},"allowIdTokenClaims":true}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_address","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true,"webmail-oidc":true},"allowIdTokenClaims":true,"unscopedTokens":"interoperable"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#authentik","maxAppPasswords":10}}
     {"@type":"upsert","object":"MtaRoute","matchOn":["name"],"value":{"ses":{"@type":"Relay","name":"ses","description":"Amazon SES relay","host":"@SES_SMTP_HOST@","port":587,"implicitTls":false,"protocol":"smtp","allowInvalidCerts":false,"authUsername":"@SES_SMTP_USERNAME@","authSecret":{"@type":"Value","secret":"@SES_SMTP_PASSWORD@"}}}}
     {"@type":"update","object":"MtaOutboundStrategy","value":{"route":{"match":{"0":{"if":"is_local_domain(rcpt_domain)","then":"'local'"}},"else":"'ses'"}}}
-    {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"@MAIL_HOST@","defaultDomainId":"#dom","defaultCertificateId":"#cert","mailExchangers":{"0":{"hostname":"@MAIL_HOST@","priority":10}},"services":{"imap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"smtp":{"cleartext":false,"hostname":"@MAIL_HOST@"},"jmap":{"cleartext":false,"hostname":"@WEBMAIL_HOST@"},"caldav":{"cleartext":false,"hostname":null},"carddav":{"cleartext":false,"hostname":null},"webdav":{"cleartext":false,"hostname":null},"pop3":{"cleartext":false,"hostname":null},"managesieve":{"cleartext":false,"hostname":null}}}}
+    {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"@MAIL_HOST@","defaultDomainId":"#dom","defaultCertificateId":"#cert","mailExchangers":{"0":{"hostname":"@MAIL_HOST@","priority":10}},"services":{"imap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"smtp":{"cleartext":false,"hostname":"@MAIL_HOST@"},"jmap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"caldav":{"cleartext":false,"hostname":null},"carddav":{"cleartext":false,"hostname":null},"webdav":{"cleartext":false,"hostname":null},"pop3":{"cleartext":false,"hostname":null},"managesieve":{"cleartext":false,"hostname":null}}}}
     {"@type":"reconcile","object":"NetworkListener","matchOn":["name"],"value":{"http":{"name":"http","protocol":"http","bind":{"[::]:8080":true},"useTls":false,"implicitTls":false},"smtp":{"name":"smtp","protocol":"smtp","bind":{"[::]:25":true},"useTls":true,"implicitTls":false},"submissions":{"name":"submissions","protocol":"smtp","bind":{"[::]:465":true},"useTls":true,"implicitTls":true},"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"useTls":true,"implicitTls":false},"imaps":{"name":"imaps","protocol":"imap","bind":{"[::]:993":true},"useTls":true,"implicitTls":true}}}
     {"@type":"upsert","object":"Application","matchOn":["description"],"value":{"webui":{"description":"Stalwart Web Interface","enable":true,"oauthClientId":"mail-oidc","oauthScopes":{"mail":true}}}}
   render-plan.sh: |
@@ -72,19 +73,157 @@ data:
     grep -c . /work/plan.ndjson | sed 's/^/plan lines: /'
 kind: ConfigMap
 metadata:
-  name: stalwart-plan-kcbckb6h9b
+  name: stalwart-plan-c5c594246h
   namespace: stalwart
 ---
 apiVersion: v1
 data:
   AUTHENTIK_HOST: auth.psizone.ro
+  BRAND_TITLE: Psi
   MAIL_HOST: post.psizone.ro
   MAILBOX_DOMAIN: post.psizone.ro
-  STALWART_PUBLIC_URL: https://webmail.psizone.ro
+  STALWART_PUBLIC_URL: https://post.psizone.ro
   WEBMAIL_HOST: webmail.psizone.ro
+  WEBMAIL_LANGUAGE: ro_RO
 kind: ConfigMap
 metadata:
   name: stalwart-settings
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  apache.conf: "# Apache on an unprivileged port (the pod runs as www-data, never
+    root), logging to the pod's\n# streams. Replaces the image's ports.conf and default
+    site.\nListen 8080\n<VirtualHost *:8080>\n\tDocumentRoot /var/www/html/public_html\n\tErrorLog
+    /dev/stderr\n\tCustomLog /dev/stdout combined\n</VirtualHost>\n"
+  empty.conf: |
+    # The image's default site is replaced by apache.conf's.
+kind: ConfigMap
+metadata:
+  name: webmail-apache-6k69b564th
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  estate.php: |
+    <?php
+    // The estate's webmail (Roundcube), read by the image's entrypoint from /var/roundcube/config.
+    // Every value from the environment (stalwart-settings, webmail-app): no estate is named here.
+    //
+    // SIGN-IN: only through the estate's Authentik. oauth_login_redirect sends the browser straight
+    // to it, so Roundcube's own form never shows and nobody types a password here. The access token
+    // Authentik returns is presented to the mail server over IMAP and SMTP (OAUTHBEARER), where
+    // Stalwart's OIDC directory validates it and maps the person to their mailbox by the
+    // `mail_address` claim, the same claim this page signs them in with.
+    $host = getenv('MAIL_HOST');
+    $issuer = 'https://' . getenv('AUTHENTIK_HOST') . '/application/o/webmail-oidc/';
+    $tls = ['ssl' => ['peer_name' => $host, 'verify_peer' => true, 'verify_peer_name' => true]];
+
+    // The mail server inside the cluster (stalwart-mail), checked against its public certificate.
+    $config['imap_host'] = 'ssl://stalwart-mail.stalwart.svc.cluster.local:993';
+    $config['imap_conn_options'] = $tls;
+    $config['smtp_host'] = 'tls://stalwart-mail.stalwart.svc.cluster.local:587';
+    $config['smtp_conn_options'] = $tls;
+    $config['username_domain'] = getenv('MAILBOX_DOMAIN');
+    $config['mail_domain'] = getenv('MAILBOX_DOMAIN');
+
+    $config['oauth_provider'] = 'generic';
+    $config['oauth_provider_name'] = getenv('BRAND_TITLE') ?: 'SSO';
+    $config['oauth_client_id'] = 'webmail-oidc';
+    $config['oauth_client_secret'] = getenv('OAUTH_CLIENT_SECRET');
+    $config['oauth_config_uri'] = $issuer . '.well-known/openid-configuration';
+    $config['oauth_scope'] = 'openid email profile mail offline_access';
+    $config['oauth_identity_fields'] = ['mail_address'];
+    $config['oauth_auth_type'] = 'OAUTHBEARER';
+    $config['oauth_login_redirect'] = true;
+    $config['oauth_pkce'] = 'S256';
+    $config['oauth_cache'] = 'db';
+
+    $config['des_key'] = getenv('DES_KEY');
+    $config['product_name'] = getenv('BRAND_TITLE') ?: 'Webmail';
+    $config['support_url'] = '';
+    // The browser's language unless the estate names one.
+    if (getenv('WEBMAIL_LANGUAGE')) {
+        $config['language'] = getenv('WEBMAIL_LANGUAGE');
+    }
+    $config['use_https'] = true;
+    $config['proxy_whitelist'] = ['10.0.0.0/8'];
+    $config['session_lifetime'] = 60;
+    // Mail only: no contacts or calendar here (they live in the estate's files-and-calendar app).
+    $config['address_book_type'] = '';
+    $config['plugins'] = array_values(array_unique(array_merge($config['plugins'] ?? [], ['estate_theme'])));
+    // The estate's mark, when its layer supplies one (components/estate/stalwart): logo.svg, and
+    // logo-dark.svg for the skin's dark mode.
+    $theme = '/var/www/html/plugins/estate_theme/';
+    if (is_file($theme . 'logo.svg')) {
+        $config['skin_logo'] = ['elastic:*' => 'plugins/estate_theme/logo.svg'];
+        if (is_file($theme . 'logo-dark.svg')) {
+            $config['skin_logo']['elastic:*[dark]'] = 'plugins/estate_theme/logo-dark.svg';
+        }
+    }
+kind: ConfigMap
+metadata:
+  name: webmail-config-4bg46d9f88
+  namespace: stalwart
+---
+apiVersion: v1
+data:
+  estate.css: "/*\n * psi's look on the webmail (Roundcube's Elastic skin), from the
+    same tokens as psi's sign-in\n * (gitops/platform/authentik/estate/recomex.css,
+    generated from brand/signin-theme.json): light is\n * Psizone Gold, dark is Psizone
+    Night. Colours only, through the skin's own selectors; layout and\n * behaviour
+    stay Roundcube's.\n */\n:root {\n\t--psi-bg: #f4eee2;\n\t--psi-ink: #16120a;\n\t--psi-card:
+    #faf6ee;\n\t--psi-surface: #ece3d1;\n\t--psi-muted: #554c3b;\n\t--psi-primary:
+    #a97b24;\n\t--psi-primary-hover: #b8892f;\n\t--psi-on-primary: #1a1405;\n\t--psi-accent-soft:
+    rgba(169, 123, 36, 0.16);\n\t--psi-link: #86650f;\n\t--psi-line: rgba(46, 34,
+    10, 0.1);\n\t--psi-ring: #0d7a70;\n\t--psi-font: \"Manrope\", \"Segoe UI\", system-ui,
+    sans-serif;\n}\nhtml.dark-mode {\n\t--psi-bg: #0d0b07;\n\t--psi-ink: #f7f1e3;\n\t--psi-card:
+    #15120c;\n\t--psi-surface: #1e1a12;\n\t--psi-muted: #c2b79f;\n\t--psi-primary:
+    #c2983f;\n\t--psi-primary-hover: #cda449;\n\t--psi-on-primary: #1a1405;\n\t--psi-accent-soft:
+    rgba(194, 152, 63, 0.16);\n\t--psi-link: #d2aa50;\n\t--psi-line: rgba(255, 240,
+    210, 0.1);\n\t--psi-ring: #40d9c9;\n}\nbody,\n#layout,\n.popover,\n.ui-dialog,\ninput,\nselect,\ntextarea,\nbutton
+    {\n\tfont-family: var(--psi-font);\n}\nbody,\n#layout > div,\n#layout-content,\n#layout-list,\n#layout-sidebar,\n#layout-content
+    .header,\n#layout-list .header,\n#layout-sidebar .header,\n.listing li,\ntable.records-table
+    tbody tr td,\n.messagelist tr td {\n\tbackground-color: var(--psi-card);\n\tcolor:
+    var(--psi-ink);\n}\n#layout-menu {\n\tbackground-color: var(--psi-surface);\n}\n#layout-menu
+    a,\n#layout-menu .special-buttons a {\n\tcolor: var(--psi-muted);\n}\n#layout-menu
+    a.selected,\n#layout-menu a:hover,\n#layout-menu a:focus {\n\tcolor: var(--psi-primary);\n\tbackground-color:
+    var(--psi-accent-soft);\n}\na,\na:visited,\n.link {\n\tcolor: var(--psi-link);\n}\n.btn-primary,\n.btn-primary:not(:disabled):not(.disabled),\n.button.mainaction,\nbutton.mainaction
+    {\n\tbackground-color: var(--psi-primary);\n\tborder-color: var(--psi-primary);\n\tcolor:
+    var(--psi-on-primary);\n}\n.btn-primary:hover,\n.btn-primary:focus,\n.button.mainaction:hover,\nbutton.mainaction:hover
+    {\n\tbackground-color: var(--psi-primary-hover);\n\tborder-color: var(--psi-primary-hover);\n\tcolor:
+    var(--psi-on-primary);\n}\n.listing li.selected,\n.listing li.selected > a,\ntable.records-table
+    tr.selected td,\n.messagelist tr.selected td,\n.listing li.focused,\ntable.records-table
+    tr.focused td {\n\tbackground-color: var(--psi-accent-soft);\n\tcolor: var(--psi-ink);\n}\n.listing
+    li,\ntable.records-table td,\n.header,\n#layout-sidebar,\n#layout-list {\n\tborder-color:
+    var(--psi-line);\n}\ninput:focus,\nselect:focus,\ntextarea:focus,\n.form-control:focus
+    {\n\tborder-color: var(--psi-ring);\n\tbox-shadow: 0 0 0 0.2rem color-mix(in srgb,
+    var(--psi-ring) 25%, transparent);\n}\n.badge,\n.unread-count,\n.listing .unread
+    .msgcount {\n\tbackground-color: var(--psi-primary);\n\tcolor: var(--psi-on-primary);\n}\n#logo
+    {\n\tmax-height: 3rem;\n}\n"
+  estate_theme.php: |
+    <?php
+    /**
+     * The estate's look on the webmail: one stylesheet (estate.css) after the skin's own, and the
+     * estate's mark (logo.svg, see estate.php). SEB ships both empty; an estate's layer replaces
+     * them (components/estate/stalwart, ConfigMap webmail-theme).
+     */
+    class estate_theme extends rcube_plugin
+    {
+        public $task = '.*';
+
+        public function init()
+        {
+            $this->include_stylesheet('estate.css');
+        }
+    }
+  logo-dark.svg: |
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 48" width="264" height="48"><title>Psi</title><g transform="translate(0 0)"><defs><linearGradient id="t-polaris" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#586474"/><stop offset="1" stop-color="#424d63"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#t-polaris)"/><path d="M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z" fill="#ffffff"/></g><text x="68" y="36" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5" fill="#F7F1E3">Psi</text></svg>
+  logo.svg: |
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 48" width="264" height="48"><title>Psi</title><g transform="translate(0 0)"><defs><linearGradient id="t-polaris" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#586474"/><stop offset="1" stop-color="#424d63"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#t-polaris)"/><path d="M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z" fill="#ffffff"/></g><text x="68" y="36" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5" fill="#16120A">Psi</text></svg>
+kind: ConfigMap
+metadata:
+  name: webmail-theme-d69m8448dg
   namespace: stalwart
 ---
 apiVersion: v1
@@ -101,6 +240,35 @@ spec:
     app.kubernetes.io/name: stalwart
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart-mail
+  namespace: stalwart
+spec:
+  ports:
+  - name: imaps
+    port: 993
+    targetPort: imaps
+  - name: submission
+    port: 587
+    targetPort: submission
+  selector:
+    app.kubernetes.io/name: stalwart
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webmail
+  namespace: stalwart
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: webmail
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   annotations:
@@ -113,6 +281,20 @@ spec:
   resources:
     requests:
       storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: webmail-data
+  namespace: stalwart
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -259,6 +441,169 @@ spec:
           sizeLimit: 256Mi
         name: tmp
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+    reloader.stakater.com/auto: "true"
+  labels:
+    app.kubernetes.io/name: webmail
+  name: webmail
+  namespace: stalwart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webmail
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webmail
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: ROUNDCUBEMAIL_SKIN
+          value: elastic
+        - name: ROUNDCUBEMAIL_PLUGINS
+          value: archive,zipdownload
+        - name: ROUNDCUBEMAIL_DB_DIR
+          value: /var/roundcube/db
+        envFrom:
+        - configMapRef:
+            name: stalwart-settings
+        - secretRef:
+            name: webmail-app
+        image: registry.psizone.ro/mirror/docker.io/roundcube/roundcubemail:1.7.6-apache@sha256:ecf8a57da1d2c4a54285be9fac1ae2ed145d84567c6af449afe28bfd0f28b558
+        livenessProbe:
+          failureThreshold: 4
+          periodSeconds: 30
+          tcpSocket:
+            port: http
+        name: roundcube
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /index.php
+            port: http
+          periodSeconds: 15
+        resources:
+          limits:
+            cpu: "1"
+            memory: 256Mi
+          requests:
+            cpu: 20m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 60
+          periodSeconds: 5
+          tcpSocket:
+            port: http
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: html
+        - mountPath: /var/www/html/plugins/estate_theme
+          name: theme
+          readOnly: true
+        - mountPath: /var/roundcube/config
+          name: config
+          readOnly: true
+        - mountPath: /var/roundcube/db
+          name: data
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/run/apache2
+          name: run
+        - mountPath: /var/lock/apache2
+          name: lock
+        - mountPath: /etc/apache2/ports.conf
+          name: apache
+          readOnly: true
+          subPath: apache.conf
+        - mountPath: /etc/apache2/sites-enabled/000-default.conf
+          name: apache
+          readOnly: true
+          subPath: empty.conf
+      enableServiceLinks: false
+      initContainers:
+      - args:
+        - |
+          for k in OAUTH_CLIENT_SECRET DES_KEY; do
+            eval "v=\${$k:-}"
+            [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+          done
+          echo "all required secrets present"
+        command:
+        - sh
+        - -c
+        envFrom:
+        - secretRef:
+            name: webmail-app
+        image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+        name: assert-secrets
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+      securityContext:
+        fsGroup: 33
+        runAsGroup: 33
+        runAsNonRoot: true
+        runAsUser: 33
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - emptyDir:
+          sizeLimit: 256Mi
+        name: html
+      - configMap:
+          name: webmail-theme-d69m8448dg
+        name: theme
+      - configMap:
+          name: webmail-config-4bg46d9f88
+        name: config
+      - name: data
+        persistentVolumeClaim:
+          claimName: webmail-data
+      - emptyDir:
+          sizeLimit: 256Mi
+        name: tmp
+      - emptyDir:
+          sizeLimit: 1Mi
+        name: run
+      - emptyDir:
+          sizeLimit: 1Mi
+        name: lock
+      - configMap:
+          name: webmail-apache-6k69b564th
+        name: apache
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -373,7 +718,7 @@ spec:
               sizeLimit: 16Mi
             name: tmp
           - configMap:
-              name: stalwart-plan-kcbckb6h9b
+              name: stalwart-plan-c5c594246h
             name: plan
           - configMap:
               name: stalwart-mailboxes
@@ -499,7 +844,7 @@ spec:
           sizeLimit: 16Mi
         name: tmp
       - configMap:
-          name: stalwart-plan-kcbckb6h9b
+          name: stalwart-plan-c5c594246h
         name: plan
       - configMap:
           name: stalwart-mailboxes
@@ -579,27 +924,41 @@ spec:
     creationPolicy: Owner
     name: stalwart-ses
 ---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: webmail-app
+  namespace: stalwart
+spec:
+  data:
+  - remoteRef:
+      key: platform/authentik/webmail-oidc
+      property: client_secret
+    secretKey: OAUTH_CLIENT_SECRET
+  - remoteRef:
+      key: apps/stalwart/webmail
+      property: des_key
+    secretKey: DES_KEY
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao
+  target:
+    creationPolicy: Owner
+    name: webmail-app
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    gethomepage.dev/description: Căsuța de e-mail a estate-ului
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Everyday tools
-    gethomepage.dev/href: https://webmail.psizone.ro/account
-    gethomepage.dev/icon: mdi-email
-    gethomepage.dev/name: Mail
-    gethomepage.dev/pod-selector: app.kubernetes.io/name=stalwart
-    gethomepage.dev/weight: "25"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
-  name: stalwart-webmail
+  name: stalwart-admin
   namespace: stalwart
 spec:
   ingressClassName: traefik
   rules:
-  - host: webmail.psizone.ro
+  - host: post.psizone.ro
     http:
       paths:
       - backend:
@@ -611,8 +970,8 @@ spec:
         pathType: Prefix
   tls:
   - hosts:
-    - webmail.psizone.ro
-    secretName: stalwart-webmail-tls
+    - post.psizone.ro
+    secretName: stalwart-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -620,12 +979,12 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
-  name: stalwart-webmail-callback
+  name: stalwart-admin-callback
   namespace: stalwart
 spec:
   ingressClassName: traefik
   rules:
-  - host: webmail.psizone.ro
+  - host: post.psizone.ro
     http:
       paths:
       - backend:
@@ -637,5 +996,66 @@ spec:
         pathType: Exact
   tls:
   - hosts:
+    - post.psizone.ro
+    secretName: stalwart-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    gethomepage.dev/description: Webmail
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Everyday tools
+    gethomepage.dev/href: https://webmail.psizone.ro/
+    gethomepage.dev/icon: mdi-email
+    gethomepage.dev/name: Mail
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=webmail
+    gethomepage.dev/weight: "25"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+  name: webmail
+  namespace: stalwart
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: webmail.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: webmail
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
     - webmail.psizone.ro
-    secretName: stalwart-webmail-tls
+    secretName: webmail-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+  name: webmail-callback
+  namespace: stalwart
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: webmail.psizone.ro
+    http:
+      paths:
+      - backend:
+          service:
+            name: webmail
+            port:
+              name: http
+        path: /outpost.goauthentik.io/callback
+        pathType: Exact
+  tls:
+  - hosts:
+    - webmail.psizone.ro
+    secretName: webmail-tls
