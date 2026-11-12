@@ -11,3 +11,4 @@ resources:
   - seb-traefik-accesslog.yaml
   - seb-pdfcraft.yaml
   - seb-talk-hpb.yaml
+  - seb-convex.yaml
