@@ -19,6 +19,8 @@ import type * as guard from "../guard.js";
 import type * as retention from "../retention.js";
 import type * as seed from "../seed.js";
 import type * as staff from "../staff.js";
+import type * as staffCatalog from "../staffCatalog.js";
+import type * as staffRequests from "../staffRequests.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -39,6 +41,8 @@ declare const fullApi: ApiFromModules<{
   retention: typeof retention;
   seed: typeof seed;
   staff: typeof staff;
+  staffCatalog: typeof staffCatalog;
+  staffRequests: typeof staffRequests;
   validators: typeof validators;
 }>;
 

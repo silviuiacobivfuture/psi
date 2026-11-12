@@ -3,9 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base, type Locale } from "../i18n";
 import { heroPicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
-
-/** The centre's main public number, as published on psizone.ro. */
-const PHONE = { display: "0748 017 752", tel: "+40748017752" } as const;
+import { heroYears, mainPhone } from "../site-settings";
 
 /**
  * The hero: the promise, two actions, the phone; beside it a stage of rings and solid discs
@@ -15,7 +13,9 @@ const PHONE = { display: "0748 017 752", tel: "+40748017752" } as const;
 export function Hero({ locale }: { locale: Locale }): JSX.Element {
 	const o = at(locale);
 	const b = base(locale);
-	const years = Number.parseInt(m.hero_stat_value({}, o), 10);
+	// The owners' figure from the CMS, or the number in today's copy.
+	const years = heroYears(Number.parseInt(m.hero_stat_value({}, o), 10));
+	const phone = mainPhone();
 	const words = m.hero_title({}, o).split(" ");
 	const audience = [
 		m.hero_audience_children({}, o),
@@ -57,8 +57,8 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 					</div>
 					<p class="hero-in mt-8 text-body text-ink-muted" style={`--i:${words.length + 3}`}>
 						{`${m.hero_call({}, o)} `}
-						<a class="font-semibold text-glow-1 hover:underline" href={`tel:${PHONE.tel}`}>
-							{PHONE.display}
+						<a class="font-semibold text-glow-1 hover:underline" href={`tel:${phone.tel}`}>
+							{phone.display}
 						</a>
 					</p>
 				</div>

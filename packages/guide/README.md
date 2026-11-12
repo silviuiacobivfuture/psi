@@ -8,12 +8,14 @@ through Datastar (`@psi/ui`'s `streamGuideAnswer`).
 It is psi's four brands as **profiles on `@psi/engine`**, the reusable core (see
 `packages/engine/README.md` for the tools, the retrieval tiers, the settings and the screening
 levels). The engine owns the Mastra agent per profile and its hydrated tools, the OpenRouter model,
-the screening chain, the exchange limit, the per-sentence gate, the scorer, the event stream and
+the screening chain, the exchange limit, the conversation turn and its claims post-check, the
+scorer, the event stream and
 memory. This package owns what is psi's:
 
 - `src/profiles/`: the brand names and brand-book voices, psi's policy rules, the crisis, scope
   and clinical word lists, the guardrail context, the sister-brand rule (Psizone only), each
-  brand's welcome and thank-you lines (`welcome.ts`), and which brands schedule (Psizone);
+  brand's fallback lines (welcome, follow-up, thank-you, "not on our site": `welcome.ts`), and
+  which brands schedule (Psizone);
 - `retrieval.ts`, `knowledge.ts`, `catalog.ts`: `@psi/knowledge`'s store behind the engine, with the
   tiered search, the catalog (seed, demo when on, every ingest) and psi's lookups
   (`contactDetails`, `servicesList`); demo passages are dropped unless `PSI_DEMO_KNOWLEDGE=true`;
@@ -24,7 +26,7 @@ memory. This package owns what is psi's:
 `createGuide` builds a one-profile engine (each site). `createPsiEngine` builds all four on one
 Mastra instance (Studio's entry, and scripts).
 
-The module ships **no user-facing strings** beyond the brands' welcome and thank-you lines. Refusals
+The module ships **no user-facing strings** beyond the brands' fallback lines. Refusals
 arrive as reasons, and the app renders them from its own i18n.
 
 ## Contract
@@ -62,14 +64,21 @@ type GuideEvent =
   | { type: "done" };
 ```
 
-- **An answer** is `thinking`, `text`*, `sources`, `done`. Text arrives a sentence at a time, each
-  checked before it goes out, with the separators (spaces, paragraph breaks) exactly as written.
-- **Small talk** ("bună", "what can you do?", "mulțumesc") is `text`, `done`: the brand's welcome
-  or thank-you line, with no retrieval and no model call, and no sources.
+- **A reply** is `thinking`, `text`*, `sources` (when it cites), `done`, streamed as the model
+  writes it. A `replace` (`{ type: "replace", text }`) resets the message's text: `""` before a
+  regenerated reply streams in, or the corrected full text. Every turn goes to the
+  brand's agent, conversation first: small talk, a test, gibberish, a feeling, thanks or a meta
+  question gets a short warm reply (no search); a factual question is looked up with the tools and
+  cited. The finished reply is checked (language, figures and clinical terms against the tool
+  results, Romanian grammar slips, a repeat, a closing question asked before), with one
+  regeneration at most. Follow-up questions are rare and fit the brand (`FOLLOW_UP_TOPICS`).
+- **The fallback lines** (welcome, follow-up, thank-you) go out only when the model cannot reply
+  (no key, the provider failing twice, a reply still in another language after its retry).
+- **An aborted turn** (a newer question replaced it) is `thinking`, `done`: it renders nothing.
 - **Booking** (Psizone, with `scheduling`) is `booking`, `done`: free times from @psi/scheduling
   (Convex) only, never from the CMS. Nothing is held or booked by the guide.
 - **Citations.** `[k]` points to `sources[k-1]`: only passages a tool returned in this answer.
-- **A refusal** is `refusal`, `done`, possibly after `text` (the app replaces the partial answer).
+- **A refusal** is `refusal`, `done`.
 - **Every stream ends with exactly one `done`**; `ask` never throws or hangs (`timeouts`:
   `retrievalMs` 8 s, `screeningMs` 8 s, `idleMs` 20 s, `totalMs` 60 s).
 - **`clientId`** feeds the burst limit; **`visitorKeys`** (session cookie, browser cookie, daily
@@ -82,13 +91,13 @@ Each app renders every reason from its own i18n, in the locale it passed to `ask
 | Reason | When | Model called? |
 | --- | --- | --- |
 | `crisis` | Self-harm, suicide, abuse or emergency language (ro, en, diacritics or not, hidden characters). Wins over everything, the limits included. The app shows 112 and the clinic phone. | Never |
-| `out_of_scope` | A diagnosis, medication or individual treatment request; invalid input; an answer that broke a brand rule (Psizone naming Hemi-Sync or EQ-SYNC on a clinical question). | No (the brand rule runs on the answer) |
+| `out_of_scope` | Invalid input only (empty, over-long, malformed). A diagnosis or medication question is steered to a specialist in conversation; a sentence breaking a brand rule (Psizone naming Hemi-Sync or EQ-SYNC on a clinical question) is regenerated, then left out. | No |
 | `injection` | The question or a history turn tries to change or reveal the instructions. | No by the rules; one call at the strict level |
 | `abuse` | Insults, threats, slurs aimed at the guide or the team (never health, therapy or a child). | No by the rules; one call at the strict level |
 | `rate_limited` | Too many questions in a short time (the burst limit, per `clientId`). | Never |
 | `exchange_limit` | The visitor used up the admin's `exchangeLimit` per `exchangeWindowHours` (default 20 a day) on any of its keys. | Never |
-| `no_content` | Nothing reviewed answers it (and it names a topic: otherwise the welcome), the model said so, or the answer invented a fact (a figure, a name, a citation to a passage no tool returned, an unsupported promise), or no supported claim went out. | No for empty retrieval |
-| `unavailable` | No key, a provider or knowledge failure, a timeout, an abort, an unfinished answer, the other language, a limiter failure, or `guideEnabled: false` (stage `disabled`). | — |
+| `no_content` | Not for psi's brands: a question nothing covers gets an honest reply in conversation, an all-invented reply the brand's "not on our site" line. | — |
+| `unavailable` | A real question with no key or the provider failing twice (network, 5xx, a timeout, an unfinished reply), a limiter failure, or `guideEnabled: false` (stage `disabled`). Never a language mismatch, never an aborted turn. | — |
 
 ## The chain, in order
 
@@ -101,35 +110,29 @@ Cheapest and most certain first; a step that refuses stops the chain.
 | 3 | Burst limit (`clientId`), then the exchange limit (`visitorKeys`) | `rate_limited`, `exchange_limit` | One store call each; fail closed |
 | 4 | Validation (zod) | `out_of_scope` | Free |
 | 5 | Unicode, look-alikes, injection and abuse rules, PII redaction (Mastra processors and the engine's own) | `injection`, `abuse` | Free |
-| 6 | Scope rules | `out_of_scope` | Free |
+| 6 | Scope rules: marked, never refused (the agent steers to a specialist) | — | Free |
 | 7 | Booking intent (Psizone): free times as a `booking` event | — | One scheduling read |
-| 8 | Small talk: the welcome or thank-you line | — | Free |
-| 9 | The probe: one search; nothing found is `no_content` (or the welcome when no topic is named) | `no_content` | One search |
-| 10 | Strict level only: Mastra's injection and moderation detectors, both failing open | `injection`, `abuse` | Two small model calls |
-| 11 | The agent, with its tools (`searchKnowledge`, `listTopics`, `getEntry`, `findPage`, `contactDetails`, `servicesList`), at most 4 calls, temperature 0.1 | — | The answer call(s) |
-| 12 | The per-sentence gate: the sentinel, the sister-brand rule, the language, faithfulness | `no_content`, `out_of_scope`, `unavailable` | Free |
-| 13 | The `psi-faithfulness` scorer on what went out, reported through `onScore` | — | Free |
+| 8 | Strict level only: Mastra's injection and moderation detectors, both failing open | `injection`, `abuse` | Two small model calls |
+| 9 | The agent, conversation first, with its tools (`searchKnowledge`, `listTopics`, `getEntry`, `findPage`, `contactDetails`, `servicesList`), at most 4 tool calls, temperature 0.5, the last 10 turns | — | The reply call |
+| 10 | The post-check: language, figures and clinical terms against the tool results, the sister-brand rule, a repeat; one regeneration, then the sentences left out | — | At most one more call |
+| 11 | The `psi-faithfulness` scorer on a cited reply, reported through `onScore` | — | Free |
 
-The screening level is the admin's (`screeningLevel`, default `standard`: no model detectors). The
-probe's passages are never shown to the model: it reads content only through its tools.
+The screening level is the admin's (`screeningLevel`, default `standard`: no model detectors).
 
 ## Accuracy
 
-Each claim is checked against every passage the tools returned in this answer (folded, four-letter
-stems, function words ignored). Figures (numbers, phones, prices) and names (capitalised words
-mid-sentence, also after "dr.", domains, e-mails) must appear in a passage, a source title or the
-brand's name. A sentence that only paraphrases without support is left out and the rest streams
-(`dropped` in `onScore`); a sentence that invents a fact, cites a passage no tool returned, or makes
-an unsupported promise ("vindecă", "guarantees") stops the answer. Warm openers and closing
-questions without a fact are kept. Nothing goes out before the first sentence that cites a source.
-The check is lexical, not semantic.
+A reply's factual claims are checked, not its conversation: a sentence carrying a figure
+(number, phone, price, date, time) or a clinical, "free" or effect term that no tool result, topic
+list or brand text carries is flagged. A flagged reply is regenerated once with "only facts from
+the tool results"; still flagged, those sentences are left out; nothing left, the brand's "not on
+our site" line. Citations to a passage no tool returned are dropped. The check is lexical.
 
 ## Conversation, memory and consent
 
 **Conversation mode** (no consent needed, nothing stored): the page keeps its turns in a Datastar
-signal; the last 6 answered turns go to `ask` as `history`; refused turns stay visible but are never
+signal; the last 10 answered turns go to `ask` as `history`; refused turns stay visible but are never
 sent (`conversation.ts`). **Memory** (stored) only with a `threadId`, passed after consent: the
-last 10 messages, nothing semantic; a refused or abandoned answer is removed from the thread.
+last 10 messages, nothing semantic; a retried, trimmed or failed reply is removed from the thread.
 
 ## Privacy
 

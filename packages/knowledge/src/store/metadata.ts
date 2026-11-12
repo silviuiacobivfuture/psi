@@ -15,6 +15,10 @@ export const ChunkMetadataSchema = z.object({
 	reviewedAt: z.string().nullable(),
 	chunk: z.number().int().min(0),
 	text: z.string().min(1),
+	/** Optional, for the catalog's topics when it is rebuilt from the store (older rows lack them). */
+	audience: z.string().optional(),
+	hub: z.string().optional(),
+	method: z.string().optional(),
 });
 
 export type ChunkMetadata = z.infer<typeof ChunkMetadataSchema>;
@@ -32,6 +36,9 @@ export function chunkMetadata(entry: KnowledgeEntry, chunk: number, text: string
 		reviewedAt: entry.reviewedAt,
 		chunk,
 		text,
+		...(entry.audience === undefined ? {} : { audience: entry.audience }),
+		...(entry.hub === undefined ? {} : { hub: entry.hub }),
+		...(entry.method === undefined ? {} : { method: entry.method }),
 	};
 }
 

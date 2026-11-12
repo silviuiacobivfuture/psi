@@ -5,6 +5,7 @@ import { account } from "../account";
 import { ESTATE, SITE, siteNames } from "../estate";
 import { base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
+import { installPrompt } from "../site-settings";
 
 /** The notifications page, under the account (Romanian slug in both locales, like every Psizone page). */
 export function notificationsPath(locale: Locale): string {
@@ -33,7 +34,7 @@ export function PwaHeadTags({ locale }: { locale: Locale }): JSX.Element {
 	return pwa.head(locale, requestPath());
 }
 
-/** The Compass's install and notification entries. */
+/** The Compass's install and notification entries; the install invitation hidden when the owners turned it off (`installPrompt`). */
 export function SitePwaTools({ locale }: { locale: Locale }): JSX.Element {
-	return pwa.tools(locale);
+	return pwa.tools(locale, { install: installPrompt() });
 }

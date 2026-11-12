@@ -48,6 +48,8 @@ export const KnowledgeEntries: CollectionConfig = {
 	slug: "knowledge-entries",
 	labels: L.knowledge,
 	admin: {
+		// In the "Platformă / Platform" group of the admin navigation (components/AdminNav.tsx).
+		group: false,
 		useAsTitle: "question",
 		defaultColumns: ["question", "brand", "kind", "_status"],
 		baseListFilter: brandListFilter(),

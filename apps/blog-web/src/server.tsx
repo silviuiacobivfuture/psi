@@ -3,11 +3,10 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import {
+	accountMemory,
+	answerGuidePost,
 	applyIndexingPolicy,
-	parseAnswerTarget,
-	parseAskSignals,
-	questionFor,
-	streamGuideAnswer,
+	installDevLog,
 } from "@psi/ui";
 import { type Context, Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
@@ -19,8 +18,9 @@ import { brandFrom } from "./brands";
 import { registerCmsRoutes, startCms } from "./cms-routes";
 import { findArticle } from "./content/articles";
 import { topicFrom } from "./content/topics";
+import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
-import { answerClass, guideLabels } from "./guide";
+import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
 import type { Locale } from "./i18n";
 import { ArticlePage } from "./pages/article";
@@ -31,16 +31,24 @@ import { rssFeed } from "./rss";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
+const DATASTAR = readFileSync(
+	fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")),
+	"utf8",
+);
 const PORT = Number.parseInt(process.env.PORT ?? "4340", 10);
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+installDevLog(app);
+applyIndexingPolicy(app, process.env, {
+	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
+});
 app.use(contextStorage());
 // The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); pages below.
 account.mount(app);
 // The installable app and its notifications (docs/plans/pwa.md); before the CMS routes, so a publish is announced.
 registerPwa(app);
+// The control plane (the CMS's /admin/platform): signed /__control/*, /admin → there, the Compass's staff link.
+mountControl(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -52,7 +60,11 @@ const originOf = (c: Context): string => new URL(c.req.url).origin;
 
 function notFound(c: Context, locale: Locale): Response | Promise<Response> {
 	return c.html(
-		<NotFoundPage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={originOf(c)} />,
+		<NotFoundPage
+			locale={locale}
+			theme={themeFrom(getCookie(c, "theme"))}
+			origin={originOf(c)}
+		/>,
 		404,
 	);
 }
@@ -111,21 +123,16 @@ for (const [locale, prefix, segment] of [
 		});
 	});
 	registerAccountRoutes(app, locale, prefix);
-	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = parseAskSignals(await c.req.json().catch(() => null));
-		const target = parseAnswerTarget(c.req.query("target"));
-		const question = signals === null ? null : questionFor(target, signals);
-		if (question === null) return c.body(null, 204);
-		return streamGuideAnswer(c, {
-			guide: countingGuide(await guideForRequest(c, guide), locale, trackable(c)),
+	// The guide: a question streams its answer; the compass also restores and resets its chat here.
+	app.post(`${prefix}/ghid`, (c) =>
+		answerGuidePost(c, {
 			locale,
-			question,
-			target,
-			signals,
 			labels: guideLabels(locale),
-			class: answerClass(target),
-		});
-	});
+			guide: async () =>
+				countingGuide(await guideForRequest(c, guide), locale, trackable(c)),
+			memory: () => accountMemory(account, c, "blog"),
+		}),
+	);
 }
 
 app.notFound((c) => notFound(c, c.req.path.startsWith("/en/") ? "en" : "ro"));

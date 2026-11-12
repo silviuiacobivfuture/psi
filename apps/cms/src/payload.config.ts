@@ -12,6 +12,7 @@ import { seedBreakGlass } from "./breakglass";
 import { AnalyticsDaily } from "./collections/analytics-daily";
 import { Articles, articleReview } from "./collections/articles";
 import { KnowledgeEntries, knowledgeReview } from "./collections/knowledge-entries";
+import { KnowledgeSources } from "./collections/knowledge-sources";
 import { Media } from "./collections/media";
 import { Offerings, offeringReview } from "./collections/offerings";
 import { People } from "./collections/people";
@@ -20,8 +21,12 @@ import { Users } from "./collections/users";
 import { BRANDS as ARTICLE_BRANDS } from "./collections/vocabulary";
 import { type Env, parseEnv, s3Of } from "./env";
 import { AiSettingsGlobal } from "./globals/ai-settings";
+import { SiteSettingsGlobal } from "./globals/site-settings";
 import { i18n } from "./i18n";
 import { migrations } from "./migrations";
+import { aiEndpoints } from "./platform/endpoints-ai";
+import { peopleEndpoints } from "./platform/endpoints-people";
+import { schedulingEndpoints } from "./platform/endpoints-scheduling";
 import { reviewEndpoints } from "./review/endpoints";
 import { statusEndpoint } from "./review/status";
 
@@ -36,7 +41,7 @@ function storage(e: Env): Plugin[] {
 	return [
 		s3Storage({
 			// One bucket per app per environment; this app's files under media/.
-			collections: { media: { prefix: "media" } },
+			collections: { media: { prefix: "media" }, "knowledge-sources": { prefix: "knowledge" } },
 			bucket: s3.bucket,
 			config: {
 				endpoint: s3.endpoint,
@@ -62,9 +67,33 @@ export default buildConfig({
 		components: {
 			afterLogin: ["/components/SignInWithDirectory#SignInWithDirectory"],
 			beforeNavLinks: ["/components/AdminNav#AdminNav"],
+			// psi's mark: the sign-in page (Logo) and the navigation's corner (Icon).
+			graphics: {
+				Logo: "/components/brand/PsiMark#PsiLogo",
+				Icon: "/components/brand/PsiMark#PsiIcon",
+			},
 			views: {
 				review: { Component: "/views/ReviewQueueView#ReviewQueueView", path: "/review" },
 				analytics: { Component: "/views/AnalyticsView#AnalyticsView", path: "/analytics" },
+				// The control plane: nav group "Platformă / Platform".
+				platform: {
+					Component: "/views/platform/OverviewView#OverviewView",
+					path: "/platform",
+					exact: true,
+				},
+				platformAi: { Component: "/views/platform/AiView#AiView", path: "/platform/ai" },
+				platformScheduling: {
+					Component: "/views/platform/SchedulingView#SchedulingView",
+					path: "/platform/scheduling",
+				},
+				platformAccounts: {
+					Component: "/views/platform/AccountsView#AccountsView",
+					path: "/platform/accounts",
+				},
+				platformNotifications: {
+					Component: "/views/platform/NotificationsView#NotificationsView",
+					path: "/platform/notifications",
+				},
 			},
 		},
 		importMap: {
@@ -84,14 +113,22 @@ export default buildConfig({
 		Users,
 		{ ...Articles, admin: { ...Articles.admin, baseListFilter: brandListFilter(ARTICLE_BRANDS) } },
 		KnowledgeEntries,
+		KnowledgeSources,
 		Offerings,
 		People,
 		Media,
 		ReviewEvents,
 		AnalyticsDaily,
 	],
-	globals: [AiSettingsGlobal],
-	endpoints: [...reviewEndpoints(REVIEWED), statusEndpoint(REVIEWED), analyticsIngest],
+	globals: [AiSettingsGlobal, SiteSettingsGlobal],
+	endpoints: [
+		...reviewEndpoints(REVIEWED),
+		statusEndpoint(REVIEWED),
+		analyticsIngest,
+		...aiEndpoints,
+		...schedulingEndpoints,
+		...peopleEndpoints,
+	],
 	editor: lexicalEditor(),
 	graphQL: { disable: true },
 	telemetry: false,

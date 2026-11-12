@@ -43,12 +43,17 @@ export interface GuideEnv {
 	dataCollection: DataCollection;
 	/** `PSI_DEMO_KNOWLEDGE=true`: demo-sourced passages may be served (development only). */
 	demo: boolean;
+	/** `PSI_OPENROUTER_SORT`: how OpenRouter orders providers; `latency` when unset or unknown. */
+	sort: "latency" | "throughput" | "price";
 }
+
+/** `PSI_OPENROUTER_SORT`: an unknown value is the default, `latency`. */
+const SortSchema = z.enum(["latency", "throughput", "price"]).catch("latency");
 
 /**
  * Reads `OPENROUTER_API_KEY`, `PSI_GUIDE_MODEL`, `PSI_SCREENING_MODEL`, `PSI_MODEL_SCREENING`,
- * `PSI_OPENROUTER_DATA_COLLECTION` and `PSI_DEMO_KNOWLEDGE`. A malformed model slug counts as
- * unset. The development-only switches (`allow`, screening `off`, demo `true`) throw in production
+ * `PSI_OPENROUTER_DATA_COLLECTION`, `PSI_OPENROUTER_SORT` and `PSI_DEMO_KNOWLEDGE`. A malformed
+ * model slug counts as unset. The development-only switches (`allow`, screening `off`, demo `true`) throw in production
  * (`NODE_ENV` or `SITE_ENV` = `production`), so a misconfigured deployment fails at startup.
  */
 export function readGuideEnv(env: Readonly<Record<string, string | undefined>>): GuideEnv {
@@ -65,5 +70,6 @@ export function readGuideEnv(env: Readonly<Record<string, string | undefined>>):
 		modelScreening: screening.data === "on",
 		dataCollection: readDataCollection(env),
 		demo: readDemoKnowledge(env),
+		sort: SortSchema.parse(env.PSI_OPENROUTER_SORT),
 	};
 }

@@ -1,11 +1,11 @@
 import type { Profile, ProfileLocale, ProfileScheduling } from "@psi/engine";
 import { BRANDS, type Brand, type Locale } from "../contract";
 import { CRISIS } from "./crisis";
-import { NEXT_STEP_PHRASES, NEXT_STEPS, POLICY } from "./policy";
+import { FOLLOW_UP_TOPICS, NEXT_STEP_PHRASES, NEXT_STEPS, POLICY } from "./policy";
 import { CLINICAL, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
 import { SCREENING } from "./screening";
 import { VOICES } from "./voices";
-import { THANKS, WELCOMES } from "./welcome";
+import { FOLLOW_UPS, THANKS, UNKNOWN, WELCOMES } from "./welcome";
 
 /** Each brand's guide, as its agent is named. */
 const NAMES: Readonly<Record<Brand, string>> = {
@@ -27,10 +27,12 @@ const SCHEDULING: Readonly<Partial<Record<Brand, ProfileScheduling>>> = {
 function wording(brand: Brand, locale: Locale): ProfileLocale {
 	return {
 		voice: VOICES[brand][locale],
-		policy: POLICY[locale],
+		policy: [...POLICY[locale], FOLLOW_UP_TOPICS[brand][locale]],
 		nextSteps: NEXT_STEPS[locale],
 		welcome: WELCOMES[brand][locale],
 		thanks: THANKS[brand][locale],
+		followUp: FOLLOW_UPS[brand][locale],
+		unknown: UNKNOWN[brand][locale],
 	};
 }
 

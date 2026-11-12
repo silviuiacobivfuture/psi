@@ -29,9 +29,11 @@ export function Shell({
 			visibleEntities={initPageResult.visibleEntities}
 		>
 			<Gutter>
-				<h1 style={{ marginTop: "calc(var(--base) * 2)" }}>{title}</h1>
-				<p style={{ color: "var(--theme-elevation-600)", maxWidth: "70ch" }}>{intro}</p>
-				{children}
+				<div className="psi-view">
+					<h1 style={{ marginTop: "calc(var(--base) * 2)" }}>{title}</h1>
+					<p style={{ color: "var(--theme-elevation-600)", maxWidth: "70ch" }}>{intro}</p>
+					{children}
+				</div>
 			</Gutter>
 		</DefaultTemplate>
 	);

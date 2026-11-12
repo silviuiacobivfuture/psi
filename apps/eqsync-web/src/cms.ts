@@ -21,6 +21,7 @@ import { z } from "zod";
 import { aiSettings } from "./ai-settings";
 import { at, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
+import { siteSettings } from "./site-settings";
 
 /**
  * Prices and the latest blog articles from the shared CMS (`offerings`, published only; locally http://localhost:4350). With no
@@ -103,6 +104,11 @@ export function registerCmsRevalidate(app: Hono): void {
 			},
 			"ai-settings": (e) => {
 				if (e.sites.includes("eqsync")) aiSettings?.invalidate();
+			},
+			"site-settings": async (e) => {
+				if (!e.sites.includes("eqsync") || siteSettings === null) return;
+				siteSettings.invalidate();
+				await siteSettings.refresh();
 			},
 		}),
 	);

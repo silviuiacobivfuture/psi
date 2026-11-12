@@ -81,13 +81,19 @@ export function memoryStores(): Stores {
 				const r = accounts.get(subject);
 				return r === undefined ? null : { ...r };
 			},
+			async byEmail(email) {
+				const want = email.trim().toLowerCase();
+				return [...accounts.values()]
+					.filter((r) => r.email?.toLowerCase() === want)
+					.sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+					.slice(0, 20)
+					.map((r) => ({ ...r }));
+			},
 			async erase(subject) {
 				accounts.delete(subject);
-				for (const link of links)
-					if (link.endsWith(`\u0000${subject}`)) links.delete(link);
+				for (const link of links) if (link.endsWith(`\u0000${subject}`)) links.delete(link);
 				removeWhere((r) => r.subject === subject);
-				for (const [id, s] of saved)
-					if (s.subject === subject) saved.delete(id);
+				for (const [id, s] of saved) if (s.subject === subject) saved.delete(id);
 				profiles.delete(subject);
 				consents.delete(subject);
 				dropConversations(subject);
@@ -100,9 +106,7 @@ export function memoryStores(): Stores {
 					.sort((a, b) => b.savedAt - a.savedAt);
 			},
 			async save(subject, slug, at) {
-				const existing = [...saved.values()].find(
-					(s) => s.subject === subject && s.slug === slug,
-				);
+				const existing = [...saved.values()].find((s) => s.subject === subject && s.slug === slug);
 				if (existing !== undefined) return existing;
 				const row: SavedArticle = {
 					id: randomUUID(),
@@ -131,9 +135,7 @@ export function memoryStores(): Stores {
 		},
 		consents: {
 			async list(subject) {
-				return [...(consents.get(subject) ?? [])].sort(
-					(a, b) => b.grantedAt - a.grantedAt,
-				);
+				return [...(consents.get(subject) ?? [])].sort((a, b) => b.grantedAt - a.grantedAt);
 			},
 			async current(subject, purpose) {
 				return (consents.get(subject) ?? []).some(
@@ -142,8 +144,7 @@ export function memoryStores(): Stores {
 			},
 			async grant(subject, purpose, wordingVersion, at) {
 				const rows = consents.get(subject) ?? [];
-				if (rows.some((c) => c.purpose === purpose && c.withdrawnAt === null))
-					return;
+				if (rows.some((c) => c.purpose === purpose && c.withdrawnAt === null)) return;
 				rows.push({
 					purpose,
 					wordingVersion,
@@ -154,8 +155,7 @@ export function memoryStores(): Stores {
 			},
 			async withdraw(subject, purpose, at) {
 				for (const c of consents.get(subject) ?? []) {
-					if (c.purpose === purpose && c.withdrawnAt === null)
-						c.withdrawnAt = at;
+					if (c.purpose === purpose && c.withdrawnAt === null) c.withdrawnAt = at;
 				}
 				if (purpose === "guide_memory") dropConversations(subject);
 			},
@@ -175,15 +175,11 @@ export function memoryStores(): Stores {
 				return (turns.get(id) ?? []).slice(-limit);
 			},
 			async forSite(subject, site) {
-				const c = [...conversations.values()].find(
-					(x) => x.subject === subject && x.site === site,
-				);
+				const c = [...conversations.values()].find((x) => x.subject === subject && x.site === site);
 				return c === undefined ? null : { ...c };
 			},
 			async append(subject, site, turn) {
-				let c = [...conversations.values()].find(
-					(x) => x.subject === subject && x.site === site,
-				);
+				let c = [...conversations.values()].find((x) => x.subject === subject && x.site === site);
 				if (c === undefined) {
 					c = {
 						id: randomUUID(),

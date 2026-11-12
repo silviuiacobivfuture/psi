@@ -1,0 +1,31 @@
+{
+	"name": "@psi/site-control",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "What every psi site mounts for the control plane (the CMS's /admin/platform): signed read-only status and staff actions under /__control, the /admin redirect, and the Compass's staff-only Administrare link. Ships no text of its own beyond what the site passes.",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --minWorkers=1 --maxWorkers=2"
+	},
+	"dependencies": {
+		"@psi/account": "workspace:*",
+		"@psi/cms-client": "workspace:*",
+		"@psi/guide": "workspace:*",
+		"@psi/knowledge": "workspace:*",
+		"@psi/pwa": "workspace:*",
+		"zod": "^3.25.76"
+	},
+	"peerDependencies": {
+		"hono": "^4.13.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"hono": "^4.13.18",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

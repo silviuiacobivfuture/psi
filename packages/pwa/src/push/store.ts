@@ -48,7 +48,38 @@ export interface PushStore {
 	takeDueReminders(now: number): Promise<PlannedReminder[]>;
 	/** True the first time a key is claimed: one notification per article, ever. */
 	claim(key: string, at: number): Promise<boolean>;
+	/** Counts for the control plane: one site's subscriptions, by topic; nothing about anyone. */
+	stats(site: SubscriptionRecord["site"]): Promise<PushStoreStats>;
 	close(): Promise<void>;
+}
+
+export interface PushStoreStats {
+	byTopic: Readonly<Partial<Record<Topic, number>>>;
+	total: number;
+	/** Linked to an account. */
+	signedIn: number;
+	/** Whose last send failed (dropped at FAILURE_LIMIT). */
+	failing: number;
+	/** Articles announced estate-wide (one claim per article). */
+	announced: number;
+}
+
+/** The stats over plain records: the memory and file stores, and the tests' expectation. */
+export function statsOf(
+	subscriptions: ReadonlyArray<SubscriptionRecord>,
+	claims: ReadonlyArray<{ key: string }>,
+	site: SubscriptionRecord["site"],
+): PushStoreStats {
+	const mine = subscriptions.filter((r) => r.site === site);
+	const byTopic: Partial<Record<Topic, number>> = {};
+	for (const r of mine) for (const t of r.topics) byTopic[t] = (byTopic[t] ?? 0) + 1;
+	return {
+		byTopic,
+		total: mine.length,
+		signedIn: mine.filter((r) => r.subject !== null).length,
+		failing: mine.filter((r) => r.failures > 0).length,
+		announced: claims.filter((c) => c.key.startsWith("article:")).length,
+	};
 }
 
 /** The whole store as plain data: the memory store holds it, the file store reads and writes it. */
@@ -158,6 +189,7 @@ export function stateStore(run: <T>(op: Op<T>, write: boolean) => Promise<T>): P
 				s.claims = [...s.claims, { key, at }];
 				return true;
 			}, true),
+		stats: (site) => run((s) => statsOf(s.subscriptions, s.claims, site), false),
 		close: () => Promise.resolve(),
 	};
 }

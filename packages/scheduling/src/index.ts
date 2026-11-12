@@ -32,16 +32,31 @@ export {
 export type { Audience, Mode } from "./domain/catalog";
 export type { AppointmentStatus } from "./domain/conflicts";
 export type { Contact } from "./domain/contact";
+export { DECISION_REASONS, type DecisionReason } from "./domain/lifecycle";
 export { toLocal } from "./domain/time";
+export { DecisionReasonSchema, StaffRequestSchema } from "./results";
 export { decodeSlot, encodeSlot, SlotIdSchema, type SlotRef } from "./slot-id";
 export {
+	type AddRuleResult,
 	type CalendarResult,
 	createStaffSchedulingClient,
 	type DecideResult,
 	type ExceptionResult,
+	type RemoveResult,
 	type RescheduleResult,
+	type ServicePatch,
 	type StaffActor,
+	type StaffAvailability,
+	type StaffCatalog,
+	type StaffRequest,
+	type StaffRequestsResult,
 	type StaffSchedulingClient,
 	staffClientOn,
+	type UpdateServiceResult,
 } from "./staff-client";
-export { createTransport, SchedulingUnavailable, sha256, type Transport } from "./transport";
+export {
+	createTransport,
+	SchedulingUnavailable,
+	sha256,
+	type Transport,
+} from "./transport";

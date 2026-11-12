@@ -81,6 +81,24 @@ const Env = z
 		ANALYTICS_INGEST_TOKEN: Secret32.optional(),
 		/** The guide's knowledge store; unset = publishing a knowledge entry does not index it. */
 		PSI_KNOWLEDGE_DB_URL: z.string().min(1).optional(),
+		/**
+		 * The control plane (/admin/platform). Every key is optional: a section whose service is not
+		 * configured says so and never stops the CMS. Shared with the four sites: signs every call
+		 * to their `/__control` routes and theirs to /api/platform/staff (OpenBao secret/apps/control).
+		 */
+		PSI_CONTROL_SECRET: Secret32.optional(),
+		/** Each site as the CMS reaches it (in-cluster in production): http://psizone-web.psizone:3000 */
+		PSIZONE_CONTROL_URL: Origin.optional(),
+		EQSYNC_CONTROL_URL: Origin.optional(),
+		HEMISYNC_CONTROL_URL: Origin.optional(),
+		BLOG_CONTROL_URL: Origin.optional(),
+		/** The scheduling store (Convex) and its server key: the Scheduling section's staff client. */
+		CONVEX_URL: z.string().url().optional(),
+		PSI_SCHEDULING_KEY: z.string().min(32).optional(),
+		/** The PWA hook's key (shared with the sites): a confirm or decline notifies the person. */
+		PWA_NOTIFY_SECRET: Secret32.optional(),
+		/** Mastra Studio, for the AI section's deep-inspection link: https://studio.psizone.ro */
+		STUDIO_URL: Origin.optional(),
 	})
 	.superRefine((e, ctx) => {
 		const s3: Record<(typeof S3_KEYS)[number], string | undefined> = {

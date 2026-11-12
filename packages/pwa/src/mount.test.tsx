@@ -171,6 +171,10 @@ describe("with push off (production before the keys are seeded)", () => {
 		const tools = String(pwa.tools("ro"));
 		expect(tools).toContain("pwa_install ro");
 		expect(tools).not.toContain("/cont/notificari");
+		// The site's installPrompt off: no install invitation, no iOS note.
+		const quiet = String(pwa.tools("ro", { install: false }));
+		expect(quiet).not.toContain("pwa_install ro");
+		expect(quiet).not.toContain("pz-pwa-ios");
 		const res = await app.request("/pwa/push/subscribe", {
 			method: "POST",
 			headers: { "content-type": "application/json", origin: SITE.origin },

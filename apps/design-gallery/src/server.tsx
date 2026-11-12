@@ -9,7 +9,10 @@ import { m } from "./paraglide/messages.js";
 import { ThemePanel } from "./theme-panel";
 import { THEMES } from "./themes";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
+const DATASTAR = readFileSync(
+	fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")),
+	"utf8",
+);
 const PORT = Number.parseInt(process.env.PORT ?? "4300", 10);
 const FONTS =
 	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Manrope:wght@400..800&family=Inter:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
@@ -34,7 +37,10 @@ for (const [locale, path] of [
 				<html lang={locale} data-theme="psizone-dark">
 					<head>
 						<meta charset="utf-8" />
-						<meta name="viewport" content="width=device-width, initial-scale=1" />
+						<meta
+							name="viewport"
+							content="width=device-width, initial-scale=1"
+						/>
 						<title>{m.title({}, { locale })}</title>
 						<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 						<link rel="stylesheet" href={FONTS} />
@@ -44,8 +50,13 @@ for (const [locale, path] of [
 					<body class="pz-grain">
 						<header class="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
 							<div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
-								<span class="pz-display text-headline">{m.title({}, { locale })}</span>
-								<nav class="flex flex-wrap gap-2" aria-label={m.jump({}, { locale })}>
+								<span class="pz-display text-headline">
+									{m.title({}, { locale })}
+								</span>
+								<nav
+									class="flex flex-wrap gap-2"
+									aria-label={m.jump({}, { locale })}
+								>
 									{THEMES.map((t) => (
 										<a class="pz-chip" href={`#${t.id}`}>
 											{t.name}

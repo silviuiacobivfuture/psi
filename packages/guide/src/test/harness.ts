@@ -52,6 +52,8 @@ export interface HarnessOptions {
 	searches?: ReadonlyArray<SearchBehaviour>;
 	screen?: ScreenScript;
 	brand?: Brand;
+	/** False: the fake model never searches on its own before a text reply (small talk). */
+	autoSearch?: boolean;
 	options?: Partial<Omit<GuideOptions, "brand" | "knowledge" | "baseURL">>;
 }
 
@@ -62,6 +64,7 @@ export async function startGuide(opts: HarnessOptions = {}): Promise<Harness> {
 	const server = await startFakeOpenRouter(
 		opts.replies ?? [{ kind: "text", chunks: ["Evaluarea durează două ore [1]."] }],
 		opts.screen,
+		{ autoSearch: opts.autoSearch !== false },
 	);
 	open.push(server);
 	const knowledge = new FakeKnowledge(opts.searches ?? [FOUND_RO]);

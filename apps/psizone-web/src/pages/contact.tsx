@@ -6,13 +6,9 @@ import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
 import { Footer } from "../sections/closing";
 import { Header } from "../sections/header";
+import { openingHours, phones, socialLinks } from "../site-settings";
 import type { Theme } from "../theme";
-
-/** The centre's public phone numbers, as published on psizone.ro. */
-const PHONES: ReadonlyArray<{ display: string; tel: string }> = [
-	{ display: "0748 017 752", tel: "+40748017752" },
-	{ display: "0752 466 792", tel: "+40752466792" },
-];
+import { ContactExtras } from "./contact-extras";
 
 export function ContactPage({
 	locale,
@@ -51,7 +47,7 @@ export function ContactPage({
 								{m.contact_direct({}, o)}
 							</p>
 							<ul class="mt-4 space-y-2">
-								{PHONES.map((p) => (
+								{phones().map((p) => (
 									<li>
 										<a
 											class="font-mono text-title text-ink hover:text-glow-1"
@@ -59,9 +55,13 @@ export function ContactPage({
 										>
 											{p.display}
 										</a>
+										{p.label === null ? null : (
+											<span class="ml-3 text-body-sm text-ink-muted">{p.label[locale]}</span>
+										)}
 									</li>
 								))}
 							</ul>
+							<ContactExtras locale={locale} hours={openingHours()} social={socialLinks()} />
 							<p class="mt-12 max-w-sm text-body-sm text-ink-faint">{m.contact_privacy({}, o)}</p>
 						</div>
 						<div class="pz-edge rounded-xl p-6 backdrop-blur-2xl md:p-10">

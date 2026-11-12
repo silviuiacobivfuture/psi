@@ -5,7 +5,8 @@ import { cx } from "../cx";
 
 export interface GuideSource {
 	label: string;
-	href: string;
+	/** Absent: the source is cited by its label only (no link). */
+	href?: string;
 }
 
 export interface GuideMessageProps {
@@ -32,11 +33,15 @@ export function GuideMessage({
 				{children}
 				{sources.length > 0 ? (
 					<div class="pz-msg__sources">
-						{sources.map((s) => (
-							<a class="pz-msg__source" href={s.href}>
-								{s.label}
-							</a>
-						))}
+						{sources.map((s) =>
+							s.href === undefined ? (
+								<span class="pz-msg__source">{s.label}</span>
+							) : (
+								<a class="pz-msg__source" href={s.href}>
+									{s.label}
+								</a>
+							),
+						)}
 					</div>
 				) : null}
 			</div>

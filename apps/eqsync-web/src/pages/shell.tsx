@@ -48,34 +48,26 @@ export function PageShell({
 	);
 }
 
-/** The page's one H1 over the sound bands; new copy carries a visible draft badge until signed off. */
+/** The page's one H1. Copy approval is tracked in the CMS, never shown to visitors. */
 export function PageHero({
 	locale,
 	overline,
 	title,
 	lead,
-	draft = true,
 	children,
 }: {
 	locale: Locale;
 	overline: string;
 	title: string;
 	lead?: string;
-	draft?: boolean;
 	children?: Child;
 }): JSX.Element {
 	return (
 		<section class="relative overflow-hidden border-b border-line">
-			<div class="eq-bands" aria-hidden="true" />
 			<div class="relative mx-auto max-w-6xl px-5 pb-20 pt-32 md:pb-24 md:pt-44">
 				<p class="eq-overline">{overline}</p>
 				<h1 class="display eq-h2 eq-h2--xl mt-6 max-w-4xl text-ink">{title}</h1>
 				{lead ? <p class="mt-8 max-w-2xl text-body text-ink-muted">{lead}</p> : null}
-				{draft ? (
-					<StatusBadge tone="warning" class="mt-8">
-						{m.draft_badge({}, at(locale))}
-					</StatusBadge>
-				) : null}
 				{children}
 			</div>
 		</section>

@@ -3,6 +3,7 @@ import { Button, GlassCard, StatusBadge } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { SignedIn } from "./guard";
+import { TYPE } from "./journey/views-shell";
 
 /**
  * The account panel every site renders inside its own page shell and theme. It ships NO text: every word comes from
@@ -95,9 +96,9 @@ export function AccountSection({
 	children?: Child;
 }): JSX.Element {
 	return (
-		<GlassCard class="p-6">
-			<h3 class="text-headline text-ink">{title}</h3>
-			<div class="mt-4">{children}</div>
+		<GlassCard class="p-6 md:p-8">
+			<h2 class={`text-headline ${TYPE.heading}`}>{title}</h2>
+			<div class={`mt-4 ${TYPE.text}`}>{children}</div>
 		</GlassCard>
 	);
 }

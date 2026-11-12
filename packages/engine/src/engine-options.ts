@@ -14,6 +14,7 @@ import { ProfileSchema } from "./profile";
 import { SchedulingPortSchema } from "./scheduling/port";
 import type { RateLimiter } from "./screening/rate-limit";
 import type { SettingsProvider } from "./settings";
+import type { EngineTiming } from "./timing";
 
 const Millis = z.number().int().positive().max(600_000);
 
@@ -53,6 +54,7 @@ export const EngineOptionsSchema = z.object({
 			baseURL: z.string().url().optional(),
 			screeningId: ModelIdSchema.optional(),
 			dataCollection: z.enum(["deny", "allow"]).optional(),
+			sort: z.enum(["latency", "throughput", "price"]).optional(),
 		})
 		.strict(),
 	screening: z
@@ -97,5 +99,6 @@ export const EngineOptionsSchema = z.object({
 		.optional(),
 	onFailure: fn<(failure: EngineFailure) => void>("onFailure").optional(),
 	onScore: fn<(score: EngineScore) => void>("onScore").optional(),
+	onTiming: fn<(timing: EngineTiming) => void>("onTiming").optional(),
 	scheduling: SchedulingPortSchema.optional(),
 });

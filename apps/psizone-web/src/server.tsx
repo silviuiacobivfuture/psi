@@ -2,13 +2,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { decodeSlot, SchedulingUnavailable, schedulingFromEnv } from "@psi/guide";
 import {
+	decodeSlot,
+	SchedulingUnavailable,
+	schedulingFromEnv,
+} from "@psi/guide";
+import {
+	accountMemory,
+	answerGuidePost,
 	applyIndexingPolicy,
-	parseAnswerTarget,
-	parseAskSignals,
-	questionFor,
-	streamGuideAnswer,
+	installDevLog,
 } from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
@@ -27,10 +30,15 @@ import {
 	type SlotDay,
 	slotDays,
 } from "./booking";
-import { accountLine, bookingAccount, guideForRequest } from "./booking-account";
+import {
+	accountLine,
+	bookingAccount,
+	guideForRequest,
+} from "./booking-account";
 import { registerCmsRevalidate } from "./cms";
 import { HUBS } from "./content/hubs";
 import { registerContentPages } from "./content-routes";
+import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
 import { guideLabels } from "./guide";
 import { guide } from "./guide-client";
@@ -45,7 +53,10 @@ import { registerPwa } from "./pwa/routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
+const DATASTAR = readFileSync(
+	fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")),
+	"utf8",
+);
 const PORT = Number.parseInt(process.env.PORT ?? "4310", 10);
 
 /**
@@ -61,12 +72,17 @@ const EVALUATION = { tenant: "psizone", service: "evaluation" } as const;
 const TWO_WEEKS_MS = 14 * 86_400_000;
 
 function schedulingFailed(error: unknown): void {
-	const why = error instanceof SchedulingUnavailable ? error.message : "unexpected failure";
+	const why =
+		error instanceof SchedulingUnavailable
+			? error.message
+			: "unexpected failure";
 	console.error(`scheduling: ${why}`);
 }
 
 /** The next free evaluation times by day, or none (the callback form) when they cannot be read. */
-async function evaluationSlots(locale: Locale): Promise<ReadonlyArray<SlotDay>> {
+async function evaluationSlots(
+	locale: Locale,
+): Promise<ReadonlyArray<SlotDay>> {
 	if (scheduling === undefined) return [];
 	try {
 		const now = Date.now();
@@ -91,12 +107,17 @@ function formFields(body: Record<string, unknown>): Record<string, string> {
 }
 
 export const app = new Hono({ strict: false });
-applyIndexingPolicy(app, process.env, { sitemap: `${ESTATE[SITE]}/sitemap.xml` });
+installDevLog(app);
+applyIndexingPolicy(app, process.env, {
+	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
+});
 app.use(contextStorage());
 // The estate account: /auth/* (sign-in, callback, sign-out, back-channel logout); /cont below.
 account.mount(app);
 // The installable app and its notifications (docs/plans/pwa.md): manifest, /sw.js, push API, /cont/notificari.
 registerPwa(app);
+// The control plane (the CMS's /admin/platform): signed /__control/*, /admin → there, the Compass's staff link.
+mountControl(app);
 app.get("/sitemap.xml", async (c) =>
 	c.body(await sitemap(app), 200, {
 		"content-type": "application/xml; charset=utf-8",
@@ -123,7 +144,11 @@ for (const [locale, prefix] of [
 	app.get(prefix === "" ? "/" : prefix, (c) => {
 		const origin = new URL(c.req.url).origin;
 		return c.html(
-			<HomePage locale={locale} theme={themeFrom(getCookie(c, "theme"))} origin={origin} />,
+			<HomePage
+				locale={locale}
+				theme={themeFrom(getCookie(c, "theme"))}
+				origin={origin}
+			/>,
 		);
 	});
 	for (const hub of HUBS) {
@@ -213,7 +238,9 @@ for (const [locale, prefix] of [
 		const slot = decodeSlot(parsed.data.slot);
 		// No slot chosen, or scheduling off: the callback request, exactly as before.
 		if (scheduling === undefined || parsed.data.slot === "") {
-			return c.html(<BookingDone id={id} locale={locale} name={parsed.data.name} />);
+			return c.html(
+				<BookingDone id={id} locale={locale} name={parsed.data.name} />,
+			);
 		}
 		const retry = async () =>
 			c.html(
@@ -238,11 +265,17 @@ for (const [locale, prefix] of [
 			});
 			if (!held.ok) return retry();
 			return c.html(
-				<BookingConfirm id={id} locale={locale} held={{ ...held, values: parsed.data }} />,
+				<BookingConfirm
+					id={id}
+					locale={locale}
+					held={{ ...held, values: parsed.data }}
+				/>,
 			);
 		} catch (error) {
 			schedulingFailed(error);
-			return c.html(<BookingDone id={id} locale={locale} name={parsed.data.name} />);
+			return c.html(
+				<BookingDone id={id} locale={locale} name={parsed.data.name} />,
+			);
 		}
 	});
 	app.post(`${prefix}/programare/confirma`, async (c) => {
@@ -264,7 +297,9 @@ for (const [locale, prefix] of [
 				/>,
 			);
 		if (!parsed.success || scheduling === undefined) {
-			return again(parsed.success ? {} : errorsFor(parsed.error.issues, locale, raw));
+			return again(
+				parsed.success ? {} : errorsFor(parsed.error.issues, locale, raw),
+			);
 		}
 		const { reference, holdToken, name, email, phone, forWhom } = parsed.data;
 		try {
@@ -273,7 +308,9 @@ for (const [locale, prefix] of [
 				holdToken,
 				contact: { name, email, phone },
 				audience: forWhom,
-				...(who.accountHash === undefined ? {} : { accountHash: who.accountHash }),
+				...(who.accountHash === undefined
+					? {}
+					: { accountHash: who.accountHash }),
 			});
 			if (!sent.ok) {
 				return again(
@@ -285,7 +322,9 @@ for (const [locale, prefix] of [
 			return c.html(
 				<BookingRequested
 					id={id}
-					{...(who.bookingsHref === undefined ? {} : { inAccount: who.bookingsHref })}
+					{...(who.bookingsHref === undefined
+						? {}
+						: { inAccount: who.bookingsHref })}
 					locale={locale}
 					name={name}
 					reference={sent.reference}
@@ -317,20 +356,18 @@ for (const [locale, prefix] of [
 			/>,
 		);
 	});
+	// The guide: a question streams its answer; the compass also restores and resets its chat here.
 	app.post(`${prefix}/ghid`, async (c) => {
-		const signals = parseAskSignals(await c.req.json().catch(() => null));
-		const target = parseAnswerTarget(c.req.query("target"));
-		const question = signals === null ? null : questionFor(target, signals);
-		if (question === null) return c.body(null, 204);
 		// Signed in: the in-chat form is pre-filled, and the guide remembers only with consent.
 		const who = await bookingAccount(c, locale, "/contact");
-		return streamGuideAnswer(c, {
-			guide: await guideForRequest(c, guide),
+		return answerGuidePost(c, {
 			locale,
-			question,
-			target,
-			signals,
-			labels: guideLabels(locale, { prefill: who.prefill, ...accountLine(who) }),
+			labels: guideLabels(locale, {
+				prefill: who.prefill,
+				...accountLine(who),
+			}),
+			guide: () => guideForRequest(c, guide),
+			memory: () => accountMemory(account, c, "psizone"),
 		});
 	});
 }

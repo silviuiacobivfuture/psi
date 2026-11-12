@@ -4,10 +4,9 @@ import { prices } from "../cms";
 import { at } from "../i18n";
 import { m } from "../paraglide/messages.js";
 import { href } from "../routes";
+import { openingHours, phones, socialLinks } from "../site-settings";
+import { ContactExtras } from "./contact-extras";
 import { Band, NextSteps, PageHero, type PageProps, PageShell, Para, Pending } from "./shell";
-
-/** The trader's phone as dialled: digits only, with the Romanian country code. */
-const PHONE_TEL = "tel:+40773819193";
 
 /**
  * /contact: the trader's documented details (docs/plans/eqsync-web.md §0). The contact form and
@@ -45,12 +44,18 @@ export function ContactPage(props: PageProps): JSX.Element {
 						))}
 						<div>
 							<dt class="text-data text-ink-faint">{m.cp_phone_label({}, o)}</dt>
-							<dd class="mt-2 text-body text-ink">
-								<a class="pz-tap underline underline-offset-4" href={PHONE_TEL}>
-									{m.cp_phone({}, o)}
-								</a>
-							</dd>
+							{phones(locale).map((p) => (
+								<dd class="mt-2 text-body text-ink">
+									<a class="pz-tap underline underline-offset-4" href={`tel:${p.tel}`}>
+										{p.display}
+									</a>
+									{p.label === null ? null : (
+										<span class="ml-2 text-body-sm text-ink-muted">{p.label[locale]}</span>
+									)}
+								</dd>
+							))}
 						</div>
+						<ContactExtras locale={locale} hours={openingHours()} social={socialLinks()} />
 					</dl>
 				</GlassCard>
 				<Pending locale={locale}>{m.cp_email_pending({}, o)}</Pending>

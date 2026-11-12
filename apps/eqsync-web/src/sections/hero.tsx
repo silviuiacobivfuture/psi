@@ -15,7 +15,6 @@ export function Hero({ locale }: { locale: Locale }): JSX.Element {
 	const b = base(locale);
 	return (
 		<section class="eq-hero relative overflow-hidden">
-			<div class="eq-bands" aria-hidden="true" />
 			<div class="relative mx-auto grid grid-cols-1 min-h-[100svh] max-w-6xl content-center gap-14 px-5 pb-48 pt-36 lg:grid-cols-12 lg:gap-8">
 				<div class="eq-in lg:col-span-7">
 					<p class="eq-overline">{m.hero_overline({}, o)}</p>

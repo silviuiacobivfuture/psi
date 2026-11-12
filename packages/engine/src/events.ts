@@ -6,20 +6,25 @@ import type { Source } from "./contract";
  * Why the engine did not answer. The engine ships no copy: the app renders each reason from its
  * own i18n, in the locale it passed to `ask`.
  * - `crisis`: the profile's crisis rules matched. Never sent to a model.
- * - `out_of_scope`: the profile's scope rules matched, the input could not be taken as asked
- *   (its refusal policy), or an answer broke one of the profile's cross-reference rules.
+ * - `out_of_scope`: the input could not be taken as asked (its refusal policy: empty, over-long,
+ *   malformed). A question outside the profile's scope is NOT refused: the agent steers it in
+ *   conversation.
  * - `injection`: the question tries to change, reveal or replace the instructions (the language
- *   packs' rules, or Mastra's `PromptInjectionDetector`).
+ *   packs' rules, or Mastra's `PromptInjectionDetector` at the strict level).
  * - `abuse`: the question harasses, insults or threatens (the language packs' rules, unless the
- *   profile exempts it, or Mastra's `ModerationProcessor`).
+ *   profile exempts it, or Mastra's `ModerationProcessor` at the strict level).
  * - `rate_limited`: the app's client asked too many questions too fast.
  * - `exchange_limit`: the visitor used up the exchanges the settings allow per window (any one of
  *   their keys: session, browser, fingerprint). Distinct from `rate_limited`, which is a burst.
- * - `no_content`: nothing reviewed answers the question, or the answer was not faithful to the
- *   passages it cites.
- * - `unavailable`: no API key, a provider, knowledge or configuration failure, a timeout, an
- *   abort, an unfinished answer or one in another language, or a guardrail that fails closed.
+ * - `no_content`: only for a profile without canned lines, when a reply could not be kept.
+ *   Conversation never ends in it.
+ * - `unavailable`: no API key, the switched-off guide, a limiter failure, or the model provider
+ *   failing twice (network, 5xx, a timeout, an unfinished reply). Never a language mismatch,
+ *   never an aborted turn (that ends with `done` alone).
  */
+/** What the guide is busy with, while it works (see the `thinking` event). */
+export type ThinkingStage = "searching" | "checking";
+
 export type RefusalReason =
 	| "crisis"
 	| "out_of_scope"
@@ -44,14 +49,25 @@ export const REFUSAL_REASONS = [
 export const RefusalReasonSchema: z.ZodType<RefusalReason> = z.enum(REFUSAL_REASONS);
 
 /**
- * One step of a streamed answer. A successful answer is `thinking`, `text`*, `sources`, `done`.
- * A refusal is `refusal`, `done` (preceded by `thinking` once retrieval started). A refusal may
- * follow `text` events when a check fails mid-answer: the app then replaces the partial answer
- * with the refusal. Every stream ends with exactly one `done`.
+ * One step of a streamed answer. A reply is `thinking`, `text`*, then `sources` when it cites,
+ * then `done`; the text streams as the model writes it. When the finished reply fails a check
+ * (language, an unsupported fact, a repeat, a grammar slip) a `replace` follows: it resets the
+ * text, to "" before the regenerated reply streams in, or to the corrected full text. A refusal is `refusal`, `done` (preceded by `thinking` once the model was asked). An
+ * aborted turn (the visitor sent a newer question) is `thinking`, `done`: it renders nothing.
+ * Every stream ends with exactly one `done`.
  */
 export type EngineEvent =
-	| { type: "thinking" }
+	/**
+	 * The guide is working. `stage` (optional, additive) says on what, so the app can say so:
+	 * `searching` while a tool looks something up, `checking` while a reply is regenerated.
+	 */
+	| { type: "thinking"; stage?: ThinkingStage }
 	| { type: "text"; delta: string }
+	/**
+	 * Resets the reply's text to `text` (empty before a regenerated reply streams in, or the
+	 * corrected full text when a sentence was left out); later `text` events append to it.
+	 */
+	| { type: "replace"; text: string }
 	| { type: "sources"; sources: ReadonlyArray<Source> }
 	| { type: "refusal"; reason: RefusalReason }
 	/** Free times to book, offered in the conversation; the app renders its own confirm step. */

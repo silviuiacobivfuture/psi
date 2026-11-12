@@ -1,4 +1,5 @@
-import { registerJourney } from "@psi/account";
+import { registerJourney, savedArticleIn } from "@psi/account";
+import { articleUrl, INDEX } from "@psi/content";
 import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { account, accountSay } from "./account";
@@ -22,6 +23,10 @@ export function registerAccountRoutes(app: Hono, locale: Locale): void {
 		say: accountSay(locale),
 		siteNames: siteNames(locale),
 		dataHome: `${ESTATE.psizone}${prefix}/cont/date`,
+		bookHref: `${ESTATE.psizone}${prefix}/contact`,
+		readingHref: `${ESTATE.blog}${prefix}/`,
+		savedListHref: `${ESTATE.blog}${prefix}/cont#salvate`,
+		savedArticle: savedArticleIn(INDEX, locale, (slug) => articleUrl(locale, slug, ESTATE.blog)),
 		render: (c, page) =>
 			c.html(
 				<AccountFrame

@@ -42,7 +42,8 @@ export {
 	safeReturn,
 	sameOrigin,
 } from "./guard";
-export type { JourneyOptions } from "./journey/context";
+export { type JourneyOptions, savedArticleIn } from "./journey/context";
+export { exportAccount } from "./journey/export";
 export {
 	JOURNEY_KEYS,
 	type JourneyKey,
@@ -65,6 +66,7 @@ export { AUTH_PATHS } from "./routes";
 export { memoryStores } from "./stores/memory";
 export type {
 	AccountRecord,
+	ConsentRecord,
 	Identity,
 	SavedArticle,
 	SavedArticleStore,

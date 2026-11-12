@@ -1,6 +1,12 @@
 export { type Bm25, createBm25, stem, stems } from "./catalog/bm25";
 export { type Catalog, type CatalogItem, createCatalog } from "./catalog/catalog";
 export {
+	type CatalogSync,
+	type CatalogSyncOptions,
+	createCatalogSync,
+	type StoredSource,
+} from "./catalog/sync";
+export {
 	type BreakerOptions,
 	type BreakerState,
 	createTieredSearch,
@@ -56,6 +62,8 @@ export {
 export { embedderFromEnv } from "./embedder/select";
 export type { Embedder, EmbedderInfo, EmbedderKind } from "./embedder/types";
 export {
+	CITE_ONLY_PREFIX,
+	isCiteOnly,
 	isRetrievable,
 	KINDS,
 	type Kind,
@@ -83,6 +91,7 @@ export { openRouterKeyFrom } from "./env/key-file";
 export {
 	type CreateKnowledgeOptions,
 	createKnowledge,
+	type IndexStat,
 	type IngestReport,
 	type KnowledgeStore,
 } from "./knowledge";
@@ -98,4 +107,5 @@ export {
 	type VectorConfig,
 } from "./store/config";
 export { indexName } from "./store/indexes";
+export { collectStored, type StoredEntry } from "./store/stored";
 export type { VectorStoreInfo, VectorStoreKind } from "./store/types";

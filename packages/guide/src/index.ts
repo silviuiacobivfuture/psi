@@ -7,6 +7,7 @@ export {
 	type MemoryRateLimitOptions,
 	type RateLimiter,
 } from "@psi/engine";
+export { CITE_ONLY_PREFIX, isCiteOnly } from "@psi/knowledge";
 export {
 	decodeSlot,
 	type HoldResult,
@@ -46,6 +47,13 @@ export {
 	type GuideTimeouts,
 } from "./guide";
 export { DEFAULT_MODEL } from "./model";
+export {
+	type GuideAgentInfo,
+	type GuideIngestOutcome,
+	type GuideOperations,
+	guideOperations,
+	INGEST_WORKFLOW_KEY,
+} from "./operations";
 export { ALL_PSI_PROFILES, PSI_PROFILES } from "./profiles";
 export {
 	createPsiEngine,

@@ -91,3 +91,8 @@ export const announceDeleted: CollectionAfterDeleteHook = announceDeletion("arti
 export async function announceAiSettings(req: PayloadRequest, sites: Site[]): Promise<void> {
 	await notifySites(req, { kind: "ai-settings", sites, sentAt: new Date().toISOString() });
 }
+
+/** The site settings of these brands changed: their sites re-read them at once. */
+export async function announceSiteSettings(req: PayloadRequest, sites: Site[]): Promise<void> {
+	await notifySites(req, { kind: "site-settings", sites, sentAt: new Date().toISOString() });
+}

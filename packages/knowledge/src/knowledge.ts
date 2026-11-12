@@ -18,9 +18,10 @@ import {
 	retrievability,
 } from "./entry";
 import { resolveVectorConfig, type VectorConfig } from "./store/config";
-import { indexName } from "./store/indexes";
+import { INDEX_PREFIX, indexName } from "./store/indexes";
 import { type ChunkMetadata, chunkId, chunkMetadata, toPassage } from "./store/metadata";
 import { openVectorStore } from "./store/open";
+import { collectStored, type StoredEntry } from "./store/stored";
 import type { VectorStoreInfo } from "./store/types";
 
 export interface IngestReport {
@@ -36,6 +37,15 @@ export interface IngestReport {
 	chunks: number;
 }
 
+/** One index as the control plane shows it: `kb_<brand>_<locale>_<space>`, chunks and dimension. */
+export interface IndexStat {
+	name: string;
+	locale: string;
+	space: string;
+	chunks: number;
+	dimension: number;
+}
+
 export interface KnowledgeStore extends Knowledge {
 	/** Indexes the retrievable entries; re-ingesting an id replaces it, wherever it was before. */
 	ingest(entries: ReadonlyArray<KnowledgeEntryInput>): Promise<IngestReport>;
@@ -43,6 +53,13 @@ export interface KnowledgeStore extends Knowledge {
 	remove(ids: ReadonlyArray<string>): Promise<void>;
 	/** True when this embedder's index for the brand and locale exists (something was ingested). */
 	indexed(brand: Brand, locale: Locale): Promise<boolean>;
+	/** Every index this package owns for the brand (any embedder space), with its chunk count. */
+	indexStats(brand: Brand): Promise<ReadonlyArray<IndexStat>>;
+	/**
+	 * Every retrievable entry the store holds for the brand (any locale, any embedder space),
+	 * rebuilt from its chunks: what a process that did not ingest them mirrors into its catalog.
+	 */
+	stored(brand: Brand): Promise<ReadonlyArray<StoredEntry>>;
 	/** The catalog kept in step with ingest and remove, when one was given. */
 	readonly catalog: Catalog | undefined;
 	/** The embedder in use. */
@@ -86,13 +103,47 @@ interface Prepared {
 	texts: ReadonlyArray<string>;
 }
 
+/** How long a search trusts the list of indexes it last read. */
+const INDEXES_TTL_MS = 60_000;
+/** Query embeddings kept (most recently used). */
+const QUERY_VECTORS = 256;
+
 export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 	const store = openVectorStore(resolveVectorConfig(opts));
 	const embedder = opts.embedder ?? embedderFromEnv();
 	const created = new Set<string>();
+	// A search needs to know its index exists, and an embedding of its query: both are remembered
+	// for a while, so a turn's searches (and a repeated question) skip the round trips.
+	let known: { at: number; indexes: ReadonlyArray<string> } | undefined;
+	const vectors = new Map<string, ReadonlyArray<number>>();
 
 	function ownIndexes(): Promise<ReadonlyArray<string>> {
 		return store.ownIndexes();
+	}
+
+	/** The store's indexes, as of at most `INDEXES_TTL_MS` ago (the store is asked again after). */
+	async function knownIndexes(): Promise<ReadonlyArray<string>> {
+		if (known !== undefined && Date.now() - known.at < INDEXES_TTL_MS) return known.indexes;
+		const indexes = await ownIndexes();
+		known = { at: Date.now(), indexes };
+		return indexes;
+	}
+
+	/** The query's vector, from the cache when the same query (folded) was embedded lately. */
+	async function queryVector(query: string): Promise<ReadonlyArray<number> | undefined> {
+		const key = `${embedder.space}\u0000${query.trim().toLowerCase()}`;
+		const hit = vectors.get(key);
+		if (hit !== undefined) {
+			vectors.delete(key);
+			vectors.set(key, hit);
+			return hit;
+		}
+		const [vector] = await embedder.embed([query]);
+		if (vector === undefined) return undefined;
+		vectors.set(key, vector);
+		const oldest = vectors.keys().next();
+		if (vectors.size > QUERY_VECTORS && oldest.done !== true) vectors.delete(oldest.value);
+		return vector;
 	}
 
 	async function remove(ids: ReadonlyArray<string>): Promise<void> {
@@ -117,6 +168,7 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 			}
 		} else {
 			await store.createIndex(index, dimension);
+			known = undefined;
 		}
 		created.add(index);
 	}
@@ -196,11 +248,12 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		const s = SearchQuerySchema.parse(q);
 		if (s.query === "") return [];
 		const index = indexName(s.brand, s.locale, embedder.space);
-		if (!(await ownIndexes()).includes(index)) return [];
-		const [vector] = await embedder.embed([s.query]);
+		// The index check and the embedding run side by side: each is a round trip.
+		const [indexes, vector] = await Promise.all([knownIndexes(), queryVector(s.query)]);
+		if (!indexes.includes(index) && !(await ownIndexes()).includes(index)) return [];
 		// A query with no usable tokens has no direction: cosine is undefined, so nothing matches.
 		if (vector === undefined || vector.every((x) => x === 0)) return [];
-		const rows = await store.query(index, vector, s.topK);
+		const rows = await store.query(index, [...vector], s.topK);
 		const out: Passage[] = [];
 		for (const row of rows) {
 			const p = toPassage(row.metadata, row.score, { brand: s.brand, locale: s.locale });
@@ -215,6 +268,25 @@ export function createKnowledge(opts: CreateKnowledgeOptions): KnowledgeStore {
 		remove,
 		indexed: async (brand, locale) =>
 			(await ownIndexes()).includes(indexName(brand, locale, embedder.space)),
+		async indexStats(brand) {
+			const prefix = `${INDEX_PREFIX}${brand}_`;
+			const names = (await ownIndexes()).filter((n) => n.startsWith(prefix)).sort();
+			return Promise.all(
+				names.map(async (name) => {
+					const [locale = "", ...space] = name.slice(prefix.length).split("_");
+					const d = await store.describe(name);
+					return { name, locale, space: space.join("_"), chunks: d.count, dimension: d.dimension };
+				}),
+			);
+		},
+		async stored(brand) {
+			const prefix = `${INDEX_PREFIX}${brand}_`;
+			const rows: unknown[] = [];
+			for (const name of (await ownIndexes()).filter((n) => n.startsWith(prefix)).sort()) {
+				rows.push(...(await store.rows(name)));
+			}
+			return collectStored(rows, brand);
+		},
 		catalog: opts.catalog,
 		embedder: describeEmbedder(embedder),
 		store: store.info,

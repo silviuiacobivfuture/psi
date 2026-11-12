@@ -45,6 +45,28 @@ for (const store of await storeCases()) {
 			expect(report.store).toEqual(k.store);
 		});
 
+		it("embeds a repeated query once, and still finds a fresh index", async () => {
+			let embedded = 0;
+			const counting = {
+				...lexical,
+				embed: (texts: ReadonlyArray<string>) => {
+					embedded += texts.length;
+					return lexical.embed(texts);
+				},
+			};
+			const cached = createKnowledge({ vector: ts.vector, embedder: counting });
+			expect(await cached.search({ query: "telefon", brand: "psizone", locale: "ro" })).toEqual([]);
+			await cached.ingest([entry({ id: "a", body: "Telefon de contact." })]);
+			const before = embedded;
+			const first = await cached.search({ query: "Telefon", brand: "psizone", locale: "ro" });
+			const again = await cached.search({ query: "telefon ", brand: "psizone", locale: "ro" });
+			expect(first.map((p) => p.source.id)).toEqual(["a"]);
+			expect(again.map((p) => p.source.id)).toEqual(["a"]);
+			// "telefon" was embedded before the ingest; the later two searches reuse that vector.
+			expect(embedded).toBe(before);
+			await cached.close();
+		});
+
 		describe("search on an empty store", () => {
 			it("returns nothing, and nothing for a query of stop words only", async () => {
 				expect(await k.search({ query: "telefon", brand: "psizone", locale: "ro" })).toEqual([]);

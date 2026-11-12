@@ -1,103 +1,40 @@
-import { RequestContext } from "@mastra/core/request-context";
-import {
-	type AskContext,
-	type AskControl,
-	ConfigurationError,
-	report,
-	type ThreadAgent,
-} from "./ask-context";
+import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
 import { screen } from "./ask-screen";
 import { isBookingIntent, offerTimes } from "./booking";
-import { within } from "./deadline";
+import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
-import { AnswerTurn, MAX_TOOL_CALLS, TURN_KEY } from "./grounding/agent-tools";
-import { type ActiveCrossReference, AnswerGate, type GateStep } from "./grounding/answer-gate";
-import type { EngineScore } from "./grounding/faithfulness";
 import { scopeSearch } from "./grounding/knowledge-tool";
-import { SourceLedger } from "./grounding/ledger";
 import type { LanguagePack } from "./language/pack";
-import { forgetAnswer, type ThreadKey } from "./memory";
 import { instructionsFor, languageNote } from "./prompt";
-import { matchesRules } from "./rules";
 import { screenWithModel } from "./screening/model";
 import { createSmallTalk } from "./small-talk";
 
-/** Longest answer the model may write, in tokens; room is left for the model's own reasoning. */
-const MAX_OUTPUT_TOKENS = 4_096;
-/** Model steps per answer: up to `MAX_TOOL_CALLS` tool rounds, then the answer. */
-const MAX_STEPS = MAX_TOOL_CALLS + 2;
-/** Low, so the answer stays close to the passages' wording. */
-export const ANSWER_TEMPERATURE = 0.1;
-
-type ModelMessage = { role: "user"; content: string } | { role: "assistant"; content: string };
+export { ANSWER_TEMPERATURE } from "./converse";
 
 function refusal(reason: RefusalReason): ReadonlyArray<EngineEvent> {
 	return [{ type: "refusal", reason }, { type: "done" }];
 }
 
-async function scored(
-	ctx: AskContext,
-	answer: string,
-	ledger: SourceLedger,
-	dropped: number,
-): Promise<EngineScore> {
-	const score = await ctx.faithfulness.score(answer, ledger.passageTexts(), {
-		pages: ledger.pages(),
-		dropped,
-	});
-	try {
-		ctx.onScore?.(score);
-	} catch {
-		// A failing log hook must not change the answer.
-	}
-	return score;
-}
-
-function conversation(input: AskInput, useHistory: boolean): Array<ModelMessage> {
-	const earlier: Array<ModelMessage> = useHistory
-		? (input.history ?? []).map(
-				(turn): ModelMessage =>
-					turn.role === "guide"
-						? { role: "assistant", content: turn.text }
-						: { role: "user", content: turn.text },
-			)
-		: [];
-	return [...earlier, { role: "user", content: input.question }];
-}
-
 /**
- * The profile's own welcome when the question is only small talk ("hi", "what can you do?") in
- * one of its packs: no retrieval, no model call, no claim to check.
+ * The profile's canned line for this turn, when the model cannot reply: the thank-you, the
+ * follow-up (after an answered turn) or the welcome. Undefined when the profile has none.
  */
-function smallTalkReply(ctx: AskContext, input: AskInput): string | undefined {
+function cannedLine(ctx: AskContext, input: AskInput): string | undefined {
 	const own = ctx.profile.locales[input.locale];
 	if (own?.welcome === undefined) return undefined;
 	const talk = createSmallTalk([...ctx.packs.values()]);
-	if (!talk.is(input.question)) return undefined;
-	return talk.isThanks(input.question) ? (own.thanks ?? own.welcome) : own.welcome;
+	if (talk.isThanks(input.question)) return own.thanks ?? own.welcome;
+	const answeredBefore = (input.history ?? []).some((turn) => turn.role === "guide");
+	const line = answeredBefore ? (own.followUp ?? own.welcome) : own.welcome;
+	const previous = [...(input.history ?? [])].reverse().find((t) => t.role === "guide")?.text;
+	// Never the same line twice in a row.
+	return line === previous ? (line === own.welcome ? (own.followUp ?? line) : own.welcome) : line;
 }
 
-/**
- * When retrieval found nothing and the question names no topic at all (only function and
- * small-talk words), the profile's welcome, which says what the guide can help with, is a better
- * reply than "no reviewed answer".
- */
-function welcomeInstead(ctx: AskContext, input: AskInput): string | undefined {
-	const welcome = ctx.profile.locales[input.locale]?.welcome;
-	if (welcome === undefined) return undefined;
-	return createSmallTalk([...ctx.packs.values()]).hasDomainTerms(input.question)
-		? undefined
-		: welcome;
-}
-
-/** The profile's cross-reference rules that this question triggers. */
-function activeCrossReferences(
-	ctx: AskContext,
-	question: string,
-): ReadonlyArray<ActiveCrossReference> {
-	return (ctx.profile.crossReferences ?? [])
-		.filter((rule) => matchesRules(question, rule.when))
-		.map((rule) => ({ forbid: rule.forbid, refusal: rule.refusal }));
+/** True when the question is only small talk (or names no topic): the canned line fits it. */
+function isSmallTalk(ctx: AskContext, input: AskInput): boolean {
+	const talk = createSmallTalk([...ctx.packs.values()]);
+	return talk.is(input.question) || !talk.hasDomainTerms(input.question);
 }
 
 /** The pack and the profile's wording for the asked locale (validation guarantees both). */
@@ -111,53 +48,108 @@ function localeOf(ctx: AskContext, locale: string): { pack: LanguagePack; instru
 }
 
 /**
- * One answer, as events: screening, retrieval, the model guardrails, the agent, the per-sentence
- * gate, then the faithfulness scorer. Never throws and never hangs: every failure becomes a
- * refusal, every wait has a deadline, and stopping the iteration aborts the model call.
+ * One turn of the conversation, as events. The deterministic screen first (crisis, the limits,
+ * injection and abuse, PII redaction), a booking question to the scheduling offer, then the
+ * profile's agent with its tools and the conversation so far: it replies to small talk, feelings
+ * and unclear messages in conversation, and looks facts up with its tools before stating them,
+ * citing them. The reply's factual claims are post-checked (see `converse`). `unavailable` only
+ * when the provider failed twice; an aborted turn (a newer question replaced it) ends with `done`
+ * alone. Never throws and never hangs: every wait has a deadline.
  */
 export async function* runAsk(
 	ctx: AskContext,
 	raw: unknown,
 	control?: AskControl,
 ): AsyncGenerator<EngineEvent, void, undefined> {
+	const clock: TurnClock & { screenMs: number; canned: boolean } = {
+		start: Date.now(),
+		firstText: null,
+		attempts: [],
+		tools: [],
+		screenMs: 0,
+		canned: false,
+	};
+	let outcome = "reply";
+	try {
+		for await (const event of turn(ctx, raw, control, clock)) {
+			if (event.type === "refusal") outcome = `refusal:${event.reason}`;
+			else if (event.type === "booking") outcome = "booking";
+			yield event;
+		}
+	} finally {
+		if (clock.canned) outcome = "canned";
+		if (control?.signal?.aborted === true) outcome = "aborted";
+		try {
+			ctx.onTiming?.({
+				profile: ctx.profile.id,
+				screenMs: clock.screenMs,
+				firstTextMs: clock.firstText,
+				totalMs: Date.now() - clock.start,
+				attempts: clock.attempts,
+				tools: clock.tools,
+				outcome,
+			});
+		} catch {
+			// A failing log hook must not change the answer.
+		}
+	}
+}
+
+async function* turn(
+	ctx: AskContext,
+	raw: unknown,
+	control: AskControl | undefined,
+	clock: TurnClock & { screenMs: number; canned: boolean },
+): AsyncGenerator<EngineEvent, void, undefined> {
+	const signal = control?.signal;
+	// A function, not a narrowed property: the signal can abort while the turn awaits.
+	const aborted = (): boolean => signal?.aborted === true;
 	const screened = await screen(ctx, raw, control);
+	clock.screenMs = Date.now() - clock.start;
+	if (aborted()) {
+		yield { type: "done" };
+		return;
+	}
 	if ("reason" in screened) {
 		yield* refusal(screened.reason);
 		return;
 	}
-	const { input, settings } = screened;
+	const { input, settings, outOfScope } = screened;
 	if (ctx.booking !== undefined && isBookingIntent(input.question, [...ctx.packs.values()])) {
 		yield { type: "booking", offer: await offerTimes(ctx.booking, input.question) };
 		yield { type: "done" };
 		return;
 	}
-	const welcome = smallTalkReply(ctx, input);
-	if (welcome !== undefined) {
-		yield { type: "text", delta: welcome };
+	// What the visitor sees so far: a canned line after streamed text replaces it.
+	const display: Display = { text: "" };
+	const say = function* (line: string): Generator<EngineEvent, void, undefined> {
+		clock.canned = true;
+		if (display.text === "") clock.firstText ??= Date.now() - clock.start;
+		yield display.text === "" ? { type: "text", delta: line } : { type: "replace", text: line };
 		yield { type: "done" };
-		return;
-	}
+	};
+	const fallback = function* (error: unknown): Generator<EngineEvent, void, undefined> {
+		report(ctx, "model", error);
+		const line = isSmallTalk(ctx, input) ? cannedLine(ctx, input) : undefined;
+		if (line === undefined) {
+			yield* refusal("unavailable");
+			return;
+		}
+		yield* say(line);
+	};
 	if (ctx.agent === undefined) {
-		report(ctx, "model", new ConfigurationError("no OpenRouter API key (OPENROUTER_API_KEY)"));
-		yield* refusal("unavailable");
+		yield* fallback(new ConfigurationError("no OpenRouter API key (OPENROUTER_API_KEY)"));
 		return;
 	}
 	yield { type: "thinking" };
 
-	const signal = control?.signal;
 	const controller = new AbortController();
 	const abort = (): void => controller.abort();
 	signal?.addEventListener("abort", abort, { once: true });
-	if (signal?.aborted === true) controller.abort();
+	if (aborted()) controller.abort();
 	const deadline = setTimeout(abort, ctx.timeouts.totalMs);
-	let release: (() => void) | undefined;
-	let forget: (() => void) | undefined;
-	let answered = false;
 	try {
 		const { pack, instructions } = localeOf(ctx, input.locale);
-		const ledger = new SourceLedger();
-		// The configured locale is fixed before retrieval: the index is searched in it, whatever
-		// language the visitor wrote in.
 		const search = scopeSearch({
 			knowledge: ctx.knowledge,
 			scope: ctx.profile.knowledgeScope,
@@ -170,33 +162,9 @@ export async function* runAsk(
 				...(settings.embedModel === undefined ? {} : { embedModel: settings.embedModel }),
 			},
 		});
-		// The probe: one search before any model call, so a question nothing answers is refused
-		// for free. Its passages are NOT shown to the model and not registered: the agent reads
-		// content only through its tools, and only what they return can be cited.
-		let passages: Awaited<ReturnType<typeof search>>;
-		try {
-			passages = await search(input.question);
-		} catch (error) {
-			report(ctx, "retrieval", error);
-			yield* refusal("unavailable");
-			return;
-		}
-		if (passages.length === 0) {
-			const welcome = welcomeInstead(ctx, input);
-			if (welcome !== undefined) {
-				yield { type: "text", delta: welcome };
-				yield { type: "done" };
-				return;
-			}
-			yield* refusal("no_content");
-			return;
-		}
-		const turn = new AnswerTurn(ledger, input.locale, search);
 
-		// The model detectors run only at the strict level, and fail OPEN: the deterministic rules
-		// have already run, so a detector outage never blocks a legitimate visitor.
+		// The model detectors run only at the strict level, and fail OPEN.
 		if (ctx.screeningModel !== undefined && settings.screeningLevel === "strict") {
-			// The guardrails turn a provider error into a bare tripwire; keep the error itself.
 			let providerError: unknown;
 			const verdict = await screenWithModel({
 				model: ctx.screeningModel((error) => {
@@ -208,6 +176,10 @@ export async function* runAsk(
 				prompts: ctx.profile.screening,
 				runnerName: `${ctx.resourceId}-screening`,
 			});
+			if (aborted()) {
+				yield { type: "done" };
+				return;
+			}
 			if (verdict.kind === "failed") report(ctx, "screening", providerError ?? verdict.error);
 			if (verdict.kind === "refuse") {
 				yield* refusal(verdict.reason);
@@ -215,133 +187,79 @@ export async function* runAsk(
 			}
 		}
 
-		const threads: ThreadAgent | undefined =
-			input.threadId !== undefined && ctx.threadAgent !== undefined ? ctx.threadAgent() : undefined;
-		const threaded = threads !== undefined;
-		const agent = threads?.agent ?? ctx.agent;
-		const key: ThreadKey | undefined =
-			input.threadId === undefined
-				? undefined
-				: { threadId: `${ctx.profile.id}-${input.threadId}`, resourceId: ctx.resourceId };
 		const note = languageNote(pack, ctx.languages.detect(input.question));
-		const since = Date.now();
-		const started = agent.stream(conversation(input, !threaded), {
-			instructions,
-			...(note === "" ? {} : { system: note }),
-			requestContext: new RequestContext([[TURN_KEY, turn]]),
-			maxSteps: MAX_STEPS,
-			maxProcessorRetries: 0,
-			abortSignal: controller.signal,
-			modelSettings: {
-				maxRetries: 0,
-				maxOutputTokens: MAX_OUTPUT_TOKENS,
-				temperature: ANSWER_TEMPERATURE,
+		const notes = [
+			...(note === "" ? [] : [note]),
+			...(outOfScope && pack.prompt.outOfScope !== undefined ? [pack.prompt.outOfScope] : []),
+		];
+		const outcome = yield* converse(
+			{
+				ctx,
+				input,
+				pack,
+				instructions,
+				notes,
+				search,
+				signal: controller.signal,
+				callerSignal: signal,
+				clock,
 			},
-			...(threaded && key !== undefined
-				? { memory: { thread: key.threadId, resource: key.resourceId } }
-				: {}),
-		});
-		const output = await within(started, ctx.timeouts.idleMs, "model start", controller.signal);
-		if (threads !== undefined && key !== undefined) {
-			forget = () => void forgetAnswer(threads.memory, key, since, output.finishReason);
-		}
-
-		const reader = output.fullStream.getReader();
-		release = () => {
-			reader.cancel().catch(() => undefined);
-		};
-		const gate = new AnswerGate({
-			ledger,
-			crossReferences: activeCrossReferences(ctx, input.question),
-			locale: input.locale,
-			languages: ctx.languages,
-			faithfulness: ctx.faithfulness,
-		});
-		const emit = async (step: GateStep): Promise<EngineEvent | undefined> => {
-			if (step.kind === "text") {
-				return step.text.length > 0 ? { type: "text", delta: step.text } : undefined;
-			}
-			if (step.check === "language") {
-				report(ctx, "model", new Error("answer not in the configured language"));
-			} else if (step.reason === "no_content" && step.check !== "sentinel") {
-				await scored(ctx, gate.rawText, ledger, gate.dropped);
-			}
-			return { type: "refusal", reason: step.reason };
-		};
-
-		let finish: string | undefined;
-		for (;;) {
-			const next = await within(
-				reader.read(),
-				ctx.timeouts.idleMs,
-				"model stream",
-				controller.signal,
-			);
-			if (next.done) break;
-			const chunk = next.value;
-			if (chunk.type === "text-delta") {
-				const event = await emit(gate.push(chunk.payload.text));
-				if (event !== undefined) yield event;
-				if (event?.type === "refusal") {
-					yield { type: "done" };
+			display,
+		);
+		switch (outcome.kind) {
+			case "aborted":
+				yield { type: "done" };
+				return;
+			case "failed":
+				yield* fallback(outcome.error);
+				return;
+			case "language": {
+				report(ctx, "model", new Error("reply not in the configured language after a retry"));
+				const line = cannedLine(ctx, input);
+				if (line === undefined) {
+					yield* refusal("no_content");
 					return;
 				}
-			} else if (chunk.type === "tool-call-input-streaming-start" || chunk.type === "tool-call") {
-				gate.discardHeld();
-			} else if (chunk.type === "error") {
-				report(ctx, "model", chunk.payload.error);
-				yield* refusal("unavailable");
+				yield* say(line);
 				return;
-			} else if (chunk.type === "abort" || chunk.type === "tripwire") {
-				report(ctx, "model", new Error(chunk.type));
-				yield* refusal("unavailable");
-				return;
-			} else if (chunk.type === "finish") {
-				finish = chunk.payload.stepResult.reason;
 			}
+			case "unknown": {
+				const own = ctx.profile.locales[input.locale];
+				const line = own?.unknown ?? cannedLine(ctx, input);
+				if (line === undefined) {
+					yield* refusal("no_content");
+					return;
+				}
+				yield* say(line);
+				return;
+			}
+			case "reply":
+				if (outcome.sources.length > 0) {
+					// Scored by Mastra's scorer and reported, never shown: the post-check decided.
+					try {
+						const score = await ctx.faithfulness.score(
+							outcome.scoring.checked,
+							outcome.scoring.passages,
+							{ pages: outcome.scoring.pages, dropped: outcome.scoring.dropped },
+						);
+						ctx.onScore?.(score);
+					} catch {
+						// Scoring and its hook never change the reply.
+					}
+				}
+				if (outcome.sources.length > 0) yield { type: "sources", sources: outcome.sources };
+				yield { type: "done" };
+				return;
 		}
-		// Only a model that finished its answer counts: a cut-off ("length"), a filtered answer or
-		// an error is not one.
-		if (finish !== "stop") {
-			report(ctx, "model", new Error(`finished with reason ${finish ?? "none"}`));
-			yield* refusal("unavailable");
-			return;
-		}
-
-		const last = await emit(gate.end());
-		if (last?.type === "refusal") {
-			yield* refusal(last.reason);
-			return;
-		}
-		if (last !== undefined) yield last;
-		const sources = ledger.citedSources();
-		// An answer that cites no passage is not grounded, whatever it says.
-		if (!gate.emitted || sources.length === 0) {
-			yield* refusal("no_content");
-			return;
-		}
-		// What went out, scored by Mastra's scorer and reported. The gate decides: it let out only
-		// supported sentences, so an answer passes when at least one of them is a claim. The scorer
-		// reads the same text with the same checks; a disagreement is reported, never shown.
-		const score = await scored(ctx, gate.keptText, ledger, gate.dropped);
-		if (score.passed !== gate.claims > 0) {
-			report(ctx, "model", new Error("the scorer and the answer gate disagree"));
-		}
-		if (gate.claims === 0) {
-			yield* refusal("no_content");
-			return;
-		}
-		answered = true;
-		yield { type: "sources", sources };
-		yield { type: "done" };
 	} catch (error) {
-		report(ctx, "model", error);
-		yield* refusal("unavailable");
+		if (aborted()) {
+			yield { type: "done" };
+			return;
+		}
+		yield* fallback(error);
 	} finally {
 		clearTimeout(deadline);
 		signal?.removeEventListener("abort", abort);
-		release?.();
 		controller.abort();
-		if (!answered) forget?.();
 	}
 }

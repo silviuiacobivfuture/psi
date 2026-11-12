@@ -1,7 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { type Client, createClient } from "@libsql/client";
 import { LibSQLVector } from "@mastra/libsql";
+import { z } from "zod";
 import { isOwnIndex } from "./indexes";
 import type { VectorStore } from "./types";
 
@@ -29,9 +31,31 @@ export function createLibSQLVector(config: LibSQLStoreConfig, id = "psi-knowledg
 	});
 }
 
+const TABLE = /^kb_[a-z0-9_]+$/;
+const MetadataRows = z.array(z.object({ metadata: z.string().nullable() }).passthrough());
+
+function parseJson(text: string | null): unknown {
+	if (text === null) return null;
+	try {
+		const value: unknown = JSON.parse(text);
+		return value;
+	} catch {
+		return null;
+	}
+}
+
 /** The vector store port over LibSQL: metadata is stored as JSON, nulls included. */
 export function libsqlStore(config: LibSQLStoreConfig): VectorStore {
 	const store = createLibSQLVector(config);
+	// Reading every row needs plain SQL: Mastra's query goes through the ANN index (top-k only).
+	let reader: Client | undefined;
+	const sql = (): Client => {
+		reader ??= createClient({
+			url: config.url,
+			...(config.authToken === undefined ? {} : { authToken: config.authToken }),
+		});
+		return reader;
+	};
 	return {
 		info: { kind: "libsql", location: config.url.split("?")[0] ?? config.url },
 		vector: store,
@@ -43,6 +67,10 @@ export function libsqlStore(config: LibSQLStoreConfig): VectorStore {
 		},
 		async dimension(index) {
 			return (await store.describeIndex({ indexName: index })).dimension;
+		},
+		async describe(index) {
+			const d = await store.describeIndex({ indexName: index });
+			return { dimension: d.dimension, count: d.count };
 		},
 		async createIndex(index, dimension) {
 			await store.createIndex({ indexName: index, dimension, metric: "cosine" });
@@ -58,6 +86,13 @@ export function libsqlStore(config: LibSQLStoreConfig): VectorStore {
 		async deleteEntries(index, entryIds) {
 			await store.deleteVectors({ indexName: index, filter: { entryId: { $in: [...entryIds] } } });
 		},
+		async rows(index) {
+			if (!TABLE.test(index)) throw new Error(`not a knowledge index: ${index}`);
+			const r = await sql().execute(`SELECT metadata FROM "${index}"`);
+			return MetadataRows.parse(r.rows.map((row) => ({ metadata: row.metadata ?? null }))).map(
+				(row) => parseJson(row.metadata),
+			);
+		},
 		async query(index, vector, topK) {
 			// minScore 0: LibSQL keeps only rows scoring above it.
 			const rows = await store.query({
@@ -68,6 +103,10 @@ export function libsqlStore(config: LibSQLStoreConfig): VectorStore {
 			});
 			return rows.map((r) => ({ metadata: r.metadata, score: r.score }));
 		},
-		close: () => store.close(),
+		async close() {
+			reader?.close();
+			reader = undefined;
+			await store.close();
+		},
 	};
 }

@@ -81,13 +81,16 @@ async function exchangeLimit(
  * The guardrails that need no model, before anything leaves the process: crisis (on the raw and
  * the cleaned text, so invisible characters cannot hide it, and never limited), the runtime
  * settings (a switched-off guide is `unavailable`), the rate limit, the exchange limit,
- * validation, the deterministic chain (`screenInput`) and scope.
+ * validation and the deterministic chain (`screenInput`). Scope is not refused here: an
+ * out-of-scope question is marked, and the agent steers it towards a specialist in conversation.
  */
 export async function screen(
 	ctx: AskContext,
 	raw: unknown,
 	control: AskControl | undefined,
-): Promise<{ input: AskInput; settings: RetrievalSettings } | { reason: RefusalReason }> {
+): Promise<
+	{ input: AskInput; settings: RetrievalSettings; outOfScope: boolean } | { reason: RefusalReason }
+> {
 	const invalidInput = ctx.profile.refusalPolicy?.invalidInput ?? "out_of_scope";
 	const question = rawQuestion(raw);
 	if (question !== undefined && (isCrisis(ctx, question) || isCrisis(ctx, cleanText(question)))) {
@@ -110,8 +113,7 @@ export async function screen(
 		return { reason: "unavailable" };
 	}
 	if ("reason" in screened) return screened;
-	if (matchesRules(screened.input.question, ctx.profile.outOfScope ?? [])) {
-		return { reason: "out_of_scope" };
-	}
-	return { input: screened.input, settings };
+	// Out of scope (a diagnosis, a medication): no refusal card, a gentle redirect in conversation.
+	const outOfScope = matchesRules(screened.input.question, ctx.profile.outOfScope ?? []);
+	return { input: screened.input, settings, outOfScope };
 }

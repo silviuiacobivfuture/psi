@@ -21,8 +21,11 @@ export type GroundedAnswer = z.infer<typeof AnswerOutputSchema>;
 async function collect(events: AsyncIterable<EngineEvent>): Promise<GroundedAnswer> {
 	const out: GroundedAnswer = { answer: "", sources: [], refusal: null, events: [] };
 	for await (const event of events) {
+		// A staged `thinking` is a progress hint, not a step of the answer.
+		if (event.type === "thinking" && event.stage !== undefined) continue;
 		out.events.push(event.type === "refusal" ? `refusal:${event.reason}` : event.type);
 		if (event.type === "text") out.answer += event.delta;
+		else if (event.type === "replace") out.answer = event.text;
 		else if (event.type === "sources") out.sources = [...event.sources];
 		else if (event.type === "refusal") out.refusal = event.reason;
 	}

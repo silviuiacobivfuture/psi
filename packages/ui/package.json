@@ -16,15 +16,18 @@
 		"./brand-blog.css": "./src/brand-blog.css",
 		"./flat.css": "./src/flat.css",
 		"./timeline.css": "./src/timeline.css",
-		"./imagery.css": "./src/imagery.css"
+		"./imagery.css": "./src/imagery.css",
+		"./testing": "./src/testing.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"build:client": "node scripts/build-client.ts"
 	},
 	"dependencies": {
 		"@psi/design": "workspace:*",
-		"@psi/guide": "workspace:*"
+		"@psi/guide": "workspace:*",
+		"zod": "^3.25.76"
 	},
 	"peerDependencies": {
 		"hono": "^4.13.0"

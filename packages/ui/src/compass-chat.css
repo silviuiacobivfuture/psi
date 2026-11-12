@@ -1,0 +1,269 @@
+/*
+ * The conversation with the guide: exchanges (the question, then what the guide made of it), the
+ * typing indicator, sources as compact chips, the unanswered note with its retry, and, inside the
+ * compass, the empty state, the quick replies and the "new message" pill.
+ */
+
+/* ---------- Exchanges (the compass and the page's own asking field) ---------- */
+
+.pz-exchange {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.pz-exchange + .pz-exchange {
+	margin-top: 22px;
+}
+.pz-exchange .pz-msg,
+.pz-compass__chat .pz-msg {
+	max-width: 100%;
+	min-width: 0;
+}
+.pz-exchange .pz-msg__bubble,
+.pz-compass__chat .pz-msg__bubble {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+/* The visitor's message: on the right, as wide as its text, never wider than most of the row. */
+.pz-exchange .pz-msg--user {
+	max-width: min(85%, 520px);
+}
+.pz-exchange .pz-msg--user .pz-msg__bubble {
+	white-space: pre-wrap;
+}
+.pz-exchange .pz-msg--guide .pz-msg__bubble {
+	max-width: min(100% - 42px, 600px);
+}
+.pz-msg__footer {
+	margin-top: 10px;
+	font: 450 13px / 18px var(--pz-body);
+	color: var(--ink-faint);
+}
+
+/* Sources: one compact row of chips, each cut to its line. */
+.pz-exchange .pz-msg__sources {
+	gap: 6px;
+	margin-top: 12px;
+}
+.pz-exchange .pz-msg__source {
+	display: inline-flex;
+	align-items: center;
+	max-width: 100%;
+	min-height: 26px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	text-decoration: none;
+	font: 600 12px / 24px var(--pz-label);
+}
+.pz-exchange a.pz-msg__source:hover {
+	color: var(--ink);
+	border-color: var(--line-control);
+}
+
+/* A booking step uses the whole width of the conversation. */
+.pz-msg--wide {
+	width: 100%;
+}
+.pz-exchange .pz-msg--wide .pz-msg__bubble {
+	flex: 1;
+	max-width: 100%;
+}
+
+/* The unanswered note, and the way to ask again. */
+.pz-exchange__note {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px 12px;
+	margin: -4px 0 0;
+	font: 450 13px / 18px var(--pz-body);
+	color: var(--ink-muted);
+}
+.pz-exchange__note span:empty {
+	display: none;
+}
+.pz-exchange__retry {
+	display: inline-flex;
+	align-items: center;
+	height: 32px;
+	padding: 0 14px;
+	border: 1px solid var(--line-control);
+	border-radius: var(--radius-pill);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 13px / 1 var(--pz-label);
+	cursor: pointer;
+}
+.pz-exchange__retry:hover {
+	background: var(--surface-2);
+}
+.pz-exchange__retry:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+/* The caret follows the last word while the answer is written, not on a line of its own. */
+.pz-exchange .pz-stream::after {
+	display: none;
+}
+.pz-exchange .pz-stream:not([data-done]) > .pz-para:last-child::after {
+	content: "";
+	display: inline-block;
+	width: 0.45ch;
+	height: 1.05em;
+	margin-left: 3px;
+	vertical-align: -0.15em;
+	background: var(--accent);
+	border-radius: 1px;
+	animation: pz-caret 1s steps(2, start) infinite;
+}
+
+/* ---------- The typing indicator ---------- */
+
+.pz-typing {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	color: var(--ink-muted);
+	font: 450 14px / 20px var(--pz-body);
+}
+.pz-typing__dots {
+	display: inline-flex;
+	gap: 4px;
+}
+.pz-typing__dots i {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.35;
+	animation: pz-typing 1.2s ease-in-out infinite;
+}
+.pz-typing__dots i:nth-child(2) {
+	animation-delay: 0.15s;
+}
+.pz-typing__dots i:nth-child(3) {
+	animation-delay: 0.3s;
+}
+@keyframes pz-typing {
+	0%,
+	60%,
+	100% {
+		opacity: 0.35;
+		transform: translateY(0);
+	}
+	30% {
+		opacity: 1;
+		transform: translateY(-3px);
+	}
+}
+
+/* ---------- Inside the compass ---------- */
+
+.pz-compass__chat {
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
+}
+.pz-compass__disclaimer {
+	margin: 0 0 18px;
+	font: 450 12px / 17px var(--pz-body);
+	color: var(--ink-faint);
+	text-align: center;
+}
+.pz-compass__empty {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.pz-compass__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.pz-compass__empty .pz-compass__chips {
+	padding-left: 42px;
+}
+.pz-compass__chip {
+	height: auto;
+	min-height: 36px;
+	padding: 8px 14px;
+	line-height: 1.25;
+	text-align: left;
+	white-space: normal;
+}
+.pz-compass__answer {
+	margin-top: auto;
+}
+.pz-compass__answer:empty {
+	display: none;
+}
+.pz-compass__empty:not([style*="display: none"])
+	+ .pz-compass__answer:not(:empty) {
+	margin-top: 22px;
+}
+
+/* The way back to the newest message, for a reader who scrolled up. */
+.pz-compass__pill {
+	position: sticky;
+	bottom: 4px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: max-content;
+	height: 34px;
+	margin: 12px auto 0;
+	padding: 0 14px;
+	border: 1px solid var(--line-control);
+	border-radius: var(--radius-pill);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 13px / 1 var(--pz-label);
+	box-shadow: var(--shadow-float);
+	cursor: pointer;
+}
+.pz-compass__pill[hidden] {
+	display: none;
+}
+
+@media (max-width: 640px) {
+	.pz-compass__chat .pz-msg {
+		gap: 8px;
+	}
+	.pz-compass__chat .pz-msg__avatar {
+		width: 26px;
+		height: 26px;
+	}
+	.pz-compass__chat .pz-msg__bubble {
+		padding: 11px 14px;
+		font-size: 15.5px;
+		line-height: 24px;
+	}
+	.pz-exchange .pz-msg--guide .pz-msg__bubble {
+		max-width: calc(100% - 34px);
+	}
+	.pz-compass__empty .pz-compass__chips {
+		padding-left: 34px;
+	}
+	/* The booking form takes the avatar's room too. */
+	.pz-compass__chat .pz-msg--wide .pz-msg__avatar {
+		display: none;
+	}
+	.pz-compass__chat .pz-msg--wide .pz-msg__bubble {
+		max-width: 100%;
+		padding: 14px 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-exchange .pz-stream:not([data-done]) > .pz-para:last-child::after {
+		animation: none;
+	}
+	.pz-typing__dots i {
+		animation: none;
+		opacity: 0.6;
+	}
+}

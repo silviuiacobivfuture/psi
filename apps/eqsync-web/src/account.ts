@@ -5,6 +5,7 @@ import type { Context } from "hono";
 import { ESTATE, SITE } from "./estate";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
+import { accountsSignIn } from "./site-settings";
 
 /**
  * EQ-SYNC's account: its own Authentik application `eqsync-web`, the estate's one account
@@ -45,7 +46,10 @@ export function guideForRequest(c: Context, guide: Guide): Promise<Guide> {
 	return guideFor(account, c, guide, "eqsync");
 }
 
-/** The Compass's account group, or none while accounts are off (production without account settings). */
+/**
+ * The Compass's account group, or none while accounts are off (production without account settings)
+ * or the owners hid sign-in in the CMS (`accountsSignIn`).
+ */
 export function accountGroups(locale: Locale): CompassGroup[] {
-	return account.enabled ? [accountGroup(locale)] : [];
+	return account.enabled && accountsSignIn() ? [accountGroup(locale)] : [];
 }

@@ -4,6 +4,7 @@ import {
 	audienceValidator,
 	channelValidator,
 	contactValidator,
+	decisionReasonValidator,
 	localeValidator,
 	modeValidator,
 	statusValidator,
@@ -98,6 +99,8 @@ export default defineSchema({
 		accountHash: v.optional(v.string()),
 		/** The staff subject who last decided on it (confirm, decline, cancel, reschedule). */
 		decidedBy: v.optional(v.string()),
+		/** Why the team declined or cancelled it: a closed, administrative list, never clinical. */
+		decisionReason: v.optional(decisionReasonValidator),
 		rescheduledFrom: v.optional(v.id("appointments")),
 		rescheduledTo: v.optional(v.id("appointments")),
 		updatedAt: v.number(),

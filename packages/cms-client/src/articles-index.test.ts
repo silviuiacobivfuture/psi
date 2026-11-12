@@ -58,7 +58,9 @@ describe("a brand site's article index", () => {
 	it("keeps the last good index when the CMS fails", async () => {
 		let ok = true;
 		const s = index(true, () =>
-			ok ? Response.json({ docs: [cmsDoc], hasNextPage: false }) : new Response("x", { status: 503 }),
+			ok
+				? Response.json({ docs: [cmsDoc], hasNextPage: false })
+				: new Response("x", { status: 503 }),
 		);
 		await s.i.refresh();
 		ok = false;

@@ -13,40 +13,42 @@ const LinkForm = z.object({
 });
 const TURNS_SHOWN = 20;
 
+/** The person's requests, each allowed as viewer; null when the store or OpenFGA is away. */
+export async function ownRequests(
+	j: Journey,
+	c: Parameters<Journey["gate"]>[0],
+	subject: string,
+): Promise<ReadonlyArray<OwnReservation> | null> {
+	const { o } = j;
+	if (o.reservations === undefined) return [];
+	let rows: ReadonlyArray<OwnReservation>;
+	try {
+		rows = await o.reservations.requests(subject);
+	} catch {
+		return null;
+	}
+	const decisions = await o.account.decideMany(
+		c,
+		"viewer",
+		rows.map((r) => bookingRef(r.reference, subject)),
+	);
+	const answers = rows.map((r) =>
+		decisions.get(bookingRef(r.reference, subject).object),
+	);
+	if (answers.some((d) => d === "unavailable")) return null;
+	return rows.filter((_, i) => answers[i] === "allowed");
+}
+
 /** Previous reservations and remembered conversations: each row allowed by OpenFGA before it is shown. */
 export function registerHistoryRoutes(app: Hono, j: Journey): void {
 	const { o, say, path } = j;
 	const now = o.now ?? Date.now;
 
-	/** The person's requests, each allowed as viewer; null when the store or OpenFGA is away. */
-	async function ownRequests(
-		c: Parameters<Journey["gate"]>[0],
-		subject: string,
-	): Promise<ReadonlyArray<OwnReservation> | null> {
-		if (o.reservations === undefined) return [];
-		let rows: ReadonlyArray<OwnReservation>;
-		try {
-			rows = await o.reservations.requests(subject);
-		} catch {
-			return null;
-		}
-		const decisions = await o.account.decideMany(
-			c,
-			"viewer",
-			rows.map((r) => bookingRef(r.reference, subject)),
-		);
-		const answers = rows.map((r) =>
-			decisions.get(bookingRef(r.reference, subject).object),
-		);
-		if (answers.some((d) => d === "unavailable")) return null;
-		return rows.filter((_, i) => answers[i] === "allowed");
-	}
-
 	app.get(path("bookings"), async (c) => {
 		c.header("cache-control", PRIVATE["cache-control"]);
 		const person = await j.gate(c, "viewer");
 		if (person instanceof Response) return person;
-		const rows = await ownRequests(c, person.subject);
+		const rows = await ownRequests(j, c, person.subject);
 		const ok = c.req.query("ok");
 		return j.page(
 			c,

@@ -1,6 +1,7 @@
+import { STAFF_LINK_PATH } from "@psi/site-control";
 import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { accountGroups } from "../account";
+import { account, accountGroups } from "../account";
 import { estateGroup } from "../estate";
 import { at, base, type Locale } from "../i18n";
 import { m } from "../paraglide/messages.js";
@@ -13,7 +14,13 @@ import { programmeHref } from "./programmes";
  * No navbar: the brand sits quietly in the sky of the dawn frame (see Hero), and everything else
  * is the compass at the foot of the screen — go somewhere, or ask the guide.
  */
-export function Header({ locale, otherHref }: { locale: Locale; otherHref: string }): JSX.Element {
+export function Header({
+	locale,
+	otherHref,
+}: {
+	locale: Locale;
+	otherHref: string;
+}): JSX.Element {
 	const o = at(locale);
 	const b = base(locale);
 	const groups: ReadonlyArray<CompassGroup> = [
@@ -55,7 +62,11 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					href: href(locale, "exercises"),
 					hint: m.exercises_lead({}, o),
 				},
-				{ label: m.nav_club({}, o), href: href(locale, "club"), hint: m.club_hint({}, o) },
+				{
+					label: m.nav_club({}, o),
+					href: href(locale, "club"),
+					hint: m.club_hint({}, o),
+				},
 			],
 		},
 		{
@@ -66,10 +77,26 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					href: href(locale, "technology"),
 					hint: m.tech_hint({}, o),
 				},
-				{ label: m.nav_focus({}, o), href: href(locale, "focus"), hint: m.focus_hint({}, o) },
-				{ label: m.nav_faq({}, o), href: href(locale, "faq"), hint: m.hint_faq({}, o) },
-				{ label: m.nav_about({}, o), href: href(locale, "about"), hint: m.hint_about({}, o) },
-				{ label: m.nav_contact({}, o), href: href(locale, "contact"), hint: m.hint_contact({}, o) },
+				{
+					label: m.nav_focus({}, o),
+					href: href(locale, "focus"),
+					hint: m.focus_hint({}, o),
+				},
+				{
+					label: m.nav_faq({}, o),
+					href: href(locale, "faq"),
+					hint: m.hint_faq({}, o),
+				},
+				{
+					label: m.nav_about({}, o),
+					href: href(locale, "about"),
+					hint: m.hint_about({}, o),
+				},
+				{
+					label: m.nav_contact({}, o),
+					href: href(locale, "contact"),
+					hint: m.hint_contact({}, o),
+				},
 				{ label: m.nav_guide({}, o), href: `${b}/#ghid` },
 			],
 		},
@@ -92,6 +119,33 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				groups={groups}
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
+				chat={{
+					storageKey: "psi.chat.hemisync",
+					suggestions: [
+						m.ask_suggest_1({}, o),
+						m.ask_suggest_2({}, o),
+						m.ask_suggest_3({}, o),
+					],
+					labels: {
+						greeting: m.guide_intro({}, o),
+						disclaimer: m.guide_footer({}, o),
+						newChat: m.compass_new_chat({}, o),
+						close: m.compass_close({}, o),
+						guideTab: m.compass_tab_guide({}, o),
+						pagesTab: m.compass_tab_pages({}, o),
+						views: m.compass_views({}, o),
+						newMessage: m.compass_new_message({}, o),
+						placeholder: m.compass_chat_placeholder({}, o),
+						suggestions: m.compass_suggestions({}, o),
+						dropped: m.guide_dropped({}, o),
+						retry: m.guide_retry({}, o),
+						unanswered: m.guide_unanswered({}, o),
+					},
+				}}
+				// Staff only: the page never reads the session; accounts off → no link (/admin still works).
+				staffLink={
+					account.enabled ? `${STAFF_LINK_PATH}?l=${locale}` : undefined
+				}
 				action={
 					<Button size="sm" href={`${b}/#programe`}>
 						{m.cta_programmes({}, o)}

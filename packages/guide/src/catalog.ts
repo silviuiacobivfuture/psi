@@ -1,5 +1,5 @@
 import type { CatalogLookup, EngineCatalog } from "@psi/engine";
-import { type Catalog, isDemoId } from "@psi/knowledge";
+import { type Catalog, type CatalogSync, isDemoId } from "@psi/knowledge";
 import { BrandSchema, LocaleSchema } from "./contract";
 
 /**
@@ -29,15 +29,27 @@ export const PSI_LOOKUPS: ReadonlyArray<CatalogLookup> = [
  * `@psi/knowledge`'s catalog as the engine's: a profile's scope is its brand. Demo entries are
  * left out unless `demo` is on, as in search.
  */
-export function engineCatalog(catalog: Catalog, opts: { demo: boolean }): EngineCatalog {
+export function engineCatalog(
+	catalog: Catalog,
+	opts: { demo: boolean; sync?: CatalogSync },
+): EngineCatalog {
 	const keep = (id: string): boolean => opts.demo || !isDemoId(id);
+	const fresh = async (scope: string): Promise<void> => {
+		await opts.sync?.fresh(BrandSchema.parse(scope));
+	};
 	return {
-		items: (scope, locale) =>
-			catalog
+		async items(scope, locale) {
+			await fresh(scope);
+			return catalog
 				.items(BrandSchema.parse(scope), LocaleSchema.parse(locale))
-				.filter((item) => keep(item.id)),
-		entry: (scope, locale, id) =>
-			keep(id) ? catalog.passages(BrandSchema.parse(scope), LocaleSchema.parse(locale), id) : [],
+				.filter((item) => keep(item.id));
+		},
+		async entry(scope, locale, id) {
+			await fresh(scope);
+			return keep(id)
+				? catalog.passages(BrandSchema.parse(scope), LocaleSchema.parse(locale), id)
+				: [];
+		},
 		lookups: PSI_LOOKUPS,
 	};
 }

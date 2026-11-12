@@ -12,6 +12,7 @@ import type { Profile } from "./profile";
 import type { ScreeningRules } from "./screening/chain";
 import type { RateLimiter } from "./screening/rate-limit";
 import type { SettingsSource } from "./settings";
+import type { EngineTiming } from "./timing";
 
 /** Time budgets for one answer, in milliseconds. */
 export interface EngineTimeouts {
@@ -45,11 +46,15 @@ export type FailureStage =
 	/** Embeddings failed or the breaker is open: the search fell back to the lexical tier. */
 	| "embeddings_degraded"
 	/** The configured embedding model has no index yet: lexical until a re-ingest builds it. */
-	| "index_missing";
+	| "index_missing"
+	/** A reply failed a post-check (language, an unsupported fact, grammar, a repeat): counts only. */
+	| "check";
 
 /**
  * Why a stage failed, for the app's logs. It names the profile, the stage and the error, never
- * the question, the passages or the answer. Every failure makes the answer `unavailable`.
+ * the question, the passages or the answer. A stage failing does not by itself make the answer
+ * `unavailable`: only the model provider failing twice does (a small talk turn then gets the
+ * profile's canned line).
  */
 export interface EngineFailure {
 	profile: string;
@@ -106,6 +111,8 @@ export interface AskContext {
 	settings: SettingsSource;
 	onFailure: ((failure: EngineFailure) => void) | undefined;
 	onScore: ((score: EngineScore) => void) | undefined;
+	/** Where each turn's time went (counts and milliseconds only), for the app's debug log. */
+	onTiming?: ((timing: EngineTiming) => void) | undefined;
 	/**
 	 * Builds the model the guardrail processors call, telling `onError` what failed; undefined when
 	 * model screening is off.

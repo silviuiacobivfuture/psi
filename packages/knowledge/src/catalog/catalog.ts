@@ -8,6 +8,7 @@ import {
 	KnowledgeEntrySchema,
 	retrievability,
 } from "../entry";
+import type { StoredEntry } from "../store/stored";
 import { type Bm25, createBm25 } from "./bm25";
 
 /** One retrievable entry as the catalog describes it: its shape, never its text. */
@@ -37,6 +38,12 @@ interface Held {
 export interface Catalog {
 	add(entries: ReadonlyArray<KnowledgeEntryInput>): Promise<void>;
 	remove(ids: ReadonlyArray<string>): void;
+	/**
+	 * Makes one brand's entries match the store: these (already chunked, as stored) are held, and
+	 * every other entry of the brand is dropped, except the ids `keep` accepts (code-held copies:
+	 * the seed and the demo), which are left as they are and win over a stored twin.
+	 */
+	mirror(brand: Brand, stored: ReadonlyArray<StoredEntry>, keep: (id: string) => boolean): void;
 	/** The shape of one brand and locale: its entries' ids, titles, pages, kinds and topics. */
 	items(brand: Brand, locale: Locale): ReadonlyArray<CatalogItem>;
 	/** One entry's full reviewed text, as passages (one per chunk); empty when not held. */
@@ -106,6 +113,19 @@ export function createCatalog(): Catalog {
 		},
 		remove(ids) {
 			for (const id of Ids.parse(ids)) held.delete(id);
+			changed();
+		},
+		mirror(brand, stored, keep) {
+			const incoming = new Map<string, StoredEntry>();
+			for (const s of stored) {
+				if (s.entry.brand !== brand || keep(s.entry.id)) continue;
+				if (!retrievability(s.entry).retrievable || s.chunks.length === 0) continue;
+				incoming.set(s.entry.id, s);
+			}
+			for (const [id, h] of held) {
+				if (h.entry.brand === brand && !keep(id) && !incoming.has(id)) held.delete(id);
+			}
+			for (const [id, s] of incoming) held.set(id, { entry: s.entry, chunks: s.chunks });
 			changed();
 		},
 		items(brand, locale) {

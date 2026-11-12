@@ -26,7 +26,7 @@ import { createLanguageDetector } from "./language/detect";
 import { BUNDLED_LANGUAGES } from "./language/index";
 import type { LanguagePack } from "./language/pack";
 import { openMemory } from "./memory";
-import { openRouterModel, readOpenRouterKey } from "./model";
+import { openRouterModel, type ProviderSort, readOpenRouterKey } from "./model";
 import type { Profile } from "./profile";
 import { instructionsFor } from "./prompt";
 import { createSchedulingAgent, type ProfileSchedulingAgent } from "./scheduling/agent";
@@ -36,6 +36,8 @@ import type { RateLimiter } from "./screening/rate-limit";
 import { createMemoryRateLimiter } from "./screening/rate-limit";
 import { createSettingsSource, type SettingsProvider } from "./settings";
 import { createKnowledgeTool } from "./studio-tool";
+import type { EngineTiming } from "./timing";
+import { warmProfile } from "./warm";
 import { createGroundedAnswerWorkflow } from "./workflow";
 
 /** The answering model, on OpenRouter. */
@@ -53,6 +55,8 @@ export interface EngineModelOptions {
 	 * by default. `allow` is for `:free` models in development with dummy data only.
 	 */
 	dataCollection?: "deny" | "allow";
+	/** OpenRouter's `provider.sort`; `latency` by default (a chat waits for the first token). */
+	sort?: ProviderSort;
 }
 
 export interface EngineScreeningOptions {
@@ -110,6 +114,8 @@ export interface EngineOptions {
 	onFailure?: (failure: EngineFailure) => void;
 	/** Called with the faithfulness score of every answer that was scored; no visitor content. */
 	onScore?: (score: EngineScore) => void;
+	/** Called after every turn with where its time went: counts and milliseconds only. */
+	onTiming?: (timing: EngineTiming) => void;
 	/**
 	 * The scheduling store (`@psi/scheduling`'s client fits). Profiles with `scheduling` get a
 	 * separate scheduling agent and Mastra registers the scheduling tools; without it, none exist.
@@ -126,6 +132,11 @@ export interface ProfileGuide {
 	ask(input: AskInput, control?: AskControl): AsyncIterable<EngineEvent>;
 	/** The profile's scheduling agent and tools, when it opted in and a store was given. */
 	readonly scheduling?: ProfileSchedulingAgent;
+	/**
+	 * Warms the profile before its first visitor (settings, catalog, one search: the store's and
+	 * the embedder's connections). Never throws; call it at boot, without awaiting.
+	 */
+	warm(): Promise<void>;
 }
 
 export interface Engine {
@@ -186,6 +197,7 @@ export function createEngine(options: EngineOptions): Engine {
 	const routing = {
 		...(opts.model.baseURL === undefined ? {} : { baseURL: opts.model.baseURL }),
 		dataCollection: opts.model.dataCollection ?? "deny",
+		sort: opts.model.sort ?? "latency",
 	};
 	// Without a key the agents are still built, so Mastra and Studio can list them; asks refuse.
 	const model = openRouterModel({ apiKey: apiKey ?? "", modelId: opts.model.id, ...routing });
@@ -287,6 +299,7 @@ export function createEngine(options: EngineOptions): Engine {
 			}),
 			onFailure: opts.onFailure,
 			onScore: opts.onScore,
+			onTiming: opts.onTiming,
 			screeningModel,
 			agent: apiKey === undefined ? undefined : agent,
 			threadAgent,
@@ -311,6 +324,7 @@ export function createEngine(options: EngineOptions): Engine {
 			profile,
 			agent,
 			ask: (input, control) => runAsk(ctx, input, control),
+			warm: () => warmProfile(ctx, defaultLocale),
 			...(scheduling === undefined ? {} : { scheduling }),
 		});
 	}

@@ -24,11 +24,7 @@ const SaveForm = z.object({ articol: z.string().min(1).max(200) });
  * OpenFGA about every row (viewer); removing one asks editor. Saving needs a signed-in person and a same-origin
  * POST. Export and erasure happen on Psizone, where the reservations are kept.
  */
-export function registerAccountRoutes(
-	app: Hono,
-	locale: Locale,
-	prefix: string,
-): void {
+export function registerAccountRoutes(app: Hono, locale: Locale, prefix: string): void {
 	const frame = (c: Context) => ({
 		locale,
 		theme: themeFrom(getCookie(c, "theme")),
@@ -41,9 +37,7 @@ export function registerAccountRoutes(
 
 	/** The person's saved articles, each allowed as viewer; null when OpenFGA could not be asked. */
 	const readingList = async (c: Context, person: SignedIn) => {
-		const rows = await (await account.stores()).savedArticles.list(
-			person.subject,
-		);
+		const rows = await (await account.stores()).savedArticles.list(person.subject);
 		const decisions = await account.decideMany(c, "viewer", rows.map(savedRef));
 		const shown: ShownSaved[] = [];
 		let partial = false;
@@ -70,6 +64,9 @@ export function registerAccountRoutes(
 		say: accountSay(locale),
 		siteNames: siteNames(locale),
 		dataHome: `${ESTATE.psizone}${prefix}/cont/date`,
+		bookHref: `${ESTATE.psizone}${prefix}/contact`,
+		readingHref: `${prefix}/`,
+		savedListHref: `${prefix}/cont#salvate`,
 		savedArticle: (slug) => {
 			const article = findArticle(slug);
 			return article === undefined
@@ -89,14 +86,9 @@ export function registerAccountRoutes(
 
 	app.get(`${prefix}/cont/salvate/nou`, account.requireSignIn(), (c) => {
 		const article = findArticle(c.req.query("articol") ?? "");
-		if (article === undefined)
-			return c.redirect(accountPaths.home(locale), 302);
+		if (article === undefined) return c.redirect(accountPaths.home(locale), 302);
 		return c.html(
-			<SaveConfirmPage
-				{...frame(c)}
-				slug={article.slug}
-				title={article.title[locale]}
-			/>,
+			<SaveConfirmPage {...frame(c)} slug={article.slug} title={article.title[locale]} />,
 			200,
 			PRIVATE,
 		);
@@ -113,11 +105,7 @@ export function registerAccountRoutes(
 			const form = SaveForm.safeParse(await c.req.parseBody());
 			const article = form.success ? findArticle(form.data.articol) : undefined;
 			if (person === null || article === undefined) return c.body(null, 400);
-			await (await account.stores()).savedArticles.save(
-				person.subject,
-				article.slug,
-				Date.now(),
-			);
+			await (await account.stores()).savedArticles.save(person.subject, article.slug, Date.now());
 			return c.redirect(accountPaths.home(locale), 303);
 		},
 	);
@@ -131,17 +119,13 @@ export function registerAccountRoutes(
 		account.can(
 			"editor",
 			async (c) => {
-				const row = await (await account.stores()).savedArticles.get(
-					c.req.param("id") ?? "",
-				);
+				const row = await (await account.stores()).savedArticles.get(c.req.param("id") ?? "");
 				return row === null ? null : savedRef(row);
 			},
 			{ unavailable },
 		),
 		async (c) => {
-			await (await account.stores()).savedArticles.remove(
-				c.req.param("id") ?? "",
-			);
+			await (await account.stores()).savedArticles.remove(c.req.param("id") ?? "");
 			return c.redirect(accountPaths.home(locale), 303);
 		},
 	);

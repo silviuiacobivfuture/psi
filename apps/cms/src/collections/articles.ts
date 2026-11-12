@@ -8,6 +8,7 @@ import {
 	signedInOnly,
 	updateByBrand,
 } from "../authz/access";
+import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
 import { previewUrl } from "../preview/url";
 import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
@@ -139,8 +140,8 @@ export const Articles: CollectionConfig = {
 	},
 	hooks: {
 		beforeChange: [reviewGate(articleReview)],
-		afterChange: [announceArticle],
-		afterDelete: [announceDeleted],
+		afterChange: [announceArticle, indexContent("articles")],
+		afterDelete: [announceDeleted, unindexContent("articles")],
 	},
 	fields: [
 		{

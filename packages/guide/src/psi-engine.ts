@@ -5,6 +5,7 @@ import {
 	type EngineOptions,
 	type EngineScore,
 	type EngineTimeouts,
+	type EngineTiming,
 	type RateLimiter,
 	type SchedulingPort,
 	type SettingsProvider,
@@ -54,6 +55,8 @@ export interface PsiEngineOptions {
 	settings?: SettingsProvider;
 	onFailure?: (failure: EngineFailure) => void;
 	onScore?: (score: EngineScore) => void;
+	/** Where each turn's time went (counts and milliseconds only), for the app's debug log. */
+	onTiming?: (timing: EngineTiming) => void;
 	/** Mastra's own settings (Studio's port, storage, observability, a logger). */
 	mastra?: Pick<EngineOptions, "server" | "storage" | "observability" | "logger">;
 	/**
@@ -91,6 +94,13 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 							// A failing log hook must not change the answer.
 						}
 					},
+					onSyncFailed: (brand, error) => {
+						try {
+							options.onFailure?.({ profile: brand, stage: "retrieval", error });
+						} catch {
+							// A failing log hook must not change the answer.
+						}
+					},
 				});
 	return createEngine({
 		profiles: (options.brands ?? BRANDS).map((brand) => PSI_PROFILES[brand]),
@@ -101,7 +111,7 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 				: {
 						tiered: retrieval.tiered,
 						ready: retrieval.ready,
-						catalog: engineCatalog(retrieval.catalog, { demo: env.demo }),
+						catalog: engineCatalog(retrieval.catalog, { demo: env.demo, sync: retrieval.sync }),
 					}),
 		}),
 		vectors: knowledgeVectors(options.knowledge),
@@ -119,6 +129,7 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 			...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
 			...(screeningId === undefined ? {} : { screeningId }),
 			dataCollection: env.dataCollection,
+			sort: env.sort,
 		},
 		screening: {
 			model: options.modelScreening ?? env.modelScreening,
@@ -132,6 +143,7 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 		...(options.timeouts === undefined ? {} : { timeouts: options.timeouts }),
 		...(options.onFailure === undefined ? {} : { onFailure: options.onFailure }),
 		...(options.onScore === undefined ? {} : { onScore: options.onScore }),
+		...(options.onTiming === undefined ? {} : { onTiming: options.onTiming }),
 		...(options.scheduling === undefined ? {} : { scheduling: options.scheduling }),
 		...options.mastra,
 		idPrefix: PSI_ID_PREFIX,

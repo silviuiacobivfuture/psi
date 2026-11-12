@@ -24,6 +24,7 @@
 		"@psi/guide": "workspace:*",
 		"@psi/knowledge": "workspace:*",
 		"@psi/pwa": "workspace:*",
+		"@psi/site-control": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76"

@@ -1,9 +1,4 @@
-import {
-	createAccount,
-	type ReservationsPort,
-	type Say,
-	sayer,
-} from "@psi/account";
+import { createAccount, type ReservationsPort, type Say, sayer } from "@psi/account";
 import {
 	accountClientOn,
 	accountHashOf,
@@ -14,6 +9,7 @@ import type { CompassGroup } from "@psi/ui";
 import { ESTATE, SITE } from "./estate";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
+import { accountsSignIn } from "./site-settings";
 
 /**
  * Psizone's account: its own Authentik application `psizone-web`, the estate's one account
@@ -60,9 +56,7 @@ export const reservations: ReservationsPort | undefined = SCHEDULING.ok
 			return {
 				requests: (subject) => own.requests(accountHashOf(subject)),
 				async cancel(subject, reference) {
-					return (
-						await own.cancel({ reference, accountHash: accountHashOf(subject) })
-					).ok;
+					return (await own.cancel({ reference, accountHash: accountHashOf(subject) })).ok;
 				},
 				async link(subject, reference, cancelCode) {
 					return (
@@ -80,7 +74,10 @@ export const reservations: ReservationsPort | undefined = SCHEDULING.ok
 		})()
 	: undefined;
 
-/** The Compass's account group, or none while accounts are off (production without account settings). */
+/**
+ * The Compass's account group, or none while accounts are off (production without account settings)
+ * or the owners hid sign-in in the CMS (`accountsSignIn`).
+ */
 export function accountGroups(locale: Locale): CompassGroup[] {
-	return account.enabled ? [accountGroup(locale)] : [];
+	return account.enabled && accountsSignIn() ? [accountGroup(locale)] : [];
 }
