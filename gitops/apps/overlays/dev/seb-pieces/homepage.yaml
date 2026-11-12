@@ -156,25 +156,20 @@ spec:
                     namespace: blog-web
                     app: blog-web
                     podSelector: app=blog-web
-            - Munca de zi cu zi:
-                - Proiecte și sarcini:
-                    icon: mdi-clipboard-check-outline
-                    href: https://plane.psizone.ro
-                    description: Ce e de făcut, cine se ocupă și până când · Plane
-                    namespace: plane
-                    app: plane
-                    podSelector: app.name=plane-plane-web
+            # PsiCloud is how the team calls its Nextcloud: one tile per app in its menu
+            # (the dashboard excepted), each opening that app directly.
+            - PsiCloud:
                 - Fișiere și dosare comune:
                     icon: mdi-folder-outline
                     href: https://cloud.psizone.ro/apps/files/
-                    description: Documentele echipei, pe care le editezi direct în browser · Nextcloud
+                    description: Documentele echipei, pe care le editezi direct în browser · Files
                     namespace: nextcloud
                     app: nextcloud
                     podSelector: app.kubernetes.io/name=nextcloud
-                - Calendar:
-                    icon: mdi-calendar-blank-outline
-                    href: https://cloud.psizone.ro/apps/calendar/
-                    description: Întâlnirile și programul echipei · Nextcloud
+                - Documente noi:
+                    icon: mdi-file-document-edit-outline
+                    href: https://cloud.psizone.ro/apps/office/
+                    description: Începi un document, un tabel sau o prezentare · Office
                     namespace: nextcloud
                     app: nextcloud
                     podSelector: app.kubernetes.io/name=nextcloud
@@ -185,6 +180,66 @@ spec:
                     namespace: nextcloud
                     app: nextcloud
                     podSelector: app.kubernetes.io/name=nextcloud
+                - Calendar:
+                    icon: mdi-calendar-blank-outline
+                    href: https://cloud.psizone.ro/apps/calendar/
+                    description: Întâlnirile și programul echipei · Calendar
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                - Contacte:
+                    icon: mdi-account-box-outline
+                    href: https://cloud.psizone.ro/apps/contacts/
+                    description: Agenda cu oamenii și firmele cu care lucrezi · Contacts
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                - Fotografii:
+                    icon: mdi-image-multiple-outline
+                    href: https://cloud.psizone.ro/apps/photos/
+                    description: Pozele echipei, pe albume · Photos
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                - Activitate:
+                    icon: mdi-history
+                    href: https://cloud.psizone.ro/apps/activity/
+                    description: Ce s-a schimbat recent în fișierele tale · Activity
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+                - Formulare:
+                    icon: mdi-form-select
+                    href: https://cloud.psizone.ro/apps/forms/
+                    description: Chestionare și înscrieri pe care le trimiți oricui · Forms
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+                - Notițe:
+                    icon: mdi-note-text-outline
+                    href: https://cloud.psizone.ro/apps/notes/
+                    description: Notițele tale, sincronizate pe toate dispozitivele · Notes
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+                # Enabled on 2026-11-12 by a parallel change; the route answered 404 when this was written.
+                - Anunțuri:
+                    icon: mdi-bullhorn-outline
+                    href: https://cloud.psizone.ro/apps/announcementcenter/
+                    description: Anunțurile pentru toată echipa · Announcement center
+                    namespace: nextcloud
+                    app: nextcloud
+                    podSelector: app.kubernetes.io/name=nextcloud
+            - Munca de zi cu zi:
+                - Proiecte și sarcini:
+                    icon: mdi-clipboard-check-outline
+                    href: https://plane.psizone.ro
+                    description: Ce e de făcut, cine se ocupă și până când · Plane
+                    namespace: plane
+                    app: plane
+                    podSelector: app.name=plane-plane-web
                 - Unelte PDF:
                     icon: mdi-file-document-outline
                     href: https://pdf.psizone.ro
@@ -475,6 +530,11 @@ spec:
               Site-urile noastre:
                 tab: Business
                 icon: mdi-web
+                style: row
+                columns: 4
+              PsiCloud:
+                tab: Business
+                icon: mdi-cloud-outline
                 style: row
                 columns: 4
               Munca de zi cu zi:
