@@ -40,11 +40,12 @@
 #
 # LEAST PRIVILEGE. OpenBao role and policy `model-pin-alarm`
 # (auth/declaration.json, auth/policies/model-pin-alarm.hcl): read the record,
-# read the six paths' METADATA, read+write its own state. No secret value, no
+# read the pin paths' METADATA, read+write its own state. No secret value, no
 # Kubernetes RBAC at all (the ServiceAccount exists only to log in).
 #
-# Consumers: CONSUMERS below is DERIVED — tests/model-pin-alarm.test.sh fails
-# unless it equals cxe_pinned_apps + cxe_secret_pinned_apps (lib-convex-env.sh).
+# Consumers: CONSUMERS below is the ESTATE's — its identity's MODEL_PIN_HOLDERS,
+# filled at render (gitops/identity-files.txt). No default: an identity without it
+# does not render. The estate keeps it equal to what its pin procedure pins.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -261,12 +262,11 @@ spec:
                 # branch == environment, 1:1 — the `prod` branch's copy says "prod".
                 - name: ENV_NAME
                   value: dev
-                # DERIVED: cxe_pinned_apps + cxe_secret_pinned_apps
-                # (infrastructure/hetzner/scripts/lib-convex-env.sh), in that
-                # order. tests/model-pin-alarm.test.sh fails when they differ —
-                # a new pin holder joins CXE_SECRET_PINNED AND this line.
+                # The estate's pin holders (identity MODEL_PIN_HOLDERS), in the
+                # order its pin procedure lists them — a new pin holder joins
+                # the estate's identity, never this file.
                 - name: CONSUMERS
-                  value: "rmx-brs rmx-sign flow-platform rmx-invoice-svc vega authentik-tiles"
+                  value: "authentik-tiles"
                 - name: BAO_ADDR
                   value: http://openbao.openbao.svc:8200
                 - name: POLARIS_URL
