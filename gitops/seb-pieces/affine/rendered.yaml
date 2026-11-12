@@ -926,9 +926,9 @@ spec:
   instances: 1
   postgresql:
     parameters:
-      effective_cache_size: 256MB
+      effective_cache_size: 192MB
       max_connections: "50"
-      shared_buffers: 96MB
+      shared_buffers: 48MB
       work_mem: 8MB
   primaryUpdateStrategy: unsupervised
   resources:
