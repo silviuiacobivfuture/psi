@@ -29,4 +29,3 @@ resources:
   - public-doors.yaml
   - stalwart.yaml
   - test-reports.yaml
-  - velero.yaml

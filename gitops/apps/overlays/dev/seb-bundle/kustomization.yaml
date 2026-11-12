@@ -21,3 +21,4 @@ resources:
   - seb-db-backup.yaml
   - seb-external-dns.yaml
   - seb-arc-controller.yaml
+  - seb-velero.yaml
