@@ -26,7 +26,7 @@
       "path": "gitops/seb-pieces/plane",
       "kustomize": {
         "images": [
-          "registry.psizone.ro/psi/plane-backend-sso/f9b8831d4e3e=registry.psizone.ro/psi/plane-backend-sso/7839a019d727@sha256:716c13f8b5371adc4f1a73d80e6d6a95fbc0b1b4f2620e5d3bd98f71e338c84d"
+          "registry.psizone.ro/psi/plane-backend-sso/f9b8831d4e3e=registry.psizone.ro/psi/plane-backend-sso/e00df4f62c92@sha256:b8c666582474391f27b78141e47383a4ac2faf5a06bd349892e7c88e4669b9e2"
         ]
       }
     },

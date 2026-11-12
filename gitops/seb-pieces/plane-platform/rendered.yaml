@@ -881,6 +881,27 @@ spec:
         DATABASE_URL: postgresql://{{ .db_username }}:{{ .db_password }}@plane-db-rw.plane.svc.cluster.local:5432/plane
         LIVE_BASE_URL: http://plane-live.plane.svc.cluster.local:3000
         LIVE_SERVER_SECRET_KEY: '{{ .live_server_secret_key }}'
+        PLANE_SSO_ADMIN_EMAIL: ops@psizone.ro
+        PLANE_SSO_BRAND: Psi
+        PLANE_SSO_MAPPING_YAML: |
+          version: 1
+          workspaces:
+            # The team's workspace.
+            psi:
+              app-plane-admin: 20
+              app-plane-user: 15
+              app-plane-guest: 5
+            # The robots' workspace: they never appear in the team's lists.
+            psi-e2e:
+              app-plane-e2e-member: 15
+              app-plane-e2e-guest: 5
+          instance_admin_groups:
+            - platform-admins
+            - app-plane-instance-admin
+          policy:
+            downgrades: true
+            max_deactivations_per_run: 2
+            orphan_grace_days: 7
         PLANE_SSO_SIGNOUT_URL: https://auth.psizone.ro/flows/-/default/invalidation/
         PLANE_SSO_VERIFY_URL: http://authentik-server.authentik.svc.cluster.local:80/outpost.goauthentik.io/auth/traefik
         REDIS_URL: redis://:{{ .redis_password }}@plane-redis.plane.svc.cluster.local:6379/

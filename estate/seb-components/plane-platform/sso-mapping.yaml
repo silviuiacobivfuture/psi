@@ -1,0 +1,32 @@
+# PSI's Authentik group → Plane access (apps/plane-sso: PLANE_SSO_MAPPING_YAML, the estate's own
+# mapping; the one baked into the image names the first estate's workspaces, and with it every
+# sign-in here refused with sso-misconfigured). Same rules as apps/plane-sso/mapping.yaml:
+# 20 Admin, 15 Member, 5 Guest, the highest wins; every workspace named must exist in Plane
+# (created 2026-11-12 with plane_sso_ensure_workspace, owner silviu.iacob@ivfuture.ro).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-app-secrets
+spec:
+  target:
+    template:
+      data:
+        PLANE_SSO_MAPPING_YAML: |
+          version: 1
+          workspaces:
+            # The team's workspace.
+            psi:
+              app-plane-admin: 20
+              app-plane-user: 15
+              app-plane-guest: 5
+            # The robots' workspace: they never appear in the team's lists.
+            psi-e2e:
+              app-plane-e2e-member: 15
+              app-plane-e2e-guest: 5
+          instance_admin_groups:
+            - platform-admins
+            - app-plane-instance-admin
+          policy:
+            downgrades: true
+            max_deactivations_per_run: 2
+            orphan_grace_days: 7
