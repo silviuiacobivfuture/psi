@@ -1,6 +1,6 @@
 {
 	"name": "@psi/cms",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"private": true,
 	"type": "module",
 	"description": "psi's content management: Payload 3 on Next.js, Postgres, the estate's object storage, sign-in through the estate's Authentik",
@@ -45,5 +45,12 @@
 		"@types/react-dom": "^19.2.0",
 		"typescript": "^5.7.3",
 		"vitest": "^2.1.9"
+	},
+	"nx": {
+		"targets": {
+			"build": {
+				"cache": false
+			}
+		}
 	}
 }
