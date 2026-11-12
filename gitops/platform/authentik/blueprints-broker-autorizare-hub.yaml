@@ -114,11 +114,11 @@ data:
         identifiers:
           slug: autorizare-hub
         attrs:
-          name: RECOMEX
-          # The hub's tile is the door to every estate application: it wears their six
-          # marks, three by two (packages/rmx-ui/scripts/authentik-tiles.mjs). Each
-          # application has its own tile too (blueprints-estate-tiles.yaml), and each
-          # carries this application's bindings — so add one here and regenerate.
+          name: WLBRAND
+          # psi: the broker's client, NOT a tile. Its host (WLHUBPREFIX) has no page of its
+          # own on psi — opened, it only leaves for the public site — so it is hidden from
+          # "My applications"; psi's front door to its tools is the hub (hub.psizone.ro).
+          # Its bindings still decide who the broker signs in; each estate tile copies them.
           meta_icon: /static/dist/assets/recomex/app-autorizare-hub.svg
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, autorizare-hub]]
-          meta_launch_url: https://WLHUBPREFIX.WLDOMAIN
+          meta_launch_url: blank://blank
