@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Doctype } from "@psi/ui";
@@ -9,7 +9,11 @@ import { m } from "./paraglide/messages.js";
 import { ThemePanel } from "./theme-panel";
 import { THEMES } from "./themes";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
+// Resolved through require so it works the same under Node and under the test runner.
+const DATASTAR = readFileSync(
+	createRequire(import.meta.url).resolve("@psi/ui/datastar.js"),
+	"utf8",
+);
 const PORT = Number.parseInt(process.env.PORT ?? "4300", 10);
 const FONTS =
 	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Manrope:wght@400..800&family=Inter:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
