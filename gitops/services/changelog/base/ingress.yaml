@@ -1,27 +1,33 @@
-# Changelog — TAILNET-ONLY (Tailscale operator). NO public Traefik ingress, no
-# cert-manager, no public DNS (external-dns only watches Traefik ingresses). The
-# Tailscale operator terminates TLS and proxies to the changelog Service :80.
-# MagicDNS name: changelog.<tailnet>.ts.net (from tls.hosts[0]).
+# Changelog on changelog.psizone.ro, behind Authentik (2026-11-12). It used to be a tailnet-only
+# Ingress (ingressClassName: tailscale), but psi runs no Tailscale operator, so it had no address
+# at all. Now: Traefik on the public entrypoint, TLS from cert-manager, DNS from external-dns, and
+# the estate's domain-level forward-auth gate (gitops/platform/authentik/middleware-forwardauth.yaml,
+# the WLSLUG-forward-auth provider) in front — the same gate tests.psizone.ro uses. A browser
+# without an Authentik session is sent to auth.psizone.ro to sign in.
+#
+# What is behind it: the changelog's HTTP API (/health without a key, /trpc/* with a Bearer key).
+# The readable notes reach people through Polaris's bell, which calls the Service in-cluster
+# (CHANGELOG_URL) and never this host — so the gate changes nothing for Polaris.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: changelog
   annotations:
-    # Homepage hub auto-discovery (gethomepage.dev) → "Delivery" group.
-    # Tailscale ingress uses a wildcard host, so the href is set explicitly.
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/name: "Changelog"
-    gethomepage.dev/description: "Release notes per application"
-    gethomepage.dev/group: "Delivery"
-    gethomepage.dev/icon: "mdi-timeline-text"
-    gethomepage.dev/href: "https://changelog.tailf6f2e6.ts.net"
-    gethomepage.dev/pod-selector: "app=changelog"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
 spec:
-  ingressClassName: tailscale
-  defaultBackend:
-    service:
-      name: changelog
-      port: { number: 80 }
+  ingressClassName: traefik
+  rules:
+    - host: changelog.psizone.ro
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: changelog
+                port: { number: 80 }
   tls:
-    - hosts:
-        - changelog
+    - hosts: [changelog.psizone.ro]
+      secretName: changelog-tls

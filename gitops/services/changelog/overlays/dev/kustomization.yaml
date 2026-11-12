@@ -8,13 +8,8 @@ resources:
 images:
   - name: WLREGISTRY/WLAPPS/changelog
     digest: sha256:bf2b44c9492e8b5dbf6e45c68949fa04a5fe7e342bd1df71b48d13360f531fb7
-# NOTE: no per-overlay Ingress host patch. changelog is TAILNET-ONLY — the base
-# Ingress (ingressClassName: tailscale, defaultBackend, tls.hosts[0]=changelog →
-# changelog.<tailnet>.ts.net) is complete. The old public-host patch
-# (/spec/rules/0/host + /spec/tls/0/hosts/0 → changelog.dev.<apex>) was a stale
-# leftover from when changelog was a public Traefik service; it targeted a
-# non-existent /spec/rules path on the defaultBackend ingress → broke the kustomize
-# build → the changelog Argo app could not render/sync. Removed 2026-06-22.
+# The public host (changelog.psizone.ro, behind Authentik) is written in the base Ingress, as
+# cms and the other psi services write theirs.
 components:
   - ../../../../components/whitelabel
 replacements:
