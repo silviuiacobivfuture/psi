@@ -26,13 +26,15 @@ data:
     {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"dom":{"name":"@MAILBOX_DOMAIN@","enable":true,"description":"The estate's mailboxes","dkimManagement":{"@type":"Automatic","algorithms":{"Dkim1RsaSha256":true},"selectorTemplate":"v{version}-{algorithm}-{date-%Y%m%d}","rotateAfter":7776000000,"retireAfter":604800000,"deleteAfter":2592000000}}}}
     {"@type":"reconcile","object":"DkimSignature","matchOn":["selector"],"scope":{"@type":"Dkim1Ed25519Sha256"},"value":{}}
     {"@type":"reconcile","object":"Certificate","matchOn":["certificate"],"value":{"cert":{"certificate":{"@type":"Text","value":"@TLS_CRT@"},"privateKey":{"@type":"Text","secret":"@TLS_KEY@"}}}}
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_address","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true,"webmail-oidc":true},"allowIdTokenClaims":true,"unscopedTokens":"interoperable"}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"authentik":{"@type":"Oidc","description":"authentik","issuerUrl":"https://@AUTHENTIK_HOST@/application/o/mail-oidc/","claimUsername":"mail_address","usernameDomain":"@MAILBOX_DOMAIN@","claimName":"name","acceptedAudiences":{"mail-oidc":true},"allowIdTokenClaims":true,"unscopedTokens":"reject"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#authentik","maxAppPasswords":10}}
     {"@type":"upsert","object":"MtaRoute","matchOn":["name"],"value":{"ses":{"@type":"Relay","name":"ses","description":"Amazon SES relay","host":"@SES_SMTP_HOST@","port":587,"implicitTls":false,"protocol":"smtp","allowInvalidCerts":false,"authUsername":"@SES_SMTP_USERNAME@","authSecret":{"@type":"Value","secret":"@SES_SMTP_PASSWORD@"}}}}
     {"@type":"update","object":"MtaOutboundStrategy","value":{"route":{"match":{"0":{"if":"is_local_domain(rcpt_domain)","then":"'local'"}},"else":"'ses'"}}}
     {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"@MAIL_HOST@","defaultDomainId":"#dom","defaultCertificateId":"#cert","mailExchangers":{"0":{"hostname":"@MAIL_HOST@","priority":10}},"services":{"imap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"smtp":{"cleartext":false,"hostname":"@MAIL_HOST@"},"jmap":{"cleartext":false,"hostname":"@MAIL_HOST@"},"caldav":{"cleartext":false,"hostname":null},"carddav":{"cleartext":false,"hostname":null},"webdav":{"cleartext":false,"hostname":null},"pop3":{"cleartext":false,"hostname":null},"managesieve":{"cleartext":false,"hostname":null}}}}
     {"@type":"reconcile","object":"NetworkListener","matchOn":["name"],"value":{"http":{"name":"http","protocol":"http","bind":{"[::]:8080":true},"useTls":false,"implicitTls":false},"smtp":{"name":"smtp","protocol":"smtp","bind":{"[::]:25":true},"useTls":true,"implicitTls":false},"submissions":{"name":"submissions","protocol":"smtp","bind":{"[::]:465":true},"useTls":true,"implicitTls":true},"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"useTls":true,"implicitTls":false},"imaps":{"name":"imaps","protocol":"imap","bind":{"[::]:993":true},"useTls":true,"implicitTls":true}}}
     {"@type":"upsert","object":"Application","matchOn":["description"],"value":{"webui":{"description":"Stalwart Web Interface","enable":true,"oauthClientId":"mail-oidc","oauthScopes":{"mail":true}}}}
+    {"@type":"create","object":"Action","value":{"reload":{"@type":"ReloadSettings"}}}
+    {"@type":"create","object":"Action","value":{"tls":{"@type":"ReloadTlsCertificates"}}}
   render-plan.sh: |
     #!/bin/sh
     # Renders the Stalwart configuration plan (plan.ndjson.tmpl) into /work/plan.ndjson for
@@ -68,12 +70,17 @@ data:
       grep -v '^[[:space:]]*\(#\|$\)' /estate/mailboxes | while read -r box; do
         case "$box" in *[!a-z0-9._-]*|"") echo "INVALID MAILBOX NAME: $box" >&2; exit 1 ;; esac
         printf '{"@type":"upsert","object":"Account","matchOn":["name","domainId"],"value":{"box-%s":{"@type":"User","name":"%s","domainId":"#dom"}}}\n' "$box" "$box"
-      done >> /work/plan.ndjson
+      done > /work/mailboxes.ndjson
+      # Before the plan's closing reloads (its Action lines), so the server reloads with them in.
+      grep -v '"object":"Action"' /work/plan.ndjson > /work/head.ndjson
+      grep '"object":"Action"' /work/plan.ndjson > /work/tail.ndjson || true
+      cat /work/head.ndjson /work/mailboxes.ndjson /work/tail.ndjson > /work/plan.ndjson
+      rm -f /work/head.ndjson /work/mailboxes.ndjson /work/tail.ndjson
     fi
     grep -c . /work/plan.ndjson | sed 's/^/plan lines: /'
 kind: ConfigMap
 metadata:
-  name: stalwart-plan-c5c594246h
+  name: stalwart-plan-5kdcd7c7gt
   namespace: stalwart
 ---
 apiVersion: v1
@@ -116,7 +123,7 @@ data:
     // Stalwart's OIDC directory validates it and maps the person to their mailbox by the
     // `mail_address` claim, the same claim this page signs them in with.
     $host = getenv('MAIL_HOST');
-    $issuer = 'https://' . getenv('AUTHENTIK_HOST') . '/application/o/webmail-oidc/';
+    $issuer = 'https://' . getenv('AUTHENTIK_HOST') . '/application/o/mail-oidc/';
     $tls = ['ssl' => ['peer_name' => $host, 'verify_peer' => true, 'verify_peer_name' => true]];
 
     // The mail server inside the cluster (stalwart-mail), checked against its public certificate.
@@ -129,8 +136,11 @@ data:
 
     $config['oauth_provider'] = 'generic';
     $config['oauth_provider_name'] = getenv('BRAND_TITLE') ?: 'SSO';
-    $config['oauth_client_id'] = 'webmail-oidc';
-    $config['oauth_client_secret'] = getenv('OAUTH_CLIENT_SECRET');
+    // The PUBLIC client `mail-oidc` (PKCE), the one the mail server's directory trusts: Authentik
+    // gives each client its own issuer, and Stalwart's one directory accepts exactly one. Authentik
+    // checks no secret for a public client; Roundcube insists on sending one, so this is a label.
+    $config['oauth_client_id'] = 'mail-oidc';
+    $config['oauth_client_secret'] = 'public-client-pkce';
     $config['oauth_config_uri'] = $issuer . '.well-known/openid-configuration';
     $config['oauth_scope'] = 'openid email profile mail offline_access';
     $config['oauth_identity_fields'] = ['mail_address'];
@@ -163,7 +173,7 @@ data:
     }
 kind: ConfigMap
 metadata:
-  name: webmail-config-94kdb7bttm
+  name: webmail-config-h4c5226td4
   namespace: stalwart
 ---
 apiVersion: v1
@@ -559,7 +569,7 @@ spec:
       initContainers:
       - args:
         - |
-          for k in OAUTH_CLIENT_SECRET DES_KEY; do
+          for k in DES_KEY; do
             eval "v=\${$k:-}"
             [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
           done
@@ -603,7 +613,7 @@ spec:
           name: webmail-theme-d69m8448dg
         name: theme
       - configMap:
-          name: webmail-config-94kdb7bttm
+          name: webmail-config-h4c5226td4
         name: config
       - name: data
         persistentVolumeClaim:
@@ -739,7 +749,7 @@ spec:
               sizeLimit: 16Mi
             name: tmp
           - configMap:
-              name: stalwart-plan-c5c594246h
+              name: stalwart-plan-5kdcd7c7gt
             name: plan
           - configMap:
               name: stalwart-mailboxes
@@ -865,7 +875,7 @@ spec:
           sizeLimit: 16Mi
         name: tmp
       - configMap:
-          name: stalwart-plan-c5c594246h
+          name: stalwart-plan-5kdcd7c7gt
         name: plan
       - configMap:
           name: stalwart-mailboxes
@@ -952,10 +962,6 @@ metadata:
   namespace: stalwart
 spec:
   data:
-  - remoteRef:
-      key: platform/authentik/webmail-oidc
-      property: client_secret
-    secretKey: OAUTH_CLIENT_SECRET
   - remoteRef:
       key: apps/stalwart/webmail
       property: des_key
