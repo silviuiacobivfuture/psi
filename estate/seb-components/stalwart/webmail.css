@@ -1,6 +1,6 @@
 /*
  * psi's look on the webmail (Roundcube's Elastic skin), from the same tokens as psi's sign-in
- * (gitops/platform/authentik/estate/recomex.css, generated from brand/signin-theme.json): light is
+ * (the sign-in stylesheet generated from brand/signin-theme.json): light is
  * Psizone Gold, dark is Psizone Night. Colours only, through the skin's own selectors; layout and
  * behaviour stay Roundcube's.
  */
