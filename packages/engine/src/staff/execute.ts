@@ -5,6 +5,7 @@ import type { AuditEntry, PortRefusal, PortResult, StaffPort } from "./port";
 import {
 	ANY_VERSION,
 	type Change,
+	NEW_CLIENT,
 	newProposalId,
 	PROPOSAL_TTL_MS,
 	type Proposal,
@@ -64,6 +65,13 @@ async function versionIs(port: StaffPort, id: string, version: string): Promise<
 /** Whether what a step was prepared against is still true, read afresh from the service. */
 async function stepCurrent(port: StaffPort, step: Step): Promise<Currency> {
 	switch (step.kind) {
+		case "create_client":
+			return "current";
+		case "run_action": {
+			const listed = read(await port.listActions(step.page));
+			if (!listed.ok) return listed.verdict;
+			return listed.value.some((a) => a.id === step.actionId) ? "current" : "forbidden";
+		}
 		case "create_appointment":
 			return slotStill(port, step);
 		case "move_appointment": {
@@ -120,6 +128,8 @@ interface Done {
 	/** The inverses of the steps that ran and can be reversed, in the order they ran. */
 	undo: Array<Step>;
 	ran: number;
+	/** The client a `create_client` step of this change made, for the steps after it. */
+	newClientId?: string;
 }
 
 async function performStep(
@@ -132,9 +142,42 @@ async function performStep(
 		if (!result.ok) done.refusal = result.reason;
 	};
 	switch (step.kind) {
+		case "create_client": {
+			const made = await port.createClient({
+				name: step.name,
+				...(step.phone === undefined ? {} : { phone: step.phone }),
+				...(step.email === undefined ? {} : { email: step.email }),
+				...(step.guardian === undefined ? {} : { guardian: step.guardian }),
+				...(step.birthYear === undefined ? {} : { birthYear: step.birthYear }),
+			});
+			refused(made);
+			if (made.ok) {
+				done.newClientId = made.value.id;
+				done.lines.push({ label: copy.label.client, value: made.value.name });
+			}
+			return;
+		}
+		case "run_action": {
+			const ran = await port.runAction({
+				id: step.actionId,
+				params: step.params,
+			});
+			refused(ran);
+			if (ran.ok) {
+				done.lines.push({ label: "", value: ran.value.summary });
+				const href = ran.value.href;
+				if (href?.startsWith("/")) done.links.push({ label: copy.result.open, href });
+			}
+			return;
+		}
 		case "create_appointment": {
+			const clientId = step.clientId === NEW_CLIENT ? done.newClientId : step.clientId;
+			if (clientId === undefined) {
+				done.refusal = "invalid";
+				return;
+			}
 			const made = await port.createAppointment({
-				clientId: step.clientId,
+				clientId,
 				serviceId: step.serviceId,
 				date: step.date,
 				startMin: step.startMin,
@@ -168,14 +211,21 @@ async function performStep(
 					startMin: step.before.startMin,
 					durationMin: step.durationMin,
 					resourceIds: step.before.resourceIds,
-					before: { date: step.date, startMin: step.startMin, resourceIds: step.resourceIds },
+					before: {
+						date: step.date,
+						startMin: step.startMin,
+						resourceIds: step.resourceIds,
+					},
 				});
 			}
 			return;
 		}
 		case "cancel_appointment":
 			return refused(
-				await port.cancelAppointment({ id: step.id, expectedVersion: step.expectedVersion }),
+				await port.cancelAppointment({
+					id: step.id,
+					expectedVersion: step.expectedVersion,
+				}),
 			);
 		case "mark_attendance":
 			return refused(
@@ -208,7 +258,10 @@ async function performStep(
 			return refused(await port.callRoute({ routeId: step.routeId, input: step.input }));
 		case "handle_request":
 			return refused(
-				await port.markRequestHandled({ id: step.id, expectedVersion: step.expectedVersion }),
+				await port.markRequestHandled({
+					id: step.id,
+					expectedVersion: step.expectedVersion,
+				}),
 			);
 		case "send_reminders": {
 			for (const item of step.items) {
@@ -226,13 +279,19 @@ async function performStep(
 					text: item.text,
 				});
 				if (!sent.ok) {
-					done.lines.push({ label: item.name, value: copy.refusal[sent.reason] });
+					done.lines.push({
+						label: item.name,
+						value: copy.refusal[sent.reason],
+					});
 					done.refusal ??= sent.reason;
 					continue;
 				}
 				done.lines.push({ label: item.name, value: copy.result.reminderSent });
 				if (sent.value.link !== undefined && WHATSAPP_LINK.test(sent.value.link)) {
-					done.links.push({ label: copy.result.openWhatsapp(item.name), href: sent.value.link });
+					done.links.push({
+						label: copy.result.openWhatsapp(item.name),
+						href: sent.value.link,
+					});
 				}
 			}
 			return;

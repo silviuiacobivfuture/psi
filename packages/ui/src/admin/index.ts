@@ -62,6 +62,7 @@ export {
 	AdminShell,
 	type NavItem,
 	type ShellApp,
+	type ShellChoice,
 	type ShellLabels,
 	type ShellProps,
 	type ShellUser,

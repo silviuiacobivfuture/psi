@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { CardLine } from "./events";
+import { StaffPageSchema } from "./events";
 import {
 	BaniSchema,
 	DateSchema,
@@ -22,6 +23,13 @@ import type { StaffAction } from "./port";
 /** A version the change was not prepared against: read fresh when it runs (a notice about a move made in the same batch). */
 export const ANY_VERSION = "*";
 
+/**
+ * Inside one batch, the client a `create_client` step made, for the steps after it (an appointment
+ * for a person who is not a client yet). It is no id the service knows: execution swaps it for the
+ * real one, and it is never asked about, audited or shown.
+ */
+export const NEW_CLIENT = "$new-client";
+
 const Where = {
 	date: DateSchema,
 	startMin: MinuteSchema,
@@ -31,8 +39,23 @@ const Where = {
 
 const StepSchema = z.discriminatedUnion("kind", [
 	z.object({
+		kind: z.literal("create_client"),
+		name: z.string().trim().min(1).max(120),
+		phone: z.string().trim().max(40).optional(),
+		email: z.string().trim().max(200).optional(),
+		guardian: z.string().trim().max(120).optional(),
+		birthYear: z.number().int().min(1900).max(2100).optional(),
+	}),
+	/** An action of the console's registry, run as the person; it is listed again when it runs. */
+	z.object({
+		kind: z.literal("run_action"),
+		actionId: z.string().min(3).max(80),
+		params: z.record(z.string(), z.unknown()),
+		page: StaffPageSchema.optional(),
+	}),
+	z.object({
 		kind: z.literal("create_appointment"),
-		clientId: IdSchema,
+		clientId: z.union([IdSchema, z.literal(NEW_CLIENT)]),
 		serviceId: IdSchema,
 		...Where,
 	}),
@@ -48,7 +71,11 @@ const StepSchema = z.discriminatedUnion("kind", [
 			resourceIds: z.array(IdSchema).min(1).max(10),
 		}),
 	}),
-	z.object({ kind: z.literal("cancel_appointment"), id: IdSchema, expectedVersion: VersionSchema }),
+	z.object({
+		kind: z.literal("cancel_appointment"),
+		id: IdSchema,
+		expectedVersion: VersionSchema,
+	}),
 	z.object({
 		kind: z.literal("mark_attendance"),
 		id: IdSchema,
@@ -70,7 +97,11 @@ const StepSchema = z.discriminatedUnion("kind", [
 		to: DateSchema,
 		leaveKind: z.enum(LEAVE_KINDS),
 	}),
-	z.object({ kind: z.literal("handle_request"), id: IdSchema, expectedVersion: VersionSchema }),
+	z.object({
+		kind: z.literal("handle_request"),
+		id: IdSchema,
+		expectedVersion: VersionSchema,
+	}),
 	/** Any other route of the scheduling service (the generated parity tools): run as the person, as given. */
 	z.object({
 		kind: z.literal("route_call"),
@@ -101,12 +132,17 @@ export type Step = z.infer<typeof StepSchema>;
 /** One change, or several that the person confirms together and that run in order. */
 export const ChangeSchema = z.union([
 	StepSchema,
-	z.object({ kind: z.literal("batch"), steps: z.array(StepSchema).min(1).max(60) }),
+	z.object({
+		kind: z.literal("batch"),
+		steps: z.array(StepSchema).min(1).max(60),
+	}),
 ]);
 export type Change = z.infer<typeof ChangeSchema>;
 
 function actionOfStep(step: Step): StaffAction | undefined {
 	switch (step.kind) {
+		case "create_client":
+			return "clients.create";
 		case "create_appointment":
 			return "appointments.create";
 		case "move_appointment":
@@ -124,6 +160,7 @@ function actionOfStep(step: Step): StaffAction | undefined {
 		case "send_reminders":
 			return "reminders.send";
 		case "route_call":
+		case "run_action":
 			return undefined;
 		default: {
 			const never: never = step;
@@ -140,8 +177,17 @@ export function actionsOf(change: Change): ReadonlyArray<StaffAction> {
 
 function subjectsOfStep(step: Step): ReadonlyArray<string> {
 	switch (step.kind) {
+		case "create_client":
+			return [];
+		case "run_action":
+			return [
+				step.actionId,
+				...Object.entries(step.params).flatMap(([key, value]) =>
+					typeof value === "string" && /(^id$|Id$)/.test(key) ? [value.slice(0, 120)] : [],
+				),
+			];
 		case "create_appointment":
-			return [step.clientId];
+			return step.clientId === NEW_CLIENT ? [] : [step.clientId];
 		case "move_appointment":
 		case "cancel_appointment":
 		case "mark_attendance":

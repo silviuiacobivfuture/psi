@@ -22,6 +22,7 @@
 		"build": "pnpm i18n && esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/server.js",
 		"start": "node --env-file-if-exists=.env dist/server.js",
 		"local": "tsx src/local.ts",
+		"local:real": "tsx src/local-real.ts",
 		"authz:gen": "tsx scripts/gen-authz.ts && scripts/regen-authz.sh",
 		"type-check": "pnpm i18n && tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"

@@ -1,0 +1,85 @@
+/*
+ * The staff assistant as a capsule: the public sites' glowing AI input (capsule.css, ai-glow.css,
+ * compass-fullscreen.css) worn with the admin theme. Everything here is what differs in the admin:
+ * the type roles the capsule reads, where it sits against the phone's tab bar and the console's
+ * floating action, the room it leaves at the foot of the content, and the sheet's own contents
+ * (the conversation the panel draws too). Colours are token roles only.
+ */
+
+.pz-compass--admin {
+	--pz-body: var(--font-sans);
+	--pz-label: var(--font-sans);
+	--pz-foot: max(16px, env(safe-area-inset-bottom));
+}
+/* On a phone the capsule sits above the bottom tab bar, and above the home indicator. */
+@media (max-width: 767px) {
+	.pz-compass--admin {
+		--pz-foot: calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + 10px);
+	}
+}
+/* Full screen covers the tab bar too: only the home indicator is left to clear. */
+.pz-compass--admin.is-fullscreen.is-open {
+	--pz-foot: max(16px, env(safe-area-inset-bottom));
+}
+
+/* The console keeps its own room at the foot (tabs, floating action); the capsule adds none of its own. */
+body:has(.pz-compass.pz-compass--admin) {
+	padding-bottom: 0;
+}
+@media (min-width: 768px) {
+	body:has(.pz-compass--admin) .adm-content {
+		padding-bottom: calc(var(--space-6) + 72px);
+	}
+	body:has(.pz-compass--admin) .adm-toasts {
+		bottom: calc(var(--space-5) + 80px);
+	}
+}
+@media (max-width: 767px) {
+	/* The floating action and the toasts rise above the capsule. */
+	body:has(.pz-compass--admin) .adm-fab {
+		bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + var(--space-3) + 72px);
+	}
+	body:has(.pz-compass--admin) .adm-toasts {
+		bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + 148px);
+	}
+}
+
+/* The sheet's head: the assistant's name. */
+.pz-compass__title {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	margin: 0;
+	font: 600 16px / 1.2 var(--font-sans);
+	color: var(--ink);
+}
+
+/* The conversation is the sheet body's to scroll; its own log is just a column. */
+.pz-compass--admin .pz-compass__body .sa__log {
+	flex: none;
+	min-height: 0;
+	overflow: visible;
+	padding: 0;
+}
+.pz-compass--admin .pz-compass__body .sa__suggest {
+	padding: var(--space-3) 0 0;
+	border: 0;
+}
+.pz-compass--admin .pz-compass__body:has(.sa-x) .sa__suggest {
+	display: none;
+}
+.pz-compass--admin .sa-x + .sa-x {
+	margin-top: var(--space-4);
+}
+
+/* Tailwind in the console scans its own and the admin's sources, not the shared components. */
+.pz-compass--admin .sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}

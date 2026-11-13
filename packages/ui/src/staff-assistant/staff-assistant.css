@@ -3,6 +3,11 @@
  * only from token roles (the admin themes set them; the status roles tint the tones, with the
  * accent as the fallback). Every motion is guarded by prefers-reduced-motion.
  */
+@import "../ai-glow.css";
+@import "../compass-fullscreen.css";
+@import "../capsule.css";
+@import "./staff-capsule.css";
+
 .sa-root {
 	--sa-w: min(26rem, 100vw);
 	font-family: var(--font-sans);

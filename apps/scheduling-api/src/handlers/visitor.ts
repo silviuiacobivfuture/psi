@@ -101,6 +101,9 @@ export const visitorHandlers: HandlersOf<
 		return { start: out.start };
 	},
 	async "visitor.callback"(ctx) {
+		// The callback form stores a request with no hold: the blacklist is asked first, and a hit is told one neutral word.
+		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact))
+			throw fail("unavailable_online", "this cannot be booked online");
 		const out = await ctx.deps.store.visitor.callback(ctx.app, ctx.body);
 		await ctx.changed("request", "created", out.reference);
 		await ctx.notify("request.created", TEAM_REQUESTS, { reference: out.reference }, out.reference);

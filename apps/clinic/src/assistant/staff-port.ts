@@ -2,7 +2,6 @@ import type {
 	ActivityEvent,
 	Attention,
 	Booking,
-	PortResult,
 	Principal,
 	ReminderSent,
 	ReminderTarget,
@@ -15,52 +14,15 @@ import type {
 import type { Person } from "../auth";
 import { packageUsage, paidBani } from "../domain/usage";
 import { addDays, parseDay, todayIso, weekStart } from "../lib/dates";
-import { type ClinicPort, PortError } from "../port/port";
+import type { ClinicPort } from "../port/port";
 import type { Appointment, AppSlug, Client, Column, Package } from "../port/schema";
 import { mayDo } from "./permissions";
+import { type ActionsSource, extraMethods } from "./staff-port-extra";
+import { ok, refused, wrap } from "./staff-result";
 
-const ok = <T>(value: T): PortResult<T> => ({ ok: true, value });
-const refused = (
-	reason: "forbidden" | "not_found" | "conflict" | "invalid" | "unavailable",
-): PortResult<never> => ({
-	ok: false,
-	reason,
-});
-
-/** The console port's refusal, in the assistant's words: what the person can act on, and "unavailable" for the rest. */
-function refusalOf(
-	error: PortError,
-): "forbidden" | "not_found" | "conflict" | "invalid" | "unavailable" {
-	switch (error.code) {
-		case "not-found":
-			return "not_found";
-		case "forbidden":
-		case "unauthenticated":
-			return "forbidden";
-		case "conflict":
-			return "conflict";
-		case "invalid":
-			return "invalid";
-		case "unavailable":
-		case "rate-limited":
-		case "not-available-yet":
-			return "unavailable";
-		default: {
-			const never: never = error.code;
-			return never;
-		}
-	}
-}
-
-/** A service port that threw is `not_found`, `invalid` or `unavailable`: nothing else leaks out. */
-async function wrap<T>(work: () => Promise<PortResult<T>>): Promise<PortResult<T>> {
-	try {
-		return await work();
-	} catch (error) {
-		if (error instanceof PortError) return refused(refusalOf(error));
-		return refused("unavailable");
-	}
-}
+/** "Every appointment there is": a window the service accepts (instants are never negative), far on both sides. */
+const EVERYTHING_FROM = "1971-01-01";
+const EVERYTHING_TO = "2100-12-31";
 
 const LIVE = new Set(["requested", "confirmed", "attended", "no-show", "cancelled"]);
 const isStaffStatus = (s: string): s is StaffAppointment["status"] => LIVE.has(s);
@@ -76,6 +38,8 @@ export interface StaffPortOptions {
 	/** Looking at the app as someone else: the assistant reads, and cannot change anything. */
 	readOnly: boolean;
 	locale: "ro" | "en";
+	/** The action registry for this person (`apps/clinic/src/actions`); none: the assistant discovers nothing beyond its own tools. */
+	actions?: ActionsSource;
 }
 
 const versionOf = (a: Appointment): string =>
@@ -131,7 +95,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		columns: ReadonlyArray<Column>;
 	}> =>
 		port
-			.calendar(app, "0001-01-01", "9999-12-31")
+			.calendar(app, EVERYTHING_FROM, EVERYTHING_TO)
 			.then((c) => ({ appts: c.appointments, clients: c.clients, columns: c.columns }));
 
 	const nameOf = (clients: ReadonlyArray<Client>, id: string | null): string | null =>
@@ -192,6 +156,13 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		port.appendAudit(app, { actor: `${o.person.name} · assistant`, action, target });
 
 	return {
+		...extraMethods({
+			port,
+			app,
+			actor: o.person.name,
+			readOnly: o.readOnly,
+			actions: o.actions,
+		}),
 		whoami: async () => ok(principal),
 		can: async (action) => ok(!o.readOnly && mayDo(permissions, action)),
 		capabilities: async () => ok({ permissions: [...permissions] }),

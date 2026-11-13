@@ -73,20 +73,56 @@ export const searchVisits = query({
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		const rows = await ctx.db
-			.query("visits")
-			.withIndex("by_tenant_start", (q) => {
-				const base = q.eq("tenant", args.tenant);
-				if (args.from !== undefined && args.to !== undefined)
-					return base.gte("start", args.from).lt("start", args.to);
-				if (args.from !== undefined) return base.gte("start", args.from);
-				if (args.to !== undefined) return base.lt("start", args.to);
-				return base;
-			})
-			.take(MAX_ROWS + 1);
+		// A filter that has an index of its own reads only its rows: a clinic's package or client is a few dozen visits,
+		// its whole history is thousands, and a console asks for many packages at once. An id that names nothing
+		// matches nothing.
+		const { tenant } = args;
+		const visits = ctx.db.query("visits");
+		const packageId =
+			args.package === undefined ? undefined : ctx.db.normalizeId("packages", args.package);
+		const clientId =
+			args.client === undefined ? undefined : ctx.db.normalizeId("clients", args.client);
+		const roomId = args.room === undefined ? undefined : ctx.db.normalizeId("rooms", args.room);
+		const deviceId =
+			args.device === undefined ? undefined : ctx.db.normalizeId("devices", args.device);
+		const unknownId = [
+			[args.package, packageId],
+			[args.client, clientId],
+			[args.room, roomId],
+			[args.device, deviceId],
+		].some(([given, found]) => given !== undefined && found === null);
+		if (unknownId) return { ok: true as const, visits: [] };
+		// The indexed reads are by equality; the window is applied below, to the few rows they return.
+		const rows = await (packageId
+			? visits.withIndex("by_tenant_package_start", (q) =>
+					q.eq("tenant", tenant).eq("package", packageId),
+				)
+			: clientId
+				? visits.withIndex("by_tenant_client_start", (q) =>
+						q.eq("tenant", tenant).eq("client", clientId),
+					)
+				: roomId
+					? visits.withIndex("by_tenant_room_start", (q) =>
+							q.eq("tenant", tenant).eq("room", roomId),
+						)
+					: deviceId
+						? visits.withIndex("by_tenant_device_start", (q) =>
+								q.eq("tenant", tenant).eq("device", deviceId),
+							)
+						: visits.withIndex("by_tenant_start", (q) => {
+								const base = q.eq("tenant", tenant);
+								if (args.from !== undefined && args.to !== undefined)
+									return base.gte("start", args.from).lt("start", args.to);
+								if (args.from !== undefined) return base.gte("start", args.from);
+								if (args.to !== undefined) return base.lt("start", args.to);
+								return base;
+							})
+		).take(MAX_ROWS + 1);
 		if (rows.length > MAX_ROWS) return REFUSED("too_many");
 		const shown = rows.filter(
 			(r) =>
+				(args.from === undefined || r.start >= args.from) &&
+				(args.to === undefined || r.start < args.to) &&
 				(args.client === undefined || r.client === args.client) &&
 				(args.columnKey === undefined || r.columnKey === args.columnKey) &&
 				(args.room === undefined || r.room === args.room) &&

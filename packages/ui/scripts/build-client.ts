@@ -4,12 +4,20 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { CLIENT_SOURCES, compileClients, generatedModule } from "../src/client/build.ts";
+import {
+	CAPSULE_SOURCES,
+	CLIENT_SOURCES,
+	compileClients,
+	generatedModule,
+} from "../src/client/build.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const OUT = `${ROOT}src/client/compass-chat.generated.ts`;
+const read = (files: ReadonlyArray<string>): Array<string> =>
+	files.map((f) => readFileSync(`${ROOT}src/client/${f}`, "utf8"));
 const text = generatedModule(
-	compileClients(CLIENT_SOURCES.map((f) => readFileSync(`${ROOT}src/client/${f}`, "utf8"))),
+	compileClients(read(CLIENT_SOURCES)),
+	compileClients(read(CAPSULE_SOURCES)),
 );
 
 if (process.argv.includes("--check")) {

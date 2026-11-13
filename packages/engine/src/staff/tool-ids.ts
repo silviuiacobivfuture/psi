@@ -35,6 +35,9 @@ export const STAFF_TOOLS = {
 	newBookings: "staffNewBookings",
 	siteIssues: "staffSiteIssues",
 	requestReply: "staffRequestReply",
+	createClient: "staffCreateClient",
+	listActions: "staffListActions",
+	runAction: "staffRunAction",
 	api: "staffApi",
 } as const satisfies Readonly<Record<ToolKey, string>>;
 

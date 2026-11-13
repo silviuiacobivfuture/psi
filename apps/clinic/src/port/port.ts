@@ -6,6 +6,7 @@ import type {
 	Appointment,
 	AppointmentPatch,
 	AppSlug,
+	AssistantMode,
 	AuditEvent,
 	Client,
 	Column,
@@ -179,6 +180,9 @@ export interface ClinicPort {
 	saveFloorPlan(app: AppSlug, doc: FloorPlanDoc): Promise<SaveResult>;
 	pushPrefs(subject: string): Promise<PushPrefs>;
 	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;
+	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
+	assistantMode(subject: string): Promise<AssistantMode | null>;
+	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;
 }
 
 /**

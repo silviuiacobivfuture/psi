@@ -4,6 +4,7 @@ import { parityTools } from "./parity/generate";
 import { NEEDS, offered } from "./parity/needs";
 import { SESSION_KEY, type StaffSession } from "./session";
 import { toolKeyOf } from "./tool-ids";
+import { createClientTool, listActionsTool, runActionTool } from "./tools-actions";
 import {
 	cancelAppointmentTool,
 	createAppointmentTool,
@@ -78,6 +79,9 @@ export function staffTools({
 		staffNewBookings: newBookingsTool(session),
 		staffSiteIssues: siteIssuesTool(session),
 		staffRequestReply: requestReplyTool(session),
+		staffCreateClient: createClientTool(session),
+		staffListActions: listActionsTool(session),
+		staffRunAction: runActionTool(session),
 	};
 	// A tool the person cannot use is not offered at all (the service refuses it anyway).
 	const offeredTools = Object.fromEntries(

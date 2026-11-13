@@ -78,7 +78,8 @@ export const AppointmentSchema = z.object({
 	clientName: z.string().max(300).nullable(),
 	/** A group activity's title (it has no client). */
 	title: z.string().max(300).nullable(),
-	serviceId: IdSchema,
+	/** Empty: the appointment has no service (a visit that came from the old app has none). */
+	serviceId: z.string().max(120),
 	status: AppointmentStatusSchema,
 	note: z.string().max(2000).optional(),
 });

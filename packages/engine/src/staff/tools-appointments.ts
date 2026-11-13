@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { clock, clockRange, dateLabel } from "./format";
 import { DateSchema, IdSchema, type Resource } from "./model";
+import { NEW_CLIENT } from "./proposals";
 import { NeedsConfirmationSchema, propose } from "./propose";
 import { resolveResource, resolveService } from "./resolve";
 import { type StaffSession, staffTool, type ToolRun } from "./session";
+import { createClientStep, NewClientFields, newClientLines, sameName } from "./tools-clients";
 
 const TimeSchema = z
 	.string()
@@ -64,10 +66,14 @@ export function createAppointmentTool(session: StaffSession) {
 		key: "createAppointment",
 		phase: "propose",
 		description:
-			"Prepare a new appointment for a client: service (name or id), day, time and who/where (therapist, room, device). It books nothing; the person confirms in a card. Check free times first when unsure.",
+			"Prepare a new appointment for a client: service (name or id), day, time and who/where (therapist, room, device). It books nothing; the person confirms in a card. Check free times first when unsure. For a person who is NOT a client yet (a search found nobody), pass `newClient` (their name and whatever else was said) instead of clientId: ONE card adds the client and books them, so do not call staffCreateClient first.",
 		inputSchema: z
 			.object({
-				clientId: IdSchema,
+				clientId: IdSchema.optional(),
+				newClient: z
+					.object({ ...NewClientFields, anotherPerson: z.boolean().optional() })
+					.strict()
+					.optional(),
 				service: z.string().trim().min(1).max(120),
 				date: DateSchema,
 				time: TimeSchema,
@@ -76,11 +82,22 @@ export function createAppointmentTool(session: StaffSession) {
 			.strict(),
 		outputSchema: Out,
 		async run(input, s): Promise<ToolRun<Out>> {
-			const [client, service] = await Promise.all([
-				s.port.clientSummary(input.clientId),
-				resolveService(s, input.service),
-			]);
-			if (!client.ok) return { ...refuse(client.reason), subjects: [input.clientId] };
+			if ((input.clientId === undefined) === (input.newClient === undefined))
+				return refuse("invalid");
+			const existing =
+				input.clientId === undefined ? undefined : await s.port.clientSummary(input.clientId);
+			const service = await resolveService(s, input.service);
+			if (existing !== undefined && !existing.ok)
+				return { ...refuse(existing.reason), subjects: [input.clientId ?? ""] };
+			if (input.newClient !== undefined && input.newClient.anotherPerson !== true) {
+				const twins = await sameName(s, input.newClient.name);
+				if (twins.length > 0)
+					return {
+						ok: true,
+						subjects: twins.map((t) => t.id),
+						output: { status: "ambiguous", candidates: twins },
+					};
+			}
 			if (!service.ok) return refuse(service.reason);
 			if (service.value.kind === "none")
 				return { ok: true, subjects: [], output: { status: "none" } };
@@ -109,27 +126,47 @@ export function createAppointmentTool(session: StaffSession) {
 				resourceIds,
 			});
 			if (!check.ok) return refuse(check.reason);
-			if (!check.value.free) return { ...refuse("conflict"), subjects: [input.clientId] };
+			const clientId = input.clientId ?? NEW_CLIENT;
+			if (!check.value.free)
+				return {
+					...refuse("conflict"),
+					subjects: input.clientId === undefined ? [] : [input.clientId],
+				};
+			const book = {
+				kind: "create_appointment" as const,
+				clientId,
+				serviceId: service.value.value.id,
+				date: input.date,
+				startMin,
+				durationMin,
+				resourceIds,
+			};
+			const whoLines =
+				input.newClient === undefined
+					? [
+							{
+								label: s.copy.label.client,
+								value: existing?.ok === true ? existing.value.name : "",
+								free: true,
+							},
+						]
+					: newClientLines(s, input.newClient);
 			return propose(
 				s,
+				input.newClient === undefined
+					? book
+					: {
+							kind: "batch",
+							steps: [createClientStep(s, input.newClient), book],
+						},
 				{
-					kind: "create_appointment",
-					clientId: input.clientId,
-					serviceId: service.value.value.id,
-					date: input.date,
-					startMin,
-					durationMin,
-					resourceIds,
-				},
-				{
-					title: s.copy.proposal.create,
+					title:
+						input.newClient === undefined
+							? s.copy.proposal.create
+							: s.copy.proposal.createClientAndBook,
 					destructive: false,
 					lines: [
-						{
-							label: s.copy.label.client,
-							value: client.value.name,
-							free: true,
-						},
+						...whoLines,
 						{ label: s.copy.label.service, value: service.value.value.name },
 						{
 							label: s.copy.label.when,
@@ -192,7 +229,11 @@ export function moveAppointmentTool(session: StaffSession) {
 					kind: "move_appointment",
 					id: a.id,
 					expectedVersion: a.version,
-					before: { date: a.date, startMin: a.startMin, resourceIds: a.resourceIds },
+					before: {
+						date: a.date,
+						startMin: a.startMin,
+						resourceIds: a.resourceIds,
+					},
 					date: input.date,
 					startMin,
 					durationMin: a.durationMin,

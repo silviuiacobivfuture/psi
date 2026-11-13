@@ -1,5 +1,12 @@
 import { z } from "zod";
 import {
+	type ActionInfo,
+	ActionInfoSchema,
+	type ActionOutcome,
+	ActionOutcomeSchema,
+} from "./actions";
+import type { StaffPage } from "./events";
+import {
 	type ActivityEvent,
 	ActivityEventSchema,
 	type Appointment,
@@ -75,6 +82,7 @@ export function parsePortResult<T>(value: z.ZodType<T>, raw: unknown): PortResul
 
 /** The writes the assistant can propose; each is checked with `can` before a proposal exists. */
 export const STAFF_ACTIONS = [
+	"clients.create",
 	"appointments.create",
 	"appointments.move",
 	"appointments.cancel",
@@ -129,6 +137,20 @@ export interface SlotQuery {
 	resourceIds: ReadonlyArray<string>;
 	ignoreAppointmentId?: string;
 }
+/** A client to add: only the fields the person gave. */
+export interface NewClientInput {
+	name: string;
+	phone?: string;
+	email?: string;
+	guardian?: string;
+	/** The year they were born; an age said aloud is turned into this by the tool. */
+	birthYear?: number;
+}
+export const CreatedClientSchema = z.object({
+	id: z.string().min(1).max(120),
+	name: z.string(),
+});
+export type CreatedClient = z.infer<typeof CreatedClientSchema>;
 export interface NewAppointmentInput {
 	clientId: string;
 	serviceId: string;
@@ -249,6 +271,18 @@ export interface StaffPort {
 		routeId: string;
 		input: Record<string, unknown>;
 	}): Promise<PortResult<unknown>>;
+	/** Adds a client; the service's own permission check answers. */
+	createClient(input: NewClientInput): Promise<PortResult<CreatedClient>>;
+	/**
+	 * What this person can do on this screen or record, from the console's action registry: only
+	 * what they hold the capability for is listed, so an action not listed is one they may not do.
+	 */
+	listActions(page: StaffPage | undefined): Promise<PortResult<ReadonlyArray<ActionInfo>>>;
+	/** Runs a listed action as the person (the registry checks again); a write is only ever run after the person confirmed it. */
+	runAction(call: {
+		id: string;
+		params: Record<string, unknown>;
+	}): Promise<PortResult<ActionOutcome>>;
 	/** Clients with a balance due or a package running out, with how many sessions they have booked in the period. */
 	attention(query: {
 		from: string;
@@ -286,6 +320,9 @@ export const PORT_VALUES = {
 	bookings: z.array(BookingSchema).readonly(),
 	capabilities: CapabilitiesSchema,
 	route: z.unknown(),
+	createdClient: CreatedClientSchema,
+	actions: z.array(ActionInfoSchema).readonly(),
+	actionOutcome: ActionOutcomeSchema,
 } as const;
 
 /**

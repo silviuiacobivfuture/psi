@@ -8,6 +8,7 @@ import {
 } from "@psi/ui/admin";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { ASSISTANT_BASE } from "./assistant/mount";
 import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
@@ -59,15 +60,26 @@ export function labels(locale: Locale): ShellLabels {
 	};
 }
 
-/** A role's name for people: the seed roles are translated, a custom role shows its own id. */
-export function roleName(id: string, locale: Locale): string {
+const SEED_ROLE =
+	/^[a-z][a-z0-9-]*?-(?=owner$|admin$|reception$|therapist$|coordinator$|volunteer$|accountant$)/;
+
+/**
+ * A role's name for people: the seed roles are translated, a custom role shows its own name (`names`, by id, from the
+ * service: a role's id is opaque in some stores) and only then its id. A seed role is told by its id (`psizone-owner`)
+ * or, when the id is opaque, by its seed name (`Owner`).
+ */
+export function roleName(
+	id: string,
+	locale: Locale,
+	names: Readonly<Record<string, string>> | undefined = undefined,
+): string {
 	const o = at(locale);
-	switch (
-		id.replace(
-			/^[a-z][a-z0-9-]*?-(?=owner$|admin$|reception$|therapist$|coordinator$|volunteer$|accountant$)/,
-			"",
-		)
-	) {
+	const given = names?.[id];
+	const key = id.replace(SEED_ROLE, "");
+	const seed = /^(owner|admin|reception|therapist|coordinator|volunteer|accountant)$/.test(key)
+		? key
+		: (given ?? "").toLowerCase();
+	switch (seed) {
 		case "owner":
 			return m.role_owner({}, o);
 		case "admin":
@@ -83,9 +95,13 @@ export function roleName(id: string, locale: Locale): string {
 		case "accountant":
 			return m.role_accountant({}, o);
 		default:
-			return id;
+			return given ?? id;
 	}
 }
+
+/** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
+export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>
+	roleName(role.id, locale, { [role.id]: role.name });
 
 export const appName = (app: AppSlug, locale: Locale): string =>
 	app === "psizone" ? m.app_psizone({}, at(locale)) : m.app_hemisync({}, at(locale));
@@ -185,10 +201,27 @@ export async function Page({
 				rail={wide === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
+				choices={
+					ctx.assistant === undefined
+						? undefined
+						: [
+								{
+									id: "assistant",
+									label: m.assistant_mode_label({}, o),
+									action: `${ASSISTANT_BASE}/mode`,
+									name: "mode",
+									value: ctx.assistantMode,
+									options: [
+										{ value: "bar", label: m.assistant_mode_bar({}, o) },
+										{ value: "panel", label: m.assistant_mode_panel({}, o) },
+									],
+								},
+							]
+				}
 				extras={
 					<>
 						<div class="adm-menu__item adm-muted" data-who>
-							{ctx.caps.roles.map((r) => roleName(r, locale)).join(", ")} ·{" "}
+							{ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ")} ·{" "}
 							{appName(ctx.app, locale)}
 						</div>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
@@ -205,7 +238,7 @@ export async function Page({
 						<AssistantTrigger ctx={ctx} />
 						<RoleSwitcher
 							ctx={ctx}
-							mine={ctx.caps.roles.map((r) => roleName(r, locale)).join(", ")}
+							mine={ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ")}
 						/>
 						{bell}
 					</>

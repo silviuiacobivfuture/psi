@@ -154,6 +154,25 @@ describe("refusals: nothing is written", () => {
 		expect(sink.changes).toBe(0);
 	});
 
+	it("the anonymizer's stand-in text where a list belongs is an empty answer and a note, never blocking", async () => {
+		const { sink, report } = await attempt((e) => {
+			const row = e.tables.session_feedback?.[0];
+			if (row !== undefined)
+				for (const key of ["receptive_to", "rewards_used", "triggers"])
+					Reflect.set(
+						row as object,
+						key,
+						"[text de test — conținutul real nu este copiat în acest mediu]",
+					);
+		});
+		expect(report.refusal).toBeUndefined();
+		expect(report.anomalies.filter((a) => a.code.startsWith("uncoercible_value"))).toEqual([]);
+		expect(idsOf(report, "placeholder_text:session_feedback.receptive_to")).toEqual([
+			"session_feedback:1",
+		]);
+		expect(sink.changes).toBeGreaterThan(0);
+	});
+
 	it("a value outside its field's bounds is blocking", async () => {
 		const { report } = await attempt((e) => {
 			const row = e.tables.parent_feedback?.[0];

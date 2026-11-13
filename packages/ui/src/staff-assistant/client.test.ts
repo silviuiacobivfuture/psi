@@ -16,6 +16,11 @@ class Element {
 	clientHeight = 200;
 	style: Record<string, string> = { setProperty: "" } as unknown as Record<string, string>;
 	classList = { contains: (c: string) => this.classes.has(c) };
+	/** What `closest` finds: the sheet's body, when the log sits in the capsule. */
+	container: Element | null = null;
+	closest(): Element | null {
+		return this.container;
+	}
 	addEventListener(type: string, fn: Listener): void {
 		this.listeners.set(type, [...(this.listeners.get(type) ?? []), fn]);
 	}
@@ -45,8 +50,9 @@ class FakeTextArea extends FakeHTMLElement {
 	}
 }
 
-function boot() {
+function boot(options: { capsule?: boolean } = {}) {
 	const panel = new FakeHTMLElement();
+	const body = new FakeHTMLElement();
 	const trigger = new FakeHTMLElement();
 	const log = new FakeHTMLElement();
 	const field = new FakeTextArea();
@@ -56,10 +62,15 @@ function boot() {
 	(panel as unknown as { querySelector: () => unknown }).querySelector = () => field;
 	const document = Object.assign(doc, {
 		getElementById: (id: string) =>
-			id === "staff-assistant" ? panel : id === "staff-log" ? log : null,
+			id === "staff-assistant" && options.capsule !== true
+				? panel
+				: id === "staff-log"
+					? log
+					: null,
 		querySelector: (selector: string) => (selector === "[data-staff-trigger]" ? trigger : null),
 		activeElement: null,
 	});
+	if (options.capsule === true) log.container = body;
 	trigger.click = () => {
 		trigger.clicks += 1;
 		if (panel.classes.has("is-open")) panel.classes.delete("is-open");
@@ -98,7 +109,7 @@ function boot() {
 		doc.fire("keydown", event);
 		return event;
 	};
-	return { panel, trigger, log, field, key, observers, watched };
+	return { panel, trigger, log, body, field, key, observers, watched };
 }
 
 describe("the staff panel's page script", () => {
@@ -174,6 +185,23 @@ describe("the staff panel's page script", () => {
 		log.fire("scroll");
 		follow?.();
 		expect(log.scrollTop).toBe(1400);
+	});
+
+	it("in the capsule the sheet's body is what follows and scrolls, and the panel's keys are not bound", () => {
+		const { body, log, trigger, key, observers } = boot({ capsule: true });
+		const follow = observers[observers.length - 1];
+		body.scrollHeight = 900;
+		follow?.();
+		expect(body.scrollTop).toBe(900);
+		expect(log.scrollTop).toBe(0);
+		body.scrollTop = 50;
+		body.fire("scroll");
+		body.scrollHeight = 1300;
+		follow?.();
+		expect(body.scrollTop).toBe(50);
+		const event = key({ ctrlKey: true, key: "k" });
+		expect(event.prevented).toBe(false);
+		expect(trigger.clicks).toBe(0);
 	});
 
 	it("runs on a page without the panel without throwing", () => {

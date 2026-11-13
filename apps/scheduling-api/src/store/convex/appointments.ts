@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currentActor } from "../actor";
+import { currentActor, currentOverride } from "../actor";
 import { type AppointmentRow, type Collection, type Query, StoreRefused } from "../types";
 import { personRef } from "./ids";
 import type { Rpc } from "./rpc";
@@ -61,6 +61,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 		force: boolean,
 	): Promise<void> {
 		const base = { tenant: app, actor: actor(), visit: current.id };
+		const override = currentOverride();
 		if (next.clientId !== cur.clientId) throw new StoreRefused("invalid");
 		for (const field of ["note", "packageId", "roomId", "deviceId"] as const)
 			if (cur[field] !== undefined && next[field] === undefined) throw new StoreRefused("invalid");
@@ -98,6 +99,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 						column,
 						...(next.roomId === undefined ? {} : { room: next.roomId }),
 						...(next.deviceId === undefined ? {} : { device: next.deviceId }),
+						...(override === undefined ? {} : { override }),
 					},
 					Version,
 				),
@@ -185,6 +187,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 
 		async insert(row) {
 			const column = columnOf(row);
+			const held = currentOverride();
 			const created = unwrap(
 				await rpc.mutation(
 					"apiVisits:create",
@@ -195,6 +198,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 						start: row.start,
 						end: row.end,
 						sessionType: row.serviceId ?? row.kind,
+						...(held === undefined ? {} : { override: held }),
 						...(row.clientId === undefined ? {} : { client: row.clientId }),
 						...(row.roomId === undefined ? {} : { room: row.roomId }),
 						...(row.deviceId === undefined ? {} : { device: row.deviceId }),

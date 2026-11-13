@@ -39,6 +39,12 @@ async function reachOf(ctx: C, subject: string, coordinates: readonly string[]) 
 	};
 }
 
+/** The names of the roles a member holds, by role id. */
+async function namesOf(ctx: C, ids: readonly string[]): Promise<Record<string, string>> {
+	const roles = await ctx.deps.store.c.roles.list(ctx.app);
+	return Object.fromEntries(roles.filter((r) => ids.includes(r.id)).map((r) => [r.id, r.name]));
+}
+
 /** `role:<id>`, `member:<subject>`, or a bare subject (a member). */
 export function parseViewAs(raw: string): { kind: "role" | "member"; id: string } {
 	const colon = raw.indexOf(":");
@@ -70,6 +76,7 @@ async function ofMember(ctx: C, subject: string, viewAs: Out["viewAs"]): Promise
 		timeZone: app.timeZone,
 		...(member === undefined ? {} : { displayName: member.displayName }),
 		roles: member?.roles ?? [],
+		roleNames: await namesOf(ctx, member?.roles ?? []),
 		...summarize(held),
 		denied: [...(member?.denies ?? [])].sort(),
 		reach: await reachOf(ctx, subject, member?.coordinates ?? []),
@@ -98,6 +105,7 @@ async function ofRole(ctx: C, roleId: string): Promise<Out> {
 		timeZone: app.timeZone,
 		displayName: role.name,
 		roles: [role.id],
+		roleNames: { [role.id]: role.name },
 		...summarize(held),
 		denied: [],
 		reach: { own: [], assigned: [] },

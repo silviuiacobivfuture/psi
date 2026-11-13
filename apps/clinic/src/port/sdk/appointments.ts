@@ -191,8 +191,16 @@ export function appointmentsGroup(sdk: SdkContext) {
 					await api.clients.create({
 						app,
 						name: input.name,
-						...(input.phone === null ? {} : { contact: { phone: input.phone } }),
+						...(input.phone === null && !input.email
+							? {}
+							: {
+									contact: {
+										...(input.phone === null ? {} : { phone: input.phone }),
+										...(input.email ? { email: input.email } : {}),
+									},
+								}),
 						...(input.guardian === null ? {} : { guardian: { name: input.guardian } }),
+						...(input.birthYear === undefined ? {} : { birthYear: input.birthYear }),
 					}),
 				),
 			),

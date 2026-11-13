@@ -1,0 +1,130 @@
+{
+	"app": "psizone",
+	"categories": [
+		{
+			"id": "therapy",
+			"label": {
+				"ro": "Psihoterapie, consiliere, logopedie, grup",
+				"en": "Psychotherapy, counselling, speech therapy, group"
+			}
+		},
+		{
+			"id": "neuro",
+			"label": {
+				"ro": "Neuroevaluare și neurofeedback",
+				"en": "Neuro-assessment and neurofeedback"
+			}
+		}
+	],
+	"floors": [
+		{
+			"id": "parter",
+			"name": "Parter",
+			"order": 0,
+			"rooms": [
+				{
+					"id": "cabinet-1",
+					"name": "Cabinet 1",
+					"purpose": "Psihoterapie / logopedie",
+					"category": "therapy",
+					"homePractitioner": null,
+					"geometry": { "x": 10, "y": 20, "w": 95, "h": 36 }
+				},
+				{
+					"id": "cabinet-2",
+					"name": "Cabinet 2",
+					"purpose": "Psihoterapie / logopedie",
+					"category": "therapy",
+					"homePractitioner": null,
+					"geometry": { "x": 115, "y": 20, "w": 95, "h": 36 }
+				}
+			]
+		},
+		{
+			"id": "etaj-1",
+			"name": "Etajul 1",
+			"order": 1,
+			"rooms": [
+				{
+					"id": "turcu-adrian",
+					"name": "Turcu Adrian",
+					"purpose": "Consiliere și psihoterapie",
+					"category": "therapy",
+					"homePractitioner": "Turcu Adrian",
+					"geometry": { "x": 10, "y": 20, "w": 60, "h": 36 }
+				},
+				{
+					"id": "mapping-cerebral",
+					"name": "Mapping cerebral",
+					"purpose": "Evaluare QEEG",
+					"category": "neuro",
+					"homePractitioner": null,
+					"geometry": { "x": 80, "y": 20, "w": 60, "h": 36 }
+				},
+				{
+					"id": "neurofeedback-1",
+					"name": "Neurofeedback 1",
+					"purpose": "Cabinet ILF",
+					"category": "neuro",
+					"homePractitioner": null,
+					"geometry": { "x": 150, "y": 20, "w": 60, "h": 36 }
+				}
+			]
+		},
+		{
+			"id": "etaj-2",
+			"name": "Etajul 2",
+			"order": 2,
+			"rooms": [
+				{
+					"id": "pavel-irina",
+					"name": "Pavel Irina",
+					"purpose": "Psihoterapie",
+					"category": "therapy",
+					"homePractitioner": "Pavel Irina",
+					"geometry": { "x": 10, "y": 10, "w": 60, "h": 36 }
+				},
+				{
+					"id": "nafureanu-nicoleta",
+					"name": "Năfureanu Nicoleta",
+					"purpose": "Psihoterapie",
+					"category": "therapy",
+					"homePractitioner": "Năfureanu Nicoleta",
+					"geometry": { "x": 80, "y": 10, "w": 60, "h": 36 }
+				},
+				{
+					"id": "turcu-daniela",
+					"name": "Turcu Daniela",
+					"purpose": "Psihoterapie",
+					"category": "therapy",
+					"homePractitioner": "Turcu Daniela",
+					"geometry": { "x": 150, "y": 10, "w": 60, "h": 36 }
+				},
+				{
+					"id": "cabinet-psihoterapie",
+					"name": "Cabinet psihoterapie",
+					"purpose": "Activități de grup copii",
+					"category": "therapy",
+					"homePractitioner": null,
+					"geometry": { "x": 10, "y": 56, "w": 60, "h": 36 }
+				},
+				{
+					"id": "sala-terapie-grup",
+					"name": "Sală terapie grup",
+					"purpose": "Race Me Up",
+					"category": "therapy",
+					"homePractitioner": null,
+					"geometry": { "x": 80, "y": 56, "w": 60, "h": 36 }
+				},
+				{
+					"id": "neurofeedback-2",
+					"name": "Neurofeedback 2",
+					"purpose": "Cabinet ILF",
+					"category": "neuro",
+					"homePractitioner": null,
+					"geometry": { "x": 150, "y": 56, "w": 60, "h": 36 }
+				}
+			]
+		}
+	]
+}
