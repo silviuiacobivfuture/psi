@@ -18,9 +18,11 @@ export function chosenBrand(cookieHeader: string | null): Brand | null {
 }
 
 /**
- * Lists narrowed to the chosen brand. A convenience only: what a person may see at all is the
- * access rule (`brandAccess`), never this filter. A collection without that brand (articles have
- * no `blog`) shows nothing for it, rather than asking the database for a value it cannot hold.
+ * Lists narrowed to the chosen app. A convenience only: what a person may see at all is the
+ * access rule (`brandAccess`), never this filter. The blog is where every app's articles are
+ * published, each written for its app: on a collection without a `blog` value (articles, offers)
+ * the Blog shows them all, each row naming its app. Any other app the collection cannot hold
+ * shows nothing, rather than asking the database for a value it cannot hold.
  */
 export function brandWhere(
 	brands: ReadonlyArray<string>,
@@ -28,7 +30,8 @@ export function brandWhere(
 ): Where | null {
 	const brand = chosenBrand(cookieHeader);
 	if (brand === null) return null;
-	return brands.includes(brand) ? { brand: { equals: brand } } : { id: { exists: false } };
+	if (brands.includes(brand)) return { brand: { equals: brand } };
+	return brand === "blog" ? null : { id: { exists: false } };
 }
 
 export function brandListFilter(brands: ReadonlyArray<string> = BRANDS): BaseFilter {
