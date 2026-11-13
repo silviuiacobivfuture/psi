@@ -227,3 +227,27 @@ describe("sign-in round trip", () => {
 		expect(res.headers.getSetCookie()).toEqual([]);
 	});
 });
+
+describe("the session's ID token, for calling a service as the person", () => {
+	it("is the provider's signed token for this site's client while signed in, and null signed out", async () => {
+		const site = SITES.blog;
+		const account = accounts.blog;
+		if (account === undefined) throw new Error("no account");
+		const app = new Hono();
+		account.mount(app);
+		app.get("/token", async (c) => c.json({ token: await account.idToken(c) }));
+		const served: Record<string, AppFetch> = { [site.origin]: (req) => app.fetch(req) };
+		const b = createBrowser({ ...apps, ...served });
+		const signedOut = await b.go(`${site.origin}/token`);
+		expect(await signedOut.res.json()).toEqual({ token: null });
+		await b.go(`${site.origin}/auth/sign-in?return=/token`);
+		const signedIn = (await (await b.go(`${site.origin}/token`)).res.json()) as { token: string };
+		const [, payload] = signedIn.token.split(".");
+		const claims = JSON.parse(Buffer.from(payload ?? "", "base64url").toString("utf8")) as {
+			aud: string;
+			iss: string;
+		};
+		expect(claims.aud).toBe(`${site.slug}-test`);
+		expect(claims.iss).toBe(mock.issuer(site.slug));
+	});
+});

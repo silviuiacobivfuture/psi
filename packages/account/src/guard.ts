@@ -98,6 +98,12 @@ export interface Guard {
 	current(c: Context): SignedIn | null;
 	/** Loads the session if no middleware did yet, and answers who is asking. */
 	person(c: Context): Promise<SignedIn | null>;
+	/**
+	 * The ID token this person's session holds, for calling a service AS them (it names the site's own client as its
+	 * audience). Null when signed out. It may be past its expiry: the service refuses it and the site sends the person
+	 * through sign-in again, which is silent while the provider still has their session.
+	 */
+	idToken(c: Context): Promise<string | null>;
 	/** To sign-in and back: a GET to itself, a write to the same-origin page it came from (or home). */
 	requireSignIn(): MiddlewareHandler;
 	decide(c: Context, relation: string, record: RecordRef): Promise<Decision>;
@@ -120,6 +126,7 @@ export interface Guard {
 
 export function createGuard(deps: GuardDeps): Guard {
 	const seen = new WeakMap<Request, SignedIn | null>();
+	const tokens = new WeakMap<Request, string>();
 
 	async function load(c: Context): Promise<SignedIn | null> {
 		const cached = seen.get(c.req.raw);
@@ -136,6 +143,7 @@ export function createGuard(deps: GuardDeps): Guard {
 					await store.remove(hash);
 				} else {
 					if (now - rec.lastSeenAt > TOUCH_EVERY_MS) await store.touch(hash, now);
+					tokens.set(c.req.raw, rec.idToken);
 					found = {
 						subject: rec.subject,
 						user: `user:${rec.subject}`,
@@ -171,6 +179,10 @@ export function createGuard(deps: GuardDeps): Guard {
 
 		person(c) {
 			return load(c);
+		},
+
+		async idToken(c) {
+			return (await load(c)) === null ? null : (tokens.get(c.req.raw) ?? null);
 		},
 
 		requireSignIn() {
