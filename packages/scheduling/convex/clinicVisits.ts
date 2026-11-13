@@ -5,6 +5,7 @@ import { overlaps } from "../src/domain/conflicts";
 import { MINUTE_MS } from "../src/domain/time";
 import { internalMutation } from "./_generated/server";
 import { busyAround } from "./calendar";
+import { logChange } from "./changeLog";
 import { practitionerOf } from "./setupSupport";
 
 /**
@@ -81,6 +82,7 @@ export const create = internalMutation({
 			updatedAt: now,
 			version: 1,
 		});
+		await logChange(ctx, args.tenant, "visit", id, 1);
 		const event = makeAuditEvent({
 			tenant: args.tenant,
 			at: now,

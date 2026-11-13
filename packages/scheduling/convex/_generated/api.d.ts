@@ -13,6 +13,8 @@ import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
 import type * as calendar from "../calendar.js";
 import type * as catalog from "../catalog.js";
+import type * as changeLog from "../changeLog.js";
+import type * as changes from "../changes.js";
 import type * as clinicApps from "../clinicApps.js";
 import type * as clinicErase from "../clinicErase.js";
 import type * as clinicInspect from "../clinicInspect.js";
@@ -61,6 +63,8 @@ declare const fullApi: ApiFromModules<{
   availability: typeof availability;
   calendar: typeof calendar;
   catalog: typeof catalog;
+  changeLog: typeof changeLog;
+  changes: typeof changes;
   clinicApps: typeof clinicApps;
   clinicErase: typeof clinicErase;
   clinicInspect: typeof clinicInspect;

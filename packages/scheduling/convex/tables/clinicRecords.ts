@@ -139,3 +139,14 @@ export const storageOutbox = defineTable({
 	reason: v.literal("erasure"),
 	createdAt: v.number(),
 }).index("by_tenant_created", ["tenant", "createdAt"]);
+
+/** The live change feed: what changed, never its content. Kept 7 days (`changes.purge`). */
+export const changeLog = defineTable({
+	tenant: v.string(),
+	kind: v.string(),
+	entityId: v.string(),
+	at: v.number(),
+	version: v.number(),
+})
+	.index("by_tenant", ["tenant"])
+	.index("by_at", ["at"]);

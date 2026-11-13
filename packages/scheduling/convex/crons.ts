@@ -10,6 +10,7 @@ crons.daily(
 	internal.clinicRetention.erase,
 	{},
 );
+crons.daily("change log retention", { hourUTC: 3, minuteUTC: 20 }, internal.changes.purge, {});
 crons.daily("retention", { hourUTC: 2, minuteUTC: 30 }, internal.retention.purge, {});
 
 export default crons;

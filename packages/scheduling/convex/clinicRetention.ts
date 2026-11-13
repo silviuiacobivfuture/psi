@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { RECOVERY_DAYS } from "../src/clinic/clients";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
+import { logChange } from "./changeLog";
 import { eraseClinicData } from "./clinicErase";
 
 /**
@@ -41,6 +42,7 @@ export const eraseDue = internalMutation({
 					entityId: client._id,
 					summary: "client.erase",
 				});
+				await logChange(ctx, tenant.slug, "client", client._id, (client.version ?? 0) + 1);
 				erased += 1;
 			}
 		}

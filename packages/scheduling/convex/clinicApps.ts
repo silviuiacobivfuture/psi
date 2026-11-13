@@ -3,6 +3,7 @@ import { formDefinitionSchema } from "../src/clinic/forms";
 import { SEED_FORM_TEMPLATES } from "../src/clinic/templates";
 import { SEED_ROLES } from "../src/permissions/roles";
 import { internalMutation } from "./_generated/server";
+import { logChange } from "./changeLog";
 import { localeValidator } from "./validators";
 
 /**
@@ -151,6 +152,7 @@ export const learnFormOptions = internalMutation({
 		await ctx.db.patch(row._id, {
 			definition: JSON.stringify(formDefinitionSchema.parse({ ...parsed, fields })),
 		});
+		await logChange(ctx, args.tenant, "form", row._id, 1);
 		await ctx.db.insert("auditEvents", {
 			tenant: args.tenant,
 			at: Date.now(),

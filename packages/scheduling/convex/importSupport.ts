@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { makeAuditEvent } from "../src/clinic/audit";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { kindOfTable, logChange } from "./changeLog";
 
 /**
  * What every import function shares. The import is keyed on the OLD app's ids (`legacyId`, written
@@ -14,6 +15,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 export const resultValidator = v.object({
 	legacyId: v.string(),
 	id: v.optional(v.string()),
+	version: v.optional(v.number()),
 	outcome: v.union(
 		v.literal("created"),
 		v.literal("updated"),
@@ -27,6 +29,7 @@ export const resultValidator = v.object({
 export interface UpsertResult {
 	legacyId: string;
 	id?: string;
+	version?: number;
 	outcome: "created" | "updated" | "unchanged" | "orphan";
 	flag?: string;
 }
@@ -53,13 +56,14 @@ export async function upsertRow(args: {
 }): Promise<UpsertResult> {
 	const found = await args.find();
 	if (found === null)
-		return { legacyId: args.legacyId, id: await args.insert(), outcome: "created" };
+		return { legacyId: args.legacyId, id: await args.insert(), version: 1, outcome: "created" };
 	const id = found.id;
 	if (found.fingerprint === args.fingerprint) {
 		return { legacyId: args.legacyId, id, outcome: "unchanged" };
 	}
-	await args.update(id, (found.version ?? 0) + 1);
-	return { legacyId: args.legacyId, id, outcome: "updated" };
+	const version = (found.version ?? 0) + 1;
+	await args.update(id, version);
+	return { legacyId: args.legacyId, id, version, outcome: "updated" };
 }
 
 export function orphan(legacyId: string, missing: string): UpsertResult {
@@ -168,6 +172,14 @@ export async function auditBatch(
 ): Promise<void> {
 	const changed = results.filter((r) => r.outcome === "created" || r.outcome === "updated").length;
 	if (changed === 0) return;
+	const kind = kindOfTable(table);
+	if (kind !== undefined) {
+		for (const r of results) {
+			if ((r.outcome === "created" || r.outcome === "updated") && r.id !== undefined) {
+				await logChange(ctx, tenant, kind, r.id, r.version ?? 1);
+			}
+		}
+	}
 	const made = makeAuditEvent({
 		tenant,
 		at: Date.now(),

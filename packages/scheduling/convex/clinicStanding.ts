@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { makeAuditEvent } from "../src/clinic/audit";
 import { archive, restore, softDelete, unarchive } from "../src/clinic/clients";
 import { internalMutation } from "./_generated/server";
+import { logChange } from "./changeLog";
 
 /**
  * A client's standing: archive, unarchive, soft delete, restore (docs/plans/clinic.md section 2).
@@ -50,7 +51,9 @@ export const change = internalMutation({
 					: args.action === "delete"
 						? { deletedAt: now }
 						: { deletedAt: undefined };
-		await ctx.db.patch(id, { ...patch, updatedAt: now, version: (row.version ?? 0) + 1 });
+		const version = (row.version ?? 0) + 1;
+		await ctx.db.patch(id, { ...patch, updatedAt: now, version });
+		await logChange(ctx, args.tenant, "client", id, version);
 		const event = makeAuditEvent({
 			tenant: args.tenant,
 			at: now,
