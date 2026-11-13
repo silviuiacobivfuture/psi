@@ -1,5 +1,5 @@
 import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
-import { Button, Compass, type CompassGroup, ThemeToggle } from "@psi/ui";
+import { Button, Compass, type CompassGroup, guideStart, ThemeToggle } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { estateGroup } from "../estate";
@@ -8,7 +8,7 @@ import { at, base, type Locale } from "../i18n";
 import { hemisyncInvite } from "../invite";
 import { m } from "../paraglide/messages.js";
 import { SitePwaTools } from "../pwa/site";
-import { href } from "../routes";
+import { bookingHref, href } from "../routes";
 import { THEMES } from "../theme";
 import { programmeHref } from "./programmes";
 
@@ -48,6 +48,11 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 					label: m.nav_sessions({}, o),
 					href: href(locale, "programmes", "sesiuni"),
 					hint: m.hint_sessions({}, o),
+				},
+				{
+					label: m.bk_nav({}, o),
+					href: bookingHref(locale),
+					hint: m.bk_nav_hint({}, o),
 				},
 				{
 					label: m.nav_archive({}, o),
@@ -142,6 +147,7 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
 				invite={hemisyncInvite(locale, currentPath())}
+				startWith={guideStart(locale)}
 				chat={{
 					storageKey: "psi.chat.hemisync",
 					suggestions: copy.chips,
