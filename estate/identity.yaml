@@ -38,6 +38,9 @@ REGISTRY_PROJECT_MIRROR: mirror
 GIT_HOST: github.com
 GIT_OWNER: silviuiacobivfuture
 GIT_REPO: psi
+# The runner scale set registers at the repository: a personal account takes repository runners
+# only (SEB CI_RUNNER_CONFIG_URL; the owner, the default, refuses them).
+CI_RUNNER_CONFIG_URL: https://github.com/silviuiacobivfuture/psi
 # No mesh at all (owner, 2026-11-11): no Headscale or Tailscale, no mesh DNS records.
 MESH: none
 ENVIRONMENTS: dev

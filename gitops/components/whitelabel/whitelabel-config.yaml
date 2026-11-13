@@ -44,6 +44,7 @@ data:
   GIT_HOST: github.com
   GIT_OWNER: silviuiacobivfuture
   GIT_REPO: psi
+  CI_RUNNER_CONFIG_URL: "https://github.com/silviuiacobivfuture/psi"
   MESH: none
   ENVIRONMENTS: dev
   # platform-apps
@@ -70,6 +71,8 @@ data:
   FRONT_HOST_PREFIX: portal
   HUB_HOST_PREFIX: sso
   HUB_NAME: "Psi Sign-in"
+  HUB_TILE_TITLE: PSI
+  MODEL_PIN_HOLDERS: authentik-tiles
   # secret-references
   REF_DNS_TOKEN_PATH: secret/platform/dns/token
   REF_DNS_TOKEN_FIELD: api_token
@@ -87,3 +90,20 @@ data:
   MESH_BASE_DOMAIN: psizone.ro
   TAILNET_DOMAIN: psizone.ro
   MAILBOX_DOMAIN: post.psizone.ro
+  HUB_HOST: sso.psizone.ro
+  BUSINESS_APP_PREFIX: psi
+  INVOICING_SVC: psi-invoice-svc
+  INVOICING_WEB: psi-invoice-web
+  INVOICING_VALIDATOR: psi-ubl-validator
+  INVOICING_HOST_PREFIX: invoicing
+  INVOICING_HOST: invoicing.psizone.ro
+  INVOICING_API_HOST: api.invoicing.psizone.ro
+  CASES_APP: psi-cases
+  CASES_HOST_PREFIX: cases
+  CASES_HOST: cases.psizone.ro
+  CASES_CONVEX_HOST: convex-psi-cases.psizone.ro
+  REF_SIGNATURE_PULL_PATH: secret/platform/harbor/verify
+  SIGNATURE_PULL_STORE_KEY: platform/harbor/verify
+  FLOWS_APP: psi-flows
+  FLOWS_HOST_PREFIX: flows
+  FLOWS_HOST: flows.psizone.ro
