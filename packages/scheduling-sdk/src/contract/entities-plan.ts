@@ -18,6 +18,16 @@ export const FloorPlanDocument = z
 		width: z.number().int().min(50).max(5_000),
 		height: z.number().int().min(50).max(5_000),
 		northDeg: z.number().int().min(0).max(359),
+		/** The room categories the plan's legend names (both languages); the editor's own, kept whole. */
+		categories: z
+			.array(
+				z.object({
+					id: z.string().min(1).max(40),
+					label: z.object({ ro: z.string().min(1).max(120), en: z.string().min(1).max(120) }),
+				}),
+			)
+			.max(8)
+			.optional(),
 		floors: z
 			.array(
 				z.looseObject({
