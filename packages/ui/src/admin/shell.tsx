@@ -42,6 +42,9 @@ export interface ShellLabels {
 	themeDark: string;
 	themeSystem: string;
 	language: string;
+	decoLabel: string;
+	decoOn: string;
+	decoOff: string;
 	signOut: string;
 	offline: string;
 }
@@ -67,6 +70,8 @@ export interface ShellProps {
 	signOutAction: string;
 	locale: "ro" | "en";
 	themePref: "light" | "dark" | "system";
+	/** Decorative background (the emblem's linework) behind the pages; off by default. */
+	deco: boolean;
 	searchAction: string;
 	/** Cross-site-request guard value is not needed: the server checks Origin. */
 	children?: Child;
@@ -91,6 +96,7 @@ function NavLink({ item, current }: { item: NavItem; current: string }): JSX.Ele
 				href={item.href}
 				aria-current={item.key === current ? "page" : undefined}
 				title={item.label}
+				data-tip={item.label}
 			>
 				<Icon name={item.icon} />
 				<span class="adm-label">{item.label}</span>
@@ -117,13 +123,16 @@ function AppSwitcher({
 		>
 			<button
 				type="button"
-				class="adm-menu__item"
+				class={`adm-menu__item adm-switch adm-switch--${active}`}
 				aria-haspopup="true"
 				aria-label={label}
 				data-attr:aria-expanded="$appMenu"
 				data-on:click="$appMenu = !$appMenu"
 			>
 				<span class={`adm-dot adm-dot--${active}`} />
+				<span class="adm-app-mono" aria-hidden="true">
+					{Array.from(here?.name ?? label)[0]}
+				</span>
 				<span class="adm-label">{here?.name ?? label}</span>
 				<Icon name="chevron-down" />
 			</button>
@@ -176,7 +185,10 @@ function PrefButton({
 }
 
 function UserMenu(
-	p: Pick<ShellProps, "user" | "labels" | "prefsAction" | "signOutAction" | "locale" | "themePref">,
+	p: Pick<
+		ShellProps,
+		"user" | "labels" | "prefsAction" | "signOutAction" | "locale" | "themePref" | "deco"
+	>,
 ): JSX.Element {
 	const { user, labels: l } = p;
 	return (
@@ -232,6 +244,17 @@ function UserMenu(
 							EN
 						</PrefButton>
 					</fieldset>
+					<span class="adm-muted" id="adm-deco-label">
+						{l.decoLabel}
+					</span>
+					<fieldset class="adm-seg" aria-labelledby="adm-deco-label">
+						<PrefButton name="deco" value="off" active={!p.deco}>
+							{l.decoOff}
+						</PrefButton>
+						<PrefButton name="deco" value="on" active={p.deco}>
+							{l.decoOn}
+						</PrefButton>
+					</fieldset>
 				</form>
 				<div class="adm-menu__sep" />
 				<form method="post" action={p.signOutAction}>
@@ -252,9 +275,12 @@ export function AdminShell(p: ShellProps): JSX.Element {
 		<div
 			class={cx("adm", p.rail === true && "is-collapsed")}
 			data-app={p.app}
+			data-deco={p.deco ? "on" : "off"}
 			data-signals={`{navCollapsed:${p.rail === true},searchOpen:false,q:'',offline:false,fabSmall:false}`}
 			{...{ "data-on:scroll__window__throttle.100ms": "$fabSmall = window.scrollY > 24" }}
 			data-class:is-collapsed="$navCollapsed"
+			data-init="try { const r = localStorage.getItem('adm-rail'); if (r !== null) $navCollapsed = r === 'true' } catch (e) {}"
+			data-effect="try { localStorage.setItem('adm-rail', String($navCollapsed)) } catch (e) {}"
 			data-class:is-offline="$offline"
 			data-on:online__window="$offline = false"
 			data-on:offline__window="$offline = true"
@@ -275,17 +301,27 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						))}
 					</ul>
 				</nav>
+
+				<div class="adm-nav__foot">
+					<button
+						type="button"
+						class="adm-rail-toggle"
+						aria-label={l.collapse}
+						data-attr:aria-pressed="$navCollapsed"
+						data-on:click="$navCollapsed = !$navCollapsed"
+					>
+						<span data-show="!$navCollapsed">
+							<Icon name="chevron-left" />
+						</span>
+						<span data-show="$navCollapsed" style="display:none">
+							<Icon name="chevron-right" />
+						</span>
+						<span class="adm-label">{l.collapse}</span>
+					</button>
+				</div>
 			</aside>
 			<div class="adm-main">
 				<header class="adm-top adm-noprint">
-					<button
-						type="button"
-						class="adm-iconbtn adm-top__desktop-collapse"
-						aria-label={l.collapse}
-						data-on:click="$navCollapsed = !$navCollapsed"
-					>
-						<Icon name="sidebar" />
-					</button>
 					<div class="adm-top__phone">
 						<AppSwitcher apps={p.apps} active={p.app} label={l.apps} />
 					</div>
@@ -328,6 +364,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						signOutAction={p.signOutAction}
 						locale={p.locale}
 						themePref={p.themePref}
+						deco={p.deco}
 					/>
 				</header>
 				<div class="adm-banner adm-banner--offline adm-offline-flag adm-noprint" role="status">
