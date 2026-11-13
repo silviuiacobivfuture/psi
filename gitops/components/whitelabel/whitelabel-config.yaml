@@ -89,6 +89,7 @@ data:
   FRONT_HOST: portal.psizone.ro
   MESH_BASE_DOMAIN: psizone.ro
   TAILNET_DOMAIN: psizone.ro
+  MAIL_ADMIN_HOST_PREFIX: mail-admin
   MAILBOX_DOMAIN: post.psizone.ro
   HUB_HOST: sso.psizone.ro
   BUSINESS_APP_PREFIX: psi

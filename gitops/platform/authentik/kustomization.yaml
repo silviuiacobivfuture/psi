@@ -41,6 +41,7 @@ resources:
   - plunk-sso-token-reconcile.yaml
   - novu-sso-token-reconcile.yaml
   - n8n-sso-token-reconcile.yaml
+  - stalwart-admins-token-reconcile.yaml
   # Authentik as n8n-sso's SCIM client (apps/n8n-sso), and one per generated instance.
   # Also named under blueprints.configMaps in gitops/apps/overlays/dev/authentik.yaml.
   - blueprints-n8n-sso.yaml

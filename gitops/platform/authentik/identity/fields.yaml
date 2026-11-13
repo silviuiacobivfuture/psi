@@ -34,6 +34,8 @@
       fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
     - select: {kind: CronJob, name: authentik-n8n-sso-token-reconcile}
       fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
+    - select: {kind: CronJob, name: authentik-stalwart-admins-token-reconcile}
+      fieldPaths: ["metadata.annotations.[alerts.psizone.ro/owner]"]
 # ── the database's archive: the estate's object storage, its bucket <BUCKET_PREFIX>-tfstate-dev ──
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX}
   targets:

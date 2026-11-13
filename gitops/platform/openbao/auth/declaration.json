@@ -37,6 +37,7 @@
 		"authentik-plunk-sso-token",
 		"authentik-novu-sso-token",
 		"authentik-n8n-sso-token",
+		"authentik-stalwart-admins-token",
 		"openbao-auth-reconcile",
 		"openbao-auth-audit"
 	],
@@ -294,6 +295,17 @@
 				],
 				"token_policies": [
 					"authentik-n8n-sso-token"
+				]
+			},
+			"authentik-stalwart-admins-token": {
+				"bound_service_account_names": [
+					"authentik-stalwart-admins-token"
+				],
+				"bound_service_account_namespaces": [
+					"authentik"
+				],
+				"token_policies": [
+					"authentik-stalwart-admins-token"
 				]
 			},
 			"openbao-auth-reconcile": {

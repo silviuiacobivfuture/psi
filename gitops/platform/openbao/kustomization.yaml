@@ -56,6 +56,7 @@ configMapGenerator:
       - auth/policies/authentik-plunk-sso-token.hcl
       - auth/policies/authentik-novu-sso-token.hcl
       - auth/policies/authentik-n8n-sso-token.hcl
+      - auth/policies/authentik-stalwart-admins-token.hcl
       - auth/policies/default.hcl
       - auth/policies/developer.hcl
       - auth/policies/eso.hcl

@@ -71,3 +71,11 @@
     options:
       delimiter: /
       index: 0
+  - select:
+      kind: CronJob
+      name: authentik-stalwart-admins-token-reconcile
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=reconcile].image
+    options:
+      delimiter: /
+      index: 0
