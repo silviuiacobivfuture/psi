@@ -79,6 +79,7 @@ const CATEGORIES: Readonly<Record<PwaBrand, ReadonlyArray<string>>> = {
 	eqsync: ["health", "lifestyle"],
 	hemisync: ["lifestyle", "education"],
 	blog: ["news", "health"],
+	clinic: ["medical", "productivity"],
 };
 
 /**

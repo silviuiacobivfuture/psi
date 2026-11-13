@@ -10,6 +10,7 @@ const APP: Record<string, string> = {
 	eqsync: "eqsync-web",
 	hemisync: "hemisync-web",
 	blog: "blog-web",
+	clinic: "clinic",
 };
 
 describe("buildManifest", () => {

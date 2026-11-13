@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clinic
+  labels: { app: clinic }
+  annotations:
+    # Rolls the pods when clinic-env changes (OpenBao -> ESO -> Secret -> roll).
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: clinic } }
+  template:
+    metadata:
+      labels: { app: clinic }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # FIRST: fail LOUD on a missing or blank secret, before the console boots. Adding a key = adding its line.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: clinic-env }
+          command:
+            - sh
+            - -c
+            - >-
+              m=0;
+              [ -n "${OIDC_CLIENT_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_ID" >&2; m=1; };
+              [ -n "${OIDC_CLIENT_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_CLIENT_SECRET" >&2; m=1; };
+              [ "${#SESSION_SECRET}" -ge 32 ] || { echo "MISSING REQUIRED SECRET: SESSION_SECRET (32+ characters)" >&2; m=1; };
+              [ -n "${OPENFGA_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_TOKEN" >&2; m=1; };
+              [ -n "${OPENFGA_STORE_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_STORE_ID" >&2; m=1; };
+              [ -n "${OPENFGA_MODEL_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_MODEL_ID" >&2; m=1; };
+              [ -n "${ACCOUNT_DATABASE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: ACCOUNT_DATABASE_URL" >&2; m=1; };
+              [ "$m" = 0 ] && echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: web
+          image: registry.psizone.ro/psi/clinic
+          ports: [{ name: http, containerPort: 3000 }]
+          envFrom:
+            - secretRef: { name: clinic-env }
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: NODE_ENV, value: production }
+            - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
+            - { name: AUTHENTIK_URL, value: "https://auth.psizone.ro" }
+            - { name: OPENFGA_ENDPOINT, value: "http://openfga.openfga.svc:8081" }
+            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
+          startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 30 }
+          readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}

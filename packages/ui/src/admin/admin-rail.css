@@ -1,0 +1,144 @@
+/*
+ * The navigation rail (collapsed side navigation): a fixed-width column of centred icons, never scrolling
+ * sideways; the app switcher is a round app-tinted monogram whose menu opens as a popover to the rail's
+ * right; each icon has a tooltip; the toggle sits at the rail's foot.
+ */
+.adm-nav {
+	overflow: visible;
+	z-index: 45;
+}
+.adm-app-mono {
+	display: none;
+	font: 700 15px / 1 var(--font-sans);
+}
+.adm-nav__link {
+	position: relative;
+}
+.adm-nav__foot {
+	margin-top: auto;
+}
+.adm-rail-toggle {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	width: 100%;
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-3);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--ink-muted);
+	font: 600 14px / 1 var(--font-sans);
+	cursor: pointer;
+}
+.adm-rail-toggle:hover {
+	background: var(--surface-2);
+	color: var(--ink);
+}
+.adm-rail-toggle > span:first-child,
+.adm-rail-toggle > span:nth-child(2) {
+	display: inline-grid;
+}
+.adm.is-collapsed .adm-nav {
+	overflow: visible;
+	align-items: center;
+}
+.adm.is-collapsed .adm-nav .adm-switch {
+	width: 44px;
+	min-width: 44px;
+	height: 44px;
+	padding: 0;
+	justify-content: center;
+	border-radius: 50%;
+}
+.adm.is-collapsed .adm-nav .adm-switch.adm-switch--psizone {
+	border: 1.5px solid var(--app-psizone);
+	background: color-mix(in oklab, var(--app-psizone) 18%, var(--surface-1));
+}
+.adm.is-collapsed .adm-nav .adm-switch.adm-switch--hemisync {
+	border: 1.5px solid var(--app-hemisync);
+	background: color-mix(in oklab, var(--app-hemisync) 18%, var(--surface-1));
+}
+.adm.is-collapsed .adm-nav .adm-switch .adm-dot,
+.adm.is-collapsed .adm-nav .adm-switch > .adm-icon,
+.adm.is-collapsed .adm-nav .adm-switch .adm-label {
+	display: none;
+}
+.adm.is-collapsed .adm-nav .adm-switch .adm-app-mono {
+	display: inline;
+}
+.adm.is-collapsed .adm-nav .adm-menu__panel--left {
+	left: calc(100% + 26px);
+	top: 0;
+	right: auto;
+}
+.adm.is-collapsed .adm-nav .adm-nav__link .adm-label,
+.adm.is-collapsed .adm-nav .adm-rail-toggle .adm-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	display: inline;
+}
+.adm.is-collapsed .adm-nav .adm-rail-toggle {
+	justify-content: center;
+	padding: 0;
+	width: var(--adm-touch);
+}
+.adm.is-collapsed .adm-nav__link:hover::after,
+.adm.is-collapsed .adm-nav__link:focus-visible::after {
+	content: attr(data-tip);
+	position: absolute;
+	left: calc(100% + 12px);
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 60;
+	padding: 6px 10px;
+	border-radius: var(--radius-sm);
+	background: var(--ink);
+	color: var(--bg);
+	font: 600 13px / 1.2 var(--font-sans);
+	white-space: nowrap;
+	pointer-events: none;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+	.adm .adm-nav .adm-switch {
+		width: 44px;
+		min-width: 44px;
+		height: 44px;
+		padding: 0;
+		justify-content: center;
+		border-radius: 50%;
+		border: 1.5px solid var(--line-control);
+	}
+	.adm .adm-nav .adm-switch .adm-dot,
+	.adm .adm-nav .adm-switch > .adm-icon,
+	.adm .adm-nav .adm-switch .adm-label {
+		display: none;
+	}
+	.adm .adm-nav .adm-switch .adm-app-mono {
+		display: inline;
+	}
+	.adm .adm-nav .adm-menu__panel--left {
+		left: calc(100% + 26px);
+		top: 0;
+		right: auto;
+	}
+	.adm .adm-nav .adm-nav__link .adm-label,
+	.adm .adm-nav .adm-rail-toggle .adm-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		display: inline;
+	}
+	.adm .adm-nav__foot {
+		display: none;
+	}
+}

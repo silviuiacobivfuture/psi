@@ -1,0 +1,118 @@
+/* Clients, client page, packages. */
+.client-list {
+	padding: 0;
+	overflow: hidden;
+}
+.client-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: 60px;
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid var(--line);
+	color: inherit;
+	text-decoration: none;
+}
+.client-row:last-child {
+	border-bottom: 0;
+}
+.client-row:hover {
+	background: var(--surface-2);
+}
+.client-row__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+}
+.client-row__main > * {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pk {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+.pk__summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+}
+.pk__fields {
+	display: grid;
+	gap: var(--space-3);
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.pk__wide {
+	grid-column: 1 / -1;
+}
+
+/* Roster, requests, reminders. */
+.roster th[scope="row"] {
+	position: sticky;
+	left: 0;
+	background: var(--surface-1);
+	z-index: 1;
+}
+.roster th[aria-current="date"] {
+	color: var(--ink);
+	box-shadow: inset 0 -3px 0 var(--app);
+}
+.roster td {
+	min-width: 132px;
+}
+.reminder {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: var(--space-3);
+}
+.reminder__when {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+}
+.reminder__who {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.reminder .adm-row {
+	grid-column: 1 / -1;
+}
+.reminder[data-sent="true"] {
+	background: var(--surface-2);
+}
+@media (min-width: 768px) {
+	.reminder {
+		grid-template-columns: 72px 1fr auto auto;
+	}
+	.reminder .adm-row {
+		grid-column: auto;
+	}
+}
+
+/* The hidden design sheet. */
+.design__row {
+	display: grid;
+	gap: var(--space-4);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+}
+.design__sheet {
+	padding: var(--space-4);
+	border-radius: var(--radius-md);
+	background: var(--bg);
+	color: var(--ink);
+	color-scheme: inherit;
+}
+.design__grid {
+	display: grid;
+	gap: var(--space-3);
+}

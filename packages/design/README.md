@@ -1,6 +1,6 @@
 # Design system: Psizone Platform
 
-One component library, eight themes, four brands. Online version with live previews: https://claude.ai/artifact/KCDyT243fZZhkYDVYRfFo5
+One component library, ten themes: four brands (each dark and light) and the admin console's own two. Online version with live previews: https://claude.ai/artifact/KCDyT243fZZhkYDVYRfFo5
 
 ## Principles (full text in `brand-books/`)
 
@@ -11,11 +11,11 @@ One component library, eight themes, four brands. Online version with live previ
 5. **Soft everywhere.** Pills, large radii, no sharp corners.
 6. **Calm motion.** Slow ambient loops, gentle reveals, nothing under `prefers-reduced-motion`.
 7. **Accessible in every theme.** Text at least 4.5:1, focus rings and control borders at least 3:1, status never by colour alone (see `PALETTE.md`).
-8. **Roles, not colours.** Use `var(--accent)`, `var(--surface-1)`; never hex values. A new token goes into all eight themes or none.
+8. **Roles, not colours.** Use `var(--accent)`, `var(--surface-1)`; never hex values. A new token goes into all the site themes or none; roles that only the console needs live in `tokens.json` `color.adminTokens` and exist only in the admin themes.
 
 ## Themes
 
-`psizone-dark` · `psizone-light` · `eqsync-dark` · `eqsync-light` · `hemisync-light` · `hemisync-dark` · `blog-light` · `blog-dark`, set on `<html data-theme="…">`.
+`psizone-dark` · `psizone-light` · `eqsync-dark` · `eqsync-light` · `hemisync-light` · `hemisync-dark` · `blog-light` · `blog-dark`, and the console's `admin-light` · `admin-dark` (calmer, denser, warm paper by day and a deep green-black night; status, calendar-column and per-app tint roles that exist only in these two), set on `<html data-theme="…">`.
 
 ## Files
 

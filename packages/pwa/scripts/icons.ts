@@ -24,6 +24,7 @@ const APP_DIR: Readonly<Record<PwaBrand, string>> = {
 	eqsync: "apps/eqsync-web",
 	hemisync: "apps/hemisync-web",
 	blog: "apps/blog-web",
+	clinic: "apps/clinic",
 };
 
 type Shape = "tile" | "bleed";
@@ -58,12 +59,21 @@ const DESIGNS: Readonly<Record<PwaBrand, Design>> = {
 		ink: token("glow-1", "blog-light"),
 		ink2: token("glow-2", "blog-light"),
 	},
+	// The team console wears the Psizone mark, in the admin night theme's gold on its near-black ground.
+	clinic: {
+		ground: token("bg", "admin-dark"),
+		ink: token("glow-1", "admin-dark"),
+		ink2: token("glow-1", "admin-dark"),
+	},
 };
 
 /** The compact mark as SVG on a 100 × 100 canvas, centred, in the design's two inks. */
 function mark(brand: PwaBrand, scale: number, ink: string, ink2: string): string {
 	const k = (100 * scale) / 64;
-	const inner = MARKS[brand].compact.replaceAll('class="t2"', `class="t2" color="${ink2}"`);
+	const inner = MARKS[brand === "clinic" ? "psizone" : brand].compact.replaceAll(
+		'class="t2"',
+		`class="t2" color="${ink2}"`,
+	);
 	return `<g transform="translate(${(50 - 32 * k).toFixed(3)} ${(50 - 32 * k).toFixed(3)}) scale(${k.toFixed(4)})" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" color="${ink}">${inner}</g>`;
 }
 
@@ -110,7 +120,9 @@ async function badge(brand: PwaBrand, size: number): Promise<Buffer> {
 }
 
 // A retired site (RETIRED_SITES) gets no icons: its app folder is left alone.
-for (const brand of live(PWA_BRANDS)) {
+// `pnpm --filter @psi/pwa icons clinic` renders one brand only.
+const only = process.argv[2];
+for (const brand of live(PWA_BRANDS).filter((b) => only === undefined || b === only)) {
 	const out = `${REPO}${APP_DIR[brand]}/public/assets/pwa`;
 	mkdirSync(out, { recursive: true });
 	for (const icon of ICON_FILES) {

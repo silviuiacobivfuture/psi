@@ -1,0 +1,74 @@
+/*
+ * The console's ground: a soft mesh tinted by the active app, a sparse tessellation drawn from the
+ * Psizone emblem's linework (concentric rings, the four petals), and a fine film grain — all static,
+ * all low-contrast. Content never sits on it bare: cards are frosted (token surface + blur).
+ */
+.adm {
+	background:
+		radial-gradient(
+			60rem 38rem at 8% -6%,
+			color-mix(in oklab, var(--app) 16%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			48rem 34rem at 100% 8%,
+			color-mix(in oklab, var(--glow-2) 12%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			52rem 40rem at 70% 110%,
+			color-mix(in oklab, var(--glow-3) 12%, transparent),
+			transparent 72%
+		),
+		var(--bg);
+	background-attachment: fixed;
+	isolation: isolate;
+}
+/* Pattern only where there is no data (sign-in, no-access, the nav's top), or when the person asks for it. */
+.adm[data-deco="on"]::before,
+.gate::before,
+.adm-nav::before {
+	content: "";
+	position: fixed;
+	pointer-events: none;
+	z-index: -1;
+	background: var(--ink);
+	opacity: 0.03;
+	-webkit-mask:
+		url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 180 180' fill='none' stroke='%23000' stroke-width='0.6'><g><circle cx='90' cy='90' r='16'/><circle cx='90' cy='90' r='30'/><circle cx='90' cy='90' r='44'/><circle cx='90' cy='90' r='58' stroke-dasharray='2 5'/><circle cx='90' cy='90' r='74'/></g><g transform='translate(90 90)'><ellipse rx='9' ry='22' cy='-22'/><ellipse rx='9' ry='22' cy='22'/><ellipse rx='22' ry='9' cx='-22'/><ellipse rx='22' ry='9' cx='22'/></g></svg>")
+		no-repeat center / contain;
+	mask:
+		url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 180 180' fill='none' stroke='%23000' stroke-width='0.6'><g><circle cx='90' cy='90' r='16'/><circle cx='90' cy='90' r='30'/><circle cx='90' cy='90' r='44'/><circle cx='90' cy='90' r='58' stroke-dasharray='2 5'/><circle cx='90' cy='90' r='74'/></g><g transform='translate(90 90)'><ellipse rx='9' ry='22' cy='-22'/><ellipse rx='9' ry='22' cy='22'/><ellipse rx='22' ry='9' cx='-22'/><ellipse rx='22' ry='9' cx='22'/></g></svg>")
+		no-repeat center / contain;
+}
+.adm[data-deco="on"]::before {
+	top: -120px;
+	right: -120px;
+	width: 520px;
+	height: 520px;
+}
+.gate::before {
+	inset: 0;
+	margin: auto;
+	width: min(560px, 90vw);
+	height: min(560px, 90vw);
+}
+.adm-nav::before {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	max-height: 240px;
+	opacity: 0.05;
+	z-index: 0;
+}
+@media print {
+	.adm {
+		background: none;
+	}
+	.adm::before,
+	.adm-nav::before {
+		display: none;
+	}
+}

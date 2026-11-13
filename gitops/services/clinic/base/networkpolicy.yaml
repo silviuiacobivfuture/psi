@@ -1,0 +1,29 @@
+# The console is reached through Traefik only; it reaches Authentik (public host), OpenFGA, the
+# account database, the scheduling service and DNS — nothing else.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: clinic
+spec:
+  podSelector: { matchLabels: { app: clinic } }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      ports: [{ port: 3000 }]
+  egress:
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      ports: [{ port: 53, protocol: UDP }, { port: 53, protocol: TCP }]
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: openfga } }
+      ports: [{ port: 8081 }]
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: account } }
+      ports: [{ port: 5432 }]
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: scheduling-api } }
+      ports: [{ port: 4380 }]
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
+      ports: [{ port: 443 }]

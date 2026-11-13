@@ -1,0 +1,131 @@
+# clinic's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
+# manifests are, which secrets it reads. SEB's doctor derives its health checks from it
+# (doctor/plan.mjs): the ExternalSecrets synced with every required key, the OpenBao paths present,
+# the workload, the host. NOT YET DEPLOYED: gitops/apps/overlays/dev/apps/clinic.yaml is not listed
+# in that directory's kustomization.yaml until the OpenBao keys, the Authentik client and the
+# scheduling adapter exist (docs/plans/clinic.md).
+schema: seb.app/v1
+key: clinic
+name: clinic
+displayName: Programări
+namespace: clinic
+components:
+  - name: clinic
+    path: apps/clinic
+    namespace: clinic
+    gitops: gitops/services/clinic
+    image: psi/clinic
+    build:
+      workflow: .github/workflows/apps.yml
+      dockerfile: apps/clinic/Dockerfile
+      context: .
+    port: 3000
+    hosts:
+      - prefix: programari
+        exposure: public
+        ingress: clinic
+    overlayImages:
+      - psi/clinic
+    workloads:
+      - name: clinic
+        kind: Deployment
+        images:
+          - psi/clinic
+        restartOnSecretChange: true
+        envFrom: [clinic-env]
+        requiredEnv:
+          - OIDC_CLIENT_ID
+          - OIDC_CLIENT_SECRET
+          - SESSION_SECRET
+          - OPENFGA_TOKEN
+          - OPENFGA_STORE_ID
+          - OPENFGA_MODEL_ID
+          - ACCOUNT_DATABASE_URL
+        initContainers: [assert-secrets]
+        probes:
+          startup: { path: /healthz, port: 3000 }
+          readiness: { path: /healthz, port: 3000 }
+          liveness: { path: /healthz, port: 3000 }
+externalSecrets:
+  - name: clinic-env
+    namespace: clinic
+    target: clinic-env
+    manifest: gitops/services/clinic/base/externalsecret.yaml
+    template:
+      - OIDC_CLIENT_ID
+      - OIDC_CLIENT_SECRET
+      - SESSION_SECRET
+      - OPENFGA_TOKEN
+      - OPENFGA_STORE_ID
+      - OPENFGA_MODEL_ID
+      - ACCOUNT_DATABASE_URL
+  - name: authentik-clinic-oidc
+    namespace: authentik
+    target: authentik-clinic-oidc
+    manifest: gitops/platform/authentik/clinic-oidc-externalsecret.yaml
+secrets:
+  - path: apps/clinic/oidc
+    owner: clinic
+    keys:
+      - name: client_id
+        source: { kind: generated, length: 40 }
+        readers:
+          - { kind: external-secret, secret: clinic/clinic-env, env: OIDC_CLIENT_ID }
+          - { kind: external-secret, secret: authentik/authentik-clinic-oidc, env: AUTHENTIK_OIDC__CLINIC__ID }
+      - name: client_secret
+        source: { kind: generated, length: 96 }
+        readers:
+          - { kind: external-secret, secret: clinic/clinic-env, env: OIDC_CLIENT_SECRET }
+          - { kind: external-secret, secret: authentik/authentik-clinic-oidc, env: AUTHENTIK_OIDC__CLINIC__SECRET }
+  - path: apps/clinic/env
+    owner: clinic
+    keys:
+      - name: SESSION_SECRET
+        source: { kind: generated, length: 64 }
+        readers: [{ kind: external-secret, secret: clinic/clinic-env, env: SESSION_SECRET }]
+      - name: OPENFGA_TOKEN
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: clinic/clinic-env, env: OPENFGA_TOKEN }]
+oidc:
+  client: clinic
+  kind: confidential
+  delegation: false
+  platform: false
+  redirectUris: [https://programari.psizone.ro/auth/callback]
+  postLogoutRedirectUris: [https://programari.psizone.ro/]
+  frontchannelLogoutUris: []
+groups:
+  - name: app-clinic-member
+    state: present
+    declaredIn: gitops/platform/authentik/blueprints-clinic.yaml
+    role: member
+ci:
+  workflows:
+    - file: .github/workflows/apps.yml
+      images: [psi/clinic]
+      buildArgs: [REGISTRY_HOST, REGISTRY_PROJECT_MIRROR]
+      bumps: [gitops/services/clinic/overlays/dev/kustomization.yaml]
+health:
+  secretChecks:
+    - label: clinic environment
+      externalSecret: clinic/clinic-env
+      secret: clinic-env
+      keys:
+        - OIDC_CLIENT_ID
+        - OIDC_CLIENT_SECRET
+        - SESSION_SECRET
+        - OPENFGA_TOKEN
+        - OPENFGA_STORE_ID
+        - OPENFGA_MODEL_ID
+        - ACCOUNT_DATABASE_URL
+      - label: clinic OIDC client (Authentik)
+      externalSecret: authentik/authentik-clinic-oidc
+      secret: authentik-clinic-oidc
+      keys: [AUTHENTIK_OIDC__CLINIC__ID, AUTHENTIK_OIDC__CLINIC__SECRET]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/clinic/env, apps/clinic/oidc]
+  keys: []
+findings: []

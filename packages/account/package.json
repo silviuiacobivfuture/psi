@@ -6,7 +6,8 @@
 	"description": "One estate account across psi's sites: Authentik sign-in (OIDC code + PKCE), server-side sessions, and every decision a Check against OpenFGA (Polaris's data plane). Ships no text.",
 	"exports": {
 		".": "./src/index.ts",
-		"./dev/mock-issuer": "./dev/mock-issuer.ts"
+		"./dev/mock-issuer": "./dev/mock-issuer.ts",
+		"./dev/test-browser": "./dev/test-browser.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@psi/design/theme.css";
+@import "@psi/ui/admin.css";
+@import "./calendar.css";
+@import "./screens.css";
+@source "../../../packages/ui/src/admin";
+@source "../../../packages/pwa/src";
+
+html {
+	background: var(--bg);
+}
+body {
+	margin: 0;
+	background: var(--bg);
+}
