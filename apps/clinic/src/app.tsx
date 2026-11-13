@@ -1,8 +1,10 @@
 import { sameOrigin } from "@psi/account";
+import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
+import { mountAssistant } from "./assistant/mount";
 import type { Auth } from "./auth";
 import { Page } from "./chrome";
 import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
@@ -28,6 +30,8 @@ export interface AppDeps {
 	auth: Auth;
 	pwa: Pwa;
 	origin: string;
+	/** The staff assistant; omitted, it does not exist (no button, no routes). */
+	assistant?: StaffEngine;
 	/** Extra mounts that need the app first (account routes, the PWA). */
 	mount?: (app: Hono) => void;
 }
@@ -93,6 +97,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			memberships,
 			port: deps.port,
 			pwa: deps.pwa,
+			...(deps.assistant === undefined ? {} : { assistant: deps.assistant }),
 			signOut: deps.auth.signOutAction,
 		});
 		await next();
@@ -115,6 +120,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			"cache-control": "private, no-store",
 		}),
 	);
+	if (deps.assistant !== undefined) mountAssistant(app, deps.assistant);
 	registerCalendarWrites(app, deps);
 	registerSearch(app);
 	registerClients(app);

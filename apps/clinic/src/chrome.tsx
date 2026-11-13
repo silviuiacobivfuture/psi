@@ -1,6 +1,7 @@
 import { AdminShell, type NavItem, type ShellApp, type ShellLabels } from "@psi/ui/admin";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
 import { at, type Locale } from "./lib/i18n";
@@ -122,12 +123,22 @@ export async function Page({
 				rail={wide === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
-				extras={ctx.pwa.tools(locale)}
+				extras={
+					<>
+						<AssistantTrigger ctx={ctx} />
+						{ctx.pwa.tools(locale)}
+					</>
+				}
 				locale={locale}
 				themePref={ctx.pref}
 				deco={ctx.deco}
 				searchAction="/search"
-				overlays={overlays}
+				overlays={
+					<>
+						{overlays}
+						<AssistantPanel ctx={ctx} />
+					</>
+				}
 			>
 				{children}
 			</AdminShell>

@@ -1,3 +1,4 @@
+import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { type ThemePreference, themeFor, themePreferenceFrom } from "@psi/ui/admin";
 import type { Context } from "hono";
@@ -21,6 +22,8 @@ export interface Ctx {
 	memberships: ReadonlyArray<Membership>;
 	port: ClinicPort;
 	pwa: Pwa;
+	/** The staff assistant, when it is switched on. */
+	assistant?: StaffEngine;
 	/** Where the sign-out form posts (the estate's sign-out, or the development no-op). */
 	signOut: string;
 }

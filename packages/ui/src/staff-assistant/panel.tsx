@@ -16,6 +16,39 @@ export interface StaffPanelProps {
 	suggestions: ReadonlyArray<string>;
 	/** One conversation per browser tab: a random id the console makes. */
 	threadId: string;
+	/** Draw the floating trigger too (default). The console puts `StaffTrigger` in its top bar and passes false. */
+	trigger?: boolean;
+}
+
+/** The expression that opens or closes the panel, and asks for the day's briefing the first time. */
+function toggleExpression(base: string): string {
+	return `$staff.open = !$staff.open; if ($staff.open && !$staff.briefed) { $staff.briefed = true; @get(${jsString(`${base}/briefing`)}) }`;
+}
+
+export interface StaffTriggerProps {
+	labels: PanelCopy;
+	base: string;
+	/** `bar`: a glowing pill for a top bar; `fab`: a floating button. */
+	variant?: "bar" | "fab";
+}
+
+/** The button that opens the assistant (also reachable with Ctrl/Cmd+K). */
+export function StaffTrigger({ labels, base, variant = "fab" }: StaffTriggerProps): JSX.Element {
+	return (
+		<button
+			type="button"
+			class={`sa-trigger sa-trigger--${variant}`}
+			data-staff-trigger
+			aria-controls="staff-assistant"
+			data-attr:aria-expanded="$staff.open ? 'true' : 'false'"
+			data-on:click={toggleExpression(base)}
+		>
+			<SaIcon name="spark" />
+			<span class="sa-trigger__label">{labels.title}</span>
+			<kbd class="sa-trigger__key">{labels.shortcut}</kbd>
+			<span class="sa-sr">{labels.open}</span>
+		</button>
+	);
 }
 
 /**
@@ -29,26 +62,14 @@ export function StaffPanel({
 	page,
 	suggestions,
 	threadId,
+	trigger,
 }: StaffPanelProps): JSX.Element {
 	const signals = JSON.stringify({
 		staff: { open: false, briefed: false, message: "", threadId, page },
 	});
-	const open = `$staff.open = !$staff.open; if ($staff.open && !$staff.briefed) { $staff.briefed = true; @get(${jsString(`${base}/briefing`)}) }`;
 	return (
 		<div class="sa-root" data-signals={signals}>
-			<button
-				type="button"
-				class="sa-trigger"
-				data-staff-trigger
-				aria-controls="staff-assistant"
-				data-attr:aria-expanded="$staff.open ? 'true' : 'false'"
-				data-on:click={open}
-			>
-				<SaIcon name="spark" />
-				<span class="sa-trigger__label">{labels.title}</span>
-				<kbd class="sa-trigger__key">{labels.shortcut}</kbd>
-				<span class="sa-sr">{labels.open}</span>
-			</button>
+			{trigger === false ? null : <StaffTrigger labels={labels} base={base} />}
 			<aside
 				id="staff-assistant"
 				class="sa"

@@ -110,6 +110,34 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			log(d, "console", "appointment.create", a.id);
 			return a;
 		},
+		async updateAppointment(app, id, patch) {
+			guard("updateAppointment");
+			const d = data(app);
+			const i = d.appointments.findIndex((a) => a.id === id);
+			const found = d.appointments[i];
+			if (found === undefined) throw new PortError("not-found", id);
+			if (patch.columnId !== undefined && !d.columns.some((c) => c.id === patch.columnId))
+				throw new PortError("invalid", "unknown column");
+			const next: Appointment = {
+				...found,
+				...(patch.date === undefined ? {} : { date: patch.date }),
+				...(patch.startMin === undefined ? {} : { startMin: patch.startMin }),
+				...(patch.columnId === undefined ? {} : { columnId: patch.columnId }),
+				...(patch.status === undefined ? {} : { status: patch.status }),
+			};
+			d.appointments[i] = next;
+			log(
+				d,
+				"console",
+				patch.status === undefined ? "appointment.move" : `appointment.${patch.status}`,
+				id,
+			);
+			return next;
+		},
+		async appendAudit(app, entry) {
+			guard("appendAudit");
+			log(data(app), entry.actor, entry.action, entry.target);
+		},
 		async search(app, query): Promise<ReadonlyArray<SearchHit>> {
 			guard("search");
 			const q = query.trim().toLocaleLowerCase();

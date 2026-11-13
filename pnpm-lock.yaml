@@ -144,6 +144,9 @@ importers:
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
+      '@psi/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa

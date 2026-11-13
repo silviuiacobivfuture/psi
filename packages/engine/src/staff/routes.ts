@@ -15,7 +15,7 @@ export type StaffPortSource = (
 
 export interface StaffRouteOptions {
 	/** How the page draws a turn: `@psi/ui/staff-assistant`'s views. */
-	views: StaffViews;
+	views: StaffViews | ((c: Context) => StaffViews);
 	/** The language of a confirmation when nobody is signed in. Defaults to Romanian. */
 	fallbackLocale?: z.infer<typeof StaffLocaleSchema>;
 }
@@ -70,11 +70,13 @@ export function createStaffAssistantRoutes(
 	engine: StaffEngine,
 	options: StaffRouteOptions,
 ): Hono {
-	const { views } = options;
+	const viewsFor = (c: Context): StaffViews =>
+		typeof options.views === "function" ? options.views(c) : options.views;
 	const app = new Hono();
 
 	app.post("/chat", async (c) => {
 		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
+		const views = viewsFor(c);
 		const body: unknown = await c.req.json().catch(() => undefined);
 		const signals = SignalsSchema.safeParse(body);
 		const port = await portFor(c);
@@ -151,6 +153,7 @@ export function createStaffAssistantRoutes(
 
 	app.get("/briefing", async (c) => {
 		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
+		const views = viewsFor(c);
 		const port = await portFor(c);
 		return streamSSE(c, async (stream) => {
 			const card = await engine.briefing(port);
@@ -160,6 +163,7 @@ export function createStaffAssistantRoutes(
 
 	app.post("/confirm", async (c) => {
 		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
+		const views = viewsFor(c);
 		const proposal = ProposalQuerySchema.safeParse(c.req.query("proposal"));
 		if (!proposal.success) return c.json({ error: "invalid" }, 400);
 		const port = await portFor(c);
@@ -171,6 +175,7 @@ export function createStaffAssistantRoutes(
 
 	app.post("/dismiss", async (c) => {
 		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
+		const views = viewsFor(c);
 		const proposal = ProposalQuerySchema.safeParse(c.req.query("proposal"));
 		if (!proposal.success) return c.json({ error: "invalid" }, 400);
 		const port = await portFor(c);

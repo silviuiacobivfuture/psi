@@ -17,6 +17,13 @@ import type {
 
 export type ClientFilter = "current" | "archived";
 
+export interface AppointmentPatch {
+	date?: string;
+	startMin?: number;
+	columnId?: string;
+	status?: Appointment["status"];
+}
+
 export interface CalendarData {
 	columns: ReadonlyArray<Column>;
 	appointments: ReadonlyArray<Appointment>;
@@ -50,6 +57,13 @@ export interface ClinicPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
 	createAppointment(app: AppSlug, input: NewAppointment): Promise<Appointment>;
+	/** Moves an appointment or changes its status; the service answers with the appointment as it now stands. */
+	updateAppointment(app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment>;
+	/** Records who did what (the staff assistant's actions land in the audit log). */
+	appendAudit(
+		app: AppSlug,
+		entry: { actor: string; action: string; target: string },
+	): Promise<void>;
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;

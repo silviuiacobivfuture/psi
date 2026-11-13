@@ -4,6 +4,6 @@
  * entry and never imported by a visitor site (a test scans for that).
  */
 export { CardView } from "./cards";
-export { StaffPanel, type StaffPanelProps } from "./panel";
+export { StaffPanel, type StaffPanelProps, StaffTrigger, type StaffTriggerProps } from "./panel";
 export { jsString, safeHref } from "./safe";
 export { staffViews } from "./views";

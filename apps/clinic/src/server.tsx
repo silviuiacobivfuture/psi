@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { account } from "./account";
 import { createApp } from "./app";
+import { createAssistantEngine } from "./assistant/mount";
 import { accountAuth, DEV_SUBJECT, devAuth } from "./auth";
 import { ENV, ORIGIN } from "./config";
 import { createFakePort } from "./port/fake";
@@ -43,6 +44,7 @@ const pwa = createConsolePwa(ORIGIN, account);
 
 const app = createApp({
 	port,
+	assistant: createAssistantEngine(process.env),
 	auth,
 	pwa,
 	origin: ORIGIN,

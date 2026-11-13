@@ -593,3 +593,44 @@
 		display: none;
 	}
 }
+
+/* ── the trigger in a top bar: a pill with a soft glow ─────────────── */
+.sa-trigger--bar {
+	position: relative;
+	bottom: auto;
+	right: auto;
+	z-index: auto;
+	min-height: 36px;
+	padding: 0 var(--space-3);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--app, var(--accent)) 60%, transparent);
+	animation: sa-glow 3.2s ease-in-out infinite;
+}
+.sa-trigger--bar:hover {
+	animation-play-state: paused;
+	filter: brightness(1.08);
+}
+@keyframes sa-glow {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, var(--app, var(--accent)) 60%, transparent),
+			0 0 6px color-mix(in srgb, var(--app, var(--accent)) 35%, transparent);
+	}
+	50% {
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, var(--app, var(--accent)) 80%, transparent),
+			0 0 16px color-mix(in srgb, var(--app, var(--accent)) 55%, transparent);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.sa-trigger--bar {
+		animation: none;
+	}
+}
+@media (max-width: 700px) {
+	.sa-trigger--bar {
+		width: 40px;
+		height: 40px;
+		min-height: 40px;
+	}
+}
