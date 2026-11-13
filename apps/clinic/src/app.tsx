@@ -9,9 +9,10 @@ import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
 import { at } from "./lib/i18n";
 import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
-import { registerCalendarWrites } from "./pages/calendar-routes";
 import { registerClients } from "./pages/clients-routes";
 import { registerDesign } from "./pages/design";
+import { registerDetail } from "./pages/detail-routes";
+import { registerEditor } from "./pages/editor-routes";
 import { NoAccessPage } from "./pages/gate";
 import { MorePage } from "./pages/more";
 import { registerReminders } from "./pages/reminders";
@@ -115,7 +116,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			"cache-control": "private, no-store",
 		}),
 	);
-	registerCalendarWrites(app, deps);
+	registerEditor(app);
+	registerDetail(app);
 	registerSearch(app);
 	registerClients(app);
 	registerRequests(app);

@@ -1,15 +1,19 @@
+import type { Conflict, Probe } from "../domain/conflicts";
 import type {
 	Appointment,
+	AppointmentPatch,
 	AppSlug,
 	AuditEvent,
 	Client,
 	Column,
 	Membership,
 	NewAppointment,
+	NewClient,
 	NewPackage,
 	NewPayment,
 	Package,
 	PackagePatch,
+	PaymentMethod,
 	PushPrefs,
 	Role,
 	RosterEntry,
@@ -37,8 +41,10 @@ export interface ReminderItem {
 /** The refusal the port gives; a screen turns it into its error state, never a blank page. */
 export class PortError extends Error {
 	constructor(
-		readonly code: "unavailable" | "not-found" | "invalid",
+		readonly code: "unavailable" | "not-found" | "invalid" | "conflict",
 		message: string,
+		/** For `conflict`: what the asked time collides with. */
+		readonly conflicts: ReadonlyArray<Conflict> = [],
 	) {
 		super(message);
 		this.name = "PortError";
@@ -52,7 +58,22 @@ export class PortError extends Error {
 export interface ClinicPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
-	createAppointment(app: AppSlug, input: NewAppointment): Promise<Appointment>;
+	appointment(app: AppSlug, id: string): Promise<Appointment | null>;
+	/**
+	 * Creates the appointment, or its whole weekly series, in one step. Refuses with `conflict`
+	 * (listing what collides, nothing written) when any occurrence would double-book a column,
+	 * room or device; with `invalid` for an unknown service, column, resource, client or package.
+	 */
+	createAppointments(app: AppSlug, input: NewAppointment): Promise<ReadonlyArray<Appointment>>;
+	/** Moves, resizes, re-assigns or re-statuses one appointment; the same conflict rule applies. */
+	updateAppointment(app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment>;
+	/** Cancels with a reason; the time becomes free. */
+	cancelAppointment(app: AppSlug, id: string, reason: string): Promise<Appointment>;
+	/** Records that the session was paid, and how. */
+	collectPayment(app: AppSlug, id: string, method: PaymentMethod): Promise<Appointment>;
+	/** What a time on a day collides with: the same rule the writes enforce, for showing it before saving. */
+	findConflicts(app: AppSlug, probe: Probe): Promise<ReadonlyArray<Conflict>>;
+	createClient(app: AppSlug, input: NewClient): Promise<Client>;
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;

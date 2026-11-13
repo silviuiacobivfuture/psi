@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Appointment } from "../port/schema";
+import { type Appointment, appointmentDefaults } from "../port/schema";
 import { consumesSession, packageUsage, paidBani } from "./usage";
 
 const appt = (id: string, date: string, status: Appointment["status"], pk = "k1"): Appointment => ({
@@ -13,6 +13,7 @@ const appt = (id: string, date: string, status: Appointment["status"], pk = "k1"
 	serviceId: "s1",
 	status,
 	note: "",
+	...appointmentDefaults(),
 	packageId: pk,
 });
 const pkg = { id: "k1", sessions: 3, bonus: 1 };

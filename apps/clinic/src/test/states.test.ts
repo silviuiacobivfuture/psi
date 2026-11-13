@@ -38,7 +38,7 @@ describe("calendar states", () => {
 		c = await startConsole(MEMBER);
 		await c.signIn();
 		expect(await (await c.get("/calendar?date=2027-03-03")).text()).toContain("Nicio programare");
-		await c.port.createAppointment("psizone", {
+		await c.port.createAppointments("psizone", {
 			date: "2027-03-03",
 			startMin: 600,
 			columnId: "p1",

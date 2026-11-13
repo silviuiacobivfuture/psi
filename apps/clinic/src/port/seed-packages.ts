@@ -1,5 +1,13 @@
 import { addDays } from "../lib/dates";
-import type { Appointment, Client, Column, Package, Payment, Service } from "./schema";
+import {
+	type Appointment,
+	appointmentDefaults,
+	type Client,
+	type Column,
+	type Package,
+	type Payment,
+	type Service,
+} from "./schema";
 
 const RECEPTION = "Recepție Exemplu";
 
@@ -68,6 +76,7 @@ export function seedPackages(
 				serviceId: service.id,
 				status: k < h.noShows ? "no-show" : "attended",
 				note: "",
+				...appointmentDefaults(),
 				packageId: pkg.id,
 			});
 		}

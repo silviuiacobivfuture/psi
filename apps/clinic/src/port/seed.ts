@@ -4,6 +4,7 @@ import {
 	type Appointment,
 	type AppSlug,
 	type AuditEvent,
+	appointmentDefaults,
 	type Client,
 	type Column,
 	type Package,
@@ -239,7 +240,8 @@ export function seedApp(app: AppSlug, today: string): AppData {
 								? "requested"
 								: "cancelled",
 					note: "",
-					packageId: null,
+					...appointmentDefaults(),
+					priceBani: col.kind === "group" ? 0 : svc.priceBani,
 				});
 				start += svc.durationMin + (rand() < 0.4 ? 30 : 10);
 				if (start > 17 * 60) break;

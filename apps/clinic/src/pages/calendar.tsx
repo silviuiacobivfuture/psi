@@ -17,8 +17,10 @@ import {
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
-import { IsoDateSchema, NewAppointmentSchema } from "../port/schema";
+import { IsoDateSchema } from "../port/schema";
 import { DayGrid, MonthGrid, WeekGrid } from "./calendar-grid";
+import { detailBody } from "./detail-routes";
+import { editorBody, openState } from "./editor-routes";
 
 export const ViewSchema = z.enum(["day", "week", "month"]);
 export type View = z.infer<typeof ViewSchema>;
@@ -28,15 +30,11 @@ export const CalendarQuerySchema = z.object({
 	date: IsoDateSchema.catch(""),
 	col: z.string().optional(),
 	new: z.string().optional(),
-});
-
-/** The new-appointment form's signals, as the page sends them. */
-export const NewApptSignalsSchema = z.object({
-	apDate: NewAppointmentSchema.shape.date,
-	apTime: z.string().regex(/^\d{2}:\d{2}$/),
-	apCol: NewAppointmentSchema.shape.columnId,
-	apClient: NewAppointmentSchema.shape.clientId,
-	apService: NewAppointmentSchema.shape.serviceId,
+	time: z
+		.string()
+		.regex(/^\d{2}:\d{2}$/)
+		.optional(),
+	appt: z.string().max(40).optional(),
 });
 
 const href = (view: View, date: string, col?: string): string =>
@@ -117,6 +115,14 @@ function Toolbar({
 				<a class="adm-btn" href={href(view, today, col)}>
 					{m.today({}, o)}
 				</a>
+				<button
+					type="button"
+					class="adm-btn adm-btn--primary cal-new"
+					data-on:click={`@get('/calendar/editor?date=${view === "month" ? today : date}&time=09:00${col === undefined ? "" : `&col=${col}`}')`}
+				>
+					<Icon name="plus" />
+					{m.ap_new_button({}, o)}
+				</button>
 				<div
 					class="adm-menu"
 					style="margin-left:auto"
@@ -161,88 +167,6 @@ function Toolbar({
 	);
 }
 
-function NewSheet({
-	data,
-	date,
-	locale,
-	open,
-}: {
-	data: CalendarData;
-	date: string;
-	locale: Locale;
-	open: boolean;
-}): JSX.Element {
-	const o = at(locale);
-	const first = data.columns[0];
-	const signals = JSON.stringify({
-		newAppt: open,
-		apDate: date,
-		apTime: hhmm(9 * 60),
-		apCol: first?.id ?? "",
-		apClient: "",
-		apService: data.services[0]?.id ?? "",
-	});
-	return (
-		<div data-signals={signals}>
-			<Sheet signal="newAppt" title={m.new_title({}, o)} closeLabel={m.close({}, o)}>
-				<form class="adm-stack" data-on:submit__prevent="@post('/calendar/new')">
-					<label class="adm-field">
-						<span>{m.field_client({}, o)}</span>
-						<select class="adm-input" required data-bind="apClient">
-							<option value="" />
-							{data.clients
-								.filter((c) => c.status === "current")
-								.map((c) => (
-									<option key={c.id} value={c.id}>
-										{c.name}
-									</option>
-								))}
-						</select>
-					</label>
-					<label class="adm-field">
-						<span>{m.field_service({}, o)}</span>
-						<select class="adm-input" data-bind="apService">
-							{data.services.map((s) => (
-								<option key={s.id} value={s.id}>
-									{s.name} · {s.durationMin} min
-								</option>
-							))}
-						</select>
-					</label>
-					<label class="adm-field">
-						<span>{m.field_column({}, o)}</span>
-						<select class="adm-input" data-bind="apCol">
-							{data.columns.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.name}
-								</option>
-							))}
-						</select>
-					</label>
-					<div class="adm-row">
-						<label class="adm-field" style="flex:1">
-							<span>{m.field_date({}, o)}</span>
-							<input class="adm-input" type="date" data-bind="apDate" />
-						</label>
-						<label class="adm-field" style="flex:1">
-							<span>{m.field_time({}, o)}</span>
-							<input class="adm-input" type="time" step="900" data-bind="apTime" />
-						</label>
-					</div>
-					<div class="adm-row">
-						<button class="adm-btn adm-btn--primary" type="submit">
-							{m.save({}, o)}
-						</button>
-						<button class="adm-btn" type="button" data-on:click="$newAppt = false">
-							{m.cancel({}, o)}
-						</button>
-					</div>
-				</form>
-			</Sheet>
-		</div>
-	);
-}
-
 export interface CalendarView {
 	data: CalendarData | null;
 	failed: boolean;
@@ -265,7 +189,10 @@ export function CalendarBody({
 	const mins = nowMinutes();
 	const { data } = view;
 	return (
-		<div class="adm-page adm-page--wide">
+		<div
+			class="adm-page adm-page--wide"
+			data-on:keydown__window={`(evt.key === 'n' || evt.key === 'N') && !evt.ctrlKey && !evt.metaKey && !evt.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') && !$editor && (evt.preventDefault(), @get('/calendar/editor?date=${date}&time=09:00'))`}
+		>
 			<Toolbar view={query.view} date={date} locale={locale} col={query.col} />
 			{view.failed || data === null ? (
 				<Banner tone="error" icon="alert">
@@ -281,7 +208,7 @@ export function CalendarBody({
 					title={m.calendar_empty_title({}, o)}
 					text={m.calendar_empty_text({}, o)}
 				>
-					<a class="adm-btn adm-btn--primary" href="/calendar?new=1">
+					<a class="adm-btn adm-btn--primary" href={`/calendar?new=1&date=${date}`}>
 						<Icon name="plus" />
 						{m.new_appointment({}, o)}
 					</a>
@@ -361,7 +288,12 @@ export async function renderCalendar(
 		view = { data: null, failed: true };
 	}
 	const o = at(ctx.locale);
-	const sheetData = view.data;
+	const editorState =
+		query.new === "1"
+			? await openState(ctx, { date, time: query.time ?? "09:00", col: query.col ?? "", id: "" })
+			: null;
+	const detail = query.appt === undefined ? null : await detailBody(ctx, query.appt);
+	const blank = editorState ?? (await openState(ctx, { date, time: "09:00", col: "", id: "" }));
 	return Page({
 		ctx,
 		current: "calendar",
@@ -369,11 +301,28 @@ export async function renderCalendar(
 		title: m.calendar_title({}, o),
 		children: <CalendarBody ctx={ctx} query={query} view={view} />,
 		overlays: (
-			<>
-				{sheetData === null ? null : (
-					<NewSheet data={sheetData} date={date} locale={ctx.locale} open={query.new === "1"} />
-				)}
-			</>
+			<div
+				data-signals={JSON.stringify({
+					editor: editorState !== null,
+					detail: detail !== null,
+					...(blank === null ? {} : { ed: blank }),
+				})}
+			>
+				<Sheet signal="editor" title={m.ap_sheet_title({}, o)} closeLabel={m.close({}, o)}>
+					{editorState === null ? (
+						<div id="editor-body" />
+					) : (
+						<div dangerouslySetInnerHTML={{ __html: await editorBody(ctx, editorState) }} />
+					)}
+				</Sheet>
+				<Sheet signal="detail" title={m.ap_sheet_title({}, o)} closeLabel={m.close({}, o)}>
+					{detail === null ? (
+						<div id="detail-body" />
+					) : (
+						<div dangerouslySetInnerHTML={{ __html: detail }} />
+					)}
+				</Sheet>
+			</div>
 		),
 	});
 }

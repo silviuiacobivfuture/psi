@@ -58,7 +58,8 @@ export function AppointmentTile({
 		<a
 			class={`cal__appt cal__appt--${variant}${placed ? "" : " cal__appt--flow"}${short ? " cal__appt--short" : ""}`}
 			data-status={appt.status}
-			href={appt.clientId === null ? "#" : `/clients/${appt.clientId}`}
+			href={`/calendar?view=day&date=${appt.date}&appt=${appt.id}`}
+			{...(placed ? { "data-on:click__prevent": `@get('/calendar/appointment/${appt.id}')` } : {})}
 			style={style}
 		>
 			{group ? (

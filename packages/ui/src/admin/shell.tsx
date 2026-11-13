@@ -354,7 +354,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 							name="q"
 							autocomplete="off"
 							placeholder={l.searchPlaceholder}
-							data-bind:q
+							data-bind:q=""
 							{...{ "data-on:input__debounce.250ms": `@get('${p.searchAction}/live')` }}
 						/>
 						<div id="adm-search-results" class="adm-search__results" aria-live="polite" />

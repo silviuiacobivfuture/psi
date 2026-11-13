@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReminderItem } from "../port/port";
+import { appointmentDefaults } from "../port/schema";
 import { emailHref, reminderText, whatsappHref, whatsappNumber } from "./reminders";
 
 const item: ReminderItem = {
@@ -14,7 +15,7 @@ const item: ReminderItem = {
 		serviceId: "s1",
 		status: "confirmed",
 		note: "",
-		packageId: null,
+		...appointmentDefaults(),
 	},
 	client: {
 		id: "c1",

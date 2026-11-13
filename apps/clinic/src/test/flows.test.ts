@@ -79,57 +79,6 @@ describe("the install prompt", () => {
 	});
 });
 
-describe("new appointment (tap to create)", () => {
-	const create = (over: Record<string, string>) =>
-		c.post(
-			"/calendar/new",
-			JSON.stringify({
-				apDate: "2026-11-18",
-				apTime: "10:30",
-				apCol: "p1",
-				apClient: "c1",
-				apService: "s1",
-				...over,
-			}),
-			datastar,
-		);
-
-	it("creates it with the service's duration and closes the sheet", async () => {
-		const before = (await c.port.calendar("psizone", "2026-11-18", "2026-11-18")).appointments
-			.length;
-		const body = await (await create({})).text();
-		expect(body).toContain("Programarea a fost adăugată.");
-		expect(body).toContain("newAppt");
-		const after = (await c.port.calendar("psizone", "2026-11-18", "2026-11-18")).appointments;
-		expect(after.length).toBe(before + 1);
-		expect(after.at(-1)).toMatchObject({
-			startMin: 630,
-			durationMin: 50,
-			columnId: "p1",
-			clientId: "c1",
-			status: "confirmed",
-		});
-	});
-	it.each([
-		["a client that does not exist", { apClient: "zz" }],
-		["a service that does not exist", { apService: "zz" }],
-		["a column that does not exist", { apCol: "zz" }],
-		["a bad time", { apTime: "9am" }],
-		["a bad date", { apDate: "tomorrow" }],
-		["an empty client", { apClient: "" }],
-	])("refuses %s and writes nothing", async (_name, over) => {
-		const before = (await c.port.calendar("psizone", "2026-11-01", "2026-12-31")).appointments
-			.length;
-		const auditBefore = (await c.port.audit("psizone")).length;
-		const body = await (await create(over)).text();
-		expect(body).toContain("Completează toate câmpurile");
-		expect((await c.port.calendar("psizone", "2026-11-01", "2026-12-31")).appointments.length).toBe(
-			before,
-		);
-		expect((await c.port.audit("psizone")).length).toBe(auditBefore);
-	});
-});
-
 describe("search", () => {
 	it("finds clients and appointments by name, live, as patched elements", async () => {
 		const res = await c.get(

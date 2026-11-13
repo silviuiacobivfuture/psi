@@ -3,7 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import type { Locale } from "../lib/i18n";
-import type { Appointment, Client } from "../port/schema";
+import { type Appointment, appointmentDefaults, type Client } from "../port/schema";
 import { AppointmentTile, type TileVariant } from "./appt-tile";
 
 const client: Client = {
@@ -27,7 +27,7 @@ const base: Appointment = {
 	serviceId: "s1",
 	status: "confirmed",
 	note: "",
-	packageId: null,
+	...appointmentDefaults(),
 };
 const SAMPLES: ReadonlyArray<Appointment> = [
 	base,

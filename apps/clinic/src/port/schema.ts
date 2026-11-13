@@ -56,8 +56,51 @@ export const AppointmentSchema = z.object({
 	note: z.string(),
 	/** The package this session is drawn from; "sessions used" is derived from these links, never typed. */
 	packageId: z.string().nullable(),
+	/** Rooms and devices used besides the column: they are busy for the same time. */
+	resourceIds: z.array(z.string()),
+	/** What is charged for this session when it is not drawn from a package (bani). */
+	priceBani: z.number().int().nonnegative(),
+	/** How it was paid, once it was. */
+	paidMethod: z.enum(["cash", "card", "transfer"]).nullable(),
+	/** The day-before reminder is sent for this one. */
+	remind: z.boolean(),
+	/** The weekly series it belongs to. */
+	seriesId: z.string().nullable(),
+	cancelReason: z.string().nullable(),
 });
 export type Appointment = z.infer<typeof AppointmentSchema>;
+
+/** The fields a new appointment starts with besides the ones a caller chooses. */
+export function appointmentDefaults(): Pick<
+	Appointment,
+	"packageId" | "resourceIds" | "priceBani" | "paidMethod" | "remind" | "seriesId" | "cancelReason"
+> {
+	return {
+		packageId: null,
+		resourceIds: [],
+		priceBani: 0,
+		paidMethod: null,
+		remind: true,
+		seriesId: null,
+		cancelReason: null,
+	};
+}
+
+export const NewClientSchema = z.object({
+	name: z.string().trim().min(1).max(120),
+	phone: z.string().trim().max(40).nullable(),
+	guardian: z.string().trim().max(120).nullable(),
+});
+export type NewClient = z.infer<typeof NewClientSchema>;
+
+export const RecurrenceSchema = z
+	.object({
+		/** A weekly series; the end is a count or a last day. */
+		count: z.number().int().min(2).max(52).optional(),
+		until: IsoDateSchema.optional(),
+	})
+	.refine((r) => (r.count === undefined) !== (r.until === undefined), "count or until");
+export type Recurrence = z.infer<typeof RecurrenceSchema>;
 
 export const NewAppointmentSchema = z.object({
 	date: IsoDateSchema,
@@ -65,8 +108,35 @@ export const NewAppointmentSchema = z.object({
 	columnId: z.string().min(1),
 	clientId: z.string().min(1),
 	serviceId: z.string().min(1),
+	/** Chosen duration; the service's when absent. */
+	durationMin: z.number().int().min(5).max(600).optional(),
+	status: z.enum(["confirmed", "requested"]).default("confirmed"),
+	note: z.string().max(1000).default(""),
+	resourceIds: z.array(z.string()).default([]),
+	packageId: z.string().nullable().default(null),
+	/** Price when no package pays for it; the service's when absent. */
+	priceBani: z.number().int().nonnegative().optional(),
+	remind: z.boolean().default(true),
+	recurrence: RecurrenceSchema.nullable().default(null),
 });
-export type NewAppointment = z.infer<typeof NewAppointmentSchema>;
+export type NewAppointment = z.input<typeof NewAppointmentSchema>;
+
+/** A change to one appointment: every field optional, only what is present changes. */
+export const AppointmentPatchSchema = z.object({
+	date: IsoDateSchema.optional(),
+	startMin: MinuteSchema.optional(),
+	durationMin: z.number().int().min(5).max(600).optional(),
+	columnId: z.string().min(1).optional(),
+	clientId: z.string().min(1).optional(),
+	serviceId: z.string().min(1).optional(),
+	status: StatusSchema.optional(),
+	note: z.string().max(1000).optional(),
+	resourceIds: z.array(z.string()).optional(),
+	packageId: z.string().nullable().optional(),
+	priceBani: z.number().int().nonnegative().optional(),
+	remind: z.boolean().optional(),
+});
+export type AppointmentPatch = z.infer<typeof AppointmentPatchSchema>;
 
 export const PaymentMethodSchema = z.enum(["cash", "card", "transfer"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;

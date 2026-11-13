@@ -20,7 +20,7 @@ const SCROLL_FAB = {
 } as const;
 
 const slotOpen = (date: string, startMin: number, columnId: string): string =>
-	`$newAppt = true; $apDate = '${date}'; $apTime = '${hhmm(startMin)}'; $apCol = '${columnId}'`;
+	`@get('/calendar/editor?date=${date}&time=${hhmm(startMin)}&col=${columnId}')`;
 
 export function hoursFor(appts: ReadonlyArray<Appointment>): { dayStart: number; hours: number } {
 	const first = Math.min(480, ...appts.map((a) => Math.floor(a.startMin / 60) * 60));

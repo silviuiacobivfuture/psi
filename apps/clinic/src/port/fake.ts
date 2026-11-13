@@ -1,3 +1,4 @@
+import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import {
@@ -11,11 +12,13 @@ import type {
 	Appointment,
 	AppSlug,
 	AuditEvent,
+	Client,
 	Membership,
 	Package,
 	PushPrefs,
 	SearchHit,
 } from "./schema";
+import { AppointmentPatchSchema, NewAppointmentSchema, NewClientSchema } from "./schema";
 import type { AppData } from "./seed";
 import { seedApp } from "./seed";
 
@@ -27,6 +30,10 @@ export interface FakeOptions {
 	failing?: ReadonlySet<keyof ClinicPort>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
 	empty?: boolean;
+}
+
+function stripUndefined<T extends object>(o: T): Partial<T> {
+	return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
 
 /** The in-memory clinic: synthetic data, real behaviour for every call, until the scheduling SDK replaces it. */
@@ -85,32 +92,141 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				appointments: d.appointments.filter((a) => a.date >= from && a.date <= to),
 			};
 		},
-		async createAppointment(app, input) {
-			guard("createAppointment");
+		async appointment(app, id) {
+			guard("appointment");
+			return data(app).appointments.find((a) => a.id === id) ?? null;
+		},
+		async createAppointments(app, raw) {
+			guard("createAppointments");
 			const d = data(app);
+			const input = NewAppointmentSchema.parse(raw);
 			const svc = d.services.find((s) => s.id === input.serviceId);
+			const ids = [input.columnId, ...input.resourceIds];
+			const pkg =
+				input.packageId === null
+					? null
+					: (d.packages.find((p) => p.id === input.packageId && p.clientId === input.clientId) ??
+						null);
 			if (
 				svc === undefined ||
-				!d.columns.some((c) => c.id === input.columnId) ||
-				!d.clients.some((c) => c.id === input.clientId)
+				!ids.every((id) => d.columns.some((c) => c.id === id)) ||
+				!d.clients.some((c) => c.id === input.clientId) ||
+				(input.packageId !== null && pkg === null)
 			)
-				throw new PortError("invalid", "unknown service, column or client");
-			const a: Appointment = {
-				id: `a${++seq}`,
-				date: input.date,
-				startMin: input.startMin,
-				durationMin: svc.durationMin,
-				columnId: input.columnId,
-				clientId: input.clientId,
-				title: null,
-				serviceId: svc.id,
-				status: "confirmed",
-				note: "",
-				packageId: null,
-			};
-			d.appointments.push(a);
-			log(d, "console", "appointment.create", a.id);
+				throw new PortError("invalid", "unknown service, column, resource, client or package");
+			const durationMin = input.durationMin ?? svc.durationMin;
+			const dates =
+				input.recurrence === null
+					? [input.date]
+					: seriesDates(input.date, input.recurrence, addDays);
+			const clashes = dates.flatMap((date) =>
+				findConflicts(d.appointments, {
+					date,
+					startMin: input.startMin,
+					durationMin,
+					columnIds: ids,
+				}),
+			);
+			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
+			const seriesId = dates.length > 1 ? `r${++seq}` : null;
+			const made = dates.map(
+				(date): Appointment => ({
+					id: `a${++seq}`,
+					date,
+					startMin: input.startMin,
+					durationMin,
+					columnId: input.columnId,
+					clientId: input.clientId,
+					title: null,
+					serviceId: svc.id,
+					status: input.status,
+					note: input.note,
+					packageId: input.packageId,
+					resourceIds: input.resourceIds,
+					priceBani: input.packageId === null ? (input.priceBani ?? svc.priceBani) : 0,
+					paidMethod: null,
+					remind: input.remind,
+					seriesId,
+					cancelReason: null,
+				}),
+			);
+			d.appointments.push(...made);
+			for (const a of made) log(d, "console", "appointment.create", a.id);
+			return made;
+		},
+		async updateAppointment(app, id, raw) {
+			guard("updateAppointment");
+			const d = data(app);
+			const patch = AppointmentPatchSchema.parse(raw);
+			const a = d.appointments.find((x) => x.id === id);
+			if (a === undefined) throw new PortError("not-found", id);
+			const next: Appointment = { ...a, ...stripUndefined(patch) };
+			if (
+				!d.columns.some((c) => c.id === next.columnId) ||
+				!next.resourceIds.every((r) => d.columns.some((c) => c.id === r)) ||
+				(next.clientId !== null && !d.clients.some((c) => c.id === next.clientId)) ||
+				!d.services.some((s) => s.id === next.serviceId)
+			)
+				throw new PortError("invalid", "unknown column, resource, client or service");
+			if (
+				next.packageId !== null &&
+				!d.packages.some((p) => p.id === next.packageId && p.clientId === next.clientId)
+			)
+				throw new PortError("invalid", "the package is not this client's");
+			const clashes = occupies(next)
+				? findConflicts(d.appointments, {
+						date: next.date,
+						startMin: next.startMin,
+						durationMin: next.durationMin,
+						columnIds: columnsOf(next),
+						ignoreId: id,
+					})
+				: [];
+			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
+			Object.assign(a, next);
+			log(d, "console", "appointment.edit", id);
 			return a;
+		},
+		async cancelAppointment(app, id, reason) {
+			guard("cancelAppointment");
+			const d = data(app);
+			const a = d.appointments.find((x) => x.id === id);
+			if (a === undefined) throw new PortError("not-found", id);
+			a.status = "cancelled";
+			a.cancelReason = reason.slice(0, 500);
+			log(d, "console", "appointment.cancel", id);
+			return a;
+		},
+		async collectPayment(app, id, method) {
+			guard("collectPayment");
+			const d = data(app);
+			const a = d.appointments.find((x) => x.id === id);
+			if (a === undefined) throw new PortError("not-found", id);
+			a.paidMethod = method;
+			log(d, "console", "appointment.payment", id);
+			return a;
+		},
+		async findConflicts(app, probe) {
+			guard("findConflicts");
+			return findConflicts(data(app).appointments, probe);
+		},
+		async createClient(app, raw) {
+			guard("createClient");
+			const d = data(app);
+			const input = NewClientSchema.parse(raw);
+			const c: Client = {
+				id: `c${++seq}`,
+				name: input.name,
+				guardian: input.guardian === "" ? null : input.guardian,
+				phone: input.phone === "" ? null : input.phone,
+				email: null,
+				status: "current",
+				note: "",
+				practitionerId: null,
+			};
+			d.clients.push(c);
+			log(d, "console", "client.create", c.id);
+			return c;
 		},
 		async search(app, query): Promise<ReadonlyArray<SearchHit>> {
 			guard("search");
@@ -152,7 +268,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			return data(app).clients.filter(
 				(c) =>
 					(filter === "current" ? c.status === "current" : c.status === "archived") &&
-					(q === "" || c.name.toLocaleLowerCase().includes(q)),
+					(q === "" ||
+						c.name.toLocaleLowerCase().includes(q) ||
+						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
 		},
 		async client(app, id) {

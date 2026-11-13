@@ -3,6 +3,7 @@
 @import "@psi/ui/admin.css";
 @import "./calendar.css";
 @import "./screens.css";
+@import "./appointment.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";
 
