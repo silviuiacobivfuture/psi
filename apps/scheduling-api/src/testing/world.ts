@@ -1,3 +1,4 @@
+import { createMemoryUsedLinks } from "@psi/notify/reminders";
 import type { Hono } from "hono";
 import { hashSecret } from "../auth/service-keys";
 import { createTokenVerifier } from "../auth/tokens";
@@ -11,6 +12,8 @@ import { createMemoryMailer, type MemoryMailer } from "../ports/mail";
 import { createMemoryNotify, type MemoryNotify } from "../ports/notify";
 import { createMemoryObjects, type MemoryObjects } from "../ports/objects";
 import { createLimiter } from "../ports/ratelimit";
+import { createReminderActions } from "../reminder-actions";
+import { mountReminderRoutes } from "../reminder-routes";
 import { createMemoryStore, type MemoryStore } from "../store/memory";
 import { COLLECTIONS, type StorePort } from "../store/types";
 import { createTestIssuer, type MintOptions, type TestIssuer } from "./tokens";
@@ -19,6 +22,8 @@ import { createTestIssuer, type MintOptions, type TestIssuer } from "./tokens";
 export const NOW = Date.UTC(2026, 10, 13, 8, 0, 0);
 export const HOUR = 3_600_000;
 export const MASTER_KEY = "ab".repeat(32);
+/** Signs the reminder links of the test world. */
+export const LINK_SECRET = "reminder-link-secret-for-tests-0123456789";
 export const SECRETS = {
 	"psizone-web": "psizone-web-secret-0001",
 	"hemisync-web": "hemisync-web-secret-0002",
@@ -40,6 +45,13 @@ export interface World {
 	objects: MemoryObjects;
 	notifier: MemoryNotify;
 	issuer: TestIssuer;
+	/** What the reminder links told the notifier (`reminder.confirmed`, `reminder.declined`). */
+	linkNotices: {
+		app: string;
+		event: string;
+		payload: Record<string, unknown>;
+		occurrence?: string;
+	}[];
 	logs: LogEvent[];
 	clock: { now: number };
 	/** One call as a signed-in person (or, with `null`, with no credential at all). */
@@ -102,6 +114,7 @@ export function testConfig(issuer: TestIssuer): Config {
 		authz: { kind: "memory" },
 		mail: undefined,
 		objects: undefined,
+		notify: undefined,
 		callerHashes: new Map(Object.entries(SECRETS).map(([id, secret]) => [id, hashSecret(secret)])),
 	};
 }
@@ -117,6 +130,8 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 	const objects = createMemoryObjects(() => clock.now);
 	const notifier = createMemoryNotify();
 	const logs: LogEvent[] = [];
+	const linkNotices: World["linkNotices"] = [];
+	const usedLinks = createMemoryUsedLinks(() => clock.now);
 	const config = testConfig(issuer);
 	const deps = buildDeps(config, {
 		store,
@@ -133,6 +148,27 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		mailer: mail,
 		objects,
 		notifier,
+		reminders: mountReminderRoutes({
+			secret: LINK_SECRET,
+			used: usedLinks,
+			actions: createReminderActions(
+				store,
+				() => clock.now,
+				() => "Strada Test 1",
+			),
+			notifier: {
+				notify(app, event, payload, _to, occurrence) {
+					linkNotices.push({
+						app,
+						event,
+						payload,
+						...(occurrence === undefined ? {} : { occurrence }),
+					});
+					return Promise.resolve({ status: "queued", jobs: 1 });
+				},
+			},
+			now: () => clock.now,
+		}),
 		limiter: createLimiter({ capacity: 1000, refillPerSecond: 1000 }, () => clock.now),
 		clock: () => clock.now,
 		log: (e) => logs.push(e),
@@ -171,6 +207,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		objects,
 		notifier,
 		issuer,
+		linkNotices,
 		logs,
 		clock,
 		async call(as, method, path, body, options = {}) {
@@ -200,6 +237,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 				mail.outbox,
 				objects.removed,
 				notifier.sent,
+				linkNotices,
 			]),
 	};
 }

@@ -44,9 +44,28 @@ describe("the deployment declares every secret in all four places", () => {
 			OPENFGA_TOKEN: "OPENFGA_AUTHN_PRESHARED_KEYS",
 			S3_ACCESS_KEY_ID: "access_key_id",
 			S3_SECRET_ACCESS_KEY: "secret_access_key",
+			NOVU_SECRET_KEY: "secret_key",
 		};
 		for (const key of external)
 			expect(row.includes(key) || row.includes(alias[key] ?? "\u0000"), key).toBe(true);
+	});
+
+	it("the notification settings are wired: Novu's key and the link secret are secrets, its address plain env, and egress reaches Novu", () => {
+		const d = read("gitops/services/scheduling-api/base/deployment.yaml");
+		const e = read("gitops/services/scheduling-api/base/externalsecret.yaml");
+		expect(external).toEqual(expect.arrayContaining(["NOVU_SECRET_KEY", "REMINDER_LINK_SECRET"]));
+		expect(e).toContain("key: apps/novu/estate, property: secret_key");
+		expect(e).toContain("key: apps/notify/reminder-links, property: REMINDER_LINK_SECRET");
+		expect(d).toContain('name: NOVU_API_URL, value: "http://novu-api.novu.svc:3000"');
+		expect(d).not.toMatch(/name: (NOVU_SECRET_KEY|REMINDER_LINK_SECRET), value/);
+		const policy = read("gitops/services/scheduling-api/base/networkpolicy.yaml");
+		// namespace AND pod in ONE `to` element (two elements would be an OR), on the API's port
+		expect(policy).toMatch(
+			/- to:\n\s+- namespaceSelector:\n\s+matchLabels: \{ kubernetes.io\/metadata.name: novu \}\n\s+podSelector:\n\s+matchLabels: \{ app.kubernetes.io\/name: novu-api \}\n\s+ports:\n\s+- \{ protocol: TCP, port: 3000 \}/,
+		);
+		const declared = read("apps/scheduling-api/seb.app.yaml");
+		expect(declared).toContain("path: apps/notify/reminder-links");
+		expect(declared.match(/NOVU_SECRET_KEY/g)?.length).toBeGreaterThanOrEqual(3);
 	});
 
 	it("no ExternalSecret reads everything from a path", () => {
@@ -71,6 +90,8 @@ describe("the deployment declares every secret in all four places", () => {
 
 	it("is built by apps.yml (a Dockerfile in the app) and NOT registered with Argo", () => {
 		expect(read("apps/scheduling-api/Dockerfile")).toContain("scheduling-api");
+		// @psi/notify generates its messages: the image builds the packages the service depends on before it bundles.
+		expect(read("apps/scheduling-api/Dockerfile")).toContain('"@psi/scheduling-api^..."');
 		expect(read("gitops/apps/overlays/dev/apps/kustomization.yaml")).not.toContain(
 			"scheduling-api",
 		);

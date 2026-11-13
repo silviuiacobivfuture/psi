@@ -69,6 +69,12 @@ export const visitorHandlers: HandlersOf<
 		);
 		await ctx.changed("request", "created", rest.reference);
 		await ctx.notify(
+			"request.created",
+			TEAM_REQUESTS,
+			{ reference: rest.reference },
+			rest.reference,
+		);
+		await ctx.notify(
 			"appointment.requested",
 			TEAM_REQUESTS,
 			{ reference: rest.reference, start: rest.start },

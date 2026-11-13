@@ -58,6 +58,44 @@ together with the object's reach (`reach_own`, `reach_assigned`). An individual 
    key as the read port. If SEB would rather route those writes through Polaris, only `src/authz/live.ts` changes.
 3. The released model id, pinned in `secret/apps/scheduling-api/env` (`OPENFGA_MODEL_ID`), never `latest`.
 
+## Notifications
+
+Three settings, all REQUIRED in production (a start without any of them is refused by name) and optional elsewhere:
+
+| Variable | Where it comes from |
+| --- | --- |
+| `NOVU_API_URL` | plain env in the Deployment: `http://novu-api.novu.svc:3000` (NetworkPolicy egress to the `novu-api` pods on 3000) |
+| `NOVU_SECRET_KEY` | OpenBao `secret/apps/novu/estate`, key `secret_key` (the service never creates it) |
+| `REMINDER_LINK_SECRET` | OpenBao `secret/apps/notify/reminder-links` (at least 32 characters, `openssl rand -hex 32`; rotating it invalidates every link already sent) |
+
+Without them (development, tests, the local run) `config.notify` is `undefined`: notifications are logged and none is
+delivered. Setting only some of them is refused in every environment: half a setup delivers nothing.
+
+With them, `@psi/notify` delivers through the estate's Novu. The OUTBOX (a job waits there until Novu has it, retried with
+backoff, the action's own key as the idempotency key) and the single-use record of the reminder links are DURABLE in
+Convex (`notifyOutbox`, `usedLinks`), drained by the API process (`notifier.start`), so a restart or a second replica
+loses and repeats nothing. The handlers say WHAT happened by reference; `ports/novu-notify.ts` resolves who is told and
+what the message prints from the store:
+
+| Happens | Catalogue event | Told |
+| --- | --- | --- |
+| a visitor's request or callback | `request.new` | the team |
+| a visitor's request, its confirmation, its cancellation | `appointment.requested/confirmed/cancelled` | the visitor (their contact) |
+| a staff booking, move, cancellation | `appointment.confirmed/moved/cancelled` | the client and the practitioner |
+| a reminder link answered | `reminder.confirmed/declined` | reception |
+| a package with two sessions or fewer left | `package.running_low` | reception |
+| leave asked, decided | `leave.requested`, `leave.approved/declined` | the owners, the requester |
+| a payment | `payment.recorded` | the client (when the app turns receipts on) |
+
+The links: `GET/POST /v1/public/reminders/:token/(confirm|cancel|ics)` (a GET changes nothing, the POST is the action, a
+link is used up by the first POST, the calendar link can be fetched again). The token names its app, so one host serves
+every app. Members and their roles keep Novu's subscribers and the `team` / `reception` / `owners` topics in step.
+
+Not done, on purpose: `reminder.day_before` needs a daily job that picks tomorrow's appointments (the reminders list and
+the e-mail route keep working meanwhile); `assistant.action_done` belongs to the assistant, which is not in this service;
+the people's push preferences (`@psi/notify/push`) are the console's account settings, not routes here; a no-show has no
+message in the catalogue.
+
 ## Rate limits
 
 Visitor routes only: a token bucket in memory per service key and visitor (the site forwards the visitor's address in

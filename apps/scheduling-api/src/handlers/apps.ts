@@ -20,6 +20,7 @@ import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
 import { capabilitiesOf } from "./capabilities";
+import { syncMember } from "./directory";
 import {
 	diff,
 	must,
@@ -158,7 +159,15 @@ export const appHandlers: HandlersOf<
 	async "apps.create"(ctx) {
 		const { id, name, timeZone, ownerSubject } = ctx.body;
 		if (await ctx.deps.store.c.apps.get(id, id)) throw fail("conflict", "the app exists");
-		return provisionApp(ctx.deps, { id, name, timeZone, ownerSubject });
+		const made = await provisionApp(ctx.deps, { id, name, timeZone, ownerSubject });
+		await syncMember(
+			ctx,
+			id,
+			ownerSubject,
+			undefined,
+			await ctx.deps.store.c.members.get(id, ownerSubject),
+		);
+		return made;
 	},
 
 	async "apps.get"(ctx) {
@@ -248,6 +257,7 @@ export const appHandlers: HandlersOf<
 			},
 			tuples: () => change,
 		});
+		await syncMember(ctx, ctx.app, subject, held, next);
 		ctx.note({ roles: next.roles, created: held === undefined });
 		return {
 			subject,
@@ -270,6 +280,7 @@ export const appHandlers: HandlersOf<
 				await ctx.deps.store.c.members.remove(ctx.app, subject);
 			},
 		});
+		await syncMember(ctx, ctx.app, subject, held, undefined);
 		return { ok: true as const };
 	},
 

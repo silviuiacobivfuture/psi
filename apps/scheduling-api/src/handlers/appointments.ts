@@ -233,7 +233,7 @@ export const appointmentHandlers: HandlersOf<
 			await ctx.notify(
 				"appointment.moved",
 				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: next.start },
+				{ appointmentId: row.id, start: next.start, previousStart: row.start },
 				`${row.id}:${next.start}:${next.practitionerId}`,
 			);
 		}
@@ -361,7 +361,7 @@ export const appointmentHandlers: HandlersOf<
 		};
 		const next: AppointmentRow = { ...row, money, updatedAt: ctx.now };
 		await ctx.deps.store.c.appointments.replace(next);
-		await ctx.deps.store.c.payments.insert({
+		const recorded = await ctx.deps.store.c.payments.insert({
 			id: newId("y"),
 			app: ctx.app,
 			clientId: row.clientId,
@@ -376,7 +376,13 @@ export const appointmentHandlers: HandlersOf<
 		await ctx.notify(
 			"payment.recorded",
 			{ kind: "team", permission: "payments_view" },
-			{ appointmentId: row.id, amountCents: ctx.body.amountCents },
+			{
+				appointmentId: row.id,
+				paymentId: recorded.id,
+				clientId: row.clientId,
+				amountCents: ctx.body.amountCents,
+				what: "Programare",
+			},
 			`${row.id}:${paid}`,
 		);
 		return appointmentOut(ctx, next);

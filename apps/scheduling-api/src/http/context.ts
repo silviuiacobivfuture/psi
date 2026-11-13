@@ -30,6 +30,8 @@ export interface Deps {
 	mailer: Mailer | undefined;
 	objects: ObjectStore | undefined;
 	notifier: NotifyPort;
+	/** The signed reminder links (`/v1/public/reminders`), when the service can sign them. */
+	reminders?: import("hono").Hono | undefined;
 	/** Per caller and visitor, on the visitor routes. */
 	limiter: Limiter;
 	clock: () => number;

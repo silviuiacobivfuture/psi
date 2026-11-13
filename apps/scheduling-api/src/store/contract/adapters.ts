@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createMemoryOutbox } from "@psi/notify";
+import { createMemoryUsedLinks } from "@psi/notify/reminders";
 import { createSchedulingClient, createStaffSchedulingClient } from "@psi/scheduling";
 import { ConvexClient } from "convex/browser";
 import { z } from "zod";
 import { createConvexStore } from "../convex";
+import { createConvexOutbox, createConvexUsedLinks } from "../convex/notify";
 import { createRpc } from "../convex/rpc";
 import { createMemoryStore } from "../memory";
 import type { ContractEnv } from "./env";
@@ -42,6 +45,7 @@ export function memoryEnv(): ContractEnv {
 	return {
 		adapter: "memory",
 		store,
+		notify: { outbox: createMemoryOutbox(), used: createMemoryUsedLinks() },
 		async newApp() {
 			n += 1;
 			const id = `test-contract-${n}`;
@@ -87,6 +91,7 @@ export function convexEnv(target: ConvexTarget): ContractEnv {
 	return {
 		adapter: "convex",
 		store,
+		notify: { outbox: createConvexOutbox(rpc), used: createConvexUsedLinks(rpc) },
 		async newApp() {
 			const id = `test-ct-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 			await admin.mutation(

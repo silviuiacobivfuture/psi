@@ -3,6 +3,15 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
+	"nx": {
+		"targets": {
+			"test": {
+				"dependsOn": [
+					"^build"
+				]
+			}
+		}
+	},
 	"exports": {
 		"./testing": "./src/testing/serve.ts"
 	},
@@ -19,6 +28,7 @@
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.19.0",
+		"@psi/notify": "workspace:*",
 		"@psi/scheduling": "workspace:*",
 		"@psi/scheduling-sdk": "workspace:*",
 		"convex": "1.49.0",

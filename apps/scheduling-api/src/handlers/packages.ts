@@ -162,7 +162,13 @@ export const packageHandlers: HandlersOf<
 		await ctx.notify(
 			"payment.recorded",
 			{ kind: "team", permission: "payments_view" },
-			{ packageId: row.id, amountCents: payment.amountCents },
+			{
+				packageId: row.id,
+				paymentId: payment.id,
+				clientId: row.clientId,
+				amountCents: payment.amountCents,
+				what: row.name,
+			},
 			payment.id,
 		);
 		return paymentOut(payment);

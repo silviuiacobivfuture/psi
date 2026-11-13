@@ -394,6 +394,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling

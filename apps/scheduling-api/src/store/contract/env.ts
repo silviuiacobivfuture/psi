@@ -1,3 +1,5 @@
+import type { Outbox } from "@psi/notify";
+import type { createMemoryUsedLinks } from "@psi/notify/reminders";
 import type { StorePort } from "../types";
 
 /**
@@ -7,6 +9,8 @@ import type { StorePort } from "../types";
 export interface ContractEnv {
 	readonly adapter: "memory" | "convex";
 	readonly store: StorePort;
+	/** The notification layer's durable halves on this adapter (the notify package's memory ones, or Convex's). */
+	readonly notify: { outbox: Outbox; used: ReturnType<typeof createMemoryUsedLinks> };
 	/** A new, empty app (id valid as an `AppId`), with whatever the adapter needs for it to exist. */
 	newApp(): Promise<string>;
 	/** Removes what the sections created (a no-op in memory). */

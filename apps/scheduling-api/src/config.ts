@@ -77,6 +77,12 @@ const Mail = z.object({
 	MAIL_FROM: z.string().min(3),
 	MAIL_FROM_NAME: z.string().min(1).default("Psizone"),
 });
+/** Novu (the estate's notification service) and the key that signs the links in reminder messages. */
+const Notify = z.object({
+	NOVU_API_URL: Url,
+	NOVU_SECRET_KEY: z.string().min(1),
+	REMINDER_LINK_SECRET: z.string().min(32),
+});
 const Objects = z.object({
 	S3_ENDPOINT: Url,
 	S3_BUCKET: z.string().min(1),
@@ -113,6 +119,8 @@ export interface Config {
 				secretAccessKey: string;
 		  }
 		| undefined;
+	/** Absent: notifications are logged and none is delivered (development and tests). Production requires it. */
+	notify: { novuApiUrl: string; novuSecretKey: string; reminderLinkSecret: string } | undefined;
 	/** The sha-256 hex of each caller's key secret, by caller id. */
 	callerHashes: Map<string, string>;
 }
@@ -164,6 +172,13 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 	const objects = Objects.safeParse(env);
 	if (production && !mail.success) throw new ConfigError(problems(mail.error));
 	if (production && !objects.success) throw new ConfigError(problems(objects.error));
+	// Half of it is a mistake in any environment (a link secret without a Novu to send through delivers nothing);
+	// all of it is required in production.
+	const notify = Notify.safeParse(env);
+	const anyNotify = ["NOVU_API_URL", "NOVU_SECRET_KEY", "REMINDER_LINK_SECRET"].some(
+		(name) => (env[name] ?? "") !== "",
+	);
+	if ((production || anyNotify) && !notify.success) throw new ConfigError(problems(notify.error));
 
 	const callerHashes = new Map<string, string>();
 	for (const caller of common.data.SERVICE_CALLERS) {
@@ -202,6 +217,13 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 					region: objects.data.S3_REGION,
 					accessKeyId: objects.data.S3_ACCESS_KEY_ID,
 					secretAccessKey: objects.data.S3_SECRET_ACCESS_KEY,
+				}
+			: undefined,
+		notify: notify.success
+			? {
+					novuApiUrl: notify.data.NOVU_API_URL,
+					novuSecretKey: notify.data.NOVU_SECRET_KEY,
+					reminderLinkSecret: notify.data.REMINDER_LINK_SECRET,
 				}
 			: undefined,
 		callerHashes,

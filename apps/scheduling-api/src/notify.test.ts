@@ -60,11 +60,12 @@ describe("the team and the people are told, by reference and without data", () =
 			cancelCode: r.cancelCode,
 		});
 		expect(events()).toEqual([
+			"request.created",
 			"appointment.requested",
 			"appointment.confirmed",
 			"appointment.cancelled",
 		]);
-		expect(w.notifier.sent[1]?.to).toEqual({ kind: "request", reference: r.reference });
+		expect(w.notifier.sent[2]?.to).toEqual({ kind: "request", reference: r.reference });
 	});
 
 	it("staff-made appointments tell the client when booked, moved and cancelled", async () => {
