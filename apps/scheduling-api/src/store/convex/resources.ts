@@ -30,10 +30,26 @@ const Room = z.object({
 	capacity: z.number(),
 	active: z.boolean(),
 });
-const RoomExtra = z.object({ kind: z.string(), capacity: z.number().optional() });
+const RoomExtra = z.object({
+	kind: z.string(),
+	capacity: z.number().optional(),
+	floor: z.string().optional(),
+	purpose: z.string().optional(),
+	bookable: z.boolean().optional(),
+	homePractitionerId: z.string().optional(),
+});
 
 const Device = z.object({ ...Base, name: z.string(), active: z.boolean() });
-const DeviceExtra = z.object({ roomId: z.string().optional() });
+const DeviceExtra = z.object({
+	roomId: z.string().optional(),
+	deviceType: z.enum(["nfb", "qeeg", "other"]).optional(),
+	bookable: z.boolean().optional(),
+});
+const deviceExtraOf = (d: DeviceRow): Record<string, unknown> => ({
+	...(d.roomId === undefined ? {} : { roomId: d.roomId }),
+	...(d.deviceType === undefined ? {} : { deviceType: d.deviceType }),
+	...(d.bookable === undefined ? {} : { bookable: d.bookable }),
+});
 
 const Group = z.object({ ...Base, name: z.string(), active: z.boolean() });
 const GroupExtra = z.object({ kind: z.enum(["group", "atelier"]), clientIds: z.array(z.string()) });
@@ -63,6 +79,10 @@ export function roomsCollection(call: Caller): Collection<RoomRow> {
 	const extraOf = (r: RoomRow) => ({
 		kind: r.kind,
 		...(r.capacity === undefined ? {} : { capacity: r.capacity }),
+		...(r.floor === undefined ? {} : { floor: r.floor }),
+		...(r.purpose === undefined ? {} : { purpose: r.purpose }),
+		...(r.bookable === undefined ? {} : { bookable: r.bookable }),
+		...(r.homePractitionerId === undefined ? {} : { homePractitionerId: r.homePractitionerId }),
 	});
 	return catalogCollection<RoomRow>({
 		async all(app) {
@@ -76,6 +96,12 @@ export function roomsCollection(call: Caller): Collection<RoomRow> {
 					name: d.name,
 					kind: extra?.kind ?? d.kind,
 					...(capacity === undefined ? {} : { capacity }),
+					...(extra?.floor === undefined ? {} : { floor: extra.floor }),
+					...(extra?.purpose === undefined ? {} : { purpose: extra.purpose }),
+					...(extra?.bookable === undefined ? {} : { bookable: extra.bookable }),
+					...(extra?.homePractitionerId === undefined
+						? {}
+						: { homePractitionerId: extra.homePractitionerId }),
 					active: d.active,
 					createdAt: stamp(d._creationTime),
 					updatedAt: stamp(d.updatedAt ?? d._creationTime),
@@ -128,7 +154,7 @@ export function roomsCollection(call: Caller): Collection<RoomRow> {
 					},
 					{},
 				);
-			if (before.kind !== after.kind || before.capacity !== after.capacity)
+			if (JSON.stringify(extraOf(before)) !== JSON.stringify(extraOf(after)))
 				await setExtra(call, after.app, "rooms", after.id, extraOf(after));
 		},
 		remove: (app, id) => removed(call, app, "rooms", id),
@@ -150,6 +176,8 @@ export function devicesCollection(call: Caller): Collection<DeviceRow> {
 					app,
 					name: d.name,
 					...(extra?.roomId === undefined ? {} : { roomId: extra.roomId }),
+					...(extra?.deviceType === undefined ? {} : { deviceType: extra.deviceType }),
+					...(extra?.bookable === undefined ? {} : { bookable: extra.bookable }),
 					active: d.active,
 					createdAt: stamp(d._creationTime),
 					updatedAt: stamp(d.updatedAt ?? d._creationTime),
@@ -168,8 +196,8 @@ export function devicesCollection(call: Caller): Collection<DeviceRow> {
 				},
 				{ id: z.string() },
 			);
-			if (row.roomId !== undefined)
-				await setExtra(call, row.app, "devices", made.id, { roomId: row.roomId });
+			if (Object.keys(deviceExtraOf(row)).length > 0)
+				await setExtra(call, row.app, "devices", made.id, deviceExtraOf(row));
 			if (!row.active)
 				await call.mutate(
 					"apiResources:updateDevice",
@@ -190,10 +218,8 @@ export function devicesCollection(call: Caller): Collection<DeviceRow> {
 					},
 					{},
 				);
-			if (before.roomId !== after.roomId)
-				await setExtra(call, after.app, "devices", after.id, {
-					...(after.roomId === undefined ? {} : { roomId: after.roomId }),
-				});
+			if (JSON.stringify(deviceExtraOf(before)) !== JSON.stringify(deviceExtraOf(after)))
+				await setExtra(call, after.app, "devices", after.id, deviceExtraOf(after));
 		},
 		remove: (app, id) => removed(call, app, "devices", id),
 	});

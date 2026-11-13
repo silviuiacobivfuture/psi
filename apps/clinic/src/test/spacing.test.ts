@@ -105,6 +105,11 @@ const MEASURE = `(() => {
 		const r = e.getBoundingClientRect();
 		if (r.left < h.left + 8 || r.right > h.right - 8) out.push({ rule: "fields keep 8px from the edge of their container", where: name(e) });
 	}
+	// 8. a row of tabs shows all its tabs: it wraps, it never hides some behind a sideways scroll
+	for (const tabs of document.querySelectorAll(".adm-tablist")) {
+		if (!shown(tabs)) continue;
+		if (tabs.scrollWidth > tabs.clientWidth + 1) out.push({ rule: "tabs are all in view", where: name(tabs) + " " + (tabs.scrollWidth - tabs.clientWidth) + "px hidden" });
+	}
 	// 5. nothing overflows the viewport sideways
 	const over = document.documentElement.scrollWidth - window.innerWidth;
 	if (over > 0) out.push({ rule: "no horizontal scroll", where: over + "px" });

@@ -26,6 +26,32 @@ const Practitioner = z.object({
 	color: z.string().optional(),
 	staffSubject: z.string().optional(),
 	updatedAt: z.number().optional(),
+	extra: z.string().optional(),
+});
+/** What a team member says beyond the columns: where to reach them, their specialty, hours, rooms and services. */
+const Facts = z.object({
+	email: z.string().optional(),
+	specialty: z.string().optional(),
+	hours: z
+		.array(z.object({ from: z.number(), to: z.number() }).nullable())
+		.length(7)
+		.optional(),
+	roomIds: z.array(z.string()).optional(),
+	serviceIds: z.array(z.string()).optional(),
+});
+const factsOf = (p: PersonRow): Record<string, unknown> => ({
+	...(p.email === undefined ? {} : { email: p.email }),
+	...(p.specialty === undefined ? {} : { specialty: p.specialty }),
+	...(p.hours === undefined ? {} : { hours: p.hours }),
+	...(p.roomIds === undefined ? {} : { roomIds: p.roomIds }),
+	...(p.serviceIds === undefined ? {} : { serviceIds: p.serviceIds }),
+});
+const fromFacts = (f: z.output<typeof Facts> | undefined): Partial<PersonRow> => ({
+	...(f?.email === undefined ? {} : { email: f.email }),
+	...(f?.specialty === undefined ? {} : { specialty: f.specialty }),
+	...(f?.hours === undefined ? {} : { hours: f.hours }),
+	...(f?.roomIds === undefined ? {} : { roomIds: f.roomIds }),
+	...(f?.serviceIds === undefined ? {} : { serviceIds: f.serviceIds }),
 });
 const Staff = z.object({
 	id: z.string(),
@@ -37,7 +63,7 @@ const Staff = z.object({
 	updatedAt: z.number().optional(),
 	extra: z.string().optional(),
 });
-const StaffExtra = z.object({
+const StaffExtra = Facts.extend({
 	kind: z.enum(["practitioner", "reception", "volunteer", "staff"]),
 	color: z.string().optional(),
 	external: z.boolean().optional(),
@@ -57,6 +83,7 @@ function fromPractitioner(app: string, p: z.infer<typeof Practitioner>): PersonR
 		active: p.active,
 		external: p.external === true,
 		...(p.color === undefined ? {} : { color: p.color }),
+		...fromFacts(readExtra(Facts, p.extra)),
 		createdAt: stamp(p._creationTime),
 		updatedAt: stamp(p.updatedAt ?? p._creationTime),
 	};
@@ -73,6 +100,7 @@ function fromStaff(app: string, s: z.infer<typeof Staff>): PersonRow {
 		active: s.active,
 		external: extra?.external === true,
 		...(extra?.color === undefined ? {} : { color: extra.color }),
+		...fromFacts(extra),
 		createdAt: stamp(s._creationTime),
 		updatedAt: stamp(s.updatedAt ?? s._creationTime),
 	};
@@ -83,6 +111,7 @@ const staffExtraOf = (p: PersonRow): string =>
 		kind: p.kind,
 		...(p.color === undefined ? {} : { color: p.color }),
 		...(p.external ? { external: true } : {}),
+		...factsOf(p),
 	});
 
 export function peopleCollection(call: Caller): Collection<PersonRow> {
@@ -121,6 +150,7 @@ export function peopleCollection(call: Caller): Collection<PersonRow> {
 						id: made.id,
 						...(row.subject === undefined ? {} : { staffSubject: row.subject }),
 						...(row.color === undefined ? {} : { color: row.color }),
+						...(Object.keys(factsOf(row)).length === 0 ? {} : { extra: writeExtra(factsOf(row)) }),
 					},
 					{},
 				);
@@ -175,7 +205,8 @@ export function peopleCollection(call: Caller): Collection<PersonRow> {
 						},
 						{ upcoming: z.number() },
 					);
-				if (before.subject !== after.subject || before.color !== after.color)
+				const factsChanged = JSON.stringify(factsOf(before)) !== JSON.stringify(factsOf(after));
+				if (before.subject !== after.subject || before.color !== after.color || factsChanged)
 					await call.mutate(
 						`${FN}:setExtra`,
 						{
@@ -185,6 +216,7 @@ export function peopleCollection(call: Caller): Collection<PersonRow> {
 							id: at.id,
 							staffSubject: after.subject ?? null,
 							color: after.color ?? null,
+							extra: Object.keys(factsOf(after)).length === 0 ? null : writeExtra(factsOf(after)),
 						},
 						{},
 					);
@@ -212,7 +244,8 @@ export function peopleCollection(call: Caller): Collection<PersonRow> {
 			if (
 				before.kind !== after.kind ||
 				before.color !== after.color ||
-				before.external !== after.external
+				before.external !== after.external ||
+				JSON.stringify(factsOf(before)) !== JSON.stringify(factsOf(after))
 			)
 				await call.mutate(
 					`${FN}:setExtra`,

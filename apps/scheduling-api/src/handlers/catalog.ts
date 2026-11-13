@@ -2,7 +2,7 @@ import { reaches } from "../authz/access";
 import { appLink, ownerLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
-import type { PersonRow, ServiceRow } from "../store/types";
+import type { DeviceRow, PersonRow, RoomRow, ServiceRow, StorePort } from "../store/types";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
 
 const page = <T, R>(
@@ -16,6 +16,40 @@ const page = <T, R>(
 const byName = <T extends { name?: string; displayName?: string }>(a: T, b: T): number =>
 	(a.name ?? a.displayName ?? "").localeCompare(b.name ?? b.displayName ?? "");
 
+/**
+ * Everything a catalogue row names must be something of the same app: a person's rooms and services, a room's own
+ * practitioner, a service's practitioners, rooms and devices. Nothing is written when one is not.
+ */
+async function refsExist(
+	store: StorePort,
+	app: string,
+	refs: {
+		people?: ReadonlyArray<string> | undefined;
+		rooms?: ReadonlyArray<string> | undefined;
+		devices?: ReadonlyArray<string> | undefined;
+		services?: ReadonlyArray<string> | undefined;
+	},
+): Promise<void> {
+	const check = async (
+		what: string,
+		wanted: ReadonlyArray<string> | undefined,
+		have: Promise<ReadonlyArray<{ id: string }>>,
+	): Promise<void> => {
+		if (wanted === undefined || wanted.length === 0) return;
+		const ids = new Set((await have).map((r) => r.id));
+		for (const id of wanted)
+			if (!ids.has(id)) throw fail("invalid", `unknown ${what}`, { [what]: id });
+	};
+	await check("person", refs.people, store.c.people.list(app));
+	await check("room", refs.rooms, store.c.rooms.list(app));
+	await check("device", refs.devices, store.c.devices.list(app));
+	await check("service", refs.services, store.c.services.list(app));
+}
+
+/** The fields of an object that were said (an absent one is not `undefined` on the wire). */
+const said = <T extends object>(o: T): Partial<T> =>
+	Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
 const personOut = (p: PersonRow) => ({
 	id: p.id,
 	displayName: p.displayName,
@@ -24,37 +58,36 @@ const personOut = (p: PersonRow) => ({
 	active: p.active,
 	external: p.external,
 	...(p.color === undefined ? {} : { color: p.color }),
+	...said({
+		email: p.email,
+		specialty: p.specialty,
+		hours: p.hours,
+		roomIds: p.roomIds,
+		serviceIds: p.serviceIds,
+	}),
 	createdAt: p.createdAt,
 	updatedAt: p.updatedAt,
 });
-const roomOut = (r: {
-	id: string;
-	name: string;
-	kind: string;
-	capacity?: number | undefined;
-	active: boolean;
-	createdAt: number;
-	updatedAt: number;
-}) => ({
+const roomOut = (r: RoomRow) => ({
 	id: r.id,
 	name: r.name,
 	kind: r.kind,
 	...(r.capacity === undefined ? {} : { capacity: r.capacity }),
+	...said({
+		floor: r.floor,
+		purpose: r.purpose,
+		bookable: r.bookable,
+		homePractitionerId: r.homePractitionerId,
+	}),
 	active: r.active,
 	createdAt: r.createdAt,
 	updatedAt: r.updatedAt,
 });
-const deviceOut = (d: {
-	id: string;
-	name: string;
-	roomId?: string | undefined;
-	active: boolean;
-	createdAt: number;
-	updatedAt: number;
-}) => ({
+const deviceOut = (d: DeviceRow) => ({
 	id: d.id,
 	name: d.name,
 	...(d.roomId === undefined ? {} : { roomId: d.roomId }),
+	...said({ deviceType: d.deviceType, bookable: d.bookable }),
 	active: d.active,
 	createdAt: d.createdAt,
 	updatedAt: d.updatedAt,
@@ -85,6 +118,12 @@ const serviceOut = (s: ServiceRow, prices: boolean) => ({
 	bufferMinutes: s.bufferMinutes,
 	modes: s.modes,
 	practitionerIds: s.practitionerIds,
+	...said({
+		category: s.category,
+		roomCategory: s.roomCategory,
+		roomIds: s.roomIds,
+		deviceIds: s.deviceIds,
+	}),
 	active: s.active,
 	...(prices && s.prices !== undefined ? { prices: s.prices } : {}),
 	createdAt: s.createdAt,
@@ -124,6 +163,10 @@ export const catalogHandlers: HandlersOf<
 		);
 	},
 	async "people.create"(ctx) {
+		await refsExist(ctx.deps.store, ctx.app, {
+			rooms: ctx.body.roomIds,
+			services: ctx.body.serviceIds,
+		});
 		const draft: PersonRow = {
 			id: newId("p"),
 			app: ctx.app,
@@ -133,6 +176,13 @@ export const catalogHandlers: HandlersOf<
 			active: true,
 			external: ctx.body.external ?? false,
 			...(ctx.body.color === undefined ? {} : { color: ctx.body.color }),
+			...said({
+				email: ctx.body.email,
+				specialty: ctx.body.specialty,
+				hours: ctx.body.hours,
+				roomIds: ctx.body.roomIds,
+				serviceIds: ctx.body.serviceIds,
+			}),
 			...stamps(ctx.now),
 		};
 		const row = await ctx.deps.store.c.people.insert(draft);
@@ -144,6 +194,10 @@ export const catalogHandlers: HandlersOf<
 	},
 	async "people.update"(ctx) {
 		const row = await must(ctx.deps.store.c.people, ctx.app, String(ctx.params.id), "person");
+		await refsExist(ctx.deps.store, ctx.app, {
+			rooms: ctx.body.roomIds,
+			services: ctx.body.serviceIds,
+		});
 		const next: PersonRow = {
 			...row,
 			...Object.fromEntries(Object.entries(ctx.body).filter(([, v]) => v !== undefined)),
@@ -188,12 +242,21 @@ export const catalogHandlers: HandlersOf<
 		return page((await ctx.deps.store.c.rooms.list(ctx.app)).sort(byName), ctx.query, roomOut);
 	},
 	async "rooms.create"(ctx) {
+		await refsExist(ctx.deps.store, ctx.app, {
+			people: ctx.body.homePractitionerId === undefined ? [] : [ctx.body.homePractitionerId],
+		});
 		const draft = {
 			id: newId("o"),
 			app: ctx.app,
 			name: ctx.body.name,
 			kind: ctx.body.kind,
 			...(ctx.body.capacity === undefined ? {} : { capacity: ctx.body.capacity }),
+			...said({
+				floor: ctx.body.floor,
+				purpose: ctx.body.purpose,
+				bookable: ctx.body.bookable,
+				homePractitionerId: ctx.body.homePractitionerId,
+			}),
 			active: true,
 			...stamps(ctx.now),
 		};
@@ -203,6 +266,9 @@ export const catalogHandlers: HandlersOf<
 	},
 	async "rooms.update"(ctx) {
 		const row = await must(ctx.deps.store.c.rooms, ctx.app, String(ctx.params.id), "room");
+		await refsExist(ctx.deps.store, ctx.app, {
+			people: ctx.body.homePractitionerId === undefined ? [] : [ctx.body.homePractitionerId],
+		});
 		const next = {
 			...row,
 			...Object.fromEntries(Object.entries(ctx.body).filter(([, v]) => v !== undefined)),
@@ -234,6 +300,7 @@ export const catalogHandlers: HandlersOf<
 			app: ctx.app,
 			name: ctx.body.name,
 			...(ctx.body.roomId === undefined ? {} : { roomId: ctx.body.roomId }),
+			...said({ deviceType: ctx.body.deviceType, bookable: ctx.body.bookable }),
 			active: true,
 			...stamps(ctx.now),
 		};
@@ -314,6 +381,10 @@ export const catalogHandlers: HandlersOf<
 		const people = await ctx.deps.store.c.people.list(ctx.app);
 		for (const id of ctx.body.practitionerIds)
 			if (!people.some((p) => p.id === id)) throw fail("invalid", "unknown person", { person: id });
+		await refsExist(ctx.deps.store, ctx.app, {
+			rooms: ctx.body.roomIds,
+			devices: ctx.body.deviceIds,
+		});
 		const draft: ServiceRow = {
 			id: newId("s"),
 			app: ctx.app,
@@ -323,6 +394,12 @@ export const catalogHandlers: HandlersOf<
 			bufferMinutes: ctx.body.bufferMinutes,
 			modes: ctx.body.modes,
 			practitionerIds: ctx.body.practitionerIds,
+			...said({
+				category: ctx.body.category,
+				roomCategory: ctx.body.roomCategory,
+				roomIds: ctx.body.roomIds,
+				deviceIds: ctx.body.deviceIds,
+			}),
 			active: true,
 			...stamps(ctx.now),
 		};
@@ -331,6 +408,11 @@ export const catalogHandlers: HandlersOf<
 	},
 	async "services.update"(ctx) {
 		const row = await must(ctx.deps.store.c.services, ctx.app, String(ctx.params.id), "service");
+		await refsExist(ctx.deps.store, ctx.app, {
+			people: ctx.body.practitionerIds,
+			rooms: ctx.body.roomIds,
+			devices: ctx.body.deviceIds,
+		});
 		const next: ServiceRow = {
 			...row,
 			...Object.fromEntries(Object.entries(ctx.body).filter(([, v]) => v !== undefined)),

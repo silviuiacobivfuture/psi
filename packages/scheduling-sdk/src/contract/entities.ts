@@ -1,8 +1,10 @@
 import { z } from "zod/v4";
 import { BlacklistOverride } from "./entities-blacklist";
+import { DeviceFacts, PersonFacts, RoomFacts, ServiceFacts } from "./entities-catalog";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
 export * from "./entities-blacklist";
+export * from "./entities-catalog";
 export * from "./entities-files";
 export * from "./entities-money";
 
@@ -94,6 +96,7 @@ export const Person = z.object({
 	active: z.boolean(),
 	external: z.boolean(),
 	color: z.string().max(20).optional(),
+	...PersonFacts,
 	...Stamps,
 });
 export const PersonCreate = z.object({
@@ -102,6 +105,7 @@ export const PersonCreate = z.object({
 	subject: Subject.optional(),
 	external: z.boolean().optional(),
 	color: z.string().max(20).optional(),
+	...PersonFacts,
 });
 export const PersonPatch = PersonCreate.partial().extend({ active: z.boolean().optional() });
 
@@ -110,6 +114,7 @@ export const Room = z.object({
 	name: Name,
 	kind: z.string().max(40),
 	capacity: z.number().int().min(1).max(200).optional(),
+	...RoomFacts,
 	active: z.boolean(),
 	...Stamps,
 });
@@ -117,16 +122,18 @@ export const RoomCreate = z.object({
 	name: Name,
 	kind: z.string().max(40),
 	capacity: z.number().int().min(1).max(200).optional(),
+	...RoomFacts,
 });
 export const RoomPatch = RoomCreate.partial().extend({ active: z.boolean().optional() });
 export const Device = z.object({
 	id: Id,
 	name: Name,
 	roomId: Id.optional(),
+	...DeviceFacts,
 	active: z.boolean(),
 	...Stamps,
 });
-export const DeviceCreate = z.object({ name: Name, roomId: Id.optional() });
+export const DeviceCreate = z.object({ name: Name, roomId: Id.optional(), ...DeviceFacts });
 export const DevicePatch = DeviceCreate.partial().extend({ active: z.boolean().optional() });
 export const Group = z.object({
 	id: Id,
@@ -153,6 +160,7 @@ export const Service = z.object({
 	bufferMinutes: z.number().int().min(0).max(240),
 	modes: z.array(z.enum(["onsite", "online"])).min(1),
 	practitionerIds: z.array(Id),
+	...ServiceFacts,
 	active: z.boolean(),
 	prices: Prices.optional(),
 	...Stamps,
@@ -164,6 +172,7 @@ const ServiceBase = z.object({
 	bufferMinutes: z.number().int().min(0).max(240),
 	modes: z.array(z.enum(["onsite", "online"])).min(1),
 	practitionerIds: z.array(Id).max(100),
+	...ServiceFacts,
 });
 export const ServiceCreate = ServiceBase.extend({
 	bufferMinutes: ServiceBase.shape.bufferMinutes.default(0),
