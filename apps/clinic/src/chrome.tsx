@@ -104,6 +104,8 @@ export interface PageProps {
 	overlays?: Child;
 	/** What the command palette offers besides where to go: what can be done to what is open. */
 	palette?: ReadonlyArray<PaletteItem>;
+	/** No floating "new appointment" button: a screen with its own sticky save bar (the form filler). */
+	noFab?: boolean;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
 }
@@ -116,6 +118,7 @@ export async function Page({
 	children,
 	overlays,
 	palette,
+	noFab,
 	wide,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
@@ -191,7 +194,9 @@ export async function Page({
 				title={title}
 				user={{ name: ctx.person.name, email: ctx.person.email }}
 				labels={labels(locale)}
-				newAppointmentHref={can.write("appointments_create") ? "/calendar?new=1" : undefined}
+				newAppointmentHref={
+					can.write("appointments_create") && noFab !== true ? "/calendar?new=1" : undefined
+				}
 				rail={railPreferenceFrom(getCookie(ctx.c, "adm-rail")) ?? wide === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}

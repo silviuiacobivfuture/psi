@@ -36,6 +36,13 @@
 	flex-direction: column;
 	gap: var(--adm-gap);
 }
+.cl-pin {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
 .cl-tab {
 	display: flex;
 	flex-direction: column;
@@ -215,7 +222,13 @@
 .cl-buttons > .adm-btn {
 	width: 100%;
 }
+.cl-buttons--sticky > .adm-btn {
+	flex: 1 1 0;
+	min-width: 0;
+	padding-inline: var(--space-2);
+}
 .cl-buttons--sticky {
+	flex-direction: row-reverse;
 	position: sticky;
 	bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom));
 	z-index: 5;

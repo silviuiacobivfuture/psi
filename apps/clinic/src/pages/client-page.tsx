@@ -185,7 +185,10 @@ export async function renderClient(
 					<section class="cl-pinned-strip" aria-label={m.cl_note_pinned({}, o)} data-pinned-strip>
 						{pinned.map((n) => (
 							<Banner key={n.id} tone="info" icon="alert">
-								<strong>{noteCategoryText(n.category, ctx.locale)}</strong> · {n.body}
+								<div class="cl-pin">
+									<strong>{noteCategoryText(n.category, ctx.locale)}</strong>
+									<span>{n.body}</span>
+								</div>
 							</Banner>
 						))}
 					</section>
