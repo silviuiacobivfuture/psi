@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The estate's Argo CD Application for one SEB HELM piece, from the bundle's template.
 //
-//   node estate/seb-helm-app.mjs <piece dir> <app name> <label> <header>
+//   node estate/seb-helm-app.mjs <piece dir> <app name> <label> <header> <bundle>
 //
 // <piece dir> holds the bundle's pieces/<id>/application.yaml and values.yaml (contract:
 // SEB's tools/bundle/helm-piece.mjs). Writes to stdout the Application = the template with every
@@ -13,9 +13,13 @@
 // hand-written Application. A values.yaml holding nothing but blank lines and comments (the
 // chart's defaults) writes NO helm.values, as a hand-written Application without values has none
 // (the contract's helmValuesEmpty). <header> is written as the file's first comment line.
+// <bundle> is the bundle by digest (<registry>/seb/bundle@sha256:…) the values came from, written as
+// spec.info seb-bundle exactly as a directory piece's Application carries it, so Kyverno's
+// verify-seb-signatures (rule seb-bundle-signed) checks SEB's signature on what this Application
+// deploys from the bundle: its values.
 //
-// Refuses (exit 1, nothing on stdout): a placeholder naming an identity key this estate does not
-// set; a
+// Refuses (exit 1, nothing on stdout): a bundle that is not <host>/<path>@sha256:<64 hex>; a
+// placeholder naming an identity key this estate does not set; a
 // template that is not one Application with one chart source; values already in the template.
 // Called by estate/seb-upgrade.sh; commits nothing.
 
@@ -34,11 +38,15 @@ function refuse(msg) {
 	process.exit(1);
 }
 
-const [dir, name, label, header] = process.argv.slice(2);
-if (!dir || !name || !label || !header) {
-	process.stderr.write("usage: seb-helm-app.mjs <piece dir> <app name> <label k=v> <header>\n");
+const [dir, name, label, header, bundle] = process.argv.slice(2);
+if (!dir || !name || !label || !header || !bundle) {
+	process.stderr.write(
+		"usage: seb-helm-app.mjs <piece dir> <app name> <label k=v> <header> <bundle@sha256:…>\n",
+	);
 	process.exit(2);
 }
+if (!/^[a-z0-9.-]+(:[0-9]+)?(\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$/.test(bundle))
+	refuse(`bundle "${bundle}" is not <registry>/<path>@sha256:<digest>`);
 const [labelKey, labelValue] = label.split("=", 2);
 if (!labelKey || labelValue === undefined) refuse(`label "${label}" is not k=v`);
 
@@ -120,6 +128,8 @@ if (helm && ("values" in helm || "valuesObject" in helm || "valueFiles" in helm)
 doc.setIn(["metadata", "name"], name);
 doc.setIn(["metadata", "namespace"], "argocd");
 doc.setIn(["metadata", "labels", labelKey], labelValue);
+if (doc.getIn(["spec", "info"]) !== undefined) refuse("application.yaml carries spec.info itself");
+doc.setIn(["spec", "info"], doc.createNode([{ name: "seb-bundle", value: bundle }]));
 const noValues = renderedValues
 	.split("\n")
 	.every((l) => l.trim() === "" || l.trimStart().startsWith("#"));

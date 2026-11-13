@@ -44,6 +44,10 @@
 #       `${VAR:-}`, `${HOME}` and a key-shaped name the schema lacks stay literal, values text for text
 #   U21 REFUSED, nothing on stdout (planted): an identity key the schema defines and this estate
 #       does not set
+#   U27 it names the bundle it came from in spec.info (seb-bundle = <registry>/seb/bundle@sha256:…),
+#       as a directory piece's Application does, so Kyverno's seb-bundle-signed checks its values
+#   U28 REFUSED, nothing on stdout: a bundle reference that is not <registry>/<path>@sha256:<digest>,
+#       and a template that carries spec.info itself
 # A case this estate cannot exercise (it builds no image a deployed piece runs; it deploys no
 # piece without exactly one namespace) says `n/a` and why. Last: the working tree is exactly as before.
 set -euo pipefail
@@ -306,19 +310,32 @@ script: |
   [ -n "${POSTGRES_PASSWORD:-}" ] || exit 1; cd "${HOME}"; echo ${NOT_IN_SCHEMA}
 YAML
 reg="$(idv REGISTRY_HOST)"; mir="$(idv REGISTRY_PROJECT_MIRROR)"; dom="$(idv BASE_DOMAIN)"
+hb="registry.example.org/seb/bundle@sha256:$(printf '%064d' 7)"
 want_values="host: cloud.$dom
 script: |
   [ -n \"\${POSTGRES_PASSWORD:-}\" ] || exit 1; cd \"\${HOME}\"; echo \${NOT_IN_SCHEMA}
 "
-if out="$(node estate/seb-helm-app.mjs "$hp" planted k=v "# header" 2>&1)" \
+if out="$(node estate/seb-helm-app.mjs "$hp" planted k=v "# header" "$hb" 2>&1)" \
    && [ "$(node -e 'const y=require("yaml");const a=y.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(a.spec.source.helm.values)' <<<"$out")" = "$(printf '%s' "$want_values")" ] \
    && grep -qx "          value: $reg/$mir/x" <<<"$out"; then
   ok "U20 identity keys filled ($reg/$mir, cloud.$dom); \${POSTGRES_PASSWORD:-}, \${HOME}, \${NOT_IN_SCHEMA} kept literal"
 else bad "U20 the helm Application was not the template filled with identity keys only" "$out"; fi
+if [ "$(node -e 'const y=require("yaml");const a=y.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(JSON.stringify(a.spec.info))' <<<"$out")" = "[{\"name\":\"seb-bundle\",\"value\":\"$hb\"}]" ]; then
+  ok "U27 spec.info names the bundle by digest (seb-bundle = ${hb:0:48}…)"
+else bad "U27 the helm Application does not name its bundle in spec.info" "$out"; fi
+u28=""
+for b in "registry.example.org/seb/bundle:1.0.0" "registry.example.org/seb/bundle@sha256:abc" "" "oci://registry.example.org/seb/bundle@sha256:$(printf '%064d' 7)"; do
+  if o="$(node estate/seb-helm-app.mjs "$hp" planted k=v "# header" "$b" 2>/dev/null)" || [ -n "$o" ]; then u28+="[$b] written; "; fi
+done
+cp -r "$hp" "$tmp/helm-info"; sed -i 's/^  project: default$/  project: default\n  info: [ { name: seb-bundle, value: x } ]/' "$tmp/helm-info/application.yaml"
+if o="$(node estate/seb-helm-app.mjs "$tmp/helm-info" planted k=v "# header" "$hb" 2>"$tmp/helm-u28.err")" || [ -n "$o" ] \
+   || ! grep -q 'REFUSED: application.yaml carries spec.info itself' "$tmp/helm-u28.err"; then u28+="a template carrying spec.info was not refused by name; "; fi
+[ -z "$u28" ] && ok "U28 refused, nothing on stdout: a tag, a short digest, none, an oci:// scheme, and a template with its own spec.info" \
+  || bad "U28 $u28"
 sb="$tmp/seb-unset"; cp -r "$seb" "$sb"; chmod -R u+w "$sb"
 node -e 'const f=process.argv[1];const s=JSON.parse(require("fs").readFileSync(f,"utf8"));s.properties.PLANTED_UNSET_KEY={type:"string"};require("fs").writeFileSync(f,JSON.stringify(s))' "$sb/schema/identity.schema.json"
 printf 'x: ${PLANTED_UNSET_KEY}\n' >> "$hp/values.yaml"
-if out="$(SEB_ROOT="$sb" node estate/seb-helm-app.mjs "$hp" planted k=v "# header" 2>"$tmp/helm-u21.err")"; then
+if out="$(SEB_ROOT="$sb" node estate/seb-helm-app.mjs "$hp" planted k=v "# header" "$hb" 2>"$tmp/helm-u21.err")"; then
   bad "U21 an identity key this estate does not set was written" "$out"
 elif [ -z "$out" ] && grep -q 'REFUSED: values.yaml: ${PLANTED_UNSET_KEY} names an identity key this estate does not set' "$tmp/helm-u21.err"; then
   ok "U21 refused, nothing on stdout (planted): $(cut -c1-100 "$tmp/helm-u21.err")"

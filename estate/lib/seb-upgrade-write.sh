@@ -51,7 +51,7 @@ upgrade() {
     [ "${kindof[$id]}" = helm ] || continue
     node "$ROOT/estate/seb-helm-app.mjs" "$WORK/bundle-${digest#sha256:}/pieces/$id" "$(app_name "$id")" \
       "$LABEL=seb-bundle" \
-      "${MARK#\# } from the locked bundle $version. Do not edit; re-run the upgrade." \
+      "${MARK#\# } from the locked bundle $version. Do not edit; re-run the upgrade." "$REPO@$digest" \
       > "$WORK/helm-$id.yaml" 2>"$WORK/helm.err" \
       || refuse "helm piece $id in bundle $version: $(sed 's/^REFUSED: //' "$WORK/helm.err") — nothing written"
   done
