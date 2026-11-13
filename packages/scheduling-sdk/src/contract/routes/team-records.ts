@@ -3,6 +3,7 @@ import { route } from "../define";
 import {
 	AuditEvent,
 	AuditQuery,
+	CalendarEvent,
 	Definition,
 	DefinitionKind,
 	DefinitionPut,
@@ -10,6 +11,7 @@ import {
 	FileInitResult,
 	FileMeta,
 	ImportRun,
+	InboxCounts,
 	RecordCreate,
 	RecordFull,
 	RecordPatch,
@@ -87,6 +89,32 @@ export const OPERATION_ROUTES = [
 		}),
 		response: z.object({ items: z.array(WebRequest) }),
 		permission: { key: "requests_view", target: { kind: "app" } },
+	}),
+	route({
+		id: "requests.stream",
+		method: "GET",
+		path: "/v1/apps/:app/requests/stream",
+		side: "team",
+		summary:
+			"Server-sent events: a web request arrived or changed (live, from the store's subscription; only for a caller who may see requests)",
+		params: AppParam,
+		query: z.object({ after: z.coerce.number().int().nonnegative().optional() }),
+		response: CalendarEvent,
+		permission: { key: "requests_view", target: { kind: "app" } },
+		stream: true,
+	}),
+	route({
+		id: "inbox.stream",
+		method: "GET",
+		path: "/v1/apps/:app/inbox-counts/stream",
+		side: "team",
+		summary:
+			"Server-sent events: the inbox badge counts, re-sent whenever something that counts changes",
+		params: AppParam,
+		query: z.object({ after: z.coerce.number().int().nonnegative().optional() }),
+		response: InboxCounts,
+		permission: { key: "requests_view", target: { kind: "app" } },
+		stream: true,
 	}),
 	route({
 		id: "requests.decide",

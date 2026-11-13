@@ -48,7 +48,11 @@ describe("the route table", () => {
 	});
 
 	it("only the stream is a stream, and only meta routes may be public", () => {
-		expect(ALL.filter((r) => r.stream === true).map((r) => r.id)).toEqual(["calendar.stream"]);
+		expect(
+			ALL.filter((r) => r.stream === true)
+				.map((r) => r.id)
+				.sort(),
+		).toEqual(["calendar.stream", "inbox.stream", "requests.stream"]);
 		expect(
 			ALL.filter((r) => r.publicReason !== undefined)
 				.map((r) => r.id)

@@ -1,0 +1,6 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"reminder_subject": "Memento: programarea de {date}, ora {time}",
+	"reminder_body": "Bună ziua, {name}! Vă reamintim programarea de mâine, {date}, la ora {time}, la {place}. Dacă nu puteți ajunge, vă rugăm să ne anunțați cât mai curând.",
+	"reminder_whatsapp": "Bună ziua, {name}! Vă reamintim programarea de mâine, {date}, la ora {time}, la {place}. Vă rugăm să confirmați prezența."
+}

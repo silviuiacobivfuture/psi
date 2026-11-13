@@ -60,7 +60,7 @@ export type InputOf<S extends RouteSpec> = Flat<
 export type OutputOf<S extends RouteSpec> = z.output<S["response"]>;
 /** What a server handler receives: the parsed parts, separate. */
 export interface ParsedOf<S extends RouteSpec> {
-	params: S["params"] extends z.ZodObject ? z.output<S["params"]> : Record<string, never>;
-	query: S["query"] extends z.ZodObject ? z.output<S["query"]> : Record<string, never>;
-	body: S["body"] extends z.ZodObject ? z.output<S["body"]> : Record<string, never>;
+	params: S["params"] extends z.ZodObject ? z.output<S["params"]> : Record<string, unknown>;
+	query: S["query"] extends z.ZodObject ? z.output<S["query"]> : Record<string, unknown>;
+	body: S["body"] extends z.ZodObject ? z.output<S["body"]> : Record<string, unknown>;
 }

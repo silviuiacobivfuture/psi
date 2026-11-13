@@ -1,0 +1,6 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"reminder_subject": "Reminder: your appointment on {date} at {time}",
+	"reminder_body": "Hello {name}! This is a reminder of your appointment tomorrow, {date}, at {time}, at {place}. If you cannot come, please let us know as soon as you can.",
+	"reminder_whatsapp": "Hello {name}! This is a reminder of your appointment tomorrow, {date}, at {time}, at {place}. Please confirm that you will be there."
+}
