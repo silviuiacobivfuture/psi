@@ -58,9 +58,12 @@ export {
 	type FormField,
 	formDefinitionSchema,
 	formFieldSchema,
+	LONGTEXT_MAX,
 	type ResponseCheck,
 	type ResponseProblem,
+	TABLE_CELL_MAX,
 	type TableColumn,
+	TEXT_MAX,
 	validateResponse,
 	valueSchemaFor,
 } from "./forms";

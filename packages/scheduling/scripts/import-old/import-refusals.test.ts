@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
 	buildKeyRing,
+	decryptField,
 	encryptBytes,
 	encryptField,
 	fingerprint,
@@ -180,6 +181,59 @@ describe("refusals: nothing is written", () => {
 			"racemeup_feedback:1",
 		]);
 		expect(JSON.stringify(report)).not.toContain("SENTINEL-CELL");
+	});
+
+	it("text above a cap is kept whole and noted, at cap-1 and cap nothing is said; never blocking", async () => {
+		const run = async (n: number) => {
+			const sink = new MemorySink();
+			const exported = cloneExport();
+			const row = exported.tables.session_feedback?.[0];
+			if (row !== undefined) {
+				Reflect.set(row as object, "other_behavior", "x".repeat(4_000 + n));
+				Reflect.set(row as object, "other_details", "y".repeat(50_000 + n));
+				Reflect.set(row as object, "receptive_to", ["z".repeat(4_000 + n)]);
+				Reflect.set(row as object, "reward_quality", "q".repeat(4_000 + n));
+				Reflect.set(row as object, "programs", [
+					{
+						name: "n".repeat(20_000 + n),
+						prompt: "p".repeat(20_000 + n),
+						notes: "m".repeat(50_000 + n),
+					},
+				]);
+			}
+			const report = await runImport({
+				...base(),
+				exported,
+				connect: async () => ({ sink, enc, storage: new MemoryStorage() }),
+			});
+			return { sink, report };
+		};
+		for (const n of [-1, 0]) {
+			const { report } = await run(n);
+			expect(report.refusal).toBeUndefined();
+			expect(report.anomalies.filter((a) => a.code.startsWith("over_cap"))).toEqual([]);
+		}
+		const { sink, report } = await run(1);
+		expect(report.refusal).toBeUndefined();
+		expect(idsOf(report, "over_cap:session_feedback.other_behaviour")).toEqual([
+			"session_feedback:1",
+		]);
+		for (const f of ["other_details", "receptive_to", "reward_quality", "programs"]) {
+			expect(idsOf(report, `over_cap:session_feedback.${f}`)).toEqual(["session_feedback:1"]);
+		}
+		expect(report.anomalies.find((a) => a.code.startsWith("over_cap"))?.severity).toBe("note");
+		const stored = JSON.parse(
+			await decryptField(
+				ring,
+				Reflect.get(sink.row("responses", "session_feedback:1") ?? {}, "payload"),
+				`${TENANT}|formResponses.payload`,
+			),
+		);
+		expect(stored.other_behaviour).toHaveLength(4_001);
+		expect(stored.other_details).toHaveLength(50_001);
+		expect(stored.receptive_to[0]).toHaveLength(4_001);
+		expect(stored.programs[0].name).toHaveLength(20_001);
+		expect(stored.programs[0].notes).toHaveLength(50_001);
 	});
 
 	it("a row that does not parse is blocking and reported without its value", async () => {

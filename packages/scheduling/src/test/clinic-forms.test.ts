@@ -3,8 +3,11 @@ import {
 	coerceAnswer,
 	type FormDefinition,
 	formDefinitionSchema,
+	LONGTEXT_MAX,
 	SEED_FORM_TEMPLATES,
+	TABLE_CELL_MAX,
 	TEMPLATE_RESOURCE,
+	TEXT_MAX,
 	validateResponse,
 } from "../clinic";
 import { isPermissionKey } from "../permissions";
@@ -481,5 +484,63 @@ describe("the table field", () => {
 		expect(coerceAnswer("table", [{ stray: "x" }], columns)).toEqual({ ok: false });
 		expect(coerceAnswer("table", [{ stray: "" }], columns)).toEqual({ ok: true, value: undefined });
 		expect(coerceAnswer("table", "{bad", columns)).toEqual({ ok: false });
+	});
+});
+
+describe("length caps: enforced by the builder, never applied to what an import brings", () => {
+	const label = { ro: "a", en: "a" };
+	const field = (key: string, type: string, extra: Record<string, unknown> = {}) => ({
+		key,
+		label,
+		type,
+		options: [],
+		required: false,
+		group: "clinical",
+		...extra,
+	});
+	const def = formDefinitionSchema.parse({
+		key: "caps",
+		version: 1,
+		kind: "report",
+		title: label,
+		fields: [
+			field("t", "text"),
+			field("l", "longtext"),
+			field("c", "choice"),
+			field("m", "multichoice"),
+			field("tab", "table", {
+				columns: [
+					{ key: "name", label, type: "text" },
+					{ key: "pick", label, type: "choice" },
+					{ key: "notes", label, type: "longtext" },
+				],
+			}),
+		],
+	});
+	const text = (n: number) => "x".repeat(n);
+	const cases: Array<[string, number, (v: string) => Record<string, unknown>]> = [
+		["text", TEXT_MAX, (v) => ({ t: v })],
+		["longtext", LONGTEXT_MAX, (v) => ({ l: v })],
+		["choice", TEXT_MAX, (v) => ({ c: v })],
+		["multichoice item", TEXT_MAX, (v) => ({ m: [v] })],
+		["table text cell", TABLE_CELL_MAX, (v) => ({ tab: [{ name: v }] })],
+		["table choice cell", TABLE_CELL_MAX, (v) => ({ tab: [{ pick: v }] })],
+		["table longtext cell", LONGTEXT_MAX, (v) => ({ tab: [{ notes: v }] })],
+	];
+
+	it("the caps are the agreed ones", () => {
+		expect([TEXT_MAX, LONGTEXT_MAX, TABLE_CELL_MAX]).toEqual([4_000, 50_000, 20_000]);
+	});
+
+	it.each(cases)("%s: cap-1 and cap pass, cap+1 is refused by the builder", (_n, cap, make) => {
+		expect(validateResponse(def, make(text(cap - 1))).ok).toBe(true);
+		expect(validateResponse(def, make(text(cap))).ok).toBe(true);
+		expect(validateResponse(def, make(text(cap + 1))).ok).toBe(false);
+	});
+
+	it.each(cases)("%s: uncapped keeps cap+1 whole", (_n, cap, make) => {
+		const check = validateResponse(def, make(text(cap + 1)), { uncapped: true });
+		expect(check.ok).toBe(true);
+		expect(JSON.stringify(check.ok ? check.values : {})).toContain(text(cap + 1));
 	});
 });

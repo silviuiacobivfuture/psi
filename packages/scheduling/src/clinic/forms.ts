@@ -23,6 +23,16 @@ export const FIELD_TYPES = [
 ] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/**
+ * Length caps of what the builder's forms accept. They are generous on purpose, and they bind
+ * what people type: the import never truncates or drops clinical text above them, it keeps the
+ * whole value and notes it (`validateResponse` with `uncapped`).
+ */
+export const TEXT_MAX = 4_000;
+export const LONGTEXT_MAX = 50_000;
+/** A text, choice or number cell of a table. */
+export const TABLE_CELL_MAX = 20_000;
+
 const labelSchema = z.object({ ro: z.string().min(1).max(200), en: z.string().min(1).max(200) });
 
 /** The types a column of a `table` field may have. */
@@ -37,14 +47,15 @@ export type TableColumn = z.infer<typeof tableColumnSchema>;
 
 export const TABLE_ROWS_MAX = 200;
 
-export const optionSchema = z.object({ value: z.string().min(1).max(100), label: labelSchema });
+export const optionSchema = z.object({
+	value: z.string().min(1).max(TEXT_MAX),
+	label: labelSchema,
+});
 
 export const FIELD_KEY = /^[a-z][a-z0-9_]{0,47}$/;
 
 const fieldGroupSchema = z.string().refine(isFieldGroup, "not a field group");
 
-export const TEXT_MAX = 2_000;
-export const LONGTEXT_MAX = 20_000;
 export const DEFAULT_RATING = { min: 0, max: 10 } as const;
 
 export const formFieldSchema = z
@@ -112,14 +123,18 @@ export const formDefinitionSchema = z
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 
 /** The value schema of one field. Bounds default sensibly; unknown choices are refused only where options exist. */
-export function valueSchemaFor(field: FormField): z.ZodType<unknown> {
+export function valueSchemaFor(
+	field: FormField,
+	options_: { uncapped?: boolean } = {},
+): z.ZodType<unknown> {
+	const cap = (n: number): number => (options_.uncapped === true ? Number.MAX_SAFE_INTEGER : n);
 	const options = field.options.map((o) => o.value);
 	const inOptions = (value: string): boolean => options.length === 0 || options.includes(value);
 	switch (field.type) {
 		case "text":
-			return z.string().max(TEXT_MAX);
+			return z.string().max(cap(TEXT_MAX));
 		case "longtext":
-			return z.string().max(LONGTEXT_MAX);
+			return z.string().max(cap(LONGTEXT_MAX));
 		case "number":
 			return z
 				.number()
@@ -135,9 +150,9 @@ export function valueSchemaFor(field: FormField): z.ZodType<unknown> {
 		case "date":
 			return z.string().refine(isLocalDate, "not a date");
 		case "choice":
-			return z.string().max(200).refine(inOptions, "not an option");
+			return z.string().max(cap(TEXT_MAX)).refine(inOptions, "not an option");
 		case "multichoice":
-			return z.array(z.string().max(200).refine(inOptions, "not an option")).max(100);
+			return z.array(z.string().max(cap(TEXT_MAX)).refine(inOptions, "not an option")).max(100);
 		case "yesno":
 			return z.boolean();
 		case "file":
@@ -151,10 +166,10 @@ export function valueSchemaFor(field: FormField): z.ZodType<unknown> {
 		case "table": {
 			const cell = (c: TableColumn): z.ZodType<unknown> =>
 				c.type === "longtext"
-					? z.string().max(LONGTEXT_MAX)
+					? z.string().max(cap(LONGTEXT_MAX))
 					: c.type === "number"
 						? z.number().finite()
-						: z.string().max(c.type === "choice" ? 200 : TEXT_MAX);
+						: z.string().max(cap(TABLE_CELL_MAX));
 			const shape = Object.fromEntries(
 				(field.columns ?? []).map((c) => [c.key, cell(c).optional()]),
 			);
@@ -176,6 +191,7 @@ export type ResponseCheck =
 export function validateResponse(
 	def: FormDefinition,
 	input: Readonly<Record<string, unknown>>,
+	options_: { uncapped?: boolean } = {},
 ): ResponseCheck {
 	const problems: ResponseProblem[] = [];
 	const values: Record<string, unknown> = {};
@@ -189,7 +205,7 @@ export function validateResponse(
 			if (field.required) problems.push({ field: field.key, code: "required" });
 			continue;
 		}
-		const parsed = valueSchemaFor(field).safeParse(raw);
+		const parsed = valueSchemaFor(field, options_).safeParse(raw);
 		if (parsed.success) values[field.key] = parsed.data;
 		else problems.push({ field: field.key, code: "invalid" });
 	}

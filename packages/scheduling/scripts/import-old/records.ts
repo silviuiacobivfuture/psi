@@ -91,12 +91,9 @@ export async function planResponses(
 		// Fields flagged `learnOptions` take the distinct values the data holds as their options.
 		const fields = template.fields.map((field) => {
 			if (field.learnOptions !== true) return field;
-			const values = distinct(source[table], columnCandidates(field.key)).filter((v) => {
-				const fits = v.length > 0 && v.length <= 100;
-				if (!fits && v.length > 0)
-					ctx.log.add(`option_too_long:${table}.${field.key}`, "note", `${table}:*`);
-				return fits;
-			});
+			const values = distinct(source[table], columnCandidates(field.key)).filter(
+				(v) => v.length > 0,
+			);
 			if (values.length === 0) return field;
 			learned.push({
 				definitionKey: template.key,
@@ -144,7 +141,15 @@ export async function planResponses(
 				} else if (answer.value !== undefined) values[field.key] = answer.value;
 			}
 			if (!readable) continue;
-			const checked = validateResponse(def, values);
+			// Clinical text is never truncated or dropped for length: above a cap the value is kept whole
+			// and the field is noted. Only a value that is wrong for another reason blocks.
+			const capped = validateResponse(def, values);
+			const checked = capped.ok ? capped : validateResponse(def, values, { uncapped: true });
+			if (!capped.ok && checked.ok) {
+				for (const p of capped.problems) {
+					ctx.log.add(`over_cap:${table}.${p.field}`, "note", ref);
+				}
+			}
 			if (!checked.ok) {
 				for (const p of checked.problems) {
 					ctx.log.add(`invalid_value:${table}.${p.field}:${p.code}`, "blocking", ref);
