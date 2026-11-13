@@ -139,19 +139,58 @@ export interface BookingCopy {
 			Record<"cancelled" | "not_found" | "not_cancellable" | "unavailable", string>
 		>;
 		services: (names: string) => string;
-		/** The guide's line after a message in the details step: what it took, what it still needs. */
+		/** The guide's lines in the details step: one question at a time, each answer judged by the form's rules. */
 		details: {
 			thanksName: (name: string) => string;
 			thanks: string;
-			need: (what: string) => string;
-			needName: string;
-			needContact: string;
-			needFor: string;
-			needConsent: string;
-			ready: string;
+			/** The first question, after the chosen time: `when` is "marți, 17 noiembrie, 10:00". */
+			lead: (when: string) => string;
+			ask: Readonly<Record<"name" | "age" | "details" | "phone" | "email", string>>;
+			/** Why an answer was not taken, naming the problem and what to do. */
+			invalid: Readonly<Record<"name" | "age" | "details" | "phone" | "email", string>>;
+			/** "Did you mean …@gmail.com?": the domain the typo probably meant. */
+			emailTypo: (domain: string) => string;
+			/** The message told nothing: back to the question. */
+			nudge: string;
+			/** The button that opens the booking form with everything typed so far. */
+			useForm: string;
+		};
+		/**
+		 * The summary the visitor confirms. `confirm` and `edit` are also the words the button sends
+		 * as the visitor's own message, so the engine must read them as a yes and as an edit (a test
+		 * of each site guards it).
+		 */
+		card: {
+			lead: string;
+			labels: Readonly<
+				Record<
+					| "service"
+					| "when"
+					| "practitioner"
+					| "name"
+					| "age"
+					| "phone"
+					| "email"
+					| "details"
+					| "forWhom",
+					string
+				>
+			>;
+			consent: string;
+			confirm: string;
+			edit: string;
+			/** The message was not a yes: nothing was sent. */
 			nudge: string;
 		};
-		summary: Readonly<Record<"times" | "confirm" | "cancel" | "services", string>>;
+		/** After the guide submitted: what happens next. */
+		booked: { next: string };
+		/** The time went between the summary and the yes; the details are kept. */
+		slotGone: string;
+		/** The request could not be sent; saying yes again tries again. */
+		submitRetry: string;
+		summary: Readonly<
+			Record<"times" | "confirm" | "cancel" | "services" | "card" | "booked" | "failed", string>
+		>;
 	};
 }
 

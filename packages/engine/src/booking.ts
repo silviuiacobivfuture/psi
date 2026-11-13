@@ -1,36 +1,36 @@
-import { fresh, matchesWish, merge, partOf, restricted, unique } from "./booking-criteria";
-import { missingDetails, readDetails } from "./booking-details";
+import { confirmation } from "./booking-confirm";
+import { fresh, matchesWish, merge, partOf } from "./booking-criteria";
+import { answerFirst, detailsTurn, keepOf, talkOf } from "./booking-details-turn";
+import { QUESTION_WORDS } from "./booking-fields";
+import {
+	type BookingOffer,
+	type BookingScope,
+	confirmOffer,
+	type Keep,
+	localToday,
+	look,
+	searchOffer,
+	stateOf,
+	type Talk,
+	timesOffer,
+} from "./booking-offers";
 import { findCodes, isCancelIntent, readWish, type Wish } from "./booking-parse";
-import {
-	type BookingCancel,
-	type BookingCriteria,
-	type BookingDetails,
-	type BookingDetailsReport,
-	type BookingKind,
-	type BookingNotice,
-	type BookingState,
-	MAX_SHOWN,
-	type PartOfDay,
-} from "./booking-state";
+import type { BookingCriteria, BookingLang, BookingState } from "./booking-state";
 import { within } from "./deadline";
+import { createLanguageDetector } from "./language/detect";
 import type { LanguagePack } from "./language/pack";
-import type { ProfileScheduling, SchedulingPort } from "./scheduling/port";
-import {
-	type FindAvailabilityOutput,
-	type ProposedSlot,
-	runCancelRequest,
-	runFindAvailability,
-	runRequestAppointment,
-	SCHEDULING_TIMEOUT_MS,
-} from "./scheduling/tools";
+import { type ProposedSlot, runCancelRequest, SCHEDULING_TIMEOUT_MS } from "./scheduling/tools";
 import { fold } from "./text/normalize";
 
+export type { BookingOffer, BookingScope } from "./booking-offers";
 export type {
+	BookedRequest,
 	BookingCancel,
 	BookingCriteria,
 	BookingDetails,
 	BookingDetailsReport,
 	BookingKind,
+	BookingLang,
 	BookingNotice,
 	BookingState,
 } from "./booking-state";
@@ -43,49 +43,16 @@ export { BookingDetailsSchema, BookingStateSchema } from "./booking-state";
  * with the reference and cancel code. It uses the scheduling tools' own functions
  * (`findAvailability`, `requestAppointment`, `cancelRequest`) and sends the result as a `booking`
  * event; the app renders it: the free times as buttons, or, for a time that was named and checked
- * free, its confirm step (the booking form: name, contact, consent), which holds the time,
- * confirms it and shows the reference, exactly as its booking page does. Nothing here holds or
- * books, and no personal detail is read or kept: crisis, the limits and the rules have already
- * run. The conversation's booking state travels with the visitor's page (`BookingState`).
+ * free, the details step. There the guide asks for name, age, what is going on, phone and e-mail
+ * one at a time, reads each answer with the booking form's own rules, shows a summary, and on the
+ * visitor's explicit yes holds the time and submits the request itself (`booking-submit.ts`),
+ * answering with the reference and the cancel code. The model never takes part: it fills no field,
+ * and nothing is submitted without the yes. Crisis, the limits and the rules have already run.
+ * The conversation's booking state travels with the visitor's page (`BookingState`).
  */
 
-/** What a booking turn shows, and the state the next turn starts from. */
-export interface BookingOffer {
-	kind: BookingKind;
-	/** The service the times are for. */
-	service: string;
-	status: "ok" | "none" | "unavailable";
-	timeZone?: string;
-	slots: ReadonlyArray<ProposedSlot>;
-	/** Why the list differs from what was asked, when it does. */
-	notice?: BookingNotice;
-	/** `confirm`: the time that was named and found free. */
-	chosen?: ProposedSlot;
-	/** `confirm`: the details typed in the chat so far, and what the form still needs. */
-	details?: BookingDetailsReport;
-	/** `cancel_result`: how the cancellation went. */
-	cancel?: BookingCancel;
-	/** `services`: what can be booked here. */
-	services?: ReadonlyArray<string>;
-	/** `services`: the names of those services in both languages, when the store has them. */
-	names?: Readonly<Record<string, { ro: string; en: string }>>;
-	/** `services`: the visitor must choose one before times can be shown. */
-	choose?: boolean;
-	/** The state to carry into the next turn (absent once the flow is over). */
-	state?: BookingState;
-}
-
-/** The profile's scheduling, when both the profile opted in and the engine was given a store. */
-export interface BookingScope {
-	port: SchedulingPort;
-	scope: ProfileScheduling;
-}
-
-/** How many free times one offer shows, and over how many days. */
-const OFFER_SLOTS = 6;
 /** The window a pick by clock time looks through. */
 const PICK_SLOTS = 10;
-const QUESTION_WORDS = /\b(cum|cat|cand|unde|de ce|cine|how|where|why|who|when)\b/;
 
 /** True when the question asks to book (the packs' `bookingIntent` rules, on folded text). */
 export function isBookingIntent(question: string, packs: ReadonlyArray<LanguagePack>): boolean {
@@ -93,130 +60,12 @@ export function isBookingIntent(question: string, packs: ReadonlyArray<LanguageP
 	return packs.some((pack) => (pack.bookingIntent ?? []).some((rule) => rule.test(folded)));
 }
 
-function localToday(now: number): string {
-	return new Date(now).toISOString().slice(0, 10);
-}
-
-function stateOf(
-	stage: BookingState["stage"],
-	criteria: BookingCriteria,
-	slots: ReadonlyArray<ProposedSlot>,
-	chosen?: { slot: ProposedSlot; details: BookingDetails },
-): BookingState {
+function keepFrom(talk: Talk): Keep {
 	return {
-		stage,
-		criteria,
-		shown: unique(slots).slice(0, MAX_SHOWN),
-		...(chosen === undefined
-			? {}
-			: {
-					chosen: chosen.slot,
-					...(Object.keys(chosen.details).length === 0 ? {} : { details: chosen.details }),
-				}),
+		details: talk.values,
+		...(talk.key === undefined ? {} : { key: talk.key }),
+		...(talk.lang === undefined ? {} : { lang: talk.lang }),
 	};
-}
-
-/** The confirm step's offer for a time checked free, with what the chat told so far. */
-function detailsOffer(
-	criteria: BookingCriteria,
-	slot: ProposedSlot,
-	shown: ReadonlyArray<ProposedSlot>,
-	values: BookingDetails,
-	heard: BookingDetailsReport["heard"] = [],
-	nudge = false,
-): BookingOffer {
-	return {
-		kind: "confirm",
-		service: criteria.service,
-		status: "ok",
-		slots: [slot],
-		chosen: slot,
-		details: { values, missing: missingDetails(values), heard, nudge },
-		state: stateOf("details", criteria, shown.length === 0 ? [slot] : shown, {
-			slot,
-			details: values,
-		}),
-	};
-}
-
-function timesOffer(
-	criteria: BookingCriteria,
-	found: Pick<FindAvailabilityOutput, "status" | "timeZone" | "slots">,
-	notice: BookingNotice | undefined,
-): BookingOffer {
-	const status = found.status === "unknown_service" ? "unavailable" : found.status;
-	return {
-		kind: "times",
-		service: criteria.service,
-		status,
-		...(found.timeZone === undefined ? {} : { timeZone: found.timeZone }),
-		slots: found.slots,
-		...(notice === undefined ? {} : { notice }),
-		state: stateOf("times", criteria, found.slots),
-	};
-}
-
-function look(
-	booking: BookingScope,
-	criteria: BookingCriteria,
-	now: number,
-	limit: number = OFFER_SLOTS,
-	partOfDay: PartOfDay = criteria.partOfDay,
-): Promise<FindAvailabilityOutput> {
-	return runFindAvailability(
-		booking.port,
-		booking.scope,
-		{
-			service: criteria.service,
-			days: criteria.days,
-			partOfDay,
-			limit,
-			...(criteria.fromDate === undefined ? {} : { fromDate: criteria.fromDate }),
-			...(criteria.weekday === undefined ? {} : { weekday: criteria.weekday }),
-			...(criteria.mode === undefined ? {} : { mode: criteria.mode }),
-		},
-		now,
-	);
-}
-
-/** A search; when nothing matches a restricted one, the nearest free times instead (`relaxed`). */
-async function searchOffer(
-	booking: BookingScope,
-	criteria: BookingCriteria,
-	now: number,
-	notice: BookingNotice | undefined,
-): Promise<BookingOffer> {
-	const found = await look(booking, criteria, now);
-	if (found.status === "none" && restricted(criteria)) {
-		const wide = fresh(criteria.service);
-		const nearest = await look(booking, wide, now);
-		if (nearest.status === "ok")
-			return timesOffer(wide, nearest, notice === "taken" ? "taken" : "relaxed");
-	}
-	return timesOffer(criteria, found, found.status === "ok" ? notice : undefined);
-}
-
-/** Checks the named time is still free and shows it as the confirm step. */
-async function confirmOffer(
-	booking: BookingScope,
-	criteria: BookingCriteria,
-	slot: ProposedSlot,
-	shown: ReadonlyArray<ProposedSlot>,
-	now: number,
-	known: BookingDetails = {},
-	heard: BookingDetailsReport["heard"] = [],
-	nudge = false,
-): Promise<BookingOffer> {
-	const checked = await runRequestAppointment(booking.port, booking.scope, {
-		service: criteria.service,
-		slotId: slot.slotId,
-		startsAt: slot.startsAt,
-	});
-	if (checked.status === "needs_confirmation") {
-		return detailsOffer(criteria, checked.proposal, shown, known, heard, nudge);
-	}
-	if (checked.status === "no_longer_free") return searchOffer(booking, criteria, now, "taken");
-	return timesOffer(criteria, { status: "unavailable", slots: [] }, undefined);
 }
 
 /** A time named by clock ("Tuesday at 10"): among the shown ones, else among the day's free ones. */
@@ -226,22 +75,23 @@ async function pickByClock(
 	wish: Wish,
 	shown: ReadonlyArray<ProposedSlot>,
 	now: number,
-	known: BookingDetails,
+	talk: Talk,
 ): Promise<BookingOffer> {
+	const keep = keepFrom(talk);
 	const among = shown.filter((slot) => matchesWish(slot, wish));
 	const only = among.length === 1 ? among[0] : undefined;
-	if (only !== undefined) return confirmOffer(booking, criteria, only, shown, now, known);
+	if (only !== undefined) return confirmOffer(booking, criteria, only, shown, now, talk);
 	if (among.length > 1) {
-		return timesOffer(criteria, { status: "ok", slots: among }, "ambiguous");
+		return timesOffer(criteria, { status: "ok", slots: among }, "ambiguous", keep);
 	}
 	const minutes = wish.minutes ?? 0;
 	const found = await look(booking, criteria, now, PICK_SLOTS, wish.partOfDay ?? partOf(minutes));
 	const hits = found.slots.filter((slot) => matchesWish(slot, wish));
 	const hit = hits.length === 1 ? hits[0] : undefined;
-	if (hit !== undefined) return confirmOffer(booking, criteria, hit, hits, now, known);
-	if (hits.length > 1) return timesOffer(criteria, { ...found, slots: hits }, "ambiguous");
-	if (found.status === "ok") return timesOffer(criteria, found, "not_free");
-	return searchOffer(booking, criteria, now, "not_free");
+	if (hit !== undefined) return confirmOffer(booking, criteria, hit, hits, now, talk);
+	if (hits.length > 1) return timesOffer(criteria, { ...found, slots: hits }, "ambiguous", keep);
+	if (found.status === "ok") return timesOffer(criteria, found, "not_free", keep);
+	return searchOffer(booking, criteria, now, "not_free", keep);
 }
 
 /** Whether the message named anything the dialogue acts on. */
@@ -310,7 +160,7 @@ async function live(booking: BookingScope): Promise<BookingScope> {
 		const names = Object.fromEntries(
 			entries.flatMap((e) => (e.name === undefined ? [] : [[e.slug, e.name]])),
 		);
-		return { port, scope: { tenant: scope.tenant, services: entries.map((e) => e.slug), names } };
+		return { port, scope: { ...scope, services: entries.map((e) => e.slug), names } };
 	} catch {
 		return booking;
 	}
@@ -322,6 +172,8 @@ async function act(
 	base: BookingState | undefined,
 	wish: Wish,
 	now: number,
+	lang: BookingLang,
+	carried: BookingState | undefined = base,
 ): Promise<BookingOffer> {
 	const service = base?.criteria.service ?? booking.scope.services[0] ?? "";
 	const shown = base?.shown ?? [];
@@ -341,19 +193,29 @@ async function act(
 			services: booking.scope.services,
 			...(booking.scope.names === undefined ? {} : { names: booking.scope.names }),
 			...(wish.asksServices === true ? {} : { choose: true }),
-			state: stateOf(base?.stage ?? "times", criteria, shown),
+			state: stateOf(base?.stage ?? "times", criteria, shown, {
+				...(base?.details === undefined ? {} : { details: base.details }),
+				...(base?.key === undefined ? {} : { key: base.key }),
+				lang,
+			}),
 		};
 	}
 	if (wish.ordinal !== undefined && shown.length > 0) {
 		const index = wish.ordinal === -1 ? shown.length - 1 : wish.ordinal - 1;
 		const picked = shown[index];
 		if (picked !== undefined)
-			return confirmOffer(booking, criteria, picked, shown, now, base?.details ?? {});
+			return confirmOffer(booking, criteria, picked, shown, now, talkOf(carried, lang));
 	}
 	if (wish.minutes !== undefined)
-		return pickByClock(booking, criteria, wish, shown, now, base?.details ?? {});
+		return pickByClock(booking, criteria, wish, shown, now, talkOf(carried, lang));
 	const refined = base !== undefined || Object.keys(wish).length > 0;
-	return searchOffer(booking, criteria, now, refined ? "refined" : undefined);
+	return searchOffer(
+		booking,
+		criteria,
+		now,
+		refined ? "refined" : undefined,
+		keepOf(carried, lang),
+	);
 }
 
 /**
@@ -362,7 +224,7 @@ async function act(
  */
 export async function bookingTurn(
 	offered: BookingScope,
-	input: { question: string; typed?: string; state?: BookingState },
+	input: { question: string; typed?: string; state?: BookingState; locale?: string },
 	packs: ReadonlyArray<LanguagePack>,
 	now: number = Date.now(),
 ): Promise<BookingOffer | undefined> {
@@ -371,6 +233,12 @@ export async function bookingTurn(
 	// details of a booking that has a time chosen.
 	const typed = input.typed ?? question;
 	const booking = await live(offered);
+	const lang = langOf(typed, state, input.locale, packs);
+	// The answer to what was just asked comes first, before any other reading of the message.
+	if (state?.stage === "details") {
+		const answered = await answerFirst(booking, state, typed, lang, now);
+		if (answered !== undefined) return answered;
+	}
 	const codes = findCodes(question);
 	const both = codes.reference !== undefined && codes.cancelCode !== undefined;
 	const awaiting =
@@ -379,32 +247,30 @@ export async function bookingTurn(
 	const services = booking.scope.services;
 	if (isBookingIntent(question, packs)) {
 		const wish = readWish(question, localToday(now), services, false, booking.scope.names);
-		return act(booking, undefined, wish, now);
+		// A new request mid-booking starts the search again, and keeps what the visitor already gave.
+		return act(booking, undefined, wish, now, lang, state?.stage === "cancel" ? undefined : state);
 	}
 	if (state === undefined || state.stage === "cancel") return undefined;
 	const wish = readWish(question, localToday(now), services, true, booking.scope.names);
-	if (meaningful(wish, state, question)) return act(booking, state, wish, now);
-	return state.stage === "details" ? detailsTurn(booking, state, typed, now) : undefined;
+	if (meaningful(wish, state, question)) return act(booking, state, wish, now, lang);
+	return state.stage === "details" ? detailsTurn(booking, state, typed, lang, now) : undefined;
 }
 
 /**
- * Free text while a time is chosen and the form is up. What it tells (a name, a phone or an
- * e-mail, who it is for, an explicit agreement) fills the form; a real question goes to the guide
- * (the chosen time stays in the state); anything else sends the visitor back to the form. The
- * chosen time is checked free again, so a hold that lapsed re-offers the nearest times.
+ * The language the visitor writes in: what their words show, else what an explicit yes shows,
+ * else the one the booking already spoke, else the page's.
  */
-async function detailsTurn(
-	booking: BookingScope,
-	state: BookingState,
+function langOf(
 	typed: string,
-	now: number,
-): Promise<BookingOffer | undefined> {
-	const { chosen, criteria } = state;
-	if (chosen === undefined) return undefined;
-	const { values, heard } = readDetails(typed, state.details);
-	const nothing = heard.length === 0;
-	if (nothing && (typed.includes("?") || QUESTION_WORDS.test(fold(typed)))) return undefined;
-	return confirmOffer(booking, criteria, chosen, state.shown, now, values, heard, nothing);
+	state: BookingState | undefined,
+	locale: string | undefined,
+	packs: ReadonlyArray<LanguagePack>,
+): BookingLang {
+	const seen = createLanguageDetector(packs).detect(typed);
+	if (seen === "ro" || seen === "en") return seen;
+	const said = confirmation(typed)?.lang;
+	if (said !== undefined) return said;
+	return state?.lang ?? (locale === "en" ? "en" : "ro");
 }
 
 /** The chosen time shown again, with what was typed so far: the answer for a reply that denied the calendar. */
@@ -412,6 +278,7 @@ export async function reshow(
 	offered: BookingScope,
 	state: BookingState | undefined,
 	question: string,
+	locale?: string,
 	now: number = Date.now(),
 ): Promise<BookingOffer> {
 	if (state?.stage === "details" && state.chosen !== undefined) {
@@ -422,7 +289,7 @@ export async function reshow(
 			state.chosen,
 			state.shown,
 			now,
-			state.details ?? {},
+			talkOf(state, state.lang ?? (locale === "en" ? "en" : "ro")),
 		);
 	}
 	return offerTimes(offered, question, now);
@@ -442,5 +309,5 @@ export async function offerTimes(
 		false,
 		booking.scope.names,
 	);
-	return act(booking, undefined, wish, now);
+	return act(booking, undefined, wish, now, "ro");
 }

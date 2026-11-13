@@ -15,8 +15,8 @@ export const guideCounts = guideCountsFromEnv(process.env, "hemisync");
  * The one guide this site talks to: Hemi-Sync România's Mastra agent on OpenRouter (OPENROUTER_API_KEY),
  * reading the knowledge base at PSI_KNOWLEDGE_DB_URL (local default: .data/knowledge.db, seeded by
  * `pnpm knowledge:seed`). No memory: nothing a visitor asks is kept. With scheduling on, a booking
- * question is answered with Hemi-Sync's own tenant only (the guide's port finds and cancels; it
- * never holds or books). The admin's AI settings come from the CMS (`aiSettings`); without a CMS
+ * question is answered with Hemi-Sync's own tenant only (the guide's port finds, holds, submits and
+ * cancels, and books only after the visitor confirmed a summary). The admin's AI settings come from the CMS (`aiSettings`); without a CMS
  * key, PSI_GUIDE_SETTINGS or the defaults.
  * Wrapped once so the control plane sees today's question counts.
  */

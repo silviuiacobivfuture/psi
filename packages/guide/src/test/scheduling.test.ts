@@ -24,8 +24,16 @@ afterEach(async () => {
 
 describe("scheduling in psi's guides", () => {
 	it("Psizone and Hemi-Sync opt in, each with its own tenant and no service named: the store says which are active", () => {
-		expect(PSI_PROFILES.psizone.scheduling).toEqual({ tenant: "psizone", services: [] });
-		expect(PSI_PROFILES.hemisync.scheduling).toEqual({ tenant: "hemisync", services: [] });
+		expect(PSI_PROFILES.psizone.scheduling).toEqual({
+			tenant: "psizone",
+			services: [],
+			audiences: ["child", "teen", "adult"],
+		});
+		expect(PSI_PROFILES.hemisync.scheduling).toEqual({
+			tenant: "hemisync",
+			services: [],
+			audiences: ["adult"],
+		});
 		expect(PSI_PROFILES.eqsync.scheduling).toBeUndefined();
 		expect(PSI_PROFILES.blog.scheduling).toBeUndefined();
 	});
@@ -79,11 +87,16 @@ describe("scheduling in psi's guides", () => {
 		});
 		expect(on.ok).toBe(true);
 		if (on.ok) {
-			// The engine gets two functions, never the client with its hold and submit.
+			// The engine gets its own port, never the client itself.
 			expect(on.scheduling.port).not.toBe(on.scheduling.client);
-			expect(Object.keys(on.scheduling.port).sort()).toEqual(["cancel", "catalogue", "findSlots"]);
-			expect("hold" in on.scheduling.port).toBe(false);
-			expect("submit" in on.scheduling.port).toBe(false);
+			expect(Object.keys(on.scheduling.port).sort()).toEqual([
+				"cancel",
+				"catalogue",
+				"findSlots",
+				"hold",
+				"release",
+				"submit",
+			]);
 		}
 	});
 });

@@ -1,73 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type BookingOffer, type BookingScope, bookingTurn } from "../booking";
 import { deniesCalendar } from "../booking-guard";
 import { createEngine } from "../engine";
-import { BUNDLED_LANGUAGES } from "../language/index";
 import type { Profile } from "../profile";
 import {
 	collect,
 	FakeKnowledge,
 	type FakeOpenRouter,
-	MemorySchedulingStore,
 	shape,
 	startFakeOpenRouter,
 } from "../testing";
+import {
+	ANSWERS,
+	asking,
+	chosen,
+	findOnly,
+	SCOPE,
+	say,
+	sayKind,
+	store,
+	summary,
+} from "./booking-fixture";
 import { BIKES } from "./consumer-profiles";
 
-/** Thursday 12 November 2026, 10:00 in Bucharest (UTC+2). */
-const NOW = Date.parse("2026-11-12T08:00:00Z");
-const SCOPE = { tenant: "harbour", services: ["bike-fitting"] };
 const PROFILE: Profile = { ...BIKES, scheduling: SCOPE };
-
-const at = (date: string, time: string): number => Date.parse(`${date}T${time}:00+02:00`);
-const FREE: ReadonlyArray<readonly [string, string, string]> = [
-	["fri", "2026-11-13", "09:00"],
-	["mon9", "2026-11-16", "09:00"],
-	["tue10", "2026-11-17", "10:00"],
-	["tue14", "2026-11-17", "14:00"],
-];
-
-function store(without: ReadonlyArray<string> = []): MemorySchedulingStore {
-	return new MemorySchedulingStore().offer(
-		"harbour",
-		"bike-fitting",
-		FREE.filter(([id]) => !without.includes(id)).map(([id, date, time]) => ({
-			id,
-			start: at(date, time),
-			end: at(date, time) + 3_600_000,
-			practitionerName: "DEMO Fitter",
-			modes: ["onsite" as const],
-		})),
-	);
-}
-
-async function say(
-	port: MemorySchedulingStore,
-	question: string,
-	state?: BookingOffer["state"],
-	typed?: string,
-): Promise<BookingOffer | undefined> {
-	const booking: BookingScope = { port, scope: SCOPE };
-	return bookingTurn(
-		booking,
-		{
-			question,
-			...(typed === undefined ? {} : { typed }),
-			...(state === undefined ? {} : { state }),
-		},
-		BUNDLED_LANGUAGES,
-		NOW,
-	);
-}
-
-/** The conversation up to the details step: the request, the week, the time. */
-async function chosen(port = store()): Promise<BookingOffer> {
-	const first = await say(port, "Vreau să programez o evaluare");
-	const week = await say(port, "săptămâna viitoare", first?.state);
-	const picked = await say(port, "marți la 10", week?.state);
-	if (picked?.kind !== "confirm") throw new Error(`expected the confirm step, got ${picked?.kind}`);
-	return picked;
-}
 
 let fake: FakeOpenRouter | undefined;
 beforeEach(() => vi.stubEnv("OPENROUTER_API_KEY", ""));
@@ -77,127 +32,156 @@ afterEach(async () => {
 	fake = undefined;
 });
 
-describe("the details step: the chat fills the booking form", () => {
-	it("choosing a time moves to the details stage and keeps the time", async () => {
+describe("the details step: one question at a time", () => {
+	it("choosing a time moves to the details stage, keeps the time and asks the name first", async () => {
 		const picked = await chosen();
 		expect(picked.state?.stage).toBe("details");
+		expect(picked.state?.asked).toBe("name");
+		expect(picked.state?.key).toMatch(/^[0-9a-f-]{36}$/);
 		expect(picked.state?.chosen).toMatchObject({ date: "2026-11-17", time: "10:00" });
 		expect(picked.details).toMatchObject({
 			values: {},
-			missing: ["name", "contact", "forWhom", "consent"],
+			missing: ["name", "age", "details", "phone", "email"],
+			ask: "name",
 			nudge: false,
+			edit: false,
 		});
 	});
 
-	it("the exact transcript: a name, a phone, who it is for, the agreement, each typed in the chat", async () => {
+	it("asks name, age, what is going on, phone and e-mail in turn, then shows the summary", async () => {
 		const port = store();
 		let offer = await chosen(port);
-		const steps: ReadonlyArray<readonly [string, ReadonlyArray<string>, ReadonlyArray<string>]> = [
-			["Iacob Silviu Iulian", ["name"], ["contact", "forWhom", "consent"]],
-			["0722 123 456", ["phone"], ["forWhom", "consent"]],
-			["pentru mine", ["forWhom"], ["consent"]],
-			["sunt de acord", ["consent"], []],
-		];
-		for (const [text, heard, missing] of steps) {
-			const next = await say(port, text, offer.state);
-			if (next?.kind !== "confirm") throw new Error(`"${text}" left the confirm step`);
-			expect(next.details?.heard).toEqual(heard);
-			expect(next.details?.missing).toEqual(missing);
-			expect(next.chosen).toMatchObject({ date: "2026-11-17", time: "10:00" });
-			offer = next;
+		const order: string[] = [];
+		for (const answer of ANSWERS) {
+			order.push(offer.details?.ask ?? offer.kind);
+			offer = await say(port, answer, offer.state).then((o) => {
+				if (o === undefined) throw new Error(`${answer} left the booking`);
+				return o;
+			});
+			expect(offer.chosen).toMatchObject({ date: "2026-11-17", time: "10:00" });
 		}
+		expect(order).toEqual(["name", "age", "details", "phone", "email"]);
+		expect(offer.kind).toBe("summary");
+		expect(offer.state?.asked).toBe("confirm");
 		expect(offer.details?.values).toEqual({
-			name: "Iacob Silviu Iulian",
-			phone: "0722123456",
+			name: "Ana Pop",
+			age: 34,
+			details: "Mă simt anxioasă de câteva luni și nu dorm bine",
+			phone: "+40722123456",
+			email: "ana@example.ro",
 			forWhom: "adult",
-			consent: true,
 		});
+		expect(offer.details?.missing).toEqual([]);
 	});
 
-	it("takes everything said in one message, in any order, with an e-mail instead of a phone", async () => {
+	it("takes everything said in one message, in any order, and asks only what is left", async () => {
 		const port = store();
 		const picked = await chosen(port);
-		const all = await say(
-			port,
-			"x",
-			picked.state,
-			"Silviu Iacob, silviu@example.ro, pentru fiul meu, sunt de acord",
-		);
-		expect(all?.details?.values).toEqual({
-			name: "Silviu Iacob",
-			email: "silviu@example.ro",
-			forWhom: "child",
-			consent: true,
+		const all = await sayKind(port, "x", picked.state, "confirm", {
+			typed: "ana@example.ro, +40 722 123 456, mă numesc Ana Pop, am 34 de ani",
 		});
-		expect(all?.details?.missing).toEqual([]);
-		const reversed = await say(port, "x", picked.state, "+40 722 123 456 mă numesc Ana Pop");
-		expect(reversed?.details?.values).toMatchObject({ name: "Ana Pop", phone: "+40722123456" });
-		expect(reversed?.details?.missing).toEqual(["forWhom", "consent"]);
+		expect(all.details?.heard).toEqual(expect.arrayContaining(["email", "phone", "age", "name"]));
+		expect(all.details?.ask).toBe("details");
+		expect(all.state?.asked).toBe("details");
 	});
 
-	it("reads a teenager and a child by age, and does not take 'nu accept' for an agreement", async () => {
-		const picked = await chosen();
-		const teen = await say(picked && store(), "x", picked.state, "pentru fiica mea de 15 ani");
-		expect(teen?.details?.values.forWhom).toBe("teen");
-		const child = await say(store(), "x", picked.state, "are 9 ani");
-		expect(child?.details?.values.forWhom).toBe("child");
-		const refused = await say(store(), "x", picked.state, "nu accept");
-		expect(refused?.details?.values.consent).toBeUndefined();
-	});
-
-	it("keeps what it knows when a later message adds one more piece, and a new piece replaces the old", async () => {
-		const port = store();
-		const named = await say(port, "x", (await chosen(port)).state, "Ana Pop");
-		const again = await say(port, "x", named?.state, "Ioana Pop");
-		expect(again?.details?.values.name).toBe("Ioana Pop");
-	});
-
-	it("nudges back to the form on text that tells nothing, and keeps the chosen time", async () => {
+	it("a volunteered description counts as the details, and a bare name before any lead does too", async () => {
 		const port = store();
 		const picked = await chosen(port);
-		for (const garbage of ["asdf qwer", "hmm", "....", "123", "ok bine"]) {
-			const next = await say(port, garbage, picked.state);
-			expect(next?.kind, garbage).toBe("confirm");
-			expect(next?.details?.nudge, garbage).toBe(true);
-			expect(next?.details?.heard, garbage).toEqual([]);
-			expect(next?.state?.chosen).toEqual(picked.state?.chosen);
-		}
+		const told = await sayKind(port, "x", picked.state, "confirm", {
+			typed: "Sunt Ana Pop și mă confrunt cu anxietate puternică de câteva luni",
+		});
+		expect(told.details?.values.name).toBe("Ana Pop");
+		expect(told.details?.values.details).toContain("anxietate");
+		expect(told.details?.ask).toBe("age");
 	});
 
-	it("leaves a real question to the guide, and answers nothing of the booking", async () => {
+	it("a new valid answer replaces the old one when the visitor corrects it", async () => {
+		const port = store();
+		const named = await sayKind(port, "x", (await chosen(port)).state, "confirm", {
+			typed: "Ana Pop",
+		});
+		const again = await sayKind(port, "x", named.state, "confirm", {
+			typed: "Mă numesc Ioana Pop",
+		});
+		expect(again.details?.values.name).toBe("Ioana Pop");
+	});
+
+	it("the age answered for the child decides who the booking is for", async () => {
+		const port = store();
+		const ask = async (age: string) => {
+			const picked = await chosen(port);
+			const next = await sayKind(port, "x", asking(picked, "age"), "confirm", { typed: age });
+			return next.details?.values;
+		};
+		expect((await ask("e pentru fiica mea de 7 ani"))?.forWhom).toBe("child");
+		expect((await ask("15 ani"))?.forWhom).toBe("teen");
+		expect((await ask("34"))?.forWhom).toBe("adult");
+	});
+
+	it("a single-audience site books that audience whatever the age", async () => {
+		const port = store();
+		const scope = { ...SCOPE, audiences: ["adult" as const] };
+		const picked = await chosen(port, { scope });
+		const next = await sayKind(port, "x", asking(picked, "age"), "confirm", {
+			typed: "7",
+			scope,
+		});
+		expect(next.details?.values).toMatchObject({ age: 7, forWhom: "adult" });
+	});
+
+	it("leaves a real question to the guide, whatever was asked, and answers nothing of the booking", async () => {
 		const picked = await chosen();
-		for (const question of [
-			"Cât durează o evaluare?",
-			"How long does it take?",
-			"Unde vă aflați?",
-		]) {
-			expect(await say(store(), question, picked.state), question).toBeUndefined();
+		for (const asked of ["name", "age", "phone", "email"] as const) {
+			for (const question of [
+				"Cât durează o evaluare?",
+				"How long does it take?",
+				"Unde vă aflați?",
+			]) {
+				const state = asking(picked, asked);
+				expect(await say(store(), question, state), `${asked}: ${question}`).toBeUndefined();
+			}
 		}
 	});
 
 	it("a wish in this stage still refines the booking, the details kept", async () => {
 		const port = store();
-		const named = await say(port, "x", (await chosen(port)).state, "Ana Pop");
-		const moved = await say(port, "marți la 14", named?.state);
-		expect(moved?.kind).toBe("confirm");
-		expect(moved?.chosen).toMatchObject({ date: "2026-11-17", time: "14:00" });
-		expect(moved?.details?.values.name).toBe("Ana Pop");
+		const named = await sayKind(port, "x", (await chosen(port)).state, "confirm", {
+			typed: "Ana Pop",
+		});
+		const moved = await sayKind(port, "marți la 14", named.state, "confirm");
+		expect(moved.chosen).toMatchObject({ date: "2026-11-17", time: "14:00" });
+		expect(moved.details?.values.name).toBe("Ana Pop");
+		expect(moved.state?.key).toBe(named.state?.key);
 	});
 
-	it("a time that lapsed is re-offered with the nearest ones, never confirmed", async () => {
+	it("a time that lapsed is re-offered with the nearest ones, never confirmed, and the details are kept", async () => {
 		const picked = await chosen(store());
-		const gone = await say(store(["tue10"]), "Ana Pop", picked.state);
+		const named = await sayKind(store(), "Ana Pop", picked.state, "confirm");
+		const gone = await say(store(["tue10"]), "34", named.state);
 		expect(gone?.kind).toBe("times");
 		expect(gone?.notice).toBe("taken");
-		expect(gone?.slots.length).toBeGreaterThan(0);
 		expect(gone?.slots.map((s) => s.slotId)).not.toContain(picked.chosen?.slotId);
+		expect(gone?.state?.details).toMatchObject({ name: "Ana Pop" });
+		expect(gone?.state?.key).toBe(named.state?.key);
 	});
 
-	it("never carries a detail into a state that is not the details stage", async () => {
-		const port = store();
-		const first = await say(port, "Vreau să programez o evaluare");
+	it("takes no detail into the first offer of a booking", async () => {
+		const first = await say(store(), "Vreau să programez o evaluare");
 		expect(first?.state?.details).toBeUndefined();
 		expect(first?.state?.chosen).toBeUndefined();
+		expect(first?.state?.asked).toBeUndefined();
+	});
+
+	it("the English visitor is answered in English, and stays so for a bare answer", async () => {
+		const port = store();
+		const picked = await chosen(port);
+		const english = await sayKind(port, "x", picked.state, "confirm", {
+			typed: "My name is Ana Pop and I would like to book",
+		});
+		expect(english.lang).toBe("en");
+		const bare = await sayKind(port, "x", english.state, "confirm", { typed: "34" });
+		expect(bare.lang).toBe("en");
 	});
 
 	it("reads the typed text, not the redacted one, through the engine", async () => {
@@ -219,8 +203,92 @@ describe("the details step: the chat fills the booking form", () => {
 		const offer = events[0]?.type === "booking" ? events[0].offer : undefined;
 		expect(offer?.details?.values).toMatchObject({
 			name: "Iacob Silviu Iulian",
-			phone: "0722123456",
+			phone: "+40722123456",
 		});
+	});
+});
+
+describe("the summary", () => {
+	it("holds every detail and waits: no hold, no request yet", async () => {
+		const port = store();
+		const card = await summary(port);
+		expect(card.chosen).toMatchObject({
+			date: "2026-11-17",
+			time: "10:00",
+			practitioner: "DEMO Fitter",
+		});
+		expect(card.details?.values.email).toBe("ana@example.ro");
+		expect(port.calls.filter((c) => c.method === "hold" || c.method === "submit")).toEqual([]);
+	});
+
+	it("text that is not an explicit yes shows the summary again and submits nothing", async () => {
+		const port = store();
+		const card = await summary(port);
+		for (const text of [
+			"ok",
+			"poate",
+			"nu",
+			"mai vedem",
+			"mulțumesc",
+			"da, dar mai întâi o întrebare",
+			"okay",
+			"hmm",
+			"👍",
+			"daaa",
+			"nu confirm",
+		]) {
+			const again = await say(port, text, card.state);
+			expect(again?.kind, text).toBe("summary");
+			expect(again?.details?.nudge, text).toBe(true);
+		}
+		expect(port.calls.filter((c) => c.method === "hold" || c.method === "submit")).toEqual([]);
+	});
+
+	it("a question beside the summary goes to the guide and keeps the summary state", async () => {
+		const card = await summary();
+		expect(await say(store(), "Cât costă o evaluare?", card.state)).toBeUndefined();
+	});
+
+	it("a correction typed under the summary changes the field and shows the summary again", async () => {
+		const port = store();
+		const card = await summary(port);
+		const fixed = await sayKind(port, "x", card.state, "summary", { typed: "ana.pop@example.ro" });
+		expect(fixed.details?.values.email).toBe("ana.pop@example.ro");
+		expect(fixed.details?.values.name).toBe("Ana Pop");
+	});
+
+	it("an e-mail typo in a correction is named and the summary does not appear", async () => {
+		const port = store();
+		const card = await summary(port);
+		const typo = await sayKind(port, "x", card.state, "confirm", { typed: "ana@gmial.com" });
+		expect(typo.details?.problem).toEqual({
+			field: "email",
+			code: "typo",
+			suggestion: "gmail.com",
+		});
+		expect(typo.details?.values.email).toBe("ana@example.ro");
+	});
+
+	it("Edit opens the form with everything filled, and a yes typed afterwards submits nothing", async () => {
+		const port = store();
+		const card = await summary(port);
+		for (const text of ["Editează", "editează datele", "edit", "Edit details"]) {
+			const edit = await sayKind(port, text, card.state, "confirm");
+			expect(edit.details?.edit, text).toBe(true);
+			expect(edit.details?.values.name, text).toBe("Ana Pop");
+			expect(edit.state?.asked, text).toBeUndefined();
+			const yes = await say(port, "da", edit.state);
+			expect(yes?.kind, text).not.toBe("booked");
+		}
+		expect(port.calls.filter((c) => c.method === "hold" || c.method === "submit")).toEqual([]);
+	});
+
+	it("a store that cannot hold and submit never shows the summary: the form finishes the booking", async () => {
+		const port = findOnly(store());
+		let offer = await chosen(port);
+		for (const answer of ANSWERS) offer = await sayKind(port, answer, offer.state, "confirm");
+		expect(offer.details?.edit).toBe(true);
+		expect(offer.details?.missing).toEqual([]);
 	});
 });
 

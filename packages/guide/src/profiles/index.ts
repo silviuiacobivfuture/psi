@@ -33,10 +33,10 @@ const NAMES: Readonly<Record<Brand, string>> = {
  */
 const SCHEDULING: Readonly<Partial<Record<Brand, ProfileScheduling>>> = {
 	// The services come from the store at each turn (the port's catalogue); none are named here.
-	psizone: { tenant: "psizone", services: [] },
+	psizone: { tenant: "psizone", services: [], audiences: ["child", "teen", "adult"] },
 	// Hemi-Sync books in its own chat, in its own tenant. While the store has none of its services,
 	// the chat shows its callback form: it never falls back to Psizone's times.
-	hemisync: { tenant: "hemisync", services: [] },
+	hemisync: { tenant: "hemisync", services: [], audiences: ["adult"] },
 };
 
 /** True when the brand's guide books inside its own chat (it has a scheduling tenant). */

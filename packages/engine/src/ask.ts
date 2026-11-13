@@ -1,5 +1,5 @@
 import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
-import { screen } from "./ask-screen";
+import { exchangeLimit, screen } from "./ask-screen";
 import { CREATIVITY_TEMPERATURE, DEFAULT_BEHAVIOUR, type TurnBehaviour } from "./behaviour";
 import { bookingTurn, reshow } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
@@ -128,7 +128,7 @@ async function* turn(
 		yield* refusal(screened.reason);
 		return;
 	}
-	const { input, settings, outOfScope, typed } = screened;
+	const { input, settings, outOfScope, typed, exchangeDeferred } = screened;
 	const behaviour = settings.behaviour ?? DEFAULT_BEHAVIOUR;
 	const copy = behaviour.copy[input.locale] ?? {};
 	if (ctx.booking !== undefined) {
@@ -137,6 +137,7 @@ async function* turn(
 			{
 				question: input.question,
 				typed,
+				locale: input.locale,
 				...(input.booking === undefined ? {} : { state: input.booking }),
 			},
 			[...ctx.packs.values()],
@@ -144,6 +145,13 @@ async function* turn(
 		if (offer !== undefined) {
 			yield { type: "booking", offer };
 			yield { type: "done" };
+			return;
+		}
+	}
+	if (exchangeDeferred) {
+		const limited = await exchangeLimit(ctx, control, settings);
+		if (limited !== undefined) {
+			yield* refusal(limited);
 			return;
 		}
 	}
@@ -266,7 +274,10 @@ async function* turn(
 					yield* refusal("unavailable");
 					return;
 				}
-				yield { type: "booking", offer: await reshow(ctx.booking, input.booking, input.question) };
+				yield {
+					type: "booking",
+					offer: await reshow(ctx.booking, input.booking, input.question, input.locale),
+				};
 				yield { type: "done" };
 				return;
 			}
