@@ -135,6 +135,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				appName: app === "psizone" ? "Psizone" : "Hemi-Sync",
 				timeZone: "Europe/Bucharest",
 				subject: who,
+				displayName:
+					as === undefined
+						? (opts.names?.[subject] ?? subject)
+						: as.startsWith("role:")
+							? (roles[0]?.name ?? as)
+							: (opts.names?.[as.slice("member:".length)] ?? as),
 				roles: roles.map((r) => r.id),
 				permissions,
 				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>

@@ -25,7 +25,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/calendar", ["calendar_view"]),
 	g("GET", "/calendar/print", ["calendar_view"]),
 	g("GET", "/calendar/appointment/[^/]+", ["calendar_view", "appointments_view"]),
-	g("GET", "/calendar/editor", ["appointments_create", "appointments_edit"]),
+	g("GET", "/calendar/editor", ["appointments_create", "appointments_edit"], true),
 	g("POST", "/calendar/editor/check", ["appointments_create", "appointments_edit"]),
 	g("POST", "/calendar/editor/clients", ["clients_create"], true),
 	g("POST", "/calendar/editor/save", ["appointments_create", "appointments_edit"], true),

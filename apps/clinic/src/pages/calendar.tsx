@@ -60,12 +60,14 @@ function Toolbar({
 	locale,
 	col,
 	columns,
+	canCreate,
 }: {
 	view: View;
 	date: string;
 	locale: Locale;
 	col: string | undefined;
 	columns: ReadonlyArray<{ id: string; name: string }>;
+	canCreate: boolean;
 }): JSX.Element {
 	const o = at(locale);
 	const today = todayIso();
@@ -119,14 +121,16 @@ function Toolbar({
 				<a class="adm-btn" href={href(view, today, col)}>
 					{m.today({}, o)}
 				</a>
-				<button
-					type="button"
-					class="adm-btn adm-btn--primary cal-new"
-					data-on:click={`@get('/calendar/editor?date=${view === "month" ? today : date}&time=09:00${col === undefined ? "" : `&col=${col}`}')`}
-				>
-					<Icon name="plus" />
-					{m.ap_new_button({}, o)}
-				</button>
+				{canCreate ? (
+					<button
+						type="button"
+						class="adm-btn adm-btn--primary cal-new"
+						data-on:click={`@get('/calendar/editor?date=${view === "month" ? today : date}&time=09:00${col === undefined ? "" : `&col=${col}`}')`}
+					>
+						<Icon name="plus" />
+						{m.ap_new_button({}, o)}
+					</button>
+				) : null}
 				<div class="adm-menu" data-on:keydown="evt.key === 'Escape' && ($calMenu = false)">
 					<button
 						type="button"
@@ -239,7 +243,7 @@ export function CalendarBody({
 	return (
 		<div
 			class="adm-page adm-page--wide"
-			data-on:keydown__window={`(evt.key === 'n' || evt.key === 'N') && !evt.ctrlKey && !evt.metaKey && !evt.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') && !$editor && (evt.preventDefault(), @get('/calendar/editor?date=${date}&time=09:00'))`}
+			data-on:keydown__window={`(evt.key === 'n' || evt.key === 'N') && ${ctx.can.write("appointments_create") ? "true" : "false"} && !evt.ctrlKey && !evt.metaKey && !evt.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') && !$editor && (evt.preventDefault(), @get('/calendar/editor?date=${date}&time=09:00'))`}
 		>
 			<Toolbar
 				view={query.view}
@@ -247,6 +251,7 @@ export function CalendarBody({
 				locale={locale}
 				col={query.col}
 				columns={data?.columns ?? []}
+				canCreate={ctx.can.write("appointments_create")}
 			/>
 			{view.failed || data === null ? (
 				<Banner tone="error" icon="alert">
