@@ -19,8 +19,6 @@ import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
 import type { NotificationsPort } from "./notifications/port";
-import { registerAdmin } from "./pages/admin";
-import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
 import { registerDesign } from "./pages/design";
@@ -30,6 +28,10 @@ import { FailureState } from "./pages/failure";
 import { NoAccessPage } from "./pages/gate";
 import { registerLive } from "./pages/live";
 import { MorePage } from "./pages/more";
+import { registerMySettings } from "./pages/my-settings";
+import { registerOrgAreas } from "./pages/org-areas";
+import { registerOrgSettings } from "./pages/org-settings";
+import { registerPlatform } from "./pages/platform";
 import { registerPrint } from "./pages/print-routes";
 import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
@@ -198,11 +200,11 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerLive(app);
 	registerViewAs(app, deps);
 	registerDesign(app);
+	registerOrgSettings(app);
 	registerSettings(app);
-	registerAdmin(app);
-	app.get("/audit", async (c) =>
-		c.html(await renderAudit(c.var.ctx), 200, { "cache-control": "private, no-store" }),
-	);
+	registerOrgAreas(app);
+	registerMySettings(app);
+	registerPlatform(app);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

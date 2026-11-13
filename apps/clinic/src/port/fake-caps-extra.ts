@@ -24,5 +24,15 @@ export function extraCapabilities(role: Pick<Role, "grants">): Record<string, Sc
 	if (blacklist.create !== undefined) out.blacklist_create_warn = [blacklist.create];
 	if (blacklist.approve !== undefined && role.grants.roles?.edit !== undefined)
 		out.blacklist_override_admin = [blacklist.approve];
+	// The organisation settings the role editor has no row for follow the settings row.
+	if (role.grants.settings?.edit !== undefined)
+		for (const key of [
+			"builder_view",
+			"feedback_view",
+			"reports_view",
+			"imports_exports_imports_view",
+		])
+			out[key] = ["all"];
+	if (role.grants.roster?.edit !== undefined) out.roster_edit = [role.grants.roster.edit];
 	return out;
 }

@@ -1,9 +1,9 @@
-import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { createFakeAccess } from "./fake-caps";
 import { createFakeClinical } from "./fake-clinical";
+import { createFakeFloorAndPrefs } from "./fake-floor";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -20,13 +20,11 @@ import type {
 	Client,
 	Membership,
 	Package,
-	PushPrefs,
 	SearchHit,
 } from "./schema";
 import { AppointmentPatchSchema, NewAppointmentSchema, NewClientSchema } from "./schema";
 import type { AppData } from "./seed";
 import { seedApp } from "./seed";
-import { seedPlan } from "./seed-plan";
 
 export interface FakeOptions {
 	today?: string;
@@ -34,6 +32,8 @@ export interface FakeOptions {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	/** subject → the name the team picker shows (the subject itself when absent). */
 	names?: Readonly<Record<string, string>>;
+	/** Subjects who administer the platform (the estate owner), not only an app. */
+	platformAdmins?: ReadonlySet<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
@@ -66,8 +66,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		}
 		return d;
 	};
-	const prefs = new Map<string, PushPrefs>();
-	const plans = new Map<AppSlug, FloorPlanDoc>();
 	let seq = 1000;
 	const guard = (method: keyof ClinicPort): void => {
 		if (opts.failing?.has(method) === true)
@@ -96,11 +94,13 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const access = createFakeAccess({
 		members: opts.members,
 		names: opts.names,
+		platformAdmins: opts.platformAdmins,
 		data,
 		guard,
 		log,
 	});
 
+	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
 	return {
@@ -478,28 +478,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("audit");
 			return data(app).audit;
 		},
-		async floorPlan(app) {
-			guard("floorPlan");
-			return { doc: plans.get(app) ?? seedPlan(app), writable: true };
-		},
-		async saveFloorPlan(app, raw) {
-			guard("saveFloorPlan");
-			const parsed = FloorPlanDocSchema.safeParse(raw);
-			if (!parsed.success) return { ok: false, reason: "invalid" };
-			const held = plans.get(app) ?? seedPlan(app);
-			if (parsed.data.revision !== held.revision) return { ok: false, reason: "stale" };
-			const doc = { ...parsed.data, revision: held.revision + 1 };
-			plans.set(app, doc);
-			log(data(app), "console", "floor-plan.save", `revision ${doc.revision}`);
-			return { ok: true, doc };
-		},
-		async pushPrefs(subject) {
-			guard("pushPrefs");
-			return prefs.get(subject) ?? { requests: false, reminders: false };
-		},
-		async savePushPrefs(subject, p) {
-			guard("savePushPrefs");
-			prefs.set(subject, p);
-		},
+		...floorAndPrefs,
 	};
 }

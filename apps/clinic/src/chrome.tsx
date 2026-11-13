@@ -10,9 +10,9 @@ import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
+import { orgSettingsOpen, PLATFORM_KEY } from "./lib/areas";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
-import { adminOpen, settingsOpen } from "./lib/gates";
 import { at, type Locale } from "./lib/i18n";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
@@ -28,8 +28,8 @@ export type NavKey =
 	| "roster"
 	| "reminders"
 	| "settings"
-	| "audit"
-	| "admin";
+	| "me"
+	| "platform";
 
 export function labels(locale: Locale): ShellLabels {
 	const o = at(locale);
@@ -138,7 +138,7 @@ export async function Page({
 		...(badge === undefined ? {} : { badge }),
 	});
 	// Only what this person may open: a menu entry for a screen the service would refuse is never offered.
-	const settingsAllowed = settingsOpen(can);
+	const settingsAllowed = orgSettingsOpen(can);
 	const offered: ReadonlyArray<NavItem | null> = [
 		can.has("calendars_view") ? item("calendar", m.nav_calendar({}, o), "calendar") : null,
 		can.has("calendars_view") ? item("floor", m.nav_floor({}, o), "sidebar") : null,
@@ -147,11 +147,12 @@ export async function Page({
 		can.has("roster_view") ? item("roster", m.nav_roster({}, o), "briefcase") : null,
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
-		can.has("audit_log_view") ? item("audit", m.nav_audit({}, o), "list") : null,
-		adminOpen(can) ? { ...item("admin", m.nav_admin({}, o), "shield"), zone: "admin" } : null,
+		can.has(PLATFORM_KEY)
+			? { ...item("platform", m.nav_platform({}, o), "shield"), zone: "admin" }
+			: null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
-	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "audit"];
+	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "me", "platform"];
 	const hasMore = nav.some((n) => moreKeys.includes(n.key as NavKey));
 	const tabs: NavItem[] = [
 		...nav.filter((n) => ["calendar", "clients", "requests"].includes(n.key)),
@@ -191,6 +192,10 @@ export async function Page({
 							{ctx.caps.roles.map((r) => roleName(r, locale)).join(", ")} ·{" "}
 							{appName(ctx.app, locale)}
 						</div>
+						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
+							<Icon name="settings" />
+							{m.me_mine_menu({}, o)}
+						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">
 								<Icon name="shield" />

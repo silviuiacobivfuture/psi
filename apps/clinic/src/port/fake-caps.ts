@@ -7,6 +7,7 @@ import type { AppData } from "./seed";
 export interface AccessDeps {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	names: Readonly<Record<string, string>> | undefined;
+	platformAdmins: ReadonlySet<string> | undefined;
 	data: (app: AppSlug) => AppData;
 	guard: (method: keyof ClinicPort) => void;
 	log: (d: AppData, actor: string, action: string, target: string) => void;
@@ -88,7 +89,7 @@ export function createFakeAccess(
 					groups.has(g),
 				),
 				reach: { own: [], assigned: [] },
-				platformAdmin: false,
+				platformAdmin: as === undefined && deps.platformAdmins?.has(subject) === true,
 			};
 		},
 		async members(app): Promise<ReadonlyArray<TeamMember>> {

@@ -57,7 +57,9 @@ describe("phone, 375px", () => {
 			"/reminders?date=2026-11-16",
 			"/roster",
 			"/settings/roles",
-			"/audit",
+			"/settings/audit",
+			"/settings",
+			"/me/settings",
 			"/more",
 		]) {
 			await page.goto(`${live.url}${path}`);
@@ -268,7 +270,7 @@ describe("the navigation rail", () => {
 				};
 			});
 			expect(m.overflowX).toBeLessThanOrEqual(0);
-			expect(m.links).toHaveLength(9);
+			expect(m.links).toHaveLength(7);
 			expect(m.links.every((l) => l.w > 0 && l.inside)).toBe(true);
 			expect(m.round).toBe(true);
 			await page.click("aside.adm-nav .adm-switch");
@@ -305,7 +307,7 @@ describe("the navigation rail", () => {
 			await page.keyboard.press("Tab");
 			seen.push(await page.evaluate(() => document.activeElement?.getAttribute("data-tip") ?? ""));
 		}
-		for (const tip of ["Calendar", "Clienți", "Cereri", "Pontaj", "Mementouri", "Setări", "Jurnal"])
+		for (const tip of ["Calendar", "Clienți", "Cereri", "Pontaj", "Mementouri", "Setări"])
 			expect(seen).toContain(tip);
 		await done();
 	});

@@ -21,7 +21,9 @@ const SCREENS = [
 	"/reminders?date=2026-11-16",
 	"/roster",
 	"/settings/roles",
-	"/audit",
+	"/settings/audit",
+	"/settings",
+	"/me/settings",
 	"/more",
 ];
 const PHONES = [360, 375, 390, 430];

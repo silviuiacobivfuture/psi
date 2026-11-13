@@ -6,59 +6,24 @@ import {
 	type MatrixRow,
 	PermissionMatrix,
 	Segmented,
-	type Tab,
-	Tabs,
 } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
-import { Page } from "../chrome";
 import { formatMoney } from "../domain/money";
 import { drawBody } from "../floor/mount";
+import { areaText } from "../lib/area-labels";
 import type { Ctx } from "../lib/context";
-import { SETTINGS_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import { PortError } from "../port/port";
-import type { Column, PushPrefs, Role, Service } from "../port/schema";
+import type { Column, Role, Service } from "../port/schema";
 import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../port/schema";
+import { OrgFrame } from "./org-settings";
 import { roleFromForm } from "./role-form";
 import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
 
-export const SETTINGS_TABS = [
-	"people",
-	"rooms",
-	"devices",
-	"services",
-	"roles",
-	"plan",
-	"notifications",
-] as const;
+export const SETTINGS_TABS = ["people", "rooms", "devices", "services", "roles", "plan"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
-
-const tabLabel = (t: SettingsTab, locale: Locale): string => {
-	const o = at(locale);
-	switch (t) {
-		case "people":
-			return m.tab_people({}, o);
-		case "rooms":
-			return m.tab_rooms({}, o);
-		case "devices":
-			return m.tab_devices({}, o);
-		case "services":
-			return m.tab_services({}, o);
-		case "roles":
-			return m.tab_roles({}, o);
-		case "plan":
-			return m.tab_plan({}, o);
-		case "notifications":
-			return m.tab_notifications({}, o);
-		default: {
-			const never: never = t;
-			return never;
-		}
-	}
-};
 
 function ColumnList({
 	items,
@@ -196,10 +161,6 @@ function RolesTab({
 	);
 }
 
-/** The tabs this person may open: the notifications tab is everyone's own. */
-const openTabs = (ctx: Ctx): ReadonlyArray<SettingsTab> =>
-	SETTINGS_TABS.filter((t) => t === "notifications" || ctx.can.has(SETTINGS_TAB_KEYS[t]));
-
 export async function renderSettings(
 	ctx: Ctx,
 	tab: SettingsTab,
@@ -207,11 +168,6 @@ export async function renderSettings(
 	flash?: string,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const tabs: Tab[] = openTabs(ctx).map((t) => ({
-		key: t,
-		label: tabLabel(t, ctx.locale),
-		href: `/settings/${t}`,
-	}));
 	let body: JSX.Element;
 	try {
 		if (tab === "people" || tab === "rooms" || tab === "devices") {
@@ -233,7 +189,7 @@ export async function renderSettings(
 			);
 		} else if (tab === "plan") {
 			body = await drawBody(ctx);
-		} else if (tab === "roles") {
+		} else {
 			const roles = await ctx.port.roles(ctx.app);
 			const role = roles.find((r) => r.id === roleId) ?? roles[0];
 			body =
@@ -247,49 +203,6 @@ export async function renderSettings(
 						canEdit={ctx.can.write("roles_edit")}
 					/>
 				);
-		} else {
-			let prefs: PushPrefs | null = null;
-			try {
-				prefs = await ctx.port.pushPrefs(ctx.person.subject);
-			} catch (err) {
-				// The service keeps no push preferences yet: the form says "în curând"; the device list below still works.
-				if (!(err instanceof PortError && err.code === "not-available-yet")) throw err;
-			}
-			body = (
-				<div class="adm-stack" style="gap:var(--space-4)">
-					{prefs === null ? (
-						<div class="adm-card">
-							<EmptyState icon="clock" title={m.soon_title({}, o)} text={m.soon_text({}, o)} />
-						</div>
-					) : (
-						<form method="post" action="/settings/notifications" class="adm-card adm-stack">
-							<h3 class="adm-h2">{m.notif_title({}, o)}</h3>
-							<label class="adm-check">
-								<input type="checkbox" name="requests" checked={prefs.requests} />
-								{m.notif_requests({}, o)}
-							</label>
-							<label class="adm-check">
-								<input type="checkbox" name="reminders" checked={prefs.reminders} />
-								{m.notif_reminders({}, o)}
-							</label>
-							<p class="adm-muted">{m.notif_sending_later({}, o)}</p>
-							<div>
-								<button class="adm-btn adm-btn--primary" type="submit">
-									{m.notif_save({}, o)}
-								</button>
-							</div>
-						</form>
-					)}
-					<div class="adm-card">
-						{ctx.pwa.notifications({
-							locale: ctx.locale,
-							signedIn: true,
-							signInHref: "/",
-							devices: await ctx.pwa.devices(ctx.person.subject),
-						})}
-					</div>
-				</div>
-			);
 		}
 	} catch {
 		body = (
@@ -302,35 +215,29 @@ export async function renderSettings(
 			</Banner>
 		);
 	}
-	return Page({
+	return OrgFrame({
 		ctx,
-		current: "settings",
-		title: m.settings_title({}, o),
-		children: (
-			<div class="adm-page">
-				{flash === undefined ? null : (
-					<Banner tone="info" icon="check">
-						{flash}
-					</Banner>
-				)}
-				<Tabs tabs={tabs} selected={tab} label={m.settings_tabs_label({}, o)} />
-				{body}
-			</div>
-		),
+		area: tab,
+		title: areaText(tab, ctx.locale).title,
+		children: [
+			...(flash === undefined
+				? []
+				: [
+						<Banner key="flash" tone="info" icon="check">
+							{flash}
+						</Banner>,
+					]),
+			body,
+		],
 	});
 }
 
 export function registerSettings(app: Hono<Env>): void {
-	app.get("/settings", (c) =>
-		c.redirect(`/settings/${openTabs(c.var.ctx)[0] ?? "notifications"}`, 302),
-	);
 	for (const tab of SETTINGS_TABS) {
 		app.get(`/settings/${tab}`, async (c) => {
 			const flash =
-				c.req.query("saved") === "1"
-					? tab === "roles"
-						? m.roles_saved({}, at(c.var.ctx.locale))
-						: m.notif_saved({}, at(c.var.ctx.locale))
+				c.req.query("saved") === "1" && tab === "roles"
+					? m.roles_saved({}, at(c.var.ctx.locale))
 					: undefined;
 			return c.html(await renderSettings(c.var.ctx, tab, c.req.query("role"), flash), 200, {
 				"cache-control": "private, no-store",
@@ -345,14 +252,5 @@ export function registerSettings(app: Hono<Env>): void {
 		const form = await c.req.parseBody();
 		await ctx.port.saveRole(ctx.app, roleFromForm(current, form));
 		return c.redirect(`/settings/roles?role=${current.id}&saved=1`, 303);
-	});
-	app.post("/settings/notifications", async (c) => {
-		const ctx = c.var.ctx;
-		const form = await c.req.parseBody();
-		await ctx.port.savePushPrefs(ctx.person.subject, {
-			requests: form.requests !== undefined,
-			reminders: form.reminders !== undefined,
-		});
-		return c.redirect("/settings/notifications?saved=1", 303);
 	});
 }

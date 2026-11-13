@@ -67,6 +67,12 @@ export {
 	type ShellUser,
 } from "./shell";
 export {
+	SubNav,
+	type SubNavGroup,
+	type SubNavItem,
+	type SubNavProps,
+} from "./subnav";
+export {
 	ADMIN_THEMES,
 	type AdminTheme,
 	THEME_BOOT,
