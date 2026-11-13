@@ -1,4 +1,4 @@
-import { Banner, EmptyState, Icon, StatusPill } from "@psi/ui/admin";
+import { Banner, EmptyState, Icon, PageHeader, StatusPill } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
@@ -61,6 +61,7 @@ export async function renderRoster(ctx: Ctx, dateParam: string | undefined): Pro
 		title: m.roster_title({}, o),
 		children: (
 			<div class="adm-page">
+				<PageHeader title={m.nav_roster({}, o)} />
 				<div class="cal-bar">
 					<a
 						class="adm-iconbtn"

@@ -1,4 +1,4 @@
-import { Banner, EmptyState, escapeHtml, Icon, toastElement } from "@psi/ui/admin";
+import { Banner, EmptyState, escapeHtml, Icon, PageHeader, toastElement } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
@@ -131,6 +131,7 @@ export async function renderReminders(
 		title: m.reminders_title({}, o),
 		children: (
 			<div class="adm-page">
+				<PageHeader title={m.nav_reminders({}, o)} />
 				<div class="cal-bar">
 					<a
 						class="adm-iconbtn"

@@ -220,7 +220,7 @@ export async function Page({
 				}
 			>
 				{ctx.viewAs === null ? null : (
-					<form method="post" action="/view-as/stop" data-view-as-banner>
+					<form method="post" action="/view-as/stop" class="adm-lead" data-view-as-banner>
 						<Banner tone="info" icon="shield">
 							<span>{m.view_as_banner({ name: ctx.viewAs.label }, o)}</span>{" "}
 							<button class="adm-btn" type="submit">

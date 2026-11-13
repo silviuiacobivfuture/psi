@@ -1,4 +1,4 @@
-import { Banner, EmptyState, Segmented } from "@psi/ui/admin";
+import { Banner, EmptyState, PageHeader, Segmented, Toolbar } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
@@ -43,7 +43,28 @@ export async function renderClients(
 		title: m.clients_title({}, o),
 		children: (
 			<div class="adm-page">
-				<div class="adm-pagehead">
+				<PageHeader title={m.clients_title({}, o)} />
+				<Toolbar
+					search={
+						<form method="get" action="/clients">
+							<input type="hidden" name="filter" value={filter} />
+							<label class="adm-sr" for="clients-q">
+								{m.clients_search_label({}, o)}
+							</label>
+							<input
+								id="clients-q"
+								class="adm-input"
+								type="search"
+								name="q"
+								value={q}
+								placeholder={m.clients_search_label({}, o)}
+							/>
+							<button class="adm-btn" type="submit">
+								{m.clients_search_go({}, o)}
+							</button>
+						</form>
+					}
+				>
 					<Segmented
 						label={m.filter_label({}, o)}
 						current={filter}
@@ -52,30 +73,7 @@ export async function renderClients(
 							{ key: "archived", label: m.filter_archived({}, o), href: qs("archived") },
 						]}
 					/>
-					<form
-						method="get"
-						action="/clients"
-						class="adm-row"
-						style="flex:1;min-width:220px;max-width:420px"
-					>
-						<input type="hidden" name="filter" value={filter} />
-						<label class="adm-sr" for="clients-q">
-							{m.clients_search_label({}, o)}
-						</label>
-						<input
-							id="clients-q"
-							class="adm-input"
-							style="flex:1"
-							type="search"
-							name="q"
-							value={q}
-							placeholder={m.clients_search_label({}, o)}
-						/>
-						<button class="adm-btn" type="submit">
-							{m.clients_search_go({}, o)}
-						</button>
-					</form>
-				</div>
+				</Toolbar>
 				{failed ? (
 					<Banner tone="error" icon="alert">
 						<strong>{m.error_title({}, o)}</strong>
@@ -88,7 +86,11 @@ export async function renderClients(
 					<EmptyState
 						icon="users"
 						title={m.clients_empty_title({}, o)}
-						text={m.clients_empty_text({}, o)}
+						text={
+							ctx.viewAs?.as.startsWith("role:") && ctx.can.narrowed("clients_view")
+								? m.view_as_role_empty({}, o)
+								: m.clients_empty_text({}, o)
+						}
 					/>
 				) : (
 					<>

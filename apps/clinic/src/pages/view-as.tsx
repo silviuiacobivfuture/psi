@@ -6,7 +6,7 @@ import { Page, roleName } from "../chrome";
 import { canOf } from "../lib/can";
 import type { Ctx } from "../lib/context";
 import { landingFor } from "../lib/gates";
-import { at } from "../lib/i18n";
+import { at, type Locale } from "../lib/i18n";
 import { sse } from "../lib/sse";
 import { clearViewAs, writeViewAs } from "../lib/view-as";
 import { m } from "../paraglide/messages.js";
@@ -16,6 +16,16 @@ import type { Role } from "../port/schema";
 import { RoleMenuBody } from "../role-switcher";
 
 const TARGET = /^(role|member):[^\s:][^\s]{0,199}$/;
+/** Who is being viewed, for people: a seed role is named in the person's language, a custom role or a member by their own name. */
+function viewLabel(as: ViewAsTarget, displayName: string | undefined, locale: Locale): string {
+	if (as.startsWith("role:")) {
+		const id = as.slice("role:".length);
+		const local = roleName(id, locale);
+		return (local === id ? (displayName ?? id) : local).slice(0, 120);
+	}
+	return (displayName ?? as).slice(0, 120);
+}
+
 const isTarget = (s: string): s is ViewAsTarget => TARGET.test(s);
 
 function Choice({
@@ -51,7 +61,7 @@ export async function renderViewAs(
 	members: ReadonlyArray<TeamMember>,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const roleName = new Map(roles.map((r) => [r.id, r.name]));
+	const roleNames = new Map(roles.map((r) => [r.id, r.name]));
 	return Page({
 		ctx,
 		current: "more",
@@ -70,9 +80,14 @@ export async function renderViewAs(
 							<Choice
 								key={r.id}
 								as={`role:${r.id}`}
-								label={r.name}
+								label={roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale)}
 								hint={r.description}
-								go={m.view_as_start({ name: r.name }, o)}
+								go={m.view_as_start(
+									{
+										name: roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale),
+									},
+									o,
+								)}
 							/>
 						))}
 					</div>
@@ -87,7 +102,7 @@ export async function renderViewAs(
 								key={p.subject}
 								as={`member:${p.subject}`}
 								label={p.displayName}
-								hint={p.roles.map((r) => roleName.get(r) ?? r).join(", ")}
+								hint={p.roles.map((r) => roleNames.get(r) ?? r).join(", ")}
 								go={m.view_as_start({ name: p.displayName }, o)}
 							/>
 						))}
@@ -153,7 +168,7 @@ export function registerViewAs(app: Hono<Env>, deps: AppDeps): void {
 				subject: ctx.person.subject,
 				app: ctx.app,
 				as: as,
-				label: (seen.displayName ?? as).slice(0, 120),
+				label: viewLabel(as, seen.displayName, ctx.locale),
 			},
 			deps.origin.startsWith("https:"),
 		);

@@ -116,6 +116,39 @@ export function Skeleton({ lines = 4, label }: SkeletonProps): JSX.Element {
 	);
 }
 
+export interface PageHeaderProps {
+	title: string;
+	/** The primary action(s) of the screen, at the end of the row. */
+	children?: Child;
+}
+
+/** The first row of a screen: its title and its primary action, on the page's own grid. */
+export function PageHeader({ title, children }: PageHeaderProps): JSX.Element {
+	return (
+		<div class="adm-pagehead">
+			<h2 class="adm-h1">{title}</h2>
+			{children === undefined ? null : <div class="adm-row">{children}</div>}
+		</div>
+	);
+}
+
+export interface ToolbarProps {
+	/** Filters, at the start. */
+	children?: Child;
+	/** A search form, at the end. */
+	search?: Child;
+}
+
+/** The second row: filters at the start, the search at the end, wrapping on a phone, never floating. */
+export function Toolbar({ children, search }: ToolbarProps): JSX.Element {
+	return (
+		<div class="adm-toolbar">
+			{children}
+			{search}
+		</div>
+	);
+}
+
 export interface BannerProps {
 	tone: "error" | "offline" | "info";
 	icon?: AdminIcon;

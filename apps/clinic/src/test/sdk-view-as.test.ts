@@ -41,7 +41,7 @@ describe("only a roles administrator can start it", () => {
 		const owner = await k.as("olga");
 		const picker = await text(await owner.get("/view-as"));
 		expect(picker).toContain("Vezi ca…");
-		expect(picker).toContain("Reception");
+		expect(picker).toContain("Recepție");
 		expect(picker).toContain("rita test");
 		const menu = await text(await owner.get("/clients"));
 		expect(has(menu, "/view-as")).toBe(true);
@@ -122,7 +122,7 @@ describe("while viewing as a role the console shows what that role's people see"
 		const start = await viewAs(await k.as("olga"), "role:psizone-reception");
 		expect(start.headers.get("location")).toBe("/calendar");
 		const html = await text(await s.get(`/clients/${c1()}`));
-		expect(html).toContain("Vezi aplicația ca Reception — doar vizualizare");
+		expect(html).toContain("Vezi aplicația ca Recepție — doar vizualizare");
 		expect(html).toContain("data-view-as-banner");
 		expect(html).toContain("data-view-as-pill");
 		expect(html).toContain("Ieși");

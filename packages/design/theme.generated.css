@@ -312,6 +312,10 @@
 	--adm-row: 40px;
 	--adm-pad: 12px;
 	--adm-gap: 8px;
+	--adm-gutter: 16px;
+	--adm-section-gap: 24px;
+	--adm-card-pad: 16px;
+	--adm-toolbar-h: 44px;
 	--adm-nav-w: 248px;
 	--adm-nav-w-collapsed: 72px;
 	--adm-bar-h: 56px;
@@ -381,6 +385,10 @@
 	--adm-row: 40px;
 	--adm-pad: 12px;
 	--adm-gap: 8px;
+	--adm-gutter: 16px;
+	--adm-section-gap: 24px;
+	--adm-card-pad: 16px;
+	--adm-toolbar-h: 44px;
 	--adm-nav-w: 248px;
 	--adm-nav-w-collapsed: 72px;
 	--adm-bar-h: 56px;

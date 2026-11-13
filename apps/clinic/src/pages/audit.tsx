@@ -1,4 +1,4 @@
-import { Banner, EmptyState } from "@psi/ui/admin";
+import { Banner, EmptyState, PageHeader } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
@@ -22,6 +22,7 @@ export async function renderAudit(ctx: Ctx): Promise<JSX.Element> {
 		title: m.audit_title({}, o),
 		children: (
 			<div class="adm-page">
+				<PageHeader title={m.nav_audit({}, o)} />
 				{failed ? (
 					<Banner tone="error" icon="alert">
 						<strong>{m.error_title({}, o)}</strong>

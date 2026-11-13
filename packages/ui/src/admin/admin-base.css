@@ -235,11 +235,22 @@
 
 /* ── Content ─────────────────────────────────────────────────────────── */
 .adm-content {
+	--adm-gutter-now: var(--adm-gutter);
 	flex: 1;
 	min-width: 0;
-	padding: var(--space-3) max(var(--space-3), env(safe-area-inset-right))
+	padding: var(--adm-gutter) max(var(--adm-gutter-now), env(safe-area-inset-right))
 		calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + 88px)
-		max(var(--space-3), env(safe-area-inset-left));
+		max(var(--adm-gutter-now), env(safe-area-inset-left));
+}
+@media (min-width: 768px) {
+	.adm-content {
+		--adm-gutter-now: calc(var(--adm-gutter) + 8px);
+	}
+}
+@media (min-width: 1280px) {
+	.adm-content {
+		--adm-gutter-now: calc(var(--adm-gutter) + 16px);
+	}
 }
 .adm-content:focus {
 	outline: none;
@@ -247,16 +258,43 @@
 .adm-page {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-4);
+	gap: var(--adm-section-gap);
 	max-width: 1280px;
 	margin-inline: auto;
+}
+/* A block that leads the content (a banner above the page): the page's own width and rhythm. */
+.adm-lead {
+	max-width: 1280px;
+	margin-inline: auto;
+	margin-block-end: var(--adm-section-gap);
 }
 .adm-pagehead {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: var(--space-3);
+	gap: var(--adm-gap) var(--space-4);
 	justify-content: space-between;
+	min-height: var(--adm-toolbar-h);
+}
+/* Filters at the start, search at the end, on the page's own column; they wrap, never float. */
+.adm-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--adm-gap) var(--space-4);
+}
+.adm-toolbar > form {
+	display: flex;
+	align-items: center;
+	gap: var(--adm-gap);
+	flex: 1 1 260px;
+	max-width: 440px;
+	margin-inline-start: auto;
+}
+.adm-toolbar .adm-input,
+.adm-toolbar .adm-btn {
+	min-height: var(--adm-toolbar-h);
 }
 .adm-h1 {
 	margin: 0;
@@ -272,7 +310,7 @@
 	color: var(--ink-muted);
 }
 .adm-card {
-	padding: var(--adm-pad);
+	padding: var(--adm-card-pad);
 	background: var(--surface-1);
 	border: 1px solid var(--line-strong);
 	border-radius: var(--radius-md);
@@ -353,6 +391,13 @@
 	background: var(--surface-1);
 	color: var(--ink);
 	font: inherit;
+}
+@media (max-width: 767px) {
+	/* 16px keeps a phone's browser from zooming into a field on focus. */
+	.adm-input,
+	select.adm-input {
+		font-size: 16px;
+	}
 }
 textarea.adm-input {
 	padding: var(--space-2) var(--space-3);

@@ -288,6 +288,7 @@
 	"dev_signin_text": "Alege o persoană din serviciul local; consola o folosește ca pe un cont real.",
 	"dev_signin_unreachable": "Serviciul de programări nu răspunde.",
 	"role_switch_label": "Rol: {name}",
+	"view_as_role_empty": "Alege o persoană cu acest rol ca să vezi datele ei: un rol, singur, nu are clienți proprii.",
 	"view_as_menu": "Vezi ca…",
 	"view_as_title": "Vezi ca…",
 	"view_as_lead": "Vezi aplicația așa cum o vede un rol sau o persoană din echipă. E doar vizualizare: cât timp e activă, nu se poate modifica nimic.",

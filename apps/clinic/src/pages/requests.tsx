@@ -1,4 +1,4 @@
-import { Banner, EmptyState, Icon, Segmented, toastElement } from "@psi/ui/admin";
+import { Banner, EmptyState, Icon, PageHeader, Segmented, toastElement } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
@@ -133,6 +133,7 @@ export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promis
 		title: m.requests_title({}, o),
 		children: (
 			<div class="adm-page" data-init={`@get('/live?screen=requests&show=${show}')`}>
+				<PageHeader title={m.requests_title({}, o)} />
 				<Segmented
 					label={m.requests_filter({}, o)}
 					current={show}

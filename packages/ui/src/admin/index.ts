@@ -24,6 +24,8 @@ export {
 	type BannerProps,
 	EmptyState,
 	type EmptyStateProps,
+	PageHeader,
+	type PageHeaderProps,
 	Segmented,
 	type SegmentedItem,
 	Sheet,
@@ -38,6 +40,8 @@ export {
 	type StatusPillProps,
 	type Tab,
 	Tabs,
+	Toolbar,
+	type ToolbarProps,
 } from "./parts";
 export {
 	type FieldGroupToggle,
