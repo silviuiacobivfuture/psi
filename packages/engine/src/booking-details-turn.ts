@@ -32,7 +32,7 @@ export function talkOf(state: BookingState | undefined, lang: BookingLang): Talk
 
 export function keepOf(state: BookingState | undefined, lang: BookingLang): Keep {
 	return {
-		...(state?.lang === undefined && state?.details === undefined ? {} : { lang }),
+		lang,
 		...(state?.details === undefined ? {} : { details: state.details }),
 		...(state?.key === undefined ? {} : { key: state.key }),
 	};
