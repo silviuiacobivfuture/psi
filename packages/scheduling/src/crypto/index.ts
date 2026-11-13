@@ -1,0 +1,27 @@
+export { fromBase64, toBase64, toHex } from "./base64";
+export {
+	buildKeyRing,
+	type DataKey,
+	decryptBytes,
+	decryptField,
+	type Encrypted,
+	encryptBytes,
+	encryptedSchema,
+	encryptField,
+	fingerprint,
+	generateDataKeyBytes,
+	generateMasterKeyText,
+	IV_BYTES,
+	KEY_BYTES,
+	type KeyRing,
+	MASTER_KEY_ENV,
+	type MasterKey,
+	parseMasterKey,
+	rewrapDataKey,
+	sha256Hex,
+	unwrapDataKey,
+	type WrappedKey,
+	wrapDataKey,
+	wrappedKeySchema,
+} from "./envelope";
+export { CryptoError, type CryptoFailure } from "./errors";
