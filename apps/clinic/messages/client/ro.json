@@ -1,1 +1,23 @@
-{}
+{
+	"ac_client_new": "Client nou",
+	"ac_client_edit": "Editează datele",
+	"ac_note_add": "Adaugă notă",
+	"ac_note_edit": "Editează nota",
+	"ac_note_pin": "Fixează sau desprinde",
+	"ac_note_delete": "Șterge nota",
+	"ac_blacklist_add": "Adaugă în lista neagră",
+	"ac_blacklist_end": "Scoate din lista neagră",
+	"ac_record_new": "Fișă nouă",
+	"ac_record_save": "Salvează fișa",
+	"ac_record_delete": "Șterge fișa",
+	"ac_file_upload": "Încarcă fișier",
+	"ac_file_download": "Descarcă",
+	"ac_file_rename": "Redenumește",
+	"ac_file_delete": "Șterge fișierul",
+	"pal_go": "Mergi la",
+	"pal_do": "Acțiuni",
+	"pal_title": "Comenzi",
+	"pal_placeholder": "Scrie o comandă sau un loc…",
+	"pal_empty": "Nicio potrivire.",
+	"pal_open": "Comenzi"
+}

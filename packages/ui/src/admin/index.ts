@@ -20,6 +20,12 @@ export {
 	type OverflowMenuProps,
 } from "./overflow-menu";
 export {
+	CommandPalette,
+	type PaletteItem,
+	type PaletteProps,
+	paletteShortcut,
+} from "./palette";
+export {
 	Banner,
 	type BannerProps,
 	EmptyState,

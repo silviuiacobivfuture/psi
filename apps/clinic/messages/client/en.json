@@ -1,1 +1,23 @@
-{}
+{
+	"ac_client_new": "New client",
+	"ac_client_edit": "Edit details",
+	"ac_note_add": "Add note",
+	"ac_note_edit": "Edit note",
+	"ac_note_pin": "Pin or unpin",
+	"ac_note_delete": "Delete note",
+	"ac_blacklist_add": "Add to the blacklist",
+	"ac_blacklist_end": "Remove from the blacklist",
+	"ac_record_new": "New record",
+	"ac_record_save": "Save record",
+	"ac_record_delete": "Delete record",
+	"ac_file_upload": "Upload file",
+	"ac_file_download": "Download",
+	"ac_file_rename": "Rename",
+	"ac_file_delete": "Delete file",
+	"pal_go": "Go to",
+	"pal_do": "Do",
+	"pal_title": "Commands",
+	"pal_placeholder": "Type a command or a place…",
+	"pal_empty": "Nothing matches.",
+	"pal_open": "Commands"
+}

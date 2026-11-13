@@ -1,3 +1,4 @@
+import { ACTIONS } from "../actions/registry";
 import { ORG_AREAS, PLATFORM_KEY } from "./areas";
 import type { Can } from "./can";
 
@@ -21,6 +22,22 @@ const g = (method: Gate["method"], path: string, keys: string[], write?: true): 
 	keys,
 	...(write === undefined ? {} : { write }),
 });
+
+/** The routes of the action registry, each gated by what its action needs: a write or a read of any listed key. */
+const ACTION_GATES: ReadonlyArray<Gate> = ACTIONS.flatMap((a) =>
+	a.route === null
+		? []
+		: [
+				{
+					method: a.route.method,
+					path: new RegExp(`^${a.route.path.replace(/:[a-z]+/g, "[^/]+")}/?$`),
+					keys: [...(a.needs.write ?? a.needs.read ?? [])],
+					...(a.route.method === "POST" && a.needs.write !== undefined
+						? { write: true as const }
+						: {}),
+				},
+			],
+);
 
 const AREA_GATES: ReadonlyArray<Gate> = ORG_AREAS.map((a) => g("GET", a.href, [...a.keys]));
 
@@ -65,6 +82,7 @@ const GATES: ReadonlyArray<Gate> = [
 		ORG_AREAS.flatMap((a) => [...a.keys]),
 	),
 	...AREA_GATES,
+	...ACTION_GATES,
 	g("GET", "/audit", ["audit_log_view"]),
 	g("GET", "/platform", [PLATFORM_KEY]),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
