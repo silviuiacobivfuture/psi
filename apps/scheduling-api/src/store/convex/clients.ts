@@ -52,7 +52,9 @@ const Doc = z.object({
 	archivedAt: z.number().optional(),
 	deletedAt: z.number().optional(),
 	birthDate: z.string().optional(),
+	mainReasonEnc: Encrypted.optional(),
 	diagnosisEnc: Encrypted.optional(),
+	healthNotesEnc: Encrypted.optional(),
 	createdAt: z.number(),
 	updatedAt: z.number(),
 	extra: z.string().optional(),
@@ -79,6 +81,16 @@ const yearOf = (birthDate: string | undefined): number | undefined => {
 };
 const standingOf = (d: Pick<ClientDoc, "archivedAt" | "deletedAt">): ClientRow["status"] =>
 	d.deletedAt !== undefined ? "deleted" : d.archivedAt !== undefined ? "archived" : "active";
+
+/** The three clinical texts the import wrote (sealed with the package's envelope), as the row carries them. */
+function importedClinicalOf(d: ClientDoc): Pick<ClientRow, "importedClinical"> {
+	const imported = {
+		...(d.mainReasonEnc === undefined ? {} : { mainReason: toSealed(d.mainReasonEnc) }),
+		...(d.diagnosisEnc === undefined ? {} : { diagnosis: toSealed(d.diagnosisEnc) }),
+		...(d.healthNotesEnc === undefined ? {} : { healthNotes: toSealed(d.healthNotesEnc) }),
+	};
+	return Object.keys(imported).length === 0 ? {} : { importedClinical: imported };
+}
 
 function toRow(app: string, d: ClientDoc, treating: string[]): ClientRow {
 	const extra = readExtra(Extra, d.extra);
@@ -115,7 +127,7 @@ function toRow(app: string, d: ClientDoc, treating: string[]): ClientRow {
 		...(extra?.money === undefined ? {} : { money: extra.money }),
 		...(extra?.sealed === true && d.diagnosisEnc !== undefined
 			? { clinicalSealed: toSealed(d.diagnosisEnc) }
-			: {}),
+			: importedClinicalOf(d)),
 		// `createdAt` of a page row is Convex's creation time, which has a fraction.
 		createdAt: Math.floor(d.createdAt),
 		updatedAt: Math.floor(d.updatedAt),

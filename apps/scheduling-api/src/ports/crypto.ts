@@ -28,6 +28,11 @@ export const FIELDS = {
 	record: "formResponses.payload",
 	clinical: "clients.clinical",
 	feedback: "feedback.text",
+	/** What only the import writes: the old app's clinical texts, kept apart. */
+	importedMainReason: "clients.mainReasonEnc",
+	importedDiagnosis: "clients.diagnosisEnc",
+	importedHealthNotes: "clients.healthNotesEnc",
+	therapistNote: "visits.therapistNotes",
 } as const;
 
 /** Where an app's wrapped data keys are kept (the store; Convex returns them and can never unwrap one). */

@@ -192,7 +192,9 @@ export const MoneyData = z.object({
 	billingName: z.string().max(200).optional(),
 });
 export const ClinicalData = z.object({
-	diagnosis: z.string().max(4000).optional(),
+	/** Why they came (the old app kept it apart from the diagnosis). */
+	mainReason: z.string().max(20_000).optional(),
+	diagnosis: z.string().max(20_000).optional(),
 	notes: z.string().max(20_000).optional(),
 });
 /** A client: identity always; each field group present only for a caller who may see it. */
@@ -233,6 +235,7 @@ export const AppointmentMoney = z.object({
 	paidCents: Money,
 	paymentStatus: z.enum(["unpaid", "partial", "paid", "package"]),
 });
+export const AppointmentClinical = z.object({ therapistNote: z.string().max(20_000) });
 export const Appointment = z.object({
 	id: Id,
 	kind: AppointmentKind,
@@ -249,6 +252,8 @@ export const Appointment = z.object({
 	note: z.string().max(500).optional(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
+	/** The `clinical` group: present on one appointment (not in a list) for a caller who may see it. */
+	clinical: AppointmentClinical.optional(),
 	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */
 	deletedAt: Ms.optional(),
 	purgeAt: Ms.optional(),

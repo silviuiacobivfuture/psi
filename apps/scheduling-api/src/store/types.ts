@@ -46,8 +46,17 @@ export type DeviceRow = InApp<Out<typeof Device>>;
 export type GroupRow = InApp<Out<typeof Group>>;
 export type ServiceRow = InApp<Out<typeof Service>>;
 /** `clinicalSealed` is the per-field AES-GCM envelope of the client's clinical group; the plain text is never stored. */
-export type ClientRow = InApp<Omit<Out<typeof Client>, "clinical"> & { clinicalSealed?: string }>;
-export type AppointmentRow = InApp<Out<typeof Appointment>>;
+export type ClientRow = InApp<
+	Omit<Out<typeof Client>, "clinical"> & {
+		clinicalSealed?: string;
+		/** What the import kept apart (sealed, field by field); `clinicalSealed` supersedes it once the service writes. */
+		importedClinical?: { mainReason?: string; diagnosis?: string; healthNotes?: string };
+	}
+>;
+/** `therapistNoteSealed`: the therapist's note on the visit as the import sealed it; the plain text is never stored. */
+export type AppointmentRow = InApp<
+	Omit<Out<typeof Appointment>, "clinical"> & { therapistNoteSealed?: string }
+>;
 export type PackageRow = InApp<
 	Pick<
 		Out<typeof Package>,

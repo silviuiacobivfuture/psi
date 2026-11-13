@@ -3,6 +3,7 @@ import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { AppointmentRow } from "../store/types";
 import { booking } from "./booking-gate";
 import { appointmentGroupReach, appointmentView } from "./fields";
@@ -176,10 +177,30 @@ export const appointmentHandlers: HandlersOf<
 	},
 
 	async "appointments.get"(ctx) {
-		return appointmentOut(
-			ctx,
-			await must(ctx.deps.store.c.appointments, ctx.app, String(ctx.params.id), "appointment"),
+		const row = await must(
+			ctx.deps.store.c.appointments,
+			ctx.app,
+			String(ctx.params.id),
+			"appointment",
 		);
+		const out = await appointmentOut(ctx, row);
+		// The therapist's note (the import keeps it): only with the clinical group's own key, and the read is audited.
+		if (
+			row.therapistNoteSealed === undefined ||
+			!(await ctx.canOn("appointments_view_clinical", "sched_appointment", row.id))
+		)
+			return out;
+		const therapistNote = await ctx.deps.crypto.open(
+			ctx.app,
+			FIELDS.therapistNote,
+			row.therapistNoteSealed,
+		);
+		await ctx.auditNow(
+			"clinical.read",
+			{ type: "appointment", id: row.id },
+			{ via: "appointments" },
+		);
+		return { ...out, clinical: { therapistNote } };
 	},
 
 	async "appointments.update"(ctx) {

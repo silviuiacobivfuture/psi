@@ -5,7 +5,7 @@ import type { HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import { FIELDS } from "../ports/crypto";
 import type { ClientRow } from "../store/types";
-import { clientGroupReach, clientView } from "./fields";
+import { clientGroupReach, clientView, clinicalOf } from "./fields";
 import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
 
 const GROUPS = [
@@ -113,10 +113,8 @@ export const clientHandlers: HandlersOf<
 		const { clinicalSealed, ...plain } = row;
 		let sealed = clinicalSealed;
 		if (b.clinical !== undefined) {
-			const held =
-				clinicalSealed === undefined
-					? {}
-					: JSON.parse(await ctx.deps.crypto.open(ctx.app, FIELDS.clinical, clinicalSealed));
+			// What the import kept apart is carried into the group, so a first edit loses nothing.
+			const held = (await clinicalOf(ctx, row)) ?? {};
 			sealed = await ctx.deps.crypto.seal(
 				ctx.app,
 				FIELDS.clinical,

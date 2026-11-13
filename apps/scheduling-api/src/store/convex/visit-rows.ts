@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AppointmentRow } from "../types";
+import { Encrypted, toSealed } from "./envelope";
 import { personApiId } from "./ids";
 
 /** A deleted visit can be restored for 30 days: the wrapper (`RECOVERY_DAYS`) and the handlers agree. */
@@ -31,6 +32,8 @@ export const VisitView = z.object({
 	status: z.string(),
 	attendance: z.enum(["pending", "attended", "absent"]),
 	notes: z.string().optional(),
+	/** The therapist's note as the import sealed it (never written by the service). */
+	therapistNotes: Encrypted.optional(),
 	priceMinor: z.number().optional(),
 	amountPaidMinor: z.number().optional(),
 	reminderSent: z.boolean(),
@@ -117,6 +120,7 @@ export function toAppointment(app: string, v: VisitViewT): AppointmentRow | unde
 		start: v.start,
 		end: v.end,
 		...(v.notes === undefined ? {} : { note: v.notes }),
+		...(v.therapistNotes === undefined ? {} : { therapistNoteSealed: toSealed(v.therapistNotes) }),
 		...(meta.cancelReason === undefined ? {} : { cancelReason: meta.cancelReason }),
 		...(money === undefined ? {} : { money }),
 		...(v.deletedAt === undefined

@@ -68,13 +68,44 @@ export async function clientView(
 		updatedAt: row.updatedAt,
 	};
 	let clinicalRead = false;
-	if (include.clinical && row.clinicalSealed !== undefined && reaches(reach.clinical, row.id)) {
-		out.clinical = ClinicalData.parse(
-			JSON.parse(await ctx.deps.crypto.open(row.app, FIELDS.clinical, row.clinicalSealed)),
-		);
-		clinicalRead = true;
+	if (include.clinical && reaches(reach.clinical, row.id)) {
+		const clinical = await clinicalOf(ctx, row);
+		if (clinical !== undefined) {
+			out.clinical = clinical;
+			clinicalRead = true;
+		}
 	}
 	return { client: out, clinicalRead };
+}
+
+/**
+ * A client's clinical group, opened. What the service wrote (`clinicalSealed`, the whole group) wins; a client that
+ * came in through the import has the old app's three texts apart, and they map as: reason for coming -> `mainReason`,
+ * diagnosis -> `diagnosis`, health notes -> `notes`. Nothing here checks who may read: the caller has.
+ */
+export async function clinicalOf(
+	ctx: C,
+	row: ClientRow,
+): Promise<z.output<typeof ClinicalData> | undefined> {
+	if (row.clinicalSealed !== undefined)
+		return ClinicalData.parse(
+			JSON.parse(await ctx.deps.crypto.open(row.app, FIELDS.clinical, row.clinicalSealed)),
+		);
+	const imported = row.importedClinical;
+	if (imported === undefined) return undefined;
+	const text = async (field: string, sealed: string | undefined) =>
+		sealed === undefined ? undefined : await ctx.deps.crypto.open(row.app, field, sealed);
+	const [mainReason, diagnosis, notes] = await Promise.all([
+		text(FIELDS.importedMainReason, imported.mainReason),
+		text(FIELDS.importedDiagnosis, imported.diagnosis),
+		text(FIELDS.importedHealthNotes, imported.healthNotes),
+	]);
+	const group = {
+		...(mainReason === undefined ? {} : { mainReason }),
+		...(diagnosis === undefined ? {} : { diagnosis }),
+		...(notes === undefined ? {} : { notes }),
+	};
+	return Object.keys(group).length === 0 ? undefined : ClinicalData.parse(group);
 }
 
 /** What an appointment keeps beyond its identity (who, when, status): visible only with `appointments_view_core`. */
@@ -94,11 +125,14 @@ export interface AppointmentGroups {
 	money: boolean;
 }
 
-type AppointmentOut = Omit<AppointmentRow, "app" | "money"> & { money?: AppointmentRow["money"] };
+type AppointmentOut = Omit<AppointmentRow, "app" | "money" | "therapistNoteSealed"> & {
+	money?: AppointmentRow["money"];
+	clinical?: { therapistNote: string };
+};
 
 /** An appointment as the caller may see it: identity always, `core` and `money` only with their own keys. */
 export function appointmentView(row: AppointmentRow, groups: AppointmentGroups): AppointmentOut {
-	const { app: _app, money: held, ...rest } = row;
+	const { app: _app, money: held, therapistNoteSealed: _sealed, ...rest } = row;
 	const shown: AppointmentOut = { ...rest };
 	if (!groups.core) for (const field of CORE_FIELDS) delete shown[field];
 	return groups.money && held !== undefined ? { ...shown, money: held } : shown;
