@@ -11,14 +11,19 @@ import type { LogEvent } from "../http/context";
 import type { StorePort } from "../store/types";
 import type { Notification, NotifyPort, TeamName } from "./notify";
 
-/** Where each brand's site and team console live (what a notification's links lead to). */
-const SITES: Readonly<Record<AppKey, { siteUrl: string; consoleUrl: string }>> = {
-	psizone: { siteUrl: "https://psizone.ro", consoleUrl: "https://programari.psizone.ro" },
-	hemisync: { siteUrl: "https://hemisync.psizone.ro", consoleUrl: "https://programari.psizone.ro" },
+/** Where each brand's site lives; the team console is one per environment (CONSOLE_URL), the same for both brands. */
+const SITE_URLS: Readonly<Record<AppKey, string>> = {
+	psizone: "https://psizone.ro",
+	hemisync: "https://hemisync.psizone.ro",
 };
-export const NOTIFY_APPS = Object.fromEntries(
-	APP_KEYS.map((app) => [app, { settings: APP_DEFAULTS[app], ...SITES[app] }]),
-);
+/** The per-brand notification settings, whose console links lead to `consoleUrl`. */
+export const notifyApps = (consoleUrl: string) =>
+	Object.fromEntries(
+		APP_KEYS.map((app) => [
+			app,
+			{ settings: APP_DEFAULTS[app], siteUrl: SITE_URLS[app], consoleUrl },
+		]),
+	);
 
 const isAppKey = (app: string): app is AppKey => (APP_KEYS as readonly string[]).includes(app);
 const iso = (ms: number): string => new Date(ms).toISOString();

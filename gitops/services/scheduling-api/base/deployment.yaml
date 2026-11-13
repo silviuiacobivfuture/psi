@@ -75,6 +75,8 @@ spec:
             - { name: SERVICE_CALLERS, value: "psizone-web=psizone,hemisync-web=hemisync,guide-psizone=psizone,guide-hemisync=hemisync,cms=psizone" }
             # The estate's Novu API (namespace novu, Service novu-api :3000); the secret key is in scheduling-api-env.
             - { name: NOVU_API_URL, value: "http://novu-api.novu.svc:3000" }
+            # The team console's origin: where a notification's console links lead (this environment's own).
+            - { name: CONSOLE_URL, value: "https://programari-dev.psizone.ro" }
             - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_BUCKET, value: psi-scheduling-dev }

@@ -60,10 +60,11 @@ together with the object's reach (`reach_own`, `reach_assigned`). An individual 
 
 ## Notifications
 
-Three settings, all REQUIRED in production (a start without any of them is refused by name) and optional elsewhere:
+Four settings, all REQUIRED in production (a start without any of them is refused by name) and optional elsewhere:
 
 | Variable | Where it comes from |
 | --- | --- |
+| `CONSOLE_URL` | plain env in the Deployment: the team console's origin of this environment (`https://programari-dev.psizone.ro` on dev); where a notification's console links lead |
 | `NOVU_API_URL` | plain env in the Deployment: `http://novu-api.novu.svc:3000` (NetworkPolicy egress to the `novu-api` pods on 3000) |
 | `NOVU_SECRET_KEY` | OpenBao `secret/apps/novu/estate`, key `secret_key` (the service never creates it) |
 | `REMINDER_LINK_SECRET` | OpenBao `secret/apps/notify/reminder-links` (at least 32 characters, `openssl rand -hex 32`; rotating it invalidates every link already sent) |

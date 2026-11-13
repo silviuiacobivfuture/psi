@@ -106,6 +106,7 @@ describe("the deployment declares every secret in all four places", () => {
 		expect(ingress.match(/api-programari-dev\.psizone\.ro/g)).toHaveLength(3);
 		expect(d).toContain('name: PUBLIC_URL, value: "https://api-programari-dev.psizone.ro"');
 		expect(d).toContain('name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro"');
+		expect(d).toContain('name: CONSOLE_URL, value: "https://programari-dev.psizone.ro"');
 		expect(read("gitops/services/scheduling-backend/base/networkpolicy.yaml")).toMatch(
 			/kubernetes\.io\/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
 		);
