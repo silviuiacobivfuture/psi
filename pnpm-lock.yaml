@@ -391,6 +391,9 @@ importers:
       '@psi/scheduling-sdk':
         specifier: workspace:*
         version: link:../../packages/scheduling-sdk
+      convex:
+        specifier: 1.49.0
+        version: 1.49.0(react@19.3.1)
       hono:
         specifier: ^4.13.18
         version: 4.13.18

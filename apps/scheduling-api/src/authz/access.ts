@@ -72,7 +72,16 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 				return ALL;
 			if (!def.scopes.includes("own") && !def.scopes.includes("assigned")) return NONE;
 			const ids = new Set((await authz.listObjects(user, key, type)).map(idOf));
-			return ids.size === 0 ? NONE : { kind: "ids", ids };
+			if (ids.size > 0) return { kind: "ids", ids };
+			// Holding the permission over no object yet is an empty list; not holding it is a refusal.
+			for (const scope of ["own", "assigned"] as const) {
+				if (
+					def.scopes.includes(scope) &&
+					(await authz.check(user, `${key}_${scope}`, objectOf("sched_app", app)))
+				)
+					return { kind: "ids", ids };
+			}
+			return NONE;
 		},
 	};
 }

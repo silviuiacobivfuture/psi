@@ -150,15 +150,20 @@ export const Service = z.object({
 	prices: Prices.optional(),
 	...Stamps,
 });
-export const ServiceCreate = z.object({
+const ServiceBase = z.object({
 	slug: AppId,
 	name: Label,
 	durationMinutes: z.number().int().min(5).max(480),
-	bufferMinutes: z.number().int().min(0).max(240).default(0),
+	bufferMinutes: z.number().int().min(0).max(240),
 	modes: z.array(z.enum(["onsite", "online"])).min(1),
-	practitionerIds: z.array(Id).max(100).default([]),
+	practitionerIds: z.array(Id).max(100),
 });
-export const ServicePatch = ServiceCreate.omit({ slug: true })
+export const ServiceCreate = ServiceBase.extend({
+	bufferMinutes: ServiceBase.shape.bufferMinutes.default(0),
+	practitionerIds: ServiceBase.shape.practitionerIds.default([]),
+});
+// A patch carries no defaults: an absent field is left alone, never reset.
+export const ServicePatch = ServiceBase.omit({ slug: true })
 	.partial()
 	.extend({ active: z.boolean().optional() });
 export const ServicePrice = Prices;
@@ -302,14 +307,18 @@ export const Package = z.object({
 	sessionsRemaining: z.number().int(),
 	...Stamps,
 });
-export const PackageCreate = z.object({
+const PackageBase = z.object({
 	name: Name,
 	sessions: z.number().int().min(1).max(500),
-	bonus: z.number().int().min(0).max(100).default(0),
+	bonus: z.number().int().min(0).max(100),
 	priceCents: Money,
-	discountCents: Money.default(0),
+	discountCents: Money,
 });
-export const PackagePatch = PackageCreate.partial();
+export const PackageCreate = PackageBase.extend({
+	bonus: PackageBase.shape.bonus.default(0),
+	discountCents: PackageBase.shape.discountCents.default(0),
+});
+export const PackagePatch = PackageBase.partial();
 
 export const RosterKind = z.enum(["work", "leave_co", "leave_cm", "free"]);
 export const RosterDay = z.object({
@@ -465,7 +474,15 @@ export const CalendarResult = z.object({
 export const CalendarEvent = z.object({
 	seq: z.number().int().nonnegative(),
 	at: Ms,
-	kind: z.enum(["appointment", "client", "roster", "ready"]),
+	kind: z.enum(["appointment", "client", "roster", "request", "ready"]),
 	op: z.enum(["created", "updated", "deleted", "ready"]),
 	id: z.string(),
+});
+
+/** The inbox badge: what is waiting. `reminders` is absent for a caller who may not see reminders. */
+export const InboxCounts = z.object({
+	seq: z.number().int().nonnegative(),
+	at: Ms,
+	requests: z.number().int().nonnegative(),
+	reminders: z.number().int().nonnegative().optional(),
 });
