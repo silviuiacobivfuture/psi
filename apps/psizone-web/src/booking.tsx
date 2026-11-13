@@ -65,7 +65,7 @@ export type BookingErrors = Partial<
 	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
 >;
 export type BookingValues = Partial<
-	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service", string>
+	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service" | "consent", string>
 >;
 
 const INTL_LOCALE: Readonly<Record<Locale, string>> = { ro: "ro-RO", en: "en-GB" };
@@ -279,6 +279,7 @@ export function BookingForm({
 							type="checkbox"
 							name="consent"
 							value="yes"
+							checked={values.consent === "yes"}
 							class="mt-1 size-5 accent-[var(--accent)]"
 						/>
 						<span>{m.form_consent({}, o)}</span>
