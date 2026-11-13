@@ -95,3 +95,49 @@ describe("words", () => {
 		]);
 	});
 });
+
+describe("the team's topics and kinds", () => {
+	const team: PwaMessages = {
+		...M,
+		pwa_topic_requests: say("pwa_topic_requests"),
+		pwa_topic_requests_hint: say("pwa_topic_requests_hint"),
+		pwa_topic_appointments: say("pwa_topic_appointments"),
+		pwa_topic_appointments_hint: say("pwa_topic_appointments_hint"),
+		pwa_topic_reminders: say("pwa_topic_reminders"),
+		pwa_topic_reminders_hint: say("pwa_topic_reminders_hint"),
+		pwa_push_clinic_request_title: say("req_t"),
+		pwa_push_clinic_request_body: say("req_b"),
+		pwa_push_clinic_appointment_title: say("apt_t"),
+		pwa_push_clinic_appointment_body: say("apt_b"),
+		pwa_push_clinic_reminder_title: say("rem_t"),
+		pwa_push_clinic_reminder_body: say("rem_b"),
+		pwa_push_booking_moved_title: say("mov_t"),
+		pwa_push_booking_moved_body: say("mov_b"),
+	};
+
+	it("a console worded for them lists the three purposes with their hints", () => {
+		const rows = purposes(team, "en", ["requests", "appointments", "reminders"]);
+		expect(rows.map((r) => r.topic)).toEqual(["requests", "appointments", "reminders"]);
+		expect(rows[0]).toMatchObject({
+			label: "pwa_topic_requests en",
+			hint: "pwa_topic_requests_hint en",
+		});
+	});
+
+	it("a site without their words never shows them", () => {
+		expect(purposes(M, "ro", ["requests", "appointments", "reminders"])).toEqual([]);
+		expect(topicLabel(M, "requests", "ro")).toBeUndefined();
+	});
+
+	it("the worker gets their texts in both languages, and none when the keys are absent", () => {
+		const ro = pushTexts(team, "ro");
+		expect(ro["clinic.request"]).toEqual({ title: "req_t ro", body: "req_b ro" });
+		expect(ro["clinic.appointment"]?.title).toBe("apt_t ro");
+		expect(ro["clinic.reminder"]?.title).toBe("rem_t ro");
+		expect(ro["booking.moved"]?.title).toBe("mov_t ro");
+		expect(pushTexts(team, "en")["clinic.request"]?.body).toBe("req_b en");
+		const plain = pushTexts(M, "ro");
+		expect(plain["clinic.request"]).toBeUndefined();
+		expect(plain["booking.moved"]).toBeUndefined();
+	});
+});

@@ -108,6 +108,10 @@ function parsePayload(data: PushMessageData | null): PushPayload | null {
 			"booking.confirmed",
 			"booking.cancelled",
 			"booking.reminder",
+			"booking.moved",
+			"clinic.request",
+			"clinic.appointment",
+			"clinic.reminder",
 			"article.published",
 			"test",
 		] as const;
