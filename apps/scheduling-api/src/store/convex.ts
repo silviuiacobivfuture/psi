@@ -65,6 +65,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		reminders: need(wired, "reminders"),
 		records: need(wired, "records"),
 		files: need(wired, "files"),
+		notes: need(wired, "notes"),
 		audit: need(wired, "audit"),
 		definitions: need(wired, "definitions"),
 		imports: need(wired, "imports"),

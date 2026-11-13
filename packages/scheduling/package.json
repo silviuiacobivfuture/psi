@@ -1,6 +1,6 @@
 {
 	"name": "@psi/scheduling",
-	"version": "0.27.0",
+	"version": "0.28.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's scheduling engine: providers, services, availability rules and exceptions, slots, holds with expiry, requests and appointments, DST-safe in Europe/Bucharest; Convex as the database",

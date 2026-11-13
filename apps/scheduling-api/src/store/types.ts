@@ -4,6 +4,7 @@ import type {
 	AuditEvent,
 	CalendarEvent,
 	Client,
+	ClientNote,
 	Definition,
 	Device,
 	FileMeta,
@@ -72,6 +73,13 @@ export type ReminderRow = InApp<{
 }>;
 export type RecordRow = InApp<Out<typeof RecordSummary> & { sealed: string }>;
 export type FileRow = InApp<Out<typeof FileMeta> & { objectKey: string }>;
+/**
+ * A note about a client. A `clinic` note holds `sealed`, the per-field AES-GCM envelope of its text (bound to the
+ * client), and no `text`; every other category holds `text` and no `sealed`.
+ */
+export type NoteRow = InApp<
+	Omit<Out<typeof ClientNote>, "text"> & { text?: string; sealed?: string }
+>;
 export type AuditRow = InApp<Out<typeof AuditEvent>>;
 export type DefinitionRow = InApp<Out<typeof Definition>>;
 export type ImportRow = InApp<Out<typeof ImportRun>>;
@@ -94,6 +102,7 @@ export interface Rows {
 	reminders: ReminderRow;
 	records: RecordRow;
 	files: FileRow;
+	notes: NoteRow;
 	audit: AuditRow;
 	definitions: DefinitionRow;
 	imports: ImportRow;
@@ -117,6 +126,7 @@ export const COLLECTIONS: readonly CollectionName[] = [
 	"reminders",
 	"records",
 	"files",
+	"notes",
 	"audit",
 	"definitions",
 	"imports",

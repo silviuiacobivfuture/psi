@@ -264,6 +264,13 @@
 				"ro": "feedback",
 				"en": "feedback"
 			}
+		},
+		{
+			"key": "notes",
+			"name": {
+				"ro": "Notițe despre clienți",
+				"en": "Notes about clients"
+			}
 		}
 	],
 	"roles": [

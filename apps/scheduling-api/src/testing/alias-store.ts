@@ -61,6 +61,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		reminders: collection(inner.c.reminders),
 		records: collection(inner.c.records),
 		files: collection(inner.c.files),
+		notes: collection(inner.c.notes),
 		audit: collection(inner.c.audit),
 		definitions: collection(inner.c.definitions),
 		imports: collection(inner.c.imports),

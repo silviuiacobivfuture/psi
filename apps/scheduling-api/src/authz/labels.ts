@@ -29,6 +29,7 @@ export const RESOURCE_LABEL: Readonly<Record<string, { ro: string; en: string }>
 	reports: { ro: "Rapoarte", en: "Reports" },
 	audit_log: { ro: "Jurnal de audit", en: "Audit log" },
 	imports_exports: { ro: "Importuri și exporturi", en: "Imports and exports" },
+	notes: { ro: "Notițe despre clienți", en: "Notes about clients" },
 };
 
 export const ACTION_LABEL: Readonly<Record<string, { ro: string; en: string }>> = {
@@ -47,6 +48,7 @@ export const ACTION_LABEL: Readonly<Record<string, { ro: string; en: string }>> 
 	upload: { ro: "încarcă", en: "upload" },
 	imports_view: { ro: "vede importurile", en: "view imports" },
 	imports_run: { ro: "rulează importuri", en: "run imports" },
+	pin: { ro: "fixează", en: "pin" },
 };
 
 /** A field group is granted by its own key; the key without one is identity only. */
