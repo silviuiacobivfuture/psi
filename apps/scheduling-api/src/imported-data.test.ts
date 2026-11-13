@@ -55,6 +55,16 @@ describe("a clinic that came in through an import", () => {
 		expect(await after.canAll("nobody", "psizone", "clients_view")).toBe(false);
 	});
 
+	it("names the roles a person holds, by id, next to the ids", async () => {
+		const me = ok(await w.call("olga", "GET", `${A}/me`), "me");
+		const roles = me.roles as string[];
+		const names = me.roleNames as Record<string, string>;
+		expect(roles.length).toBe(1);
+		expect(names[roles[0] ?? ""]).toBe("Owner");
+		const viewed = ok(await w.call("olga", "GET", `${A}/me?as=role:${roles[0]}`), "as");
+		expect(viewed.roleNames).toEqual(names);
+	});
+
 	it("repeats without changing what the store holds", async () => {
 		const members = await w.store.c.members.list("psizone");
 		const roles = await w.store.c.roles.list("psizone");

@@ -21,6 +21,8 @@ export const Capabilities = z.object({
 	timeZone: z.string().min(1).max(60),
 	displayName: z.string().optional(),
 	roles: z.array(Id),
+	/** The name of each role in `roles`, by id (a role's id is opaque in some stores; people read its name). */
+	roleNames: z.record(Id, Name).optional(),
 	/**
 	 * Permission to the scopes held: the key without its scope (`clients_view`, `clients_view_clinical`), the scopes at
 	 * which it is held (`["all"]` for an app-wide permission). A key not listed is not held.
