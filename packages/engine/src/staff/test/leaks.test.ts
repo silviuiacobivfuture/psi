@@ -151,7 +151,10 @@ describe("nothing on the visitor side reaches the staff assistant", () => {
 		const staff = join(ROOT, "packages/engine/src/staff");
 		const forbidden =
 			/from\s+["'](?:\.\.\/(?:grounding|ingest|ingest-workflow|ask|ask-context|converse|catalog|workflow|studio-tool|engine|warm|settings|booking|scheduling)(?:\/[^"']*)?|@psi\/(?:knowledge|guide|content)|[^"']*chroma[^"']*)["']/i;
-		const offenders = walk(staff, (p) => p.includes("/test/") || p.includes("/testing/"))
+		const offenders = walk(
+			staff,
+			(p) => p.includes("/test/") || p.includes("/testing/") || p.includes("/evals/"),
+		)
 			.filter((f) => forbidden.test(readFileSync(f, "utf8")))
 			.map((f) => relative(ROOT, f));
 		expect(offenders).toEqual([]);
