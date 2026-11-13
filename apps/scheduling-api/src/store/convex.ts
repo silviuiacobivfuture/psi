@@ -1,6 +1,7 @@
 import { accountHashOf, type SchedulingClient, type StaffSchedulingClient } from "@psi/scheduling";
 import type { ConvexClient } from "convex/browser";
 import { accessCollections } from "./convex/access";
+import { blacklistPort } from "./convex/blacklist";
 import { caller } from "./convex/call";
 import { catalogCollections } from "./convex/catalog";
 import type { PartialCollections } from "./convex/collections";
@@ -127,6 +128,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		},
 		requests: requestsPort(clients.rpc, clients.staff),
 		docs: documentsPort(clients.rpc),
+		blacklist: blacklistPort(clients.rpc),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

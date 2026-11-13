@@ -1,4 +1,5 @@
 import { currentActor } from "./actor";
+import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { applyVisitRules } from "./memory-rules";
 import { applyTeamRules } from "./memory-team";
@@ -26,7 +27,8 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 	const c = Object.fromEntries(COLLECTIONS.map((name) => [name, new MemoryCollection()])) as {
 		[K in CollectionName]: MemoryCollection<Rows[K]>;
 	};
-	applyVisitRules(c);
+	const blacklist = createMemoryBlacklist(c, clock);
+	applyVisitRules(c, blacklist.staff);
 	applyTeamRules(c);
 	const events = new Map<string, Changes[]>();
 	const listeners = new Map<string, Set<(events: Changes[]) => void>>();
@@ -52,7 +54,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		since: (app, seq) => Promise.resolve((events.get(app) ?? []).filter((e) => e.seq > seq)),
 		head: (app) => Promise.resolve(events.get(app)?.at(-1)?.seq ?? 0),
 	};
-	const { visitor, requests, state } = createMemoryVisitor(c, clock);
+	const { visitor, requests, state } = createMemoryVisitor(c, clock, blacklist.online);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
 		get: (app, kind) => Promise.resolve(documents.get(`${app}|${kind}`)),
@@ -80,6 +82,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		visitor,
 		requests,
 		docs,
+		blacklist: blacklist.port,
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([
@@ -87,6 +90,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...events.entries()],
 				state(),
 				[...documents.entries()],
+				blacklist.state(),
 			]),
 	};
 }

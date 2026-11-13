@@ -30,6 +30,7 @@ interface Req {
 	mode: "onsite" | "online";
 	expiresAt?: number;
 	holdHash?: string;
+	channel?: "form" | "guide";
 	cancelHash?: string;
 	contact?: { name: string; email?: string | undefined; phone?: string | undefined };
 	accountHash?: string;
@@ -54,6 +55,12 @@ type Cs = { [K in keyof Rows]: Collection<Rows[K]> };
 export function createMemoryVisitor(
 	c: Cs,
 	clock: () => number,
+	screen: (
+		app: string,
+		contact: { name?: string | undefined; phone?: string | undefined; email?: string | undefined },
+		channel: "callback" | "form" | "guide",
+		subject?: string,
+	) => Promise<boolean>,
 ): { visitor: VisitorPort; requests: RequestsPort; state: () => unknown } {
 	const reqs = new Map<string, Req>();
 
@@ -241,6 +248,7 @@ export function createMemoryVisitor(
 				mode: input.mode,
 				expiresAt: clock() + HOLD_MINUTES * MINUTE,
 				holdHash: sha256(holdToken),
+				channel: input.channel,
 				createdAt: clock(),
 			};
 			reqs.set(r.id, r);
@@ -271,6 +279,11 @@ export function createMemoryVisitor(
 			if ((r.expiresAt ?? 0) <= clock()) return { ok: false, reason: "hold_expired" };
 			if (input.contact.email === undefined && input.contact.phone === undefined)
 				return { ok: false, reason: "invalid" };
+			// The first moment a visitor's contact is known: the blacklist is asked here, and a hit releases the hold.
+			if (await screen(app, input.contact, r.channel ?? "form", r.id)) {
+				r.status = "cancelled";
+				return { ok: false, reason: "unavailable_online" };
+			}
 			const cancelCode = makeToken();
 			Object.assign(r, {
 				status: "requested",

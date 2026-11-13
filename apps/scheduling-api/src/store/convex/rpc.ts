@@ -73,7 +73,14 @@ export function createRpc(config: RpcConfig): Rpc {
 }
 
 /** `{ok:false, reason}`: every wrapper's refusal. */
-export const Refusal = z.object({ ok: z.literal(false), reason: z.string() });
+export const Refusal = z.object({
+	ok: z.literal(false),
+	reason: z.string(),
+	/** What stopped a staff booking (the entry, its severity and reason, what authority lets it through). */
+	blacklist: z.record(z.string(), z.unknown()).optional(),
+	/** The field names a refused input got wrong. */
+	problems: z.array(z.string()).optional(),
+});
 
 /** A wrapper answer: success shape `S` (with `ok:true`) or its refusal. */
 export function answer<S extends z.ZodRawShape>(success: S) {
@@ -84,5 +91,10 @@ export function answer<S extends z.ZodRawShape>(success: S) {
 export function unwrap<T extends { ok: boolean }>(out: T): Extract<T, { ok: true }> {
 	if (out.ok) return out as Extract<T, { ok: true }>;
 	const reason = Reflect.get(out, "reason");
-	throw new StoreRefused(typeof reason === "string" ? reason : "invalid");
+	const blacklist: unknown = Reflect.get(out, "blacklist");
+	const problems: unknown = Reflect.get(out, "problems");
+	throw new StoreRefused(typeof reason === "string" ? reason : "invalid", {
+		...(typeof blacklist === "object" && blacklist !== null ? { blacklist } : {}),
+		...(Array.isArray(problems) ? { problems } : {}),
+	});
 }

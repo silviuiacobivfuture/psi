@@ -1,6 +1,8 @@
 import { z } from "zod/v4";
+import { BlacklistOverride } from "./entities-blacklist";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
+export * from "./entities-blacklist";
 export * from "./entities-money";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
@@ -265,6 +267,7 @@ export const AppointmentCreate = z.object({
 	end: Ms,
 	note: z.string().max(500).optional(),
 	priceCents: Money.optional(),
+	override: BlacklistOverride.optional(),
 });
 export const AppointmentPatch = z.object({
 	packageId: Id.optional(),
@@ -274,6 +277,7 @@ export const AppointmentPatch = z.object({
 	start: Ms.optional(),
 	end: Ms.optional(),
 	note: z.string().max(500).optional(),
+	override: BlacklistOverride.optional(),
 });
 export const AppointmentCancel = z.object({ reason: z.string().trim().min(2).max(300) });
 export const Attendance = z.object({ status: z.enum(["attended", "no_show", "scheduled"]) });

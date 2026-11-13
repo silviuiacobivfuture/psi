@@ -3,6 +3,7 @@ import type { Handler, Handlers } from "../http/context";
 import { adminHandlers } from "./admin";
 import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
+import { blacklistHandlers } from "./blacklist";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
 import { floorPlanHandlers } from "./floorplan";
@@ -24,6 +25,7 @@ const complete: Handlers = {
 	...reminderHandlers,
 	...recordHandlers,
 	...floorPlanHandlers,
+	...blacklistHandlers,
 	...adminHandlers,
 	...viewAsHandlers,
 	...visitorHandlers,

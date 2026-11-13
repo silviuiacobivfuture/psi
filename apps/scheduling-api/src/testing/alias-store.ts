@@ -94,6 +94,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 				inner.requests.decide(to(app), ref, decision, reason, actor),
 		},
 		docs: forApp(inner.docs, to),
+		blacklist: forApp(inner.blacklist, to),
 		ping: () => inner.ping(),
 	};
 }

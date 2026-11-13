@@ -23,7 +23,7 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import type { DocumentsPort } from "./ports";
+import type { BlacklistPort, DocumentsPort } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -139,9 +139,12 @@ export class StoreConflict extends Error {
 export class StoreRefused extends Error {
 	override readonly name = "StoreRefused";
 	readonly reason: string;
-	constructor(reason: string) {
+	/** What the refusal says beyond its reason (field names, the entry that stopped a booking): never a person's data. */
+	readonly detail: Readonly<Record<string, unknown>> | undefined;
+	constructor(reason: string, detail?: Readonly<Record<string, unknown>>) {
 		super(`store refused: ${reason}`);
 		this.reason = reason;
+		this.detail = detail;
 	}
 }
 /** The store could not be reached or answered something it should not (the service answers 503). */
@@ -337,6 +340,8 @@ export interface StorePort {
 	requests: RequestsPort;
 	/** Documents with a revision (the floor plan). */
 	docs: DocumentsPort;
+	/** Who may not book. */
+	blacklist: BlacklistPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

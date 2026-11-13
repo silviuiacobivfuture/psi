@@ -1,3 +1,5 @@
+import { currentActor, currentOverride } from "./actor";
+import type { MemoryBlacklist } from "./memory-blacklist";
 import {
 	type AppointmentRow,
 	type Collection,
@@ -10,6 +12,9 @@ import {
 } from "./types";
 
 type Collections = { [K in CollectionName]: Collection<Rows[K]> };
+
+/** The blacklist's answer for a staff booking (see memory-blacklist.ts): a stop, or nothing. */
+export type StaffGate = MemoryBlacklist["staff"];
 
 /**
  * The rules the Convex wrappers enforce INSIDE the store, applied to the in-memory collections so the two adapters answer
@@ -49,7 +54,7 @@ const placeChanged = (a: AppointmentRow, b: AppointmentRow): boolean =>
 	a.groupId !== b.groupId ||
 	a.kind !== b.kind;
 
-export function applyVisitRules(c: Collections): void {
+export function applyVisitRules(c: Collections, gate: StaffGate): void {
 	const exists = async <R extends { id: string; app: string }>(
 		col: Collection<R>,
 		app: string,
@@ -85,18 +90,42 @@ export function applyVisitRules(c: Collections): void {
 		}
 	}
 
+	/** The blacklist's gate for a staff booking or move: the override in force (if any) is the request's. */
+	async function stopOnBlacklist(app: string, clientId: string | undefined): Promise<void> {
+		const held = currentOverride();
+		const stop = await gate(
+			app,
+			clientId,
+			held === undefined ? undefined : { ...held, actor: currentActor() },
+			undefined,
+		);
+		if (stop !== undefined) throw new StoreRefused(stop.reason, stop.detail);
+	}
+	/** After the booking is made: an override that let it through is recorded for the visit. */
+	async function noteOverride(
+		app: string,
+		clientId: string | undefined,
+		visit: string,
+	): Promise<void> {
+		const held = currentOverride();
+		if (held !== undefined) await gate(app, clientId, { ...held, actor: currentActor() }, visit);
+	}
+
 	const appointments = c.appointments;
 	const insertAppointment = appointments.insert.bind(appointments);
 	const replaceAppointment = appointments.replace.bind(appointments);
 	appointments.insert = async (row) => {
 		await checkRefs(row);
+		await stopOnBlacklist(row.app, row.clientId);
 		if (row.status !== "cancelled" && row.deletedAt === undefined) await checkFree(row);
 		const { money: given, ...rest } = row;
-		return insertAppointment({
+		const saved = await insertAppointment({
 			...rest,
 			...(given === undefined ? {} : { money: money(given.priceCents, given.paidCents) }),
 			...(row.deletedAt === undefined ? {} : { purgeAt: row.deletedAt + RECOVERY_MS }),
 		});
+		await noteOverride(row.app, row.clientId, row.id);
+		return saved;
 	};
 	appointments.replace = async (row) => {
 		const cur = await appointments.get(row.app, row.id);
@@ -112,16 +141,19 @@ export function applyVisitRules(c: Collections): void {
 		if (moved) {
 			if (cur.status === "cancelled") throw new StoreRefused("not_allowed");
 			await checkRefs(row);
+			await stopOnBlacklist(row.app, row.clientId);
 			await checkFree(row);
 		} else if (row.note !== cur.note || row.packageId !== cur.packageId) {
 			await checkRefs(row);
 		}
 		const { deletedAt, purgeAt: _purge, money: _money, ...rest } = row;
-		return replaceAppointment({
+		const saved = await replaceAppointment({
 			...rest,
 			...(cur.money === undefined ? {} : { money: cur.money }),
 			...(deletedAt === undefined ? {} : { deletedAt, purgeAt: deletedAt + RECOVERY_MS }),
 		});
+		if (moved) await noteOverride(row.app, row.clientId, row.id);
+		return saved;
 	};
 	appointments.remove = async (app, id) => {
 		const cur = await appointments.get(app, id);

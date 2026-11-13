@@ -24,6 +24,7 @@ export {
 	blacklistInputSchema,
 	blacklistMatch,
 	blacklistPatchSchema,
+	CLEARABLE_FIELDS,
 	type GateOutcome,
 	MAX_ACTIVE_ENTRIES,
 	type Override,

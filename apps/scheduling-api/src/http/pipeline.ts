@@ -302,12 +302,15 @@ const CONFLICTS = new Set([
 	"recovery_expired",
 	"not_allowed",
 	"slot_taken",
+	"warning",
+	"blocked",
+	"limit",
 ]);
-function refusedByStore(reason: string): ApiError {
+function refusedByStore(reason: string, detail: Readonly<Record<string, unknown>> = {}): ApiError {
 	if (reason === "not_found") return notFound("object");
 	return CONFLICTS.has(reason)
-		? fail("conflict", "the store refused the change", { reason })
-		: fail("invalid", "the store refused the change", { reason });
+		? fail("conflict", "the store refused the change", { ...detail, reason })
+		: fail("invalid", "the store refused the change", { ...detail, reason });
 }
 
 /** Turns anything thrown into the contract's refusal; nothing else leaves the process. */
@@ -343,7 +346,7 @@ export function refusal(
 		return make(fail("unavailable", "authorization is unavailable; refusing"));
 	}
 	if (error instanceof MailUnavailable) return make(fail("unavailable", "mail is unavailable"));
-	if (error instanceof StoreRefused) return make(refusedByStore(error.reason));
+	if (error instanceof StoreRefused) return make(refusedByStore(error.reason, error.detail));
 	if (error instanceof StoreUnavailable) {
 		deps.log({ level: "error", event: "store_unavailable", requestId });
 		return make(fail("unavailable", "the store is unavailable"));
