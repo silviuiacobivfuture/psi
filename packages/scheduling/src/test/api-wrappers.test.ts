@@ -8,7 +8,7 @@ import { DAY, enc, HOUR, harness, id } from "./api-harness";
  */
 if (!backendReady) console.warn("api-wrappers.test: no local backend; see README");
 
-const { TENANT, counts, mut, qry } = harness("api");
+const { TENANT, mut, qry } = harness("api");
 
 describe.skipIf(!backendReady)("the server-keyed clinic wrappers", () => {
 	const ids: Record<string, string> = {};
