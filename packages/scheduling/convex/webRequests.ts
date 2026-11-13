@@ -1,66 +1,17 @@
 import { v } from "convex/values";
-import { makeReference, type RandomBytes } from "../src/domain/tokens";
 import { mutation, query } from "./_generated/server";
-import { tenantBySlug } from "./calendar";
 import { requireServer } from "./guard";
-import {
-	actorValidator,
-	audienceValidator,
-	contactValidator,
-	decisionReasonValidator,
-	localeValidator,
-	serverKeyValidator,
-} from "./validators";
+import { actorValidator, serverKeyValidator } from "./validators";
 
 /**
- * What the staff console needs of the web requests beyond the booking list (`staffRequests:requests`): callback
- * requests (a contact and no slot), the count waiting, and a LIVE feed of what arrived or changed, which the API
- * subscribes to (`ConvexClient.onUpdate`) for its requests stream and its inbox badge. Entries carry a reference, a
- * status and a time: no contact data.
+ * What the staff console needs of the web requests beyond the booking list (`staffRequests:requests`) and the callback
+ * requests of slice 0 (`callbacks:create`, `callbacks:list`): the callbacks as requests (their id is their reference),
+ * the count waiting, "called back" with a string id (so an id that is not one is `not_found`, not a validation error),
+ * and a LIVE feed of what arrived or changed, which the API subscribes to (`ConvexClient.onUpdate`) for its requests
+ * stream and its inbox badge. Entries carry a reference and a time: no contact data.
  */
 const PAGE = 200;
-/** A reference is readable, not secret, and a mutation may not call crypto: Convex seeds Math.random per transaction. */
-const mathRandom: RandomBytes = (length) =>
-	Uint8Array.from({ length }, () => Math.floor(Math.random() * 256));
 const MAX_LIST_MS = 62 * 86_400_000;
-
-export const submitCallback = mutation({
-	args: {
-		key: serverKeyValidator,
-		tenant: v.string(),
-		contact: contactValidator,
-		audience: v.optional(audienceValidator),
-		locale: localeValidator,
-	},
-	handler: async (ctx, args) => {
-		requireServer(args.key);
-		if ((await tenantBySlug(ctx, args.tenant)) === undefined)
-			return { ok: false as const, reason: "unknown_tenant" as const };
-		if (args.contact.name.trim() === "" || (args.contact.phone ?? args.contact.email ?? "") === "")
-			return { ok: false as const, reason: "invalid" as const };
-		let reference = makeReference(mathRandom);
-		for (let i = 0; i < 5; i += 1) {
-			const clash = await ctx.db
-				.query("callbackRequests")
-				.withIndex("by_reference", (q) => q.eq("reference", reference))
-				.first();
-			if (clash === null) break;
-			reference = makeReference(mathRandom);
-		}
-		const now = Date.now();
-		await ctx.db.insert("callbackRequests", {
-			tenant: args.tenant,
-			reference,
-			contact: args.contact,
-			...(args.audience === undefined ? {} : { audience: args.audience }),
-			locale: args.locale,
-			status: "open",
-			createdAt: now,
-			updatedAt: now,
-		});
-		return { ok: true as const, reference };
-	},
-});
 
 /** Callbacks created in [from, to), oldest first. */
 export const callbacks = query({
@@ -77,49 +28,51 @@ export const callbacks = query({
 		return {
 			ok: true as const,
 			callbacks: rows.map((r) => ({
-				reference: r.reference,
+				reference: r._id,
 				status: r.status,
 				createdAt: r.createdAt,
-				contact: r.contact,
+				...(r.contact === undefined ? {} : { contact: r.contact }),
 			})),
 		};
 	},
 });
 
-export const decideCallback = mutation({
+/** The team called back. Once: a callback already handled is refused, so a second click does not look like a first. */
+export const handleCallback = mutation({
 	args: {
 		key: serverKeyValidator,
 		tenant: v.string(),
 		reference: v.string(),
-		decision: v.union(v.literal("decline"), v.literal("cancel"), v.literal("handle")),
-		reason: v.optional(decisionReasonValidator),
 		actor: actorValidator,
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		const row = await ctx.db
-			.query("callbackRequests")
-			.withIndex("by_reference", (q) => q.eq("reference", args.reference))
-			.first();
+		const id = ctx.db.normalizeId("callbackRequests", args.reference);
+		const row = id === null ? null : await ctx.db.get(id);
 		if (row === null || row.tenant !== args.tenant)
 			return { ok: false as const, reason: "not_found" as const };
-		if (row.status !== "open") return { ok: false as const, reason: "not_allowed" as const };
+		if (row.status === "handled") return { ok: false as const, reason: "not_allowed" as const };
 		await ctx.db.patch(row._id, {
-			status:
-				args.decision === "decline"
-					? "declined"
-					: args.decision === "handle"
-						? "handled"
-						: "cancelled",
-			decidedBy: args.actor.subject,
-			decisionReason: args.reason,
-			updatedAt: Date.now(),
+			status: "handled",
+			handledAt: Date.now(),
+			handledBy: args.actor.subject,
 		});
 		return { ok: true as const };
 	},
 });
 
-/** How many requests wait for the team: booking requests starting at or after `from`, and open callbacks. */
+/** Is this reference a callback of the app? (`decline` and `cancel` ask, because only a booking can be declined.) */
+export const isCallback = query({
+	args: { key: serverKeyValidator, tenant: v.string(), reference: v.string() },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const id = ctx.db.normalizeId("callbackRequests", args.reference);
+		const row = id === null ? null : await ctx.db.get(id);
+		return { ok: true as const, found: row !== null && row.tenant === args.tenant };
+	},
+});
+
+/** How many requests wait for the team: booking requests starting at or after `from`, and callbacks not yet called back. */
 export const pending = query({
 	args: { key: serverKeyValidator, tenant: v.string(), from: v.number() },
 	handler: async (ctx, args) => {
@@ -128,23 +81,20 @@ export const pending = query({
 			.query("appointments")
 			.withIndex("by_tenant_start", (q) => q.eq("tenant", args.tenant).gte("start", args.from))
 			.collect();
-		const callbacks = await ctx.db
+		const waiting = await ctx.db
 			.query("callbackRequests")
-			.withIndex("by_tenant_created", (q) => q.eq("tenant", args.tenant))
+			.withIndex("by_tenant_status_created", (q) => q.eq("tenant", args.tenant).eq("status", "new"))
 			.collect();
 		return {
 			ok: true as const,
-			count:
-				booked.filter((a) => a.status === "requested").length +
-				callbacks.filter((c) => c.status === "open").length,
+			count: booked.filter((a) => a.status === "requested").length + waiting.length,
 		};
 	},
 });
 
 /**
- * Live: the requests (bookings that left the form, and callbacks) changed after `cursor` (an `updatedAt`, ms), oldest
- * first. Subscribed, the query re-runs when one arrives or changes. A held slot that never became a request is not
- * one.
+ * Live: the requests (bookings that left the form, and callbacks) that arrived or changed after `cursor` (ms), oldest
+ * first. Subscribed, the query re-runs when one arrives or changes. A held slot that never became a request is not one.
  */
 export const feed = query({
 	args: { key: serverKeyValidator, tenant: v.string(), cursor: v.number() },
@@ -156,17 +106,24 @@ export const feed = query({
 				q.eq("tenant", args.tenant).gt("updatedAt", args.cursor),
 			)
 			.take(PAGE);
-		const callbacks = await ctx.db
+		const arrived = await ctx.db
 			.query("callbackRequests")
-			.withIndex("by_tenant_updated", (q) =>
-				q.eq("tenant", args.tenant).gt("updatedAt", args.cursor),
+			.withIndex("by_tenant_created", (q) =>
+				q.eq("tenant", args.tenant).gt("createdAt", args.cursor),
+			)
+			.take(PAGE);
+		const handled = await ctx.db
+			.query("callbackRequests")
+			.withIndex("by_tenant_handled", (q) =>
+				q.eq("tenant", args.tenant).gt("handledAt", args.cursor),
 			)
 			.take(PAGE);
 		const changes = [
 			...booked
 				.filter((a) => a.status !== "held" && a.status !== "expired")
 				.map((a) => ({ reference: a.reference, at: a.updatedAt })),
-			...callbacks.map((c) => ({ reference: c.reference, at: c.updatedAt })),
+			...arrived.map((c) => ({ reference: c._id as string, at: c.createdAt })),
+			...handled.map((c) => ({ reference: c._id as string, at: c.handledAt ?? c.createdAt })),
 		].sort((a, b) => a.at - b.at);
 		return { ok: true as const, changes, cursor: changes.at(-1)?.at ?? args.cursor };
 	},

@@ -10,15 +10,15 @@
 # Derived from the retired business Authentik's invoice-token-reconcile CronJob
 # with only the instance changed: this directory's API, its env Secret, its own
 # ServiceAccount + OpenBao role (authentik-autorizare-token) and its own slot,
-# secret/platform/authentik/autorizare-api-token. Both ran until rmx-invoice-svc was
+# secret/platform/authentik/autorizare-api-token. Both ran until the invoicing service was
 # re-pointed (its ExternalSecret reads this slot and AUTHENTIK_API_URL names this
 # directory — the invoicing lane's change); the business copy was deleted with
 # that instance on 2026-10-25. Everything below is the original's reasoning, unchanged.
 #
-# The DEDICATED Authentik API credential rmx-invoice-svc issues machine
+# The DEDICATED Authentik API credential the invoicing service issues machine
 # credentials with — minted, permissioned and maintained as code.
 #
-# THE GAP THIS CLOSES: rmx-invoice-svc shipped a whole capability (@rule MACH-1,
+# THE GAP THIS CLOSES: the invoicing service shipped a whole capability (@rule MACH-1,
 # @rule MACH-6 — a machine credential is an OAuth client-credentials provider
 # created AT the identity provider) whose configuration no deployment supplied.
 # cmd/invoicesvcd/main.go builds the issuer only when AUTHENTIK_API_URL and
@@ -48,7 +48,7 @@
 # source of truth the ExternalSecret reads.
 #
 # THE PERMISSION SET, and why it is the narrowest that works. The adapter
-# (packages/rmx-invoicing/adapter/identitate/authentik.go) makes exactly three
+# (the invoicing domain's adapter/identitate/authentik.go) makes exactly three
 # calls: POST, PATCH and DELETE on /api/v3/providers/oauth2/. Authentik's
 # ObjectPermissions (authentik/rbac/permissions.py) maps POST -> add_, PATCH ->
 # change_, DELETE -> delete_, and resolves the object on every DETAIL route
@@ -115,7 +115,7 @@ metadata:
   annotations:
     # On the CronJob's OWN metadata: require-alert-annotation matches the CronJob
     # kind directly and no mutate policy reaches a hand-written object here.
-    alerts.recomex.eu/owner: WLOPSEMAIL
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   # Offset from reportportal's 7,22,37,52 so two jobs are never holding a
   # superuser token in the same second.
@@ -303,8 +303,8 @@ spec:
                   value: http://openbao.openbao.svc:8200
                 - name: BAO_ROLE
                   value: authentik-autorizare-token
-                # The path rmx-invoice-svc's ExternalSecret reads AUTHENTIK_API_TOKEN
-                # from (gitops/services/rmx-invoice-svc/base/externalsecret.yaml).
+                # The path the invoicing service's ExternalSecret reads AUTHENTIK_API_TOKEN
+                # from (its base/externalsecret.yaml).
                 # Its own path, not .../app: this identity must never be able to
                 # read the invoicing service's database DSN or token-encryption key.
                 - name: TOKEN_SECRET_PATH

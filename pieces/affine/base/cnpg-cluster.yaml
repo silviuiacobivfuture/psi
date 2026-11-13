@@ -1,0 +1,82 @@
+# AFFiNE's Postgres — a CloudNativePG Cluster, same recipe as plunk-db (read
+# pieces/plunk/base/cnpg-cluster.yaml for the rationale of each setting).
+#
+# DURABILITY, two layers, as every database here: (1) barman ships every WAL segment + a
+# weekly base backup to the platform bucket → PITR, minutes of RPO; (2) a 6-hourly logical
+# pg_dump (db-dump.yaml) → a plain .sql.gz that restores without the operator. The FILES
+# (images, attachments) are not here: they are in the versioned affine bucket.
+#
+# EXTENSIONS: AFFiNE's migrations run `CREATE EXTENSION IF NOT EXISTS "vector"` (its AI
+# embeddings tables, created even with AI off) and "pgcrypto". Neither is a TRUSTED extension,
+# and the application role is no superuser, so both are created here, by the operator, as
+# the database is made (postInitApplicationSQL); the migrations then find them and go on.
+# pgvector ships in the CNPG image (vector.control, 0.8.1, read 2026-11-12).
+#
+# SIZE: 5Gi. AFFiNE keeps every document's updates and history in Postgres; the files are in
+# the bucket. Resize is a new cluster (local-path cannot grow).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: affine-db
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  instances: 1
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: affine
+      owner: affine
+      secret:
+        name: affine-db-app
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS "vector"
+        - CREATE EXTENSION IF NOT EXISTS "pgcrypto"
+  storage:
+    size: 5Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: "1", memory: 512Mi }
+  postgresql:
+    parameters:
+      # CNPG refuses a memory REQUEST below shared_buffers (its admission webhook), so the
+      # two move together: 48MB under the 64Mi request. Small, and enough: the hot set of one
+      # estate's documents is megabytes; the page cache above it is the kernel's.
+      shared_buffers: "48MB"
+      effective_cache_size: "192MB"
+      work_mem: "8MB"
+      # The server's Prisma pool (~10) + the migration, the first-admin job and the dump.
+      max_connections: "50"
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/affine-db
+      endpointURL: https://nbg1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: affine-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: affine-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# Weekly base backup (six-field cron). 03:00 Sunday — after plunk-db-base (02:50) and every
+# other base backup, so no two contend. `immediate` takes the first one at creation instead
+# of leaving a week with no restorable point.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: affine-db-base
+spec:
+  schedule: "0 0 3 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: affine-db

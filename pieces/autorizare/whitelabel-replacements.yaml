@@ -11,6 +11,7 @@
     fieldPaths:
     - spec.template.spec.containers.[name=autorizare-hub].image
     - spec.template.spec.initContainers.[name=assert-secrets].image
+    - spec.template.spec.initContainers.[name=migrate].image
     options:
       delimiter: /
       index: 0
@@ -43,6 +44,7 @@
       name: autorizare-hub
     fieldPaths:
     - spec.template.spec.containers.[name=autorizare-hub].image
+    - spec.template.spec.initContainers.[name=migrate].image
     options:
       delimiter: /
       index: 1

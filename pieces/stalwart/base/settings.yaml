@@ -1,0 +1,29 @@
+# The piece's estate values, each resolved ONCE here by the piece's replacements and read from
+# here by everything else (the server's env, the configuration plan's render).
+#   MAIL_HOST       <MAIL_HOST_PREFIX>.<BASE_DOMAIN>     SMTP/IMAP name, MX target, certificate
+#   WEBMAIL_HOST    <WEBMAIL_HOST_PREFIX>.<BASE_DOMAIN>  the web account manager, behind the sign-in
+#   MAILBOX_DOMAIN  the identity's MAILBOX_DOMAIN        <user>@<this>
+#   AUTHENTIK_HOST  the identity's AUTHENTIK_HOST        the OIDC issuer
+#   BRAND_TITLE     the identity's BRAND_TITLE           the webmail's name
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-settings
+data:
+  MAIL_HOST: post.WLDOMAIN
+  WEBMAIL_HOST: webmail.WLDOMAIN
+  MAILBOX_DOMAIN: post.WLDOMAIN
+  AUTHENTIK_HOST: auth.WLDOMAIN
+  BRAND_TITLE: brand-title-from-identity
+  # Stalwart's own pages (administration, app passwords) answer at the mail host.
+  STALWART_PUBLIC_URL: https://post.WLDOMAIN
+---
+# Stalwart v1 keeps only WHERE its data lives in its config file; everything else is in that
+# data store, written by the configuration plan (config-job.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-config
+data:
+  config.json: |
+    {"@type":"RocksDb","path":"/var/lib/stalwart/data"}

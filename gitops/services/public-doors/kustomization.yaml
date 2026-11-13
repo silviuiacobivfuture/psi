@@ -1,0 +1,28 @@
+# An estate with NO private network (identity MESH: none) opens on the PUBLIC ingress the doors
+# SEB's pieces open on the mesh: Argo CD, Headlamp, OpenBao, the system hub and Netdata, at
+# <tool>.<TAILNET_DOMAIN> — which the identity loader puts on the apex when MESH is none
+# (tools/identity/lib/render.mjs). Each is behind sign-in: the tools with a login of their own
+# (Argo CD, Headlamp, OpenBao) ALSO behind the estate's domain sign-in (the forward-auth
+# Middleware); the hub and Netdata through Authentik's embedded outpost, exactly as their
+# tailnet gates are (gitops/platform/authentik/ingress-proxied-apps.yaml).
+#
+# Deployed only on such an estate: tools/estate-pieces.mjs writes its Application (public-doors)
+# when the identity says MESH: none, and never otherwise — an estate on a mesh keeps these tools
+# off the public internet. Measured on the second estate (2026-11-11): without them every
+# platform tool linked from the hub was unreachable.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - argocd.yaml
+  - headlamp.yaml
+  - openbao.yaml
+  - hub.yaml
+  - netdata.yaml
+components:
+  - ../../components/whitelabel
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN }
+    targets:
+      - select: { kind: Ingress }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 1 }

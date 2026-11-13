@@ -14,3 +14,21 @@ components:
   - ../../../../components/whitelabel
 replacements:
   - path: whitelabel-replacements.yaml
+  # The backup bucket, <BUCKET_PREFIX>-tfstate-dev, composed in a local-config ConfigMap first
+  # (no delimiter isolates the prefix inside s3://<bucket>/…), then put in the Cluster's path.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: changelog-backup-bucket }
+        fieldPaths: [data.BUCKET]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: changelog-backup-bucket, fieldPath: data.BUCKET }
+    targets:
+      - select: { kind: Cluster, name: changelog-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+configMapGenerator:
+  - name: changelog-backup-bucket # local-config, never rendered
+    literals: [BUCKET=WLBUCKET-tfstate-dev]
+    options:
+      disableNameSuffixHash: true
+      annotations: { config.kubernetes.io/local-config: "true" }

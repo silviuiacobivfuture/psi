@@ -1,0 +1,21 @@
+# The system hub: through Authentik's embedded outpost (its proxy provider for hub.<tailnet>), as the private gate is.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hub-public
+  namespace: authentik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [hub.WLTAILNET]
+      secretName: hub-public-tls
+  rules:
+    - host: hub.WLTAILNET
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: authentik-server, port: { number: 80 } } }

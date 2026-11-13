@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { FAILURE_LIMIT, type PushLocale, type SubscriptionRecord, type Topic } from "./types";
+import {
+	ACCOUNT_TOPICS,
+	FAILURE_LIMIT,
+	type PushLocale,
+	type SubscriptionRecord,
+	type Topic,
+} from "./types";
 
 export interface NewSubscription {
 	endpoint: string;
@@ -27,6 +33,8 @@ export interface PushStore {
 	/** Insert or replace by endpoint (a browser re-subscribing keeps one row). */
 	upsert(input: NewSubscription, at: number): Promise<SubscriptionRecord>;
 	byEndpoint(endpoint: string): Promise<SubscriptionRecord | null>;
+	/** By the random id that is also the Novu push device token. */
+	byId(id: string): Promise<SubscriptionRecord | null>;
 	/** Every subscription holding `topic`; for `booking`, only the given account's. */
 	forTopic(topic: Topic, subject?: string): Promise<SubscriptionRecord[]>;
 	forSubject(subject: string): Promise<SubscriptionRecord[]>;
@@ -115,13 +123,14 @@ export function stateStore(run: <T>(op: Op<T>, write: boolean) => Promise<T>): P
 			}, true),
 		byEndpoint: (endpoint) =>
 			run((s) => s.subscriptions.find((r) => r.endpoint === endpoint) ?? null, false),
+		byId: (id) => run((s) => s.subscriptions.find((r) => r.id === id) ?? null, false),
 		forTopic: (topic, subject) =>
 			run(
 				(s) =>
 					s.subscriptions.filter(
 						(r) =>
 							r.topics.includes(topic) &&
-							(topic !== "booking" || (r.subject !== null && r.subject === subject)),
+							(!ACCOUNT_TOPICS.includes(topic) || (r.subject !== null && r.subject === subject)),
 					),
 				false,
 			),

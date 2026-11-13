@@ -1,0 +1,100 @@
+# psi's people on its Authentik, spliced by SEB's tools/estate-repo.mjs at the
+# `seb:estate-entries people` mark of gitops/platform/authentik/blueprints-people.yaml
+# (SEB's tools/estate/tree-components.mjs). Blueprint entries, a YAML list at column 0;
+# the mark's indentation is added at render. Edit HERE, then re-render: an edit made in
+# the rendered blueprint is overwritten by the next render.
+# ESTATE ADMINS (owner, 2026-11-11): full privileges, the same rosters as the
+# operator (blueprints-groups.yaml). Created only: the password and the TOTP
+# each sets through the invitation link are never overwritten.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: turcu_daniela
+  attrs:
+    name: Daniela Turcu
+    email: turcu_daniela@icloud.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: adi_rar
+  attrs:
+    name: Adi
+    email: adi_rar@yahoo.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: nicholas.turcu
+  attrs:
+    name: Nicholas Turcu
+    email: nicholas.turcu@icloud.com
+    type: internal
+    is_active: true
+# Lucian Sergiu Trifan (owner, 2026-11-12): "make him full rights admin for now" … "ill
+# remove some of his rights after a while". Every grant is a line of his in
+# blueprints-groups.yaml, the same set as adi_rar's; removing a right removes that line.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: lucian.trifan
+  attrs:
+    name: Lucian Sergiu Trifan
+    email: trifan.lucian.sergiu@gmail.com
+    type: internal
+    is_active: true
+# SIGN-IN NAME AND MAILBOX (owner, 2026-11-12), one entry per person, attributes only
+# (the people above are `state: created` and never rewritten; `attributes` is written
+# whole, so every key a person carries is listed here):
+#   upn           the address they type at the sign-in page, name@psizone.ro. Both
+#                 identification stages search [email, username, upn]
+#                 (blueprints-recovery.yaml), so it signs in AND starts "forgot
+#                 password". It is NOT their e-mail: `email` stays the external address
+#                 every application knows them by and the one recovery mail goes to.
+#   mail_address  the mailbox they own on the estate's mail server, whole
+#                 (name@post.psizone.ro; name@psizone.ro should psizone.ro's mail move
+#                 off Zoho). The `mail` scope hands it to Stalwart (blueprints-providers.yaml).
+#   mail_account  the same mailbox's local part, read by the mail scope until it reads
+#                 mail_address; drop it once nothing does.
+- model: authentik_core.user
+  identifiers:
+    username: WLOPERATOR
+  attrs:
+    attributes:
+      upn: silviu.iacob@psizone.ro
+      mail_address: silviu.iacob@post.psizone.ro
+      mail_account: silviu.iacob
+- model: authentik_core.user
+  identifiers:
+    username: turcu_daniela
+  attrs:
+    attributes:
+      upn: dana.turcu@psizone.ro
+      mail_address: dana.turcu@post.psizone.ro
+      mail_account: dana.turcu
+- model: authentik_core.user
+  identifiers:
+    username: adi_rar
+  attrs:
+    attributes:
+      upn: adi.turcu@psizone.ro
+      mail_address: adi.turcu@post.psizone.ro
+      mail_account: adi.turcu
+- model: authentik_core.user
+  identifiers:
+    username: nicholas.turcu
+  attrs:
+    attributes:
+      upn: nicholas.turcu@psizone.ro
+      mail_address: nicholas.turcu@post.psizone.ro
+      mail_account: nicholas.turcu
+- model: authentik_core.user
+  identifiers:
+    username: lucian.trifan
+  attrs:
+    attributes:
+      upn: lucian.trifan@psizone.ro
+      mail_address: lucian.trifan@post.psizone.ro
+      mail_account: lucian.trifan

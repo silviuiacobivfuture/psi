@@ -1,0 +1,3 @@
+ingress: false
+traefik: false
+gateway: false

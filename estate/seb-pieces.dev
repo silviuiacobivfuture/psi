@@ -1,45 +1,38 @@
 # The SEB pieces dev runs, from the bundle estate/platform.lock pins. One entry per line:
 # <piece id> deploys the piece's default render; <piece id>@<profile> deploys that profile of it.
-# Derived from the identity's PLATFORM_APPS when the repository was scaffolded.
-arc-controller
-arc-runners
-argocd-config
-autorizare
-cert-manager
-cluster-dns
-cnpg
-db-backup
-estate-front
-external-dns
-external-secrets
-harbor
-hcloud-csi
-headlamp
-health-digest
-homepage
-kyverno
-kyverno-policies
-n8n
-netdata
-nextcloud
-nextcloud-platform
-novu
-nx-cache
-openfga
-otel-logging
-pdfcraft
-affine
-stalwart
-plane
-plane-platform
-platform-rbac
-platform-secrets
-plunk
+#
+# Only the pieces SWITCHED to the bundle, by digest (estate/seb-upgrade.sh writes their
+# Applications into gitops/apps/overlays/dev/seb-bundle/). Every other piece is still deployed
+# from git by its Application in gitops/apps/overlays/dev/seb-pieces/; listing a piece here before
+# its git Application is removed would deploy it twice under the same name. Switch one piece per
+# commit: list it, re-run the upgrade, remove its git Application, check Argo's diff is empty.
 reference
+traefik-accesslog
+pdfcraft
+talk-hpb
+convex
+headlamp
 reloader
 system-upgrade-controller
-tailscale-operator
-talk-hpb
-test-reports
-traefik-accesslog
+cluster-dns
+cert-manager
+platform-rbac
+db-backup
+external-dns
+arc-controller
 velero
+cnpg
+kyverno-policies
+platform-secrets
+external-secrets
+hcloud-csi
+kyverno
+argocd-config
+test-reports
+stalwart
+affine
+nextcloud-platform
+plane-platform
+nextcloud
+harbor
+arc-runners

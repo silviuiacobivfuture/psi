@@ -1,0 +1,19 @@
+# AFFiNE's settings that are the ESTATE's and not secret, each a whole value filled from the
+# identity by the piece's replacements (../kustomization.yaml): the host from
+# AFFINE_HOST_PREFIX + BASE_DOMAIN, the sign-in issuer from AUTHENTIK_HOST, the bucket from
+# BUCKET_PREFIX, the object storage's endpoint and region. write-config.mjs turns these and
+# the secrets (externalsecrets.yaml) into AFFiNE's config.json.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: affine-settings
+data:
+  # `docs` is the default label, replaced by AFFINE_HOST_PREFIX (the piece's replacements).
+  AFFINE_SERVER_HOST: docs.WLDOMAIN
+  AFFINE_SERVER_EXTERNAL_URL: https://docs.WLDOMAIN
+  # Authentik's issuer for the `affine-oidc` application (blueprints-providers.yaml):
+  # https://<AUTHENTIK_HOST>/application/o/<slug>/, trailing slash included.
+  OIDC_ISSUER: https://WLAUTHHOST/application/o/affine-oidc/
+  S3_ENDPOINT: https://WLOBJECTSTORAGE
+  S3_REGION: WLREGION
+  S3_BUCKET: WLBUCKET-affine-dev

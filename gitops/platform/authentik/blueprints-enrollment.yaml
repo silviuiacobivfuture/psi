@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # WHAT THIS DOES
 # Replaces the stock `default-source-enrollment` flow (referenced by the GitHub
-# OAuth source in blueprints-sources.yaml) with a recomex enrolment flow that:
+# OAuth source in blueprints-sources.yaml) with the estate's enrolment flow that:
 #   1. Asks the new person "which team?" (choice) + "why do you need access?"
 #      (free text) — see the prompt fields below.
 #   2. Writes those answers onto the user's `attributes` (enrol_team / enrol_reason)
@@ -24,7 +24,7 @@
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # HOW A NEW PERSON ENROLS
-#   • They click "Login with GitHub" on https://auth.recomex.eu.
+#   • They click "Login with GitHub" on the sign-in (https://<AUTHENTIK_HOST>).
 #   • First time → GitHub OAuth callback has no matching user → this enrolment
 #     flow runs → they pick a team + type a reason → account created in `pending`.
 #   • They are logged in but see nothing they can use (pending = zero access).
@@ -92,7 +92,7 @@ data:
           name: WLSLUG-enrol-reason
           type: text_area
           required: true
-          placeholder: "e.g. Dev on rmx-sign, need Argo + Harbor read"
+          placeholder: "e.g. Developer on one of the apps, need Argo + Harbor read"
           order: 200
 
       # ── Hidden field: capture the GitHub username for the account ───────────
@@ -155,7 +155,7 @@ data:
             # Company domains → every address at that domain gets this bundle.
             #
             # DELIBERATELY EMPTY as of 2026-09-21 (I1, docs/identitate/LEDGER.md).
-            # It used to map recomexpert.ro and ivfuture.ro to "onboard-admin",
+            # It used to map two company domains to "onboard-admin",
             # which includes platform-admins (is_superuser — Authentik itself).
             # Enrolment is open to any GitHub account on earth, and a GitHub
             # account can carry any verified address, so that mapping meant:
@@ -354,7 +354,7 @@ data:
       # nothing in this file was being applied: the 2026-09-22 fix below (empty
       # DOMAINS, NEVER_GRANTED) never reached the live directory, which kept
       # granting onboard-admin, platform-admins included, to any GitHub account
-      # carrying a recomexpert.ro or ivfuture.ro address (found and closed
+      # carrying an address at one of those domains (found and closed
       # 2026-10-22).
       - model: authentik_policies.policybinding
         identifiers:

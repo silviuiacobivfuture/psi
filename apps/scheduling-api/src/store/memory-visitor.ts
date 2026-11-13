@@ -379,16 +379,17 @@ export function createMemoryVisitor(
 		},
 		async decide(app, reference, decision, _reason, actor) {
 			const r = byReference(app, reference);
-			if (
-				r === undefined ||
-				(r.status !== "requested" && r.status !== "confirmed" && r.status !== "callback")
-			)
-				return { ok: false, reason: "not_found" };
-			if (decision === "handle") {
-				if (r.status !== "callback") return { ok: false, reason: "not_allowed" };
+			if (r === undefined) return { ok: false, reason: "not_found" };
+			// A callback can only be called back, once: there is no slot to confirm and no booking to decline.
+			if (r.callback === true) {
+				if (decision !== "handle" || r.status !== "callback")
+					return { ok: false, reason: "not_allowed" };
 				r.status = "handled";
 				return { ok: true };
 			}
+			if (decision === "handle") return { ok: false, reason: "not_allowed" };
+			if (r.status !== "requested" && r.status !== "confirmed")
+				return { ok: false, reason: "not_found" };
 			if (decision === "confirm") {
 				if (r.status !== "requested") return { ok: false, reason: "not_allowed" };
 				r.status = "confirmed";

@@ -290,6 +290,9 @@ export interface VisitorPort {
 			contact: ContactInput;
 			audience?: "child" | "teen" | "adult" | undefined;
 			locale: "ro" | "en";
+			when: "morning" | "afternoon" | "any";
+			page: string;
+			channel: "form" | "guide";
 		},
 	): Promise<{ reference: string }>;
 	mine(

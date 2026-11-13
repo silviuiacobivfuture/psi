@@ -88,8 +88,8 @@ spec:
                 name: authentik-email-templates
             # The estate's look (gitops/platform/authentik/estate/, generated as
             # ConfigMaps by that kustomization). On the SERVER it is served at
-            # /static/dist/assets/recomex/ and the page template loads ro.js; on
-            # the WORKER the brand blueprint reads recomex.css from it with !File
+            # /static/dist/assets/<slug>/ and the page template loads ro.js; on
+            # the WORKER the brand blueprint reads <slug>.css from it with !File
             # — so both pods mount both, and a missing ConfigMap holds both in
             # ContainerCreating rather than letting the brand go blank.
             - name: estate
@@ -110,10 +110,10 @@ spec:
                     path: icon_left_brand.png
           volumeMounts:
             - name: email-templates
-              mountPath: /templates/recomex
+              mountPath: /templates/psi
               readOnly: true
             - name: estate
-              mountPath: /web/dist/assets/recomex
+              mountPath: /web/dist/assets/psi
               readOnly: true
             # Authentik's template search path starts at email.template_dir
             # (/templates), so this skeleton.html is found before Authentik's

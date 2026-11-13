@@ -16,19 +16,18 @@ const Callbacks = answer({
 	callbacks: z.array(
 		z.object({
 			reference: z.string(),
-			status: z.enum(["open", "declined", "cancelled", "handled"]),
+			status: z.enum(["new", "handled"]),
 			createdAt: z.number(),
-			contact: z.object({
-				name: z.string(),
-				email: z.string().optional(),
-				phone: z.string().optional(),
-			}),
+			contact: z
+				.object({ name: z.string(), email: z.string().optional(), phone: z.string().optional() })
+				.optional(),
 		}),
 	),
 });
 const Count = answer({ count: z.number() });
 const Decided = answer({});
-const Submitted = answer({ reference: z.string() });
+const Found = answer({ found: z.boolean() });
+const Created = answer({ id: z.string() });
 
 export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPort {
 	return {
@@ -57,13 +56,17 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 				})),
 				...callbacks.callbacks.map((c) => ({
 					reference: c.reference,
-					status: c.status === "open" ? ("requested" as const) : c.status,
+					status: c.status === "new" ? ("requested" as const) : ("handled" as const),
 					createdAt: c.createdAt,
-					contact: {
-						name: c.contact.name,
-						...(c.contact.phone === undefined ? {} : { phone: c.contact.phone }),
-						...(c.contact.email === undefined ? {} : { email: c.contact.email }),
-					},
+					...(c.contact === undefined
+						? {}
+						: {
+								contact: {
+									name: c.contact.name,
+									...(c.contact.phone === undefined ? {} : { phone: c.contact.phone }),
+									...(c.contact.email === undefined ? {} : { email: c.contact.email }),
+								},
+							}),
 				})),
 			];
 		},
@@ -79,18 +82,11 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 		},
 		async decide(app, reference, decision, reason, actor) {
 			const known = DecisionReasonSchema.safeParse(reason);
-			const callback = async (
-				which: "decline" | "cancel" | "handle",
-			): Promise<{ ok: true } | { ok: false; reason: "not_found" | "not_allowed" }> => {
+			// A callback can only be called back: there is no slot to confirm, no booking to decline.
+			if (decision === "handle") {
 				const decided = await rpc.mutation(
-					"webRequests:decideCallback",
-					{
-						tenant: app,
-						reference,
-						decision: which,
-						actor: { subject: actor },
-						...(known.success ? { reason: known.data } : {}),
-					},
+					"webRequests:handleCallback",
+					{ tenant: app, reference, actor: { subject: actor } },
 					Decided,
 				);
 				if (decided.ok) return { ok: true };
@@ -98,9 +94,7 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 					ok: false,
 					reason: decided.reason === "not_allowed" ? "not_allowed" : "not_found",
 				};
-			};
-			// A callback is called back (handle), declined or cancelled, never confirmed.
-			if (decision === "handle") return callback("handle");
+			}
 			const out = await staff.decide({
 				tenant: app,
 				reference,
@@ -110,15 +104,10 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 			});
 			if (out.ok) return { ok: true };
 			if (out.reason !== "not_found") return { ok: false, reason: out.reason };
-			if (decision !== "confirm") return callback(decision);
-			const exists = unwrap(
-				await rpc.query(
-					"webRequests:callbacks",
-					{ tenant: app, from: 0, to: Date.now() + DAY },
-					Callbacks,
-				),
-			).callbacks.some((c) => c.reference === reference);
-			return { ok: false, reason: exists ? "not_allowed" : "not_found" };
+			const callback = unwrap(
+				await rpc.query("webRequests:isCallback", { tenant: app, reference }, Found),
+			);
+			return { ok: false, reason: callback.found ? "not_allowed" : "not_found" };
 		},
 	};
 }
@@ -142,17 +131,22 @@ const Cancelled = answer({ start: z.number() });
 export function visitorExtras(rpc: Rpc): Pick<VisitorPort, "callback" | "mine" | "cancelMine"> {
 	return {
 		async callback(app, input) {
+			// The site's form requires the consent box before it calls; a request that arrives here carries it.
 			const out = await rpc.mutation(
-				"webRequests:submitCallback",
+				"callbacks:create",
 				{
 					tenant: app,
 					contact: input.contact,
+					audience: input.audience ?? "adult",
+					when: input.when,
 					locale: input.locale,
-					...(input.audience === undefined ? {} : { audience: input.audience }),
+					channel: input.channel,
+					page: input.page,
+					consent: true,
 				},
-				Submitted,
+				Created,
 			);
-			return { reference: unwrap(out).reference };
+			return { reference: unwrap(out).id };
 		},
 		async mine(app, subject) {
 			const out = unwrap(

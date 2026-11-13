@@ -55,6 +55,12 @@ replacements:
     targets:
       - select: { annotationSelector: alerts/owner }
         fieldPaths: [metadata.annotations.alerts/owner]
+      - select: { kind: ExternalSecret, name: plane-app-secrets }
+        fieldPaths: [spec.target.template.data.PLANE_SSO_ADMIN_EMAIL]
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE }
+    targets:
+      - select: { kind: ExternalSecret, name: plane-app-secrets }
+        fieldPaths: [spec.target.template.data.PLANE_SSO_BRAND]
   # The hub link carries its Ingress's host (resolved above), so a path stays intact.
   - source: { kind: Ingress, name: plane, fieldPath: spec.rules.0.host }
     targets:

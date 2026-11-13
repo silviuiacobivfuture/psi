@@ -71,9 +71,9 @@ data:
   # libs/application-generic/src/services/storage/storage.service.ts). Novu has
   # no key-prefix setting, so it gets its own bucket.
   STORAGE_SERVICE: AWS
-  S3_LOCAL_STACK: https://nbg1.your-objectstorage.com
+  S3_LOCAL_STACK: WLENDPOINT
   S3_BUCKET_NAME: WLBUCKET-novu-dev
-  S3_REGION: nbg1
+  S3_REGION: WLREGION
   NEW_RELIC_ENABLED: "false"
   BROADCAST_QUEUE_CHUNK_SIZE: "100"
   MULTICAST_QUEUE_CHUNK_SIZE: "100"

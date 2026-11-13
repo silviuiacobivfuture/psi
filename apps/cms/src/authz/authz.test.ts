@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { brandWhere } from "./access";
 import { withBreakGlass, withoutRetired } from "./index";
 import { interimAuthorizer, parseAssignments } from "./interim";
 import { ROLES } from "./manifest";
@@ -162,5 +163,36 @@ describe("a retired site", () => {
 		expect(await hidden.brands(who, "read")).toEqual(
 			(await inner.brands(who, "read")).filter((b) => b !== "eqsync"),
 		);
+	});
+});
+
+describe("brandWhere: the access filter on a collection's own brand values", () => {
+	const ARTICLE_VALUES = ["psizone", "eqsync", "hemisync"] as const;
+
+	it("names only values the field can hold (blog is not an article brand)", () => {
+		expect(brandWhere(["psizone", "hemisync", "blog"], ARTICLE_VALUES)).toEqual({
+			brand: { in: ["psizone", "hemisync"] },
+		});
+	});
+
+	it("filters nothing only when every value of the field is held", () => {
+		expect(brandWhere(["psizone", "eqsync", "hemisync", "blog"], ARTICLE_VALUES)).toBe(true);
+	});
+
+	it("keeps a retired brand's rows out when it is not held", () => {
+		expect(brandWhere(["psizone", "hemisync"], ARTICLE_VALUES)).toEqual({
+			brand: { in: ["psizone", "hemisync"] },
+		});
+	});
+
+	it("refuses when no held brand is a value of the field", () => {
+		expect(brandWhere(["blog"], ARTICLE_VALUES)).toBe(false);
+		expect(brandWhere([], ARTICLE_VALUES)).toBe(false);
+	});
+
+	it("filters versions on version.brand", () => {
+		expect(brandWhere(["psizone"], ARTICLE_VALUES, "version.brand")).toEqual({
+			"version.brand": { in: ["psizone"] },
+		});
 	});
 });

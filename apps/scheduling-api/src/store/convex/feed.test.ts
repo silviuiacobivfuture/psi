@@ -31,10 +31,16 @@ describe.skipIf(target === undefined)("the Convex change feed", () => {
 			await env.store.visitor.callback(other, {
 				contact: { name: "Other App", phone: "0712 345 678" },
 				locale: "ro",
+				when: "any",
+				page: "/contact",
+				channel: "form",
 			});
 			const { reference } = await env.store.visitor.callback(mine, {
 				contact: { name: "Caller Test", phone: "0712 345 678" },
 				locale: "ro",
+				when: "any",
+				page: "/contact",
+				channel: "form",
 			});
 			await until(() => seen.some((e) => e.id === reference));
 			expect(errors).toEqual([]);
@@ -45,6 +51,9 @@ describe.skipIf(target === undefined)("the Convex change feed", () => {
 			const second = await env.store.visitor.callback(mine, {
 				contact: { name: "Caller Two", phone: "0712 345 679" },
 				locale: "ro",
+				when: "any",
+				page: "/contact",
+				channel: "form",
 			});
 			await until(() => seen.some((e) => e.id === second.reference));
 			expect(seen.map((e) => e.id).sort()).toEqual([reference, second.reference].sort());

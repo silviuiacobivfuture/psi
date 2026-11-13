@@ -1,7 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { callbackRequests } from "./callbackSchema";
 import { apiDefinitions, leaveRequests } from "./tables/apiRecordsExtra";
-import { callbackRequests } from "./tables/callbacks";
 import {
 	coordinatorAssignments,
 	permissionOverrides,

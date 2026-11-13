@@ -11,7 +11,7 @@
 #     is Polaris; the flow background is psi's ambient field (fundal.svg Night, the
 #     stylesheet picks fundal-light.svg for Gold). All GENERATED from psi's design
 #     system (brand/signin-theme.json) by SEB's authentik-assets.mjs. Stylesheet: the
-#     mounted estate/recomex.css with !File, so the CSS is reviewed as a CSS file
+#     mounted estate stylesheet (<slug>.css) with !File, so the CSS is reviewed as a CSS file
 #     and lives in exactly one place. Theme "automatic": the person's system
 #     preference decides between Psizone Night and Psizone Gold.
 #   THE WORDS Authentik lets us set: every flow title a person can reach, and the
@@ -53,10 +53,10 @@ data:
         attrs:
           domain: WLAUTHHOST
           branding_title: WLBRAND
-          branding_logo: /static/dist/assets/recomex/logo-%(theme)s.svg
-          branding_favicon: /static/dist/assets/recomex/favicon.svg
-          branding_default_flow_background: /static/dist/assets/recomex/fundal.svg
-          branding_custom_css: !File /web/dist/assets/recomex/recomex.css
+          branding_logo: /static/dist/assets/WLSLUG/logo-%(theme)s.svg
+          branding_favicon: /static/dist/assets/WLSLUG/favicon.svg
+          branding_default_flow_background: /static/dist/assets/WLSLUG/fundal.svg
+          branding_custom_css: !File /web/dist/assets/WLSLUG/WLSLUG.css
           attributes:
             settings:
               theme:

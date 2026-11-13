@@ -1,0 +1,54 @@
+# Stalwart — the estate's own mail server (<MAIL_HOST_PREFIX>.<apex>; upstream's unchanged
+# image). Order is documentation only.
+#
+#   settings.yaml         the estate's hosts, resolved once; the data-store file
+#   externalsecrets.yaml  the administrator, the SES SMTP credential
+#   certificate.yaml      <MAIL_HOST>'s certificate (cert-manager), fed into Stalwart by the plan
+#   stalwart.yaml         the server (mail ports as hostPorts, so senders keep their address),
+#                         its RocksDB volume, its in-cluster web Service
+#   mailboxes.yaml        the estate's mailboxes (empty in SEB; the estate's layer lists them)
+#   config-job.yaml       the configuration plan, applied after every sync and daily
+#   webmail.yaml          the webmail (Roundcube), signed in only through Authentik
+#   ingress.yaml          <WEBMAIL_HOST> (webmail) and <MAIL_HOST> (Stalwart's own pages),
+#                         both behind the Authentik gate
+#
+#   backup.yaml           the daily CONSISTENT backup: server stopped, data archived, started,
+#                         archive to object storage (restore: scripts/restore-stalwart.sh)
+#
+# Backups: backup.yaml is the one to restore from; Velero's 6-hourly file-system copy of the
+# live volume is only crash-consistent.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - settings.yaml
+  - externalsecrets.yaml
+  - certificate.yaml
+  - stalwart.yaml
+  - mailboxes.yaml
+  - config-job.yaml
+  - webmail.yaml
+  - ingress.yaml
+  - backup.yaml
+configMapGenerator:
+  # The plan and its renderer. The name hash rolls the CronJob's and the hook Job's pods
+  # onto a changed plan; Argo re-runs the hook on every sync anyway.
+  - name: stalwart-plan
+    files:
+      - plan.ndjson.tmpl
+      - render-plan.sh
+  # The webmail's configuration and Apache's (webmail/), and its look: SEB's empty default,
+  # which an estate's layer replaces (components/estate/stalwart patches webmail-theme).
+  - name: webmail-config
+    files:
+      - webmail/estate.php
+  - name: webmail-apache
+    files:
+      - webmail/apache.conf
+      - webmail/empty.conf
+  - name: webmail-tasks
+    files:
+      - webmail/link-theme.sh
+  - name: webmail-theme
+    files:
+      - webmail/estate_theme.php
+      - webmail/estate.css

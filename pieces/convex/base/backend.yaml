@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: convex-backend
+  labels: { app: convex-backend }
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: convex-backend }
+  template:
+    metadata:
+      labels: { app: convex-backend }
+    spec:
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/WLMIRROR/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: convex-backend-secrets }
+            - secretRef: { name: convex-storage-s3 }
+          command:
+            - sh
+            - -c
+            - '[ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; [ -n "${POSTGRES_URL:-}" ] || { echo "MISSING REQUIRED SECRET: POSTGRES_URL" >&2; exit 1; }; echo secrets-ok'
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: backend
+          image: WLREGISTRY/WLMIRROR/ghcr.io/convex/convex-backend:c0cb7ae17f54e14846c243c5332a8a5e6d0e19d4@sha256:1f2044e3eac463ac78973b136c0baf72d4ada602611d853d6f99f280e29e0a98
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          ports:
+            - { name: cloud, containerPort: 3210 }
+            - { name: site, containerPort: 3211 }
+          envFrom:
+            - secretRef: { name: convex-backend-secrets }
+            - secretRef: { name: convex-storage-s3 }
+          env:
+            - name: INSTANCE_NAME
+              value: WLINSTANCE
+            - name: CONVEX_CLOUD_ORIGIN
+              value: https://convex-WLINSTANCE.WLDOMAIN
+            - name: CONVEX_SITE_ORIGIN
+              value: https://convex-WLINSTANCE-site.WLDOMAIN
+            - name: PG_CA_FILE
+              value: /etc/convex/pg-ca/ca.crt
+            - { name: DISABLE_BEACON, value: "1" }
+            - { name: RUST_LOG, value: info }
+            - { name: APPLICATION_MAX_CONCURRENT_QUERIES, value: "16" }
+            - { name: APPLICATION_MAX_CONCURRENT_MUTATIONS, value: "16" }
+            - { name: APPLICATION_MAX_CONCURRENT_V8_ACTIONS, value: "16" }
+            - { name: APPLICATION_MAX_CONCURRENT_NODE_ACTIONS, value: "16" }
+            - { name: DOCUMENT_RETENTION_DELAY, value: "172800" }
+            - { name: DISABLE_METRICS_ENDPOINT, value: "true" }
+          volumeMounts:
+            - { name: data, mountPath: /convex/data }
+            - { name: pg-ca, mountPath: /etc/convex/pg-ca, readOnly: true }
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { cpu: "2", memory: 2Gi }
+          startupProbe:
+            httpGet: { path: /version, port: cloud }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /version, port: cloud }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /version, port: cloud }
+            periodSeconds: 20
+            failureThreshold: 3
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: pg-ca
+          secret:
+            secretName: convex-db-ca
+            items:
+              - { key: ca.crt, path: ca.crt }
+        - name: data
+          persistentVolumeClaim:
+            claimName: convex-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: convex-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 10Gi

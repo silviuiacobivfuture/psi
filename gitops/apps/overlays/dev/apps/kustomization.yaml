@@ -7,7 +7,6 @@ resources:
   - blog-web.yaml
   - chroma.yaml
   - cms.yaml
-  - doors.yaml
   - design-gallery.yaml
   - scheduling-backend.yaml
   - scheduling-deploy.yaml

@@ -1,0 +1,25 @@
+# A HUB_HOST_PREFIX other than `id`, the label the piece renders by default. Taken by the bundle
+# builder only for such an estate (../identity-components.json), so an estate on `id` renders
+# byte for byte what it rendered before the label was a setting.
+#
+# Runs before the piece's own patches and replacements (kustomize applies components first):
+# it writes the label into the piece's local source (../hub-host.yaml), which the piece then
+# puts in the hub's Ingress, the console's issuer pin and the hub's root redirect; and it sets
+# HUB_HOST_PREFIX for the two processes that build the issuer from it (hubconfig HostPrefix,
+# config HubHostPrefix), so the issuer they serve is the host the Ingress answers at.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: autorizare-hub-host }
+        fieldPaths: [data.LABEL]
+      - select: { kind: ConfigMap, name: autorizare-hub-host }
+        fieldPaths: [data.ROOT_REGEX_TAIL]
+        options: { delimiter: "\\.", index: 0 }
+      - select: { kind: ConfigMap, name: autorizare-hub-config }
+        fieldPaths: [data.HUB_HOST_PREFIX]
+        options: { create: true }
+      - select: { kind: ConfigMap, name: autorizare-config }
+        fieldPaths: [data.HUB_HOST_PREFIX]
+        options: { create: true }

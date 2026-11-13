@@ -23,6 +23,8 @@ HCLOUD_LOCATION: nbg1
 CONTROL_PLANE_SERVER_TYPE: dev=cpx62
 AGENT_SERVER_TYPE: dev=cpx62
 AGENT_COUNT: dev=0
+# The control plane runs 114 pods, above the kubelet's default 110 (SEB KUBELET_MAX_PODS).
+KUBELET_MAX_PODS: 250
 OBJECT_STORAGE_REGION: nbg1
 OBJECT_STORAGE_ENDPOINT: https://nbg1.your-objectstorage.com
 BUCKET_PREFIX: psi
@@ -36,6 +38,9 @@ REGISTRY_PROJECT_MIRROR: mirror
 GIT_HOST: github.com
 GIT_OWNER: silviuiacobivfuture
 GIT_REPO: psi
+# The runner scale set registers at the repository: a personal account takes repository runners
+# only (SEB CI_RUNNER_CONFIG_URL; the owner, the default, refuses them).
+CI_RUNNER_CONFIG_URL: https://github.com/silviuiacobivfuture/psi
 # No mesh at all (owner, 2026-11-11): no Headscale or Tailscale, no mesh DNS records.
 MESH: none
 ENVIRONMENTS: dev
@@ -61,6 +66,11 @@ FRONT_HOST_PREFIX: portal
 # ── hub ─────────────────────────────────────────────────────────────────────
 HUB_HOST_PREFIX: sso
 HUB_NAME: Psi Sign-in
+HUB_TILE_TITLE: PSI
+# The applications holding an authorization-model pin (secret/apps/<app>/autorizare), which the
+# model-pin alarm watches. psi's only one is the platform's sign-in tile policy; none of psi's
+# own applications pins a model yet.
+MODEL_PIN_HOLDERS: authentik-tiles
 
 # ── secret references (paths and field names only) ──────────────────────────
 REF_DNS_TOKEN_PATH: secret/platform/dns/token

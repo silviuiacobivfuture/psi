@@ -1,0 +1,11 @@
+# The backup bucket, <BUCKET_PREFIX>-tfstate-dev, composed here from the identity before it is
+# put in authentik-db's archive path (identity/fields.yaml): no delimiter isolates the prefix
+# inside s3://<bucket>/…. A replacements SOURCE only, never rendered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-backup-bucket
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  BUCKET: WLBUCKET-tfstate-dev

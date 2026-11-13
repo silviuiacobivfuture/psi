@@ -3,9 +3,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { RETURN_COOKIE, RETURN_MAX_AGE, safeReturnTo } from "./platform/return-to";
 
 /**
- * Arriving from a site's `/admin` (`…/admin/platform?brand=psizone`): the brand filter is set on
- * the way in, server-side, so it survives the sign-in round trip. Only a known brand is kept; the
- * filter is a preference, never a permission (every view asks the estate).
+ * The app the admin is working in rides in the address: `?app=psizone` (and the older
+ * `?brand=psizone` a site's `/admin` link sends). It is set on the way in, server-side, on the
+ * request too, so this very render is already filtered and the choice survives the sign-in round
+ * trip; `?app=all` clears it. Only a known app is kept; the filter is a preference, never a
+ * permission (every view asks the estate).
  */
 const BRANDS = new Set(live(["psizone", "eqsync", "hemisync", "blog"]));
 export const BRAND_COOKIE = "psi-cms-brand";
@@ -19,7 +21,8 @@ export const LANG_COOKIE = "payload-lng";
 const LANGS = new Set(["ro", "en"]);
 
 export function proxy(request: NextRequest): NextResponse {
-	const brand = request.nextUrl.searchParams.get("brand");
+	const brand =
+		request.nextUrl.searchParams.get("app") ?? request.nextUrl.searchParams.get("brand");
 	const asked = request.nextUrl.searchParams.get("lng");
 	const current = request.cookies.get(LANG_COOKIE)?.value;
 	const lang =
@@ -28,15 +31,18 @@ export function proxy(request: NextRequest): NextResponse {
 			: current !== undefined && LANGS.has(current)
 				? current
 				: "ro";
-	// Set on the request too, so this very render is already in the chosen language.
+	// Set on the request too, so this very render is already in the chosen language and app.
 	request.cookies.set(LANG_COOKIE, lang);
+	if (brand !== null && BRANDS.has(brand)) request.cookies.set(BRAND_COOKIE, brand);
+	if (brand === "all") request.cookies.delete(BRAND_COOKIE);
 	const res = NextResponse.next({ request: { headers: request.headers } });
 	if (current !== lang) {
 		res.cookies.set(LANG_COOKIE, lang, { path: "/", maxAge: 31_536_000, sameSite: "lax" });
 	}
-	if (brand !== null && BRANDS.has(brand) && request.cookies.get(BRAND_COOKIE)?.value !== brand) {
+	if (brand !== null && BRANDS.has(brand)) {
 		res.cookies.set(BRAND_COOKIE, brand, { path: "/", maxAge: 31_536_000, sameSite: "lax" });
 	}
+	if (brand === "all") res.cookies.set(BRAND_COOKIE, "", { path: "/", maxAge: 0, sameSite: "lax" });
 	// Remembered across the directory's sign-in, so the person lands where the site sent them.
 	const path = `${request.nextUrl.pathname}${request.nextUrl.search}`;
 	if (safeReturnTo(path) !== null) {

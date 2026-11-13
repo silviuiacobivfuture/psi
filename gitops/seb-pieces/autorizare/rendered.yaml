@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare
   namespace: autorizare
 spec:
@@ -39,6 +41,8 @@ data:
   PLATFORM_OBJECT: platform:psi
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-config
   namespace: autorizare
 ---
@@ -55,6 +59,8 @@ data:
   PLATFORM_OBJECT: platform:psi
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-hub-config
   namespace: autorizare
 ---
@@ -2204,6 +2210,8 @@ data:
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><title>Polaris</title><defs><linearGradient id="t" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#586474"/><stop offset="1" stop-color="#424d63"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#t)"/><path d="M24 8.5 L27.3 20.7 L39.5 24 L27.3 27.3 L24 39.5 L20.7 27.3 L8.5 24 L20.7 20.7 Z" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 21.4 A2.6 2.6 0 1 1 24 26.6 A2.6 2.6 0 1 1 24 21.4 Z" fill="#ffffff"/></svg>
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: estate-brand-t429td4ddm
   namespace: autorizare
 ---
@@ -2219,6 +2227,8 @@ data:
     \"platform\",\n\t\t\t\t\t\"linked\": false\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t]\n}\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: estate-hub-registry-gc54bbt8cg
   namespace: autorizare
 ---
@@ -2227,6 +2237,7 @@ kind: Service
 metadata:
   labels:
     app: autorizare-hub
+    seb.platform/piece: autorizare
   name: autorizare-hub
   namespace: autorizare
 spec:
@@ -2246,6 +2257,7 @@ kind: Service
 metadata:
   labels:
     app: autorizare-svc
+    seb.platform/piece: autorizare
   name: autorizare-svc
   namespace: autorizare
 spec:
@@ -2265,6 +2277,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: autorizare-hub
+    seb.platform/piece: autorizare
   name: autorizare-hub
   namespace: autorizare
 spec:
@@ -2429,6 +2442,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: autorizare-svc
+    seb.platform/piece: autorizare
   name: autorizare-svc
   namespace: autorizare
 spec:
@@ -2675,6 +2689,8 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-hub
   namespace: autorizare
 spec:
@@ -2686,6 +2702,8 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-svc
   namespace: autorizare
 spec:
@@ -2697,6 +2715,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-app-credentials
   namespace: autorizare
 spec:
@@ -2722,6 +2742,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-backup-s3
   namespace: autorizare
 spec:
@@ -2746,6 +2768,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-db-app
   namespace: autorizare
 spec:
@@ -2776,6 +2800,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-hub-secrets
   namespace: autorizare
 spec:
@@ -2824,6 +2850,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-secrets
   namespace: autorizare
 spec:
@@ -2896,6 +2924,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: email-sender
   namespace: autorizare
 spec:
@@ -2921,6 +2951,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: harbor-pull
   namespace: autorizare
 spec:
@@ -2961,6 +2993,8 @@ metadata:
     gethomepage.dev/name: Sign-in (id)
     gethomepage.dev/pod-selector: app=autorizare-hub
     traefik.ingress.kubernetes.io/router.middlewares: autorizare-hub-root-to-front@kubernetescrd
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-hub
   namespace: autorizare
 spec:
@@ -3044,6 +3078,8 @@ metadata:
     gethomepage.dev/name: Polaris
     gethomepage.dev/pod-selector: app=autorizare-svc
     gethomepage.dev/weight: "20"
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-svc
   namespace: autorizare
 spec:
@@ -3077,6 +3113,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-db
   namespace: autorizare
 spec:
@@ -3141,6 +3179,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: autorizare-db-base
   namespace: autorizare
 spec:
@@ -3153,17 +3193,21 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: hub-root-to-front
   namespace: autorizare
 spec:
   redirectRegex:
     permanent: false
-    regex: ^https?://[^./]+\.([^/]+)/?$
+    regex: ^https?://sso\.([^/]+)/?$
     replacement: https://${1}/
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: signout-unconfirmed
   namespace: autorizare
 spec:
@@ -3178,6 +3222,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  labels:
+    seb.platform/piece: autorizare
   name: signout-unfinished
   namespace: autorizare
 spec:

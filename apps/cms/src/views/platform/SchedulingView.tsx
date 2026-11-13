@@ -13,6 +13,7 @@ import { SECTIONS } from "../../platform/sections";
 import { schedulingStaff, tenantOf } from "../../platform/services";
 import { Shell, sayer } from "../shell";
 import { BrandTabs, Flash, muted, param, type Say } from "./parts";
+import { CallbacksTable } from "./SchedulingCallbacks";
 import { FILTER_STATUSES, RequestsTable } from "./SchedulingRequests";
 
 /**
@@ -22,7 +23,7 @@ import { FILTER_STATUSES, RequestsTable } from "./SchedulingRequests";
  * `calendar_viewer`; changing needs `calendar_manager`. Scheduling never reads the CMS: this page
  * calls scheduling. A tenant with nothing set up opens on the setup, and says what is missing.
  */
-const Tab = z.enum(["calendar", "requests", "setup"]).optional().catch(undefined);
+const Tab = z.enum(["calendar", "requests", "callbacks", "setup"]).optional().catch(undefined);
 const Status = z.enum(FILTER_STATUSES).optional().catch(undefined);
 
 function Tabs({
@@ -31,10 +32,10 @@ function Tabs({
 	say,
 }: {
 	brand: string;
-	tab: "calendar" | "requests" | "setup";
+	tab: "calendar" | "requests" | "callbacks" | "setup";
 	say: Say;
 }): ReactElement {
-	const link = (t: "calendar" | "requests" | "setup", label: string) => (
+	const link = (t: "calendar" | "requests" | "callbacks" | "setup", label: string) => (
 		<a
 			href={`/admin/platform/scheduling?brand=${brand}&tab=${t}`}
 			aria-current={tab === t ? "page" : undefined}
@@ -47,6 +48,7 @@ function Tabs({
 		<p style={{ display: "flex", gap: "var(--base)" }}>
 			{link("calendar", say("scTabCalendar"))}
 			{link("requests", say("schedRequests"))}
+			{link("callbacks", say("scTabCallbacks"))}
 			{link("setup", say("schedSetup"))}
 		</p>
 	);
@@ -131,6 +133,36 @@ export async function SchedulingView(props: AdminViewServerProps): Promise<React
 				<SchedulingStudio key={brand} initial={setup} canEdit={manager} />
 			</>,
 		);
+	}
+	if (tab === "callbacks") {
+		try {
+			const onlyNew = param(props, "only") === "new";
+			const r = await staff.callbacks({ tenant, ...(onlyNew ? { status: "new" as const } : {}) });
+			return shell(
+				<>
+					{head}
+					{r.ok ? (
+						<CallbacksTable
+							brand={brand}
+							rows={r.callbacks}
+							timeZone={r.timeZone}
+							manager={manager}
+							onlyNew={onlyNew}
+							say={say}
+						/>
+					) : (
+						<p>{say("noRequests")}</p>
+					)}
+				</>,
+			);
+		} catch {
+			return shell(
+				<>
+					{head}
+					<p>{say("unreachable")}</p>
+				</>,
+			);
+		}
 	}
 	try {
 		const now = Date.now();

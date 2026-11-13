@@ -1,0 +1,74 @@
+# A SEB object is changed only by Argo CD, from the bundle. Every object a kustomize piece renders
+# carries the label seb.platform/piece: <piece id> (stamped by the bundle builder,
+# tools/bundle/piece-label.mjs); an UPDATE or DELETE of one by anybody but Argo CD's application
+# controller is reported here: a `kubectl edit`, a `kubectl apply` from a workstation, another
+# operator's controller patching it.
+#
+# MODE: AUDIT, and it stays Audit until the reports have been read on the live estate for long
+# enough to know who else legitimately writes these objects. Switch: docs/lockdown.md,
+# "Audit to Enforce" (the slot `object-change-enforcement`).
+#
+# NOT reported, each on purpose:
+#   - Argo CD's application controller: the one writer this policy exists to leave alone.
+#   - Kubernetes' own controllers (system:kube-controller-manager and the kube-system service
+#     accounts): the garbage collector deletes what Argo prunes, the deployment and job
+#     controllers stamp their own annotations and finalizers on every object they own.
+#   - Kyverno itself: its mutate policies (mutate-*) patch SEB's Plane and ReportPortal workloads
+#     on admission and in the background.
+#   - Reloader: it rolls a SEB workload when its Secret or ConfigMap changes, by design.
+# Status writes are a subresource and never reach this rule.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: audit-seb-object-changes
+  annotations:
+    policies.kyverno.io/title: Only Argo CD Changes SEB Objects
+    policies.kyverno.io/category: Supply Chain
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: All
+    policies.kyverno.io/description: >-
+      An object labelled seb.platform/piece is deployed from the signed SEB bundle; any update or
+      delete not made by Argo CD's application controller is reported.
+spec:
+  background: false
+  failurePolicy: Ignore
+  rules:
+    - name: only-argo-changes-seb-objects
+      match:
+        any:
+          - resources:
+              kinds:
+                - "*"
+              operations:
+                - UPDATE
+                - DELETE
+              selector:
+                matchExpressions:
+                  - key: seb.platform/piece
+                    operator: Exists
+      exclude:
+        any:
+          - subjects:
+              - kind: ServiceAccount
+                name: argocd-application-controller
+                namespace: argocd
+          - subjects:
+              - kind: User
+                name: system:kube-controller-manager
+          - subjects:
+              - kind: Group
+                name: system:serviceaccounts:kube-system
+          - subjects:
+              - kind: Group
+                name: system:serviceaccounts:kyverno
+          - subjects:
+              - kind: ServiceAccount
+                name: reloader-reloader
+                namespace: reloader
+      validate:
+        failureAction: Audit
+        message: >-
+          {{ request.userInfo.username }} changed a SEB object ({{ request.operation }}): SEB objects
+          change only through Argo CD, from the signed bundle. Change the estate's slot or its
+          release instead.
+        deny: {}

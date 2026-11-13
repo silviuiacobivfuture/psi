@@ -4,7 +4,7 @@
 #
 # Embedded, with ACCESS filled in, into blueprints-estate-tiles.yaml by
 # packages/rmx-ui/scripts/authentik-tiles.mjs, and bound to every star tile
-# (Polaris, Sirius, Altair, Pulsar, Meridian, Vega) — never to the RECOMEX hub
+# (every application the hub declares) — never to the estate's hub
 # tile, which stays the door everybody has. Proven against a real OpenFGA and the
 # hub's real person lookup by
 # apps/autorizare-svc/internal/hub/estate_tile_policy_test.go.
@@ -24,7 +24,7 @@
 #
 # WHEN SOMETHING DOES NOT ANSWER — the hub, the engine, a configuration value —
 # the tile is NOT shown (fail closed), and the reason is logged. Weighed against
-# "the person cannot find their application": the RECOMEX tile is always there
+# "the person cannot find their application": the hub's tile is always there
 # and opens the hub, whose switcher lists every estate application, so a person
 # is never left without a way in; and the application itself still refuses
 # whoever holds nothing, so a tile shown by mistake would only lead to a

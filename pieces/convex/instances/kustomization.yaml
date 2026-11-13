@@ -1,0 +1,6 @@
+# The estate's Convex instances. SEB ships none: the bundle builder (tools/bundle/instances.mjs)
+# replaces this file with one entry per directory the estate declares under
+# <estate components>/convex/instances/<name>/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

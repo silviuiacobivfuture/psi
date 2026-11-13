@@ -1,0 +1,51 @@
+# The instance's first account (first-admin.mjs says why it must be ours, and how it is
+# idempotent). An Argo PostSync hook: it runs after each sync once the server is healthy, the
+# previous run deleted first (a Job's template is immutable), and every run after the first
+# finds the instance claimed and exits 0. The address is the estate operator's (OPERATOR_EMAIL, the identity),
+# filled by the piece's replacements.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: affine-first-admin
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    alerts/owner: WLOPSEMAIL
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels: { app: affine-first-admin }
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: first-admin
+          image: WLREGISTRY/mirror/ghcr.io/toeverything/affine:0.27.4@sha256:c312116a134184947d98749c8a8e29f4e3bc97f4f2a51c9a3497f9baea2eec2b
+          command: ["node", "/scripts/first-admin.mjs"]
+          env:
+            - { name: AFFINE_URL, value: "http://affine.affine.svc.cluster.local:3010" }
+            - { name: ADMIN_EMAIL, value: WLOPERATOREMAIL }
+            - name: ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: affine-first-admin, key: ADMIN_PASSWORD } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+      volumes:
+        - name: scripts
+          configMap: { name: affine-scripts }

@@ -33,6 +33,12 @@ export interface PwaMessages {
 	pwa_topic_articles_hemisync?: Plain;
 	pwa_topic_booking?: Plain;
 	pwa_topic_booking_hint?: Plain;
+	pwa_topic_requests?: Plain;
+	pwa_topic_requests_hint?: Plain;
+	pwa_topic_appointments?: Plain;
+	pwa_topic_appointments_hint?: Plain;
+	pwa_topic_reminders?: Plain;
+	pwa_topic_reminders_hint?: Plain;
 	pwa_notify_me: Plain;
 	pwa_notify_stop: Plain;
 	pwa_notify_on: Plain;
@@ -56,6 +62,14 @@ export interface PwaMessages {
 	pwa_push_booking_cancelled_body?: Plain;
 	pwa_push_booking_reminder_title?: Plain;
 	pwa_push_booking_reminder_body?: Plain;
+	pwa_push_booking_moved_title?: Plain;
+	pwa_push_booking_moved_body?: Plain;
+	pwa_push_clinic_request_title?: Plain;
+	pwa_push_clinic_request_body?: Plain;
+	pwa_push_clinic_appointment_title?: Plain;
+	pwa_push_clinic_appointment_body?: Plain;
+	pwa_push_clinic_reminder_title?: Plain;
+	pwa_push_clinic_reminder_body?: Plain;
 	pwa_push_article_title: (inputs: { brand: string }, options: Options) => string;
 	pwa_push_article_body: (inputs: { headline: string }, options: Options) => string;
 	pwa_push_test_title: Plain;
@@ -92,6 +106,14 @@ export function pushTexts(m: PwaMessages, l: PushLocale): PushTexts {
 	const confirmed = pair(m.pwa_push_booking_confirmed_title, m.pwa_push_booking_confirmed_body, l);
 	const cancelled = pair(m.pwa_push_booking_cancelled_title, m.pwa_push_booking_cancelled_body, l);
 	const reminder = pair(m.pwa_push_booking_reminder_title, m.pwa_push_booking_reminder_body, l);
+	const moved = pair(m.pwa_push_booking_moved_title, m.pwa_push_booking_moved_body, l);
+	const request = pair(m.pwa_push_clinic_request_title, m.pwa_push_clinic_request_body, l);
+	const appointment = pair(
+		m.pwa_push_clinic_appointment_title,
+		m.pwa_push_clinic_appointment_body,
+		l,
+	);
+	const dayBefore = pair(m.pwa_push_clinic_reminder_title, m.pwa_push_clinic_reminder_body, l);
 	return {
 		"article.published": {
 			title: m.pwa_push_article_title({ brand: "{brand}" }, at(l)),
@@ -101,6 +123,10 @@ export function pushTexts(m: PwaMessages, l: PushLocale): PushTexts {
 		...(confirmed !== undefined ? { "booking.confirmed": confirmed } : {}),
 		...(cancelled !== undefined ? { "booking.cancelled": cancelled } : {}),
 		...(reminder !== undefined ? { "booking.reminder": reminder } : {}),
+		...(moved !== undefined ? { "booking.moved": moved } : {}),
+		...(request !== undefined ? { "clinic.request": request } : {}),
+		...(appointment !== undefined ? { "clinic.appointment": appointment } : {}),
+		...(dayBefore !== undefined ? { "clinic.reminder": dayBefore } : {}),
 	};
 }
 
@@ -140,11 +166,27 @@ const ARTICLE_KEY = {
 
 /** A topic's name in this site's words; a site never shows a topic it has no words for. */
 export function topicLabel(m: PwaMessages, topic: Topic, l: PushLocale): string | undefined {
-	const msg = topic === "booking" ? m.pwa_topic_booking : m[ARTICLE_KEY[topicBrand(topic)]];
+	const msg = topic.startsWith("articles:")
+		? m[ARTICLE_KEY[topicBrand(topic)]]
+		: ACCOUNT_LABEL[topic]?.(m);
 	return msg?.({}, at(l));
 }
 
-function topicBrand(topic: Exclude<Topic, "booking">): ArticleBrand {
+/** The label and hint of the topics a signed-in account holds. */
+const ACCOUNT_LABEL: Readonly<Partial<Record<Topic, (m: PwaMessages) => Plain | undefined>>> = {
+	booking: (m) => m.pwa_topic_booking,
+	requests: (m) => m.pwa_topic_requests,
+	appointments: (m) => m.pwa_topic_appointments,
+	reminders: (m) => m.pwa_topic_reminders,
+};
+const ACCOUNT_HINT: Readonly<Partial<Record<Topic, (m: PwaMessages) => Plain | undefined>>> = {
+	booking: (m) => m.pwa_topic_booking_hint,
+	requests: (m) => m.pwa_topic_requests_hint,
+	appointments: (m) => m.pwa_topic_appointments_hint,
+	reminders: (m) => m.pwa_topic_reminders_hint,
+};
+
+function topicBrand(topic: Topic): ArticleBrand {
 	return topic === "articles:psizone"
 		? "psizone"
 		: topic === "articles:eqsync"
@@ -160,10 +202,9 @@ export function purposes(
 ): NotifyPurpose[] {
 	return topics.flatMap((topic) => {
 		const label = topicLabel(m, topic, l);
-		const hint =
-			topic === "booking"
-				? m.pwa_topic_booking_hint?.({}, at(l))
-				: m.pwa_topic_articles_hint({}, at(l));
+		const hint = topic.startsWith("articles:")
+			? m.pwa_topic_articles_hint({}, at(l))
+			: ACCOUNT_HINT[topic]?.(m)?.({}, at(l));
 		return label !== undefined && hint !== undefined ? [{ topic, label, hint }] : [];
 	});
 }

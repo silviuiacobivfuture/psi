@@ -1,0 +1,21 @@
+# Netdata: through Authentik's embedded outpost (its proxy provider for netdata.<tailnet>), as the private gate is.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: netdata-public
+  namespace: authentik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [netdata.WLTAILNET]
+      secretName: netdata-public-tls
+  rules:
+    - host: netdata.WLTAILNET
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: authentik-server, port: { number: 80 } } }

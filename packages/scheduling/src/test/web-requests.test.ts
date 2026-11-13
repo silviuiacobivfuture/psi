@@ -5,16 +5,25 @@ import { harness, result } from "./api-harness";
 import { callMutation, callQuery } from "./server";
 
 /**
- * Callback requests and the live feed of web requests, against the local backend in a throwaway app: each function is
- * refused without the key (writing nothing); with it, a callback is stored once, listed, counted, decided, and the feed
- * names what changed after a cursor.
+ * Web requests beyond the booking list, against the local backend in a throwaway app: the callbacks of slice 0 as
+ * requests, "called back" once, the count waiting, and the live feed of what arrived or changed. Each function is refused
+ * without the key (writing nothing).
  */
 if (!backendReady) console.warn("web-requests.test: no local backend; see README");
 
 const { TENANT, mut, qry } = harness("webreq");
 const contact = { name: "Caller Test", phone: "0712 345 678" };
+const form = {
+	contact,
+	audience: "adult",
+	when: "any",
+	locale: "ro",
+	channel: "form",
+	page: "/contact",
+	consent: true,
+};
 
-describe.skipIf(!backendReady)("callback requests and the web-request feed", () => {
+describe.skipIf(!backendReady)("callbacks as web requests, and the live feed", () => {
 	let reference = "";
 	beforeAll(async () => {
 		await runMutation(
@@ -22,51 +31,17 @@ describe.skipIf(!backendReady)("callback requests and the web-request feed", () 
 			{ slug: TENANT, name: "T", kind: "clinic", defaultLocale: "ro", currency: "RON" },
 			z.unknown(),
 		);
+		const made = result.parse(await callMutation("callbacks:create", { tenant: TENANT, ...form }));
+		reference = z.string().parse(made.id);
 	});
 	afterAll(async () => {
 		if (backendReady) await runMutation("seed:dropFixture", { tenant: TENANT }, z.unknown());
 	});
 
-	it("is refused without the key and writes nothing; with it a callback is stored once", async () => {
-		const args = { tenant: TENANT, contact, locale: "ro" };
-		await expect(callMutation("webRequests:submitCallback", args, null)).rejects.toThrow();
-		await expect(
-			callMutation("webRequests:submitCallback", args, "x".repeat(40)),
-		).rejects.toThrow();
-		expect(
-			result.parse(await callQuery("webRequests:pending", { tenant: TENANT, from: 0 })).count,
-		).toBe(0);
-		const out = result.parse(await callMutation("webRequests:submitCallback", args));
-		reference = z.string().parse(out.reference);
-		expect(reference).toMatch(/^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
-	});
-
-	it("refuses a callback with no way to reach the caller, and an app that does not exist", async () => {
-		const bad = result.parse(
-			await callMutation("webRequests:submitCallback", {
-				tenant: TENANT,
-				contact: { name: "No Contact" },
-				locale: "ro",
-			}),
-		);
-		expect(bad).toEqual({ ok: false, reason: "invalid" });
-		const nowhere = result.parse(
-			await callMutation("webRequests:submitCallback", {
-				tenant: "nowhere",
-				contact,
-				locale: "ro",
-			}),
-		);
-		expect(nowhere).toEqual({ ok: false, reason: "unknown_tenant" });
-		expect(
-			result.parse(await callQuery("webRequests:pending", { tenant: TENANT, from: 0 })).count,
-		).toBe(1);
-	});
-
-	it("lists, counts and feeds it", async () => {
+	it("lists it with its id as the reference, counts it as waiting, and feeds it", async () => {
 		const list = await qry("webRequests:callbacks", { from: 0, to: Date.now() + 1000 });
 		expect(list.callbacks).toEqual([
-			expect.objectContaining({ reference, status: "open", contact }),
+			expect.objectContaining({ reference, status: "new", contact }),
 		]);
 		expect((await qry("webRequests:pending", { from: 0 })).count).toBe(1);
 		const feed = await qry("webRequests:feed", { cursor: 0 });
@@ -75,40 +50,46 @@ describe.skipIf(!backendReady)("callback requests and the web-request feed", () 
 		expect(later.changes).toEqual([]);
 	});
 
-	it("is decided once: declined, then it no longer waits, and a second decision is refused", async () => {
-		await mut(
-			"webRequests:decideCallback",
-			{
-				reference,
-				decision: "decline",
-				reason: "no_response",
-			},
-			{ audit: 0 },
+	it("knows a callback from anything else, and does not cross apps", async () => {
+		expect((await qry("webRequests:isCallback", { reference })).found).toBe(true);
+		expect((await qry("webRequests:isCallback", { reference: "ZZZZ-ZZZZ" })).found).toBe(false);
+		const other = result.parse(
+			await callQuery("webRequests:isCallback", { tenant: `${TENANT}-other`, reference }),
 		);
-		expect((await qry("webRequests:pending", { from: 0 })).count).toBe(0);
-		const again = await mut(
-			"webRequests:decideCallback",
-			{ reference, decision: "cancel" },
-			{ audit: 0, ok: false },
+		expect(other.found).toBe(false);
+		const none = result.parse(
+			await callQuery("webRequests:callbacks", {
+				tenant: `${TENANT}-other`,
+				from: 0,
+				to: Date.now() + 1000,
+			}),
 		);
-		expect(again.reason).toBe("not_allowed");
-		const other = await mut(
-			"webRequests:decideCallback",
-			{ reference: "ZZZZ-ZZZZ", decision: "cancel" },
-			{ audit: 0, ok: false },
-		);
-		expect(other.reason).toBe("not_found");
-		// the change shows in the feed after the earlier cursor
-		const feed = await qry("webRequests:feed", { cursor: 0 });
-		expect((feed.changes as unknown[]).length).toBe(1);
+		expect(none.callbacks).toEqual([]);
 	});
 
-	it("does not cross apps", async () => {
-		const out = await callQuery("webRequests:callbacks", {
-			tenant: `${TENANT}-other`,
-			from: 0,
-			to: Date.now() + 1000,
-		});
-		expect(result.parse(out).callbacks).toEqual([]);
+	it("is called back once: it no longer waits, the feed says so, and a second time is refused", async () => {
+		const cursor = Date.now() - 1;
+		await mut("webRequests:handleCallback", { reference }, { audit: 0 });
+		expect((await qry("webRequests:pending", { from: 0 })).count).toBe(0);
+		const feed = await qry("webRequests:feed", { cursor });
+		expect((feed.changes as unknown[]).length).toBe(1);
+		const again = await mut("webRequests:handleCallback", { reference }, { audit: 0, ok: false });
+		expect(again.reason).toBe("not_allowed");
+		const unknown = await mut(
+			"webRequests:handleCallback",
+			{ reference: "not-an-id-at-all" },
+			{ audit: 0, ok: false },
+		);
+		expect(unknown.reason).toBe("not_found");
+	});
+
+	it("refuses the wrappers without the key and writes nothing", async () => {
+		const args = { tenant: TENANT, reference };
+		await expect(
+			callMutation("webRequests:handleCallback", { ...args, actor: { subject: "x" } }, null),
+		).rejects.toThrow();
+		await expect(
+			callQuery("webRequests:pending", { tenant: TENANT, from: 0 }, "x".repeat(40)),
+		).rejects.toThrow();
 	});
 });

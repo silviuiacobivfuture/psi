@@ -136,7 +136,7 @@ for (const theme of ["light", "dark"]) {
 					/^(new|nou|nouă)$/i.test((e.textContent || "").trim()) &&
 					shown(e),
 			);
-			const credit = document.querySelectorAll("#recomex-credit");
+			const credit = document.querySelectorAll("#estate-credit");
 			const c = credit[0];
 			return {
 				header: visible('header[role="banner"]').length,
@@ -150,7 +150,7 @@ for (const theme of ["light", "dark"]) {
 				creditTarget: c ? c.target : "",
 				creditShown: c ? shown(c) : false,
 				social: visible('a[href*="github.com"], a[href*="x.com/"], a[href*="twitter.com"]').filter(
-					(e) => e.id !== "recomex-credit",
+					(e) => e.id !== "estate-credit",
 				).length,
 				ground: getComputedStyle(document.body).backgroundColor,
 				dark: document.documentElement.classList.contains("dark"),
@@ -203,7 +203,7 @@ for (const theme of ["light", "dark"]) {
 		// The bar lives in a shadow root; read it from there.
 		const barState = () =>
 			page.evaluate(() => {
-				const root = document.getElementById("recomex-bar")?.shadowRoot;
+				const root = document.getElementById("estate-bar")?.shadowRoot;
 				if (!root) return null;
 				const navs = [...root.querySelectorAll("nav")];
 				return {
@@ -216,7 +216,7 @@ for (const theme of ["light", "dark"]) {
 			});
 		await page
 			.waitForFunction(
-				() => document.getElementById("recomex-bar")?.shadowRoot?.querySelector("header"),
+				() => document.getElementById("estate-bar")?.shadowRoot?.querySelector("header"),
 				null,
 				{ timeout: 15000 },
 			)

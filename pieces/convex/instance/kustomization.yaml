@@ -1,0 +1,134 @@
+# One Convex instance, filled in: the template (../base) plus every value it takes, from the
+# instance's declaration (the ConfigMap convex-instance its directory provides) and the estate's
+# identity (the whitelabel component). An instance directory lists this as its only component.
+#
+# Order matters: a component runs after its parent's resources (so convex-instance is here) and
+# before its parent's patches (so an instance's own patches win over everything below).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - ../base
+  - names.yaml
+components:
+  - ../../../components/whitelabel
+replacements:
+  # ---- the instance's names: convex-<NAME>, convex-<NAME>-site, convex-<NAME>-dash -------------
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.NAME }
+    targets:
+      - select: { kind: ConfigMap, name: convex-names }
+        fieldPaths: [data.API, data.SITE, data.DASH]
+        options: { delimiter: "-", index: 1 }
+      - select: { kind: Deployment, name: convex-backend }
+        fieldPaths: ["spec.template.spec.containers.[name=backend].env.[name=INSTANCE_NAME].value"]
+      - select: { kind: ExternalSecret, name: convex-backend-secrets }
+        fieldPaths: [spec.data.*.remoteRef.key]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: ExternalSecret, name: convex-db-app }
+        fieldPaths: [spec.data.*.remoteRef.key]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: Ingress }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/name]"]
+        options: { delimiter: " - ", index: 1 }
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.PURPOSE }
+    targets:
+      - select: { kind: Ingress }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/description]"]
+        options: { delimiter: " - ", index: 0 }
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.DATABASE }
+    targets:
+      - select: { kind: Cluster, name: convex-db }
+        fieldPaths: [spec.bootstrap.initdb.database]
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.DB_SIZE }
+    targets:
+      - select: { kind: Cluster, name: convex-db }
+        fieldPaths: [spec.storage.size]
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.BACKUP_SCHEDULE }
+    targets:
+      - select: { kind: ScheduledBackup, name: convex-db-base }
+        fieldPaths: [spec.schedule]
+  # ---- hosts: <name>.<apex> --------------------------------------------------------------------
+  - source: { kind: ConfigMap, name: convex-names, fieldPath: data.API }
+    targets:
+      - select: { kind: Ingress, name: convex }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+        options: { delimiter: ".", index: 0 }
+      - select: { kind: Cluster, name: convex-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 4 }
+      - select: { kind: Namespace }
+        fieldPaths: [metadata.name]
+  - source: { kind: ConfigMap, name: convex-names, fieldPath: data.SITE }
+    targets:
+      - select: { kind: Ingress, name: convex }
+        fieldPaths: [spec.tls.0.hosts.1, spec.rules.1.host]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: convex-names, fieldPath: data.DASH }
+    targets:
+      - select: { kind: Ingress, name: convex-dashboard }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: Ingress, name: convex }
+        fieldPaths: [spec.tls.0.hosts.0, spec.tls.0.hosts.1, spec.rules.0.host, spec.rules.1.host]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: convex-dashboard }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+        options: { delimiter: ".", index: 1 }
+  # ---- the public origins the backend and the dashboard advertise: https://<host> ---------------
+  - source: { kind: Ingress, name: convex, fieldPath: spec.rules.0.host }
+    targets:
+      - select: { kind: Deployment, name: convex-backend }
+        fieldPaths: ["spec.template.spec.containers.[name=backend].env.[name=CONVEX_CLOUD_ORIGIN].value"]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: Deployment, name: convex-dashboard }
+        fieldPaths: ["spec.template.spec.containers.[name=dashboard].env.[name=NEXT_PUBLIC_DEPLOYMENT_URL].value"]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: Ingress, name: convex, fieldPath: spec.rules.1.host }
+    targets:
+      - select: { kind: Deployment, name: convex-backend }
+        fieldPaths: ["spec.template.spec.containers.[name=backend].env.[name=CONVEX_SITE_ORIGIN].value"]
+        options: { delimiter: "/", index: 2 }
+  # ---- images from the estate's registry mirror --------------------------------------------------
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_HOST }
+    targets:
+      - select: { kind: Deployment, name: convex-backend }
+        fieldPaths:
+          - spec.template.spec.containers.[name=backend].image
+          - spec.template.spec.initContainers.[name=assert-secrets].image
+        options: { delimiter: "/", index: 0 }
+      - select: { kind: Deployment, name: convex-dashboard }
+        fieldPaths: ["spec.template.spec.containers.[name=dashboard].image"]
+        options: { delimiter: "/", index: 0 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.REGISTRY_PROJECT_MIRROR }
+    targets:
+      - select: { kind: Deployment, name: convex-backend }
+        fieldPaths:
+          - spec.template.spec.containers.[name=backend].image
+          - spec.template.spec.initContainers.[name=assert-secrets].image
+        options: { delimiter: "/", index: 1 }
+      - select: { kind: Deployment, name: convex-dashboard }
+        fieldPaths: ["spec.template.spec.containers.[name=dashboard].image"]
+        options: { delimiter: "/", index: 1 }
+  # ---- backups to the estate's object storage ----------------------------------------------------
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: convex-names }
+        fieldPaths: [data.BUCKET]
+        options: { delimiter: "-", index: 0 }
+  - source: { kind: ConfigMap, name: convex-names, fieldPath: data.BUCKET }
+    targets:
+      - select: { kind: Cluster, name: convex-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: Cluster, name: convex-db }
+        fieldPaths: [spec.backup.barmanObjectStore.endpointURL]
+  # ---- the alert owner (alerts.<label domain>/owner: <OPS_EMAIL>) --------------------------------
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+transformers:
+  - ../../../components/alert-owner

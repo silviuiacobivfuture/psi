@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     app: nx-cache
+    seb.platform/piece: nx-cache
   name: nx-cache
   namespace: nx-cache
 spec:
@@ -22,6 +23,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: nx-cache
+    seb.platform/piece: nx-cache
   name: nx-cache
   namespace: nx-cache
 spec:
@@ -109,6 +111,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nx-cache
   name: harbor-pull
   namespace: nx-cache
 spec:
@@ -137,6 +141,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: nx-cache
   name: nx-cache-secrets
   namespace: nx-cache
 spec:

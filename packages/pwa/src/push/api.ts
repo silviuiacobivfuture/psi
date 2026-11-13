@@ -6,6 +6,7 @@ import type { Notifier } from "./notifier";
 import { NOTIFY_SIGNATURE_HEADER, verifyNotify } from "./signing";
 import type { PushStore } from "./store";
 import {
+	ACCOUNT_TOPICS,
 	BrowserSubscriptionSchema,
 	LocaleSchema,
 	NotifyEventSchema,
@@ -22,6 +23,8 @@ export const PUSH_PATHS = {
 	test: "/pwa/push/test",
 	removeDevice: "/pwa/push/devices/remove",
 	hook: "/__pwa/notify",
+	/** Novu's Push Webhook (`@psi/notify/push`); signed with `x-novu-signature`. */
+	novu: "/__pwa/novu",
 } as const;
 
 /** What the API needs from @psi/account: the session, and who it is. */
@@ -42,6 +45,11 @@ export interface PushApiOptions {
 	notifySecret: string | null;
 	/** Where the device list's remove form returns to. */
 	returnTo: (locale: "ro" | "en") => string;
+	/**
+	 * Called, best effort, after a signed-in person's devices changed (subscribed, unsubscribed,
+	 * removed): where `@psi/notify` keeps Novu's push device tokens for that person in step.
+	 */
+	onDevicesChanged?: (subject: string) => Promise<void>;
 	now?: () => number;
 }
 
@@ -90,6 +98,15 @@ export function mountPushApi(app: Hono, o: PushApiOptions): void {
 		return found !== null && found.auth === body.data.auth ? found : null;
 	}
 
+	async function changed(subject: string | null): Promise<void> {
+		if (subject === null || o.onDevicesChanged === undefined) return;
+		try {
+			await o.onDevicesChanged(subject);
+		} catch {
+			// Novu's push tokens catch up on the next change; the person's action is never blocked.
+		}
+	}
+
 	const off = (c: Context) => c.json({ error: "off" }, 503, NO_STORE);
 
 	app.post(PUSH_PATHS.subscribe, async (c) => {
@@ -109,11 +126,12 @@ export function mountPushApi(app: Hono, o: PushApiOptions): void {
 		const subject =
 			(await subjectOf(c, o.identity)) ??
 			(before !== null && before.auth === subscription.keys.auth ? before.subject : null);
-		if (subject === null && topics.includes("booking")) {
+		if (subject === null && topics.some((t) => ACCOUNT_TOPICS.includes(t))) {
 			return c.json({ error: "sign-in" }, 401, NO_STORE);
 		}
 		if (topics.length === 0) {
 			await store.removeEndpoint(subscription.endpoint);
+			await changed(subject);
 			return c.json({ topics: [], linked: false }, 200, NO_STORE);
 		}
 		const saved = await store.upsert(
@@ -128,6 +146,7 @@ export function mountPushApi(app: Hono, o: PushApiOptions): void {
 			},
 			now(),
 		);
+		await changed(subject);
 		return c.json({ topics: saved.topics, linked: saved.subject !== null }, 200, NO_STORE);
 	});
 
@@ -146,7 +165,10 @@ export function mountPushApi(app: Hono, o: PushApiOptions): void {
 		if (foreign(c)) return c.json({ error: "origin" }, 403, NO_STORE);
 		if (!o.enabled) return off(c);
 		const found = await owned(c);
-		if (found !== null) await (await o.store()).removeEndpoint(found.endpoint);
+		if (found !== null) {
+			await (await o.store()).removeEndpoint(found.endpoint);
+			await changed(found.subject);
+		}
 		return c.json({ topics: [] }, 200, NO_STORE);
 	});
 
@@ -175,6 +197,7 @@ export function mountPushApi(app: Hono, o: PushApiOptions): void {
 		const subject = await subjectOf(c, o.identity);
 		if (subject === null) return c.body(null, 401);
 		await (await o.store()).removeOwned(form.data.id, subject);
+		await changed(subject);
 		return c.redirect(o.returnTo(form.data.locale), 303);
 	});
 

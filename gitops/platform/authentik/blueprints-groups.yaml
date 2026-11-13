@@ -17,7 +17,10 @@ data:
       labels:
         blueprints.goauthentik.io/instantiate: "true"
     entries:
-      # People and robots first: every roster below finds accounts by name.
+      # People and robots FIRST: every roster below finds its accounts by name (the operator,
+      # the e2e robots), and a !Find against an account that does not exist yet fails this
+      # whole blueprint. On a fresh install nothing exists yet — the second estate's groups
+      # never applied (2026-11-11) while this ran halfway down the list.
       - model: authentik_blueprints.metaapplyblueprint
         attrs:
           identifiers:
@@ -475,9 +478,11 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # seb:app-only stalwart
       # ---- Entitlements: Mail (the estate's mail server; pieces/stalwart) ----------
-      # Gate <WEBMAIL_HOST_PREFIX>.<apex> twice, with the same three bindings each time
-      # (blueprints-providers.yaml): the `mail` edge provider and the `mail-oidc` client.
+      # Gate <WEBMAIL_HOST_PREFIX>.<apex> and <MAIL_ADMIN_HOST_PREFIX>.<apex>, with the same three
+      # bindings each time (blueprints-providers.yaml): the `webmail` and `mail` edge providers
+      # and the `mail-oidc` client.
       #   app-mail-user   has a mailbox and manages it (app passwords for phones, filters)
       #   app-mail-admin  the same, and runs the server (Stalwart's administration page)
       #   platform-admins break-glass, as everywhere
@@ -505,6 +510,7 @@ data:
           is_superuser: false
           users:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
+      # seb:app-only end
       # ---- Entitlements + roles: Novu (notification dashboard, novu.WLDOMAIN) ----
       # Authentik groups decide who may use the Novu dashboard AND the role,
       # re-synced on every sign-in by apps/novu-sso (mapping.json):
@@ -625,7 +631,7 @@ data:
             - !Find [authentik_core.user, [username, adi_rar]]
             - !Find [authentik_core.user, [username, lucian.trifan]]
             - !Find [authentik_core.user, [username, nicholas.turcu]]
-      # ---- Entitlements: rmx-sign (business app) ----
+      # ---- Entitlements: the signatures application (business app) ----
       - model: authentik_core.group
         identifiers:
           name: app-signapp-admin
@@ -688,7 +694,7 @@ data:
       #                      app-openbao-read + app-openbao-developer,
       #                      app-k8s-view + app-k8s-developer, app-dashboards-view
       #   bundle-viewer    → app-dashboards-view
-      # rmx-sign (app-signapp-*) is deliberately EXCLUDED — it is NOT behind Authentik.
+      # The signatures application (app-signapp-*) is deliberately EXCLUDED — it is NOT behind Authentik.
       # ======================================================================
       # bundle-platform claim-expands to EVERY *-admin entitlement, so holding it
       # is full admin on Argo, OpenBao and Kubernetes. Full admin is the operator
@@ -711,7 +717,7 @@ data:
       # step 5; owner, 2026-10-22: "keep only the groups services assert until
       # their owners migrate them"). Business-org membership itself lives in
       # autorizare/OpenFGA, not here.
-      #   app-invoice-*      rmx-invoice-svc asserts app-invoice-admin at startup
+      #   app-invoice-*      the invoicing service asserts app-invoice-admin at startup
       #                      (ORG-15 — a rename breaks the service).
       #   app-autorizare-*,  autorizare's control plane: console entry and tenant
       #   autorizare-tenant-* membership (D24 keeps these in the directory for now).
@@ -720,9 +726,8 @@ data:
       # are not migrated as people, and the suites that use them get accounts of
       # their own when autorizare moves.
       # ======================================================================
-      # The robots are created by WLSLUG-people; a !Find against an account that does
-      # not exist yet would fail this whole blueprint on a fresh install, so that
-      # blueprint is applied first.
+      # (The robots and the operator these rosters name are created by WLSLUG-people,
+      # applied at the top of this blueprint.)
       - model: authentik_core.group
         identifiers: { name: app-invoice-admin }
         attrs:
@@ -736,7 +741,7 @@ data:
       # app-invoice-operator's only meaning was that the business directory's
       # invoice provider admitted its members; that provider went with the
       # business Authentik on 2026-10-25. It is KEPT because the owner chose to
-      # make it the door to the operator section (apps/rmx-invoice-svc/docs/
+      # make it the door to the operator section (the invoicing service's
       # plans/superadmin.md, SA2 and step 0b) — that is decided, not built.
       - model: authentik_core.group
         identifiers: { name: app-invoice-operator }
@@ -744,9 +749,9 @@ data:
           is_superuser: false
           users: []
       # RETIRED 2026-10-25. app-invoice-view had the same single meaning and no
-      # plan behind it. Meridian signs people in through the hub, whose tokens
+      # plan behind it. The invoicing service signs people in through the hub, whose tokens
       # carry no groups (ORG-27), and its role bindings are empty by design
-      # (apps/rmx-invoice-svc/authz.manifest.json), so it is REMOVED rather than
+      # (its authz.manifest.json), so it is REMOVED rather than
       # left behind as an entitlement that grants nothing. It had no members.
       - model: authentik_core.group
         state: absent
@@ -776,7 +781,7 @@ data:
             - !Find [authentik_core.user, [username, e2e-hub]]
       - { model: authentik_core.group, identifiers: { name: app-autorizare-view },   attrs: { is_superuser: false, users: [] } }
       - model: authentik_core.group
-        identifiers: { name: autorizare-tenant-recomex }
+        identifiers: { name: autorizare-tenant-WLSLUG }
         attrs:
           is_superuser: false
           users:

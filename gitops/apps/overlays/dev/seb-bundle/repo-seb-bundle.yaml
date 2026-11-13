@@ -1,0 +1,32 @@
+# Argo CD's read credential for the SEB bundle in psi's Harbor (oci://registry.psizone.ro/seb/bundle),
+# the same as RMX's. Listed by this directory's kustomization (estate/seb-upgrade.sh keeps it), beside
+# the lock and the by-digest Applications (SEB docs/lockdown.md, L1).
+#
+# The credential is the cluster's image-pull robot, already in OpenBao at secret/platform/harbor/pull.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: repo-seb-bundle
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: repo-seb-bundle
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      data:
+        name: seb-bundle
+        type: oci
+        url: oci://registry.psizone.ro/seb/bundle
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef: { key: platform/harbor/pull, property: username }
+    - secretKey: password
+      remoteRef: { key: platform/harbor/pull, property: password }

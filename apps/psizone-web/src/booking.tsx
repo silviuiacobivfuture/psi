@@ -1,4 +1,4 @@
-import { Button, GlassCard, StatusBadge, TextField } from "@psi/ui";
+import { Button, GlassCard, TextField } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { z } from "zod";
 import { type Schedule, ScheduleSection } from "./booking-schedule";
@@ -40,6 +40,8 @@ export const BookingConfirmation = z.object({
 	phone: z.string().trim().max(20).default(""),
 	forWhom: z.enum(["child", "teen", "adult"]),
 	when: z.enum(["morning", "afternoon", "any"]).default("any"),
+	/** The held slot's start (UTC ms), carried so a failed confirm still tells the team the time. */
+	start: z.union([z.string().regex(/^[0-9]{10,15}$/), z.literal("")]).default(""),
 	consent: z.literal("yes"),
 });
 
@@ -298,7 +300,7 @@ export function BookingForm({
 	);
 }
 
-/** What replaces the form once the request is valid. Honest about not being connected yet. */
+/** What replaces the form once the request has reached the team (stored or e-mailed). */
 export function BookingDone({
 	locale,
 	name,
@@ -313,8 +315,7 @@ export function BookingDone({
 		<div id={id}>
 			<GlassCard class="pz-edge space-y-4">
 				<h2 class="display text-headline text-ink">{m.form_ok_title({ name }, o)}</h2>
-				<p class="text-body text-ink-muted">{m.form_ok_text({}, o)}</p>
-				<StatusBadge tone="warning">{m.form_not_connected({}, o)}</StatusBadge>
+				<p class="text-body text-ink-muted">{m.callback_ok_text({}, o)}</p>
 			</GlassCard>
 		</div>
 	);
@@ -356,6 +357,7 @@ export function BookingConfirm({
 		["phone", held.values.phone],
 		["forWhom", held.values.forWhom],
 		["when", held.values.when],
+		["start", String(held.start)],
 		["service", held.values.service],
 		["cards", held.values.cards],
 		["consent", "yes"],

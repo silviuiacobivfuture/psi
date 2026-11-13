@@ -91,7 +91,7 @@ spec:
       # Same platform bucket the etcd snapshots and Velero backups use — no new
       # bucket, no new credentials. Path-namespaced by cluster.
       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db
-      endpointURL: https://nbg1.your-objectstorage.com
+      endpointURL: WLENDPOINT
       s3Credentials:
         accessKeyId:
           name: nextcloud-backup-s3

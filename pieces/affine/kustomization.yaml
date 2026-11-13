@@ -1,0 +1,106 @@
+# SEB piece `affine`: the estate's documents, notes and whiteboards (AFFiNE Community Edition,
+# its CNPG Postgres and Redis). Delivered in the SEB bundle, rendered at build time
+# (tools/bundle/build.mjs). Deployed where the estate's platform applications include `affine`
+# (tools/estate-pieces.json).
+#
+# The estate's values come from its identity (the whitelabel component), each into ONE place
+# first and carried from there:
+#   AFFINE_HOST_PREFIX + BASE_DOMAIN → affine-settings AFFINE_SERVER_HOST (docs.<apex>) → the
+#                                      Ingress hosts, the external URL, the hub tile
+#   AUTHENTIK_HOST                   → the sign-in issuer
+#   BUCKET_PREFIX                    → the file bucket (<prefix>-affine-dev) and the backups'
+#                                      (<prefix>-tfstate-dev)
+#   OBJECT_STORAGE_ENDPOINT / REGION → the file storage and the backups
+#   OPERATOR_EMAIL                   → the instance's first account
+#   OPS_EMAIL                        → who is paged
+# The estate's additions, if any, come from its layer (../../components/estate/affine).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: affine
+resources:
+  - base
+
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../components/prune-guard
+  - ../../components/whitelabel
+  - ../../components/estate/affine
+
+replacements:
+  - path: whitelabel-replacements.yaml
+  # The host: <AFFINE_HOST_PREFIX>.<BASE_DOMAIN>, resolved ONCE into affine-settings.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.AFFINE_SERVER_HOST]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AFFINE_HOST_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.AFFINE_SERVER_HOST]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: affine-settings, fieldPath: data.AFFINE_SERVER_HOST }
+    targets:
+      - select: { kind: Ingress }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+      - select: { kind: Ingress, name: affine }
+        fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.AFFINE_SERVER_EXTERNAL_URL]
+        options: { delimiter: "/", index: 2 }
+  # The sign-in issuer: https://<AUTHENTIK_HOST>/application/o/affine-oidc/.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.OIDC_ISSUER]
+        options: { delimiter: "/", index: 2 }
+  # Object storage: the file bucket <prefix>-affine-dev and the backups' <prefix>-tfstate-dev
+  # (BUCKET_PREFIX is the part before the first dash); endpoint and region whole.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.S3_BUCKET]
+        options: { delimiter: "-", index: 0 }
+      - select: { kind: CronJob, name: affine-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+        options: { delimiter: "-", index: 0 }
+  - source:
+      kind: CronJob
+      name: affine-db-dump
+      fieldPath: spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=BUCKET].value
+    targets:
+      - select: { kind: Cluster, name: affine-db }
+        fieldPaths: [spec.backup.barmanObjectStore.destinationPath]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.S3_REGION]
+      - select: { kind: CronJob, name: affine-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_REGION].value
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_ENDPOINT }
+    targets:
+      - select: { kind: ConfigMap, name: affine-settings }
+        fieldPaths: [data.S3_ENDPOINT]
+      - select: { kind: CronJob, name: affine-db-dump }
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=upload].env.[name=AWS_ENDPOINT_URL].value
+      - select: { kind: Cluster, name: affine-db }
+        fieldPaths: [spec.backup.barmanObjectStore.endpointURL]
+  # The instance's first account: the estate operator.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_EMAIL }
+    targets:
+      - select: { kind: Job, name: affine-first-admin }
+        fieldPaths:
+          - spec.template.spec.containers.[name=first-admin].env.[name=ADMIN_EMAIL].value
+  # Who is paged for a workload: the estate's operations address (the key is moved to
+  # alerts.<apex>/owner by ../../components/alert-owner).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { annotationSelector: alerts/owner }
+        fieldPaths: [metadata.annotations.alerts/owner]
+transformers:
+  - ../../components/alert-owner

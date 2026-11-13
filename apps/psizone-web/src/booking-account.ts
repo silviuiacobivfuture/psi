@@ -1,4 +1,11 @@
-import { guideFor, JOURNEY_PAGES, prefillFor, refererPath, sameOrigin } from "@psi/account";
+import {
+	type Account,
+	guideFor,
+	JOURNEY_PAGES,
+	prefillFor,
+	refererPath,
+	sameOrigin,
+} from "@psi/account";
 import type { Guide } from "@psi/guide";
 import { accountHashOf } from "@psi/scheduling";
 import type { Context } from "hono";
@@ -35,26 +42,52 @@ function returnPath(c: Context, locale: Locale, fallback: string): string {
 		: from;
 }
 
+/** The error's code or name for the log: never its message, which may carry a connection string. */
+function codeOf(error: unknown): string {
+	if (typeof error === "object" && error !== null && "code" in error) return String(error.code);
+	return error instanceof Error ? error.name : "unknown";
+}
+
+/**
+ * The account side of a booking. When the account's store cannot be read (its database down), the
+ * visitor books as anyone without an account does: the request still reaches the team, only the
+ * pre-fill and the sign-in line are left out. A booking is never refused because of the account.
+ */
 export async function bookingAccount(
 	c: Context,
 	locale: Locale,
 	fallback: string,
+	source: Account = account,
 ): Promise<BookingAccount> {
-	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin)) return { prefill: {} };
-	const ready = account.status.identity === "ready";
-	const person = await account.person(c);
+	try {
+		return await accountFor(c, locale, fallback, source);
+	} catch (error) {
+		console.error(`account: unavailable for a booking (${codeOf(error)})`);
+		return { prefill: {} };
+	}
+}
+
+async function accountFor(
+	c: Context,
+	locale: Locale,
+	fallback: string,
+	source: Account,
+): Promise<BookingAccount> {
+	if (!sameOrigin(c.req.raw.headers, c.req.method, source.origin)) return { prefill: {} };
+	const ready = source.status.identity === "ready";
+	const person = await source.person(c);
 	if (person === null) {
 		return ready
 			? {
 					form: {
 						signedIn: false,
-						signInHref: account.signInHref(returnPath(c, locale, fallback)),
+						signInHref: source.signInHref(returnPath(c, locale, fallback)),
 					},
 					prefill: {},
 				}
 			: { prefill: {} };
 	}
-	const filled = await prefillFor(account, c);
+	const filled = await prefillFor(source, c);
 	return {
 		form: { signedIn: true },
 		prefill: {
@@ -72,8 +105,21 @@ export function accountLine(who: BookingAccount): { account?: AccountLine } {
 	return who.form === undefined ? {} : { account: who.form };
 }
 
-/** The guide for this request: it remembers only for a signed-in person who consented, on this origin. */
-export function guideForRequest(c: Context, guide: Guide): Promise<Guide> {
-	if (!sameOrigin(c.req.raw.headers, c.req.method, account.origin)) return Promise.resolve(guide);
-	return guideFor(account, c, guide, "psizone");
+/**
+ * The guide for this request: it remembers only for a signed-in person who consented, on this
+ * origin. When the account's store cannot be read, the guide answers without memory, as it does
+ * for anyone signed out.
+ */
+export async function guideForRequest(
+	c: Context,
+	guide: Guide,
+	source: Account = account,
+): Promise<Guide> {
+	if (!sameOrigin(c.req.raw.headers, c.req.method, source.origin)) return guide;
+	try {
+		return await guideFor(source, c, guide, "psizone");
+	} catch (error) {
+		console.error(`account: unavailable for the guide (${codeOf(error)})`);
+		return guide;
+	}
 }

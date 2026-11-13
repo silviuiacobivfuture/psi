@@ -42,8 +42,8 @@ spec:
   generators:
     - pullRequest:
         github:
-          owner: silviuiacobivfuture
-          repo: psi
+          owner: WLGITOWNER
+          repo: WLGITREPO
           tokenRef:
             secretName: github-pr-creds
             key: token
@@ -67,8 +67,8 @@ spec:
     metadata:
       name: "preview-{{.number}}-changelog"
       labels:
-        platform.recomex.eu/preview: dev
-        platform.recomex.eu/pr: "{{.number}}"
+        platform.psizone.ro/preview: dev
+        platform.psizone.ro/pr: "{{.number}}"
     spec:
       project: default
       source:
@@ -101,7 +101,7 @@ spec:
                   value: "false"
                 - op: replace
                   path: /metadata/annotations/gethomepage.dev~1href
-                  value: https://changelog-pr-{{.number}}.tailf6f2e6.ts.net
+                  value: https://changelog-pr-{{.number}}.psizone.ro
             # The DATABASE. The base carries a CNPG Cluster, so each preview gets
             # its OWN ephemeral changelog-db in preview-pr-<n>, and the base
             # ExternalSecret's namespace-relative `changelog-db-rw` host reaches

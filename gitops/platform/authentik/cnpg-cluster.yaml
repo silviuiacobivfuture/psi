@@ -25,7 +25,7 @@
 #
 # Shape, storage class, both backup layers and the six-field cron all come from
 # the retired business Authentik's CNPG Cluster, which itself came from
-# `rmx-invoice-svc`. Porting the pattern rather than inventing one is the
+# the invoicing service. Porting the pattern rather than inventing one is the
 # point: the instance since retired was the better-built one, and its database
 # arrangement is the half worth keeping.
 apiVersion: postgresql.cnpg.io/v1
@@ -34,7 +34,7 @@ metadata:
   name: authentik-db
   namespace: authentik
   annotations:
-    alerts.recomex.eu/owner: WLOPSEMAIL
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.5
@@ -48,7 +48,7 @@ spec:
       # that no ExternalSecret creates leaves the cluster in "Setting up primary"
       # forever, with the initdb pod in CreateContainerConfigError. The
       # `authentik-db-app` ExternalSecret in pieces/platform-secrets/ exists so
-      # that mistake — which shipped once in rmx-invoice-svc — is not repeated.
+      # that mistake — which shipped once in the invoicing service — is not repeated.
       #
       # It reads the SAME OpenBao path the bundled subchart already used,
       # `platform/authentik/postgresql`, so the credential does not change during
@@ -122,8 +122,8 @@ spec:
       # this cluster's own name. No new bucket and no new credential: a backup
       # that needs its own secret is a backup that stops when that secret rotates
       # and nobody notices.
-      destinationPath: s3://psi-tfstate-dev/cnpg/authentik-db
-      endpointURL: https://nbg1.your-objectstorage.com
+      destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/authentik-db
+      endpointURL: WLENDPOINT
       s3Credentials:
         accessKeyId:
           name: authentik-backup-s3

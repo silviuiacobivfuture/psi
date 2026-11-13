@@ -76,38 +76,6 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/volumeMounts/-
         value: { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
-  # psi, 2026-11-12 — the first-start order. Polaris's control plane (autorizare-svc) migrates the
-  # database in its own init containers, but it cannot start before its secret syncs, and that secret
-  # carries the console's hub client secret, which only the hub can mint — into tables only those
-  # migrations create. On a new estate nothing ever moved. The hub now runs the same migrations before
-  # it starts (golang-migrate holds an advisory lock, so the two never race), reading only secrets that
-  # exist from the first minute: the migration login (autorizare-db-app) and the application role's
-  # password (autorizare-app-credentials). Order on a new estate: hub up → seed-hub-clients.sh mints
-  # the console's client → seed-changelog-hub.sh issues the changelog key → autorizare-secrets syncs →
-  # the control plane starts.
-  - target: { kind: Deployment, name: autorizare-hub }
-    patch: |-
-      - op: add
-        path: /spec/template/spec/initContainers/-
-        value:
-          name: migrate
-          image: registry.psizone.ro/psi/autorizare-svc:REPLACE_ME
-          command: ["/autorizaremigrate"]
-          env:
-            - name: DATABASE_MIGRATE_URL
-              valueFrom: { secretKeyRef: { name: autorizare-db-app, key: uri } }
-            - name: DB_APP_PASSWORD
-              valueFrom: { secretKeyRef: { name: autorizare-app-credentials, key: password } }
-          resources:
-            requests: { cpu: 25m, memory: 32Mi }
-            limits: { cpu: 500m, memory: 128Mi }
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 65532
-            seccompProfile: { type: RuntimeDefault }
   # psi runs one server with ~70% of its memory reserved: one hub and one control plane, not SEB's
   # three each. Their disruption budgets follow, or a budget of two would block every node drain
   # (system-upgrade's k3s upgrades drain the only node).

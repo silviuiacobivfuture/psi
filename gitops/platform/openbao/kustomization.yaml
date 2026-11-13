@@ -2,7 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - clustersecretstore.yaml
-  - ingress-tailscale.yaml
   - snapshot-s3-externalsecret.yaml
   - snapshot-cronjob.yaml
   # The talk-webhook bearer, mirrored into this namespace so the secret-watcher can
@@ -36,9 +35,9 @@ resources:
 # openbao-bootstrap.sh run. Hash-suffixed: a change rolls into the next run.
 # Every policies/*.hcl MUST be listed below — tests/openbao-auth.test.sh fails on a
 # file missing here (in-cluster the engine would refuse a declared policy without
-# its file, before any write). The business applications' policies live in
-# apps/policies/ (SEB 1.16b) and are listed last; a ConfigMap key is the file's
-# base name, so the CronJob's /decl is one flat directory either way.
+# its file, before any write). An estate's own applications' policies are written to
+# apps/policies/ at render and listed last; a ConfigMap key is the file's base
+# name, so the CronJob's /decl is one flat directory either way.
 configMapGenerator:
   - name: openbao-auth-engine
     namespace: openbao
@@ -57,12 +56,12 @@ configMapGenerator:
       - auth/policies/authentik-plunk-sso-token.hcl
       - auth/policies/authentik-novu-sso-token.hcl
       - auth/policies/authentik-n8n-sso-token.hcl
+      - auth/policies/authentik-stalwart-admins-token.hcl
       - auth/policies/default.hcl
       - auth/policies/developer.hcl
       - auth/policies/eso.hcl
       - auth/policies/github-ci.hcl
       - auth/policies/github-ci-gate.hcl
-      - auth/policies/github-ci-preview.hcl
       - auth/policies/model-pin-alarm.hcl
       - auth/policies/nextcloud-occ.hcl
       - auth/policies/openbao-auth-audit.hcl
@@ -71,8 +70,8 @@ configMapGenerator:
       - auth/policies/reportportal-config.hcl
       - auth/policies/secret-watcher.hcl
       - auth/policies/signin.hcl
-      # The business applications' policies.
-      - apps/policies/authentik-vega-token.hcl
+      # The estate's own applications' policies (its <components>/openbao/, merged when
+      # tools/estate-repo.mjs renders the estate's repository: tools/estate/openbao-entries.mjs).
 components:
   - ../../components/whitelabel
 replacements:

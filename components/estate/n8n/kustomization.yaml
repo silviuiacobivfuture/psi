@@ -3,8 +3,8 @@ kind: Component
 # The ESTATE's additions to the n8n piece. SEB adds nothing: this is the default.
 # An estate supplies its own directory of the same name to the bundle builder
 # (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
-# replaces this one in the build workdir. What belongs there (the sample is
-# examples/lumen/seb-components/n8n): n8n's sender, email.generated.yaml (written there by
+# replaces this one in the build workdir. What belongs there (SEB's test fixture has one
+# under examples/, by name, for its own tests only): n8n n8n's sender, email.generated.yaml (written there by
 # apps/plunk-sso/bin/email-sync.mjs), and a patch excepting each of the estate's nodes' PUBLIC
 # addresses from n8n's world egress rule, appended to
 # /spec/egress/2/to/0/ipBlock/except of the NetworkPolicy n8n. They are the cluster's facts,

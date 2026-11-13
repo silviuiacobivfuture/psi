@@ -1,0 +1,104 @@
+# The DEDICATED, READ-ONLY Authentik API token the mail server's administrators reconcile
+# (pieces/stalwart, admins.yaml) reads the directory with — minted, permissioned and maintained
+# as code, on the ONE directory. plane-sso's shape with its own ServiceAccount, OpenBao role
+# (authentik-stalwart-admins-token, pieces/openbao-store/auth) and slot,
+# secret/platform/authentik/stalwart-admins-api-token, which the stalwart namespace's
+# stalwart-directory ExternalSecret reads as AUTHENTIK_API_TOKEN.
+#
+# THE PERMISSION SET is two codenames. The reconcile (pieces/stalwart/base/admins.sh) reads the
+# members of app-mail-admin and platform-admins —
+# GET /api/v3/core/groups/?name=<group>&include_users=true — and nothing else. Authentik
+# filters a list route through view_, so view_user + view_group is the whole of it: no write
+# anywhere, nothing on providers, flows, tokens or settings.
+#
+# Until the first run fills the slot, the stalwart-admins CronJob refuses to start with
+# `MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN` — loud, by design. Run it now:
+#   kubectl -n authentik create job --from=cronjob/authentik-stalwart-admins-token-reconcile stalwart-admins-token-now
+# The script is the shared one (credential-token-reconcile-script.yaml):
+# read-before-write, additive only, never revokes.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authentik-stalwart-admins-token
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-stalwart-admins-token-reconcile
+  annotations:
+    alerts.psizone.ro/owner: WLOPSEMAIL
+spec:
+  schedule: "2,17,32,47 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: { app: authentik-stalwart-admins-token-reconcile }
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: authentik-stalwart-admins-token
+          automountServiceAccountToken: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: script
+              configMap: { name: authentik-credential-token-reconcile }
+          containers:
+            - name: reconcile
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: script, mountPath: /script, readOnly: true }
+              env:
+                - name: AK_API
+                  value: http://authentik-server.authentik.svc.cluster.local:80
+                - name: JOB_NAME
+                  value: authentik-stalwart-admins-token-reconcile
+                - name: AK_TOKEN_DESCRIPTION
+                  value: "stalwart-admins — reads who is in app-mail-admin and platform-admins so the mail server's administrators follow Authentik groups (pieces/stalwart). Maintained by the authentik-stalwart-admins-token-reconcile CronJob."
+                - name: AK_SERVICE_ACCOUNT
+                  value: svc-stalwart-admins
+                - name: AK_ROLE
+                  value: stalwart-admins-directory-reader
+                - name: AK_TOKEN_IDENTIFIER
+                  value: stalwart-admins-api
+                - name: AK_PERMISSIONS
+                  value: >-
+                    authentik_core.view_user
+                    authentik_core.view_group
+                - name: AK_SIGNING_CERT
+                  value: "authentik Self-signed Certificate"
+                - name: AK_SIGNING_CERT_ENC
+                  value: "authentik%20Self-signed%20Certificate"
+                - name: BAO_ADDR
+                  value: http://openbao.openbao.svc:8200
+                - name: BAO_ROLE
+                  value: authentik-stalwart-admins-token
+                - name: TOKEN_SECRET_PATH
+                  value: platform/authentik/stalwart-admins-api-token
+                - name: TOKEN_SECRET_FIELD
+                  value: token
+                - name: AUTHENTIK_BOOTSTRAP_TOKEN
+                  valueFrom: { secretKeyRef: { name: authentik-env, key: AUTHENTIK_BOOTSTRAP_TOKEN } }
+              command: ["/bin/sh", "/script/reconcile.sh"]

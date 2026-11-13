@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { api } from "../convex/_generated/api";
+import { type CallbacksStaff, callbacksStaffOn } from "./callbacks-client";
 import type { SchedulingConfig } from "./config";
 import type { Mode } from "./domain/catalog";
 import type { ClientInput } from "./domain/clients";
@@ -88,7 +89,7 @@ export type BoardResult = z.infer<typeof RawBoardSchema>;
  * The team's side of the store. Nothing here checks who the actor is: call it only after
  * `@psi/account`'s `can("viewer" | "editor", …)` allowed it (docs/plans/scheduling.md §5).
  */
-export interface StaffSchedulingClient {
+export interface StaffSchedulingClient extends CallbacksStaff {
 	calendar(input: {
 		tenant: string;
 		practitioner: string;
@@ -301,6 +302,7 @@ export function staffClientOn(transport: Transport): StaffSchedulingClient {
 	const key = transport.serverKey;
 	const ref = (typed: string): string => canonicalCode(typed, 8) ?? "";
 	return {
+		...callbacksStaffOn(transport),
 		calendar: (input) =>
 			transport.call(RawCalendarSchema, (c) => c.query(api.staff.calendar, { key, ...input })),
 		decide: (input) =>

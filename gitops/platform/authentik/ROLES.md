@@ -101,7 +101,7 @@ them, but not on k8s, and the others)".
 | Keel, Quill, Polaris entry | `app-invoice-admin`, `app-signapp-admin`, `app-autorizare-admin` |
 
 What they may do in Orchid, Quill, Brook, Keel, Nova and Polaris is tuples, not
-groups: `apps/autorizare-svc/scripts/apply/examples/recomex.org.json` and the grants
+groups: `apps/autorizare-svc/scripts/apply/examples/<estate>.org.json` and the grants
 it records. Keel's fiscal rights are one company at a time, on purpose.
 
 **Not theirs, and `.github/scripts/estate-superadmins.py` refuses the tree otherwise:**

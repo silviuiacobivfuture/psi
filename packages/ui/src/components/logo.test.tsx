@@ -1,5 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 import { readFileSync } from "node:fs";
+import { RETIRED_SITES } from "@psi/content/retired";
 import { MARKS, type MarkBrand } from "@psi/design/logos";
 import { describe, expect, it } from "vitest";
 import { Logo } from "./logo";
@@ -24,11 +25,19 @@ function labelsIn(markup: string): ReadonlyArray<string> {
 }
 
 describe("Logo: which brands render", () => {
-	it("auto renders every brand, so the theme can show its own", () => {
+	it("auto renders every live brand, so the theme can show its own, and not a retired one", () => {
 		const out = html(<Logo />);
-		expect(brandsIn(out)).toEqual(expect.arrayContaining(BRANDS));
+		const shown = BRANDS.filter((b) => !(RETIRED_SITES as ReadonlyArray<string>).includes(b));
+		expect(shown).not.toContain("eqsync");
+		expect(brandsIn(out)).toEqual(shown);
 		expect(out).toContain("pz-logo--auto");
-		expect(labelsIn(out)).toEqual(BRANDS.map((b) => NAMES[b]));
+		expect(labelsIn(out)).toEqual(shown.map((b) => NAMES[b]));
+		expect(out).not.toContain("EQ-SYNC");
+	});
+
+	it("auto follows the switch: nothing retired shows every brand, a retired brand is left out", () => {
+		expect(brandsIn(html(<Logo retired={[]} />))).toEqual(BRANDS);
+		expect(brandsIn(html(<Logo retired={["blog", "eqsync"]} />))).toEqual(["psizone", "hemisync"]);
 	});
 
 	it.each(BRANDS)("brand=%s renders that brand alone, named for assistive tech", (brand) => {
@@ -145,6 +154,8 @@ describe("Logo: the endorsement", () => {
 	});
 
 	it("auto puts it under every sister and none under Psizone", () => {
-		expect(html(<Logo endorsement={BY} />).split(BY).length - 1).toBe(3);
+		// Every live sister: EQ-SYNC is retired, so Hemi-Sync and the Blog; with nothing retired, three.
+		expect(html(<Logo endorsement={BY} />).split(BY).length - 1).toBe(2);
+		expect(html(<Logo endorsement={BY} retired={[]} />).split(BY).length - 1).toBe(3);
 	});
 });

@@ -69,7 +69,7 @@ metadata:
     # require-reloader-annotation ClusterPolicy is still in Audit mode, so it would
     # only REPORT the omission — the rule binds regardless of enforcement mode.)
     reloader.stakater.com/auto: "true"
-    alerts.recomex.eu/owner: ops@recomex.eu
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   # EXACTLY ONE. Two replicas would both follow the same log and post every change
   # twice; the replay-dedupe cache is per-process and cannot cross pods.

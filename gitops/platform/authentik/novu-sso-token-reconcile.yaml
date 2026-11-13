@@ -13,7 +13,7 @@ kind: CronJob
 metadata:
   name: authentik-novu-sso-token-reconcile
   annotations:
-    alerts.recomex.eu/owner: WLOPSEMAIL
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   schedule: "6,21,36,51 * * * *"
   concurrencyPolicy: Forbid

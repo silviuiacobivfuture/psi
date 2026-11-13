@@ -37,7 +37,8 @@ const RECORD_RESOURCES = [
 const recordKeys = (action: "view" | "create" | "edit" | "delete"): string[] =>
 	RECORD_RESOURCES.map((resource) => `${resource}_${action}`);
 
-const Ref = AppParam.extend({ reference: z.string().min(8).max(12) });
+/** A booking request's reference (`K7M3-9QXA`) or a callback's id in the store. */
+const Ref = AppParam.extend({ reference: z.string().min(8).max(64) });
 const AppointmentParam = AppParam.extend({ appointmentId: Id });
 
 export const OPERATION_ROUTES = [

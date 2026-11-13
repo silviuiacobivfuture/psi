@@ -2,7 +2,8 @@ node_modules
 **/node_modules
 .nx
 **/dist
-.seb-bundle
+# .seb-bundle is NOT ignored: the image installs from it. CI installs the locked bundle before
+# the build (.github/actions/seb-bundle), so pnpm install inside finds it current and fetches nothing.
 .git
 .env
 **/.env

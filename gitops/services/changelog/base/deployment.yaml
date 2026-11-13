@@ -9,7 +9,7 @@ metadata:
     reloader.stakater.com/auto: "true"
     # Alert route for this workload's failures (Kyverno require-alert-annotation;
     # pairs with the Axiom crashloop/OOM monitors). See gitops/services/APP-SECRETS.md.
-    alerts.recomex.eu/owner: ops@recomex.eu
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   replicas: 1
   selector:

@@ -1,0 +1,4 @@
+{
+	"$comment": "Components this piece takes only when the estate's identity moves a value off the default the piece renders (tools/bundle/identity-components.mjs).",
+	"hub-host": { "key": "HUB_HOST_PREFIX", "unless": "id" }
+}

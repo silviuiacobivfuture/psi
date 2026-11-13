@@ -1,0 +1,35 @@
+{
+	"name": "@psi/notify",
+	"version": "0.6.0",
+	"private": true,
+	"type": "module",
+	"description": "psi's notification layer on the estate's Novu: the clinic's catalogue (typed payloads, RO/EN templates), the code-first workflows the estate bridge serves, the trigger client, signed reminder links, the in-app inbox feed and the push hook.",
+	"exports": {
+		".": "./src/index.ts",
+		"./registry": "./src/gen/registry.generated.ts",
+		"./reminders": "./src/reminders/index.ts",
+		"./inbox": "./src/inbox/index.ts",
+		"./push": "./src/push/index.ts"
+	},
+	"scripts": {
+		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+		"type-check": "pnpm i18n && tsc --noEmit",
+		"test": "pnpm i18n && vitest run --maxWorkers=2"
+	},
+	"dependencies": {
+		"@novu/framework": "2.13.2",
+		"@psi/design": "workspace:*",
+		"@psi/pwa": "workspace:*",
+		"@psi/ui": "workspace:*",
+		"hono": "^4.13.18",
+		"zod": "^3.25.76",
+		"zod-to-json-schema": "3.25.2"
+	},
+	"devDependencies": {
+		"@inlang/paraglide-js": "^3.2.2",
+		"@types/node": "^24.19.2",
+		"tsx": "^4.23.15",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}
