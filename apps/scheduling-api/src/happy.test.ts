@@ -60,6 +60,18 @@ async function submitted(
 	);
 	return { reference: String(r.json.reference), cancelCode: String(r.json.cancelCode) };
 }
+/** An appointment of its own to delete, so the shared fixtures stay as the other cases expect them. */
+const spare = async (w: Populated): Promise<string> =>
+	String(
+		(
+			await olga(w, "POST", "/appointments", {
+				kind: "block",
+				practitionerId: w.ids.mara,
+				start: NOW + 6 * 24 * HOUR,
+				end: NOW + 6 * 24 * HOUR + HOUR,
+			})
+		).json.id,
+	);
 const newClient = async (w: Populated): Promise<string> =>
 	String((await olga(w, "POST", "/clients", { name: "Disposable Client" })).json.id);
 
@@ -135,25 +147,28 @@ const HAPPY: Record<
 	"members.put": (w) =>
 		olga(w, "PUT", "/members/newcomer", {
 			displayName: "Newcomer",
-			roles: ["psizone-reception"],
+			roles: [w.ids.roles.reception],
 			coordinates: [],
 		}),
 	"members.overrides": (w) =>
-		olga(w, "PUT", "/members/rita/overrides", { grant: ["audit_view"], deny: ["clients_delete"] }),
+		olga(w, "PUT", "/members/rita/overrides", {
+			grant: ["audit_log_view_all"],
+			deny: ["clients_delete_all"],
+		}),
 	"members.remove": async (w) => {
 		await olga(w, "PUT", "/members/leaver", { displayName: "Leaver", roles: [], coordinates: [] });
 		return olga(w, "DELETE", "/members/leaver");
 	},
 	"roles.list": (w) => olga(w, "GET", "/roles"),
 	"roles.create": (w) =>
-		olga(w, "POST", "/roles", { name: "Intern", copyFrom: "psizone-volunteer" }),
-	"roles.get": (w) => olga(w, "GET", "/roles/psizone-reception"),
+		olga(w, "POST", "/roles", { name: "Intern", copyFrom: w.ids.roles.volunteer }),
+	"roles.get": (w) => olga(w, "GET", `/roles/${w.ids.roles.reception}`),
 	"roles.update": (w) =>
-		olga(w, "PATCH", "/roles/psizone-accountant", { description: "Money, read-only." }),
+		olga(w, "PATCH", `/roles/${w.ids.roles.accountant}`, { description: "Money, read-only." }),
 	"roles.setPermissions": async (w) => {
 		const r = await olga(w, "POST", "/roles", { name: "Temp" });
 		return olga(w, "PUT", `/roles/${r.json.id}/permissions`, {
-			permissions: ["clients_view_all", "calendar_view_all"],
+			permissions: ["clients_view_all", "calendars_view_all"],
 		});
 	},
 	"roles.remove": async (w) =>
@@ -224,6 +239,12 @@ const HAPPY: Record<
 		olga(w, "PATCH", `/appointments/${w.ids.a1}`, { note: "bring the book" }),
 	"appointments.attendance": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" }),
+	"appointments.remove": async (w) => olga(w, "DELETE", `/appointments/${await spare(w)}`),
+	"appointments.restore": async (w) => {
+		const id = await spare(w);
+		await olga(w, "DELETE", `/appointments/${id}`);
+		return olga(w, "POST", `/appointments/${id}/restore`);
+	},
 	"appointments.pay": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a2}/payment`, { amountCents: 5000, method: "card" }),
 	"appointments.cancel": async (w) => {

@@ -1,3 +1,4 @@
+import { reaches } from "../authz/access";
 import { appLink, ownerLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
@@ -114,10 +115,16 @@ export const catalogHandlers: HandlersOf<
 	| "services.setPrice"
 > = {
 	async "people.list"(ctx) {
-		return page((await ctx.deps.store.c.people.list(ctx.app)).sort(byName), ctx.query, personOut);
+		return page(
+			(await ctx.deps.store.c.people.list(ctx.app))
+				.filter((p) => reaches(ctx.reach, p.id))
+				.sort(byName),
+			ctx.query,
+			personOut,
+		);
 	},
 	async "people.create"(ctx) {
-		const row: PersonRow = {
+		const draft: PersonRow = {
 			id: newId("p"),
 			app: ctx.app,
 			displayName: ctx.body.displayName,
@@ -128,7 +135,7 @@ export const catalogHandlers: HandlersOf<
 			...(ctx.body.color === undefined ? {} : { color: ctx.body.color }),
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.people.insert(row);
+		const row = await ctx.deps.store.c.people.insert(draft);
 		await writeTuples(ctx, [
 			appLink("sched_calendar", row.id, ctx.app),
 			...(row.subject === undefined ? [] : [ownerLink(row.id, row.subject)]),
@@ -181,7 +188,7 @@ export const catalogHandlers: HandlersOf<
 		return page((await ctx.deps.store.c.rooms.list(ctx.app)).sort(byName), ctx.query, roomOut);
 	},
 	async "rooms.create"(ctx) {
-		const row = {
+		const draft = {
 			id: newId("o"),
 			app: ctx.app,
 			name: ctx.body.name,
@@ -190,7 +197,7 @@ export const catalogHandlers: HandlersOf<
 			active: true,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.rooms.insert(row);
+		const row = await ctx.deps.store.c.rooms.insert(draft);
 		await writeTuples(ctx, [appLink("sched_room", row.id, ctx.app)]);
 		return roomOut(row);
 	},
@@ -222,7 +229,7 @@ export const catalogHandlers: HandlersOf<
 	async "devices.create"(ctx) {
 		if (ctx.body.roomId !== undefined)
 			await must(ctx.deps.store.c.rooms, ctx.app, ctx.body.roomId, "room");
-		const row = {
+		const draft = {
 			id: newId("d"),
 			app: ctx.app,
 			name: ctx.body.name,
@@ -230,7 +237,7 @@ export const catalogHandlers: HandlersOf<
 			active: true,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.devices.insert(row);
+		const row = await ctx.deps.store.c.devices.insert(draft);
 		await writeTuples(ctx, [appLink("sched_device", row.id, ctx.app)]);
 		return deviceOut(row);
 	},
@@ -262,7 +269,7 @@ export const catalogHandlers: HandlersOf<
 		return page((await ctx.deps.store.c.groups.list(ctx.app)).sort(byName), ctx.query, groupOut);
 	},
 	async "groups.create"(ctx) {
-		const row = {
+		const draft = {
 			id: newId("g"),
 			app: ctx.app,
 			name: ctx.body.name,
@@ -271,7 +278,7 @@ export const catalogHandlers: HandlersOf<
 			active: true,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.groups.insert(row);
+		const row = await ctx.deps.store.c.groups.insert(draft);
 		return groupOut(row);
 	},
 	async "groups.update"(ctx) {
@@ -307,7 +314,7 @@ export const catalogHandlers: HandlersOf<
 		const people = await ctx.deps.store.c.people.list(ctx.app);
 		for (const id of ctx.body.practitionerIds)
 			if (!people.some((p) => p.id === id)) throw fail("invalid", "unknown person", { person: id });
-		const row: ServiceRow = {
+		const draft: ServiceRow = {
 			id: newId("s"),
 			app: ctx.app,
 			slug: ctx.body.slug,
@@ -319,7 +326,7 @@ export const catalogHandlers: HandlersOf<
 			active: true,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.services.insert(row);
+		const row = await ctx.deps.store.c.services.insert(draft);
 		return serviceOut(row, false);
 	},
 	async "services.update"(ctx) {

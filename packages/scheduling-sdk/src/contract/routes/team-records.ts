@@ -26,6 +26,17 @@ import {
 } from "../entities";
 import { AppParam, DateKey, Id, IdParam, Ok, PageQuery, page } from "../primitives";
 
+/** The permission resources a record can belong to (its form decides); `recordResourceFor` in @psi/scheduling/permissions is the map. */
+const RECORD_RESOURCES = [
+	"report_aba",
+	"report_racemeup",
+	"report_psychotherapy",
+	"report_custom",
+	"questionnaire_parent",
+] as const;
+const recordKeys = (action: "view" | "create" | "edit" | "delete"): string[] =>
+	RECORD_RESOURCES.map((resource) => `${resource}_${action}`);
+
 const Ref = AppParam.extend({ reference: z.string().min(8).max(12) });
 const AppointmentParam = AppParam.extend({ appointmentId: Id });
 
@@ -39,7 +50,7 @@ export const OPERATION_ROUTES = [
 		params: AppParam,
 		query: z.object({ date: DateKey.optional() }),
 		response: z.object({ date: DateKey, items: z.array(Reminder) }),
-		permission: { key: "reminders_view", target: { kind: "app" } },
+		permission: { key: "reminders_view", target: { kind: "list", type: "sched_appointment" } },
 	}),
 	route({
 		id: "reminders.mark",
@@ -50,7 +61,14 @@ export const OPERATION_ROUTES = [
 		params: AppointmentParam,
 		body: ReminderMark,
 		response: Ok,
-		permission: { key: "reminders_send", target: { kind: "app" } },
+		permission: {
+			key: "reminders_send",
+			target: {
+				kind: "object",
+				type: "sched_appointment",
+				idFrom: { in: "params", key: "appointmentId" },
+			},
+		},
 		audit: "reminder.mark",
 	}),
 	route({
@@ -62,7 +80,14 @@ export const OPERATION_ROUTES = [
 		params: AppointmentParam,
 		body: ReminderEmail,
 		response: Ok,
-		permission: { key: "reminders_send", target: { kind: "app" } },
+		permission: {
+			key: "reminders_send",
+			target: {
+				kind: "object",
+				type: "sched_appointment",
+				idFrom: { in: "params", key: "appointmentId" },
+			},
+		},
 		audit: "reminder.email",
 	}),
 	route({
@@ -74,7 +99,14 @@ export const OPERATION_ROUTES = [
 		params: AppointmentParam,
 		query: ReminderEmail,
 		response: WhatsappLink,
-		permission: { key: "reminders_send", target: { kind: "app" } },
+		permission: {
+			key: "reminders_send",
+			target: {
+				kind: "object",
+				type: "sched_appointment",
+				idFrom: { in: "params", key: "appointmentId" },
+			},
+		},
 	}),
 	route({
 		id: "requests.list",
@@ -88,7 +120,7 @@ export const OPERATION_ROUTES = [
 			to: z.coerce.number().int().nonnegative(),
 		}),
 		response: z.object({ items: z.array(WebRequest) }),
-		permission: { key: "requests_view", target: { kind: "app" } },
+		permission: { key: "web_requests_view", target: { kind: "app" } },
 	}),
 	route({
 		id: "requests.stream",
@@ -100,7 +132,7 @@ export const OPERATION_ROUTES = [
 		params: AppParam,
 		query: z.object({ after: z.coerce.number().int().nonnegative().optional() }),
 		response: CalendarEvent,
-		permission: { key: "requests_view", target: { kind: "app" } },
+		permission: { key: "web_requests_view", target: { kind: "app" } },
 		stream: true,
 	}),
 	route({
@@ -113,7 +145,7 @@ export const OPERATION_ROUTES = [
 		params: AppParam,
 		query: z.object({ after: z.coerce.number().int().nonnegative().optional() }),
 		response: InboxCounts,
-		permission: { key: "requests_view", target: { kind: "app" } },
+		permission: { key: "web_requests_view", target: { kind: "app" } },
 		stream: true,
 	}),
 	route({
@@ -125,7 +157,7 @@ export const OPERATION_ROUTES = [
 		params: Ref,
 		body: RequestDecision,
 		response: Ok,
-		permission: { key: "requests_decide", target: { kind: "app" } },
+		permission: { key: "web_requests_approve", target: { kind: "app" } },
 		audit: "request.decide",
 	}),
 	route({
@@ -136,7 +168,10 @@ export const OPERATION_ROUTES = [
 		summary: "A client's records (content only where the caller may read clinical data)",
 		params: IdParam,
 		response: z.object({ items: z.array(RecordFull) }),
-		permission: { key: "records_view", target: { kind: "object", type: "sched_client" } },
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_client", candidates: recordKeys("view") },
+		},
 	}),
 	route({
 		id: "records.create",
@@ -148,7 +183,10 @@ export const OPERATION_ROUTES = [
 		params: IdParam,
 		body: RecordCreate,
 		response: RecordSummary,
-		permission: { key: "records_create", target: { kind: "object", type: "sched_client" } },
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_client", candidates: recordKeys("create") },
+		},
 		audit: "record.create",
 	}),
 	route({
@@ -159,7 +197,10 @@ export const OPERATION_ROUTES = [
 		summary: "One record; decrypted for a permitted caller, and the read is audited",
 		params: IdParam,
 		response: RecordFull,
-		permission: { key: "records_view", target: { kind: "object", type: "sched_record" } },
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_record", candidates: recordKeys("view") },
+		},
 	}),
 	route({
 		id: "records.update",
@@ -170,7 +211,10 @@ export const OPERATION_ROUTES = [
 		params: IdParam,
 		body: RecordPatch,
 		response: RecordSummary,
-		permission: { key: "records_edit", target: { kind: "object", type: "sched_record" } },
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_record", candidates: recordKeys("edit") },
+		},
 		audit: "record.update",
 	}),
 	route({
@@ -181,7 +225,10 @@ export const OPERATION_ROUTES = [
 		summary: "Delete a record",
 		params: IdParam,
 		response: Ok,
-		permission: { key: "records_delete", target: { kind: "object", type: "sched_record" } },
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_record", candidates: recordKeys("delete") },
+		},
 		audit: "record.delete",
 	}),
 	route({
@@ -247,7 +294,7 @@ export const OPERATION_ROUTES = [
 		params: AppParam,
 		query: AuditQuery.extend(PageQuery.shape),
 		response: page(AuditEvent),
-		permission: { key: "audit_view", target: { kind: "app" } },
+		permission: { key: "audit_log_view", target: { kind: "app" } },
 	}),
 	route({
 		id: "builder.list",
@@ -279,7 +326,7 @@ export const OPERATION_ROUTES = [
 		summary: "Remove a definition",
 		params: AppParam.extend({ kind: DefinitionKind, id: Id }),
 		response: Ok,
-		permission: { key: "builder_edit", target: { kind: "app" } },
+		permission: { key: "builder_delete", target: { kind: "app" } },
 		audit: "builder.delete",
 	}),
 	route({
@@ -290,7 +337,7 @@ export const OPERATION_ROUTES = [
 		summary: "Import runs and their counts",
 		params: AppParam,
 		response: z.object({ items: z.array(ImportRun) }),
-		permission: { key: "imports_view", target: { kind: "app" } },
+		permission: { key: "imports_exports_imports_view", target: { kind: "app" } },
 	}),
 ] as const;
 

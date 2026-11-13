@@ -54,7 +54,7 @@ export const clientHandlers: HandlersOf<
 	async "clients.create"(ctx) {
 		const b = ctx.body;
 		for (const g of GROUPS)
-			if (b[g] !== undefined && !(await ctx.canAll(`clients_${g}_edit`)))
+			if (b[g] !== undefined && !(await ctx.canAll(`clients_create_${g}`)))
 				throw forbidden("not allowed to write this field group", { group: g });
 		if (b.treating !== undefined && b.treating.length > 0 && !(await ctx.canAll("clients_assign")))
 			throw forbidden("not allowed to assign practitioners", { permission: "clients_assign" });
@@ -62,9 +62,8 @@ export const clientHandlers: HandlersOf<
 		for (const p of b.treating ?? [])
 			if (!people.some((x) => x.id === p && x.active))
 				throw fail("invalid", "unknown person", { person: p });
-		const id = newId("c");
 		const row: ClientRow = {
-			id,
+			id: newId("c"),
 			app: ctx.app,
 			name: b.name,
 			status: "active",
@@ -73,24 +72,30 @@ export const clientHandlers: HandlersOf<
 			...(b.contact === undefined ? {} : { contact: b.contact }),
 			...(b.guardian === undefined ? {} : { guardian: b.guardian }),
 			...(b.money === undefined ? {} : { money: b.money }),
-			...(b.clinical === undefined
-				? {}
-				: {
-						clinicalSealed: ctx.deps.crypto.seal(
-							JSON.stringify(b.clinical),
-							clinicalContext(ctx.app, id),
-						),
-					}),
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.clients.insert(row);
+		let saved = await ctx.deps.store.c.clients.insert(row);
+		if (b.clinical !== undefined) {
+			// The envelope is bound to the client's id, which the store assigns on insert: sealed in a second step.
+			const clinicalSealed = ctx.deps.crypto.seal(
+				JSON.stringify(b.clinical),
+				clinicalContext(ctx.app, saved.id),
+			);
+			saved = { ...saved, clinicalSealed };
+			try {
+				await ctx.deps.store.c.clients.replace(saved);
+			} catch (error) {
+				await ctx.deps.store.c.clients.remove(ctx.app, saved.id);
+				throw error;
+			}
+		}
 		await writeTuples(ctx, [
-			appLink("sched_client", id, ctx.app),
-			...row.treating.map((p) => treatingLink(id, p)),
+			appLink("sched_client", saved.id, ctx.app),
+			...saved.treating.map((p) => treatingLink(saved.id, p)),
 		]);
-		await ctx.changed("client", "created", id);
+		await ctx.changed("client", "created", saved.id);
 		ctx.note({ groups: GROUPS.filter((g) => b[g] !== undefined) });
-		return view(ctx, row);
+		return view(ctx, saved);
 	},
 
 	async "clients.get"(ctx) {
@@ -102,7 +107,7 @@ export const clientHandlers: HandlersOf<
 		const row = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		const b = ctx.body;
 		for (const g of GROUPS)
-			if (b[g] !== undefined && !(await ctx.canOn(`clients_${g}_edit`, "sched_client", row.id)))
+			if (b[g] !== undefined && !(await ctx.canOn(`clients_edit_${g}`, "sched_client", row.id)))
 				throw forbidden("not allowed to write this field group", { group: g });
 		const { clinicalSealed, ...plain } = row;
 		let sealed = clinicalSealed;

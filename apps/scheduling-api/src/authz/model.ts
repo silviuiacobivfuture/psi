@@ -1,5 +1,4 @@
-import type { SchedType } from "@psi/scheduling-sdk/contract";
-import { appRelations, CATALOGUE, type PermissionDef } from "./catalogue";
+import { appRelation, appRelations, CATALOGUE, type PermissionDef } from "./catalogue";
 
 /**
  * The OpenFGA model of the service as DATA: the manifest is rendered from it, and the in-memory authorizer
@@ -48,7 +47,9 @@ export const PLATFORM_CLAUSE: Term = {
 	via: "parent_platform",
 };
 
-/** Per object type: the relation that makes a person its `own`, and the one that makes it `assigned`. */
+/** The relations that make a person the `own` / `assigned` reach of an object, per type. */
+export const REACH_OWN = "reach_own";
+export const REACH_ASSIGNED = "reach_assigned";
 const REACH: Readonly<Record<string, { own: Term; assigned: Term } | undefined>> = {
 	sched_client: { own: computed("practitioner"), assigned: computed("coordinator") },
 	sched_calendar: { own: computed("owner"), assigned: computed("coordinator") },
@@ -65,14 +66,19 @@ function appClauses(def: PermissionDef): Clause[] {
 	return clauses;
 }
 
-function objectClauses(def: PermissionDef, type: SchedType): Clause[] {
-	const reach = REACH[type];
-	const clauses: Clause[] = [from(`${def.key}_all`, "app")];
-	if (reach === undefined) return clauses;
+/** `key` on an object: the app-wide relation, or the narrower one together with the object's reach. */
+function objectClauses(def: PermissionDef): Clause[] {
+	const clauses: Clause[] = [from(appRelation(def, "all"), "app")];
 	if (def.scopes.includes("assigned"))
-		clauses.push({ kind: "and", all: [from(`${def.key}_assigned`, "app"), reach.assigned] });
+		clauses.push({
+			kind: "and",
+			all: [from(appRelation(def, "assigned"), "app"), computed(REACH_ASSIGNED)],
+		});
 	if (def.scopes.includes("own"))
-		clauses.push({ kind: "and", all: [from(`${def.key}_own`, "app"), reach.own] });
+		clauses.push({
+			kind: "and",
+			all: [from(appRelation(def, "own"), "app"), computed(REACH_OWN)],
+		});
 	return clauses;
 }
 
@@ -106,11 +112,17 @@ export function buildModel(): Model {
 		sched_record: { app: [direct("sched_app")], client: [direct("sched_client")] },
 		sched_file: { app: [direct("sched_app")], client: [direct("sched_client")] },
 	};
+	for (const [type, reach] of Object.entries(REACH)) {
+		const target = model[type];
+		if (target === undefined || reach === undefined) continue;
+		target[REACH_OWN] = [reach.own];
+		target[REACH_ASSIGNED] = [reach.assigned];
+	}
 	for (const def of CATALOGUE) {
+		if (def.objects.length === 1 && def.objects[0] === "sched_app") continue;
 		for (const type of def.objects) {
-			if (type === "sched_app") continue;
 			const target = model[type];
-			if (target !== undefined && def.scopes.length > 0) target[def.key] = objectClauses(def, type);
+			if (target !== undefined) target[def.key] = objectClauses(def);
 		}
 	}
 	return model;

@@ -18,7 +18,7 @@
 						"ro": "Setările aplicației: vede",
 						"en": "App settings: view"
 					},
-					"grants": ["sched_app#app_settings_view"],
+					"grants": ["sched_app#app_settings_view_all"],
 					"effect": "read"
 				},
 				{
@@ -27,7 +27,7 @@
 						"ro": "Setările aplicației: modifică",
 						"en": "App settings: edit"
 					},
-					"grants": ["sched_app#app_settings_edit"],
+					"grants": ["sched_app#app_settings_edit_all"],
 					"effect": "write"
 				}
 			]
@@ -45,8 +45,17 @@
 						"ro": "Echipa: vede",
 						"en": "Team members: view"
 					},
-					"grants": ["sched_app#members_view"],
+					"grants": ["sched_app#members_view_all"],
 					"effect": "read"
+				},
+				{
+					"key": "members_create",
+					"name": {
+						"ro": "Echipa: creează",
+						"en": "Team members: create"
+					},
+					"grants": ["sched_app#members_create_all"],
+					"effect": "write"
 				},
 				{
 					"key": "members_edit",
@@ -54,61 +63,16 @@
 						"ro": "Echipa: modifică",
 						"en": "Team members: edit"
 					},
-					"grants": ["sched_app#members_edit"],
+					"grants": ["sched_app#members_edit_all"],
 					"effect": "write"
 				},
 				{
-					"key": "members_remove",
+					"key": "members_delete",
 					"name": {
-						"ro": "Echipa: elimină",
-						"en": "Team members: remove"
+						"ro": "Echipa: șterge",
+						"en": "Team members: delete"
 					},
-					"grants": ["sched_app#members_remove"],
-					"effect": "write"
-				}
-			]
-		},
-		{
-			"key": "roles",
-			"name": {
-				"ro": "Roluri",
-				"en": "Roles"
-			},
-			"permissions": [
-				{
-					"key": "roles_view",
-					"name": {
-						"ro": "Roluri: vede",
-						"en": "Roles: view"
-					},
-					"grants": ["sched_app#roles_view"],
-					"effect": "read"
-				},
-				{
-					"key": "roles_create",
-					"name": {
-						"ro": "Roluri: creează",
-						"en": "Roles: create"
-					},
-					"grants": ["sched_app#roles_create"],
-					"effect": "write"
-				},
-				{
-					"key": "roles_edit",
-					"name": {
-						"ro": "Roluri: modifică",
-						"en": "Roles: edit"
-					},
-					"grants": ["sched_app#roles_edit"],
-					"effect": "write"
-				},
-				{
-					"key": "roles_delete",
-					"name": {
-						"ro": "Roluri: șterge",
-						"en": "Roles: delete"
-					},
-					"grants": ["sched_app#roles_delete"],
+					"grants": ["sched_app#members_delete_all"],
 					"effect": "write"
 				}
 			]
@@ -126,7 +90,7 @@
 						"ro": "Persoane și practicieni: vede",
 						"en": "People and practitioners: view"
 					},
-					"grants": ["sched_app#people_view"],
+					"grants": ["sched_app#people_view_all", "sched_app#people_view_own"],
 					"effect": "read"
 				},
 				{
@@ -135,7 +99,7 @@
 						"ro": "Persoane și practicieni: creează",
 						"en": "People and practitioners: create"
 					},
-					"grants": ["sched_app#people_create"],
+					"grants": ["sched_app#people_create_all", "sched_app#people_create_own"],
 					"effect": "write"
 				},
 				{
@@ -144,151 +108,106 @@
 						"ro": "Persoane și practicieni: modifică",
 						"en": "People and practitioners: edit"
 					},
-					"grants": ["sched_app#people_edit"],
+					"grants": ["sched_app#people_edit_all", "sched_app#people_edit_own"],
 					"effect": "write"
 				},
 				{
-					"key": "people_delete",
+					"key": "people_archive",
 					"name": {
-						"ro": "Persoane și practicieni: șterge",
-						"en": "People and practitioners: delete"
+						"ro": "Persoane și practicieni: arhivează",
+						"en": "People and practitioners: archive"
 					},
-					"grants": ["sched_app#people_delete"],
-					"effect": "write"
-				}
-			]
-		},
-		{
-			"key": "rooms",
-			"name": {
-				"ro": "Camere",
-				"en": "Rooms"
-			},
-			"permissions": [
-				{
-					"key": "rooms_view",
-					"name": {
-						"ro": "Camere: vede",
-						"en": "Rooms: view"
-					},
-					"grants": ["sched_app#rooms_view"],
-					"effect": "read"
-				},
-				{
-					"key": "rooms_create",
-					"name": {
-						"ro": "Camere: creează",
-						"en": "Rooms: create"
-					},
-					"grants": ["sched_app#rooms_create"],
-					"effect": "write"
-				},
-				{
-					"key": "rooms_edit",
-					"name": {
-						"ro": "Camere: modifică",
-						"en": "Rooms: edit"
-					},
-					"grants": ["sched_app#rooms_edit"],
-					"effect": "write"
-				},
-				{
-					"key": "rooms_delete",
-					"name": {
-						"ro": "Camere: șterge",
-						"en": "Rooms: delete"
-					},
-					"grants": ["sched_app#rooms_delete"],
+					"grants": ["sched_app#people_archive_all", "sched_app#people_archive_own"],
 					"effect": "write"
 				}
 			]
 		},
 		{
-			"key": "devices",
+			"key": "roles",
 			"name": {
-				"ro": "Aparate",
-				"en": "Devices"
+				"ro": "Roluri",
+				"en": "Roles"
 			},
 			"permissions": [
 				{
-					"key": "devices_view",
+					"key": "roles_view",
 					"name": {
-						"ro": "Aparate: vede",
-						"en": "Devices: view"
+						"ro": "Roluri: vede",
+						"en": "Roles: view"
 					},
-					"grants": ["sched_app#devices_view"],
+					"grants": ["sched_app#roles_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "devices_create",
+					"key": "roles_create",
 					"name": {
-						"ro": "Aparate: creează",
-						"en": "Devices: create"
+						"ro": "Roluri: creează",
+						"en": "Roles: create"
 					},
-					"grants": ["sched_app#devices_create"],
+					"grants": ["sched_app#roles_create_all"],
 					"effect": "write"
 				},
 				{
-					"key": "devices_edit",
+					"key": "roles_edit",
 					"name": {
-						"ro": "Aparate: modifică",
-						"en": "Devices: edit"
+						"ro": "Roluri: modifică",
+						"en": "Roles: edit"
 					},
-					"grants": ["sched_app#devices_edit"],
+					"grants": ["sched_app#roles_edit_all"],
 					"effect": "write"
 				},
 				{
-					"key": "devices_delete",
+					"key": "roles_delete",
 					"name": {
-						"ro": "Aparate: șterge",
-						"en": "Devices: delete"
+						"ro": "Roluri: șterge",
+						"en": "Roles: delete"
 					},
-					"grants": ["sched_app#devices_delete"],
+					"grants": ["sched_app#roles_delete_all"],
 					"effect": "write"
 				}
 			]
 		},
 		{
-			"key": "groups",
+			"key": "builder",
 			"name": {
-				"ro": "Activități de grup",
-				"en": "Group activities"
+				"ro": "Constructor",
+				"en": "Builder"
 			},
 			"permissions": [
 				{
-					"key": "groups_view",
+					"key": "builder_view",
 					"name": {
-						"ro": "Activități de grup: vede",
-						"en": "Group activities: view"
+						"ro": "Constructor: vede",
+						"en": "Builder: view"
 					},
-					"grants": ["sched_app#groups_view"],
+					"grants": ["sched_app#builder_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "groups_create",
+					"key": "builder_create",
 					"name": {
-						"ro": "Activități de grup: creează",
-						"en": "Group activities: create"
+						"ro": "Constructor: creează",
+						"en": "Builder: create"
 					},
-					"grants": ["sched_app#groups_create"],
+					"grants": ["sched_app#builder_create_all"],
 					"effect": "write"
 				},
 				{
-					"key": "groups_edit",
+					"key": "builder_edit",
 					"name": {
-						"ro": "Activități de grup: modifică",
-						"en": "Group activities: edit"
+						"ro": "Constructor: modifică",
+						"en": "Builder: edit"
 					},
-					"grants": ["sched_app#groups_edit"],
+					"grants": ["sched_app#builder_edit_all"],
 					"effect": "write"
 				},
 				{
-					"key": "groups_delete",
+					"key": "builder_delete",
 					"name": {
-						"ro": "Activități de grup: șterge",
-						"en": "Group activities: delete"
+						"ro": "Constructor: șterge",
+						"en": "Builder: delete"
 					},
-					"grants": ["sched_app#groups_delete"],
+					"grants": ["sched_app#builder_delete_all"],
 					"effect": "write"
 				}
 			]
@@ -306,7 +225,7 @@
 						"ro": "Servicii: vede",
 						"en": "Services: view"
 					},
-					"grants": ["sched_app#services_view"],
+					"grants": ["sched_app#services_view_all"],
 					"effect": "read"
 				},
 				{
@@ -315,7 +234,7 @@
 						"ro": "Servicii: creează",
 						"en": "Services: create"
 					},
-					"grants": ["sched_app#services_create"],
+					"grants": ["sched_app#services_create_all"],
 					"effect": "write"
 				},
 				{
@@ -324,7 +243,7 @@
 						"ro": "Servicii: modifică",
 						"en": "Services: edit"
 					},
-					"grants": ["sched_app#services_edit"],
+					"grants": ["sched_app#services_edit_all"],
 					"effect": "write"
 				},
 				{
@@ -333,7 +252,16 @@
 						"ro": "Servicii: șterge",
 						"en": "Services: delete"
 					},
-					"grants": ["sched_app#services_delete"],
+					"grants": ["sched_app#services_delete_all"],
+					"effect": "write"
+				},
+				{
+					"key": "services_price",
+					"name": {
+						"ro": "Servicii: stabilește prețul",
+						"en": "Services: set the price"
+					},
+					"grants": ["sched_app#services_price_all"],
 					"effect": "write"
 				}
 			]
@@ -351,39 +279,200 @@
 						"ro": "Prețuri: vede",
 						"en": "Prices: view"
 					},
-					"grants": ["sched_app#prices_view"],
+					"grants": ["sched_app#prices_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "prices_change",
+					"key": "prices_edit",
 					"name": {
-						"ro": "Prețuri: schimbă",
-						"en": "Prices: change"
+						"ro": "Prețuri: modifică",
+						"en": "Prices: edit"
 					},
-					"grants": ["sched_app#prices_change"],
+					"grants": ["sched_app#prices_edit_all"],
 					"effect": "write"
 				}
 			]
 		},
 		{
-			"key": "calendar",
+			"key": "rooms",
 			"name": {
-				"ro": "Calendar",
-				"en": "Calendar"
+				"ro": "Camere",
+				"en": "Rooms"
 			},
 			"permissions": [
 				{
-					"key": "calendar_view",
+					"key": "rooms_view",
 					"name": {
-						"ro": "Calendar: vede",
-						"en": "Calendar: view"
+						"ro": "Camere: vede",
+						"en": "Rooms: view"
+					},
+					"grants": ["sched_app#rooms_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "rooms_create",
+					"name": {
+						"ro": "Camere: creează",
+						"en": "Rooms: create"
+					},
+					"grants": ["sched_app#rooms_create_all"],
+					"effect": "write"
+				},
+				{
+					"key": "rooms_edit",
+					"name": {
+						"ro": "Camere: modifică",
+						"en": "Rooms: edit"
+					},
+					"grants": ["sched_app#rooms_edit_all"],
+					"effect": "write"
+				},
+				{
+					"key": "rooms_delete",
+					"name": {
+						"ro": "Camere: șterge",
+						"en": "Rooms: delete"
+					},
+					"grants": ["sched_app#rooms_delete_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "devices",
+			"name": {
+				"ro": "Aparate",
+				"en": "Devices"
+			},
+			"permissions": [
+				{
+					"key": "devices_view",
+					"name": {
+						"ro": "Aparate: vede",
+						"en": "Devices: view"
+					},
+					"grants": ["sched_app#devices_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "devices_create",
+					"name": {
+						"ro": "Aparate: creează",
+						"en": "Devices: create"
+					},
+					"grants": ["sched_app#devices_create_all"],
+					"effect": "write"
+				},
+				{
+					"key": "devices_edit",
+					"name": {
+						"ro": "Aparate: modifică",
+						"en": "Devices: edit"
+					},
+					"grants": ["sched_app#devices_edit_all"],
+					"effect": "write"
+				},
+				{
+					"key": "devices_delete",
+					"name": {
+						"ro": "Aparate: șterge",
+						"en": "Devices: delete"
+					},
+					"grants": ["sched_app#devices_delete_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "group_activities",
+			"name": {
+				"ro": "Activități de grup",
+				"en": "Group activities"
+			},
+			"permissions": [
+				{
+					"key": "group_activities_view",
+					"name": {
+						"ro": "Activități de grup: vede",
+						"en": "Group activities: view"
+					},
+					"grants": ["sched_app#group_activities_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "group_activities_create",
+					"name": {
+						"ro": "Activități de grup: creează",
+						"en": "Group activities: create"
+					},
+					"grants": ["sched_app#group_activities_create_all"],
+					"effect": "write"
+				},
+				{
+					"key": "group_activities_edit",
+					"name": {
+						"ro": "Activități de grup: modifică",
+						"en": "Group activities: edit"
+					},
+					"grants": ["sched_app#group_activities_edit_all"],
+					"effect": "write"
+				},
+				{
+					"key": "group_activities_delete",
+					"name": {
+						"ro": "Activități de grup: șterge",
+						"en": "Group activities: delete"
+					},
+					"grants": ["sched_app#group_activities_delete_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "calendars",
+			"name": {
+				"ro": "Calendare",
+				"en": "Calendars"
+			},
+			"permissions": [
+				{
+					"key": "calendars_view",
+					"name": {
+						"ro": "Calendare: vede",
+						"en": "Calendars: view"
 					},
 					"grants": [
-						"sched_app#calendar_view_all",
-						"sched_app#calendar_view_assigned",
-						"sched_app#calendar_view_own"
+						"sched_app#calendars_view_all",
+						"sched_app#calendars_view_assigned",
+						"sched_app#calendars_view_own"
 					],
 					"effect": "read"
+				},
+				{
+					"key": "calendars_edit",
+					"name": {
+						"ro": "Calendare: modifică",
+						"en": "Calendars: edit"
+					},
+					"grants": [
+						"sched_app#calendars_edit_all",
+						"sched_app#calendars_edit_assigned",
+						"sched_app#calendars_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "calendars_assign",
+					"name": {
+						"ro": "Calendare: atribuie",
+						"en": "Calendars: assign"
+					},
+					"grants": [
+						"sched_app#calendars_assign_all",
+						"sched_app#calendars_assign_assigned",
+						"sched_app#calendars_assign_own"
+					],
+					"effect": "write"
 				}
 			]
 		},
@@ -408,6 +497,45 @@
 					"effect": "read"
 				},
 				{
+					"key": "appointments_view_core",
+					"name": {
+						"ro": "Programări: vede (detalii)",
+						"en": "Appointments: view (details)"
+					},
+					"grants": [
+						"sched_app#appointments_view_all_core",
+						"sched_app#appointments_view_assigned_core",
+						"sched_app#appointments_view_own_core"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "appointments_view_money",
+					"name": {
+						"ro": "Programări: vede (sume)",
+						"en": "Appointments: view (money)"
+					},
+					"grants": [
+						"sched_app#appointments_view_all_money",
+						"sched_app#appointments_view_assigned_money",
+						"sched_app#appointments_view_own_money"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "appointments_view_clinical",
+					"name": {
+						"ro": "Programări: vede (clinic)",
+						"en": "Appointments: view (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_view_all_clinical",
+						"sched_app#appointments_view_assigned_clinical",
+						"sched_app#appointments_view_own_clinical"
+					],
+					"effect": "read"
+				},
+				{
 					"key": "appointments_create",
 					"name": {
 						"ro": "Programări: creează",
@@ -417,6 +545,45 @@
 						"sched_app#appointments_create_all",
 						"sched_app#appointments_create_assigned",
 						"sched_app#appointments_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_create_core",
+					"name": {
+						"ro": "Programări: creează (detalii)",
+						"en": "Appointments: create (details)"
+					},
+					"grants": [
+						"sched_app#appointments_create_all_core",
+						"sched_app#appointments_create_assigned_core",
+						"sched_app#appointments_create_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_create_money",
+					"name": {
+						"ro": "Programări: creează (sume)",
+						"en": "Appointments: create (money)"
+					},
+					"grants": [
+						"sched_app#appointments_create_all_money",
+						"sched_app#appointments_create_assigned_money",
+						"sched_app#appointments_create_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_create_clinical",
+					"name": {
+						"ro": "Programări: creează (clinic)",
+						"en": "Appointments: create (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_create_all_clinical",
+						"sched_app#appointments_create_assigned_clinical",
+						"sched_app#appointments_create_own_clinical"
 					],
 					"effect": "write"
 				},
@@ -434,6 +601,45 @@
 					"effect": "write"
 				},
 				{
+					"key": "appointments_edit_core",
+					"name": {
+						"ro": "Programări: modifică (detalii)",
+						"en": "Appointments: edit (details)"
+					},
+					"grants": [
+						"sched_app#appointments_edit_all_core",
+						"sched_app#appointments_edit_assigned_core",
+						"sched_app#appointments_edit_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_edit_money",
+					"name": {
+						"ro": "Programări: modifică (sume)",
+						"en": "Appointments: edit (money)"
+					},
+					"grants": [
+						"sched_app#appointments_edit_all_money",
+						"sched_app#appointments_edit_assigned_money",
+						"sched_app#appointments_edit_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_edit_clinical",
+					"name": {
+						"ro": "Programări: modifică (clinic)",
+						"en": "Appointments: edit (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_edit_all_clinical",
+						"sched_app#appointments_edit_assigned_clinical",
+						"sched_app#appointments_edit_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
 					"key": "appointments_cancel",
 					"name": {
 						"ro": "Programări: anulează",
@@ -447,15 +653,145 @@
 					"effect": "write"
 				},
 				{
-					"key": "appointments_attend",
+					"key": "appointments_cancel_core",
 					"name": {
-						"ro": "Programări: marchează prezența",
-						"en": "Appointments: mark attendance"
+						"ro": "Programări: anulează (detalii)",
+						"en": "Appointments: cancel (details)"
 					},
 					"grants": [
-						"sched_app#appointments_attend_all",
-						"sched_app#appointments_attend_assigned",
-						"sched_app#appointments_attend_own"
+						"sched_app#appointments_cancel_all_core",
+						"sched_app#appointments_cancel_assigned_core",
+						"sched_app#appointments_cancel_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_cancel_money",
+					"name": {
+						"ro": "Programări: anulează (sume)",
+						"en": "Appointments: cancel (money)"
+					},
+					"grants": [
+						"sched_app#appointments_cancel_all_money",
+						"sched_app#appointments_cancel_assigned_money",
+						"sched_app#appointments_cancel_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_cancel_clinical",
+					"name": {
+						"ro": "Programări: anulează (clinic)",
+						"en": "Appointments: cancel (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_cancel_all_clinical",
+						"sched_app#appointments_cancel_assigned_clinical",
+						"sched_app#appointments_cancel_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_delete",
+					"name": {
+						"ro": "Programări: șterge",
+						"en": "Appointments: delete"
+					},
+					"grants": [
+						"sched_app#appointments_delete_all",
+						"sched_app#appointments_delete_assigned",
+						"sched_app#appointments_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_delete_core",
+					"name": {
+						"ro": "Programări: șterge (detalii)",
+						"en": "Appointments: delete (details)"
+					},
+					"grants": [
+						"sched_app#appointments_delete_all_core",
+						"sched_app#appointments_delete_assigned_core",
+						"sched_app#appointments_delete_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_delete_money",
+					"name": {
+						"ro": "Programări: șterge (sume)",
+						"en": "Appointments: delete (money)"
+					},
+					"grants": [
+						"sched_app#appointments_delete_all_money",
+						"sched_app#appointments_delete_assigned_money",
+						"sched_app#appointments_delete_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_delete_clinical",
+					"name": {
+						"ro": "Programări: șterge (clinic)",
+						"en": "Appointments: delete (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_delete_all_clinical",
+						"sched_app#appointments_delete_assigned_clinical",
+						"sched_app#appointments_delete_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_restore",
+					"name": {
+						"ro": "Programări: restaurează",
+						"en": "Appointments: restore"
+					},
+					"grants": [
+						"sched_app#appointments_restore_all",
+						"sched_app#appointments_restore_assigned",
+						"sched_app#appointments_restore_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_restore_core",
+					"name": {
+						"ro": "Programări: restaurează (detalii)",
+						"en": "Appointments: restore (details)"
+					},
+					"grants": [
+						"sched_app#appointments_restore_all_core",
+						"sched_app#appointments_restore_assigned_core",
+						"sched_app#appointments_restore_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_restore_money",
+					"name": {
+						"ro": "Programări: restaurează (sume)",
+						"en": "Appointments: restore (money)"
+					},
+					"grants": [
+						"sched_app#appointments_restore_all_money",
+						"sched_app#appointments_restore_assigned_money",
+						"sched_app#appointments_restore_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_restore_clinical",
+					"name": {
+						"ro": "Programări: restaurează (clinic)",
+						"en": "Appointments: restore (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_restore_all_clinical",
+						"sched_app#appointments_restore_assigned_clinical",
+						"sched_app#appointments_restore_own_clinical"
 					],
 					"effect": "write"
 				},
@@ -473,28 +809,93 @@
 					"effect": "write"
 				},
 				{
-					"key": "appointments_money_view",
+					"key": "appointments_assign_core",
 					"name": {
-						"ro": "Programări: vede sumele",
-						"en": "Appointments: see money"
+						"ro": "Programări: atribuie (detalii)",
+						"en": "Appointments: assign (details)"
 					},
 					"grants": [
-						"sched_app#appointments_money_view_all",
-						"sched_app#appointments_money_view_assigned",
-						"sched_app#appointments_money_view_own"
+						"sched_app#appointments_assign_all_core",
+						"sched_app#appointments_assign_assigned_core",
+						"sched_app#appointments_assign_own_core"
 					],
-					"effect": "read"
+					"effect": "write"
 				},
 				{
-					"key": "appointments_money_edit",
+					"key": "appointments_assign_money",
 					"name": {
-						"ro": "Programări: modifică sumele",
-						"en": "Appointments: edit money"
+						"ro": "Programări: atribuie (sume)",
+						"en": "Appointments: assign (money)"
 					},
 					"grants": [
-						"sched_app#appointments_money_edit_all",
-						"sched_app#appointments_money_edit_assigned",
-						"sched_app#appointments_money_edit_own"
+						"sched_app#appointments_assign_all_money",
+						"sched_app#appointments_assign_assigned_money",
+						"sched_app#appointments_assign_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_assign_clinical",
+					"name": {
+						"ro": "Programări: atribuie (clinic)",
+						"en": "Appointments: assign (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_assign_all_clinical",
+						"sched_app#appointments_assign_assigned_clinical",
+						"sched_app#appointments_assign_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_send",
+					"name": {
+						"ro": "Programări: trimite",
+						"en": "Appointments: send"
+					},
+					"grants": [
+						"sched_app#appointments_send_all",
+						"sched_app#appointments_send_assigned",
+						"sched_app#appointments_send_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_send_core",
+					"name": {
+						"ro": "Programări: trimite (detalii)",
+						"en": "Appointments: send (details)"
+					},
+					"grants": [
+						"sched_app#appointments_send_all_core",
+						"sched_app#appointments_send_assigned_core",
+						"sched_app#appointments_send_own_core"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_send_money",
+					"name": {
+						"ro": "Programări: trimite (sume)",
+						"en": "Appointments: send (money)"
+					},
+					"grants": [
+						"sched_app#appointments_send_all_money",
+						"sched_app#appointments_send_assigned_money",
+						"sched_app#appointments_send_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "appointments_send_clinical",
+					"name": {
+						"ro": "Programări: trimite (clinic)",
+						"en": "Appointments: send (clinical)"
+					},
+					"grants": [
+						"sched_app#appointments_send_all_clinical",
+						"sched_app#appointments_send_assigned_clinical",
+						"sched_app#appointments_send_own_clinical"
 					],
 					"effect": "write"
 				}
@@ -507,15 +908,6 @@
 				"en": "Clients"
 			},
 			"permissions": [
-				{
-					"key": "clients_create",
-					"name": {
-						"ro": "Clienți: creează",
-						"en": "Clients: create"
-					},
-					"grants": ["sched_app#clients_create"],
-					"effect": "write"
-				},
 				{
 					"key": "clients_view",
 					"name": {
@@ -530,6 +922,123 @@
 					"effect": "read"
 				},
 				{
+					"key": "clients_view_contact",
+					"name": {
+						"ro": "Clienți: vede (contact)",
+						"en": "Clients: view (contact)"
+					},
+					"grants": [
+						"sched_app#clients_view_all_contact",
+						"sched_app#clients_view_assigned_contact",
+						"sched_app#clients_view_own_contact"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "clients_view_guardian",
+					"name": {
+						"ro": "Clienți: vede (aparținător)",
+						"en": "Clients: view (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_view_all_guardian",
+						"sched_app#clients_view_assigned_guardian",
+						"sched_app#clients_view_own_guardian"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "clients_view_money",
+					"name": {
+						"ro": "Clienți: vede (sume)",
+						"en": "Clients: view (money)"
+					},
+					"grants": [
+						"sched_app#clients_view_all_money",
+						"sched_app#clients_view_assigned_money",
+						"sched_app#clients_view_own_money"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "clients_view_clinical",
+					"name": {
+						"ro": "Clienți: vede (clinic)",
+						"en": "Clients: view (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_view_all_clinical",
+						"sched_app#clients_view_assigned_clinical",
+						"sched_app#clients_view_own_clinical"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "clients_create",
+					"name": {
+						"ro": "Clienți: creează",
+						"en": "Clients: create"
+					},
+					"grants": [
+						"sched_app#clients_create_all",
+						"sched_app#clients_create_assigned",
+						"sched_app#clients_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_create_contact",
+					"name": {
+						"ro": "Clienți: creează (contact)",
+						"en": "Clients: create (contact)"
+					},
+					"grants": [
+						"sched_app#clients_create_all_contact",
+						"sched_app#clients_create_assigned_contact",
+						"sched_app#clients_create_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_create_guardian",
+					"name": {
+						"ro": "Clienți: creează (aparținător)",
+						"en": "Clients: create (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_create_all_guardian",
+						"sched_app#clients_create_assigned_guardian",
+						"sched_app#clients_create_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_create_money",
+					"name": {
+						"ro": "Clienți: creează (sume)",
+						"en": "Clients: create (money)"
+					},
+					"grants": [
+						"sched_app#clients_create_all_money",
+						"sched_app#clients_create_assigned_money",
+						"sched_app#clients_create_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_create_clinical",
+					"name": {
+						"ro": "Clienți: creează (clinic)",
+						"en": "Clients: create (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_create_all_clinical",
+						"sched_app#clients_create_assigned_clinical",
+						"sched_app#clients_create_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
 					"key": "clients_edit",
 					"name": {
 						"ro": "Clienți: modifică",
@@ -539,6 +1048,58 @@
 						"sched_app#clients_edit_all",
 						"sched_app#clients_edit_assigned",
 						"sched_app#clients_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_edit_contact",
+					"name": {
+						"ro": "Clienți: modifică (contact)",
+						"en": "Clients: edit (contact)"
+					},
+					"grants": [
+						"sched_app#clients_edit_all_contact",
+						"sched_app#clients_edit_assigned_contact",
+						"sched_app#clients_edit_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_edit_guardian",
+					"name": {
+						"ro": "Clienți: modifică (aparținător)",
+						"en": "Clients: edit (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_edit_all_guardian",
+						"sched_app#clients_edit_assigned_guardian",
+						"sched_app#clients_edit_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_edit_money",
+					"name": {
+						"ro": "Clienți: modifică (sume)",
+						"en": "Clients: edit (money)"
+					},
+					"grants": [
+						"sched_app#clients_edit_all_money",
+						"sched_app#clients_edit_assigned_money",
+						"sched_app#clients_edit_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_edit_clinical",
+					"name": {
+						"ro": "Clienți: modifică (clinic)",
+						"en": "Clients: edit (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_edit_all_clinical",
+						"sched_app#clients_edit_assigned_clinical",
+						"sched_app#clients_edit_own_clinical"
 					],
 					"effect": "write"
 				},
@@ -556,15 +1117,54 @@
 					"effect": "write"
 				},
 				{
-					"key": "clients_restore",
+					"key": "clients_archive_contact",
 					"name": {
-						"ro": "Clienți: restaurează",
-						"en": "Clients: restore"
+						"ro": "Clienți: arhivează (contact)",
+						"en": "Clients: archive (contact)"
 					},
 					"grants": [
-						"sched_app#clients_restore_all",
-						"sched_app#clients_restore_assigned",
-						"sched_app#clients_restore_own"
+						"sched_app#clients_archive_all_contact",
+						"sched_app#clients_archive_assigned_contact",
+						"sched_app#clients_archive_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_archive_guardian",
+					"name": {
+						"ro": "Clienți: arhivează (aparținător)",
+						"en": "Clients: archive (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_archive_all_guardian",
+						"sched_app#clients_archive_assigned_guardian",
+						"sched_app#clients_archive_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_archive_money",
+					"name": {
+						"ro": "Clienți: arhivează (sume)",
+						"en": "Clients: archive (money)"
+					},
+					"grants": [
+						"sched_app#clients_archive_all_money",
+						"sched_app#clients_archive_assigned_money",
+						"sched_app#clients_archive_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_archive_clinical",
+					"name": {
+						"ro": "Clienți: arhivează (clinic)",
+						"en": "Clients: archive (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_archive_all_clinical",
+						"sched_app#clients_archive_assigned_clinical",
+						"sched_app#clients_archive_own_clinical"
 					],
 					"effect": "write"
 				},
@@ -582,15 +1182,119 @@
 					"effect": "write"
 				},
 				{
-					"key": "clients_assign",
+					"key": "clients_delete_contact",
 					"name": {
-						"ro": "Clienți: atribuie",
-						"en": "Clients: assign"
+						"ro": "Clienți: șterge (contact)",
+						"en": "Clients: delete (contact)"
 					},
 					"grants": [
-						"sched_app#clients_assign_all",
-						"sched_app#clients_assign_assigned",
-						"sched_app#clients_assign_own"
+						"sched_app#clients_delete_all_contact",
+						"sched_app#clients_delete_assigned_contact",
+						"sched_app#clients_delete_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_delete_guardian",
+					"name": {
+						"ro": "Clienți: șterge (aparținător)",
+						"en": "Clients: delete (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_delete_all_guardian",
+						"sched_app#clients_delete_assigned_guardian",
+						"sched_app#clients_delete_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_delete_money",
+					"name": {
+						"ro": "Clienți: șterge (sume)",
+						"en": "Clients: delete (money)"
+					},
+					"grants": [
+						"sched_app#clients_delete_all_money",
+						"sched_app#clients_delete_assigned_money",
+						"sched_app#clients_delete_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_delete_clinical",
+					"name": {
+						"ro": "Clienți: șterge (clinic)",
+						"en": "Clients: delete (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_delete_all_clinical",
+						"sched_app#clients_delete_assigned_clinical",
+						"sched_app#clients_delete_own_clinical"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_restore",
+					"name": {
+						"ro": "Clienți: restaurează",
+						"en": "Clients: restore"
+					},
+					"grants": [
+						"sched_app#clients_restore_all",
+						"sched_app#clients_restore_assigned",
+						"sched_app#clients_restore_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_restore_contact",
+					"name": {
+						"ro": "Clienți: restaurează (contact)",
+						"en": "Clients: restore (contact)"
+					},
+					"grants": [
+						"sched_app#clients_restore_all_contact",
+						"sched_app#clients_restore_assigned_contact",
+						"sched_app#clients_restore_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_restore_guardian",
+					"name": {
+						"ro": "Clienți: restaurează (aparținător)",
+						"en": "Clients: restore (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_restore_all_guardian",
+						"sched_app#clients_restore_assigned_guardian",
+						"sched_app#clients_restore_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_restore_money",
+					"name": {
+						"ro": "Clienți: restaurează (sume)",
+						"en": "Clients: restore (money)"
+					},
+					"grants": [
+						"sched_app#clients_restore_all_money",
+						"sched_app#clients_restore_assigned_money",
+						"sched_app#clients_restore_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_restore_clinical",
+					"name": {
+						"ro": "Clienți: restaurează (clinic)",
+						"en": "Clients: restore (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_restore_all_clinical",
+						"sched_app#clients_restore_assigned_clinical",
+						"sched_app#clients_restore_own_clinical"
 					],
 					"effect": "write"
 				},
@@ -608,108 +1312,539 @@
 					"effect": "read"
 				},
 				{
-					"key": "clients_contact_view",
+					"key": "clients_export_contact",
 					"name": {
-						"ro": "Clienți: vede datele de contact",
-						"en": "Clients: see contact data"
+						"ro": "Clienți: exportă (contact)",
+						"en": "Clients: export (contact)"
 					},
 					"grants": [
-						"sched_app#clients_contact_view_all",
-						"sched_app#clients_contact_view_assigned",
-						"sched_app#clients_contact_view_own"
+						"sched_app#clients_export_all_contact",
+						"sched_app#clients_export_assigned_contact",
+						"sched_app#clients_export_own_contact"
 					],
 					"effect": "read"
 				},
 				{
-					"key": "clients_contact_edit",
+					"key": "clients_export_guardian",
 					"name": {
-						"ro": "Clienți: modifică datele de contact",
-						"en": "Clients: edit contact data"
+						"ro": "Clienți: exportă (aparținător)",
+						"en": "Clients: export (guardian)"
 					},
 					"grants": [
-						"sched_app#clients_contact_edit_all",
-						"sched_app#clients_contact_edit_assigned",
-						"sched_app#clients_contact_edit_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "clients_guardian_view",
-					"name": {
-						"ro": "Clienți: vede datele aparținătorului",
-						"en": "Clients: see guardian data"
-					},
-					"grants": [
-						"sched_app#clients_guardian_view_all",
-						"sched_app#clients_guardian_view_assigned",
-						"sched_app#clients_guardian_view_own"
+						"sched_app#clients_export_all_guardian",
+						"sched_app#clients_export_assigned_guardian",
+						"sched_app#clients_export_own_guardian"
 					],
 					"effect": "read"
 				},
 				{
-					"key": "clients_guardian_edit",
+					"key": "clients_export_money",
 					"name": {
-						"ro": "Clienți: modifică datele aparținătorului",
-						"en": "Clients: edit guardian data"
+						"ro": "Clienți: exportă (sume)",
+						"en": "Clients: export (money)"
 					},
 					"grants": [
-						"sched_app#clients_guardian_edit_all",
-						"sched_app#clients_guardian_edit_assigned",
-						"sched_app#clients_guardian_edit_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "clients_money_view",
-					"name": {
-						"ro": "Clienți: vede sumele",
-						"en": "Clients: see money"
-					},
-					"grants": [
-						"sched_app#clients_money_view_all",
-						"sched_app#clients_money_view_assigned",
-						"sched_app#clients_money_view_own"
+						"sched_app#clients_export_all_money",
+						"sched_app#clients_export_assigned_money",
+						"sched_app#clients_export_own_money"
 					],
 					"effect": "read"
 				},
 				{
-					"key": "clients_money_edit",
+					"key": "clients_export_clinical",
 					"name": {
-						"ro": "Clienți: modifică sumele",
-						"en": "Clients: edit money"
+						"ro": "Clienți: exportă (clinic)",
+						"en": "Clients: export (clinical)"
 					},
 					"grants": [
-						"sched_app#clients_money_edit_all",
-						"sched_app#clients_money_edit_assigned",
-						"sched_app#clients_money_edit_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "clients_clinical_view",
-					"name": {
-						"ro": "Clienți: citește conținutul clinic",
-						"en": "Clients: read clinical content"
-					},
-					"grants": [
-						"sched_app#clients_clinical_view_all",
-						"sched_app#clients_clinical_view_assigned",
-						"sched_app#clients_clinical_view_own"
+						"sched_app#clients_export_all_clinical",
+						"sched_app#clients_export_assigned_clinical",
+						"sched_app#clients_export_own_clinical"
 					],
 					"effect": "read"
 				},
 				{
-					"key": "clients_clinical_edit",
+					"key": "clients_assign",
 					"name": {
-						"ro": "Clienți: modifică datele clinice",
-						"en": "Clients: edit clinical data"
+						"ro": "Clienți: atribuie",
+						"en": "Clients: assign"
 					},
 					"grants": [
-						"sched_app#clients_clinical_edit_all",
-						"sched_app#clients_clinical_edit_assigned",
-						"sched_app#clients_clinical_edit_own"
+						"sched_app#clients_assign_all",
+						"sched_app#clients_assign_assigned",
+						"sched_app#clients_assign_own"
 					],
 					"effect": "write"
+				},
+				{
+					"key": "clients_assign_contact",
+					"name": {
+						"ro": "Clienți: atribuie (contact)",
+						"en": "Clients: assign (contact)"
+					},
+					"grants": [
+						"sched_app#clients_assign_all_contact",
+						"sched_app#clients_assign_assigned_contact",
+						"sched_app#clients_assign_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_assign_guardian",
+					"name": {
+						"ro": "Clienți: atribuie (aparținător)",
+						"en": "Clients: assign (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_assign_all_guardian",
+						"sched_app#clients_assign_assigned_guardian",
+						"sched_app#clients_assign_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_assign_money",
+					"name": {
+						"ro": "Clienți: atribuie (sume)",
+						"en": "Clients: assign (money)"
+					},
+					"grants": [
+						"sched_app#clients_assign_all_money",
+						"sched_app#clients_assign_assigned_money",
+						"sched_app#clients_assign_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_assign_clinical",
+					"name": {
+						"ro": "Clienți: atribuie (clinic)",
+						"en": "Clients: assign (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_assign_all_clinical",
+						"sched_app#clients_assign_assigned_clinical",
+						"sched_app#clients_assign_own_clinical"
+					],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "report_aba",
+			"name": {
+				"ro": "Rapoarte ABA",
+				"en": "ABA reports"
+			},
+			"permissions": [
+				{
+					"key": "report_aba_view",
+					"name": {
+						"ro": "Rapoarte ABA: vede",
+						"en": "ABA reports: view"
+					},
+					"grants": [
+						"sched_app#report_aba_view_all",
+						"sched_app#report_aba_view_assigned",
+						"sched_app#report_aba_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "report_aba_create",
+					"name": {
+						"ro": "Rapoarte ABA: creează",
+						"en": "ABA reports: create"
+					},
+					"grants": [
+						"sched_app#report_aba_create_all",
+						"sched_app#report_aba_create_assigned",
+						"sched_app#report_aba_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_aba_edit",
+					"name": {
+						"ro": "Rapoarte ABA: modifică",
+						"en": "ABA reports: edit"
+					},
+					"grants": [
+						"sched_app#report_aba_edit_all",
+						"sched_app#report_aba_edit_assigned",
+						"sched_app#report_aba_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_aba_delete",
+					"name": {
+						"ro": "Rapoarte ABA: șterge",
+						"en": "ABA reports: delete"
+					},
+					"grants": [
+						"sched_app#report_aba_delete_all",
+						"sched_app#report_aba_delete_assigned",
+						"sched_app#report_aba_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_aba_export",
+					"name": {
+						"ro": "Rapoarte ABA: exportă",
+						"en": "ABA reports: export"
+					},
+					"grants": [
+						"sched_app#report_aba_export_all",
+						"sched_app#report_aba_export_assigned",
+						"sched_app#report_aba_export_own"
+					],
+					"effect": "read"
+				}
+			]
+		},
+		{
+			"key": "report_racemeup",
+			"name": {
+				"ro": "Rapoarte Race Me Up",
+				"en": "Race Me Up reports"
+			},
+			"permissions": [
+				{
+					"key": "report_racemeup_view",
+					"name": {
+						"ro": "Rapoarte Race Me Up: vede",
+						"en": "Race Me Up reports: view"
+					},
+					"grants": [
+						"sched_app#report_racemeup_view_all",
+						"sched_app#report_racemeup_view_assigned",
+						"sched_app#report_racemeup_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "report_racemeup_create",
+					"name": {
+						"ro": "Rapoarte Race Me Up: creează",
+						"en": "Race Me Up reports: create"
+					},
+					"grants": [
+						"sched_app#report_racemeup_create_all",
+						"sched_app#report_racemeup_create_assigned",
+						"sched_app#report_racemeup_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_racemeup_edit",
+					"name": {
+						"ro": "Rapoarte Race Me Up: modifică",
+						"en": "Race Me Up reports: edit"
+					},
+					"grants": [
+						"sched_app#report_racemeup_edit_all",
+						"sched_app#report_racemeup_edit_assigned",
+						"sched_app#report_racemeup_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_racemeup_delete",
+					"name": {
+						"ro": "Rapoarte Race Me Up: șterge",
+						"en": "Race Me Up reports: delete"
+					},
+					"grants": [
+						"sched_app#report_racemeup_delete_all",
+						"sched_app#report_racemeup_delete_assigned",
+						"sched_app#report_racemeup_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_racemeup_export",
+					"name": {
+						"ro": "Rapoarte Race Me Up: exportă",
+						"en": "Race Me Up reports: export"
+					},
+					"grants": [
+						"sched_app#report_racemeup_export_all",
+						"sched_app#report_racemeup_export_assigned",
+						"sched_app#report_racemeup_export_own"
+					],
+					"effect": "read"
+				}
+			]
+		},
+		{
+			"key": "report_psychotherapy",
+			"name": {
+				"ro": "Rapoarte de psihoterapie",
+				"en": "Psychotherapy reports"
+			},
+			"permissions": [
+				{
+					"key": "report_psychotherapy_view",
+					"name": {
+						"ro": "Rapoarte de psihoterapie: vede",
+						"en": "Psychotherapy reports: view"
+					},
+					"grants": [
+						"sched_app#report_psychotherapy_view_all",
+						"sched_app#report_psychotherapy_view_assigned",
+						"sched_app#report_psychotherapy_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "report_psychotherapy_create",
+					"name": {
+						"ro": "Rapoarte de psihoterapie: creează",
+						"en": "Psychotherapy reports: create"
+					},
+					"grants": [
+						"sched_app#report_psychotherapy_create_all",
+						"sched_app#report_psychotherapy_create_assigned",
+						"sched_app#report_psychotherapy_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_psychotherapy_edit",
+					"name": {
+						"ro": "Rapoarte de psihoterapie: modifică",
+						"en": "Psychotherapy reports: edit"
+					},
+					"grants": [
+						"sched_app#report_psychotherapy_edit_all",
+						"sched_app#report_psychotherapy_edit_assigned",
+						"sched_app#report_psychotherapy_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_psychotherapy_delete",
+					"name": {
+						"ro": "Rapoarte de psihoterapie: șterge",
+						"en": "Psychotherapy reports: delete"
+					},
+					"grants": [
+						"sched_app#report_psychotherapy_delete_all",
+						"sched_app#report_psychotherapy_delete_assigned",
+						"sched_app#report_psychotherapy_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_psychotherapy_export",
+					"name": {
+						"ro": "Rapoarte de psihoterapie: exportă",
+						"en": "Psychotherapy reports: export"
+					},
+					"grants": [
+						"sched_app#report_psychotherapy_export_all",
+						"sched_app#report_psychotherapy_export_assigned",
+						"sched_app#report_psychotherapy_export_own"
+					],
+					"effect": "read"
+				}
+			]
+		},
+		{
+			"key": "report_custom",
+			"name": {
+				"ro": "Alte rapoarte și formulare",
+				"en": "Other reports and forms"
+			},
+			"permissions": [
+				{
+					"key": "report_custom_view",
+					"name": {
+						"ro": "Alte rapoarte și formulare: vede",
+						"en": "Other reports and forms: view"
+					},
+					"grants": [
+						"sched_app#report_custom_view_all",
+						"sched_app#report_custom_view_assigned",
+						"sched_app#report_custom_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "report_custom_create",
+					"name": {
+						"ro": "Alte rapoarte și formulare: creează",
+						"en": "Other reports and forms: create"
+					},
+					"grants": [
+						"sched_app#report_custom_create_all",
+						"sched_app#report_custom_create_assigned",
+						"sched_app#report_custom_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_custom_edit",
+					"name": {
+						"ro": "Alte rapoarte și formulare: modifică",
+						"en": "Other reports and forms: edit"
+					},
+					"grants": [
+						"sched_app#report_custom_edit_all",
+						"sched_app#report_custom_edit_assigned",
+						"sched_app#report_custom_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_custom_delete",
+					"name": {
+						"ro": "Alte rapoarte și formulare: șterge",
+						"en": "Other reports and forms: delete"
+					},
+					"grants": [
+						"sched_app#report_custom_delete_all",
+						"sched_app#report_custom_delete_assigned",
+						"sched_app#report_custom_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "report_custom_export",
+					"name": {
+						"ro": "Alte rapoarte și formulare: exportă",
+						"en": "Other reports and forms: export"
+					},
+					"grants": [
+						"sched_app#report_custom_export_all",
+						"sched_app#report_custom_export_assigned",
+						"sched_app#report_custom_export_own"
+					],
+					"effect": "read"
+				}
+			]
+		},
+		{
+			"key": "questionnaire_parent",
+			"name": {
+				"ro": "Chestionare pentru părinți",
+				"en": "Parent questionnaires"
+			},
+			"permissions": [
+				{
+					"key": "questionnaire_parent_view",
+					"name": {
+						"ro": "Chestionare pentru părinți: vede",
+						"en": "Parent questionnaires: view"
+					},
+					"grants": [
+						"sched_app#questionnaire_parent_view_all",
+						"sched_app#questionnaire_parent_view_assigned",
+						"sched_app#questionnaire_parent_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "questionnaire_parent_create",
+					"name": {
+						"ro": "Chestionare pentru părinți: creează",
+						"en": "Parent questionnaires: create"
+					},
+					"grants": [
+						"sched_app#questionnaire_parent_create_all",
+						"sched_app#questionnaire_parent_create_assigned",
+						"sched_app#questionnaire_parent_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "questionnaire_parent_edit",
+					"name": {
+						"ro": "Chestionare pentru părinți: modifică",
+						"en": "Parent questionnaires: edit"
+					},
+					"grants": [
+						"sched_app#questionnaire_parent_edit_all",
+						"sched_app#questionnaire_parent_edit_assigned",
+						"sched_app#questionnaire_parent_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "questionnaire_parent_delete",
+					"name": {
+						"ro": "Chestionare pentru părinți: șterge",
+						"en": "Parent questionnaires: delete"
+					},
+					"grants": [
+						"sched_app#questionnaire_parent_delete_all",
+						"sched_app#questionnaire_parent_delete_assigned",
+						"sched_app#questionnaire_parent_delete_own"
+					],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "files",
+			"name": {
+				"ro": "Fișiere",
+				"en": "Files"
+			},
+			"permissions": [
+				{
+					"key": "files_view",
+					"name": {
+						"ro": "Fișiere: vede",
+						"en": "Files: view"
+					},
+					"grants": [
+						"sched_app#files_view_all",
+						"sched_app#files_view_assigned",
+						"sched_app#files_view_own"
+					],
+					"effect": "read"
+				},
+				{
+					"key": "files_upload",
+					"name": {
+						"ro": "Fișiere: încarcă",
+						"en": "Files: upload"
+					},
+					"grants": [
+						"sched_app#files_upload_all",
+						"sched_app#files_upload_assigned",
+						"sched_app#files_upload_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "files_delete",
+					"name": {
+						"ro": "Fișiere: șterge",
+						"en": "Files: delete"
+					},
+					"grants": [
+						"sched_app#files_delete_all",
+						"sched_app#files_delete_assigned",
+						"sched_app#files_delete_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "files_export",
+					"name": {
+						"ro": "Fișiere: exportă",
+						"en": "Files: export"
+					},
+					"grants": [
+						"sched_app#files_export_all",
+						"sched_app#files_export_assigned",
+						"sched_app#files_export_own"
+					],
+					"effect": "read"
 				}
 			]
 		},
@@ -771,6 +1906,19 @@
 						"sched_app#packages_delete_own"
 					],
 					"effect": "write"
+				},
+				{
+					"key": "packages_price",
+					"name": {
+						"ro": "Abonamente: stabilește prețul",
+						"en": "Packages: set the price"
+					},
+					"grants": [
+						"sched_app#packages_price_all",
+						"sched_app#packages_price_assigned",
+						"sched_app#packages_price_own"
+					],
+					"effect": "write"
 				}
 			]
 		},
@@ -808,13 +1956,43 @@
 					"effect": "write"
 				},
 				{
+					"key": "payments_edit",
+					"name": {
+						"ro": "Plăți: modifică",
+						"en": "Payments: edit"
+					},
+					"grants": [
+						"sched_app#payments_edit_all",
+						"sched_app#payments_edit_assigned",
+						"sched_app#payments_edit_own"
+					],
+					"effect": "write"
+				},
+				{
 					"key": "payments_delete",
 					"name": {
 						"ro": "Plăți: șterge",
 						"en": "Payments: delete"
 					},
-					"grants": ["sched_app#payments_delete"],
+					"grants": [
+						"sched_app#payments_delete_all",
+						"sched_app#payments_delete_assigned",
+						"sched_app#payments_delete_own"
+					],
 					"effect": "write"
+				},
+				{
+					"key": "payments_export",
+					"name": {
+						"ro": "Plăți: exportă",
+						"en": "Payments: export"
+					},
+					"grants": [
+						"sched_app#payments_export_all",
+						"sched_app#payments_export_assigned",
+						"sched_app#payments_export_own"
+					],
+					"effect": "read"
 				}
 			]
 		},
@@ -831,7 +2009,11 @@
 						"ro": "Pontaj: vede",
 						"en": "Roster: view"
 					},
-					"grants": ["sched_app#roster_view"],
+					"grants": [
+						"sched_app#roster_view_all",
+						"sched_app#roster_view_assigned",
+						"sched_app#roster_view_own"
+					],
 					"effect": "read"
 				},
 				{
@@ -840,7 +2022,11 @@
 						"ro": "Pontaj: modifică",
 						"en": "Roster: edit"
 					},
-					"grants": ["sched_app#roster_edit"],
+					"grants": [
+						"sched_app#roster_edit_all",
+						"sched_app#roster_edit_assigned",
+						"sched_app#roster_edit_own"
+					],
 					"effect": "write"
 				}
 			]
@@ -858,7 +2044,11 @@
 						"ro": "Concedii: vede",
 						"en": "Leave: view"
 					},
-					"grants": ["sched_app#leave_view_all", "sched_app#leave_view_own"],
+					"grants": [
+						"sched_app#leave_view_all",
+						"sched_app#leave_view_assigned",
+						"sched_app#leave_view_own"
+					],
 					"effect": "read"
 				},
 				{
@@ -867,7 +2057,37 @@
 						"ro": "Concedii: creează",
 						"en": "Leave: create"
 					},
-					"grants": ["sched_app#leave_create_all", "sched_app#leave_create_own"],
+					"grants": [
+						"sched_app#leave_create_all",
+						"sched_app#leave_create_assigned",
+						"sched_app#leave_create_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "leave_edit",
+					"name": {
+						"ro": "Concedii: modifică",
+						"en": "Leave: edit"
+					},
+					"grants": [
+						"sched_app#leave_edit_all",
+						"sched_app#leave_edit_assigned",
+						"sched_app#leave_edit_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "leave_cancel",
+					"name": {
+						"ro": "Concedii: anulează",
+						"en": "Leave: cancel"
+					},
+					"grants": [
+						"sched_app#leave_cancel_all",
+						"sched_app#leave_cancel_assigned",
+						"sched_app#leave_cancel_own"
+					],
 					"effect": "write"
 				},
 				{
@@ -876,7 +2096,56 @@
 						"ro": "Concedii: aprobă",
 						"en": "Leave: approve"
 					},
-					"grants": ["sched_app#leave_approve"],
+					"grants": [
+						"sched_app#leave_approve_all",
+						"sched_app#leave_approve_assigned",
+						"sched_app#leave_approve_own"
+					],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "notice_board",
+			"name": {
+				"ro": "Panou de anunțuri",
+				"en": "Notice board"
+			},
+			"permissions": [
+				{
+					"key": "notice_board_view",
+					"name": {
+						"ro": "Panou de anunțuri: vede",
+						"en": "Notice board: view"
+					},
+					"grants": ["sched_app#notice_board_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "notice_board_create",
+					"name": {
+						"ro": "Panou de anunțuri: creează",
+						"en": "Notice board: create"
+					},
+					"grants": ["sched_app#notice_board_create_all"],
+					"effect": "write"
+				},
+				{
+					"key": "notice_board_edit",
+					"name": {
+						"ro": "Panou de anunțuri: modifică",
+						"en": "Notice board: edit"
+					},
+					"grants": ["sched_app#notice_board_edit_all"],
+					"effect": "write"
+				},
+				{
+					"key": "notice_board_delete",
+					"name": {
+						"ro": "Panou de anunțuri: șterge",
+						"en": "Notice board: delete"
+					},
+					"grants": ["sched_app#notice_board_delete_all"],
 					"effect": "write"
 				}
 			]
@@ -894,7 +2163,11 @@
 						"ro": "Mementouri: vede",
 						"en": "Reminders: view"
 					},
-					"grants": ["sched_app#reminders_view"],
+					"grants": [
+						"sched_app#reminders_view_all",
+						"sched_app#reminders_view_assigned",
+						"sched_app#reminders_view_own"
+					],
 					"effect": "read"
 				},
 				{
@@ -903,219 +2176,128 @@
 						"ro": "Mementouri: trimite",
 						"en": "Reminders: send"
 					},
-					"grants": ["sched_app#reminders_send"],
+					"grants": [
+						"sched_app#reminders_send_all",
+						"sched_app#reminders_send_assigned",
+						"sched_app#reminders_send_own"
+					],
 					"effect": "write"
 				}
 			]
 		},
 		{
-			"key": "requests",
+			"key": "web_requests",
 			"name": {
 				"ro": "Cereri web",
 				"en": "Web requests"
 			},
 			"permissions": [
 				{
-					"key": "requests_view",
+					"key": "web_requests_view",
 					"name": {
 						"ro": "Cereri web: vede",
 						"en": "Web requests: view"
 					},
-					"grants": ["sched_app#requests_view"],
+					"grants": ["sched_app#web_requests_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "requests_decide",
+					"key": "web_requests_approve",
 					"name": {
-						"ro": "Cereri web: decide",
-						"en": "Web requests: decide"
+						"ro": "Cereri web: aprobă",
+						"en": "Web requests: approve"
 					},
-					"grants": ["sched_app#requests_decide"],
+					"grants": ["sched_app#web_requests_approve_all"],
 					"effect": "write"
 				}
 			]
 		},
 		{
-			"key": "records",
+			"key": "reports",
 			"name": {
-				"ro": "Fișe și rapoarte",
-				"en": "Records and reports"
+				"ro": "Rapoarte",
+				"en": "Reports"
 			},
 			"permissions": [
 				{
-					"key": "records_view",
+					"key": "reports_view",
 					"name": {
-						"ro": "Fișe și rapoarte: vede",
-						"en": "Records and reports: view"
+						"ro": "Rapoarte: vede",
+						"en": "Reports: view"
 					},
-					"grants": [
-						"sched_app#records_view_all",
-						"sched_app#records_view_assigned",
-						"sched_app#records_view_own"
-					],
+					"grants": ["sched_app#reports_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "records_create",
+					"key": "reports_export",
 					"name": {
-						"ro": "Fișe și rapoarte: creează",
-						"en": "Records and reports: create"
+						"ro": "Rapoarte: exportă",
+						"en": "Reports: export"
 					},
-					"grants": [
-						"sched_app#records_create_all",
-						"sched_app#records_create_assigned",
-						"sched_app#records_create_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "records_edit",
-					"name": {
-						"ro": "Fișe și rapoarte: modifică",
-						"en": "Records and reports: edit"
-					},
-					"grants": [
-						"sched_app#records_edit_all",
-						"sched_app#records_edit_assigned",
-						"sched_app#records_edit_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "records_delete",
-					"name": {
-						"ro": "Fișe și rapoarte: șterge",
-						"en": "Records and reports: delete"
-					},
-					"grants": [
-						"sched_app#records_delete_all",
-						"sched_app#records_delete_assigned",
-						"sched_app#records_delete_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "records_clinical_view",
-					"name": {
-						"ro": "Fișe și rapoarte: citește conținutul clinic",
-						"en": "Records and reports: read clinical content"
-					},
-					"grants": [
-						"sched_app#records_clinical_view_all",
-						"sched_app#records_clinical_view_assigned",
-						"sched_app#records_clinical_view_own"
-					],
+					"grants": ["sched_app#reports_export_all"],
 					"effect": "read"
 				}
 			]
 		},
 		{
-			"key": "files",
-			"name": {
-				"ro": "Fișiere",
-				"en": "Files"
-			},
-			"permissions": [
-				{
-					"key": "files_view",
-					"name": {
-						"ro": "Fișiere: vede",
-						"en": "Files: view"
-					},
-					"grants": [
-						"sched_app#files_view_all",
-						"sched_app#files_view_assigned",
-						"sched_app#files_view_own"
-					],
-					"effect": "read"
-				},
-				{
-					"key": "files_upload",
-					"name": {
-						"ro": "Fișiere: încarcă",
-						"en": "Files: upload"
-					},
-					"grants": [
-						"sched_app#files_upload_all",
-						"sched_app#files_upload_assigned",
-						"sched_app#files_upload_own"
-					],
-					"effect": "write"
-				},
-				{
-					"key": "files_delete",
-					"name": {
-						"ro": "Fișiere: șterge",
-						"en": "Files: delete"
-					},
-					"grants": [
-						"sched_app#files_delete_all",
-						"sched_app#files_delete_assigned",
-						"sched_app#files_delete_own"
-					],
-					"effect": "write"
-				}
-			]
-		},
-		{
-			"key": "audit",
+			"key": "audit_log",
 			"name": {
 				"ro": "Jurnal de audit",
 				"en": "Audit log"
 			},
 			"permissions": [
 				{
-					"key": "audit_view",
+					"key": "audit_log_view",
 					"name": {
 						"ro": "Jurnal de audit: vede",
 						"en": "Audit log: view"
 					},
-					"grants": ["sched_app#audit_view"],
-					"effect": "read"
-				}
-			]
-		},
-		{
-			"key": "builder",
-			"name": {
-				"ro": "Constructor",
-				"en": "Builder"
-			},
-			"permissions": [
-				{
-					"key": "builder_view",
-					"name": {
-						"ro": "Constructor: vede",
-						"en": "Builder: view"
-					},
-					"grants": ["sched_app#builder_view"],
+					"grants": ["sched_app#audit_log_view_all"],
 					"effect": "read"
 				},
 				{
-					"key": "builder_edit",
+					"key": "audit_log_export",
 					"name": {
-						"ro": "Constructor: modifică",
-						"en": "Builder: edit"
+						"ro": "Jurnal de audit: exportă",
+						"en": "Audit log: export"
 					},
-					"grants": ["sched_app#builder_edit"],
-					"effect": "write"
+					"grants": ["sched_app#audit_log_export_all"],
+					"effect": "read"
 				}
 			]
 		},
 		{
-			"key": "imports",
+			"key": "imports_exports",
 			"name": {
-				"ro": "Importuri",
-				"en": "Imports"
+				"ro": "Importuri și exporturi",
+				"en": "Imports and exports"
 			},
 			"permissions": [
 				{
-					"key": "imports_view",
+					"key": "imports_exports_imports_view",
 					"name": {
-						"ro": "Importuri: vede",
-						"en": "Imports: view"
+						"ro": "Importuri și exporturi: vede importurile",
+						"en": "Imports and exports: view imports"
 					},
-					"grants": ["sched_app#imports_view"],
+					"grants": ["sched_app#imports_exports_imports_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "imports_exports_imports_run",
+					"name": {
+						"ro": "Importuri și exporturi: rulează importuri",
+						"en": "Imports and exports: run imports"
+					},
+					"grants": ["sched_app#imports_exports_imports_run_all"],
+					"effect": "write"
+				},
+				{
+					"key": "imports_exports_export",
+					"name": {
+						"ro": "Importuri și exporturi: exportă",
+						"en": "Imports and exports: export"
+					},
+					"grants": ["sched_app#imports_exports_export_all"],
 					"effect": "read"
 				}
 			]
@@ -1138,139 +2320,203 @@
 					"from": ["[user]", "administrator from parent_platform"]
 				},
 				{
-					"name": "app_settings_view",
+					"name": "app_settings_view_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "app_settings_edit",
+					"name": "app_settings_edit_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "members_view",
+					"name": "members_view_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "members_edit",
+					"name": "members_create_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "members_remove",
+					"name": "members_edit_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "roles_view",
+					"name": "members_delete_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "roles_create",
+					"name": "people_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_archive_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "people_archive_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roles_view_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "roles_edit",
+					"name": "roles_create_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "roles_delete",
+					"name": "roles_edit_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
-					"name": "people_view",
+					"name": "roles_delete_all",
+					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "builder_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "people_create",
+					"name": "builder_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "people_edit",
+					"name": "builder_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "people_delete",
+					"name": "builder_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "rooms_view",
+					"name": "services_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "rooms_create",
+					"name": "services_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "rooms_edit",
+					"name": "services_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "rooms_delete",
+					"name": "services_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "devices_view",
+					"name": "services_price_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "devices_create",
+					"name": "prices_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "devices_edit",
+					"name": "prices_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "devices_delete",
+					"name": "rooms_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "groups_view",
+					"name": "rooms_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "groups_create",
+					"name": "rooms_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "groups_edit",
+					"name": "rooms_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "groups_delete",
+					"name": "devices_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "services_view",
+					"name": "devices_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "services_create",
+					"name": "devices_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "services_edit",
+					"name": "devices_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "services_delete",
+					"name": "group_activities_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "prices_view",
+					"name": "group_activities_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "prices_change",
+					"name": "group_activities_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "calendar_view_all",
+					"name": "group_activities_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "calendar_view_assigned",
+					"name": "calendars_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "calendar_view_own",
+					"name": "calendars_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_assign_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_assign_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "calendars_assign_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1286,6 +2532,42 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "appointments_view_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_view_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "appointments_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
@@ -1295,6 +2577,42 @@
 				},
 				{
 					"name": "appointments_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_create_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1310,6 +2628,42 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "appointments_edit_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_edit_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "appointments_cancel_all",
 					"from": ["[user, sched_role#member]"]
 				},
@@ -1322,15 +2676,135 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_attend_all",
+					"name": "appointments_cancel_all_core",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_attend_assigned",
+					"name": "appointments_cancel_assigned_core",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_attend_own",
+					"name": "appointments_cancel_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_cancel_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_delete_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_restore_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1346,31 +2820,87 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_view_all",
+					"name": "appointments_assign_all_core",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_view_assigned",
+					"name": "appointments_assign_assigned_core",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_view_own",
+					"name": "appointments_assign_own_core",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_edit_all",
+					"name": "appointments_assign_all_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_edit_assigned",
+					"name": "appointments_assign_assigned_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "appointments_money_edit_own",
+					"name": "appointments_assign_own_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_create",
+					"name": "appointments_assign_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_assign_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_assign_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_assigned_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_own_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "appointments_send_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1386,6 +2916,114 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "clients_view_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_assigned_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_view_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_assigned_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_create_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "clients_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
@@ -1395,6 +3033,54 @@
 				},
 				{
 					"name": "clients_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_assigned_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_edit_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1410,15 +3096,51 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_restore_all",
+					"name": "clients_archive_all_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_restore_assigned",
+					"name": "clients_archive_assigned_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_restore_own",
+					"name": "clients_archive_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_archive_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1434,15 +3156,111 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_assign_all",
+					"name": "clients_delete_all_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_assign_assigned",
+					"name": "clients_delete_assigned_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_assign_own",
+					"name": "clients_delete_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_delete_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_assigned_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_restore_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1458,99 +3276,447 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_view_all",
+					"name": "clients_export_all_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_view_assigned",
+					"name": "clients_export_assigned_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_view_own",
+					"name": "clients_export_own_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_edit_all",
+					"name": "clients_export_all_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_edit_assigned",
+					"name": "clients_export_assigned_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_contact_edit_own",
+					"name": "clients_export_own_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_view_all",
+					"name": "clients_export_all_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_view_assigned",
+					"name": "clients_export_assigned_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_view_own",
+					"name": "clients_export_own_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_edit_all",
+					"name": "clients_export_all_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_edit_assigned",
+					"name": "clients_export_assigned_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_guardian_edit_own",
+					"name": "clients_export_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_view_all",
+					"name": "clients_assign_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_view_assigned",
+					"name": "clients_assign_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_view_own",
+					"name": "clients_assign_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_edit_all",
+					"name": "clients_assign_all_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_edit_assigned",
+					"name": "clients_assign_assigned_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_money_edit_own",
+					"name": "clients_assign_own_contact",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_view_all",
+					"name": "clients_assign_all_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_view_assigned",
+					"name": "clients_assign_assigned_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_view_own",
+					"name": "clients_assign_own_guardian",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_edit_all",
+					"name": "clients_assign_all_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_edit_assigned",
+					"name": "clients_assign_assigned_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "clients_clinical_edit_own",
+					"name": "clients_assign_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_assign_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_assign_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_assign_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_aba_export_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_racemeup_export_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_psychotherapy_export_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "report_custom_export_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "questionnaire_parent_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_upload_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_upload_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_upload_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "files_export_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1602,6 +3768,18 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "packages_price_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "packages_price_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "packages_price_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "payments_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
@@ -1626,19 +3804,71 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "payments_delete",
+					"name": "payments_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "roster_view",
+					"name": "payments_edit_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "roster_edit",
+					"name": "payments_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_delete_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_export_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "payments_export_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_view_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_edit_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "roster_edit_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
 					"name": "leave_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "leave_view_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -1650,139 +3880,123 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "leave_create_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "leave_create_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "leave_approve",
+					"name": "leave_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "reminders_view",
+					"name": "leave_edit_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "reminders_send",
+					"name": "leave_edit_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "requests_view",
+					"name": "leave_cancel_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "requests_decide",
+					"name": "leave_cancel_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_view_all",
+					"name": "leave_cancel_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_view_assigned",
+					"name": "leave_approve_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_view_own",
+					"name": "leave_approve_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_create_all",
+					"name": "leave_approve_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_create_assigned",
+					"name": "notice_board_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_create_own",
+					"name": "notice_board_create_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_edit_all",
+					"name": "notice_board_edit_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_edit_assigned",
+					"name": "notice_board_delete_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_edit_own",
+					"name": "reminders_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_delete_all",
+					"name": "reminders_view_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_delete_assigned",
+					"name": "reminders_view_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_delete_own",
+					"name": "reminders_send_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_clinical_view_all",
+					"name": "reminders_send_assigned",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_clinical_view_assigned",
+					"name": "reminders_send_own",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "records_clinical_view_own",
+					"name": "web_requests_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_view_all",
+					"name": "web_requests_approve_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_view_assigned",
+					"name": "reports_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_view_own",
+					"name": "reports_export_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_upload_all",
+					"name": "audit_log_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_upload_assigned",
+					"name": "audit_log_export_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_upload_own",
+					"name": "imports_exports_imports_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_delete_all",
+					"name": "imports_exports_imports_run_all",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
-					"name": "files_delete_assigned",
-					"from": ["[user, sched_role#member]"]
-				},
-				{
-					"name": "files_delete_own",
-					"from": ["[user, sched_role#member]"]
-				},
-				{
-					"name": "audit_view",
-					"from": ["[user, sched_role#member]"]
-				},
-				{
-					"name": "builder_view",
-					"from": ["[user, sched_role#member]"]
-				},
-				{
-					"name": "builder_edit",
-					"from": ["[user, sched_role#member]"]
-				},
-				{
-					"name": "imports_view",
+					"name": "imports_exports_export_all",
 					"from": ["[user, sched_role#member]"]
 				}
 			]
@@ -1828,171 +4042,443 @@
 					"from": ["coordinator from treating"]
 				},
 				{
+					"name": "reach_own",
+					"from": ["practitioner"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator"]
+				},
+				{
 					"name": "clients_view",
 					"from": [
 						"clients_view_all from app",
-						"(clients_view_assigned from app and coordinator)",
-						"(clients_view_own from app and practitioner)"
+						"(clients_view_assigned from app and reach_assigned)",
+						"(clients_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_view_contact",
+					"from": [
+						"clients_view_all_contact from app",
+						"(clients_view_assigned_contact from app and reach_assigned)",
+						"(clients_view_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_view_guardian",
+					"from": [
+						"clients_view_all_guardian from app",
+						"(clients_view_assigned_guardian from app and reach_assigned)",
+						"(clients_view_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_view_money",
+					"from": [
+						"clients_view_all_money from app",
+						"(clients_view_assigned_money from app and reach_assigned)",
+						"(clients_view_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_view_clinical",
+					"from": [
+						"clients_view_all_clinical from app",
+						"(clients_view_assigned_clinical from app and reach_assigned)",
+						"(clients_view_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "clients_edit",
 					"from": [
 						"clients_edit_all from app",
-						"(clients_edit_assigned from app and coordinator)",
-						"(clients_edit_own from app and practitioner)"
+						"(clients_edit_assigned from app and reach_assigned)",
+						"(clients_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_edit_contact",
+					"from": [
+						"clients_edit_all_contact from app",
+						"(clients_edit_assigned_contact from app and reach_assigned)",
+						"(clients_edit_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_edit_guardian",
+					"from": [
+						"clients_edit_all_guardian from app",
+						"(clients_edit_assigned_guardian from app and reach_assigned)",
+						"(clients_edit_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_edit_money",
+					"from": [
+						"clients_edit_all_money from app",
+						"(clients_edit_assigned_money from app and reach_assigned)",
+						"(clients_edit_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_edit_clinical",
+					"from": [
+						"clients_edit_all_clinical from app",
+						"(clients_edit_assigned_clinical from app and reach_assigned)",
+						"(clients_edit_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "clients_archive",
 					"from": [
 						"clients_archive_all from app",
-						"(clients_archive_assigned from app and coordinator)",
-						"(clients_archive_own from app and practitioner)"
+						"(clients_archive_assigned from app and reach_assigned)",
+						"(clients_archive_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_restore",
+					"name": "clients_archive_contact",
 					"from": [
-						"clients_restore_all from app",
-						"(clients_restore_assigned from app and coordinator)",
-						"(clients_restore_own from app and practitioner)"
+						"clients_archive_all_contact from app",
+						"(clients_archive_assigned_contact from app and reach_assigned)",
+						"(clients_archive_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_archive_guardian",
+					"from": [
+						"clients_archive_all_guardian from app",
+						"(clients_archive_assigned_guardian from app and reach_assigned)",
+						"(clients_archive_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_archive_money",
+					"from": [
+						"clients_archive_all_money from app",
+						"(clients_archive_assigned_money from app and reach_assigned)",
+						"(clients_archive_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_archive_clinical",
+					"from": [
+						"clients_archive_all_clinical from app",
+						"(clients_archive_assigned_clinical from app and reach_assigned)",
+						"(clients_archive_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "clients_delete",
 					"from": [
 						"clients_delete_all from app",
-						"(clients_delete_assigned from app and coordinator)",
-						"(clients_delete_own from app and practitioner)"
+						"(clients_delete_assigned from app and reach_assigned)",
+						"(clients_delete_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_assign",
+					"name": "clients_delete_contact",
 					"from": [
-						"clients_assign_all from app",
-						"(clients_assign_assigned from app and coordinator)",
-						"(clients_assign_own from app and practitioner)"
+						"clients_delete_all_contact from app",
+						"(clients_delete_assigned_contact from app and reach_assigned)",
+						"(clients_delete_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_delete_guardian",
+					"from": [
+						"clients_delete_all_guardian from app",
+						"(clients_delete_assigned_guardian from app and reach_assigned)",
+						"(clients_delete_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_delete_money",
+					"from": [
+						"clients_delete_all_money from app",
+						"(clients_delete_assigned_money from app and reach_assigned)",
+						"(clients_delete_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_delete_clinical",
+					"from": [
+						"clients_delete_all_clinical from app",
+						"(clients_delete_assigned_clinical from app and reach_assigned)",
+						"(clients_delete_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_restore",
+					"from": [
+						"clients_restore_all from app",
+						"(clients_restore_assigned from app and reach_assigned)",
+						"(clients_restore_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_restore_contact",
+					"from": [
+						"clients_restore_all_contact from app",
+						"(clients_restore_assigned_contact from app and reach_assigned)",
+						"(clients_restore_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_restore_guardian",
+					"from": [
+						"clients_restore_all_guardian from app",
+						"(clients_restore_assigned_guardian from app and reach_assigned)",
+						"(clients_restore_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_restore_money",
+					"from": [
+						"clients_restore_all_money from app",
+						"(clients_restore_assigned_money from app and reach_assigned)",
+						"(clients_restore_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_restore_clinical",
+					"from": [
+						"clients_restore_all_clinical from app",
+						"(clients_restore_assigned_clinical from app and reach_assigned)",
+						"(clients_restore_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "clients_export",
 					"from": [
 						"clients_export_all from app",
-						"(clients_export_assigned from app and coordinator)",
-						"(clients_export_own from app and practitioner)"
+						"(clients_export_assigned from app and reach_assigned)",
+						"(clients_export_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_contact_view",
+					"name": "clients_export_contact",
 					"from": [
-						"clients_contact_view_all from app",
-						"(clients_contact_view_assigned from app and coordinator)",
-						"(clients_contact_view_own from app and practitioner)"
+						"clients_export_all_contact from app",
+						"(clients_export_assigned_contact from app and reach_assigned)",
+						"(clients_export_own_contact from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_contact_edit",
+					"name": "clients_export_guardian",
 					"from": [
-						"clients_contact_edit_all from app",
-						"(clients_contact_edit_assigned from app and coordinator)",
-						"(clients_contact_edit_own from app and practitioner)"
+						"clients_export_all_guardian from app",
+						"(clients_export_assigned_guardian from app and reach_assigned)",
+						"(clients_export_own_guardian from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_guardian_view",
+					"name": "clients_export_money",
 					"from": [
-						"clients_guardian_view_all from app",
-						"(clients_guardian_view_assigned from app and coordinator)",
-						"(clients_guardian_view_own from app and practitioner)"
+						"clients_export_all_money from app",
+						"(clients_export_assigned_money from app and reach_assigned)",
+						"(clients_export_own_money from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_guardian_edit",
+					"name": "clients_export_clinical",
 					"from": [
-						"clients_guardian_edit_all from app",
-						"(clients_guardian_edit_assigned from app and coordinator)",
-						"(clients_guardian_edit_own from app and practitioner)"
+						"clients_export_all_clinical from app",
+						"(clients_export_assigned_clinical from app and reach_assigned)",
+						"(clients_export_own_clinical from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_money_view",
+					"name": "clients_assign",
 					"from": [
-						"clients_money_view_all from app",
-						"(clients_money_view_assigned from app and coordinator)",
-						"(clients_money_view_own from app and practitioner)"
+						"clients_assign_all from app",
+						"(clients_assign_assigned from app and reach_assigned)",
+						"(clients_assign_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_money_edit",
+					"name": "clients_assign_contact",
 					"from": [
-						"clients_money_edit_all from app",
-						"(clients_money_edit_assigned from app and coordinator)",
-						"(clients_money_edit_own from app and practitioner)"
+						"clients_assign_all_contact from app",
+						"(clients_assign_assigned_contact from app and reach_assigned)",
+						"(clients_assign_own_contact from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_clinical_view",
+					"name": "clients_assign_guardian",
 					"from": [
-						"clients_clinical_view_all from app",
-						"(clients_clinical_view_assigned from app and coordinator)",
-						"(clients_clinical_view_own from app and practitioner)"
+						"clients_assign_all_guardian from app",
+						"(clients_assign_assigned_guardian from app and reach_assigned)",
+						"(clients_assign_own_guardian from app and reach_own)"
 					]
 				},
 				{
-					"name": "clients_clinical_edit",
+					"name": "clients_assign_money",
 					"from": [
-						"clients_clinical_edit_all from app",
-						"(clients_clinical_edit_assigned from app and coordinator)",
-						"(clients_clinical_edit_own from app and practitioner)"
+						"clients_assign_all_money from app",
+						"(clients_assign_assigned_money from app and reach_assigned)",
+						"(clients_assign_own_money from app and reach_own)"
 					]
 				},
 				{
-					"name": "packages_view",
+					"name": "clients_assign_clinical",
 					"from": [
-						"packages_view_all from app",
-						"(packages_view_assigned from app and coordinator)",
-						"(packages_view_own from app and practitioner)"
+						"clients_assign_all_clinical from app",
+						"(clients_assign_assigned_clinical from app and reach_assigned)",
+						"(clients_assign_own_clinical from app and reach_own)"
 					]
 				},
 				{
-					"name": "packages_create",
+					"name": "report_aba_view",
 					"from": [
-						"packages_create_all from app",
-						"(packages_create_assigned from app and coordinator)",
-						"(packages_create_own from app and practitioner)"
+						"report_aba_view_all from app",
+						"(report_aba_view_assigned from app and reach_assigned)",
+						"(report_aba_view_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "records_view",
+					"name": "report_aba_create",
 					"from": [
-						"records_view_all from app",
-						"(records_view_assigned from app and coordinator)",
-						"(records_view_own from app and practitioner)"
+						"report_aba_create_all from app",
+						"(report_aba_create_assigned from app and reach_assigned)",
+						"(report_aba_create_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "records_create",
+					"name": "report_racemeup_view",
 					"from": [
-						"records_create_all from app",
-						"(records_create_assigned from app and coordinator)",
-						"(records_create_own from app and practitioner)"
+						"report_racemeup_view_all from app",
+						"(report_racemeup_view_assigned from app and reach_assigned)",
+						"(report_racemeup_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_racemeup_create",
+					"from": [
+						"report_racemeup_create_all from app",
+						"(report_racemeup_create_assigned from app and reach_assigned)",
+						"(report_racemeup_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_view",
+					"from": [
+						"report_psychotherapy_view_all from app",
+						"(report_psychotherapy_view_assigned from app and reach_assigned)",
+						"(report_psychotherapy_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_create",
+					"from": [
+						"report_psychotherapy_create_all from app",
+						"(report_psychotherapy_create_assigned from app and reach_assigned)",
+						"(report_psychotherapy_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_view",
+					"from": [
+						"report_custom_view_all from app",
+						"(report_custom_view_assigned from app and reach_assigned)",
+						"(report_custom_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_create",
+					"from": [
+						"report_custom_create_all from app",
+						"(report_custom_create_assigned from app and reach_assigned)",
+						"(report_custom_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "questionnaire_parent_view",
+					"from": [
+						"questionnaire_parent_view_all from app",
+						"(questionnaire_parent_view_assigned from app and reach_assigned)",
+						"(questionnaire_parent_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "questionnaire_parent_create",
+					"from": [
+						"questionnaire_parent_create_all from app",
+						"(questionnaire_parent_create_assigned from app and reach_assigned)",
+						"(questionnaire_parent_create_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "files_view",
 					"from": [
 						"files_view_all from app",
-						"(files_view_assigned from app and coordinator)",
-						"(files_view_own from app and practitioner)"
+						"(files_view_assigned from app and reach_assigned)",
+						"(files_view_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "files_upload",
 					"from": [
 						"files_upload_all from app",
-						"(files_upload_assigned from app and coordinator)",
-						"(files_upload_own from app and practitioner)"
+						"(files_upload_assigned from app and reach_assigned)",
+						"(files_upload_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "packages_view",
+					"from": [
+						"packages_view_all from app",
+						"(packages_view_assigned from app and reach_assigned)",
+						"(packages_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "packages_create",
+					"from": [
+						"packages_create_all from app",
+						"(packages_create_assigned from app and reach_assigned)",
+						"(packages_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_view",
+					"from": [
+						"payments_view_all from app",
+						"(payments_view_assigned from app and reach_assigned)",
+						"(payments_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_create",
+					"from": [
+						"payments_create_all from app",
+						"(payments_create_assigned from app and reach_assigned)",
+						"(payments_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_edit",
+					"from": [
+						"payments_edit_all from app",
+						"(payments_edit_assigned from app and reach_assigned)",
+						"(payments_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_delete",
+					"from": [
+						"payments_delete_all from app",
+						"(payments_delete_assigned from app and reach_assigned)",
+						"(payments_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_export",
+					"from": [
+						"payments_export_all from app",
+						"(payments_export_assigned from app and reach_assigned)",
+						"(payments_export_own from app and reach_own)"
 					]
 				}
 			]
@@ -2017,28 +4503,136 @@
 					"from": ["[user]"]
 				},
 				{
-					"name": "calendar_view",
+					"name": "reach_own",
+					"from": ["owner"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator"]
+				},
+				{
+					"name": "people_view",
+					"from": ["people_view_all from app", "(people_view_own from app and reach_own)"]
+				},
+				{
+					"name": "people_edit",
+					"from": ["people_edit_all from app", "(people_edit_own from app and reach_own)"]
+				},
+				{
+					"name": "people_archive",
+					"from": ["people_archive_all from app", "(people_archive_own from app and reach_own)"]
+				},
+				{
+					"name": "calendars_view",
 					"from": [
-						"calendar_view_all from app",
-						"(calendar_view_assigned from app and coordinator)",
-						"(calendar_view_own from app and owner)"
+						"calendars_view_all from app",
+						"(calendars_view_assigned from app and reach_assigned)",
+						"(calendars_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "calendars_edit",
+					"from": [
+						"calendars_edit_all from app",
+						"(calendars_edit_assigned from app and reach_assigned)",
+						"(calendars_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "calendars_assign",
+					"from": [
+						"calendars_assign_all from app",
+						"(calendars_assign_assigned from app and reach_assigned)",
+						"(calendars_assign_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "appointments_create",
 					"from": [
 						"appointments_create_all from app",
-						"(appointments_create_assigned from app and coordinator)",
-						"(appointments_create_own from app and owner)"
+						"(appointments_create_assigned from app and reach_assigned)",
+						"(appointments_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_create_core",
+					"from": [
+						"appointments_create_all_core from app",
+						"(appointments_create_assigned_core from app and reach_assigned)",
+						"(appointments_create_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_create_money",
+					"from": [
+						"appointments_create_all_money from app",
+						"(appointments_create_assigned_money from app and reach_assigned)",
+						"(appointments_create_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_create_clinical",
+					"from": [
+						"appointments_create_all_clinical from app",
+						"(appointments_create_assigned_clinical from app and reach_assigned)",
+						"(appointments_create_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "roster_view",
+					"from": [
+						"roster_view_all from app",
+						"(roster_view_assigned from app and reach_assigned)",
+						"(roster_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "roster_edit",
+					"from": [
+						"roster_edit_all from app",
+						"(roster_edit_assigned from app and reach_assigned)",
+						"(roster_edit_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "leave_view",
-					"from": ["leave_view_all from app", "(leave_view_own from app and owner)"]
+					"from": [
+						"leave_view_all from app",
+						"(leave_view_assigned from app and reach_assigned)",
+						"(leave_view_own from app and reach_own)"
+					]
 				},
 				{
 					"name": "leave_create",
-					"from": ["leave_create_all from app", "(leave_create_own from app and owner)"]
+					"from": [
+						"leave_create_all from app",
+						"(leave_create_assigned from app and reach_assigned)",
+						"(leave_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "leave_edit",
+					"from": [
+						"leave_edit_all from app",
+						"(leave_edit_assigned from app and reach_assigned)",
+						"(leave_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "leave_cancel",
+					"from": [
+						"leave_cancel_all from app",
+						"(leave_cancel_assigned from app and reach_assigned)",
+						"(leave_cancel_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "leave_approve",
+					"from": [
+						"leave_approve_all from app",
+						"(leave_approve_assigned from app and reach_assigned)",
+						"(leave_approve_own from app and reach_own)"
+					]
 				}
 			]
 		},
@@ -2058,59 +4652,251 @@
 					"from": ["[sched_calendar]"]
 				},
 				{
+					"name": "reach_own",
+					"from": ["owner from calendar"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator from calendar"]
+				},
+				{
 					"name": "appointments_view",
 					"from": [
 						"appointments_view_all from app",
-						"(appointments_view_assigned from app and coordinator from calendar)",
-						"(appointments_view_own from app and owner from calendar)"
+						"(appointments_view_assigned from app and reach_assigned)",
+						"(appointments_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_view_core",
+					"from": [
+						"appointments_view_all_core from app",
+						"(appointments_view_assigned_core from app and reach_assigned)",
+						"(appointments_view_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_view_money",
+					"from": [
+						"appointments_view_all_money from app",
+						"(appointments_view_assigned_money from app and reach_assigned)",
+						"(appointments_view_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_view_clinical",
+					"from": [
+						"appointments_view_all_clinical from app",
+						"(appointments_view_assigned_clinical from app and reach_assigned)",
+						"(appointments_view_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "appointments_edit",
 					"from": [
 						"appointments_edit_all from app",
-						"(appointments_edit_assigned from app and coordinator from calendar)",
-						"(appointments_edit_own from app and owner from calendar)"
+						"(appointments_edit_assigned from app and reach_assigned)",
+						"(appointments_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_edit_core",
+					"from": [
+						"appointments_edit_all_core from app",
+						"(appointments_edit_assigned_core from app and reach_assigned)",
+						"(appointments_edit_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_edit_money",
+					"from": [
+						"appointments_edit_all_money from app",
+						"(appointments_edit_assigned_money from app and reach_assigned)",
+						"(appointments_edit_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_edit_clinical",
+					"from": [
+						"appointments_edit_all_clinical from app",
+						"(appointments_edit_assigned_clinical from app and reach_assigned)",
+						"(appointments_edit_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "appointments_cancel",
 					"from": [
 						"appointments_cancel_all from app",
-						"(appointments_cancel_assigned from app and coordinator from calendar)",
-						"(appointments_cancel_own from app and owner from calendar)"
+						"(appointments_cancel_assigned from app and reach_assigned)",
+						"(appointments_cancel_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "appointments_attend",
+					"name": "appointments_cancel_core",
 					"from": [
-						"appointments_attend_all from app",
-						"(appointments_attend_assigned from app and coordinator from calendar)",
-						"(appointments_attend_own from app and owner from calendar)"
+						"appointments_cancel_all_core from app",
+						"(appointments_cancel_assigned_core from app and reach_assigned)",
+						"(appointments_cancel_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_cancel_money",
+					"from": [
+						"appointments_cancel_all_money from app",
+						"(appointments_cancel_assigned_money from app and reach_assigned)",
+						"(appointments_cancel_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_cancel_clinical",
+					"from": [
+						"appointments_cancel_all_clinical from app",
+						"(appointments_cancel_assigned_clinical from app and reach_assigned)",
+						"(appointments_cancel_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_delete",
+					"from": [
+						"appointments_delete_all from app",
+						"(appointments_delete_assigned from app and reach_assigned)",
+						"(appointments_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_delete_core",
+					"from": [
+						"appointments_delete_all_core from app",
+						"(appointments_delete_assigned_core from app and reach_assigned)",
+						"(appointments_delete_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_delete_money",
+					"from": [
+						"appointments_delete_all_money from app",
+						"(appointments_delete_assigned_money from app and reach_assigned)",
+						"(appointments_delete_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_delete_clinical",
+					"from": [
+						"appointments_delete_all_clinical from app",
+						"(appointments_delete_assigned_clinical from app and reach_assigned)",
+						"(appointments_delete_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_restore",
+					"from": [
+						"appointments_restore_all from app",
+						"(appointments_restore_assigned from app and reach_assigned)",
+						"(appointments_restore_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_restore_core",
+					"from": [
+						"appointments_restore_all_core from app",
+						"(appointments_restore_assigned_core from app and reach_assigned)",
+						"(appointments_restore_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_restore_money",
+					"from": [
+						"appointments_restore_all_money from app",
+						"(appointments_restore_assigned_money from app and reach_assigned)",
+						"(appointments_restore_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_restore_clinical",
+					"from": [
+						"appointments_restore_all_clinical from app",
+						"(appointments_restore_assigned_clinical from app and reach_assigned)",
+						"(appointments_restore_own_clinical from app and reach_own)"
 					]
 				},
 				{
 					"name": "appointments_assign",
 					"from": [
 						"appointments_assign_all from app",
-						"(appointments_assign_assigned from app and coordinator from calendar)",
-						"(appointments_assign_own from app and owner from calendar)"
+						"(appointments_assign_assigned from app and reach_assigned)",
+						"(appointments_assign_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "appointments_money_view",
+					"name": "appointments_assign_core",
 					"from": [
-						"appointments_money_view_all from app",
-						"(appointments_money_view_assigned from app and coordinator from calendar)",
-						"(appointments_money_view_own from app and owner from calendar)"
+						"appointments_assign_all_core from app",
+						"(appointments_assign_assigned_core from app and reach_assigned)",
+						"(appointments_assign_own_core from app and reach_own)"
 					]
 				},
 				{
-					"name": "appointments_money_edit",
+					"name": "appointments_assign_money",
 					"from": [
-						"appointments_money_edit_all from app",
-						"(appointments_money_edit_assigned from app and coordinator from calendar)",
-						"(appointments_money_edit_own from app and owner from calendar)"
+						"appointments_assign_all_money from app",
+						"(appointments_assign_assigned_money from app and reach_assigned)",
+						"(appointments_assign_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_assign_clinical",
+					"from": [
+						"appointments_assign_all_clinical from app",
+						"(appointments_assign_assigned_clinical from app and reach_assigned)",
+						"(appointments_assign_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_send",
+					"from": [
+						"appointments_send_all from app",
+						"(appointments_send_assigned from app and reach_assigned)",
+						"(appointments_send_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_send_core",
+					"from": [
+						"appointments_send_all_core from app",
+						"(appointments_send_assigned_core from app and reach_assigned)",
+						"(appointments_send_own_core from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_send_money",
+					"from": [
+						"appointments_send_all_money from app",
+						"(appointments_send_assigned_money from app and reach_assigned)",
+						"(appointments_send_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "appointments_send_clinical",
+					"from": [
+						"appointments_send_all_clinical from app",
+						"(appointments_send_assigned_clinical from app and reach_assigned)",
+						"(appointments_send_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "reminders_view",
+					"from": [
+						"reminders_view_all from app",
+						"(reminders_view_assigned from app and reach_assigned)",
+						"(reminders_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "reminders_send",
+					"from": [
+						"reminders_send_all from app",
+						"(reminders_send_assigned from app and reach_assigned)",
+						"(reminders_send_own from app and reach_own)"
 					]
 				}
 			]
@@ -2157,43 +4943,83 @@
 					"from": ["[sched_client]"]
 				},
 				{
+					"name": "reach_own",
+					"from": ["practitioner from client"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator from client"]
+				},
+				{
 					"name": "packages_view",
 					"from": [
 						"packages_view_all from app",
-						"(packages_view_assigned from app and coordinator from client)",
-						"(packages_view_own from app and practitioner from client)"
+						"(packages_view_assigned from app and reach_assigned)",
+						"(packages_view_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "packages_edit",
 					"from": [
 						"packages_edit_all from app",
-						"(packages_edit_assigned from app and coordinator from client)",
-						"(packages_edit_own from app and practitioner from client)"
+						"(packages_edit_assigned from app and reach_assigned)",
+						"(packages_edit_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "packages_delete",
 					"from": [
 						"packages_delete_all from app",
-						"(packages_delete_assigned from app and coordinator from client)",
-						"(packages_delete_own from app and practitioner from client)"
+						"(packages_delete_assigned from app and reach_assigned)",
+						"(packages_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "packages_price",
+					"from": [
+						"packages_price_all from app",
+						"(packages_price_assigned from app and reach_assigned)",
+						"(packages_price_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "payments_view",
 					"from": [
 						"payments_view_all from app",
-						"(payments_view_assigned from app and coordinator from client)",
-						"(payments_view_own from app and practitioner from client)"
+						"(payments_view_assigned from app and reach_assigned)",
+						"(payments_view_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "payments_create",
 					"from": [
 						"payments_create_all from app",
-						"(payments_create_assigned from app and coordinator from client)",
-						"(payments_create_own from app and practitioner from client)"
+						"(payments_create_assigned from app and reach_assigned)",
+						"(payments_create_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_edit",
+					"from": [
+						"payments_edit_all from app",
+						"(payments_edit_assigned from app and reach_assigned)",
+						"(payments_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_delete",
+					"from": [
+						"payments_delete_all from app",
+						"(payments_delete_assigned from app and reach_assigned)",
+						"(payments_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "payments_export",
+					"from": [
+						"payments_export_all from app",
+						"(payments_export_assigned from app and reach_assigned)",
+						"(payments_export_own from app and reach_own)"
 					]
 				}
 			]
@@ -2214,35 +5040,163 @@
 					"from": ["[sched_client]"]
 				},
 				{
-					"name": "records_view",
+					"name": "reach_own",
+					"from": ["practitioner from client"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator from client"]
+				},
+				{
+					"name": "report_aba_view",
 					"from": [
-						"records_view_all from app",
-						"(records_view_assigned from app and coordinator from client)",
-						"(records_view_own from app and practitioner from client)"
+						"report_aba_view_all from app",
+						"(report_aba_view_assigned from app and reach_assigned)",
+						"(report_aba_view_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "records_edit",
+					"name": "report_aba_edit",
 					"from": [
-						"records_edit_all from app",
-						"(records_edit_assigned from app and coordinator from client)",
-						"(records_edit_own from app and practitioner from client)"
+						"report_aba_edit_all from app",
+						"(report_aba_edit_assigned from app and reach_assigned)",
+						"(report_aba_edit_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "records_delete",
+					"name": "report_aba_delete",
 					"from": [
-						"records_delete_all from app",
-						"(records_delete_assigned from app and coordinator from client)",
-						"(records_delete_own from app and practitioner from client)"
+						"report_aba_delete_all from app",
+						"(report_aba_delete_assigned from app and reach_assigned)",
+						"(report_aba_delete_own from app and reach_own)"
 					]
 				},
 				{
-					"name": "records_clinical_view",
+					"name": "report_aba_export",
 					"from": [
-						"records_clinical_view_all from app",
-						"(records_clinical_view_assigned from app and coordinator from client)",
-						"(records_clinical_view_own from app and practitioner from client)"
+						"report_aba_export_all from app",
+						"(report_aba_export_assigned from app and reach_assigned)",
+						"(report_aba_export_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_racemeup_view",
+					"from": [
+						"report_racemeup_view_all from app",
+						"(report_racemeup_view_assigned from app and reach_assigned)",
+						"(report_racemeup_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_racemeup_edit",
+					"from": [
+						"report_racemeup_edit_all from app",
+						"(report_racemeup_edit_assigned from app and reach_assigned)",
+						"(report_racemeup_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_racemeup_delete",
+					"from": [
+						"report_racemeup_delete_all from app",
+						"(report_racemeup_delete_assigned from app and reach_assigned)",
+						"(report_racemeup_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_racemeup_export",
+					"from": [
+						"report_racemeup_export_all from app",
+						"(report_racemeup_export_assigned from app and reach_assigned)",
+						"(report_racemeup_export_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_view",
+					"from": [
+						"report_psychotherapy_view_all from app",
+						"(report_psychotherapy_view_assigned from app and reach_assigned)",
+						"(report_psychotherapy_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_edit",
+					"from": [
+						"report_psychotherapy_edit_all from app",
+						"(report_psychotherapy_edit_assigned from app and reach_assigned)",
+						"(report_psychotherapy_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_delete",
+					"from": [
+						"report_psychotherapy_delete_all from app",
+						"(report_psychotherapy_delete_assigned from app and reach_assigned)",
+						"(report_psychotherapy_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_psychotherapy_export",
+					"from": [
+						"report_psychotherapy_export_all from app",
+						"(report_psychotherapy_export_assigned from app and reach_assigned)",
+						"(report_psychotherapy_export_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_view",
+					"from": [
+						"report_custom_view_all from app",
+						"(report_custom_view_assigned from app and reach_assigned)",
+						"(report_custom_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_edit",
+					"from": [
+						"report_custom_edit_all from app",
+						"(report_custom_edit_assigned from app and reach_assigned)",
+						"(report_custom_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_delete",
+					"from": [
+						"report_custom_delete_all from app",
+						"(report_custom_delete_assigned from app and reach_assigned)",
+						"(report_custom_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "report_custom_export",
+					"from": [
+						"report_custom_export_all from app",
+						"(report_custom_export_assigned from app and reach_assigned)",
+						"(report_custom_export_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "questionnaire_parent_view",
+					"from": [
+						"questionnaire_parent_view_all from app",
+						"(questionnaire_parent_view_assigned from app and reach_assigned)",
+						"(questionnaire_parent_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "questionnaire_parent_edit",
+					"from": [
+						"questionnaire_parent_edit_all from app",
+						"(questionnaire_parent_edit_assigned from app and reach_assigned)",
+						"(questionnaire_parent_edit_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "questionnaire_parent_delete",
+					"from": [
+						"questionnaire_parent_delete_all from app",
+						"(questionnaire_parent_delete_assigned from app and reach_assigned)",
+						"(questionnaire_parent_delete_own from app and reach_own)"
 					]
 				}
 			]
@@ -2263,27 +5217,43 @@
 					"from": ["[sched_client]"]
 				},
 				{
+					"name": "reach_own",
+					"from": ["practitioner from client"]
+				},
+				{
+					"name": "reach_assigned",
+					"from": ["coordinator from client"]
+				},
+				{
 					"name": "files_view",
 					"from": [
 						"files_view_all from app",
-						"(files_view_assigned from app and coordinator from client)",
-						"(files_view_own from app and practitioner from client)"
+						"(files_view_assigned from app and reach_assigned)",
+						"(files_view_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "files_upload",
 					"from": [
 						"files_upload_all from app",
-						"(files_upload_assigned from app and coordinator from client)",
-						"(files_upload_own from app and practitioner from client)"
+						"(files_upload_assigned from app and reach_assigned)",
+						"(files_upload_own from app and reach_own)"
 					]
 				},
 				{
 					"name": "files_delete",
 					"from": [
 						"files_delete_all from app",
-						"(files_delete_assigned from app and coordinator from client)",
-						"(files_delete_own from app and practitioner from client)"
+						"(files_delete_assigned from app and reach_assigned)",
+						"(files_delete_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "files_export",
+					"from": [
+						"files_export_all from app",
+						"(files_export_assigned from app and reach_assigned)",
+						"(files_export_own from app and reach_own)"
 					]
 				}
 			]
@@ -2302,15 +5272,16 @@
 			},
 			"scope_type": "platform",
 			"grants": [
-				"sched_app#app_settings_view",
-				"sched_app#app_settings_edit",
-				"sched_app#members_view",
-				"sched_app#members_edit",
-				"sched_app#members_remove",
-				"sched_app#roles_view",
-				"sched_app#roles_create",
-				"sched_app#roles_edit",
-				"sched_app#roles_delete"
+				"sched_app#app_settings_view_all",
+				"sched_app#app_settings_edit_all",
+				"sched_app#members_view_all",
+				"sched_app#members_create_all",
+				"sched_app#members_edit_all",
+				"sched_app#members_delete_all",
+				"sched_app#roles_view_all",
+				"sched_app#roles_create_all",
+				"sched_app#roles_edit_all",
+				"sched_app#roles_delete_all"
 			],
 			"assignable": true,
 			"max_duration": null

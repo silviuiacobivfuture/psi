@@ -34,7 +34,7 @@ export const rosterHandlers: HandlersOf<
 		const { from, to } = ctx.query;
 		return {
 			items: (await ctx.deps.store.c.roster.list(ctx.app))
-				.filter((r) => r.date >= from && r.date <= to)
+				.filter((r) => r.date >= from && r.date <= to && reaches(ctx.reach, r.personId))
 				.sort((a, b) => a.date.localeCompare(b.date) || a.personId.localeCompare(b.personId))
 				.map(rosterOut),
 		};
@@ -80,7 +80,7 @@ export const rosterHandlers: HandlersOf<
 		if (to < from) throw fail("invalid", "leave ends after it starts", { field: "to" });
 		if (addDaysKey(from, MAX_LEAVE_DAYS) < to)
 			throw fail("invalid", `at most ${MAX_LEAVE_DAYS} days at once`, { field: "to" });
-		const row: LeaveRow = {
+		const draft: LeaveRow = {
 			id: newId("l"),
 			app: ctx.app,
 			personId,
@@ -90,7 +90,7 @@ export const rosterHandlers: HandlersOf<
 			status: "pending",
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.leave.insert(row);
+		const row = await ctx.deps.store.c.leave.insert(draft);
 		await ctx.notify(
 			"leave.requested",
 			{ kind: "team", permission: "leave_approve" },
@@ -102,6 +102,7 @@ export const rosterHandlers: HandlersOf<
 
 	async "leave.decide"(ctx) {
 		const row = await must(ctx.deps.store.c.leave, ctx.app, String(ctx.params.id), "leave request");
+		await ctx.authorize("leave_approve", "sched_calendar", row.personId);
 		if (row.status !== "pending") throw fail("conflict", "already decided", { status: row.status });
 		const next: LeaveRow = {
 			...row,

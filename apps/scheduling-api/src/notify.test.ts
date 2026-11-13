@@ -49,7 +49,7 @@ describe("the team and the people are told, by reference and without data", () =
 		expect(w.notifier.sent[0]).toMatchObject({
 			app: "psizone",
 			event: "request.created",
-			to: { kind: "team", permission: "requests_view" },
+			to: { kind: "team", permission: "web_requests_view" },
 		});
 	});
 

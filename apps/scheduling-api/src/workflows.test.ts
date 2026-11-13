@@ -120,7 +120,7 @@ describe("appointments", () => {
 		expect(r.status).toBe(200);
 		await w.call("olga", "PUT", `${A}/members/rita/overrides`, {
 			grant: [],
-			deny: ["appointments_money_edit"],
+			deny: ["appointments_create_all_money"],
 		});
 		expect(
 			(
@@ -360,7 +360,7 @@ describe("roster and leave", () => {
 		expect(
 			(await w.call("vera", "PUT", `${A}/roster/${w.ids.dora}/2026-11-18`, { kind: "free" }))
 				.status,
-		).toBe(403);
+		).toBe(404);
 	});
 });
 
@@ -440,7 +440,10 @@ describe("reminders", () => {
 	});
 
 	it("contact is needed to send: a role without contact access cannot e-mail or build the link", async () => {
-		await owner("PUT", "/members/rita/overrides", { grant: [], deny: ["clients_contact_view"] });
+		await owner("PUT", "/members/rita/overrides", {
+			grant: [],
+			deny: ["clients_view_all_contact"],
+		});
 		expect(
 			(await w.call("rita", "POST", `${A}/reminders/${w.ids.a1}/email`, { locale: "ro" })).status,
 		).toBe(403);
@@ -468,7 +471,7 @@ describe("catalogue, records, files, builder, audit", () => {
 		expect((await w.call("dora", "GET", `${A}/clients`)).json.items).toHaveLength(0);
 		await owner("PUT", "/members/dora2", {
 			displayName: "Dora",
-			roles: ["psizone-therapist"],
+			roles: [w.ids.roles.therapist],
 			coordinates: [],
 		});
 		expect((await w.call("dora2", "GET", `${A}/clients`)).json.items).toHaveLength(1);
@@ -537,7 +540,7 @@ describe("catalogue, records, files, builder, audit", () => {
 			})
 		).json as { file: { id: string }; upload: { url: string; method: string } };
 		expect(init.upload).toMatchObject({ method: "PUT" });
-		expect(init.upload.url).toContain(`psizone/${w.ids.c1}/${init.file.id}`);
+		expect(init.upload.url).toContain(`psizone/${w.ids.c1}/`);
 		expect((await owner("GET", `/files/${init.file.id}/download`)).status).toBe(409);
 		await owner("POST", `/files/${init.file.id}/complete`);
 		const dl = (await owner("GET", `/files/${init.file.id}/download`)).json;
@@ -545,8 +548,10 @@ describe("catalogue, records, files, builder, audit", () => {
 		expect(
 			((await owner("GET", "/audit?action=file.download")).json.items as unknown[]).length,
 		).toBe(1);
+		const key = (await w.store.c.files.get("psizone", init.file.id))?.objectKey;
 		await owner("DELETE", `/files/${init.file.id}`);
-		expect(w.objects.removed).toContain(`psizone/${w.ids.c1}/${init.file.id}`);
+		expect(key).toContain(`psizone/${w.ids.c1}/`);
+		expect(w.objects.removed).toContain(key);
 	});
 
 	it("without object storage, files are 503", async () => {

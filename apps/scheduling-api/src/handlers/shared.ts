@@ -71,3 +71,56 @@ export type { SchedType };
 export function addDaysKey(date: string, days: number): string {
 	return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
+
+/**
+ * One operation across the store and the tuples (a role, a member): the row is written, then its tuples; when the
+ * tuples fail, the row is put back and the failure is reported. A row without its tuples would be a role nobody
+ * holds, or worse a member who cannot be refused.
+ */
+export async function writeRowThenTuples<T>(
+	ctx: Ctx<RouteSpec>,
+	step: {
+		write: () => Promise<T>;
+		undo: (saved: T) => Promise<void>;
+		tuples: (saved: T) => { writes: readonly Tuple[]; deletes: readonly Tuple[] };
+	},
+): Promise<T> {
+	const saved = await step.write();
+	const { writes, deletes } = step.tuples(saved);
+	try {
+		await writeTuples(ctx, writes, deletes);
+	} catch (error) {
+		await step
+			.undo(saved)
+			.catch(() =>
+				ctx.deps.log({ level: "error", event: "rollback_failed", requestId: ctx.requestId }),
+			);
+		throw error;
+	}
+	return saved;
+}
+
+/** The mirror for a removal: the tuples go first, then the row; when the row cannot go, the tuples come back. */
+export async function removeTuplesThenRow(
+	ctx: Ctx<RouteSpec>,
+	step: { tuples: readonly Tuple[]; remove: () => Promise<void> },
+): Promise<void> {
+	await writeTuples(ctx, [], step.tuples);
+	try {
+		await step.remove();
+	} catch (error) {
+		await writeTuples(ctx, step.tuples).catch(() =>
+			ctx.deps.log({ level: "error", event: "rollback_failed", requestId: ctx.requestId }),
+		);
+		throw error;
+	}
+}
+
+/** Replaces a row and hands it back, for the places a write is the value of an expression. */
+export async function replaced<R extends { id: string; app: string }>(
+	collection: Collection<R>,
+	row: R,
+): Promise<R> {
+	await collection.replace(row);
+	return row;
+}

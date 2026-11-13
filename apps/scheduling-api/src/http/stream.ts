@@ -23,7 +23,7 @@ function feedFor(deps: Deps, p: Prepared): Feed {
 	const { ctx, spec } = p;
 	const permitted = async (): Promise<boolean> =>
 		(await deps.access.isMember(ctx.subject, ctx.app)) &&
-		(await deps.access.canAll(ctx.subject, ctx.app, "requests_view"));
+		(await deps.access.canAll(ctx.subject, ctx.app, "web_requests_view"));
 	if (spec.id === "calendar.stream") {
 		return {
 			async authorize() {
@@ -31,7 +31,7 @@ function feedFor(deps: Deps, p: Prepared): Feed {
 				const reach = await deps.access.reach(
 					ctx.subject,
 					ctx.app,
-					"calendar_view",
+					"calendars_view",
 					"sched_calendar",
 				);
 				if (reach.kind === "none") return { ok: false };

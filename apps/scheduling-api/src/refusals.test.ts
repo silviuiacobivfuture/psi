@@ -100,6 +100,7 @@ describe("every team route refuses, and writes nothing", () => {
 			it("a stranger is told the app is not there", () =>
 				refused(() => call("mallory"), 404, "not_found"));
 			it("a role that lacks the permission", () => {
+				// An object the caller cannot reach is "not found" (no leak); a dynamic route first asks for ANY candidate.
 				const target = spec.permission?.target.kind;
 				return refused(
 					() => call("blank"),
@@ -109,6 +110,33 @@ describe("every team route refuses, and writes nothing", () => {
 			});
 		});
 	}
+});
+
+describe("view-as is read-only", () => {
+	// The roles editor browses as another member with `x-psi-view-as`: nothing sent that way may write.
+	for (const spec of TEAM.filter((r) => r.method !== "GET" && r.platform !== true)) {
+		it(`${spec.id}: a write with the view-as header is refused and writes nothing`, () =>
+			refused(
+				() =>
+					w.call("olga", spec.method, pathOf(spec), bodyOf(spec), {
+						headers: { "x-psi-view-as": "rita" },
+					}),
+				403,
+				"forbidden",
+			));
+	}
+	it("the refusal names its reason", async () => {
+		const r = await w.call(
+			"olga",
+			"POST",
+			"/v1/apps/psizone/rooms",
+			{ name: "X", kind: "y" },
+			{
+				headers: { "x-psi-view-as": "rita" },
+			},
+		);
+		expect(r.json.error).toMatchObject({ detail: { reason: "view_as_read_only" } });
+	});
 });
 
 describe("every visitor route refuses, and writes nothing", () => {

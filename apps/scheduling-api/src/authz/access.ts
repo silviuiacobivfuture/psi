@@ -1,5 +1,12 @@
 import type { SchedType } from "@psi/scheduling-sdk/contract";
-import { type PermissionDef, permissionOf } from "./catalogue";
+import {
+	appRelation,
+	appRelations,
+	checkedOn,
+	type PermissionDef,
+	permissionOf,
+} from "./catalogue";
+import { REACH_ASSIGNED, REACH_OWN } from "./model";
 import type { AuthzPort } from "./port";
 import { idOf, objectOf, userOf } from "./port";
 
@@ -18,14 +25,17 @@ export interface Access {
 	isMember(subject: string, app: string): Promise<boolean>;
 	/** The estate's platform administrator (creates apps). */
 	isPlatformAdmin(subject: string): Promise<boolean>;
-	/** The permission on the whole app: the key itself when unscoped, `<key>_all` when scoped. */
+	/** The permission on the whole app: its `_all` relation. `key` is the catalogue key without a scope (`clients_view`). */
 	canAll(subject: string, app: string, key: string): Promise<boolean>;
-	/** The permission on one object (scoped: `all`, or `own`/`assigned` through the object's links). */
+	/** The permission on one object (`all`, or `own`/`assigned` through the object's links). */
 	canOn(subject: string, app: string, key: string, type: SchedType, id: string): Promise<boolean>;
 	/** What a list may show. */
 	reach(subject: string, app: string, key: string, type: SchedType): Promise<Reach>;
+	/** The scopes at which the person holds the permission on the app (denied ones excluded). */
+	scopesHeld(subject: string, app: string, key: string): Promise<("all" | "assigned" | "own")[]>;
 }
 
+/** The catalogue keys (with their scope) a person was individually denied in an app. */
 export type Denials = (app: string, subject: string) => Promise<ReadonlySet<string>>;
 
 function definition(key: string): PermissionDef {
@@ -34,45 +44,72 @@ function definition(key: string): PermissionDef {
 	return def;
 }
 
+const REACH_RELATION = { own: REACH_OWN, assigned: REACH_ASSIGNED } as const;
+
 /**
- * Turns the catalogue and the tuples into the three questions a route asks. A permission the person was individually
- * denied (a key in their denials) is refused before OpenFGA is asked: the closure model has no exclusion.
+ * Turns the catalogue and the tuples into the questions a route asks. A permission the person was individually denied
+ * is refused before OpenFGA is asked when it is the only way in (the closure model has no exclusion); when the denial
+ * removes one scope of several, the scopes are evaluated one by one against the object's reach.
  */
 export function createAccess(authz: AuthzPort, denials: Denials): Access {
+	async function scopesHeld(
+		subject: string,
+		app: string,
+		def: PermissionDef,
+	): Promise<("all" | "assigned" | "own")[]> {
+		const denied = await denials(app, subject);
+		const user = userOf(subject);
+		const held: ("all" | "assigned" | "own")[] = [];
+		for (const scope of def.scopes) {
+			const relation = appRelation(def, scope);
+			if (denied.has(relation)) continue;
+			if (await authz.check(user, relation, objectOf("sched_app", app))) held.push(scope);
+		}
+		return held;
+	}
+	const denies = async (app: string, subject: string, def: PermissionDef): Promise<boolean> => {
+		const denied = await denials(app, subject);
+		return appRelations(def).some((relation) => denied.has(relation));
+	};
 	return {
 		isMember: (subject, app) => authz.check(userOf(subject), "member", objectOf("sched_app", app)),
 		isPlatformAdmin: (subject) =>
 			authz.check(userOf(subject), "role_sched_app_admin", objectOf("platform", "psi")),
+		scopesHeld: (subject, app, key) => scopesHeld(subject, app, definition(key)),
 		async canAll(subject, app, key) {
 			const def = definition(key);
-			if ((await denials(app, subject)).has(key)) return false;
-			return authz.check(
-				userOf(subject),
-				def.scopes.length === 0 ? key : `${key}_all`,
-				objectOf("sched_app", app),
-			);
+			if ((await denials(app, subject)).has(appRelation(def, "all"))) return false;
+			return authz.check(userOf(subject), appRelation(def, "all"), objectOf("sched_app", app));
 		},
 		async canOn(subject, app, key, type, id) {
 			const def = definition(key);
-			if ((await denials(app, subject)).has(key)) return false;
-			if (def.scopes.length === 0)
-				return authz.check(userOf(subject), key, objectOf("sched_app", app));
-			return authz.check(userOf(subject), key, objectOf(type, id));
+			if (!checkedOn(def, type)) {
+				if (!checkedOn(def, "sched_app")) throw new Error(`${key} is not checked on ${type}`);
+				return (await scopesHeld(subject, app, def)).includes("all");
+			}
+			const user = userOf(subject);
+			if (!(await denies(app, subject, def))) return authz.check(user, key, objectOf(type, id));
+			// A denied scope removes that way in only: evaluate each remaining scope against the object's reach.
+			for (const scope of await scopesHeld(subject, app, def)) {
+				if (scope === "all") return true;
+				if (await authz.check(user, REACH_RELATION[scope], objectOf(type, id))) return true;
+			}
+			return false;
 		},
 		async reach(subject, app, key, type) {
 			const def = definition(key);
-			if ((await denials(app, subject)).has(key)) return NONE;
-			const user = userOf(subject);
-			if (def.scopes.length === 0)
-				return (await authz.check(user, key, objectOf("sched_app", app))) ? ALL : NONE;
-			// What the person holds IN THIS APP decides first: an object list is only asked for a scope they hold here.
-			const held = new Set<string>();
-			for (const scope of def.scopes)
-				if (await authz.check(user, `${key}_${scope}`, objectOf("sched_app", app))) held.add(scope);
-			if (held.has("all")) return ALL;
-			if (!held.has("own") && !held.has("assigned")) return NONE;
+			const held = await scopesHeld(subject, app, def);
+			if (held.includes("all")) return ALL;
+			if (held.length === 0) return NONE;
+			if (!checkedOn(def, type)) return NONE;
 			// Holding the permission over no object yet is an empty list, not a refusal.
-			return { kind: "ids", ids: new Set((await authz.listObjects(user, key, type)).map(idOf)) };
+			const user = userOf(subject);
+			const ids = new Set<string>();
+			for (const scope of held)
+				if (scope !== "all")
+					for (const o of await authz.listObjects(user, REACH_RELATION[scope], type))
+						ids.add(idOf(o));
+			return { kind: "ids", ids };
 		},
 	};
 }

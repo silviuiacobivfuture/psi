@@ -58,6 +58,22 @@ export interface Ctx<S extends RouteSpec> {
 		type: import("@psi/scheduling-sdk/contract").SchedType,
 		id: string,
 	): Promise<boolean>;
+	/**
+	 * For a route whose target is `dynamic`: asks the question the route could not ask before loading the row, and
+	 * refuses (404, as for any object the caller may not reach) when the answer is no. A dynamic route's handler MUST
+	 * call it before it writes; the pipeline refuses to answer a handler that never did.
+	 */
+	authorize(
+		key: string,
+		type: import("@psi/scheduling-sdk/contract").SchedType,
+		id: string,
+	): Promise<void>;
+	/** Like `authorize`, for several keys at once: returns the ones the caller holds on the object, 404 when none. */
+	authorizeAny(
+		keys: readonly string[],
+		type: import("@psi/scheduling-sdk/contract").SchedType,
+		id: string,
+	): Promise<string[]>;
 	/** The reach for a permission other than the route's own (a field group). */
 	reachOf(key: string, type: import("@psi/scheduling-sdk/contract").SchedType): Promise<Reach>;
 	/** Adds to this call's audit event (ids and counts, never values). */

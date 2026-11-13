@@ -3,7 +3,7 @@ import type { HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
 import type { Reason } from "../store/types";
 
-const TEAM_REQUESTS = { kind: "team", permission: "requests_view" } as const;
+const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
 const REASONS: Record<Reason, () => ApiError> = {
 	invalid: () => fail("invalid", "invalid request"),

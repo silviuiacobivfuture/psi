@@ -1,10 +1,5 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
-import {
-	type Client,
-	ClinicalData,
-	FIELD_GROUPS,
-	type FieldGroupName,
-} from "@psi/scheduling-sdk/contract";
+import { type Client, ClinicalData } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { reaches } from "../authz/access";
 import type { Ctx } from "../http/context";
@@ -12,17 +7,23 @@ import type { AppointmentRow, ClientRow } from "../store/types";
 
 type C = Ctx<RouteSpec>;
 type ClientOut = z.output<typeof Client>;
+type GroupReach = Awaited<ReturnType<C["reachOf"]>>;
+export interface ClientGroupReach {
+	contact: GroupReach;
+	guardian: GroupReach;
+	money: GroupReach;
+	clinical: GroupReach;
+}
 
 /** Which field groups of clients the caller may see, per client id: asked once per request, not once per row. */
-export async function clientGroupReach(
-	ctx: C,
-): Promise<Record<FieldGroupName, Awaited<ReturnType<C["reachOf"]>>>> {
-	const entries = await Promise.all(
-		FIELD_GROUPS.map(
-			async (g) => [g, await ctx.reachOf(`clients_${g}_view`, "sched_client")] as const,
-		),
-	);
-	return Object.fromEntries(entries) as Record<FieldGroupName, Awaited<ReturnType<C["reachOf"]>>>;
+export async function clientGroupReach(ctx: C): Promise<ClientGroupReach> {
+	const [contact, guardian, money, clinical] = await Promise.all([
+		ctx.reachOf("clients_view_contact", "sched_client"),
+		ctx.reachOf("clients_view_guardian", "sched_client"),
+		ctx.reachOf("clients_view_money", "sched_client"),
+		ctx.reachOf("clients_view_clinical", "sched_client"),
+	]);
+	return { contact, guardian, money, clinical };
 }
 
 export const clinicalContext = (app: string, clientId: string): string =>
@@ -36,7 +37,7 @@ export const clinicalContext = (app: string, clientId: string): string =>
 export function clientView(
 	ctx: C,
 	row: ClientRow,
-	reach: Awaited<ReturnType<typeof clientGroupReach>>,
+	reach: ClientGroupReach,
 ): { client: ClientOut; clinicalRead: boolean } {
 	const out: ClientOut = {
 		id: row.id,
@@ -67,11 +68,40 @@ export function clientView(
 	return { client: out, clinicalRead };
 }
 
-/** An appointment without its money group unless the caller may see it. */
-export function appointmentView(
-	row: AppointmentRow,
-	money: boolean,
-): Omit<AppointmentRow, "app" | "money"> & { money?: AppointmentRow["money"] } {
+/** What an appointment keeps beyond its identity (who, when, status): visible only with `appointments_view_core`. */
+const CORE_FIELDS = [
+	"clientId",
+	"groupId",
+	"roomId",
+	"deviceId",
+	"serviceId",
+	"packageId",
+	"note",
+	"cancelReason",
+] as const;
+
+export interface AppointmentGroups {
+	core: boolean;
+	money: boolean;
+}
+
+type AppointmentOut = Omit<AppointmentRow, "app" | "money"> & { money?: AppointmentRow["money"] };
+
+/** An appointment as the caller may see it: identity always, `core` and `money` only with their own keys. */
+export function appointmentView(row: AppointmentRow, groups: AppointmentGroups): AppointmentOut {
 	const { app: _app, money: held, ...rest } = row;
-	return money && held !== undefined ? { ...rest, money: held } : rest;
+	const shown: AppointmentOut = { ...rest };
+	if (!groups.core) for (const field of CORE_FIELDS) delete shown[field];
+	return groups.money && held !== undefined ? { ...shown, money: held } : shown;
+}
+
+/** The appointment groups the caller may see, per appointment id: asked once per request. */
+export async function appointmentGroupReach(
+	ctx: C,
+): Promise<{ core: GroupReach; money: GroupReach }> {
+	const [core, money] = await Promise.all([
+		ctx.reachOf("appointments_view_core", "sched_appointment"),
+		ctx.reachOf("appointments_view_money", "sched_appointment"),
+	]);
+	return { core, money };
 }

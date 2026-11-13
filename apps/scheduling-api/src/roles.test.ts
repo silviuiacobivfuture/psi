@@ -8,19 +8,29 @@ beforeEach(async () => {
 });
 const as = (who: string, method: string, path: string, body?: unknown) =>
 	w.call(who, method, `${A}${path}`, body);
+/** The id the store gave an app's seed role. */
+const roleOf = async (app: string, slug: string): Promise<string> => {
+	const items = (await w.call("root", "GET", `/v1/apps/${app}/roles`)).json.items as {
+		id: string;
+		name: string;
+	}[];
+	const found = items.find((x) => x.name.toLowerCase() === slug);
+	if (found === undefined) throw new Error(`no ${slug} role in ${app}`);
+	return found.id;
+};
 const tuples = (): string[] => w.authz.tuples().map((t) => `${t.user}|${t.relation}|${t.object}`);
 
 describe("roles are data, and an edit applies at once", () => {
 	it("adding a permission to a role gives it to its holders immediately, and removing it takes it away", async () => {
 		expect((await as("vera", "GET", "/people")).status).toBe(403);
-		const role = (await as("olga", "GET", "/roles/psizone-volunteer")).json.role as {
+		const role = (await as("olga", "GET", `/roles/${w.ids.roles.volunteer}`)).json.role as {
 			permissions: string[];
 		};
-		await as("olga", "PUT", "/roles/psizone-volunteer/permissions", {
-			permissions: [...role.permissions, "people_view"],
+		await as("olga", "PUT", `/roles/${w.ids.roles.volunteer}/permissions`, {
+			permissions: [...role.permissions, "people_view_all"],
 		});
 		expect((await as("vera", "GET", "/people")).status).toBe(200);
-		await as("olga", "PUT", "/roles/psizone-volunteer/permissions", {
+		await as("olga", "PUT", `/roles/${w.ids.roles.volunteer}/permissions`, {
 			permissions: role.permissions,
 		});
 		expect((await as("vera", "GET", "/people")).status).toBe(403);
@@ -38,7 +48,7 @@ describe("roles are data, and an edit applies at once", () => {
 	it("a person may hold several roles, and has the union", async () => {
 		await as("olga", "PUT", "/members/vera", {
 			displayName: "Vera",
-			roles: ["psizone-volunteer", "psizone-accountant"],
+			roles: [w.ids.roles.volunteer, w.ids.roles.accountant],
 			coordinates: [],
 		});
 		expect((await as("vera", "GET", `/clients/${w.ids.c1}`)).status).toBe(200);
@@ -47,21 +57,24 @@ describe("roles are data, and an edit applies at once", () => {
 
 	it("a copied role starts as a copy and then diverges", async () => {
 		const copy = (
-			await as("olga", "POST", "/roles", { name: "Reception 2", copyFrom: "psizone-reception" })
+			await as("olga", "POST", "/roles", { name: "Reception 2", copyFrom: w.ids.roles.reception })
 		).json as { id: string; permissions: string[] };
-		const source = (await as("olga", "GET", "/roles/psizone-reception")).json.role as {
+		const source = (await as("olga", "GET", `/roles/${w.ids.roles.reception}`)).json.role as {
 			permissions: string[];
 		};
 		expect(copy.permissions).toEqual(source.permissions);
 		await as("olga", "PUT", `/roles/${copy.id}/permissions`, { permissions: [] });
 		expect(
-			((await as("olga", "GET", "/roles/psizone-reception")).json.role as { permissions: string[] })
-				.permissions,
+			(
+				(await as("olga", "GET", `/roles/${w.ids.roles.reception}`)).json.role as {
+					permissions: string[];
+				}
+			).permissions,
 		).toEqual(source.permissions);
 	});
 
 	it("the matrix lists every catalogue row with the scopes the role holds", async () => {
-		const matrix = (await as("olga", "GET", "/roles/psizone-therapist")).json.matrix as {
+		const matrix = (await as("olga", "GET", `/roles/${w.ids.roles.therapist}`)).json.matrix as {
 			key: string;
 			scopes: string[];
 			held: string[];
@@ -73,7 +86,7 @@ describe("roles are data, and an edit applies at once", () => {
 
 	it("an unknown permission relation is refused and writes nothing", async () => {
 		const before = w.fingerprint();
-		const r = await as("olga", "PUT", "/roles/psizone-volunteer/permissions", {
+		const r = await as("olga", "PUT", `/roles/${w.ids.roles.volunteer}/permissions`, {
 			permissions: ["clients_levitate_all"],
 		});
 		expect(r.status).toBe(400);
@@ -81,18 +94,18 @@ describe("roles are data, and an edit applies at once", () => {
 	});
 
 	it("the Owner role cannot lose the permissions that manage roles and members, or be deleted", async () => {
-		const owner = (await as("olga", "GET", "/roles/psizone-owner")).json.role as {
+		const owner = (await as("olga", "GET", `/roles/${w.ids.roles.owner}`)).json.role as {
 			permissions: string[];
 		};
-		const r = await as("olga", "PUT", "/roles/psizone-owner/permissions", {
-			permissions: owner.permissions.filter((p) => p !== "roles_edit"),
+		const r = await as("olga", "PUT", `/roles/${w.ids.roles.owner}/permissions`, {
+			permissions: owner.permissions.filter((p) => p !== "roles_edit_all"),
 		});
 		expect(r.status).toBe(409);
-		expect((await as("olga", "DELETE", "/roles/psizone-owner")).status).toBe(409);
+		expect((await as("olga", "DELETE", `/roles/${w.ids.roles.owner}`)).status).toBe(409);
 	});
 
 	it("a role people still hold cannot be deleted; an empty one can", async () => {
-		expect((await as("olga", "DELETE", "/roles/psizone-reception")).status).toBe(409);
+		expect((await as("olga", "DELETE", `/roles/${w.ids.roles.reception}`)).status).toBe(409);
 		const spare = (await as("olga", "POST", "/roles", { name: "Spare" })).json.id as string;
 		expect((await as("olga", "DELETE", `/roles/${spare}`)).status).toBe(200);
 		expect(tuples().some((t) => t.includes(spare))).toBe(false);
@@ -140,18 +153,18 @@ describe("roles are data, and an edit applies at once", () => {
 
 describe("individual grants and denials sit on top of the roles", () => {
 	it("a grant is a tuple and works; a denial refuses even what the role allows", async () => {
-		await as("olga", "PUT", "/members/vera/overrides", { grant: ["people_view"], deny: [] });
+		await as("olga", "PUT", "/members/vera/overrides", { grant: ["people_view_all"], deny: [] });
 		expect((await as("vera", "GET", "/people")).status).toBe(200);
-		expect(tuples()).toContain("user:vera|people_view|sched_app:psizone");
-		await as("olga", "PUT", "/members/rita/overrides", { grant: [], deny: ["clients_view"] });
+		expect(tuples()).toContain("user:vera|people_view_all|sched_app:psizone");
+		await as("olga", "PUT", "/members/rita/overrides", { grant: [], deny: ["clients_view_all"] });
 		expect((await as("rita", "GET", "/clients")).status).toBe(403);
 		expect((await as("rita", "GET", "/rooms")).status).toBe(200);
 	});
 
 	it("withdrawing a grant deletes its tuple", async () => {
-		await as("olga", "PUT", "/members/vera/overrides", { grant: ["people_view"], deny: [] });
+		await as("olga", "PUT", "/members/vera/overrides", { grant: ["people_view_all"], deny: [] });
 		await as("olga", "PUT", "/members/vera/overrides", { grant: [], deny: [] });
-		expect(tuples()).not.toContain("user:vera|people_view|sched_app:psizone");
+		expect(tuples()).not.toContain("user:vera|people_view_all|sched_app:psizone");
 	});
 
 	it("a grant that is not a relation, and a denial that is not a key, are refused", async () => {
@@ -163,7 +176,7 @@ describe("individual grants and denials sit on top of the roles", () => {
 			(
 				await as("olga", "PUT", "/members/vera/overrides", {
 					grant: [],
-					deny: ["clients_view_all"],
+					deny: ["clients_levitate_all"],
 				})
 			).status,
 		).toBe(400);
@@ -174,7 +187,7 @@ describe("apps are closed worlds", () => {
 	it("a person in two apps holds different roles in each, and nothing crosses", async () => {
 		await w.call("hugo", "PUT", "/v1/apps/hemisync/members/rita", {
 			displayName: "Rita",
-			roles: ["hemisync-volunteer"],
+			roles: [await roleOf("hemisync", "volunteer")],
 			coordinates: [],
 		});
 		expect((await w.call("rita", "GET", "/v1/apps/hemisync/clients")).status).toBe(403);
@@ -189,7 +202,7 @@ describe("apps are closed worlds", () => {
 	it("an id from one app is not found in another, even for the owner of both", async () => {
 		await w.call("root", "PUT", "/v1/apps/hemisync/members/olga", {
 			displayName: "Olga",
-			roles: ["hemisync-owner"],
+			roles: [await roleOf("hemisync", "owner")],
 			coordinates: [],
 		});
 		expect((await w.call("olga", "GET", `/v1/apps/hemisync/clients/${w.ids.c1}`)).status).toBe(404);
@@ -231,7 +244,7 @@ describe("apps are closed worlds", () => {
 	it("the estate administrator manages apps and roles but reads no clinical data", async () => {
 		await w.call("root", "PUT", "/v1/apps/psizone/members/newcomer", {
 			displayName: "N",
-			roles: ["psizone-reception"],
+			roles: [w.ids.roles.reception],
 			coordinates: [],
 		});
 		expect((await w.call("root", "GET", `/v1/apps/psizone/clients/${w.ids.c1}`)).status).toBe(404);
@@ -241,22 +254,22 @@ describe("apps are closed worlds", () => {
 
 describe("what a member may do (/me), and the view-as", () => {
 	it("lists the permissions held with their scopes, and leaves out the denied", async () => {
-		await as("olga", "PUT", "/members/dora/overrides", { grant: [], deny: ["leave_create"] });
+		await as("olga", "PUT", "/members/dora/overrides", { grant: [], deny: ["leave_create_own"] });
 		const me = (await as("dora", "GET", "/me")).json as {
 			permissions: Record<string, string[]>;
 			denied: string[];
 			roles: string[];
 		};
-		expect(me.roles).toEqual(["psizone-therapist"]);
+		expect(me.roles).toEqual([w.ids.roles.therapist]);
 		expect(me.permissions.clients_view).toEqual(["own"]);
-		expect(me.permissions.calendar_view).toEqual(["own"]);
+		expect(me.permissions.calendars_view).toEqual(["own"]);
 		expect(me.permissions.rooms_view).toEqual(["all"]);
 		expect(Object.keys(me.permissions)).not.toContain("roles_edit");
 		expect(Object.keys(me.permissions)).not.toContain("leave_create");
-		expect(me.denied).toEqual(["leave_create"]);
+		expect(me.denied).toEqual(["leave_create_own"]);
 	});
 
-	it("shows another member's access only to someone who may read roles", async () => {
+	it("shows another member's access only to someone who may edit roles", async () => {
 		const seen = await as("olga", "GET", "/me?as=rita");
 		expect(seen.status).toBe(200);
 		expect(seen.json).toMatchObject({ subject: "rita" });
@@ -267,7 +280,7 @@ describe("what a member may do (/me), and the view-as", () => {
 	it("is the same relations the server enforces: what /me lists works, what it omits is refused", async () => {
 		const me = (await as("rita", "GET", "/me")).json as { permissions: Record<string, string[]> };
 		expect(me.permissions.clients_view).toEqual(["all"]);
-		expect(Object.keys(me.permissions)).not.toContain("clients_clinical_view");
+		expect(Object.keys(me.permissions)).not.toContain("clients_view_clinical");
 		expect((await as("rita", "GET", `/clients/${w.ids.c1}`)).status).toBe(200);
 	});
 });

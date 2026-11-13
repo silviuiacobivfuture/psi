@@ -71,7 +71,7 @@ export const packageHandlers: HandlersOf<
 			throw fail("conflict", "only an active client takes a package", { status: client.status });
 		if (ctx.body.discountCents > ctx.body.priceCents)
 			throw fail("invalid", "the offer is larger than the price", { field: "discountCents" });
-		const row: PackageRow = {
+		const draft: PackageRow = {
 			id: newId("k"),
 			app: ctx.app,
 			clientId: client.id,
@@ -82,7 +82,7 @@ export const packageHandlers: HandlersOf<
 			discountCents: ctx.body.discountCents,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.packages.insert(row);
+		const row = await ctx.deps.store.c.packages.insert(draft);
 		await writeTuples(ctx, [
 			appLink("sched_package", row.id, ctx.app),
 			parentLink("sched_package", row.id, "client", "sched_client", client.id),
@@ -146,7 +146,7 @@ export const packageHandlers: HandlersOf<
 			throw fail("conflict", "more than the package still owes", {
 				remainingCents: before.remainingCents,
 			});
-		const payment: PaymentRow = {
+		const draft: PaymentRow = {
 			id: newId("y"),
 			app: ctx.app,
 			clientId: row.clientId,
@@ -157,7 +157,7 @@ export const packageHandlers: HandlersOf<
 			...(ctx.body.note === undefined ? {} : { note: ctx.body.note }),
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.payments.insert(payment);
+		const payment = await ctx.deps.store.c.payments.insert(draft);
 		ctx.note({ amountCents: payment.amountCents, packageId: row.id });
 		await ctx.notify(
 			"payment.recorded",
@@ -170,6 +170,10 @@ export const packageHandlers: HandlersOf<
 
 	async "payments.remove"(ctx) {
 		const row = await must(ctx.deps.store.c.payments, ctx.app, String(ctx.params.id), "payment");
+		// A payment belongs to a package or, with none, to the client: the permission is asked where it hangs.
+		if (row.packageId === undefined)
+			await ctx.authorize("payments_delete", "sched_client", row.clientId);
+		else await ctx.authorize("payments_delete", "sched_package", row.packageId);
 		await ctx.deps.store.c.payments.remove(ctx.app, row.id);
 		ctx.note({ amountCents: row.amountCents, packageId: row.packageId ?? null });
 		return { ok: true as const };

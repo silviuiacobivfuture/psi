@@ -65,7 +65,7 @@ export const RolePatch = z.object({
 	description: z.string().max(500).optional(),
 });
 export const RolePermissions = z.object({
-	permissions: z.array(z.string().min(1).max(120)).max(400),
+	permissions: z.array(z.string().min(1).max(120)).max(600),
 });
 export const MatrixRow = z.object({
 	key: z.string(),
@@ -243,6 +243,9 @@ export const Appointment = z.object({
 	note: z.string().max(500).optional(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
+	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */
+	deletedAt: Ms.optional(),
+	purgeAt: Ms.optional(),
 	...Stamps,
 });
 export const AppointmentCreate = z.object({

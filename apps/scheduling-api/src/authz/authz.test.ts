@@ -132,19 +132,58 @@ describe("scope comes from relations, not from code", () => {
 		expect(await access.isPlatformAdmin("root")).toBe(true);
 		expect(await access.isPlatformAdmin("rita")).toBe(false);
 		expect(await access.canAll("root", "psizone", "roles_edit")).toBe(true);
-		expect(await access.canAll("root", "psizone", "clients_clinical_view")).toBe(false);
+		expect(await access.canAll("root", "psizone", "clients_view_clinical")).toBe(false);
 		expect(await access.isMember("root", "psizone")).toBe(true);
 	});
 
-	it("an individual denial refuses the permission in every scope, before OpenFGA", async () => {
-		const denied = accessOf(tuples, ["clients_view"]);
-		expect(await denied.reach("rita", "psizone", "clients_view", "sched_client")).toEqual({
+	it("an individual denial refuses exactly the relations it names", async () => {
+		const both = accessOf(tuples, [
+			"clients_view_all",
+			"clients_view_own",
+			"clients_view_assigned",
+		]);
+		expect(await both.reach("rita", "psizone", "clients_view", "sched_client")).toEqual({
 			kind: "none",
 		});
-		expect(await denied.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+		expect(await both.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
 			false,
 		);
-		expect(await denied.canAll("rita", "psizone", "clients_view")).toBe(false);
+		expect(await both.canAll("rita", "psizone", "clients_view")).toBe(false);
+		// Denying the scope a person does not hold changes nothing for them.
+		const other = accessOf(tuples, ["clients_view_all"]);
+		expect(await other.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+			true,
+		);
+		expect(await other.canAll("rita", "psizone", "clients_view")).toBe(false);
+	});
+
+	it("denying the scope a person holds removes that way in only: the answer is worked out scope by scope", async () => {
+		const ownDenied = accessOf(tuples, ["clients_view_own"]);
+		expect(await ownDenied.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+			false,
+		);
+		expect(await ownDenied.reach("dora", "psizone", "clients_view", "sched_client")).toEqual({
+			kind: "none",
+		});
+		// Rita holds `all`: a denial of `own` does not touch her.
+		expect(
+			await ownDenied.canOn("rita", "psizone", "clients_view", "sched_client", "c-elena"),
+		).toBe(true);
+	});
+
+	it("the scope-by-scope answer equals the object relation's answer wherever nothing is denied", async () => {
+		// Denying a relation nobody here holds forces the slow path without changing any answer.
+		const fast = accessOf(tuples);
+		const slow = accessOf(tuples, ["clients_view_own_clinical"]);
+		for (const who of ["rita", "dora", "cora", "hugo", "nobody"])
+			for (const object of ["c-dora", "c-elena", "c-hemi"])
+				expect(
+					await slow.canOn(who, "psizone", "clients_view_clinical", "sched_client", object),
+				).toBe(await fast.canOn(who, "psizone", "clients_view_clinical", "sched_client", object));
+		for (const who of ["rita", "dora", "cora"])
+			expect(await slow.reach(who, "psizone", "clients_view", "sched_client")).toEqual(
+				await fast.reach(who, "psizone", "clients_view", "sched_client"),
+			);
 	});
 
 	it("an individual grant adds a relation on top of the roles", async () => {

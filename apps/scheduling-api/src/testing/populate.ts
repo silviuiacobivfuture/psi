@@ -72,7 +72,9 @@ export async function populate<T extends Pick<World, "call">>(world: T): Promise
 	const base = "/v1/apps/psizone";
 	const owner = (method: string, path: string, body?: unknown) =>
 		call("olga", method, `${base}${path}`, body);
-	const roles = Object.fromEntries(Object.values(PEOPLE).map((r) => [r, `psizone-${r}`]));
+	// Role ids belong to the store (Convex assigns them): found by the seed role's name.
+	const seeded = ok(await owner("GET", "/roles"), "roles").items as { id: string; name: string }[];
+	const roles = Object.fromEntries(seeded.map((r) => [r.name.toLowerCase(), r.id]));
 
 	const dora = str(
 		ok(

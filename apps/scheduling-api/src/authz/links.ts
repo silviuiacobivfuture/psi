@@ -1,5 +1,5 @@
 import type { SchedType } from "@psi/scheduling-sdk/contract";
-import { appRelations, parseRelation, permissionOf } from "./catalogue";
+import { parseRelation } from "./catalogue";
 import { objectOf, type Tuple, userOf } from "./port";
 
 /** Facts that tie an object to its app and to people. They are the only way a scoped permission finds the object. */
@@ -58,10 +58,4 @@ export const personalGrant = (app: string, subject: string, relation: string): T
 /** The relation names a role may hold: every app relation of the catalogue. */
 export function isAppRelation(relation: string): boolean {
 	return parseRelation(relation) !== undefined;
-}
-
-/** `appointments_edit` (all its scopes) or one scoped relation, as the relations to hold. */
-export function relationsFor(entry: string): string[] {
-	const def = permissionOf(entry);
-	return def === undefined ? (isAppRelation(entry) ? [entry] : []) : appRelations(def);
 }

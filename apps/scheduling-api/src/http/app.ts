@@ -35,7 +35,13 @@ export function createApp(
 			"/v1/*",
 			cors({
 				origin: [...options.corsOrigins],
-				allowHeaders: ["authorization", "content-type", "x-service-key", "x-psi-subject"],
+				allowHeaders: [
+					"authorization",
+					"content-type",
+					"x-service-key",
+					"x-psi-subject",
+					"x-psi-view-as",
+				],
 				allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 				maxAge: 600,
 			}),

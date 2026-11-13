@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { ROUTES } from "@psi/scheduling-sdk/contract";
 import { describe, expect, it } from "vitest";
-import { allAppRelations, CATALOGUE, parseRelation, permissionOf } from "./catalogue";
+import {
+	ALL_PERMISSION_KEYS,
+	allAppRelations,
+	CATALOGUE,
+	catalogueIsClosed,
+	parseRelation,
+	permissionOf,
+} from "./catalogue";
 import { buildManifest } from "./manifest";
 import { buildModel, PLATFORM_CLAUSE, render } from "./model";
 import { PERMISSIONS } from "./permissions.generated";
@@ -61,44 +68,65 @@ describe("the committed artefacts follow the catalogue and the model", () => {
 });
 
 describe("the catalogue", () => {
-	it("has unique keys, and every scoped permission is defined on objects that can resolve its scopes", () => {
+	it("is the package's: every relation it derives is a key of ALL_PERMISSION_KEYS, and every key is derived", () => {
+		expect(catalogueIsClosed()).toBe(true);
+		expect(new Set(allAppRelations())).toEqual(new Set(ALL_PERMISSION_KEYS));
+		expect(allAppRelations().length).toBe(ALL_PERMISSION_KEYS.length);
+	});
+
+	it("has unique keys, and every scoped permission is defined on the objects that resolve its scopes", () => {
 		expect(new Set(CATALOGUE.map((d) => d.key)).size).toBe(CATALOGUE.length);
 		const model = buildModel();
 		for (const d of CATALOGUE) {
-			for (const type of d.objects) {
-				if (type === "sched_app") continue;
+			if (d.objects.length === 1 && d.objects[0] === "sched_app") continue;
+			for (const type of d.objects)
 				expect(Object.keys(model[type] ?? {}), `${type} defines ${d.key}`).toContain(d.key);
-			}
 		}
 	});
 
-	it("names every relation it holds on the app, and parses each back", () => {
+	it("names every relation it holds on the app, and parses each back to its permission and scope", () => {
 		for (const relation of allAppRelations())
 			expect(parseRelation(relation), relation).toBeDefined();
 		expect(parseRelation("clients_edit")).toBeUndefined();
-		expect(parseRelation("clients_edit_own")?.scope).toBe("own");
+		expect(parseRelation("clients_view_own_clinical")).toMatchObject({
+			scope: "own",
+			def: { key: "clients_view_clinical" },
+		});
+		expect(parseRelation("clients_view_all_custom-abc")).toBeUndefined();
 	});
 
-	it("is the vocabulary of every route: each permission key exists and its target type is one it is defined on", () => {
+	it("is the vocabulary of every route: each key exists and its target is a type it is checked on", () => {
 		for (const route of ROUTES) {
 			if (!("permission" in route) || route.permission === undefined) continue;
+			if (route.permission.key === "record:dynamic") {
+				expect(route.permission.target.kind, route.id).toBe("dynamic");
+				continue;
+			}
 			const def = permissionOf(route.permission.key);
 			expect(def, route.id).toBeDefined();
 			const target = route.permission.target;
-			if (target.kind === "app")
-				expect(def?.scopes.length === 0 || def?.scopes.includes("all"), route.id).toBe(true);
+			if (target.kind === "app") expect(def?.scopes.includes("all"), route.id).toBe(true);
 			else expect(def?.objects, route.id).toContain(target.type);
 		}
 	});
 
-	it("keeps every seed role inside the catalogue", () => {
+	it("keeps every seed role inside the catalogue, and the Owner holds every relation", () => {
 		const all = new Set(allAppRelations());
 		for (const role of seedRoles())
 			for (const r of role.permissions) expect(all.has(r), `${role.slug}: ${r}`).toBe(true);
+		expect(new Set(seedRoles().find((r) => r.slug === "owner")?.permissions)).toEqual(all);
 	});
 
-	it("gives no role the platform administrators' clinical access: platformAdmin permissions are never clinical", () => {
+	it("gives the platform administrators no clinical access: their permissions have no field group", () => {
 		for (const d of CATALOGUE.filter((x) => x.platformAdmin === true))
-			expect(d.fieldGroup).toBeUndefined();
+			expect(d.group).toBeUndefined();
+	});
+
+	it("a key without a group is identity only: each group has its own relation", () => {
+		const identity = new Set(
+			allAppRelations().filter((r) => !/_(core|contact|guardian|money|clinical)$/.test(r)),
+		);
+		expect(identity.has("clients_view_all")).toBe(true);
+		expect(identity.has("clients_view_all_clinical")).toBe(false);
 	});
 });

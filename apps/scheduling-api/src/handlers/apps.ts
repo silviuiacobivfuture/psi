@@ -1,5 +1,10 @@
-import { allAppRelations, CATALOGUE, parseRelation, permissionOf } from "../authz/catalogue";
-import { ACTION_LABEL, RESOURCE_LABEL } from "../authz/labels";
+import {
+	allAppRelations,
+	appRelation,
+	CATALOGUE,
+	parseRelation,
+	permissionOf,
+} from "../authz/catalogue";
 import {
 	coordinatorLink,
 	memberLink,
@@ -8,13 +13,24 @@ import {
 	roleGrant,
 	roleHolder,
 } from "../authz/links";
+import { labelOf } from "../authz/manifest";
 import type { Tuple } from "../authz/port";
 import { seedRoles } from "../authz/roles-seed";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
-import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
+import {
+	diff,
+	must,
+	newId,
+	paginate,
+	removeTuplesThenRow,
+	replaced,
+	stamps,
+	writeRowThenTuples,
+} from "./shared";
 
+/** What the Owner role always keeps, so an app cannot lock itself out of its own roles and team. */
 const GUARDED = [
 	"roles_view",
 	"roles_create",
@@ -22,7 +38,11 @@ const GUARDED = [
 	"roles_delete",
 	"members_view",
 	"members_edit",
-];
+].map((key) => {
+	const def = permissionOf(key);
+	if (def === undefined) throw new Error(`guarded permission ${key} is not in the catalogue`);
+	return appRelation(def, "all");
+});
 
 /** Creates an app with its seed roles and its first owner, and the tuples that make them real. */
 export async function provisionApp(
@@ -31,37 +51,51 @@ export async function provisionApp(
 ) {
 	const { id, name, timeZone, ownerSubject } = input;
 	const now = deps.clock();
-	await deps.store.c.apps.insert({ id, app: id, name, timeZone, status: "active", ...stamps(now) });
-	const roles: RoleRow[] = seedRoles().map((r) => ({
-		id: `${id}-${r.slug}`,
-		app: id,
-		name: r.name,
-		description: r.description,
-		system: true,
-		permissions: [...new Set(r.permissions)].sort(),
-		...stamps(now),
-	}));
-	for (const role of roles) await deps.store.c.roles.insert(role);
-	const owner: MemberRow = {
-		id: ownerSubject,
-		app: id,
-		subject: ownerSubject,
-		displayName: ownerSubject,
-		roles: [`${id}-owner`],
-		coordinates: [],
-		grants: [],
-		denies: [],
-		...stamps(now),
-	};
-	await deps.store.c.members.insert(owner);
-	await deps.authz.write({
-		writes: [
-			{ user: "platform:psi", relation: "parent_platform", object: `sched_app:${id}` },
-			...roles.flatMap(roleTuples),
-			...memberTuples(owner),
-		],
-		deletes: [],
-	});
+	const s = deps.store.c;
+	await s.apps.insert({ id, app: id, name, timeZone, status: "active", ...stamps(now) });
+	const roles: RoleRow[] = [];
+	let owner: MemberRow | undefined;
+	try {
+		for (const r of seedRoles())
+			roles.push(
+				await s.roles.insert({
+					id: `${id}-${r.slug}`,
+					app: id,
+					name: r.name,
+					description: r.description,
+					system: true,
+					permissions: [...new Set(r.permissions)].sort(),
+					...stamps(now),
+				}),
+			);
+		const ownerRole = roles.find((r) => r.name === OWNER_ROLE);
+		if (ownerRole === undefined) throw new Error("the seed roles have no Owner");
+		owner = await s.members.insert({
+			id: ownerSubject,
+			app: id,
+			subject: ownerSubject,
+			displayName: ownerSubject,
+			roles: [ownerRole.id],
+			coordinates: [],
+			grants: [],
+			denies: [],
+			...stamps(now),
+		});
+		await deps.authz.write({
+			writes: [
+				{ user: "platform:psi", relation: "parent_platform", object: `sched_app:${id}` },
+				...roles.flatMap(roleTuples),
+				...memberTuples(owner),
+			],
+			deletes: [],
+		});
+	} catch (error) {
+		// All or nothing: a half-made app would have an owner nobody can authorize.
+		if (owner !== undefined) await s.members.remove(id, owner.id).catch(() => undefined);
+		for (const r of roles) await s.roles.remove(id, r.id).catch(() => undefined);
+		await s.apps.remove(id, id).catch(() => undefined);
+		throw error;
+	}
 	return { id, name, timeZone, status: "active" as const, createdAt: now, updatedAt: now };
 }
 
@@ -76,11 +110,11 @@ const memberTuples = (m: MemberRow): Tuple[] => [
 	...m.grants.map((g) => personalGrant(m.app, m.subject, g)),
 ];
 
+const OWNER_ROLE = "Owner";
+const isOwnerRole = (role: RoleRow): boolean => role.system && role.name === OWNER_ROLE;
+
 function needsOwnerKept(role: RoleRow, permissions: readonly string[]): boolean {
-	if (!role.system || !role.id.endsWith("-owner")) return true;
-	return GUARDED.flatMap((k) => (permissionOf(k)?.scopes.length ? [`${k}_all`] : [k])).every((r) =>
-		permissions.includes(r),
-	);
+	return !isOwnerRole(role) || GUARDED.every((r) => permissions.includes(r));
 }
 
 export const appHandlers: HandlersOf<
@@ -115,26 +149,14 @@ export const appHandlers: HandlersOf<
 		if (ctx.principal.kind !== "person")
 			throw forbidden("service keys reach the visitor routes only");
 		const target = ctx.query.as ?? ctx.subject;
-		// Seeing what ANOTHER member may do is the roles editor's view-as: it needs the right to read roles.
-		if (target !== ctx.subject && !(await ctx.canAll("roles_view")))
-			throw forbidden("not allowed to see another member's access", { permission: "roles_view" });
+		// Seeing what ANOTHER member may do is the roles editor's view-as: it needs the right to edit roles.
+		if (target !== ctx.subject && !(await ctx.canAll("roles_edit")))
+			throw forbidden("not allowed to see another member's access", { permission: "roles_edit" });
 		const member = await ctx.deps.store.c.members.get(ctx.app, target);
 		if (member === undefined) throw fail("not_found", "member not found");
-		const denied = new Set(member.denies);
 		const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
 		for (const def of CATALOGUE) {
-			if (denied.has(def.key)) continue;
-			const scopes = def.scopes.length === 0 ? (["all"] as const) : def.scopes;
-			const held: ("all" | "assigned" | "own")[] = [];
-			for (const scope of scopes)
-				if (
-					await ctx.deps.authz.check(
-						`user:${target}`,
-						def.scopes.length === 0 ? def.key : `${def.key}_${scope}`,
-						`sched_app:${ctx.app}`,
-					)
-				)
-					held.push(scope);
+			const held = await ctx.deps.access.scopesHeld(target, ctx.app, def.key);
 			if (held.length > 0) permissions[def.key] = held;
 		}
 		return {
@@ -142,7 +164,7 @@ export const appHandlers: HandlersOf<
 			app: ctx.app,
 			roles: member.roles,
 			permissions,
-			denied: [...denied].sort(),
+			denied: [...member.denies].sort(),
 		};
 	},
 
@@ -212,6 +234,8 @@ export const appHandlers: HandlersOf<
 		for (const p of ctx.body.coordinates)
 			if (!people.some((x) => x.id === p)) throw fail("invalid", "unknown person", { person: p });
 		const held = await ctx.deps.store.c.members.get(ctx.app, subject);
+		if (held === undefined && !(await ctx.canAll("members_create")))
+			throw forbidden("the role does not allow this", { permission: "members_create" });
 		const next: MemberRow = {
 			id: subject,
 			app: ctx.app,
@@ -225,10 +249,18 @@ export const appHandlers: HandlersOf<
 			createdAt: held?.createdAt ?? ctx.now,
 			updatedAt: ctx.now,
 		};
-		if (held === undefined) await ctx.deps.store.c.members.insert(next);
-		else await ctx.deps.store.c.members.replace(next);
 		const change = diff(held === undefined ? [] : memberTuples(held), memberTuples(next));
-		await writeTuples(ctx, change.writes, change.deletes);
+		await writeRowThenTuples(ctx, {
+			write: async () =>
+				held === undefined
+					? ctx.deps.store.c.members.insert(next)
+					: replaced(ctx.deps.store.c.members, next),
+			undo: async () => {
+				if (held === undefined) await ctx.deps.store.c.members.remove(ctx.app, subject);
+				else await ctx.deps.store.c.members.replace(held);
+			},
+			tuples: () => change,
+		});
 		ctx.note({ roles: next.roles, created: held === undefined });
 		return {
 			subject,
@@ -245,8 +277,12 @@ export const appHandlers: HandlersOf<
 		const subject = String(ctx.params.subject);
 		if (subject === ctx.subject) throw forbidden("nobody removes themselves", { reason: "self" });
 		const held = await must(ctx.deps.store.c.members, ctx.app, subject, "member");
-		await ctx.deps.store.c.members.remove(ctx.app, subject);
-		await writeTuples(ctx, [], memberTuples(held));
+		await removeTuplesThenRow(ctx, {
+			tuples: memberTuples(held),
+			remove: async () => {
+				await ctx.deps.store.c.members.remove(ctx.app, subject);
+			},
+		});
 		return { ok: true as const };
 	},
 
@@ -259,19 +295,24 @@ export const appHandlers: HandlersOf<
 			if (parseRelation(g) === undefined)
 				throw fail("invalid", "not a permission relation", { relation: g });
 		for (const d of ctx.body.deny)
-			if (permissionOf(d) === undefined) throw fail("invalid", "not a permission key", { key: d });
+			if (parseRelation(d) === undefined) throw fail("invalid", "not a permission key", { key: d });
 		const next: MemberRow = {
 			...held,
 			grants: [...new Set(ctx.body.grant)].sort(),
 			denies: [...new Set(ctx.body.deny)].sort(),
 			updatedAt: ctx.now,
 		};
-		await ctx.deps.store.c.members.replace(next);
 		const change = diff(
 			held.grants.map((g) => personalGrant(ctx.app, subject, g)),
 			next.grants.map((g) => personalGrant(ctx.app, subject, g)),
 		);
-		await writeTuples(ctx, change.writes, change.deletes);
+		await writeRowThenTuples(ctx, {
+			write: async () => replaced(ctx.deps.store.c.members, next),
+			undo: async () => {
+				await ctx.deps.store.c.members.replace(held);
+			},
+			tuples: () => change,
+		});
 		ctx.note({ grants: next.grants.length, denies: next.denies.length });
 		return { grant: next.grants, deny: next.denies };
 	},
@@ -298,34 +339,30 @@ export const appHandlers: HandlersOf<
 			permissions: source?.permissions ?? [],
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.roles.insert(role);
-		await writeTuples(ctx, roleTuples(role));
-		return roleOut(role);
+		const saved = await writeRowThenTuples(ctx, {
+			write: () => ctx.deps.store.c.roles.insert(role),
+			undo: async (r) => {
+				await ctx.deps.store.c.roles.remove(ctx.app, r.id);
+			},
+			tuples: (r) => ({ writes: roleTuples(r), deletes: [] }),
+		});
+		return roleOut(saved);
 	},
 
 	async "roles.get"(ctx) {
 		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
 		return {
 			role: roleOut(role),
-			matrix: CATALOGUE.map((def) => {
-				const scopes = def.scopes.length === 0 ? (["all"] as const) : def.scopes;
-				const held = scopes.filter((s) =>
-					role.permissions.includes(def.scopes.length === 0 ? def.key : `${def.key}_${s}`),
-				);
-				return {
-					key: def.key,
-					resource: def.resource,
-					action: def.action,
-					effect: def.effect,
-					...(def.fieldGroup === undefined ? {} : { fieldGroup: def.fieldGroup }),
-					name: {
-						ro: `${RESOURCE_LABEL[def.resource]?.ro ?? def.resource}: ${ACTION_LABEL[def.action]?.ro ?? def.action}`,
-						en: `${RESOURCE_LABEL[def.resource]?.en ?? def.resource}: ${ACTION_LABEL[def.action]?.en ?? def.action}`,
-					},
-					scopes: [...scopes],
-					held,
-				};
-			}),
+			matrix: CATALOGUE.map((def) => ({
+				key: def.key,
+				resource: def.resource,
+				action: def.action,
+				effect: def.effect,
+				...(def.group === undefined ? {} : { fieldGroup: def.group }),
+				name: labelOf(def),
+				scopes: [...def.scopes],
+				held: def.scopes.filter((s) => role.permissions.includes(appRelation(def, s))),
+			})),
 		};
 	},
 
@@ -352,27 +389,36 @@ export const appHandlers: HandlersOf<
 				reason: "owner_lockout",
 			});
 		const next: RoleRow = { ...role, permissions: wanted, updatedAt: ctx.now };
-		await ctx.deps.store.c.roles.replace(next);
 		const change = diff(
 			role.permissions.map((p) => roleGrant(role.id, role.app, p)),
 			wanted.map((p) => roleGrant(role.id, role.app, p)),
 		);
-		await writeTuples(ctx, change.writes, change.deletes);
+		await writeRowThenTuples(ctx, {
+			write: async () => replaced(ctx.deps.store.c.roles, next),
+			undo: async () => {
+				await ctx.deps.store.c.roles.replace(role);
+			},
+			tuples: () => change,
+		});
 		ctx.note({ added: change.writes.length, removed: change.deletes.length });
 		return roleOut(next);
 	},
 
 	async "roles.remove"(ctx) {
 		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
-		if (role.system && role.id.endsWith("-owner"))
+		if (isOwnerRole(role))
 			throw fail("conflict", "the Owner role cannot be deleted", { reason: "owner_lockout" });
 		const holders = (await ctx.deps.store.c.members.list(ctx.app)).filter((m) =>
 			m.roles.includes(role.id),
 		);
 		if (holders.length > 0)
 			throw fail("conflict", "people still hold this role", { holders: holders.length });
-		await ctx.deps.store.c.roles.remove(ctx.app, role.id);
-		await writeTuples(ctx, [], roleTuples(role));
+		await removeTuplesThenRow(ctx, {
+			tuples: roleTuples(role),
+			remove: async () => {
+				await ctx.deps.store.c.roles.remove(ctx.app, role.id);
+			},
+		});
 		return { ok: true as const };
 	},
 };
