@@ -4,20 +4,27 @@ import {
 	type FieldGroupToggle,
 	type MatrixColumn,
 	type MatrixRow,
+	OverflowMenu,
 	PermissionMatrix,
 	Segmented,
+	Sheet,
 } from "@psi/ui/admin";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { actionCtx } from "../actions/context";
+import { runAction } from "../actions/engine";
+import { ActionBar, EmptyActions, menuItems } from "../actions/render";
 import type { Env } from "../app";
-import { formatMoney } from "../domain/money";
 import { drawBody } from "../floor/mount";
 import { areaText } from "../lib/area-labels";
+import { deviceFrom, personFrom, roleFrom, roomFrom, serviceFrom } from "../lib/catalog-form";
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import type { Column, Role, Service } from "../port/schema";
+import type { Role } from "../port/schema";
 import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../port/schema";
+import { CatalogSheets, CatalogTab } from "./catalog";
+import { SheetButtons } from "./client-sheets";
 import { OrgFrame } from "./org-settings";
 import { roleFromForm } from "./role-form";
 import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
@@ -25,78 +32,14 @@ import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } f
 export const SETTINGS_TABS = ["people", "rooms", "devices", "services", "roles", "plan"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
-function ColumnList({
-	items,
-	locale,
-}: {
-	items: ReadonlyArray<Column>;
-	locale: Locale;
-}): JSX.Element {
-	const o = at(locale);
-	if (items.length === 0)
-		return (
-			<EmptyState
-				icon="settings"
-				title={m.settings_empty_title({}, o)}
-				text={m.settings_empty_text({}, o)}
-			/>
-		);
-	return (
-		<div class="adm-card client-list">
-			{items.map((c) => (
-				<div key={c.id} class="client-row">
-					<span class="adm-dot" style={`background:var(--cal-${c.colour})`} />
-					<strong>{c.name}</strong>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function ServiceList({
-	items,
-	locale,
-	showPrice,
-}: {
-	items: ReadonlyArray<Service>;
-	locale: Locale;
-	/** Prices are a money field: shown only to someone who may see money. */
-	showPrice: boolean;
-}): JSX.Element {
-	const o = at(locale);
-	if (items.length === 0)
-		return (
-			<EmptyState
-				icon="settings"
-				title={m.settings_empty_title({}, o)}
-				text={m.settings_empty_text({}, o)}
-			/>
-		);
-	return (
-		<div class="adm-scroll">
-			<table class="adm-table">
-				<tbody>
-					{items.map((s) => (
-						<tr key={s.id}>
-							<th scope="row">{s.name}</th>
-							<td>{m.service_duration({ n: s.durationMin }, o)}</td>
-							{showPrice ? (
-								<td>{s.priceBani === null ? "—" : formatMoney(s.priceBani, locale)}</td>
-							) : null}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-	);
-}
-
 function RolesTab({
+	ctx,
 	roles,
 	role,
 	locale,
 	canEdit,
 }: {
+	ctx: Ctx;
 	roles: ReadonlyArray<Role>;
 	role: Role;
 	locale: Locale;
@@ -117,6 +60,7 @@ function RolesTab({
 	}));
 	return (
 		<div class="adm-stack" style="gap:var(--space-3)">
+			<ActionBar ctx={ctx} screen="settings.roles" />
 			<Segmented
 				label={m.roles_pick({}, o)}
 				current={role.id}
@@ -126,10 +70,19 @@ function RolesTab({
 					href: `/settings/roles?role=${r.id}`,
 				}))}
 			/>
-			<p class="adm-muted">
-				<strong>{role.name}</strong> · {m.roles_members({ n: role.members }, o)} —{" "}
-				{role.description}
-			</p>
+			<div class="adm-row">
+				<p class="adm-muted">
+					<strong>{role.name}</strong> · {m.roles_members({ n: role.members }, o)} —{" "}
+					{role.description}
+				</p>
+				{menuItems(ctx, "settings.roles", { id: role.id }).length === 0 ? null : (
+					<OverflowMenu
+						id={`role-${role.id}`}
+						label={m.client_more({}, o)}
+						items={menuItems(ctx, "settings.roles", { id: role.id })}
+					/>
+				)}
+			</div>
 			<p class="adm-muted">{m.roles_hint({}, o)}</p>
 			<form
 				method="post"
@@ -166,48 +119,120 @@ function RolesTab({
 	);
 }
 
+export interface SettingsQuery {
+	role: string | undefined;
+	create: boolean;
+	edit: string | null;
+	confirm: string | null;
+}
+
+function RoleSheets({
+	ctx,
+	roles,
+	query,
+}: {
+	ctx: Ctx;
+	roles: ReadonlyArray<Role>;
+	query: SettingsQuery;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	const doomed =
+		query.confirm === null ? null : (roles.find((r) => r.id === query.confirm) ?? null);
+	return (
+		<div data-signals={JSON.stringify({ newRole: query.create, askRoleDelete: doomed !== null })}>
+			<Sheet signal="newRole" title={m.ac_role_add({}, o)} closeLabel={m.close({}, o)}>
+				<form method="post" action="/settings/roles" class="cl-form" data-form="role-new">
+					<label class="adm-field">
+						<span>{m.ap_c_name({}, o)}</span>
+						<input class="adm-input" name="name" required maxlength={120} />
+					</label>
+					<label class="adm-field">
+						<span>{m.cat_role_description({}, o)}</span>
+						<input class="adm-input" name="description" maxlength={500} />
+					</label>
+					<label class="adm-field">
+						<span>{m.cat_role_copy({}, o)}</span>
+						<select class="adm-input" name="copyFrom">
+							<option value="">{m.cl_rec_none({}, o)}</option>
+							{roles.map((r) => (
+								<option key={r.id} value={r.id}>
+									{r.name}
+								</option>
+							))}
+						</select>
+					</label>
+					<SheetButtons go={m.cl_save({}, o)} signal="newRole" cancel={m.cancel({}, o)} />
+				</form>
+			</Sheet>
+			{doomed === null ? null : (
+				<Sheet signal="askRoleDelete" title={m.cat_remove_title({}, o)} closeLabel={m.close({}, o)}>
+					<form
+						method="post"
+						action={`/settings/roles/${doomed.id}/delete`}
+						class="cl-form"
+						data-form="role-delete"
+					>
+						<p>{m.cat_remove_text({ name: doomed.name }, o)}</p>
+						<SheetButtons
+							go={m.cat_remove_go({}, o)}
+							signal="askRoleDelete"
+							danger
+							cancel={m.cancel({}, o)}
+						/>
+					</form>
+				</Sheet>
+			)}
+		</div>
+	);
+}
+
 export async function renderSettings(
 	ctx: Ctx,
 	tab: SettingsTab,
-	roleId: string | undefined,
+	query: SettingsQuery,
 	flash?: string,
+	problem?: string,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	let body: JSX.Element;
+	let overlays: JSX.Element | undefined;
 	try {
-		if (tab === "people" || tab === "rooms" || tab === "devices") {
-			const cols = await ctx.port.columns(ctx.app);
-			const kind = tab === "people" ? "person" : tab === "rooms" ? "room" : "device";
-			body = (
-				<ColumnList
-					items={cols.filter((c) => c.kind === kind || (tab === "rooms" && c.kind === "group"))}
-					locale={ctx.locale}
-				/>
-			);
-		} else if (tab === "services") {
-			body = (
-				<ServiceList
-					items={await ctx.port.services(ctx.app)}
-					locale={ctx.locale}
-					showPrice={ctx.can.group("money")}
+		if (tab === "people" || tab === "rooms" || tab === "devices" || tab === "services") {
+			const [columns, services, roles] = await Promise.all([
+				ctx.port.catalogColumns(ctx.app),
+				ctx.port.services(ctx.app),
+				ctx.can.has("roles_view") ? ctx.port.roles(ctx.app) : [],
+			]);
+			const data = { columns, services, roles };
+			body = <CatalogTab ctx={ctx} segment={tab} data={data} />;
+			overlays = (
+				<CatalogSheets
+					ctx={ctx}
+					segment={tab}
+					data={data}
+					open={{ create: query.create, editId: query.edit, confirmId: query.confirm }}
 				/>
 			);
 		} else if (tab === "plan") {
 			body = await drawBody(ctx);
 		} else {
 			const roles = await ctx.port.roles(ctx.app);
-			const role = roles.find((r) => r.id === roleId) ?? roles[0];
+			const role = roles.find((r) => r.id === query.role) ?? roles[0];
 			body =
 				role === undefined ? (
-					<EmptyState icon="shield" title={m.settings_empty_title({}, o)} />
+					<EmptyState icon="shield" title={m.settings_empty_title({}, o)}>
+						<EmptyActions ctx={ctx} screen="settings.roles" />
+					</EmptyState>
 				) : (
 					<RolesTab
+						ctx={ctx}
 						roles={roles}
 						role={role}
 						locale={ctx.locale}
 						canEdit={ctx.can.write("roles_edit")}
 					/>
 				);
+			overlays = <RoleSheets ctx={ctx} roles={roles} query={query} />;
 		}
 	} catch {
 		body = (
@@ -224,6 +249,7 @@ export async function renderSettings(
 		ctx,
 		area: tab,
 		title: areaText(tab, ctx.locale).title,
+		...(overlays === undefined ? {} : { overlays }),
 		children: [
 			...(flash === undefined
 				? []
@@ -232,23 +258,104 @@ export async function renderSettings(
 							{flash}
 						</Banner>,
 					]),
+			...(problem === undefined
+				? []
+				: [
+						<Banner key="problem" tone="error" icon="alert">
+							{problem}
+						</Banner>,
+					]),
 			body,
 		],
 	});
 }
 
+const queryOf = (c: Context<Env>): SettingsQuery => ({
+	role: c.req.query("role"),
+	create: c.req.query("new") === "1",
+	edit: c.req.query("edit") ?? null,
+	confirm: c.req.query("confirm") ?? null,
+});
+
+const FORMS = {
+	people: { kind: "person", read: personFrom },
+	rooms: { kind: "room", read: roomFrom },
+	devices: { kind: "device", read: deviceFrom },
+	services: { kind: "service", read: serviceFrom },
+} as const;
+const STATUS = {
+	forbidden: 403,
+	"not-found": 404,
+	invalid: 422,
+	conflict: 409,
+	unknown: 404,
+	unavailable: 503,
+} as const;
+
 export function registerSettings(app: Hono<Env>): void {
 	for (const tab of SETTINGS_TABS) {
 		app.get(`/settings/${tab}`, async (c) => {
+			const q = c.req.query.bind(c.req);
+			const locale = at(c.var.ctx.locale);
 			const flash =
-				c.req.query("saved") === "1" && tab === "roles"
-					? m.roles_saved({}, at(c.var.ctx.locale))
-					: undefined;
-			return c.html(await renderSettings(c.var.ctx, tab, c.req.query("role"), flash), 200, {
+				q("saved") !== undefined
+					? tab === "roles"
+						? m.roles_saved({}, locale)
+						: m.cat_saved({}, locale)
+					: q("deleted") === "1"
+						? m.cat_deleted({}, locale)
+						: q("deactivated") === "1"
+							? m.cat_deactivated({}, locale)
+							: undefined;
+			const problem = q("problem") === undefined ? undefined : m.cat_problem({}, locale);
+			return c.html(await renderSettings(c.var.ctx, tab, queryOf(c), flash, problem), 200, {
 				"cache-control": "private, no-store",
 			});
 		});
 	}
+
+	const run = async (
+		c: Context<Env>,
+		id: string,
+		params: unknown,
+		back: string,
+	): Promise<Response> => {
+		const result = await runAction(actionCtx(c.var.ctx), id, params, { confirmed: true });
+		if (result.status === "ok") return c.redirect(result.to ?? back, 303);
+		if (result.status === "refused" && (result.code === "invalid" || result.code === "conflict"))
+			return c.redirect(`${back}?problem=${result.code}`, 303);
+		return c.text(
+			result.status === "refused" ? result.code : "confirmation",
+			result.status === "refused" ? STATUS[result.code] : 400,
+		);
+	};
+	for (const [segment, f] of Object.entries(FORMS)) {
+		app.post(`/settings/${segment}/save`, async (c) =>
+			run(
+				c,
+				`${f.kind}.new`,
+				{ id: null, input: f.read(await c.req.parseBody({ all: true })) },
+				`/settings/${segment}`,
+			),
+		);
+		app.post(`/settings/${segment}/:id/save`, async (c) =>
+			run(
+				c,
+				`${f.kind}.edit`,
+				{ id: c.req.param("id"), input: f.read(await c.req.parseBody({ all: true })) },
+				`/settings/${segment}`,
+			),
+		);
+		app.post(`/settings/${segment}/:id/remove`, async (c) =>
+			run(c, `${f.kind}.remove`, { id: c.req.param("id") }, `/settings/${segment}`),
+		);
+	}
+	app.post("/settings/roles", async (c) =>
+		run(c, "role.new", roleFrom(await c.req.parseBody({ all: true })), "/settings/roles"),
+	);
+	app.post("/settings/roles/:id/delete", async (c) =>
+		run(c, "role.delete", { id: c.req.param("id") }, "/settings/roles"),
+	);
 	app.post("/settings/roles/:id", async (c) => {
 		const ctx = c.var.ctx;
 		const roles = await ctx.port.roles(ctx.app);
