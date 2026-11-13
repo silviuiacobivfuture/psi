@@ -100,6 +100,39 @@ describe("the deployment declares every secret in all four places", () => {
 		);
 	});
 
+	it("OpenFGA admits the console and the service through psi's own policy, registered with Argo, on the right ports", () => {
+		const p = read("gitops/services/openfga-access/base/networkpolicy.yaml");
+		// One rule per port: the text of each ingress rule, from its `- from:` to the next.
+		const rules = p.split("    - from:").slice(1);
+		const ruleFor = (port: number): string =>
+			rules.find((r) => r.includes(`port: ${port} }`)) ?? "";
+		expect(rules).toHaveLength(2);
+		expect(p).toMatch(/metadata:\n {2}name: openfga-psi-apps\n {2}namespace: openfga\n/);
+		expect(p).toContain("matchLabels: { app: openfga }");
+		// :8081 admits both, each as namespace AND pod in one element; :8080 (tuple writes) only the service
+		const check = ruleFor(8081);
+		expect(check).toMatch(
+			/metadata\.name: clinic \}\n\s+podSelector:\n\s+matchLabels: \{ app: clinic \}/,
+		);
+		expect(check).toMatch(
+			/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
+		);
+		const write = ruleFor(8080);
+		expect(write).toMatch(
+			/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
+		);
+		expect(write).not.toContain("clinic");
+		expect(read("gitops/services/openfga-access/base/kustomization.yaml")).toMatch(
+			/^namespace: openfga$/m,
+		);
+		expect(read("gitops/apps/overlays/dev/apps/kustomization.yaml")).toContain(
+			"- openfga-access.yaml",
+		);
+		expect(read("gitops/apps/overlays/dev/apps/openfga-access.yaml")).toContain(
+			"namespace: openfga }",
+		);
+	});
+
 	it("the dev host is the one the ingress, the public URL and the CORS origin name, and the store admits this pod", () => {
 		const d = read("gitops/services/scheduling-api/base/deployment.yaml");
 		const ingress = read("gitops/services/scheduling-api/base/ingress.yaml");

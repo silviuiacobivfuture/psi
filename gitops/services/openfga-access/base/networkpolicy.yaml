@@ -1,0 +1,34 @@
+# psi's OWN admission to the estate's OpenFGA. SEB's policy (gitops/seb-pieces/openfga, namespace openfga) admits only
+# Polaris and Authentik; NetworkPolicies are additive, so psi's apps are admitted by this second policy on the same pods
+# rather than by an edit to SEB's. Each `from` element is namespace AND pod (an AND; two elements would be an OR).
+#
+#   :8081  Service openfga       Check / ListObjects    clinic (the console) and scheduling-api
+#   :8080  Service openfga-admin tuple writes           scheduling-api only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openfga-psi-apps
+  namespace: openfga
+spec:
+  podSelector:
+    matchLabels: { app: openfga }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: clinic }
+          podSelector:
+            matchLabels: { app: clinic }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling-api }
+          podSelector:
+            matchLabels: { app: scheduling-api }
+      ports:
+        - { protocol: TCP, port: 8081 }
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling-api }
+          podSelector:
+            matchLabels: { app: scheduling-api }
+      ports:
+        - { protocol: TCP, port: 8080 }

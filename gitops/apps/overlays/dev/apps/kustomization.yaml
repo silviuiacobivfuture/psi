@@ -12,3 +12,4 @@ resources:
   - scheduling-deploy.yaml
   - scheduling-api.yaml
   - clinic.yaml
+  - openfga-access.yaml

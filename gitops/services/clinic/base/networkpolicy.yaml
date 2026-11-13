@@ -1,6 +1,6 @@
 # The console is reached through Traefik only; it reaches Authentik (public host), OpenFGA, the
 # account database, the scheduling service and DNS — nothing else.
-# NOTE: OpenFGA's own policy (gitops/seb-pieces/openfga, rendered by SEB) must admit namespace clinic on :8081.
+# NOTE: OpenFGA's own policy (SEB's) does not admit clinic: psi's additive policy in gitops/services/openfga-access does, on :8081.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
