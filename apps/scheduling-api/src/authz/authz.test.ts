@@ -186,6 +186,28 @@ describe("scope comes from relations, not from code", () => {
 			);
 	});
 
+	it("every permission a person holds comes in one batch, equal to asking one by one", async () => {
+		const keys = [
+			"clients_view",
+			"clients_view_clinical",
+			"packages_view",
+			"appointments_view",
+			"roles_edit",
+		];
+		for (const [who, denied] of [
+			["rita", []],
+			["dora", []],
+			["dora", ["clients_view_own"]],
+		] as const) {
+			const access = accessOf(tuples, [...denied]);
+			const many = await access.scopesHeldMany(who, "psizone", keys);
+			for (const key of keys)
+				expect(many.get(key), `${who} ${key}`).toEqual(
+					await access.scopesHeld(who, "psizone", key),
+				);
+		}
+	});
+
 	it("an individual grant adds a relation on top of the roles", async () => {
 		const granted = accessOf(
 			world([{ user: "user:dora", relation: "clients_view_all", object: "sched_app:psizone" }])
@@ -236,6 +258,52 @@ describe("the live adapter", () => {
 			fetch,
 			now,
 		});
+
+	it("asks many questions in one BatchCheck, in chunks of 50, and answers in the order asked", async () => {
+		calls.length = 0;
+		const batch: typeof globalThis.fetch = (input, init) => {
+			const body = JSON.parse(String(init?.body)) as {
+				checks: { correlation_id: string; tuple_key: { relation: string } }[];
+			};
+			calls.push({ url: String(input), body });
+			const result = Object.fromEntries(
+				body.checks.map((c) => [
+					c.correlation_id,
+					c.tuple_key.relation === "yes" ? { allowed: true } : {},
+				]),
+			);
+			return Promise.resolve(new Response(JSON.stringify({ result }), { status: 200 }));
+		};
+		const questions = Array.from({ length: 120 }, (_v, i) => ({
+			user: "user:a",
+			relation: i % 3 === 0 ? "yes" : "no",
+			object: "sched_app:x",
+		}));
+		const out = await build(batch).checkMany(questions);
+		expect(calls.map((c) => c.url)).toEqual(Array(3).fill("http://fga:8081/stores/S/batch-check"));
+		expect(out).toEqual(questions.map((q) => q.relation === "yes"));
+		expect(calls[0]?.body).toMatchObject({
+			authorization_model_id: "M1",
+			checks: expect.any(Array),
+		});
+	});
+
+	it("an item OpenFGA could not answer fails the whole batch, never a partial answer", async () => {
+		const bad = () =>
+			Promise.resolve(
+				new Response(JSON.stringify({ result: { "0": { error: { code: "x" } } } }), {
+					status: 200,
+				}),
+			);
+		await expect(
+			build(bad).checkMany([{ user: "u", relation: "r", object: "o:1" }]),
+		).rejects.toBeInstanceOf(AuthzUnavailable);
+		const missing = () =>
+			Promise.resolve(new Response(JSON.stringify({ result: {} }), { status: 200 }));
+		await expect(
+			build(missing).checkMany([{ user: "u", relation: "r", object: "o:1" }]),
+		).rejects.toBeInstanceOf(AuthzUnavailable);
+	});
 
 	it("pins the model id on every call and supplies `now` itself", async () => {
 		calls.length = 0;

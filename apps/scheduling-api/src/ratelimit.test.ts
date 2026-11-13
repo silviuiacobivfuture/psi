@@ -39,7 +39,7 @@ describe("on the visitor routes", () => {
 	it("a visitor who exceeds the rate gets 429 with Retry-After, and nothing is written", async () => {
 		const w = await limited();
 		for (let i = 0; i < 3; i++) expect((await get(w, "203.0.113.7")).status).toBe(200);
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		const r = await get(w, "203.0.113.7");
 		expect(r.status).toBe(429);
 		expect(r.json.error).toMatchObject({ code: "rate_limited" });
@@ -52,7 +52,7 @@ describe("on the visitor routes", () => {
 			{ "x-psi-client-ip": "203.0.113.7" },
 		);
 		expect(post.status).toBe(429);
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 	});
 
 	it("another visitor of the same site, another site, and a later second are not affected", async () => {

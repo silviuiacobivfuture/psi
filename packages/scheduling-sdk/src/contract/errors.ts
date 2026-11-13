@@ -17,7 +17,6 @@ export const ERROR_STATUS = {
 	not_allowed: 403,
 	rate_limited: 429,
 	internal: 500,
-	not_available_yet: 501,
 	unavailable: 503,
 } as const;
 

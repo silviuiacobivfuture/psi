@@ -191,12 +191,18 @@ export const CALENDAR_ROUTES = [
 		method: "GET",
 		path: "/v1/apps/:app/clients",
 		side: "team",
-		summary: "Clients (current or archive), each with only the field groups the caller may see",
+		summary:
+			"Clients (current or archive), each with only the field groups the caller may see; never the clinical group (read one client for that)",
 		params: AppParam,
 		query: z
 			.object({
 				status: z.enum(["active", "archived", "deleted"]).default("active"),
 				q: z.string().trim().max(100).optional(),
+				/**
+				 * `identity`: only who the client is (id, name, status, who treats them, birth year). `groups`: also the contact,
+				 * guardian and money groups the caller may see. Clinical data is never in a list: ask for the client.
+				 */
+				fields: z.enum(["identity", "groups"]).default("groups"),
 			})
 			.extend(PageQuery.shape),
 		response: page(Client),

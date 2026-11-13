@@ -16,6 +16,7 @@ import { createLoggingNotify } from "./ports/notify";
 import { createS3Store } from "./ports/objects";
 import { createLimiter } from "./ports/ratelimit";
 import { createConvexStore } from "./store/convex";
+import { createRpc } from "./store/convex/rpc";
 import { createMemoryStore } from "./store/memory";
 import type { StorePort } from "./store/types";
 
@@ -28,6 +29,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 	const store: StorePort =
 		config.store.kind === "convex"
 			? createConvexStore({
+					rpc: createRpc({ url: config.store.url, serverKey: config.store.serverKey }),
 					live: new ConvexClient(config.store.url, {
 						skipConvexDeploymentUrlCheck: true,
 						logger: false,

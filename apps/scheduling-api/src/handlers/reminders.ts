@@ -237,7 +237,9 @@ export const reminderHandlers: HandlersOf<
 				: fail("not_found", "request not found");
 		await ctx.changed("request", "updated", String(ctx.params.reference));
 		const to = { kind: "request", reference: String(ctx.params.reference) } as const;
-		if (ctx.body.decision === "confirm")
+		// Calling a callback back tells the visitor nothing: they were on the phone.
+		if (ctx.body.decision === "handle") ctx.note({ decision: "handle" });
+		else if (ctx.body.decision === "confirm")
 			await ctx.notify("appointment.confirmed", to, { reference: to.reference }, to.reference);
 		else
 			await ctx.notify(

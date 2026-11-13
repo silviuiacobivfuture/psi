@@ -1,5 +1,5 @@
 import type { FieldGroupName } from "@psi/scheduling-sdk/contract";
-import { reaches } from "../authz/access";
+import { NONE, reaches } from "../authz/access";
 import { appLink, treatingLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
@@ -35,20 +35,17 @@ export const clientHandlers: HandlersOf<
 					ctx.query.q === undefined || r.name.toLowerCase().includes(ctx.query.q.toLowerCase()),
 			)
 			.sort((a, b) => a.name.localeCompare(b.name));
-		const reach = await clientGroupReach(ctx);
+		// A list never decrypts or audits clinical data: that is one client at a time.
+		const groups = ctx.query.fields === "groups";
+		const include = { contact: groups, guardian: groups, money: groups, clinical: false };
+		const reach = groups
+			? await clientGroupReach(ctx)
+			: { contact: NONE, guardian: NONE, money: NONE, clinical: NONE };
 		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
-		const items = [];
-		for (const row of page.items) {
-			const { client, clinicalRead } = clientView(ctx, row, reach);
-			if (clinicalRead)
-				await ctx.auditNow(
-					"clinical.read",
-					{ type: "client", id: row.id },
-					{ via: "clients.list" },
-				);
-			items.push(client);
-		}
-		return { ...page, items };
+		return {
+			...page,
+			items: page.items.map((row) => clientView(ctx, row, reach, include).client),
+		};
 	},
 
 	async "clients.create"(ctx) {

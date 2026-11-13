@@ -104,11 +104,11 @@ describe.each(RECORD_RESOURCES)("records of the %s resource", (resource) => {
 		expect((await as(who(resource, "view"), "GET", `/records/${own}`)).status).toBe(200);
 		for (const other of others) {
 			const id = await record(FORMS[other]);
-			const before = w.fingerprint();
+			const before = await w.fingerprint();
 			const r = await as(who(resource, "view"), "GET", `/records/${id}`);
 			expect({ other, status: r.status }).toEqual({ other, status: 404 });
 			// A read of clinical content is audited, so only the refusals are held to "nothing written".
-			expect(w.fingerprint()).toBe(before);
+			expect(await w.fingerprint()).toBe(before);
 		}
 	});
 
@@ -129,13 +129,13 @@ describe.each(RECORD_RESOURCES)("records of the %s resource", (resource) => {
 		});
 		expect(made.status).toBe(200);
 		for (const other of others) {
-			const before = w.fingerprint();
+			const before = await w.fingerprint();
 			const r = await as(who(resource, "create"), "POST", `/clients/${w.ids.c1}/records`, {
 				formId: FORMS[other],
 				data: { summary: "x" },
 			});
 			expect({ other, status: r.status }).toEqual({ other, status: 404 });
-			expect(w.fingerprint()).toBe(before);
+			expect(await w.fingerprint()).toBe(before);
 		}
 	});
 
@@ -147,12 +147,12 @@ describe.each(RECORD_RESOURCES)("records of the %s resource", (resource) => {
 		).toBe(200);
 		for (const other of others) {
 			const id = await record(FORMS[other]);
-			const before = w.fingerprint();
+			const before = await w.fingerprint();
 			const r = await as(who(resource, "edit"), "PATCH", `/records/${id}`, {
 				data: { summary: "y" },
 			});
 			expect({ other, status: r.status }).toEqual({ other, status: 404 });
-			expect(w.fingerprint()).toBe(before);
+			expect(await w.fingerprint()).toBe(before);
 		}
 	});
 
@@ -161,22 +161,22 @@ describe.each(RECORD_RESOURCES)("records of the %s resource", (resource) => {
 		expect((await as(who(resource, "delete"), "DELETE", `/records/${own}`)).status).toBe(200);
 		for (const other of others) {
 			const id = await record(FORMS[other]);
-			const before = w.fingerprint();
+			const before = await w.fingerprint();
 			const r = await as(who(resource, "delete"), "DELETE", `/records/${id}`);
 			expect({ other, status: r.status }).toEqual({ other, status: 404 });
-			expect(w.fingerprint()).toBe(before);
+			expect(await w.fingerprint()).toBe(before);
 		}
 	});
 
 	it("holding the view does not give the edit, nor the reverse (each action is its own key)", async () => {
 		const id = await record(mine);
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		expect(
 			(await as(who(resource, "view"), "PATCH", `/records/${id}`, { data: { summary: "z" } }))
 				.status,
 		).toBe(403);
 		expect((await as(who(resource, "edit"), "GET", `/records/${id}`)).status).toBe(403);
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 	});
 });
 
@@ -184,20 +184,20 @@ describe("the other dynamic routes", () => {
 	it("payments.remove asks where the payment hangs: the package it belongs to", async () => {
 		await onlyWith("u-pay-delete", "payments_delete_all");
 		await onlyWith("u-pay-view", "payments_view_all");
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		expect((await as("u-pay-view", "DELETE", `/payments/${w.ids.payment}`)).status).toBe(403);
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 		expect((await as("u-pay-delete", "DELETE", `/payments/${w.ids.payment}`)).status).toBe(200);
 	});
 
 	it("leave.decide asks on the person whose leave it is: own scope does not reach a colleague's", async () => {
 		await onlyWith("u-leave-own", "leave_approve_own");
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		const r = await as("u-leave-own", "POST", `/leave/${w.ids.leave}/decision`, {
 			decision: "approved",
 		});
 		expect(r.status).toBe(404);
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 		await onlyWith("u-leave-all", "leave_approve_all");
 		expect(
 			(await as("u-leave-all", "POST", `/leave/${w.ids.leave}/decision`, { decision: "approved" }))

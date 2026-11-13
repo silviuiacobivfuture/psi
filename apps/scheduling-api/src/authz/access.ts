@@ -33,6 +33,12 @@ export interface Access {
 	reach(subject: string, app: string, key: string, type: SchedType): Promise<Reach>;
 	/** The scopes at which the person holds the permission on the app (denied ones excluded). */
 	scopesHeld(subject: string, app: string, key: string): Promise<("all" | "assigned" | "own")[]>;
+	/** `scopesHeld` for many permissions in ONE round trip (a console asks for all ~140 at once). */
+	scopesHeldMany(
+		subject: string,
+		app: string,
+		keys: readonly string[],
+	): Promise<Map<string, ("all" | "assigned" | "own")[]>>;
 }
 
 /** The catalogue keys (with their scope) a person was individually denied in an app. */
@@ -76,6 +82,29 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 		isPlatformAdmin: (subject) =>
 			authz.check(userOf(subject), "role_sched_app_admin", objectOf("platform", "psi")),
 		scopesHeld: (subject, app, key) => scopesHeld(subject, app, definition(key)),
+		async scopesHeldMany(subject, app, keys) {
+			const denied = await denials(app, subject);
+			const asked: { key: string; scope: "all" | "assigned" | "own"; relation: string }[] = [];
+			for (const key of keys) {
+				const def = definition(key);
+				for (const scope of def.scopes) {
+					const relation = appRelation(def, scope);
+					if (!denied.has(relation)) asked.push({ key, scope, relation });
+				}
+			}
+			const answers = await authz.checkMany(
+				asked.map((q) => ({
+					user: userOf(subject),
+					relation: q.relation,
+					object: objectOf("sched_app", app),
+				})),
+			);
+			const held = new Map<string, ("all" | "assigned" | "own")[]>(keys.map((k) => [k, []]));
+			asked.forEach((q, i) => {
+				if (answers[i] === true) held.get(q.key)?.push(q.scope);
+			});
+			return held;
+		},
 		async canAll(subject, app, key) {
 			const def = definition(key);
 			if ((await denials(app, subject)).has(appRelation(def, "all"))) return false;

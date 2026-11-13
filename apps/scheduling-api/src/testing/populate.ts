@@ -1,5 +1,5 @@
 import { FileInitResult } from "@psi/scheduling-sdk/contract";
-import { createBareWorld, HOUR, NOW, type Reply, type World } from "./world";
+import { createBareWorld, HOUR, NOW, type Reply, type World, type WorldOptions } from "./world";
 
 export interface Ids {
 	dora: string;
@@ -265,6 +265,6 @@ export async function populate<T extends Pick<World, "call">>(world: T): Promise
 	};
 }
 
-export async function createWorld(): Promise<Populated> {
-	return populate(await createBareWorld());
+export async function createWorld(options: WorldOptions = {}): Promise<Populated> {
+	return populate(await createBareWorld(options));
 }

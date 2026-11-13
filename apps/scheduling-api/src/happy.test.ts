@@ -1,7 +1,8 @@
 import { ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
-import { beforeAll, describe, expect, it } from "vitest";
-import { createWorld, type Populated } from "./testing/populate";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
+import { worldFactories } from "./testing/worlds";
 
 const A = "/v1/apps/psizone";
 type Case = (w: Populated) => Promise<Reply>;
@@ -66,7 +67,7 @@ const spare = async (w: Populated): Promise<string> =>
 		(
 			await olga(w, "POST", "/appointments", {
 				kind: "block",
-				practitionerId: w.ids.mara,
+				practitionerId: w.ids.elena,
 				start: NOW + 6 * 24 * HOUR,
 				end: NOW + 6 * 24 * HOUR + HOUR,
 			})
@@ -134,6 +135,8 @@ const HAPPY: Record<
 	},
 	"me.get": (w) => w.call("rita", "GET", "/v1/me"),
 	"me.capabilities": (w) => w.call("rita", "GET", `${A}/me`),
+	"viewAs.start": (w) => olga(w, "POST", "/view-as", { as: `role:${w.ids.roles.reception}` }),
+	"viewAs.stop": (w) => olga(w, "DELETE", "/view-as"),
 	"apps.create": (w) =>
 		w.call("root", "POST", "/v1/apps", {
 			id: "newapp",
@@ -372,10 +375,17 @@ const HAPPY: Record<
 	"imports.list": (w) => olga(w, "GET", "/imports"),
 };
 
-describe("every route of the contract answers its happy path", () => {
+const factories = await worldFactories();
+
+describe.each(
+	factories,
+)("every route of the contract answers its happy path on $name", (factory) => {
 	let world: Populated;
 	beforeAll(async () => {
-		world = await createWorld();
+		world = await factory.create();
+	});
+	afterAll(async () => {
+		await factory.cleanup();
 	});
 	const specs = (ROUTES as ReadonlyArray<RouteSpec>).filter((r) => r.stream !== true);
 

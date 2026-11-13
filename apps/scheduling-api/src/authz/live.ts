@@ -16,6 +16,14 @@ export interface LiveAuthzOptions {
 }
 
 const Check = z.object({ allowed: z.boolean().optional() });
+const Batch = z.object({
+	result: z.record(
+		z.string(),
+		z.object({ allowed: z.boolean().optional(), error: z.unknown().optional() }),
+	),
+});
+/** OpenFGA's default ceiling for one BatchCheck. */
+const BATCH_MAX = 50;
 const List = z.object({ objects: z.array(z.string()) });
 const WRITE_CHUNK = 100;
 /** After our own write, read at the stronger consistency for a moment so a role edit applies at once. */
@@ -69,6 +77,30 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 			});
 			// `allowed` is omitted on the wire when false: absence is a refusal, never an allow.
 			return Check.parse(raw).allowed === true;
+		},
+		async checkMany(checks) {
+			const answers: boolean[] = [];
+			for (let at = 0; at < checks.length; at += BATCH_MAX) {
+				const chunk = checks.slice(at, at + BATCH_MAX);
+				const raw = await post(options.readUrl, "/batch-check", {
+					authorization_model_id: options.modelId,
+					checks: chunk.map((q, i) => ({
+						tuple_key: { user: q.user, relation: q.relation, object: q.object },
+						context: context(),
+						correlation_id: String(i),
+					})),
+					consistency: consistency(),
+				});
+				const result = Batch.parse(raw).result;
+				chunk.forEach((_q, i) => {
+					const item = result[String(i)];
+					// A missing item or an item with an error is not an answer: the whole call fails closed.
+					if (item === undefined || item.error !== undefined)
+						throw new AuthzUnavailable("authz: OpenFGA could not answer a batched check");
+					answers.push(item.allowed === true);
+				});
+			}
+			return answers;
 		},
 		async listObjects(user, relation, type) {
 			const raw = await post(options.readUrl, "/list-objects", {

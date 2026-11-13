@@ -85,12 +85,12 @@ describe("roles are data, and an edit applies at once", () => {
 	});
 
 	it("an unknown permission relation is refused and writes nothing", async () => {
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		const r = await as("olga", "PUT", `/roles/${w.ids.roles.volunteer}/permissions`, {
 			permissions: ["clients_levitate_all"],
 		});
 		expect(r.status).toBe(400);
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 	});
 
 	it("the Owner role cannot lose the permissions that manage roles and members, or be deleted", async () => {
@@ -117,9 +117,9 @@ describe("roles are data, and an edit applies at once", () => {
 			["DELETE", "/members/olga", undefined],
 			["PUT", "/members/olga/overrides", { grant: [], deny: [] }],
 		] as const) {
-			const before = w.fingerprint();
+			const before = await w.fingerprint();
 			expect((await as("olga", method, path, body)).status, path).toBe(403);
-			expect(w.fingerprint()).toBe(before);
+			expect(await w.fingerprint()).toBe(before);
 		}
 	});
 

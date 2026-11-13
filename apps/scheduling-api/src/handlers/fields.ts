@@ -15,6 +15,14 @@ export interface ClientGroupReach {
 	clinical: GroupReach;
 }
 
+/** Which field groups a projection of a client carries (a list never carries the clinical one). */
+export interface ClientInclude {
+	contact: boolean;
+	guardian: boolean;
+	money: boolean;
+	clinical: boolean;
+}
+
 /** Which field groups of clients the caller may see, per client id: asked once per request, not once per row. */
 export async function clientGroupReach(ctx: C): Promise<ClientGroupReach> {
 	const [contact, guardian, money, clinical] = await Promise.all([
@@ -38,6 +46,7 @@ export function clientView(
 	ctx: C,
 	row: ClientRow,
 	reach: ClientGroupReach,
+	include: ClientInclude = { contact: true, guardian: true, money: true, clinical: true },
 ): { client: ClientOut; clinicalRead: boolean } {
 	const out: ClientOut = {
 		id: row.id,
@@ -48,18 +57,20 @@ export function clientView(
 		...(row.archivedAt === undefined ? {} : { archivedAt: row.archivedAt }),
 		...(row.deletedAt === undefined ? {} : { deletedAt: row.deletedAt }),
 		...(row.purgeAt === undefined ? {} : { purgeAt: row.purgeAt }),
-		...(row.contact !== undefined && reaches(reach.contact, row.id)
+		...(include.contact && row.contact !== undefined && reaches(reach.contact, row.id)
 			? { contact: row.contact }
 			: {}),
-		...(row.guardian !== undefined && reaches(reach.guardian, row.id)
+		...(include.guardian && row.guardian !== undefined && reaches(reach.guardian, row.id)
 			? { guardian: row.guardian }
 			: {}),
-		...(row.money !== undefined && reaches(reach.money, row.id) ? { money: row.money } : {}),
+		...(include.money && row.money !== undefined && reaches(reach.money, row.id)
+			? { money: row.money }
+			: {}),
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	};
 	let clinicalRead = false;
-	if (row.clinicalSealed !== undefined && reaches(reach.clinical, row.id)) {
+	if (include.clinical && row.clinicalSealed !== undefined && reaches(reach.clinical, row.id)) {
 		out.clinical = ClinicalData.parse(
 			JSON.parse(ctx.deps.crypto.open(row.clinicalSealed, clinicalContext(row.app, row.id))),
 		);

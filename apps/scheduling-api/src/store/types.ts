@@ -130,16 +130,22 @@ export interface Query<R> {
 export class StoreConflict extends Error {
 	override readonly name = "StoreConflict";
 }
-/** A store function the Convex deployment does not have yet (listed in the README). */
-export class NotAvailableYet extends Error {
-	override readonly name = "NotAvailableYet";
-	readonly what: string;
-	constructor(what: string) {
-		super(`not_available_yet: ${what}`);
-		this.what = what;
+/**
+ * The store refused a change with a reason of its own (a wrapper's `{ok:false, reason}`): `not_found`, `stale`,
+ * `overlaps`, `in_use`, `unknown_client`, `invalid`... The service maps it to the contract's refusal codes.
+ */
+export class StoreRefused extends Error {
+	override readonly name = "StoreRefused";
+	readonly reason: string;
+	constructor(reason: string) {
+		super(`store refused: ${reason}`);
+		this.reason = reason;
 	}
 }
-
+/** The store could not be reached or answered something it should not (the service answers 503). */
+export class StoreUnavailable extends Error {
+	override readonly name = "StoreUnavailable";
+}
 export interface Collection<R extends { id: string; app: string }> {
 	get(app: string, id: string): Promise<R | undefined>;
 	list(app: string, query?: Query<R>): Promise<R[]>;
@@ -310,7 +316,7 @@ export interface RequestsPort {
 	decide(
 		app: string,
 		reference: string,
-		decision: "confirm" | "decline" | "cancel",
+		decision: "confirm" | "decline" | "cancel" | "handle",
 		reason: string | undefined,
 		actor: string,
 	): Promise<{ ok: true } | Failed>;

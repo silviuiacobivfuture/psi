@@ -66,6 +66,8 @@ export function createMemoryAuthz(
 
 	return {
 		check: (user, relation, object) => Promise.resolve(holds(user, relation, object, 0)),
+		checkMany: (checks) =>
+			Promise.resolve(checks.map((q) => holds(q.user, q.relation, q.object, 0))),
 		listObjects(user, relation, type) {
 			const candidates = new Set<string>();
 			for (const t of held.values()) {

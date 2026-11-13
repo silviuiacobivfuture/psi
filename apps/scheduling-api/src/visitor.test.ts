@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createConvexStore } from "./store/convex";
+import { StoreUnavailable } from "./store/types";
 import { createWorld, type Populated } from "./testing/populate";
 import { HOUR, NOW } from "./testing/world";
 
@@ -145,8 +146,8 @@ describe("the visitor flow", () => {
 				contact: { name: "V", phone: "0733 000 111" },
 			})
 		).json;
-		expect(w.store.dump()).not.toContain(String(sub.cancelCode));
-		expect(w.store.dump()).not.toContain(String(h.holdToken));
+		expect(await w.dump()).not.toContain(String(sub.cancelCode));
+		expect(await w.dump()).not.toContain(String(h.holdToken));
 	});
 
 	it("a released hold frees the slot", async () => {
@@ -267,23 +268,20 @@ describe("the service itself", () => {
 		expect(r.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/);
 	});
 
-	it("on the Convex adapter, what Convex does not have yet answers not_available_yet (501), never a made-up answer", async () => {
-		const missing = () => {
-			throw new Error("not used");
-		};
+	it("on the Convex adapter, a store that cannot be reached is a 503 and nothing is made up", async () => {
+		const down = (): Promise<never> =>
+			Promise.reject(new StoreUnavailable("the store did not answer"));
 		const store = createConvexStore({
-			visitor: { services: missing } as never,
+			visitor: { services: down } as never,
 			staff: {} as never,
+			rpc: { query: down, mutation: down },
 			live: {} as never,
 			serverKey: "k",
 		});
-		await expect(store.c.clients.list("psizone")).rejects.toMatchObject({ what: "clients.list" });
-		await expect(store.visitor.mine("psizone", "u")).rejects.toMatchObject({
-			name: "NotAvailableYet",
-		});
 		w.deps.store = store;
 		const r = await w.call("rita", "GET", `${A}/clients`);
-		expect(r.status).toBe(501);
-		expect(err(r)).toBe("not_available_yet");
+		expect(r.status).toBe(503);
+		expect(err(r)).toBe("unavailable");
+		expect(JSON.stringify(r.json)).not.toContain("the store did not answer");
 	});
 });

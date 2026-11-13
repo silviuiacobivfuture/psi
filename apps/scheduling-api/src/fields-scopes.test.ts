@@ -63,6 +63,32 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 		for (const c of items) expect(Object.keys(c)).not.toContain("clinical");
 	});
 
+	it("a list never carries the clinical group, not even for the owner, and never audits a clinical read", async () => {
+		const before = (await auditActions()).length;
+		const items = (await as("olga", "GET", "/clients")).json.items as Record<string, unknown>[];
+		expect(items).toHaveLength(2);
+		for (const c of items) {
+			expect(Object.keys(c)).not.toContain("clinical");
+			expect(c).toHaveProperty("contact");
+		}
+		expect(JSON.stringify(items)).not.toContain("synthetic-diagnosis");
+		expect((await auditActions()).length).toBe(before);
+	});
+
+	it("fields=identity is who the client is and nothing more: no group, for anyone", async () => {
+		const items = (await as("olga", "GET", "/clients?fields=identity")).json.items as Record<
+			string,
+			unknown
+		>[];
+		expect(items).toHaveLength(2);
+		for (const c of items) {
+			expect(Object.keys(c).sort()).toEqual(
+				["birthYear", "createdAt", "id", "name", "status", "treating", "updatedAt"].sort(),
+			);
+		}
+		expect((await as("olga", "GET", "/clients?fields=everything")).status).toBe(400);
+	});
+
 	it("the clinical content is not in the store in clear: only a sealed envelope", async () => {
 		const row = await w.store.c.clients.get("psizone", w.ids.c1);
 		expect(JSON.stringify(row)).not.toContain("synthetic-diagnosis");
@@ -114,11 +140,11 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 
 	it("writing a group the role cannot edit is refused, naming the group, and writes nothing", async () => {
 		await as("olga", "PUT", "/members/dora/overrides", { grant: ["clients_edit_own"], deny: [] });
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		const r = await as("dora", "PATCH", `/clients/${w.ids.c1}`, { money: { tariffCents: 1 } });
 		expect(r.status).toBe(403);
 		expect(r.json.error).toMatchObject({ code: "forbidden", detail: { group: "money" } });
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 	});
 
 	it("creating a client with a group the role cannot write is refused", async () => {
@@ -341,8 +367,8 @@ describe("mutations are audited, and nothing moves a client by itself", () => {
 	});
 
 	it("the fingerprint is sensitive: a successful write changes it", async () => {
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		await as("olga", "POST", "/rooms", { name: "Another", kind: "x" });
-		expect(w.fingerprint()).not.toBe(before);
+		expect(await w.fingerprint()).not.toBe(before);
 	});
 });

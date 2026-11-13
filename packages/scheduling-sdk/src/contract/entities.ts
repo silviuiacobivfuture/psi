@@ -74,6 +74,8 @@ export const MatrixRow = z.object({
 	effect: z.enum(["read", "write"]),
 	fieldGroup: FieldGroup.optional(),
 	name: Label,
+	/** False: the catalogue defines only the `all` scope for it (nothing narrower to choose). */
+	scoped: z.boolean(),
 	scopes: z.array(z.enum(["all", "assigned", "own"])),
 	held: z.array(z.enum(["all", "assigned", "own"])),
 });
@@ -371,7 +373,8 @@ export const ReminderMark = z.object({ state: z.enum(["sent", "confirmed"]) });
 export const ReminderEmail = z.object({ locale: Locale.default("ro") });
 export const WhatsappLink = z.object({ url: z.string().url(), text: z.string() });
 
-export const RequestStatus = z.enum(["requested", "confirmed", "declined", "cancelled"]);
+/** `handled`: a callback request the team has called back (a booking is confirmed, declined or cancelled instead). */
+export const RequestStatus = z.enum(["requested", "confirmed", "declined", "cancelled", "handled"]);
 export const WebRequest = z.object({
 	reference: z.string(),
 	status: RequestStatus,
@@ -384,7 +387,8 @@ export const WebRequest = z.object({
 		.optional(),
 });
 export const RequestDecision = z.object({
-	decision: z.enum(["confirm", "decline", "cancel"]),
+	/** `handle` is for a callback request only: it was called back. */
+	decision: z.enum(["confirm", "decline", "cancel", "handle"]),
 	reason: z.string().max(60).optional(),
 });
 
@@ -481,17 +485,6 @@ export const CalendarEvent = z.object({
 	kind: z.enum(["appointment", "client", "roster", "request", "ready"]),
 	op: z.enum(["created", "updated", "deleted", "ready"]),
 	id: z.string(),
-});
-
-/** What a member may do in an app, from the same relations the server enforces: the console shows only what works. */
-export const Capabilities = z.object({
-	subject: Subject,
-	app: AppId,
-	roles: z.array(Id),
-	/** Permission key to the scopes held (`["all"]` for an app-wide permission). A key not listed is not held. */
-	permissions: z.record(z.string(), z.array(z.enum(["all", "assigned", "own"]))),
-	/** Permissions individually denied; they are absent from `permissions`. */
-	denied: z.array(z.string()),
 });
 
 /** The inbox badge: what is waiting. `reminders` is absent for a caller who may not see reminders. */

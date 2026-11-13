@@ -19,6 +19,7 @@ import { seedRoles } from "../authz/roles-seed";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
+import { capabilitiesOf } from "./capabilities";
 import {
 	diff,
 	must,
@@ -148,24 +149,10 @@ export const appHandlers: HandlersOf<
 	async "me.capabilities"(ctx) {
 		if (ctx.principal.kind !== "person")
 			throw forbidden("service keys reach the visitor routes only");
-		const target = ctx.query.as ?? ctx.subject;
-		// Seeing what ANOTHER member may do is the roles editor's view-as: it needs the right to edit roles.
-		if (target !== ctx.subject && !(await ctx.canAll("roles_edit")))
+		// Seeing what a role or ANOTHER member may do is the roles editor's view-as: it needs the right to edit roles.
+		if (ctx.query.as !== undefined && !(await ctx.canAll("roles_edit")))
 			throw forbidden("not allowed to see another member's access", { permission: "roles_edit" });
-		const member = await ctx.deps.store.c.members.get(ctx.app, target);
-		if (member === undefined) throw fail("not_found", "member not found");
-		const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
-		for (const def of CATALOGUE) {
-			const held = await ctx.deps.access.scopesHeld(target, ctx.app, def.key);
-			if (held.length > 0) permissions[def.key] = held;
-		}
-		return {
-			subject: target,
-			app: ctx.app,
-			roles: member.roles,
-			permissions,
-			denied: [...member.denies].sort(),
-		};
+		return capabilitiesOf(ctx, ctx.query.as);
 	},
 
 	async "apps.create"(ctx) {
@@ -360,6 +347,7 @@ export const appHandlers: HandlersOf<
 				effect: def.effect,
 				...(def.group === undefined ? {} : { fieldGroup: def.group }),
 				name: labelOf(def),
+				scoped: def.scopes.length > 1,
 				scopes: [...def.scopes],
 				held: def.scopes.filter((s) => role.permissions.includes(appRelation(def, s))),
 			})),

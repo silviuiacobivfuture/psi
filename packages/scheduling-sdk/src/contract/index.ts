@@ -1,3 +1,4 @@
+export * from "./capabilities";
 export {
 	type HttpMethod,
 	type InputOf,

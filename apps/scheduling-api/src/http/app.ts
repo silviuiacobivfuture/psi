@@ -1,7 +1,8 @@
-import { buildOpenApi, ROUTES, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import { buildOpenApi, ROUTES, type RouteSpec, VIEW_AS_HEADER } from "@psi/scheduling-sdk/contract";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { handlers } from "../handlers/index";
+import { withActor } from "../store/actor";
 import type { Deps, HttpEnv } from "./context";
 import { fail } from "./errors";
 import { finish, prepare, refusal } from "./pipeline";
@@ -40,7 +41,7 @@ export function createApp(
 					"content-type",
 					"x-service-key",
 					"x-psi-subject",
-					"x-psi-view-as",
+					VIEW_AS_HEADER,
 				],
 				allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 				maxAge: 600,
@@ -75,7 +76,7 @@ export function createApp(
 		app.on(spec.method, spec.path, async (c) => {
 			try {
 				const prepared = await prepare(deps, spec, c);
-				const result = await handler(prepared.ctx);
+				const result = await withActor(prepared.ctx.subject, () => handler(prepared.ctx));
 				return c.json(await finish(deps, prepared, result));
 			} catch (error) {
 				const r = refusal(deps, error, c.get("requestId"));

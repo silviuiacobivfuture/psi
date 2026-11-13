@@ -1,11 +1,16 @@
-import { type ErrorCode, ROUTES, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import {
+	type ErrorCode,
+	ROUTES,
+	type RouteSpec,
+	VIEW_AS_HEADER,
+} from "@psi/scheduling-sdk/contract";
 import type { Context } from "hono";
 import { type Principal, subjectOf, visitorSubject } from "../auth/principal";
 import { verifyServiceKey } from "../auth/service-keys";
 import { NONE, type Reach } from "../authz/access";
 import { AuthzUnavailable } from "../authz/port";
 import { MailUnavailable } from "../ports/mail";
-import { NotAvailableYet, StoreConflict } from "../store/types";
+import { StoreConflict, StoreRefused, StoreUnavailable } from "../store/types";
 import { writeAudit } from "./audit";
 import type { Ctx, Deps, HttpEnv } from "./context";
 import { ApiError, fail, forbidden, notFound } from "./errors";
@@ -100,6 +105,14 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	// Order matters: who is calling, then the path, then membership and permission, and only then the rest of the
 	// input. A caller who may not do this learns nothing about what a valid request looks like.
 	const principal = await authenticate(deps, c);
+	// A console that is looking at the app as someone else is read-only: a write that says so is refused outright, so a
+	// console that forgot to disable a button still cannot change anything. Only ending the view is allowed.
+	if (
+		c.req.header(VIEW_AS_HEADER) !== undefined &&
+		spec.method !== "GET" &&
+		spec.id !== "viewAs.stop"
+	)
+		throw forbidden("viewing as someone else is read-only", { reason: "view_as_readonly" });
 	const parsed: Parsed = { params: parseParams(spec, c), query: {}, body: {} };
 	const subject = subjectOf(principal);
 	const app = typeof parsed.params.app === "string" ? parsed.params.app : "";
@@ -111,9 +124,6 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 			if (!(await deps.access.isPlatformAdmin(subject)))
 				throw forbidden("estate administrators only");
 		} else if (app !== "") {
-			// View-as is a read: nothing a request made on behalf of another member's rights may write.
-			if (c.req.header("x-psi-view-as") !== undefined && spec.method !== "GET")
-				throw forbidden("view-as is read-only", { reason: "view_as_read_only" });
 			if (!(await deps.access.isMember(subject, app))) throw notFound("app");
 			const row = await deps.store.c.apps.get(app, app);
 			if (row === undefined) throw notFound("app");
@@ -281,6 +291,25 @@ export async function finish(deps: Deps, prepared: Prepared, result: unknown): P
 	return parsed.data;
 }
 
+/** The wrappers' refusal reasons as the contract's codes: the state forbids it (409), it is not there (404), or it is malformed (400). */
+const CONFLICTS = new Set([
+	"stale",
+	"exists",
+	"overlaps",
+	"in_use",
+	"already_deleted",
+	"not_deleted",
+	"recovery_expired",
+	"not_allowed",
+	"slot_taken",
+]);
+function refusedByStore(reason: string): ApiError {
+	if (reason === "not_found") return notFound("object");
+	return CONFLICTS.has(reason)
+		? fail("conflict", "the store refused the change", { reason })
+		: fail("invalid", "the store refused the change", { reason });
+}
+
 /** Turns anything thrown into the contract's refusal; nothing else leaves the process. */
 export function refusal(
 	deps: Deps,
@@ -313,8 +342,12 @@ export function refusal(
 		deps.log({ level: "error", event: "authz_unavailable", requestId });
 		return make(fail("unavailable", "authorization is unavailable; refusing"));
 	}
-	if (error instanceof NotAvailableYet) return make(fail("not_available_yet", error.message));
 	if (error instanceof MailUnavailable) return make(fail("unavailable", "mail is unavailable"));
+	if (error instanceof StoreRefused) return make(refusedByStore(error.reason));
+	if (error instanceof StoreUnavailable) {
+		deps.log({ level: "error", event: "store_unavailable", requestId });
+		return make(fail("unavailable", "the store is unavailable"));
+	}
 	if (error instanceof StoreConflict) return make(fail("conflict", "already exists"));
 	deps.log({
 		level: "error",

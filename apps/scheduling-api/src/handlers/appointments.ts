@@ -28,7 +28,6 @@ async function clash(
 		"id" | "practitionerId" | "roomId" | "deviceId" | "start" | "end" | "kind"
 	>,
 ): Promise<string | undefined> {
-	if (candidate.kind === "block") return undefined;
 	const near = await ctx.deps.store.c.appointments.list(ctx.app, {
 		range: { field: "start", gte: candidate.start - 24 * 3_600_000, lt: candidate.end },
 	});
