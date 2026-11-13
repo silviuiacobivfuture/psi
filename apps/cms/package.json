@@ -1,6 +1,6 @@
 {
 	"name": "@psi/cms",
-	"version": "0.5.2",
+	"version": "0.5.3",
 	"private": true,
 	"type": "module",
 	"description": "psi's content management: Payload 3 on Next.js, Postgres, the estate's object storage, sign-in through the estate's Authentik",

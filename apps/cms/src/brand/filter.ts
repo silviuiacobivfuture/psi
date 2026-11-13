@@ -19,7 +19,7 @@ export function chosenBrand(cookieHeader: string | null): Brand | null {
 
 /**
  * Lists narrowed to the chosen brand. A convenience only: what a person may see at all is the
- * access rule (`readByBrand`), never this filter. A collection without that brand (articles have
+ * access rule (`brandAccess`), never this filter. A collection without that brand (articles have
  * no `blog`) shows nothing for it, rather than asking the database for a value it cannot hold.
  */
 export function brandWhere(

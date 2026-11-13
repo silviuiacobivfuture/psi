@@ -1,13 +1,5 @@
 import type { Block, CollectionConfig, FieldHook } from "payload";
-import {
-	createByBrand,
-	deleteByBrand,
-	readByBrand,
-	readVersionsByBrand,
-	serverOnly,
-	signedInOnly,
-	updateByBrand,
-} from "../authz/access";
+import { brandAccess, serverOnly, signedInOnly } from "../authz/access";
 import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
 import { previewUrl } from "../preview/url";
@@ -137,13 +129,7 @@ export const Articles: CollectionConfig = {
 		preview: (doc, { locale }) => previewUrl(doc.id, locale),
 	},
 	versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
-	access: {
-		read: readByBrand,
-		readVersions: readVersionsByBrand,
-		create: createByBrand,
-		update: updateByBrand,
-		delete: deleteByBrand,
-	},
+	access: brandAccess(BRANDS),
 	hooks: {
 		beforeChange: [reviewGate(articleReview)],
 		afterChange: [announceArticle, indexContent("articles")],

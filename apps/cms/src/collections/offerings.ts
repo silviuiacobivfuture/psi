@@ -1,12 +1,6 @@
 import { OFFERING_KINDS, Price } from "@psi/cms-client";
 import type { CollectionConfig } from "payload";
-import {
-	createByBrand,
-	deleteByBrand,
-	readByBrand,
-	readVersionsByBrand,
-	updateByBrand,
-} from "../authz/access";
+import { brandAccess } from "../authz/access";
 import { brandListFilter } from "../brand/filter";
 import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
@@ -59,13 +53,7 @@ export const Offerings: CollectionConfig = {
 		baseListFilter: brandListFilter(BRANDS),
 	},
 	versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
-	access: {
-		read: readByBrand,
-		readVersions: readVersionsByBrand,
-		create: createByBrand,
-		update: updateByBrand,
-		delete: deleteByBrand,
-	},
+	access: brandAccess(BRANDS),
 	indexes: [{ fields: ["brand", "slug"], unique: true }],
 	hooks: {
 		beforeChange: [reviewGate(offeringReview)],

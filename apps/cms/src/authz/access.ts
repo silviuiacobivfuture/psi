@@ -54,45 +54,64 @@ export async function can(req: PayloadRequest, relation: Relation, brand: Brand)
 
 const BrandValue = z.enum(BRANDS);
 
-function brandWhere(brands: Brand[], field = "brand"): Where | boolean {
-	if (brands.length === 0) return false;
-	if (brands.length === BRANDS.length) return true;
-	return { [field]: { in: brands } };
+/**
+ * The rows a person may touch, as a Where on the collection's own brand values (`values`: the
+ * field's select options). Only brands the field can hold are named — a brand outside its enum
+ * (e.g. `blog` on articles) would make Postgres refuse the whole query — and `true` (no filter)
+ * only when the person holds every value the field can hold. A retired brand is never granted
+ * (`withoutRetired`), so its rows stay filtered out.
+ */
+export function brandWhere(
+	brands: ReadonlyArray<Brand>,
+	values: ReadonlyArray<string>,
+	field = "brand",
+): Where | boolean {
+	const held = values.filter((v) => brands.some((b) => b === v));
+	if (held.length === 0) return false;
+	if (held.length === values.length) return true;
+	return { [field]: { in: held } };
 }
 
 const signedInUser = (req: PayloadRequest): boolean => req.user !== null && req.user !== undefined;
 
-/** Anonymous: published only. Signed in: every brand the person may read (drafts included). */
-export const readByBrand: Access = async ({ req }) => {
-	if (!signedInUser(req)) return { _status: { equals: "published" } };
-	return brandWhere(await brandsFor(req, "read"));
-};
-
 /**
- * Versions hold drafts: never anonymous, and only on brands the person may read. Payload's
- * default here is "any signed-in user", which would show every brand's drafts to anyone.
+ * The brand-scoped access rules of a collection whose `brand` select holds `values`.
+ * Anonymous: published only. Signed in: every brand the person may read (drafts included).
+ * Versions hold drafts: never anonymous, and only on brands the person may read (Payload's
+ * default would show every brand's drafts to anyone signed in).
  */
-export const readVersionsByBrand: Access = async ({ req }) => {
-	if (!signedInUser(req)) return false;
-	return brandWhere(await brandsFor(req, "read"), "version.brand");
-};
+export function brandAccess(values: ReadonlyArray<string>): {
+	read: Access;
+	readVersions: Access;
+	create: Access;
+	update: Access;
+	delete: Access;
+} {
+	return {
+		read: async ({ req }) => {
+			if (!signedInUser(req)) return { _status: { equals: "published" } };
+			return brandWhere(await brandsFor(req, "read"), values);
+		},
+		readVersions: async ({ req }) => {
+			if (!signedInUser(req)) return false;
+			return brandWhere(await brandsFor(req, "read"), values, "version.brand");
+		},
+		// Create: `write` on the brand being created (any of its brands while the form is empty).
+		create: async ({ req, data }) => {
+			const parsed = z.object({ brand: BrandValue }).safeParse(data);
+			if (parsed.success) return can(req, "write", parsed.data.brand);
+			return brandWhere(await brandsFor(req, "write"), values) !== false;
+		},
+		update: async ({ req }) => brandWhere(await brandsFor(req, "write"), values),
+		delete: async ({ req }) => brandWhere(await brandsFor(req, "admin"), values),
+	};
+}
 
 /** Field level: internal identifiers and reviewer notes are for signed-in people only. */
 export const signedInOnly: FieldAccess = ({ req }) => signedInUser(req);
 
 /** Field level: written by the server alone (the review endpoints, hooks). */
 export const serverOnly = { create: (): boolean => false, update: (): boolean => false };
-
-/** Create: `write` on the brand being created (any brand while the form is still empty). */
-export const createByBrand: Access = async ({ req, data }) => {
-	const parsed = z.object({ brand: BrandValue }).safeParse(data);
-	if (parsed.success) return can(req, "write", parsed.data.brand);
-	return (await brandsFor(req, "write")).length > 0;
-};
-
-export const updateByBrand: Access = async ({ req }) => brandWhere(await brandsFor(req, "write"));
-
-export const deleteByBrand: Access = async ({ req }) => brandWhere(await brandsFor(req, "admin"));
 
 /** The admin panel opens for anyone who may read at least one brand. */
 export async function mayEnterAdmin(req: PayloadRequest): Promise<boolean> {
