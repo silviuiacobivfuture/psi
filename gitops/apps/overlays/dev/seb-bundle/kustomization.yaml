@@ -39,3 +39,4 @@ resources:
   - seb-arc-runners.yaml
   - seb-n8n.yaml
   - seb-nx-cache.yaml
+  - seb-otel-logging.yaml

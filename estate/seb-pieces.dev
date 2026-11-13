@@ -38,3 +38,4 @@ harbor
 arc-runners
 n8n
 nx-cache
+otel-logging

@@ -8,7 +8,6 @@ resources:
   - netdata.yaml
   - novu.yaml
   - openfga.yaml
-  - otel-logging.yaml
   - plane.yaml
   - plunk.yaml
   - public-doors.yaml
