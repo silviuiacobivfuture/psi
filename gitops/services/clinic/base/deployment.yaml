@@ -62,6 +62,10 @@ spec:
             - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
             - { name: AUTHENTIK_URL, value: "https://auth.psizone.ro" }
             - { name: OPENFGA_ENDPOINT, value: "http://openfga.openfga.svc:8081" }
+            # The in-cluster Service of scheduling-api: <service>.<namespace>.svc (port 80 -> pod 4380). The console calls
+            # it with the signed-in person's own ID token, so scheduling-api's OIDC_ISSUERS must list this app's
+            # Authentik issuer with the clinic client id as an audience. No fake clinic here: CLINIC_FAKE_PORT is refused
+            # when NODE_ENV=production.
             - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
           startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 30 }
           readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
