@@ -4,7 +4,7 @@ import { createStaffEngine } from "../engine";
 import type { StaffCard, StaffEvent } from "../events";
 import { FAKE_NOW, FakeIssuesPort, FakeStaffPort, OWNER_PERMISSIONS } from "../testing";
 import { STAFF_TOOLS, toolKeyOf } from "../tool-ids";
-import type { Scenario } from "./scenarios";
+import type { Scenario, Wanted } from "./scenarios";
 
 export type EvalMode =
 	| { kind: "replay" }
@@ -97,9 +97,12 @@ export async function runScenario(sc: Scenario, mode: EvalMode): Promise<Outcome
 	}
 }
 
-function inOrder(called: ReadonlyArray<string>, wanted: ReadonlyArray<string>): boolean {
+function inOrder(called: ReadonlyArray<string>, wanted: ReadonlyArray<Wanted>): boolean {
 	let at = 0;
-	for (const tool of called) if (tool === wanted[at]) at += 1;
+	for (const tool of called) {
+		const want = wanted[at];
+		if (want !== undefined && (Array.isArray(want) ? want.includes(tool) : tool === want)) at += 1;
+	}
 	return at === wanted.length;
 }
 

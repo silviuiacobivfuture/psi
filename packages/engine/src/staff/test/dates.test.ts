@@ -81,6 +81,23 @@ describe("relative dates in Romanian and English", () => {
 		expect(day("vinery")).toBe("2026-11-13");
 	});
 
+	it.each([
+		["1 decembrie", "2026-12-01"],
+		["5 Decembrie 2026", "2026-12-05"],
+		["15 noiembrie", "2026-11-15"],
+		["3 ianuarie", "2027-01-03"],
+		["1 december", "2026-12-01"],
+		["dec 24", "2026-12-24"],
+		["29 februarie 2028", "2028-02-29"],
+	])("%s is %s", (phrase, date) => {
+		expect(day(phrase)).toBe(date);
+	});
+
+	it("a day that does not exist is not a date", () => {
+		expect(resolveDatePhrase("31 noiembrie", TODAY)).toEqual({ ok: false });
+		expect(resolveDatePhrase("30 februarie 2027", TODAY)).toEqual({ ok: false });
+	});
+
 	it("passes an ISO date through, and refuses what it cannot read", () => {
 		expect(day("2026-12-24")).toBe("2026-12-24");
 		for (const phrase of ["", "   ", "banana", "peste mulți ani", "peste 400 zile", "săptămâna"]) {

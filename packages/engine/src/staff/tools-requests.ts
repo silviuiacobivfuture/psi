@@ -78,7 +78,7 @@ export function statsTool(session: StaffSession) {
 		key: "stats",
 		phase: "read",
 		description:
-			"Quick figures for today, this week (Monday to Sunday) or this month: sessions, attended, no-shows, cancelled, unpaid.",
+			'Counts for today, this week (Monday to Sunday) or this month: sessions, attended, no-shows (absențe), cancelled and unpaid. Use for "câte absențe / ședințe / neîncasate"; for what people DID use staffActivity.',
 		inputSchema: z.object({ period: z.enum(["today", "week", "month"]).default("week") }).strict(),
 		outputSchema: Out,
 		async run(input, s): Promise<ToolRun<z.infer<typeof Out>>> {

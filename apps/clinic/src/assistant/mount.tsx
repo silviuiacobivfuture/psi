@@ -28,7 +28,7 @@ export function createAssistantEngine(
 	const dev = env.CLINIC_FAKE_PORT !== undefined && env.NODE_ENV !== "production";
 	return createStaffEngine({
 		model: {
-			id: env.STAFF_ASSISTANT_MODEL ?? "anthropic/claude-haiku-4.5",
+			id: env.STAFF_ASSISTANT_MODEL ?? "anthropic/claude-sonnet-4.5",
 			// Synthetic data only: the development fake may use any provider route.
 			dataCollection: dev && env.STAFF_ASSISTANT_DATA_COLLECTION === "allow" ? "allow" : "deny",
 		},

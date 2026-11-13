@@ -23,6 +23,7 @@ export const refuse = (
 export const AppointmentOut = z.object({
 	id: z.string(),
 	date: z.string(),
+	weekday: z.string(),
 	when: z.string(),
 	status: z.string(),
 	who: z.string().nullable(),

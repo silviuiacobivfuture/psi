@@ -6,6 +6,7 @@ import { within } from "../deadline";
 import type { LanguageDetector } from "../language/detect";
 import { forgetAnswer } from "../memory";
 import type { StaffEvent, StaffTurnInput } from "./events";
+import { stripTags, withoutFence } from "./fence";
 import { staffNotes } from "./prompt";
 import { SESSION_KEY, type StaffSession } from "./session";
 import { toolKeyOf } from "./tool-ids";
@@ -30,6 +31,8 @@ export interface TurnArgs {
 	timeouts: TurnTimeouts;
 	signal: AbortSignal | undefined;
 	onFailure: (stage: string, error: unknown) => void;
+	/** Set on the one automatic retry after a provider failure that came before any output. */
+	retried?: boolean;
 }
 
 /** The thread a conversation lives in: the person's own namespace, never a visitor's. */
@@ -66,7 +69,11 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 	const total = setTimeout(() => controller.abort(), timeouts.totalMs);
 	yield { type: "thinking" };
 	let shown = "";
+	let raw = "";
 	let failed = false;
+	let retry = false;
+	let produced = false;
+	let proposed = 0;
 	try {
 		const other = args.detector.isOther(input.message, session.copy.locale)
 			? args.detector.detect(input.message)
@@ -112,14 +119,19 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 				if (next.done) break;
 				const chunk = next.value;
 				if (chunk.type === "text-delta") {
-					const delta = shown === "" ? chunk.payload.text.trimStart() : chunk.payload.text;
+					raw += chunk.payload.text;
+					const clean = withoutFence(raw).trimStart();
+					const delta = clean.slice(shown.length);
 					if (delta !== "") {
-						shown += delta;
+						produced = true;
+						shown = clean;
 						yield { type: "text", delta };
 					}
 				} else if (chunk.type === "tool-call") {
 					const key = toolKeyOf(chunk.payload.toolName);
 					names.set(chunk.payload.toolCallId, chunk.payload.toolName);
+					produced = true;
+					raw = "";
 					if (shown !== "") {
 						shown = "";
 						yield { type: "replace", text: "" };
@@ -146,7 +158,11 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 							label: session.copy.chip(toolKey, refused ? "refused" : "done"),
 						};
 					}
-					for (const card of session.cards.splice(0)) yield { type: "card", card };
+					for (const card of session.cards.splice(0)) {
+						produced = true;
+						if (card.kind === "proposal") proposed += 1;
+						yield { type: "card", card };
+					}
 				} else if (chunk.type === "error" || chunk.type === "abort" || chunk.type === "tripwire") {
 					throw new Error(chunk.type);
 				} else if (chunk.type === "finish") {
@@ -157,16 +173,35 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 			reader.cancel().catch(() => undefined);
 		}
 		if (finish !== "stop") throw new Error(`finished with reason ${finish ?? "none"}`);
+		// A held-back partial tag that never completed is plain text after all.
+		const whole = stripTags(raw).trimStart();
+		if (whole.length > shown.length && whole.startsWith(shown)) {
+			yield { type: "text", delta: whole.slice(shown.length) };
+			shown = whole;
+		}
 		if (shown.trim() === "") throw new Error("empty reply");
+		// Never wrong silently: a reply that says a change is waiting for confirmation, when no card was made, is corrected.
+		if (proposed === 0 && session.copy.claimsPrepared.test(shown)) {
+			shown = session.copy.unbackedClaim;
+			yield { type: "replace", text: shown };
+		}
 	} catch (error) {
 		failed = true;
-		if (args.signal?.aborted !== true) args.onFailure("model", error);
-		for (const card of session.cards.splice(0)) yield { type: "card", card };
-		if (args.signal?.aborted !== true) yield { type: "refusal", reason: "unavailable" };
+		const aborted = args.signal?.aborted === true;
+		if (!aborted) args.onFailure("model", error);
+		if (!aborted && !produced && args.retried !== true) retry = true;
+		else {
+			for (const card of session.cards.splice(0)) yield { type: "card", card };
+			if (!aborted) yield { type: "refusal", reason: "unavailable" };
+		}
 	} finally {
 		clearTimeout(total);
 		args.signal?.removeEventListener("abort", onAbort);
 		if (failed) void forgetAnswer(args.memory, key, started, Promise.all(settled));
+	}
+	if (retry) {
+		yield* runTurn({ ...args, retried: true });
+		return;
 	}
 	yield { type: "done" };
 }

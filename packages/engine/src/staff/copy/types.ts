@@ -269,6 +269,9 @@ export interface StaffCopy {
 			string
 		>;
 	};
+	/** A reply that says a change awaits confirmation: true only if a card really does. */
+	claimsPrepared: RegExp;
+	unbackedClaim: string;
 	panel: PanelCopy;
 	suggestions: Readonly<Record<StaffScreen, ReadonlyArray<string>>>;
 }

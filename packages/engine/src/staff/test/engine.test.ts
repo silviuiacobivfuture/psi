@@ -255,6 +255,68 @@ describe("a staff turn", () => {
 	});
 });
 
+describe("the data fence is the model's, not the person's", () => {
+	it("tags in the answer never reach the screen, even when split across chunks", async () => {
+		const engine = await engineWith([
+			{
+				kind: "text",
+				chunks: ["Found <record-", "data>Ion Exemplu</rec", "ord-data> today, 5 < 6."],
+			},
+		]);
+		const events = await collect(engine.chat(new FakeStaffPort(), { message: "who" }));
+		const text = events
+			.filter((e) => e.type === "text")
+			.map((e) => (e.type === "text" ? e.delta : ""))
+			.join("");
+		expect(text).toBe("Found Ion Exemplu today, 5 < 6.");
+	});
+});
+
+describe("never wrong silently", () => {
+	it("a reply that claims a change is waiting, when no card was made, is corrected", async () => {
+		const engine = await engineWith([
+			{ kind: "text", chunks: ["I prepared the cancellation. Confirm in the card."] },
+		]);
+		const events = await collect(engine.chat(new FakeStaffPort(), { message: "cancel it" }));
+		const replaced = events.filter((e) => e.type === "replace");
+		expect(replaced.at(-1)).toMatchObject({
+			text: expect.stringContaining("I prepared no change"),
+		});
+		expect(events.some((e) => e.type === "card")).toBe(false);
+	});
+
+	it("the same words after a real proposal are left alone", async () => {
+		const engine = await engineWith([
+			{ kind: "tool", query: "", tool: "staffCancelAppointment", input: { appointmentId: "a1" } },
+			{ kind: "text", chunks: ["I prepared the cancellation. Confirm in the card."] },
+		]);
+		const events = await collect(engine.chat(new FakeStaffPort(), { message: "cancel a1" }));
+		expect(events.some((e) => e.type === "card" && e.card.kind === "proposal")).toBe(true);
+		expect(
+			events.filter((e) => e.type === "replace" && e.text.includes("prepared no change")),
+		).toEqual([]);
+	});
+
+	it("a provider failure before any output is retried once, silently", async () => {
+		const engine = await engineWith([
+			{ kind: "status", status: 500 },
+			{ kind: "text", chunks: ["Back."] },
+		]);
+		const events = await collect(engine.chat(new FakeStaffPort(), { message: "hi" }));
+		expect(shape(events)).toContain("text");
+		expect(events.some((e) => e.type === "refusal")).toBe(false);
+		expect(events.filter((e) => e.type === "done")).toHaveLength(1);
+		expect(fake?.requests).toHaveLength(2);
+	});
+
+	it("two failures in a row end in unavailable, not a loop", async () => {
+		const engine = await engineWith([{ kind: "status", status: 500 }]);
+		const events = await collect(engine.chat(new FakeStaffPort(), { message: "hi" }));
+		expect(shape(events).slice(-2)).toEqual(["refusal:unavailable", "done"]);
+		expect(fake?.requests).toHaveLength(2);
+	});
+});
+
 describe("the agent itself", () => {
 	it("will not run without a verified session", async () => {
 		const engine = await engineWith([{ kind: "text", chunks: ["x"] }]);

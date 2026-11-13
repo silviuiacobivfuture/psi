@@ -62,6 +62,21 @@ const UNITS: ReadonlyArray<readonly [number, ReadonlyArray<string>]> = [
 	[30, ["luna", "luni", "month", "months"]],
 ];
 
+const MONTHS: ReadonlyArray<readonly [number, ReadonlyArray<string>]> = [
+	[1, ["ianuarie", "january", "jan"]],
+	[2, ["februarie", "february", "feb"]],
+	[3, ["martie", "march", "mar"]],
+	[4, ["aprilie", "april", "apr"]],
+	[5, ["mai", "may"]],
+	[6, ["iunie", "june", "jun"]],
+	[7, ["iulie", "july", "jul"]],
+	[8, ["august", "aug"]],
+	[9, ["septembrie", "september", "sep"]],
+	[10, ["octombrie", "october", "oct"]],
+	[11, ["noiembrie", "november", "nov"]],
+	[12, ["decembrie", "december", "dec"]],
+];
+
 const NEXT = ["viitoare", "viitor", "urmatoare", "urmator", "next"];
 const LAST = ["trecuta", "trecut", "last", "previous"];
 const THIS = ["asta", "aceasta", "acesta", "this", "curenta"];
@@ -117,6 +132,33 @@ export function resolveDatePhrase(text: string, today: string): ResolvedDate {
 	if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return { ok: true, kind: "day", date: trimmed };
 	const words = plain(trimmed);
 	const first = words[0];
+	// "1 decembrie", "1 decembrie 2026", "dec 1": a day and a month name; the year is the nearest one not in the past.
+	const monthAt = words.findIndex((w) =>
+		MONTHS.some(([, names]) => names.includes(w) || (w.length >= 5 && is(w, names))),
+	);
+	if (monthAt >= 0) {
+		const month = MONTHS.find(([, names]) =>
+			names.some((n) => n === words[monthAt] || (n.length >= 5 && is(words[monthAt] ?? "", [n]))),
+		)?.[0];
+		const numbers = words
+			.filter((_, i) => i !== monthAt)
+			.filter((w) => /^\d{1,4}$/.test(w))
+			.map(Number);
+		const dayNo = numbers.find((n) => n >= 1 && n <= 31);
+		const yearNo = numbers.find((n) => n >= 2000 && n <= 2100);
+		if (month !== undefined && dayNo !== undefined) {
+			const pad = (n: number): string => String(n).padStart(2, "0");
+			const year = yearNo ?? Number(today.slice(0, 4));
+			let date = `${year}-${pad(month)}-${pad(dayNo)}`;
+			if (yearNo === undefined && date < today) date = `${year + 1}-${pad(month)}-${pad(dayNo)}`;
+			if (
+				!Number.isNaN(Date.parse(`${date}T00:00:00Z`)) &&
+				new Date(`${date}T00:00:00Z`).getUTCDate() === dayNo
+			) {
+				return { ok: true, kind: "day", date };
+			}
+		}
+	}
 	if (first === undefined) return { ok: false };
 	const day = DAY_WORDS.find(([, names]) => is(first, names));
 	if (day !== undefined && words.length === 1)

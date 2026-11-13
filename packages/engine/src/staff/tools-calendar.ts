@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { agendaCard, appointmentRows, clientCard, clientHitsCard, slotsCard } from "./cards";
 import { fence, fenceOrNull } from "./fence";
-import { addDays, clockRange, dateLabel } from "./format";
+import { addDays, clockRange, dateLabel, weekdayName } from "./format";
 import { DateSchema, IdSchema } from "./model";
 import { resolveResource, resolveService } from "./resolve";
 import { type StaffSession, staffTool, type ToolRun } from "./session";
@@ -123,6 +123,7 @@ export function clientSummaryTool(session: StaffSession) {
 			const out = (a: (typeof c.upcoming)[number]): AppointmentOut => ({
 				id: a.id,
 				date: a.date,
+				weekday: weekdayName(s.copy, a.date),
 				when: clockRange(a.startMin, a.durationMin),
 				status: a.status,
 				who: fenceOrNull(a.clientName ?? a.title),
@@ -252,6 +253,7 @@ export function agendaTool(session: StaffSession) {
 					appointments: shown.map((a) => ({
 						id: a.id,
 						date: a.date,
+						weekday: weekdayName(s.copy, a.date),
 						when: clockRange(a.startMin, a.durationMin),
 						status: a.status,
 						who: fenceOrNull(a.clientName ?? a.title),

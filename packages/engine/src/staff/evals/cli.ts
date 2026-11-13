@@ -31,7 +31,10 @@ for (const sc of chosen) {
 	const run = await runScenario(sc, { kind: "live", apiKey, model });
 	const bad = judge(sc, run, true);
 	if (bad.length === 0) passed += 1;
-	else failures.push(`${sc.id}: ${bad.join("; ")}`);
+	else
+		failures.push(
+			`${sc.id}: ${bad.join("; ")}${process.argv.includes("--say") ? ` | said: ${run.text.slice(0, 200).replace(/\s+/g, " ")}` : ""}`,
+		);
 	console.log(`${bad.length === 0 ? "pass" : "FAIL"}  ${sc.id}`);
 }
 const rate = chosen.length === 0 ? 1 : passed / chosen.length;

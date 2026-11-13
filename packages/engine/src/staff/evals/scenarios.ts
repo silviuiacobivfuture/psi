@@ -3,6 +3,9 @@ import type { StaffPage } from "../events";
 import type { Step } from "../proposals";
 import type { FakeStaffPort } from "../testing";
 
+/** A tool that must be called, or any of several that serve equally well. */
+export type Wanted = ToolKey | ReadonlyArray<ToolKey>;
+
 /** One call the right trajectory makes. */
 export interface Move {
 	tool: ToolKey;
@@ -39,7 +42,7 @@ export interface Scenario {
 	setup?: (port: FakeStaffPort) => void;
 	script: ReadonlyArray<Move>;
 	/** Tools that must be called, in this order (others may sit between). */
-	mustCall: ReadonlyArray<ToolKey>;
+	mustCall: ReadonlyArray<Wanted>;
 	mustNotCall?: ReadonlyArray<ToolKey>;
 	expect: Expect;
 }
@@ -149,8 +152,8 @@ export const SCENARIOS: ReadonlyArray<Scenario> = [
 		lang: "ro",
 		user: "cine e în cabinetul de terapie azi",
 		script: [{ tool: "agenda", input: { resource: "Cabinet Terapie" } }],
-		mustCall: ["agenda"],
-		expect: { proposals: 0, cards: ["agenda"] },
+		mustCall: [["agenda", "roomsAt"]],
+		expect: { proposals: 0 },
 	},
 	{
 		id: "agenda-en",
