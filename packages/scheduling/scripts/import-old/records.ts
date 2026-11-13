@@ -61,6 +61,10 @@ export function numberFromText(
 	return lead === null ? { ok: false } : { ok: true, value: Number(lead[1]) };
 }
 
+/** What the anonymizer writes in place of a real text ("[text de test — …]"). */
+const isAnonymizerPlaceholder = (raw: unknown): boolean =>
+	typeof raw === "string" && raw.startsWith("[text de test");
+
 /** The distinct texts a choice field holds across the rows, in order of first sight. */
 function distinct(
 	rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
@@ -135,7 +139,10 @@ export async function planResponses(
 					continue;
 				}
 				const answer = coerceAnswer(field.type, row[name], field.columns ?? []);
-				if (!answer.ok) {
+				if (!answer.ok && isAnonymizerPlaceholder(row[name])) {
+					// The anonymizer put its stand-in text where a list was: the answer is empty, and said so.
+					ctx.log.add(`placeholder_text:${table}.${field.key}`, "note", ref);
+				} else if (!answer.ok) {
 					ctx.log.add(`uncoercible_value:${table}.${field.key}`, "blocking", ref);
 					readable = false;
 				} else if (answer.value !== undefined) values[field.key] = answer.value;
