@@ -99,6 +99,8 @@ describe("every team route refuses, and writes nothing", () => {
 				refused(() => call("hugo"), 404, "not_found"));
 			it("a stranger is told the app is not there", () =>
 				refused(() => call("mallory"), 404, "not_found"));
+			// Membership is the only requirement of `me.app`: a member with no role is told, truthfully, that they hold nothing.
+			if (spec.id === "me.app") return;
 			it("a role that lacks the permission", () => {
 				const target = spec.permission?.target.kind;
 				return refused(

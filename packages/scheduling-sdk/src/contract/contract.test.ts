@@ -27,12 +27,16 @@ describe("the route table", () => {
 		}
 	});
 
-	it("authorizes every team route (permission, or platform/me) and no visitor or meta route has a permission", () => {
+	it("authorizes every team route (permission, platform, or the two membership-only `me` routes) and no visitor or meta route has a permission", () => {
 		for (const r of ALL) {
 			if (r.side === "team")
-				expect(r.permission !== undefined || r.platform === true || r.id === "me.get", r.id).toBe(
-					true,
-				);
+				expect(
+					r.permission !== undefined ||
+						r.platform === true ||
+						r.id === "me.get" ||
+						r.id === "me.app",
+					r.id,
+				).toBe(true);
 			else expect(r.permission, r.id).toBeUndefined();
 		}
 	});

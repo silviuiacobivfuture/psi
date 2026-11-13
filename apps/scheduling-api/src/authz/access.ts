@@ -1,4 +1,4 @@
-import type { SchedType } from "@psi/scheduling-sdk/contract";
+import type { SchedType, ScopeName } from "@psi/scheduling-sdk/contract";
 import { type PermissionDef, permissionOf } from "./catalogue";
 import type { AuthzPort } from "./port";
 import { idOf, objectOf, userOf } from "./port";
@@ -24,6 +24,11 @@ export interface Access {
 	canOn(subject: string, app: string, key: string, type: SchedType, id: string): Promise<boolean>;
 	/** What a list may show. */
 	reach(subject: string, app: string, key: string, type: SchedType): Promise<Reach>;
+	/**
+	 * The scopes at which the person holds a permission in the app (`[]` for an unscoped one they hold, `null` when they
+	 * do not hold it at all). A denial removes it. Used to tell a console what to offer; never to authorize a write.
+	 */
+	held(subject: string, app: string, key: string): Promise<ReadonlyArray<ScopeName> | null>;
 }
 
 export type Denials = (app: string, subject: string) => Promise<ReadonlySet<string>>;
@@ -58,6 +63,17 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 			if (def.scopes.length === 0)
 				return authz.check(userOf(subject), key, objectOf("sched_app", app));
 			return authz.check(userOf(subject), key, objectOf(type, id));
+		},
+		async held(subject, app, key) {
+			const def = definition(key);
+			if ((await denials(app, subject)).has(key)) return null;
+			const user = userOf(subject);
+			const target = objectOf("sched_app", app);
+			if (def.scopes.length === 0) return (await authz.check(user, key, target)) ? [] : null;
+			const scopes: ScopeName[] = [];
+			for (const scope of def.scopes)
+				if (await authz.check(user, `${key}_${scope}`, target)) scopes.push(scope);
+			return scopes.length === 0 ? null : scopes;
 		},
 		async reach(subject, app, key, type) {
 			const def = definition(key);

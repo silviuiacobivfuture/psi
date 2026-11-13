@@ -1,3 +1,4 @@
+import { FIELD_GROUPS, type FieldGroupName, type ScopeName } from "@psi/scheduling-sdk/contract";
 import { allAppRelations, CATALOGUE, parseRelation, permissionOf } from "../authz/catalogue";
 import { ACTION_LABEL, RESOURCE_LABEL } from "../authz/labels";
 import {
@@ -85,6 +86,7 @@ function needsOwnerKept(role: RoleRow, permissions: readonly string[]): boolean 
 
 export const appHandlers: HandlersOf<
 	| "me.get"
+	| "me.app"
 	| "apps.create"
 	| "apps.get"
 	| "apps.update"
@@ -108,6 +110,35 @@ export const appHandlers: HandlersOf<
 			if (await ctx.deps.access.isMember(ctx.subject, m.app))
 				apps.push({ app: m.app, roles: m.roles });
 		return { subject: ctx.subject, kind: "person" as const, apps };
+	},
+
+	async "me.app"(ctx) {
+		const row = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
+		const member = await ctx.deps.store.c.members.get(ctx.app, ctx.subject);
+		const held = await Promise.all(
+			CATALOGUE.map(async (def) => ({
+				def,
+				scopes: await ctx.deps.access.held(ctx.subject, ctx.app, def.key),
+			})),
+		);
+		const permissions: Record<string, ScopeName[]> = {};
+		const groups = new Set<FieldGroupName>();
+		for (const { def, scopes } of held) {
+			if (scopes === null) continue;
+			permissions[def.key] = [...scopes];
+			if (def.fieldGroup !== undefined && def.effect === "read") groups.add(def.fieldGroup);
+		}
+		return {
+			app: row.id,
+			appName: row.name,
+			timeZone: row.timeZone,
+			subject: ctx.subject,
+			...(member === undefined ? {} : { displayName: member.displayName }),
+			roles: member?.roles ?? [],
+			permissions,
+			fieldGroups: FIELD_GROUPS.filter((g) => groups.has(g)),
+			platformAdmin: await ctx.deps.access.isPlatformAdmin(ctx.subject),
+		};
 	},
 
 	async "apps.create"(ctx) {

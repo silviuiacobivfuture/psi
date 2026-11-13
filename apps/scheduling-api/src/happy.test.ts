@@ -121,6 +121,7 @@ const HAPPY: Record<
 		);
 	},
 	"me.get": (w) => w.call("rita", "GET", "/v1/me"),
+	"me.app": (w) => olga(w, "GET", "/me"),
 	"apps.create": (w) =>
 		w.call("root", "POST", "/v1/apps", {
 			id: "newapp",

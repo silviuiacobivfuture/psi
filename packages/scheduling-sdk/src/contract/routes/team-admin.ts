@@ -3,6 +3,7 @@ import { route } from "../define";
 import {
 	App,
 	AppCreate,
+	AppMe,
 	AppPatch,
 	Device,
 	DeviceCreate,
@@ -45,6 +46,16 @@ export const ME_ROUTES = [
 			kind: z.enum(["person", "service"]),
 			apps: z.array(z.object({ app: AppId, roles: z.array(Id) })),
 		}),
+	}),
+	route({
+		id: "me.app",
+		method: "GET",
+		path: "/v1/apps/:app/me",
+		side: "team",
+		summary:
+			"The caller in this app: their roles and every permission they hold, for a console to decide what to offer",
+		params: AppParam,
+		response: AppMe,
 	}),
 	route({
 		id: "apps.create",

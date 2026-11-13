@@ -1,5 +1,16 @@
 import { z } from "zod/v4";
-import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
+import {
+	AppId,
+	DateKey,
+	FieldGroup,
+	Id,
+	Label,
+	Locale,
+	Money,
+	Ms,
+	Scope,
+	Subject,
+} from "./primitives";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
@@ -24,6 +35,25 @@ export const AppPatch = z.object({
 	name: Name.optional(),
 	timeZone: z.string().min(1).max(60).optional(),
 	status: AppStatus.optional(),
+});
+
+/**
+ * Who the caller is in ONE app and what they may do there: what a console needs to decide which screens, menu items,
+ * actions and fields to offer. A hint, never the authority: every call is authorized again when it is made.
+ */
+export const AppMe = z.object({
+	app: AppId,
+	appName: Name,
+	timeZone: z.string().min(1).max(60),
+	subject: Subject,
+	displayName: z.string().optional(),
+	roles: z.array(Id),
+	/** Every catalogue permission the caller holds, by key, with the scopes (`[]`: an unscoped permission). Absent: not held. */
+	permissions: z.record(z.string(), z.array(Scope)),
+	/** The field groups the caller may see on at least some clients, derived from `permissions`. */
+	fieldGroups: z.array(FieldGroup),
+	/** The estate's platform administrator (holds apps, members and roles in every app). */
+	platformAdmin: z.boolean(),
 });
 
 export const Member = z.object({
