@@ -30,7 +30,7 @@ describe("every tab has its primary action, and the empty states have it too", (
 		expect(page).toContain("data-drop");
 		expect(page).toContain('multiple=""');
 		expect(page).toContain('capture="environment"');
-		expect(page).toContain("50 MB");
+		expect(page).toContain("25 MB");
 	});
 	it("Note: 'Adaugă notă' is there, and so is the empty state", async () => {
 		const page = await html("/clients/c3/notes");

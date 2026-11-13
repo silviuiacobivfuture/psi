@@ -17,3 +17,22 @@ export function withActor<T>(subject: string, run: () => Promise<T>): Promise<T>
 export function currentActor(): string {
 	return scope.getStore() ?? SYSTEM_ACTOR;
 }
+
+/** A staff member's reason for booking a blacklisted client anyway, and the authority the service vouches for. */
+export interface BookingOverride {
+	reason: string;
+	authority: "ack" | "staff" | "admin";
+}
+const overrides = new AsyncLocalStorage<BookingOverride>();
+
+/** Runs a booking with an override in force: the store's blacklist gate reads it with `currentOverride`. */
+export function withOverride<T>(
+	override: BookingOverride | undefined,
+	run: () => Promise<T>,
+): Promise<T> {
+	return override === undefined ? run() : overrides.run(override, run);
+}
+
+export function currentOverride(): BookingOverride | undefined {
+	return overrides.getStore();
+}

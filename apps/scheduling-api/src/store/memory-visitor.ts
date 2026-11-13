@@ -8,6 +8,7 @@ import {
 	type WeeklyRule,
 } from "@psi/scheduling/domain";
 import { newId } from "./ids";
+import type { Rateable } from "./memory-feedback";
 import type { Collection, Failed, OfferedSlot, RequestsPort, Rows, VisitorPort } from "./types";
 
 type Status =
@@ -30,6 +31,7 @@ interface Req {
 	mode: "onsite" | "online";
 	expiresAt?: number;
 	holdHash?: string;
+	channel?: "form" | "guide";
 	cancelHash?: string;
 	contact?: { name: string; email?: string | undefined; phone?: string | undefined };
 	accountHash?: string;
@@ -54,7 +56,21 @@ type Cs = { [K in keyof Rows]: Collection<Rows[K]> };
 export function createMemoryVisitor(
 	c: Cs,
 	clock: () => number,
-): { visitor: VisitorPort; requests: RequestsPort; state: () => unknown } {
+	screen: (
+		app: string,
+		contact: { name?: string | undefined; phone?: string | undefined; email?: string | undefined },
+		channel: "callback" | "form" | "guide",
+		subject?: string,
+	) => Promise<boolean>,
+): {
+	visitor: VisitorPort;
+	requests: RequestsPort;
+	bookings: {
+		byReference(app: string, reference: string): Rateable | undefined;
+		byId(app: string, id: string): Rateable | undefined;
+	};
+	state: () => unknown;
+} {
 	const reqs = new Map<string, Req>();
 
 	const live = (r: Req): boolean =>
@@ -241,6 +257,7 @@ export function createMemoryVisitor(
 				mode: input.mode,
 				expiresAt: clock() + HOLD_MINUTES * MINUTE,
 				holdHash: sha256(holdToken),
+				channel: input.channel,
 				createdAt: clock(),
 			};
 			reqs.set(r.id, r);
@@ -271,6 +288,11 @@ export function createMemoryVisitor(
 			if ((r.expiresAt ?? 0) <= clock()) return { ok: false, reason: "hold_expired" };
 			if (input.contact.email === undefined && input.contact.phone === undefined)
 				return { ok: false, reason: "invalid" };
+			// The first moment a visitor's contact is known: the blacklist is asked here, and a hit releases the hold.
+			if (await screen(app, input.contact, r.channel ?? "form", r.id)) {
+				r.status = "cancelled";
+				return { ok: false, reason: "unavailable_online" };
+			}
 			const cancelCode = makeToken();
 			Object.assign(r, {
 				status: "requested",
@@ -404,6 +426,7 @@ export function createMemoryVisitor(
 						start: r.start,
 						end: r.end,
 						note: `web request ${r.reference} confirmed by ${actor}`,
+						remind: true,
 						createdAt: now,
 						updatedAt: now,
 					});
@@ -415,5 +438,22 @@ export function createMemoryVisitor(
 		},
 	};
 
-	return { visitor, requests, state: () => [...reqs.values()] };
+	/** A public booking as something a rating can be about (a confirmed one that is over). */
+	const rateable = (r: Req | undefined) =>
+		r === undefined || r.callback === true
+			? undefined
+			: {
+					id: r.id,
+					start: r.start,
+					end: r.end,
+					confirmed: r.status === "confirmed",
+					attended: true,
+				};
+	const bookings = {
+		byReference: (app: string, reference: string) => rateable(byReference(app, reference)),
+		byId: (app: string, id: string) =>
+			rateable(reqs.get(id)?.app === app ? reqs.get(id) : undefined),
+	};
+
+	return { visitor, requests, bookings, state: () => [...reqs.values()] };
 }

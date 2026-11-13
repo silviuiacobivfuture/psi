@@ -4,6 +4,7 @@ import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { AppointmentRow } from "../store/types";
+import { booking } from "./booking-gate";
 import { appointmentGroupReach, appointmentView } from "./fields";
 import { balances as packageBalances } from "./packages";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
@@ -15,13 +16,13 @@ const RECOVERY_MS = 30 * 86_400_000;
 
 type C = Ctx<RouteSpec>;
 
-const links = (a: AppointmentRow) => [
+export const links = (a: AppointmentRow) => [
 	appLink("sched_appointment", a.id, a.app),
 	parentLink("sched_appointment", a.id, "calendar", "sched_calendar", a.practitionerId),
 ];
 
 /** Another live appointment of the same person, room or device that overlaps: the one thing two bookings may not share. */
-async function clash(
+export async function clash(
 	ctx: C,
 	candidate: Pick<
 		AppointmentRow,
@@ -44,7 +45,7 @@ async function clash(
 	)?.id;
 }
 
-async function checkRefs(
+export async function checkRefs(
 	ctx: C,
 	a: Pick<
 		AppointmentRow,
@@ -79,7 +80,6 @@ export const appointmentHandlers: HandlersOf<
 	| "appointments.list"
 	| "appointments.create"
 	| "appointments.get"
-	| "appointments.update"
 	| "appointments.cancel"
 	| "appointments.attendance"
 	| "appointments.remove"
@@ -121,6 +121,10 @@ export const appointmentHandlers: HandlersOf<
 			throw fail("invalid", "a session needs a client", { field: "clientId" });
 		if (b.kind === "group" && b.groupId === undefined)
 			throw fail("invalid", "a group activity needs a group", { field: "groupId" });
+		if (b.status === "requested" && b.kind !== "session")
+			throw fail("invalid", "only a session waits for the client to confirm it", {
+				field: "status",
+			});
 		if (
 			b.priceCents !== undefined &&
 			!(await ctx.canOn("appointments_create_money", "sched_calendar", b.practitionerId))
@@ -142,7 +146,8 @@ export const appointmentHandlers: HandlersOf<
 			id,
 			app: ctx.app,
 			kind: b.kind,
-			status: "scheduled",
+			status: b.status,
+			remind: b.remind,
 			practitionerId: b.practitionerId,
 			start: b.start,
 			end: b.end,
@@ -161,10 +166,11 @@ export const appointmentHandlers: HandlersOf<
 		const other = await clash(ctx, row);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
-		const saved = await ctx.deps.store.c.appointments.insert(row);
+		const saved = await booking(ctx, b.override, () => ctx.deps.store.c.appointments.insert(row));
 		await writeTuples(ctx, links(saved));
 		await ctx.changed("appointment", "created", saved.id);
-		if (saved.clientId !== undefined)
+		// A requested appointment tells the client nothing until they confirm it.
+		if (saved.clientId !== undefined && saved.status === "scheduled")
 			await ctx.notify(
 				"appointment.confirmed",
 				{ kind: "client", clientId: saved.clientId },
@@ -179,65 +185,6 @@ export const appointmentHandlers: HandlersOf<
 			ctx,
 			await must(ctx.deps.store.c.appointments, ctx.app, String(ctx.params.id), "appointment"),
 		);
-	},
-
-	async "appointments.update"(ctx) {
-		const row = await must(
-			ctx.deps.store.c.appointments,
-			ctx.app,
-			String(ctx.params.id),
-			"appointment",
-		);
-		const b = ctx.body;
-		if (row.status === "cancelled")
-			throw fail("conflict", "a cancelled appointment does not move", { status: row.status });
-		const detail =
-			b.packageId !== undefined ||
-			b.roomId !== undefined ||
-			b.deviceId !== undefined ||
-			b.note !== undefined;
-		if (detail && !(await ctx.canOn("appointments_edit_core", "sched_appointment", row.id)))
-			throw forbidden("not allowed to write this field group", { group: "core" });
-		const reassigns =
-			(b.practitionerId !== undefined && b.practitionerId !== row.practitionerId) ||
-			(b.roomId !== undefined && b.roomId !== row.roomId) ||
-			(b.deviceId !== undefined && b.deviceId !== row.deviceId);
-		if (reassigns && !(await ctx.canOn("appointments_assign", "sched_appointment", row.id)))
-			throw forbidden("not allowed to change who or where", { permission: "appointments_assign" });
-		const next: AppointmentRow = {
-			...row,
-			...Object.fromEntries(Object.entries(b).filter(([, v]) => v !== undefined)),
-			updatedAt: ctx.now,
-		};
-		if (next.end <= next.start)
-			throw fail("invalid", "an appointment ends after it starts", { field: "end" });
-		await checkRefs(ctx, next);
-		const other = await clash(ctx, next);
-		if (other !== undefined)
-			throw fail("conflict", "the person, room or device is booked then", { with: other });
-		await ctx.deps.store.c.appointments.replace(next);
-		if (next.practitionerId !== row.practitionerId)
-			await writeTuples(ctx, links(next), links(row).slice(1));
-		await ctx.changed("appointment", "updated", row.id);
-		// Moving anything is explicit: the audit event keeps what moved and where from.
-		ctx.note({
-			moved: Object.keys(b),
-			from: { practitionerId: row.practitionerId, start: row.start },
-		});
-		if (
-			next.clientId !== undefined &&
-			(next.start !== row.start ||
-				next.practitionerId !== row.practitionerId ||
-				next.roomId !== row.roomId)
-		) {
-			await ctx.notify(
-				"appointment.moved",
-				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: next.start, previousStart: row.start },
-				`${row.id}:${next.start}:${next.practitionerId}`,
-			);
-		}
-		return appointmentOut(ctx, next);
 	},
 
 	async "appointments.cancel"(ctx) {
@@ -274,13 +221,11 @@ export const appointmentHandlers: HandlersOf<
 			String(ctx.params.id),
 			"appointment",
 		);
-		if (row.status === "cancelled")
-			throw fail("conflict", "a cancelled appointment has no attendance", { status: row.status });
-		const next: AppointmentRow = {
-			...row,
-			status: ctx.body.status === "scheduled" ? "scheduled" : ctx.body.status,
-			updatedAt: ctx.now,
-		};
+		if (row.status === "cancelled" || row.status === "requested")
+			throw fail("conflict", "only a confirmed appointment has an attendance", {
+				status: row.status,
+			});
+		const next: AppointmentRow = { ...row, status: ctx.body.status, updatedAt: ctx.now };
 		await ctx.deps.store.c.appointments.replace(next);
 		await ctx.changed("appointment", "updated", row.id);
 		if (next.status === "no_show")
@@ -369,6 +314,7 @@ export const appointmentHandlers: HandlersOf<
 			amountCents: ctx.body.amountCents,
 			method: ctx.body.method,
 			paidAt: ctx.now,
+			recordedBy: ctx.subject,
 			...stamps(ctx.now),
 		});
 		await ctx.changed("appointment", "updated", row.id);

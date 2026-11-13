@@ -44,7 +44,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
 		fetch: withViewAs(options.fetch ?? globalThis.fetch.bind(globalThis), options.viewAs),
 	});
-	const sdk = createContext(api, options.onError);
+	const sdk = createContext(api, options.onError, options.fetch);
 	const calendar = calendarGroup(sdk);
 	const { clientsPage, ...cal } = calendar;
 	const catalog = catalogGroup(sdk, cal.columns);

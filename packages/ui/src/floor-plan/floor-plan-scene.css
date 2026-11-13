@@ -299,3 +299,14 @@
 .pz-fp__swatch[data-category="neuro"] {
 	background: color-mix(in srgb, var(--success) 20%, var(--fp-paper));
 }
+/* In the live view the fill says free or busy, so the category shows on the wall: the same two colours as the legend. */
+.pz-fp__area--room[data-category="therapy"]:not(.is-selected):not(.is-open):not(.is-conflict)
+.pz-fp__wall {
+	stroke: var(--accent);
+	stroke-width: 2.5;
+}
+.pz-fp__area--room[data-category="neuro"]:not(.is-selected):not(.is-open):not(.is-conflict)
+	.pz-fp__wall {
+	stroke: var(--success);
+	stroke-width: 2.5;
+}

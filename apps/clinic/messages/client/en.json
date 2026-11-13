@@ -88,7 +88,7 @@
 	"cl_file_or_pick": "or tap to choose from your device",
 	"cl_file_camera": "Take a photo",
 	"cl_file_send": "Upload",
-	"cl_file_limits": "Up to {mb} MB each: pictures, PDF, Word, Excel, text, audio.",
+	"cl_file_limits": "Up to {mb} MB each: pictures, PDF, Word, Excel, text.",
 	"cl_file_name": "File name",
 	"cl_file_preview": "Preview",
 	"cl_file_too_big": "A file is over {mb} MB. Nothing was uploaded.",
@@ -168,5 +168,13 @@
 	"cat_deactivated": "Switched off: it has history, so it is kept but no longer offered.",
 	"cat_problem": "Some values do not fit, or the e-mail is already on the team. Nothing was saved.",
 	"cat_role_description": "Description",
-	"cat_role_copy": "Start from the permissions of"
+	"cat_role_copy": "Start from the permissions of",
+	"cl_gate_warn": "This client is flagged. You may book, after saying why.",
+	"cl_gate_blocked_may": "This client is blocked. You may book anyway, with a written reason; it is recorded.",
+	"cl_gate_blocked_staff": "This client is blocked. Booking needs someone who may override the blacklist.",
+	"cl_gate_blocked_admin": "This client is blocked for everyone. Only an administrator may override.",
+	"cl_gate_reason": "Why you book anyway (required)",
+	"cl_gate_need_reason": "Write why you book this client despite the flag. Nothing was saved.",
+	"cl_gate_refused": "This client is blocked and you may not override. Nothing was saved.",
+	"cl_err_room": "This service needs a room of its own kind (for example a neuro room for neurofeedback)."
 }

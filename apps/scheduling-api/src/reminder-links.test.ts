@@ -94,7 +94,8 @@ describe("every refusal of a reminder link is its own case and writes nothing", 
 		const { confirmUrl } = linksFor(w.ids.a1);
 		const token = path(confirmUrl).split("/")[4] ?? "";
 		const [body = "", sig = ""] = token.split(".");
-		const flipped = `${sig.slice(0, -1)}${sig.endsWith("A") ? "B" : "A"}`;
+		// The first character carries all six of its bits; the last carries padding bits a decoder may ignore.
+		const flipped = `${sig.startsWith("A") ? "B" : "A"}${sig.slice(1)}`;
 		await refused(
 			() => w.app.request(`/v1/public/reminders/${body}.${flipped}/confirm`, { method: "POST" }),
 			400,

@@ -2,6 +2,7 @@ import { EmptyState, OverflowMenu, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ActionBar, EmptyActions, menuItems } from "../actions/render";
 import type { Screen } from "../actions/types";
+import { roleName } from "../chrome";
 import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { hhmm } from "../lib/dates";
@@ -122,7 +123,7 @@ function PersonForm({
 			<Pick
 				legend={m.cat_person_roles({}, o)}
 				name="roles"
-				items={d.roles.map((r) => ({ id: r.id, name: r.name }))}
+				items={d.roles.map((r) => ({ id: r.id, name: roleName(r.id, ctx.locale) }))}
 				on={item?.roles ?? []}
 			/>
 			<Check

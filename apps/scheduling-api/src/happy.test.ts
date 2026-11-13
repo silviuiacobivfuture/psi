@@ -1,5 +1,6 @@
-import { ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import { FileInitResult, ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { EXTRA_HAPPY, type ExtraId } from "./happy-extra";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 import { worldFactories } from "./testing/worlds";
@@ -77,8 +78,8 @@ const newClient = async (w: Populated): Promise<string> =>
 	String((await olga(w, "POST", "/clients", { name: "Disposable Client" })).json.id);
 
 /** One happy path per route of the contract. The table's type is the contract's ids: a route without a case does not compile. */
-const HAPPY: Record<
-	Exclude<RouteId, "calendar.stream" | "requests.stream" | "inbox.stream">,
+const OWN: Record<
+	Exclude<RouteId, "calendar.stream" | "requests.stream" | "inbox.stream" | ExtraId>,
 	Case
 > = {
 	"meta.health": (w) => w.call(null, "GET", "/health"),
@@ -240,6 +241,16 @@ const HAPPY: Record<
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>
 		olga(w, "PATCH", `/appointments/${w.ids.a1}`, { note: "bring the book" }),
+	"appointments.confirm": async (w) => {
+		const a = await olga(w, "POST", "/appointments", {
+			practitionerId: w.ids.dora,
+			clientId: w.ids.c1,
+			start: NOW + 96 * HOUR,
+			end: NOW + 97 * HOUR,
+			status: "requested",
+		});
+		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
+	},
 	"appointments.attendance": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" }),
 	"appointments.remove": async (w) => olga(w, "DELETE", `/appointments/${await spare(w)}`),
@@ -345,18 +356,25 @@ const HAPPY: Record<
 			contentType: "image/png",
 			size: 2048,
 		}),
-	"files.complete": async (w) =>
-		olga(
-			w,
-			"POST",
-			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "x.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}/complete`,
-		),
+	"files.complete": async (w) => {
+		const made = FileInitResult.parse(
+			(
+				await olga(w, "POST", `/clients/${w.ids.c1}/files`, {
+					name: "x.png",
+					contentType: "image/png",
+					size: 5,
+				})
+			).json,
+		);
+		await w.objects.upload(made.upload.url, 5, "image/png");
+		return olga(w, "POST", `/files/${made.file.id}/complete`);
+	},
 	"files.download": (w) => olga(w, "GET", `/files/${w.ids.file}/download`),
 	"files.remove": async (w) =>
 		olga(
 			w,
 			"DELETE",
-			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "y.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}`,
+			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "y.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}?confirm=true`,
 		),
 	"audit.list": (w) => olga(w, "GET", "/audit"),
 	"builder.list": (w) => olga(w, "GET", "/builder/forms"),
@@ -374,6 +392,8 @@ const HAPPY: Record<
 	},
 	"imports.list": (w) => olga(w, "GET", "/imports"),
 };
+
+const HAPPY = { ...OWN, ...EXTRA_HAPPY };
 
 const factories = await worldFactories();
 

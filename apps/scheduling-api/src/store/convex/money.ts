@@ -17,6 +17,7 @@ const Package = z.object({
 	bonusSessions: z.number(),
 	priceMinor: z.number(),
 	discountMinor: z.number().optional(),
+	notes: z.string().optional(),
 	createdAt: z.number(),
 	updatedAt: z.number(),
 });
@@ -29,6 +30,7 @@ const Line = z.object({
 	method: z.enum(["cash", "card", "transfer"]).optional(),
 	note: z.string().optional(),
 	at: z.number(),
+	createdBy: z.string(),
 	_creationTime: z.number(),
 });
 const Id = answer({ id: z.string() });
@@ -47,6 +49,7 @@ function toPackage(app: string, p: z.infer<typeof Package>): PackageRow {
 		bonus: p.bonusSessions,
 		priceCents: p.priceMinor,
 		discountCents: p.discountMinor ?? 0,
+		...(p.notes === undefined || p.notes === "" ? {} : { note: p.notes }),
 		createdAt: p.createdAt,
 		updatedAt: p.updatedAt,
 	};
@@ -106,6 +109,7 @@ export function packageCollection(rpc: Rpc): Collection<PackageRow> {
 						totalSessions: row.sessions,
 						bonusSessions: row.bonus,
 						priceMinor: row.priceCents,
+						...(row.note === undefined ? {} : { notes: row.note }),
 					},
 					Id,
 				),
@@ -137,6 +141,8 @@ export function packageCollection(rpc: Rpc): Collection<PackageRow> {
 				...(row.sessions === cur.sessions ? {} : { totalSessions: row.sessions }),
 				...(row.bonus === cur.bonus ? {} : { bonusSessions: row.bonus }),
 				...(row.priceCents === cur.priceCents ? {} : { priceMinor: row.priceCents }),
+				// An emptied note is written as empty text: the wrapper has no way to unset a field.
+				...((row.note ?? "") === (cur.note ?? "") ? {} : { notes: row.note ?? "" }),
 			};
 			const offer = row.discountCents !== cur.discountCents;
 			// The offer may not pass the price at any moment: lower it first when the price falls, raise it after when it rises.
@@ -185,6 +191,7 @@ export function paymentCollection(rpc: Rpc): Collection<PaymentRow> {
 		amountCents: l.amountMinor,
 		method: l.method ?? "cash",
 		paidAt: l.at,
+		recordedBy: l.createdBy,
 		...(l.note === undefined ? {} : { note: l.note }),
 		createdAt: Math.floor(l._creationTime),
 		updatedAt: Math.floor(l._creationTime),
@@ -245,7 +252,8 @@ export function paymentCollection(rpc: Rpc): Collection<PaymentRow> {
 				cur.amountCents === row.amountCents &&
 				cur.method === row.method &&
 				cur.paidAt === row.paidAt &&
-				cur.note === row.note;
+				cur.note === row.note &&
+				cur.recordedBy === row.recordedBy;
 			// A ledger line is never edited: delete it and add another.
 			if (!same) throw new StoreRefused("not_allowed");
 			return true;

@@ -69,6 +69,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"appointment.update": rec("visit.update", "visit"),
 	"appointment.cancel": rec("visit.cancel", "visit"),
 	"appointment.attendance": rec("visit.update", "visit"),
+	"appointment.confirm": rec("visit.update", "visit"),
 	"appointment.payment": rec("payment.add", "payment"),
 	"appointment.delete": rec("visit.cancel", "visit"),
 	"appointment.restore": rec("visit.update", "visit"),
@@ -90,6 +91,13 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"file.complete": own("file.add", "file"),
 	"file.delete": rec("file.remove", "file"),
 	"file.download": own("file.read", "file"),
+	"blacklist.create": rec("blacklist.create", "blacklist"),
+	"blacklist.update": rec("blacklist.update", "blacklist"),
+	"blacklist.delete": rec("blacklist.delete", "blacklist"),
+	"feedback.link": rec("feedback.link", "feedback"),
+	"feedback.reply": rec("feedback.reply", "feedback"),
+	"feedback.status": rec("feedback.status", "feedback"),
+	"floorplan.put": own("builder.change", "builder"),
 	"builder.put": rec("builder.change", "builder"),
 	"builder.delete": rec("builder.change", "builder"),
 	"clinical.read": own("record.read", "client"),
@@ -123,6 +131,8 @@ const TYPE_OF_ENTITY: Readonly<Partial<Record<AuditEntity, string>>> = {
 	file: "files",
 	form: "builder",
 	builder: "builder",
+	blacklist: "blacklist",
+	feedback: "feedback",
 };
 export const typeOfEntity = (entity: string): string =>
 	TYPE_OF_ENTITY[entity as AuditEntity] ?? entity;

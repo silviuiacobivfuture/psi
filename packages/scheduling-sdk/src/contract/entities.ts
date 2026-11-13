@@ -1,5 +1,10 @@
 import { z } from "zod/v4";
+import { BlacklistOverride } from "./entities-blacklist";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
+
+export * from "./entities-blacklist";
+export * from "./entities-files";
+export * from "./entities-money";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
@@ -223,7 +228,17 @@ export const ClientTreating = z.object({
 });
 
 export const AppointmentKind = z.enum(["session", "block", "group"]);
-export const AppointmentStatus = z.enum(["scheduled", "attended", "no_show", "cancelled"]);
+/**
+ * `requested`: booked by the team but waiting for the client to confirm; it holds the time like a confirmed one does,
+ * takes no attendance and no reminder, and `appointments.confirm` turns it into `scheduled`.
+ */
+export const AppointmentStatus = z.enum([
+	"requested",
+	"scheduled",
+	"attended",
+	"no_show",
+	"cancelled",
+]);
 export const AppointmentMoney = z.object({
 	priceCents: Money,
 	paidCents: Money,
@@ -243,6 +258,8 @@ export const Appointment = z.object({
 	start: Ms,
 	end: Ms,
 	note: z.string().max(500).optional(),
+	/** The day-before reminder is sent for this one (the default); false leaves it off the reminder list. */
+	remind: z.boolean(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
 	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */
@@ -263,15 +280,29 @@ export const AppointmentCreate = z.object({
 	end: Ms,
 	note: z.string().max(500).optional(),
 	priceCents: Money.optional(),
+	/** `requested` books it without confirming it (see `AppointmentStatus`). */
+	status: z.enum(["scheduled", "requested"]).default("scheduled"),
+	remind: z.boolean().default(true),
+	override: BlacklistOverride.optional(),
 });
+/**
+ * Every field optional, only what is present changes. `packageId: null` takes the appointment out of its package.
+ * `clientId` moves it to another client (whose blacklist standing is checked, and whose package it must then be drawn
+ * from or none), `serviceId` and `remind` are plain changes, and `priceCents` is a change of the money group.
+ */
 export const AppointmentPatch = z.object({
-	packageId: Id.optional(),
+	clientId: Id.optional(),
+	serviceId: Id.optional(),
+	packageId: Id.nullable().optional(),
 	practitionerId: Id.optional(),
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
 	start: Ms.optional(),
 	end: Ms.optional(),
 	note: z.string().max(500).optional(),
+	priceCents: Money.optional(),
+	remind: z.boolean().optional(),
+	override: BlacklistOverride.optional(),
 });
 export const AppointmentCancel = z.object({ reason: z.string().trim().min(2).max(300) });
 export const Attendance = z.object({ status: z.enum(["attended", "no_show", "scheduled"]) });
@@ -279,52 +310,6 @@ export const AppointmentPayment = z.object({
 	amountCents: Money.min(1),
 	method: z.enum(["cash", "card", "transfer"]),
 });
-
-export const Payment = z.object({
-	id: Id,
-	clientId: Id,
-	packageId: Id.optional(),
-	appointmentId: Id.optional(),
-	amountCents: Money,
-	method: z.enum(["cash", "card", "transfer"]),
-	paidAt: Ms,
-	note: z.string().max(300).optional(),
-	...Stamps,
-});
-export const PaymentCreate = z.object({
-	amountCents: Money.min(1),
-	method: z.enum(["cash", "card", "transfer"]),
-	paidAt: Ms.optional(),
-	note: z.string().max(300).optional(),
-});
-/** A package with its balances computed by the service, never typed in. */
-export const Package = z.object({
-	id: Id,
-	clientId: Id,
-	name: Name,
-	sessions: z.number().int().min(1).max(500),
-	bonus: z.number().int().min(0).max(100),
-	used: z.number().int().min(0),
-	priceCents: Money,
-	discountCents: Money,
-	totalCents: Money,
-	paidCents: Money,
-	remainingCents: z.number().int(),
-	sessionsRemaining: z.number().int(),
-	...Stamps,
-});
-const PackageBase = z.object({
-	name: Name,
-	sessions: z.number().int().min(1).max(500),
-	bonus: z.number().int().min(0).max(100),
-	priceCents: Money,
-	discountCents: Money,
-});
-export const PackageCreate = PackageBase.extend({
-	bonus: PackageBase.shape.bonus.default(0),
-	discountCents: PackageBase.shape.discountCents.default(0),
-});
-export const PackagePatch = PackageBase.partial();
 
 export const RosterKind = z.enum(["work", "leave_co", "leave_cm", "free"]);
 export const RosterDay = z.object({
@@ -411,28 +396,6 @@ export const RecordCreate = z.object({
 	data: z.record(z.string(), z.unknown()),
 });
 export const RecordPatch = z.object({ data: z.record(z.string(), z.unknown()) });
-
-export const FileMeta = z.object({
-	id: Id,
-	clientId: Id,
-	name: z.string().max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1),
-	status: z.enum(["pending", "ready"]),
-	uploadedBy: Subject,
-	...Stamps,
-});
-export const FileInit = z.object({
-	name: z.string().trim().min(1).max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1).max(50_000_000),
-});
-export const SignedUrl = z.object({
-	url: z.string().url(),
-	expiresAt: Ms,
-	method: z.enum(["GET", "PUT"]),
-});
-export const FileInitResult = z.object({ file: FileMeta, upload: SignedUrl });
 
 export const AuditEvent = z.object({
 	id: Id,

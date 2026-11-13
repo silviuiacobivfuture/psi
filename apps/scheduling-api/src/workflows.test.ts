@@ -261,8 +261,19 @@ describe("packages and payments: totals are computed", () => {
 		expect(err(over).detail).toMatchObject({ remainingCents: 60_000 });
 		await owner("PATCH", `/appointments/${w.ids.a1}`, { packageId: w.ids.pkg });
 		await owner("POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" });
-		await owner("PATCH", `/appointments/${w.ids.a2}`, { packageId: w.ids.pkg });
-		await owner("POST", `/appointments/${w.ids.a2}/attendance`, { status: "attended" });
+		// A package is drawn from by its own client's appointments only: a second one of client one's.
+		const second = String(
+			(
+				await owner("POST", "/appointments", {
+					practitionerId: w.ids.dora,
+					clientId: w.ids.c1,
+					start: NOW + 96 * HOUR,
+					end: NOW + 97 * HOUR,
+					packageId: w.ids.pkg,
+				})
+			).json.id,
+		);
+		await owner("POST", `/appointments/${second}/attendance`, { status: "attended" });
 		expect((await owner("PATCH", `/packages/${w.ids.pkg}`, { sessions: 1, bonus: 0 })).status).toBe(
 			409,
 		);
