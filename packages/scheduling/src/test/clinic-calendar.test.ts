@@ -122,7 +122,7 @@ describe("visit soundness", () => {
 		durationMinutes: 60,
 	};
 
-	it("a sound visit has no problems; a group or block needs no client", () => {
+	it("a sound visit has no problems; a visit without a client is a block or a group activity", () => {
 		expect(visitProblems(ok)).toEqual([]);
 		expect(
 			visitProblems({ ...ok, client: undefined, column: { kind: "group", id: "g1" } }),
@@ -132,7 +132,6 @@ describe("visit soundness", () => {
 	it.each([
 		["end_not_after_start", { end: T0 }],
 		["duration_mismatch", { durationMinutes: 45 }],
-		["client_required", { client: undefined }],
 		["negative_money", { priceMinor: -1 }],
 		["credit_without_package", { creditType: "base" as const }],
 	])("refuses %s", (problem, patch) => {

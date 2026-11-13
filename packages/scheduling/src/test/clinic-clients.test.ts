@@ -181,11 +181,16 @@ describe("audit events carry no content", () => {
 });
 
 describe("file keys", () => {
-	it("are content-addressed, per app and kind, and carry no name", () => {
+	it("are per app, kind and file, carry the hash and no name, and never collide for equal bytes", () => {
 		const sha = "ab".repeat(32);
-		expect(storageKeyFor("psizone", "client_file", sha)).toBe(`psizone/client_file/ab/${sha}`);
-		expect(storageKeyFor("hemisync", "notice", sha)).not.toBe(
-			storageKeyFor("psizone", "notice", sha),
+		expect(storageKeyFor("psizone", "client_file", "client_files-3", sha)).toBe(
+			`psizone/client_file/client_files-3/${sha}`,
+		);
+		expect(storageKeyFor("hemisync", "notice", "avize-1", sha)).not.toBe(
+			storageKeyFor("psizone", "notice", "avize-1", sha),
+		);
+		expect(storageKeyFor("psizone", "client_file", "client_files-3", sha)).not.toBe(
+			storageKeyFor("psizone", "client_file", "client_files-4", sha),
 		);
 	});
 });

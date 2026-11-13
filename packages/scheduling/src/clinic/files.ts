@@ -17,9 +17,15 @@ export const fileMetaSchema = z.object({
 export type FileMeta = z.infer<typeof fileMetaSchema>;
 
 /**
- * The object-storage key of a file: the app, the kind and the content hash, so the same bytes
- * are one object and a key never carries a client's name.
+ * The object-storage key of a file: the app, the kind, the file's own id and its content hash. The
+ * id keeps two rows with identical bytes apart, so erasing one client's file can never delete
+ * another's. The key carries no name.
  */
-export function storageKeyFor(tenant: string, kind: FileKind, sha256: string): string {
-	return `${tenant}/${kind}/${sha256.slice(0, 2)}/${sha256}`;
+export function storageKeyFor(
+	tenant: string,
+	kind: FileKind,
+	uniqueId: string,
+	sha256: string,
+): string {
+	return `${tenant}/${kind}/${uniqueId}/${sha256}`;
 }

@@ -147,7 +147,6 @@ export function wallToInstant(
 export type VisitProblem =
 	| "end_not_after_start"
 	| "duration_mismatch"
-	| "client_required"
 	| "negative_money"
 	| "credit_without_package"
 	| "bonus_in_group";
@@ -165,8 +164,8 @@ export interface VisitCheck {
 }
 
 /**
- * What makes a visit unsound. A client is optional only for a group activity or a block; a
- * practitioner, device or room column needs one. Durations agree with the instants.
+ * What makes a visit unsound. A client is optional: a visit without one is a block of time or a
+ * group activity. Durations agree with the instants.
  */
 export function visitProblems(v: VisitCheck): ReadonlyArray<VisitProblem> {
 	const problems: VisitProblem[] = [];
@@ -174,7 +173,6 @@ export function visitProblems(v: VisitCheck): ReadonlyArray<VisitProblem> {
 	else if (Math.round((v.end - v.start) / MINUTE_MS) !== v.durationMinutes) {
 		problems.push("duration_mismatch");
 	}
-	if (v.client === undefined && v.column.kind !== "group") problems.push("client_required");
 	if ((v.priceMinor ?? 0) < 0 || (v.amountPaidMinor ?? 0) < 0) problems.push("negative_money");
 	if (v.creditType !== undefined && v.package === undefined)
 		problems.push("credit_without_package");
