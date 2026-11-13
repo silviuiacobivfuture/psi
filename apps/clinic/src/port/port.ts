@@ -6,7 +6,10 @@ import type {
 	Column,
 	Membership,
 	NewAppointment,
+	NewPackage,
+	NewPayment,
 	Package,
+	PackagePatch,
 	PushPrefs,
 	Role,
 	RosterEntry,
@@ -57,11 +60,29 @@ export interface ClinicPort {
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
 	packages(app: AppSlug, clientId: string): Promise<ReadonlyArray<Package>>;
-	savePackage(app: AppSlug, pkg: Package): Promise<Package>;
+	createPackage(app: AppSlug, clientId: string, input: NewPackage): Promise<Package>;
+	/** Refuses (`invalid`) sessions + bonus below the sessions already used. */
+	updatePackage(
+		app: AppSlug,
+		clientId: string,
+		packageId: string,
+		patch: PackagePatch,
+	): Promise<Package>;
+	/** Appends a payment (never edits one); `recordedBy` is the person's name from the token. */
+	addPayment(
+		app: AppSlug,
+		clientId: string,
+		packageId: string,
+		input: NewPayment,
+		recordedBy: string,
+	): Promise<Package>;
 	roster(
 		app: AppSlug,
 		weekStart: string,
-	): Promise<{ people: ReadonlyArray<Column>; entries: ReadonlyArray<RosterEntry> }>;
+	): Promise<{
+		people: ReadonlyArray<Column>;
+		entries: ReadonlyArray<RosterEntry>;
+	}>;
 	requests(app: AppSlug): Promise<ReadonlyArray<WebRequest>>;
 	markRequestHandled(app: AppSlug, id: string): Promise<void>;
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;

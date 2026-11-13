@@ -1,3 +1,4 @@
+import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import {
 	type CalendarData,
@@ -105,6 +106,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				serviceId: svc.id,
 				status: "confirmed",
 				note: "",
+				packageId: null,
 			};
 			d.appointments.push(a);
 			log(d, "console", "appointment.create", a.id);
@@ -122,7 +124,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, "")),
 				)
 				.slice(0, 6)
-				.map((c) => ({ kind: "client", id: c.id, label: c.name, detail: c.phone ?? "" }));
+				.map((c) => ({
+					kind: "client",
+					id: c.id,
+					label: c.name,
+					detail: c.phone ?? "",
+				}));
 			const appts: SearchHit[] = d.appointments
 				.filter(
 					(a) =>
@@ -179,13 +186,42 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("packages");
 			return data(app).packages.filter((p) => p.clientId === clientId);
 		},
-		async savePackage(app, pkg: Package) {
-			guard("savePackage");
+		async createPackage(app, clientId, input) {
+			guard("createPackage");
 			const d = data(app);
-			const i = d.packages.findIndex((p) => p.id === pkg.id && p.clientId === pkg.clientId);
-			if (i < 0) throw new PortError("not-found", pkg.id);
-			d.packages[i] = pkg;
-			log(d, "console", "package.save", pkg.id);
+			if (!d.clients.some((c) => c.id === clientId)) throw new PortError("not-found", clientId);
+			const pkg: Package = {
+				id: `k${++seq}`,
+				clientId,
+				...input,
+				payments: [],
+			};
+			d.packages.push(pkg);
+			log(d, "console", "package.create", pkg.id);
+			return pkg;
+		},
+		async updatePackage(app, clientId, packageId, patch) {
+			guard("updatePackage");
+			const d = data(app);
+			const pkg = d.packages.find((p) => p.id === packageId && p.clientId === clientId);
+			if (pkg === undefined) throw new PortError("not-found", packageId);
+			const next = { ...pkg, ...patch };
+			const used = packageUsage(next, d.appointments, today).used;
+			if (next.sessions + next.bonus < used)
+				throw new PortError("invalid", "fewer sessions than are already used");
+			Object.assign(pkg, patch);
+			log(d, "console", "package.edit", pkg.id);
+			return pkg;
+		},
+		async addPayment(app, clientId, packageId, input, recordedBy) {
+			guard("addPayment");
+			const d = data(app);
+			const pkg = d.packages.find((p) => p.id === packageId && p.clientId === clientId);
+			if (pkg === undefined) throw new PortError("not-found", packageId);
+			if (!Number.isSafeInteger(input.amountBani) || input.amountBani <= 0)
+				throw new PortError("invalid", "a payment is a positive amount");
+			pkg.payments.push({ id: `p${++seq}`, ...input, recordedBy });
+			log(d, "console", "package.payment", pkg.id);
 			return pkg;
 		},
 		async roster(app, weekStart) {
@@ -219,7 +255,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				const client = d.clients.find((c) => c.id === appointment.clientId);
 				const column = d.columns.find((c) => c.id === appointment.columnId);
 				if (client !== undefined && column !== undefined)
-					items.push({ appointment, client, column, sent: d.sentReminders.has(appointment.id) });
+					items.push({
+						appointment,
+						client,
+						column,
+						sent: d.sentReminders.has(appointment.id),
+					});
 			}
 			return items.sort((a, b) => a.appointment.startMin - b.appointment.startMin);
 		},

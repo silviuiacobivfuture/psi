@@ -1,6 +1,25 @@
 export { escapeHtml } from "./escape";
 export { ADMIN_ICONS, type AdminIcon, Icon, type IconProps } from "./icons";
 export {
+	InlineEdit,
+	type InlineEditProps,
+	InlineEditSignalsSchema,
+	inlineValue,
+	signalKey,
+} from "./inline-edit";
+export {
+	type LedgerColumn,
+	type LedgerRow,
+	LedgerTable,
+	type LedgerTableProps,
+} from "./ledger-table";
+export { Money, MoneyBar, type MoneyBarProps, type MoneyProps } from "./money";
+export {
+	type OverflowItem,
+	OverflowMenu,
+	type OverflowMenuProps,
+} from "./overflow-menu";
+export {
 	Banner,
 	type BannerProps,
 	EmptyState,
@@ -29,6 +48,13 @@ export {
 	type PermissionMatrixProps,
 } from "./permission-matrix";
 export {
+	ProgressRing,
+	type ProgressRingProps,
+	type RingSegment,
+	type RingTone,
+	ringArcs,
+} from "./progress-ring";
+export {
 	AdminShell,
 	type NavItem,
 	type ShellApp,
@@ -44,4 +70,5 @@ export {
 	themeFor,
 	themePreferenceFrom,
 } from "./theme-boot";
+export { Timeline, type TimelineItem, type TimelineProps } from "./timeline";
 export { toastElement } from "./toast";

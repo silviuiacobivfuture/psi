@@ -35,22 +35,192 @@
 	flex-direction: column;
 	gap: var(--space-4);
 }
-.pk__summary {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+.pk__head {
+	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: var(--space-3);
-	padding: var(--space-3);
-	border-radius: var(--radius-sm);
-	background: var(--surface-2);
+	justify-content: space-between;
+	gap: var(--space-2) var(--space-3);
 }
-.pk__fields {
+.pk__name {
+	margin: 0;
+	font: 600 18px / 1.25 var(--font-display);
+	font-variation-settings: "SOFT" 100;
+}
+.pk__head .adm-pill svg {
+	width: 14px;
+	height: 14px;
+}
+.pk__grid {
+	display: grid;
+	gap: var(--space-4);
+	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-areas: "ring money" "facts facts" "ledger ledger" "timeline timeline";
+}
+.pk__ring {
+	--ring: 96px;
+	grid-area: ring;
+	align-self: center;
+}
+.pk__facts {
+	grid-area: facts;
+}
+.pk__money {
+	grid-area: money;
+	align-self: center;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+}
+.pk__ledger {
+	grid-area: ledger;
+	min-width: 0;
+}
+.pk__timeline {
+	grid-area: timeline;
+	min-width: 0;
+}
+.pk__facts p {
+	margin: 0 0 var(--space-1);
+}
+.pk__left {
+	font-size: 16px;
+}
+.pk__over {
+	color: var(--danger);
+	font-weight: 600;
+}
+.pk__counts,
+.pk__lines {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+}
+.pk__counts {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--space-2) var(--space-5);
+	margin-top: var(--space-2);
+}
+.pk__counts div {
+	display: flex;
+	flex-direction: column;
+}
+.pk__counts dd,
+.pk__lines dd {
+	min-height: 32px;
+	display: flex;
+	align-items: center;
+	margin: 0;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.pk__counts dt,
+.pk__lines dt {
+	color: var(--ink-muted);
+	font-size: 12px;
+}
+.pk__lines > div {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-3);
+	min-height: 32px;
+}
+.pk__lines dd {
+	text-align: right;
+}
+.pk__lines dt {
+	font-size: 13px;
+}
+.pk__h {
+	margin: 0 0 var(--space-2);
+	font: 600 13px / 1.2 var(--font-sans);
+	letter-spacing: 0.02em;
+	color: var(--ink-muted);
+}
+.pk__pay {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-2) var(--space-3);
+	align-items: end;
+}
+.pk__add {
+	grid-column: 1 / -1;
+}
+.pk__amount {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+.pk__note {
+	border-top: 1px solid var(--line);
+	padding-top: var(--space-3);
+}
+.pk__notelink {
+	color: var(--accent);
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.pk__notetext {
+	white-space: pre-wrap;
+	text-align: left;
+}
+.pk__noteedit .adm-inline__input {
+	width: min(60ch, 80vw);
+}
+.pk-list__bar {
+	justify-content: space-between;
+}
+.pk-list__bar .adm-h2 {
+	margin: 0;
+}
+.pk-new__nums {
 	display: grid;
 	gap: var(--space-3);
-	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 }
-.pk__wide {
-	grid-column: 1 / -1;
+@media (min-width: 768px) {
+	.pk {
+		padding: var(--space-5);
+	}
+	.pk__ring {
+		--ring: 120px;
+	}
+	.pk__grid {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-areas: "ring money" "facts facts" "ledger timeline";
+	}
+	.pk__pay {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
+	.pk__add {
+		grid-column: 1 / -1;
+	}
+}
+@media (min-width: 1280px) {
+	.pk__grid {
+		grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.3fr) minmax(0, 1fr);
+		grid-template-areas: "ring ledger timeline" "facts ledger timeline" "money ledger timeline" ". ledger timeline";
+		grid-template-rows: auto auto auto 1fr;
+		align-items: start;
+	}
+	.pk__ring {
+		--ring: 132px;
+		justify-self: center;
+	}
+	.pk__money {
+		align-self: start;
+	}
+	.pk__pay {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+@media (min-width: 1700px) {
+	.pk__pay {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
 }
 
 /* Roster, requests, reminders. */

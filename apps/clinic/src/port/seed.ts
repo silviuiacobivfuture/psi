@@ -12,6 +12,7 @@ import {
 	type Service,
 	type WebRequest,
 } from "./schema";
+import { seedPackages } from "./seed-packages";
 
 /** Everything here is synthetic: invented names, `0700 000 …` numbers, `example.test` e-mail. */
 export interface AppData {
@@ -78,7 +79,12 @@ function columnsFor(app: AppSlug): Column[] {
 
 const SERVICES: Record<AppSlug, Service[]> = {
 	psizone: [
-		{ id: "s1", name: "Terapie individuală", durationMin: 50, priceBani: 15000 },
+		{
+			id: "s1",
+			name: "Terapie individuală",
+			durationMin: 50,
+			priceBani: 15000,
+		},
 		{ id: "s2", name: "Evaluare", durationMin: 90, priceBani: 40000 },
 		{ id: "s3", name: "Neurofeedback", durationMin: 45, priceBani: 12000 },
 		{ id: "s4", name: "Ședință de grup", durationMin: 60, priceBani: 8000 },
@@ -149,7 +155,12 @@ function rolesFor(): Role[] {
 			description: "Their own calendar and the clinical record of clients they treat.",
 			members: 4,
 			grants: {
-				appointments: { view: "own", create: "own", edit: "own", cancel: "own" },
+				appointments: {
+					view: "own",
+					create: "own",
+					edit: "own",
+					cancel: "own",
+				},
 				clients: { view: "assigned" },
 				clinical: { view: "assigned", create: "assigned", edit: "assigned" },
 				leave: { view: "own", create: "own" },
@@ -228,23 +239,14 @@ export function seedApp(app: AppSlug, today: string): AppData {
 								? "requested"
 								: "cancelled",
 					note: "",
+					packageId: null,
 				});
 				start += svc.durationMin + (rand() < 0.4 ? 30 : 10);
 				if (start > 17 * 60) break;
 			}
 		}
 	}
-	const packages: Package[] = live.slice(0, 6).map((c, i) => ({
-		id: `k${i + 1}`,
-		clientId: c.id,
-		name: i % 2 === 0 ? "Abonament 10 ședințe" : "Abonament 5 ședințe",
-		sessions: i % 2 === 0 ? 10 : 5,
-		bonus: i % 3 === 0 ? 1 : 0,
-		used: i + 1,
-		totalBani: i % 2 === 0 ? 135000 : 70000,
-		paidBani: i % 4 === 0 ? 135000 : i % 4 === 1 ? 35000 : 0,
-		note: "",
-	}));
+	const packages = seedPackages(live, services, columns, appointments, today);
 	const people = columns.filter((c) => c.kind === "person");
 	const monday = weekStart(today);
 	const roster: RosterEntry[] = [];

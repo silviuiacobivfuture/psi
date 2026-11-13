@@ -34,6 +34,7 @@ export const ADMIN_ICONS = [
 	"file",
 	"user",
 	"download",
+	"edit",
 ] as const;
 export type AdminIcon = (typeof ADMIN_ICONS)[number];
 
@@ -76,6 +77,7 @@ const PATHS: Readonly<Record<AdminIcon, string>> = {
 	file: "M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5",
 	user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20c.7-3.6 3.6-5.5 7.5-5.5s6.8 1.9 7.5 5.5",
 	download: "M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14",
+	edit: "M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17zM14 7l3 3",
 };
 
 export interface IconProps {

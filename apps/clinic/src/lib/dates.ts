@@ -38,7 +38,9 @@ export function addMonths(iso: string, n: number): string {
 
 export function todayIso(now: Date = new Date()): string {
 	// The clinic is in Galați: its day, not the server's.
-	return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Bucharest" }).format(now);
+	return new Intl.DateTimeFormat("sv-SE", {
+		timeZone: "Europe/Bucharest",
+	}).format(now);
 }
 
 export function hhmm(min: number): string {
@@ -54,6 +56,8 @@ export const dayLong = (l: Locale, iso: string): string =>
 	fmt(l, { weekday: "long", day: "numeric", month: "long" }, iso);
 export const dayShort = (l: Locale, iso: string): string =>
 	fmt(l, { weekday: "short", day: "numeric" }, iso);
+export const dayMonth = (l: Locale, iso: string): string =>
+	fmt(l, { day: "numeric", month: "short" }, iso);
 export const weekdayShort = (l: Locale, iso: string): string => fmt(l, { weekday: "short" }, iso);
 export const monthLong = (l: Locale, iso: string): string =>
 	fmt(l, { month: "long", year: "numeric" }, iso);

@@ -61,7 +61,9 @@ describe("axe, WCAG 2.2 AA, every main screen in both admin themes and both view
 	}
 
 	it("the open sheets and menus are accessible too (new appointment, date picker, delete confirmation, user menu)", async () => {
-		const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+		const context = await browser.newContext({
+			viewport: { width: 375, height: 812 },
+		});
 		const page = await context.newPage();
 		const failures: string[] = [];
 		const check = async (label: string): Promise<void> => {
@@ -73,7 +75,8 @@ describe("axe, WCAG 2.2 AA, every main screen in both admin themes and both view
 		await page.waitForSelector(".adm-sheet__panel >> visible=true");
 		await check("new appointment sheet");
 		await page.goto(`${live.url}/clients/c1`);
-		await page.click(".adm-btn--danger");
+		await page.click('[aria-label="Mai multe acțiuni"]');
+		await page.click(".adm-menu__item--danger");
 		await page.waitForSelector(".adm-sheet__panel >> visible=true");
 		await check("delete confirmation");
 		await page.goto(`${live.url}/calendar?date=2026-11-16`);

@@ -27,6 +27,7 @@ const base: Appointment = {
 	serviceId: "s1",
 	status: "confirmed",
 	note: "",
+	packageId: null,
 };
 const SAMPLES: ReadonlyArray<Appointment> = [
 	base,
@@ -34,7 +35,13 @@ const SAMPLES: ReadonlyArray<Appointment> = [
 	{ ...base, status: "attended", durationMin: 90 },
 	{ ...base, status: "no-show", durationMin: 45 },
 	{ ...base, status: "cancelled" },
-	{ ...base, title: "Sală de grup", clientId: null, status: "confirmed", durationMin: 60 },
+	{
+		...base,
+		title: "Sală de grup",
+		clientId: null,
+		status: "confirmed",
+		durationMin: 60,
+	},
 ];
 
 function Sheet({

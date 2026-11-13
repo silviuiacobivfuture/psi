@@ -1,15 +1,25 @@
-import { Banner, EmptyState, Icon, Sheet, StatusPill, type Tab, Tabs } from "@psi/ui/admin";
+import {
+	Banner,
+	EmptyState,
+	Icon,
+	OverflowMenu,
+	Sheet,
+	StatusPill,
+	type Tab,
+	Tabs,
+} from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Page } from "../chrome";
-import { ledger, sessionsLeft } from "../domain/ledger";
+import { ledger } from "../domain/ledger";
 import { formatMoney } from "../domain/money";
+import { paidBani } from "../domain/usage";
 import type { Ctx } from "../lib/context";
 import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
-import type { Appointment, Client, Package } from "../port/schema";
-import { PackageCard } from "./packages-view";
+import type { Appointment, Client, Package, Service } from "../port/schema";
+import { NewPackageSheet, PackagesTab } from "./packages-tab";
 
 export type ClientTab = "overview" | "appointments" | "packages" | "records" | "files";
 export const CLIENT_TABS: ReadonlyArray<ClientTab> = [
@@ -93,7 +103,8 @@ export interface ClientView {
 	tab: ClientTab;
 	appointments: ReadonlyArray<Appointment>;
 	packages: ReadonlyArray<Package>;
-	services: ReadonlyArray<{ id: string; name: string }>;
+	services: ReadonlyArray<Service>;
+	notice?: "invalid" | "made" | null;
 }
 
 export async function renderClient(
@@ -139,23 +150,45 @@ export async function renderClient(
 							) : null}
 						</div>
 					</div>
-					<div class="adm-row">
-						{client.status === "archived" ? null : (
-							<button type="button" class="adm-btn" data-on:click="$askArchive = true">
-								<Icon name="archive" />
-								{m.archive_button({}, o)}
-							</button>
-						)}
-						<button type="button" class="adm-btn adm-btn--danger" data-on:click="$askDelete = true">
-							<Icon name="trash" />
-							{m.delete_button({}, o)}
-						</button>
-					</div>
+					<OverflowMenu
+						id="client-actions"
+						label={m.client_more({}, o)}
+						items={[
+							...(client.status === "archived"
+								? []
+								: [
+										{
+											key: "archive",
+											label: m.archive_button({}, o),
+											icon: "archive" as const,
+											onClick: "$askArchive = true",
+										},
+									]),
+							{
+								key: "delete",
+								label: m.delete_button({}, o),
+								icon: "trash" as const,
+								tone: "danger" as const,
+								onClick: "$askDelete = true",
+							},
+						]}
+					/>
 				</div>
 				<Tabs tabs={tabs} selected={tab} label={m.tabs_label({}, o)} />
 				{tab === "overview" ? <Overview client={client} ctx={ctx} view={view} /> : null}
 				{tab === "appointments" ? <AppointmentsTab view={view} locale={ctx.locale} /> : null}
-				{tab === "packages" ? <PackagesTab view={view} locale={ctx.locale} /> : null}
+				{tab === "packages" ? (
+					<PackagesTab
+						view={{
+							client,
+							packages: view.packages,
+							appointments: view.appointments,
+							services: view.services,
+							notice: view.notice ?? null,
+						}}
+						locale={ctx.locale}
+					/>
+				) : null}
 				{tab === "records" ? (
 					<EmptyState
 						icon="file"
@@ -173,7 +206,7 @@ export async function renderClient(
 			</div>
 		),
 		overlays: (
-			<div data-signals="{askArchive:false,askDelete:false}">
+			<div data-signals="{askArchive:false,askDelete:false,newPkg:false}">
 				{client.status === "archived" ? null : (
 					<Confirm
 						signal="askArchive"
@@ -186,6 +219,7 @@ export async function renderClient(
 						cancelLabel={m.cancel({}, o)}
 					/>
 				)}
+				<NewPackageSheet client={client} services={view.services} locale={ctx.locale} />
 				<Confirm
 					signal="askDelete"
 					title={m.delete_confirm_title({}, o)}
@@ -212,7 +246,7 @@ function Overview({
 }): JSX.Element {
 	const o = at(ctx.locale);
 	const owed = view.packages.reduce(
-		(sum, p) => sum + Math.max(0, ledger(p.totalBani, p.paidBani).remainingBani),
+		(sum, p) => sum + Math.max(0, ledger(p.totalBani, paidBani(p)).remainingBani),
 		0,
 	);
 	return (
@@ -257,25 +291,6 @@ function AppointmentsTab({ view, locale }: { view: ClientView; locale: Locale })
 					))}
 				</tbody>
 			</table>
-		</div>
-	);
-}
-
-function PackagesTab({ view, locale }: { view: ClientView; locale: Locale }): JSX.Element {
-	const o = at(locale);
-	if (view.packages.length === 0)
-		return <EmptyState icon="package" title={m.packages_none({}, o)} />;
-	return (
-		<div class="adm-stack" style="gap:var(--space-3)">
-			{view.packages.map((p) => (
-				<PackageCard
-					key={p.id}
-					clientId={view.client.id}
-					pkg={p}
-					locale={locale}
-					left={sessionsLeft(p.sessions, p.bonus, p.used)}
-				/>
-			))}
 		</div>
 	);
 }

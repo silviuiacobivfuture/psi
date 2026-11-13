@@ -10,10 +10,9 @@ import {
 	weekStart,
 } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
-import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
-import type { Appointment, Client, Column } from "../port/schema";
+import type { Appointment, Column } from "../port/schema";
 
 /** Scrolling the grid shrinks the floating action to its icon, like scrolling the page. */
 const SCROLL_FAB = {

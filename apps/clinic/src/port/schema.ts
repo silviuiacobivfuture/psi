@@ -54,6 +54,8 @@ export const AppointmentSchema = z.object({
 	serviceId: z.string(),
 	status: StatusSchema,
 	note: z.string(),
+	/** The package this session is drawn from; "sessions used" is derived from these links, never typed. */
+	packageId: z.string().nullable(),
 });
 export type Appointment = z.infer<typeof AppointmentSchema>;
 
@@ -66,19 +68,51 @@ export const NewAppointmentSchema = z.object({
 });
 export type NewAppointment = z.infer<typeof NewAppointmentSchema>;
 
+export const PaymentMethodSchema = z.enum(["cash", "card", "transfer"]);
+export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+export const PaymentSchema = z.object({
+	id: z.string(),
+	date: IsoDateSchema,
+	/** Money is integer bani: no floating point anywhere near a ledger. */
+	amountBani: z.number().int().positive(),
+	method: PaymentMethodSchema,
+	recordedBy: z.string(),
+});
+export type Payment = z.infer<typeof PaymentSchema>;
+export const NewPaymentSchema = PaymentSchema.omit({
+	id: true,
+	recordedBy: true,
+});
+export type NewPayment = z.infer<typeof NewPaymentSchema>;
+
 export const PackageSchema = z.object({
 	id: z.string(),
 	clientId: z.string(),
 	name: z.string(),
 	sessions: z.number().int().nonnegative(),
 	bonus: z.number().int().nonnegative(),
-	used: z.number().int().nonnegative(),
-	/** Money is integer bani: no floating point anywhere near a ledger. */
 	totalBani: z.number().int().nonnegative(),
-	paidBani: z.number().int().nonnegative(),
 	note: z.string(),
+	/** What was paid is the sum of these: there is no typed "paid". */
+	payments: z.array(PaymentSchema),
 });
 export type Package = z.infer<typeof PackageSchema>;
+
+const PackageFieldsSchema = z.object({
+	name: z.string().trim().min(1).max(120),
+	sessions: z.number().int().min(0).max(999),
+	bonus: z.number().int().min(0).max(999),
+	totalBani: z.number().int().min(0).max(100_000_000),
+	note: z.string().max(1000),
+});
+export const NewPackageSchema = PackageFieldsSchema.partial({
+	note: true,
+	bonus: true,
+}).transform((v) => ({ ...v, bonus: v.bonus ?? 0, note: v.note ?? "" }));
+export type NewPackage = z.infer<typeof NewPackageSchema>;
+/** One field at a time: the console saves each value as it is edited. */
+export const PackagePatchSchema = PackageFieldsSchema.partial();
+export type PackagePatch = z.infer<typeof PackagePatchSchema>;
 
 export const RosterKindSchema = z.enum(["work", "leave", "medical", "free"]);
 export type RosterKind = z.infer<typeof RosterKindSchema>;
@@ -187,7 +221,12 @@ export const MembershipSchema = z.object({
 export type Membership = z.infer<typeof MembershipSchema>;
 
 export const SearchHitSchema = z.discriminatedUnion("kind", [
-	z.object({ kind: z.literal("client"), id: z.string(), label: z.string(), detail: z.string() }),
+	z.object({
+		kind: z.literal("client"),
+		id: z.string(),
+		label: z.string(),
+		detail: z.string(),
+	}),
 	z.object({
 		kind: z.literal("appointment"),
 		id: z.string(),
@@ -198,5 +237,8 @@ export const SearchHitSchema = z.discriminatedUnion("kind", [
 ]);
 export type SearchHit = z.infer<typeof SearchHitSchema>;
 
-export const PushPrefsSchema = z.object({ requests: z.boolean(), reminders: z.boolean() });
+export const PushPrefsSchema = z.object({
+	requests: z.boolean(),
+	reminders: z.boolean(),
+});
 export type PushPrefs = z.infer<typeof PushPrefsSchema>;

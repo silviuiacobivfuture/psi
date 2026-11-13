@@ -14,6 +14,7 @@ const item: ReminderItem = {
 		serviceId: "s1",
 		status: "confirmed",
 		note: "",
+		packageId: null,
 	},
 	client: {
 		id: "c1",
@@ -51,7 +52,10 @@ describe("the reminder links", () => {
 		expect(reminderText(item, "psizone", "en")).toContain("Hello!");
 	});
 	it("has no WhatsApp link without a usable phone, and no e-mail link without an address", () => {
-		const bare = { ...item, client: { ...item.client, phone: null, email: null } };
+		const bare = {
+			...item,
+			client: { ...item.client, phone: null, email: null },
+		};
 		expect(whatsappHref(bare, "psizone", "ro")).toBeNull();
 		expect(emailHref(bare, "psizone", "ro")).toBeNull();
 	});

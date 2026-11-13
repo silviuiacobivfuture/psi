@@ -29,3 +29,16 @@ export function moneyInput(bani: number, locale: "ro" | "en"): string {
 	const cents = String(bani % 100).padStart(2, "0");
 	return `${whole}${locale === "ro" ? "," : "."}${cents}`;
 }
+
+/** The currency is shown apart from the figure (lighter), in both languages. */
+export const CURRENCY = "lei";
+
+/** The figure alone ("1.350,00"): the page writes the currency beside it. */
+export function formatAmount(bani: number, locale: "ro" | "en"): string {
+	const safe = Number.isFinite(bani) ? bani : 0;
+	return new Intl.NumberFormat(locale === "ro" ? "ro-RO" : "en-GB", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+		useGrouping: true,
+	}).format(safe / 100);
+}

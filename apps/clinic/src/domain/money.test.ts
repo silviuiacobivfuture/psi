@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, moneyInput, parseMoney } from "./money";
+import { formatAmount, formatMoney, moneyInput, parseMoney } from "./money";
 
 describe("parseMoney", () => {
 	it.each([
@@ -44,5 +44,17 @@ describe("parseMoney", () => {
 	it("formats lei for the viewer's language", () => {
 		expect(formatMoney(135050, "en")).toMatch(/1,350\.50/);
 		expect(formatMoney(135050, "ro")).toMatch(/1\.350,50/);
+	});
+});
+
+describe("formatAmount (the figure without its currency)", () => {
+	it("groups and always shows two decimals", () => {
+		expect(formatAmount(135050, "en")).toBe("1,350.50");
+		expect(formatAmount(135050, "ro")).toMatch(/^1\.350,50$/);
+		expect(formatAmount(0, "ro")).toBe("0,00");
+	});
+	it("never prints NaN or Infinity", () => {
+		expect(formatAmount(Number.NaN, "ro")).toBe("0,00");
+		expect(formatAmount(Number.POSITIVE_INFINITY, "en")).toBe("0.00");
 	});
 });
