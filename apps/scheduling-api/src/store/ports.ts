@@ -136,3 +136,108 @@ export interface BlacklistPort {
 		query: { entry?: string; before?: number; limit?: number },
 	): Promise<BlacklistEventRow[]>;
 }
+
+export type FeedbackGroups = readonly ("core" | "contact")[];
+
+export interface FeedbackContactFields {
+	name?: string | undefined;
+	email?: string | undefined;
+	phone?: string | undefined;
+}
+
+/** An item with the field groups the caller holds applied by the store: a group not asked for is absent. Text is SEALED. */
+export interface FeedbackRow {
+	id: string;
+	kind: "appointment_rating" | "general" | "suggestion" | "complaint" | "site_issue";
+	channel: "account" | "email_link" | "chat" | "staff";
+	status: "new" | "read" | "answered" | "closed";
+	createdAt: number;
+	updatedAt: number;
+	version: number;
+	readAt?: number | undefined;
+	answeredAt?: number | undefined;
+	closedAt?: number | undefined;
+	visit?: string | undefined;
+	appointment?: string | undefined;
+	client?: string | undefined;
+	linkedAccount: boolean;
+	rating?: number | undefined;
+	textSealed?: string | undefined;
+	consentContact?: boolean | undefined;
+	contact?: FeedbackContactFields | undefined;
+	staffSubject?: string | undefined;
+}
+
+export interface FeedbackReplyRow {
+	id: string;
+	by: string;
+	at: number;
+	textSealed: string;
+}
+
+export interface FeedbackFilter {
+	statuses?: readonly string[] | undefined;
+	kind?: string | undefined;
+	channel?: string | undefined;
+	from?: number | undefined;
+	to?: number | undefined;
+	minRating?: number | undefined;
+	maxRating?: number | undefined;
+	before?: number | undefined;
+	limit?: number | undefined;
+}
+
+export type FeedbackLinkRefusal =
+	| "invalid_link"
+	| "expired"
+	| "used"
+	| "wrong_app"
+	| "subject_gone";
+
+/**
+ * Feedback and its one-time links. Text is sealed by the service before it arrives and opened after it leaves; the
+ * store never sees plain text. Refusals are `StoreRefused`: `not_found`, `stale`, `closed` (a reply to a closed item),
+ * `not_closed` (reopening an open one), `too_long`, `invalid` (detail `problems`), `already_rated`, `not_eligible` (the
+ * appointment is not over, was missed or cancelled), `invalid_ttl`, and for a link `invalid_link`, `expired`, `used`,
+ * `wrong_app`, `subject_gone`.
+ */
+export interface FeedbackPort {
+	list(
+		app: string,
+		groups: FeedbackGroups,
+		filter: FeedbackFilter,
+	): Promise<{ items: FeedbackRow[]; more: boolean }>;
+	get(
+		app: string,
+		id: string,
+		groups: FeedbackGroups,
+	): Promise<{ item: FeedbackRow; replies: FeedbackReplyRow[] } | undefined>;
+	reply(
+		app: string,
+		id: string,
+		textSealed: string,
+	): Promise<{ status: FeedbackRow["status"]; contactable: boolean; replyId: string; at: number }>;
+	setStatus(
+		app: string,
+		id: string,
+		event: "read" | "close" | "reopen",
+		expectedVersion: number | undefined,
+	): Promise<{ status: FeedbackRow["status"]; changed: boolean }>;
+	issueLink(
+		app: string,
+		target: { visit?: string | undefined; appointment?: string | undefined },
+		ttlHours: number | undefined,
+	): Promise<{ token: string; expiresAt: number }>;
+	inspectLink(app: string, token: string): Promise<{ start: number; expiresAt: number }>;
+	/** Stores the feedback and uses the link up in one step: two submissions racing for one link store one. */
+	redeem(
+		app: string,
+		token: string,
+		input: {
+			rating?: number | undefined;
+			textSealed?: string | undefined;
+			consentContact: boolean;
+			contact?: FeedbackContactFields | undefined;
+		},
+	): Promise<{ id: string }>;
+}

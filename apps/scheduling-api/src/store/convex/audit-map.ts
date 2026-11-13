@@ -93,6 +93,9 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"blacklist.create": rec("blacklist.create", "blacklist"),
 	"blacklist.update": rec("blacklist.update", "blacklist"),
 	"blacklist.delete": rec("blacklist.delete", "blacklist"),
+	"feedback.link": rec("feedback.link", "feedback"),
+	"feedback.reply": rec("feedback.reply", "feedback"),
+	"feedback.status": rec("feedback.status", "feedback"),
 	"floorplan.put": own("builder.change", "builder"),
 	"builder.put": rec("builder.change", "builder"),
 	"builder.delete": rec("builder.change", "builder"),
@@ -128,6 +131,7 @@ const TYPE_OF_ENTITY: Readonly<Partial<Record<AuditEntity, string>>> = {
 	form: "builder",
 	builder: "builder",
 	blacklist: "blacklist",
+	feedback: "feedback",
 };
 export const typeOfEntity = (entity: string): string =>
 	TYPE_OF_ENTITY[entity as AuditEntity] ?? entity;

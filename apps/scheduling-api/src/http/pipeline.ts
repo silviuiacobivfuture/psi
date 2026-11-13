@@ -305,6 +305,10 @@ const CONFLICTS = new Set([
 	"warning",
 	"blocked",
 	"limit",
+	"closed",
+	"not_closed",
+	"already_rated",
+	"not_eligible",
 ]);
 function refusedByStore(reason: string, detail: Readonly<Record<string, unknown>> = {}): ApiError {
 	if (reason === "not_found") return notFound("object");

@@ -8,6 +8,7 @@ import {
 	type WeeklyRule,
 } from "@psi/scheduling/domain";
 import { newId } from "./ids";
+import type { Rateable } from "./memory-feedback";
 import type { Collection, Failed, OfferedSlot, RequestsPort, Rows, VisitorPort } from "./types";
 
 type Status =
@@ -61,7 +62,15 @@ export function createMemoryVisitor(
 		channel: "callback" | "form" | "guide",
 		subject?: string,
 	) => Promise<boolean>,
-): { visitor: VisitorPort; requests: RequestsPort; state: () => unknown } {
+): {
+	visitor: VisitorPort;
+	requests: RequestsPort;
+	bookings: {
+		byReference(app: string, reference: string): Rateable | undefined;
+		byId(app: string, id: string): Rateable | undefined;
+	};
+	state: () => unknown;
+} {
 	const reqs = new Map<string, Req>();
 
 	const live = (r: Req): boolean =>
@@ -428,5 +437,22 @@ export function createMemoryVisitor(
 		},
 	};
 
-	return { visitor, requests, state: () => [...reqs.values()] };
+	/** A public booking as something a rating can be about (a confirmed one that is over). */
+	const rateable = (r: Req | undefined) =>
+		r === undefined || r.callback === true
+			? undefined
+			: {
+					id: r.id,
+					start: r.start,
+					end: r.end,
+					confirmed: r.status === "confirmed",
+					attended: true,
+				};
+	const bookings = {
+		byReference: (app: string, reference: string) => rateable(byReference(app, reference)),
+		byId: (app: string, id: string) =>
+			rateable(reqs.get(id)?.app === app ? reqs.get(id) : undefined),
+	};
+
+	return { visitor, requests, bookings, state: () => [...reqs.values()] };
 }

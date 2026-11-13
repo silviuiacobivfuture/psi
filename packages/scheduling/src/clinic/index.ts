@@ -82,6 +82,7 @@ export {
 	type FeedbackInput,
 	type FeedbackKind,
 	type FeedbackStatus,
+	feedbackContactSchema,
 	feedbackInputSchema,
 	feedbackProblems,
 	nextStatus,
