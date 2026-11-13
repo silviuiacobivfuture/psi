@@ -9,6 +9,30 @@ export {
 	makeAuditEvent,
 } from "./audit";
 export {
+	AUTHORITY_NEEDED,
+	applies,
+	BLACKLIST_CATEGORIES,
+	BLACKLIST_SEVERITIES,
+	type BlacklistCandidate,
+	type BlacklistCategory,
+	type BlacklistEntry,
+	type BlacklistHit,
+	type BlacklistInput,
+	type BlacklistPatch,
+	type BlacklistSeverity,
+	blacklistGate,
+	blacklistInputSchema,
+	blacklistMatch,
+	blacklistPatchSchema,
+	type GateOutcome,
+	MAX_ACTIVE_ENTRIES,
+	type Override,
+	type OverrideAuthority,
+	overrideSchema,
+	REASON_MAX,
+	severityAllowed,
+} from "./blacklist";
+export {
 	ACTION_PLACEMENTS,
 	type ActionDefinition,
 	actionDefinitionSchema,
@@ -67,6 +91,12 @@ export {
 	validateResponse,
 	valueSchemaFor,
 } from "./forms";
+export {
+	normalizedIdentifiers,
+	normalizeEmail,
+	normalizeName,
+	normalizePhone,
+} from "./identifiers";
 export { type LedgerLine, moneyOf, PAYMENT_METHODS, type PaymentMethod, toMinor } from "./money";
 export {
 	type LinkedVisit,

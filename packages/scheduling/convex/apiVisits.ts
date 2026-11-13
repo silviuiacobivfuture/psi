@@ -4,20 +4,22 @@ import { RECOVERY_DAYS } from "../src/clinic/clients";
 import { columnKey, visitProblems } from "../src/clinic/visits";
 import { transition } from "../src/domain/lifecycle";
 import { MINUTE_MS } from "../src/domain/time";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record, stale } from "./apiSupport";
+import { recordOverride, staffGate } from "./blacklistGate";
 import { requireServer } from "./guard";
-import { practitionerOf } from "./setupSupport";
 import {
 	actorValidator,
 	attendanceValidator,
 	creditTypeValidator,
 	encryptedValidator,
+	overrideValidator,
 	paymentMethodValidator,
 	serverKeyValidator,
 } from "./validators";
 import { busyOfVisitsInfo } from "./visitConflicts";
+import { columnArg, links, resolveColumn } from "./visitLinks";
 
 /**
  * Staff-made visits for the staff API: create, edit, move, attendance, payment, cancel, soft
@@ -25,37 +27,6 @@ import { busyOfVisitsInfo } from "./visitConflicts";
  * visit (or, for a practitioner or room, the public flow) already has. Therapist notes arrive and
  * leave as ciphertext.
  */
-const columnArg = v.object({
-	kind: v.union(
-		v.literal("practitioner"),
-		v.literal("device"),
-		v.literal("room"),
-		v.literal("group"),
-	),
-	id: v.string(),
-});
-
-async function resolveColumn(
-	ctx: Parameters<typeof owned>[0],
-	tenant: string,
-	column: { kind: "practitioner" | "device" | "room" | "group"; id: string },
-) {
-	if (column.kind === "practitioner") {
-		const p = await practitionerOf(ctx, tenant, column.id);
-		return p === undefined ? null : ({ kind: "practitioner", id: p._id } as const);
-	}
-	if (column.kind === "device") {
-		const d = await owned(ctx, "devices", tenant, column.id);
-		return d === null ? null : ({ kind: "device", id: d._id } as const);
-	}
-	if (column.kind === "room") {
-		const r = await owned(ctx, "rooms", tenant, column.id);
-		return r === null ? null : ({ kind: "room", id: r._id } as const);
-	}
-	const g = await owned(ctx, "groupActivities", tenant, column.id);
-	return g === null ? null : ({ kind: "group", id: g._id } as const);
-}
-
 const body = {
 	client: v.optional(v.string()),
 	room: v.optional(v.string()),
@@ -70,39 +41,6 @@ const body = {
 	paymentMethod: v.optional(paymentMethodValidator),
 };
 
-async function links(
-	ctx: Parameters<typeof owned>[0],
-	tenant: string,
-	a: { client?: string; room?: string; device?: string; package?: string },
-): Promise<
-	| {
-			ok: true;
-			client?: Id<"clients">;
-			room?: Id<"rooms">;
-			device?: Id<"devices">;
-			package?: Id<"packages">;
-	  }
-	| { ok: false; reason: string }
-> {
-	const client = a.client === undefined ? undefined : await owned(ctx, "clients", tenant, a.client);
-	if (client === null || client?.erasedAt !== undefined)
-		return { ok: false, reason: "unknown_client" };
-	const room = a.room === undefined ? undefined : await owned(ctx, "rooms", tenant, a.room);
-	if (room === null) return { ok: false, reason: "unknown_room" };
-	const device = a.device === undefined ? undefined : await owned(ctx, "devices", tenant, a.device);
-	if (device === null) return { ok: false, reason: "unknown_device" };
-	const pack =
-		a.package === undefined ? undefined : await owned(ctx, "packages", tenant, a.package);
-	if (pack === null) return { ok: false, reason: "unknown_package" };
-	return {
-		ok: true,
-		...(client === undefined ? {} : { client: client._id }),
-		...(room === undefined ? {} : { room: room._id }),
-		...(device === undefined ? {} : { device: device._id }),
-		...(pack === undefined ? {} : { package: pack._id }),
-	};
-}
-
 const view = (x: Doc<"visits">) => ({ ...x, id: x._id });
 
 export const create = mutation({
@@ -113,6 +51,8 @@ export const create = mutation({
 		column: columnArg,
 		start: v.number(),
 		end: v.number(),
+		/** Book a blacklisted client anyway: the reason, and the authority the API vouches for. */
+		override: v.optional(overrideValidator),
 		...body,
 	},
 	handler: async (ctx, args) => {
@@ -134,6 +74,14 @@ export const create = mutation({
 			...(args.creditType === undefined ? {} : { creditType: args.creditType }),
 		});
 		if (problems.length > 0) return REFUSED(problems[0] ?? "invalid");
+		const gate = await staffGate(
+			ctx,
+			args.tenant,
+			linked.client === undefined ? undefined : await ctx.db.get(linked.client),
+			args.override,
+			Date.now(),
+		);
+		if (gate.stop !== undefined) return gate.stop;
 		const taken = await busyOfVisitsInfo(ctx, args.tenant, {
 			column,
 			room: linked.room,
@@ -179,6 +127,8 @@ export const create = mutation({
 			kind: "visit",
 			version: 1,
 		});
+		if (gate.overridden !== undefined)
+			await recordOverride(ctx, args.tenant, args.actor.subject, gate.overridden, id);
 		return { ok: true as const, id };
 	},
 });
@@ -246,6 +196,7 @@ export const move = mutation({
 		column: v.optional(columnArg),
 		room: v.optional(v.string()),
 		device: v.optional(v.string()),
+		override: v.optional(overrideValidator),
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
@@ -263,6 +214,14 @@ export const move = mutation({
 		const durationMinutes = Math.round((args.end - args.start) / MINUTE_MS);
 		const problems = visitProblems({ column, start: args.start, end: args.end, durationMinutes });
 		if (problems.length > 0) return REFUSED(problems[0] ?? "invalid");
+		const gate = await staffGate(
+			ctx,
+			args.tenant,
+			row.client === undefined ? undefined : await ctx.db.get(row.client),
+			args.override,
+			Date.now(),
+		);
+		if (gate.stop !== undefined) return gate.stop;
 		const taken = await busyOfVisitsInfo(ctx, args.tenant, {
 			column,
 			room,
@@ -301,6 +260,8 @@ export const move = mutation({
 			version,
 			fields,
 		});
+		if (gate.overridden !== undefined)
+			await recordOverride(ctx, args.tenant, args.actor.subject, gate.overridden, row._id);
 		return { ok: true as const, version };
 	},
 });

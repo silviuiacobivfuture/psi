@@ -7,6 +7,7 @@ import {
 	roles,
 	treating,
 } from "./tables/clinicAccess";
+import { blacklistEntries, blacklistEvents } from "./tables/clinicBlacklist";
 import {
 	appKeys,
 	auditEvents,
@@ -314,4 +315,6 @@ export default defineSchema({
 	permissionOverrides,
 	treating,
 	coordinatorAssignments,
+	blacklistEntries,
+	blacklistEvents,
 });

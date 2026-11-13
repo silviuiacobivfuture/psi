@@ -58,6 +58,21 @@ export async function eraseClinicData(
 		.collect();
 	for (const row of relations) await ctx.db.delete(row._id);
 
+	// A blacklist entry keeps its phone, e-mail and reason (the clinic's legitimate interest in not
+	// booking someone who was abusive); it stops pointing at the erased client and drops the name.
+	const flagged = await ctx.db
+		.query("blacklistEntries")
+		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
+		.collect();
+	for (const row of flagged) {
+		await ctx.db.patch(row._id, {
+			client: undefined,
+			name: undefined,
+			updatedAt: now,
+			version: row.version + 1,
+		});
+	}
+
 	const visits = await ctx.db
 		.query("visits")
 		.withIndex("by_tenant_client_start", (q) => q.eq("tenant", tenant).eq("client", client))

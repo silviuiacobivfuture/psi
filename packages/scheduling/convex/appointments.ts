@@ -4,6 +4,7 @@ import { transition } from "../src/domain/lifecycle";
 import { isOffered } from "../src/domain/slots";
 import { MINUTE_MS } from "../src/domain/time";
 import { mutation } from "./_generated/server";
+import { screenOnline } from "./blacklistGate";
 import {
 	appointmentByReference,
 	busyAround,
@@ -171,6 +172,19 @@ export const submit = mutation({
 		const now = Date.now();
 		const next = transition(row, { type: "submit" }, now);
 		if (!next.ok) return { ok: false as const, reason: next.reason };
+		// The first moment a visitor's contact is known (a hold carries none): the blacklist is
+		// asked here. A hit answers one neutral word, releases the hold and tells the team.
+		const screened = await screenOnline(
+			ctx,
+			row.tenant,
+			{ name: args.contact.name, phones: [args.contact.phone], emails: [args.contact.email] },
+			row.channel === "guide" ? "guide" : "form",
+			row._id,
+		);
+		if (screened.refused) {
+			await ctx.db.patch(row._id, { status: "cancelled", updatedAt: now });
+			return { ok: false as const, reason: "unavailable_online" as const };
+		}
 		await ctx.db.patch(row._id, {
 			status: next.next,
 			contact: cleanContact(args.contact),

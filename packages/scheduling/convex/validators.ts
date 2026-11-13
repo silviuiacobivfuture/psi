@@ -96,3 +96,9 @@ export const personValidator = v.union(
 );
 
 export const fileKindValidator = v.union(v.literal("client_file"), v.literal("notice"));
+
+/** A staff override of a blacklist hit: why, and the authority the API vouches the person has. */
+export const overrideValidator = v.object({
+	reason: v.string(),
+	authority: v.union(v.literal("ack"), v.literal("staff"), v.literal("admin")),
+});

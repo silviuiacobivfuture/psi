@@ -98,7 +98,11 @@ export type SubmitResult =
 			mode: Mode;
 			timeZone: string;
 	  }
-	| { ok: false; reason: "invalid" | "not_found" | "hold_expired" | "not_allowed" };
+	| {
+			ok: false;
+			/** `unavailable_online`: neutral on purpose; say "call us", never why. */
+			reason: "invalid" | "not_found" | "hold_expired" | "not_allowed" | "unavailable_online";
+	  };
 
 export type ReleaseResult =
 	| { ok: true }

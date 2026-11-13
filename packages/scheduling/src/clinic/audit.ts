@@ -32,6 +32,16 @@ export const AUDIT_ACTIONS = [
 	"override.change",
 	"builder.change",
 	"import.batch",
+	"blacklist.create",
+	"blacklist.update",
+	"blacklist.delete",
+	"blacklist.hit",
+	"blacklist.override",
+	"feedback.create",
+	"feedback.reply",
+	"feedback.status",
+	"feedback.link",
+	"feedback.erase",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -52,6 +62,8 @@ export const AUDIT_ENTITIES = [
 	"override",
 	"builder",
 	"import",
+	"blacklist",
+	"feedback",
 ] as const;
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number];
 

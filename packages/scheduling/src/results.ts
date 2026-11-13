@@ -80,7 +80,7 @@ export const RawSubmitSchema = z.discriminatedUnion("ok", [
 	}),
 	z.object({
 		ok: z.literal(false),
-		reason: z.enum(["invalid", "not_found", "hold_expired", "not_allowed"]),
+		reason: z.enum(["invalid", "not_found", "hold_expired", "not_allowed", "unavailable_online"]),
 	}),
 ]);
 

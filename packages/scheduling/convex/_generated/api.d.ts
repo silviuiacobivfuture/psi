@@ -11,6 +11,7 @@
 import type * as account from "../account.js";
 import type * as apiAccess from "../apiAccess.js";
 import type * as apiAudit from "../apiAudit.js";
+import type * as apiBlacklist from "../apiBlacklist.js";
 import type * as apiBuilder from "../apiBuilder.js";
 import type * as apiClients from "../apiClients.js";
 import type * as apiMoney from "../apiMoney.js";
@@ -22,6 +23,7 @@ import type * as apiSupport from "../apiSupport.js";
 import type * as apiVisits from "../apiVisits.js";
 import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
+import type * as blacklistGate from "../blacklistGate.js";
 import type * as calendar from "../calendar.js";
 import type * as catalog from "../catalog.js";
 import type * as changeLog from "../changeLog.js";
@@ -57,11 +59,13 @@ import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
 import type * as tables_clinicAccess from "../tables/clinicAccess.js";
+import type * as tables_clinicBlacklist from "../tables/clinicBlacklist.js";
 import type * as tables_clinicRecords from "../tables/clinicRecords.js";
 import type * as tables_clinicResources from "../tables/clinicResources.js";
 import type * as tables_clinicVisits from "../tables/clinicVisits.js";
 import type * as validators from "../validators.js";
 import type * as visitConflicts from "../visitConflicts.js";
+import type * as visitLinks from "../visitLinks.js";
 
 import type {
   ApiFromModules,
@@ -73,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   apiAccess: typeof apiAccess;
   apiAudit: typeof apiAudit;
+  apiBlacklist: typeof apiBlacklist;
   apiBuilder: typeof apiBuilder;
   apiClients: typeof apiClients;
   apiMoney: typeof apiMoney;
@@ -84,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   apiVisits: typeof apiVisits;
   appointments: typeof appointments;
   availability: typeof availability;
+  blacklistGate: typeof blacklistGate;
   calendar: typeof calendar;
   catalog: typeof catalog;
   changeLog: typeof changeLog;
@@ -119,11 +125,13 @@ declare const fullApi: ApiFromModules<{
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
   "tables/clinicAccess": typeof tables_clinicAccess;
+  "tables/clinicBlacklist": typeof tables_clinicBlacklist;
   "tables/clinicRecords": typeof tables_clinicRecords;
   "tables/clinicResources": typeof tables_clinicResources;
   "tables/clinicVisits": typeof tables_clinicVisits;
   validators: typeof validators;
   visitConflicts: typeof visitConflicts;
+  visitLinks: typeof visitLinks;
 }>;
 
 /**
