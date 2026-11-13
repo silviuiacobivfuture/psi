@@ -34,6 +34,7 @@ export async function MorePage(ctx: Ctx) {
 			icon: "settings",
 			open: settingsOpen(can),
 		},
+		{ href: "/stats", label: m.nav_stats({}, o), icon: "chart", open: can.has("reports_view") },
 		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_log_view") },
 		{ href: "/admin", label: m.nav_admin({}, o), icon: "shield", open: adminOpen(can) },
 	];

@@ -42,6 +42,7 @@ import { registerViewAs } from "./pages/view-as";
 import { m } from "./paraglide/messages.js";
 import { PortError, type PortSource } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
+import { registerStats } from "./stats/routes";
 
 export interface AppDeps {
 	/** The port acting for the request's person (the scheduling service takes their own token). */
@@ -211,6 +212,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerSettings(app);
 	registerAdmin(app);
 	registerAudit(app);
+	registerStats(app);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

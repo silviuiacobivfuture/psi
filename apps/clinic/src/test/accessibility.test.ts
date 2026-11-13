@@ -18,6 +18,7 @@ const SCREENS = [
 	"/settings/roles?role=reception",
 	"/settings/notifications",
 	"/audit",
+	"/stats",
 	"/more",
 ] as const;
 

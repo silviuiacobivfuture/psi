@@ -266,6 +266,7 @@ export const RESOURCES = [
 	{ key: "members", group: "administration" },
 	{ key: "roles", group: "administration" },
 	{ key: "audit", group: "administration" },
+	{ key: "reports", group: "administration" },
 ] as const;
 export const ACTIONS = [
 	"view",
@@ -303,6 +304,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	members: ["view", "create", "edit", "cancel"],
 	roles: ["view", "create", "edit", "cancel"],
 	audit: ["view", "export"],
+	reports: ["view"],
 };
 
 export const ScopeSchema = z.enum(SCOPES);

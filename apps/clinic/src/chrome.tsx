@@ -30,6 +30,7 @@ export type NavKey =
 	| "reminders"
 	| "settings"
 	| "audit"
+	| "stats"
 	| "admin";
 
 export function labels(locale: Locale): ShellLabels {
@@ -162,12 +163,13 @@ export async function Page({
 		can.has("web_requests_view") ? item("requests", m.nav_requests({}, o), "inbox", open) : null,
 		can.has("roster_view") ? item("roster", m.nav_roster({}, o), "briefcase") : null,
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
+		can.has("reports_view") ? item("stats", m.nav_stats({}, o), "chart") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
 		can.has("audit_log_view") ? item("audit", m.nav_audit({}, o), "list") : null,
 		adminOpen(can) ? { ...item("admin", m.nav_admin({}, o), "shield"), zone: "admin" } : null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
-	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "audit"];
+	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "stats", "settings", "audit"];
 	const hasMore = nav.some((n) => moreKeys.includes(n.key as NavKey));
 	const tabs: NavItem[] = [
 		...nav.filter((n) => ["calendar", "clients", "requests"].includes(n.key)),

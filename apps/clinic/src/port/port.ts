@@ -2,6 +2,7 @@ import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/c
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { Report, ReportQuery } from "./report-schema";
 import type {
 	Appointment,
 	AppointmentPatch,
@@ -159,6 +160,12 @@ export interface ClinicPort {
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
+	/**
+	 * The statistics of a period (and of the one to compare with, when asked), for the whole clinic or one person's
+	 * column. A service answers each figure only as far as this person's permissions reach (money needs the money group).
+	 * Refuses `unavailable` until the service serves the reports route.
+	 */
+	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
 	/** The app's team, for the "Vezi ca…" picker. */

@@ -3,6 +3,7 @@ import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/confl
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { appointmentChanges } from "./fake-audit";
+import { reportOf } from "./fake-report";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -582,6 +583,10 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			d.roles[i] = role;
 			log(d, "console", "role.save", role.id);
 			return role;
+		},
+		async report(app, q) {
+			guard("report");
+			return reportOf(data(app), today, q);
 		},
 		async audit(app) {
 			guard("audit");

@@ -78,6 +78,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/settings/services", ["services_view"]),
 	g("GET", "/settings/roles", ["roles_view"]),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
+	g("GET", "/stats", ["reports_view"]),
 	g("GET", "/audit", ["audit_log_view"]),
 	g("GET", "/audit/[^/]+", ["audit_log_view"]),
 	g("GET", "/admin", ADMIN_AREAS_KEYS),
