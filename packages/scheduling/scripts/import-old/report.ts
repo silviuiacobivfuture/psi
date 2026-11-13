@@ -1,3 +1,4 @@
+import type { ValidationReport } from "../../src/clinic/validate";
 import type { DetectStats } from "./detect";
 import type { Anomaly } from "./log";
 
@@ -26,6 +27,8 @@ export interface Report {
 	tables: TableCount[];
 	anomalies: Anomaly[];
 	stats?: DetectStats;
+	/** The data check on what the import writes: codes, counts, old ids. Changes nothing. */
+	validation?: ValidationReport;
 	/** Files whose bytes were found and read. */
 	filesChecked: number;
 	written: Written[];
@@ -34,6 +37,22 @@ export interface Report {
 }
 
 const SHOWN_IDS = 20;
+
+/** The data check as report lines: codes, counts and old ids only. */
+export function formatValidation(v: ValidationReport): string[] {
+	const lines: string[] = ["", "data check (code, count, old ids)"];
+	if (v.findings.length === 0) lines.push("  nothing found");
+	for (const f of v.findings) {
+		const shown = f.labels.slice(0, SHOWN_IDS).join(" ");
+		const more = f.count > SHOWN_IDS ? ` … +${f.count - SHOWN_IDS}` : "";
+		const groups = f.groups === undefined ? "" : ` (${f.groups} groups)`;
+		lines.push(`  ${f.code}: ${f.count}${groups}  ${shown}${more}`);
+	}
+	if (v.visitsWithoutRoster > 0) {
+		lines.push(`  visits of people with no roster at all, not checked: ${v.visitsWithoutRoster}`);
+	}
+	return lines;
+}
 
 export function formatReport(report: Report): string {
 	const lines: string[] = [`import ${report.mode}`];
@@ -63,6 +82,7 @@ export function formatReport(report: Report): string {
 			);
 		}
 	}
+	if (report.validation !== undefined) lines.push(...formatValidation(report.validation));
 	lines.push("", "anomalies (code, count, old ids)");
 	if (report.anomalies.length === 0) lines.push("  none");
 	for (const a of report.anomalies) {

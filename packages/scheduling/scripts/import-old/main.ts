@@ -1,11 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { z } from "zod";
+import { createAdminClient } from "../../src/admin-client";
+import { validateClinicData } from "../../src/admin-validate";
 import { MASTER_KEY_ENV } from "../../src/crypto";
 import { createS3Storage, MemoryStorage, readStorageEnv } from "../../src/storage";
 import { createDirSource } from "./files";
 import { mappingSchema } from "./mapping";
-import { formatReport } from "./report";
+import { formatReport, formatValidation } from "./report";
 import { runImport } from "./run";
 import { connect } from "./target";
 
@@ -14,6 +16,7 @@ import { connect } from "./target";
  *
  *   import-old.sh --export <file.json> --mapping <mapping.json> [--files <dir>] [--dry-run]
  *                 [--allow-skips] [--ignore-table <name>]... [--report <file.json>]
+ *                 [--blacklist <entries.json>] [--validate-store]
  *
  * A dry run needs no key and no network and prints only counts, anomalies and old ids. A real run
  * needs CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY (the wrapper reads them from the
@@ -50,6 +53,8 @@ async function main(): Promise<number> {
 			"allow-skips": { type: "boolean", default: false },
 			"ignore-table": { type: "string", multiple: true, default: [] },
 			report: { type: "string" },
+			blacklist: { type: "string" },
+			"validate-store": { type: "boolean", default: false },
 		},
 		strict: true,
 	});
@@ -65,6 +70,8 @@ async function main(): Promise<number> {
 		return 2;
 	}
 	const mapping = mappingRaw.data;
+	const blacklist =
+		values.blacklist === undefined ? undefined : await readJson(values.blacklist, "blacklist");
 	const files = values.files === undefined ? undefined : createDirSource(values.files);
 	const common = {
 		exported,
@@ -72,6 +79,7 @@ async function main(): Promise<number> {
 		ignoreTables: values["ignore-table"],
 		allowSkips: values["allow-skips"],
 		files,
+		...(blacklist === undefined ? {} : { blacklist }),
 	};
 
 	let report: Awaited<ReturnType<typeof runImport>>;
@@ -101,6 +109,21 @@ async function main(): Promise<number> {
 		});
 	}
 	console.log(formatReport(report));
+	if (values["validate-store"] && !values["dry-run"] && report.refusal === undefined) {
+		// A second, independent look: the data as stored (admin key), not as planned.
+		const stored = await validateClinicData(
+			createAdminClient({
+				url: process.env.CONVEX_SELF_HOSTED_URL ?? "",
+				adminKey: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY ?? "",
+			}),
+			mapping.app,
+		);
+		console.log(
+			stored === undefined
+				? "store check: the app is not in the store"
+				: `store check${formatValidation(stored).join("\n")}`,
+		);
+	}
 	if (values.report !== undefined)
 		await writeFile(values.report, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 	return report.fatal !== undefined || report.refusal !== undefined ? 1 : 0;

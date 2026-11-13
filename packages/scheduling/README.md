@@ -122,6 +122,30 @@ scripts/import-old.sh           --export <export.json> --mapping <mapping.json> 
 - Reported: practitioner changes inside a weekly series (the "moved by itself" bug), overlaps on a
   practitioner, device or room, package usage stored against derived, orphan references, duplicate
   client names, group-like clients, unknown statuses.
+- **Data check** (`src/clinic/validate.ts`, shown in the dry run and the real run, never blocking, changes
+  nothing): invalid or unnormalisable phones and e-mails (client and guardian), clients with no usable
+  contact, contacts shared by two clients, visits on a day off or outside the roster hours (judged in the
+  app's zone, DST included; people with no roster rows at all are counted, not flagged), packages used
+  past their sessions, clients matching a blacklist entry. Codes, counts and old ids only.
+  `validateClinicData(admin, app)` (`src/admin-validate.ts`) runs the same check over the stored data,
+  also with overlaps; `--validate-store` prints it after a real run.
+- **`--blacklist <entries.json>`** seeds blacklist entries (`blacklist.example.json`: `key`, `clientLegacy`
+  and/or `phone` and/or `email`, `reason`, `category`, `severity`, optional `expires`). The file is
+  validated whole; a wrong entry blocks a real run, by key. A seeded entry is created once; a re-run
+  never rewrites it, so what staff switched off stays off.
+
+## The blacklist, feedback and reports
+
+- **Blacklist** (`src/clinic/blacklist.ts`, `convex/apiBlacklist.ts`, `convex/blacklistGate.ts`): an entry
+  names a client record and/or an E.164 phone and/or an e-mail (a name alone never matches), with a
+  reason (staff-only text), a category, and a severity: `warn` (staff acknowledge, online allowed),
+  `block_online` (web and chat refused neutrally; staff need an override and a reason) or `block_all`
+  (only the admin override). `appointments.submit` and `apiBlacklist.screen` (the gate for the callback
+  form) answer `unavailable_online` and record an event + audit entry; `apiVisits.create` and `move` answer
+  `blocked` / `warning` with the reason unless given `override: { reason, authority }`, the authority being
+  what the API vouches for (`ack`, `staff` = `blacklist_override_all`, `admin` = `blacklist_override_admin_all`);
+  the override and its reason are stored (`apiBlacklist.events`). A hold carries no identifier, so the
+  check is at submit.
 
 ## Tests
 
