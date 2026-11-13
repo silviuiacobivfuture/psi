@@ -136,12 +136,25 @@ describe("colour contrast, from the theme tokens (AA: 4.5 for text, 3 for the ma
 });
 
 describe("stylesheet rules", () => {
-	const css = readFileSync(join(process.cwd(), "src/floor-plan/floor-plan.css"), "utf8");
+	const read = (f: string): string =>
+		readFileSync(join(process.cwd(), "src/floor-plan", f), "utf8");
+	const css = ["floor-plan-base.css", "floor-plan-scene.css", "floor-plan-responsive.css"]
+		.map(read)
+		.join("\n");
 	it("every animation and transition lives inside prefers-reduced-motion: no-preference", () => {
-		const outside = css.replace(
-			/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\n\}\n/,
-			"",
-		);
+		const head = "@media (prefers-reduced-motion: no-preference) {";
+		const start = css.indexOf(head);
+		expect(start).toBeGreaterThan(-1);
+		let depth = 0;
+		let end = start;
+		for (let k = start + head.length - 1; k < css.length; k++) {
+			if (css[k] === "{") depth++;
+			if (css[k] === "}" && --depth === 0) {
+				end = k + 1;
+				break;
+			}
+		}
+		const outside = css.slice(0, start) + css.slice(end);
 		expect(css).toMatch(/prefers-reduced-motion: no-preference/);
 		expect(outside).not.toMatch(/animation|transition/);
 	});
