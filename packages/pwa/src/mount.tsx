@@ -267,7 +267,11 @@ export function createPwa(site: PwaSite, config: PushConfig = readPushConfig()):
 						<DeviceList
 							locale={locale}
 							labels={devicesLabels(site.messages, locale)}
-							rows={deviceRows(site.messages, locale, devices, (s) => site.siteNames(locale)[s])}
+							rows={deviceRows(site.messages, locale, devices, (s) =>
+								s === "clinic"
+									? manifestText(site.messages, locale).shortName
+									: site.siteNames(locale)[s],
+							)}
 						/>
 					) : null}
 				</div>
