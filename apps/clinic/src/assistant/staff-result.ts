@@ -39,6 +39,8 @@ export async function wrap<T>(work: () => Promise<PortResult<T>>): Promise<PortR
 	try {
 		return await work();
 	} catch (error) {
+		// Nothing leaks to the assistant, but the cause is kept for whoever runs the console.
+		console.error("[clinic] the assistant's port call failed:", error);
 		if (error instanceof PortError) return refused(refusalOf(error));
 		return refused("unavailable");
 	}
