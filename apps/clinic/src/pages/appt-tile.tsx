@@ -1,10 +1,11 @@
-import { StatusPill } from "@psi/ui/admin";
+import { Icon, StatusPill } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
 import type { Appointment, Client } from "../port/schema";
+import type { ClientFlag } from "../port/schema-clinical";
 
 export type TileVariant = "wash" | "glass" | "ink";
 
@@ -31,6 +32,19 @@ export interface TileProps {
 	placed?: boolean;
 	/** For a group: how many people are in it (stacked monograms). */
 	people?: number;
+	/** The client's blacklist entry and newest pinned note, for who may see them. */
+	flag?: ClientFlag | undefined;
+}
+
+/** What a tile's flag says in words: the tooltip on a pointer, the detail sheet on a tap, the text for a screen reader. */
+export function flagText(flag: ClientFlag, locale: Locale): string {
+	const o = at(locale);
+	return [
+		flag.blacklist === null ? "" : `${m.cl_blacklist_badge({}, o)} · ${flag.blacklist.reason}`,
+		flag.pinned === null ? "" : `${m.cl_note_pinned({}, o)} · ${flag.pinned.body}`,
+	]
+		.filter((t) => t !== "")
+		.join(" — ");
 }
 
 /**
@@ -49,7 +63,10 @@ export function AppointmentTile({
 	variant = "wash",
 	placed = true,
 	people = 3,
+	flag,
 }: TileProps): JSX.Element {
+	const flagged = flag !== undefined && (flag.blacklist !== null || flag.pinned !== null);
+	const blocks = flag?.blacklist != null && flag.blacklist.severity !== "warn";
 	const short = appt.durationMin < 60;
 	const name = appt.title ?? client?.name ?? m.unnamed_group({}, at(locale));
 	const group = appt.title !== null;
@@ -74,7 +91,19 @@ export function AppointmentTile({
 				</span>
 			)}
 			<span class="cal__body">
-				<strong>{name}</strong>
+				<strong>
+					{name}
+					{flagged ? (
+						<span
+							class={`cl-tileflag ${flag?.blacklist == null ? "cl-tileflag--note" : blocks ? "cl-tileflag--block" : "cl-tileflag--warn"}`}
+							data-tileflag
+							title={flag === undefined ? undefined : flagText(flag, locale)}
+						>
+							<Icon name="alert" />
+							<span class="adm-sr">{flag === undefined ? "" : flagText(flag, locale)}</span>
+						</span>
+					) : null}
+				</strong>
 				<span class="cal__meta">
 					<time>
 						{hhmm(appt.startMin)}–{hhmm(appt.startMin + appt.durationMin)}

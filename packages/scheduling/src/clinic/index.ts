@@ -26,6 +26,7 @@ export {
 	blacklistPatchSchema,
 	type GateOutcome,
 	MAX_ACTIVE_ENTRIES,
+	OVERRIDE_AUTHORITIES,
 	type Override,
 	type OverrideAuthority,
 	overrideSchema,

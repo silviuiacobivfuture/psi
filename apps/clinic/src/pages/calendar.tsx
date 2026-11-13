@@ -16,7 +16,8 @@ import {
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
-import { type Column, IsoDateSchema } from "../port/schema";
+import { type Appointment, type Column, IsoDateSchema } from "../port/schema";
+import type { ClientFlag } from "../port/schema-clinical";
 import { DayGrid, MonthGrid, WeekGrid } from "./calendar-grid";
 import { detailBody } from "./detail-routes";
 import { editorBody, openState } from "./editor-routes";
@@ -38,6 +39,8 @@ export const CalendarQuerySchema = z.object({
 		.regex(/^\d{2}:\d{2}$/)
 		.optional(),
 	appt: z.string().max(40).optional(),
+	/** A client to start the new appointment with. */
+	client: z.string().max(40).optional(),
 	/** Which columns: the team (people, devices, groups), the therapy rooms, the neuro rooms, or all of them. */
 	cat: CategoryFilterSchema.catch("team"),
 });
@@ -363,6 +366,36 @@ function WeekBody({
 	);
 }
 
+/**
+ * The flags of the clients on the tiles: blacklist for who may see it, the newest pinned note for who may read its
+ * category. A refusal or a service that keeps no notes yet leaves the tiles plain, never the calendar broken.
+ */
+async function flagsFor(
+	ctx: Ctx,
+	appointments: ReadonlyArray<Appointment>,
+): Promise<Readonly<Record<string, ClientFlag>>> {
+	if (!ctx.can.any("blacklist_view", "clients_view")) return {};
+	const ids = [...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId])))];
+	if (ids.length === 0) return {};
+	try {
+		const flags = await ctx.port.clientFlags(ctx.app, ids);
+		return Object.fromEntries(
+			Object.entries(flags).map(([id, f]) => [
+				id,
+				{
+					blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
+					pinned:
+						f.pinned === null || (f.pinned.category === "clinical" && !ctx.can.group("clinical"))
+							? null
+							: f.pinned,
+				},
+			]),
+		);
+	} catch {
+		return {};
+	}
+}
+
 /** The calendar's data for a query, as the grid shows it (an error is a state of the grid, not a crash). */
 async function loadCalendar(
 	ctx: Ctx,
@@ -374,11 +407,13 @@ async function loadCalendar(
 		const all = await ctx.port.calendar(ctx.app, from, to);
 		const columns = all.columns.filter((c) => columnsFor(query.cat, c));
 		const shown = new Set(columns.map((c) => c.id));
+		const appointments = all.appointments.filter((a) => shown.has(a.columnId));
 		return {
 			data: {
 				...all,
 				columns,
-				appointments: all.appointments.filter((a) => shown.has(a.columnId)),
+				appointments,
+				flags: await flagsFor(ctx, appointments),
 			},
 			failed: false,
 		};
@@ -409,7 +444,13 @@ export async function renderCalendar(
 	const canCreate = ctx.can.write("appointments_create");
 	const editorState =
 		canCreate && query.new === "1"
-			? await openState(ctx, { date, time: query.time ?? "09:00", col: query.col ?? "", id: "" })
+			? await openState(ctx, {
+					date,
+					time: query.time ?? "09:00",
+					col: query.col ?? "",
+					id: "",
+					client: query.client ?? "",
+				})
 			: null;
 	const detail = query.appt === undefined ? null : await detailBody(ctx, query.appt);
 	const blank =

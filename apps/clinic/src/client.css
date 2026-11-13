@@ -323,6 +323,43 @@
 	}
 }
 
+/* The blacklist panel in the appointment editor. */
+.cl-flagpanel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--adm-card-pad);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+}
+.cl-flagpanel--block {
+	border-color: var(--danger);
+}
+.cl-flagpanel--warn {
+	border-color: var(--status-requested);
+}
+.dt__flag {
+	margin: 0;
+}
+
+/* A flag on a calendar tile: a small icon by the name; its words are the tooltip, and the detail sheet on a tap. */
+.cl-tileflag {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-start: var(--space-1);
+}
+.cl-tileflag--block {
+	color: var(--danger);
+}
+.cl-tileflag--warn,
+.cl-tileflag--note {
+	color: var(--status-requested);
+}
+.cl-tileflag svg {
+	width: 14px;
+	height: 14px;
+}
+
 /* Working hours: a day per row, its two times beside it; the day's name above them on a narrow phone. */
 .cl-hours {
 	display: flex;

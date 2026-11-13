@@ -57,6 +57,8 @@ export interface CalendarData {
 	appointments: ReadonlyArray<Appointment>;
 	clients: ReadonlyArray<Client>;
 	services: ReadonlyArray<Service>;
+	/** What to flag on a client's tiles, by client id (the console fills it in for the days it shows). */
+	flags?: Readonly<Record<string, ClientFlag>>;
 }
 
 export interface ReminderItem {
