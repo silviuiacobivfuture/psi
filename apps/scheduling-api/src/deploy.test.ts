@@ -68,6 +68,38 @@ describe("the deployment declares every secret in all four places", () => {
 		expect(declared.match(/NOVU_SECRET_KEY/g)?.length).toBeGreaterThanOrEqual(3);
 	});
 
+	it("the sign-in's settings are an OPTIONAL set: their own ExternalSecret, an optional envFrom, in no required list, and never half in plain env", () => {
+		const sso = read("gitops/services/scheduling-api/base/sso-externalsecret.yaml");
+		const d = read("gitops/services/scheduling-api/base/deployment.yaml");
+		const keys = sorted([...sso.matchAll(/secretKey: (\w+)/g)].map((m) => m[1] ?? ""));
+		expect(keys).toEqual(["AUTHENTIK_API_TOKEN", "AUTHENTIK_URL"]);
+		expect(sso).toContain("name: scheduling-api-sso");
+		expect(sso).not.toContain("dataFrom:");
+		for (const key of keys) expect(sso).toContain(`key: apps/scheduling-api/sso, property: ${key}`);
+		expect(d).toContain("secretRef: { name: scheduling-api-sso, optional: true }");
+		// One half in plain env would stop the boot (the service refuses an address without its token): both come from the secret.
+		expect(d).not.toMatch(/name: AUTHENTIK_/);
+		for (const key of keys) {
+			expect(asserted).not.toContain(key);
+			expect(required).not.toContain(key);
+			expect(external).not.toContain(key);
+		}
+		expect(read("gitops/services/scheduling-api/base/kustomization.yaml")).toContain(
+			"sso-externalsecret.yaml",
+		);
+		const row =
+			read("estate/APP-SECRETS.md")
+				.split("\n")
+				.find((l) => l.startsWith("| `scheduling-api`")) ?? "";
+		for (const needle of [
+			"secret/apps/scheduling-api/sso",
+			"AUTHENTIK_URL",
+			"AUTHENTIK_API_TOKEN",
+			"optional",
+		])
+			expect(row, needle).toContain(needle);
+	});
+
 	it("no ExternalSecret reads everything from a path", () => {
 		expect(read("gitops/services/scheduling-api/base/externalsecret.yaml")).not.toContain(
 			"dataFrom:",

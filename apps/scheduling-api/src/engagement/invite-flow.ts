@@ -2,7 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Ctx } from "../http/context";
 import { fail, forbidden } from "../http/errors";
-import { type ClientRow, StoreRefused } from "../store/types";
+import type { ClientRow } from "../store/types";
+import { activateInvite } from "./activate";
 import {
 	INVITE_MS,
 	type InviteContactKind,
@@ -295,28 +296,10 @@ export async function activateOnSignIn(ctx: C, subject: string): Promise<void> {
 	const hash = hashOfSubject(subject);
 	for (const clientId of await store.clientsOf(ctx.app, hash)) {
 		const found = await store.get(ctx.app, clientId);
-		if (found === undefined || found.row.accountHash !== hash || found.row.status !== "invited")
-			continue;
-		try {
-			await store.put(
-				ctx.app,
-				{ ...found.row, status: "active", activatedAt: ctx.now },
-				found.revision,
-			);
-		} catch (error) {
-			if (isStale(error) || error instanceof StoreRefused) continue;
-			throw error;
-		}
-		await ctx.auditNow(
-			"client.invite_activated",
-			{ type: "client", id: clientId },
-			{ contact: found.row.contact },
-		);
-		await ctx.notify(
-			"account.activated",
-			{ kind: "client", clientId },
-			{ clientId, contact: found.row.contact, locale: found.row.locale },
-			found.row.tokenId,
-		);
+		if (found === undefined || found.row.accountHash !== hash) continue;
+		await activateInvite({ deps: ctx.deps, port: ctx.deps.notifier }, ctx.app, found, {
+			subject: ctx.subject,
+			kind: ctx.principal.kind === "person" ? "person" : "service",
+		});
 	}
 }

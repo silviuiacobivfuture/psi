@@ -28,6 +28,7 @@ const stopScheduler =
 		? () => undefined
 		: createScheduler({
 				store: deps.store,
+				sso: deps.sso,
 				port: deps.notifier,
 				clock: deps.clock,
 				log: deps.log,

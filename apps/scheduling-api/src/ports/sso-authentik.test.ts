@@ -110,6 +110,20 @@ describe("Authentik's admin API", () => {
 		]);
 		expect(seen[1]?.body).toEqual({ is_active: false });
 	});
+	it("says when an account last signed in, and nothing for one that never did", async () => {
+		const { sso, seen } = build([
+			{ body: { last_login: "2026-12-01T08:00:00.000000Z" } },
+			{ body: { last_login: null } },
+		]);
+		expect(await sso.lastLogin("41")).toBe(Date.parse("2026-12-01T08:00:00Z"));
+		expect(await sso.lastLogin("42")).toBeUndefined();
+		expect(seen.map((s) => s.url)).toEqual([
+			"https://auth.test/api/v3/core/users/41/",
+			"https://auth.test/api/v3/core/users/42/",
+		]);
+		const odd = build([{ body: { last_login: "yesterday" } }]);
+		await expect(odd.sso.lastLogin("41")).rejects.toBeInstanceOf(SsoUnavailable);
+	});
 	it("an unreachable provider, a refusal and an answer of the wrong shape are all `SsoUnavailable`", async () => {
 		await expect(build(["down"]).sso.findByEmail("a@example.test")).rejects.toBeInstanceOf(
 			SsoUnavailable,

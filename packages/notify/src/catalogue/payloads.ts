@@ -152,7 +152,7 @@ export const PAYLOADS = {
 	}),
 	"security.action": z.object({
 		securityId: Id,
-		action: z.enum(["export", "delete", "roles", "members", "settings"]),
+		action: z.enum(["delete", "roles", "members", "settings"]),
 		by: Text,
 		target: Text.optional(),
 	}),

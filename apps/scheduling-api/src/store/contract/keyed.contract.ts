@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { KEYED_NAMESPACES } from "../ports";
 import { StoreRefused } from "../types";
 import type { ContractSection } from "./env";
 
@@ -58,6 +59,17 @@ export const keyedContract: ContractSection = (env) => {
 			expect(await keyed().get(app, "link", "same-key")).toBeUndefined();
 			await keyed().put(app, "link", "same-key", 0, '{"l":1}');
 			expect((await keyed().get(app, "prefs", "same-key"))?.body).toBe('{"p":1}');
+		});
+		it("every namespace the service uses is kept: invitations, links, preferences, the delivery log and the scheduler's claims", async () => {
+			for (const ns of KEYED_NAMESPACES) {
+				const saved = await keyed().put(app, ns, `ns-check/${ns}`, 0, JSON.stringify({ ns }));
+				expect(saved.revision).toBe(1);
+				expect((await keyed().get(app, ns, `ns-check/${ns}`))?.body).toBe(JSON.stringify({ ns }));
+			}
+		});
+		it("a claim is made once: the second writer of the same key is stale", async () => {
+			await keyed().put(app, "tick", "2026-12-01/reception/all", 0, "{}");
+			await refused("stale", () => keyed().put(app, "tick", "2026-12-01/reception/all", 0, "{}"));
 		});
 		it("lists by prefix in key order, honours the limit, and never mixes namespaces or apps", async () => {
 			const other = await env().newApp();

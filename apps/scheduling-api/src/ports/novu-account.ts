@@ -157,7 +157,7 @@ export const deliveryFailed: Translate = async (n, app, env) =>
 		n.idempotencyKey,
 	);
 
-const ACTIONS = ["export", "delete", "roles", "members", "settings"] as const;
+const ACTIONS = ["delete", "roles", "members", "settings"] as const;
 
 /** Something that cannot be taken back, or that changes who may do what: the owners hear who did it (never the person themselves). */
 export const securityAction: Translate = async (n, app, env: NotifyEnv) => {

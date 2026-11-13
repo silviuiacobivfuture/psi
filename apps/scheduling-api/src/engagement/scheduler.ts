@@ -1,11 +1,14 @@
 import { APP_KEYS, type AppKey } from "@psi/notify";
 import type { LogEvent } from "../http/context";
 import type { NotifyPort } from "../ports/notify";
+import type { SsoPort } from "../ports/sso";
 import type { AppointmentRow, StorePort } from "../store/types";
 import { StoreRefused } from "../store/types";
+import { activateInvite } from "./activate";
 import { offDuty, overlaps } from "./conflicts";
 import { purgeDeliveries } from "./deliveries";
 import { localClock, localDate } from "./digest-data";
+import { invites } from "./records";
 
 /**
  * When the scheduled notifications go, in the app's own wall clock (so a change of summer time moves nothing: "07:30" is
@@ -31,6 +34,8 @@ const DELIVERY_KEEP_DAYS = 35;
 
 export interface SchedulerOptions {
 	store: StorePort;
+	/** The estate sign-in, when configured: an invited account that has signed in is seen to have used its invitation. */
+	sso?: SsoPort | undefined;
 	/** The notification port the handlers use: the scheduler says what happened, by reference, like they do. */
 	port: NotifyPort;
 	clock: () => number;
@@ -53,6 +58,13 @@ function addDays(date: string, days: number): string {
 	return new Date(Date.parse(`${date}T12:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 }
 
+/** A claim's key as the store accepts it: any character it does not take becomes `_`, and it is cut to the store's bound. */
+const claimKey = (key: string): string => key.replace(/[^A-Za-z0-9._:@/-]/g, "_").slice(0, 200);
+
+/** How often the sign-in is asked who has signed in since being invited, and for how long an invitation is watched. */
+const ACTIVATION_POLL_MS = 5 * 60_000;
+const ACTIVATION_WATCH_DAYS = 30;
+
 const within = (clock: string, window: { from: string; until: string }): boolean =>
 	clock >= window.from && clock < window.until;
 
@@ -65,7 +77,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 	 */
 	async function claim(app: string, key: string): Promise<boolean> {
 		try {
-			await store.keyed.put(app, "tick", key, 0, "{}");
+			await store.keyed.put(app, "tick", claimKey(key), 0, "{}");
 			return true;
 		} catch (error) {
 			if (error instanceof StoreRefused && error.reason === "stale") return false;
@@ -79,7 +91,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 			await send();
 			return 1;
 		} catch {
-			await store.keyed.remove(app, "tick", key);
+			await store.keyed.remove(app, "tick", claimKey(key));
 			log({ level: "error", event: "scheduled_notice_failed", requestId: "scheduler", app });
 			return 0;
 		}
@@ -95,6 +107,16 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 
 	const TEAM = { kind: "team", permission: "appointments_view" } as const;
 
+	/** The desk's list of reminders: one the service has sent reads "sent" there, and a confirmed one stays confirmed. */
+	async function markSent(app: AppKey, id: string, now: number): Promise<void> {
+		const held = await store.c.reminders.get(app, id);
+		if (held?.state === "confirmed" || held?.state === "sent") return;
+		const row = { id, app, state: "sent" as const, updatedAt: now };
+		if (held === undefined) await store.c.reminders.insert(row);
+		else await store.c.reminders.replace(row);
+		await store.changes.append(app, { kind: "appointment", op: "updated", id });
+	}
+
 	async function reminders(app: AppKey, tz: string, now: number): Promise<number> {
 		let queued = 0;
 		const ahead = await store.c.appointments.list(app, {
@@ -109,17 +131,25 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 			const email = client.contact?.email ?? client.guardian?.email;
 			const to = { kind: "client", clientId: client.id } as const;
 			if (a.start - now <= 24 * HOUR && a.start - a.createdAt >= MIN_LEAD_FOR_DAY_BEFORE) {
-				queued += await once(app, `${day}/day_before/${a.id}-${a.start}`, () =>
-					email === undefined
-						? notice(
-								app,
-								"reminder.failed",
-								{ appointmentId: a.id, reason: "no_contact" },
-								base,
-								TEAM,
-							)
-						: notice(app, "reminder.day_before", { appointmentId: a.id, start: a.start }, base, to),
-				);
+				queued += await once(app, `${day}/day_before/${a.id}-${a.start}`, async () => {
+					if (email === undefined)
+						return notice(
+							app,
+							"reminder.failed",
+							{ appointmentId: a.id, reason: "no_contact" },
+							base,
+							TEAM,
+						);
+					await notice(
+						app,
+						"reminder.day_before",
+						{ appointmentId: a.id, start: a.start },
+						base,
+						to,
+					);
+					// The desk's own reminder list shows it as sent: reception must not send the same reminder a second time.
+					await markSent(app, a.id, now);
+				});
 			}
 			if (
 				email !== undefined &&
@@ -281,21 +311,57 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 		);
 	}
 
+	/** Runs one section of a pass; its failure is logged and leaves the other sections to run. */
+	async function section(app: AppKey, name: string, run: () => Promise<number>): Promise<number> {
+		try {
+			return await run();
+		} catch {
+			log({ level: "error", event: "scheduler_section_failed", requestId: "scheduler", app, name });
+			return 0;
+		}
+	}
+
+	let polledAt = Number.NEGATIVE_INFINITY;
+	/**
+	 * A site that has not moved to the SDK never tells this service that an invited account signed in, so the sign-in is
+	 * asked: an invitation whose account has signed in since it was sent has been used. At most every five minutes, and only
+	 * for invitations still waiting that are not older than a month.
+	 */
+	async function activations(app: AppKey, now: number): Promise<number> {
+		const sso = options.sso;
+		if (sso === undefined || now - polledAt < ACTIVATION_POLL_MS) return 0;
+		let activated = 0;
+		for (const held of await invites(store.keyed).all(app)) {
+			const { row } = held;
+			if (row.status !== "invited" || now - row.invitedAt > ACTIVATION_WATCH_DAYS * DAY) continue;
+			const seen = await sso.lastLogin(row.ssoUserId);
+			if (seen === undefined || seen <= row.invitedAt) continue;
+			const done = await activateInvite({ deps: { store, clock: () => now }, port }, app, held, {
+				subject: "system:scheduler",
+				kind: "service",
+			});
+			if (done) activated++;
+		}
+		polledAt = now;
+		return activated;
+	}
+
 	const tick = async (at?: number): Promise<number> => {
 		const now = at ?? options.clock();
 		let queued = 0;
 		for (const key of APP_KEYS) {
 			const row = await store.c.apps.get(key, key);
 			if (row === undefined || row.status !== "active") continue;
-			try {
-				queued += await reminders(key, row.timeZone, now);
-				queued += await afterSessions(key, row.timeZone, now);
-				queued += await conflicts(key, row.timeZone, now);
-				queued += await digests(key, row.timeZone, now);
+			// A section that fails leaves the others to run: one bad row must not silence the morning list.
+			queued += await section(key, "reminders", () => reminders(key, row.timeZone, now));
+			queued += await section(key, "after_sessions", () => afterSessions(key, row.timeZone, now));
+			queued += await section(key, "conflicts", () => conflicts(key, row.timeZone, now));
+			queued += await section(key, "digests", () => digests(key, row.timeZone, now));
+			queued += await section(key, "activations", () => activations(key, now));
+			await section(key, "tidy", async () => {
 				await tidy(key, now);
-			} catch {
-				log({ level: "error", event: "scheduler_pass_failed", requestId: "scheduler", app: key });
-			}
+				return 0;
+			});
 		}
 		return queued;
 	};

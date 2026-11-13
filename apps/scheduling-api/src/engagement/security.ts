@@ -1,6 +1,6 @@
 import type { Deps } from "../http/context";
 
-export type SecurityAction = "export" | "delete" | "roles" | "members" | "settings";
+export type SecurityAction = "delete" | "roles" | "members" | "settings";
 
 /**
  * What the owners are told of the moment it happens: data leaving, data deleted, who may do what changed, the app's own
@@ -13,7 +13,6 @@ const SENSITIVE: Readonly<Record<string, SecurityAction>> = {
 	"file.delete": "delete",
 	"package.delete": "delete",
 	"payment.delete": "delete",
-	"file.download": "export",
 	"role.create": "roles",
 	"role.update": "roles",
 	"role.permissions": "roles",

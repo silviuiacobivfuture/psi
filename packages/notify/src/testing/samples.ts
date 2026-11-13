@@ -122,7 +122,7 @@ export const SAMPLES: Readonly<Record<EventId, Record<string, unknown>>> = {
 	"delivery.failed": { deliveryId: "d_1", failedEvent: "reminder.day_before", attempts: 8 },
 	"security.action": {
 		securityId: "sec_1",
-		action: "export",
+		action: "delete",
 		by: "Iuliana",
 		target: "clienți",
 	},

@@ -65,7 +65,6 @@ const SCHEDULE = {
 	block: m.word_sched_block,
 } as const;
 const ACTION = {
-	export: m.word_action_export,
 	delete: m.word_action_delete,
 	roles: m.word_action_roles,
 	members: m.word_action_members,

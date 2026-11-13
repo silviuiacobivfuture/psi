@@ -21,6 +21,8 @@ const User = z.object({
 	uid: z.string(),
 });
 const Users = z.object({ results: z.array(User) });
+/** What a sign-in left on the user: `last_login` is null until the person has signed in once. */
+const Seen = z.object({ last_login: z.string().datetime({ offset: true }).nullable() });
 const Groups = z.object({ results: z.array(z.object({ pk: z.string(), name: z.string() })) });
 const Recovery = z.object({ link: z.string().url() });
 
@@ -110,6 +112,10 @@ export function createAuthentikSso(options: AuthentikOptions): SsoPort {
 		async recoveryLink(userId) {
 			return (await call("POST", `/core/users/${encodeURIComponent(userId)}/recovery/`, Recovery))
 				.link;
+		},
+		async lastLogin(userId) {
+			const user = await call("GET", `/core/users/${encodeURIComponent(userId)}/`, Seen);
+			return user.last_login === null ? undefined : Date.parse(user.last_login);
 		},
 		async deactivate(userId) {
 			await call("PATCH", `/core/users/${encodeURIComponent(userId)}/`, z.unknown(), {

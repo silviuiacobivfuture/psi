@@ -75,6 +75,14 @@ export function invites(keyed: KeyedPort) {
 			const parsed = InviteRow.safeParse(json(held.body));
 			return parsed.success ? { row: parsed.data, revision: held.revision } : undefined;
 		},
+		/** Every invitation of the app that can be read (a damaged row is left out), with its revision. */
+		async all(app: string): Promise<Held<InviteRow>[]> {
+			const entries = await keyed.list(app, "invite", { limit: 1000 });
+			return entries.flatMap((e) => {
+				const parsed = InviteRow.safeParse(json(e.body));
+				return parsed.success ? [{ row: parsed.data, revision: e.revision }] : [];
+			});
+		},
 		/** Compare-and-set from `expected` (0 creates). `StoreRefused("stale")` when someone else got there first. */
 		async put(app: string, row: InviteRow, expected: number): Promise<void> {
 			await keyed.put(app, "invite", row.clientId, expected, JSON.stringify(InviteRow.parse(row)));

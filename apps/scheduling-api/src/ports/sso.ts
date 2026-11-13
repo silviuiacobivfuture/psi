@@ -25,6 +25,8 @@ export interface SsoPort {
 	recoveryLink(userId: string): Promise<string>;
 	/** Switches an account off (reversible; nothing is deleted). */
 	deactivate(userId: string): Promise<void>;
+	/** When the account last signed in (UTC ms), or undefined if it never has: how an invitation is seen to have been used. */
+	lastLogin(userId: string): Promise<number | undefined>;
 }
 
 export interface FakeSso extends SsoPort {
@@ -35,11 +37,14 @@ export interface FakeSso extends SsoPort {
 	failing: boolean;
 	/** An account that existed before any invitation (self-registered, or a member of staff). */
 	seed(email: string, options?: { active?: boolean }): SsoAccount;
+	/** The account behind this address signed in at `at`. */
+	signIn(email: string, at: number): void;
 }
 
 /** An in-memory provider: deterministic ids and subjects (`sub-<n>`), links on `https://sso.test`. */
 export function createFakeSso(): FakeSso {
 	const accounts = new Map<string, SsoAccount>();
+	const logins = new Map<string, number>();
 	let n = 0;
 	const unreachable = (self: FakeSso): void => {
 		if (self.failing) throw new SsoUnavailable("the sign-in is not reachable");
@@ -55,6 +60,15 @@ export function createFakeSso(): FakeSso {
 		calls: [],
 		failing: false,
 		seed: (email, options) => make(email, options?.active ?? true),
+		signIn(email, at) {
+			const account = accounts.get(email);
+			if (account !== undefined) logins.set(account.userId, at);
+		},
+		lastLogin(userId) {
+			self.calls.push(`lastLogin:${userId}`);
+			unreachable(self);
+			return Promise.resolve(logins.get(userId));
+		},
 		findByEmail(email) {
 			self.calls.push(`find:${email}`);
 			unreachable(self);

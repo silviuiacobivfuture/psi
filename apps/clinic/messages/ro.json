@@ -122,7 +122,7 @@
 	"toast_revoked": "Invitația a fost retrasă.",
 	"invite_title": "Cont online",
 	"invite_action": "Invită în contul online",
-	"invite_card_text": "Clientul își vede programările și alege cum este anunțat (e-mail sau notificări pe telefon).",
+	"invite_card_text": "Clientul își vede programările și poate activa notificările pe telefon.",
 	"invite_status_invited": "Invitat",
 	"invite_status_active": "Activ",
 	"invite_status_expired": "Expirat",

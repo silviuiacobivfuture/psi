@@ -122,7 +122,7 @@
 	"toast_revoked": "The invitation was withdrawn.",
 	"invite_title": "Online account",
 	"invite_action": "Invite to the online account",
-	"invite_card_text": "The client sees their appointments and chooses how they are told (e-mail or phone notifications).",
+	"invite_card_text": "The client sees their appointments and can switch on notifications on their phone.",
 	"invite_status_invited": "Invited",
 	"invite_status_active": "Active",
 	"invite_status_expired": "Expired",
