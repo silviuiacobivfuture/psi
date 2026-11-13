@@ -7,4 +7,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/scheduling-deploy
-    newTag: "042d3d4"
+    newTag: "772edc9"
