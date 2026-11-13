@@ -139,3 +139,26 @@ describe("view as: a roles administrator sees the app as a role or a member", ()
 		).toBe(200);
 	});
 });
+
+describe("view as: whose rows a narrowed scope reaches", () => {
+	it("a member reaches their own person record and the people they coordinate; a role reaches none", async () => {
+		const w = await createWorld();
+		const dora = (await w.call("olga", "GET", `${A}/me?as=member:dora`)).json as unknown as {
+			reach: { own: string[]; assigned: string[] };
+		};
+		expect(dora.reach.own).toEqual([w.ids.dora]);
+		const cora = (await w.call("olga", "GET", `${A}/me?as=member:cora`)).json as unknown as {
+			reach: { own: string[]; assigned: string[] };
+		};
+		expect(cora.reach.assigned.length).toBeGreaterThan(0);
+		const role = (await w.call("olga", "GET", `${A}/me?as=role:psizone-therapist`))
+			.json as unknown as {
+			reach: { own: string[]; assigned: string[] };
+		};
+		expect(role.reach).toEqual({ own: [], assigned: [] });
+		const mine = (await w.call("dora", "GET", `${A}/me`)).json as unknown as {
+			reach: { own: string[] };
+		};
+		expect(mine.reach.own).toEqual([w.ids.dora]);
+	});
+});

@@ -297,6 +297,7 @@ export const appHandlers: HandlersOf<
 						ro: `${RESOURCE_LABEL[def.resource]?.ro ?? def.resource}: ${ACTION_LABEL[def.action]?.ro ?? def.action}`,
 						en: `${RESOURCE_LABEL[def.resource]?.en ?? def.resource}: ${ACTION_LABEL[def.action]?.en ?? def.action}`,
 					},
+					scoped: def.scopes.length > 0,
 					scopes: [...scopes],
 					held,
 				};

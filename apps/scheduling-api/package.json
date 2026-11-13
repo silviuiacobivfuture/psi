@@ -3,6 +3,9 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./testing": "./src/testing/serve.ts"
+	},
 	"description": "psi's headless scheduling service: apps, teams, calendars, clients, packages, records and the visitor booking flow over JSON/HTTP + SSE, every call authorized with OpenFGA",
 	"scripts": {
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",

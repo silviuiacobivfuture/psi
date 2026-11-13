@@ -52,6 +52,11 @@ export const AppMe = z.object({
 	permissions: z.record(z.string(), z.array(Scope)),
 	/** The field groups the caller may see on at least some clients, derived from `permissions`. */
 	fieldGroups: z.array(FieldGroup),
+	/**
+	 * Whose rows the narrowed scopes reach: the people (calendar columns) that are the caller's own, and the ones they
+	 * coordinate. A role has no person, so viewing as a role reaches neither.
+	 */
+	reach: z.object({ own: z.array(Id), assigned: z.array(Id) }),
 	/** The estate's platform administrator (holds apps, members and roles in every app). */
 	platformAdmin: z.boolean(),
 });
@@ -110,6 +115,8 @@ export const MatrixRow = z.object({
 	effect: z.enum(["read", "write"]),
 	fieldGroup: FieldGroup.optional(),
 	name: Label,
+	/** False: held on the whole app with no scope (`scopes` is then just `["all"]`, and the relation is the bare key). */
+	scoped: z.boolean(),
 	scopes: z.array(z.enum(["all", "assigned", "own"])),
 	held: z.array(z.enum(["all", "assigned", "own"])),
 });

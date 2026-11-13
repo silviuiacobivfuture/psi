@@ -30,6 +30,15 @@ function summarize(
 	return { permissions, fieldGroups: FIELD_GROUPS.filter((g) => groups.has(g)) };
 }
 
+/** The people whose rows a narrowed scope reaches for this subject (their own person record; the ones they coordinate). */
+async function reachOf(ctx: C, subject: string, coordinates: ReadonlyArray<string>) {
+	const people = await ctx.deps.store.c.people.list(ctx.app);
+	return {
+		own: people.filter((p) => p.subject === subject).map((p) => p.id),
+		assigned: [...coordinates],
+	};
+}
+
 /** What the caller holds in the app, asked of the authorizer (a Check per catalogue entry). */
 export async function ownCapabilities(ctx: C): Promise<Out> {
 	const row = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
@@ -48,6 +57,7 @@ export async function ownCapabilities(ctx: C): Promise<Out> {
 		...(member === undefined ? {} : { displayName: member.displayName }),
 		roles: member?.roles ?? [],
 		...summarize(held),
+		reach: await reachOf(ctx, ctx.subject, member?.coordinates ?? []),
 		platformAdmin: await ctx.deps.access.isPlatformAdmin(ctx.subject),
 	};
 }
@@ -96,6 +106,7 @@ export async function viewAsCapabilities(ctx: C, target: string): Promise<Out> {
 			displayName: role.name,
 			roles: [role.id],
 			...summarize(fromRelations(role.permissions, new Set())),
+			reach: { own: [], assigned: [] },
 		};
 	}
 	const member = await must(ctx.deps.store.c.members, ctx.app, id, "member");
@@ -110,5 +121,6 @@ export async function viewAsCapabilities(ctx: C, target: string): Promise<Out> {
 		displayName: member.displayName,
 		roles: member.roles,
 		...summarize(fromRelations(relations, new Set(member.denies))),
+		reach: await reachOf(ctx, member.subject, member.coordinates),
 	};
 }
