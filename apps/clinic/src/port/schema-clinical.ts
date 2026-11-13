@@ -4,6 +4,7 @@ import {
 	type FormDefinition,
 	REASON_MAX,
 } from "@psi/scheduling/clinic";
+import { FILE_TYPES as CONTRACT_FILE_TYPES } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
 import { IsoDateSchema } from "./schema";
 
@@ -133,25 +134,10 @@ export const RecordPatchSchema = z
 	.partial();
 export type RecordPatch = z.infer<typeof RecordPatchSchema>;
 
+/** The most a file may weigh and what may be attached: the service's own contract, never restated here. */
+export { FILE_MAX_BYTES } from "@psi/scheduling-sdk/contract";
 export type { FormDefinition };
-
-/** The most a file may weigh, as the service's own contract says. */
-export const FILE_MAX_BYTES = 50_000_000;
-/** What a person may attach: pictures, PDFs, office documents, plain text, audio. */
-export const FILE_TYPES: ReadonlyArray<string> = [
-	"image/jpeg",
-	"image/png",
-	"image/webp",
-	"image/heic",
-	"application/pdf",
-	"application/msword",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	"application/vnd.ms-excel",
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	"text/plain",
-	"audio/mpeg",
-	"audio/mp4",
-];
+export const FILE_TYPES: ReadonlyArray<string> = CONTRACT_FILE_TYPES;
 
 export const ClientFileSchema = z.object({
 	id: z.string(),

@@ -88,7 +88,7 @@
 	"cl_file_or_pick": "or tap to choose from your device",
 	"cl_file_camera": "Take a photo",
 	"cl_file_send": "Upload",
-	"cl_file_limits": "Up to {mb} MB each: pictures, PDF, Word, Excel, text, audio.",
+	"cl_file_limits": "Up to {mb} MB each: pictures, PDF, Word, Excel, text.",
 	"cl_file_name": "File name",
 	"cl_file_preview": "Preview",
 	"cl_file_too_big": "A file is over {mb} MB. Nothing was uploaded.",

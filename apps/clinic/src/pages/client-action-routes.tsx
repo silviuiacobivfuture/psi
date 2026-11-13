@@ -190,11 +190,12 @@ export function registerClientActions(app: Hono<Env>): void {
 		const own = (await ctx.port.files(ctx.app, cid(c))).find((f) => f.id === c.req.param("fid"));
 		if (own === undefined) return c.notFound();
 		const file = await ctx.port.downloadFile(ctx.app, own.id);
-		const inline = c.req.query("inline") === "1" && previewable(file.contentType);
-		const name = encodeURIComponent(file.name);
+		// The list the file was found in names it and types it; the store answers only the bytes.
+		const inline = c.req.query("inline") === "1" && previewable(own.contentType);
+		const name = encodeURIComponent(own.name);
 		return new Response(new Uint8Array(file.bytes), {
 			headers: {
-				"content-type": file.contentType,
+				"content-type": own.contentType,
 				"content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${name}`,
 				"x-content-type-options": "nosniff",
 				"content-security-policy": "sandbox",

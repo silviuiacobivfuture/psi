@@ -88,7 +88,7 @@
 	"cl_file_or_pick": "sau atinge pentru a alege de pe dispozitiv",
 	"cl_file_camera": "Fă o poză",
 	"cl_file_send": "Încarcă",
-	"cl_file_limits": "Până la {mb} MB fiecare: imagini, PDF, Word, Excel, text, audio.",
+	"cl_file_limits": "Până la {mb} MB fiecare: imagini, PDF, Word, Excel, text.",
 	"cl_file_name": "Numele fișierului",
 	"cl_file_preview": "Previzualizare",
 	"cl_file_too_big": "Un fișier depășește {mb} MB. Nu s-a încărcat nimic.",
