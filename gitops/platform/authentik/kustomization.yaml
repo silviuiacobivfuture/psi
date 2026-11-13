@@ -1,6 +1,6 @@
 # Authentik platform manifests (OUR raw resources, git-sourced via the
 # authentik-platform Argo app). Split from the Helm install (authentik.yaml overlay)
-# same as openbao-store vs openbao. Carries: the tailnet ingress, the Blueprint
+# same as openbao-store vs openbao. Carries: the public ingress, the Blueprint
 # ConfigMaps the chart mounts (blueprints.configMaps), and the Traefik forward-auth
 # Middleware for public apps.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -8,7 +8,6 @@ kind: Kustomization
 namespace: authentik
 resources:
   - ingress-public.yaml
-  - ingress-proxied-apps.yaml
   - middleware-forwardauth.yaml
   # A refused callback starts the sign-in again (one mechanism, every gated host).
   - sso-restart.yaml

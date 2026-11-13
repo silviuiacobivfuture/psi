@@ -17,18 +17,6 @@
       fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
     - select: {kind: Ingress, name: authentik-invalidation-unconfirmed}
       fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
-# ── the tailnet dashboards' links on the homepage: https://<label>.WLTAILNET ──
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
-  targets:
-    - select: {kind: Ingress, name: netdata-gate}
-      fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
-      options: {delimiter: ".", index: 1}
-    - select: {kind: Ingress, name: hub-gate}
-      fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
-      options: {delimiter: ".", index: 1}
-    - select: {kind: Ingress, name: browseruse-webui-gate}
-      fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
-      options: {delimiter: ".", index: 1}
 # ── who is paged for a workload (OPS_EMAIL) ──
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL}
   targets:

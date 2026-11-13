@@ -58,16 +58,3 @@
       name: secret-watcher
     fieldPaths:
     - metadata.annotations.[alerts.psizone.ro/owner]
-- source:
-    kind: ConfigMap
-    name: whitelabel
-    fieldPath: data.TAILNET_DOMAIN
-  targets:
-  - select:
-      kind: Ingress
-      name: openbao
-    fieldPaths:
-    - metadata.annotations.[gethomepage.dev/href]
-    options:
-      delimiter: .
-      index: 1
