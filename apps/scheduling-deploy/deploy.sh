@@ -35,3 +35,7 @@ echo "PSI_SCHEDULING_KEY is set in the deployment"
 # Type-checking and code generation are CI's job (pnpm affected); _generated is committed.
 "$convex" deploy --yes --typecheck disable --codegen disable
 echo "functions deployed"
+
+# Every estate app has its tenant row (idempotent): a visitor's request never fails for want of it.
+"$convex" run tenants:ensureEstateApps >/dev/null
+echo "estate apps ensured"

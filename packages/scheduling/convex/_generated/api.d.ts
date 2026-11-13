@@ -30,6 +30,7 @@ import type * as staffRequests from "../staffRequests.js";
 import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
+import type * as tenants from "../tenants.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   staffRooms: typeof staffRooms;
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
+  tenants: typeof tenants;
   validators: typeof validators;
 }>;
 
