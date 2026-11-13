@@ -1,0 +1,121 @@
+# hemisync-web's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
+# manifests are, which secrets it reads. SEB's secret seeding (seb.seed.sh beside this file, run by
+# seed-secrets.sh) and doctor's health checks (doctor/plan.mjs) are derived from it. A public site:
+# no sign-in, no groups.
+schema: seb.app/v1
+key: hemisync-web
+name: hemisync-web
+displayName: Hemi-Sync
+namespace: hemisync-web
+note: "Hemi-Sync's public site (hemisync.psizone.ro): its pages, the guide, the callback and booking forms, in its own scheduling tenant."
+components:
+  - name: hemisync-web
+    path: apps/hemisync-web
+    namespace: hemisync-web
+    gitops: gitops/services/hemisync-web
+    image: psi/hemisync-web
+    build:
+      workflow: .github/workflows/apps.yml
+      dockerfile: apps/hemisync-web/Dockerfile
+      context: .
+    port: 3000
+    hosts:
+      - prefix: hemisync
+        exposure: public
+        ingress: hemisync-web
+    overlayImages:
+      - psi/hemisync-web
+    workloads:
+      - name: hemisync-web
+        kind: Deployment
+        images:
+          - psi/hemisync-web
+        restartOnSecretChange: true
+        envFrom: [hemisync-web-env, hemisync-web-scheduling, hemisync-web-mail]
+        requiredEnv:
+          - CHROMA_API_KEY
+          - OPENROUTER_API_KEY
+        initContainers: [assert-secrets]
+        probes:
+          readiness: { path: /, port: 3000 }
+          liveness: { path: /, port: 3000 }
+externalSecrets:
+  - name: hemisync-web-env
+    namespace: hemisync-web
+    target: hemisync-web-env
+    manifest: gitops/services/hemisync-web/base/externalsecret.yaml
+  - name: hemisync-web-scheduling
+    namespace: hemisync-web
+    target: hemisync-web-scheduling
+    manifest: gitops/services/hemisync-web/base/scheduling-externalsecret.yaml
+  - name: hemisync-web-mail
+    namespace: hemisync-web
+    target: hemisync-web-mail
+    manifest: gitops/services/hemisync-web/base/mail-externalsecret.yaml
+  - name: harbor-pull
+    namespace: hemisync-web
+    target: harbor-pull
+    manifest: gitops/services/hemisync-web/base/harbor-pull-externalsecret.yaml
+secrets:
+  - path: apps/hemisync-web/env
+    owner: hemisync-web
+    keys:
+      - name: OPENROUTER_API_KEY
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-env, env: OPENROUTER_API_KEY }]
+      - name: CMS_API_KEY
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-env, env: CMS_API_KEY }]
+  # The team's mail for callback requests: OPTIONAL, an EMPTY SLOT until the owner fills it
+  # (estate/APP-SECRETS.md). seb.seed.sh creates the five keys empty, and only where absent.
+  - path: apps/hemisync-web/mail
+    owner: hemisync-web
+    keys:
+      - name: SMTP_HOST
+        source: { kind: slot }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-mail, env: SMTP_HOST }]
+      - name: SMTP_USER
+        source: { kind: slot }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-mail, env: SMTP_USER }]
+      - name: SMTP_PASSWORD
+        source: { kind: slot }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-mail, env: SMTP_PASSWORD }]
+      - name: MAIL_FROM
+        source: { kind: slot }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-mail, env: MAIL_FROM }]
+      - name: BOOKING_NOTIFY_TO
+        source: { kind: slot }
+        readers: [{ kind: external-secret, secret: hemisync-web/hemisync-web-mail, env: BOOKING_NOTIFY_TO }]
+groups: []
+consumes:
+  - service: chroma
+    env: [CHROMA_URL, CHROMA_API_KEY]
+  - service: scheduling-backend
+    env: [CONVEX_URL, PSI_SCHEDULING_KEY]
+ci:
+  workflows:
+    - file: .github/workflows/apps.yml
+      images: [psi/hemisync-web]
+      buildArgs: [REGISTRY_HOST, REGISTRY_PROJECT_MIRROR]
+      bumps: [gitops/services/hemisync-web/overlays/dev/kustomization.yaml]
+health:
+  secretChecks:
+    - label: hemisync-web environment
+      externalSecret: hemisync-web/hemisync-web-env
+      secret: hemisync-web-env
+      keys: [CHROMA_API_KEY, OPENROUTER_API_KEY]
+    # The mail: synced and its Secret present, every key a SLOT (empty until the owner configures
+    # the team's mail), so the healthy unconfigured state is not refused. That the path EXISTS is
+    # what keeps it synced; doctor's generic check refuses an absent one (SEB lib-es-paths.sh).
+    - label: hemisync-web team mail (optional)
+      externalSecret: hemisync-web/hemisync-web-mail
+      secret: hemisync-web-mail
+      keys: []
+      slots: [BOOKING_NOTIFY_TO, MAIL_FROM, SMTP_HOST, SMTP_PASSWORD, SMTP_USER]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/hemisync-web/env, apps/hemisync-web/mail]
+  keys: []
+findings: []

@@ -9,7 +9,8 @@
 		"./domain": "./src/domain/index.ts",
 		"./crypto": "./src/crypto/index.ts",
 		"./permissions": "./src/permissions/index.ts",
-		"./clinic": "./src/clinic/index.ts"
+		"./clinic": "./src/clinic/index.ts",
+		"./testing": "./src/testing.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
@@ -20,10 +21,12 @@
 	},
 	"dependencies": {
 		"convex": "1.49.0",
+		"nodemailer": "^10.5.0",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
+		"@types/nodemailer": "^8.0.2",
 		"tsx": "^4.23.15",
 		"typescript": "^5.9.3",
 		"vitest": "^2.1.9"

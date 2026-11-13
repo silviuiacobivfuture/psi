@@ -25,7 +25,7 @@ describe("the automatic entry after a minute of engagement", () => {
 		await tick(1_000);
 		expect(m.full()).toBe(true);
 		expect(m.fs.getAttribute("aria-pressed")).toBe("true");
-		expect(m.fs.getAttribute("aria-label")).toBe("Ieși din ecran complet");
+		expect(m.fs.getAttribute("aria-label")).toBe("Ecran complet");
 		expect(m.live.textContent).toBe("Ecran complet activat");
 		expect(m.live.getAttribute("aria-live")).toBe("polite");
 		expect(document.documentElement.classList.contains("pz-compass-lock")).toBe(true);
@@ -164,7 +164,7 @@ describe("the automatic entry after a minute of engagement", () => {
 		expect(m.full()).toBe(true);
 		expect(m.nav.querySelector(".pz-compass__fs")?.getAttribute("aria-pressed")).toBe("true");
 		expect(m.nav.querySelector(".pz-compass__fs")?.getAttribute("aria-label")).toBe(
-			"Ieși din ecran complet",
+			"Ecran complet",
 		);
 	});
 });

@@ -108,7 +108,6 @@ export function Header({
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),
 						fullscreen: m.compass_fullscreen({}, o),
-						exitFullscreen: m.compass_exit_fullscreen({}, o),
 						fullscreenOn: m.compass_fullscreen_on({}, o),
 						guideTab: m.compass_tab_guide({}, o),
 						pagesTab: m.compass_tab_pages({}, o),

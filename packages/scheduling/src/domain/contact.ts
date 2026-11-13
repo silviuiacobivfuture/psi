@@ -7,9 +7,20 @@ export interface Contact {
 	name: string;
 	email?: string;
 	phone?: string;
+	/** Whole years, 0 to 120. */
+	age?: number;
+	/** What is going on, in the person's words: personal data, erased with the contact. */
+	details?: string;
 }
 
-export const CONTACT_LIMITS = { nameMin: 2, nameMax: 80, emailMax: 120 } as const;
+export const CONTACT_LIMITS = {
+	nameMin: 2,
+	nameMax: 100,
+	emailMax: 120,
+	ageMax: 120,
+	detailsMin: 10,
+	detailsMax: 2000,
+} as const;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE = /^\+?[0-9 ()-]{9,20}$/;
@@ -25,6 +36,17 @@ export function contactProblem(contact: Contact): string | undefined {
 		return "email";
 	}
 	if (phone !== "" && !PHONE.test(phone)) return "phone";
+	const age = contact.age;
+	if (age !== undefined && (!Number.isInteger(age) || age < 0 || age > CONTACT_LIMITS.ageMax)) {
+		return "age";
+	}
+	const details = contact.details?.trim();
+	if (
+		details !== undefined &&
+		(details.length < CONTACT_LIMITS.detailsMin || details.length > CONTACT_LIMITS.detailsMax)
+	) {
+		return "details";
+	}
 	return undefined;
 }
 
@@ -36,5 +58,7 @@ export function cleanContact(contact: Contact): Contact {
 		name: contact.name.trim(),
 		...(email === "" ? {} : { email }),
 		...(phone === "" ? {} : { phone }),
+		...(contact.age === undefined ? {} : { age: contact.age }),
+		...(contact.details === undefined ? {} : { details: contact.details.trim() }),
 	};
 }

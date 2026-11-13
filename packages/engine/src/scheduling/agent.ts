@@ -15,7 +15,7 @@ import {
 /**
  * The scheduling rules, numbered after the profile's voice. They are the engine's (in English;
  * the language statement before them fixes the language of the reply) and they are the same for
- * every brand: propose, never book; never ask for health details; never ask for contact details.
+ * every brand: propose, never book; the Studio agent holds no booking tool. The booking dialogue itself (details, summary, submit) is the engine's, not a model's.
  */
 export function schedulingRules(services: ReadonlyArray<string>): ReadonlyArray<string> {
 	return [

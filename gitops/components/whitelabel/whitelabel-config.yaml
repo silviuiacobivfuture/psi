@@ -62,7 +62,7 @@ data:
   PDFCRAFT_HOST_PREFIX: pdf
   AFFINE_HOST_PREFIX: docs
   MAIL_HOST_PREFIX: post
-  WEBMAIL_HOST_PREFIX: webmail
+  BULWARK_HOST_PREFIX: inbox
   # identity
   OPERATOR_USERNAME: silviu
   OPERATOR_NAME: "Silviu Iacob"
@@ -89,8 +89,18 @@ data:
   FRONT_HOST: portal.psizone.ro
   MESH_BASE_DOMAIN: psizone.ro
   TAILNET_DOMAIN: psizone.ro
+  GLITCHTIP_HOST_PREFIX: errors
+  GLITCHTIP_NAME: GlitchTip
+  BOOKSTACK_HOST_PREFIX: wiki
+  BOOKSTACK_NAME: BookStack
+  KUTT_HOST_PREFIX: go
+  KUTT_NAME: Kutt
   MAIL_ADMIN_HOST_PREFIX: mail-admin
   MAILBOX_DOMAIN: post.psizone.ro
+  KENER_HOST_PREFIX: status
+  KENER_NAME: Kener
+  SEMAPHORE_HOST_PREFIX: ops
+  SEMAPHORE_NAME: Semaphore
   HUB_HOST: sso.psizone.ro
   BUSINESS_APP_PREFIX: psi
   INVOICING_SVC: psi-invoice-svc

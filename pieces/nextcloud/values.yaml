@@ -59,7 +59,7 @@ nextcloud:
       region: ${OBJECT_STORAGE_REGION}
       # bucket: set by `parameters` below (an estate value).
       # Hetzner Object Storage is path-style; virtual-host style resolves
-      # <bucket>.fsn1... which is NOT in their wildcard cert.
+      # <bucket>.${OBJECT_STORAGE_REGION}... which is NOT in their wildcard cert.
       usePathStyle: true
       autoCreate: false # the bucket is Tofu-managed, not app-managed
       existingSecret: nextcloud-s3

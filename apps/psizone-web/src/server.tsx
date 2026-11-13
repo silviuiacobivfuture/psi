@@ -3,16 +3,22 @@ import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { guideSignal } from "@psi/site-control";
-import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
+import {
+	accountMemory,
+	answerGuidePost,
+	applyIndexingPolicy,
+	installDevLog,
+	registerBookingSubmit,
+	scheduleOf,
+} from "@psi/ui";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { account } from "./account";
 import { registerAccountRoutes } from "./account-routes";
-import { accountLine, bookingAccount, guideForRequest } from "./booking-account";
-import { registerBookingRoutes, scheduleOf } from "./booking-routes";
+import { bookingAccount, guideForRequest } from "./booking-account";
+import { registerBookingRoutes } from "./booking-routes";
 import { bookingDeps } from "./booking-store";
-import { registerBookingSubmit } from "./booking-submit";
 import { registerCmsRevalidate } from "./cms";
 import { registerContentPages } from "./content-routes";
 import { mountControl } from "./control";
@@ -119,8 +125,8 @@ for (const [locale, prefix] of [
 	registerBookingRoutes(app, locale, prefix);
 	app.get(`${prefix}/contact`, async (c) => {
 		const origin = new URL(c.req.url).origin;
-		const who = await bookingAccount(c, locale, "/contact");
-		const schedule = await scheduleOf({});
+		const who = await bookingAccount(c, locale, `${prefix}/contact`);
+		const schedule = await scheduleOf(bookingDeps.picker, {});
 		c.header("cache-control", "private, no-store");
 		return c.html(
 			<ContactPage
@@ -135,18 +141,18 @@ for (const [locale, prefix] of [
 			/>,
 		);
 	});
-	registerBookingSubmit(app, locale, prefix, bookingDeps);
+	registerBookingSubmit(app, bookingDeps, locale);
 	// What the compass reports about its invitation: opened, nudge shown, nudge clicked (counters only).
 	app.post(`${prefix}/ghid/signal`, guideSignal({ reporter: guideCounts, locale }));
 	// The guide: a question streams its answer; the compass also restores and resets its chat here.
 	app.post(`${prefix}/ghid`, async (c) => {
 		// Signed in: the in-chat form is pre-filled, and the guide remembers only with consent.
-		const who = await bookingAccount(c, locale, "/contact");
+		const who = await bookingAccount(c, locale, `${prefix}/contact`);
 		return answerGuidePost(c, {
 			locale,
 			labels: guideLabels(locale, {
 				prefill: who.prefill,
-				...accountLine(who),
+				...(who.form === undefined ? {} : { account: who.form }),
 			}),
 			guide: () => guideForRequest(c, guide),
 			memory: () => accountMemory(account, c, "psizone"),

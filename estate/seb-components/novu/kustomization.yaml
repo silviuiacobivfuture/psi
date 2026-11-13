@@ -3,9 +3,9 @@ kind: Component
 # PSI's additions to SEB's novu piece, passed to the renderer as the estate's layer
 # (tools/estate-pieces.mjs --estate-components estate/seb-components).
 #
-#   mapping.json  psi's Authentik group → Novu role mapping. The image bakes the first estate's
-#                 (organisation "RecomExpert"), which psi's Novu does not have, so every sign-in
-#                 was refused with no-organization. Here: organisation "Psi" (MAIL_SENDER_NAME, the
+#   mapping.json  psi's Authentik group → Novu role mapping (version 2: groups and roles; the
+#                 organisation and account come from psi's identity since SEB 0.1.61). Older images
+#                 baked the first estate's organisation, so every sign-in was refused; "Psi" (MAIL_SENDER_NAME, the
 #                 one novu-bootstrap.sh creates), service account ops@psizone.ro (secret/apps/novu/admin).
 #                 Mounted into novu-sso and read through NOVU_SSO_MAPPING (apps/novu-sso/lib/config.mjs).
 #   the tailnet doors (Ingresses novu-dashboard and novu-api-tailnet, class tailscale) are removed:
@@ -50,3 +50,9 @@ patches:
     patch: |-
       - { op: test, path: /spec/template/spec/containers/0/name, value: novu-bridge }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 64Mi }
+# Slot `image` (schema/slots/novu.yaml): the tag of the novu-bridge image psi built
+# (scripts/estate-images.sh, psi's estate declaration painted in), sha256:16bab603… in
+# registry.psizone.ro/psi. The generated Application sets it (estate/seb-image-tags.mjs).
+images:
+  - name: WLREGISTRY/WLAPPS/novu-bridge
+    newTag: a94178986

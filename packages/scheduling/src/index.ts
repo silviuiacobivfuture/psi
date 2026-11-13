@@ -52,9 +52,32 @@ export {
 } from "./domain/clients";
 export type { AppointmentStatus } from "./domain/conflicts";
 export type { Contact } from "./domain/contact";
+export {
+	AgeSchema,
+	DetailsSchema,
+	EmailSchema,
+	emailSuggestion,
+	FIELD_LIMITS,
+	NameSchema,
+	normalisePhone,
+	PhoneSchema,
+} from "./domain/fields";
 export { DECISION_REASONS, type DecisionReason } from "./domain/lifecycle";
 export { ROOM_KINDS, type RoomKind } from "./domain/rooms";
 export { toLocal } from "./domain/time";
+export { createIntake, type Intake, type IntakeDeps } from "./intake/callback-intake";
+export {
+	type CallbackMailCopy,
+	type CallbackRequest,
+	callbackMail,
+} from "./intake/callback-mail";
+export {
+	callbackListUrl,
+	type MailConfig,
+	type MailSetup,
+	readMailEnv,
+} from "./intake/mail-config";
+export { createSmtpMailer, type Mail, type Mailer, MailFailed } from "./intake/mailer";
 export { DecisionReasonSchema, StaffRequestSchema } from "./results";
 export { decodeSlot, encodeSlot, SlotIdSchema, type SlotRef } from "./slot-id";
 export {

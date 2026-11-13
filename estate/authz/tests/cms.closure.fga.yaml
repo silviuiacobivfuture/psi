@@ -79,6 +79,12 @@ tuples:
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
+  - user: user:c_platform_role_agent_studio_operator
+    relation: role_agent_studio_operator
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_viewer
+    relation: role_agent_studio_viewer
+    object: platform:psi
   - user: user:c_platform_role_blog_privacy_officer
     relation: role_blog_privacy_officer
     object: platform:psi
@@ -88,17 +94,35 @@ tuples:
   - user: user:c_platform_role_cms_ai_admin
     relation: role_cms_ai_admin
     object: platform:psi
+  - user: user:c_platform_role_cms_ai_operator
+    relation: role_cms_ai_operator
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_manager
+    relation: role_cms_calendar_manager
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_viewer
+    relation: role_cms_calendar_viewer
+    object: platform:psi
   - user: user:c_platform_role_cms_clinical_reviewer
     relation: role_cms_clinical_reviewer
     object: platform:psi
   - user: user:c_platform_role_cms_editor
     relation: role_cms_editor
     object: platform:psi
+  - user: user:c_platform_role_cms_notifications_admin
+    relation: role_cms_notifications_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_privacy_officer
+    relation: role_cms_privacy_officer
+    object: platform:psi
   - user: user:c_platform_role_cms_publisher
     relation: role_cms_publisher
     object: platform:psi
   - user: user:c_platform_role_cms_reader
     relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_cms_site_manager
+    relation: role_cms_site_manager
     object: platform:psi
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
@@ -117,7 +141,7 @@ tuples:
     object: cms_brand:closure
 
 tests:
-  - name: cms_brand#read is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_ai_admin', 'role_cms_clinical_reviewer', 'role_cms_editor', 'role_cms_publisher', 'role_cms_reader']
+  - name: cms_brand#read is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_ai_admin', 'role_cms_ai_operator', 'role_cms_calendar_manager', 'role_cms_calendar_viewer', 'role_cms_clinical_reviewer', 'role_cms_editor', 'role_cms_notifications_admin', 'role_cms_privacy_officer', 'role_cms_publisher', 'role_cms_reader', 'role_cms_site_manager']
     check:
       - user: user:c_platform_administrator
         object: cms_brand:closure
@@ -215,6 +239,14 @@ tests:
         object: cms_brand:closure
         assertions:
           read: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          read: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          read: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -227,6 +259,18 @@ tests:
         object: cms_brand:closure
         assertions:
           read: true
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          read: true
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          read: true
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          read: true
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -235,11 +279,23 @@ tests:
         object: cms_brand:closure
         assertions:
           read: true
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          read: true
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          read: true
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           read: true
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          read: true
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           read: true
@@ -357,6 +413,14 @@ tests:
         object: cms_brand:closure
         assertions:
           write: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          write: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -369,6 +433,18 @@ tests:
         object: cms_brand:closure
         assertions:
           write: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          write: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -377,11 +453,23 @@ tests:
         object: cms_brand:closure
         assertions:
           write: true
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          write: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           write: true
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           write: false
@@ -499,6 +587,14 @@ tests:
         object: cms_brand:closure
         assertions:
           publish: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          publish: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -511,6 +607,18 @@ tests:
         object: cms_brand:closure
         assertions:
           publish: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          publish: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -519,11 +627,23 @@ tests:
         object: cms_brand:closure
         assertions:
           publish: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          publish: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           publish: true
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           publish: false
@@ -641,6 +761,14 @@ tests:
         object: cms_brand:closure
         assertions:
           clinical_review: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -653,6 +781,18 @@ tests:
         object: cms_brand:closure
         assertions:
           clinical_review: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -661,11 +801,23 @@ tests:
         object: cms_brand:closure
         assertions:
           clinical_review: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           clinical_review: false
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           clinical_review: false
@@ -783,6 +935,14 @@ tests:
         object: cms_brand:closure
         assertions:
           manage_media: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -795,6 +955,18 @@ tests:
         object: cms_brand:closure
         assertions:
           manage_media: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -803,11 +975,23 @@ tests:
         object: cms_brand:closure
         assertions:
           manage_media: true
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           manage_media: true
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           manage_media: false
@@ -925,6 +1109,14 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -937,6 +1129,18 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -945,11 +1149,23 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           admin: false
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           admin: false
@@ -1067,6 +1283,14 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_admin: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
       - user: user:c_platform_role_blog_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -1079,6 +1303,18 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_admin: true
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: cms_brand:closure
         assertions:
@@ -1087,11 +1323,23 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_admin: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
       - user: user:c_platform_role_cms_publisher
         object: cms_brand:closure
         assertions:
           ai_admin: false
       - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_cms_site_manager
         object: cms_brand:closure
         assertions:
           ai_admin: false
@@ -1111,3 +1359,1047 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_admin: false
+  - name: cms_brand#ai_operator is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_ai_admin', 'role_cms_ai_operator']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          ai_operator: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          ai_operator: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          ai_operator: true
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          ai_operator: true
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+  - name: cms_brand#calendar_viewer is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_calendar_manager', 'role_cms_calendar_viewer']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: true
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: true
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+  - name: cms_brand#calendar_manager is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_calendar_manager']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: true
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+  - name: cms_brand#privacy_officer is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_privacy_officer']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: true
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+  - name: cms_brand#notifications_admin is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_notifications_admin']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: true
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+  - name: cms_brand#site_manager is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_site_manager']
+    check:
+      - user: user:c_platform_administrator
+        object: cms_brand:closure
+        assertions:
+          site_manager: true
+      - user: user:c_platform_auditor
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_break_glass_opener
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_changelog_manager
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_grantor
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_model_releaser
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_org_eraser
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_org_restorer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_program_manager
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_admin
+        object: cms_brand:closure
+        assertions:
+          site_manager: true
+      - user: user:c_platform_role_cms_ai_admin
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_editor
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_publisher
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_reader
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_cms_site_manager
+        object: cms_brand:closure
+        assertions:
+          site_manager: true
+      - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          site_manager: false

@@ -14,10 +14,16 @@
 		"platform#administrator",
 		"platform#role_cms_admin",
 		"platform#role_cms_ai_admin",
+		"platform#role_cms_ai_operator",
+		"platform#role_cms_calendar_manager",
+		"platform#role_cms_calendar_viewer",
 		"platform#role_cms_clinical_reviewer",
 		"platform#role_cms_editor",
+		"platform#role_cms_notifications_admin",
+		"platform#role_cms_privacy_officer",
 		"platform#role_cms_publisher",
-		"platform#role_cms_reader"
+		"platform#role_cms_reader",
+		"platform#role_cms_site_manager"
 	],
 	"features": [
 		{
@@ -54,6 +60,13 @@
 				"ro": "Setări AI",
 				"en": "AI settings"
 			}
+		},
+		{
+			"key": "platform",
+			"name": {
+				"ro": "Platformă",
+				"en": "Platform"
+			}
 		}
 	],
 	"roles": [
@@ -64,8 +77,8 @@
 				"en": "CMS administrator"
 			},
 			"description": {
-				"ro": "Tot ce poate face CMS-ul, pe toate brandurile.",
-				"en": "Everything the CMS does, on every brand."
+				"ro": "Tot ce poate face CMS-ul și panoul de control, pe toate brandurile.",
+				"en": "Everything the CMS and the control plane do, on every brand."
 			},
 			"scope_type": "platform",
 			"relation": "role_cms_admin",
@@ -77,7 +90,13 @@
 				"cms_brand#clinical_review",
 				"cms_brand#manage_media",
 				"cms_brand#admin",
-				"cms_brand#ai_admin"
+				"cms_brand#ai_admin",
+				"cms_brand#ai_operator",
+				"cms_brand#calendar_viewer",
+				"cms_brand#calendar_manager",
+				"cms_brand#privacy_officer",
+				"cms_brand#notifications_admin",
+				"cms_brand#site_manager"
 			],
 			"assignable": true,
 			"max_duration": null
@@ -158,12 +177,108 @@
 				"en": "AI administrator"
 			},
 			"description": {
-				"ro": "Schimbă setările AI ale brandului; citește conținutul.",
-				"en": "Changes the brand's AI settings; reads content."
+				"ro": "Schimbă setările AI ale brandului și operează ghidul; citește conținutul.",
+				"en": "Changes the brand's AI settings and operates the guide; reads content."
 			},
 			"scope_type": "platform",
 			"relation": "role_cms_ai_admin",
-			"grants": ["cms_brand#read", "cms_brand#ai_admin"],
+			"grants": ["cms_brand#read", "cms_brand#ai_admin", "cms_brand#ai_operator"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:ai_operator",
+			"name": {
+				"ro": "Operator AI",
+				"en": "AI operator"
+			},
+			"description": {
+				"ro": "Reindexează cunoștințele și pune întrebări de test; nu schimbă setările.",
+				"en": "Rebuilds the knowledge index and asks test questions; does not change settings."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_ai_operator",
+			"grants": ["cms_brand#read", "cms_brand#ai_operator"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:calendar_viewer",
+			"name": {
+				"ro": "Recepție (vizualizare)",
+				"en": "Reception (view)"
+			},
+			"description": {
+				"ro": "Vede calendarul și cererile, fără a decide.",
+				"en": "Sees the calendar and the requests, without deciding."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_calendar_viewer",
+			"grants": ["cms_brand#read", "cms_brand#calendar_viewer"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:calendar_manager",
+			"name": {
+				"ro": "Recepție",
+				"en": "Reception"
+			},
+			"description": {
+				"ro": "Confirmă, refuză și anulează cereri; ține programul și excepțiile.",
+				"en": "Confirms, declines and cancels requests; keeps the hours and exceptions."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_calendar_manager",
+			"grants": ["cms_brand#read", "cms_brand#calendar_viewer", "cms_brand#calendar_manager"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:privacy_officer",
+			"name": {
+				"ro": "Responsabil cu protecția datelor",
+				"en": "Privacy officer"
+			},
+			"description": {
+				"ro": "Caută conturi, vede consimțămintele, face export și ștergere în numele persoanei; fiecare vizualizare se jurnalizează.",
+				"en": "Looks up accounts, sees consents, exports and erases on the person's behalf; every view is logged."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_privacy_officer",
+			"grants": ["cms_brand#read", "cms_brand#privacy_officer"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:notifications_admin",
+			"name": {
+				"ro": "Administrator notificări",
+				"en": "Notifications administrator"
+			},
+			"description": {
+				"ro": "Vede abonații și livrările; trimite o notificare de test sieși.",
+				"en": "Sees subscribers and deliveries; sends a test notification to themselves."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_notifications_admin",
+			"grants": ["cms_brand#read", "cms_brand#notifications_admin"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "cms:site_manager",
+			"name": {
+				"ro": "Administrator site",
+				"en": "Site manager"
+			},
+			"description": {
+				"ro": "Ține setările sitului: contact, program, rețele, comutatoare.",
+				"en": "Keeps the site settings: contact, hours, social links, toggles."
+			},
+			"scope_type": "platform",
+			"relation": "role_cms_site_manager",
+			"grants": ["cms_brand#read", "cms_brand#site_manager"],
 			"assignable": true,
 			"max_duration": null
 		}

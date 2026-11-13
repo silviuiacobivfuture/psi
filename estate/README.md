@@ -13,6 +13,7 @@ What makes this repository THIS estate, and how it consumes SEB.
 | `seb-pieces.<env>`               | which SEB pieces each environment runs                                                                                                |
 | `seb-components/`                | the estate's own components for the pieces that read one                                                                              |
 | `seb-bundle-install.mjs`, `lib/` | installs the locked bundle into `.seb-bundle/` (run by `pnpm install` and by CI)                                                      |
+| `tests/app-seeds.test.sh`        | psi's application seeding procedures (`apps/*/seb.seed.sh`), run by SEB's real seed against its fake OpenBao: offline, each way proven |
 
 After install, `.seb-bundle/` holds SEB's tools (`tools/`, `doctor/`, `schema/`), its built
 libraries (`libs/npm/*.tgz`, `libs/go/…`) and its CI kit (`ci/actions/`), checked against the

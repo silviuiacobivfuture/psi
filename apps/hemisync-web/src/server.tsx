@@ -7,8 +7,9 @@ import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } fr
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
-import { account, guideForRequest } from "./account";
+import { account, bookingAccount, guideForRequest } from "./account";
 import { registerAccountRoutes } from "./account-routes";
+import { registerBooking } from "./booking-routes";
 import { registerCmsRevalidate } from "./cms";
 import { mountControl } from "./control";
 import { ESTATE, SITE } from "./estate";
@@ -19,6 +20,7 @@ import { pageRegistry, pageResolver } from "./page-context";
 import { HomePage } from "./pages/home";
 import { registerPages } from "./pages/register";
 import { registerPwa } from "./pwa/routes";
+import { bookingHref } from "./routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
@@ -69,19 +71,25 @@ for (const [locale, prefix] of [
 		);
 	});
 	registerAccountRoutes(app, locale);
+	registerBooking(app, locale);
 	// What the compass reports about its invitation: opened, nudge shown, nudge clicked (counters only).
 	app.post(`${prefix}/ghid/signal`, guideSignal({ reporter: guideCounts, locale }));
 	// The guide: a question streams its answer; the compass also restores and resets its chat here.
-	app.post(`${prefix}/ghid`, (c) =>
-		answerGuidePost(c, {
+	app.post(`${prefix}/ghid`, async (c) => {
+		// Signed in: the in-chat form is pre-filled, and the guide remembers only with consent.
+		const who = await bookingAccount(c, locale, bookingHref(locale));
+		return answerGuidePost(c, {
 			locale,
-			labels: guideLabels(locale),
+			labels: guideLabels(locale, {
+				prefill: who.prefill,
+				...(who.form === undefined ? {} : { account: who.form }),
+			}),
 			guide: () => guideForRequest(c, guide),
 			memory: () => accountMemory(account, c, "hemisync"),
 			page: pageResolver,
 			warm: pageRegistry.ensure,
-		}),
-	);
+		});
+	});
 }
 registerPages(app);
 
