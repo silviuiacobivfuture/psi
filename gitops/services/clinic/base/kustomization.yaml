@@ -5,8 +5,12 @@ resources:
   - namespace.yaml
   - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
+  - account-db.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
   - pdb.yaml
   - networkpolicy.yaml
+components:
+  # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
+  - ../../../components/prune-guard

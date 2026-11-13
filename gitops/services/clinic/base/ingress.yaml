@@ -13,8 +13,8 @@ metadata:
     gethomepage.dev/pod-selector: "app=clinic"
 spec:
   ingressClassName: traefik
-  tls: [{ hosts: [programari.psizone.ro], secretName: clinic-tls }]
+  tls: [{ hosts: [programari-dev.psizone.ro], secretName: clinic-tls }]
   rules:
-    - host: programari.psizone.ro
+    - host: programari-dev.psizone.ro
       http:
         paths: [{ path: /, pathType: Prefix, backend: { service: { name: clinic, port: { name: http } } } }]

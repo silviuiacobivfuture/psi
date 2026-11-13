@@ -1,7 +1,7 @@
 # scheduling-api's declaration to the platform (SEB schema/app.schema.json): what it runs, where its manifests are, which
 # secrets it reads. SEB's doctor derives its health checks from it. The host is public and gated by the service itself:
 # every route takes an estate SSO token or a service key, and each call is authorized with OpenFGA.
-# Plan: docs/plans/clinic.md (slice 3). NOT registered with Argo yet (gitops/apps/overlays/dev/apps/scheduling-api.yaml).
+# Plan: docs/plans/clinic.md (slice 3). Registered with Argo (gitops/apps/overlays/dev/apps/scheduling-api.yaml).
 schema: seb.app/v1
 key: scheduling-api
 name: scheduling-api
@@ -20,7 +20,7 @@ components:
       context: .
     port: 4380
     hosts:
-      - prefix: api-programari
+      - prefix: api-programari-dev
         exposure: public
         ingress: scheduling-api
     overlayImages:

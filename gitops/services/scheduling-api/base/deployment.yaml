@@ -64,7 +64,7 @@ spec:
           env:
             - { name: NODE_ENV, value: production }
             - { name: PORT, value: "4380" }
-            - { name: PUBLIC_URL, value: "https://api-programari.psizone.ro" }
+            - { name: PUBLIC_URL, value: "https://api-programari-dev.psizone.ro" }
             - { name: SCHEDULING_STORE, value: convex }
             - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
             - { name: AUTHZ, value: openfga }
@@ -79,7 +79,7 @@ spec:
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_BUCKET, value: psi-scheduling-dev }
             - { name: MAIL_FROM_NAME, value: Psizone }
-            - { name: CORS_ORIGINS, value: "https://programari.psizone.ro" }
+            - { name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro" }
           startupProbe:
             httpGet: { path: /health, port: http }
             periodSeconds: 3

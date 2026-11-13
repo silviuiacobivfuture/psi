@@ -1,10 +1,10 @@
-# Authentik Blueprint ConfigMap — psi's clinic console (apps/clinic, https://programari.psizone.ro): its
+# Authentik Blueprint ConfigMap — psi's clinic console (apps/clinic, https://programari-dev.psizone.ro on dev): its
 # OIDC provider and application, the team's group, and who may sign in.
 #
-# NOT YET REGISTERED: it takes effect only once it is listed in kustomization.yaml (as blueprints-cms.yaml
-# is) AND named under blueprints.configMaps in gitops/apps/overlays/dev/authentik.yaml, together with the
-# secretRef for authentik-clinic-oidc there — and only after secret/apps/clinic/oidc exists in OpenBao
-# (client_id, client_secret): an envFrom of a missing Secret would stop Authentik's pods.
+# Registered as blueprints-cms.yaml is: listed in kustomization.yaml, named under blueprints.configMaps in
+# gitops/apps/overlays/dev/authentik.yaml, with an OPTIONAL secretRef for authentik-clinic-oidc there (a client
+# not seeded yet never holds the directory down; the provider shows an empty client id meanwhile).
+# Production (programari.psizone.ro) gets its own client in a later change.
 #
 # The console signs in with the authorization code flow + PKCE (openid, email, profile). Sign-out goes
 # through default-invalidation-flow, as every provider here does.
@@ -50,14 +50,14 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
           redirect_uris:
             - matching_mode: strict
-              url: https://programari.psizone.ro/auth/callback
+              url: https://programari-dev.psizone.ro/auth/callback
       - model: authentik_core.application
         identifiers:
           slug: clinic
         attrs:
           name: Programări
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, clinic]]
-          meta_launch_url: https://programari.psizone.ro/calendar
+          meta_launch_url: https://programari-dev.psizone.ro/calendar
       # Without a binding an application lets ANY authenticated user through. Two bindings,
       # engine mode `any`: the editors' group, and `authentik Admins` (Authentik's own
       # superuser group, present in every directory) as break-glass — a binding must never

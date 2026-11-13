@@ -1,5 +1,5 @@
-# scheduling-api — psi's headless scheduling service (apps/scheduling-api), at api-programari.psizone.ro.
-# NOT registered with Argo yet: gitops/apps/overlays/dev/apps/scheduling-api.yaml is ready and unlisted.
+# scheduling-api — psi's headless scheduling service (apps/scheduling-api), at api-programari-dev.psizone.ro on dev.
+# Registered with Argo in gitops/apps/overlays/dev/apps/.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: scheduling-api

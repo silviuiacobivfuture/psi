@@ -1,6 +1,6 @@
 # Only psi's servers may call the store (the server key is the second lock).
 #
-#   INGRESS  :3210 from the pods of psizone-web and the CMS (each: namespace AND pod label in ONE
+#   INGRESS  :3210 from the pods of psizone-web, the CMS and scheduling-api (each: namespace AND pod label in ONE
 #            `from` element, an AND; two elements would be an OR) and from the scheduling-deploy
 #            Job's pods (same namespace). When EQ-SYNC / Hemi-Sync scheduling goes live (plan S9),
 #            add their namespace/pod pair here, in this file.
@@ -27,6 +27,10 @@ spec:
             matchLabels: { kubernetes.io/metadata.name: cms }
           podSelector:
             matchLabels: { app: cms }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling-api }
+          podSelector:
+            matchLabels: { app: scheduling-api }
       ports:
         - { protocol: TCP, port: 3210 }
   egress:

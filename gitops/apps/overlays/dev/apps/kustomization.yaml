@@ -10,3 +10,5 @@ resources:
   - design-gallery.yaml
   - scheduling-backend.yaml
   - scheduling-deploy.yaml
+  - scheduling-api.yaml
+  - clinic.yaml
