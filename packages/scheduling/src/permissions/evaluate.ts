@@ -77,7 +77,8 @@ const WIDEST_FIRST: ReadonlyArray<Scope> = ["all", "assigned", "own"];
  * - `denied_by_override`: it was granted but a personal deny removed every grant that applies.
  * - `field_group_not_granted`: the action is granted, but not for the field group asked.
  * - `scope_not_met`: granted for `assigned` or `own` only, and the thing is neither.
- * A key without a field group grants every group; a deny of it denies every group at that scope.
+ * A key without a field group grants identity only (name, status, ids); each field group needs its
+ * own key, and a deny of a key denies exactly that key.
  */
 export function can(
 	perms: EffectivePermissions,
@@ -96,9 +97,16 @@ export function can(
 	if (!def.actions.includes(action) || !groupOk) {
 		return { allowed: false, reason: "unknown_permission" };
 	}
+	// A field group is granted only by its own key; the key without a group is identity alone.
 	const hit = (set: ReadonlySet<string>, scope: Scope): boolean =>
-		set.has(permissionKey({ resource, action, scope })) ||
-		(group !== undefined && set.has(permissionKey({ resource, action, scope, fieldGroup: group })));
+		set.has(
+			permissionKey({
+				resource,
+				action,
+				scope,
+				...(group === undefined ? {} : { fieldGroup: group }),
+			}),
+		);
 	const standing: Scope[] = [];
 	let deniedAny = false;
 	for (const scope of WIDEST_FIRST) {

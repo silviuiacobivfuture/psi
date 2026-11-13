@@ -22,7 +22,7 @@ interface Grant {
 	readonly groups?: ReadonlyArray<BaseFieldGroup>;
 }
 
-/** The keys of grants: one per action x scope, and per group when groups are given. */
+/** The keys of grants: one per action x scope (identity), and one per group given. */
 function keysOf(grants: ReadonlyArray<Grant>): ReadonlyArray<string> {
 	const keys = new Set<string>();
 	for (const g of grants) {
@@ -32,8 +32,8 @@ function keysOf(grants: ReadonlyArray<Grant>): ReadonlyArray<string> {
 				if (!def.actions.includes(action) || !def.scopes.includes(scope)) {
 					throw new RangeError(`not in the catalogue: ${g.resource} ${action} ${scope}`);
 				}
-				if (g.groups === undefined)
-					keys.add(permissionKey({ resource: g.resource, action, scope }));
+				// The key without a group (identity) always comes with the groups chosen.
+				keys.add(permissionKey({ resource: g.resource, action, scope }));
 				for (const fieldGroup of g.groups ?? []) {
 					keys.add(permissionKey({ resource: g.resource, action, scope, fieldGroup }));
 				}
@@ -76,8 +76,9 @@ const assigned = (
 
 const REPORTS: ReadonlyArray<Resource> = [
 	"report_aba",
-	"report_race_me_up",
+	"report_racemeup",
 	"report_psychotherapy",
+	"report_custom",
 ];
 const CATALOGUE_VIEW: ReadonlyArray<Grant> = [
 	all("services", ["view"]),
@@ -117,6 +118,7 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 		permissions: keysOf([
 			...CATALOGUE_VIEW,
 			all("prices", ["view"]),
+			all("people", ["view"]),
 			all("calendars", ["view", "edit", "assign"]),
 			all(
 				"appointments",
@@ -144,8 +146,8 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			own("clients", ["view"], ["contact", "guardian", "clinical"]),
 			own("clients", ["edit"], ["clinical"]),
 			...REPORTS.map((r) => own(r, ["view", "create", "edit"])),
-			own("parent_questionnaires", ["view"]),
-			own("files", ["view", "create"]),
+			own("questionnaire_parent", ["view"]),
+			own("files", ["view", "upload"]),
 			own("reminders", ["view", "send"]),
 			own("roster", ["view"]),
 			own("leave", ["view", "create", "cancel"]),
@@ -160,7 +162,7 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			assigned("appointments", ["view", "edit"], ["core", "clinical"]),
 			assigned("clients", ["view"], ["contact", "guardian", "clinical"]),
 			...REPORTS.map((r) => assigned(r, ["view"])),
-			assigned("parent_questionnaires", ["view"]),
+			assigned("questionnaire_parent", ["view"]),
 			assigned("reminders", ["view"]),
 			assigned("roster", ["view"]),
 			assigned("leave", ["view", "approve"]),

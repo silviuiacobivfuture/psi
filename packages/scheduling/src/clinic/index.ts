@@ -92,7 +92,7 @@ export {
 	rosterProblem,
 	type StaffBlock,
 } from "./roster";
-export { SEED_FORM_TEMPLATES, TEMPLATE_RESOURCE } from "./templates";
+export { SEED_FORM_TEMPLATES } from "./templates";
 export {
 	ATTENDANCE,
 	type Attendance,

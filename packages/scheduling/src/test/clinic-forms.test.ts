@@ -6,11 +6,10 @@ import {
 	LONGTEXT_MAX,
 	SEED_FORM_TEMPLATES,
 	TABLE_CELL_MAX,
-	TEMPLATE_RESOURCE,
 	TEXT_MAX,
 	validateResponse,
 } from "../clinic";
-import { isPermissionKey } from "../permissions";
+import { isPermissionKey, recordResourceFor } from "../permissions";
 
 const template = (key: string): FormDefinition => {
 	const found = SEED_FORM_TEMPLATES.find((t) => t.key === key);
@@ -118,9 +117,7 @@ describe("the four seeded templates", () => {
 				expect(f.label.ro.length).toBeGreaterThan(0);
 				expect(f.label.en.length).toBeGreaterThan(0);
 			}
-			expect(
-				isPermissionKey(`${TEMPLATE_RESOURCE[t.key as keyof typeof TEMPLATE_RESOURCE]}_view_own`),
-			).toBe(true);
+			expect(isPermissionKey(`${recordResourceFor(t.key)}_view_own`)).toBe(true);
 		}
 	});
 
