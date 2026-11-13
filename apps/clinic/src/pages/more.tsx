@@ -7,12 +7,29 @@ import { m } from "../paraglide/messages.js";
 /** The phone's fourth tab: everything the bottom bar has no room for. */
 export async function MorePage(ctx: Ctx) {
 	const o = at(ctx.locale);
-	const items: ReadonlyArray<{ href: string; label: string; icon: AdminIcon }> = [
-		{ href: "/roster", label: m.nav_roster({}, o), icon: "briefcase" },
-		{ href: "/reminders", label: m.nav_reminders({}, o), icon: "chat" },
-		{ href: "/settings", label: m.nav_settings({}, o), icon: "settings" },
-		{ href: "/audit", label: m.nav_audit({}, o), icon: "list" },
+	const { can } = ctx;
+	const all: ReadonlyArray<{ href: string; label: string; icon: AdminIcon; open: boolean }> = [
+		{
+			href: "/roster",
+			label: m.nav_roster({}, o),
+			icon: "briefcase",
+			open: can.has("roster_view"),
+		},
+		{
+			href: "/reminders",
+			label: m.nav_reminders({}, o),
+			icon: "chat",
+			open: can.has("reminders_view"),
+		},
+		{
+			href: "/settings",
+			label: m.nav_settings({}, o),
+			icon: "settings",
+			open: can.any("people_view", "rooms_view", "devices_view", "services_view", "roles_view"),
+		},
+		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_view") },
 	];
+	const items = all.filter((i) => i.open);
 	return Page({
 		ctx,
 		current: "more",

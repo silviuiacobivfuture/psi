@@ -10,7 +10,15 @@ import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
 import type { WebRequest } from "../port/schema";
 
-function Request({ r, locale }: { r: WebRequest; locale: Locale }): JSX.Element {
+function Request({
+	r,
+	locale,
+	canDecide,
+}: {
+	r: WebRequest;
+	locale: Locale;
+	canDecide: boolean;
+}): JSX.Element {
 	const o = at(locale);
 	const when = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
 		new Date(r.receivedAt),
@@ -38,7 +46,7 @@ function Request({ r, locale }: { r: WebRequest; locale: Locale }): JSX.Element 
 					<Icon name="chat" />
 					{m.request_call({ phone: r.phone }, o)}
 				</a>
-				{r.handled ? null : (
+				{r.handled || !canDecide ? null : (
 					<button
 						type="button"
 						class="adm-btn adm-btn--primary"
@@ -53,6 +61,63 @@ function Request({ r, locale }: { r: WebRequest; locale: Locale }): JSX.Element 
 	);
 }
 
+export function RequestsBody({
+	all,
+	show,
+	failed,
+	ctx,
+}: {
+	all: ReadonlyArray<WebRequest>;
+	show: "open" | "handled";
+	failed: boolean;
+	ctx: Ctx;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	const list = all.filter((r) => r.handled === (show === "handled"));
+	return (
+		<div id="requests-live" class="adm-stack" style="display:contents">
+			{failed ? (
+				<Banner tone="error" icon="alert">
+					<strong>{m.error_title({}, o)}</strong>
+					<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
+					<a class="adm-btn" href="/requests">
+						{m.retry({}, o)}
+					</a>
+				</Banner>
+			) : list.length === 0 ? (
+				<EmptyState
+					icon="inbox"
+					title={m.requests_empty_title({}, o)}
+					text={m.requests_empty_text({}, o)}
+				/>
+			) : (
+				<div class="adm-stack" style="gap:var(--space-3)" id="requests">
+					{list.map((r) => (
+						<Request
+							key={r.id}
+							r={r}
+							locale={ctx.locale}
+							canDecide={ctx.can.write("requests_decide")}
+						/>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+/** The requests list again, for a live update. */
+export async function renderRequestsLive(ctx: Ctx, show: "open" | "handled"): Promise<JSX.Element> {
+	let all: ReadonlyArray<WebRequest> = [];
+	let failed = false;
+	try {
+		all = await ctx.port.requests(ctx.app);
+	} catch {
+		failed = true;
+	}
+	return <RequestsBody all={all} show={show} failed={failed} ctx={ctx} />;
+}
+
 export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	let all: ReadonlyArray<WebRequest> = [];
@@ -62,13 +127,12 @@ export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promis
 	} catch {
 		failed = true;
 	}
-	const list = all.filter((r) => r.handled === (show === "handled"));
 	return Page({
 		ctx,
 		current: "requests",
 		title: m.requests_title({}, o),
 		children: (
-			<div class="adm-page">
+			<div class="adm-page" data-init={`@get('/live?screen=requests&show=${show}')`}>
 				<Segmented
 					label={m.requests_filter({}, o)}
 					current={show}
@@ -81,27 +145,7 @@ export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promis
 						{ key: "handled", label: m.requests_handled({}, o), href: "/requests?show=handled" },
 					]}
 				/>
-				{failed ? (
-					<Banner tone="error" icon="alert">
-						<strong>{m.error_title({}, o)}</strong>
-						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-						<a class="adm-btn" href="/requests">
-							{m.retry({}, o)}
-						</a>
-					</Banner>
-				) : list.length === 0 ? (
-					<EmptyState
-						icon="inbox"
-						title={m.requests_empty_title({}, o)}
-						text={m.requests_empty_text({}, o)}
-					/>
-				) : (
-					<div class="adm-stack" style="gap:var(--space-3)" id="requests">
-						{list.map((r) => (
-							<Request key={r.id} r={r} locale={ctx.locale} />
-						))}
-					</div>
-				)}
+				<RequestsBody all={all} show={show} failed={failed} ctx={ctx} />
 			</div>
 		),
 	});

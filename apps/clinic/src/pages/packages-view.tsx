@@ -77,11 +77,14 @@ export function PackageCard({
 	pkg,
 	locale,
 	left,
+	canEdit = true,
 }: {
 	clientId: string;
 	pkg: Package;
 	locale: Locale;
 	left: number;
+	/** Without edit rights (or while only viewing as someone else) the fields are shown, not editable. */
+	canEdit?: boolean;
 }): JSX.Element {
 	const o = at(locale);
 	const base = `/clients/${clientId}/packages/${pkg.id}`;
@@ -117,7 +120,11 @@ export function PackageCard({
 				left={left}
 				locale={locale}
 			/>
-			<div class="pk__fields">
+			<fieldset
+				class="pk__fields"
+				disabled={!canEdit}
+				style="border:0;padding:0;margin:0;min-width:0"
+			>
 				<label class="adm-field pk__wide">
 					<span>{m.pkg_name({}, o)}</span>
 					<input class="adm-input" type="text" {...bind("name")} />
@@ -164,10 +171,12 @@ export function PackageCard({
 					<span>{m.pkg_note({}, o)}</span>
 					<textarea class="adm-input" {...bind("note")} />
 				</label>
-			</div>
-			<button class="adm-btn adm-btn--primary" type="submit">
-				{m.pkg_save({}, o)}
-			</button>
+			</fieldset>
+			{canEdit ? (
+				<button class="adm-btn adm-btn--primary" type="submit">
+					{m.pkg_save({}, o)}
+				</button>
+			) : null}
 		</form>
 	);
 }

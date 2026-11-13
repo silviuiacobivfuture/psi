@@ -10,6 +10,8 @@ export interface Person {
 /** What the console needs from sign-in: who is asking, where to send them, how they leave. */
 export interface Auth {
 	person(c: Context): Promise<Person | null>;
+	/** The person's token for calling the scheduling service AS them; null when there is none (signed out, or the fake). */
+	bearer(c: Context): Promise<string | null>;
 	signInHref(returnTo: string): string;
 	readonly signOutAction: string;
 }
@@ -23,6 +25,7 @@ export function accountAuth(account: Account): Auth {
 				? null
 				: { subject: p.subject, name: p.name ?? p.email ?? p.subject, email: p.email };
 		},
+		bearer: (c) => account.idToken(c),
 		signInHref: (returnTo) => account.signInHref(returnTo),
 		signOutAction: account.signOutAction,
 	};
@@ -37,5 +40,10 @@ export function devAuth(): Auth {
 		name: "Recepție Demo",
 		email: "recepție.demo@example.test",
 	};
-	return { person: async () => demo, signInHref: () => "/", signOutAction: "/dev-signout" };
+	return {
+		person: async () => demo,
+		bearer: async () => null,
+		signInHref: () => "/",
+		signOutAction: "/dev-signout",
+	};
 }

@@ -281,10 +281,12 @@ export function CalendarBody({
 					title={m.calendar_empty_title({}, o)}
 					text={m.calendar_empty_text({}, o)}
 				>
-					<a class="adm-btn adm-btn--primary" href="/calendar?new=1">
-						<Icon name="plus" />
-						{m.new_appointment({}, o)}
-					</a>
+					{ctx.can.write("appointments_create") ? (
+						<a class="adm-btn adm-btn--primary" href="/calendar?new=1">
+							<Icon name="plus" />
+							{m.new_appointment({}, o)}
+						</a>
+					) : null}
 				</EmptyState>
 			) : query.view === "day" ? (
 				<DayGrid data={data} date={date} locale={locale} today={today} nowMin={mins} />
@@ -348,29 +350,55 @@ function WeekBody({
 	);
 }
 
+/** The calendar's data for a query, as the grid shows it (an error is a state of the grid, not a crash). */
+async function loadCalendar(
+	ctx: Ctx,
+	query: z.infer<typeof CalendarQuerySchema>,
+): Promise<CalendarView> {
+	const date = query.date === "" ? todayIso() : query.date;
+	const { from, to } = rangeFor(query.view, date);
+	try {
+		return { data: await ctx.port.calendar(ctx.app, from, to), failed: false };
+	} catch {
+		return { data: null, failed: true };
+	}
+}
+
+/** The grid again, for a live update: the same markup the page was first served with, under the same id. */
+export async function renderCalendarLive(
+	ctx: Ctx,
+	query: z.infer<typeof CalendarQuerySchema>,
+): Promise<JSX.Element> {
+	return (
+		<div id="cal-live" style="display:contents">
+			<CalendarBody ctx={ctx} query={query} view={await loadCalendar(ctx, query)} />
+		</div>
+	);
+}
+
 export async function renderCalendar(
 	ctx: Ctx,
 	query: z.infer<typeof CalendarQuerySchema>,
 ): Promise<JSX.Element> {
 	const date = query.date === "" ? todayIso() : query.date;
-	const { from, to } = rangeFor(query.view, date);
-	let view: CalendarView;
-	try {
-		view = { data: await ctx.port.calendar(ctx.app, from, to), failed: false };
-	} catch {
-		view = { data: null, failed: true };
-	}
+	const view = await loadCalendar(ctx, query);
 	const o = at(ctx.locale);
 	const sheetData = view.data;
+	const live = new URLSearchParams({ screen: "calendar", view: query.view, date });
+	if (query.col !== undefined) live.set("col", query.col);
 	return Page({
 		ctx,
 		current: "calendar",
 		wide: true,
 		title: m.calendar_title({}, o),
-		children: <CalendarBody ctx={ctx} query={query} view={view} />,
+		children: (
+			<div id="cal-live" style="display:contents" data-init={`@get('/live?${live.toString()}')`}>
+				<CalendarBody ctx={ctx} query={query} view={view} />
+			</div>
+		),
 		overlays: (
 			<>
-				{sheetData === null ? null : (
+				{sheetData === null || !ctx.can.write("appointments_create") ? null : (
 					<NewSheet data={sheetData} date={date} locale={ctx.locale} open={query.new === "1"} />
 				)}
 			</>

@@ -56,14 +56,17 @@ function Row({
 	item,
 	app,
 	locale,
+	canSend,
 }: {
 	item: ReminderItem;
 	app: AppSlug;
 	locale: Locale;
+	/** Holds reminders_send (and is not only viewing as someone else): otherwise there is nothing to press. */
+	canSend: boolean;
 }): JSX.Element {
 	const o = at(locale);
-	const wa = whatsappHref(item, app, locale);
-	const mail = emailHref(item, app, locale);
+	const wa = canSend ? whatsappHref(item, app, locale) : null;
+	const mail = canSend ? emailHref(item, app, locale) : null;
 	const id = item.appointment.id;
 	const mark = { "data-on:click": `@post('/reminders/${id}/sent')` };
 	return (
@@ -165,7 +168,13 @@ export async function renderReminders(
 				) : (
 					<ul class="adm-stack" style="gap:var(--space-2);margin:0;padding:0;list-style:none">
 						{items.map((i) => (
-							<Row key={i.appointment.id} item={i} app={ctx.app} locale={ctx.locale} />
+							<Row
+								key={i.appointment.id}
+								item={i}
+								app={ctx.app}
+								locale={ctx.locale}
+								canSend={ctx.can.write("reminders_send")}
+							/>
 						))}
 					</ul>
 				)}

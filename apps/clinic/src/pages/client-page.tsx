@@ -5,6 +5,7 @@ import { ledger, sessionsLeft } from "../domain/ledger";
 import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { dayLong, hhmm } from "../lib/dates";
+import { CLIENT_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
@@ -103,7 +104,9 @@ export async function renderClient(
 ): Promise<JSX.Element> {
 	const { client, tab } = view;
 	const o = at(ctx.locale);
-	const tabs: Tab[] = CLIENT_TABS.map((t) => ({
+	// A tab the person may not open is not offered: no clinical tab without clinical, no packages without money.
+	const open = CLIENT_TABS.filter((t) => ctx.can.has(CLIENT_TAB_KEYS[t]));
+	const tabs: Tab[] = open.map((t) => ({
 		key: t,
 		label: tabLabel(t, ctx.locale),
 		href: `/clients/${client.id}${t === "overview" ? "" : `/${t}`}`,
@@ -140,30 +143,40 @@ export async function renderClient(
 						</div>
 					</div>
 					<div class="adm-row">
-						{client.status === "archived" ? null : (
+						{client.status === "archived" || !ctx.can.write("clients_archive") ? null : (
 							<button type="button" class="adm-btn" data-on:click="$askArchive = true">
 								<Icon name="archive" />
 								{m.archive_button({}, o)}
 							</button>
 						)}
-						<button type="button" class="adm-btn adm-btn--danger" data-on:click="$askDelete = true">
-							<Icon name="trash" />
-							{m.delete_button({}, o)}
-						</button>
+						{ctx.can.write("clients_delete") ? (
+							<button
+								type="button"
+								class="adm-btn adm-btn--danger"
+								data-on:click="$askDelete = true"
+							>
+								<Icon name="trash" />
+								{m.delete_button({}, o)}
+							</button>
+						) : null}
 					</div>
 				</div>
 				<Tabs tabs={tabs} selected={tab} label={m.tabs_label({}, o)} />
 				{tab === "overview" ? <Overview client={client} ctx={ctx} view={view} /> : null}
-				{tab === "appointments" ? <AppointmentsTab view={view} locale={ctx.locale} /> : null}
-				{tab === "packages" ? <PackagesTab view={view} locale={ctx.locale} /> : null}
-				{tab === "records" ? (
+				{tab === "appointments" && open.includes("appointments") ? (
+					<AppointmentsTab view={view} locale={ctx.locale} />
+				) : null}
+				{tab === "packages" && open.includes("packages") ? (
+					<PackagesTab view={view} ctx={ctx} />
+				) : null}
+				{tab === "records" && open.includes("records") ? (
 					<EmptyState
 						icon="file"
 						title={m.records_empty_title({}, o)}
 						text={m.records_empty_text({}, o)}
 					/>
 				) : null}
-				{tab === "files" ? (
+				{tab === "files" && open.includes("files") ? (
 					<EmptyState
 						icon="archive"
 						title={m.files_empty_title({}, o)}
@@ -219,18 +232,28 @@ function Overview({
 		<div class="adm-grid">
 			<div class="adm-card adm-stack">
 				<h3 class="adm-h2">{m.tab_overview({}, o)}</h3>
-				<Field label={m.guardian_label({}, o)} value={client.guardian} />
-				<Field label={m.phone_label({}, o)} value={client.phone} />
-				<Field label={m.email_label({}, o)} value={client.email} />
-				<Field label={m.note_label({}, o)} value={client.note} />
+				{ctx.can.group("guardian") ? (
+					<Field label={m.guardian_label({}, o)} value={client.guardian} />
+				) : null}
+				{ctx.can.group("contact") ? (
+					<>
+						<Field label={m.phone_label({}, o)} value={client.phone} />
+						<Field label={m.email_label({}, o)} value={client.email} />
+					</>
+				) : null}
+				{ctx.can.group("clinical") ? (
+					<Field label={m.note_label({}, o)} value={client.note} />
+				) : null}
 			</div>
-			<div class="adm-card adm-stack">
-				<h3 class="adm-h2">{m.tab_packages({}, o)}</h3>
-				<Field label={m.pkg_remaining({}, o)} value={formatMoney(owed, ctx.locale)} />
-				<a class="adm-btn" href={`/clients/${client.id}/packages`}>
-					{m.packages_title({}, o)}
-				</a>
-			</div>
+			{ctx.can.has("packages_view") && ctx.can.group("money") ? (
+				<div class="adm-card adm-stack">
+					<h3 class="adm-h2">{m.tab_packages({}, o)}</h3>
+					<Field label={m.pkg_remaining({}, o)} value={formatMoney(owed, ctx.locale)} />
+					<a class="adm-btn" href={`/clients/${client.id}/packages`}>
+						{m.packages_title({}, o)}
+					</a>
+				</div>
+			) : null}
 		</div>
 	);
 }
@@ -261,7 +284,8 @@ function AppointmentsTab({ view, locale }: { view: ClientView; locale: Locale })
 	);
 }
 
-function PackagesTab({ view, locale }: { view: ClientView; locale: Locale }): JSX.Element {
+function PackagesTab({ view, ctx }: { view: ClientView; ctx: Ctx }): JSX.Element {
+	const { locale } = ctx;
 	const o = at(locale);
 	if (view.packages.length === 0)
 		return <EmptyState icon="package" title={m.packages_none({}, o)} />;
@@ -274,6 +298,7 @@ function PackagesTab({ view, locale }: { view: ClientView; locale: Locale }): JS
 					pkg={p}
 					locale={locale}
 					left={sessionsLeft(p.sessions, p.bonus, p.used)}
+					canEdit={ctx.can.write("packages_edit")}
 				/>
 			))}
 		</div>
