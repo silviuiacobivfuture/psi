@@ -180,6 +180,14 @@ export {
 } from "./guide-stream";
 export { barePath } from "./invite-path";
 export {
+	Inbox,
+	type InboxData,
+	type InboxEntry,
+	type InboxLabels,
+	type InboxProps,
+	type InboxUrls,
+} from "./notifications/inbox";
+export {
 	createPageRegistry,
 	type PageRegistry,
 	type PageRegistryOptions,
