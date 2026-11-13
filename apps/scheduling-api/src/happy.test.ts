@@ -74,6 +74,12 @@ const spare = async (w: Populated): Promise<string> =>
 			})
 		).json.id,
 	);
+/** A note of its own for a case that changes or removes one. */
+const spareNote = async (w: Populated): Promise<string> =>
+	String(
+		(await olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "general", text: "a note" }))
+			.json.id,
+	);
 /** A week of the populated clinic, for the reports. */
 const REPORT_RANGE = `?from=${NOW}&to=${NOW + 7 * 24 * HOUR}`;
 let spareSeriesAt = 0;
@@ -277,6 +283,13 @@ const OWN: Record<
 	"reports.blacklistHits": (w) => olga(w, "GET", `/reports/blacklist-hits${REPORT_RANGE}`),
 	"reports.revenue": (w) => olga(w, "GET", `/reports/revenue${REPORT_RANGE}`),
 	"reports.csv": (w) => olga(w, "GET", `/reports/rates/csv${REPORT_RANGE}`),
+	"notes.list": (w) => olga(w, "GET", `/clients/${w.ids.c1}/notes`),
+	"notes.create": (w) =>
+		olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "plata", text: "pays by card" }),
+	"notes.update": async (w) =>
+		olga(w, "PATCH", `/notes/${await spareNote(w)}`, { text: "changed" }),
+	"notes.pin": async (w) => olga(w, "POST", `/notes/${await spareNote(w)}/pin`, { pinned: true }),
+	"notes.remove": async (w) => olga(w, "DELETE", `/notes/${await spareNote(w)}`),
 	"series.create": (w) =>
 		olga(w, "POST", "/series", {
 			practitionerId: w.ids.dora,

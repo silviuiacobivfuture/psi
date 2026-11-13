@@ -58,6 +58,13 @@ export async function eraseClinicData(
 		.collect();
 	for (const row of responses) await ctx.db.delete(row._id);
 
+	// What staff wrote about the client goes with them, the clinical notes above all.
+	const notes = await ctx.db
+		.query("clientNotes")
+		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
+		.collect();
+	for (const row of notes) await ctx.db.delete(row._id);
+
 	const values = await ctx.db
 		.query("customValues")
 		.withIndex("by_tenant_entity", (q) =>

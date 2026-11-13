@@ -1,10 +1,12 @@
 import { z } from "zod/v4";
 import { BlacklistOverride } from "./entities-blacklist";
+import { ClientNote } from "./entities-notes";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
 export * from "./entities-blacklist";
 export * from "./entities-files";
 export * from "./entities-money";
+export * from "./entities-notes";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
@@ -210,6 +212,11 @@ export const Client = z.object({
 	guardian: GuardianData.optional(),
 	money: MoneyData.optional(),
 	clinical: ClinicalData.optional(),
+	/**
+	 * The client's summary: their pinned notes, newest pin first, only on a single read (`clients.get`) and only those the
+	 * caller may read (a clinical note needs the clinical group of the notes permission).
+	 */
+	pinnedNotes: z.array(ClientNote).optional(),
 	...Stamps,
 });
 export const ClientCreate = z.object({
