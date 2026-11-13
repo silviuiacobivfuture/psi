@@ -179,7 +179,7 @@ export async function Page({
 		can.has("web_requests_view") ? item("requests", m.nav_requests({}, o), "inbox", open) : null,
 		can.has("roster_view") ? item("roster", m.nav_roster({}, o), "briefcase") : null,
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
-		can.has("reports_view") ? item("stats", m.nav_stats({}, o), "chart") : null,
+		can.has("reports_view_core") ? item("stats", m.nav_stats({}, o), "chart") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
 		can.has(PLATFORM_KEY)
 			? { ...item("platform", m.nav_platform({}, o), "shield"), zone: "admin" }

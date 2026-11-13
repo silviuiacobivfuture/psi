@@ -61,7 +61,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...clinical,
 		...catalog,
 		...admin,
-		...reportsGroup(sdk),
+		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};

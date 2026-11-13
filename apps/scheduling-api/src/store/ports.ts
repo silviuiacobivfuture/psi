@@ -160,6 +160,51 @@ export interface SeriesPort {
 	list(app: string, seriesId: string): Promise<AppointmentRow[]>;
 }
 
+/** What a report is asked: the window in instants, how to bucket it, and what the report in question narrows by. */
+export interface ReportQuery {
+	from: number;
+	to: number;
+	granularity: "day" | "week" | "month";
+	/** Appointments: what to count by. */
+	group?: "status" | "service" | "practitioner" | "room" | "device" | undefined;
+	statuses?: readonly string[] | undefined;
+	practitioner?: string | undefined;
+	room?: string | undefined;
+	device?: string | undefined;
+	service?: string | undefined;
+	client?: string | undefined;
+	source?: "visit" | "web" | undefined;
+	/** Rates: also per client. */
+	byClient?: boolean | undefined;
+	minBookings?: number | undefined;
+	/** The instant "outstanding" and "still to come" are measured at (the service's clock). */
+	now: number;
+}
+
+/**
+ * The nine reports, each the pure function of `@psi/scheduling/clinic` over the store's rows. The answer is the
+ * report as the function returns it, in the service's ids (the app's own zone does the bucketing); the service parses
+ * it against the contract before it leaves. Refusals are `StoreRefused`: `invalid_range`, `range_too_long`,
+ * `too_many_rows` (a store that would have to read more than it may), `unknown_tenant`, `invalid`.
+ */
+export interface ReportsPort {
+	run(
+		app: string,
+		name: ReportKind,
+		query: ReportQuery,
+	): Promise<{ timeZone: string; report: unknown; clients?: unknown }>;
+}
+export type ReportKind =
+	| "appointments"
+	| "utilisation"
+	| "rates"
+	| "clients"
+	| "packages"
+	| "funnel"
+	| "ratings"
+	| "blacklistHits"
+	| "revenue";
+
 export type FeedbackGroups = readonly ("core" | "contact")[];
 
 export interface FeedbackContactFields {

@@ -161,7 +161,7 @@ export function figuresFor(
 					rows.filter((a) => a.serviceId === s.id),
 				),
 			)
-			.filter((s) => s.appointments + s.cancelled > 0)
+			.filter((s) => s.appointments + (s.cancelled ?? 0) > 0)
 			.sort(byBusiest),
 		byRoom: rooms
 			.map((r) =>

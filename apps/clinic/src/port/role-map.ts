@@ -60,7 +60,7 @@ const KEYS = {
 	members: { view: "members_view", edit: "members_edit", cancel: "members_delete" },
 	roles: { view: "roles_view", create: "roles_create", edit: "roles_edit", cancel: "roles_delete" },
 	audit: { view: "audit_log_view" },
-	reports: { view: "reports_view" },
+	reports: { view: "reports_view_core" },
 } as const satisfies Record<string, Record<string, string>>;
 
 type Entry = { resource: string; action: string; key: string };

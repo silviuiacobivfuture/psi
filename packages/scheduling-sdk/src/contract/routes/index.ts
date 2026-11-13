@@ -4,6 +4,7 @@ import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
 import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
+import { REPORT_ROUTES } from "./team-reports";
 import { SERIES_ROUTES } from "./team-series";
 import { VISITOR_ROUTES } from "./visitor";
 
@@ -15,6 +16,7 @@ export const ROUTES = [
 	...CATALOG_ROUTES,
 	...CALENDAR_ROUTES,
 	...SERIES_ROUTES,
+	...REPORT_ROUTES,
 	...OPERATION_ROUTES,
 	...PLAN_ROUTES,
 	...BLACKLIST_ROUTES,

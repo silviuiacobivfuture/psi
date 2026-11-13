@@ -107,9 +107,13 @@ export function Tiles({
 			{tile(
 				"clients",
 				m.st_kpi_clients({}, o),
-				`${num(c.newClients, locale)} / ${num(c.returningClients, locale)}`,
-				against(c.newClients, p?.newClients, (n) => num(n, locale), "count", locale) ??
-					m.st_kpi_clients_hint({ n: c.newClients, r: c.returningClients }, o),
+				c.newClients === null || c.returningClients === null
+					? "—"
+					: `${num(c.newClients, locale)} / ${num(c.returningClients, locale)}`,
+				c.newClients === null || c.returningClients === null
+					? undefined
+					: (against(c.newClients, p?.newClients, (n) => num(n, locale), "count", locale) ??
+							m.st_kpi_clients_hint({ n: c.newClients, r: c.returningClients }, o)),
 			)}
 			{money && c.revenueBani !== null
 				? tile(
@@ -123,7 +127,7 @@ export function Tiles({
 				"packages",
 				m.st_kpi_packages({}, o),
 				num(s.packagesActive, locale),
-				m.st_kpi_packages_hint({ n: s.packagesEnding }, o),
+				s.packagesEnding === null ? undefined : m.st_kpi_packages_hint({ n: s.packagesEnding }, o),
 			)}
 			{tile(
 				"requests",

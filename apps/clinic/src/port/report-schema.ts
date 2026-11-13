@@ -19,9 +19,10 @@ const Slice = z.object({
 	id: z.string(),
 	name: z.string(),
 	appointments: Count,
-	attended: Count,
-	cancelled: Count,
-	noShow: Count,
+	/** `null`: the service does not split this figure by the slice (only the whole clinic's is known). */
+	attended: Count.nullable(),
+	cancelled: Count.nullable(),
+	noShow: Count.nullable(),
 	bookedMin: Count,
 	/** `null`: the person may not see money. */
 	revenueBani: Bani.nullable(),
@@ -40,8 +41,9 @@ export const FiguresSchema = z.object({
 	bookedMin: Count,
 	/** Minutes the team was on the roster (or the default working week when nothing was rostered). */
 	capacityMin: Count,
-	newClients: Count,
-	returningClients: Count,
+	/** `null`: the service cannot say it for one person alone. */
+	newClients: Count.nullable(),
+	returningClients: Count.nullable(),
 	revenueBani: Bani.nullable(),
 	requests: Count,
 	/** Web requests of the period that became a visit. */
@@ -62,7 +64,7 @@ export const SnapshotSchema = z.object({
 	month: Count,
 	packagesActive: Count,
 	/** Active packages with at most two sessions left (or none unused). */
-	packagesEnding: Count,
+	packagesEnding: Count.nullable(),
 });
 export type Snapshot = z.infer<typeof SnapshotSchema>;
 

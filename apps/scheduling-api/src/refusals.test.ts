@@ -16,6 +16,7 @@ const PARAMS: Record<string, string> = {
 	subject: "someone",
 	appointmentId: "x00000000002",
 	seriesId: "x00000000004",
+	report: "appointments",
 	reference: "ABCD-EFGH",
 	date: "2026-11-14",
 	kind: "forms",

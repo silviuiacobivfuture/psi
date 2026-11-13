@@ -40,6 +40,20 @@ interface Req {
 	createdAt: number;
 }
 
+/** A public booking as the reports read it. */
+export interface WebBooking {
+	id: string;
+	created: number;
+	channel: "form" | "guide";
+	status: "held" | "requested" | "confirmed" | "cancelled" | "declined" | "expired";
+	start: number;
+	end: number;
+	practitioner?: string;
+	service: string;
+	/** The visitor sent the booking in (it was not only held). */
+	submitted: boolean;
+}
+
 const MINUTE = 60_000;
 const HOLD_MINUTES = 10;
 /** Memory mode only: every practitioner works Monday to Friday, 09:00-17:00 (the Convex store holds the real rules). */
@@ -68,6 +82,7 @@ export function createMemoryVisitor(
 	bookings: {
 		byReference(app: string, reference: string): Rateable | undefined;
 		byId(app: string, id: string): Rateable | undefined;
+		web(app: string): WebBooking[];
 	};
 	state: () => unknown;
 } {
@@ -453,6 +468,26 @@ export function createMemoryVisitor(
 		byReference: (app: string, reference: string) => rateable(byReference(app, reference)),
 		byId: (app: string, id: string) =>
 			rateable(reqs.get(id)?.app === app ? reqs.get(id) : undefined),
+		/** The public bookings of an app, for the reports (a callback is not a booking, and a lapsed hold is `expired`). */
+		web: (app: string): WebBooking[] =>
+			[...reqs.values()]
+				.filter((r) => r.app === app && r.callback !== true && r.status !== "handled")
+				.map((r) => ({
+					id: r.id,
+					created: r.createdAt,
+					channel: r.channel ?? "form",
+					status:
+						r.status === "callback" || r.status === "handled"
+							? "cancelled"
+							: r.status === "held" && (r.expiresAt ?? 0) <= clock()
+								? "expired"
+								: r.status,
+					start: r.start,
+					end: r.end,
+					...(r.personId === undefined ? {} : { practitioner: r.personId }),
+					service: r.serviceSlug ?? "unknown",
+					submitted: r.status !== "held",
+				})),
 	};
 
 	return { visitor, requests, bookings, state: () => [...reqs.values()] };

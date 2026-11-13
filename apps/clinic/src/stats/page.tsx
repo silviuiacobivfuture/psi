@@ -127,9 +127,9 @@ function sliceRows(
 		rows: list.map((s) => [
 			s.name,
 			num(s.appointments, ctx.locale),
-			num(s.attended, ctx.locale),
-			num(s.cancelled, ctx.locale),
-			num(s.noShow, ctx.locale),
+			s.attended === null ? "—" : num(s.attended, ctx.locale),
+			s.cancelled === null ? "—" : num(s.cancelled, ctx.locale),
+			s.noShow === null ? "—" : num(s.noShow, ctx.locale),
 			hours(s.bookedMin, ctx.locale),
 			...(money ? [s.revenueBani === null ? "—" : formatMoney(s.revenueBani, ctx.locale)] : []),
 		]),
@@ -221,7 +221,7 @@ function Body({ ctx, view, report }: { ctx: Ctx; view: StatsView; report: Report
 							ctx={ctx}
 							id="stat-person"
 							title={m.st_c_person({}, o)}
-							list={c.byPerson.filter((s) => s.appointments + s.cancelled > 0)}
+							list={c.byPerson.filter((s) => s.appointments + (s.cancelled ?? 0) > 0)}
 							money={money}
 							linkPeople={(id) => hrefFor(view.query, { person: id })}
 						/>

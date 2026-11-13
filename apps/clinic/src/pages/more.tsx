@@ -41,7 +41,12 @@ export async function MorePage(ctx: Ctx) {
 			icon: "shield",
 			open: can.has(PLATFORM_KEY),
 		},
-		{ href: "/stats", label: m.nav_stats({}, o), icon: "chart", open: can.has("reports_view") },
+		{
+			href: "/stats",
+			label: m.nav_stats({}, o),
+			icon: "chart",
+			open: can.has("reports_view_core"),
+		},
 		{ href: "/me/profile", label: m.menu_profile({}, o), icon: "user", open: true },
 	];
 	const items = all.filter((i) => i.open);

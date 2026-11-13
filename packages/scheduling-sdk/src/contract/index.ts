@@ -13,6 +13,7 @@ export {
 export * from "./entities";
 export * from "./entities-feedback";
 export * from "./entities-plan";
+export * from "./entities-reports";
 export * from "./entities-series";
 export { ERROR_CODES, ERROR_STATUS, ErrorBody, type ErrorBodyType, type ErrorCode } from "./errors";
 export { buildOpenApi } from "./openapi";

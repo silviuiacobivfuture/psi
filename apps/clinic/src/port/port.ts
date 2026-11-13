@@ -207,7 +207,7 @@ export interface ClinicPort extends ProfilePort {
 	/**
 	 * The statistics of a period (and of the one to compare with, when asked), for the whole clinic or one person's
 	 * column. A service answers each figure only as far as this person's permissions reach (money needs the money group).
-	 * Refuses `unavailable` until the service serves the reports route.
+	 * Mapped onto the service's reports routes; a figure it cannot give for the slice asked is `null`.
 	 */
 	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */

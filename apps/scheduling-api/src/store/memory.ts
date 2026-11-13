@@ -2,6 +2,7 @@ import { currentActor } from "./actor";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
+import { createMemoryReports } from "./memory-reports";
 import { applyVisitRules } from "./memory-rules";
 import { createMemorySeries } from "./memory-series";
 import { applyTeamRules } from "./memory-team";
@@ -88,6 +89,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		blacklist: blacklist.port,
 		feedback: feedback.port,
 		series: createMemorySeries(c.appointments),
+		reports: createMemoryReports(c, bookings.web, feedback.port, blacklist.port),
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([

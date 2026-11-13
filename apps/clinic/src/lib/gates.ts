@@ -76,7 +76,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/reminders", ["reminders_view"]),
 	g("POST", "/reminders/[^/]+/sent", ["reminders_send"], true),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
-	g("GET", "/stats", ["reports_view"]),
+	g("GET", "/stats", ["reports_view_core"]),
 	g(
 		"GET",
 		"/settings",
