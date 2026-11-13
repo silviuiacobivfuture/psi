@@ -69,6 +69,7 @@ export interface ClinicPort {
 	columns(app: AppSlug): Promise<ReadonlyArray<Column>>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
+	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
 	pushPrefs(subject: string): Promise<PushPrefs>;
 	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;

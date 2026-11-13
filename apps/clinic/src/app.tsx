@@ -6,6 +6,7 @@ import type { Auth } from "./auth";
 import { Page } from "./chrome";
 import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
 import { at } from "./lib/i18n";
+import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerCalendarWrites } from "./pages/calendar-routes";
 import { registerClients } from "./pages/clients-routes";
@@ -15,6 +16,7 @@ import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
 import { renderRoster } from "./pages/roster";
 import { registerSearch } from "./pages/search";
+import { registerSettings } from "./pages/settings";
 import { m } from "./paraglide/messages.js";
 import type { ClinicPort } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
@@ -101,6 +103,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerSearch(app);
 	registerClients(app);
 	registerRequests(app);
+	registerSettings(app);
+	app.get("/audit", async (c) =>
+		c.html(await renderAudit(c.var.ctx), 200, { "cache-control": "private, no-store" }),
+	);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

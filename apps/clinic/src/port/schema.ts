@@ -145,6 +145,29 @@ export const ACTIONS = [
 export const SCOPES = ["all", "assigned", "own"] as const;
 export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
 
+/** Which actions make sense on which resource: the matrix offers nothing else. */
+export const RESOURCE_ACTIONS: Readonly<
+	Record<(typeof RESOURCES)[number]["key"], ReadonlyArray<(typeof ACTIONS)[number]>>
+> = {
+	appointments: ["view", "create", "edit", "cancel", "assign", "export"],
+	calendars: ["view", "edit", "assign"],
+	groups: ["view", "create", "edit", "cancel"],
+	clients: ["view", "create", "edit", "archive", "cancel", "export"],
+	clinical: ["view", "create", "edit", "export"],
+	files: ["view", "create", "cancel", "export"],
+	packages: ["view", "create", "edit", "cancel", "price"],
+	payments: ["view", "create", "edit", "export", "price"],
+	prices: ["view", "edit"],
+	roster: ["view", "edit", "export"],
+	leave: ["view", "create", "approve"],
+	reminders: ["view", "send"],
+	requests: ["view", "approve"],
+	settings: ["view", "edit"],
+	members: ["view", "create", "edit", "cancel"],
+	roles: ["view", "create", "edit", "cancel"],
+	audit: ["view", "export"],
+};
+
 export const ScopeSchema = z.enum(SCOPES);
 export const RoleSchema = z.object({
 	id: z.string(),

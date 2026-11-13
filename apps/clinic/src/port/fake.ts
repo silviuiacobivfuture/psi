@@ -229,6 +229,15 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("roles");
 			return data(app).roles;
 		},
+		async saveRole(app, role) {
+			guard("saveRole");
+			const d = data(app);
+			const i = d.roles.findIndex((r) => r.id === role.id);
+			if (i < 0) throw new PortError("not-found", role.id);
+			d.roles[i] = role;
+			log(d, "console", "role.save", role.id);
+			return role;
+		},
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
