@@ -21,10 +21,14 @@ async function mayTouchNote(
 	ctx: ActionCtx,
 	clientId: string,
 	noteId: string,
+	key: "notes_edit" | "notes_delete",
 ): Promise<boolean | null> {
 	const note = (await ctx.port.notes(ctx.app, clientId)).find((n) => n.id === noteId);
 	if (note === undefined) return null;
-	return note.authorSubject === ctx.actor.subject || ctx.can.write("clients_delete");
+	// The key held for `own` is the notes one wrote; held for `all` it is anyone's.
+	return note.authorSubject === ctx.actor.subject
+		? ctx.can.write(key)
+		: ctx.can.scopes(key).includes("all");
 }
 
 export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
@@ -135,7 +139,7 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 			palette: ["client"],
 		},
 		mobile: "bar",
-		needs: { write: ["clients_edit"] },
+		needs: { write: ["notes_create"] },
 		route: { method: "POST", path: "/clients/:id/notes" },
 		confirm: "none",
 		opens: "newNote",
@@ -161,11 +165,11 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		icon: "edit",
 		placements: { menu: ["client.notes"] },
 		mobile: "menu",
-		needs: { write: ["clients_edit"] },
+		needs: { write: ["notes_edit"] },
 		route: { method: "POST", path: "/clients/:id/notes/:nid" },
 		confirm: "none",
 		to: (e) => `${base(e.clientId ?? "")}/notes?edit=${encodeURIComponent(e.id ?? "")}`,
-		when: (ctx, e) => e.own === true || ctx.can.write("clients_delete"),
+		when: (ctx, e) => e.own === true || ctx.can.scopes("notes_edit").includes("all"),
 		params: z.object({
 			clientId: id,
 			id,
@@ -173,7 +177,7 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 			category: NoteCategorySchema,
 		}),
 		run: async (ctx, p) => {
-			const may = await mayTouchNote(ctx, p.clientId, p.id);
+			const may = await mayTouchNote(ctx, p.clientId, p.id, "notes_edit");
 			if (may === null) return { status: "refused", code: "not-found" };
 			if (!may || (p.category === "clinical" && !ctx.can.group("clinical")))
 				return { status: "refused", code: "forbidden" };
@@ -189,7 +193,7 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		icon: "check",
 		placements: { screen: ["client.notes", "client.overview"] },
 		mobile: "list",
-		needs: { write: ["clients_edit"] },
+		needs: { write: ["notes_pin"] },
 		route: { method: "POST", path: "/clients/:id/notes/:nid/pin" },
 		confirm: "none",
 		params: z.object({ clientId: id, id, pinned: flag }),
@@ -206,15 +210,15 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		icon: "trash",
 		placements: { menu: ["client.notes"] },
 		mobile: "menu",
-		needs: { write: ["clients_edit"] },
+		needs: { write: ["notes_delete"] },
 		route: { method: "POST", path: "/clients/:id/notes/:nid/delete" },
 		confirm: "confirm",
 		to: (e) =>
 			`${base(e.clientId ?? "")}/notes?confirm=note.delete&id=${encodeURIComponent(e.id ?? "")}`,
-		when: (ctx, e) => e.own === true || ctx.can.write("clients_delete"),
+		when: (ctx, e) => e.own === true || ctx.can.scopes("notes_delete").includes("all"),
 		params: z.object({ clientId: id, id }),
 		run: async (ctx, p) => {
-			const may = await mayTouchNote(ctx, p.clientId, p.id);
+			const may = await mayTouchNote(ctx, p.clientId, p.id, "notes_delete");
 			if (may === null) return { status: "refused", code: "not-found" };
 			if (!may) return { status: "refused", code: "forbidden" };
 			await ctx.port.deleteNote(ctx.app, p.id);

@@ -7,8 +7,8 @@ import {
 } from "@psi/scheduling/crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { sealedOf } from "./ports/crypto";
-import { ok, type Populated, populate } from "./testing/populate";
-import { createBareWorld, MASTER_KEY } from "./testing/world";
+import { createWorld, ok, type Populated } from "./testing/populate";
+import { MASTER_KEY } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 
@@ -30,7 +30,7 @@ describe("a client and a visit that came in through the import", () => {
 	let imp = "";
 	let bare = "";
 	beforeAll(async () => {
-		w = await populate(await createBareWorld());
+		w = await createWorld();
 		const made = async (name: string): Promise<string> =>
 			String(ok(await w.call("olga", "POST", `${A}/clients`, { name }), "client").id);
 		imp = await made("Imported Client");

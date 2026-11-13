@@ -74,15 +74,12 @@ export function appointmentsGroup(sdk: SdkContext) {
 			input: NewAppointment,
 		): Promise<ReadonlyArray<Appointment>> =>
 			run(async () => {
-				if (input.recurrence != null) throw soon("a weekly series of appointments");
-				if (input.status === "requested") throw soon("an appointment that waits for confirmation");
-				if (input.remind === false) throw soon("an appointment without its reminder");
 				const tz = await sdk.zone(app);
 				const minutes = await durationOf(app, input.serviceId, input.durationMin);
 				const start = instantOf(input.date, input.startMin, tz);
-				const made = await api.appointments.create({
+				const body = {
 					app,
-					kind: "session",
+					kind: "session" as const,
 					practitionerId: input.columnId,
 					clientId: input.clientId,
 					serviceId: input.serviceId,
@@ -91,9 +88,23 @@ export function appointmentsGroup(sdk: SdkContext) {
 					...(input.note === undefined || input.note === "" ? {} : { note: input.note }),
 					...(input.packageId == null ? {} : { packageId: input.packageId }),
 					...(input.priceBani === undefined ? {} : { priceCents: input.priceBani }),
+					...(input.status === "requested" ? { status: "requested" as const } : {}),
+					...(input.remind === false ? { remind: false } : {}),
 					...(await resources(app, input.resourceIds ?? [])),
-				});
-				return [appointmentOf(made, tz)];
+				};
+				const recurrence = input.recurrence;
+				// Every week or none: the service books the series in one step and names each one that stopped it.
+				if (recurrence != null) {
+					const series = await api.series.create({
+						...body,
+						recurrence:
+							recurrence.count !== undefined
+								? { count: recurrence.count }
+								: { until: recurrence.until },
+					});
+					return series.items.map((a) => appointmentOf(a, tz));
+				}
+				return [appointmentOf(await api.appointments.create(body), tz)];
 			}),
 
 		updateAppointment: (app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment> =>
@@ -102,15 +113,10 @@ export function appointmentsGroup(sdk: SdkContext) {
 				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
 				const changes = (key: keyof AppointmentPatch): boolean =>
 					patch[key] !== undefined && patch[key] !== held[key];
-				// What the service cannot change on an appointment that exists.
-				if (changes("clientId")) throw soon("moving an appointment to another client");
-				if (changes("serviceId")) throw soon("changing the service of an appointment");
-				if (changes("priceBani")) throw soon("changing the price of an appointment");
-				if (changes("remind")) throw soon("changing the reminder of an appointment");
-				if (patch.packageId === null && held.packageId !== null)
-					throw soon("taking an appointment out of its package");
-				if (patch.status === "cancelled" || patch.status === "requested")
+				// Cancelling has its reason (`cancelAppointment`), and a confirmed one never goes back to waiting.
+				if (patch.status === "cancelled" || (patch.status === "requested" && changes("status")))
 					throw new PortError("invalid", "cancel an appointment with its reason");
+				const confirms = held.status === "requested" && patch.status === "confirmed";
 				const startMin = patch.startMin ?? held.startMin;
 				const date = patch.date ?? held.date;
 				const timed = changes("date") || changes("startMin") || changes("durationMin");
@@ -126,6 +132,12 @@ export function appointmentsGroup(sdk: SdkContext) {
 						? { start, end: start + (patch.durationMin ?? held.durationMin) * MINUTE }
 						: {}),
 					...(changes("note") ? { note: patch.note } : {}),
+					...(changes("clientId") ? { clientId: patch.clientId } : {}),
+					...(changes("serviceId") ? { serviceId: patch.serviceId } : {}),
+					...(changes("priceBani") ? { priceCents: patch.priceBani } : {}),
+					...(changes("remind") ? { remind: patch.remind } : {}),
+					// `null` takes it out of its package; a package is chosen by id.
+					...(patch.packageId === null && held.packageId !== null ? { packageId: null } : {}),
 					...(patch.packageId != null && patch.packageId !== held.packageId
 						? { packageId: patch.packageId }
 						: {}),
@@ -134,7 +146,8 @@ export function appointmentsGroup(sdk: SdkContext) {
 				let latest = held;
 				if (Object.keys(body).length > 0)
 					latest = appointmentOf(await api.appointments.update({ app, id, ...body }), tz);
-				if (patch.status !== undefined && patch.status !== held.status)
+				if (confirms) latest = appointmentOf(await api.appointments.confirm({ app, id }), tz);
+				else if (patch.status !== undefined && patch.status !== held.status)
 					latest = appointmentOf(
 						await api.appointments.attendance({
 							app,
@@ -151,6 +164,71 @@ export function appointmentsGroup(sdk: SdkContext) {
 						tz,
 					);
 				return latest;
+			}),
+
+		updateSeries: (
+			app: AppSlug,
+			id: string,
+			patch: AppointmentPatch,
+			scope: "following" | "all",
+		): Promise<ReadonlyArray<Appointment>> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
+				if (held.seriesId === null) throw new PortError("invalid", "not part of a series");
+				const changes = (key: keyof AppointmentPatch): boolean =>
+					patch[key] !== undefined && patch[key] !== held[key];
+				// A series keeps its days and its state: what a person changes for many weeks is who, what, where and when in the day.
+				if (changes("date") || changes("status"))
+					throw new PortError(
+						"invalid",
+						"the date and the status are changed one appointment at a time",
+					);
+				const wanted = patch.resourceIds ?? held.resourceIds;
+				const moved = patch.resourceIds !== undefined && wanted.join() !== held.resourceIds.join();
+				const place = moved ? await resources(app, wanted) : {};
+				const out = await api.series.update({
+					app,
+					seriesId: held.seriesId,
+					occurrenceId: id,
+					scope,
+					...(patch.columnId !== undefined && patch.columnId !== held.columnId
+						? { practitionerId: patch.columnId }
+						: {}),
+					...(changes("startMin") ? { startMin: patch.startMin } : {}),
+					...(changes("durationMin") ? { durationMin: patch.durationMin } : {}),
+					...(changes("note") ? { note: patch.note } : {}),
+					...(changes("clientId") ? { clientId: patch.clientId } : {}),
+					...(changes("serviceId") ? { serviceId: patch.serviceId } : {}),
+					...(changes("priceBani") ? { priceCents: patch.priceBani } : {}),
+					...(changes("remind") ? { remind: patch.remind } : {}),
+					...(patch.packageId === null && held.packageId !== null ? { packageId: null } : {}),
+					...(patch.packageId != null && patch.packageId !== held.packageId
+						? { packageId: patch.packageId }
+						: {}),
+					...place,
+				});
+				return out.items.map((a) => appointmentOf(a, tz));
+			}),
+
+		cancelSeries: (
+			app: AppSlug,
+			id: string,
+			reason: string,
+			scope: "following" | "all",
+		): Promise<ReadonlyArray<Appointment>> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
+				if (held.seriesId === null) throw new PortError("invalid", "not part of a series");
+				const out = await api.series.cancel({
+					app,
+					seriesId: held.seriesId,
+					occurrenceId: id,
+					scope,
+					reason,
+				});
+				return out.items.map((a) => appointmentOf(a, tz));
 			}),
 
 		cancelAppointment: (app: AppSlug, id: string, reason: string): Promise<Appointment> =>

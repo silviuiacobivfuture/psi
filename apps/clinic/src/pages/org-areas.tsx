@@ -7,7 +7,6 @@ import { ORG_AREAS } from "../lib/areas";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import { renderAudit } from "./audit";
 import { OrgFrame, renderSoonArea } from "./org-settings";
 
 const NOCACHE = { "cache-control": "private, no-store" } as const;
@@ -84,7 +83,6 @@ export function registerOrgAreas(app: Hono<Env>): void {
 	app.get("/settings/blacklist", async (c) =>
 		c.html(await renderBlacklist(c.var.ctx), 200, NOCACHE),
 	);
-	app.get("/settings/audit", async (c) => c.html(await renderAudit(c.var.ctx), 200, NOCACHE));
 	for (const area of ORG_AREAS.filter((a) => !a.built))
 		app.get(area.href, async (c) => c.html(await renderSoonArea(c.var.ctx, area), 200, NOCACHE));
 	// The old addresses keep working.

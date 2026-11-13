@@ -76,6 +76,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/reminders", ["reminders_view"]),
 	g("POST", "/reminders/[^/]+/sent", ["reminders_send"], true),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
+	g("GET", "/stats", ["reports_view_core"]),
 	g(
 		"GET",
 		"/settings",
@@ -84,6 +85,7 @@ const GATES: ReadonlyArray<Gate> = [
 	...AREA_GATES,
 	...ACTION_GATES,
 	g("GET", "/audit", ["audit_log_view"]),
+	g("GET", "/settings/audit/[^/]+", ["audit_log_view"]),
 	g("GET", "/platform", [PLATFORM_KEY]),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];

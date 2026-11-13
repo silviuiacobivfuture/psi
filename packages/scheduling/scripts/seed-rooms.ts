@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { planFromSeed } from "../src/clinic/rooms-plan";
+import { roomsPlanDocument } from "../src/clinic/rooms-plan";
 import { parseRoomsSeed } from "../src/clinic/rooms-seed";
 
 /**
@@ -66,7 +66,9 @@ async function main(): Promise<void> {
 	}
 	const revision = Plan.parse(await call("GET", "/floor-plan")).revision;
 	const saved = Plan.parse(
-		await call("PUT", "/floor-plan", { doc: planFromSeed(seed, stored, revision) }),
+		await call("PUT", "/floor-plan", {
+			doc: roomsPlanDocument(seed, (id) => stored.get(id) ?? id, revision),
+		}),
 	);
 	console.log(
 		`${seed.app}: ${stored.size} rooms (${created} created), floor plan saved at revision ${saved.revision}`,

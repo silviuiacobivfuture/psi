@@ -50,7 +50,7 @@ export const ORG_AREAS = [
 	area("templates", "scheduling", ["app_settings_edit"], "chat", false),
 	area("blacklist", "clients", ["blacklist_view"], "alert", true),
 	area("feedback", "clients", ["feedback_view"], "chat", false),
-	area("reports", "clients", ["reports_view"], "list", false),
+	area("reports", "clients", ["app_settings_edit"], "list", false),
 	area("builder", "builder", ["builder_view"], "edit", false),
 	area("privacy", "data", ["app_settings_edit"], "shield", false),
 	area("audit", "data", ["audit_log_view"], "list", true),

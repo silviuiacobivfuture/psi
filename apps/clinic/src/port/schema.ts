@@ -260,12 +260,38 @@ export const WebRequestSchema = z.object({
 });
 export type WebRequest = z.infer<typeof WebRequestSchema>;
 
+/** Where a change came from: the console, the staff assistant, the public site, an import run, a service key. */
+export const AUDIT_SOURCES = ["console", "assistant", "site", "import", "api-key"] as const;
+export const AuditSourceSchema = z.enum(AUDIT_SOURCES);
+export type AuditSource = z.infer<typeof AuditSourceSchema>;
+
+/** One field that changed, as text: what it was and what it became (`null`: it had no value). */
+export const AuditChangeSchema = z.object({
+	field: z.string(),
+	before: z.string().nullable(),
+	after: z.string().nullable(),
+});
+export type AuditChange = z.infer<typeof AuditChangeSchema>;
+
 export const AuditEventSchema = z.object({
 	id: z.string(),
 	at: z.string(),
+	/** The person's subject, or a name where the store only kept one. */
 	actor: z.string(),
 	action: z.string(),
+	/** `type:id`, or a bare id where the store kept no type. */
 	target: z.string(),
+	targetType: z.string().optional(),
+	targetId: z.string().optional(),
+	/** Looking at the app as someone else: who it was (the actor is the administrator). */
+	asWhom: z.string().optional(),
+	/** The reason the person gave (a cancellation). */
+	reason: z.string().optional(),
+	source: AuditSourceSchema.optional(),
+	requestId: z.string().optional(),
+	ip: z.string().optional(),
+	device: z.string().optional(),
+	changes: z.array(AuditChangeSchema).optional(),
 });
 export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
@@ -277,6 +303,7 @@ export const RESOURCES = [
 	{ key: "clinical", group: "clients" },
 	{ key: "files", group: "clients" },
 	{ key: "blacklist", group: "clients" },
+	{ key: "notes", group: "clients" },
 	{ key: "packages", group: "money" },
 	{ key: "payments", group: "money" },
 	{ key: "prices", group: "money" },
@@ -288,6 +315,7 @@ export const RESOURCES = [
 	{ key: "members", group: "administration" },
 	{ key: "roles", group: "administration" },
 	{ key: "audit", group: "administration" },
+	{ key: "reports", group: "administration" },
 ] as const;
 export const ACTIONS = [
 	"view",
@@ -300,6 +328,7 @@ export const ACTIONS = [
 	"approve",
 	"assign",
 	"price",
+	"pin",
 ] as const;
 export const SCOPES = ["all", "assigned", "own"] as const;
 export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
@@ -315,6 +344,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	clinical: ["view", "create", "edit", "export"],
 	files: ["view", "create", "cancel", "export"],
 	blacklist: ["view", "create", "edit", "cancel", "approve"],
+	notes: ["view", "create", "edit", "cancel", "pin"],
 	packages: ["view", "create", "edit", "cancel", "price"],
 	payments: ["view", "create", "edit", "export", "price"],
 	prices: ["view", "edit"],
@@ -326,6 +356,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	members: ["view", "create", "edit", "cancel"],
 	roles: ["view", "create", "edit", "cancel"],
 	audit: ["view", "export"],
+	reports: ["view"],
 };
 
 export const ScopeSchema = z.enum(SCOPES);

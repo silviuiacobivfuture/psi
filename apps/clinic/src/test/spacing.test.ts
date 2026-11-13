@@ -32,6 +32,8 @@ const SCREENS = [
 	"/reminders?date=2026-11-16",
 	"/roster",
 	"/settings/roles",
+	"/stats",
+	"/me/profile",
 	"/settings/roles?new=1",
 	"/settings/people",
 	"/settings/people?new=1",
@@ -104,6 +106,11 @@ const MEASURE = `(() => {
 		const h = host.getBoundingClientRect();
 		const r = e.getBoundingClientRect();
 		if (r.left < h.left + 8 || r.right > h.right - 8) out.push({ rule: "fields keep 8px from the edge of their container", where: name(e) });
+	}
+	// 8. a row of tabs shows all its tabs: it wraps, it never hides some behind a sideways scroll
+	for (const tabs of document.querySelectorAll(".adm-tablist")) {
+		if (!shown(tabs)) continue;
+		if (tabs.scrollWidth > tabs.clientWidth + 1) out.push({ rule: "tabs are all in view", where: name(tabs) + " " + (tabs.scrollWidth - tabs.clientWidth) + "px hidden" });
 	}
 	// 5. nothing overflows the viewport sideways
 	const over = document.documentElement.scrollWidth - window.innerWidth;

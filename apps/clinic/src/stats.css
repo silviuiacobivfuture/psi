@@ -1,0 +1,119 @@
+/* Statistics: KPI tiles, charts drawn as SVG from the tokens, and the table beside each. */
+.stat-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+	gap: var(--adm-gap);
+}
+.stat-tiles > div > .adm-stat {
+	height: 100%;
+}
+.adm-toolbar > form.stat-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--adm-gap);
+	flex: 1 1 100%;
+	min-width: 0;
+	max-width: none;
+	margin-inline-start: 0;
+}
+.stat-page .adm-seg {
+	max-width: 100%;
+	overflow-x: auto;
+}
+.stat-heatscroll {
+	overflow-x: auto;
+}
+.stat-svg--heat {
+	min-width: 560px;
+}
+.stat-svg--bars {
+	max-width: 520px;
+}
+.stat-controls .adm-field {
+	flex: 1 1 140px;
+}
+.stat-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+	min-width: 0;
+}
+.stat-card .adm-h2 {
+	margin: 0;
+}
+.stat-pair {
+	display: grid;
+	gap: var(--adm-gap);
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+}
+.stat-svg {
+	display: block;
+	width: 100%;
+	max-width: 640px;
+	height: auto;
+	overflow: visible;
+}
+.stat-bar {
+	fill: var(--app);
+}
+.stat-cell {
+	fill: var(--app);
+}
+.stat-grid {
+	stroke: var(--line);
+	stroke-width: 1;
+}
+.stat-prev {
+	stroke: var(--ink-muted);
+	stroke-width: 2;
+	stroke-dasharray: 5 4;
+	stroke-linejoin: round;
+}
+.stat-axis,
+.stat-label,
+.stat-value,
+.stat-cellnum {
+	font: 500 12px / 1 var(--font-sans);
+	fill: var(--ink-muted);
+}
+.stat-label,
+.stat-value {
+	font-size: 13px;
+	fill: var(--ink);
+}
+.stat-value {
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+.stat-cellnum {
+	fill: var(--ink);
+	font-weight: 700;
+}
+.stat-link:focus-visible {
+	outline: 2px solid var(--focus, var(--app));
+	outline-offset: 2px;
+}
+.stat-link .stat-label {
+	text-decoration: underline;
+}
+.stat-table .adm-table th,
+.stat-table .adm-table td {
+	height: auto;
+	padding-block: var(--space-2);
+}
+.stat-table--tall {
+	max-height: 280px;
+	overflow-y: auto;
+}
+.stat-table .adm-table .stat-num {
+	text-align: right;
+}
+.stat-data > summary {
+	min-height: var(--adm-touch);
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+	font-weight: 600;
+}

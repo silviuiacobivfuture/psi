@@ -8,6 +8,10 @@
 			"./messages/{locale}.json",
 			"./messages/pwa/{locale}.json",
 			"./messages/appointments/{locale}.json",
+			"./messages/shell/{locale}.json",
+			"./messages/audit/{locale}.json",
+			"./messages/stats/{locale}.json",
+			"./messages/profile/{locale}.json",
 			"./messages/settings/{locale}.json",
 			"./messages/client/{locale}.json"
 		]

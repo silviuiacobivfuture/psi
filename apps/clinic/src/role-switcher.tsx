@@ -45,6 +45,15 @@ export function RoleMenuBody({
 	const names = new Map(roles.map((r) => [r.id, roleLabel(r)]));
 	return (
 		<div id={ROLE_MENU_BODY} class="role-switch__body">
+			{ctx.platformAdmin ? (
+				<>
+					<div class="adm-menu__item role-switch__option" aria-current="true" data-view-as-platform>
+						<span class="role-switch__name">{m.role_platform_admin({}, o)}</span>
+						<span class="adm-muted role-switch__hint">{m.view_as_platform_hint({}, o)}</span>
+					</div>
+					<div class="adm-menu__sep" />
+				</>
+			) : null}
 			<div class="role-switch__group" id="role-menu-roles">
 				{m.view_as_roles({}, o)}
 			</div>

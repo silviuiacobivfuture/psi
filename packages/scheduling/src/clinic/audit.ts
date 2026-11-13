@@ -42,6 +42,10 @@ export const AUDIT_ACTIONS = [
 	"feedback.status",
 	"feedback.link",
 	"feedback.erase",
+	"report.export",
+	"note.create",
+	"note.update",
+	"note.delete",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -64,6 +68,8 @@ export const AUDIT_ENTITIES = [
 	"import",
 	"blacklist",
 	"feedback",
+	"report",
+	"note",
 ] as const;
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number];
 

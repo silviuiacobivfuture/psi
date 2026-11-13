@@ -36,6 +36,13 @@
 	flex-direction: column;
 	gap: var(--adm-gap);
 }
+.cl-pin {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
 .cl-tab {
 	display: flex;
 	flex-direction: column;
@@ -215,7 +222,13 @@
 .cl-buttons > .adm-btn {
 	width: 100%;
 }
+.cl-buttons--sticky > .adm-btn {
+	flex: 1 1 0;
+	min-width: 0;
+	padding-inline: var(--space-2);
+}
 .cl-buttons--sticky {
+	flex-direction: row-reverse;
 	position: sticky;
 	bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom));
 	z-index: 5;
@@ -321,6 +334,43 @@
 		justify-content: flex-start;
 		padding-inline-start: calc(var(--adm-touch) + var(--space-3));
 	}
+}
+
+/* The blacklist panel in the appointment editor. */
+.cl-flagpanel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--adm-card-pad);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+}
+.cl-flagpanel--block {
+	border-color: var(--danger);
+}
+.cl-flagpanel--warn {
+	border-color: var(--status-requested);
+}
+.dt__flag {
+	margin: 0;
+}
+
+/* A flag on a calendar tile: a small icon by the name; its words are the tooltip, and the detail sheet on a tap. */
+.cl-tileflag {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-start: var(--space-1);
+}
+.cl-tileflag--block {
+	color: var(--danger);
+}
+.cl-tileflag--warn,
+.cl-tileflag--note {
+	color: var(--status-requested);
+}
+.cl-tileflag svg {
+	width: 14px;
+	height: 14px;
 }
 
 /* Working hours: a day per row, its two times beside it; the day's name above them on a narrow phone. */

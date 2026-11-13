@@ -2,6 +2,8 @@ import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/c
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { ProfilePort } from "./profile-port";
+import type { Report, ReportQuery } from "./report-schema";
 import type {
 	Appointment,
 	AppointmentPatch,
@@ -58,6 +60,8 @@ export interface CalendarData {
 	appointments: ReadonlyArray<Appointment>;
 	clients: ReadonlyArray<Client>;
 	services: ReadonlyArray<Service>;
+	/** What to flag on a client's tiles, by client id (the console fills it in for the days it shows). */
+	flags?: Readonly<Record<string, ClientFlag>>;
 }
 
 export interface ReminderItem {
@@ -121,7 +125,7 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort {
+export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
 	appointment(app: AppSlug, id: string): Promise<Appointment | null>;
@@ -133,6 +137,24 @@ export interface ClinicPort {
 	createAppointments(app: AppSlug, input: NewAppointment): Promise<ReadonlyArray<Appointment>>;
 	/** Moves, resizes, re-assigns or re-statuses one appointment; the same conflict rule applies. */
 	updateAppointment(app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment>;
+	/**
+	 * Changes this appointment and the ones after it (`following`), or every one still to come (`all`), of its weekly
+	 * series, all or nothing: a week that is taken refuses the whole change with `conflict` and nothing moves. The
+	 * date and the status are never changed this way. `invalid` when the appointment is in no series.
+	 */
+	updateSeries(
+		app: AppSlug,
+		id: string,
+		patch: AppointmentPatch,
+		scope: "following" | "all",
+	): Promise<ReadonlyArray<Appointment>>;
+	/** Cancels this appointment and the ones after it, or every one still to come, with the reason, all or nothing. */
+	cancelSeries(
+		app: AppSlug,
+		id: string,
+		reason: string,
+		scope: "following" | "all",
+	): Promise<ReadonlyArray<Appointment>>;
 	/** Cancels with a reason; the time becomes free. */
 	cancelAppointment(app: AppSlug, id: string, reason: string): Promise<Appointment>;
 	/** Records that the session was paid, and how. */
@@ -200,6 +222,12 @@ export interface ClinicPort {
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
+	/**
+	 * The statistics of a period (and of the one to compare with, when asked), for the whole clinic or one person's
+	 * column. A service answers each figure only as far as this person's permissions reach (money needs the money group).
+	 * Mapped onto the service's reports routes; a figure it cannot give for the slice asked is `null`.
+	 */
+	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
 	/** The app's team, for the "Vezi ca…" picker. */

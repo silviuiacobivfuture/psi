@@ -1,9 +1,14 @@
 import { z } from "zod/v4";
 import { BlacklistOverride } from "./entities-blacklist";
+import { DeviceFacts, PersonFacts, RoomFacts, ServiceFacts } from "./entities-catalog";
+import { ClientNote } from "./entities-notes";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
 export * from "./entities-blacklist";
+export * from "./entities-catalog";
+export * from "./entities-files";
 export * from "./entities-money";
+export * from "./entities-notes";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
@@ -93,6 +98,7 @@ export const Person = z.object({
 	active: z.boolean(),
 	external: z.boolean(),
 	color: z.string().max(20).optional(),
+	...PersonFacts,
 	...Stamps,
 });
 export const PersonCreate = z.object({
@@ -101,6 +107,7 @@ export const PersonCreate = z.object({
 	subject: Subject.optional(),
 	external: z.boolean().optional(),
 	color: z.string().max(20).optional(),
+	...PersonFacts,
 });
 export const PersonPatch = PersonCreate.partial().extend({ active: z.boolean().optional() });
 
@@ -109,6 +116,7 @@ export const Room = z.object({
 	name: Name,
 	kind: z.string().max(40),
 	capacity: z.number().int().min(1).max(200).optional(),
+	...RoomFacts,
 	active: z.boolean(),
 	...Stamps,
 });
@@ -116,16 +124,18 @@ export const RoomCreate = z.object({
 	name: Name,
 	kind: z.string().max(40),
 	capacity: z.number().int().min(1).max(200).optional(),
+	...RoomFacts,
 });
 export const RoomPatch = RoomCreate.partial().extend({ active: z.boolean().optional() });
 export const Device = z.object({
 	id: Id,
 	name: Name,
 	roomId: Id.optional(),
+	...DeviceFacts,
 	active: z.boolean(),
 	...Stamps,
 });
-export const DeviceCreate = z.object({ name: Name, roomId: Id.optional() });
+export const DeviceCreate = z.object({ name: Name, roomId: Id.optional(), ...DeviceFacts });
 export const DevicePatch = DeviceCreate.partial().extend({ active: z.boolean().optional() });
 export const Group = z.object({
 	id: Id,
@@ -152,6 +162,7 @@ export const Service = z.object({
 	bufferMinutes: z.number().int().min(0).max(240),
 	modes: z.array(z.enum(["onsite", "online"])).min(1),
 	practitionerIds: z.array(Id),
+	...ServiceFacts,
 	active: z.boolean(),
 	prices: Prices.optional(),
 	...Stamps,
@@ -163,6 +174,7 @@ const ServiceBase = z.object({
 	bufferMinutes: z.number().int().min(0).max(240),
 	modes: z.array(z.enum(["onsite", "online"])).min(1),
 	practitionerIds: z.array(Id).max(100),
+	...ServiceFacts,
 });
 export const ServiceCreate = ServiceBase.extend({
 	bufferMinutes: ServiceBase.shape.bufferMinutes.default(0),
@@ -211,6 +223,11 @@ export const Client = z.object({
 	guardian: GuardianData.optional(),
 	money: MoneyData.optional(),
 	clinical: ClinicalData.optional(),
+	/**
+	 * The client's summary: their pinned notes, newest pin first, only on a single read (`clients.get`) and only those the
+	 * caller may read (a clinical note needs the clinical group of the notes permission).
+	 */
+	pinnedNotes: z.array(ClientNote).optional(),
 	...Stamps,
 });
 export const ClientCreate = z.object({
@@ -229,7 +246,17 @@ export const ClientTreating = z.object({
 });
 
 export const AppointmentKind = z.enum(["session", "block", "group"]);
-export const AppointmentStatus = z.enum(["scheduled", "attended", "no_show", "cancelled"]);
+/**
+ * `requested`: booked by the team but waiting for the client to confirm; it holds the time like a confirmed one does,
+ * takes no attendance and no reminder, and `appointments.confirm` turns it into `scheduled`.
+ */
+export const AppointmentStatus = z.enum([
+	"requested",
+	"scheduled",
+	"attended",
+	"no_show",
+	"cancelled",
+]);
 export const AppointmentMoney = z.object({
 	priceCents: Money,
 	paidCents: Money,
@@ -250,6 +277,10 @@ export const Appointment = z.object({
 	start: Ms,
 	end: Ms,
 	note: z.string().max(500).optional(),
+	/** The day-before reminder is sent for this one (the default); false leaves it off the reminder list. */
+	remind: z.boolean(),
+	/** The weekly series it is one of (see `series.create`); absent for one that stands alone. */
+	seriesId: Id.optional(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
 	/** The `clinical` group: present on one appointment (not in a list) for a caller who may see it. */
@@ -272,16 +303,28 @@ export const AppointmentCreate = z.object({
 	end: Ms,
 	note: z.string().max(500).optional(),
 	priceCents: Money.optional(),
+	/** `requested` books it without confirming it (see `AppointmentStatus`). */
+	status: z.enum(["scheduled", "requested"]).default("scheduled"),
+	remind: z.boolean().default(true),
 	override: BlacklistOverride.optional(),
 });
+/**
+ * Every field optional, only what is present changes. `packageId: null` takes the appointment out of its package.
+ * `clientId` moves it to another client (whose blacklist standing is checked, and whose package it must then be drawn
+ * from or none), `serviceId` and `remind` are plain changes, and `priceCents` is a change of the money group.
+ */
 export const AppointmentPatch = z.object({
-	packageId: Id.optional(),
+	clientId: Id.optional(),
+	serviceId: Id.optional(),
+	packageId: Id.nullable().optional(),
 	practitionerId: Id.optional(),
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
 	start: Ms.optional(),
 	end: Ms.optional(),
 	note: z.string().max(500).optional(),
+	priceCents: Money.optional(),
+	remind: z.boolean().optional(),
 	override: BlacklistOverride.optional(),
 });
 export const AppointmentCancel = z.object({ reason: z.string().trim().min(2).max(300) });
@@ -376,28 +419,6 @@ export const RecordCreate = z.object({
 	data: z.record(z.string(), z.unknown()),
 });
 export const RecordPatch = z.object({ data: z.record(z.string(), z.unknown()) });
-
-export const FileMeta = z.object({
-	id: Id,
-	clientId: Id,
-	name: z.string().max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1),
-	status: z.enum(["pending", "ready"]),
-	uploadedBy: Subject,
-	...Stamps,
-});
-export const FileInit = z.object({
-	name: z.string().trim().min(1).max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1).max(50_000_000),
-});
-export const SignedUrl = z.object({
-	url: z.string().url(),
-	expiresAt: Ms,
-	method: z.enum(["GET", "PUT"]),
-});
-export const FileInitResult = z.object({ file: FileMeta, upload: SignedUrl });
 
 export const AuditEvent = z.object({
 	id: Id,

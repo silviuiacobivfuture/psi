@@ -6,6 +6,7 @@ import { fail, forbidden } from "../http/errors";
 import { FIELDS } from "../ports/crypto";
 import type { ClientRow } from "../store/types";
 import { clientGroupReach, clientView, clinicalOf } from "./fields";
+import { readableNotes } from "./notes";
 import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
 
 const GROUPS = [
@@ -101,7 +102,13 @@ export const clientHandlers: HandlersOf<
 
 	async "clients.get"(ctx) {
 		const row = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
-		return view(ctx, row);
+		// The summary carries the pinned notes the caller may read (a clinical one only with the clinical group).
+		// Like a field group the caller lacks, it is ABSENT (not empty) for a role with no notes key at all.
+		const holds = (await ctx.scopesOf("notes_view")).length > 0;
+		return {
+			...(await view(ctx, row)),
+			...(holds ? { pinnedNotes: await readableNotes(ctx, row.id, true) } : {}),
+		};
 	},
 
 	async "clients.update"(ctx) {

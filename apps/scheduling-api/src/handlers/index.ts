@@ -1,17 +1,22 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Handler, Handlers } from "../http/context";
 import { adminHandlers } from "./admin";
+import { appointmentEditHandlers } from "./appointment-edit";
 import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
 import { blacklistHandlers } from "./blacklist";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
 import { feedbackHandlers } from "./feedback";
+import { fileHandlers } from "./files";
 import { floorPlanHandlers } from "./floorplan";
+import { noteHandlers } from "./notes";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
+import { reportHandlers } from "./reports";
 import { rosterHandlers } from "./roster";
+import { seriesHandlers } from "./series";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
@@ -21,10 +26,15 @@ const complete: Handlers = {
 	...catalogHandlers,
 	...clientHandlers,
 	...appointmentHandlers,
+	...appointmentEditHandlers,
+	...seriesHandlers,
+	...noteHandlers,
+	...reportHandlers,
 	...packageHandlers,
 	...rosterHandlers,
 	...reminderHandlers,
 	...recordHandlers,
+	...fileHandlers,
 	...floorPlanHandlers,
 	...blacklistHandlers,
 	...feedbackHandlers,

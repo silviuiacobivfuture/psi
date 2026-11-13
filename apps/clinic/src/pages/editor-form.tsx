@@ -11,6 +11,12 @@ import { initials } from "./appt-tile";
 
 export const DURATIONS = [20, 40, 60, 80, 120] as const;
 
+/** The room a service goes in by default: the first of its category (neurofeedback and QEEG need a neuro room). */
+export function roomFor(service: Service | undefined, rooms: ReadonlyArray<Column>): string {
+	const category = service?.roomCategory;
+	return category === undefined ? "" : (rooms.find((r) => r.category === category)?.id ?? "");
+}
+
 export function blankEditor(p: {
 	date: string;
 	startMin: number;
@@ -43,6 +49,8 @@ export function blankEditor(p: {
 		nName: "",
 		nPhone: "",
 		nGuardian: "",
+		series: "",
+		scope: "this",
 		override: "",
 	};
 }
@@ -68,6 +76,7 @@ export function editorOf(
 		device: a.resourceIds.find((r) => kind(r) === "device") ?? "",
 		pkg: a.packageId ?? "",
 		price: moneyInput(a.priceBani, locale),
+		series: a.seriesId ?? "",
 	};
 }
 
@@ -107,6 +116,8 @@ export interface EditorFormProps {
 	clients: JSX.Element;
 	conflicts: JSX.Element;
 	packages: JSX.Element;
+	/** The blacklist warning or block for the chosen client (empty when not listed). */
+	blacklist: JSX.Element;
 }
 
 /** The appointment editor: one form, one save. Its live parts (matches, conflicts, packages) are patched in as you type. */
@@ -185,6 +196,8 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 				</div>
 			</section>
 
+			{p.blacklist}
+
 			<section class="ed-section" aria-labelledby="ed-when-h">
 				<h4 class="ed-h" id="ed-when-h">
 					{m.ap_when({}, o)}
@@ -194,13 +207,14 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 					field="svc"
 					attrs={{
 						"data-on:change":
-							"$ed.dur = Number(el.selectedOptions[0].dataset.dur); $ed.price = el.selectedOptions[0].dataset.price",
+							"$ed.dur = Number(el.selectedOptions[0].dataset.dur); $ed.price = el.selectedOptions[0].dataset.price; if (el.selectedOptions[0].dataset.room) $ed.room = el.selectedOptions[0].dataset.room",
 					}}
 				>
 					{p.services.map((s) => (
 						<option
 							key={s.id}
 							value={s.id}
+							data-room={roomFor(s, rooms)}
 							data-dur={String(s.durationMin)}
 							data-price={moneyInput(s.priceBani ?? 0, p.locale)}
 						>
@@ -255,10 +269,16 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 					{rooms.length === 0 ? null : (
 						<Select label={m.column_room({}, o)} field="room">
 							<option value="">{m.ap_none({}, o)}</option>
-							{rooms.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.name}
-								</option>
+							{(["therapy", "neuro"] as const).map((cat) => (
+								<optgroup key={cat} label={m[`cat_room_${cat}` as const]({}, o)}>
+									{rooms
+										.filter((c) => (c.category ?? "therapy") === cat)
+										.map((c) => (
+											<option key={c.id} value={c.id}>
+												{c.name}
+											</option>
+										))}
+								</optgroup>
 							))}
 						</Select>
 					)}
@@ -323,6 +343,13 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 					<input type="checkbox" {...bind("remind")} />
 					<span>{m.ap_remind({}, o)}</span>
 				</label>
+				{editing && e.series !== "" ? (
+					<Select label={m.ap_scope({}, o)} field="scope">
+						<option value="this">{m.ap_scope_this({}, o)}</option>
+						<option value="following">{m.ap_scope_following({}, o)}</option>
+						<option value="all">{m.ap_scope_all({}, o)}</option>
+					</Select>
+				) : null}
 				{editing ? null : (
 					<div class="adm-stack">
 						<Select label={m.ap_repeat({}, o)} field="rec">

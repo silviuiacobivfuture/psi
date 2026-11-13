@@ -15,6 +15,8 @@ const PARAMS: Record<string, string> = {
 	id: "x00000000001",
 	subject: "someone",
 	appointmentId: "x00000000002",
+	seriesId: "x00000000004",
+	report: "appointments",
 	reference: "ABCD-EFGH",
 	date: "2026-11-14",
 	kind: "forms",
@@ -26,6 +28,12 @@ const pathOf = (spec: RouteSpec, app = "psizone"): string =>
 /** The two routes whose permission target is named in the body need one to get as far as the check. */
 const BODIES: Record<string, unknown> = {
 	"appointments.create": { practitionerId: "x00000000003", start: 1, end: 2 },
+	"series.create": {
+		practitionerId: "x00000000003",
+		start: 1,
+		end: 2,
+		recurrence: { count: 2 },
+	},
 	"leave.create": { personId: "x00000000003", from: "2026-12-01", to: "2026-12-02", kind: "co" },
 };
 const bodyOf = (spec: RouteSpec): unknown =>

@@ -5,7 +5,7 @@ import { CAPSULE_FULLSCREEN_JS } from "../client/compass-chat.generated";
 import { CapsuleBar, CapsuleLive, CapsuleSheet } from "../components/capsule";
 import { STAFF_ASSISTANT_JS } from "./client.generated";
 import { SaIcon } from "./icons";
-import { jsString } from "./safe";
+import { jsString, sendExpression, submitExpression } from "./safe";
 
 export interface StaffCapsuleProps {
 	/** The assistant's words, from the console's i18n (`staffCopy(locale).panel` fits). */
@@ -27,7 +27,7 @@ function signalsOf(page: StaffPage, threadId: string): string {
 	return JSON.stringify({
 		compassOpen: false,
 		compassChat: true,
-		staff: { briefed: false, message: "", threadId, page },
+		staff: { briefed: false, busy: false, message: "", threadId, page },
 	});
 }
 
@@ -107,7 +107,8 @@ export function StaffCapsule({
 							<button
 								type="button"
 								class="sa-chipbtn"
-								data-on:click={`$staff.message = ${jsString(text)}; @post(${jsString(`${base}/chat`)})`}
+								data-attr:disabled="$staff.busy"
+								data-on:click={sendExpression(base, text)}
 							>
 								{text}
 							</button>
@@ -122,7 +123,7 @@ export function StaffCapsule({
 				toggleLabel={labels.title}
 				sendLabel={labels.send}
 				kbd={labels.shortcut}
-				onSubmit={`if ($staff.message.trim() !== '') { $compassOpen = true; @post(${jsString(`${base}/chat`)}) }`}
+				onSubmit={submitExpression(base, true)}
 				field={{
 					label: labels.title,
 					placeholder: labels.placeholders[page.screen],

@@ -1,4 +1,4 @@
-import { ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import { FileInitResult, ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { EXTRA_HAPPY, type ExtraId } from "./happy-extra";
 import type { Populated } from "./testing/populate";
@@ -73,6 +73,28 @@ const spare = async (w: Populated): Promise<string> =>
 				end: NOW + 6 * 24 * HOUR + HOUR,
 			})
 		).json.id,
+	);
+/** A note of its own for a case that changes or removes one. */
+const spareNote = async (w: Populated): Promise<string> =>
+	String(
+		(await olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "general", text: "a note" }))
+			.json.id,
+	);
+/** A week of the populated clinic, for the reports. */
+const REPORT_RANGE = `?from=${NOW}&to=${NOW + 7 * 24 * HOUR}`;
+let spareSeriesAt = 0;
+/** A series of two appointments, a day further on each time so that no two meet. */
+const spareSeries = async (w: Populated): Promise<string> =>
+	String(
+		(
+			await olga(w, "POST", "/series", {
+				practitionerId: w.ids.dora,
+				clientId: w.ids.c1,
+				start: NOW + (400 + 24 * ++spareSeriesAt) * HOUR,
+				end: NOW + (401 + 24 * spareSeriesAt) * HOUR,
+				recurrence: { count: 2 },
+			})
+		).json.seriesId,
 	);
 const newClient = async (w: Populated): Promise<string> =>
 	String((await olga(w, "POST", "/clients", { name: "Disposable Client" })).json.id);
@@ -241,6 +263,60 @@ const OWN: Record<
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>
 		olga(w, "PATCH", `/appointments/${w.ids.a1}`, { note: "bring the book" }),
+	"appointments.confirm": async (w) => {
+		const a = await olga(w, "POST", "/appointments", {
+			practitionerId: w.ids.dora,
+			clientId: w.ids.c1,
+			start: NOW + 96 * HOUR,
+			end: NOW + 97 * HOUR,
+			status: "requested",
+		});
+		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
+	},
+	"reports.appointments": (w) => olga(w, "GET", `/reports/appointments${REPORT_RANGE}`),
+	"reports.utilisation": (w) => olga(w, "GET", `/reports/utilisation${REPORT_RANGE}`),
+	"reports.rates": (w) => olga(w, "GET", `/reports/rates${REPORT_RANGE}&byClient=true`),
+	"reports.clients": (w) => olga(w, "GET", `/reports/clients${REPORT_RANGE}`),
+	"reports.packages": (w) => olga(w, "GET", `/reports/packages${REPORT_RANGE}`),
+	"reports.funnel": (w) => olga(w, "GET", `/reports/funnel${REPORT_RANGE}`),
+	"reports.ratings": (w) => olga(w, "GET", `/reports/ratings${REPORT_RANGE}`),
+	"reports.blacklistHits": (w) => olga(w, "GET", `/reports/blacklist-hits${REPORT_RANGE}`),
+	"reports.revenue": (w) => olga(w, "GET", `/reports/revenue${REPORT_RANGE}`),
+	"reports.csv": (w) => olga(w, "GET", `/reports/rates/csv${REPORT_RANGE}`),
+	"notes.list": (w) => olga(w, "GET", `/clients/${w.ids.c1}/notes`),
+	"notes.create": (w) =>
+		olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "plata", text: "pays by card" }),
+	"notes.update": async (w) =>
+		olga(w, "PATCH", `/notes/${await spareNote(w)}`, { text: "changed" }),
+	"notes.pin": async (w) => olga(w, "POST", `/notes/${await spareNote(w)}/pin`, { pinned: true }),
+	"notes.remove": async (w) => olga(w, "DELETE", `/notes/${await spareNote(w)}`),
+	"series.create": (w) =>
+		olga(w, "POST", "/series", {
+			practitionerId: w.ids.dora,
+			clientId: w.ids.c1,
+			start: NOW + 120 * HOUR,
+			end: NOW + 121 * HOUR,
+			recurrence: { count: 3 },
+		}),
+	"series.get": async (w) => olga(w, "GET", `/series/${await spareSeries(w)}`),
+	"series.update": async (w) => {
+		const id = await spareSeries(w);
+		const items = (await olga(w, "GET", `/series/${id}`)).json.items as { id: string }[];
+		return olga(w, "PATCH", `/series/${id}`, {
+			occurrenceId: items[0]?.id,
+			scope: "all",
+			note: "bring the book",
+		});
+	},
+	"series.cancel": async (w) => {
+		const id = await spareSeries(w);
+		const items = (await olga(w, "GET", `/series/${id}`)).json.items as { id: string }[];
+		return olga(w, "POST", `/series/${id}/cancel`, {
+			occurrenceId: items[0]?.id,
+			scope: "all",
+			reason: "client asked",
+		});
+	},
 	"appointments.attendance": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" }),
 	"appointments.remove": async (w) => olga(w, "DELETE", `/appointments/${await spare(w)}`),
@@ -346,18 +422,25 @@ const OWN: Record<
 			contentType: "image/png",
 			size: 2048,
 		}),
-	"files.complete": async (w) =>
-		olga(
-			w,
-			"POST",
-			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "x.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}/complete`,
-		),
+	"files.complete": async (w) => {
+		const made = FileInitResult.parse(
+			(
+				await olga(w, "POST", `/clients/${w.ids.c1}/files`, {
+					name: "x.png",
+					contentType: "image/png",
+					size: 5,
+				})
+			).json,
+		);
+		await w.objects.upload(made.upload.url, 5, "image/png");
+		return olga(w, "POST", `/files/${made.file.id}/complete`);
+	},
 	"files.download": (w) => olga(w, "GET", `/files/${w.ids.file}/download`),
 	"files.remove": async (w) =>
 		olga(
 			w,
 			"DELETE",
-			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "y.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}`,
+			`/files/${((await olga(w, "POST", `/clients/${w.ids.c1}/files`, { name: "y.png", contentType: "image/png", size: 5 })).json.file as { id: string }).id}?confirm=true`,
 		),
 	"audit.list": (w) => olga(w, "GET", "/audit"),
 	"builder.list": (w) => olga(w, "GET", "/builder/forms"),

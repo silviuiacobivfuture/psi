@@ -88,7 +88,7 @@
 	"cl_file_or_pick": "sau atinge pentru a alege de pe dispozitiv",
 	"cl_file_camera": "Fă o poză",
 	"cl_file_send": "Încarcă",
-	"cl_file_limits": "Până la {mb} MB fiecare: imagini, PDF, Word, Excel, text, audio.",
+	"cl_file_limits": "Până la {mb} MB fiecare: imagini, PDF, Word, Excel, text.",
 	"cl_file_name": "Numele fișierului",
 	"cl_file_preview": "Previzualizare",
 	"cl_file_too_big": "Un fișier depășește {mb} MB. Nu s-a încărcat nimic.",
@@ -168,5 +168,13 @@
 	"cat_deactivated": "Dezactivat: are istoric, deci rămâne păstrat dar nu mai e oferit.",
 	"cat_problem": "Unele valori nu se potrivesc sau adresa de e-mail e deja în echipă. Nu s-a salvat nimic.",
 	"cat_role_description": "Descriere",
-	"cat_role_copy": "Pornește de la permisiunile rolului"
+	"cat_role_copy": "Pornește de la permisiunile rolului",
+	"cl_gate_warn": "Clientul este semnalat. Poți programa, după ce spui de ce.",
+	"cl_gate_blocked_may": "Clientul este blocat. Poți programa totuși, cu un motiv scris; rămâne înregistrat.",
+	"cl_gate_blocked_staff": "Clientul este blocat. Programarea cere pe cineva care poate trece peste lista neagră.",
+	"cl_gate_blocked_admin": "Clientul este blocat pentru toți. Doar un administrator poate trece peste.",
+	"cl_gate_reason": "De ce programezi totuși (obligatoriu)",
+	"cl_gate_need_reason": "Scrie de ce programezi clientul în ciuda semnalării. Nu s-a salvat nimic.",
+	"cl_gate_refused": "Clientul este blocat și nu poți trece peste. Nu s-a salvat nimic.",
+	"cl_err_room": "Serviciul cere un cabinet de felul lui (de exemplu un cabinet neuro pentru neurofeedback)."
 }

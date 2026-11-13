@@ -2,15 +2,14 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createAccess } from "./authz/access";
 import { createMemoryAuthz } from "./authz/memory";
 import { seedAppAccess } from "./handlers/apps";
-import { ok, type Populated, populate } from "./testing/populate";
-import { createBareWorld } from "./testing/world";
+import { createWorld, ok, type Populated } from "./testing/populate";
 
 const A = "/v1/apps/psizone";
 
 describe("a clinic that came in through an import", () => {
 	let w: Populated;
 	beforeAll(async () => {
-		w = await populate(await createBareWorld());
+		w = await createWorld();
 	});
 
 	it("lists a package of bonus sessions only (the old app held some) instead of answering a mismatch", async () => {

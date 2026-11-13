@@ -1,0 +1,121 @@
+/* The profile: a header with the monogram, then cards in a grid that is one column on a phone. */
+.pf-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-4);
+}
+.pf-avatar {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	background: var(--accent-soft);
+	border: 2px solid var(--app);
+	color: var(--ink);
+	font: 700 26px / 1 var(--font-display);
+}
+.pf-head__text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	min-width: 0;
+	flex: 1 1 240px;
+}
+.pf-roles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2) var(--space-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-weight: 600;
+}
+.pf-cal {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+	margin: 0;
+}
+.pf-cal__dot {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--c);
+}
+.pf-grid {
+	display: grid;
+	gap: var(--adm-section-gap);
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+}
+@media (min-width: 1024px) {
+	.pf-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+.pf-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+	min-width: 0;
+}
+.pf-card .adm-h2 {
+	margin: 0;
+}
+.pf-kv {
+	display: grid;
+	gap: var(--space-2);
+	margin: 0;
+}
+.pf-kv > div {
+	display: grid;
+	grid-template-columns: minmax(80px, 30%) 1fr;
+	gap: var(--space-3);
+}
+.pf-kv dt {
+	color: var(--ink-muted);
+	font-weight: 600;
+}
+.pf-kv dd {
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.pf-matrix td,
+.pf-matrix th {
+	white-space: normal;
+	height: auto;
+	padding-block: var(--space-2);
+}
+.pf-matrix td {
+	text-align: center;
+}
+.pf-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.pf-list__row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-2) 0;
+	border-bottom: 1px solid var(--line);
+}
+.pf-list__row svg {
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+.pf-list__row--stack {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-1);
+}

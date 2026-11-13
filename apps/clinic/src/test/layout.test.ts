@@ -60,6 +60,8 @@ describe("phone, 375px", () => {
 			"/settings/audit",
 			"/settings",
 			"/me/settings",
+			"/stats",
+			"/me/profile",
 			"/more",
 		]) {
 			await page.goto(`${live.url}${path}`);
@@ -270,7 +272,7 @@ describe("the navigation rail", () => {
 				};
 			});
 			expect(m.overflowX).toBeLessThanOrEqual(0);
-			expect(m.links).toHaveLength(7);
+			expect(m.links).toHaveLength(8);
 			expect(m.links.every((l) => l.w > 0 && l.inside)).toBe(true);
 			expect(m.round).toBe(true);
 			await page.click("aside.adm-nav .adm-switch");

@@ -95,7 +95,10 @@ export function registerClients(app: Hono<Env>): void {
 					needs("appointments", "packages") && can.has("services_view")
 						? ctx.port.services(ctx.app)
 						: [],
-					soft("notes", needs("overview", "notes") ? ctx.port.notes(ctx.app, id) : []),
+					soft(
+						"notes",
+						needs("overview", "notes") && can.has("notes_view") ? ctx.port.notes(ctx.app, id) : [],
+					),
 					soft(
 						"blacklist",
 						can.has("blacklist_view") && needs("overview")

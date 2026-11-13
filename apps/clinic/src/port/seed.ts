@@ -15,6 +15,7 @@ import {
 	type Service,
 	type WebRequest,
 } from "./schema";
+import { seedAudit } from "./seed-audit";
 import { seedPackages } from "./seed-packages";
 
 /** Everything here is synthetic: invented names, `0700 000 …` numbers, `example.test` e-mail. */
@@ -145,6 +146,7 @@ function rolesFor(): Role[] {
 				"clinical",
 				"files",
 				"blacklist",
+				"notes",
 				"packages",
 				"payments",
 				"prices",
@@ -156,6 +158,7 @@ function rolesFor(): Role[] {
 				"members",
 				"roles",
 				"audit",
+				"reports",
 			]),
 			fieldGroups: ["contact", "guardian", "money", "clinical"],
 		},
@@ -177,6 +180,7 @@ function rolesFor(): Role[] {
 					"reminders",
 					"requests",
 				]),
+				notes: { view: "all", create: "all", edit: "own", cancel: "own", pin: "own" },
 				roster: { view: "all" },
 			},
 			fieldGroups: ["contact", "guardian", "money"],
@@ -195,6 +199,7 @@ function rolesFor(): Role[] {
 				},
 				clients: { view: "assigned", edit: "assigned" },
 				blacklist: { view: "assigned" },
+				notes: { view: "all", create: "all", edit: "own", cancel: "own", pin: "own" },
 				files: { view: "assigned", create: "assigned" },
 				clinical: { view: "assigned", create: "assigned", edit: "assigned" },
 				leave: { view: "own", create: "own" },
@@ -210,6 +215,7 @@ function rolesFor(): Role[] {
 				packages: { view: "all", export: "all" },
 				payments: { view: "all", export: "all" },
 				prices: { view: "all" },
+				reports: { view: "all" },
 			},
 			fieldGroups: ["money"],
 		},
@@ -327,20 +333,7 @@ export function seedApp(app: AppSlug, today: string): AppData {
 				: "Vă rog sunați-mă înapoi.",
 		handled: i >= 3,
 	}));
-	const audit: AuditEvent[] = Array.from({ length: 12 }, (_, i) => ({
-		id: `e${i + 1}`,
-		at: `${addDays(today, -Math.floor(i / 3))}T${pad(9 + i)}:${pad((i * 7) % 60)}:00`,
-		actor: i % 2 === 0 ? "Recepție Exemplu" : "Terapeut Alfa",
-		action:
-			[
-				"appointment.create",
-				"appointment.cancel",
-				"client.edit",
-				"package.payment",
-				"reminder.send",
-			][i % 5] ?? "client.edit",
-		target: i % 5 < 2 ? `a${i + 3}` : `c${(i % clientCount) + 1}`,
-	}));
+	const audit = seedAudit(today, clientCount);
 	return {
 		columns,
 		services,

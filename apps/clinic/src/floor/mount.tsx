@@ -83,6 +83,7 @@ export async function renderFloor(ctx: Ctx, requestedAt: string | undefined): Pr
 	const o = at(ctx.locale);
 	const draw = await mayDraw(ctx);
 	let body: JSX.Element;
+	let full = false;
 	try {
 		const [{ doc }, rooms, devices] = await Promise.all([
 			ctx.port.floorPlan(ctx.app),
@@ -92,6 +93,7 @@ export async function renderFloor(ctx: Ctx, requestedAt: string | undefined): Pr
 		const when = openAt(ctx, requestedAt);
 		const data = await loadLiveData(liveSource(ctx), when, ctx.caps.timeZone);
 		const drawn = doc.floors.some((f) => f.shapes.length > 0);
+		full = drawn;
 		body = drawn ? (
 			<FloorPlan
 				id={PLAN_ID}
@@ -102,6 +104,7 @@ export async function renderFloor(ctx: Ctx, requestedAt: string | undefined): Pr
 				rooms={rooms}
 				devices={devices}
 				endpoint={FLOOR_API}
+				canvas
 				modeLinks={{ ...(draw ? { draw: "/settings/plan" } : {}), live: "/floor" }}
 				live={{
 					data,
@@ -138,12 +141,13 @@ export async function renderFloor(ctx: Ctx, requestedAt: string | undefined): Pr
 		current: "floor",
 		wide: true,
 		title: m.nav_floor({}, o),
-		children: <div class="adm-page">{body}</div>,
+		canvas: full,
+		children: full ? body : <div class="adm-page">{body}</div>,
 	});
 }
 
-/** Draw mode, as the body of the Settings "Plan cabinete" tab. */
-export async function drawBody(ctx: Ctx): Promise<JSX.Element> {
+/** Draw mode: as the body of a page (a block, `canvas` false) or as a full-viewport canvas (`canvas` true). */
+export async function drawBody(ctx: Ctx, canvas = false): Promise<JSX.Element> {
 	if (ctx.can.readOnly)
 		return (
 			<EmptyState
@@ -169,11 +173,40 @@ export async function drawBody(ctx: Ctx): Promise<JSX.Element> {
 			devices={devices}
 			endpoint={FLOOR_API}
 			modeLinks={{ draw: "/settings/plan", live: "/floor" }}
+			{...(canvas
+				? {
+						canvas: true,
+						extra: (
+							<a class="pz-fp__btn pz-fp__btn--text" href="/settings">
+								{m.nav_settings({}, at(ctx.locale))}
+							</a>
+						),
+					}
+				: {})}
 		/>
 	);
 }
 
+/** The drawing page: the plan fills the viewport under the top bar; what is not a plan (no right, no store) keeps the page. */
+async function renderDraw(ctx: Ctx): Promise<JSX.Element> {
+	const o = at(ctx.locale);
+	const canDraw = !ctx.can.readOnly && (await mayDraw(ctx));
+	const body = await drawBody(ctx, canDraw);
+	return Page({
+		ctx,
+		current: "settings",
+		wide: true,
+		title: m.tab_plan({}, o),
+		canvas: canDraw,
+		children: canDraw ? body : <div class="adm-page">{body}</div>,
+	});
+}
+
 export function registerFloor(app: Hono<Env>): void {
+	// Registered before the Settings routes, so the plan's tab is this full-viewport page, not a block under the tabs.
+	app.get("/settings/plan", async (c) =>
+		c.html(await renderDraw(c.var.ctx), 200, { "cache-control": "private, no-store" }),
+	);
 	app.get("/floor", async (c) =>
 		c.html(await renderFloor(c.var.ctx, c.req.query("at")), 200, {
 			"cache-control": "private, no-store",

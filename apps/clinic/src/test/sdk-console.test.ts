@@ -19,7 +19,7 @@ const c1 = (): string => k.api.world.ids.c1;
 describe("what each person's menu offers follows what the service says they may do", () => {
 	it("the owner sees every screen, 'Vezi ca…' and every client tab", async () => {
 		const s = await k.as("olga");
-		const html = await text(await s.get("/clients/" + c1()));
+		const html = await text(await s.get(`/clients/${c1()}`));
 		for (const h of [
 			"/calendar",
 			"/clients",
@@ -36,7 +36,7 @@ describe("what each person's menu offers follows what the service says they may 
 	});
 	it("reception: no audit, no roles tab, no clinical tab", async () => {
 		const s = await k.as("rita");
-		const html = await text(await s.get("/clients/" + c1()));
+		const html = await text(await s.get(`/clients/${c1()}`));
 		expect(has(html, "/audit")).toBe(false);
 		expect(has(html, "/view-as")).toBe(false);
 		expect(has(html, `/clients/${c1()}/records`)).toBe(false);
@@ -46,7 +46,7 @@ describe("what each person's menu offers follows what the service says they may 
 	});
 	it("a therapist: no requests, no money, the clinical tab, and their own calendar column only", async () => {
 		const s = await k.as("dora");
-		const client = await text(await s.get("/clients/" + c1()));
+		const client = await text(await s.get(`/clients/${c1()}`));
 		expect(has(client, "/requests")).toBe(false);
 		expect(has(client, `/clients/${c1()}/packages`)).toBe(false);
 		expect(has(client, `/clients/${c1()}/records`)).toBe(true);
@@ -65,7 +65,7 @@ describe("what each person's menu offers follows what the service says they may 
 	});
 	it("an accountant: money and clients, no guardian or clinical data, no calendar writes", async () => {
 		const s = await k.as("ana");
-		const html = await text(await s.get("/clients/" + c1()));
+		const html = await text(await s.get(`/clients/${c1()}`));
 		expect(has(html, `/clients/${c1()}/packages`)).toBe(true);
 		expect(html).not.toContain("Guardian of one");
 		expect(html).not.toContain("synthetic-notes-one");

@@ -29,7 +29,6 @@ export function extraCapabilities(role: Pick<Role, "grants">): Record<string, Sc
 		for (const key of [
 			"builder_view",
 			"feedback_view",
-			"reports_view",
 			"imports_exports_imports_view",
 			"people_create",
 			"people_edit",

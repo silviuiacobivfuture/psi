@@ -33,6 +33,18 @@ const Doc = z.object({
 });
 const Extra = z.object({
 	prices: z.object({ priceCents: z.number(), currency: z.string() }).optional(),
+	category: z.string().optional(),
+	roomCategory: z.string().optional(),
+	roomIds: z.array(z.string()).optional(),
+	deviceIds: z.array(z.string()).optional(),
+});
+/** What a service says beyond the columns Convex models: the prices and how it is filed and where it is given. */
+const extraOf = (row: ServiceRow): Record<string, unknown> => ({
+	...(row.prices === undefined ? {} : { prices: row.prices }),
+	...(row.category === undefined ? {} : { category: row.category }),
+	...(row.roomCategory === undefined ? {} : { roomCategory: row.roomCategory }),
+	...(row.roomIds === undefined ? {} : { roomIds: row.roomIds }),
+	...(row.deviceIds === undefined ? {} : { deviceIds: row.deviceIds }),
 });
 
 const stamp = (n: number): number => Math.floor(n);
@@ -53,7 +65,7 @@ export function servicesCollection(call: Caller): Collection<ServiceRow> {
 				actor: actorArg(),
 				table: "services",
 				id: row.id,
-				extra: writeExtra(row.prices === undefined ? {} : { prices: row.prices }),
+				extra: writeExtra(extraOf(row)),
 			},
 			{},
 		);
@@ -73,6 +85,10 @@ export function servicesCollection(call: Caller): Collection<ServiceRow> {
 					practitionerIds: d.practitioners.map((p) => withTable("p", p)),
 					active: d.active,
 					...(extra?.prices === undefined ? {} : { prices: extra.prices }),
+					...(extra?.category === undefined ? {} : { category: extra.category }),
+					...(extra?.roomCategory === undefined ? {} : { roomCategory: extra.roomCategory }),
+					...(extra?.roomIds === undefined ? {} : { roomIds: extra.roomIds }),
+					...(extra?.deviceIds === undefined ? {} : { deviceIds: extra.deviceIds }),
 					createdAt: stamp(d._creationTime),
 					updatedAt: stamp(d.updatedAt ?? d._creationTime),
 				};
@@ -98,7 +114,7 @@ export function servicesCollection(call: Caller): Collection<ServiceRow> {
 				{ id: z.string() },
 			);
 			const saved = { ...row, id: made.id };
-			if (row.prices !== undefined) await setExtra(saved);
+			if (Object.keys(extraOf(saved)).length > 0) await setExtra(saved);
 			if (!row.active)
 				await call.mutate(
 					"staffCatalog:updateService",
@@ -134,7 +150,7 @@ export function servicesCollection(call: Caller): Collection<ServiceRow> {
 					},
 					{},
 				);
-			if (JSON.stringify(before.prices) !== JSON.stringify(after.prices)) await setExtra(after);
+			if (JSON.stringify(extraOf(before)) !== JSON.stringify(extraOf(after))) await setExtra(after);
 		},
 		async remove(app, id) {
 			try {

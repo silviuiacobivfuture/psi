@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { defaultService } from "./booking-defaults";
 import { agendaCard, appointmentRows, clientCard, clientHitsCard, slotsCard } from "./cards";
 import { fence, fenceOrNull } from "./fence";
 import { addDays, clockRange, dateLabel, weekdayName } from "./format";
@@ -190,7 +191,7 @@ export function agendaTool(session: StaffSession) {
 		key: "agenda",
 		phase: "read",
 		description:
-			"The agenda of a day or a few days, for everyone or for one person, room or device (by name or id). Dates are the clinic's calendar days.",
+			'The agenda of a day or a few days, for everyone or for one person, room or device (by name or id). Dates are the clinic\'s calendar days. It shows what is ALREADY booked: for free times ("ore libere", "when is X free") use staffFreeSlots instead.',
 		inputSchema: z
 			.object({
 				from: DateSchema.optional().describe("First day, YYYY-MM-DD; today by default"),
@@ -291,10 +292,10 @@ export function freeSlotsTool(session: StaffSession) {
 		key: "freeSlots",
 		phase: "read",
 		description:
-			"Free times for a service (by name or id), optionally for one person, room or device, over the coming days. Staff view: every column. Offer only these times.",
+			'THE tool for free times ("ore libere", "free times", "when is X free", "what can I book"): the times a person, room or device can still take, over the coming days, as buttons to pick from. The service (name or id) is optional: without it the tool uses the clinic\'s only service or the therapist\'s usual one, or answers with the services to ask the person once. Staff view: every column. Offer only these times; never infer free times from the agenda.',
 		inputSchema: z
 			.object({
-				service: z.string().trim().min(1).max(120),
+				service: z.string().trim().min(1).max(120).optional(),
 				resource: z.string().trim().min(1).max(120).optional(),
 				from: DateSchema.optional(),
 				days: z.number().int().min(1).max(31).default(7),
@@ -303,7 +304,30 @@ export function freeSlotsTool(session: StaffSession) {
 			.strict(),
 		outputSchema: Out,
 		async run(input, s): Promise<ToolRun<z.infer<typeof Out>>> {
-			const service = await resolveService(s, input.service);
+			let serviceRef = input.service;
+			if (serviceRef === undefined) {
+				// No service named: the clinic's only one or the practitioner's usual one, else ask once with buttons.
+				const who =
+					input.resource === undefined ? undefined : await resolveResource(s, input.resource);
+				const practitioner =
+					who?.ok === true && who.value.kind === "one" && who.value.value.kind === "person"
+						? who.value.value.id
+						: undefined;
+				const chosen = await defaultService(s, practitioner);
+				if (chosen.kind === "refused") return refuse(chosen.reason);
+				if (chosen.kind === "ask")
+					return {
+						ok: true,
+						subjects: [],
+						output: {
+							status: "ambiguous",
+							what: s.copy.label.service,
+							candidates: chosen.candidates.map((c) => ({ id: c.id, name: c.name })),
+						},
+					};
+				serviceRef = chosen.service.id;
+			}
+			const service = await resolveService(s, serviceRef);
 			if (!service.ok) return refuse(service.reason);
 			if (service.value.kind === "none")
 				return { ok: true, subjects: [], output: { status: "none" } };
@@ -358,7 +382,7 @@ export function freeSlotsTool(session: StaffSession) {
 			return {
 				ok: true,
 				subjects: [service.value.value.id],
-				cards: [slotsCard(s.copy, slots, named)],
+				cards: [slotsCard(s.copy, slots, named, service.value.value.name)],
 				output:
 					slots.length === 0
 						? { status: "none" }

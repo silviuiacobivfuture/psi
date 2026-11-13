@@ -43,7 +43,7 @@ describe("the catalogue", () => {
 	});
 
 	it("covers every resource of the plan with at least one action", () => {
-		expect(RESOURCES.length).toBe(31);
+		expect(RESOURCES.length).toBe(32);
 		for (const resource of RESOURCES) expect(CATALOGUE[resource].actions.length).toBeGreaterThan(0);
 	});
 

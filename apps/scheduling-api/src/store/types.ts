@@ -4,6 +4,7 @@ import type {
 	AuditEvent,
 	CalendarEvent,
 	Client,
+	ClientNote,
 	Definition,
 	Device,
 	FileMeta,
@@ -24,7 +25,7 @@ import type {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { KeyStore } from "../ports/crypto";
-import type { BlacklistPort, DocumentsPort, FeedbackPort } from "./ports";
+import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -82,6 +83,13 @@ export type ReminderRow = InApp<{
 }>;
 export type RecordRow = InApp<Out<typeof RecordSummary> & { sealed: string }>;
 export type FileRow = InApp<Out<typeof FileMeta> & { objectKey: string }>;
+/**
+ * A note about a client. A `clinic` note holds `sealed`, the per-field AES-GCM envelope of its text (bound to the
+ * client), and no `text`; every other category holds `text` and no `sealed`.
+ */
+export type NoteRow = InApp<
+	Omit<Out<typeof ClientNote>, "text"> & { text?: string; sealed?: string }
+>;
 export type AuditRow = InApp<Out<typeof AuditEvent>>;
 export type DefinitionRow = InApp<Out<typeof Definition>>;
 export type ImportRow = InApp<Out<typeof ImportRun>>;
@@ -104,6 +112,7 @@ export interface Rows {
 	reminders: ReminderRow;
 	records: RecordRow;
 	files: FileRow;
+	notes: NoteRow;
 	audit: AuditRow;
 	definitions: DefinitionRow;
 	imports: ImportRow;
@@ -127,6 +136,7 @@ export const COLLECTIONS: readonly CollectionName[] = [
 	"reminders",
 	"records",
 	"files",
+	"notes",
 	"audit",
 	"definitions",
 	"imports",
@@ -356,6 +366,10 @@ export interface StorePort {
 	feedback: FeedbackPort;
 	/** The apps' data keys, wrapped by the master key. */
 	keys: KeyStore;
+	/** Weekly series of appointments, changed all or nothing. */
+	series: SeriesPort;
+	/** The reports: read-only counts and rates over the app's rows. */
+	reports: ReportsPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

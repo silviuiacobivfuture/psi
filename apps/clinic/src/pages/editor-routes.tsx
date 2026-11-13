@@ -1,3 +1,4 @@
+import type { GateOutcome } from "@psi/scheduling/clinic";
 import { escapeHtml, toastElement } from "@psi/ui/admin";
 import type { Context, Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
@@ -5,6 +6,7 @@ import { z } from "zod";
 import type { Env } from "../app";
 import { suggest } from "../domain/conflicts";
 import { parseAmountOrZero } from "../domain/numbers";
+import { authorityOf, bookingGate } from "../lib/blacklist-gate";
 import type { Ctx } from "../lib/context";
 import { IsoDay, todayIso } from "../lib/dates";
 import { type Editor, EditorSignalsSchema, minutesOf } from "../lib/editor-signals";
@@ -14,8 +16,9 @@ import { type Stream, signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
 import type { Appointment, Column, Service } from "../port/schema";
-import { blankEditor, EditorForm, editorOf } from "./editor-form";
-import { ClientResults, ConflictPanel, PackageChoice } from "./editor-parts";
+import type { BlacklistEntry } from "../port/schema-clinical";
+import { blankEditor, EditorForm, editorOf, roomFor } from "./editor-form";
+import { BlacklistPanel, ClientResults, ConflictPanel, PackageChoice } from "./editor-parts";
 
 const html = async (el: { toString(): string | Promise<string> }): Promise<string> =>
 	await el.toString();
@@ -28,6 +31,8 @@ const OpenQuery = z.object({
 		.catch("09:00"),
 	col: z.string().max(40).catch(""),
 	id: z.string().max(40).catch(""),
+	/** A client to start with (from their page): the editor opens with them chosen. */
+	client: z.string().max(40).catch(""),
 });
 
 interface Live {
@@ -49,12 +54,33 @@ const probeOf = (e: Editor, durationMin: number) => ({
 	...(e.id === "" ? {} : { ignoreId: e.id }),
 });
 
+/** The client's blacklist entry, whoever asks: booking is gated for everyone, the entry's reason is staff-only text. */
+async function listedEntry(ctx: Ctx, clientId: string): Promise<BlacklistEntry | null> {
+	if (clientId === "") return null;
+	try {
+		return (await ctx.port.clientFlags(ctx.app, [clientId]))[clientId]?.blacklist ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/** What the blacklist says about booking this client now: only a new booking or a change of client is gated. */
+async function gateOf(ctx: Ctx, e: Editor): Promise<GateOutcome> {
+	if (e.client === "") return { outcome: "allow" };
+	if (e.id !== "") {
+		const current = await ctx.port.appointment(ctx.app, e.id);
+		if (current?.clientId === e.client) return { outcome: "allow" };
+	}
+	return bookingGate(await listedEntry(ctx, e.client), e.override, ctx.can);
+}
+
 /** The live fragments for what is typed now: conflicts with a way out, the client's packages. */
 export async function liveFragments(
 	ctx: Ctx,
 	e: Editor,
 	live: Live,
-): Promise<{ conflicts: JSX.Element; packages: JSX.Element }> {
+): Promise<{ conflicts: JSX.Element; packages: JSX.Element; blacklist: JSX.Element }> {
+	const listed = await listedEntry(ctx, e.client);
 	const dur = Number.isFinite(e.dur) && e.dur >= 5 ? Math.trunc(e.dur) : 0;
 	const probe = probeOf(e, dur);
 	const conflicts = dur === 0 ? [] : await ctx.port.findConflicts(ctx.app, probe);
@@ -68,6 +94,9 @@ export async function liveFragments(
 					ctx.port.clientAppointments(ctx.app, e.client),
 				]);
 	return {
+		blacklist: (
+			<BlacklistPanel entry={listed} locale={ctx.locale} authority={authorityOf(ctx.can)} />
+		),
 		conflicts: (
 			<ConflictPanel
 				conflicts={conflicts}
@@ -101,6 +130,7 @@ export async function editorBody(ctx: Ctx, e: Editor): Promise<string> {
 			clients={<ClientResults clients={[]} query="" locale={ctx.locale} />}
 			conflicts={frag.conflicts}
 			packages={frag.packages}
+			blacklist={frag.blacklist}
 		/>,
 	);
 }
@@ -108,7 +138,7 @@ export async function editorBody(ctx: Ctx, e: Editor): Promise<string> {
 /** The editor's state for "open it here": a new appointment at a slot, or an existing one. */
 export async function openState(
 	ctx: Ctx,
-	q: { date: string; time: string; col: string; id: string },
+	q: { date: string; time: string; col: string; id: string; client?: string },
 ): Promise<Editor | null> {
 	if (q.id !== "") {
 		const a = await ctx.port.appointment(ctx.app, q.id);
@@ -123,20 +153,44 @@ export async function openState(
 		ctx.port.columns(ctx.app),
 		ctx.port.services(ctx.app),
 	]);
-	return blankEditor({
-		date: q.date === "" ? todayIso() : q.date,
-		startMin: minutesOf(q.time),
-		col: columns.some((c) => c.id === q.col) ? q.col : (columns[0]?.id ?? ""),
-		service: services[0],
-	});
+	const first = services[0];
+	const client =
+		q.client === undefined || q.client === "" ? null : await ctx.port.client(ctx.app, q.client);
+	return {
+		...blankEditor({
+			date: q.date === "" ? todayIso() : q.date,
+			startMin: minutesOf(q.time),
+			col: columns.some((c) => c.id === q.col) ? q.col : (columns[0]?.id ?? ""),
+			service: first,
+		}),
+		room: roomFor(
+			first,
+			columns.filter((c) => c.kind === "room"),
+		),
+		...(client === null ? {} : { client: client.id, clientName: client.name }),
+	};
 }
 
-type Problem = "client" | "service" | "duration" | "date" | "price" | "repeat";
+type Problem = "client" | "service" | "duration" | "date" | "price" | "repeat" | "room";
 
 /** Everything the editor says is checked here; the first thing wrong is named. */
-function problem(e: Editor, services: ReadonlyArray<Service>): Problem | null {
+function problem(
+	e: Editor,
+	services: ReadonlyArray<Service>,
+	columns: ReadonlyArray<Column>,
+): Problem | null {
 	if (e.client === "" && !(e.newc && e.nName.trim() !== "")) return "client";
-	if (!services.some((s) => s.id === e.svc)) return "service";
+	const service = services.find((s) => s.id === e.svc);
+	if (service === undefined) return "service";
+	// A service that needs a room of a category (neurofeedback, QEEG) is not booked in another kind of room.
+	const room = columns.find((c) => c.id === e.room);
+	if (
+		service.roomCategory !== undefined &&
+		room !== undefined &&
+		room.category !== service.roomCategory
+	)
+		return "room";
+	if (service.roomCategory !== undefined && e.room === "") return "room";
 	if (!Number.isInteger(e.dur) || e.dur < 5 || e.dur > 600) return "duration";
 	if (!IsoDay.safeParse(e.date).success) return "date";
 	if (e.pkg === "" && parseAmountOrZero(e.price) === null) return "price";
@@ -162,6 +216,8 @@ const problemText = (p: Problem, locale: "ro" | "en"): string => {
 			return m.pkg_invalid_value({}, o);
 		case "repeat":
 			return m.ap_err_repeat({}, o);
+		case "room":
+			return m.cl_err_room({}, o);
 		default: {
 			const never: never = p;
 			return never;
@@ -204,6 +260,7 @@ export function registerEditor(app: Hono<Env>): void {
 			const frag = await liveFragments(ctx, e, await loadLive(ctx, e.date));
 			stream.patchElements(await html(frag.conflicts));
 			stream.patchElements(await html(frag.packages));
+			stream.patchElements(await html(frag.blacklist));
 		});
 	});
 
@@ -231,10 +288,31 @@ export function registerEditor(app: Hono<Env>): void {
 			if (e === null) return toast(m.toast_invalid({}, o));
 			const live = await loadLive(ctx, e.date).catch(() => null);
 			if (live === null) return toast(m.error_title({}, o));
-			const bad = problem(e, live.services);
+			const bad = problem(e, live.services, live.columns);
 			if (bad !== null) return toast(problemText(bad, ctx.locale));
+			const gate = await gateOf(ctx, e);
+			if (gate.outcome === "warning" || gate.outcome === "blocked") {
+				stream.patchElements(
+					await html(
+						<BlacklistPanel
+							entry={await listedEntry(ctx, e.client)}
+							locale={ctx.locale}
+							authority={authorityOf(ctx.can)}
+						/>,
+					),
+				);
+				return toast(
+					gate.outcome === "warning" ? m.cl_gate_need_reason({}, o) : m.cl_gate_refused({}, o),
+				);
+			}
 			try {
 				const saved = await write(ctx, e);
+				if (gate.outcome === "overridden")
+					await ctx.port.appendAudit(ctx.app, {
+						actor: ctx.person.name,
+						action: "blacklist.override",
+						target: `${e.client}: ${gate.override.reason}`,
+					});
 				stream.patchSignals(JSON.stringify({ editor: false }));
 				toast(
 					saved.created > 1 ? m.ap_created_many({ n: saved.created }, o) : m.toast_created({}, o),
@@ -263,7 +341,7 @@ async function write(ctx: Ctx, e: Editor): Promise<{ created: number }> {
 	if (e.id !== "") {
 		const current = await ctx.port.appointment(ctx.app, e.id);
 		if (current === null) throw new PortError("not-found", e.id);
-		await ctx.port.updateAppointment(ctx.app, e.id, {
+		const body = {
 			date: e.date,
 			startMin: minutesOf(e.time),
 			durationMin: Math.trunc(e.dur),
@@ -275,6 +353,15 @@ async function write(ctx: Ctx, e: Editor): Promise<{ created: number }> {
 			packageId: e.pkg === "" ? null : e.pkg,
 			priceBani: price,
 			remind: e.remind,
+		};
+		// Many weeks at once: the series keeps its days and its state, and every week is checked before one changes.
+		if (e.scope !== "this" && current.seriesId !== null) {
+			const { date: _day, ...weekly } = body;
+			await ctx.port.updateSeries(ctx.app, e.id, weekly, e.scope);
+			return { created: 0 };
+		}
+		await ctx.port.updateAppointment(ctx.app, e.id, {
+			...body,
 			...(current.status === "confirmed" || current.status === "requested"
 				? { status: e.status }
 				: {}),

@@ -175,6 +175,8 @@
 	"resource_clinical": "Fișa clinică",
 	"resource_files": "Fișiere",
 	"resource_blacklist": "Lista neagră",
+	"resource_notes": "Notițe",
+	"action_pin": "Fixează",
 	"resource_packages": "Abonamente",
 	"resource_payments": "Plăți",
 	"resource_prices": "Prețuri",

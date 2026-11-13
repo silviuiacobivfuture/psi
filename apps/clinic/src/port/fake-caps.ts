@@ -37,7 +37,10 @@ export function createFakeAccess(
 			let who = subject;
 			if (as !== undefined) {
 				const here = holds(mine.roles);
-				if (!here.some((r) => r.grants.roles?.edit !== undefined))
+				if (
+					deps.platformAdmins?.has(subject) !== true &&
+					!here.some((r) => r.grants.roles?.edit !== undefined)
+				)
 					throw new PortError("forbidden", "roles administrators only");
 				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
 				if (kind === "role") {
@@ -88,7 +91,18 @@ export function createFakeAccess(
 				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
 					groups.has(g),
 				),
-				reach: { own: [], assigned: [] },
+				// A therapist is the first person column: the fake has no link between people and columns, so one is chosen.
+				reach: {
+					own:
+						(as === undefined || as.startsWith("member:")) &&
+						roles.some((r) => r.id === "therapist")
+							? d.columns
+									.filter((c) => c.kind === "person")
+									.slice(0, 1)
+									.map((c) => c.id)
+							: [],
+					assigned: [],
+				},
 				platformAdmin: as === undefined && deps.platformAdmins?.has(subject) === true,
 			};
 		},

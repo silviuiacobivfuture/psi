@@ -337,6 +337,7 @@ export async function renderRecordFiller(
 		ctx,
 		current: "clients",
 		title: def.title[ctx.locale],
+		noFab: true,
 		children: (
 			<div class="adm-page">
 				<a class="adm-btn adm-btn--ghost cl-back" href={`/clients/${client.id}/records`}>

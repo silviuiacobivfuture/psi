@@ -16,5 +16,7 @@ apps/*/src/paraglide/
 apps/*/public/assets/app.css
 apps/*/project.inlang/cache/
 apps/*/.data/
+# the local run's own files (client uploads of apps/scheduling-api), never committed
+apps/*/.local/
 /.data/
 .credentials/*

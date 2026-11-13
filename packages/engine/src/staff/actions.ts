@@ -21,7 +21,7 @@ export const ActionInfoSchema = z.object({
 		.string()
 		.min(3)
 		.max(80)
-		.regex(/^[a-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)+$/),
+		.regex(/^[a-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)+$/),
 	label: z.string().min(1).max(120),
 	summary: z.string().max(300),
 	/** The area it belongs to ("clients", "calendar"), for grouping. */

@@ -173,7 +173,7 @@ describe("cards are drawn from data and escape everything", () => {
 		expect(html).toContain(STAFF_EN.panel.dismiss);
 		expect(html).toContain("is-destructive");
 		expect(html).toContain('id="sa-card-prop_1"');
-		expect(html).toContain("el.disabled = true");
+		expect(html).toContain("b.disabled = true");
 	});
 
 	it("a result with an undo takes the undo's id, so the undo's own result replaces it", () => {

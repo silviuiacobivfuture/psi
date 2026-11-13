@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { AppointmentRow } from "../types";
 import { Encrypted, toSealed } from "./envelope";
-import { personApiId } from "./ids";
+import { personApiId, toApiId } from "./ids";
 
 /** A deleted visit can be restored for 30 days: the wrapper (`RECOVERY_DAYS`) and the handlers agree. */
 export const RECOVERY_MS = 30 * 86_400_000;
@@ -16,6 +16,7 @@ const Meta = z.object({
 	group: z.string().optional(),
 	service: z.string().optional(),
 	cancelReason: z.string().optional(),
+	remind: z.boolean().optional(),
 });
 export type VisitMeta = z.infer<typeof Meta>;
 
@@ -43,6 +44,7 @@ export const VisitView = z.object({
 	deletedAt: z.number().optional(),
 	version: z.number(),
 	meta: Meta.optional(),
+	series: z.string().optional(),
 });
 export type VisitViewT = z.infer<typeof VisitView>;
 
@@ -51,6 +53,7 @@ export function attendanceOf(
 	status: AppointmentRow["status"],
 ): "pending" | "attended" | "absent" | undefined {
 	switch (status) {
+		case "requested":
 		case "scheduled":
 			return "pending";
 		case "attended":
@@ -66,6 +69,7 @@ export function attendanceOf(
 
 function statusOf(v: VisitViewT): AppointmentRow["status"] {
 	if (v.status === "cancelled") return "cancelled";
+	if (v.status === "requested") return "requested";
 	return v.attendance === "attended"
 		? "attended"
 		: v.attendance === "absent"
@@ -121,6 +125,8 @@ export function toAppointment(app: string, v: VisitViewT): AppointmentRow | unde
 		end: v.end,
 		...(v.notes === undefined ? {} : { note: v.notes }),
 		...(v.therapistNotes === undefined ? {} : { therapistNoteSealed: toSealed(v.therapistNotes) }),
+		remind: meta.remind ?? true,
+		...(v.series === undefined ? {} : { seriesId: toApiId(v.series) }),
 		...(meta.cancelReason === undefined ? {} : { cancelReason: meta.cancelReason }),
 		...(money === undefined ? {} : { money }),
 		...(v.deletedAt === undefined
@@ -139,5 +145,7 @@ export function metaFor(row: AppointmentRow): VisitMeta {
 		...(row.groupId === undefined ? {} : { group: row.groupId }),
 		...(row.serviceId === undefined ? {} : { service: row.serviceId }),
 		...(row.cancelReason === undefined ? {} : { cancelReason: row.cancelReason }),
+		// Absent says yes: only the exception is stored.
+		...(row.remind ? {} : { remind: false }),
 	};
 }

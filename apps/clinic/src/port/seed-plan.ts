@@ -1,4 +1,4 @@
-import { parseRoomsSeed } from "@psi/scheduling/clinic";
+import { parseRoomsSeed, roomsPlanDocument } from "@psi/scheduling/clinic";
 import psizoneRooms from "@psi/scheduling/seed/psizone-rooms.json";
 import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import type { AppSlug } from "./schema";
@@ -32,34 +32,9 @@ const door = (id: string, x: number, y: number) => ({
 	swing: "left" as const,
 });
 
-const FLOOR_SHAPES = (floorId: string) =>
-	parseRoomsSeed(psizoneRooms)
-		.floors.filter((f) => f.id === floorId)
-		.flatMap((f) =>
-			f.rooms.map((r) => ({
-				id: `r-${r.id}`,
-				kind: "room" as const,
-				label: "",
-				roomId: r.id,
-				category: r.category,
-				geometry: rect(r.geometry.x, r.geometry.y, r.geometry.w, r.geometry.h),
-			})),
-		);
-
 /** The plan of Psizone: the owner's three floors, the rooms where the seed puts them, and the categories' legend. */
 function psizonePlan(): unknown {
-	const seed = parseRoomsSeed(psizoneRooms);
-	return {
-		version: 1,
-		revision: 1,
-		width: 220,
-		height: 140,
-		northDeg: 0,
-		categories: seed.categories.map((c) => ({ id: c.id, label: c.label })),
-		floors: [...seed.floors]
-			.sort((a, b) => a.order - b.order)
-			.map((f) => ({ id: f.id, name: f.name, shapes: FLOOR_SHAPES(f.id) })),
-	};
+	return roomsPlanDocument(parseRoomsSeed(psizoneRooms), (id) => id, 1);
 }
 
 const PLANS: Record<AppSlug, unknown> = {

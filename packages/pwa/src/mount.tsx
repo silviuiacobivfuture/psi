@@ -65,7 +65,7 @@ export interface Pwa {
 	/** The `<head>` additions for a page in `locale`; `noindex` for the PWA's own pages. */
 	head(locale: PushLocale, path?: string): JSX.Element;
 	/** The Compass tools: install (when installable), the iOS note, and — push on — the notifications link. */
-	tools(locale: PushLocale, options?: { install?: boolean }): JSX.Element;
+	tools(locale: PushLocale, options?: { install?: boolean; menu?: boolean }): JSX.Element;
 	/** The notifications page's body: the per-purpose controls and, signed in, the devices. */
 	notifications(props: NotificationsProps): JSX.Element;
 	/** A signed-in person's devices on every site (for `notifications`). */
@@ -253,6 +253,7 @@ export function createPwa(site: PwaSite, config: PushConfig = readPushConfig()):
 				<PwaTools
 					labels={toolsLabels(site.messages, locale)}
 					install={options?.install ?? true}
+					menu={options?.menu ?? false}
 					{...(pushOn ? { notificationsHref: site.notificationsPath(locale) } : {})}
 				/>
 			);

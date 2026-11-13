@@ -1,10 +1,13 @@
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { appointmentChanges } from "./fake-audit";
 import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
+import { createFakeProfile } from "./fake-profile";
+import { reportOf } from "./fake-report";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -12,12 +15,10 @@ import {
 	type LiveSignal,
 	PortError,
 	type ReminderItem,
-	type TeamMember,
 } from "./port";
 import type {
 	Appointment,
 	AppSlug,
-	AssistantMode,
 	AuditEvent,
 	Client,
 	Membership,
@@ -34,7 +35,7 @@ export interface FakeOptions {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	/** subject → the name the team picker shows (the subject itself when absent). */
 	names?: Readonly<Record<string, string>>;
-	/** Subjects who administer the platform (the estate owner), not only an app. */
+	/** Subjects who administer the platform (the estate owner), not only an app: they may look at the app as anyone. */
 	platformAdmins?: ReadonlySet<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
@@ -73,13 +74,31 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		if (opts.failing?.has(method) === true)
 			throw new PortError("unavailable", `${method} is unavailable`);
 	};
-	const log = (d: AppData, actor: string, action: string, target: string): void => {
+	// The fake does not know who asks: what the console does is the first member's, as the service would record the subject.
+	const me = Object.keys(opts.members)[0] ?? "console";
+	const log = (
+		d: AppData,
+		actor: string,
+		action: string,
+		target: string,
+		extra: Partial<AuditEvent> = {},
+	): void => {
+		const assistant = actor.endsWith(" · assistant");
 		const e: AuditEvent = {
 			id: `e${++seq}`,
 			at: new Date().toISOString().slice(0, 19),
-			actor,
+			actor: actor === "console" ? me : actor,
 			action,
 			target,
+			targetType: target.includes(":")
+				? target.slice(0, target.indexOf(":"))
+				: (action.replace(/^assistant\./, "").split(".")[0] ?? ""),
+			targetId: target.includes(":") ? target.slice(target.indexOf(":") + 1) : target,
+			source: assistant ? "assistant" : "console",
+			requestId: `req-${seq}`,
+			ip: "192.0.2.10",
+			device: "Chrome pe Linux",
+			...extra,
 		};
 		d.audit.unshift(e);
 	};
@@ -106,7 +125,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
+	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
+		...profile,
 		...access,
 		...clinical,
 		...catalog,
@@ -241,19 +262,88 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 					})
 				: [];
 			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
+			const changes = appointmentChanges(a, patch);
 			Object.assign(a, next);
-			log(d, "console", "appointment.edit", id);
+			log(d, "console", "appointment.edit", id, { changes });
 			tell(app, { stream: "calendar" });
 			return a;
+		},
+		async updateSeries(app, id, raw, scope) {
+			guard("updateSeries");
+			const d = data(app);
+			const { date: _day, status: _status, ...patch } = AppointmentPatchSchema.parse(raw);
+			const at = d.appointments.find((x) => x.id === id);
+			if (at === undefined) throw new PortError("not-found", id);
+			if (at.seriesId === null) throw new PortError("invalid", "not part of a series");
+			const targets = d.appointments.filter(
+				(x) =>
+					x.seriesId === at.seriesId &&
+					(x.status === "confirmed" || x.status === "requested") &&
+					(scope === "all" || x.date >= at.date),
+			);
+			const nexts = targets.map((x): Appointment => ({ ...x, ...stripUndefined(patch) }));
+			const first = nexts[0];
+			if (
+				first !== undefined &&
+				(!d.columns.some((c) => c.id === first.columnId) ||
+					!first.resourceIds.every((r) => d.columns.some((c) => c.id === r)) ||
+					(first.clientId !== null && !d.clients.some((c) => c.id === first.clientId)) ||
+					!d.services.some((s) => s.id === first.serviceId))
+			)
+				throw new PortError("invalid", "unknown column, resource, client or service");
+			if (
+				first?.packageId != null &&
+				!d.packages.some((p) => p.id === first.packageId && p.clientId === first.clientId)
+			)
+				throw new PortError("invalid", "the package is not this client's");
+			// All or nothing: every week is checked before one is changed.
+			const clashes = nexts.flatMap((n) =>
+				findConflicts(d.appointments, {
+					date: n.date,
+					startMin: n.startMin,
+					durationMin: n.durationMin,
+					columnIds: columnsOf(n),
+					ignoreSeriesId: at.seriesId,
+				}),
+			);
+			if (clashes.length > 0) throw new PortError("conflict", "a week is taken", clashes);
+			for (const [i, t] of targets.entries()) Object.assign(t, nexts[i]);
+			log(d, "console", "series.edit", id, { reason: scope });
+			tell(app, { stream: "calendar" });
+			return targets;
+		},
+		async cancelSeries(app, id, reason, scope) {
+			guard("cancelSeries");
+			const d = data(app);
+			const at = d.appointments.find((x) => x.id === id);
+			if (at === undefined) throw new PortError("not-found", id);
+			if (at.seriesId === null) throw new PortError("invalid", "not part of a series");
+			const targets = d.appointments.filter(
+				(x) =>
+					x.seriesId === at.seriesId &&
+					(x.status === "confirmed" || x.status === "requested") &&
+					(scope === "all" || x.date >= at.date),
+			);
+			for (const t of targets) {
+				t.status = "cancelled";
+				t.cancelReason = reason.slice(0, 500);
+			}
+			log(d, "console", "series.cancel", id, { reason: `${scope}: ${reason.slice(0, 200)}` });
+			tell(app, { stream: "calendar" });
+			return targets;
 		},
 		async cancelAppointment(app, id, reason) {
 			guard("cancelAppointment");
 			const d = data(app);
 			const a = d.appointments.find((x) => x.id === id);
 			if (a === undefined) throw new PortError("not-found", id);
+			const was = a.status;
 			a.status = "cancelled";
 			a.cancelReason = reason.slice(0, 500);
-			log(d, "console", "appointment.cancel", id);
+			log(d, "console", "appointment.cancel", id, {
+				reason: a.cancelReason,
+				changes: [{ field: "status", before: was, after: "cancelled" }],
+			});
 			tell(app, { stream: "calendar" });
 			return a;
 		},
@@ -478,6 +568,10 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			d.roles[i] = role;
 			log(d, "console", "role.save", role.id);
 			return role;
+		},
+		async report(app, q) {
+			guard("report");
+			return reportOf(data(app), today, q);
 		},
 		async audit(app) {
 			guard("audit");

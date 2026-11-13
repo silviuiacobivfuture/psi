@@ -23,7 +23,7 @@
 		"start": "node --env-file-if-exists=.env dist/server.js",
 		"local": "tsx src/local.ts",
 		"local:real": "tsx src/local-real.ts",
-		"authz:gen": "tsx scripts/gen-authz.ts && scripts/regen-authz.sh",
+		"authz:gen": "tsx scripts/gen-authz.ts && scripts/regen-authz.sh && pnpm -w exec biome format --config-path .mono/biome.json --write apps/scheduling-api/authz.manifest.json apps/scheduling-api/src/authz/permissions.generated.ts",
 		"type-check": "pnpm i18n && tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"
 	},

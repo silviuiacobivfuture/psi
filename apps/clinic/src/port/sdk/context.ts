@@ -13,11 +13,14 @@ export interface SdkContext {
 	me(app: string): Promise<z.output<typeof ScheduleCapabilities>>;
 	/** Runs one port call: whatever the service or the network does, only a `PortError` leaves. */
 	run<T>(call: () => Promise<T>): Promise<T>;
+	/** Moves the bytes of a file to and from the store's signed URLs (not the service: no bearer goes there). */
+	transfer: typeof globalThis.fetch;
 }
 
 export function createContext(
 	api: SchedulingClient,
 	onError: ((error: PortError) => void) | undefined,
+	transfer: typeof globalThis.fetch = globalThis.fetch.bind(globalThis),
 ): SdkContext {
 	const known = new Map<string, Promise<z.output<typeof ScheduleCapabilities>>>();
 	const run = async <T>(call: () => Promise<T>): Promise<T> => {
@@ -32,6 +35,7 @@ export function createContext(
 	return {
 		api,
 		run,
+		transfer,
 		me(app) {
 			let held = known.get(app);
 			if (held === undefined) {

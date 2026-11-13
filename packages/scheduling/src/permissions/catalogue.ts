@@ -42,6 +42,7 @@ export const RESOURCES = [
 	"imports_exports",
 	"blacklist",
 	"feedback",
+	"notes",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -69,6 +70,8 @@ export const ACTIONS = [
 	"override_admin",
 	"reply",
 	"close",
+	/** Pin a note to the top of the client's summary. */
+	"pin",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -140,6 +143,14 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	blacklist: { actions: [...CRUD, "create_warn", "override", "override_admin"], scopes: ALL },
 	// The text is `core`; who wrote it (contact details, consent to be contacted) is `contact`.
 	feedback: { actions: ["view", "reply", "close"], scopes: ALL, fieldGroups: ["core", "contact"] },
+	// Notes about a client. Here `own` is the notes a person wrote themselves and `all` is anyone's (unlike the clients' own,
+	// the clients one treats): a key held at `own` edits, deletes or pins one's own notes only. The `clinical` group is the
+	// `clinic` category, kept as ciphertext, which the other categories (general, administrative, payment, behaviour) are not.
+	notes: {
+		actions: ["view", "create", "edit", "delete", "pin"],
+		scopes: ["all", "own"],
+		fieldGroups: ["clinical"],
+	},
 };
 
 /** A permission as structure. */

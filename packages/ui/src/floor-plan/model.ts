@@ -1,3 +1,4 @@
+import type { JSX } from "hono/jsx/jsx-runtime";
 import { planIssues } from "./issues";
 import type { FloorPlanLabels } from "./labels";
 import { snapshotAt, weekHeat } from "./live";
@@ -37,6 +38,14 @@ export interface FloorPlanProps {
 	live?: LivePart;
 	/** Links between the two modes, for people who hold both permissions. */
 	modeLinks?: { draw?: string; live?: string };
+	/**
+	 * The plan as a full-viewport canvas: it fills the space it is given, with its toolbars floating over it, the side
+	 * panel as an overlay (a bottom sheet on a phone), the zoom in a corner and an "Ecran complet" toggle. Without it the
+	 * plan is a block in a page, as before.
+	 */
+	canvas?: boolean;
+	/** Canvas only: a link or two kept beside the mode switch (the way back to Settings). */
+	extra?: JSX.Element;
 }
 
 export function snapInstant(at: number, timeZone: string): number {

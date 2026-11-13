@@ -52,7 +52,7 @@ describe("write tools only propose", () => {
 		).toMatchObject({ status: "ambiguous" });
 		expect(
 			await call(session, "createAppointment", { ...base, service: "s1", clientId: "nobody" }),
-		).toMatchObject({ reason: "not_found" });
+		).toMatchObject({ status: "missing", missing: ["client_not_found"] });
 		expect(session.cards.filter((c) => c.kind === "proposal")).toEqual([]);
 	});
 
@@ -319,7 +319,7 @@ describe("write tools only propose", () => {
 	it("every proposal gets its own unguessable id", async () => {
 		const session = await sessionFor(new FakeStaffPort(), { page: OPEN });
 		const a = proposalIdOf(await call(session, "cancelAppointment"));
-		const b = proposalIdOf(await call(session, "cancelAppointment"));
+		const b = proposalIdOf(await call(session, "cancelAppointment", { appointmentId: "a2" }));
 		expect(a).toMatch(/^prop_[0-9a-f]{32}$/);
 		expect(a).not.toBe(b);
 	});

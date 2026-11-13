@@ -80,6 +80,8 @@ export const Refusal = z.object({
 	blacklist: z.record(z.string(), z.unknown()).optional(),
 	/** The field names a refused input got wrong. */
 	problems: z.array(z.string()).optional(),
+	/** The occurrences of a series that stopped it, by position (see `SeriesConflictRow`). */
+	conflicts: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
 /** A wrapper answer: success shape `S` (with `ok:true`) or its refusal. */
@@ -93,8 +95,10 @@ export function unwrap<T extends { ok: boolean }>(out: T): Extract<T, { ok: true
 	const reason = Reflect.get(out, "reason");
 	const blacklist: unknown = Reflect.get(out, "blacklist");
 	const problems: unknown = Reflect.get(out, "problems");
+	const conflicts: unknown = Reflect.get(out, "conflicts");
 	throw new StoreRefused(typeof reason === "string" ? reason : "invalid", {
 		...(typeof blacklist === "object" && blacklist !== null ? { blacklist } : {}),
 		...(Array.isArray(problems) ? { problems } : {}),
+		...(Array.isArray(conflicts) ? { conflicts } : {}),
 	});
 }

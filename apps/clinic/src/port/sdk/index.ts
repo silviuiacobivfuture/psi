@@ -9,6 +9,8 @@ import { clientsGroup } from "./clients";
 import { clinicalGroup } from "./clinical";
 import { createContext } from "./context";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
+import { profileGroup } from "./profile";
+import { reportsGroup } from "./reports";
 
 export interface SdkPortOptions {
 	/** The scheduling service's origin (SCHEDULING_API_URL). */
@@ -44,10 +46,10 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
 		fetch: withViewAs(options.fetch ?? globalThis.fetch.bind(globalThis), options.viewAs),
 	});
-	const sdk = createContext(api, options.onError);
+	const sdk = createContext(api, options.onError, options.fetch);
 	const calendar = calendarGroup(sdk);
 	const { clientsPage, ...cal } = calendar;
-	const catalog = catalogGroup(sdk, cal.columns);
+	const catalog = catalogGroup(sdk);
 	const clients = clientsGroup(sdk, clientsPage);
 	const clinical = clinicalGroup(sdk, clientsPage);
 	const admin = adminGroup(sdk);
@@ -59,6 +61,8 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...clinical,
 		...catalog,
 		...admin,
+		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
+		...profileGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};
 }

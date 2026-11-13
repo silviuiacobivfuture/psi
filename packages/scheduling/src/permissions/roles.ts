@@ -137,6 +137,9 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			// override are the admin's.
 			all("blacklist", ["view", "create_warn"]),
 			all("feedback", ["view", "reply", "close"], ["core", "contact"]),
+			// Every category but the clinical one; edits and deletes only what they wrote (the handler holds the author).
+			all("notes", ["view", "create", "pin"]),
+			own("notes", ["edit", "delete"]),
 		]),
 	},
 	{
@@ -152,6 +155,9 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			...REPORTS.map((r) => own(r, ["view", "create", "edit"])),
 			own("questionnaire_parent", ["view"]),
 			own("files", ["view", "upload"]),
+			// Their clients' notes, the clinical ones too; they change and pin only the notes they wrote.
+			all("notes", ["view"], ["clinical"]),
+			own("notes", ["create", "edit", "delete", "pin"], ["clinical"]),
 			own("reminders", ["view", "send"]),
 			own("roster", ["view"]),
 			own("leave", ["view", "create", "cancel"]),
@@ -167,6 +173,7 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			assigned("clients", ["view"], ["contact", "guardian", "clinical"]),
 			...REPORTS.map((r) => assigned(r, ["view"])),
 			assigned("questionnaire_parent", ["view"]),
+			all("notes", ["view"], ["clinical"]),
 			assigned("reminders", ["view"]),
 			assigned("roster", ["view"]),
 			assigned("leave", ["view", "approve"]),

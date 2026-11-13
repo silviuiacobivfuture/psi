@@ -28,6 +28,7 @@ export const FIELDS = {
 	record: "formResponses.payload",
 	clinical: "clients.clinical",
 	feedback: "feedback.text",
+	note: "clientNotes.text",
 	/** What only the import writes: the old app's clinical texts, kept apart. */
 	importedMainReason: "clients.mainReasonEnc",
 	importedDiagnosis: "clients.diagnosisEnc",
