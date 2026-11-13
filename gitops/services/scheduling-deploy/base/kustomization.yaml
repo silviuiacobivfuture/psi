@@ -3,11 +3,16 @@
 # key from OpenBao. The image (psi/scheduling-deploy) is built by .github/workflows/apps.yml from
 # apps/scheduling-deploy/Dockerfile; CI moves its tag in the overlay, so every change to the
 # functions (packages/**) redeploys them. This Job runs NO seed: production starts empty.
+# The same image also runs the nightly encrypted export of the store (export-cronjob.yaml). A change to
+# any non-hook object here makes Argo sync this Application, so the PostSync deploy Job runs again (the
+# switch to Postgres relies on it: functions are redeployed onto the empty store).
 # The `harbor-pull` Secret it uses is created by scheduling-backend (same namespace): one owner.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: scheduling
 resources:
   - externalsecret.yaml
+  - export-externalsecret.yaml
   - networkpolicy.yaml
   - job.yaml
+  - export-cronjob.yaml

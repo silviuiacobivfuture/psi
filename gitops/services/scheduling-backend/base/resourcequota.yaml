@@ -1,5 +1,8 @@
-# Per-namespace guard-rails for the namespace `scheduling` (the backend and the deploy Job). The
-# LimitRange backfills any container that omits resources, so the quota never bounces a pod.
+# Per-namespace guard-rails for the namespace `scheduling` (the backend, scheduling-db, the deploy Job,
+# the nightly export). The LimitRange backfills any container that omits resources, so the quota never
+# bounces a pod. Sized for: backend (req 100m/256Mi, lim 1/1Gi), scheduling-db (100m/256Mi, lim 1/768Mi),
+# the CNPG initdb/backup pods on a first boot, the deploy Job (100m/256Mi) and the export CronJob
+# (init 100m/256Mi + upload 50m/64Mi), plus a rollout surge. PVCs: backend data + scheduling-db + one spare.
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -18,9 +21,9 @@ metadata:
 spec:
   hard:
     requests.cpu: "1"
-    requests.memory: 2Gi
-    limits.cpu: "4"
-    limits.memory: 4Gi
-    requests.storage: 30Gi
-    persistentvolumeclaims: "2"
-    pods: "6"
+    requests.memory: 3Gi
+    limits.cpu: "6"
+    limits.memory: 6Gi
+    requests.storage: 40Gi
+    persistentvolumeclaims: "3"
+    pods: "12"

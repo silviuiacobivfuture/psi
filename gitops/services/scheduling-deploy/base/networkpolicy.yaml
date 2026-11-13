@@ -22,3 +22,31 @@ spec:
             matchLabels: { app: scheduling-backend }
       ports:
         - { protocol: TCP, port: 3210 }
+---
+# The nightly export: the backend's API (3210) and the object storage (443), DNS, and nothing else.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scheduling-export
+spec:
+  podSelector:
+    matchLabels: { app: scheduling-export }
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels: { app: scheduling-backend }
+      ports:
+        - { protocol: TCP, port: 3210 }
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - { protocol: TCP, port: 443 }

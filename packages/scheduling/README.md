@@ -91,7 +91,7 @@ pnpm --filter @psi/scheduling exec vitest run --maxWorkers=2
 ## Deploying (prepared, not yet applied)
 
 `docs/plans/scheduling.md` §7 and §9 (S2). In the cluster the store is `gitops/services/scheduling-backend`
-(StatefulSet, 10Gi SQLite volume, in-cluster Service `http://scheduling-backend.scheduling.svc:3210`,
+(StatefulSet; documents in Postgres `scheduling-db`, a CloudNativePG Cluster with continuous WAL backups; a 10Gi volume for modules and files; in-cluster Service `http://scheduling-backend.scheduling.svc:3210`,
 NetworkPolicy, no Ingress, no dashboard) and the functions are deployed by `gitops/services/scheduling-deploy`:
 an Argo PostSync Job running `apps/scheduling-deploy/deploy.sh` from the image CI builds
 (`apps/scheduling-deploy/Dockerfile`). It sets `PSI_SCHEDULING_KEY` inside the deployment, then runs
@@ -112,3 +112,54 @@ bao kv get -format=json secret/apps/scheduling/env \
 The backend image is built by CI from `apps/scheduling-backend/Dockerfile` (upstream Convex backend,
 pinned by digest, permissions fixed for a non-root user); the CMS reads the store with
 `CONVEX_URL` + the optional `cms-scheduling` Secret (`PSI_SCHEDULING_KEY`).
+
+### Postgres, backups and the switch from SQLite
+
+The documents live in the CloudNativePG Cluster `scheduling-db` (database `psi_scheduling`): the backend
+reads `POSTGRES_URL` (the URL **without** a database name; Convex derives the name from `INSTANCE_NAME`
+with `-` replaced by `_`, so `psi-scheduling` gives `psi_scheduling`, and refuses a URL that names one)
+and verifies CNPG's TLS certificate against its CA (`PG_CA_FILE`, from Secret `scheduling-db-ca`).
+`/convex/data` stays: with no S3 storage configured Convex keeps function modules, stored files and
+search indexes there (Velero's 6-hourly volume backup covers them; the nightly export below carries the
+files too).
+
+OpenBao, in addition to the above (values never echoed):
+
+```sh
+# the database owner: username is fixed (the Cluster's `owner: scheduling`); password URL-safe, 24+ chars
+bao kv put secret/apps/scheduling/db username=scheduling password="$(openssl rand -hex 24)"
+# the PUBLIC age key the nightly export is encrypted to (generate the pair OFFLINE: age-keygen -o scheduling.key;
+# keep the identity file out of the cluster and out of git, store it where the owner keeps recovery material)
+bao kv put secret/apps/scheduling/export AGE_RECIPIENT=age1...
+```
+
+`INSTANCE_NAME` in `secret/apps/scheduling/env` must be `psi-scheduling` (the backend's `assert-secrets`
+refuses anything else). Do the OpenBao writes BEFORE the merge: until the keys exist the ExternalSecrets
+are `SecretSyncedError` and the backend pod waits.
+
+**The switch (SQLite -> Postgres).** The SQLite store holds test data only, so nothing is migrated: on the
+merge Argo creates `scheduling-db`, the backend restarts with `POSTGRES_URL` and comes up **empty** on
+Postgres (the old `db.sqlite3` stays on the volume, unread; delete it by hand once satisfied). The
+`scheduling-deploy` Application changes in the same merge (the export CronJob), so Argo syncs it and its
+PostSync Job redeploys the functions onto the new store. The two Applications sync in parallel and the
+Job only waits for `/version`, which the OLD pod still answers while it is being replaced, so confirm
+afterwards and re-run if needed:
+
+```sh
+kubectl -n scheduling get cluster scheduling-db            # Cluster in healthy state, then
+kubectl -n scheduling get cluster scheduling-db -o jsonpath='{.status.conditions[?(@.type=="ContinuousArchiving")].status}'   # True
+kubectl -n scheduling logs job/scheduling-deploy           # "functions deployed", AFTER the backend restart
+# if the Job ran before the backend restarted (or failed): argocd app sync scheduling-deploy
+```
+
+If the SQLite store ever holds data worth keeping (it does not today), export it first and import after:
+`CONVEX_SELF_HOSTED_URL=... CONVEX_SELF_HOSTED_ADMIN_KEY=... npx convex export --include-file-storage --path before.zip`
+against the OLD backend, then `npx convex import --replace-all before.zip` against the new one after the
+functions are deployed (`convex export` / `convex import` take a snapshot of every table and the stored
+files; the CLI is the one in `node_modules/.bin/convex`).
+
+**Backups.** WAL is archived continuously to `s3://psi-tfstate-dev/cnpg/scheduling-db` (30 days, a weekly
+base backup Sunday 04:50 UTC, point-in-time recovery). The CronJob `scheduling-export` writes a nightly
+age-encrypted snapshot export to `s3://psi-tfstate-dev/scheduling-exports/` (02:15 UTC, 90 days). Restore
+and the drill: `docs/runbooks/scheduling-restore.md`, `tools/scheduling/restore-drill.sh`. Go-live with
+real data waits for one passing drill.

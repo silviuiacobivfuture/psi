@@ -1,5 +1,7 @@
-# Convex self-hosted backend (docs/plans/scheduling.md section 7), one replica, SQLite on a
-# ReadWriteOnce volume. A StatefulSet terminates the old pod before it creates the new one, so the
+# Convex self-hosted backend (docs/plans/scheduling.md section 7), one replica. Its documents live in
+# Postgres (scheduling-db, cnpg-cluster.yaml: POSTGRES_URL below); the ReadWriteOnce volume keeps what
+# Convex stores locally unless S3 storage is configured (it is not): function modules, stored files,
+# search indexes and tmp. A StatefulSet terminates the old pod before it creates the new one, so the
 # volume is never mounted twice.
 #
 # THE IMAGE: registry.psizone.ro/psi/scheduling-backend, built by .github/workflows/apps.yml from
@@ -15,8 +17,8 @@ metadata:
   name: scheduling-backend
   labels: { app: scheduling-backend }
   annotations:
-    # INSTANCE_NAME / INSTANCE_SECRET are read at start: Reloader restarts the pod when OpenBao -> ESO
-    # changes the Secret. (Do not rotate them in place: the admin key derives from both.)
+    # INSTANCE_NAME / INSTANCE_SECRET and the database credential are read at start: Reloader restarts
+    # the pod when OpenBao -> ESO changes either Secret. (Do not rotate them in place: the admin key derives from both.)
     reloader.stakater.com/auto: "true"
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
@@ -45,11 +47,16 @@ spec:
           image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
           envFrom:
             - secretRef: { name: scheduling-backend-env }
+          env:
+            - name: PG_USER
+              valueFrom: { secretKeyRef: { name: scheduling-db-app, key: username } }
+            - name: PG_PASSWORD
+              valueFrom: { secretKeyRef: { name: scheduling-db-app, key: password } }
           command:
             - sh
             - -c
             # kubelet expands only $(VAR); ${VAR:-} and ${#VAR} reach sh untouched.
-            - '[ -n "${INSTANCE_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_NAME" >&2; exit 1; }; [ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; case "$INSTANCE_SECRET" in *[!0-9a-f]*) echo "INVALID SECRET: INSTANCE_SECRET must be lowercase hex" >&2; exit 1;; esac; [ "${#INSTANCE_SECRET}" -ge 32 ] || { echo "INVALID SECRET: INSTANCE_SECRET shorter than 32" >&2; exit 1; }; echo secrets-ok'
+            - '[ -n "${INSTANCE_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_NAME" >&2; exit 1; }; [ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; case "$INSTANCE_SECRET" in *[!0-9a-f]*) echo "INVALID SECRET: INSTANCE_SECRET must be lowercase hex" >&2; exit 1;; esac; [ "${#INSTANCE_SECRET}" -ge 32 ] || { echo "INVALID SECRET: INSTANCE_SECRET shorter than 32" >&2; exit 1; }; [ "$INSTANCE_NAME" = "psi-scheduling" ] || { echo "INVALID SECRET: INSTANCE_NAME must be psi-scheduling (the database psi_scheduling is derived from it)" >&2; exit 1; }; [ -n "${PG_USER:-}" ] || { echo "MISSING REQUIRED SECRET: PG_USER (scheduling-db-app username)" >&2; exit 1; }; [ -n "${PG_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: PG_PASSWORD (scheduling-db-app password)" >&2; exit 1; }; case "$PG_USER$PG_PASSWORD" in *[!A-Za-z0-9._~-]*) echo "INVALID SECRET: scheduling-db-app username and password must be URL-safe (they are placed in POSTGRES_URL unescaped)" >&2; exit 1;; esac; [ "${#PG_PASSWORD}" -ge 24 ] || { echo "INVALID SECRET: scheduling-db-app password shorter than 24" >&2; exit 1; }; echo secrets-ok'
           resources:
             requests: { cpu: 10m, memory: 16Mi }
             limits: { cpu: 100m, memory: 64Mi }
@@ -68,6 +75,18 @@ spec:
           envFrom:
             - secretRef: { name: scheduling-backend-env }
           env:
+            # The database: the URL WITHOUT a database name (Convex appends psi_scheduling, derived from
+            # INSTANCE_NAME). $(VAR) expands only variables defined EARLIER in this list, so the two
+            # credentials come first. The host is namespace-relative on purpose (same namespace).
+            - name: PG_USER
+              valueFrom: { secretKeyRef: { name: scheduling-db-app, key: username } }
+            - name: PG_PASSWORD
+              valueFrom: { secretKeyRef: { name: scheduling-db-app, key: password } }
+            - { name: POSTGRES_URL, value: "postgresql://$(PG_USER):$(PG_PASSWORD)@scheduling-db-rw:5432" }
+            # TLS is REQUIRED by the backend (sslmode=require, verified by rustls, hostname included).
+            # CNPG serves a certificate from its own CA, kept in Secret scheduling-db-ca (ca.crt): the
+            # backend trusts it through PG_CA_FILE. DO_NOT_REQUIRE_SSL is deliberately not set.
+            - { name: PG_CA_FILE, value: /etc/scheduling-db-ca/ca.crt }
             # The origins are how callers reach the backend: the in-cluster Service. The
             # HTTP-actions origin is required by the image, but no psi function uses it.
             - { name: CONVEX_CLOUD_ORIGIN, value: "http://scheduling-backend.scheduling.svc:3210" }
@@ -77,8 +96,9 @@ spec:
             - { name: REDACT_LOGS_TO_CLIENT, value: "true" }
           volumeMounts:
             - { name: data, mountPath: /convex/data }
+            - { name: db-ca, mountPath: /etc/scheduling-db-ca, readOnly: true }
           resources:
-            # measured ~180Mi idle locally (SQLite, no load); limit leaves room for the working set
+            # measured ~180Mi idle locally (SQLite, no load; re-measure on Postgres); limit leaves room for the working set
             requests: { cpu: 100m, memory: 256Mi }
             limits: { cpu: "1", memory: 1Gi }
           securityContext:
@@ -101,3 +121,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: scheduling-backend-data }
+        - name: db-ca
+          secret:
+            secretName: scheduling-db-ca
+            items: [{ key: ca.crt, path: ca.crt }]

@@ -2,11 +2,12 @@
 #
 #   INGRESS  :3210 from the pods of psizone-web and the CMS (each: namespace AND pod label in ONE
 #            `from` element, an AND; two elements would be an OR) and from the scheduling-deploy
-#            Job's pods (same namespace). When EQ-SYNC / Hemi-Sync scheduling goes live (plan S9),
+#            Job's pods and the nightly scheduling-export CronJob's pods (same namespace). When EQ-SYNC / Hemi-Sync scheduling goes live (plan S9),
 #            add their namespace/pod pair here, in this file.
 #            Kubelet probes come from node addresses: the dev overlay adds them.
-#   EGRESS   DNS, and the backend's own Service (its origin is the Service URL). Nothing else:
-#            the beacon is off and no function calls out.
+#   EGRESS   DNS, the backend's own Service (its origin is the Service URL), and Postgres: 5432 to the
+#            scheduling-db pods (db-networkpolicy.yaml is the other half). Nothing else: the beacon
+#            is off and no function calls out.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -23,6 +24,8 @@ spec:
             matchLabels: { app: psizone-web }
         - podSelector:
             matchLabels: { app: scheduling-deploy }
+        - podSelector:
+            matchLabels: { app: scheduling-export }
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: cms }
           podSelector:
@@ -44,3 +47,8 @@ spec:
       ports:
         - { protocol: TCP, port: 3210 }
         - { protocol: TCP, port: 3211 }
+    - to:
+        - podSelector:
+            matchLabels: { cnpg.io/cluster: scheduling-db }
+      ports:
+        - { protocol: TCP, port: 5432 }

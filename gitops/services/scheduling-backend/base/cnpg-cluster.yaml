@@ -1,0 +1,74 @@
+# The scheduling store's Postgres — a CloudNativePG Cluster, the shape of every in-cluster database
+# here (cms: gitops/services/cms/base/cnpg-cluster.yaml; reasoning in openfga-db and changelog-db,
+# which it follows). Convex self-hosted keeps its documents, indexes and write log here instead of in
+# SQLite on the volume (docs/plans/clinic.md section 5: "data is extremely important"): the WAL is
+# archived continuously to the estate's object storage, so the store can be recovered to any second
+# inside the retention window (docs/runbooks/scheduling-restore.md).
+#
+# DATABASE NAME. Convex derives it from INSTANCE_NAME with '-' replaced by '_' and refuses a
+# POSTGRES_URL that already names one (crates/clusters/src/lib.rs, persistence_args_from_cluster_url
+# at the image's pinned commit). INSTANCE_NAME is psi-scheduling, so the database is psi_scheduling.
+# Convex creates its tables, not the database: initdb must.
+#
+# ONE role, the owner (as cms): Convex creates its own tables at start, so the process that owns the
+# schema and the one that reads it are the same program.
+#
+# CREDENTIALS FROM OPENBAO, not CNPG-generated (as cms and openfga). A generated `scheduling-db-app`
+# lives only in the cluster: lose the namespace or restore into a new one and the Secret that Convex's
+# POSTGRES_URL is built from is new while the restored database still holds the OLD password hash.
+# With the owner's credential in OpenBao (secret/apps/scheduling/db) the same ExternalSecret rebuilds
+# the same Secret anywhere, and a recovery bootstrap (restore drill) names it. The username is fixed
+# below (owner: scheduling) and must be the value in OpenBao.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: scheduling-db
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  instances: 1
+  # Fast clean stop (10 s), not the 180 s smart-shutdown default: the pooled client never leaves.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  bootstrap:
+    initdb:
+      database: psi_scheduling
+      owner: scheduling
+      # Naming a secret means the operator expects it to EXIST: scheduling-db-app, db-externalsecret.yaml.
+      secret:
+        name: scheduling-db-app
+  # hcloud-volumes: a single-instance Cluster has no live path onto another storage class.
+  # 10Gi is the Hetzner block-volume minimum, not a sizing estimate.
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      # The estate's backup bucket (psi-tfstate-dev, nbg1), one prefix per database.
+      destinationPath: s3://psi-tfstate-dev/cnpg/scheduling-db
+      endpointURL: https://nbg1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: scheduling-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: scheduling-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. CNPG cron has SIX fields (leading seconds).
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: scheduling-db-base
+spec:
+  # 04:50 Sunday — taken after grepping `schedule:` across gitops/ (04:00/10/20/30/40 are used).
+  schedule: "0 50 4 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: scheduling-db

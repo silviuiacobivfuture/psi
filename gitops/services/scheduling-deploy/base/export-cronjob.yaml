@@ -1,0 +1,132 @@
+# The nightly logical export of the scheduling store (docs/plans/clinic.md section 5): a Convex snapshot
+# export (all tables + stored files) through the backend's admin API, encrypted with age to the owner's
+# PUBLIC key, uploaded to s3://psi-tfstate-dev/scheduling-exports/, the last 90 days kept. It is the
+# second, independent copy next to the Postgres WAL archive: it survives a corrupted archive and
+# restores into a fresh deployment with `convex import` (docs/runbooks/scheduling-restore.md). Plain
+# data exists only in the init container's emptyDir. The decryption identity is NEVER in the cluster.
+#
+# init container `export` (the scheduling-deploy image: Convex CLI + age) -> container `upload`
+# (the estate's mirrored aws-cli image, as gitops db-backup's dump CronJobs). A failed night fails the
+# Job (alerts) and leaves yesterday's object untouched; the prune only runs after a successful upload.
+# 02:15 UTC, a slot no other CronJob takes.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduling-export
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "15 2 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels: { app: scheduling-export }
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: harbor-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: assert-secrets
+              image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              envFrom:
+                - secretRef: { name: scheduling-export-env }
+              command:
+                - sh
+                - -c
+                - 'for k in CONVEX_SELF_HOSTED_ADMIN_KEY AGE_RECIPIENT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do eval "v=\${$k:-}"; [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }; done; case "$AGE_RECIPIENT" in age1*) ;; *) echo "INVALID SECRET: AGE_RECIPIENT must be an age public key (age1...)" >&2; exit 1;; esac; echo secrets-ok'
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+            - name: export
+              image: registry.psizone.ro/psi/scheduling-deploy
+              command: ["/app/export.sh"]
+              env:
+                - { name: CONVEX_SELF_HOSTED_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
+                - name: CONVEX_SELF_HOSTED_ADMIN_KEY
+                  valueFrom: { secretKeyRef: { name: scheduling-export-env, key: CONVEX_SELF_HOSTED_ADMIN_KEY } }
+                - name: AGE_RECIPIENT
+                  valueFrom: { secretKeyRef: { name: scheduling-export-env, key: AGE_RECIPIENT } }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 100m, memory: 256Mi }
+                limits: { cpu: "1", memory: 768Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+          containers:
+            - name: upload
+              image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  test -s /work/export.zip.age || { echo "FATAL: no encrypted export (the export container failed)" >&2; exit 1; }
+                  export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+                  export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  KEY="${PREFIX}/scheduling-${TS}.zip.age"
+                  aws s3 cp /work/export.zip.age "s3://${BUCKET}/${KEY}" --endpoint-url "$AWS_ENDPOINT_URL"
+                  echo "export uploaded: s3://${BUCKET}/${KEY}"
+                  # Keep 90 days. The date is in the object NAME, so no LastModified parsing. Runs only
+                  # after a successful upload; a failed delete fails the Job (the next night retries).
+                  CUTOFF=$(date -u -d "90 days ago" +%Y%m%d)
+                  aws s3 ls "s3://${BUCKET}/${PREFIX}/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | awk '{print $4}' | grep -E '^scheduling-[0-9]{8}T[0-9]{6}Z\.zip\.age$' \
+                    | while read -r f; do
+                        d=${f#scheduling-}; d=${d%%T*}
+                        if [ "$d" -lt "$CUTOFF" ]; then
+                          aws s3 rm "s3://${BUCKET}/${PREFIX}/${f}" --endpoint-url "$AWS_ENDPOINT_URL"
+                        fi
+                      done
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: scheduling-export-env, key: AWS_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: scheduling-export-env, key: AWS_SECRET_ACCESS_KEY } }
+                - { name: AWS_REGION, value: nbg1 }
+                - { name: AWS_ENDPOINT_URL, value: "https://nbg1.your-objectstorage.com" }
+                - { name: AWS_S3_ADDRESSING_STYLE, value: path }
+                - { name: BUCKET, value: psi-tfstate-dev }
+                - { name: PREFIX, value: scheduling-exports }
+                - { name: HOME, value: /tmp }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 250m, memory: 256Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: tmp
+              emptyDir: {}

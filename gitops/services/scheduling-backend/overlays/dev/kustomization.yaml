@@ -25,3 +25,25 @@ patches:
             - ipBlock: { cidr: 10.42.1.1/32 }
           ports:
             - { protocol: TCP, port: 3210 }
+  # scheduling-db: kubelet probes (the instance manager's :8000 status port, same node addresses as
+  # above) and the API server (the instance manager and the backup/initdb pods read and patch their
+  # Cluster through it: the Service is DNATed to the control-plane node's :6443).
+  - target: { kind: NetworkPolicy, name: scheduling-db }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 8000 }
+      - op: add
+        path: /spec/egress/-
+        value:
+          to:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+          ports:
+            - { protocol: TCP, port: 6443 }

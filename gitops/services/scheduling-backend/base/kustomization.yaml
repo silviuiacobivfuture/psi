@@ -1,4 +1,4 @@
-# The scheduling store: the self-hosted, open-source Convex backend (SQLite on a volume), reachable
+# The scheduling store: the self-hosted, open-source Convex backend (documents in Postgres: scheduling-db, WAL-archived; modules and files on a volume), reachable
 # ONLY inside the cluster at http://scheduling-backend.scheduling.svc:3210. No Ingress and no
 # dashboard: psi's servers are its only callers (docs/plans/scheduling.md sections 5 and 7).
 # The functions are deployed to it by the scheduling-deploy Application (same namespace).
@@ -8,12 +8,15 @@ kind: Kustomization
 namespace: scheduling
 resources:
   - resourcequota.yaml
+  - cnpg-cluster.yaml
+  - db-externalsecret.yaml
   - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
   - pvc.yaml
   - statefulset.yaml
   - service.yaml
   - networkpolicy.yaml
+  - db-networkpolicy.yaml
 components:
-  # Argo's prune/delete guard on the PVC (the data).
+  # Argo's prune/delete guard on the PVC and the CNPG Cluster (the data).
   - ../../../components/prune-guard

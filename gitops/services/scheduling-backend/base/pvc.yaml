@@ -1,4 +1,6 @@
-# The backend's data (/convex/data: the SQLite database, file storage, tmp, credentials copy).
+# The backend's local data (/convex/data: function modules, stored files, search indexes, tmp, credentials
+# copy). The documents themselves are in Postgres (scheduling-db). Until the Postgres switch this volume
+# also holds the SQLite file db.sqlite3 (test data only); it is ignored once POSTGRES_URL is set.
 # Hetzner block storage (10Gi is the smallest volume), grown in place if needed. Guarded against
 # Argo's prune by the prune-guard component. Velero's 6-hourly schedule backs it up with the node
 # agent (kopia): it covers every namespace not on its exclude list, and `scheduling` is not on it.
