@@ -69,6 +69,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"appointment.update": rec("visit.update", "visit"),
 	"appointment.cancel": rec("visit.cancel", "visit"),
 	"appointment.attendance": rec("visit.update", "visit"),
+	"appointment.confirm": rec("visit.update", "visit"),
 	"appointment.payment": rec("payment.add", "payment"),
 	"appointment.delete": rec("visit.cancel", "visit"),
 	"appointment.restore": rec("visit.update", "visit"),

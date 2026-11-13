@@ -1,9 +1,9 @@
 import type { Hono } from "hono";
 import type { Env } from "../app";
-import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { sse } from "../lib/sse";
+import { OrgFrame } from "../pages/org-settings";
 import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
 import type { AuditEvent } from "../port/schema";
@@ -33,7 +33,7 @@ async function eventsOf(ctx: Ctx): Promise<ReadonlyArray<AuditEvent> | null> {
 
 /** The journal, one event's drawer, and the CSV of what the filters show. */
 export function registerAudit(app: Hono<Env>): void {
-	app.get("/audit", async (c) => {
+	app.get("/settings/audit", async (c) => {
 		const ctx = c.var.ctx;
 		const query = queryOf(c.req.query());
 		const events = await eventsOf(ctx);
@@ -49,7 +49,7 @@ export function registerAudit(app: Hono<Env>): void {
 		return c.html(await renderAuditPage(ctx, view), 200, NO_STORE);
 	});
 
-	app.get("/audit/export.csv", async (c) => {
+	app.get("/settings/audit/export.csv", async (c) => {
 		const ctx = c.var.ctx;
 		const query = queryOf(c.req.query());
 		const events = await eventsOf(ctx);
@@ -63,7 +63,7 @@ export function registerAudit(app: Hono<Env>): void {
 		});
 	});
 
-	app.get("/audit/:id", async (c) => {
+	app.get("/settings/audit/:id", async (c) => {
 		const ctx = c.var.ctx;
 		const events = await eventsOf(ctx);
 		const event = events?.find((e) => e.id === c.req.param("id"));
@@ -77,11 +77,11 @@ export function registerAudit(app: Hono<Env>): void {
 				stream.patchElements(body.toString());
 			});
 		return c.html(
-			await Page({
+			await OrgFrame({
 				ctx,
-				current: "audit",
+				area: "audit",
 				title: m.jr_d_title({}, at(ctx.locale)),
-				children: <div class="adm-page">{body}</div>,
+				children: body,
 			}),
 			200,
 			NO_STORE,

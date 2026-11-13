@@ -1,0 +1,429 @@
+/* The client page, its tabs, the forms and sheets, the notes timeline, the list's rich rows. Layout tokens only. */
+.cl-page {
+	min-width: 0;
+}
+.cl-back {
+	align-self: flex-start;
+}
+.cl-head {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-3);
+}
+.cl-head__avatar {
+	width: calc(var(--adm-touch) + var(--space-1));
+	height: calc(var(--adm-touch) + var(--space-1));
+	font-size: 18px;
+}
+.cl-head__text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+.cl-head__name {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+.cl-head__flags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--adm-gap);
+}
+.cl-pinned-strip {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+}
+.cl-pin {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.cl-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-section-gap);
+	min-width: 0;
+}
+.cl-cards {
+	display: grid;
+	gap: var(--adm-gap);
+	grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+	.cl-cards {
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: var(--space-4);
+	}
+}
+.cl-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+.cl-card--alert {
+	border-color: var(--danger);
+}
+.cl-field-read {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	overflow-wrap: anywhere;
+}
+
+/* Blacklist flag: red when it blocks, amber when it warns. Never colour alone: an icon and the word. */
+.cl-flag {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	max-width: 100%;
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-pill);
+	font: 600 13px / 1.3 var(--font-sans);
+}
+.cl-flag > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.cl-flag--block {
+	color: var(--danger);
+	background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
+	border: 1px solid var(--danger);
+}
+.cl-flag--warn {
+	color: var(--status-requested);
+	background: var(--status-requested-soft);
+	border: 1px solid var(--status-requested);
+}
+
+/* Rows: a list of stacked entries, never a table; the whole row is one 44px+ target. */
+.cl-rows {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+	background: var(--surface-1);
+}
+.cl-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: calc(var(--adm-touch) + var(--space-3));
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid var(--line);
+}
+.cl-row:last-child {
+	border-bottom: 0;
+}
+.cl-row__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	color: var(--ink);
+	text-decoration: none;
+}
+.cl-row__main > * {
+	overflow-wrap: anywhere;
+}
+
+/* Notes timeline. */
+.cl-notes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.cl-note {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: var(--space-3);
+	padding: var(--adm-card-pad);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+	background: var(--surface-1);
+}
+.cl-note[data-pinned="true"] {
+	border-color: var(--app);
+}
+.cl-note__main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	min-width: 0;
+}
+.cl-note__head,
+.cl-note__tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-2);
+	align-items: center;
+}
+.cl-note__body {
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.cl-note__tools {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+/* Forms in sheets and the form filler: one column, labels above, buttons stacked on a phone. */
+.cl-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+}
+.cl-filler {
+	max-width: 720px;
+	padding-bottom: calc(var(--adm-tab-h) + var(--space-5));
+}
+.cl-field {
+	min-width: 0;
+}
+.cl-choices {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.cl-choice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-3);
+	min-height: var(--adm-touch);
+}
+.cl-choice > span {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+.cl-buttons {
+	display: flex;
+	flex-direction: column-reverse;
+	gap: var(--adm-gap);
+}
+.cl-buttons > .adm-btn {
+	width: 100%;
+}
+.cl-buttons--sticky > .adm-btn {
+	flex: 1 1 0;
+	min-width: 0;
+	padding-inline: var(--space-2);
+}
+.cl-buttons--sticky {
+	flex-direction: row-reverse;
+	position: sticky;
+	bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom));
+	z-index: 5;
+	padding: var(--space-3) 0;
+	background: var(--bg);
+}
+@media (min-width: 768px) {
+	.cl-buttons {
+		flex-direction: row;
+		justify-content: flex-end;
+	}
+	.cl-buttons > .adm-btn {
+		width: auto;
+	}
+	.cl-buttons--sticky {
+		bottom: 0;
+	}
+}
+.cl-table {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+}
+.cl-tablerow {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	margin: 0;
+	padding: var(--adm-card-pad);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+	min-width: 0;
+}
+.cl-table > button {
+	align-self: flex-start;
+}
+
+/* Upload: a drop zone that is also a tap target, a camera button, a queue with progress. */
+.cl-drop {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-6) var(--space-4);
+	border: 2px dashed var(--line-control);
+	border-radius: var(--radius-md);
+	text-align: center;
+	cursor: pointer;
+}
+.cl-drop[data-over="true"] {
+	border-color: var(--app);
+	background: var(--surface-2);
+}
+.cl-camera {
+	width: 100%;
+}
+.cl-queue {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.cl-queue__item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	overflow-wrap: anywhere;
+}
+.cl-queue progress {
+	width: 100%;
+}
+.cl-row__name {
+	overflow-wrap: anywhere;
+}
+
+/* The list's rich rows and summary. */
+.cl-summary {
+	display: grid;
+	gap: var(--adm-gap);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+	.cl-summary {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+.client-row__flags {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-1);
+	max-width: 45%;
+}
+@media (max-width: 599px) {
+	.client-row {
+		flex-wrap: wrap;
+	}
+	.client-row__flags {
+		flex-basis: 100%;
+		max-width: none;
+		justify-content: flex-start;
+		padding-inline-start: calc(var(--adm-touch) + var(--space-3));
+	}
+}
+
+/* The blacklist panel in the appointment editor. */
+.cl-flagpanel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--adm-card-pad);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+}
+.cl-flagpanel--block {
+	border-color: var(--danger);
+}
+.cl-flagpanel--warn {
+	border-color: var(--status-requested);
+}
+.dt__flag {
+	margin: 0;
+}
+
+/* A flag on a calendar tile: a small icon by the name; its words are the tooltip, and the detail sheet on a tap. */
+.cl-tileflag {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-start: var(--space-1);
+}
+.cl-tileflag--block {
+	color: var(--danger);
+}
+.cl-tileflag--warn,
+.cl-tileflag--note {
+	color: var(--status-requested);
+}
+.cl-tileflag svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Working hours: a day per row, its two times beside it; the day's name above them on a narrow phone. */
+.cl-hours {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.cl-hours__day {
+	display: grid;
+	gap: var(--space-2);
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: center;
+}
+.cl-hours__day > span {
+	grid-column: 1 / -1;
+	font-weight: 600;
+}
+@media (min-width: 600px) {
+	.cl-hours__day {
+		grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr);
+	}
+	.cl-hours__day > span {
+		grid-column: auto;
+	}
+}
+
+/* The palette's button in the top bar needs room a narrow phone does not have; there it lives in the account menu. */
+@media (max-width: 599px) {
+	[data-palette-open] {
+		display: none;
+	}
+}
+
+/* The primary actions of a screen: a row on a desktop, a bar over the tab bar on a phone. */
+.adm-actionbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--adm-gap);
+}
+@media (max-width: 767px) {
+	.adm-actionbar {
+		position: sticky;
+		bottom: calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + var(--space-2));
+		z-index: 4;
+		padding: var(--space-2) 0;
+		background: var(--bg);
+	}
+	.adm-actionbar > .adm-btn {
+		flex: 1 1 140px;
+	}
+}

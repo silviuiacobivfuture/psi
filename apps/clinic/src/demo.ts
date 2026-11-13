@@ -6,7 +6,7 @@ import type { FakeOptions } from "./port/fake";
  * "Vezi ca…" shows what a receptionist, a therapist and an accountant really see (all synthetic).
  */
 export const DEMO_PEOPLE: Pick<FakeOptions, "members" | "names" | "platformAdmins"> = {
-	platformAdmins: [DEV_SUBJECT],
+	platformAdmins: new Set([DEV_SUBJECT]),
 	members: {
 		[DEV_SUBJECT]: [
 			{ app: "psizone", roles: ["owner"] },

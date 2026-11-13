@@ -242,6 +242,13 @@ export interface ProposalStore {
 	put(proposal: Proposal): void | Promise<void>;
 	/** Moves an open proposal of this person to running, once. */
 	claim(id: string, sub: string, appId: string, now: number): ClaimResult | Promise<ClaimResult>;
+	/** An open, unexpired proposal of this person for exactly this change, if one exists: asking twice for the same thing prepares it once. */
+	findOpen(
+		sub: string,
+		appId: string,
+		change: Change,
+		now: number,
+	): Proposal | undefined | Promise<Proposal | undefined>;
 	/** Records how a claimed proposal ended. */
 	finish(id: string, state: "done" | "dismissed"): void | Promise<void>;
 	/** Discards an open proposal of this person. */
@@ -278,6 +285,20 @@ export function createMemoryProposalStore(): ProposalStore {
 			}
 			found.state = "running";
 			return { ok: true, proposal: found };
+		},
+		findOpen(sub, appId, change, now) {
+			const wanted = JSON.stringify(change);
+			for (const p of proposals.values()) {
+				if (
+					p.sub === sub &&
+					p.appId === appId &&
+					p.state === "open" &&
+					now < p.expiresAt &&
+					JSON.stringify(p.change) === wanted
+				)
+					return p;
+			}
+			return undefined;
 		},
 		finish(id, state) {
 			const found = proposals.get(id);

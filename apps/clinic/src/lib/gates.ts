@@ -1,3 +1,5 @@
+import { ACTIONS } from "../actions/registry";
+import { ORG_AREAS, PLATFORM_KEY } from "./areas";
 import type { Can } from "./can";
 
 /**
@@ -21,21 +23,23 @@ const g = (method: Gate["method"], path: string, keys: string[], write?: true): 
 	...(write === undefined ? {} : { write }),
 });
 
-/** What the administration zone offers, each with the permission it needs; the zone is for whoever holds any of them. */
-export const ADMIN_AREAS = [
-	{ id: "roles", href: "/settings/roles", key: "roles_view" },
-	{ id: "members", href: "/settings/people", key: "people_view" },
-	{ id: "plan", href: "/settings/plan", key: "app_settings_edit" },
-	{ id: "services", href: "/settings/services", key: "services_view" },
-	{ id: "rooms", href: "/settings/rooms", key: "rooms_view" },
-	{ id: "devices", href: "/settings/devices", key: "devices_view" },
-	{ id: "floor", href: "/floor", key: "app_settings_edit" },
-	{ id: "audit", href: "/audit", key: "audit_log_view" },
-] as const;
+/** The routes of the action registry, each gated by what its action needs: a write or a read of any listed key. */
+const ACTION_GATES: ReadonlyArray<Gate> = ACTIONS.flatMap((a) =>
+	a.route === null
+		? []
+		: [
+				{
+					method: a.route.method,
+					path: new RegExp(`^${a.route.path.replace(/:[a-z]+/g, "[^/]+")}/?$`),
+					keys: [...(a.needs.write ?? a.needs.read ?? [])],
+					...(a.route.method === "POST" && a.needs.write !== undefined
+						? { write: true as const }
+						: {}),
+				},
+			],
+);
 
-const ADMIN_AREAS_KEYS: string[] = ADMIN_AREAS.map((a) => a.key);
-
-export const adminOpen = (can: Can): boolean => ADMIN_AREAS.some((a) => can.has(a.key));
+const AREA_GATES: ReadonlyArray<Gate> = ORG_AREAS.map((a) => g("GET", a.href, [...a.keys]));
 
 const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/calendar", ["calendars_view"]),
@@ -54,7 +58,6 @@ const GATES: ReadonlyArray<Gate> = [
 	g("POST", "/floor/api/live/render", ["calendars_view"]),
 	g("POST", "/floor/api/draw/render", ["app_settings_edit"]),
 	g("POST", "/floor/api/draw/save", ["app_settings_edit"], true),
-	g("GET", "/settings/plan", ["app_settings_edit"]),
 	g("GET", "/search(/live)?", ["clients_view"]),
 	g("GET", "/clients", ["clients_view"]),
 	g("GET", "/clients/[^/]+", ["clients_view"]),
@@ -72,16 +75,18 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/roster", ["roster_view"]),
 	g("GET", "/reminders", ["reminders_view"]),
 	g("POST", "/reminders/[^/]+/sent", ["reminders_send"], true),
-	g("GET", "/settings/people", ["people_view"]),
-	g("GET", "/settings/rooms", ["rooms_view"]),
-	g("GET", "/settings/devices", ["devices_view"]),
-	g("GET", "/settings/services", ["services_view"]),
-	g("GET", "/settings/roles", ["roles_view"]),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
 	g("GET", "/stats", ["reports_view"]),
+	g(
+		"GET",
+		"/settings",
+		ORG_AREAS.flatMap((a) => [...a.keys]),
+	),
+	...AREA_GATES,
+	...ACTION_GATES,
 	g("GET", "/audit", ["audit_log_view"]),
-	g("GET", "/audit/[^/]+", ["audit_log_view"]),
-	g("GET", "/admin", ADMIN_AREAS_KEYS),
+	g("GET", "/settings/audit/[^/]+", ["audit_log_view"]),
+	g("GET", "/platform", [PLATFORM_KEY]),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];
 
@@ -95,22 +100,10 @@ export function judge(method: string, path: string, can: Can): Verdict {
 	return "allowed";
 }
 
-/** The settings tabs this person may open, in the order of the screen; the notifications tab is everyone's own. */
-export const SETTINGS_TAB_KEYS = {
-	people: "people_view",
-	rooms: "rooms_view",
-	devices: "devices_view",
-	services: "services_view",
-	roles: "roles_view",
-	plan: "app_settings_edit",
-} as const;
-
-/** Whether any settings tab is open to this person. */
-export const settingsOpen = (can: Can): boolean => can.any(...Object.values(SETTINGS_TAB_KEYS));
-
 /** Packages and records tabs of a client, with the permission each needs. */
 export const CLIENT_TAB_KEYS = {
 	overview: "clients_view",
+	notes: "clients_view",
 	appointments: "appointments_view",
 	packages: "packages_view",
 	records: "clients_view_clinical",
@@ -125,7 +118,7 @@ export function landingFor(can: Can): string {
 		["web_requests_view", "/requests"],
 		["roster_view", "/roster"],
 		["reminders_view", "/reminders"],
-		["audit_log_view", "/audit"],
+		["audit_log_view", "/settings/audit"],
 	];
 	return order.find(([key]) => can.has(key))?.[1] ?? "/more";
 }

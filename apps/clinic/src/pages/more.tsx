@@ -1,7 +1,7 @@
 import { type AdminIcon, Icon } from "@psi/ui/admin";
 import { Page } from "../chrome";
+import { orgSettingsOpen, PLATFORM_KEY } from "../lib/areas";
 import type { Ctx } from "../lib/context";
-import { adminOpen, settingsOpen } from "../lib/gates";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -32,11 +32,17 @@ export async function MorePage(ctx: Ctx) {
 			href: "/settings",
 			label: m.nav_settings({}, o),
 			icon: "settings",
-			open: settingsOpen(can),
+			open: orgSettingsOpen(can),
+		},
+		{ href: "/me/settings", label: m.nav_me({}, o), icon: "user", open: true },
+		{
+			href: "/platform",
+			label: m.nav_platform({}, o),
+			icon: "shield",
+			open: can.has(PLATFORM_KEY),
 		},
 		{ href: "/stats", label: m.nav_stats({}, o), icon: "chart", open: can.has("reports_view") },
-		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_log_view") },
-		{ href: "/admin", label: m.nav_admin({}, o), icon: "shield", open: adminOpen(can) },
+		{ href: "/me/profile", label: m.menu_profile({}, o), icon: "user", open: true },
 	];
 	const items = all.filter((i) => i.open);
 	return Page({
@@ -48,12 +54,7 @@ export async function MorePage(ctx: Ctx) {
 				<p class="adm-muted">{m.more_lead({}, o)}</p>
 				<div class="adm-grid">
 					{items.map((i) => (
-						<a
-							key={i.href}
-							class="adm-card adm-row"
-							href={i.href}
-							style="min-height:var(--adm-touch);text-decoration:none"
-						>
+						<a key={i.href} class="adm-card adm-row" href={i.href} data-more={i.href}>
 							<Icon name={i.icon} />
 							<strong>{i.label}</strong>
 						</a>

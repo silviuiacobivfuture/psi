@@ -1,3 +1,8 @@
+import {
+	AUTHORITY_NEEDED,
+	OVERRIDE_AUTHORITIES,
+	type OverrideAuthority,
+} from "@psi/scheduling/clinic";
 import { Icon } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Conflict, Suggestions } from "../domain/conflicts";
@@ -8,7 +13,9 @@ import { hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { Appointment, Client, Column, Package } from "../port/schema";
+import type { BlacklistEntry } from "../port/schema-clinical";
 import { initials } from "./appt-tile";
+import { BlacklistBadge } from "./client-flags";
 
 const bind = (k: string): Record<string, string> => ({ [`data-bind:ed.${k}`]: "" });
 const quote = (s: string): string => JSON.stringify(s);
@@ -50,6 +57,53 @@ export function ClientResults({
 				</ul>
 			)}
 		</div>
+	);
+}
+
+/**
+ * The chosen client is on the blacklist: a warning, or a block, with the reason staff may read and a field for why they
+ * book anyway. Empty when the client is not listed. Saving is refused until the reason is typed (and, for a block, the
+ * person holds the override it asks for).
+ */
+export function BlacklistPanel({
+	entry,
+	locale,
+	authority,
+}: {
+	entry: BlacklistEntry | null;
+	locale: Locale;
+	authority: OverrideAuthority;
+}): JSX.Element {
+	const o = at(locale);
+	if (entry === null) return <div id="ed-blacklist" role="status" aria-live="polite" />;
+	const needs = AUTHORITY_NEEDED[entry.severity];
+	const rank = (a: OverrideAuthority): number => OVERRIDE_AUTHORITIES.indexOf(a);
+	const may = rank(authority) >= rank(needs);
+	const blocks = entry.severity !== "warn";
+	return (
+		<section
+			id="ed-blacklist"
+			class={`ed-section cl-flagpanel ${blocks ? "cl-flagpanel--block" : "cl-flagpanel--warn"}`}
+			role="alert"
+			data-blacklist-panel={entry.severity}
+		>
+			<BlacklistBadge entry={entry} locale={locale} />
+			<p>
+				{blocks
+					? may
+						? m.cl_gate_blocked_may({}, o)
+						: needs === "admin"
+							? m.cl_gate_blocked_admin({}, o)
+							: m.cl_gate_blocked_staff({}, o)
+					: m.cl_gate_warn({}, o)}
+			</p>
+			{may ? (
+				<label class="adm-field">
+					<span>{m.cl_gate_reason({}, o)}</span>
+					<textarea class="adm-input" rows={2} maxlength={500} {...bind("override")} />
+				</label>
+			) : null}
+		</section>
 	);
 }
 

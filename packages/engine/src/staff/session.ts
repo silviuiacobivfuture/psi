@@ -45,6 +45,8 @@ export interface StaffSession {
 	readonly blocked: Set<string>;
 	/** How many times each tool was called with the same input this turn: the third identical call is refused. */
 	readonly calls: Map<string, number>;
+	/** Changes asked for again this turn that already had an open card: they count as prepared, with no second card. */
+	readonly reused: { count: number };
 	/** What this turn has read that strangers wrote (website requests): while set, no change is prepared but marking those requests handled. */
 	readonly taint: { stranger: boolean };
 	/** What the person may do here, loaded once per turn; undefined when the service could not say. */
@@ -53,6 +55,7 @@ export interface StaffSession {
 
 const AmbiguousSchema = z.object({
 	status: z.literal("ambiguous"),
+	what: z.string().optional(),
 	candidates: z.array(z.object({ id: z.string(), name: z.string() })),
 });
 
@@ -166,7 +169,10 @@ export async function guardedRun<O>(
 	if (ambiguous.success) {
 		session.cards.push({
 			kind: "choices",
-			title: session.copy.refusal.ambiguous,
+			title:
+				ambiguous.data.what === undefined
+					? session.copy.refusal.ambiguous
+					: session.copy.card.choose(ambiguous.data.what.toLowerCase()),
 			options: ambiguous.data.candidates.map((c) => ({
 				label: c.name,
 				ask: `${c.name} [${c.id}]`,

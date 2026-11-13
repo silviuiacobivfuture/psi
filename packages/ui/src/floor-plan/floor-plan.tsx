@@ -2,7 +2,7 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import { FLOOR_PLAN_JS } from "./client.generated";
-import { Btn, DrawBar, Floors, Icon, Legend, LiveStrip } from "./controls";
+import { Btn, CategoryLegend, DrawBar, Floors, Icon, Legend, LiveStrip } from "./controls";
 import { type FloorPlanLabels, say } from "./labels";
 import type { RoomLive } from "./live";
 import { type FloorPlanProps, type LivePart, liveSceneOf, sceneProps, snapInstant } from "./model";
@@ -305,6 +305,9 @@ export function FloorPlan(p: FloorPlanProps): JSX.Element {
 					{draw ? draw.inspector : null}
 					{draw ? draw.list : pieces?.list}
 					{live ? <Legend labels={L} heat={live.heat} /> : null}
+					{p.doc.categories === undefined ? null : (
+						<CategoryLegend categories={p.doc.categories} locale={p.locale} />
+					)}
 					{draw ? draw.status : pieces?.status}
 				</div>
 				{pieces?.sheet}

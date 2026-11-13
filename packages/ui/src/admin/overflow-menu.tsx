@@ -8,6 +8,8 @@ export interface OverflowItem {
 	label: string;
 	icon?: AdminIcon;
 	tone?: "danger";
+	/** The registry id of the action: tagged on the item so a test can tie the control to it. */
+	action?: string;
 	/** A link, or a Datastar expression run on click (e.g. `$askDelete = true`). */
 	href?: string;
 	onClick?: string;
@@ -68,6 +70,7 @@ export function OverflowMenu({ id, label, items }: OverflowMenuProps): JSX.Eleme
 							role="menuitem"
 							class={cx("adm-menu__item", i.tone === "danger" && "adm-menu__item--danger")}
 							href={i.href}
+							data-action={i.action}
 						>
 							{i.icon === undefined ? null : <Icon name={i.icon} />}
 							{i.label}
@@ -78,6 +81,7 @@ export function OverflowMenu({ id, label, items }: OverflowMenuProps): JSX.Eleme
 							type="button"
 							role="menuitem"
 							class={cx("adm-menu__item", i.tone === "danger" && "adm-menu__item--danger")}
+							data-action={i.action}
 							data-on:click={`$${sig} = false; ${i.onClick ?? ""}`}
 						>
 							{i.icon === undefined ? null : <Icon name={i.icon} />}

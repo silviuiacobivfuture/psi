@@ -9,7 +9,9 @@ import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
 import type { ReminderItem } from "../port/port";
 import type { Appointment, Client, Column, Package, Service } from "../port/schema";
+import type { ClientFlag } from "../port/schema-clinical";
 import { initials } from "./appt-tile";
+import { BlacklistBadge } from "./client-flags";
 import { emailHref, whatsappHref } from "./reminders";
 
 export interface DetailData {
@@ -20,6 +22,8 @@ export interface DetailData {
 	pkg: Package | null;
 	clientAppointments: ReadonlyArray<Appointment>;
 	app: "psizone" | "hemisync";
+	/** The client's blacklist entry and newest pinned note, for who may see them. */
+	flag?: ClientFlag | undefined;
 }
 
 const act = (id: string, what: string): string => `@post('/appointments/${id}/${what}')`;
@@ -75,6 +79,16 @@ export function DetailBody({
 				</div>
 				<StatusPill status={a.status} label={statusLabel(a.status, locale)} />
 			</div>
+			{d.flag?.blacklist == null ? null : (
+				<div class="dt__flag">
+					<BlacklistBadge entry={d.flag.blacklist} locale={locale} />
+				</div>
+			)}
+			{d.flag?.pinned == null ? null : (
+				<p class="dt__flag dt__flag--note" data-pinned-note>
+					<strong>{m.cl_note_pinned({}, o)}</strong> · {d.flag.pinned.body}
+				</p>
+			)}
 			<dl class="dt__facts">
 				<div>
 					<dt>{m.ap_when({}, o)}</dt>
@@ -138,11 +152,21 @@ export function DetailBody({
 				) : null}
 				{open && rights.edit ? (
 					<>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "attended")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.attended"
+							data-on:click={act(a.id, "attended")}
+						>
 							<Icon name="check" />
 							{m.ap_mark_attended({}, o)}
 						</button>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "no-show")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.no_show"
+							data-on:click={act(a.id, "no-show")}
+						>
 							<Icon name="alert" />
 							{m.ap_mark_absent({}, o)}
 						</button>
@@ -159,7 +183,12 @@ export function DetailBody({
 							<option value="card">{m.method_card({}, o)}</option>
 							<option value="transfer">{m.method_transfer({}, o)}</option>
 						</select>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "pay")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.pay"
+							data-on:click={act(a.id, "pay")}
+						>
 							{m.ap_collect({}, o)}
 						</button>
 					</div>
@@ -198,6 +227,7 @@ export function DetailBody({
 					<form
 						class="adm-stack"
 						style="display:none"
+						data-action="appointment.cancel"
 						data-show="$dtAsk"
 						data-on:submit__prevent={act(a.id, "cancel")}
 					>

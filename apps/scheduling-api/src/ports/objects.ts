@@ -5,10 +5,19 @@ export interface SignedLink {
 	expiresAt: number;
 }
 
+/** What the store holds under a key, as the store itself says it (never as the caller announced it). */
+export interface ObjectStat {
+	size: number;
+	/** Absent when the store did not say. */
+	contentType?: string | undefined;
+}
+
 /** Object storage for client files: the service signs short-lived URLs; the bytes never pass through it. */
 export interface ObjectStore {
 	signUpload(key: string, contentType: string, ttlSeconds: number): SignedLink;
 	signDownload(key: string, ttlSeconds: number, fileName: string): SignedLink;
+	/** The stored object's size and type, or `undefined` when nothing is stored under the key. */
+	head(key: string): Promise<ObjectStat | undefined>;
 	remove(key: string): Promise<void>;
 }
 
@@ -38,7 +47,7 @@ export function createS3Store(options: S3Options): ObjectStore {
 	const base = options.endpoint.replace(/\/+$/, "");
 
 	function presign(
-		method: "GET" | "PUT" | "DELETE",
+		method: "GET" | "PUT" | "DELETE" | "HEAD",
 		key: string,
 		ttlSeconds: number,
 		extra: Record<string, string> = {},
@@ -89,6 +98,21 @@ export function createS3Store(options: S3Options): ObjectStore {
 			presign("GET", key, ttl, {
 				"response-content-disposition": `attachment; filename="${fileName.replace(/["\\\r\n]/g, "_")}"`,
 			}),
+		async head(key) {
+			const link = presign("HEAD", key, 60);
+			const res = await (options.fetch ?? globalThis.fetch)(link.url, {
+				method: "HEAD",
+				signal: AbortSignal.timeout(8000),
+			});
+			if (res.status === 404) return undefined;
+			if (!res.ok) throw new Error(`object storage answered ${res.status}`);
+			const length = res.headers.get("content-length");
+			const size = length === null || length.trim() === "" ? Number.NaN : Number(length);
+			if (!Number.isSafeInteger(size) || size < 0)
+				throw new Error("object storage did not say the size");
+			const type = res.headers.get("content-type");
+			return { size, contentType: type === null ? undefined : type.split(";")[0]?.trim() };
+		},
 		async remove(key) {
 			const link = presign("DELETE", key, 60);
 			const res = await (options.fetch ?? globalThis.fetch)(link.url, {
@@ -102,13 +126,24 @@ export function createS3Store(options: S3Options): ObjectStore {
 
 export interface MemoryObjects extends ObjectStore {
 	removed: string[];
+	/** What is stored, by key. */
+	stored: Map<string, ObjectStat>;
+	/** The browser's side of a signed upload: puts `size` bytes of `contentType` where a link from `signUpload` points. */
+	upload(url: string, size: number, contentType: string): Promise<void>;
 }
 
 /** Test double: links name the key and carry the method, so a test can assert what was signed. */
 export function createMemoryObjects(now: () => number = Date.now): MemoryObjects {
 	const removed: string[] = [];
+	const stored = new Map<string, ObjectStat>();
 	return {
 		removed,
+		stored,
+		upload(url, size, contentType) {
+			stored.set(new URL(url).pathname.replace(/^\/put\//, ""), { size, contentType });
+			return Promise.resolve();
+		},
+		head: (key) => Promise.resolve(stored.get(key)),
 		signUpload: (key, _type, ttl) => ({
 			url: `https://objects.test/put/${key}?ttl=${ttl}`,
 			expiresAt: now() + ttl * 1000,
@@ -119,6 +154,7 @@ export function createMemoryObjects(now: () => number = Date.now): MemoryObjects
 		}),
 		remove(key) {
 			removed.push(key);
+			stored.delete(key);
 			return Promise.resolve();
 		},
 	};

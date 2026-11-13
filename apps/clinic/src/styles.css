@@ -6,6 +6,7 @@
 @import "@psi/ui/inbox.css";
 @import "./calendar.css";
 @import "./screens.css";
+@import "./client.css";
 @import "./topbar.css";
 @import "./appointment.css";
 @import "./audit.css";

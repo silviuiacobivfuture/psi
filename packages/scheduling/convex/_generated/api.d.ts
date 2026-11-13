@@ -31,6 +31,7 @@ import type * as apiResources from "../apiResources.js";
 import type * as apiRoster from "../apiRoster.js";
 import type * as apiSettings from "../apiSettings.js";
 import type * as apiSupport from "../apiSupport.js";
+import type * as apiVisitEdit from "../apiVisitEdit.js";
 import type * as apiVisits from "../apiVisits.js";
 import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
@@ -91,6 +92,7 @@ import type * as tenants from "../tenants.js";
 import type * as validators from "../validators.js";
 import type * as visitConflicts from "../visitConflicts.js";
 import type * as visitLinks from "../visitLinks.js";
+import type * as visitMove from "../visitMove.js";
 import type * as webRequests from "../webRequests.js";
 
 import type {
@@ -123,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   apiRoster: typeof apiRoster;
   apiSettings: typeof apiSettings;
   apiSupport: typeof apiSupport;
+  apiVisitEdit: typeof apiVisitEdit;
   apiVisits: typeof apiVisits;
   appointments: typeof appointments;
   availability: typeof availability;
@@ -183,6 +186,7 @@ declare const fullApi: ApiFromModules<{
   validators: typeof validators;
   visitConflicts: typeof visitConflicts;
   visitLinks: typeof visitLinks;
+  visitMove: typeof visitMove;
   webRequests: typeof webRequests;
 }>;
 

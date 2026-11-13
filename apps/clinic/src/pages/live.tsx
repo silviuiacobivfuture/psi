@@ -10,7 +10,7 @@ import { renderRequestsLive } from "./requests";
 const LiveQuery = z.discriminatedUnion("screen", [
 	z
 		.object({ screen: z.literal("calendar") })
-		.merge(CalendarQuerySchema.pick({ view: true, col: true }))
+		.merge(CalendarQuerySchema.pick({ view: true, col: true, cat: true }))
 		.extend({ date: IsoDateSchema.catch("") }),
 	z.object({ screen: z.literal("requests"), show: z.enum(["open", "handled"]).catch("open") }),
 ]);

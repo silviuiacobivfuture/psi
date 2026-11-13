@@ -426,6 +426,7 @@ export function createMemoryVisitor(
 						start: r.start,
 						end: r.end,
 						note: `web request ${r.reference} confirmed by ${actor}`,
+						remind: true,
 						createdAt: now,
 						updatedAt: now,
 					});

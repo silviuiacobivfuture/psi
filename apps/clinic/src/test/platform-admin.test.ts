@@ -5,7 +5,7 @@ let c: Console;
 afterEach(() => c.close());
 
 const open = async (platformAdmin: boolean): Promise<Console> => {
-	c = await startConsole(MEMBER, platformAdmin ? { platformAdmins: [MEMBER.sub] } : {});
+	c = await startConsole(MEMBER, platformAdmin ? { platformAdmins: new Set([MEMBER.sub]) } : {});
 	await c.signIn();
 	return c;
 };

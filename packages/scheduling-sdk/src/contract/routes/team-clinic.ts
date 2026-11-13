@@ -106,7 +106,7 @@ export const CALENDAR_ROUTES = [
 		path: "/v1/apps/:app/appointments/:id",
 		side: "team",
 		summary:
-			"Move or change an appointment (a new practitioner or room needs the assign permission)",
+			"Move or change an appointment: its time, place, client, service, price (money group), reminder or package, taking it out of one with packageId null (a new practitioner or room needs the assign permission). All or nothing",
 		params: IdParam,
 		body: AppointmentPatch,
 		response: Appointment,
@@ -142,6 +142,21 @@ export const CALENDAR_ROUTES = [
 			target: { kind: "object", type: "sched_appointment" },
 		},
 		audit: "appointment.attendance",
+	}),
+	route({
+		id: "appointments.confirm",
+		method: "POST",
+		path: "/v1/apps/:app/appointments/:id/confirm",
+		side: "team",
+		summary:
+			"The client confirmed: a requested appointment becomes scheduled (anything else is a conflict)",
+		params: IdParam,
+		response: Appointment,
+		permission: {
+			key: "appointments_edit",
+			target: { kind: "object", type: "sched_appointment" },
+		},
+		audit: "appointment.confirm",
 	}),
 	route({
 		id: "appointments.pay",

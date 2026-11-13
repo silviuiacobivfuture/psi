@@ -301,6 +301,7 @@ const CONFLICTS = new Set([
 	"not_deleted",
 	"recovery_expired",
 	"not_allowed",
+	"not_requested",
 	"slot_taken",
 	"warning",
 	"blocked",

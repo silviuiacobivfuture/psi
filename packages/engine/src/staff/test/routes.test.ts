@@ -69,7 +69,10 @@ describe("the assistant's routes", () => {
 		expect(text).toContain("selector #log");
 		expect(text).toContain("mode append");
 		expect(text).toContain('elements <div id="x-');
-		expect(text).toContain('signals {"staff":{"message":""}}');
+		expect(text).toContain('signals {"staff":{"message":"","busy":true}}');
+		expect(text.lastIndexOf('signals {"staff":{"busy":false}}')).toBeGreaterThan(
+			text.indexOf("data-done"),
+		);
 		expect(text).toContain("Hello.");
 		expect(text).toContain("data-done");
 		expect(text.indexOf("x-")).toBeLessThan(text.indexOf("data-done"));

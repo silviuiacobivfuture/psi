@@ -1,9 +1,9 @@
-import { Banner, EmptyState, Icon, PageHeader, Sheet, Toolbar } from "@psi/ui/admin";
+import { Banner, EmptyState, Icon, Sheet, Toolbar } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { short } from "../lib/when";
+import { OrgFrame } from "../pages/org-settings";
 import { m } from "../paraglide/messages.js";
 import type { AuditEvent } from "../port/schema";
 import { DrawerShell } from "./drawer";
@@ -35,7 +35,7 @@ export async function select(
 }
 
 const rowHandler = (id: string): string =>
-	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('/audit/${encodeURIComponent(id).replaceAll("'", "%27")}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
+	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('/settings/audit/${encodeURIComponent(id).replaceAll("'", "%27")}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
 
 function Filters({
 	ctx,
@@ -48,7 +48,12 @@ function Filters({
 }): JSX.Element {
 	const o = at(ctx.locale);
 	return (
-		<form method="get" action="/audit" class="audit-filters" aria-label={m.jr_search_label({}, o)}>
+		<form
+			method="get"
+			action="/settings/audit"
+			class="audit-filters"
+			aria-label={m.jr_search_label({}, o)}
+		>
 			<label class="adm-field audit-filters__q">
 				<span>{m.jr_search_label({}, o)}</span>
 				<input
@@ -105,7 +110,7 @@ function Filters({
 				<button class="adm-btn adm-btn--primary" type="submit">
 					{m.jr_apply({}, o)}
 				</button>
-				<a class="adm-btn" href="/audit">
+				<a class="adm-btn" href="/settings/audit">
 					{m.jr_reset({}, o)}
 				</a>
 			</div>
@@ -119,13 +124,13 @@ function Pager({ ctx, q, p }: { ctx: Ctx; q: AuditQuery; p: Paged<Row> }): JSX.E
 	return (
 		<nav class="audit-pager" aria-label={m.jr_page({ p: p.page, t: p.pages }, o)}>
 			{p.page > 1 ? (
-				<a class="adm-btn" href={`/audit${searchOf(q, { page: p.page - 1 })}`} rel="prev">
+				<a class="adm-btn" href={`/settings/audit${searchOf(q, { page: p.page - 1 })}`} rel="prev">
 					{m.jr_prev({}, o)}
 				</a>
 			) : null}
 			<span class="adm-muted">{m.jr_page({ p: p.page, t: p.pages }, o)}</span>
 			{p.page < p.pages ? (
-				<a class="adm-btn" href={`/audit${searchOf(q, { page: p.page + 1 })}`} rel="next">
+				<a class="adm-btn" href={`/settings/audit${searchOf(q, { page: p.page + 1 })}`} rel="next">
 					{m.jr_next({}, o)}
 				</a>
 			) : null}
@@ -201,10 +206,10 @@ export interface AuditView {
 export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	const { shown, query: q } = view;
-	return Page({
+	return OrgFrame({
 		ctx,
-		current: "audit",
-		title: m.audit_title({}, o),
+		area: "audit",
+		title: m.nav_audit({}, o),
 		overlays: (
 			<Sheet signal={DRAWER_SIGNAL} title={m.jr_d_title({}, o)} closeLabel={m.jr_d_close({}, o)}>
 				<DrawerShell ctx={ctx} />
@@ -212,18 +217,23 @@ export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.El
 		),
 		children: (
 			<div
-				class="adm-page"
+				class="adm-stack"
+				style="gap:var(--adm-section-gap)"
 				data-signals={`{${DRAWER_SIGNAL}:false}`}
 				{...{ "data-on:keydown__window": `evt.key === 'Escape' && ($${DRAWER_SIGNAL} = false)` }}
 			>
-				<PageHeader title={m.nav_audit({}, o)}>
-					{shown === null || shown.total === 0 ? null : (
-						<a class="adm-btn" href={`/audit/export.csv${searchOf({ ...q, page: 1 })}`} download>
+				{shown === null || shown.total === 0 ? null : (
+					<div class="adm-row">
+						<a
+							class="adm-btn"
+							href={`/settings/audit/export.csv${searchOf({ ...q, page: 1 })}`}
+							download
+						>
 							<Icon name="list" />
 							{m.jr_export({}, o)}
 						</a>
-					)}
-				</PageHeader>
+					</div>
+				)}
 				<Toolbar>
 					<Filters ctx={ctx} q={q} people={view.people} />
 				</Toolbar>
@@ -231,7 +241,7 @@ export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.El
 					<Banner tone="error" icon="alert">
 						<strong>{m.error_title({}, o)}</strong>
 						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-						<a class="adm-btn" href={`/audit${searchOf(q)}`}>
+						<a class="adm-btn" href={`/settings/audit${searchOf(q)}`}>
 							{m.retry({}, o)}
 						</a>
 					</Banner>

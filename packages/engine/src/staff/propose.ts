@@ -27,6 +27,9 @@ export type NeedsConfirmation = z.infer<typeof NeedsConfirmationSchema>;
 const INSTRUCTION =
 	"Nothing has been changed. The person sees a card with a Confirm button. Tell them to review it and confirm there; do not say it is done.";
 
+const ALREADY =
+	"This exact change was already prepared: its card is above and waiting. Do not prepare it again; tell the person to confirm there.";
+
 /**
  * Prepares a write and stops: checks the person may do it, stores the change for their own
  * confirmation and shows the card. Execution is `confirmProposal`, reachable only from the
@@ -50,6 +53,24 @@ export async function propose(
 		if (!allowed.value) return { ok: false, reason: "not_allowed", subjects };
 	}
 	const now = s.now();
+	const summary = (title: string, lines: ReadonlyArray<ProposalLine>): string =>
+		`${title}: ${lines.map((l) => `${l.label} ${l.free === true ? fence(l.value) : l.value}`).join("; ")}`;
+	// The same change asked for twice is the same card, never a second one.
+	const open = await s.proposals.findOpen(s.principal.sub, s.principal.appId, change, now);
+	if (open !== undefined) {
+		s.reused.count += 1;
+		return {
+			ok: true,
+			subjects,
+			proposalId: open.id,
+			output: {
+				status: "needs_confirmation",
+				proposalId: open.id,
+				summary: summary(open.title, view.lines),
+				instruction: ALREADY,
+			},
+		};
+	}
 	const proposal: Proposal = {
 		id: newProposalId(),
 		sub: s.principal.sub,
@@ -71,7 +92,7 @@ export async function propose(
 		output: {
 			status: "needs_confirmation",
 			proposalId: proposal.id,
-			summary: `${view.title}: ${view.lines.map((l) => `${l.label} ${l.free === true ? fence(l.value) : l.value}`).join("; ")}`,
+			summary: summary(view.title, view.lines),
 			instruction: INSTRUCTION,
 		},
 	};

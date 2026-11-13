@@ -57,7 +57,9 @@ describe("phone, 375px", () => {
 			"/reminders?date=2026-11-16",
 			"/roster",
 			"/settings/roles",
-			"/audit",
+			"/settings/audit",
+			"/settings",
+			"/me/settings",
 			"/stats",
 			"/me/profile",
 			"/more",
@@ -148,7 +150,7 @@ describe("desktop, 1280px", () => {
 		await done();
 	});
 
-	it("shows all six calendar columns without cropping, with a sticky gutter and headers", async () => {
+	it("shows all seven team columns without cropping, with a sticky gutter and headers", async () => {
 		const { page, done } = await open(1280, "/calendar?date=2026-11-16");
 		const m = await page.evaluate(() => {
 			const box = document.querySelector(".cal__scroll")?.getBoundingClientRect();
@@ -157,7 +159,7 @@ describe("desktop, 1280px", () => {
 			);
 			return { right: box?.right ?? 0, heads: heads.map((h) => h.right <= (box?.right ?? 0) + 1) };
 		});
-		expect(m.heads).toHaveLength(6);
+		expect(m.heads).toHaveLength(7);
 		expect(m.heads.every(Boolean)).toBe(true);
 		expect(
 			await page
@@ -270,7 +272,7 @@ describe("the navigation rail", () => {
 				};
 			});
 			expect(m.overflowX).toBeLessThanOrEqual(0);
-			expect(m.links).toHaveLength(10);
+			expect(m.links).toHaveLength(8);
 			expect(m.links.every((l) => l.w > 0 && l.inside)).toBe(true);
 			expect(m.round).toBe(true);
 			await page.click("aside.adm-nav .adm-switch");
@@ -307,7 +309,7 @@ describe("the navigation rail", () => {
 			await page.keyboard.press("Tab");
 			seen.push(await page.evaluate(() => document.activeElement?.getAttribute("data-tip") ?? ""));
 		}
-		for (const tip of ["Calendar", "Clienți", "Cereri", "Pontaj", "Mementouri", "Setări", "Jurnal"])
+		for (const tip of ["Calendar", "Clienți", "Cereri", "Pontaj", "Mementouri", "Setări"])
 			expect(seen).toContain(tip);
 		await done();
 	});

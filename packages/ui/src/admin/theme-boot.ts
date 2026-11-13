@@ -3,6 +3,11 @@ export const ADMIN_THEMES = ["admin-light", "admin-dark"] as const;
 export type AdminTheme = (typeof ADMIN_THEMES)[number];
 export type ThemePreference = "light" | "dark" | "system";
 
+/** The saved navigation rail: "1" collapsed, "0" expanded, anything else no choice yet (the screen's default decides). */
+export function railPreferenceFrom(cookie: string | undefined): boolean | null {
+	return cookie === "1" ? true : cookie === "0" ? false : null;
+}
+
 export function themePreferenceFrom(cookie: string | undefined): ThemePreference {
 	return cookie === "light" || cookie === "dark" ? cookie : "system";
 }

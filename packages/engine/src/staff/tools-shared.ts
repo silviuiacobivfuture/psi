@@ -7,6 +7,8 @@ export const MAX_AGENDA_ROWS = 60;
 const Candidates = z.array(z.object({ id: z.string(), name: z.string() }));
 export const Ambiguous = z.object({
 	status: z.literal("ambiguous"),
+	/** What is being chosen, when it is not "several matches" (a service). */
+	what: z.string().optional(),
 	candidates: Candidates,
 });
 export const NoMatch = z.object({ status: z.literal("none") });

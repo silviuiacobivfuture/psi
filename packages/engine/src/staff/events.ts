@@ -144,6 +144,8 @@ export type StaffCard = z.infer<typeof StaffCardSchema>;
 export const TURN_REFUSALS = [
 	"no_principal",
 	"rate_limited",
+	/** The same message, in the same conversation, a moment ago: a double press, answered once. */
+	"duplicate",
 	"invalid",
 	"unavailable",
 	"language",

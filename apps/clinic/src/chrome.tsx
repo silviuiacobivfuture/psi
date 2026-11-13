@@ -1,19 +1,25 @@
 import {
 	AdminShell,
 	Banner,
+	CommandPalette,
 	Icon,
 	type NavItem,
+	type PaletteItem,
+	paletteShortcut,
+	railPreferenceFrom,
 	type ShellApp,
 	type ShellLabels,
 } from "@psi/ui/admin";
+import { getCookie } from "hono/cookie";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { paletteItems } from "./actions/render";
 import { ASSISTANT_BASE } from "./assistant/mount";
 import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
+import { orgSettingsOpen, PLATFORM_KEY } from "./lib/areas";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
-import { adminOpen, settingsOpen } from "./lib/gates";
 import { at, type Locale } from "./lib/i18n";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
@@ -29,10 +35,10 @@ export type NavKey =
 	| "roster"
 	| "reminders"
 	| "settings"
-	| "audit"
 	| "stats"
 	| "profile"
-	| "admin";
+	| "me"
+	| "platform";
 
 export function labels(locale: Locale): ShellLabels {
 	const o = at(locale);
@@ -116,6 +122,10 @@ export interface PageProps {
 	overlays?: Child;
 	/** A full-bleed page (the floor plan): no gutter, no page width, the content fills the viewport under the top bar. */
 	canvas?: boolean;
+	/** What the command palette offers besides where to go: what can be done to what is open. */
+	palette?: ReadonlyArray<PaletteItem>;
+	/** No floating "new appointment" button: a screen with its own sticky save bar (the form filler). */
+	noFab?: boolean;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
 }
@@ -127,6 +137,8 @@ export async function Page({
 	title,
 	children,
 	overlays,
+	palette,
+	noFab,
 	wide,
 	canvas,
 }: PageProps): Promise<JSX.Element> {
@@ -159,7 +171,7 @@ export async function Page({
 		...(badge === undefined ? {} : { badge }),
 	});
 	// Only what this person may open: a menu entry for a screen the service would refuse is never offered.
-	const settingsAllowed = settingsOpen(can);
+	const settingsAllowed = orgSettingsOpen(can);
 	const offered: ReadonlyArray<NavItem | null> = [
 		can.has("calendars_view") ? item("calendar", m.nav_calendar({}, o), "calendar") : null,
 		can.has("calendars_view") ? item("floor", m.nav_floor({}, o), "sidebar") : null,
@@ -169,11 +181,20 @@ export async function Page({
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
 		can.has("reports_view") ? item("stats", m.nav_stats({}, o), "chart") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
-		can.has("audit_log_view") ? item("audit", m.nav_audit({}, o), "list") : null,
-		adminOpen(can) ? { ...item("admin", m.nav_admin({}, o), "shield"), zone: "admin" } : null,
+		can.has(PLATFORM_KEY)
+			? { ...item("platform", m.nav_platform({}, o), "shield"), zone: "admin" }
+			: null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
-	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "stats", "settings", "audit"];
+	const moreKeys: NavKey[] = [
+		"floor",
+		"roster",
+		"reminders",
+		"stats",
+		"settings",
+		"me",
+		"platform",
+	];
 	const hasMore = nav.some((n) => moreKeys.includes(n.key as NavKey));
 	const tabs: NavItem[] = [
 		...nav.filter((n) => ["calendar", "clients", "requests"].includes(n.key)),
@@ -208,8 +229,10 @@ export async function Page({
 				title={title}
 				user={{ name: ctx.person.name, email: ctx.person.email }}
 				labels={labels(locale)}
-				newAppointmentHref={can.write("appointments_create") ? "/calendar?new=1" : undefined}
-				rail={wide === true}
+				newAppointmentHref={
+					can.write("appointments_create") && noFab !== true ? "/calendar?new=1" : undefined
+				}
+				rail={railPreferenceFrom(getCookie(ctx.c, "adm-rail")) ?? wide === true}
 				canvas={canvas === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
@@ -239,6 +262,19 @@ export async function Page({
 							<Icon name="user" />
 							{m.menu_profile({}, o)}
 						</a>
+						<button
+							type="button"
+							class="adm-menu__item"
+							data-palette-menu
+							data-on:click="$palette = true; setTimeout(() => document.getElementById('adm-palette-q')?.focus(), 0)"
+						>
+							<Icon name="search" />
+							{m.pal_open({}, o)}
+						</button>
+						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
+							<Icon name="settings" />
+							{m.me_mine_menu({}, o)}
+						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">
 								<Icon name="shield" />
@@ -250,6 +286,15 @@ export async function Page({
 				}
 				topStatus={
 					<>
+						<button
+							type="button"
+							class="adm-iconbtn"
+							data-palette-open
+							aria-label={m.pal_open({}, o)}
+							data-on:click="$palette = true; setTimeout(() => document.getElementById('adm-palette-q')?.focus(), 0)"
+						>
+							<Icon name="search" />
+						</button>
 						<AssistantTrigger ctx={ctx} />
 						<RoleSwitcher ctx={ctx} mine={mine} />
 						{bell}
@@ -262,6 +307,15 @@ export async function Page({
 				overlays={
 					<>
 						{overlays}
+						<div data-signals='{"palette":false}' data-on:keydown__window={paletteShortcut()}>
+							<CommandPalette
+								title={m.pal_title({}, o)}
+								placeholder={m.pal_placeholder({}, o)}
+								closeLabel={m.close({}, o)}
+								empty={m.pal_empty({}, o)}
+								items={[...paletteItems(ctx, ["global"]), ...(palette ?? [])]}
+							/>
+						</div>
 						<AssistantPanel ctx={ctx} />
 					</>
 				}
