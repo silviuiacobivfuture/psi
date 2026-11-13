@@ -6,7 +6,7 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/agent-studio
-    newTag: "054cd63"
+    newTag: "a4864b9"
 patches:
   # Kubelet health probes through the default-deny policy: they arrive from the node the pod runs
   # on — its InternalIP, or its cni0 gateway when flannel SNATs a same-node connection. The same
