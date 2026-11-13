@@ -687,6 +687,9 @@ importers:
       '@psi/design':
         specifier: workspace:*
         version: link:../design
+      '@psi/pwa':
+        specifier: workspace:*
+        version: link:../pwa
       '@psi/ui':
         specifier: workspace:*
         version: link:../ui

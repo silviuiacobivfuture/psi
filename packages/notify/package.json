@@ -8,7 +8,8 @@
 		".": "./src/index.ts",
 		"./registry": "./src/gen/registry.generated.ts",
 		"./reminders": "./src/reminders/index.ts",
-		"./inbox": "./src/inbox/index.ts"
+		"./inbox": "./src/inbox/index.ts",
+		"./push": "./src/push/index.ts"
 	},
 	"scripts": {
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
@@ -19,6 +20,7 @@
 	"dependencies": {
 		"@novu/framework": "2.13.2",
 		"@psi/design": "workspace:*",
+		"@psi/pwa": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76",

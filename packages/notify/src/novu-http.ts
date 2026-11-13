@@ -59,6 +59,12 @@ export interface NovuHttp {
 	ensureTopic(key: string, name: string): Promise<void>;
 	addToTopic(key: string, subscriberIds: ReadonlyArray<string>): Promise<void>;
 	removeFromTopic(key: string, subscriberIds: ReadonlyArray<string>): Promise<void>;
+	/** Replaces the push device tokens of a subscriber for one Push Webhook integration. */
+	setPushTokens(
+		subscriberId: string,
+		integrationIdentifier: string,
+		tokens: ReadonlyArray<string>,
+	): Promise<void>;
 }
 
 /** The slice of Novu's REST API (/v1) the estate's apps use, with a deadline on every call. */
@@ -135,6 +141,15 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 						subscribers: ids,
 					}),
 				);
+		},
+		async setPushTokens(subscriberId, integrationIdentifier, tokens) {
+			check(
+				await call("PUT", `/subscribers/${encodeURIComponent(subscriberId)}/credentials`, {
+					providerId: "push-webhook",
+					integrationIdentifier,
+					credentials: { deviceTokens: [...tokens] },
+				}),
+			);
 		},
 		async removeFromTopic(key, ids) {
 			if (ids.length > 0)

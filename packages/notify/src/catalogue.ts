@@ -172,13 +172,15 @@ export const CATALOGUE: ReadonlyArray<Entry> = [
 	{
 		event: "reminder.confirmed",
 		audience: "reception",
-		channels: ["in_app"],
+		channels: ["in_app", "push"],
+		push: "reminders",
 		path: appointmentPath,
 	},
 	{
 		event: "reminder.declined",
 		audience: "reception",
-		channels: ["in_app"],
+		channels: ["in_app", "push"],
+		push: "reminders",
 		path: appointmentPath,
 	},
 	{
