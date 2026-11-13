@@ -117,6 +117,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -239,6 +242,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -303,6 +309,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -367,6 +376,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -2778,6 +2790,9 @@ packages:
         optional: true
       vite:
         optional: true
+
+  '@inlang/plugin-message-format@4.4.0':
+    resolution: {integrity: sha512-n4aXt6XVg5kxhKoLAhi9nMgZtCA9iS0QOaXte56VqxWHcfj9O4c4gOkyVQZH7H9D8h7OZufCrO1sZGYOypPwEA==}
 
   '@inlang/recommend-sherlock@0.2.1':
     resolution: {integrity: sha512-ckv8HvHy/iTqaVAEKrr+gnl+p3XFNwe5D2+6w6wJk2ORV2XkcRkKOJ/XsTUJbPSiyi4PI+p+T3bqbmNx/rDUlg==}
@@ -5193,6 +5208,11 @@ packages:
 
   flat@5.0.2:
     resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
+    hasBin: true
+
+  flat@6.0.1:
+    resolution: {integrity: sha512-/3FfIa8mbrg3xE7+wAhWeV+bd7L2Mof+xtZb5dRDKZ+wDvYJK4WDYeIOuOhre5Yv5aQObZrlbRmk3RTSiuQBtw==}
+    engines: {node: '>=18'}
     hasBin: true
 
   flru@1.0.2:
@@ -9236,6 +9256,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
+  '@inlang/plugin-message-format@4.4.0':
+    dependencies:
+      flat: 6.0.1
+
   '@inlang/recommend-sherlock@0.2.1':
     dependencies:
       comment-json: 4.6.2
@@ -11764,6 +11788,8 @@ snapshots:
       resolve-dir: 1.0.1
 
   flat@5.0.2: {}
+
+  flat@6.0.1: {}
 
   flru@1.0.2: {}
 
