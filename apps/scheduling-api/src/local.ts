@@ -9,6 +9,7 @@ import { createApp } from "./http/app";
 import { createMemoryMailer } from "./ports/mail";
 import { createMemoryNotify } from "./ports/notify";
 import { createMemoryObjects } from "./ports/objects";
+import { createLimiter } from "./ports/ratelimit";
 import { createMemoryStore } from "./store/memory";
 import { PEOPLE, populate } from "./testing/populate";
 import { createTestIssuer } from "./testing/tokens";
@@ -55,6 +56,7 @@ const deps = buildDeps(config, {
 	mailer: createMemoryMailer(),
 	objects: createMemoryObjects(),
 	notifier: createMemoryNotify(),
+	limiter: createLimiter({ capacity: 1000, refillPerSecond: 1000 }, Date.now),
 });
 const app = createApp(deps, {
 	corsOrigins: (process.env.CORS_ORIGINS ?? "http://localhost:4381,http://localhost:4382").split(

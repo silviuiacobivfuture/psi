@@ -14,6 +14,7 @@ import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer } from "./ports/mail";
 import { createLoggingNotify } from "./ports/notify";
 import { createS3Store } from "./ports/objects";
+import { createLimiter } from "./ports/ratelimit";
 import { createConvexStore } from "./store/convex";
 import { createMemoryStore } from "./store/memory";
 import type { StorePort } from "./store/types";
@@ -66,6 +67,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		mailer: config.mail === undefined ? undefined : createHttpMailer(config.mail),
 		objects: config.objects === undefined ? undefined : createS3Store(config.objects),
 		notifier: createLoggingNotify(stdoutLog),
+		limiter: createLimiter({ capacity: 30, refillPerSecond: 5 }, Date.now),
 		clock: Date.now,
 		log: stdoutLog,
 		streamHeartbeatMs: 15_000,

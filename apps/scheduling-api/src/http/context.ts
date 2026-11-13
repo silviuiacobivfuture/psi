@@ -8,6 +8,7 @@ import type { FieldCrypto } from "../ports/crypto";
 import type { Mailer } from "../ports/mail";
 import type { Notification, NotifyPort } from "../ports/notify";
 import type { ObjectStore } from "../ports/objects";
+import type { Limiter } from "../ports/ratelimit";
 import type { StorePort } from "../store/types";
 
 export interface LogEvent {
@@ -29,6 +30,8 @@ export interface Deps {
 	mailer: Mailer | undefined;
 	objects: ObjectStore | undefined;
 	notifier: NotifyPort;
+	/** Per caller and visitor, on the visitor routes. */
+	limiter: Limiter;
 	clock: () => number;
 	log: (event: LogEvent) => void;
 	streamHeartbeatMs: number;

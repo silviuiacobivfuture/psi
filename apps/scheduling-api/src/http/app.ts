@@ -73,9 +73,15 @@ export function createApp(
 				return c.json(await finish(deps, prepared, result));
 			} catch (error) {
 				const r = refusal(deps, error, c.get("requestId"));
+				const wait = r.body.error.detail?.retryAfterSeconds;
 				return new Response(JSON.stringify(r.body), {
 					status: r.status,
-					headers: { "content-type": "application/json" },
+					headers: {
+						"content-type": "application/json",
+						...(r.status === 429 && typeof wait === "number"
+							? { "retry-after": String(wait) }
+							: {}),
+					},
 				});
 			}
 		});
