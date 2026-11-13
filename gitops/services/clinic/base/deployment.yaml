@@ -39,7 +39,6 @@ spec:
               [ -n "${OPENFGA_STORE_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_STORE_ID" >&2; m=1; };
               [ -n "${OPENFGA_MODEL_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_MODEL_ID" >&2; m=1; };
               [ -n "${ACCOUNT_DATABASE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: ACCOUNT_DATABASE_URL" >&2; m=1; };
-              [ -n "${PSI_SCHEDULING_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: PSI_SCHEDULING_KEY" >&2; m=1; };
               [ "$m" = 0 ] && echo secrets-ok
           resources:
             requests: { cpu: 10m, memory: 16Mi }
@@ -63,7 +62,7 @@ spec:
             - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
             - { name: AUTHENTIK_URL, value: "https://auth.psizone.ro" }
             - { name: OPENFGA_ENDPOINT, value: "http://openfga.openfga.svc:8081" }
-            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling.svc:8080" }
+            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
           startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 30 }
           readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
           livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, failureThreshold: 6 }

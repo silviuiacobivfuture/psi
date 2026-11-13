@@ -22,8 +22,8 @@ spec:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: account } }
       ports: [{ port: 5432 }]
     - to:
-        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: scheduling } }
-      ports: [{ port: 8080 }]
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: scheduling-api } }
+      ports: [{ port: 4380 }]
     - to:
         - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
       ports: [{ port: 443 }]

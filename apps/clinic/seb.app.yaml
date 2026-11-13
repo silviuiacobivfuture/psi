@@ -41,7 +41,6 @@ components:
           - OPENFGA_STORE_ID
           - OPENFGA_MODEL_ID
           - ACCOUNT_DATABASE_URL
-          - PSI_SCHEDULING_KEY
         initContainers: [assert-secrets]
         probes:
           startup: { path: /healthz, port: 3000 }
@@ -60,7 +59,6 @@ externalSecrets:
       - OPENFGA_STORE_ID
       - OPENFGA_MODEL_ID
       - ACCOUNT_DATABASE_URL
-      - PSI_SCHEDULING_KEY
   - name: authentik-clinic-oidc
     namespace: authentik
     target: authentik-clinic-oidc
@@ -120,8 +118,7 @@ health:
         - OPENFGA_STORE_ID
         - OPENFGA_MODEL_ID
         - ACCOUNT_DATABASE_URL
-        - PSI_SCHEDULING_KEY
-    - label: clinic OIDC client (Authentik)
+      - label: clinic OIDC client (Authentik)
       externalSecret: authentik/authentik-clinic-oidc
       secret: authentik-clinic-oidc
       keys: [AUTHENTIK_OIDC__CLINIC__ID, AUTHENTIK_OIDC__CLINIC__SECRET]
