@@ -80,3 +80,19 @@ export function readMailEnv(env: Readonly<Record<string, string | undefined>>): 
 		},
 	};
 }
+
+const CmsUrl = z
+	.string()
+	.url()
+	.transform((u) => u.replace(/\/+$/, ""));
+
+/** The CMS page that lists the callback requests, or undefined without a (valid) CMS_URL. */
+export function callbackListUrl(
+	env: Readonly<Record<string, string | undefined>>,
+	brand: string,
+): string | undefined {
+	const cms = CmsUrl.safeParse(env.CMS_URL);
+	return cms.success
+		? `${cms.data}/admin/platform/scheduling?brand=${encodeURIComponent(brand)}&tab=callbacks`
+		: undefined;
+}

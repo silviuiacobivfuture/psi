@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { readMailEnv } from "./mail-config";
+import { callbackListUrl, readMailEnv } from "./mail-config";
 import { createSmtpMailer, MailFailed } from "./mailer";
 
 const base = {
@@ -75,6 +75,18 @@ describe("the mail settings", () => {
 		const read = readMailEnv({ ...base, ...over });
 		expect(read).toEqual({ ok: false, problem: "invalid", keys });
 		expect(JSON.stringify(read)).not.toMatch(/nope|example\.test|70000/);
+	});
+});
+
+describe("the link to the CMS list", () => {
+	it("is the scheduling page's callbacks tab for the brand, without a trailing slash", () => {
+		expect(callbackListUrl({ CMS_URL: "https://cms.example.test/" }, "psizone")).toBe(
+			"https://cms.example.test/admin/platform/scheduling?brand=psizone&tab=callbacks",
+		);
+	});
+
+	it.each([[undefined], [""], ["not a url"]])("%s gives no link", (cms) => {
+		expect(callbackListUrl({ CMS_URL: cms }, "psizone")).toBeUndefined();
 	});
 });
 

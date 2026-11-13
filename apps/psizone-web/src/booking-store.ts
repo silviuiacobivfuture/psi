@@ -2,7 +2,8 @@ import { SchedulingUnavailable, schedulingFromEnv } from "@psi/guide";
 import { createPicker } from "./booking-picker";
 import type { BookingDeps } from "./booking-submit";
 import { createIntake } from "./callback-intake";
-import { readMailEnv } from "./mail-config";
+import { ESTATE, SITE } from "./estate";
+import { callbackListUrl, readMailEnv } from "./mail-config";
 import { createSmtpMailer } from "./mailer";
 
 /**
@@ -30,7 +31,6 @@ const MAIL = readMailEnv(process.env);
 if (!MAIL.ok && MAIL.problem === "invalid") {
 	console.error(`mail: off (invalid: ${MAIL.keys.join(", ")})`);
 }
-const CMS = process.env.CMS_URL?.replace(/\/+$/, "");
 
 /** Stores every callback request and e-mails the team; the visitor is thanked only if one worked. */
 export const intake = createIntake({
@@ -38,12 +38,9 @@ export const intake = createIntake({
 	store: scheduling,
 	mailer: MAIL.ok ? createSmtpMailer(MAIL.config) : undefined,
 	notifyTo: MAIL.ok ? MAIL.config.notifyTo : [],
-	site: "landing.psizone.ro",
+	site: new URL(ESTATE[SITE]).host,
 	zone: "Europe/Bucharest",
-	listUrl:
-		CMS === undefined || CMS === ""
-			? undefined
-			: `${CMS}/admin/platform/scheduling?brand=${TENANT}&tab=callbacks`,
+	listUrl: callbackListUrl(process.env, TENANT),
 	now: Date.now,
 	log: (line) => console.error(line),
 });
