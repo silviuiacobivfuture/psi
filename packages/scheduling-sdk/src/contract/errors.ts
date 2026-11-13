@@ -1,0 +1,36 @@
+import { z } from "zod/v4";
+
+/**
+ * The closed list of refusal codes. A consumer branches on `code`, never on `message`. Each has one
+ * HTTP status. `not_found` also answers "not yours to see": the service does not confirm that an
+ * app or an object exists to someone with no reach into it.
+ */
+export const ERROR_STATUS = {
+	invalid: 400,
+	unauthenticated: 401,
+	invalid_token: 401,
+	forbidden: 403,
+	not_found: 404,
+	conflict: 409,
+	slot_taken: 409,
+	hold_expired: 410,
+	not_allowed: 403,
+	rate_limited: 429,
+	internal: 500,
+	not_available_yet: 501,
+	unavailable: 503,
+} as const;
+
+export type ErrorCode = keyof typeof ERROR_STATUS;
+export const ERROR_CODES = Object.keys(ERROR_STATUS) as [ErrorCode, ...ErrorCode[]];
+
+export const ErrorBody = z.object({
+	error: z.object({
+		code: z.enum(ERROR_CODES),
+		message: z.string(),
+		requestId: z.string(),
+		/** For a refused field group on a write: which one. Never data. */
+		detail: z.record(z.string(), z.unknown()).optional(),
+	}),
+});
+export type ErrorBodyType = z.infer<typeof ErrorBody>;

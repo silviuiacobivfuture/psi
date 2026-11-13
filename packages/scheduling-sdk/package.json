@@ -1,0 +1,23 @@
+{
+	"name": "@psi/scheduling-sdk",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "The scheduling service's contract (zod route table, OpenAPI) and the typed client DERIVED from it: fetch-based, zod-parsed answers, deadlines, typed errors; Node servers and browsers. Ships no text.",
+	"exports": {
+		".": "./src/index.ts",
+		"./contract": "./src/contract/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --maxWorkers=2"
+	},
+	"dependencies": {
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}
