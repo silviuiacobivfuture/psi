@@ -193,6 +193,7 @@ describe("catalogue, records, files, builder, audit", () => {
 		expect(init.upload).toMatchObject({ method: "PUT" });
 		expect(init.upload.url).toContain(`psizone/${w.ids.c1}/`);
 		expect((await owner("GET", `/files/${init.file.id}/download`)).status).toBe(409);
+		await w.objects.upload(init.upload.url, 10, "application/pdf");
 		await owner("POST", `/files/${init.file.id}/complete`);
 		const dl = (await owner("GET", `/files/${init.file.id}/download`)).json;
 		expect(dl).toMatchObject({ method: "GET" });
@@ -200,7 +201,7 @@ describe("catalogue, records, files, builder, audit", () => {
 			((await owner("GET", "/audit?action=file.download")).json.items as unknown[]).length,
 		).toBe(1);
 		const key = (await w.store.c.files.get("psizone", init.file.id))?.objectKey;
-		await owner("DELETE", `/files/${init.file.id}`);
+		await owner("DELETE", `/files/${init.file.id}?confirm=true`);
 		expect(key).toContain(`psizone/${w.ids.c1}/`);
 		expect(w.objects.removed).toContain(key);
 	});
@@ -211,7 +212,7 @@ describe("catalogue, records, files, builder, audit", () => {
 			(
 				await owner("POST", `/clients/${w.ids.c1}/files`, {
 					name: "a",
-					contentType: "x/y",
+					contentType: "application/pdf",
 					size: 1,
 				})
 			).status,

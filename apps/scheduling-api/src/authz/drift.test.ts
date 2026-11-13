@@ -106,7 +106,17 @@ describe("the catalogue", () => {
 			expect(def, route.id).toBeDefined();
 			const target = route.permission.target;
 			if (target.kind === "app") expect(def?.scopes.includes("all"), route.id).toBe(true);
-			else expect(def?.objects, route.id).toContain(target.type);
+			else if (target.kind === "dynamic") {
+				// Every candidate is a key of the catalogue, checked on the target's type or (held app-wide) on the app.
+				for (const candidate of target.candidates) {
+					const held = permissionOf(candidate);
+					expect(held, `${route.id} ${candidate}`).toBeDefined();
+					expect(
+						held?.objects.includes(target.type) || held?.objects.includes("sched_app"),
+						`${route.id} ${candidate}`,
+					).toBe(true);
+				}
+			} else expect(def?.objects, route.id).toContain(target.type);
 		}
 	});
 

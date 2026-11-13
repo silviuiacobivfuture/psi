@@ -101,7 +101,7 @@ describe("drawing the plan (Setări > Plan cabinete)", () => {
 	});
 });
 
-describe("over the scheduling service, which keeps no plan", () => {
+describe("over the scheduling service, which keeps the plan", () => {
 	let k: SdkConsole;
 	beforeAll(async () => {
 		k = await startSdkConsole();
@@ -109,28 +109,49 @@ describe("over the scheduling service, which keeps no plan", () => {
 	afterAll(async () => {
 		await k.close();
 	});
-	it("the live view says the plan is not drawn, and drawing says 'în curând'", async () => {
+	const save = (s: Awaited<ReturnType<SdkConsole["as"]>>, doc: unknown) =>
+		s.post(
+			"/floor/api/draw/save",
+			JSON.stringify({ fpDoc: JSON.stringify(doc), fpSel: "", fpFloor: "f1" }),
+			{ "content-type": "application/json" },
+		);
+	const stored = async () =>
+		(await k.api.world.call("olga", "GET", "/v1/apps/psizone/floor-plan")).json as {
+			revision: number;
+			doc?: { revision: number; northDeg: number };
+		};
+	const plan = (revision: number, northDeg: number) => ({
+		version: 1,
+		revision,
+		width: 300,
+		height: 200,
+		northDeg,
+		floors: [{ id: "f1", name: "Parter", shapes: [] }],
+	});
+	it("the live view says the plan is not drawn, and drawing is offered to the owner", async () => {
 		const s = await k.as("olga");
 		const live = await (await s.get("/floor")).text();
 		expect(live).toContain("Planul cabinetelor nu e desenat încă");
-		const draw = await (await s.get("/settings/plan")).text();
-		expect(draw).toContain("În curând");
+		expect(await (await s.get("/settings/plan")).text()).toContain("pz-fp");
 	});
 	it("an accountant, who has no calendar, has no plan either", async () => {
 		const s = await k.as("ana");
 		expect((await s.get("/floor")).status).toBe(403);
 	});
-	it("a save is refused and nothing is written", async () => {
+	it("a drawn plan is kept by the service, one revision up, and the next save must come from it", async () => {
 		const s = await k.as("olga");
+		const first = await save(s, plan(0, 20));
+		expect(await first.text()).toContain("pz-fp__status--ok");
+		expect(await stored()).toMatchObject({ revision: 1, doc: { northDeg: 20 } });
+		const stale = await save(s, plan(0, 99));
+		expect(await stale.text()).toContain("pz-fp__status--error");
+		expect(await stored()).toMatchObject({ revision: 1, doc: { northDeg: 20 } });
+	});
+	it("a role that may look at the calendar but not draw is refused, and nothing is written", async () => {
+		const s = await k.as("rita");
 		const before = await k.api.world.fingerprint();
-		const r = await s.post(
-			"/floor/api/draw/save",
-			JSON.stringify({ fpDoc: "{}", fpSel: "", fpFloor: "f1" }),
-			{
-				"content-type": "application/json",
-			},
-		);
-		expect(r.status).toBe(403);
+		expect((await save(s, plan(1, 77))).status).toBe(403);
+		expect((await s.get("/settings/plan")).status).toBe(403);
 		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 });

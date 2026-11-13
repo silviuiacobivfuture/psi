@@ -1,5 +1,17 @@
 import type { Collection, StorePort } from "../store/types";
 
+/** A port whose every method takes the app first, shown the service's app id and handed the held one. */
+function forApp<P extends object>(port: P, to: (app: string) => string): P {
+	return new Proxy(port, {
+		get(target, key) {
+			const member: unknown = Reflect.get(target, key);
+			return typeof member === "function"
+				? (app: string, ...rest: unknown[]) => Reflect.apply(member, target, [to(app), ...rest])
+				: member;
+		},
+	});
+}
+
 /**
  * A store that shows the service app ids it knows (`psizone`) while the wrapped store holds them under others
  * (`test-psizone-k3x9`). A persistent store can only drop tenants whose names say they are fixtures, so a world on it
@@ -81,6 +93,9 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 			decide: (app, ref, decision, reason, actor) =>
 				inner.requests.decide(to(app), ref, decision, reason, actor),
 		},
+		docs: forApp(inner.docs, to),
+		blacklist: forApp(inner.blacklist, to),
+		feedback: forApp(inner.feedback, to),
 		ping: () => inner.ping(),
 	};
 }

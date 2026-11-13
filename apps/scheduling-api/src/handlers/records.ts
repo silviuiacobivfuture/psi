@@ -1,10 +1,9 @@
 import { recordResourceFor } from "@psi/scheduling/permissions";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
-import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
-import { fail, unavailableFiles } from "../http/errors";
-import type { FileRow, RecordRow } from "../store/types";
+import { fail } from "../http/errors";
+import type { RecordRow } from "../store/types";
 import { must, newId, stamps, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
@@ -53,18 +52,7 @@ async function full(ctx: C, r: RecordRow, via: string) {
 	};
 }
 
-const fileOut = (f: FileRow) => ({
-	id: f.id,
-	clientId: f.clientId,
-	name: f.name,
-	contentType: f.contentType,
-	size: f.size,
-	status: f.status,
-	uploadedBy: f.uploadedBy,
-	createdAt: f.createdAt,
-	updatedAt: f.updatedAt,
-});
-const links = (type: "sched_record" | "sched_file", id: string, app: string, clientId: string) => [
+const links = (type: "sched_record", id: string, app: string, clientId: string) => [
 	appLink(type, id, app),
 	parentLink(type, id, "client", "sched_client", clientId),
 ];
@@ -77,16 +65,7 @@ function sealed(ctx: C, app: string, clientId: string, data: Record<string, unkn
 }
 
 export const recordHandlers: HandlersOf<
-	| "records.list"
-	| "records.create"
-	| "records.get"
-	| "records.update"
-	| "records.remove"
-	| "files.list"
-	| "files.init"
-	| "files.complete"
-	| "files.download"
-	| "files.remove"
+	"records.list" | "records.create" | "records.get" | "records.update" | "records.remove"
 > = {
 	async "records.list"(ctx) {
 		const client = String(ctx.params.id);
@@ -153,69 +132,6 @@ export const recordHandlers: HandlersOf<
 		await ctx.authorize(`${await resourceOfForm(ctx, row.formId)}_delete`, "sched_record", row.id);
 		await ctx.deps.store.c.records.remove(ctx.app, row.id);
 		await writeTuples(ctx, [], links("sched_record", row.id, ctx.app, row.clientId));
-		return { ok: true as const };
-	},
-
-	async "files.list"(ctx) {
-		const visible = await ctx.reachOf("files_view", "sched_file");
-		return {
-			items: (
-				await ctx.deps.store.c.files.list(ctx.app, { eq: { clientId: String(ctx.params.id) } })
-			)
-				.filter((f) => reaches(visible, f.id))
-				.sort((a, b) => b.createdAt - a.createdAt)
-				.map(fileOut),
-		};
-	},
-
-	async "files.init"(ctx) {
-		const objects = ctx.deps.objects;
-		if (objects === undefined) throw unavailableFiles();
-		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
-		const draft: FileRow = {
-			id: newId("f"),
-			app: ctx.app,
-			clientId: client.id,
-			name: ctx.body.name,
-			contentType: ctx.body.contentType,
-			size: ctx.body.size,
-			status: "pending",
-			uploadedBy: ctx.subject,
-			objectKey: `${ctx.app}/${client.id}/${newId("o")}`,
-			...stamps(ctx.now),
-		};
-		const row = await ctx.deps.store.c.files.insert(draft);
-		await writeTuples(ctx, links("sched_file", row.id, ctx.app, client.id));
-		const link = objects.signUpload(row.objectKey, row.contentType, 900);
-		return {
-			file: fileOut(row),
-			upload: { url: link.url, expiresAt: link.expiresAt, method: "PUT" as const },
-		};
-	},
-
-	async "files.complete"(ctx) {
-		const row = await must(ctx.deps.store.c.files, ctx.app, String(ctx.params.id), "file");
-		const next: FileRow = { ...row, status: "ready", updatedAt: ctx.now };
-		await ctx.deps.store.c.files.replace(next);
-		return fileOut(next);
-	},
-
-	async "files.download"(ctx) {
-		const objects = ctx.deps.objects;
-		if (objects === undefined) throw unavailableFiles();
-		const row = await must(ctx.deps.store.c.files, ctx.app, String(ctx.params.id), "file");
-		if (row.status !== "ready")
-			throw fail("conflict", "the upload has not finished", { status: row.status });
-		const link = objects.signDownload(row.objectKey, 300, row.name);
-		await ctx.auditNow("file.download", { type: "file", id: row.id });
-		return { url: link.url, expiresAt: link.expiresAt, method: "GET" as const };
-	},
-
-	async "files.remove"(ctx) {
-		const row = await must(ctx.deps.store.c.files, ctx.app, String(ctx.params.id), "file");
-		await ctx.deps.objects?.remove(row.objectKey);
-		await ctx.deps.store.c.files.remove(ctx.app, row.id);
-		await writeTuples(ctx, [], links("sched_file", row.id, ctx.app, row.clientId));
 		return { ok: true as const };
 	},
 };

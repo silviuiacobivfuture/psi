@@ -75,8 +75,6 @@ export function appointmentsGroup(sdk: SdkContext) {
 		): Promise<ReadonlyArray<Appointment>> =>
 			run(async () => {
 				if (input.recurrence != null) throw soon("a weekly series of appointments");
-				if (input.status === "requested") throw soon("an appointment that waits for confirmation");
-				if (input.remind === false) throw soon("an appointment without its reminder");
 				const tz = await sdk.zone(app);
 				const minutes = await durationOf(app, input.serviceId, input.durationMin);
 				const start = instantOf(input.date, input.startMin, tz);
@@ -91,6 +89,8 @@ export function appointmentsGroup(sdk: SdkContext) {
 					...(input.note === undefined || input.note === "" ? {} : { note: input.note }),
 					...(input.packageId == null ? {} : { packageId: input.packageId }),
 					...(input.priceBani === undefined ? {} : { priceCents: input.priceBani }),
+					...(input.status === "requested" ? { status: "requested" as const } : {}),
+					...(input.remind === false ? { remind: false } : {}),
 					...(await resources(app, input.resourceIds ?? [])),
 				});
 				return [appointmentOf(made, tz)];
@@ -102,15 +102,10 @@ export function appointmentsGroup(sdk: SdkContext) {
 				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
 				const changes = (key: keyof AppointmentPatch): boolean =>
 					patch[key] !== undefined && patch[key] !== held[key];
-				// What the service cannot change on an appointment that exists.
-				if (changes("clientId")) throw soon("moving an appointment to another client");
-				if (changes("serviceId")) throw soon("changing the service of an appointment");
-				if (changes("priceBani")) throw soon("changing the price of an appointment");
-				if (changes("remind")) throw soon("changing the reminder of an appointment");
-				if (patch.packageId === null && held.packageId !== null)
-					throw soon("taking an appointment out of its package");
-				if (patch.status === "cancelled" || patch.status === "requested")
+				// Cancelling has its reason (`cancelAppointment`), and a confirmed one never goes back to waiting.
+				if (patch.status === "cancelled" || (patch.status === "requested" && changes("status")))
 					throw new PortError("invalid", "cancel an appointment with its reason");
+				const confirms = held.status === "requested" && patch.status === "confirmed";
 				const startMin = patch.startMin ?? held.startMin;
 				const date = patch.date ?? held.date;
 				const timed = changes("date") || changes("startMin") || changes("durationMin");
@@ -126,6 +121,12 @@ export function appointmentsGroup(sdk: SdkContext) {
 						? { start, end: start + (patch.durationMin ?? held.durationMin) * MINUTE }
 						: {}),
 					...(changes("note") ? { note: patch.note } : {}),
+					...(changes("clientId") ? { clientId: patch.clientId } : {}),
+					...(changes("serviceId") ? { serviceId: patch.serviceId } : {}),
+					...(changes("priceBani") ? { priceCents: patch.priceBani } : {}),
+					...(changes("remind") ? { remind: patch.remind } : {}),
+					// `null` takes it out of its package; a package is chosen by id.
+					...(patch.packageId === null && held.packageId !== null ? { packageId: null } : {}),
 					...(patch.packageId != null && patch.packageId !== held.packageId
 						? { packageId: patch.packageId }
 						: {}),
@@ -134,7 +135,8 @@ export function appointmentsGroup(sdk: SdkContext) {
 				let latest = held;
 				if (Object.keys(body).length > 0)
 					latest = appointmentOf(await api.appointments.update({ app, id, ...body }), tz);
-				if (patch.status !== undefined && patch.status !== held.status)
+				if (confirms) latest = appointmentOf(await api.appointments.confirm({ app, id }), tz);
+				else if (patch.status !== undefined && patch.status !== held.status)
 					latest = appointmentOf(
 						await api.appointments.attendance({
 							app,

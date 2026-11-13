@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { withActor } from "../actor";
 import type { ReminderRow } from "../types";
 import type { ContractSection } from "./env";
-import { BASE, draft, HOUR, pay, pkg, useWorld, type World } from "./visits.world";
+import { ACTOR, BASE, draft, HOUR, pay, pkg, useWorld, type World } from "./visits.world";
 
 /** Reminders, packages and payments as the handlers use them (a payment against an appointment moves its money). */
 export const moneyContract: ContractSection = (env) => {
@@ -107,6 +108,21 @@ export const moneyContract: ContractSection = (env) => {
 				await c().packages.replace({ ...pkg(w, w.c1), id: "nosuchpackage0000000000000" }),
 			).toBe(false);
 		});
+		it("a note is stored, changed and emptied", async () => {
+			const p = await c().packages.insert(
+				pkg(w, w.c1, { note: "paid by the parent in two parts" }),
+			);
+			expect((await c().packages.get(w.app, p.id))?.note).toBe("paid by the parent in two parts");
+			await c().packages.replace({ ...p, note: "second thoughts" });
+			expect((await c().packages.get(w.app, p.id))?.note).toBe("second thoughts");
+			const { note: _gone, ...bare } = p;
+			await c().packages.replace(bare);
+			expect((await c().packages.get(w.app, p.id))?.note).toBeUndefined();
+		});
+		it("a package with no note has none", async () => {
+			const p = await c().packages.insert(pkg(w, w.c1));
+			expect((await c().packages.get(w.app, p.id))?.note).toBeUndefined();
+		});
 		it("a package for a client that is not there: unknown_client", () =>
 			refused("unknown_client", () => c().packages.insert(pkg(w, "nosuchclient000000000000000"))));
 		it("an offer larger than the price: invalid", () =>
@@ -131,8 +147,10 @@ export const moneyContract: ContractSection = (env) => {
 		it("a payment for a package is stored with its method, time and note", async () => {
 			const p = await c().packages.insert(pkg(w, w.c1));
 			const paidAt = BASE + 5 * HOUR;
-			const saved = await c().payments.insert(
-				pay(w, { packageId: p.id, amountCents: 50_000, method: "card", paidAt, note: "first" }),
+			const saved = await withActor(ACTOR, () =>
+				c().payments.insert(
+					pay(w, { packageId: p.id, amountCents: 50_000, method: "card", paidAt, note: "first" }),
+				),
 			);
 			expect(saved).toMatchObject({
 				clientId: w.c1,
@@ -141,6 +159,7 @@ export const moneyContract: ContractSection = (env) => {
 				method: "card",
 				paidAt,
 				note: "first",
+				recordedBy: ACTOR,
 			});
 			expect(await c().payments.get(w.app, saved.id)).toMatchObject({
 				amountCents: 50_000,
@@ -157,6 +176,19 @@ export const moneyContract: ContractSection = (env) => {
 			).toEqual([]);
 			expect(await c().payments.get(w.app, "nosuchpayment00000000000000")).toBeUndefined();
 		});
+		it.each([
+			"cash",
+			"card",
+			"transfer",
+		] as const)("a %s payment keeps its method and who took it", async (method) => {
+			const saved = await withActor("mara-subject", () =>
+				c().payments.insert(pay(w, { method, recordedBy: "mara-subject" })),
+			);
+			expect(await c().payments.get(w.app, saved.id)).toMatchObject({
+				method,
+				recordedBy: "mara-subject",
+			});
+		});
 		it("a payment is deleted, and deleting nothing is false", async () => {
 			const saved = await c().payments.insert(pay(w, {}));
 			expect(await c().payments.remove(w.app, saved.id)).toBe(true);
@@ -164,7 +196,7 @@ export const moneyContract: ContractSection = (env) => {
 			expect(await c().payments.remove(w.app, saved.id)).toBe(false);
 		});
 		it("a payment is never edited: the same row is accepted, another is not_allowed", async () => {
-			const saved = await c().payments.insert(pay(w, {}));
+			const saved = await withActor(ACTOR, () => c().payments.insert(pay(w, {})));
 			expect(await c().payments.replace(saved)).toBe(true);
 			await refused("not_allowed", () =>
 				c().payments.replace({ ...saved, amountCents: saved.amountCents + 1 }),

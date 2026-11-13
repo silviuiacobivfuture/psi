@@ -33,6 +33,7 @@ export const visitsContract: ContractSection = (env) => {
 				start,
 				end: start + HOUR,
 				note: "first",
+				remind: true,
 			});
 			expect(written(await c().appointments.get(w.app, saved.id))).toEqual(written(saved));
 			expect(await c().appointments.get(w.app, "nosuchappointment0000000000")).toBeUndefined();
@@ -115,6 +116,77 @@ export const visitsContract: ContractSection = (env) => {
 			});
 		});
 
+		it("moves to another client; the package it drew from must be the new client's or be taken off in the same edit", async () => {
+			const old = await c().packages.insert(pkg(w, w.c1));
+			const a = await c().appointments.insert(draft(w, { start: next(), packageId: old.id }));
+			await refused("package_not_clients", () =>
+				c().appointments.replace({ ...a, clientId: w.c2 }),
+			);
+			const { packageId: _p, ...unpacked } = a;
+			await c().appointments.replace({ ...unpacked, clientId: w.c2 });
+			const moved = await c().appointments.get(w.app, a.id);
+			expect(moved?.clientId).toBe(w.c2);
+			expect(moved?.packageId).toBeUndefined();
+			const theirs = await c().packages.insert(pkg(w, w.c2));
+			await c().appointments.replace({ ...unpacked, clientId: w.c2, packageId: theirs.id });
+			expect((await c().appointments.get(w.app, a.id))?.packageId).toBe(theirs.id);
+			await refused("package_not_clients", () =>
+				c().appointments.replace({ ...a, clientId: w.c2, packageId: old.id }),
+			);
+		});
+
+		it("takes an appointment out of its package, and the package no longer counts it", async () => {
+			const pack = await c().packages.insert(pkg(w, w.c1));
+			const a = await c().appointments.insert(draft(w, { start: next(), packageId: pack.id }));
+			const { packageId: _p, ...unpacked } = a;
+			await c().appointments.replace(unpacked);
+			expect((await c().appointments.get(w.app, a.id))?.packageId).toBeUndefined();
+			expect(await c().appointments.list(w.app, { eq: { packageId: pack.id } })).toEqual([]);
+			await c().packages.remove(w.app, pack.id);
+			expect(await c().packages.get(w.app, pack.id)).toBeUndefined();
+		});
+
+		it("changes the price and keeps what was paid; a negative price is refused", async () => {
+			const a = await c().appointments.insert(draft(w, { start: next(), money: money(10_000, 0) }));
+			await c().payments.insert(pay(w, { appointmentId: a.id, amountCents: 4_000 }));
+			const part = await c().appointments.get(w.app, a.id);
+			expect(part?.money).toEqual(money(10_000, 4_000));
+			await c().appointments.replace({ ...a, money: money(3_000, 0) });
+			expect((await c().appointments.get(w.app, a.id))?.money).toEqual(money(3_000, 4_000));
+			await refused("negative_money", () =>
+				c().appointments.replace({ ...a, money: { ...money(3_000, 0), priceCents: -1 } }),
+			);
+		});
+
+		it("is requested, then confirmed; the reminder is switched off and on; the service changes", async () => {
+			const a = await c().appointments.insert(draft(w, { start: next(), status: "requested" }));
+			expect((await c().appointments.get(w.app, a.id))?.status).toBe("requested");
+			await c().appointments.replace({
+				...a,
+				status: "scheduled",
+				remind: false,
+				serviceId: "svc-9",
+			});
+			expect(await c().appointments.get(w.app, a.id)).toMatchObject({
+				status: "scheduled",
+				remind: false,
+				serviceId: "svc-9",
+			});
+			await c().appointments.replace({
+				...a,
+				status: "scheduled",
+				remind: true,
+				serviceId: "svc-9",
+			});
+			expect((await c().appointments.get(w.app, a.id))?.remind).toBe(true);
+		});
+
+		it("a requested appointment holds its time like a confirmed one", async () => {
+			const start = next();
+			await c().appointments.insert(draft(w, { start, status: "requested" }));
+			await refused("overlaps", () => c().appointments.insert(draft(w, { start, clientId: w.c2 })));
+		});
+
 		it("marks attendance, no-show and back to scheduled", async () => {
 			const a = await c().appointments.insert(draft(w, { start: next() }));
 			for (const status of ["attended", "no_show", "scheduled"] as const) {
@@ -167,9 +239,9 @@ export const visitsContract: ContractSection = (env) => {
 			);
 		});
 
-		it("a payment moves the appointment's amount paid, and removing it moves it back; replace never writes money", async () => {
+		it("a payment moves the appointment's amount paid, and removing it moves it back; replace never writes what was paid", async () => {
 			const a = await c().appointments.insert(draft(w, { start: next(), money: money(10_000, 0) }));
-			await c().appointments.replace({ ...a, money: money(99, 99) });
+			await c().appointments.replace({ ...a, money: money(10_000, 99) });
 			expect((await c().appointments.get(w.app, a.id))?.money).toEqual(money(10_000, 0));
 			const p1 = await c().payments.insert(pay(w, { appointmentId: a.id, amountCents: 4_000 }));
 			expect((await c().appointments.get(w.app, a.id))?.money).toEqual(money(10_000, 4_000));
@@ -281,11 +353,34 @@ export const visitsContract: ContractSection = (env) => {
 					c().appointments.replace({ ...cancelled, start: next(), end: next() + HOUR }),
 				);
 			});
-			it("the client of an appointment is not changed", async () => {
+			it("a session cannot lose its client, and a block cannot gain one", async () => {
 				const a = await c().appointments.insert(draft(w, { start: next() }));
-				await refused("invalid", () => c().appointments.replace({ ...a, clientId: w.c2 }));
+				const { clientId: _c, ...clientless } = a;
+				await refused("invalid", () => c().appointments.replace(clientless));
+				const block = await c().appointments.insert(
+					draft(w, { start: next(), kind: "block", clientId: undefined }),
+				);
+				await refused("invalid", () => c().appointments.replace({ ...block, clientId: w.c2 }));
 			});
-			it("a note, package, room or device is not cleared", async () => {
+			it("a session cannot go back to waiting for the client once the client confirmed it", async () => {
+				const a = await c().appointments.insert(draft(w, { start: next() }));
+				await refused("not_allowed", () => c().appointments.replace({ ...a, status: "requested" }));
+			});
+			it("a refused edit changes none of its fields: a client moved with a clash in the same edit", async () => {
+				const start = next();
+				const a = await c().appointments.insert(draft(w, { start, note: "keep" }));
+				await c().appointments.insert(draft(w, { start: start + 2 * HOUR, clientId: w.c2 }));
+				await refused("overlaps", () =>
+					c().appointments.replace({
+						...a,
+						clientId: w.c2,
+						note: "changed",
+						start: start + 2 * HOUR,
+						end: start + 3 * HOUR,
+					}),
+				);
+			});
+			it("a note, room or device is not cleared", async () => {
 				const a = await c().appointments.insert(
 					draft(w, { start: next(), note: "keep", roomId: w.room }),
 				);

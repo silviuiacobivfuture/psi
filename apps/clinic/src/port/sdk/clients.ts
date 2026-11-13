@@ -6,8 +6,6 @@ import { toPortError } from "./errors";
 import { clientOf, packageOf, paymentOf } from "./map";
 import { instantOf } from "./time";
 
-const soon = (what: string): PortError => new PortError("not-available-yet", what);
-
 /** Clients and their packages. */
 export function clientsGroup(
 	sdk: SdkContext,
@@ -60,7 +58,6 @@ export function clientsGroup(
 
 		createPackage: (app: AppSlug, clientId: string, input: NewPackage): Promise<Package> =>
 			run(async () => {
-				if (input.note !== "") throw soon("a note on a package");
 				const made = await api.packages.create({
 					app,
 					id: clientId,
@@ -68,11 +65,12 @@ export function clientsGroup(
 					sessions: input.sessions,
 					bonus: input.bonus,
 					priceCents: input.totalBani,
+					...(input.note === "" ? {} : { note: input.note }),
 				});
 				return packageOf(made);
 			}),
 
-		/** The total is the price less the discount the package already has; a note has no place in the service yet. */
+		/** The total is the price less the discount the package already has. */
 		updatePackage: (
 			app: AppSlug,
 			clientId: string,
@@ -83,7 +81,6 @@ export function clientsGroup(
 				const tz = await sdk.zone(app);
 				const held = (await api.packages.get({ app, id: packageId })).package;
 				if (held.clientId !== clientId) throw new PortError("not-found", packageId);
-				if (patch.note !== undefined && patch.note !== "") throw soon("a note on a package");
 				const sessions = patch.sessions ?? held.sessions;
 				const bonus = patch.bonus ?? held.bonus;
 				if (sessions + bonus < held.used)
@@ -94,6 +91,7 @@ export function clientsGroup(
 					...(patch.name === undefined ? {} : { name: patch.name }),
 					...(patch.sessions === undefined ? {} : { sessions: patch.sessions }),
 					...(patch.bonus === undefined ? {} : { bonus: patch.bonus }),
+					...(patch.note === undefined ? {} : { note: patch.note }),
 					...(patch.totalBani === undefined
 						? {}
 						: { priceCents: patch.totalBani + held.discountCents }),
@@ -105,7 +103,7 @@ export function clientsGroup(
 				);
 			}),
 
-		/** A payment is only ever appended; the service stamps who recorded it from the token. */
+		/** A payment is only ever appended; the service stamps who recorded it from the token, whatever the caller says. */
 		addPayment: (
 			app: AppSlug,
 			clientId: string,

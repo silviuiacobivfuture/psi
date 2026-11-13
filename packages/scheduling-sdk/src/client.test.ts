@@ -136,6 +136,20 @@ describe("the derived client", () => {
 		expect(got).toEqual(events);
 	});
 
+	it("deletes a file with the confirmation in the query and no body", async () => {
+		const seen: { method: string; url: string; body: unknown }[] = [];
+		const c = clientOn(async (req) => {
+			seen.push({ method: req.method, url: req.url, body: await req.text() });
+			return json({ ok: true });
+		});
+		await c.files.remove({ app: "psizone", id: "file-0001", confirm: "true" });
+		expect(seen[0]).toEqual({
+			method: "DELETE",
+			url: "https://api.test/v1/apps/psizone/files/file-0001?confirm=true",
+			body: "",
+		});
+	});
+
 	it("refuses a stream event that does not match the contract", async () => {
 		const c = clientOn(() => new Response('data: {"seq":"x"}\n\n'));
 		await expect(
