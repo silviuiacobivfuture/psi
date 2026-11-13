@@ -58,9 +58,8 @@ export interface CompassChatLabels {
 	retry: string;
 	/** Under a question a newer one replaced before any answer arrived. */
 	unanswered: string;
-	/** The head's toggle: its name entering and leaving full screen, and what is said on the automatic entry. */
+	/** The head's toggle (its name stays the same, `aria-pressed` tells the state), and what is said on the automatic entry. */
 	fullscreen: string;
-	exitFullscreen: string;
 	fullscreenOn: string;
 }
 
@@ -108,6 +107,12 @@ export interface CompassProps {
 	 * stays the field's accessible name).
 	 */
 	invite?: CompassInvite;
+	/**
+	 * The visitor's own words that the action asks the guide: with it, a click on the action opens
+	 * the chat in full screen and asks them, so the booking starts in the conversation; without it,
+	 * or without script, the action is its plain link.
+	 */
+	bookWith?: string;
 	class?: string;
 }
 
@@ -225,6 +230,7 @@ export function Compass({
 	staffKeywords = STAFF_KEYWORDS,
 	startWith,
 	invite,
+	bookWith,
 	class: className,
 }: CompassProps): JSX.Element {
 	const { labels } = chat;
@@ -303,8 +309,6 @@ export function Compass({
 						class="pz-compass__fs"
 						aria-pressed="false"
 						aria-label={labels.fullscreen}
-						data-enter={labels.fullscreen}
-						data-exit={labels.exitFullscreen}
 					>
 						<svg
 							class="pz-compass__fs-in"
@@ -436,7 +440,14 @@ export function Compass({
 				>
 					<ArrowIcon size={18} />
 				</button>
-				{action ? <span class="pz-compass__action">{action}</span> : null}
+				{action ? (
+					<span
+						class="pz-compass__action"
+						{...(bookWith === undefined ? {} : { "data-book": bookWith })}
+					>
+						{action}
+					</span>
+				) : null}
 			</form>
 			{/* What the page shows itself when a question never reached the guide (no exchange came back). */}
 			<template class="pz-compass__unsent">
