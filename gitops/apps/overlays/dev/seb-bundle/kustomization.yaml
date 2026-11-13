@@ -46,3 +46,4 @@ resources:
   - seb-openbao-store.yaml
   - seb-plunk.yaml
   - seb-plane.yaml
+  - seb-autorizare.yaml
