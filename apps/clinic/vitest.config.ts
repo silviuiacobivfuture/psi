@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
 	test: {
 		include: ["src/**/*.test.{ts,tsx}"],
+		// No key, no network beyond this machine: the assistant's tests only ever reach in-process fakes.
+		setupFiles: ["../../.mono/vitest/hermetic.ts"],
 		minWorkers: 1,
 		maxWorkers: 2,
 		testTimeout: 120000,

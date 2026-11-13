@@ -1,6 +1,6 @@
 {
 	"name": "@psi/agent-studio",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"private": true,
 	"type": "module",
 	"description": "Mastra Studio for psi's guides, deployed for staff at studio.psizone.ro behind the estate's Authentik gate, read-only unless the caller may operate",
