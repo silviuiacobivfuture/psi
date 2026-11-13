@@ -45,6 +45,18 @@ export interface PackageCardProps {
 	locale: Locale;
 	/** The field just saved: it shows a quiet check. */
 	saved?: PackageField;
+	/** Without edit rights (or while viewing as someone else) the values are shown, not editable. */
+	canEdit?: boolean;
+	/** Without the right to take payments the ledger has no form. */
+	canPay?: boolean;
+}
+
+/** A value editable in place, or just shown when the person may not change it. */
+function Editable({
+	canEdit,
+	...rest
+}: Parameters<typeof InlineEdit>[0] & { canEdit: boolean }): JSX.Element {
+	return canEdit ? <InlineEdit {...rest} /> : <span>{rest.display}</span>;
 }
 
 function ringSegments(u: Usage): RingSegment[] {
@@ -106,7 +118,8 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 		<article class="adm-card pk" id={`pk-${pkg.id}`} aria-labelledby={`pk-${pkg.id}-name`}>
 			<header class="pk__head">
 				<h3 class="pk__name" id={`pk-${pkg.id}-name`}>
-					<InlineEdit
+					<Editable
+						canEdit={p.canEdit !== false}
 						{...field("name")}
 						label={m.pkg_name({}, o)}
 						value={pkg.name}
@@ -152,7 +165,8 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 						<div>
 							<dt>{m.pkg_sessions({}, o)}</dt>
 							<dd>
-								<InlineEdit
+								<Editable
+									canEdit={p.canEdit !== false}
 									{...field("sessions")}
 									kind="number"
 									min={0}
@@ -166,7 +180,8 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 						<div>
 							<dt>{m.pkg_bonus({}, o)}</dt>
 							<dd>
-								<InlineEdit
+								<Editable
+									canEdit={p.canEdit !== false}
 									{...field("bonus")}
 									kind="number"
 									min={0}
@@ -189,7 +204,8 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 						<div>
 							<dt>{m.pkg_total({}, o)}</dt>
 							<dd>
-								<InlineEdit
+								<Editable
+									canEdit={p.canEdit !== false}
 									{...field("total")}
 									kind="money"
 									label={m.pkg_total({}, o)}
@@ -260,42 +276,48 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 								},
 							}))}
 						footer={
-							<form
-								class="pk__pay"
-								data-signals={JSON.stringify({
-									pay: { [payKey]: { a: prefill, k: "cash", d: p.today } },
-								})}
-								data-on:submit__prevent={`@post('${base}/payments')`}
-							>
-								<label class="adm-field">
-									<span>{m.pay_amount({}, o)}</span>
-									<input
-										class="adm-input pk__amount"
-										type="text"
-										inputmode="decimal"
-										autocomplete="off"
-										{...{ [`data-bind:pay.${payKey}.a`]: "" }}
-									/>
-								</label>
-								<label class="adm-field">
-									<span>{m.pay_method({}, o)}</span>
-									<select class="adm-input" {...{ [`data-bind:pay.${payKey}.k`]: "" }}>
-										{(["cash", "card", "transfer"] as const).map((k) => (
-											<option key={k} value={k}>
-												{methodLabel(k, locale)}
-											</option>
-										))}
-									</select>
-								</label>
-								<label class="adm-field">
-									<span>{m.pay_date({}, o)}</span>
-									<input class="adm-input" type="date" {...{ [`data-bind:pay.${payKey}.d`]: "" }} />
-								</label>
-								<button class="adm-btn adm-btn--primary pk__add" type="submit">
-									<Icon name="plus" />
-									{m.pay_add({}, o)}
-								</button>
-							</form>
+							p.canPay === false ? undefined : (
+								<form
+									class="pk__pay"
+									data-signals={JSON.stringify({
+										pay: { [payKey]: { a: prefill, k: "cash", d: p.today } },
+									})}
+									data-on:submit__prevent={`@post('${base}/payments')`}
+								>
+									<label class="adm-field">
+										<span>{m.pay_amount({}, o)}</span>
+										<input
+											class="adm-input pk__amount"
+											type="text"
+											inputmode="decimal"
+											autocomplete="off"
+											{...{ [`data-bind:pay.${payKey}.a`]: "" }}
+										/>
+									</label>
+									<label class="adm-field">
+										<span>{m.pay_method({}, o)}</span>
+										<select class="adm-input" {...{ [`data-bind:pay.${payKey}.k`]: "" }}>
+											{(["cash", "card", "transfer"] as const).map((k) => (
+												<option key={k} value={k}>
+													{methodLabel(k, locale)}
+												</option>
+											))}
+										</select>
+									</label>
+									<label class="adm-field">
+										<span>{m.pay_date({}, o)}</span>
+										<input
+											class="adm-input"
+											type="date"
+											{...{ [`data-bind:pay.${payKey}.d`]: "" }}
+										/>
+									</label>
+									<button class="adm-btn adm-btn--primary pk__add" type="submit">
+										<Icon name="plus" />
+										{m.pay_add({}, o)}
+									</button>
+								</form>
+							)
 						}
 					/>
 				</section>
@@ -313,7 +335,8 @@ export function PackageCard(p: PackageCardProps): JSX.Element {
 			</div>
 
 			<footer class="pk__note">
-				<InlineEdit
+				<Editable
+					canEdit={p.canEdit !== false}
 					{...field("note")}
 					kind="textarea"
 					class="pk__noteedit"

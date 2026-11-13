@@ -8,6 +8,7 @@ import {
 } from "../src/domain/clients";
 import type { Id } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
+import { eraseClinicData } from "./clinicErase";
 import { requireServer } from "./guard";
 import { ensureTenantRow, SLUG } from "./setupSupport";
 import { actorValidator, audienceValidator, serverKeyValidator } from "./validators";
@@ -160,6 +161,7 @@ export const clients = query({
 					? q.eq("tenant", args.tenant)
 					: q.eq("tenant", args.tenant).gte("name", prefix).lt("name", `${prefix}￿`),
 			)
+			.filter((q) => q.eq(q.field("deletedAt"), undefined))
 			.take(50);
 		return {
 			ok: true as const,
@@ -230,7 +232,16 @@ export const eraseClient = mutation({
 			await ctx.db.patch(a._id, { client: undefined });
 			unlinked += 1;
 		}
-		await ctx.db.delete(client._id);
-		return { ok: true as const, unlinked };
+		const erased = await eraseClinicData(ctx, args.tenant, client._id, Date.now());
+		await ctx.db.insert("auditEvents", {
+			tenant: args.tenant,
+			at: Date.now(),
+			actor: args.actor.subject,
+			action: "client.erase",
+			entity: "client",
+			entityId: client._id,
+			summary: "client.erase",
+		});
+		return { ok: true as const, unlinked, storageKeys: erased.storageKeys };
 	},
 });

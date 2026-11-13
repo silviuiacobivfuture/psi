@@ -1,0 +1,241 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/scheduling-api/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "sched",
+	"version": 1,
+	"scope_resolvers": {
+		"sched_app": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"sched_role": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_client": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_calendar": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_appointment": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_room": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_device": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_package": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_record": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_file": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": ["platform#administrator", "platform#role_sched_app_admin"],
+	"features": [
+		{
+			"key": "app_settings",
+			"name": {
+				"ro": "Setările aplicației",
+				"en": "App settings"
+			}
+		},
+		{
+			"key": "members",
+			"name": {
+				"ro": "Echipa",
+				"en": "Team members"
+			}
+		},
+		{
+			"key": "roles",
+			"name": {
+				"ro": "Roluri",
+				"en": "Roles"
+			}
+		},
+		{
+			"key": "people",
+			"name": {
+				"ro": "Persoane și practicieni",
+				"en": "People and practitioners"
+			}
+		},
+		{
+			"key": "rooms",
+			"name": {
+				"ro": "Camere",
+				"en": "Rooms"
+			}
+		},
+		{
+			"key": "devices",
+			"name": {
+				"ro": "Aparate",
+				"en": "Devices"
+			}
+		},
+		{
+			"key": "groups",
+			"name": {
+				"ro": "Activități de grup",
+				"en": "Group activities"
+			}
+		},
+		{
+			"key": "services",
+			"name": {
+				"ro": "Servicii",
+				"en": "Services"
+			}
+		},
+		{
+			"key": "prices",
+			"name": {
+				"ro": "Prețuri",
+				"en": "Prices"
+			}
+		},
+		{
+			"key": "calendar",
+			"name": {
+				"ro": "Calendar",
+				"en": "Calendar"
+			}
+		},
+		{
+			"key": "appointments",
+			"name": {
+				"ro": "Programări",
+				"en": "Appointments"
+			}
+		},
+		{
+			"key": "clients",
+			"name": {
+				"ro": "Clienți",
+				"en": "Clients"
+			}
+		},
+		{
+			"key": "packages",
+			"name": {
+				"ro": "Abonamente",
+				"en": "Packages"
+			}
+		},
+		{
+			"key": "payments",
+			"name": {
+				"ro": "Plăți",
+				"en": "Payments"
+			}
+		},
+		{
+			"key": "roster",
+			"name": {
+				"ro": "Pontaj",
+				"en": "Roster"
+			}
+		},
+		{
+			"key": "leave",
+			"name": {
+				"ro": "Concedii",
+				"en": "Leave"
+			}
+		},
+		{
+			"key": "reminders",
+			"name": {
+				"ro": "Mementouri",
+				"en": "Reminders"
+			}
+		},
+		{
+			"key": "requests",
+			"name": {
+				"ro": "Cereri web",
+				"en": "Web requests"
+			}
+		},
+		{
+			"key": "records",
+			"name": {
+				"ro": "Fișe și rapoarte",
+				"en": "Records and reports"
+			}
+		},
+		{
+			"key": "files",
+			"name": {
+				"ro": "Fișiere",
+				"en": "Files"
+			}
+		},
+		{
+			"key": "audit",
+			"name": {
+				"ro": "Jurnal de audit",
+				"en": "Audit log"
+			}
+		},
+		{
+			"key": "builder",
+			"name": {
+				"ro": "Constructor",
+				"en": "Builder"
+			}
+		},
+		{
+			"key": "imports",
+			"name": {
+				"ro": "Importuri",
+				"en": "Imports"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "sched:app_admin",
+			"name": {
+				"ro": "Administrator programări",
+				"en": "Scheduling administrator"
+			},
+			"description": {
+				"ro": "Creează aplicații, gestionează echipa, rolurile și setările lor; nu citește date clinice.",
+				"en": "Creates apps and manages their team, roles and settings; reads no clinical data."
+			},
+			"scope_type": "platform",
+			"relation": "role_sched_app_admin",
+			"grants": [
+				"sched_app#app_settings_view",
+				"sched_app#app_settings_edit",
+				"sched_app#members_view",
+				"sched_app#members_edit",
+				"sched_app#members_remove",
+				"sched_app#roles_view",
+				"sched_app#roles_create",
+				"sched_app#roles_edit",
+				"sched_app#roles_delete"
+			],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

@@ -53,4 +53,19 @@ describe("readEnv", () => {
 	it("refuses a scheduling URL that is not a URL", () => {
 		expect(() => readEnv({ SCHEDULING_API_URL: "scheduling" })).toThrow();
 	});
+	it("production needs the session secret, by name, and takes it from SESSION_SECRET", () => {
+		expect(() => readEnv({ NODE_ENV: "production", SCHEDULING_API_URL: "http://x.test" })).toThrow(
+			/SESSION_SECRET/,
+		);
+		expect(
+			readEnv({
+				NODE_ENV: "production",
+				SCHEDULING_API_URL: "http://x.test",
+				SESSION_SECRET: "s".repeat(40),
+			}).sessionSecret,
+		).toBe("s".repeat(40));
+	});
+	it("refuses a session secret that is too short", () => {
+		expect(() => readEnv({ CLINIC_FAKE_PORT: "1", SESSION_SECRET: "short" })).toThrow();
+	});
 });

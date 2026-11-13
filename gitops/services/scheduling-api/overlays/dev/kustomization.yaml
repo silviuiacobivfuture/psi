@@ -1,0 +1,24 @@
+# scheduling-api on dev. CI moves newTag after each image it pushes; never edit it by hand.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling-api
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/scheduling-api
+    newTag: "unbuilt"
+patches:
+  # Kubelet health probes through the default-deny policy: they arrive from the node the pod runs on (its InternalIP,
+  # or its cni0 gateway when flannel SNATs a same-node connection): the addresses agent-studio's policy admits.
+  - target: { kind: NetworkPolicy, name: scheduling-api }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 4380 }

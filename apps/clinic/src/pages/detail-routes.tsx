@@ -3,6 +3,7 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../app";
 import type { Ctx } from "../lib/context";
+import { refusalText } from "../lib/failures";
 import { at } from "../lib/i18n";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
@@ -39,7 +40,19 @@ async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
 
 export async function detailBody(ctx: Ctx, id: string): Promise<string | null> {
 	const d = await load(ctx, id);
-	return d === null ? null : await (<DetailBody d={d} locale={ctx.locale} />).toString();
+	return d === null
+		? null
+		: await (
+				<DetailBody
+					d={d}
+					locale={ctx.locale}
+					rights={{
+						edit: ctx.can.write("appointments_edit"),
+						cancel: ctx.can.write("appointments_cancel"),
+						pay: ctx.can.write("payments_create"),
+					}}
+				/>
+			).toString();
 }
 
 const ReasonSignals = z.object({ dtReason: z.string().trim().min(1).max(500) });
@@ -82,7 +95,7 @@ export function registerDetail(app: Hono<Env>): void {
 					const text =
 						err instanceof PortError && err.code === "conflict"
 							? m.ap_conflict_blocked({}, o)
-							: m.error_title({}, o);
+							: (refusalText(err, ctx.locale) ?? m.error_title({}, o));
 					stream.patchElements(toastElement(text, m.dismiss({}, o)));
 					return;
 				}

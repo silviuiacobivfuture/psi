@@ -4,12 +4,12 @@ import { closureSpans, pickRoom, type RoomCalendar, type RoomSpec } from "../src
 import { addDays, MINUTE_MS, toLocal } from "../src/domain/time";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
-import { MAX_BLOCK_MS } from "./calendar";
+import { MAX_BLOCK_MS, visitBusyOnColumn } from "./calendar";
 
 /**
  * Rooms inside slot search and holds. A service that names a room kind needs a suitable room, free
  * for the whole session and its buffer, for an onsite session; online sessions never need one. The
- * room's own calendar (appointments by `by_room_start`, closures) is read in the same transaction
+ * room's own calendar (appointments by `by_room_start`, the team's visits, closures) is read in the same transaction
  * as the practitioner's, so two holds racing for the last room conflict like two for one person.
  */
 
@@ -59,7 +59,7 @@ export async function roomPlan(
 	const last = addDays(toLocal(range.to, tenant.timeZone).date, 1);
 	const rooms: RoomCalendar[] = [];
 	for (const row of rows) {
-		const [booked, closures] = await Promise.all([
+		const [booked, closures, visitsInColumn, visitsUsingIt] = await Promise.all([
 			ctx.db
 				.query("appointments")
 				.withIndex("by_room_start", (q) =>
@@ -73,6 +73,18 @@ export async function roomPlan(
 				.query("roomClosures")
 				.withIndex("by_room_date", (q) =>
 					q.eq("room", row._id).gte("date", first).lte("date", last),
+				)
+				.collect(),
+			// The team's own visits: in this room's column, or using it besides their column.
+			visitBusyOnColumn(ctx, tenant.slug, `room:${row._id}`, range.from, range.to, range.now),
+			ctx.db
+				.query("visits")
+				.withIndex("by_tenant_room_start", (q) =>
+					q
+						.eq("tenant", tenant.slug)
+						.eq("room", row._id)
+						.gte("start", range.from - MAX_BLOCK_MS)
+						.lt("start", range.to),
 				)
 				.collect(),
 		]);
@@ -91,6 +103,11 @@ export async function roomPlan(
 			room: specOf(row),
 			busy: [
 				...busy,
+				...visitsInColumn,
+				...busyFrom(
+					visitsUsingIt.map((v) => ({ status: v.status, start: v.start, blockedUntil: v.end })),
+					range.now,
+				),
 				...closureSpans(
 					closures.map((c) => ({
 						date: c.date,

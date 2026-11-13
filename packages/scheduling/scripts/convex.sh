@@ -5,12 +5,12 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG="$(cd "$HERE/.." && pwd)"
-SECRETS="$(cd "$PKG/../.." && pwd)/.data/convex/secrets"
+SECRETS="${PSI_CONVEX_DATA:-$(cd "$PKG/../.." && pwd)/.data/convex}/secrets"
 if [ ! -s "$SECRETS/admin-key" ]; then
 	echo "no admin key: run scripts/local-backend.sh up && scripts/local-backend.sh env first" >&2
 	exit 1
 fi
-export CONVEX_SELF_HOSTED_URL="${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}"
+export CONVEX_SELF_HOSTED_URL="${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:${PSI_CONVEX_PORT:-3210}}"
 CONVEX_SELF_HOSTED_ADMIN_KEY="$(cat "$SECRETS/admin-key")"
 export CONVEX_SELF_HOSTED_ADMIN_KEY
 cd "$PKG"

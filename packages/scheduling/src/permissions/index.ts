@@ -1,0 +1,42 @@
+export {
+	ACTIONS,
+	type Action,
+	allPermissionKeys,
+	type BaseFieldGroup,
+	CATALOGUE,
+	FIELD_GROUPS,
+	type FieldGroup,
+	hasFieldGroups,
+	isFieldGroup,
+	isPermissionKey,
+	type Permission,
+	parsePermissionKey,
+	permissionKey,
+	RELATION_NAME_MAX,
+	RESOURCES,
+	type Resource,
+	SCOPES,
+	type Scope,
+} from "./catalogue";
+export {
+	can,
+	type Decision,
+	type EffectivePermissions,
+	effectivePermissions,
+	type Override,
+	type Refusal,
+	type RoleGrants,
+	type ScopeFacts,
+} from "./evaluate";
+export { type PersonRelations, scopeFactsFor, type TargetRelations } from "./relations";
+export {
+	ACCOUNTANT,
+	ADMIN,
+	COORDINATOR,
+	OWNER,
+	RECEPTION,
+	SEED_ROLES,
+	type SeedRole,
+	THERAPIST,
+	VOLUNTEER,
+} from "./roles";

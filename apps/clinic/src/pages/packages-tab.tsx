@@ -15,7 +15,19 @@ export interface PackagesView {
 }
 
 /** The client's packages: a card each, and the "new package" action. */
-export function PackagesTab({ view, locale }: { view: PackagesView; locale: Locale }): JSX.Element {
+export function PackagesTab({
+	view,
+	locale,
+	canCreate = true,
+	canEdit = true,
+	canPay = true,
+}: {
+	view: PackagesView;
+	locale: Locale;
+	canCreate?: boolean;
+	canEdit?: boolean;
+	canPay?: boolean;
+}): JSX.Element {
 	const o = at(locale);
 	return (
 		<div class="adm-stack pk-list">
@@ -31,10 +43,12 @@ export function PackagesTab({ view, locale }: { view: PackagesView; locale: Loca
 			) : null}
 			<div class="adm-row pk-list__bar">
 				<h3 class="adm-h2">{m.packages_title({}, o)}</h3>
-				<button type="button" class="adm-btn adm-btn--primary" data-on:click="$newPkg = true">
-					<Icon name="plus" />
-					{m.pkg_new({}, o)}
-				</button>
+				{canCreate ? (
+					<button type="button" class="adm-btn adm-btn--primary" data-on:click="$newPkg = true">
+						<Icon name="plus" />
+						{m.pkg_new({}, o)}
+					</button>
+				) : null}
 			</div>
 			{view.packages.length === 0 ? (
 				<EmptyState
@@ -52,6 +66,8 @@ export function PackagesTab({ view, locale }: { view: PackagesView; locale: Loca
 						services={view.services}
 						today={todayIso()}
 						locale={locale}
+						canEdit={canEdit}
+						canPay={canPay}
 					/>
 				))
 			)}

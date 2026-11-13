@@ -40,10 +40,11 @@ export function registerClients(app: Hono<Env>): void {
 		try {
 			const client = await ctx.port.client(ctx.app, id);
 			if (client === null) throw new PortError("not-found", id);
+			// Only what this person may see is asked for: a tab they cannot open must not break the ones they can.
 			const [appointments, packages, services] = await Promise.all([
-				ctx.port.clientAppointments(ctx.app, id),
-				ctx.port.packages(ctx.app, id),
-				ctx.port.services(ctx.app),
+				ctx.can.has("appointments_view") ? ctx.port.clientAppointments(ctx.app, id) : [],
+				ctx.can.has("packages_view") ? ctx.port.packages(ctx.app, id) : [],
+				ctx.can.has("services_view") ? ctx.port.services(ctx.app) : [],
 			]);
 			return c.html(
 				await renderClient(

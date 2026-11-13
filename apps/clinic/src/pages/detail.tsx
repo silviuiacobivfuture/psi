@@ -25,7 +25,22 @@ export interface DetailData {
 const act = (id: string, what: string): string => `@post('/appointments/${id}/${what}')`;
 
 /** One appointment: who, when, where, what it draws from, whether it is paid — and what you can do next. */
-export function DetailBody({ d, locale }: { d: DetailData; locale: Locale }): JSX.Element {
+/** What the person may do with the appointment: its actions are offered only for these. */
+export interface DetailRights {
+	edit: boolean;
+	cancel: boolean;
+	pay: boolean;
+}
+
+export function DetailBody({
+	d,
+	locale,
+	rights,
+}: {
+	d: DetailData;
+	locale: Locale;
+	rights: DetailRights;
+}): JSX.Element {
 	const o = at(locale);
 	const a = d.appointment;
 	const col = d.columns.find((c) => c.id === a.columnId);
@@ -111,15 +126,17 @@ export function DetailBody({ d, locale }: { d: DetailData; locale: Locale }): JS
 			</dl>
 
 			<div class="dt__actions">
-				<button
-					type="button"
-					class="adm-btn adm-btn--primary"
-					data-on:click={`@get('/calendar/editor?id=${a.id}')`}
-				>
-					<Icon name="edit" />
-					{m.ap_edit({}, o)}
-				</button>
-				{open ? (
+				{rights.edit ? (
+					<button
+						type="button"
+						class="adm-btn adm-btn--primary"
+						data-on:click={`@get('/calendar/editor?id=${a.id}')`}
+					>
+						<Icon name="edit" />
+						{m.ap_edit({}, o)}
+					</button>
+				) : null}
+				{open && rights.edit ? (
 					<>
 						<button type="button" class="adm-btn" data-on:click={act(a.id, "attended")}>
 							<Icon name="check" />
@@ -131,7 +148,11 @@ export function DetailBody({ d, locale }: { d: DetailData; locale: Locale }): JS
 						</button>
 					</>
 				) : null}
-				{a.status !== "cancelled" && a.paidMethod === null && d.pkg === null && a.priceBani > 0 ? (
+				{rights.pay &&
+				a.status !== "cancelled" &&
+				a.paidMethod === null &&
+				d.pkg === null &&
+				a.priceBani > 0 ? (
 					<div class="dt__pay" data-signals={JSON.stringify({ dtPay: "cash" })}>
 						<select class="adm-input" aria-label={m.pay_method({}, o)} data-bind="dtPay">
 							<option value="cash">{m.method_cash({}, o)}</option>
@@ -163,7 +184,7 @@ export function DetailBody({ d, locale }: { d: DetailData; locale: Locale }): JS
 				)}
 			</div>
 
-			{a.status === "cancelled" ? null : (
+			{a.status === "cancelled" || !rights.cancel ? null : (
 				<div class="dt__cancel" data-signals={JSON.stringify({ dtAsk: false, dtReason: "" })}>
 					<button
 						type="button"

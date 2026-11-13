@@ -1,19 +1,28 @@
 import { sameOrigin } from "@psi/account";
 import type { Pwa } from "@psi/pwa";
+import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import type { Auth } from "./auth";
 import { Page } from "./chrome";
+import { canOf } from "./lib/can";
 import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
+import { worstFailure } from "./lib/failures";
+import { judge, landingFor } from "./lib/gates";
 import { at } from "./lib/i18n";
+import { sse } from "./lib/sse";
+import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
+import { scopedPort } from "./lib/view-scope";
 import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
 import { registerDesign } from "./pages/design";
 import { registerDetail } from "./pages/detail-routes";
 import { registerEditor } from "./pages/editor-routes";
+import { FailureState } from "./pages/failure";
 import { NoAccessPage } from "./pages/gate";
+import { registerLive } from "./pages/live";
 import { MorePage } from "./pages/more";
 import { registerPrint } from "./pages/print-routes";
 import { registerReminders } from "./pages/reminders";
@@ -21,12 +30,16 @@ import { registerRequests } from "./pages/requests";
 import { renderRoster } from "./pages/roster";
 import { registerSearch } from "./pages/search";
 import { registerSettings } from "./pages/settings";
+import { registerViewAs } from "./pages/view-as";
 import { m } from "./paraglide/messages.js";
-import type { ClinicPort } from "./port/port";
+import { PortError, type PortSource } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
 
 export interface AppDeps {
-	port: ClinicPort;
+	/** The port acting for the request's person (the scheduling service takes their own token). */
+	ports: PortSource;
+	/** Signs the "Vezi ca…" cookie. */
+	viewAsSecret: string;
 	auth: Auth;
 	pwa: Pwa;
 	origin: string;
@@ -70,7 +83,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 				deps.auth.signInHref(`${new URL(c.req.url).pathname}${new URL(c.req.url).search}`),
 				302,
 			);
-		const memberships = await deps.port.memberships(person.subject);
+		const own = await deps.ports.forPerson(c);
+		const memberships = await own.memberships(person.subject);
 		const active = activeApp(c, memberships);
 		if (active === null) {
 			return c.html(
@@ -84,6 +98,25 @@ export function createApp(deps: AppDeps): Hono<Env> {
 				{ "cache-control": "private, no-store" },
 			);
 		}
+		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next.
+		const real = await own.capabilities(person.subject, active);
+		const mayViewAs = Object.hasOwn(real.permissions, "roles_edit");
+		let port = own;
+		let caps = real;
+		let viewAs: ViewAsState | null = null;
+		const wanted = await readViewAs(c, deps.viewAsSecret, person.subject, active);
+		if (wanted !== null) {
+			try {
+				if (!mayViewAs) throw new PortError("forbidden", "roles administrators only");
+				const flagged = await deps.ports.forPerson(c, wanted.as);
+				caps = await flagged.capabilities(person.subject, active, wanted.as);
+				port = scopedPort(flagged, caps);
+				viewAs = wanted;
+			} catch {
+				clearViewAs(c);
+			}
+		}
+		const can = canOf(caps, viewAs !== null);
 		c.set("ctx", {
 			c,
 			locale,
@@ -93,11 +126,31 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			person,
 			app: active,
 			memberships,
-			port: deps.port,
+			port,
+			caps,
+			can,
+			viewAs,
+			mayViewAs,
 			pwa: deps.pwa,
 			signOut: deps.auth.signOutAction,
 		});
+		const verdict = judge(c.req.method, c.req.path, can);
+		if (verdict === "forbidden") throw new PortError("forbidden", c.req.path);
+		if (verdict === "read-only") {
+			const text = m.view_as_readonly({}, at(locale));
+			if (c.req.header("datastar-request") === "true")
+				return sse((stream) => {
+					stream.patchElements(toastElement(text, m.dismiss({}, at(locale))));
+				});
+			return c.text(text, 403);
+		}
 		await next();
+		// The service no longer accepts the person's token: through sign-in and back, never a dead end.
+		if (worstFailure(c)?.code === "unauthenticated")
+			c.res = c.redirect(
+				deps.auth.signInHref(`${new URL(c.req.url).pathname}${new URL(c.req.url).search}`),
+				302,
+			);
 	});
 
 	if (deps.auth.signOutAction === "/dev-signout")
@@ -108,10 +161,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		const ctx = c.var.ctx;
 		if (slug.success && ctx.memberships.some((x) => x.app === slug.data))
 			setCookie(c, "app", slug.data, { path: "/", maxAge: 31536000, sameSite: "Lax" });
-		return c.redirect("/calendar", 302);
+		return c.redirect(landingFor(c.var.ctx.can), 302);
 	});
 
-	app.get("/", (c) => c.redirect("/calendar", 302));
+	app.get("/", (c) => c.redirect(landingFor(c.var.ctx.can), 302));
 	app.get("/calendar", async (c) =>
 		c.html(await renderCalendar(c.var.ctx, CalendarQuerySchema.parse(c.req.query())), 200, {
 			"cache-control": "private, no-store",
@@ -123,6 +176,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerSearch(app);
 	registerClients(app);
 	registerRequests(app);
+	registerLive(app);
+	registerViewAs(app, deps);
 	registerDesign(app);
 	registerSettings(app);
 	app.get("/audit", async (c) =>
@@ -137,6 +192,40 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	app.get("/more", async (c) =>
 		c.html(await MorePage(c.var.ctx), 200, { "cache-control": "private, no-store" }),
 	);
+	app.onError(async (err, c) => {
+		if (!(err instanceof PortError)) throw err;
+		if (err.code === "unauthenticated")
+			return c.redirect(
+				deps.auth.signInHref(`${new URL(c.req.url).pathname}${new URL(c.req.url).search}`),
+				302,
+			);
+		const status = {
+			forbidden: 403,
+			"not-found": 404,
+			"rate-limited": 429,
+			"not-available-yet": 200,
+			conflict: 409,
+			invalid: 400,
+			unavailable: 503,
+		} as const;
+		const ctx = c.var.ctx;
+		if (ctx === undefined) return c.text(err.code, status[err.code]);
+		if (c.req.header("datastar-request") === "true") return c.text(err.code, status[err.code]);
+		return c.html(
+			await Page({
+				ctx,
+				current: "more",
+				title: m.brand({}, at(ctx.locale)),
+				children: (
+					<div class="adm-page">
+						<FailureState error={err} locale={ctx.locale} />
+					</div>
+				),
+			}),
+			status[err.code],
+			{ "cache-control": "private, no-store" },
+		);
+	});
 	app.notFound(async (c) => {
 		const ctx = c.var.ctx;
 		return c.html(

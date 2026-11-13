@@ -8,6 +8,7 @@ import { parseAmountOrZero } from "../domain/numbers";
 import type { Ctx } from "../lib/context";
 import { IsoDay, todayIso } from "../lib/dates";
 import { type Editor, EditorSignalsSchema, minutesOf } from "../lib/editor-signals";
+import { refusalText } from "../lib/failures";
 import { at } from "../lib/i18n";
 import { type Stream, signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
@@ -332,8 +333,9 @@ async function refused(
 		return;
 	}
 	toast(
-		err instanceof PortError && err.code === "invalid"
-			? m.toast_invalid({}, o)
-			: m.error_title({}, o),
+		refusalText(err, ctx.locale) ??
+			(err instanceof PortError && err.code === "invalid"
+				? m.toast_invalid({}, o)
+				: m.error_title({}, o)),
 	);
 }

@@ -5,6 +5,7 @@ import type { Env } from "../app";
 import { parseMoney } from "../domain/money";
 import { parseAmountOrZero, parseCount } from "../domain/numbers";
 import { todayIso } from "../lib/dates";
+import { refusalText } from "../lib/failures";
 import { at } from "../lib/i18n";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
@@ -138,8 +139,9 @@ export function registerPackageRoutes(app: Hono<Env>): void {
 			try {
 				await ctx.port.updatePackage(ctx.app, id, pid, patch);
 			} catch (err) {
-				if (!(err instanceof PortError) || err.code !== "invalid") throw err;
-				stream.patchElements(toastElement(m.pkg_too_few({}, o), m.dismiss({}, o)));
+				const soon = refusalText(err, ctx.locale);
+				if (soon === null && (!(err instanceof PortError) || err.code !== "invalid")) throw err;
+				stream.patchElements(toastElement(soon ?? m.pkg_too_few({}, o), m.dismiss({}, o)));
 				stream.patchElements(await cardHtml(c, id, pid));
 				return;
 			}
@@ -162,13 +164,20 @@ export function registerPackageRoutes(app: Hono<Env>): void {
 				stream.patchElements(toastElement(m.pay_invalid({}, o), m.dismiss({}, o)));
 				return;
 			}
-			await ctx.port.addPayment(
-				ctx.app,
-				id,
-				pid,
-				{ date: row.d, amountBani: amount, method: row.k },
-				ctx.person.name,
-			);
+			try {
+				await ctx.port.addPayment(
+					ctx.app,
+					id,
+					pid,
+					{ date: row.d, amountBani: amount, method: row.k },
+					ctx.person.name,
+				);
+			} catch (err) {
+				const soon = refusalText(err, ctx.locale);
+				if (soon === null) throw err;
+				stream.patchElements(toastElement(soon, m.dismiss({}, o)));
+				return;
+			}
 			stream.patchElements(await cardHtml(c, id, pid));
 			stream.patchElements(toastElement(m.pay_saved({}, o), m.dismiss({}, o)));
 		});

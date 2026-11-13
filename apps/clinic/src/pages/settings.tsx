@@ -15,9 +15,11 @@ import type { Env } from "../app";
 import { Page } from "../chrome";
 import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
+import { SETTINGS_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import type { Column, Role, Service } from "../port/schema";
+import { PortError } from "../port/port";
+import type { Column, PushPrefs, Role, Service } from "../port/schema";
 import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../port/schema";
 import { roleFromForm } from "./role-form";
 import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
@@ -85,9 +87,12 @@ function ColumnList({
 function ServiceList({
 	items,
 	locale,
+	showPrice,
 }: {
 	items: ReadonlyArray<Service>;
 	locale: Locale;
+	/** Prices are a money field: shown only to someone who may see money. */
+	showPrice: boolean;
 }): JSX.Element {
 	const o = at(locale);
 	if (items.length === 0)
@@ -106,7 +111,9 @@ function ServiceList({
 						<tr key={s.id}>
 							<th scope="row">{s.name}</th>
 							<td>{m.service_duration({ n: s.durationMin }, o)}</td>
-							<td>{formatMoney(s.priceBani, locale)}</td>
+							{showPrice ? (
+								<td>{s.priceBani === null ? "—" : formatMoney(s.priceBani, locale)}</td>
+							) : null}
 						</tr>
 					))}
 				</tbody>
@@ -119,10 +126,13 @@ function RolesTab({
 	roles,
 	role,
 	locale,
+	canEdit,
 }: {
 	roles: ReadonlyArray<Role>;
 	role: Role;
 	locale: Locale;
+	/** Holds roles_edit (and is not only viewing): otherwise the matrix is shown, not editable. */
+	canEdit: boolean;
 }): JSX.Element {
 	const o = at(locale);
 	const rows: MatrixRow[] = RESOURCES.map((r) => ({
@@ -153,30 +163,38 @@ function RolesTab({
 			</p>
 			<p class="adm-muted">{m.roles_hint({}, o)}</p>
 			<form method="post" action={`/settings/roles/${role.id}`} class="adm-stack">
-				<PermissionMatrix
-					rows={rows}
-					columns={columns}
-					scopes={SCOPES.map((s) => ({ key: s, label: scopeLabel(s, locale) }))}
-					noneLabel={m.roles_none({}, o)}
-					notApplicableLabel={m.roles_na({}, o)}
-					grants={role.grants}
-					applicable={Object.fromEntries(
-						Object.entries(RESOURCE_ACTIONS).map(([k, v]) => [k, [...v]]),
-					)}
-					fieldGroupsLabel={m.roles_field_groups({}, o)}
-					fieldGroups={fieldGroups}
-					resourceLabel={m.roles_resource({}, o)}
-					tableLabel={m.roles_matrix_label({}, o)}
-				/>
-				<div>
-					<button class="adm-btn adm-btn--primary" type="submit">
-						{m.roles_save({}, o)}
-					</button>
-				</div>
+				<fieldset disabled={!canEdit} style="border:0;padding:0;margin:0;min-width:0">
+					<PermissionMatrix
+						rows={rows}
+						columns={columns}
+						scopes={SCOPES.map((s) => ({ key: s, label: scopeLabel(s, locale) }))}
+						noneLabel={m.roles_none({}, o)}
+						notApplicableLabel={m.roles_na({}, o)}
+						grants={role.grants}
+						applicable={Object.fromEntries(
+							Object.entries(RESOURCE_ACTIONS).map(([k, v]) => [k, [...v]]),
+						)}
+						fieldGroupsLabel={m.roles_field_groups({}, o)}
+						fieldGroups={fieldGroups}
+						resourceLabel={m.roles_resource({}, o)}
+						tableLabel={m.roles_matrix_label({}, o)}
+					/>
+				</fieldset>
+				{canEdit ? (
+					<div>
+						<button class="adm-btn adm-btn--primary" type="submit">
+							{m.roles_save({}, o)}
+						</button>
+					</div>
+				) : null}
 			</form>
 		</div>
 	);
 }
+
+/** The tabs this person may open: the notifications tab is everyone's own. */
+const openTabs = (ctx: Ctx): ReadonlyArray<SettingsTab> =>
+	SETTINGS_TABS.filter((t) => t === "notifications" || ctx.can.has(SETTINGS_TAB_KEYS[t]));
 
 export async function renderSettings(
 	ctx: Ctx,
@@ -185,7 +203,7 @@ export async function renderSettings(
 	flash?: string,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const tabs: Tab[] = SETTINGS_TABS.map((t) => ({
+	const tabs: Tab[] = openTabs(ctx).map((t) => ({
 		key: t,
 		label: tabLabel(t, ctx.locale),
 		href: `/settings/${t}`,
@@ -202,7 +220,13 @@ export async function renderSettings(
 				/>
 			);
 		} else if (tab === "services") {
-			body = <ServiceList items={await ctx.port.services(ctx.app)} locale={ctx.locale} />;
+			body = (
+				<ServiceList
+					items={await ctx.port.services(ctx.app)}
+					locale={ctx.locale}
+					showPrice={ctx.can.group("money")}
+				/>
+			);
 		} else if (tab === "roles") {
 			const roles = await ctx.port.roles(ctx.app);
 			const role = roles.find((r) => r.id === roleId) ?? roles[0];
@@ -210,29 +234,46 @@ export async function renderSettings(
 				role === undefined ? (
 					<EmptyState icon="shield" title={m.settings_empty_title({}, o)} />
 				) : (
-					<RolesTab roles={roles} role={role} locale={ctx.locale} />
+					<RolesTab
+						roles={roles}
+						role={role}
+						locale={ctx.locale}
+						canEdit={ctx.can.write("roles_edit")}
+					/>
 				);
 		} else {
-			const prefs = await ctx.port.pushPrefs(ctx.person.subject);
+			let prefs: PushPrefs | null = null;
+			try {
+				prefs = await ctx.port.pushPrefs(ctx.person.subject);
+			} catch (err) {
+				// The service keeps no push preferences yet: the form says "în curând"; the device list below still works.
+				if (!(err instanceof PortError && err.code === "not-available-yet")) throw err;
+			}
 			body = (
 				<div class="adm-stack" style="gap:var(--space-4)">
-					<form method="post" action="/settings/notifications" class="adm-card adm-stack">
-						<h3 class="adm-h2">{m.notif_title({}, o)}</h3>
-						<label class="adm-check">
-							<input type="checkbox" name="requests" checked={prefs.requests} />
-							{m.notif_requests({}, o)}
-						</label>
-						<label class="adm-check">
-							<input type="checkbox" name="reminders" checked={prefs.reminders} />
-							{m.notif_reminders({}, o)}
-						</label>
-						<p class="adm-muted">{m.notif_sending_later({}, o)}</p>
-						<div>
-							<button class="adm-btn adm-btn--primary" type="submit">
-								{m.notif_save({}, o)}
-							</button>
+					{prefs === null ? (
+						<div class="adm-card">
+							<EmptyState icon="clock" title={m.soon_title({}, o)} text={m.soon_text({}, o)} />
 						</div>
-					</form>
+					) : (
+						<form method="post" action="/settings/notifications" class="adm-card adm-stack">
+							<h3 class="adm-h2">{m.notif_title({}, o)}</h3>
+							<label class="adm-check">
+								<input type="checkbox" name="requests" checked={prefs.requests} />
+								{m.notif_requests({}, o)}
+							</label>
+							<label class="adm-check">
+								<input type="checkbox" name="reminders" checked={prefs.reminders} />
+								{m.notif_reminders({}, o)}
+							</label>
+							<p class="adm-muted">{m.notif_sending_later({}, o)}</p>
+							<div>
+								<button class="adm-btn adm-btn--primary" type="submit">
+									{m.notif_save({}, o)}
+								</button>
+							</div>
+						</form>
+					)}
 					<div class="adm-card">
 						{ctx.pwa.notifications({
 							locale: ctx.locale,
@@ -274,7 +315,9 @@ export async function renderSettings(
 }
 
 export function registerSettings(app: Hono<Env>): void {
-	app.get("/settings", (c) => c.redirect("/settings/people", 302));
+	app.get("/settings", (c) =>
+		c.redirect(`/settings/${openTabs(c.var.ctx)[0] ?? "notifications"}`, 302),
+	);
 	for (const tab of SETTINGS_TABS) {
 		app.get(`/settings/${tab}`, async (c) => {
 			const flash =

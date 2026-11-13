@@ -62,7 +62,8 @@ export interface ShellProps {
 	title: string;
 	user: ShellUser;
 	labels: ShellLabels;
-	newAppointmentHref: string;
+	/** Where the "new appointment" button goes; absent: the person may not create appointments, so there is no button. */
+	newAppointmentHref?: string | undefined;
 	/** Where the preference form posts (theme, language) and the sign-out form. */
 	/** Start with the navigation as an icon rail (the calendar wants the width). */
 	rail?: boolean;
@@ -77,6 +78,8 @@ export interface ShellProps {
 	children?: Child;
 	/** Extra entries in the user menu (the install prompt). */
 	extras?: Child;
+	/** A compact status beside the user menu in the top bar (e.g. "viewing as…"). */
+	topStatus?: Child;
 	/** Overlays rendered beside the page: sheets. */
 	overlays?: Child;
 }
@@ -359,6 +362,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						/>
 						<div id="adm-search-results" class="adm-search__results" aria-live="polite" />
 					</form>
+					{p.topStatus}
 					<UserMenu
 						user={p.user}
 						labels={l}
@@ -388,21 +392,30 @@ export function AdminShell(p: ShellProps): JSX.Element {
 					>
 						<Icon name={t.icon} />
 						<span>{t.label}</span>
-						{t.badge === undefined || t.badge === 0 ? null : (
-							<span class="adm-badge">{t.badge}</span>
+						{t.badge === undefined ? null : (
+							// Always present when the tab counts something, so a live update can patch it by id.
+							<span
+								id={`adm-badge-${t.key}`}
+								class="adm-badge"
+								style={t.badge === 0 ? "display:none" : undefined}
+							>
+								{t.badge}
+							</span>
 						)}
 					</a>
 				))}
 			</nav>
-			<a
-				class={cx("adm-fab", "adm-noprint")}
-				href={p.newAppointmentHref}
-				aria-label={l.newAppointment}
-				data-class:adm-fab--small="$fabSmall"
-			>
-				<Icon name="plus" />
-				<span class="adm-fab__label">{l.newAppointment}</span>
-			</a>
+			{p.newAppointmentHref === undefined ? null : (
+				<a
+					class={cx("adm-fab", "adm-noprint")}
+					href={p.newAppointmentHref}
+					aria-label={l.newAppointment}
+					data-class:adm-fab--small="$fabSmall"
+				>
+					<Icon name="plus" />
+					<span class="adm-fab__label">{l.newAppointment}</span>
+				</a>
+			)}
 			<div id="adm-toasts" class="adm-toasts" role="status" aria-live="polite" />
 			{p.overlays}
 		</div>

@@ -21,8 +21,11 @@ spec:
     - to:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: account } }
       ports: [{ port: 5432 }]
+    # The scheduling service (Service scheduling-api/scheduling-api :80 -> pod :4380): namespace AND pod label in ONE
+    # `to` element, the counterpart of the rule in scheduling-api's own policy that admits this pod.
     - to:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: scheduling-api } }
+          podSelector: { matchLabels: { app: scheduling-api } }
       ports: [{ port: 4380 }]
     - to:
         - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }

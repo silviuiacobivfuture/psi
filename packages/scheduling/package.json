@@ -1,18 +1,22 @@
 {
 	"name": "@psi/scheduling",
-	"version": "0.3.0",
+	"version": "0.11.1",
 	"private": true,
 	"type": "module",
 	"description": "psi's scheduling engine: providers, services, availability rules and exceptions, slots, holds with expiry, requests and appointments, DST-safe in Europe/Bucharest; Convex as the database",
 	"exports": {
 		".": "./src/index.ts",
-		"./domain": "./src/domain/index.ts"
+		"./domain": "./src/domain/index.ts",
+		"./crypto": "./src/crypto/index.ts",
+		"./permissions": "./src/permissions/index.ts",
+		"./clinic": "./src/clinic/index.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
 		"convex:deploy": "scripts/convex.sh deploy --yes",
-		"convex:seed": "scripts/convex.sh run seed:demo"
+		"convex:seed": "scripts/convex.sh run seed:demo",
+		"import:old": "scripts/import-old.sh"
 	},
 	"dependencies": {
 		"convex": "1.49.0",
@@ -20,6 +24,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
+		"tsx": "^4.23.15",
 		"typescript": "^5.9.3",
 		"vitest": "^2.1.9"
 	}

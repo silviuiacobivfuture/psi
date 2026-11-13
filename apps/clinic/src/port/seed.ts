@@ -241,7 +241,7 @@ export function seedApp(app: AppSlug, today: string): AppData {
 								: "cancelled",
 					note: "",
 					...appointmentDefaults(),
-					priceBani: col.kind === "group" ? 0 : svc.priceBani,
+					priceBani: col.kind === "group" ? 0 : (svc.priceBani ?? 0),
 				});
 				start += svc.durationMin + (rand() < 0.4 ? 30 : 10);
 				if (start > 17 * 60) break;

@@ -26,7 +26,8 @@ export const ServiceSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	durationMin: z.number().int().positive(),
-	priceBani: z.number().int().nonnegative(),
+	/** Null: the person may not see prices (a field group the service leaves out). */
+	priceBani: z.number().int().nonnegative().nullable(),
 });
 export type Service = z.infer<typeof ServiceSchema>;
 
@@ -273,6 +274,8 @@ export const RESOURCE_ACTIONS: Readonly<
 };
 
 export const ScopeSchema = z.enum(SCOPES);
+export type ScopeName = z.infer<typeof ScopeSchema>;
+export type FieldGroupName = (typeof FIELD_GROUPS)[number];
 export const RoleSchema = z.object({
 	id: z.string(),
 	name: z.string(),

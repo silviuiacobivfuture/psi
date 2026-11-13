@@ -6,6 +6,7 @@ import { createApp } from "../app";
 import { accountAuth, DEV_SUBJECT, devAuth } from "../auth";
 import { createFakePort, type FakeOptions } from "../port/fake";
 import type { Membership } from "../port/schema";
+import { fixedPort } from "../port/source";
 import { createConsolePwa } from "../pwa";
 
 const SECRET = "x".repeat(40);
@@ -84,7 +85,8 @@ export async function startConsole(
 	});
 	const pwa = createConsolePwa(ORIGIN, account);
 	app = createApp({
-		port,
+		ports: fixedPort(port),
+		viewAsSecret: SECRET,
 		auth: accountAuth(account),
 		origin: ORIGIN,
 		pwa,
@@ -151,7 +153,14 @@ export async function serveConsole(fake: Partial<FakeOptions> = {}): Promise<Liv
 		env: {},
 	});
 	const pwa = createConsolePwa(origin, idle);
-	const app = createApp({ port, auth: devAuth(), origin, pwa, mount: (h) => pwa.mount(h) });
+	const app = createApp({
+		ports: fixedPort(port),
+		viewAsSecret: "v".repeat(40),
+		auth: devAuth(),
+		origin,
+		pwa,
+		mount: (h) => pwa.mount(h),
+	});
 	holder.fetch = (r) => app.fetch(r);
 	return {
 		url: origin,

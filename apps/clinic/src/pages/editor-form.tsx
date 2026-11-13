@@ -202,7 +202,7 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 							key={s.id}
 							value={s.id}
 							data-dur={String(s.durationMin)}
-							data-price={moneyInput(s.priceBani, p.locale)}
+							data-price={moneyInput(s.priceBani ?? 0, p.locale)}
 						>
 							{s.name} · {s.durationMin} min
 						</option>

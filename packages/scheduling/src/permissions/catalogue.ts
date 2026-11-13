@@ -1,0 +1,195 @@
+/**
+ * The permission catalogue: the single source of what can be allowed (docs/plans/clinic.md
+ * section 4). A permission is resource x action x scope, optionally x field group. Role contents
+ * are data (lists of the keys below); the catalogue is code. The OpenFGA model and the roles
+ * matrix in the console are generated from `CATALOGUE`, so they cannot drift from the code.
+ *
+ * A key is a legal OpenFGA relation name (letters, digits, underscore, hyphen, at most 50
+ * characters): `appointments_edit_own`, `clients_view_all_clinical`. A key WITHOUT a field group
+ * on a resource that has groups covers every group, including an app's custom ones.
+ */
+
+export const RESOURCES = [
+	"app_settings",
+	"members",
+	"roles",
+	"builder",
+	"services",
+	"prices",
+	"rooms",
+	"devices",
+	"group_activities",
+	"calendars",
+	"appointments",
+	"clients",
+	"report_aba",
+	"report_race_me_up",
+	"report_psychotherapy",
+	"parent_questionnaires",
+	"files",
+	"packages",
+	"payments",
+	"roster",
+	"leave",
+	"notice_board",
+	"reminders",
+	"web_requests",
+	"reports",
+	"audit_log",
+	"imports_exports",
+] as const;
+export type Resource = (typeof RESOURCES)[number];
+
+export const ACTIONS = [
+	"view",
+	"create",
+	"edit",
+	"cancel",
+	"delete",
+	"archive",
+	"export",
+	"send",
+	"approve",
+	"assign",
+	"price",
+] as const;
+export type Action = (typeof ACTIONS)[number];
+
+export const SCOPES = ["all", "assigned", "own"] as const;
+export type Scope = (typeof SCOPES)[number];
+
+/** The built-in field groups; an app may add custom ones (`custom-<slug>`). */
+export const FIELD_GROUPS = ["core", "contact", "guardian", "money", "clinical"] as const;
+export type BaseFieldGroup = (typeof FIELD_GROUPS)[number];
+
+const CUSTOM_GROUP = /^custom-[a-z0-9]{1,12}$/;
+/** A field group: a built-in one or `custom-<slug>`. */
+export type FieldGroup = BaseFieldGroup | `custom-${string}`;
+
+export function isFieldGroup(text: string): text is FieldGroup {
+	return (FIELD_GROUPS as ReadonlyArray<string>).includes(text) || CUSTOM_GROUP.test(text);
+}
+
+interface ResourceDef {
+	readonly actions: ReadonlyArray<Action>;
+	readonly scopes: ReadonlyArray<Scope>;
+	readonly fieldGroups?: ReadonlyArray<BaseFieldGroup>;
+}
+
+const ALL: ReadonlyArray<Scope> = ["all"];
+const EVERYWHERE: ReadonlyArray<Scope> = ["all", "assigned", "own"];
+const CRUD: ReadonlyArray<Action> = ["view", "create", "edit", "delete"];
+
+export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
+	app_settings: { actions: ["view", "edit"], scopes: ALL },
+	members: { actions: CRUD, scopes: ALL },
+	roles: { actions: CRUD, scopes: ALL },
+	builder: { actions: CRUD, scopes: ALL },
+	services: { actions: [...CRUD, "price"], scopes: ALL },
+	prices: { actions: ["view", "edit"], scopes: ALL },
+	rooms: { actions: CRUD, scopes: ALL },
+	devices: { actions: CRUD, scopes: ALL },
+	group_activities: { actions: CRUD, scopes: ALL },
+	calendars: { actions: ["view", "edit", "assign"], scopes: EVERYWHERE },
+	appointments: {
+		actions: ["view", "create", "edit", "cancel", "delete", "assign", "send"],
+		scopes: EVERYWHERE,
+		fieldGroups: ["core", "money", "clinical"],
+	},
+	clients: {
+		actions: ["view", "create", "edit", "archive", "delete", "export", "assign"],
+		scopes: EVERYWHERE,
+		fieldGroups: ["contact", "guardian", "money", "clinical"],
+	},
+	report_aba: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
+	report_race_me_up: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
+	report_psychotherapy: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
+	parent_questionnaires: { actions: CRUD, scopes: EVERYWHERE },
+	files: { actions: ["view", "create", "delete", "export"], scopes: EVERYWHERE },
+	packages: { actions: [...CRUD, "price"], scopes: EVERYWHERE },
+	payments: { actions: [...CRUD, "export"], scopes: ALL },
+	roster: { actions: ["view", "edit"], scopes: EVERYWHERE },
+	leave: { actions: ["view", "create", "edit", "cancel", "approve"], scopes: EVERYWHERE },
+	notice_board: { actions: CRUD, scopes: ALL },
+	reminders: { actions: ["view", "send"], scopes: EVERYWHERE },
+	web_requests: { actions: ["view", "approve"], scopes: ALL },
+	reports: { actions: ["view", "export"], scopes: ALL },
+	audit_log: { actions: ["view", "export"], scopes: ALL },
+	imports_exports: { actions: ["create", "export"], scopes: ALL },
+};
+
+/** A permission as structure. */
+export interface Permission {
+	readonly resource: Resource;
+	readonly action: Action;
+	readonly scope: Scope;
+	readonly fieldGroup?: FieldGroup;
+}
+
+export const RELATION_NAME_MAX = 50;
+
+/** The key of a permission: `resource_action_scope[_group]`. */
+export function permissionKey(p: Permission): string {
+	const base = `${p.resource}_${p.action}_${p.scope}`;
+	return p.fieldGroup === undefined ? base : `${base}_${p.fieldGroup}`;
+}
+
+/** Every key the catalogue defines (custom groups are added by an app's builder, not listed). */
+export function allPermissionKeys(): ReadonlyArray<string> {
+	const keys: string[] = [];
+	for (const resource of RESOURCES) {
+		const def = CATALOGUE[resource];
+		for (const action of def.actions) {
+			for (const scope of def.scopes) {
+				keys.push(permissionKey({ resource, action, scope }));
+				for (const fieldGroup of def.fieldGroups ?? []) {
+					keys.push(permissionKey({ resource, action, scope, fieldGroup }));
+				}
+			}
+		}
+	}
+	return keys;
+}
+
+const BASE_KEYS: ReadonlyMap<string, Permission> = new Map(
+	RESOURCES.flatMap((resource) => {
+		const def = CATALOGUE[resource];
+		return def.actions.flatMap((action) =>
+			def.scopes.flatMap((scope) => {
+				const plain: Permission = { resource, action, scope };
+				const grouped = (def.fieldGroups ?? []).map(
+					(fieldGroup): Permission => ({ resource, action, scope, fieldGroup }),
+				);
+				return [plain, ...grouped].map((p): [string, Permission] => [permissionKey(p), p]);
+			}),
+		);
+	}),
+);
+
+/**
+ * The structure of a key, or undefined when it is not one: a catalogue key, or a catalogue key
+ * of a resource with field groups followed by `_custom-<slug>`.
+ */
+export function parsePermissionKey(key: string): Permission | undefined {
+	const known = BASE_KEYS.get(key);
+	if (known !== undefined) return known;
+	const at = key.lastIndexOf("_custom-");
+	if (at < 0) return undefined;
+	const plain = BASE_KEYS.get(key.slice(0, at));
+	const group = key.slice(at + 1);
+	if (plain === undefined || plain.fieldGroup !== undefined || !isFieldGroup(group)) {
+		return undefined;
+	}
+	if (CATALOGUE[plain.resource].fieldGroups === undefined) return undefined;
+	return { ...plain, fieldGroup: group };
+}
+
+/** True when `key` names a permission the catalogue (plus custom groups) allows. */
+export function isPermissionKey(key: string): boolean {
+	return parsePermissionKey(key) !== undefined;
+}
+
+/** True when the resource's records carry field groups. */
+export function hasFieldGroups(resource: Resource): boolean {
+	return CATALOGUE[resource].fieldGroups !== undefined;
+}

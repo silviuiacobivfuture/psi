@@ -3,10 +3,12 @@ import { type ThemePreference, themeFor, themePreferenceFrom } from "@psi/ui/adm
 import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
 import type { Person } from "../auth";
-import type { ClinicPort } from "../port/port";
+import type { Capabilities, ClinicPort } from "../port/port";
 import { type AppSlug, AppSlugSchema, type Membership } from "../port/schema";
+import type { Can } from "./can";
 import { type Locale, localeFrom } from "./i18n";
 import type { Theme } from "./theme";
+import type { ViewAsState } from "./view-as";
 
 /** Everything a page needs to know about the request it answers. */
 export interface Ctx {
@@ -20,6 +22,13 @@ export interface Ctx {
 	app: AppSlug;
 	memberships: ReadonlyArray<Membership>;
 	port: ClinicPort;
+	/** What the person may do in this app, asked of the service for THIS request (or the role they are viewing as). */
+	caps: Capabilities;
+	can: Can;
+	/** Looking at the app as someone else (read-only), or null. */
+	viewAs: ViewAsState | null;
+	/** The person themselves (not the role they may be viewing as) administers roles, so "Vezi ca…" is theirs to use. */
+	mayViewAs: boolean;
 	pwa: Pwa;
 	/** Where the sign-out form posts (the estate's sign-out, or the development no-op). */
 	signOut: string;

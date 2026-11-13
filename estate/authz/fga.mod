@@ -12,3 +12,4 @@ contents:
   - modules/hemisync.fga
   - modules/blog.fga
   - modules/cms.fga
+  - modules/sched.fga

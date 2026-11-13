@@ -5,9 +5,12 @@ import {
 	type CalendarData,
 	type ClientFilter,
 	type ClinicPort,
+	type LiveSignal,
 	PortError,
 	type ReminderItem,
+	type TeamMember,
 } from "./port";
+import { capabilityMap } from "./role-map";
 import type {
 	Appointment,
 	AppSlug,
@@ -77,7 +80,108 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const clientLabel = (d: AppData, id: string | null): string =>
 		d.clients.find((c) => c.id === id)?.name ?? "";
 
+	// The live bus: a write tells every open stream of the app that its screen changed.
+	const listeners = new Set<{ app: AppSlug; push: (s: LiveSignal) => void }>();
+	const tell = (app: AppSlug, signal: LiveSignal): void => {
+		for (const l of listeners) if (l.app === app) l.push(signal);
+	};
+	const openRequests = (d: AppData): number => d.requests.filter((r) => !r.handled).length;
+	const LOOKUPS = ["people_view", "rooms_view", "devices_view", "services_view", "groups_view"];
+
 	return {
+		async capabilities(subject, app, as) {
+			guard("capabilities");
+			const mine = opts.members[subject]?.find((x) => x.app === app);
+			if (mine === undefined) throw new PortError("not-found", app);
+			const d = data(app);
+			const holds = (ids: ReadonlyArray<string>) => d.roles.filter((r) => ids.includes(r.id));
+			let roles = holds(mine.roles);
+			let who = subject;
+			if (as !== undefined) {
+				const here = holds(mine.roles);
+				if (!here.some((r) => r.grants.roles?.edit !== undefined))
+					throw new PortError("forbidden", "roles administrators only");
+				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
+				if (kind === "role") {
+					roles = holds([id]);
+					if (roles.length === 0) throw new PortError("not-found", as);
+				} else {
+					const other = Object.entries(opts.members).find(
+						([s, ms]) => s === id && ms.some((x) => x.app === app),
+					);
+					if (other === undefined) throw new PortError("not-found", as);
+					roles = holds(other[1].find((x) => x.app === app)?.roles ?? []);
+				}
+				who = as;
+			}
+			const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
+			const groups = new Set<string>();
+			for (const r of roles) {
+				for (const [k, v] of Object.entries(capabilityMap(r))) {
+					const had = permissions[k] ?? [];
+					permissions[k] = [...new Set([...had, ...v])];
+				}
+				for (const g of r.fieldGroups) groups.add(g);
+				if (r.grants.calendars?.view !== undefined || r.grants.settings?.view !== undefined)
+					for (const k of LOOKUPS) permissions[k] = ["all"];
+			}
+			return {
+				app,
+				appName: app === "psizone" ? "Psizone" : "Hemi-Sync",
+				timeZone: "Europe/Bucharest",
+				subject: who,
+				roles: roles.map((r) => r.id),
+				permissions,
+				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
+					groups.has(g),
+				),
+				reach: { own: [], assigned: [] },
+				platformAdmin: false,
+			};
+		},
+		async members(app): Promise<ReadonlyArray<TeamMember>> {
+			guard("members");
+			return Object.entries(opts.members).flatMap(([subject, ms]) =>
+				ms
+					.filter((x) => x.app === app)
+					.map((x) => ({ subject, displayName: subject, roles: x.roles })),
+			);
+		},
+		async startViewAs(subject, app, as) {
+			guard("startViewAs");
+			const caps = await this.capabilities(subject, app, as);
+			log(data(app), subject, "view_as.start", as);
+			return caps;
+		},
+		async stopViewAs(subject, app) {
+			guard("stopViewAs");
+			log(data(app), subject, "view_as.stop", app);
+		},
+		async *live(app, signal) {
+			const queue: LiveSignal[] = [];
+			let wake: (() => void) | undefined;
+			const entry = {
+				app,
+				push: (s: LiveSignal) => {
+					queue.push(s);
+					wake?.();
+				},
+			};
+			listeners.add(entry);
+			signal.addEventListener("abort", () => wake?.());
+			try {
+				while (!signal.aborted) {
+					const next = queue.shift();
+					if (next !== undefined) yield next;
+					else
+						await new Promise<void>((resolve) => {
+							wake = resolve;
+						});
+				}
+			} finally {
+				listeners.delete(entry);
+			}
+		},
 		async memberships(subject) {
 			guard("memberships");
 			return opts.members[subject] ?? [];
@@ -143,7 +247,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 					note: input.note,
 					packageId: input.packageId,
 					resourceIds: input.resourceIds,
-					priceBani: input.packageId === null ? (input.priceBani ?? svc.priceBani) : 0,
+					priceBani: input.packageId === null ? (input.priceBani ?? svc.priceBani ?? 0) : 0,
 					paidMethod: null,
 					remind: input.remind,
 					seriesId,
@@ -152,6 +256,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			);
 			d.appointments.push(...made);
 			for (const a of made) log(d, "console", "appointment.create", a.id);
+			tell(app, { stream: "calendar" });
 			return made;
 		},
 		async updateAppointment(app, id, raw) {
@@ -185,6 +290,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
 			Object.assign(a, next);
 			log(d, "console", "appointment.edit", id);
+			tell(app, { stream: "calendar" });
 			return a;
 		},
 		async cancelAppointment(app, id, reason) {
@@ -195,6 +301,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			a.status = "cancelled";
 			a.cancelReason = reason.slice(0, 500);
 			log(d, "console", "appointment.cancel", id);
+			tell(app, { stream: "calendar" });
 			return a;
 		},
 		async collectPayment(app, id, method) {
@@ -204,6 +311,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			if (a === undefined) throw new PortError("not-found", id);
 			a.paidMethod = method;
 			log(d, "console", "appointment.payment", id);
+			tell(app, { stream: "calendar" });
 			return a;
 		},
 		async findConflicts(app, probe) {
@@ -362,6 +470,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			if (r === undefined) throw new PortError("not-found", id);
 			r.handled = true;
 			log(d, "console", "request.handled", id);
+			tell(app, { stream: "requests" });
+			tell(app, { stream: "inbox", counts: { requests: openRequests(d) } });
 		},
 		async reminders(app, date): Promise<ReadonlyArray<ReminderItem>> {
 			guard("reminders");

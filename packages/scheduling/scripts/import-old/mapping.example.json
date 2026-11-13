@@ -1,0 +1,51 @@
+{
+	"app": "psizone",
+	"appName": "Psizone",
+	"appKind": "clinic",
+	"address": "Strada General Alexandru Cernat 126, Galați",
+	"resources": [
+		{ "slug": "nfb-1", "name": "NFB 1", "kind": "device" },
+		{ "slug": "nfb-2", "name": "NFB 2", "kind": "device" },
+		{
+			"slug": "cabinet-psihoterapie-1",
+			"name": "Cabinet Psihoterapie 1",
+			"kind": "room",
+			"roomKind": "therapy"
+		},
+		{
+			"slug": "cabinet-psihoterapie-2",
+			"name": "Cabinet Psihoterapie 2",
+			"kind": "room",
+			"roomKind": "therapy"
+		},
+		{ "slug": "cabinet-terapie", "name": "Cabinet Terapie", "kind": "room", "roomKind": "therapy" },
+		{
+			"slug": "sala-grup-hemi-sync",
+			"name": "Sală Grup / Hemi-Sync",
+			"kind": "room",
+			"roomKind": "group"
+		},
+		{
+			"slug": "sala-kinetoterapie",
+			"name": "Sală Kinetoterapie",
+			"kind": "room",
+			"roomKind": "movement"
+		},
+		{ "slug": "cabinet-grup", "name": "Cabinet Grup", "kind": "room", "roomKind": "group" }
+	],
+	"roomIds": {
+		"1": "nfb-1",
+		"2": "nfb-2",
+		"3": "cabinet-psihoterapie-1",
+		"4": "cabinet-psihoterapie-2",
+		"5": "cabinet-terapie",
+		"6": "sala-grup-hemi-sync",
+		"7": "sala-kinetoterapie"
+	},
+	"therapistResources": { "7": "nfb-1", "8": "nfb-2", "9": "cabinet-grup" },
+	"groupActivityColumns": [10, 11, 12, 13, 14],
+	"staff": [
+		{ "legacyId": 101, "name": "Recepție", "kind": "reception" },
+		{ "legacyId": 102, "name": "Altă persoană", "kind": "other" }
+	]
+}
