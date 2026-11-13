@@ -1,11 +1,18 @@
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
-import { CLIENT_TABS, type ClientTab, renderClient } from "./client-page";
+import { registerClientActions } from "./client-action-routes";
+import {
+	CLIENT_TABS,
+	type ClientOpen,
+	type ClientTab,
+	renderClient,
+	type Soon,
+} from "./client-page";
 import { renderClients } from "./clients-list";
 import { registerPackageRoutes } from "./package-routes";
 
@@ -16,6 +23,27 @@ function noticeOf(
 	return invalid === "invalid" ? "invalid" : made === undefined ? null : "made";
 }
 
+const CONFIRMABLE = new Set(["note.delete", "file.delete", "record.delete"]);
+
+/** What the address asks the page to open on arrival. */
+function openOf(c: Context<Env>, tab: ClientTab): ClientOpen {
+	const q = (k: string): string | undefined => c.req.query(k);
+	const confirmAction = q("confirm");
+	const upload = q("upload");
+	return {
+		newNote: tab === "notes" && q("new") === "1",
+		newFile: tab === "files" && q("new") === "1",
+		edit: tab === "overview" && q("edit") === "1",
+		editNote: tab === "notes" ? (q("edit") ?? null) : null,
+		rename: tab === "files" ? (q("rename") ?? null) : null,
+		confirm:
+			confirmAction !== undefined && CONFIRMABLE.has(confirmAction) && q("id") !== undefined
+				? { action: confirmAction, id: q("id") ?? "" }
+				: null,
+		fileNotice: upload === "invalid" || upload === "too-big" ? upload : null,
+	};
+}
+
 export function registerClients(app: Hono<Env>): void {
 	app.get("/clients", async (c) => {
 		const f = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
@@ -24,28 +52,63 @@ export function registerClients(app: Hono<Env>): void {
 				c.var.ctx,
 				f satisfies ClientFilter,
 				(c.req.query("q") ?? "").slice(0, 120),
+				c.req.query("new") === "1",
 			),
 			200,
 			{ "cache-control": "private, no-store" },
 		);
 	});
 
-	const show = async (
-		c: import("hono").Context<Env>,
-		tab: ClientTab,
-		flash?: string,
-	): Promise<Response> => {
+	const show = async (c: Context<Env>, tab: ClientTab, flash?: string): Promise<Response> => {
 		const ctx = c.var.ctx;
 		const id = c.req.param("id") ?? "";
+		const can = ctx.can;
 		try {
 			const client = await ctx.port.client(ctx.app, id);
 			if (client === null) throw new PortError("not-found", id);
-			// Only what this person may see is asked for: a tab they cannot open must not break the ones they can.
-			const [appointments, packages, services] = await Promise.all([
-				ctx.can.has("appointments_view") ? ctx.port.clientAppointments(ctx.app, id) : [],
-				ctx.can.has("packages_view") ? ctx.port.packages(ctx.app, id) : [],
-				ctx.can.has("services_view") ? ctx.port.services(ctx.app) : [],
-			]);
+			// Only what this tab needs, and only what this person may see: one tab failing must not break the others.
+			const needs = (...tabs: ClientTab[]): boolean => tabs.includes(tab);
+			// What the service cannot keep yet is a tab that says "în curând", not a broken page.
+			const soon: Soon[] = [];
+			const soft = async <T,>(
+				what: Soon,
+				load: Promise<ReadonlyArray<T>> | never[],
+			): Promise<ReadonlyArray<T>> => {
+				try {
+					return await load;
+				} catch (error) {
+					if (error instanceof PortError && error.code === "not-available-yet") {
+						soon.push(what);
+						return [];
+					}
+					throw error;
+				}
+			};
+			const [appointments, packages, services, notes, blacklist, records, files, templates] =
+				await Promise.all([
+					needs("appointments", "packages") && can.has("appointments_view")
+						? ctx.port.clientAppointments(ctx.app, id)
+						: [],
+					needs("overview", "packages") && can.has("packages_view")
+						? ctx.port.packages(ctx.app, id)
+						: [],
+					needs("appointments", "packages") && can.has("services_view")
+						? ctx.port.services(ctx.app)
+						: [],
+					soft("notes", needs("overview", "notes") ? ctx.port.notes(ctx.app, id) : []),
+					soft(
+						"blacklist",
+						can.has("blacklist_view") && needs("overview")
+							? ctx.port.blacklistHistory(ctx.app, id)
+							: [],
+					),
+					soft(
+						"records",
+						needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
+					),
+					soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
+					needs("records") ? ctx.port.formTemplates(ctx.app) : [],
+				]);
 			return c.html(
 				await renderClient(
 					ctx,
@@ -55,6 +118,13 @@ export function registerClients(app: Hono<Env>): void {
 						appointments,
 						packages,
 						services,
+						notes,
+						blacklist,
+						records,
+						files,
+						templates,
+						soon,
+						open: openOf(c, tab),
 						notice: noticeOf(c.req.query("new"), c.req.query("made")),
 					},
 					flash,
@@ -93,26 +163,6 @@ export function registerClients(app: Hono<Env>): void {
 	for (const tab of CLIENT_TABS.filter((t) => t !== "overview"))
 		app.get(`/clients/:id/${tab}`, (c) => show(c, tab));
 
-	// Archive hides; Delete erases. Each is ONE confirmation (the sheet) and ONE write.
-	app.post("/clients/:id/archive", async (c) => {
-		const ctx = c.var.ctx;
-		try {
-			await ctx.port.archiveClient(ctx.app, c.req.param("id"));
-		} catch (err) {
-			if (err instanceof PortError && err.code === "not-found") return c.notFound();
-			throw err;
-		}
-		return c.redirect(`/clients/${c.req.param("id")}?done=archived`, 303);
-	});
-	app.post("/clients/:id/delete", async (c) => {
-		const ctx = c.var.ctx;
-		try {
-			await ctx.port.deleteClient(ctx.app, c.req.param("id"));
-		} catch (err) {
-			if (err instanceof PortError && err.code === "not-found") return c.notFound();
-			throw err;
-		}
-		return c.redirect("/clients?deleted=1", 303);
-	});
+	registerClientActions(app);
 	registerPackageRoutes(app);
 }

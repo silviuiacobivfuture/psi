@@ -26,7 +26,7 @@ export function createConsolePwa(
 		}),
 		topics: ["requests", "appointments", "reminders"],
 		identity,
-		notificationsPath: () => "/settings/notifications",
+		notificationsPath: () => "/me/settings",
 		...(options.onDevicesChanged === undefined
 			? {}
 			: { onDevicesChanged: options.onDevicesChanged }),

@@ -1,0 +1,78 @@
+/* The command palette: a centred panel from 600px, the whole screen on a phone. */
+.adm-palette {
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+}
+.adm-palette[style*="display: none"],
+.adm-palette[style*="display:none"] {
+	display: none;
+}
+.adm-palette__scrim {
+	position: absolute;
+	inset: 0;
+	border: 0;
+	background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+.adm-palette__panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+	width: 100%;
+	height: 100%;
+	padding: max(var(--adm-gutter), env(safe-area-inset-top))
+		max(var(--adm-gutter), env(safe-area-inset-right))
+		max(var(--adm-gutter), env(safe-area-inset-bottom))
+		max(var(--adm-gutter), env(safe-area-inset-left));
+	background: var(--surface-1);
+}
+.adm-palette__list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+.adm-palette__group {
+	margin: var(--space-3) 0 var(--space-2);
+	font: 700 12px / 1.2 var(--font-sans);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.adm-palette__items {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.adm-palette__item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: var(--adm-touch);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	color: var(--ink);
+	text-decoration: none;
+}
+.adm-palette__item:hover,
+.adm-palette__item:focus-visible {
+	background: var(--surface-2);
+}
+@media (min-width: 600px) {
+	.adm-palette {
+		padding-top: 12vh;
+	}
+	.adm-palette__panel {
+		width: min(560px, calc(100% - 2 * var(--adm-gutter)));
+		height: auto;
+		max-height: 70vh;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-md);
+	}
+}

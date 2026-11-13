@@ -274,3 +274,23 @@ and rates need `reports_view_all_core`; **revenue alone** needs `reports_view_al
 7. Seeded blacklist entries are created once; a re-run never revives what staff switched off.
 8. The feedback-link key is derived from the deployment's server key, so no new secret is deployed.
 
+## 11. Three kinds of settings (owner, 2026-11-13)
+
+The console has three kinds of settings, each in its own place and gated on its own.
+
+1. **Setările mele** (`/me/settings`, everyone): profile, theme, language, decorative background, notifications and
+   push devices, sign-out. Entry: the account menu. Still to come there: the assistant's presentation (bar or panel) and
+   "my feedback".
+2. **Setări organizație** (`/settings`, per app, each area gated by its own permission): Profil organizație, Membri,
+   Roluri și permisiuni, Servicii și prețuri, Cabinete, Aparate, Plan cabinete (draw mode), Program și pontaj, Reguli
+   programare online, Mementouri și șabloane, Listă neagră, Feedback, Acces la rapoarte, Constructor (fields, forms,
+   views, buttons), Date și confidențialitate, Jurnal, Import. Grouped Echipă, Servicii și spații, Programări, Clienți,
+   Constructor, Date și jurnal. One table (`apps/clinic/src/lib/areas.ts`) holds the areas, their group and their key;
+   the gates, the landing, the left list and the command palette all read it. Areas the service cannot serve yet say
+   "în curând".
+3. **Administrare platformă** (`/platform`, only `platformAdmin` from `/me`): organisations, platform-wide users and
+   roles, integrations' health, environment, feature flags, platform audit. A separate item at the foot of the
+   navigation. Today: the organisations and a placeholder for the rest.
+
+"Plan cabinete" (the live occupancy) is a daily screen and stays in the main navigation. `/admin` leads to `/settings`,
+`/audit` to `/settings/audit`, `/settings/notifications` to `/me/settings`.

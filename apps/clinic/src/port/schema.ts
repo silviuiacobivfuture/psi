@@ -1,3 +1,4 @@
+import { ROOM_CATEGORIES } from "@psi/scheduling/clinic";
 import { STATUSES } from "@psi/ui/admin";
 import { z } from "zod";
 
@@ -12,6 +13,9 @@ export const StatusSchema = z.enum(STATUSES);
 
 export const ClientFilterSchema = z.enum(["current", "archived"]);
 
+export const RoomCategorySchema = z.enum(ROOM_CATEGORIES);
+export type RoomCategoryName = z.infer<typeof RoomCategorySchema>;
+
 export const ColumnKindSchema = z.enum(["person", "device", "room", "group"]);
 export const ColumnSchema = z.object({
 	id: z.string(),
@@ -21,6 +25,14 @@ export const ColumnSchema = z.object({
 	colour: z.number().int().min(1).max(6),
 	/** How many people a room or group holds, when the service says. */
 	capacity: z.number().int().positive().optional(),
+	/** Rooms: the category they belong to (therapy, or neuro-assessment and neurofeedback). */
+	category: RoomCategorySchema.optional(),
+	/** Rooms: the floor they are on, by the plan's floor id. */
+	floor: z.string().optional(),
+	/** Rooms: what the room is for, as the clinic names it ("Psihoterapie", "Cabinet ILF"). */
+	purpose: z.string().optional(),
+	/** Rooms that are one practitioner's own: the practitioner's column id ("cabinetul Irinei"). */
+	homeOf: z.string().optional(),
 });
 export type Column = z.infer<typeof ColumnSchema>;
 
@@ -30,6 +42,8 @@ export const ServiceSchema = z.object({
 	durationMin: z.number().int().positive(),
 	/** Null: the person may not see prices (a field group the service leaves out). */
 	priceBani: z.number().int().nonnegative().nullable(),
+	/** Booked only in a room of this category (neurofeedback and QEEG need a neuro room). */
+	roomCategory: RoomCategorySchema.optional(),
 });
 export type Service = z.infer<typeof ServiceSchema>;
 
@@ -229,6 +243,7 @@ export const RESOURCES = [
 	{ key: "clients", group: "clients" },
 	{ key: "clinical", group: "clients" },
 	{ key: "files", group: "clients" },
+	{ key: "blacklist", group: "clients" },
 	{ key: "packages", group: "money" },
 	{ key: "payments", group: "money" },
 	{ key: "prices", group: "money" },
@@ -266,6 +281,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	clients: ["view", "create", "edit", "archive", "cancel", "export"],
 	clinical: ["view", "create", "edit", "export"],
 	files: ["view", "create", "cancel", "export"],
+	blacklist: ["view", "create", "edit", "cancel", "approve"],
 	packages: ["view", "create", "edit", "cancel", "price"],
 	payments: ["view", "create", "edit", "export", "price"],
 	prices: ["view", "edit"],

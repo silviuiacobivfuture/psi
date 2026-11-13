@@ -74,6 +74,8 @@ const RoomShape = z
 		geometry: GeometrySchema,
 		/** The store's room this outline stands for; checked against the room list, not by the schema. */
 		roomId: IdSchema.optional(),
+		/** The category the room belongs to (one of the plan's `categories`): the plan colours it and the legend names it. */
+		category: z.string().min(1).max(40).optional(),
 	})
 	.strict();
 const SpaceShape = z
@@ -153,6 +155,18 @@ export const FloorPlanDocSchema = z
 		height: z.number().int().min(50).max(5_000),
 		/** Degrees clockwise the north arrow points from straight up. */
 		northDeg: z.number().int().min(0).max(359),
+		/** The room categories the legend names, in both languages. */
+		categories: z
+			.array(
+				z
+					.object({
+						id: z.string().min(1).max(40),
+						label: z.object({ ro: z.string().min(1).max(120), en: z.string().min(1).max(120) }),
+					})
+					.strict(),
+			)
+			.max(8)
+			.optional(),
 		floors: z.array(FloorSchema).min(1).max(MAX_FLOORS),
 	})
 	.strict()

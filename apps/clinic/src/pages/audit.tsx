@@ -1,10 +1,10 @@
-import { Banner, EmptyState, PageHeader } from "@psi/ui/admin";
+import { Banner, EmptyState } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { AuditEvent } from "../port/schema";
+import { OrgFrame } from "./org-settings";
 
 export async function renderAudit(ctx: Ctx): Promise<JSX.Element> {
 	const o = at(ctx.locale);
@@ -16,18 +16,17 @@ export async function renderAudit(ctx: Ctx): Promise<JSX.Element> {
 		failed = true;
 	}
 	const fmt = new Intl.DateTimeFormat(ctx.locale, { dateStyle: "medium", timeStyle: "short" });
-	return Page({
+	return OrgFrame({
 		ctx,
-		current: "audit",
-		title: m.audit_title({}, o),
+		area: "audit",
+		title: m.nav_audit({}, o),
 		children: (
-			<div class="adm-page">
-				<PageHeader title={m.nav_audit({}, o)} />
+			<div class="adm-stack" style="gap:var(--adm-section-gap)">
 				{failed ? (
 					<Banner tone="error" icon="alert">
 						<strong>{m.error_title({}, o)}</strong>
 						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-						<a class="adm-btn" href="/audit">
+						<a class="adm-btn" href="/settings/audit">
 							{m.retry({}, o)}
 						</a>
 					</Banner>

@@ -16,12 +16,25 @@ afterAll(async () => {
 
 const SCREENS = [
 	"/clients",
+	"/clients?new=1",
 	"/clients/c1",
+	"/clients/c1/notes",
+	"/clients/c1/notes?new=1",
+	"/clients/c1/records",
+	"/clients/c1/records/new",
+	"/clients/c1/records/new?form=aba-session-report",
+	"/clients/c1/records/new?form=parent-questionnaire",
+	"/clients/c1/files",
+	"/clients/c1/files?new=1",
+	"/clients/c1/appointments",
+	"/clients/c4",
 	"/requests",
 	"/reminders?date=2026-11-16",
 	"/roster",
 	"/settings/roles",
-	"/audit",
+	"/settings/audit",
+	"/settings",
+	"/me/settings",
 	"/more",
 ];
 const PHONES = [360, 375, 390, 430];
@@ -65,6 +78,26 @@ const MEASURE = `(() => {
 			const r = e.getBoundingClientRect();
 			if (r.left < box.left - 1 || r.right > box.right + 1) out.push({ rule: "toolbar controls stay in the column", where: name(e) });
 		}
+	}
+	// 6. inside a tab, a form, a timeline or an open sheet, stacked blocks keep a gap too (the page-level rule stops at the page's children)
+	for (const box of document.querySelectorAll(".cl-tab, .cl-form, .cl-notes, .cl-table, .cl-pinned-strip")) {
+		if (!shown(box)) continue;
+		const inner = [...box.children].filter(shown);
+		for (let i = 1; i < inner.length; i++) {
+			const a = inner[i - 1].getBoundingClientRect();
+			const b = inner[i].getBoundingClientRect();
+			if (b.top < a.bottom - 1) continue;
+			if (b.top - a.bottom < 8) out.push({ rule: "blocks inside a tab or form need at least 8px between them", where: name(box) + ": " + name(inner[i - 1]) + " -> " + name(inner[i]) + " (" + Math.round(b.top - a.bottom) + "px)" });
+		}
+	}
+	// 7. a form field in a sheet never touches the edge of the sheet
+	for (const e of document.querySelectorAll(".cl-form .adm-input, .cl-form .adm-btn")) {
+		if (!shown(e)) continue;
+		const host = e.closest(".adm-sheet__panel");
+		if (!host) continue;
+		const h = host.getBoundingClientRect();
+		const r = e.getBoundingClientRect();
+		if (r.left < h.left + 8 || r.right > h.right - 8) out.push({ rule: "fields keep 8px from the edge of their container", where: name(e) });
 	}
 	// 5. nothing overflows the viewport sideways
 	const over = document.documentElement.scrollWidth - window.innerWidth;
@@ -121,4 +154,35 @@ describe("spacing and touch, measured in a real browser", () => {
 			expect(bad).toEqual([]);
 		}, 120_000);
 	}
+});
+
+describe("the guard itself refuses what it guards", () => {
+	const fixture = async (markup: string): Promise<Finding[]> => {
+		const context = await browser.newContext({ viewport: { width: 390, height: 800 } });
+		const page = await context.newPage();
+		await page.setContent(`<main><div class="adm-page">${markup}</div></main>`);
+		const found = (await page.evaluate(MEASURE)) as Finding[];
+		await context.close();
+		return found;
+	};
+	it("blocks of a page that touch are found", async () => {
+		const found = await fixture('<div style="height:20px">a</div><div style="height:20px">b</div>');
+		expect(found.some((f) => f.rule.startsWith("blocks need"))).toBe(true);
+	});
+	it("blocks inside a tab or a form that touch are found", async () => {
+		const found = await fixture(
+			'<div class="cl-tab"><div style="display:block;height:20px">a</div><div style="display:block;height:20px">b</div></div>',
+		);
+		expect(found.some((f) => f.rule.startsWith("blocks inside a tab"))).toBe(true);
+	});
+	it("a field hard against the edge of its column is found, and a spaced one is not", async () => {
+		const bad = await fixture(
+			'<div class="adm-sheet__panel" style="position:relative;width:300px"><form class="cl-form"><input class="adm-input" style="position:absolute;left:0;width:100px"></form></div>',
+		);
+		expect(bad.some((f) => f.rule.startsWith("fields keep"))).toBe(true);
+		const good = await fixture(
+			'<div class="adm-sheet__panel" style="padding:16px;width:300px"><form class="cl-form"><input class="adm-input"></form></div>',
+		);
+		expect(good.some((f) => f.rule.startsWith("fields keep"))).toBe(false);
+	});
 });

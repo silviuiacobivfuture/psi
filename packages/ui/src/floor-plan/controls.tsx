@@ -245,6 +245,24 @@ export function LiveStrip(p: FloorPlanProps & { live: LivePart }): JSX.Element {
 	);
 }
 
+/** What the room colours mean: one line per category the plan names, in the person's language. */
+export function CategoryLegend(p: {
+	categories: ReadonlyArray<{ id: string; label: { ro: string; en: string } }>;
+	locale: string;
+}): JSX.Element {
+	const key = p.locale === "en" ? "en" : "ro";
+	return (
+		<ul class="pz-fp__category-legend" data-fp-categories>
+			{p.categories.map((c) => (
+				<li key={c.id}>
+					<span class="pz-fp__swatch" data-category={c.id} aria-hidden="true" />
+					{c.label[key]}
+				</li>
+			))}
+		</ul>
+	);
+}
+
 export function Legend(p: { labels: FloorPlanLabels; heat: boolean }): JSX.Element {
 	const L = p.labels;
 	return (

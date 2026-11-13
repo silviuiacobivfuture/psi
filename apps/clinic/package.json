@@ -21,6 +21,7 @@
 		"@psi/engine": "workspace:*",
 		"@psi/notify": "workspace:*",
 		"@psi/pwa": "workspace:*",
+		"@psi/scheduling": "workspace:*",
 		"@psi/scheduling-sdk": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"@starfederation/datastar-sdk": "1.0.0",

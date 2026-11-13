@@ -249,7 +249,7 @@ describe("starting and stopping are written down, and stopping returns to one's 
 		}
 		const html = await text(await s.get("/clients"));
 		expect(html).not.toContain("data-view-as-banner");
-		expect(has(html, "/audit")).toBe(true);
+		expect(has(html, "/settings")).toBe(true);
 		const events = (await api("GET", "/audit?limit=200")).json.items as {
 			action: string;
 			actor: { subject: string };
