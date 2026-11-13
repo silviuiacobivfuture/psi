@@ -38,7 +38,8 @@ export const Package = z.object({
 	id: Id,
 	clientId: Id,
 	name: Name,
-	sessions: z.number().int().min(1).max(500),
+	// 0 is a package of bonus sessions only (the old app held some); a new one still needs at least one (PackageBase).
+	sessions: z.number().int().min(0).max(500),
 	bonus: z.number().int().min(0).max(100),
 	used: z.number().int().min(0),
 	priceCents: Money,

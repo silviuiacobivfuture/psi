@@ -15,6 +15,7 @@ import {
 } from "../authz/links";
 import { labelOf } from "../authz/manifest";
 import type { Tuple } from "../authz/port";
+import { objectLinks } from "../authz/rehydrate";
 import { seedRoles } from "../authz/roles-seed";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
@@ -55,50 +56,72 @@ export async function provisionApp(
 	const now = deps.clock();
 	const s = deps.store.c;
 	await s.apps.insert({ id, app: id, name, timeZone, status: "active", ...stamps(now) });
-	const roles: RoleRow[] = [];
+	try {
+		await seedAppAccess(deps, id, ownerSubject);
+	} catch (error) {
+		await s.apps.remove(id, id).catch(() => undefined);
+		throw error;
+	}
+	return { id, name, timeZone, status: "active" as const, createdAt: now, updatedAt: now };
+}
+
+/**
+ * Gives an app that exists in the store its seed roles and its first owner (each only when missing) and writes the
+ * tuples of every role and member the store holds. Safe to repeat: it is how an app made by an import, or a service
+ * whose authorization tuples are held in memory, becomes usable. All or nothing for what it creates.
+ */
+export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string): Promise<void> {
+	const now = deps.clock();
+	const s = deps.store.c;
+	const made: RoleRow[] = [];
 	let owner: MemberRow | undefined;
 	try {
-		for (const r of seedRoles())
-			roles.push(
-				await s.roles.insert({
-					id: `${id}-${r.slug}`,
-					app: id,
-					name: r.name,
-					description: r.description,
-					system: true,
-					permissions: [...new Set(r.permissions)].sort(),
-					...stamps(now),
-				}),
-			);
-		const ownerRole = roles.find((r) => r.name === OWNER_ROLE);
-		if (ownerRole === undefined) throw new Error("the seed roles have no Owner");
-		owner = await s.members.insert({
-			id: ownerSubject,
-			app: id,
-			subject: ownerSubject,
-			displayName: ownerSubject,
-			roles: [ownerRole.id],
-			coordinates: [],
-			grants: [],
-			denies: [],
-			...stamps(now),
-		});
+		const held = await s.roles.list(id);
+		if (held.length === 0)
+			for (const r of seedRoles())
+				made.push(
+					await s.roles.insert({
+						id: `${id}-${r.slug}`,
+						app: id,
+						name: r.name,
+						description: r.description,
+						system: true,
+						permissions: [...new Set(r.permissions)].sort(),
+						...stamps(now),
+					}),
+				);
+		const roles = [...held, ...made];
+		if ((await s.members.get(id, ownerSubject)) === undefined) {
+			const ownerRole = roles.find(isOwnerRole);
+			if (ownerRole === undefined) throw new Error("the app has no Owner role");
+			owner = await s.members.insert({
+				id: ownerSubject,
+				app: id,
+				subject: ownerSubject,
+				displayName: ownerSubject,
+				roles: [ownerRole.id],
+				coordinates: [],
+				grants: [],
+				denies: [],
+				...stamps(now),
+			});
+		}
+		const members = await s.members.list(id);
 		await deps.authz.write({
 			writes: [
 				{ user: "platform:psi", relation: "parent_platform", object: `sched_app:${id}` },
 				...roles.flatMap(roleTuples),
-				...memberTuples(owner),
+				...members.flatMap(memberTuples),
+				...(await objectLinks(deps.store, id)),
 			],
 			deletes: [],
 		});
 	} catch (error) {
 		// All or nothing: a half-made app would have an owner nobody can authorize.
 		if (owner !== undefined) await s.members.remove(id, owner.id).catch(() => undefined);
-		for (const r of roles) await s.roles.remove(id, r.id).catch(() => undefined);
-		await s.apps.remove(id, id).catch(() => undefined);
+		for (const r of made) await s.roles.remove(id, r.id).catch(() => undefined);
 		throw error;
 	}
-	return { id, name, timeZone, status: "active" as const, createdAt: now, updatedAt: now };
 }
 
 const roleTuples = (role: RoleRow): Tuple[] => [
