@@ -52,6 +52,7 @@ function boot() {
 	const field = new FakeTextArea();
 	const doc = new Element();
 	const observers: Array<() => void> = [];
+	const watched: Array<{ attributeFilter?: string[]; attributes?: boolean }> = [];
 	(panel as unknown as { querySelector: () => unknown }).querySelector = () => field;
 	const document = Object.assign(doc, {
 		getElementById: (id: string) =>
@@ -68,7 +69,9 @@ function boot() {
 		constructor(fn: () => void) {
 			observers.push(fn);
 		}
-		observe(): void {}
+		observe(_target: unknown, options: { attributeFilter?: string[]; attributes?: boolean }): void {
+			watched.push(options);
+		}
 	}
 	new Function(
 		"document",
@@ -95,10 +98,19 @@ function boot() {
 		doc.fire("keydown", event);
 		return event;
 	};
-	return { panel, trigger, log, field, key, observers };
+	return { panel, trigger, log, field, key, observers, watched };
 }
 
 describe("the staff panel's page script", () => {
+	it("never watches the style attribute its own growing of the box writes (that loop froze the page)", () => {
+		const { watched } = boot();
+		const attributeWatchers = watched.filter((w) => w.attributes === true);
+		expect(attributeWatchers.length).toBeGreaterThan(0);
+		for (const w of attributeWatchers) {
+			expect(w.attributeFilter).toBeDefined();
+			expect(w.attributeFilter).not.toContain("style");
+		}
+	});
 	it("Ctrl+K and Cmd+K toggle through the trigger, and swallow the key", () => {
 		const { trigger, key, panel } = boot();
 		expect(key({ ctrlKey: true, key: "k" }).prevented).toBe(true);

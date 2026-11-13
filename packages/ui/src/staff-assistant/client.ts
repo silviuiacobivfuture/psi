@@ -54,7 +54,11 @@ if (field instanceof HTMLTextAreaElement) {
 		}
 	});
 	field.addEventListener("blur", grow);
-	new MutationObserver(grow).observe(field, { attributes: true });
+	// Not the style attribute: `grow` writes it, and an observer of its own write never lets the page breathe.
+	new MutationObserver(grow).observe(field, {
+		attributes: true,
+		attributeFilter: ["class", "rows"],
+	});
 }
 
 if (log instanceof HTMLElement) {

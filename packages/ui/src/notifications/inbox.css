@@ -50,6 +50,19 @@
 	color: var(--ink);
 	box-shadow: var(--shadow-float);
 }
+/* On a phone the bell sits mid-bar: the panel is a sheet under the bar, never wider than the screen. */
+@media (max-width: 640px) {
+	.psi-inbox {
+		position: static;
+	}
+	.psi-inbox__panel {
+		position: fixed;
+		left: 12px;
+		right: 12px;
+		top: 64px;
+		width: auto;
+	}
+}
 .psi-inbox__head {
 	display: flex;
 	align-items: center;
