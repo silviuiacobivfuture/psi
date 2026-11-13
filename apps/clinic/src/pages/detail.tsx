@@ -214,7 +214,10 @@ export function DetailBody({
 			</div>
 
 			{a.status === "cancelled" || !rights.cancel ? null : (
-				<div class="dt__cancel" data-signals={JSON.stringify({ dtAsk: false, dtReason: "" })}>
+				<div
+					class="dt__cancel"
+					data-signals={JSON.stringify({ dtAsk: false, dtReason: "", dtScope: "this" })}
+				>
 					<button
 						type="button"
 						class="adm-btn adm-btn--danger"
@@ -231,6 +234,16 @@ export function DetailBody({
 						data-show="$dtAsk"
 						data-on:submit__prevent={act(a.id, "cancel")}
 					>
+						{a.seriesId === null ? null : (
+							<label class="adm-field">
+								<span>{m.ap_scope({}, o)}</span>
+								<select class="adm-input" data-bind="dtScope">
+									<option value="this">{m.ap_scope_this({}, o)}</option>
+									<option value="following">{m.ap_scope_following({}, o)}</option>
+									<option value="all">{m.ap_scope_all({}, o)}</option>
+								</select>
+							</label>
+						)}
 						<label class="adm-field">
 							<span>{m.ap_cancel_reason({}, o)}</span>
 							<input class="adm-input" type="text" maxlength={500} required data-bind="dtReason" />

@@ -49,6 +49,8 @@ export function blankEditor(p: {
 		nName: "",
 		nPhone: "",
 		nGuardian: "",
+		series: "",
+		scope: "this",
 		override: "",
 	};
 }
@@ -74,6 +76,7 @@ export function editorOf(
 		device: a.resourceIds.find((r) => kind(r) === "device") ?? "",
 		pkg: a.packageId ?? "",
 		price: moneyInput(a.priceBani, locale),
+		series: a.seriesId ?? "",
 	};
 }
 
@@ -340,6 +343,13 @@ export function EditorForm(p: EditorFormProps): JSX.Element {
 					<input type="checkbox" {...bind("remind")} />
 					<span>{m.ap_remind({}, o)}</span>
 				</label>
+				{editing && e.series !== "" ? (
+					<Select label={m.ap_scope({}, o)} field="scope">
+						<option value="this">{m.ap_scope_this({}, o)}</option>
+						<option value="following">{m.ap_scope_following({}, o)}</option>
+						<option value="all">{m.ap_scope_all({}, o)}</option>
+					</Select>
+				) : null}
 				{editing ? null : (
 					<div class="adm-stack">
 						<Select label={m.ap_repeat({}, o)} field="rec">

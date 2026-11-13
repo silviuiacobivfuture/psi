@@ -71,7 +71,10 @@ export async function detailBody(ctx: Ctx, id: string): Promise<string | null> {
 			).toString();
 }
 
-const ReasonSignals = z.object({ dtReason: z.string().trim().min(1).max(500) });
+const ReasonSignals = z.object({
+	dtReason: z.string().trim().min(1).max(500),
+	dtScope: z.enum(["this", "following", "all"]).default("this"),
+});
 const PaySignals = z.object({ dtPay: PaymentMethodSchema });
 
 export function registerDetail(app: Hono<Env>): void {
@@ -157,6 +160,12 @@ export function registerDetail(app: Hono<Env>): void {
 		async (c, ctx, id) => {
 			const s = await signalsOf(c, ReasonSignals);
 			if (s === null) return null;
+			const held = await ctx.port.appointment(ctx.app, id);
+			// Many weeks at once, all or nothing; a lone appointment, or "this one", is the plain cancel.
+			if (s.dtScope !== "this" && held?.seriesId != null) {
+				await ctx.port.cancelSeries(ctx.app, id, s.dtReason, s.dtScope);
+				return m.ap_series_cancelled({}, at(ctx.locale));
+			}
 			await ctx.port.cancelAppointment(ctx.app, id, s.dtReason);
 			return m.ap_cancelled({}, at(ctx.locale));
 		},

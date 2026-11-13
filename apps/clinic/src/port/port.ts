@@ -137,6 +137,24 @@ export interface ClinicPort extends ProfilePort {
 	createAppointments(app: AppSlug, input: NewAppointment): Promise<ReadonlyArray<Appointment>>;
 	/** Moves, resizes, re-assigns or re-statuses one appointment; the same conflict rule applies. */
 	updateAppointment(app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment>;
+	/**
+	 * Changes this appointment and the ones after it (`following`), or every one still to come (`all`), of its weekly
+	 * series, all or nothing: a week that is taken refuses the whole change with `conflict` and nothing moves. The
+	 * date and the status are never changed this way. `invalid` when the appointment is in no series.
+	 */
+	updateSeries(
+		app: AppSlug,
+		id: string,
+		patch: AppointmentPatch,
+		scope: "following" | "all",
+	): Promise<ReadonlyArray<Appointment>>;
+	/** Cancels this appointment and the ones after it, or every one still to come, with the reason, all or nothing. */
+	cancelSeries(
+		app: AppSlug,
+		id: string,
+		reason: string,
+		scope: "following" | "all",
+	): Promise<ReadonlyArray<Appointment>>;
 	/** Cancels with a reason; the time becomes free. */
 	cancelAppointment(app: AppSlug, id: string, reason: string): Promise<Appointment>;
 	/** Records that the session was paid, and how. */

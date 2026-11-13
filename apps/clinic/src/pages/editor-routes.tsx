@@ -341,7 +341,7 @@ async function write(ctx: Ctx, e: Editor): Promise<{ created: number }> {
 	if (e.id !== "") {
 		const current = await ctx.port.appointment(ctx.app, e.id);
 		if (current === null) throw new PortError("not-found", e.id);
-		await ctx.port.updateAppointment(ctx.app, e.id, {
+		const body = {
 			date: e.date,
 			startMin: minutesOf(e.time),
 			durationMin: Math.trunc(e.dur),
@@ -353,6 +353,15 @@ async function write(ctx: Ctx, e: Editor): Promise<{ created: number }> {
 			packageId: e.pkg === "" ? null : e.pkg,
 			priceBani: price,
 			remind: e.remind,
+		};
+		// Many weeks at once: the series keeps its days and its state, and every week is checked before one changes.
+		if (e.scope !== "this" && current.seriesId !== null) {
+			const { date: _day, ...weekly } = body;
+			await ctx.port.updateSeries(ctx.app, e.id, weekly, e.scope);
+			return { created: 0 };
+		}
+		await ctx.port.updateAppointment(ctx.app, e.id, {
+			...body,
 			...(current.status === "confirmed" || current.status === "requested"
 				? { status: e.status }
 				: {}),

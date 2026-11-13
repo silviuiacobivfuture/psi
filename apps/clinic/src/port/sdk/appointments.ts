@@ -166,6 +166,71 @@ export function appointmentsGroup(sdk: SdkContext) {
 				return latest;
 			}),
 
+		updateSeries: (
+			app: AppSlug,
+			id: string,
+			patch: AppointmentPatch,
+			scope: "following" | "all",
+		): Promise<ReadonlyArray<Appointment>> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
+				if (held.seriesId === null) throw new PortError("invalid", "not part of a series");
+				const changes = (key: keyof AppointmentPatch): boolean =>
+					patch[key] !== undefined && patch[key] !== held[key];
+				// A series keeps its days and its state: what a person changes for many weeks is who, what, where and when in the day.
+				if (changes("date") || changes("status"))
+					throw new PortError(
+						"invalid",
+						"the date and the status are changed one appointment at a time",
+					);
+				const wanted = patch.resourceIds ?? held.resourceIds;
+				const moved = patch.resourceIds !== undefined && wanted.join() !== held.resourceIds.join();
+				const place = moved ? await resources(app, wanted) : {};
+				const out = await api.series.update({
+					app,
+					seriesId: held.seriesId,
+					occurrenceId: id,
+					scope,
+					...(patch.columnId !== undefined && patch.columnId !== held.columnId
+						? { practitionerId: patch.columnId }
+						: {}),
+					...(changes("startMin") ? { startMin: patch.startMin } : {}),
+					...(changes("durationMin") ? { durationMin: patch.durationMin } : {}),
+					...(changes("note") ? { note: patch.note } : {}),
+					...(changes("clientId") ? { clientId: patch.clientId } : {}),
+					...(changes("serviceId") ? { serviceId: patch.serviceId } : {}),
+					...(changes("priceBani") ? { priceCents: patch.priceBani } : {}),
+					...(changes("remind") ? { remind: patch.remind } : {}),
+					...(patch.packageId === null && held.packageId !== null ? { packageId: null } : {}),
+					...(patch.packageId != null && patch.packageId !== held.packageId
+						? { packageId: patch.packageId }
+						: {}),
+					...place,
+				});
+				return out.items.map((a) => appointmentOf(a, tz));
+			}),
+
+		cancelSeries: (
+			app: AppSlug,
+			id: string,
+			reason: string,
+			scope: "following" | "all",
+		): Promise<ReadonlyArray<Appointment>> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				const held = appointmentOf(await api.appointments.get({ app, id }), tz);
+				if (held.seriesId === null) throw new PortError("invalid", "not part of a series");
+				const out = await api.series.cancel({
+					app,
+					seriesId: held.seriesId,
+					occurrenceId: id,
+					scope,
+					reason,
+				});
+				return out.items.map((a) => appointmentOf(a, tz));
+			}),
+
 		cancelAppointment: (app: AppSlug, id: string, reason: string): Promise<Appointment> =>
 			run(async () => {
 				const tz = await sdk.zone(app);

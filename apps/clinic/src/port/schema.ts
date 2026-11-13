@@ -298,6 +298,7 @@ export const RESOURCES = [
 	{ key: "clinical", group: "clients" },
 	{ key: "files", group: "clients" },
 	{ key: "blacklist", group: "clients" },
+	{ key: "notes", group: "clients" },
 	{ key: "packages", group: "money" },
 	{ key: "payments", group: "money" },
 	{ key: "prices", group: "money" },
@@ -322,6 +323,7 @@ export const ACTIONS = [
 	"approve",
 	"assign",
 	"price",
+	"pin",
 ] as const;
 export const SCOPES = ["all", "assigned", "own"] as const;
 export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
@@ -337,6 +339,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	clinical: ["view", "create", "edit", "export"],
 	files: ["view", "create", "cancel", "export"],
 	blacklist: ["view", "create", "edit", "cancel", "approve"],
+	notes: ["view", "create", "edit", "cancel", "pin"],
 	packages: ["view", "create", "edit", "cancel", "price"],
 	payments: ["view", "create", "edit", "export", "price"],
 	prices: ["view", "edit"],

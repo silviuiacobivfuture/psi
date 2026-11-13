@@ -8,6 +8,7 @@ import type { z } from "zod/v4";
 import { PortError } from "../port";
 import type { AppSlug, Client } from "../schema";
 import type { BlacklistEntry, ClientFile, ClientFlag, ClientSummary } from "../schema-clinical";
+import { clinicalNotesGroup } from "./clinical-notes";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { instantOf, wallOf } from "./time";
@@ -57,14 +58,15 @@ const newestPerClient = (entries: ReadonlyArray<BlacklistEntry>): Map<string, Bl
 
 /**
  * The client page over the service: the blacklist (list, flag, switch off) and files (announce, upload to the signed
- * URL, complete, download, delete) use its routes. Notes, records and a file's rename have no route yet and answer
- * "not available yet": records need the service's builder forms and a draft state; notes need a notes resource.
+ * URL, complete, download, delete), the notes, the records and a client's own fields use its routes (see
+ * `clinical-notes.ts`). A file's rename has no route yet and answers "not available yet".
  */
 export function clinicalGroup(
 	sdk: SdkContext,
 	listClients: (app: AppSlug, status: "active" | "archived", q: string) => Promise<Client[]>,
 ) {
 	const { api, run } = sdk;
+	const more = clinicalNotesGroup(sdk);
 	/** Active entries of the app by client; a person who may not see the blacklist sees none. */
 	const activeByClient = async (app: AppSlug): Promise<Map<string, BlacklistEntry>> => {
 		try {
@@ -87,21 +89,29 @@ export function clinicalGroup(
 					listClients(app, filter === "current" ? "active" : "archived", q.trim()),
 					activeByClient(app),
 				]);
+				const pinned = await more.pinnedCounts(
+					app,
+					clients.map((c) => c.id),
+				);
 				return clients.map((c) => ({
 					clientId: c.id,
 					next: null,
 					owedBani: null,
 					blacklist: listed.get(c.id) ?? null,
-					pinnedNotes: 0,
+					pinnedNotes: pinned.get(c.id) ?? 0,
 				}));
 			}),
 		clientFlags: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Record<string, ClientFlag>> =>
 			run(async () => {
-				const listed = await activeByClient(app);
+				const [listed, pinned] = await Promise.all([
+					activeByClient(app),
+					more.pinnedFlags(app, ids),
+				]);
 				const out: Record<string, ClientFlag> = {};
 				for (const id of ids) {
-					const entry = listed.get(id);
-					if (entry !== undefined) out[id] = { blacklist: entry, pinned: null };
+					const entry = listed.get(id) ?? null;
+					const note = pinned.get(id) ?? null;
+					if (entry !== null || note !== null) out[id] = { blacklist: entry, pinned: note };
 				}
 				return out;
 			}),
@@ -198,15 +208,15 @@ export function clinicalGroup(
 			}),
 		renameFile: () => soon("files.rename"),
 
-		updateClient: () => soon("clients.update"),
-		notes: () => soon("notes.list"),
-		addNote: () => soon("notes.create"),
-		updateNote: () => soon("notes.update"),
-		deleteNote: () => soon("notes.delete"),
-		records: () => soon("records.list"),
-		record: () => soon("records.get"),
-		createRecord: () => soon("records.create"),
-		updateRecord: () => soon("records.update"),
-		deleteRecord: () => soon("records.remove"),
+		notes: more.notes,
+		addNote: more.addNote,
+		updateNote: more.updateNote,
+		deleteNote: more.deleteNote,
+		records: more.records,
+		record: more.record,
+		createRecord: more.createRecord,
+		updateRecord: more.updateRecord,
+		deleteRecord: more.deleteRecord,
+		updateClient: more.updateClient,
 	};
 }

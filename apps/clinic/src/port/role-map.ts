@@ -44,6 +44,13 @@ const KEYS = {
 		cancel: "blacklist_delete",
 		approve: "blacklist_override",
 	},
+	notes: {
+		view: "notes_view",
+		create: "notes_create",
+		edit: "notes_edit",
+		cancel: "notes_delete",
+		pin: "notes_pin",
+	},
 	packages: {
 		view: "packages_view",
 		create: "packages_create",

@@ -172,6 +172,8 @@
 	"resource_clinical": "Clinical record",
 	"resource_files": "Files",
 	"resource_blacklist": "Blacklist",
+	"resource_notes": "Notes",
+	"action_pin": "Pin",
 	"resource_packages": "Packages",
 	"resource_payments": "Payments",
 	"resource_prices": "Prices",

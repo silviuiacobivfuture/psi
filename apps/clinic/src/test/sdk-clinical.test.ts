@@ -97,10 +97,60 @@ describe("files over the real service", () => {
 	});
 });
 
-describe("what the service keeps no route for yet says so", () => {
-	it("notes and records say 'în curând' instead of breaking the page", async () => {
+describe("notes over the real service", () => {
+	it("writes, pins, edits and deletes a note; the page and the pinned flag show it", async () => {
 		const c = k.api.world.ids.c1;
-		expect(await text(await olga.get(`/clients/${c}/notes`))).toContain("În curând");
-		expect(await text(await olga.get(`/clients/${c}/records`))).toContain("În curând");
+		await olga.post(
+			`/clients/${c}/notes`,
+			form({ body: "Notiță de plată", category: "payment" }),
+			urlencoded,
+		);
+		const page = await text(await olga.get(`/clients/${c}/notes`));
+		expect(page).toContain("Notiță de plată");
+		const id = (await k.api.world.call("olga", "GET", `/v1/apps/psizone/clients/${c}/notes`)).json
+			.items as { id: string; text: string }[];
+		const mine = id.find((n) => n.text === "Notiță de plată");
+		expect(mine).toBeDefined();
+		await olga.post(`/clients/${c}/notes/${mine?.id}/pin`, form({ pinned: "true" }), urlencoded);
+		const summary = (await k.api.world.call("olga", "GET", `/v1/apps/psizone/clients/${c}`)).json
+			.pinnedNotes as { text: string }[];
+		expect(summary.map((n) => n.text)).toContain("Notiță de plată");
+		await olga.post(
+			`/clients/${c}/notes/${mine?.id}`,
+			form({ body: "Notiță schimbată", category: "payment" }),
+			urlencoded,
+		);
+		expect(await text(await olga.get(`/clients/${c}/notes`))).toContain("Notiță schimbată");
+		await olga.post(`/clients/${c}/notes/${mine?.id}/delete`, form({}), urlencoded);
+		expect(await text(await olga.get(`/clients/${c}/notes`))).not.toContain("Notiță schimbată");
+	});
+	it("a clinical note is opened for the clinical group and not for reception", async () => {
+		const c = k.api.world.ids.c1;
+		await olga.post(
+			`/clients/${c}/notes`,
+			form({ body: "Observație clinică secretă", category: "clinical" }),
+			urlencoded,
+		);
+		expect(await text(await olga.get(`/clients/${c}/notes`))).toContain(
+			"Observație clinică secretă",
+		);
+		const rita = await k.as("rita");
+		expect(await text(await rita.get(`/clients/${c}/notes`))).not.toContain(
+			"Observație clinică secretă",
+		);
+	});
+});
+
+describe("records over the real service", () => {
+	it("saves a draft of a seeded form, lists it, opens it and deletes it", async () => {
+		const c = k.api.world.ids.c1;
+		const res = await olga.post(
+			`/clients/${c}/records`,
+			form({ formKey: "psychotherapy-report", status: "draft" }),
+			urlencoded,
+		);
+		expect([200, 303, 422]).toContain(res.status);
+		const list = await text(await olga.get(`/clients/${c}/records`));
+		expect(list).not.toContain("În curând");
 	});
 });
