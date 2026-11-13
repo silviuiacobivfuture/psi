@@ -3,6 +3,7 @@
 @import "@psi/ui/admin.css";
 @import "@psi/ui/staff-assistant.css";
 @import "@psi/ui/floor-plan.css";
+@import "@psi/ui/inbox.css";
 @import "./calendar.css";
 @import "./screens.css";
 @import "./appointment.css";

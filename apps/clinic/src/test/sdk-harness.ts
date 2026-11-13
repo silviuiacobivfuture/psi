@@ -3,6 +3,7 @@ import { type Browser, createBrowser } from "@psi/account/dev/test-browser";
 import { type RunningApi, startApi } from "@psi/scheduling-api/testing";
 import { createApp } from "../app";
 import { devApiSignIn } from "../dev-signin";
+import { createFakeNotifications } from "../notifications/fake";
 import type { Backoff } from "../port/sdk/live";
 import { sdkPortSource } from "../port/sdk/source";
 import { createConsolePwa } from "../pwa";
@@ -50,6 +51,7 @@ export async function startSdkConsole(
 			...(options.fetch === undefined ? {} : { fetch: options.fetch }),
 			...(options.backoff === undefined ? {} : { backoff: options.backoff }),
 		}),
+		notifications: createFakeNotifications({ seeded: false }),
 		viewAsSecret: "v".repeat(40),
 		auth: dev.auth,
 		pwa,

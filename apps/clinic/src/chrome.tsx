@@ -154,6 +154,7 @@ export async function Page({
 		...nav.filter((n) => ["calendar", "clients", "requests"].includes(n.key)),
 		...(hasMore ? [item("more", m.nav_more({}, o), "more")] : []),
 	];
+	const bell = ctx.notifications === undefined ? null : await ctx.notifications.bell(ctx);
 	const apps: ShellApp[] = ctx.memberships.map((mb) => ({
 		slug: mb.app,
 		name: appName(mb.app, locale),
@@ -198,11 +199,14 @@ export async function Page({
 					</>
 				}
 				topStatus={
-					ctx.viewAs === null ? undefined : (
-						<span class="adm-pill adm-pill--requested" data-view-as-pill>
-							{m.view_as_pill({ name: ctx.viewAs.label }, o)}
-						</span>
-					)
+					<>
+						{ctx.viewAs === null ? null : (
+							<span class="adm-pill adm-pill--requested" data-view-as-pill>
+								{m.view_as_pill({ name: ctx.viewAs.label }, o)}
+							</span>
+						)}
+						{bell}
+					</>
 				}
 				locale={locale}
 				themePref={ctx.pref}

@@ -31,6 +31,8 @@ export interface FakeOptions {
 	today?: string;
 	/** subject → apps (and role names) they belong to. */
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
+	/** subject → the name the team picker shows (the subject itself when absent). */
+	names?: Readonly<Record<string, string>>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
@@ -147,7 +149,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			return Object.entries(opts.members).flatMap(([subject, ms]) =>
 				ms
 					.filter((x) => x.app === app)
-					.map((x) => ({ subject, displayName: subject, roles: x.roles })),
+					.map((x) => ({ subject, displayName: opts.names?.[subject] ?? subject, roles: x.roles })),
 			);
 		},
 		async startViewAs(subject, app, as) {

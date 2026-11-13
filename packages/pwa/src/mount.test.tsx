@@ -203,7 +203,7 @@ describe("createPwa and Novu's push path", () => {
 			privateKey: "p".repeat(43),
 			subject: "mailto:ops@psizone.ro",
 		},
-		storage: "memory",
+		storage: "file",
 		off: null,
 	};
 	const KEYS = { p256dh: `B${"p".repeat(86)}`, auth: "a".repeat(22) };

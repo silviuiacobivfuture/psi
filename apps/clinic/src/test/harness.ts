@@ -4,6 +4,7 @@ import { type MockIssuer, type MockPerson, startMockIssuer } from "@psi/account/
 import { type Browser, createBrowser } from "@psi/account/dev/test-browser";
 import { createApp } from "../app";
 import { accountAuth, DEV_SUBJECT, devAuth } from "../auth";
+import { createFakeNotifications } from "../notifications/fake";
 import { createFakePort, type FakeOptions } from "../port/fake";
 import type { Membership } from "../port/schema";
 import { fixedPort } from "../port/source";
@@ -86,6 +87,7 @@ export async function startConsole(
 	const pwa = createConsolePwa(ORIGIN, account);
 	app = createApp({
 		ports: fixedPort(port),
+		notifications: createFakeNotifications(),
 		viewAsSecret: SECRET,
 		auth: accountAuth(account),
 		origin: ORIGIN,
@@ -155,6 +157,7 @@ export async function serveConsole(fake: Partial<FakeOptions> = {}): Promise<Liv
 	const pwa = createConsolePwa(origin, idle);
 	const app = createApp({
 		ports: fixedPort(port),
+		notifications: createFakeNotifications(),
 		viewAsSecret: "v".repeat(40),
 		auth: devAuth(),
 		origin,

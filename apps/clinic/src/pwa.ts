@@ -3,9 +3,14 @@ import { m } from "./paraglide/messages.js";
 
 /**
  * The console as an installable app: manifest in the admin theme's colours, the offline shell, the
- * install prompt, and the push subscription UI (sending comes later). Every word is the console's own.
+ * install prompt, and the push subscription UI: the team's three purposes (requests, their appointments, the day-before
+ * reminders), delivered through the estate's Novu. Every word is the console's own.
  */
-export function createConsolePwa(origin: string, identity: Identity): Pwa {
+export function createConsolePwa(
+	origin: string,
+	identity: Identity,
+	options: { onDevicesChanged?: (subject: string) => Promise<void> } = {},
+): Pwa {
 	return createPwa({
 		brand: "clinic",
 		origin,
@@ -19,8 +24,11 @@ export function createConsolePwa(origin: string, identity: Identity): Pwa {
 			hemisync: "Hemi-Sync",
 			blog: "Blog",
 		}),
-		topics: ["booking"],
+		topics: ["requests", "appointments", "reminders"],
 		identity,
 		notificationsPath: () => "/settings/notifications",
+		...(options.onDevicesChanged === undefined
+			? {}
+			: { onDevicesChanged: options.onDevicesChanged }),
 	});
 }

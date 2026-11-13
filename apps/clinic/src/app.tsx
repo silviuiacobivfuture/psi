@@ -17,6 +17,8 @@ import { at } from "./lib/i18n";
 import { sse } from "./lib/sse";
 import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
+import { createNotifications } from "./notifications/mount";
+import type { NotificationsPort } from "./notifications/port";
 import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
@@ -46,6 +48,8 @@ export interface AppDeps {
 	auth: Auth;
 	pwa: Pwa;
 	origin: string;
+	/** The bell's feed (Novu's inbox, or the development feed); omitted, there is no bell. */
+	notifications?: NotificationsPort;
 	/** The staff assistant; omitted, it does not exist (no button, no routes). */
 	assistant?: StaffEngine;
 	/** Extra mounts that need the app first (account routes, the PWA). */
@@ -61,6 +65,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAssets(root);
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
+	const bell =
+		deps.notifications === undefined
+			? undefined
+			: createNotifications(deps.notifications, deps.origin);
 	app.route("/", root);
 
 	// Writes only from this console's own origin.
@@ -138,6 +146,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			mayViewAs,
 			pwa: deps.pwa,
 			...(deps.assistant === undefined ? {} : { assistant: deps.assistant }),
+			...(bell === undefined ? {} : { notifications: bell }),
 			signOut: deps.auth.signOutAction,
 		});
 		const verdict = judge(c.req.method, c.req.path, can);
@@ -180,6 +189,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerPrint(app);
 	registerDetail(app);
 	if (deps.assistant !== undefined) mountAssistant(app, deps.assistant);
+	bell?.register(app);
 	registerFloor(app);
 	registerSearch(app);
 	registerClients(app);

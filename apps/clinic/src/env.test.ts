@@ -68,4 +68,28 @@ describe("readEnv", () => {
 	it("refuses a session secret that is too short", () => {
 		expect(() => readEnv({ CLINIC_FAKE_PORT: "1", SESSION_SECRET: "short" })).toThrow();
 	});
+	it("Novu's three settings go together, and the push secret needs them", () => {
+		const trio = {
+			NOVU_API_URL: "http://novu-api.test:3000",
+			NOVU_APPLICATION_ID: "app-id",
+			NOVU_SECRET_KEY: "k".repeat(24),
+		};
+		expect(readEnv({ CLINIC_FAKE_PORT: "1" }).novu).toBeNull();
+		expect(readEnv({ CLINIC_FAKE_PORT: "1", ...trio }).novu).toEqual({
+			apiUrl: "http://novu-api.test:3000",
+			applicationId: "app-id",
+			secretKey: "k".repeat(24),
+			pushSecret: null,
+		});
+		expect(
+			readEnv({ CLINIC_FAKE_PORT: "1", ...trio, NOVU_PUSH_SECRET: "p".repeat(20) }).novu
+				?.pushSecret,
+		).toBe("p".repeat(20));
+		expect(() => readEnv({ CLINIC_FAKE_PORT: "1", NOVU_API_URL: trio.NOVU_API_URL })).toThrow(
+			/NOVU_API_URL, NOVU_APPLICATION_ID and NOVU_SECRET_KEY go together/,
+		);
+		expect(() => readEnv({ CLINIC_FAKE_PORT: "1", NOVU_PUSH_SECRET: "p".repeat(20) })).toThrow(
+			/NOVU_PUSH_SECRET needs/,
+		);
+	});
 });

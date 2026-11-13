@@ -4,6 +4,7 @@ import { type ThemePreference, themeFor, themePreferenceFrom } from "@psi/ui/adm
 import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
 import type { Person } from "../auth";
+import type { Notifications } from "../notifications/mount";
 import type { Capabilities, ClinicPort } from "../port/port";
 import { type AppSlug, AppSlugSchema, type Membership } from "../port/schema";
 import type { Can } from "./can";
@@ -33,6 +34,8 @@ export interface Ctx {
 	pwa: Pwa;
 	/** The staff assistant, when it is switched on. */
 	assistant?: StaffEngine;
+	/** The bell, when there is a feed behind it. */
+	notifications?: Notifications;
 	/** Where the sign-out form posts (the estate's sign-out, or the development no-op). */
 	signOut: string;
 }

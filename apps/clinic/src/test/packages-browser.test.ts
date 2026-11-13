@@ -141,7 +141,7 @@ describe("the client's overflow menu", () => {
 	it("a click outside closes it; an action opens its one confirmation, nothing is written until then", async () => {
 		const { page, done } = await open("/clients/c1");
 		await page.getByRole("button", { name: "Mai multe acțiuni" }).click();
-		await page.click("h2");
+		await page.click("main h2");
 		await page.waitForSelector(".adm-overflow [role=menuitem]", { state: "hidden" });
 		await page.getByRole("button", { name: "Mai multe acțiuni" }).click();
 		await page.click(".adm-menu__item--danger");

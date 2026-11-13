@@ -8,7 +8,7 @@ import type { Can } from "./can";
 interface Gate {
 	method: "GET" | "POST";
 	path: RegExp;
-	/** Any one of these. */
+	/** Any one of these; none listed: every signed-in person. */
 	keys: ReadonlyArray<string>;
 	/** A change: refused outright while looking at the app as someone else. */
 	write?: true;
@@ -32,6 +32,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("POST", "/appointments/[^/]+/(attended|no-show)", ["appointments_edit"], true),
 	g("POST", "/appointments/[^/]+/cancel", ["appointments_cancel"], true),
 	g("POST", "/appointments/[^/]+/pay", ["payments_create"], true),
+	g("POST", "/inbox/read(-all)?", [], true),
 	g("GET", "/floor", ["calendar_view"]),
 	g("GET", "/floor/api/live/(stream)", ["calendar_view"]),
 	g("POST", "/floor/api/live/render", ["calendar_view"]),
@@ -70,7 +71,7 @@ export type Verdict = "allowed" | "forbidden" | "read-only";
 export function judge(method: string, path: string, can: Can): Verdict {
 	const gate = GATES.find((x) => x.method === method && x.path.test(path));
 	if (gate === undefined) return "allowed";
-	if (!gate.keys.some((k) => can.has(k))) return "forbidden";
+	if (gate.keys.length > 0 && !gate.keys.some((k) => can.has(k))) return "forbidden";
 	if (gate.write === true && can.readOnly) return "read-only";
 	return "allowed";
 }
