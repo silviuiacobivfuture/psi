@@ -1,6 +1,0 @@
-# The render as a kustomization, so an estate's Argo CD Application can set the tag of the image
-# the estate builds (spec.source.kustomize.images). tools/bundle/estate-images.mjs
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - rendered.yaml
