@@ -1,13 +1,24 @@
 import { z } from "zod";
 
-/** One plan unit is 10 cm: every coordinate is an integer number of units, the plan in metres is units / 10. */
-export const UNIT_CM = 10;
-export const UNITS_PER_METRE = 100 / UNIT_CM;
+import {
+	DEVICE_TYPES,
+	MAX_FLOORS,
+	MAX_LABEL,
+	MAX_POLYGON_POINTS,
+	MAX_SHAPES_PER_FLOOR,
+	SPACE_TYPES,
+	UNIT_CM,
+} from "./limits";
 
-export const MAX_FLOORS = 8;
-export const MAX_SHAPES_PER_FLOOR = 400;
-export const MAX_POLYGON_POINTS = 64;
-export const MAX_LABEL = 60;
+export {
+	DEVICE_TYPES,
+	MAX_FLOORS,
+	MAX_LABEL,
+	MAX_POLYGON_POINTS,
+	MAX_SHAPES_PER_FLOOR,
+	SPACE_TYPES,
+	UNIT_CM,
+};
 
 const COORD = 100_000;
 const Coord = z.number().int().min(-COORD).max(COORD);
@@ -49,16 +60,9 @@ export const GeometrySchema = z.discriminatedUnion("type", [
 export type Geometry = z.infer<typeof GeometrySchema>;
 export type RectGeometry = Extract<Geometry, { type: "rect" }>;
 
-export const SPACE_TYPES = ["reception", "waiting", "corridor", "wc", "storage", "other"] as const;
 export const SpaceTypeSchema = z.enum(SPACE_TYPES);
 export type SpaceType = z.infer<typeof SpaceTypeSchema>;
 
-export const DEVICE_TYPES = [
-	"nfb-amplifier",
-	"hemisync-headphones",
-	"therapy-mat",
-	"other",
-] as const;
 export const DeviceTypeSchema = z.enum(DEVICE_TYPES);
 export type DeviceType = z.infer<typeof DeviceTypeSchema>;
 

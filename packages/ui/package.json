@@ -1,6 +1,6 @@
 {
 	"name": "@psi/ui",
-	"version": "0.14.0",
+	"version": "0.15.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's component library: typed server-rendered TSX (hono/jsx), Datastar for behaviour, styled by the psi design language",
@@ -21,13 +21,16 @@
 		"./admin": "./src/admin/index.ts",
 		"./admin.css": "./src/admin/admin.css",
 		"./staff-assistant": "./src/staff-assistant/index.ts",
-		"./staff-assistant.css": "./src/staff-assistant/staff-assistant.css"
+		"./staff-assistant.css": "./src/staff-assistant/staff-assistant.css",
+		"./admin/floor-plan": "./src/floor-plan/index.ts",
+		"./floor-plan.css": "./src/floor-plan/floor-plan.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
-		"build:client": "node scripts/build-client.ts",
-		"build:staff-client": "node scripts/build-staff-client.ts"
+		"build:client": "node scripts/build-client.ts && node scripts/build-floor-plan.ts",
+		"build:staff-client": "node scripts/build-staff-client.ts",
+		"build:client:check": "node scripts/build-client.ts --check && node scripts/build-floor-plan.ts --check && node scripts/build-staff-client.ts --check"
 	},
 	"dependencies": {
 		"@psi/content": "workspace:*",
@@ -44,6 +47,7 @@
 		"happy-dom": "20.14.6",
 		"hono": "^4.13.18",
 		"typescript": "^5.7.3",
-		"vitest": "^2.1.9"
+		"vitest": "^2.1.9",
+		"esbuild": "^0.25.0"
 	}
 }

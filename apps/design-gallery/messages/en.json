@@ -65,5 +65,11 @@
 	"day_today": "Day {day}, today",
 	"day_next": "Day {day}",
 	"glass": "A glass card over the ambient field.",
-	"theme_toggle": "Switch theme"
+	"theme_toggle": "Switch theme",
+	"floor_title": "Clinic floor plan — demo",
+	"floor_lead": "A synthetic plan with the seven rooms, reception, waiting room, corridor and toilets; the bookings are invented. Draw in one mode, watch in the other.",
+	"floor_options": "Demo options",
+	"floor_light": "Light",
+	"floor_dark": "Dark",
+	"floor_simulate": "Simulate a new booking"
 }

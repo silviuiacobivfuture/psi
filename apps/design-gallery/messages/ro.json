@@ -65,5 +65,11 @@
 	"day_today": "Ziua {day}, azi",
 	"day_next": "Ziua {day}",
 	"glass": "Un card de sticlă peste câmpul ambiental.",
-	"theme_toggle": "Schimbă tema"
+	"theme_toggle": "Schimbă tema",
+	"floor_title": "Planul clinicii — demonstrație",
+	"floor_lead": "Un plan sintetic cu cele șapte cabinete, recepția, sala de așteptare, holul și toaletele; programările sunt inventate. Desenează într-un mod, urmărește în celălalt.",
+	"floor_options": "Opțiuni demonstrație",
+	"floor_light": "Luminos",
+	"floor_dark": "Întunecat",
+	"floor_simulate": "Simulează o programare nouă"
 }

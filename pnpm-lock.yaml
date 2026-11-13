@@ -821,6 +821,9 @@ importers:
       axe-core:
         specifier: 4.10.3
         version: 4.10.3
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       happy-dom:
         specifier: 20.14.6
         version: 20.14.6

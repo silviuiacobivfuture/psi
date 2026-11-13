@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	addFloor,
 	addShape,
+	convertKind,
 	findShape,
 	insertPoint,
 	movePoint,
@@ -12,6 +13,7 @@ import {
 	renameFloor,
 	resizeShape,
 	rotateShapes,
+	setBox,
 	updateShape,
 } from "./edit";
 import { planOf, room } from "./fixtures";
@@ -150,5 +152,61 @@ describe("edits", () => {
 		expect(removeFloor(doc(), "f1")).toEqual(doc());
 		expect(removeFloor(addFloor(doc(), "E"), "f1").floors).toHaveLength(1);
 		expect(parsePlan(d).success).toBe(true);
+	});
+});
+
+describe("typed positions and kinds", () => {
+	it("setBox sets position and size, refusing under the minimum, outside the area, and no-ops", () => {
+		const d = planOf(room("a", 10, 10, 40, 30), {
+			id: "v",
+			kind: "device",
+			label: "",
+			at: { x: 5, y: 5 },
+			rotation: 0,
+			deviceType: "other",
+		});
+		expect(findShape(setBox(d, "a", { x: 20, w: 50 }), "a")).toMatchObject({
+			geometry: { x: 20, y: 10, w: 50, h: 30 },
+		});
+		expect(setBox(d, "a", { w: 4 })).toBe(d);
+		expect(setBox(d, "a", { x: 190 })).toBe(d);
+		expect(setBox(d, "a", { x: 10 })).toBe(d);
+		expect(setBox(d, "nope", { x: 1 })).toBe(d);
+		expect(findShape(setBox(d, "v", { x: 30 }), "v")).toMatchObject({ at: { x: 30, y: 5 } });
+		expect(setBox(d, "v", { y: -1 })).toBe(d);
+	});
+	it("setBox moves a polygon by its box", () => {
+		const p: Shape = {
+			id: "p",
+			kind: "space",
+			label: "",
+			spaceType: "other",
+			geometry: {
+				type: "polygon",
+				points: [
+					{ x: 10, y: 10 },
+					{ x: 30, y: 10 },
+					{ x: 10, y: 30 },
+				],
+			},
+		};
+		expect(findShape(setBox(planOf(p), "p", { x: 20 }), "p")).toMatchObject({
+			geometry: {
+				points: [
+					{ x: 20, y: 10 },
+					{ x: 40, y: 10 },
+					{ x: 20, y: 30 },
+				],
+			},
+		});
+	});
+	it("convertKind turns a room into a space and back, dropping what the kind does not have", () => {
+		const d = planOf(room("a", 10, 10, 40, 30, "nfb-1"));
+		const space = convertKind(d, "a", "space");
+		expect(findShape(space, "a")).toMatchObject({ kind: "space", spaceType: "other" });
+		expect(findShape(space, "a")).not.toHaveProperty("roomId");
+		expect(findShape(convertKind(space, "a", "room"), "a")).toMatchObject({ kind: "room" });
+		expect(convertKind(d, "a", "room")).toBe(d);
+		expect(parsePlan(space).success).toBe(true);
 	});
 });
