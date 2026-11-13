@@ -86,7 +86,7 @@ export interface PanelCopy {
 	suggestions: string;
 	newChat: string;
 	refusals: Record<
-		"no_principal" | "rate_limited" | "invalid" | "unavailable" | "language",
+		"no_principal" | "rate_limited" | "duplicate" | "invalid" | "unavailable" | "language",
 		string
 	>;
 	sheetLabel: string;
@@ -185,7 +185,9 @@ export interface StaffCopy {
 		client(name: string): string;
 		slots: string;
 		noSlots: string;
-		pickSlot(args: { when: string; where: string }): string;
+		pickSlot(args: { when: string; where: string; service?: string }): string;
+		/** Said beside a service the assistant chose without asking, and why. */
+		serviceWhy: Readonly<Record<"only" | "usual", string>>;
 		packages(client: string): string;
 		noPackages: string;
 		roster: string;

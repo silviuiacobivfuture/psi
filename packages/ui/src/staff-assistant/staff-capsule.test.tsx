@@ -103,7 +103,14 @@ describe("the capsule", () => {
 	it("an empty draft cannot be sent: the button is disabled while it is empty and Enter sends only a draft", () => {
 		const html = capsule();
 		expect(html).toContain("$staff.message.trim() === &#39;&#39;");
-		expect(html).toContain("if ($staff.message.trim() !== &#39;&#39;)");
+		expect(html).toContain("$staff.message.trim() !== &#39;&#39; &amp;&amp; !$staff.busy");
+	});
+
+	it("is locked from the first press: every quick reply goes off while a turn runs, and typing cannot send a second", () => {
+		const html = capsule("ro", ["unu"]);
+		expect(html).toContain("&quot;busy&quot;:false");
+		expect(html).toContain("if (!$staff.busy) { $staff.busy = true;");
+		expect(html).toContain('data-attr:disabled="$staff.busy"');
 	});
 
 	it("offers at most three suggestions, each sending its own words, escaped", () => {

@@ -120,6 +120,7 @@ export function slotsCard(
 	copy: StaffCopy,
 	slots: ReadonlyArray<Slot>,
 	resources: ReadonlyArray<Resource>,
+	service?: string,
 ): StaffCard {
 	return {
 		kind: "slots",
@@ -131,7 +132,7 @@ export function slotsCard(
 			return {
 				label: when,
 				detail: where,
-				ask: copy.card.pickSlot({ when, where }),
+				ask: copy.card.pickSlot({ when, where, ...(service === undefined ? {} : { service }) }),
 			};
 		}),
 	};
