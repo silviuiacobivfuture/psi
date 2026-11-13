@@ -249,5 +249,8 @@
 	"audit_what": "Ce",
 	"audit_target": "Obiect",
 	"audit_empty_title": "Jurnalul e gol",
-	"audit_empty_text": "Fiecare modificare apare aici: cine, ce și când."
+	"audit_empty_text": "Fiecare modificare apare aici: cine, ce și când.",
+	"deco_label": "Fundal decorativ",
+	"deco_on": "Pornit",
+	"deco_off": "Oprit"
 }

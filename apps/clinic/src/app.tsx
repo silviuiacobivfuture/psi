@@ -56,11 +56,12 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		if (body.theme === "light" || body.theme === "dark" || body.theme === "system")
 			setCookie(c, "theme", body.theme, opt);
 		if (body.lang === "ro" || body.lang === "en") setCookie(c, "lang", body.lang, opt);
+		if (body.deco === "on" || body.deco === "off") setCookie(c, "deco", body.deco, opt);
 		return c.redirect(backPath(c.req.header("referer"), c.req.url), 303);
 	});
 
 	app.use("*", async (c, next) => {
-		const { locale, pref, theme } = viewerPrefs(c);
+		const { locale, pref, theme, deco } = viewerPrefs(c);
 		const person = await deps.auth.person(c);
 		if (person === null)
 			return c.redirect(
@@ -86,6 +87,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			locale,
 			pref,
 			theme,
+			deco,
 			person,
 			app: active,
 			memberships,

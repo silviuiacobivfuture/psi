@@ -249,5 +249,8 @@
 	"audit_what": "What",
 	"audit_target": "Object",
 	"audit_empty_title": "The log is empty",
-	"audit_empty_text": "Every change appears here: who, what and when."
+	"audit_empty_text": "Every change appears here: who, what and when.",
+	"deco_label": "Decorative background",
+	"deco_on": "On",
+	"deco_off": "Off"
 }

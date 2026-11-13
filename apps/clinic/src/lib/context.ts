@@ -14,6 +14,8 @@ export interface Ctx {
 	locale: Locale;
 	pref: ThemePreference;
 	theme: Theme;
+	/** The decorative background: off unless the person turned it on. */
+	deco: boolean;
 	person: Person;
 	app: AppSlug;
 	memberships: ReadonlyArray<Membership>;
@@ -28,7 +30,17 @@ export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): A
 	return mine[0] ?? null;
 }
 
-export function viewerPrefs(c: Context): { locale: Locale; pref: ThemePreference; theme: Theme } {
+export function viewerPrefs(c: Context): {
+	locale: Locale;
+	pref: ThemePreference;
+	theme: Theme;
+	deco: boolean;
+} {
 	const pref = themePreferenceFrom(getCookie(c, "theme"));
-	return { locale: localeFrom(getCookie(c, "lang")), pref, theme: themeFor(pref) };
+	return {
+		locale: localeFrom(getCookie(c, "lang")),
+		pref,
+		theme: themeFor(pref),
+		deco: getCookie(c, "deco") === "on",
+	};
 }

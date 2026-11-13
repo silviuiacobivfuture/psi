@@ -242,3 +242,124 @@ describe("motion", () => {
 		await done();
 	});
 });
+
+describe("the navigation rail", () => {
+	for (const width of [1280, 1920]) {
+		it(`collapsed at ${width}px: icons centred and visible, no sideways scroll, the switcher a round popover outside the rail`, async () => {
+			const { page, done } = await open(width, "/calendar?date=2026-11-16");
+			const m = await page.evaluate(() => {
+				const nav = document.querySelector("aside.adm-nav");
+				const links = [...document.querySelectorAll("aside.adm-nav .adm-nav__link")].map((a) => {
+					const r = a.querySelector("svg")?.getBoundingClientRect();
+					return {
+						w: r?.width ?? 0,
+						inside:
+							r !== undefined &&
+							r.left >= 0 &&
+							r.right <= (nav?.getBoundingClientRect().right ?? 0),
+					};
+				});
+				const sw = document.querySelector("aside.adm-nav .adm-switch")?.getBoundingClientRect();
+				return {
+					overflowX: (nav?.scrollWidth ?? 0) - (nav?.clientWidth ?? 0),
+					links,
+					round: Math.round(sw?.width ?? 0) === Math.round(sw?.height ?? 1),
+				};
+			});
+			expect(m.overflowX).toBeLessThanOrEqual(0);
+			expect(m.links).toHaveLength(7);
+			expect(m.links.every((l) => l.w > 0 && l.inside)).toBe(true);
+			expect(m.round).toBe(true);
+			await page.click("aside.adm-nav .adm-switch");
+			await page.waitForSelector("aside.adm-nav .adm-menu__panel >> visible=true");
+			const clip = await page.evaluate(() => {
+				const nav = document.querySelector("aside.adm-nav")?.getBoundingClientRect();
+				const panel = document
+					.querySelector("aside.adm-nav .adm-menu__panel")
+					?.getBoundingClientRect();
+				const hit =
+					panel === undefined ? null : document.elementFromPoint(panel.left + 20, panel.top + 20);
+				return {
+					right: nav?.right ?? 0,
+					left: panel?.left ?? 0,
+					inPanel: hit?.closest(".adm-menu__panel") !== null,
+				};
+			});
+			expect(clip.left).toBeGreaterThanOrEqual(clip.right);
+			expect(clip.inPanel).toBe(true);
+			await done();
+		});
+	}
+
+	it("opens the switcher with Enter and closes it with Escape; Tab visits every icon", async () => {
+		const { page, done } = await open(1280, "/calendar?date=2026-11-16");
+		await page.focus("aside.adm-nav .adm-switch");
+		await page.keyboard.press("Enter");
+		await page.waitForSelector("aside.adm-nav .adm-menu__panel >> visible=true");
+		await page.keyboard.press("Escape");
+		await page.waitForSelector("aside.adm-nav .adm-menu__panel", { state: "hidden" });
+		await page.focus("aside.adm-nav .adm-brand");
+		const seen: string[] = [];
+		for (let i = 0; i < 12; i++) {
+			await page.keyboard.press("Tab");
+			seen.push(await page.evaluate(() => document.activeElement?.getAttribute("data-tip") ?? ""));
+		}
+		for (const tip of ["Calendar", "Clienți", "Cereri", "Pontaj", "Mementouri", "Setări", "Jurnal"])
+			expect(seen).toContain(tip);
+		await done();
+	});
+
+	it("shows a tooltip on hover or focus of a collapsed icon", async () => {
+		const { page, done } = await open(1280, "/calendar?date=2026-11-16");
+		await page.hover('aside.adm-nav .adm-nav__link[data-tip="Clienți"]');
+		const content = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector('aside.adm-nav .adm-nav__link[data-tip="Clienți"]') as Element,
+					"::after",
+				).content,
+		);
+		expect(content).toContain("Clienți");
+		await done();
+	});
+
+	it("remembers the choice: expanded on the calendar sticks across a reload", async () => {
+		const { page, done } = await open(1280, "/calendar?date=2026-11-16");
+		const width = () =>
+			page.locator("aside.adm-nav").evaluate((e) => Math.round(e.getBoundingClientRect().width));
+		const rail = await width();
+		await page.click(".adm-rail-toggle");
+		await page.waitForFunction(
+			(w) => document.querySelector("aside.adm-nav")?.getBoundingClientRect().width !== w,
+			rail,
+		);
+		await page.reload();
+		await page.waitForFunction(
+			(w) => (document.querySelector("aside.adm-nav")?.getBoundingClientRect().width ?? 0) > w,
+			rail,
+		);
+		expect(await width()).toBeGreaterThan(rail);
+		await done();
+	});
+
+	it("expanded and collapsed, light and dark, never scrolls sideways", async () => {
+		for (const colorScheme of ["light", "dark"] as const) {
+			const context = await browser.newContext({
+				viewport: { width: 1280, height: 800 },
+				colorScheme,
+			});
+			await context.addCookies([{ name: "theme", value: colorScheme, url: live.url }]);
+			const page = await context.newPage();
+			for (const path of ["/clients", "/calendar?date=2026-11-16"]) {
+				await page.goto(`${live.url}${path}`);
+				const over = await page.evaluate(
+					() =>
+						(document.querySelector("aside.adm-nav")?.scrollWidth ?? 0) -
+						(document.querySelector("aside.adm-nav")?.clientWidth ?? 0),
+				);
+				expect(over, `${colorScheme} ${path}`).toBeLessThanOrEqual(0);
+			}
+			await context.close();
+		}
+	});
+});

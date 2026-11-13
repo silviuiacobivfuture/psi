@@ -37,6 +37,9 @@ export function labels(locale: Locale): ShellLabels {
 		themeDark: m.theme_dark({}, o),
 		themeSystem: m.theme_system({}, o),
 		language: m.language_label({}, o),
+		decoLabel: m.deco_label({}, o),
+		decoOn: m.deco_on({}, o),
+		decoOff: m.deco_off({}, o),
 		signOut: m.sign_out({}, o),
 		offline: m.offline_banner({}, o),
 	};
@@ -121,6 +124,7 @@ export async function Page({
 				signOutAction="/sign-out"
 				locale={locale}
 				themePref={ctx.pref}
+				deco={ctx.deco}
 				searchAction="/search"
 				overlays={overlays}
 			>
