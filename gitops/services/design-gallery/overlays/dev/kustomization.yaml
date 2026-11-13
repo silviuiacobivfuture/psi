@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/design-gallery
-    newTag: "c1b3a4c"
+    newTag: "9f10fd0"
