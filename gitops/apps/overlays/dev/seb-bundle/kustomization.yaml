@@ -37,3 +37,4 @@ resources:
   - seb-nextcloud.yaml
   - seb-harbor.yaml
   - seb-arc-runners.yaml
+  - seb-n8n.yaml
