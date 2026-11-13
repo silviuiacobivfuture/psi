@@ -3,7 +3,7 @@ import type { PanelCopy, StaffPage } from "@psi/engine/staff";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { STAFF_ASSISTANT_JS } from "./client.generated";
 import { SaIcon } from "./icons";
-import { jsString, sendExpression } from "./safe";
+import { jsString, sendExpression, submitExpression } from "./safe";
 
 export interface StaffPanelProps {
 	/** The panel's words, from the console's i18n (`staffCopy(locale).panel` fits). */
@@ -79,7 +79,7 @@ export function StaffPanel({
 	trigger,
 }: StaffPanelProps): JSX.Element {
 	const signals = JSON.stringify({
-		staff: { open: false, briefed: false, message: "", threadId, page },
+		staff: { open: false, briefed: false, busy: false, message: "", threadId, page },
 	});
 	return (
 		<div class="sa-root" data-signals={signals}>
@@ -133,16 +133,18 @@ export function StaffPanel({
 					<fieldset class="sa__suggest">
 						<legend class="sa-sr">{labels.suggestions}</legend>
 						{suggestions.slice(0, 3).map((text) => (
-							<button type="button" class="sa-chipbtn" data-on:click={sendExpression(base, text)}>
+							<button
+								type="button"
+								class="sa-chipbtn"
+								data-attr:disabled="$staff.busy"
+								data-on:click={sendExpression(base, text)}
+							>
 								{text}
 							</button>
 						))}
 					</fieldset>
 				)}
-				<form
-					class="sa__form"
-					data-on:submit__prevent={`if ($staff.message.trim() !== '') @post(${jsString(`${base}/chat`)})`}
-				>
+				<form class="sa__form" data-on:submit__prevent={submitExpression(base, false)}>
 					<textarea
 						rows={1}
 						maxlength={2000}

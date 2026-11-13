@@ -85,11 +85,11 @@ export function createStaffAssistantRoutes(
 			const abort = new AbortController();
 			stream.onAbort(() => abort.abort());
 			const message = signals.success ? signals.data.staff.message : "";
-			await write(stream, views.exchange({ id, message }));
-			await stream.writeSSE({
-				event: "datastar-patch-signals",
-				data: `signals ${JSON.stringify({ staff: { message: "" } })}`,
-			});
+			const signal = (staff: Record<string, unknown>): Promise<void> =>
+				stream.writeSSE({
+					event: "datastar-patch-signals",
+					data: `signals ${JSON.stringify({ staff })}`,
+				});
 			const events: AsyncIterable<StaffEvent> =
 				port === undefined
 					? refused("no_principal")
@@ -109,42 +109,63 @@ export function createStaffAssistantRoutes(
 							{ signal: abort.signal },
 						);
 			let text = "";
-			for await (const event of events) {
-				if (abort.signal.aborted) return;
-				switch (event.type) {
-					case "thinking":
-						break;
-					case "tool":
-						await write(
-							stream,
-							views.chip({
-								id,
-								callId: event.callId,
-								label: event.label,
-								phase: event.phase,
-							}),
-						);
-						break;
-					case "text":
-						text += event.delta;
-						await write(stream, views.text({ id, text }));
-						break;
-					case "replace":
-						text = event.text;
-						await write(stream, views.text({ id, text }));
-						break;
-					case "card":
-						await write(stream, views.card({ id, card: event.card }));
-						break;
-					case "refusal":
-						await write(stream, views.refusal({ id, reason: event.reason }));
-						break;
-					case "done":
-						await write(stream, views.done({ id }));
-						break;
-					default: {
-						const never: never = event;
-						return never;
+			const iterator = events[Symbol.asyncIterator]();
+			const first = await iterator.next();
+			// A double press: the first message is already being answered, and this one draws nothing.
+			if (!first.done && first.value.type === "refusal" && first.value.reason === "duplicate")
+				return;
+			await write(stream, views.exchange({ id, message }));
+			// The page's buttons stay off until this turn ends, whatever way it ends.
+			await signal({ message: "", busy: true });
+			const all = (async function* (): AsyncGenerator<StaffEvent, void, undefined> {
+				if (!first.done) yield first.value;
+				for (let next = await iterator.next(); !next.done; next = await iterator.next())
+					yield next.value;
+			})();
+			try {
+				await drain(all);
+			} finally {
+				await signal({ busy: false }).catch(() => undefined);
+			}
+
+			async function drain(source: AsyncIterable<StaffEvent>): Promise<void> {
+				for await (const event of source) {
+					if (abort.signal.aborted) return;
+					switch (event.type) {
+						case "thinking":
+							break;
+						case "tool":
+							await write(
+								stream,
+								views.chip({
+									id,
+									callId: event.callId,
+									label: event.label,
+									phase: event.phase,
+								}),
+							);
+							break;
+						case "text":
+							text += event.delta;
+							await write(stream, views.text({ id, text }));
+							break;
+						case "replace":
+							text = event.text;
+							await write(stream, views.text({ id, text }));
+							break;
+						case "card":
+							await write(stream, views.card({ id, card: event.card }));
+							break;
+						case "refusal":
+							await write(stream, views.refusal({ id, reason: event.reason }));
+							break;
+						case "done":
+							await write(stream, views.done({ id }));
+							break;
+						default: {
+							const never: never = event;
+							return never;
+						}
 					}
 				}
 			}

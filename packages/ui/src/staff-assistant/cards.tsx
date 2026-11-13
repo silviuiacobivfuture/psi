@@ -11,6 +11,10 @@ export interface CardContext {
 	base: string;
 }
 
+/** Every button of a card's action row goes off at the first press: confirm, dismiss and undo are each pressed once. */
+const LOCK_ACTIONS =
+	"el.closest('.sa-actions').querySelectorAll('button').forEach((b) => { b.disabled = true })";
+
 /** The element id of a proposal's card, and of its result, which replaces it. */
 export const cardId = (proposalId: string): string => `sa-card-${proposalId}`;
 
@@ -104,6 +108,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 									<button
 										type="button"
 										class="sa-slot"
+										data-attr:disabled="$staff.busy"
 										data-on:click={sendExpression(base, slot.ask)}
 									>
 										<span class="sa-slot__when">{slot.label}</span>
@@ -125,6 +130,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 								<button
 									type="button"
 									class="sa-slot"
+									data-attr:disabled="$staff.busy"
 									data-on:click={sendExpression(base, option.ask)}
 								>
 									<span class="sa-slot__when">{option.label}</span>
@@ -170,6 +176,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 											<button
 												type="button"
 												class="sa-brief__go"
+												data-attr:disabled="$staff.busy"
 												data-on:click={sendExpression(base, item.ask)}
 											>
 												<span>{item.text}</span>
@@ -197,7 +204,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 						<button
 							type="button"
 							class="sa-btn sa-btn--primary"
-							data-on:click={`el.disabled = true; el.textContent = ${jsString(labels.confirming)}; @post(${jsString(`${base}/confirm?proposal=${card.proposalId}`)})`}
+							data-on:click={`${LOCK_ACTIONS}; el.textContent = ${jsString(labels.confirming)}; @post(${jsString(`${base}/confirm?proposal=${card.proposalId}`)})`}
 						>
 							<SaIcon name="check" size={16} />
 							{labels.confirm}
@@ -205,7 +212,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 						<button
 							type="button"
 							class="sa-btn"
-							data-on:click={`@post(${jsString(`${base}/dismiss?proposal=${card.proposalId}`)})`}
+							data-on:click={`${LOCK_ACTIONS}; @post(${jsString(`${base}/dismiss?proposal=${card.proposalId}`)})`}
 						>
 							{labels.dismiss}
 						</button>
@@ -244,7 +251,7 @@ export function CardView({ card, ctx }: { card: StaffCard; ctx: CardContext }): 
 							<button
 								type="button"
 								class="sa-btn"
-								data-on:click={`el.disabled = true; @post(${jsString(`${base}/confirm?proposal=${card.undo.proposalId}`)})`}
+								data-on:click={`${LOCK_ACTIONS}; @post(${jsString(`${base}/confirm?proposal=${card.undo.proposalId}`)})`}
 							>
 								<SaIcon name="undo" size={16} />
 								{card.undo.label}
