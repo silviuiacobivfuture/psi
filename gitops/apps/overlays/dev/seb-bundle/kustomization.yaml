@@ -41,3 +41,4 @@ resources:
   - seb-nx-cache.yaml
   - seb-otel-logging.yaml
   - seb-health-digest.yaml
+  - seb-openfga.yaml

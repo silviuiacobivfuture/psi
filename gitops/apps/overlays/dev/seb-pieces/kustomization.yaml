@@ -6,7 +6,6 @@ resources:
   - homepage.yaml
   - netdata.yaml
   - novu.yaml
-  - openfga.yaml
   - plane.yaml
   - plunk.yaml
   - public-doors.yaml
