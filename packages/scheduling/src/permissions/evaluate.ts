@@ -4,6 +4,7 @@ import {
 	type FieldGroup,
 	isFieldGroup,
 	isPermissionKey,
+	parsePermissionKey,
 	permissionKey,
 	type Resource,
 	type Scope,
@@ -116,7 +117,11 @@ export function can(
 	}
 	if (standing.length === 0) {
 		if (deniedAny) return { allowed: false, reason: "denied_by_override" };
-		const anyGrant = [...perms.granted].some((key) => key.startsWith(`${resource}_${action}_`));
+		// Compared as structure: `create` must not count a grant of `create_warn`.
+		const anyGrant = [...perms.granted].some((key) => {
+			const p = parsePermissionKey(key);
+			return p?.resource === resource && p.action === action;
+		});
 		return { allowed: false, reason: anyGrant ? "field_group_not_granted" : "not_granted" };
 	}
 	const met = standing.find(

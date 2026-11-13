@@ -40,6 +40,8 @@ export const RESOURCES = [
 	"reports",
 	"audit_log",
 	"imports_exports",
+	"blacklist",
+	"feedback",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -59,6 +61,14 @@ export const ACTIONS = [
 	"upload",
 	"imports_view",
 	"imports_run",
+	/** Create a blacklist entry of warn severity only (a banner, never a refusal). */
+	"create_warn",
+	/** Book a blacklisted client anyway, with a reason: a warn or block_online hit. */
+	"override",
+	/** Book a client whose entry is block_all: the elevated override. */
+	"override_admin",
+	"reply",
+	"close",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -122,9 +132,14 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	notice_board: { actions: CRUD, scopes: ALL },
 	reminders: { actions: ["view", "send"], scopes: EVERYWHERE },
 	web_requests: { actions: ["view", "approve"], scopes: ALL },
-	reports: { actions: ["view", "export"], scopes: ALL },
+	// Counts and rates are `core`; anything in money (revenue, package prices) needs the `money` key.
+	reports: { actions: ["view", "export"], scopes: ALL, fieldGroups: ["core", "money"] },
 	audit_log: { actions: ["view", "export"], scopes: ALL },
 	imports_exports: { actions: ["imports_view", "imports_run", "export"], scopes: ALL },
+	// Who may not book online (docs/plans/clinic.md section 10).
+	blacklist: { actions: [...CRUD, "create_warn", "override", "override_admin"], scopes: ALL },
+	// The text is `core`; who wrote it (contact details, consent to be contacted) is `contact`.
+	feedback: { actions: ["view", "reply", "close"], scopes: ALL, fieldGroups: ["core", "contact"] },
 };
 
 /** A permission as structure. */
