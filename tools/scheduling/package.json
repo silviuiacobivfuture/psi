@@ -1,0 +1,23 @@
+{
+	"name": "@psi/scheduling-tools",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "psi's scheduling operations: derive the Convex admin key, and reconcile the store's authorization tuples into OpenFGA",
+	"scripts": {
+		"reconcile-authz": "tsx reconcile-authz/main.ts",
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --maxWorkers=2"
+	},
+	"dependencies": {
+		"@psi/scheduling": "workspace:*",
+		"@psi/scheduling-api": "workspace:*",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"tsx": "^4.23.15",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

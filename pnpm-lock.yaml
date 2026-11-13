@@ -916,6 +916,31 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
 
+  tools/scheduling:
+    dependencies:
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../../packages/scheduling
+      '@psi/scheduling-api':
+        specifier: workspace:*
+        version: link:../../apps/scheduling-api
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+
   tools/site-audit:
     dependencies:
       cheerio:

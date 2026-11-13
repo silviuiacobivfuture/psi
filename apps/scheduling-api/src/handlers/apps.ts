@@ -5,18 +5,10 @@ import {
 	parseRelation,
 	permissionOf,
 } from "../authz/catalogue";
-import {
-	coordinatorLink,
-	memberLink,
-	personalGrant,
-	roleAppLink,
-	roleGrant,
-	roleHolder,
-} from "../authz/links";
+import { personalGrant, roleGrant } from "../authz/links";
 import { labelOf } from "../authz/manifest";
-import type { Tuple } from "../authz/port";
-import { objectLinks } from "../authz/rehydrate";
 import { seedRoles } from "../authz/roles-seed";
+import { memberTuples, objectLinks, platformLink, roleTuples } from "../authz/tuples";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
@@ -109,7 +101,7 @@ export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string
 		const members = await s.members.list(id);
 		await deps.authz.write({
 			writes: [
-				{ user: "platform:psi", relation: "parent_platform", object: `sched_app:${id}` },
+				platformLink(id),
 				...roles.flatMap(roleTuples),
 				...members.flatMap(memberTuples),
 				...(await objectLinks(deps.store, id)),
@@ -123,17 +115,6 @@ export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string
 		throw error;
 	}
 }
-
-const roleTuples = (role: RoleRow): Tuple[] => [
-	roleAppLink(role.id, role.app),
-	...role.permissions.map((p) => roleGrant(role.id, role.app, p)),
-];
-const memberTuples = (m: MemberRow): Tuple[] => [
-	memberLink(m.app, m.subject),
-	...m.roles.map((r) => roleHolder(r, m.subject)),
-	...m.coordinates.map((p) => coordinatorLink(p, m.subject)),
-	...m.grants.map((g) => personalGrant(m.app, m.subject, g)),
-];
 
 const OWNER_ROLE = "Owner";
 const isOwnerRole = (role: RoleRow): boolean => role.system && role.name === OWNER_ROLE;
