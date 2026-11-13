@@ -7,8 +7,9 @@
 	"scripts": {
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
 		"dev": "pnpm i18n && tsx watch --env-file-if-exists=.env src/server.ts",
-		"build": "pnpm i18n && esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --packages=external --outfile=dist/server.js",
+		"build": "pnpm i18n && esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/server.js",
 		"start": "node --env-file-if-exists=.env dist/server.js",
+		"local": "tsx src/local.ts",
 		"authz:gen": "tsx scripts/gen-authz.ts",
 		"type-check": "pnpm i18n && tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"

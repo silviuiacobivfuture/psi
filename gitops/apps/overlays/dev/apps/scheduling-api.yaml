@@ -1,0 +1,18 @@
+# READY BUT NOT REGISTERED: this Application is deliberately absent from kustomization.yaml in this folder. Adding
+# `- scheduling-api.yaml` there is the one step that makes Argo deploy the service, once the OpenBao keys exist
+# (estate/APP-SECRETS.md) and SEB's OpenFGA policy admits the namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scheduling-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/scheduling-api/overlays/dev
+  destination: { server: https://kubernetes.default.svc, namespace: scheduling-api }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

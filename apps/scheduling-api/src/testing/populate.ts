@@ -49,7 +49,7 @@ const str = (v: unknown): string => {
 };
 
 /** Populates through the API itself, so the tuples, the audit log and the change feed are as real as in service. */
-export async function populate(world: World): Promise<Populated> {
+export async function populate<T extends Pick<World, "call">>(world: T): Promise<T & { ids: Ids }> {
 	const { call } = world;
 	ok(
 		await call("root", "POST", "/v1/apps", {
