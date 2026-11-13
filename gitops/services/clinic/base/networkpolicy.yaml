@@ -39,3 +39,8 @@ spec:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
           podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
       ports: [{ port: 8443 }, { port: 8000 }]
+    # …entering through k3s's service load balancer pod (svclb), which holds the node's :443/:80.
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+          podSelector: { matchLabels: { svccontroller.k3s.cattle.io/svcname: traefik } }
+      ports: [{ port: 443 }, { port: 80 }]

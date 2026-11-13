@@ -83,6 +83,14 @@ spec:
         - { protocol: TCP, port: 8000 }
     - to:
         - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { svccontroller.k3s.cattle.io/svcname: traefik }
+      ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: TCP, port: 80 }
+    - to:
+        - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: novu }
           podSelector:
             matchLabels: { app.kubernetes.io/name: novu-api }
