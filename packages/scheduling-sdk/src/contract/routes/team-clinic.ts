@@ -282,7 +282,7 @@ export const CALENDAR_ROUTES = [
 		side: "team",
 		summary: "One package with its payments",
 		params: IdParam,
-		response: z.object({ package: Package, payments: z.array(Payment) }),
+		response: z.object({ package: Package, payments: z.array(Payment).optional() }),
 		permission: { key: "packages_view", target: { kind: "object", type: "sched_package" } },
 	}),
 	route({

@@ -31,14 +31,15 @@ export const Member = z.object({
 	displayName: Name,
 	email: z.string().max(200).optional(),
 	roles: z.array(Id),
-	personId: Id.optional(),
+	/** People whose calendars this member coordinates (the `assigned` scope). */
+	coordinates: z.array(Id),
 	...Stamps,
 });
 export const MemberPut = z.object({
 	displayName: Name,
 	email: Email.optional(),
 	roles: z.array(Id).max(20),
-	personId: Id.optional(),
+	coordinates: z.array(Id).max(100).default([]),
 });
 /** Individual grants (OpenFGA tuples) and denials (enforced by the service on top of Check) per person. */
 export const Overrides = z.object({
@@ -231,6 +232,7 @@ export const Appointment = z.object({
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
 	serviceId: Id.optional(),
+	packageId: Id.optional(),
 	start: Ms,
 	end: Ms,
 	note: z.string().max(500).optional(),
@@ -246,6 +248,7 @@ export const AppointmentCreate = z.object({
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
 	serviceId: Id.optional(),
+	packageId: Id.optional(),
 	start: Ms,
 	end: Ms,
 	note: z.string().max(500).optional(),
