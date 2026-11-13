@@ -23,6 +23,8 @@ export const PUSH_PATHS = {
 	test: "/pwa/push/test",
 	removeDevice: "/pwa/push/devices/remove",
 	hook: "/__pwa/notify",
+	/** Novu's Push Webhook (`@psi/notify/push`); signed with `x-novu-signature`. */
+	novu: "/__pwa/novu",
 } as const;
 
 /** What the API needs from @psi/account: the session, and who it is. */

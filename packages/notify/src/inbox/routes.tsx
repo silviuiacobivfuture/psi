@@ -1,4 +1,4 @@
-import { Inbox, type InboxData, type InboxLabels, type InboxUrls } from "@psi/ui";
+import { type InboxData, type InboxLabels, type InboxUrls, inboxPatch } from "@psi/ui";
 import { type Context, Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import * as m from "../paraglide/messages.js";
@@ -18,7 +18,6 @@ export function inboxLabels(locale: "ro" | "en"): InboxLabels {
 		groupToday: m.inbox_group_today({}, o),
 		groupEarlier: m.inbox_group_earlier({}, o),
 		unread: m.inbox_unread({}, o),
-		close: m.inbox_close({}, o),
 	};
 }
 
@@ -88,7 +87,7 @@ export function createInboxRoutes(o: InboxRoutesOptions): { app: Hono; urls: Inb
 
 	const patch = (c: Context, data: InboxData): { event: string; data: string } => ({
 		event: "datastar-patch-elements",
-		data: `elements ${(<Inbox data={data} labels={inboxLabels(o.localeOf(c))} urls={urls} />).toString().replace(/\n/g, " ")}`,
+		data: `elements ${inboxPatch({ data, labels: inboxLabels(o.localeOf(c)), urls })}`,
 	});
 
 	const guard = (c: Context): string | Response => {

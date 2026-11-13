@@ -92,7 +92,12 @@ export function createReminderRoutes(options: ReminderRoutesOptions): Hono {
 	function check(host: string, token: string, action: LinkAction) {
 		const expectApp = options.appOf(host);
 		if (expectApp === undefined)
-			return { ok: false as const, failure: "wrong-app" as const, app: undefined };
+			return {
+				ok: false as const,
+				failure: "wrong-app" as const,
+				app: undefined,
+				claims: undefined,
+			};
 		const v = verifyToken({
 			secret: options.secret,
 			token,
@@ -109,7 +114,7 @@ export function createReminderRoutes(options: ReminderRoutesOptions): Hono {
 			if (!v.ok)
 				return page(
 					v.failure === "expired" ? "expired" : "invalid",
-					"ro",
+					v.claims?.l ?? "ro",
 					v.app ?? "psizone",
 					STATUS[v.failure],
 				);
@@ -120,7 +125,7 @@ export function createReminderRoutes(options: ReminderRoutesOptions): Hono {
 			if (!v.ok)
 				return page(
 					v.failure === "expired" ? "expired" : "invalid",
-					"ro",
+					v.claims?.l ?? "ro",
 					v.app ?? "psizone",
 					STATUS[v.failure],
 				);
@@ -158,7 +163,7 @@ export function createReminderRoutes(options: ReminderRoutesOptions): Hono {
 		if (!v.ok)
 			return page(
 				v.failure === "expired" ? "expired" : "invalid",
-				"ro",
+				v.claims?.l ?? "ro",
 				v.app ?? "psizone",
 				STATUS[v.failure],
 			);

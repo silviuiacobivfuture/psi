@@ -22,7 +22,10 @@ export type Claims = z.infer<typeof Claims>;
 
 export type TokenFailure = "malformed" | "tampered" | "expired" | "wrong-action" | "wrong-app";
 
-export type Verified = { ok: true; claims: Claims } | { ok: false; failure: TokenFailure };
+export type Verified =
+	| { ok: true; claims: Claims }
+	/** `claims` is set for an expired token: its signature held, so its language and app are trustworthy. */
+	| { ok: false; failure: TokenFailure; claims?: Claims };
 
 const b64 = (buf: Buffer): string => buf.toString("base64url");
 
@@ -85,7 +88,8 @@ export function verifyToken(input: VerifyInput): Verified {
 	}
 	const claims = Claims.safeParse(raw);
 	if (!claims.success) return { ok: false, failure: "malformed" };
-	if (claims.data.e * 1000 <= input.now) return { ok: false, failure: "expired" };
+	if (claims.data.e * 1000 <= input.now)
+		return { ok: false, failure: "expired", claims: claims.data };
 	if (claims.data.a !== input.expectApp) return { ok: false, failure: "wrong-app" };
 	if (claims.data.k !== input.expectAction) return { ok: false, failure: "wrong-action" };
 	return { ok: true, claims: claims.data };

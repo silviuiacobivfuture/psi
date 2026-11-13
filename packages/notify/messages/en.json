@@ -93,6 +93,5 @@
 	"inbox_mark_one": "Mark as read",
 	"inbox_group_today": "Today",
 	"inbox_group_earlier": "Earlier",
-	"inbox_unread": "unread",
-	"inbox_close": "Close"
+	"inbox_unread": "unread"
 }

@@ -161,16 +161,22 @@ describe("notify: idempotency", () => {
 });
 
 describe("notify: retry and failure", () => {
-	it("a 503 is retried with backoff and delivered; the caller was never told", async () => {
+	it("a refusal Novu keeps under the key is walked past with :r1, and the notification is delivered", async () => {
 		novu.script = (_r, attempt) => (attempt === 1 ? { status: 503 } : undefined);
 		const n = build();
 		await n.notify("psizone", "appointment.confirmed", SAMPLES["appointment.confirmed"], [client]);
-		expect(await n.drain()).toBe(0);
-		expect(await n.pending()).toBe(1);
+		expect(await n.drain()).toBe(0); // 503: the key now holds the refusal
 		expect(await n.drain()).toBe(0); // not yet due
 		clock.now += 1000;
-		expect(await n.drain()).toBe(1);
+		expect(await n.drain()).toBe(0); // same key: Novu replays the refusal
+		clock.now += 2000;
+		expect(await n.drain()).toBe(1); // the walked key is new
+		const keys = triggers().map((t) => String(t.headers["idempotency-key"]));
+		expect(keys).toHaveLength(3);
+		expect(keys[1]).toBe(keys[0]);
+		expect(keys[2]).toBe(`${keys[0]}:r1`);
 		expect(await n.pending()).toBe(0);
+		expect(novu.accepted).toHaveLength(1);
 	});
 
 	it("backoff doubles", async () => {

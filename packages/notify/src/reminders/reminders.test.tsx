@@ -117,7 +117,7 @@ describe("token", () => {
 		expect(v.ok && v.claims).toMatchObject({ a: "psizone", i: "apt_1", k: "confirm", l: "ro" });
 	});
 	it("expired", () =>
-		expect(verify(signToken({ ...base, action: "confirm" }), { now: START })).toEqual({
+		expect(verify(signToken({ ...base, action: "confirm" }), { now: START })).toMatchObject({
 			ok: false,
 			failure: "expired",
 		}));
@@ -133,7 +133,10 @@ describe("token", () => {
 	});
 	it("tampered signature, wrong secret, truncated signature", () => {
 		const token = signToken({ ...base, action: "confirm" });
-		expect(verify(`${token.slice(0, -2)}AA`)).toEqual({ ok: false, failure: "tampered" });
+		const cut = token.length - 10;
+		expect(
+			verify(`${token.slice(0, cut)}${token[cut] === "A" ? "B" : "A"}${token.slice(cut + 1)}`),
+		).toEqual({ ok: false, failure: "tampered" });
 		expect(verify(token, { secret: "x".repeat(40) })).toEqual({ ok: false, failure: "tampered" });
 		expect(verify(token.slice(0, -10))).toEqual({ ok: false, failure: "tampered" });
 	});
@@ -250,10 +253,28 @@ describe("routes", () => {
 		expect(s.calls).toEqual({ confirm: 0, cancel: 0 });
 	});
 
+	it("an expired English link says so in English", async () => {
+		const en = issueLinks({
+			secret: SECRET,
+			publicOrigin: HOST,
+			app: "psizone",
+			appointmentId: "apt_1",
+			locale: "en",
+			startsAt: START,
+			now: NOW,
+		});
+		s.clock.now = START + 1;
+		const r = await call(s.app, "GET", en.cancelUrl);
+		expect(r.status).toBe(410);
+		expect(r.text).toContain("This link has expired");
+		expect(r.text).toContain('lang="en"');
+	});
+
 	it("a tampered link is 400 and does nothing", async () => {
 		const l = links();
 		const token = l.confirmUrl.split("/").at(-2) ?? "";
-		const forged = `${token.slice(0, -1)}${token.endsWith("A") ? "B" : "A"}`;
+		const cut = token.length - 10;
+		const forged = `${token.slice(0, cut)}${token[cut] === "A" ? "B" : "A"}${token.slice(cut + 1)}`;
 		const r = await call(s.app, "POST", l.confirmUrl.replace(token, forged));
 		expect(r.status).toBe(400);
 		expect(s.calls.confirm).toBe(0);

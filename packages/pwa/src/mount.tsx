@@ -11,7 +11,7 @@ import { type Identity, mountPushApi, PUSH_PATHS } from "./push/api";
 import { type PushConfig, readPushConfig } from "./push/config";
 import { createNotifier, type Notifier, startReminderClock } from "./push/notifier";
 import type { PushStore } from "./push/store";
-import { webPushTransport } from "./push/transport";
+import { type PushTransport, webPushTransport } from "./push/transport";
 import type { ArticleBrand, PushLocale, SubscriptionRecord, Topic } from "./push/types";
 import { DeviceList } from "./ui/devices";
 import { NotifyPanel } from "./ui/notify-panel";
@@ -48,6 +48,8 @@ export interface PwaSite {
 	identity: Identity;
 	/** The notifications page per locale (it is noindex). */
 	notificationsPath: (locale: PushLocale) => string;
+	/** `mountPushApi`'s device-change hook: where `@psi/notify` keeps Novu's push tokens in step. */
+	onDevicesChanged?: (subject: string) => Promise<void>;
 }
 
 export interface Pwa {
@@ -58,6 +60,8 @@ export interface Pwa {
 	store(): Promise<PushStore>;
 	/** Null when push is off (no VAPID pair). */
 	notifier(): Promise<Notifier | null>;
+	/** The VAPID transport, for `@psi/notify`'s Novu push hook; null when push is off. */
+	transport(): PushTransport | null;
 	/** The `<head>` additions for a page in `locale`; `noindex` for the PWA's own pages. */
 	head(locale: PushLocale, path?: string): JSX.Element;
 	/** The Compass tools: install (when installable), the iOS note, and — push on — the notifications link. */
@@ -224,12 +228,14 @@ export function createPwa(site: PwaSite, config: PushConfig = readPushConfig()):
 				identity: site.identity,
 				notifySecret: config.notifySecret,
 				returnTo: site.notificationsPath,
+				...(site.onDevicesChanged ? { onDevicesChanged: site.onDevicesChanged } : {}),
 			});
 		},
 		config,
 		clientPath,
 		store: config.store,
 		notifier: getNotifier,
+		transport: () => (config.vapid === null ? null : webPushTransport(config.vapid)),
 		head(locale, path) {
 			return (
 				<PwaHead

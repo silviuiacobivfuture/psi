@@ -13,6 +13,8 @@ export class NovuRefused extends Error {
 	constructor(
 		readonly status: number,
 		readonly retryable: boolean,
+		/** Novu answered from the Idempotency-Key's kept refusal (`Idempotency-Replay: true`). */
+		readonly replay = false,
 	) {
 		super(`Novu answered ${status}`);
 	}
@@ -101,6 +103,7 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 		throw new NovuRefused(
 			res.status,
 			res.status === 408 || res.status === 429 || res.status >= 500,
+			res.headers.get("idempotency-replay") === "true",
 		);
 	}
 

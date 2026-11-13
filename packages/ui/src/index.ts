@@ -181,11 +181,15 @@ export {
 export { barePath } from "./invite-path";
 export {
 	Inbox,
+	InboxBadge,
+	InboxBody,
 	type InboxData,
 	type InboxEntry,
 	type InboxLabels,
 	type InboxProps,
+	InboxStatus,
 	type InboxUrls,
+	inboxPatch,
 } from "./notifications/inbox";
 export {
 	createPageRegistry,

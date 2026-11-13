@@ -115,8 +115,9 @@ const Body = z
 export interface PushHookOptions {
 	/** The Push Webhook integration's "Secret HMAC Key" (`NOVU_PUSH_SECRET`). */
 	secret: string;
-	store: PushStore;
-	transport: PushTransport;
+	store: () => Promise<PushStore>;
+	/** Null while push is off (no VAPID pair): the hook answers 503. */
+	transport: () => PushTransport | null;
 	/** The site this hook serves: only its own devices are pushed. */
 	site: SubscriptionRecord["site"];
 	now?: () => number;
@@ -152,11 +153,14 @@ export function createPushHook(o: PushHookOptions): Hono {
 		const body = Body.safeParse(parsed);
 		if (!body.success) return c.body(null, 400);
 		const { event, audience } = body.data.payload.meta;
+		const transport = o.transport();
+		if (transport === null) return c.body(null, 503);
+		const store = await o.store();
 		const route = routeOf(event, audience);
 		const result = { sent: 0, skipped: 0, removed: 0, failed: 0 };
 		if (route === undefined) return c.json({ ...result, skipped: body.data.target.length }, 200);
 		for (const token of new Set(body.data.target)) {
-			const device = await o.store.byId(token);
+			const device = await store.byId(token);
 			if (device === null || device.site !== o.site || !device.topics.includes(route.topic)) {
 				result.skipped++;
 				continue;
@@ -168,19 +172,19 @@ export function createPushHook(o: PushHookOptions): Hono {
 				url: route.url(device.locale),
 				tag: route.tag,
 			};
-			const sent = await o.transport.send(device, payload, {
+			const sent = await transport.send(device, payload, {
 				ttl: route.urgency === "high" ? 24 * 3600 : 12 * 3600,
 				urgency: route.urgency,
 			});
 			if (sent.ok) {
 				result.sent++;
-				await o.store.delivered(device.endpoint, (o.now ?? Date.now)());
+				await store.delivered(device.endpoint, (o.now ?? Date.now)());
 			} else if (sent.gone) {
 				result.removed++;
-				await o.store.removeEndpoint(device.endpoint);
+				await store.removeEndpoint(device.endpoint);
 			} else {
 				result.failed++;
-				await o.store.failed(device.endpoint, (o.now ?? Date.now)());
+				await store.failed(device.endpoint, (o.now ?? Date.now)());
 			}
 		}
 		// A transport failure answers 502 so Novu retries; the rest is final.
