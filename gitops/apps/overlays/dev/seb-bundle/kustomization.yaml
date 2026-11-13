@@ -40,3 +40,4 @@ resources:
   - seb-n8n.yaml
   - seb-nx-cache.yaml
   - seb-otel-logging.yaml
+  - seb-health-digest.yaml
