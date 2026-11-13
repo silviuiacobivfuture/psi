@@ -1,7 +1,11 @@
+import { fresh, matchesWish, merge, partOf, restricted, unique } from "./booking-criteria";
+import { missingDetails, readDetails } from "./booking-details";
 import { findCodes, isCancelIntent, readWish, type Wish } from "./booking-parse";
 import {
 	type BookingCancel,
 	type BookingCriteria,
+	type BookingDetails,
+	type BookingDetailsReport,
 	type BookingKind,
 	type BookingNotice,
 	type BookingState,
@@ -10,7 +14,6 @@ import {
 } from "./booking-state";
 import { within } from "./deadline";
 import type { LanguagePack } from "./language/pack";
-import { addLocalDays } from "./scheduling/local-time";
 import type { ProfileScheduling, SchedulingPort } from "./scheduling/port";
 import {
 	type FindAvailabilityOutput,
@@ -25,11 +28,13 @@ import { fold } from "./text/normalize";
 export type {
 	BookingCancel,
 	BookingCriteria,
+	BookingDetails,
+	BookingDetailsReport,
 	BookingKind,
 	BookingNotice,
 	BookingState,
 } from "./booking-state";
-export { BookingStateSchema } from "./booking-state";
+export { BookingDetailsSchema, BookingStateSchema } from "./booking-state";
 
 /**
  * Booking inside the conversation. When a profile schedules, the engine handles the booking
@@ -56,6 +61,8 @@ export interface BookingOffer {
 	notice?: BookingNotice;
 	/** `confirm`: the time that was named and found free. */
 	chosen?: ProposedSlot;
+	/** `confirm`: the details typed in the chat so far, and what the form still needs. */
+	details?: BookingDetailsReport;
 	/** `cancel_result`: how the cancellation went. */
 	cancel?: BookingCancel;
 	/** `services`: what can be booked here. */
@@ -76,7 +83,6 @@ export interface BookingScope {
 
 /** How many free times one offer shows, and over how many days. */
 const OFFER_SLOTS = 6;
-const OFFER_DAYS = 14;
 /** The window a pick by clock time looks through. */
 const PICK_SLOTS = 10;
 const QUESTION_WORDS = /\b(cum|cat|cand|unde|de ce|cine|how|where|why|who|when)\b/;
@@ -91,62 +97,46 @@ function localToday(now: number): string {
 	return new Date(now).toISOString().slice(0, 10);
 }
 
-function fresh(service: string): BookingCriteria {
-	return { service, days: OFFER_DAYS, partOfDay: "any" };
-}
-
-/** The criteria after the wish: only what the message named changes. */
-function merge(
-	base: BookingCriteria,
-	wish: Wish,
-	shown: ReadonlyArray<ProposedSlot>,
-): BookingCriteria {
-	let { service, days, partOfDay, mode, fromDate, weekday } = base;
-	if (wish.anything === true) {
-		fromDate = undefined;
-		weekday = undefined;
-		days = OFFER_DAYS;
-		partOfDay = "any";
-	}
-	if (wish.service !== undefined) service = wish.service;
-	if (wish.fromDate !== undefined) {
-		fromDate = wish.fromDate;
-		days = wish.days ?? 1;
-		weekday = undefined;
-	} else if (wish.weekday !== undefined && days < 7) {
-		fromDate = undefined;
-		days = OFFER_DAYS;
-	}
-	if (wish.weekday !== undefined) weekday = wish.weekday;
-	if (wish.partOfDay !== undefined) partOfDay = wish.partOfDay;
-	if (wish.mode !== undefined) mode = wish.mode;
-	const last = shown.at(-1);
-	if (wish.later === true && last !== undefined) {
-		fromDate = addLocalDays(last.date, 1);
-		days = OFFER_DAYS;
-		weekday = undefined;
-	}
-	return {
-		service,
-		days,
-		partOfDay,
-		...(fromDate === undefined ? {} : { fromDate }),
-		...(weekday === undefined ? {} : { weekday }),
-		...(mode === undefined ? {} : { mode }),
-	};
-}
-
-function unique(slots: ReadonlyArray<ProposedSlot>): ReadonlyArray<ProposedSlot> {
-	const seen = new Set<string>();
-	return slots.filter((slot) => !seen.has(slot.slotId) && seen.add(slot.slotId) !== undefined);
-}
-
 function stateOf(
 	stage: BookingState["stage"],
 	criteria: BookingCriteria,
 	slots: ReadonlyArray<ProposedSlot>,
+	chosen?: { slot: ProposedSlot; details: BookingDetails },
 ): BookingState {
-	return { stage, criteria, shown: unique(slots).slice(0, MAX_SHOWN) };
+	return {
+		stage,
+		criteria,
+		shown: unique(slots).slice(0, MAX_SHOWN),
+		...(chosen === undefined
+			? {}
+			: {
+					chosen: chosen.slot,
+					...(Object.keys(chosen.details).length === 0 ? {} : { details: chosen.details }),
+				}),
+	};
+}
+
+/** The confirm step's offer for a time checked free, with what the chat told so far. */
+function detailsOffer(
+	criteria: BookingCriteria,
+	slot: ProposedSlot,
+	shown: ReadonlyArray<ProposedSlot>,
+	values: BookingDetails,
+	heard: BookingDetailsReport["heard"] = [],
+	nudge = false,
+): BookingOffer {
+	return {
+		kind: "confirm",
+		service: criteria.service,
+		status: "ok",
+		slots: [slot],
+		chosen: slot,
+		details: { values, missing: missingDetails(values), heard, nudge },
+		state: stateOf("details", criteria, shown.length === 0 ? [slot] : shown, {
+			slot,
+			details: values,
+		}),
+	};
 }
 
 function timesOffer(
@@ -189,15 +179,6 @@ function look(
 	);
 }
 
-function restricted(criteria: BookingCriteria): boolean {
-	return (
-		criteria.fromDate !== undefined ||
-		criteria.weekday !== undefined ||
-		criteria.partOfDay !== "any" ||
-		criteria.mode !== undefined
-	);
-}
-
 /** A search; when nothing matches a restricted one, the nearest free times instead (`relaxed`). */
 async function searchOffer(
 	booking: BookingScope,
@@ -222,6 +203,9 @@ async function confirmOffer(
 	slot: ProposedSlot,
 	shown: ReadonlyArray<ProposedSlot>,
 	now: number,
+	known: BookingDetails = {},
+	heard: BookingDetailsReport["heard"] = [],
+	nudge = false,
 ): Promise<BookingOffer> {
 	const checked = await runRequestAppointment(booking.port, booking.scope, {
 		service: criteria.service,
@@ -229,34 +213,10 @@ async function confirmOffer(
 		startsAt: slot.startsAt,
 	});
 	if (checked.status === "needs_confirmation") {
-		return {
-			kind: "confirm",
-			service: criteria.service,
-			status: "ok",
-			slots: [checked.proposal],
-			chosen: checked.proposal,
-			state: stateOf("confirm", criteria, shown.length === 0 ? [checked.proposal] : shown),
-		};
+		return detailsOffer(criteria, checked.proposal, shown, known, heard, nudge);
 	}
 	if (checked.status === "no_longer_free") return searchOffer(booking, criteria, now, "taken");
 	return timesOffer(criteria, { status: "unavailable", slots: [] }, undefined);
-}
-
-function minutesOf(slot: ProposedSlot): number {
-	return Number(slot.time.slice(0, 2)) * 60 + Number(slot.time.slice(3));
-}
-
-function partOf(minutes: number): PartOfDay {
-	if (minutes < 720) return "morning";
-	return minutes < 1020 ? "afternoon" : "evening";
-}
-
-function matchesWish(slot: ProposedSlot, wish: Wish): boolean {
-	return (
-		(wish.minutes === undefined || minutesOf(slot) === wish.minutes) &&
-		(wish.weekday === undefined || slot.weekday === wish.weekday) &&
-		(wish.fromDate === undefined || wish.days !== 1 || slot.date === wish.fromDate)
-	);
 }
 
 /** A time named by clock ("Tuesday at 10"): among the shown ones, else among the day's free ones. */
@@ -266,10 +226,11 @@ async function pickByClock(
 	wish: Wish,
 	shown: ReadonlyArray<ProposedSlot>,
 	now: number,
+	known: BookingDetails,
 ): Promise<BookingOffer> {
 	const among = shown.filter((slot) => matchesWish(slot, wish));
 	const only = among.length === 1 ? among[0] : undefined;
-	if (only !== undefined) return confirmOffer(booking, criteria, only, shown, now);
+	if (only !== undefined) return confirmOffer(booking, criteria, only, shown, now, known);
 	if (among.length > 1) {
 		return timesOffer(criteria, { status: "ok", slots: among }, "ambiguous");
 	}
@@ -277,7 +238,7 @@ async function pickByClock(
 	const found = await look(booking, criteria, now, PICK_SLOTS, wish.partOfDay ?? partOf(minutes));
 	const hits = found.slots.filter((slot) => matchesWish(slot, wish));
 	const hit = hits.length === 1 ? hits[0] : undefined;
-	if (hit !== undefined) return confirmOffer(booking, criteria, hit, hits, now);
+	if (hit !== undefined) return confirmOffer(booking, criteria, hit, hits, now, known);
 	if (hits.length > 1) return timesOffer(criteria, { ...found, slots: hits }, "ambiguous");
 	if (found.status === "ok") return timesOffer(criteria, found, "not_free");
 	return searchOffer(booking, criteria, now, "not_free");
@@ -386,9 +347,11 @@ async function act(
 	if (wish.ordinal !== undefined && shown.length > 0) {
 		const index = wish.ordinal === -1 ? shown.length - 1 : wish.ordinal - 1;
 		const picked = shown[index];
-		if (picked !== undefined) return confirmOffer(booking, criteria, picked, shown, now);
+		if (picked !== undefined)
+			return confirmOffer(booking, criteria, picked, shown, now, base?.details ?? {});
 	}
-	if (wish.minutes !== undefined) return pickByClock(booking, criteria, wish, shown, now);
+	if (wish.minutes !== undefined)
+		return pickByClock(booking, criteria, wish, shown, now, base?.details ?? {});
 	const refined = base !== undefined || Object.keys(wish).length > 0;
 	return searchOffer(booking, criteria, now, refined ? "refined" : undefined);
 }
@@ -399,11 +362,14 @@ async function act(
  */
 export async function bookingTurn(
 	offered: BookingScope,
-	input: { question: string; state?: BookingState },
+	input: { question: string; typed?: string; state?: BookingState },
 	packs: ReadonlyArray<LanguagePack>,
 	now: number = Date.now(),
 ): Promise<BookingOffer | undefined> {
 	const { question, state } = input;
+	// What the visitor typed, before the screening hid any phone or e-mail in it: read only for the
+	// details of a booking that has a time chosen.
+	const typed = input.typed ?? question;
 	const booking = await live(offered);
 	const codes = findCodes(question);
 	const both = codes.reference !== undefined && codes.cancelCode !== undefined;
@@ -417,7 +383,49 @@ export async function bookingTurn(
 	}
 	if (state === undefined || state.stage === "cancel") return undefined;
 	const wish = readWish(question, localToday(now), services, true, booking.scope.names);
-	return meaningful(wish, state, question) ? act(booking, state, wish, now) : undefined;
+	if (meaningful(wish, state, question)) return act(booking, state, wish, now);
+	return state.stage === "details" ? detailsTurn(booking, state, typed, now) : undefined;
+}
+
+/**
+ * Free text while a time is chosen and the form is up. What it tells (a name, a phone or an
+ * e-mail, who it is for, an explicit agreement) fills the form; a real question goes to the guide
+ * (the chosen time stays in the state); anything else sends the visitor back to the form. The
+ * chosen time is checked free again, so a hold that lapsed re-offers the nearest times.
+ */
+async function detailsTurn(
+	booking: BookingScope,
+	state: BookingState,
+	typed: string,
+	now: number,
+): Promise<BookingOffer | undefined> {
+	const { chosen, criteria } = state;
+	if (chosen === undefined) return undefined;
+	const { values, heard } = readDetails(typed, state.details);
+	const nothing = heard.length === 0;
+	if (nothing && (typed.includes("?") || QUESTION_WORDS.test(fold(typed)))) return undefined;
+	return confirmOffer(booking, criteria, chosen, state.shown, now, values, heard, nothing);
+}
+
+/** The chosen time shown again, with what was typed so far: the answer for a reply that denied the calendar. */
+export async function reshow(
+	offered: BookingScope,
+	state: BookingState | undefined,
+	question: string,
+	now: number = Date.now(),
+): Promise<BookingOffer> {
+	if (state?.stage === "details" && state.chosen !== undefined) {
+		const booking = await live(offered);
+		return confirmOffer(
+			booking,
+			state.criteria,
+			state.chosen,
+			state.shown,
+			now,
+			state.details ?? {},
+		);
+	}
+	return offerTimes(offered, question, now);
 }
 
 /** Looks up the next free times for the profile's first service. Never throws. */

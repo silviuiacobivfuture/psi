@@ -107,6 +107,43 @@ function startingChoices(offer: BookingOffer): Record<string, string> {
 	};
 }
 
+type Details = NonNullable<BookingOffer["details"]>;
+
+/** The form's starting values from what the chat told: the typed details fill it again every turn. */
+function typedValues(details: Details): Prefill & Pick<BookingValues, "forWhom" | "consent"> {
+	const { name, email, phone, forWhom, consent } = details.values;
+	return {
+		...(name === undefined ? {} : { name }),
+		...(email === undefined ? {} : { email }),
+		...(phone === undefined ? {} : { phone }),
+		...(forWhom === undefined ? {} : { forWhom }),
+		...(consent === undefined ? {} : { consent: "yes" }),
+	};
+}
+
+/** The guide's one line after a message in the details step: what it took, what it still needs. */
+function detailsLine(details: Details, locale: Locale): string {
+	const o = at(locale);
+	if (details.nudge) return m.guide_details_nudge({}, o);
+	if (details.heard.length === 0) return m.guide_booking_confirm_picker({}, o);
+	if (details.missing.length === 0) return m.guide_details_ready({}, o);
+	const names = {
+		name: m.guide_details_need_name({}, o),
+		contact: m.guide_details_need_contact({}, o),
+		forWhom: m.guide_details_need_for({}, o),
+		consent: m.guide_details_need_consent({}, o),
+	} as const;
+	const what = new Intl.ListFormat(locale, { type: "conjunction" }).format(
+		details.missing.map((k) => names[k]),
+	);
+	const first = details.values.name?.split(" ")[0];
+	const thanks =
+		details.heard.length === 0
+			? ""
+			: `${first !== undefined && details.heard.includes("name") ? m.guide_details_thanks_name({ name: first }, o) : m.guide_details_thanks({}, o)} `;
+	return `${thanks}${m.guide_details_need({ what }, o)}`;
+}
+
 /**
  * The offer inside the conversation bubble. Times come as the booking picker (compact): the week
  * around the offered day, read from the store now, not from the offer's few slots. Picking a time
@@ -150,12 +187,15 @@ export async function ChatBooking({
 			</div>
 		);
 	}
+	const typed = offer.details === undefined ? {} : typedValues(offer.details);
 	const lead =
-		offer.kind === "confirm" && offer.chosen !== undefined
-			? m.guide_booking_confirm_picker({}, o)
-			: offer.notice === undefined
-				? m.guide_booking_intro({}, o)
-				: NOTICE[offer.notice](o);
+		offer.kind === "confirm" && offer.details !== undefined
+			? detailsLine(offer.details, locale)
+			: offer.kind === "confirm" && offer.chosen !== undefined
+				? m.guide_booking_confirm_picker({}, o)
+				: offer.notice === undefined
+					? m.guide_booking_intro({}, o)
+					: NOTICE[offer.notice](o);
 	return (
 		<div class="space-y-4">
 			<p>
@@ -166,7 +206,7 @@ export async function ChatBooking({
 				locale={locale}
 				schedule={schedule}
 				compact
-				values={prefill}
+				values={{ ...prefill, ...typed }}
 				{...accountProp}
 			/>
 		</div>

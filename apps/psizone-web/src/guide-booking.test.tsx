@@ -169,3 +169,94 @@ describe("booking in the guide's chat", () => {
 		}
 	});
 });
+
+describe("the details typed in the chat fill the booking form", () => {
+	const slot = offer.slots[0];
+	if (slot === undefined) throw new Error("no slot");
+	const confirm = (details: NonNullable<BookingOffer["details"]>): BookingOffer => ({
+		...offer,
+		kind: "confirm",
+		slots: [slot],
+		chosen: slot,
+		details,
+	});
+
+	it("a name typed in the chat fills the name field, thanks by first name and asks for the rest", async () => {
+		const out = await render(
+			"ro",
+			confirm({
+				values: { name: "Iacob Silviu Iulian" },
+				missing: ["contact", "forWhom", "consent"],
+				heard: ["name"],
+				nudge: false,
+			}),
+		);
+		expect(out).toMatch(/name="name"[^>]*value="Iacob Silviu Iulian"/);
+		expect(out).toContain("Mulțumesc, Iacob!");
+		expect(out).toContain(
+			"un număr de telefon sau un e-mail, persoana pentru care este programarea și acordul tău",
+		);
+		// The chosen time and the form stay.
+		expect(out).toContain("<form");
+		expect(out).toMatch(/name="slot" value="[^"]+" checked|checked[^>]*name="slot"/);
+	});
+
+	it("a phone, who it is for and the agreement are filled too, and a complete form says it is ready", async () => {
+		const out = await render(
+			"en",
+			confirm({
+				values: {
+					name: "Ana Pop",
+					phone: "0722123456",
+					forWhom: "adult",
+					consent: true,
+				},
+				missing: [],
+				heard: ["consent"],
+				nudge: false,
+			}),
+		);
+		expect(out).toMatch(/name="phone"[^>]*value="0722123456"/);
+		expect(out).toMatch(/name="forWhom" value="adult" checked/);
+		expect(out).toMatch(/name="consent" value="yes" checked/);
+		expect(out).toContain("All set");
+	});
+
+	it("an e-mail instead of a phone is enough, and the nudge sends the visitor back to the form", async () => {
+		const mail = await render(
+			"ro",
+			confirm({
+				values: { name: "Ana Pop", email: "ana@example.ro" },
+				missing: ["forWhom", "consent"],
+				heard: ["email"],
+				nudge: false,
+			}),
+		);
+		expect(mail).toMatch(/name="email"[^>]*value="ana@example.ro"/);
+		expect(mail).not.toContain("un număr de telefon sau un e-mail");
+		const nudge = await render(
+			"ro",
+			confirm({
+				values: {},
+				missing: ["name", "contact", "forWhom", "consent"],
+				heard: [],
+				nudge: true,
+			}),
+		);
+		expect(nudge).toContain("Completează detaliile în formularul de mai jos");
+		expect(nudge).toContain('name="consent"');
+	});
+
+	it("the first pick, before anything is typed, keeps the usual line", async () => {
+		const out = await render(
+			"ro",
+			confirm({
+				values: {},
+				missing: ["name", "contact", "forWhom", "consent"],
+				heard: [],
+				nudge: false,
+			}),
+		);
+		expect(out).not.toContain("Mai am nevoie");
+	});
+});

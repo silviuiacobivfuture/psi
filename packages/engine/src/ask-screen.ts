@@ -95,7 +95,8 @@ export async function screen(
 	raw: unknown,
 	control: AskControl | undefined,
 ): Promise<
-	{ input: AskInput; settings: RetrievalSettings; outOfScope: boolean } | { reason: RefusalReason }
+	| { input: AskInput; settings: RetrievalSettings; outOfScope: boolean; typed: string }
+	| { reason: RefusalReason }
 > {
 	const invalidInput = ctx.profile.refusalPolicy?.invalidInput ?? "out_of_scope";
 	const question = rawQuestion(raw);
@@ -126,5 +127,7 @@ export async function screen(
 	if ("reason" in screened) return screened;
 	// Out of scope (a diagnosis, a medication): no refusal card, a gentle redirect in conversation.
 	const outOfScope = matchesRules(screened.input.question, ctx.profile.outOfScope ?? []);
-	return { input: screened.input, settings, outOfScope };
+	// The question as typed (cleaned of invisible characters), before the redaction of phones and
+	// e-mails: only the booking's details step reads it, to fill the form the visitor sees.
+	return { input: screened.input, settings, outOfScope, typed: cleanText(parsed.data.question) };
 }
