@@ -2,7 +2,7 @@ import { Banner, EmptyState, Icon } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { AppDeps, Env } from "../app";
-import { Page, roleName } from "../chrome";
+import { Page, roleLabel, roleName } from "../chrome";
 import { canOf } from "../lib/can";
 import type { Ctx } from "../lib/context";
 import { landingFor } from "../lib/gates";
@@ -20,7 +20,11 @@ const TARGET = /^(role|member):[^\s:][^\s]{0,199}$/;
 function viewLabel(as: ViewAsTarget, displayName: string | undefined, locale: Locale): string {
 	if (as.startsWith("role:")) {
 		const id = as.slice("role:".length);
-		const local = roleName(id, locale);
+		const local = roleName(
+			id,
+			locale,
+			displayName === undefined ? undefined : { [id]: displayName },
+		);
 		return (local === id ? (displayName ?? id) : local).slice(0, 120);
 	}
 	return (displayName ?? as).slice(0, 120);
@@ -61,7 +65,7 @@ export async function renderViewAs(
 	members: ReadonlyArray<TeamMember>,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const roleNames = new Map(roles.map((r) => [r.id, r.name]));
+	const roleNames = new Map(roles.map((r) => [r.id, roleLabel(r, ctx.locale)]));
 	return Page({
 		ctx,
 		current: "more",
@@ -80,11 +84,11 @@ export async function renderViewAs(
 							<Choice
 								key={r.id}
 								as={`role:${r.id}`}
-								label={roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale)}
+								label={roleLabel(r, ctx.locale)}
 								hint={r.description}
 								go={m.view_as_start(
 									{
-										name: roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale),
+										name: roleLabel(r, ctx.locale),
 									},
 									o,
 								)}
@@ -144,9 +148,7 @@ export function registerViewAs(app: Hono<Env>, deps: AppDeps): void {
 				ctx={ctx}
 				roles={roles}
 				members={members}
-				roleLabel={(r) =>
-					roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale)
-				}
+				roleLabel={(r) => roleLabel(r, ctx.locale)}
 			/>
 		).toString();
 		return sse((stream) => {

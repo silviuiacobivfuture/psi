@@ -20,6 +20,10 @@ import { mayDo } from "./permissions";
 import { type ActionsSource, extraMethods } from "./staff-port-extra";
 import { ok, refused, wrap } from "./staff-result";
 
+/** "Every appointment there is": a window the service accepts (instants are never negative), far on both sides. */
+const EVERYTHING_FROM = "1971-01-01";
+const EVERYTHING_TO = "2100-12-31";
+
 const LIVE = new Set(["requested", "confirmed", "attended", "no-show", "cancelled"]);
 const isStaffStatus = (s: string): s is StaffAppointment["status"] => LIVE.has(s);
 
@@ -91,7 +95,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		columns: ReadonlyArray<Column>;
 	}> =>
 		port
-			.calendar(app, "0001-01-01", "9999-12-31")
+			.calendar(app, EVERYTHING_FROM, EVERYTHING_TO)
 			.then((c) => ({ appts: c.appointments, clients: c.clients, columns: c.columns }));
 
 	const nameOf = (clients: ReadonlyArray<Client>, id: string | null): string | null =>
