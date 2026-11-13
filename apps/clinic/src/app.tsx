@@ -42,6 +42,7 @@ import { registerViewAs } from "./pages/view-as";
 import { m } from "./paraglide/messages.js";
 import { PortError, type PortSource } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
+import { registerProfile } from "./profile/routes";
 import { registerStats } from "./stats/routes";
 
 export interface AppDeps {
@@ -52,6 +53,8 @@ export interface AppDeps {
 	auth: Auth;
 	pwa: Pwa;
 	origin: string;
+	/** Where a person changes their name and e-mail: the sign-in's own account page. Absent: no link is offered. */
+	ssoAccountUrl?: string;
 	/** The bell's feed (Novu's inbox, or the development feed); omitted, there is no bell. */
 	notifications?: NotificationsPort;
 	/** The staff assistant; omitted, it does not exist (no button, no routes). */
@@ -213,6 +216,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAdmin(app);
 	registerAudit(app);
 	registerStats(app);
+	registerProfile(app, deps);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

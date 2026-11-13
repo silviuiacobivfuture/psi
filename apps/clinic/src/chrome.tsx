@@ -31,6 +31,7 @@ export type NavKey =
 	| "settings"
 	| "audit"
 	| "stats"
+	| "profile"
 	| "admin";
 
 export function labels(locale: Locale): ShellLabels {
@@ -230,6 +231,10 @@ export async function Page({
 						<div class="adm-menu__item adm-muted" data-who>
 							{mine} · {appName(ctx.app, locale)}
 						</div>
+						<a class="adm-menu__item" href="/me/profile" data-profile-link>
+							<Icon name="user" />
+							{m.menu_profile({}, o)}
+						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">
 								<Icon name="shield" />

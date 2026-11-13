@@ -23,6 +23,7 @@ const SCREENS = [
 	"/settings/roles",
 	"/audit",
 	"/stats",
+	"/me/profile",
 	"/more",
 ];
 const PHONES = [360, 375, 390, 430];

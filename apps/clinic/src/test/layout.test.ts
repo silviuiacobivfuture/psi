@@ -59,6 +59,7 @@ describe("phone, 375px", () => {
 			"/settings/roles",
 			"/audit",
 			"/stats",
+			"/me/profile",
 			"/more",
 		]) {
 			await page.goto(`${live.url}${path}`);

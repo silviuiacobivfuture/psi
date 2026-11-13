@@ -7,6 +7,7 @@ import { calendarGroup } from "./calendar";
 import { clientsGroup } from "./clients";
 import { createContext } from "./context";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
+import { profileGroup } from "./profile";
 import { reportsGroup } from "./reports";
 
 export interface SdkPortOptions {
@@ -55,6 +56,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...clients,
 		...admin,
 		...reportsGroup(sdk),
+		...profileGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};
 }

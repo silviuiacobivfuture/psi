@@ -2,11 +2,11 @@ import { Icon } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { absolute, relative } from "../lib/when";
 import { m } from "../paraglide/messages.js";
 import { changeRows, visibleChanges } from "./changes";
 import type { AuditLookup } from "./lookup";
 import type { Row } from "./rows";
-import { absolute, relative } from "./when";
 
 export const DRAWER_BODY = "audit-drawer-body";
 

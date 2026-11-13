@@ -3,6 +3,7 @@ import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/confl
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { appointmentChanges } from "./fake-audit";
+import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
 	type CalendarData,
@@ -123,7 +124,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		"group_activities_view",
 	];
 
+	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
+		...profile,
 		async capabilities(subject, app, as) {
 			guard("capabilities");
 			const mine = opts.members[subject]?.find((x) => x.app === app);
@@ -188,7 +191,18 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
 					groups.has(g),
 				),
-				reach: { own: [], assigned: [] },
+				// A therapist is the first person column: the fake has no link between people and columns, so one is chosen.
+				reach: {
+					own:
+						(as === undefined || as.startsWith("member:")) &&
+						roles.some((r) => r.id === "therapist")
+							? d.columns
+									.filter((c) => c.kind === "person")
+									.slice(0, 1)
+									.map((c) => c.id)
+							: [],
+					assigned: [],
+				},
 				platformAdmin: as === undefined && opts.platformAdmins?.includes(subject) === true,
 			};
 		},

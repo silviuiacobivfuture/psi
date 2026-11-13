@@ -2,6 +2,7 @@ import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/c
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
 import type {
 	Appointment,
@@ -97,7 +98,7 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort {
+export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
 	appointment(app: AppSlug, id: string): Promise<Appointment | null>;

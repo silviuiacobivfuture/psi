@@ -14,6 +14,20 @@ export interface Auth {
 	bearer(c: Context): Promise<string | null>;
 	signInHref(returnTo: string): string;
 	readonly signOutAction: string;
+	/**
+	 * The browsers this person is signed in on. The estate's sign-in keeps no list across browsers: it knows this one
+	 * (and ends every one on "sign out everywhere"), so that is what it answers.
+	 */
+	sessions(c: Context): Promise<ReadonlyArray<SessionInfo>>;
+}
+
+export interface SessionInfo {
+	/** The browser's own User-Agent, to be said briefly ("Chrome pe Linux"). */
+	userAgent: string | undefined;
+	/** This is the browser asking. */
+	current: boolean;
+	/** When it was last seen (ISO), if the store says. */
+	lastSeen: string | null;
 }
 
 /** The estate's sign-in (Authentik, OIDC) through @psi/account. */
@@ -28,6 +42,9 @@ export function accountAuth(account: Account): Auth {
 		bearer: (c) => account.idToken(c),
 		signInHref: (returnTo) => account.signInHref(returnTo),
 		signOutAction: account.signOutAction,
+		sessions: async (c) => [
+			{ userAgent: c.req.header("user-agent"), current: true, lastSeen: null },
+		],
 	};
 }
 
@@ -45,5 +62,14 @@ export function devAuth(): Auth {
 		bearer: async () => null,
 		signInHref: () => "/",
 		signOutAction: "/dev-signout",
+		sessions: async (c) => [
+			{ userAgent: c.req.header("user-agent"), current: true, lastSeen: null },
+			{
+				userAgent:
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Safari/604.1",
+				current: false,
+				lastSeen: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+			},
+		],
 	};
 }

@@ -19,6 +19,7 @@ const SCREENS = [
 	"/settings/notifications",
 	"/audit",
 	"/stats",
+	"/me/profile",
 	"/more",
 ] as const;
 

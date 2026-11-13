@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { short } from "../lib/when";
 import { m } from "../paraglide/messages.js";
 import type { AuditEvent } from "../port/schema";
 import { DrawerShell } from "./drawer";
@@ -10,7 +11,6 @@ import { actionChoices, OBJECT_TYPES, typeLabel } from "./labels";
 import { type AuditLookup, loadLookup } from "./lookup";
 import { type AuditQuery, byFilters, bySearch, type Paged, paged, searchOf } from "./query";
 import { describe, type Row } from "./rows";
-import { short } from "./when";
 
 export const DRAWER_SIGNAL = "auditOpen";
 

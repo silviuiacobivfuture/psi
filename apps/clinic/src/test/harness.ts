@@ -106,6 +106,7 @@ export async function startConsole(
 		...(options.assistant === true ? { assistant: idleAssistant() } : {}),
 		auth: accountAuth(account),
 		origin: ORIGIN,
+		ssoAccountUrl: "https://sso.example.test/if/user/#/settings",
 		pwa,
 		mount: (h) => {
 			account.mount(h);

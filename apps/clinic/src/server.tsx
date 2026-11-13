@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { defaultIssuer } from "@psi/account";
 import type { Hono } from "hono";
 import { account } from "./account";
 import { createApp } from "./app";
@@ -23,6 +24,12 @@ if (ENV.production && !account.enabled)
 	);
 
 const { novu } = ENV;
+
+/** Where a person changes their name and e-mail: the sign-in provider's own user settings. */
+const ssoAccountUrl = new URL(
+	"/if/user/#/settings",
+	new URL(process.env.OIDC_ISSUER?.trim() || defaultIssuer(process.env, "clinic")).origin,
+).href;
 
 const pwa = createConsolePwa(
 	ORIGIN,
@@ -62,6 +69,7 @@ if (ENV.fakePort) {
 		auth,
 		pwa,
 		origin: ORIGIN,
+		ssoAccountUrl,
 		mount: (hono) => {
 			if (!ENV.devSignIn) account.mount(hono);
 			mountDevices(hono);
@@ -86,6 +94,7 @@ if (ENV.fakePort) {
 		auth,
 		pwa,
 		origin: ORIGIN,
+		ssoAccountUrl,
 		mount: (hono) => {
 			if (dev === null) account.mount(hono);
 			else dev.mount(hono);
