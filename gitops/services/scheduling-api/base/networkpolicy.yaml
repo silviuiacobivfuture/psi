@@ -1,0 +1,77 @@
+# Who may call scheduling-api, and what it may call. Default deny both ways.
+#
+#   INGRESS  :4380 from the ingress controller (the public host), and from the pods of the team console (clinic),
+#            psizone-web, hemisync-web and the CMS (each: namespace AND pod label in ONE `from` element, an AND;
+#            two elements would be an OR). Kubelet probes come from node addresses: the dev overlay adds them.
+#   EGRESS   DNS; the Convex backend (scheduling-backend:3210, queries, mutations and the live-query WebSocket);
+#            OpenFGA (:8081 read, :8080 write); Authentik's server pods (:9000, the issuers' JWKS in-cluster);
+#            HTTPS out to the mail service, object storage and Novu.
+#   NOTE     OpenFGA's own NetworkPolicy is rendered by SEB (gitops/seb-pieces/openfga) and admits only Polaris and
+#            Authentik today: it must admit this namespace on 8081 and 8080 before the service can authorize.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scheduling-api
+spec:
+  podSelector:
+    matchLabels: { app: scheduling-api }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: clinic }
+          podSelector:
+            matchLabels: { app: clinic }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: psizone-web }
+          podSelector:
+            matchLabels: { app: psizone-web }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: hemisync-web }
+          podSelector:
+            matchLabels: { app: hemisync-web }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: cms }
+          podSelector:
+            matchLabels: { app: cms }
+      ports:
+        - { protocol: TCP, port: 4380 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling }
+          podSelector:
+            matchLabels: { app: scheduling-backend }
+      ports:
+        - { protocol: TCP, port: 3210 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: openfga }
+          podSelector:
+            matchLabels: { app: openfga }
+      ports:
+        - { protocol: TCP, port: 8081 }
+        - { protocol: TCP, port: 8080 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: authentik }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
+      ports:
+        - { protocol: TCP, port: 9000 }
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - { protocol: TCP, port: 443 }

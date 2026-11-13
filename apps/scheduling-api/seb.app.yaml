@@ -1,0 +1,125 @@
+# scheduling-api's declaration to the platform (SEB schema/app.schema.json): what it runs, where its manifests are, which
+# secrets it reads. SEB's doctor derives its health checks from it. The host is public and gated by the service itself:
+# every route takes an estate SSO token or a service key, and each call is authorized with OpenFGA.
+# Plan: docs/plans/clinic.md (slice 3). NOT registered with Argo yet (gitops/apps/overlays/dev/apps/scheduling-api.yaml).
+schema: seb.app/v1
+key: scheduling-api
+name: scheduling-api
+displayName: Scheduling API
+namespace: scheduling-api
+note: The headless scheduling service. JSON over HTTP and SSE under /v1, OpenAPI at /v1/openapi.json; the only thing that talks to the Convex store; every call authorized with OpenFGA.
+components:
+  - name: scheduling-api
+    path: apps/scheduling-api
+    namespace: scheduling-api
+    gitops: gitops/services/scheduling-api
+    image: psi/scheduling-api
+    build:
+      workflow: .github/workflows/apps.yml
+      dockerfile: apps/scheduling-api/Dockerfile
+      context: .
+    port: 4380
+    hosts:
+      - prefix: api-programari
+        exposure: public
+        ingress: scheduling-api
+    overlayImages:
+      - psi/scheduling-api
+    workloads:
+      - name: scheduling-api
+        kind: Deployment
+        images:
+          - psi/scheduling-api
+        restartOnSecretChange: true
+        envFrom: [scheduling-api-env]
+        requiredEnv:
+          - CLINIC_MASTER_KEY
+          - OIDC_ISSUERS
+          - OPENFGA_MODEL_ID
+          - SERVICE_KEY_HASH_PSIZONE_WEB
+          - SERVICE_KEY_HASH_HEMISYNC_WEB
+          - SERVICE_KEY_HASH_GUIDE_PSIZONE
+          - SERVICE_KEY_HASH_GUIDE_HEMISYNC
+          - SERVICE_KEY_HASH_CMS
+          - MAIL_API_URL
+          - MAIL_API_KEY
+          - MAIL_FROM
+          - PSI_SCHEDULING_KEY
+          - OPENFGA_TOKEN
+          - OPENFGA_STORE_ID
+          - S3_ACCESS_KEY_ID
+          - S3_SECRET_ACCESS_KEY
+        initContainers: [assert-secrets]
+        probes:
+          startup: { path: /health, port: 4380 }
+          readiness: { path: /ready, port: 4380 }
+          liveness: { path: /health, port: 4380 }
+externalSecrets:
+  - name: scheduling-api-env
+    namespace: scheduling-api
+    target: scheduling-api-env
+    manifest: gitops/services/scheduling-api/base/externalsecret.yaml
+    template: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY]
+  - name: harbor-pull
+    namespace: scheduling-api
+    target: harbor-pull
+    manifest: gitops/services/scheduling-api/base/harbor-pull-externalsecret.yaml
+secrets:
+  - path: apps/scheduling-api/env
+    owner: scheduling-api
+    keys:
+      - name: CLINIC_MASTER_KEY
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: CLINIC_MASTER_KEY }]
+      - name: OIDC_ISSUERS
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: OIDC_ISSUERS }]
+      - name: OPENFGA_MODEL_ID
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: OPENFGA_MODEL_ID }]
+      - name: SERVICE_KEY_HASH_PSIZONE_WEB
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: SERVICE_KEY_HASH_PSIZONE_WEB }]
+      - name: SERVICE_KEY_HASH_HEMISYNC_WEB
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: SERVICE_KEY_HASH_HEMISYNC_WEB }]
+      - name: SERVICE_KEY_HASH_GUIDE_PSIZONE
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: SERVICE_KEY_HASH_GUIDE_PSIZONE }]
+      - name: SERVICE_KEY_HASH_GUIDE_HEMISYNC
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: SERVICE_KEY_HASH_GUIDE_HEMISYNC }]
+      - name: SERVICE_KEY_HASH_CMS
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: SERVICE_KEY_HASH_CMS }]
+  - path: apps/scheduling-api/mail
+    owner: scheduling-api
+    keys:
+      - name: MAIL_API_KEY
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: MAIL_API_KEY }]
+consumes:
+  - service: scheduling-backend
+    env: [CONVEX_URL, PSI_SCHEDULING_KEY]
+  - service: openfga
+    env: [OPENFGA_ENDPOINT, OPENFGA_WRITE_ENDPOINT, OPENFGA_STORE_ID, OPENFGA_MODEL_ID, OPENFGA_TOKEN]
+egress: [auth.psizone.ro, nbg1.your-objectstorage.com]
+ci:
+  workflows:
+    - file: .github/workflows/apps.yml
+      images: [psi/scheduling-api]
+      buildArgs: [REGISTRY_HOST, REGISTRY_PROJECT_MIRROR]
+      bumps: [gitops/services/scheduling-api/overlays/dev/kustomization.yaml]
+health:
+  secretChecks:
+    - label: scheduling-api environment
+      externalSecret: scheduling-api/scheduling-api-env
+      secret: scheduling-api-env
+      keys: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/scheduling-api/env, apps/scheduling-api/mail]
+  keys: []
+findings: []

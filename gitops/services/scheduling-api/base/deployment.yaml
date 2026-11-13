@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduling-api
+  labels: { app: scheduling-api }
+  annotations:
+    # Rolls the pods when scheduling-api-env changes (OpenBao -> ESO -> Secret -> roll).
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: scheduling-api }
+  template:
+    metadata:
+      labels: { app: scheduling-api }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: scheduling-api } }
+      initContainers:
+        # FIRST: fail LOUD on a missing or blank secret, before the service boots (src/config.ts refuses a production
+        # start without them too). Adding a key = adding its line.
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: scheduling-api-env }
+          command:
+            - sh
+            - -c
+            - >-
+              m=0;
+              [ -n "${CLINIC_MASTER_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CLINIC_MASTER_KEY" >&2; m=1; }; [ -n "${OIDC_ISSUERS:-}" ] || { echo "MISSING REQUIRED SECRET: OIDC_ISSUERS" >&2; m=1; }; [ -n "${OPENFGA_MODEL_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_MODEL_ID" >&2; m=1; }; [ -n "${SERVICE_KEY_HASH_PSIZONE_WEB:-}" ] || { echo "MISSING REQUIRED SECRET: SERVICE_KEY_HASH_PSIZONE_WEB" >&2; m=1; }; [ -n "${SERVICE_KEY_HASH_HEMISYNC_WEB:-}" ] || { echo "MISSING REQUIRED SECRET: SERVICE_KEY_HASH_HEMISYNC_WEB" >&2; m=1; }; [ -n "${SERVICE_KEY_HASH_GUIDE_PSIZONE:-}" ] || { echo "MISSING REQUIRED SECRET: SERVICE_KEY_HASH_GUIDE_PSIZONE" >&2; m=1; }; [ -n "${SERVICE_KEY_HASH_GUIDE_HEMISYNC:-}" ] || { echo "MISSING REQUIRED SECRET: SERVICE_KEY_HASH_GUIDE_HEMISYNC" >&2; m=1; }; [ -n "${SERVICE_KEY_HASH_CMS:-}" ] || { echo "MISSING REQUIRED SECRET: SERVICE_KEY_HASH_CMS" >&2; m=1; }; [ -n "${MAIL_API_URL:-}" ] || { echo "MISSING REQUIRED SECRET: MAIL_API_URL" >&2; m=1; }; [ -n "${MAIL_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: MAIL_API_KEY" >&2; m=1; }; [ -n "${MAIL_FROM:-}" ] || { echo "MISSING REQUIRED SECRET: MAIL_FROM" >&2; m=1; }; [ -n "${PSI_SCHEDULING_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: PSI_SCHEDULING_KEY" >&2; m=1; }; [ -n "${OPENFGA_TOKEN:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_TOKEN" >&2; m=1; }; [ -n "${OPENFGA_STORE_ID:-}" ] || { echo "MISSING REQUIRED SECRET: OPENFGA_STORE_ID" >&2; m=1; }; [ -n "${S3_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: S3_ACCESS_KEY_ID" >&2; m=1; }; [ -n "${S3_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: S3_SECRET_ACCESS_KEY" >&2; m=1; };
+              [ "$m" = 0 ] && echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: api
+          image: registry.psizone.ro/psi/scheduling-api
+          ports:
+            - { name: http, containerPort: 4380 }
+          envFrom:
+            - secretRef: { name: scheduling-api-env }
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: PORT, value: "4380" }
+            - { name: PUBLIC_URL, value: "https://api-programari.psizone.ro" }
+            - { name: SCHEDULING_STORE, value: convex }
+            - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
+            - { name: AUTHZ, value: openfga }
+            # OpenFGA's READ port for Check/ListObjects; tuples are written to the other (docs/plans/clinic.md).
+            - { name: OPENFGA_ENDPOINT, value: "http://openfga.openfga.svc:8081" }
+            - { name: OPENFGA_WRITE_ENDPOINT, value: "http://openfga-admin.openfga.svc:8080" }
+            # One service key per caller, each scoped to one app and to the visitor routes.
+            - { name: SERVICE_CALLERS, value: "psizone-web=psizone,hemisync-web=hemisync,guide-psizone=psizone,guide-hemisync=hemisync,cms=psizone" }
+            - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
+            - { name: S3_REGION, value: nbg1 }
+            - { name: S3_BUCKET, value: psi-scheduling-dev }
+            - { name: MAIL_FROM_NAME, value: Psizone }
+            - { name: CORS_ORIGINS, value: "https://programari.psizone.ro" }
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
