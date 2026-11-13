@@ -50,9 +50,3 @@ patches:
     patch: |-
       - { op: test, path: /spec/template/spec/containers/0/name, value: novu-bridge }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 64Mi }
-# Slot `image` (schema/slots/novu.yaml): the tag of the novu-bridge image psi built
-# (scripts/estate-images.sh, psi's estate declaration painted in), sha256:1838ba64… in
-# registry.psizone.ro/psi. The generated Application sets it (estate/seb-image-tags.mjs).
-images:
-  - name: WLREGISTRY/WLAPPS/novu-bridge
-    newTag: 9111d9ed7
