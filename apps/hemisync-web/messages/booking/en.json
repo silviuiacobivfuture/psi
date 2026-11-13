@@ -123,7 +123,6 @@
 	"bk_chat_email_typo": "The address seems to have a typo. Did you mean ...@{domain}? Please write it again.",
 	"bk_chat_nudge": "I did not understand. Answer the question below or press “Fill in the form”.",
 	"bk_chat_use_form": "Fill in the form",
-	"bk_chat_card_title": "Check and confirm",
 	"bk_chat_card_lead": "I have everything I need. Check the details and confirm:",
 	"bk_chat_card_service": "Service",
 	"bk_chat_card_when": "When",

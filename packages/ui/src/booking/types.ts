@@ -161,7 +161,6 @@ export interface BookingCopy {
 		 * of each site guards it).
 		 */
 		card: {
-			title: string;
 			lead: string;
 			labels: Readonly<
 				Record<

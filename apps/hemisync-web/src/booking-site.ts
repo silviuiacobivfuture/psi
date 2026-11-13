@@ -163,7 +163,6 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 				useForm: m.bk_chat_use_form({}, o),
 			},
 			card: {
-				title: m.bk_chat_card_title({}, o),
 				lead: m.bk_chat_card_lead({}, o),
 				labels: {
 					service: m.bk_chat_card_service({}, o),

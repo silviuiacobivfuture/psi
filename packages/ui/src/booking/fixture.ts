@@ -121,7 +121,6 @@ export const FIXTURE_COPY: BookingCopy = {
 			useForm: "t:form",
 		},
 		card: {
-			title: "cd:title",
 			lead: "cd:lead",
 			labels: {
 				service: "l:service",

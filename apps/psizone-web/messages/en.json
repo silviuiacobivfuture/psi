@@ -268,7 +268,6 @@
 	"guide_details_email_typo": "The address seems to have a typo. Did you mean ...@{domain}? Please write it again.",
 	"guide_details_nudge": "I did not understand. Answer the question below or press “Fill in the form”.",
 	"guide_details_use_form": "Fill in the form",
-	"guide_details_card_title": "Check and confirm",
 	"guide_details_card_lead": "I have everything I need. Check the details and confirm:",
 	"guide_details_card_service": "Service",
 	"guide_details_card_when": "When",

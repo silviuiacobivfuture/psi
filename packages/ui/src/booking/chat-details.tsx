@@ -155,7 +155,7 @@ export function BookedCard({
 	const { booked } = offer;
 	if (booked === undefined) return null;
 	return (
-		<div class="space-y-3">
+		<div class="space-y-3" data-booked>
 			<BookingRequested
 				id={id}
 				env={env}

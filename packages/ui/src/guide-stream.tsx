@@ -251,7 +251,9 @@ export function streamGuideAnswer(
 			);
 		};
 		const remember = async (
-			reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
+			reply:
+				| { answer: string; booking?: BookingState; endsBooking?: boolean }
+				| { refused: RefusalReason },
 			answeredDetails = false,
 		) => {
 			// What a visitor typed as booking details (a name, a phone, what is going on) is not kept in the
@@ -359,7 +361,7 @@ export function streamGuideAnswer(
 							await remember(
 								{
 									answer: labels.booking?.summary(offer) ?? text,
-									...(offer.state === undefined ? {} : { booking: offer.state }),
+									...(offer.state === undefined ? { endsBooking: true } : { booking: offer.state }),
 								},
 								booking?.stage === "details",
 							);

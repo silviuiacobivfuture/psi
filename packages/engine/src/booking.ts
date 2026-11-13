@@ -173,6 +173,7 @@ async function act(
 	wish: Wish,
 	now: number,
 	lang: BookingLang,
+	carried: BookingState | undefined = base,
 ): Promise<BookingOffer> {
 	const service = base?.criteria.service ?? booking.scope.services[0] ?? "";
 	const shown = base?.shown ?? [];
@@ -203,12 +204,18 @@ async function act(
 		const index = wish.ordinal === -1 ? shown.length - 1 : wish.ordinal - 1;
 		const picked = shown[index];
 		if (picked !== undefined)
-			return confirmOffer(booking, criteria, picked, shown, now, talkOf(base, lang));
+			return confirmOffer(booking, criteria, picked, shown, now, talkOf(carried, lang));
 	}
 	if (wish.minutes !== undefined)
-		return pickByClock(booking, criteria, wish, shown, now, talkOf(base, lang));
+		return pickByClock(booking, criteria, wish, shown, now, talkOf(carried, lang));
 	const refined = base !== undefined || Object.keys(wish).length > 0;
-	return searchOffer(booking, criteria, now, refined ? "refined" : undefined, keepOf(base, lang));
+	return searchOffer(
+		booking,
+		criteria,
+		now,
+		refined ? "refined" : undefined,
+		keepOf(carried, lang),
+	);
 }
 
 /**
@@ -240,7 +247,8 @@ export async function bookingTurn(
 	const services = booking.scope.services;
 	if (isBookingIntent(question, packs)) {
 		const wish = readWish(question, localToday(now), services, false, booking.scope.names);
-		return act(booking, undefined, wish, now, lang);
+		// A new request mid-booking starts the search again, and keeps what the visitor already gave.
+		return act(booking, undefined, wish, now, lang, state?.stage === "cancel" ? undefined : state);
 	}
 	if (state === undefined || state.stage === "cancel") return undefined;
 	const wish = readWish(question, localToday(now), services, true, booking.scope.names);

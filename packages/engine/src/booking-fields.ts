@@ -45,6 +45,9 @@ const AGE_YEARS = new RegExp(
 	`(?<![\\d.,-])(${NUMBER})\\s*(?:de\\s+)?(?:ani|an|years?\\s+old|years?|yrs?|yo|y/o)(?![\\p{L}])`,
 	"iu",
 );
+/** What an age written without being asked for must follow: a subject, so "de 2 ani" in a story is not one. */
+const AGE_SUBJECT =
+	/(?:^|[,;.]\s*|\b(?:am|are|aveam|avea|[iî]mplinit|sunt|is|has|i am|i m|aged?|v[aâ]rsta|fiica mea|fiul meu|copilul meu|copila mea|b[aă]iatul meu|fata mea|fetița mea|fetita mea|my son|my daughter|my child|he is|she is)\s+(?:de\s+)?)$/iu;
 const AGE_LABEL = new RegExp(
 	`(?:v[aâ]rst[aă]|age|aged)\\s*(?:mea|lui|ei|ei|is|of|de|:)?\\s*(${NUMBER})(?![\\d.,])`,
 	"iu",
@@ -153,8 +156,14 @@ function phoneIn(
 		: { rest: text };
 }
 
-function ageIn(text: string): { age?: number; problem?: DetailsProblem; rest: string } {
-	const found = AGE_YEARS.exec(text) ?? AGE_LABEL.exec(text);
+function ageIn(
+	text: string,
+	asked: boolean,
+): { age?: number; problem?: DetailsProblem; rest: string } {
+	const years = AGE_YEARS.exec(text);
+	const spoken =
+		years !== null && (asked || AGE_SUBJECT.test(text.slice(0, years.index))) ? years : null;
+	const found = spoken ?? AGE_LABEL.exec(text);
 	if (found === null) return { rest: text };
 	const rest = text.replace(found[0], " ");
 	const parsed = AgeSchema.safeParse((found[1] ?? "").replace(",", "."));
@@ -176,7 +185,7 @@ function bareAge(text: string): { age?: number; problem?: DetailsProblem } {
 }
 
 /** The words after a lead ("mă numesc …", "my name is …") that look like a name. */
-function introducedName(text: string): string | undefined {
+function introducedName(text: string): { name: string; removed: string } | undefined {
 	const tokens = text.split(" ");
 	const words = tokens.map((t) => word(t).split(" ").filter(Boolean));
 	const flat = words.flatMap((ws, i) => ws.map((w) => ({ w, i })));
@@ -193,11 +202,13 @@ function introducedName(text: string): string | undefined {
 			picked.push(clean);
 			if (clean !== raw) break;
 		}
-		const first = picked[0];
-		if (first !== undefined && NAME_TOKEN.test(first)) {
+		const head = picked[0];
+		if (head !== undefined && NAME_TOKEN.test(head)) {
 			while (picked.length > 0 && CONNECTOR.has(word(picked[picked.length - 1] ?? "")))
 				picked.pop();
-			return picked.join(" ");
+			const first = flat[at]?.i ?? 0;
+			const end = last.i + 1 + picked.length;
+			return { name: picked.join(" "), removed: tokens.slice(first, end).join(" ") };
 		}
 	}
 	return undefined;
@@ -220,7 +231,8 @@ function bareName(text: string): string | undefined {
 function askedName(text: string): { name?: string; problem?: DetailsProblem } {
 	const invalid = { problem: { field: "name", code: "invalid" } } as const;
 	if (text.includes("?")) return invalid;
-	const lead = introducedName(text);
+	const introduced = introducedName(text);
+	const lead = introduced?.name;
 	const raw = lead ?? text;
 	const tokens = raw
 		.replace(/[,;:!?"“”()]+/g, " ")
@@ -245,14 +257,34 @@ function forWhomIn(folded: string): ForWhom | undefined {
 	return ADULT.test(folded) ? "adult" : undefined;
 }
 
-/** A description the visitor volunteered: what is left of a message once the other pieces are out. */
+/** Words that say a clause is about the person's trouble, not a field's label or a wish to book. */
+const PROBLEM_CUE =
+	/\b(nu pot|nu dorm|nu mai|simt|simte|sufar|suferit|anxiet|depresi|panic|stres|somn|neliniste|frica|plange|refuza|probleme|problema|dificult|copilul meu|fiica mea|fiul meu|trouble|problem|struggl|worr|anxi|depress|sleep|feel|afraid|scared|stress|my (?:son|daughter|child))\w*/;
+/** Labels of the other fields: a clause that carries one is a field, not a description. */
+const FIELD_LABEL =
+	/\b(nume|numele|telefon|telefonul|numar|email|mail|adresa|varsta|name|phone|number|address|age)\b/;
+const CLAUSE_LEAD = /^(?:si|și|iar|dar|and|but)\s+/iu;
+
+/**
+ * A description the visitor volunteered: one clause of the message, once the other pieces are
+ * out, long enough to describe something and carrying a word about the trouble itself.
+ */
 function description(rest: string): string | undefined {
-	const cleaned = squash(rest.replace(/^[\s,;:.\-–—]+|[\s,;:\-–—]+$/g, ""));
-	const words = cleaned.split(" ").filter((w) => /\p{L}/u.test(w));
-	if (cleaned.includes("?")) return undefined;
-	return words.length >= DESCRIPTION_MIN_WORDS && cleaned.length >= DESCRIPTION_MIN_CHARS
-		? cleaned
-		: undefined;
+	const clauses = rest
+		.split(/[,;.!\n]+/)
+		.map((c) => squash(c).replace(CLAUSE_LEAD, ""))
+		.filter((c) => {
+			const folded = fold(c);
+			const count = c.split(" ").filter((w) => /\p{L}/u.test(w)).length;
+			return (
+				count >= DESCRIPTION_MIN_WORDS &&
+				c.length >= DESCRIPTION_MIN_CHARS &&
+				!c.includes("?") &&
+				PROBLEM_CUE.test(folded) &&
+				!FIELD_LABEL.test(folded)
+			);
+		});
+	return clauses.sort((a, b) => b.length - a.length)[0];
 }
 
 /** The answer to "what is going on?": the whole message, held to the form's own limits. */
@@ -309,7 +341,7 @@ export function readFields(
 		attempt = true;
 		problems.push(mail.problem);
 	}
-	const years = ageIn(rest);
+	const years = ageIn(rest, asked === "age");
 	rest = years.rest;
 	if (years.age !== undefined) {
 		values.age = years.age;
@@ -345,7 +377,8 @@ export function readFields(
 		values.forWhom = who;
 		heard.push("forWhom");
 	}
-	const lead = introducedName(rest);
+	const introduced = introducedName(rest);
+	const lead = introduced?.name;
 	const named =
 		asked === "name" && lead === undefined
 			? askedName(rest)
@@ -354,7 +387,7 @@ export function readFields(
 	if (parsedName?.success === true) {
 		values.name = parsedName.data;
 		heard.push("name");
-		rest = lead === undefined ? "" : rest.replace(lead, " ");
+		rest = introduced === undefined ? "" : rest.replace(introduced.removed, " ");
 	} else if ("problem" in named && named.problem !== undefined && heard.length === 0) {
 		problems.push(named.problem);
 	}

@@ -38,6 +38,11 @@ export function keepOf(state: BookingState | undefined, lang: BookingLang): Keep
 	};
 }
 
+/** The field the guide last asked, for a message that told nothing. */
+function askedOf(state: BookingState): Pick<Talk, "asked"> {
+	return state.asked === undefined || state.asked === "confirm" ? {} : { asked: state.asked };
+}
+
 function isQuestion(typed: string): boolean {
 	return typed.includes("?") || QUESTION_WORDS.test(fold(typed));
 }
@@ -119,14 +124,15 @@ export async function answerFirst(
 	now: number,
 ): Promise<BookingOffer | undefined> {
 	const { asked } = state;
-	if (state.chosen === undefined || asked === undefined) return undefined;
-	if (asked === "confirm") {
-		if (confirmation(typed) !== undefined) return confirmed(booking, state, lang, now);
-		if (wantsEdit(typed)) {
-			return reply(booking, state, { ...talkOf(state, lang), edit: true }, now);
-		}
-		return undefined;
+	if (state.chosen === undefined) return undefined;
+	// The words of the buttons are never a value for a field and never a new booking: "Edit" opens
+	// the form at any point, a yes counts only under the summary, and anywhere else it asks again.
+	if (wantsEdit(typed)) return reply(booking, state, { ...talkOf(state, lang), edit: true }, now);
+	if (confirmation(typed) !== undefined) {
+		if (asked === "confirm") return confirmed(booking, state, lang, now);
+		return reply(booking, state, { ...talkOf(state, lang), nudge: true, ...askedOf(state) }, now);
 	}
+	if (asked === undefined || asked === "confirm") return undefined;
 	const read = readFields(typed, state.details ?? {}, asked, audiencesOf(booking));
 	if (!read.attempt) return undefined;
 	return reply(
@@ -168,6 +174,7 @@ export async function detailsTurn(
 			values: read.values,
 			heard: read.heard,
 			nudge: nothing,
+			...askedOf(state),
 			...(read.problem === undefined ? {} : { problem: read.problem }),
 		},
 		now,

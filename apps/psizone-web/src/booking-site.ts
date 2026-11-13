@@ -171,7 +171,6 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 				useForm: m.guide_details_use_form({}, o),
 			},
 			card: {
-				title: m.guide_details_card_title({}, o),
 				lead: m.guide_details_card_lead({}, o),
 				labels: {
 					service: m.guide_details_card_service({}, o),

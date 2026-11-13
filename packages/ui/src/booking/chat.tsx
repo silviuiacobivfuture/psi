@@ -12,12 +12,13 @@ import type { AccountLine, BookingEnv, BookingLocale, BookingValues } from "./ty
 
 /**
  * Booking inside the guide's conversation. Each booking turn is rendered from what the engine sent:
- * the free times as the booking form's own time buttons (a refinement says what it did), a time the
- * visitor named and the guide found free as the same form with that time chosen, the request for a
- * reference and cancel code, the result of a cancellation, the services. Submitting the form holds
- * the time, the next step confirms it and shows the reference and cancel code, exactly as on the
- * booking page: the guide only offers and checks; nothing is held until the person submits, and the
- * contact never passes through the model.
+ * the free times as the booking form's own time buttons (a refinement says what it did); a time the
+ * visitor named, as one question at a time (name, age, what is going on, phone, e-mail), each
+ * answer judged by the form's rules; then a summary with "Confirm" and "Edit"; on the visitor's
+ * yes, the request the guide itself submitted, with the reference and the cancel code shown once;
+ * "Edit" (or "Fill in the form") opens the same booking form with everything typed so far. Also the
+ * request for a reference and cancel code, the result of a cancellation, the services. Nothing is
+ * held before the summary is confirmed, and the model never sees or fills a detail.
  *
  * `prefill` is the app's hook for a signed-in visitor: name, e-mail and phone from their profile,
  * shown in the form and editable. The request's owner (the account's subject) is the booking

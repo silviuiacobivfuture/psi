@@ -394,3 +394,46 @@ describe("the site and its guide agree on who the booking is for", () => {
 		}
 	});
 });
+
+describe("the sent, failed and lost-time cards in both languages", () => {
+	const booked = {
+		name: "Ana Pop",
+		reference: "ABCD2345",
+		cancelCode: "WXYZ-2345-ABCD-6789",
+		start: Date.parse("2026-11-20T08:00:00Z"),
+		timeZone: "Europe/Bucharest",
+		mode: "onsite" as const,
+		practitioner: "DEMO",
+	};
+	it.each([
+		["ro", "Echipa te sună", "tocmai s-a ocupat", "scrie „da”"],
+		["en", "The team will call you", "has just been taken", "write “yes”"],
+	] as const)("%s: the request, the lost time and the failure are in that language", async (locale, next, gone, retry) => {
+		const base = offer;
+		const sent = await render(locale, { ...base, kind: "booked", slots: [], booked });
+		expect(sent).toContain(next);
+		expect(sent).toContain("ABCD2345");
+		const lost = await render(locale, {
+			...base,
+			kind: "times",
+			notice: "taken",
+			details: {
+				values: { name: "Ana Pop" },
+				missing: ["age", "details", "phone", "email"],
+				heard: [],
+				ask: "age",
+				nudge: false,
+				edit: false,
+			},
+		});
+		expect(lost).toContain(gone);
+		const failed = await render(locale, {
+			...base,
+			kind: "submit_failed",
+			slots: [],
+			status: "unavailable",
+		});
+		expect(failed).toContain(retry);
+		expect(failed).toContain('role="alert"');
+	});
+});

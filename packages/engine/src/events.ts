@@ -86,7 +86,10 @@ export type EngineEvent =
 	 */
 	| { type: "actions"; actions: ReadonlyArray<GuideAction> }
 	| { type: "refusal"; reason: RefusalReason }
-	/** Free times to book, offered in the conversation; the app renders its own confirm step. */
+	/**
+	 * A step of the booking dialogue (free times, a question, the summary, the submitted request,
+	 * a cancellation); the app renders each kind from its own copy.
+	 */
 	| { type: "booking"; offer: BookingOffer }
 	| { type: "done" };
 

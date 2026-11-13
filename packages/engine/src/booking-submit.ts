@@ -1,3 +1,4 @@
+import { audienceFor } from "./booking-fields";
 import {
 	type BookedRequest,
 	BookingDetailsSchema,
@@ -109,14 +110,15 @@ async function sequence(
 			}
 		};
 		try {
-			const forWhom = state.details?.forWhom;
+			// Who it is for is the age's, within the site's audiences: the browser's word is never taken.
+			const forWhom = audienceFor(contact.age, scope.audiences);
 			const sent = SchedulingSubmitSchema.parse(
 				await within(
 					submit.call(port, {
 						reference: held.reference,
 						holdToken: held.holdToken,
 						contact,
-						...(forWhom === undefined ? {} : { audience: forWhom }),
+						audience: forWhom,
 					}),
 					SUBMIT_TIMEOUT_MS,
 					"submit",

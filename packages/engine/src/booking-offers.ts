@@ -11,6 +11,7 @@ import {
 	type BookingLang,
 	type BookingNotice,
 	type BookingState,
+	type DetailField,
 	type DetailsProblem,
 	MAX_SHOWN,
 } from "./booking-state";
@@ -66,6 +67,8 @@ export interface Talk {
 	heard: BookingDetailsReport["heard"];
 	problem?: DetailsProblem;
 	nudge: boolean;
+	/** The field asked when the message told nothing: it is asked again, not the first missing. */
+	asked?: DetailField;
 	/** Show the compact form, prefilled, instead of asking. */
 	edit: boolean;
 	key?: string;
@@ -113,7 +116,8 @@ export function stateOf(
 
 function reportOf(talk: Talk): BookingDetailsReport {
 	const missing = missingDetails(talk.values);
-	const ask = talk.problem?.field ?? missing[0];
+	const again = talk.nudge && talk.asked !== undefined && missing.includes(talk.asked);
+	const ask = talk.problem?.field ?? (again ? talk.asked : missing[0]);
 	return {
 		values: talk.values,
 		missing,
