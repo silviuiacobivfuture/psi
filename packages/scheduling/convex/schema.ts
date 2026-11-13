@@ -8,6 +8,7 @@ import {
 	treating,
 } from "./tables/clinicAccess";
 import { blacklistEntries, blacklistEvents } from "./tables/clinicBlacklist";
+import { feedback, feedbackLinks, feedbackReplies } from "./tables/clinicFeedback";
 import {
 	appKeys,
 	auditEvents,
@@ -317,4 +318,7 @@ export default defineSchema({
 	coordinatorAssignments,
 	blacklistEntries,
 	blacklistEvents,
+	feedback,
+	feedbackReplies,
+	feedbackLinks,
 });

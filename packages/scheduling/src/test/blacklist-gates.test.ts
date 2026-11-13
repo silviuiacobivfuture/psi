@@ -3,7 +3,7 @@ import { createSchedulingClient } from "../client";
 import { backendReady } from "./admin";
 import { actor, DAY, HOUR, id, n } from "./api-harness";
 import { CONVEX_URL } from "./backend";
-import { blacklistWorld } from "./blacklist-world";
+import { clinicWorld } from "./clinic-world";
 import { serverKey } from "./server";
 
 /**
@@ -14,7 +14,7 @@ import { serverKey } from "./server";
  */
 if (!backendReady) console.warn("blacklist-gates.test: no local backend; see README");
 
-const { a, b, ids, ref, state, flag, freeClient, setup, teardown } = blacklistWorld("blg");
+const { a, b, ids, ref, state, flag, freeClient, setup, teardown } = clinicWorld("blg");
 const FAR = Date.now() + 400 * DAY;
 
 describe.skipIf(!backendReady)("the blacklist gates", () => {

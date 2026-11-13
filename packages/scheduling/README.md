@@ -147,6 +147,18 @@ scripts/import-old.sh           --export <export.json> --mapping <mapping.json> 
   the override and its reason are stored (`apiBlacklist.events`). A hold carries no identifier, so the
   check is at submit.
 
+- **Feedback** (`src/clinic/feedback.ts`, `convex/apiFeedback.ts`, `convex/feedbackLinks.ts`): kind
+  (`appointment_rating`, `general`, `suggestion`, `complaint`, `site_issue`), a rating 1 to 5, a text up to
+  4000 characters (checked on the plain text; the store holds ciphertext and the replies too), a link to
+  the visit / booking / client / account hash, the channel (`account`, `email_link`, `chat`, `staff`), a
+  status (`new`, `read`, `answered`, `closed`), a reply thread, and consent to be contacted (contact
+  details are stored only with it). Field groups: `core` is the rating, text and replies, `contact` is who
+  wrote it. `feedbackLinks.issue` (the notify layer calls it with the server key) returns a signed token:
+  HMAC-SHA256 under a key derived from the server key, 14 days by default (1 hour to 90 days), usable
+  once, for one finished appointment of one app; `inspect` shows the form, `redeem` stores the rating and
+  uses the link up in one transaction. The parent questionnaire stays a form (`formResponses`). Erasing a
+  client deletes their feedback and its replies.
+
 ## Tests
 
 ```sh

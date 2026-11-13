@@ -2,8 +2,8 @@ import { z } from "zod";
 import { runMutation } from "./admin";
 import { harness, id } from "./api-harness";
 
-/** Two throwaway apps, a few synthetic clients, and the helpers the blacklist suites share. */
-export function blacklistWorld(prefix: string) {
+/** Two throwaway apps, a few synthetic clients, and the helpers the backend suites of the blacklist and feedback share. */
+export function clinicWorld(prefix: string) {
 	const a = harness(prefix);
 	const b = harness(`${prefix}2`);
 	const ids: Record<string, string> = {};

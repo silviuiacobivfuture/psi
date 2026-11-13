@@ -71,6 +71,34 @@ export {
 	type Visibility,
 	visibilityOf,
 } from "./clients";
+export {
+	CIPHERTEXT_MAX,
+	FEEDBACK_CHANNELS,
+	FEEDBACK_KINDS,
+	FEEDBACK_STATUSES,
+	type FeedbackChannel,
+	type FeedbackEvent,
+	type FeedbackInput,
+	type FeedbackKind,
+	type FeedbackStatus,
+	feedbackInputSchema,
+	feedbackProblems,
+	nextStatus,
+	replyInputSchema,
+	TEXT_MAX as FEEDBACK_TEXT_MAX,
+} from "./feedback";
+export {
+	deriveLinkKey,
+	LINK_TTL_DEFAULT_HOURS,
+	LINK_TTL_MAX_HOURS,
+	LINK_TTL_MIN_HOURS,
+	type LinkClaims,
+	type LinkRefusal,
+	newLinkId,
+	signLink,
+	ttlAllowed,
+	verifyLink,
+} from "./feedback-link";
 export { FILE_KINDS, type FileKind, type FileMeta, fileMetaSchema, storageKeyFor } from "./files";
 export {
 	COLUMN_TYPES,

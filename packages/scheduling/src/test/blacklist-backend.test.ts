@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { backendReady } from "./admin";
 import { actor, HOUR, id } from "./api-harness";
-import { blacklistWorld } from "./blacklist-world";
+import { clinicWorld } from "./clinic-world";
 import { callMutation } from "./server";
 
 /**
@@ -11,7 +11,7 @@ import { callMutation } from "./server";
  */
 if (!backendReady) console.warn("blacklist-backend.test: no local backend; see README");
 
-const { a, b, ids, ref, flag, setup, teardown } = blacklistWorld("bl");
+const { a, b, ids, ref, flag, setup, teardown } = clinicWorld("bl");
 
 describe.skipIf(!backendReady)("the blacklist", () => {
 	beforeAll(async () => {

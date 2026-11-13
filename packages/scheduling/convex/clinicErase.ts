@@ -58,6 +58,31 @@ export async function eraseClinicData(
 		.collect();
 	for (const row of relations) await ctx.db.delete(row._id);
 
+	// What the client wrote about their appointments, and the replies to it, goes with them.
+	const said = await ctx.db
+		.query("feedback")
+		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
+		.collect();
+	for (const item of said) {
+		const replies = await ctx.db
+			.query("feedbackReplies")
+			.withIndex("by_tenant_feedback", (q) => q.eq("tenant", tenant).eq("feedback", item._id))
+			.collect();
+		for (const r of replies) await ctx.db.delete(r._id);
+		await ctx.db.delete(item._id);
+	}
+	if (said.length > 0) {
+		await ctx.db.insert("auditEvents", {
+			tenant,
+			at: now,
+			actor: "system:erase",
+			action: "feedback.erase",
+			entity: "feedback",
+			entityId: client,
+			summary: `feedback.erase; count: ${said.length}`,
+		});
+	}
+
 	// A blacklist entry keeps its phone, e-mail and reason (the clinic's legitimate interest in not
 	// booking someone who was abusive); it stops pointing at the erased client and drops the name.
 	const flagged = await ctx.db
