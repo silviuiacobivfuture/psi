@@ -37,9 +37,23 @@ jobs:
           pnpm install --frozen-lockfile --ignore-scripts
       - name: Biome
         run: pnpm lint
+      # apps/clinic's browser suites (contrast, viewports, reduced motion) need a real Chromium and never skip:
+      # Playwright's own build, installed once into the runner's browser cache (the install is a no-op when it is
+      # already there), and its path handed to the suites as CLINIC_CHROME (apps/clinic/src/test/browser.ts).
+      - name: Chromium for the browser suites
+        working-directory: apps/clinic
+        run: |
+          set -euo pipefail
+          pnpm exec playwright-core install chromium
+          chrome="$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')"
+          [ -x "$chrome" ] || { echo "::error::Chromium is not at $chrome after the install"; exit 1; }
+          echo "CLINIC_CHROME=$chrome" >> "$GITHUB_ENV"
       - name: Affected projects
         env:
           NX_DAEMON: "false"
+          # Tests never spend money or reach a provider: no key in the environment (a blank key counts as unset),
+          # and the suites that build a model client only ever talk to the in-process fake.
+          OPENROUTER_API_KEY: ""
           BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
           BEFORE: ${{ github.event.before }}
         run: |
