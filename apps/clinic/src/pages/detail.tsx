@@ -117,6 +117,12 @@ export function DetailBody({
 						<dd class="dt__note">{a.note}</dd>
 					</div>
 				)}
+				{a.therapistNote === undefined || a.therapistNote === "" ? null : (
+					<div>
+						<dt>{m.therapist_note_label({}, o)}</dt>
+						<dd class="dt__note">{a.therapistNote}</dd>
+					</div>
+				)}
 				{a.cancelReason === null ? null : (
 					<div>
 						<dt>{m.ap_cancel_reason({}, o)}</dt>

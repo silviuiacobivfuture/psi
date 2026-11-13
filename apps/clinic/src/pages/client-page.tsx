@@ -277,7 +277,11 @@ function Overview({
 					</>
 				) : null}
 				{ctx.can.group("clinical") ? (
-					<Field label={m.note_label({}, o)} value={client.note} />
+					<>
+						<Field label={m.reason_label({}, o)} value={client.reason ?? ""} />
+						<Field label={m.diagnosis_label({}, o)} value={client.diagnosis ?? ""} />
+						<Field label={m.note_label({}, o)} value={client.note} />
+					</>
 				) : null}
 			</div>
 			{ctx.can.has("packages_view") && ctx.can.group("money") ? (

@@ -70,6 +70,7 @@ export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 		remind: true,
 		seriesId: null,
 		cancelReason: a.cancelReason ?? null,
+		...(a.clinical === undefined ? {} : { therapistNote: a.clinical.therapistNote }),
 	};
 }
 
@@ -83,6 +84,8 @@ export function clientOf(c: ApiClient): Client {
 		email: c.contact?.email ?? null,
 		status: c.status === "active" ? "current" : "archived",
 		note: c.clinical?.notes ?? "",
+		...(c.clinical?.mainReason === undefined ? {} : { reason: c.clinical.mainReason }),
+		...(c.clinical?.diagnosis === undefined ? {} : { diagnosis: c.clinical.diagnosis }),
 		practitionerId: c.treating[0] ?? null,
 	};
 }

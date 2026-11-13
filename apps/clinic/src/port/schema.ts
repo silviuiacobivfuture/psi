@@ -42,6 +42,9 @@ export const ClientSchema = z.object({
 	status: z.enum(["current", "archived"]),
 	note: z.string(),
 	practitionerId: z.string().nullable(),
+	/** Why they came and the diagnosis (the clinical group; absent without the right to see it). */
+	reason: z.string().optional(),
+	diagnosis: z.string().optional(),
 	/** The year they were born, when it was recorded. */
 	birthYear: z.number().int().optional(),
 });
@@ -72,6 +75,8 @@ export const AppointmentSchema = z.object({
 	/** The weekly series it belongs to. */
 	seriesId: z.string().nullable(),
 	cancelReason: z.string().nullable(),
+	/** The therapist's note (the clinical group; absent without the right to see it). */
+	therapistNote: z.string().optional(),
 });
 export type Appointment = z.infer<typeof AppointmentSchema>;
 
