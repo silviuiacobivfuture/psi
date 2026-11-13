@@ -127,6 +127,22 @@ type autorizare_tenant
     # console's door, and a tile that led there would be a tile to a refusal.
     # Confers nothing; no application may Check it to authorize anything.
     define app_autorizare_access: console_member
+    # WHO MAY CREATE THE ACCOUNT'S PROGRAMS AT THE ESTATE'S APPLICATIONS (G3,
+    # 2026-11-13): an application such as Meridian asks this ON THE DATA PLANE,
+    # naming its own module as `asked_module`, before it issues a machine
+    # account for the companies this tenant owns. The account's administrators
+    # (for every module), and its root credential issued with the scope
+    # `programs:manage` — for the ONE module the root took at issue (ORG-9),
+    # carried on the tuple, so a root of one module creates nothing at another.
+    # Written by Polaris when that credential is issued or rolled, withdrawn
+    # when it is revoked. Names the credential by its client id, because the
+    # client id is what a verified token names. Confers nothing in Polaris.
+    define program_issuer: [autorizare_client with program_issuer_module] or retiring_program_issuer or administrator
+    # A rolled root's predecessor, for the roll's overlap only (at most an hour),
+    # so the integration moves to the successor without a synchronised deploy.
+    # Its own relation because a tuple key holds ONE condition: the plain grant
+    # and the time-bound one cannot share `program_issuer`.
+    define retiring_program_issuer: [autorizare_client with retiring_program_issuer_module]
 
 # An application registered by a tenant — brs, sign, flow, invoice.
 type autorizare_application
@@ -158,4 +174,17 @@ type autorizare_credential
 # make the grant permanent, silently.
 condition non_expired_grant(granted_at: timestamp, valid_for: duration, now: timestamp) {
   now < granted_at + valid_for
+}
+
+# A root's standing as its account's program issuer holds for the module it
+# took at issue, and for no other (@rule MACH-10). `module` is persisted on the
+# tuple; `asked_module` is the asking application's own, supplied at Check time.
+condition program_issuer_module(module: string, asked_module: string) {
+  module == asked_module
+}
+
+# The same for a rolled predecessor, bounded by the roll's overlap. `now` is
+# supplied at Check time, never persisted (@rule AUTZ-5).
+condition retiring_program_issuer_module(granted_at: timestamp, valid_for: duration, now: timestamp, module: string, asked_module: string) {
+  now < granted_at + valid_for && module == asked_module
 }
