@@ -15,7 +15,7 @@ import {
 	ServiceInputSchema,
 } from "../schema-catalog";
 import type { SdkContext } from "./context";
-import { column, serviceOf } from "./map";
+import { deviceColumn, drain, personColumn, roomColumn, serviceOf } from "./map";
 
 const invalid = (what: string): PortError => new PortError("invalid", what);
 const slugOf = (name: string): string =>
@@ -29,62 +29,93 @@ const slugOf = (name: string): string =>
 
 /**
  * People, rooms, devices, services and roles, over the service's `people`, `rooms`, `devices`, `services` and `roles`
- * routes. The service keeps less than the console asks for: what it has no field for (a person's e-mail invite,
- * specialty, hours, rooms and services; a room's floor, category, bookable flag and home practitioner; a device's type;
- * a service's price, category, rooms, devices and online flag) is validated here and not stored until the service
- * grows it. The answer carries what the service did keep.
+ * routes, with everything the service keeps: a person's e-mail, specialty, hours, rooms and services; a room's floor,
+ * purpose, category, bookable flag and own practitioner; a device's type and bookable flag; a service's category, room
+ * category, rooms, devices, online flag and price (the price route). What is not the service's to keep (the e-mail
+ * invitation into sign-in) is not done here.
  */
-export function catalogGroup(sdk: SdkContext, columns: (app: AppSlug) => Promise<Column[]>) {
+export function catalogGroup(sdk: SdkContext) {
 	const { api, run } = sdk;
+	const page = <T>(
+		app: AppSlug,
+		f: (i: {
+			app: string;
+			limit: number;
+			cursor?: string;
+		}) => Promise<{ items: T[]; nextCursor?: string | undefined }>,
+	) => drain<T>((cursor) => f({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }));
 	return {
-		catalogColumns: (app: AppSlug): Promise<Column[]> => run(() => columns(app)),
+		/** Every person, room and device, the switched-off ones too. */
+		catalogColumns: (app: AppSlug): Promise<Column[]> =>
+			run(async () => {
+				const [people, rooms, devices] = await Promise.all([
+					page(app, (i) => api.people.list(i)),
+					page(app, (i) => api.rooms.list(i)),
+					page(app, (i) => api.devices.list(i)),
+				]);
+				return [
+					...people.map((p, i) => personColumn(p, i)),
+					...rooms.map((r, i) => roomColumn(r, i + 4)),
+					...devices.map((d, i) => deviceColumn(d, i + 3)),
+				];
+			}),
 
 		savePerson: (app: AppSlug, id: string | null, raw: PersonInput): Promise<Column> =>
 			run(async () => {
 				const p = PersonInputSchema.safeParse(raw);
 				if (!p.success) throw invalid("person");
-				const kind = p.data.practitioner ? ("practitioner" as const) : ("staff" as const);
+				const body = {
+					displayName: p.data.name,
+					kind: p.data.practitioner ? ("practitioner" as const) : ("staff" as const),
+					color: String(p.data.colour),
+					hours: p.data.hours,
+					roomIds: p.data.roomIds,
+					serviceIds: p.data.serviceIds,
+					...(p.data.email === undefined ? {} : { email: p.data.email }),
+					...(p.data.specialty === undefined ? {} : { specialty: p.data.specialty }),
+				};
 				const saved =
 					id === null
-						? await api.people.create({ app, displayName: p.data.name, kind })
-						: await api.people.update({
-								app,
-								id,
-								displayName: p.data.name,
-								kind,
-								active: p.data.active,
-							});
-				return {
-					...column("person", saved.id, saved.displayName, p.data.colour - 1),
-					active: saved.active,
-				};
+						? await api.people.create({ app, ...body })
+						: await api.people.update({ app, id, ...body, active: p.data.active });
+				return personColumn(saved, p.data.colour - 1);
 			}),
 
 		saveRoom: (app: AppSlug, id: string | null, raw: RoomInput): Promise<Column> =>
 			run(async () => {
 				const r = RoomInputSchema.safeParse(raw);
 				if (!r.success) throw invalid("room");
-				const body = { name: r.data.name, kind: r.data.category, capacity: r.data.capacity };
+				const body = {
+					name: r.data.name,
+					kind: r.data.category,
+					capacity: r.data.capacity,
+					bookable: r.data.bookable,
+					...(r.data.floor === undefined ? {} : { floor: r.data.floor }),
+					...(r.data.purpose === undefined ? {} : { purpose: r.data.purpose }),
+					...(r.data.homeOf === null ? {} : { homePractitionerId: r.data.homeOf }),
+				};
 				const saved =
 					id === null
 						? await api.rooms.create({ app, ...body })
 						: await api.rooms.update({ app, id, ...body });
-				return {
-					...column("room", saved.id, saved.name, 4, saved.capacity),
-					category: r.data.category,
-				};
+				return roomColumn(saved, 4);
 			}),
 
 		saveDevice: (app: AppSlug, id: string | null, raw: DeviceInput): Promise<Column> =>
 			run(async () => {
 				const d = DeviceInputSchema.safeParse(raw);
 				if (!d.success) throw invalid("device");
-				const room = d.data.roomId === null ? {} : { roomId: d.data.roomId };
+				const body = {
+					name: d.data.name,
+					deviceType: d.data.type,
+					bookable: d.data.bookable,
+					...(d.data.roomId === null ? {} : { roomId: d.data.roomId }),
+				};
 				const saved =
 					id === null
-						? await api.devices.create({ app, name: d.data.name, ...room })
-						: await api.devices.update({ app, id, name: d.data.name, ...room });
-				return column("device", saved.id, saved.name, 3);
+						? await api.devices.create({ app, ...body })
+						: await api.devices.update({ app, id, ...body });
+				return deviceColumn(saved, 3);
 			}),
 
 		saveService: (app: AppSlug, id: string | null, raw: ServiceInput): Promise<Service> =>
@@ -97,23 +128,27 @@ export function catalogGroup(sdk: SdkContext, columns: (app: AppSlug) => Promise
 					bufferMinutes: s.data.bufferMin,
 					practitionerIds: s.data.practitionerIds,
 					modes: s.data.online ? (["onsite", "online"] as const) : (["onsite"] as const),
+					roomIds: s.data.roomIds,
+					deviceIds: s.data.deviceIds,
+					...(s.data.category === undefined ? {} : { category: s.data.category }),
+					...(s.data.roomCategory === null ? {} : { roomCategory: s.data.roomCategory }),
 				};
+				const modes = [...shared.modes];
 				const saved =
 					id === null
-						? await api.services.create({
+						? await api.services.create({ app, slug: slugOf(s.data.name), ...shared, modes })
+						: await api.services.update({ app, id, ...shared, modes, active: s.data.active });
+				// The price has its own route (and its own permission): only said when there is one to say.
+				const priced =
+					s.data.priceBani === null
+						? saved
+						: await api.services.setPrice({
 								app,
-								slug: slugOf(s.data.name),
-								...shared,
-								modes: [...shared.modes],
-							})
-						: await api.services.update({
-								app,
-								id,
-								...shared,
-								modes: [...shared.modes],
-								active: s.data.active,
+								id: saved.id,
+								priceCents: s.data.priceBani,
+								currency: "RON",
 							});
-				return serviceOf(saved);
+				return serviceOf(priced);
 			}),
 
 		removeCatalog: (

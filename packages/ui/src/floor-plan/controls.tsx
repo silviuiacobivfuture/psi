@@ -1,4 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import type { FloorPlanLabels } from "./labels";
@@ -9,7 +10,7 @@ import { clockOf, dateOf, dayRange } from "./zone";
 
 export function Btn(p: {
 	label: string;
-	children: JSX.Element | string;
+	children: Child;
 	attrs?: Record<string, string | boolean>;
 	class?: string;
 }): JSX.Element {

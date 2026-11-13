@@ -3,6 +3,7 @@ import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
 import { applyVisitRules } from "./memory-rules";
+import { createMemorySeries } from "./memory-series";
 import { applyTeamRules } from "./memory-team";
 import { createMemoryVisitor } from "./memory-visitor";
 import type { StoredDocument } from "./ports";
@@ -86,6 +87,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		docs,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
+		series: createMemorySeries(c.appointments),
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([

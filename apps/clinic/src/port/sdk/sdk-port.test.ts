@@ -383,29 +383,44 @@ describe("the floor plan", () => {
 	});
 });
 
-describe("what the service cannot do yet is 'în curând', never a crash", () => {
-	const mk = async (port: Awaited<ReturnType<typeof as>>) => {
-		const calendar = await port.calendar("psizone", "2026-11-19", "2026-11-19");
+describe("a weekly series, through the adapter", () => {
+	const mk = async (port: Awaited<ReturnType<typeof as>>, date: string) => {
+		const calendar = await port.calendar("psizone", date, date);
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
 		const client = calendar.clients[0];
 		if (!dora || !service || !client) throw new Error("fixture");
-		return {
-			date: "2026-11-19",
-			startMin: 600,
-			columnId: dora.id,
-			clientId: client.id,
-			serviceId: service.id,
-		};
+		return { date, startMin: 600, columnId: dora.id, clientId: client.id, serviceId: service.id };
 	};
-	it("a weekly series is not available, and nothing is written", async () => {
+	it("books every week in one step, on the same wall-clock time, with one series id", async () => {
 		const port = await as("olga");
-		const input = await mk(port);
+		const made = await port.createAppointments("psizone", {
+			...(await mk(port, "2026-12-01")),
+			recurrence: { count: 3 },
+		});
+		expect(made.map((a) => a.date)).toEqual(["2026-12-01", "2026-12-08", "2026-12-15"]);
+		expect(new Set(made.map((a) => a.seriesId)).size).toBe(1);
+		expect(made[0]?.seriesId).toBe(made[0]?.id);
+		expect(made.every((a) => a.startMin === 600)).toBe(true);
+		expect((await port.appointment("psizone", made[2]?.id ?? ""))?.seriesId).toBe(made[0]?.id);
+	});
+	it("ends on a day", async () => {
+		const port = await as("olga");
+		const made = await port.createAppointments("psizone", {
+			...(await mk(port, "2027-01-04")),
+			recurrence: { until: "2027-01-18" },
+		});
+		expect(made.map((a) => a.date)).toEqual(["2027-01-04", "2027-01-11", "2027-01-18"]);
+	});
+	it("refuses the whole series when one week is taken, and nothing is written", async () => {
+		const port = await as("olga");
+		const input = await mk(port, "2027-02-01");
+		await port.createAppointments("psizone", { ...input, date: "2027-02-15" });
 		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createAppointments("psizone", { ...input, recurrence: { count: 4 } }),
 		);
-		expect(e.code).toBe("not-available-yet");
+		expect(e.code).toBe("conflict");
 		expect(await api.world.fingerprint()).toBe(before);
 	});
 });

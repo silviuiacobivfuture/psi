@@ -9,6 +9,41 @@ import { must, writeTuples } from "./shared";
 const paymentStatus = (price: number, paid: number): "unpaid" | "partial" | "paid" =>
 	price > 0 && paid >= price ? "paid" : paid > 0 ? "partial" : "unpaid";
 
+/** What an edit of an appointment may carry: a field left out is left alone, `packageId: null` takes it out of its package. */
+export interface AppointmentChanges {
+	clientId?: string | undefined;
+	serviceId?: string | undefined;
+	practitionerId?: string | undefined;
+	roomId?: string | undefined;
+	deviceId?: string | undefined;
+	note?: string | undefined;
+	remind?: boolean | undefined;
+	start?: number | undefined;
+	end?: number | undefined;
+	packageId?: string | null | undefined;
+	priceCents?: number | undefined;
+}
+
+/** The appointment as it is after the changes; what was paid stays, whatever the price becomes. */
+export function patchedRow(
+	row: AppointmentRow,
+	changes: AppointmentChanges,
+	now: number,
+): AppointmentRow {
+	const { packageId, priceCents, ...plain } = changes;
+	const { packageId: _held, ...unpackaged } = row;
+	const paid = row.money?.paidCents ?? 0;
+	return {
+		...(packageId === null ? unpackaged : row),
+		...Object.fromEntries(Object.entries(plain).filter(([, v]) => v !== undefined)),
+		...(typeof packageId === "string" ? { packageId } : {}),
+		...(priceCents === undefined
+			? {}
+			: { money: { priceCents, paidCents: paid, paymentStatus: paymentStatus(priceCents, paid) } }),
+		updatedAt: now,
+	};
+}
+
 /**
  * Changing an appointment, and confirming a requested one. An edit is all or nothing: every refusal (the field groups,
  * the references, the package of the client, the clash, the blacklist) is decided before the store writes, and the store
@@ -59,19 +94,7 @@ export const appointmentEditHandlers: HandlersOf<"appointments.update" | "appoin
 		if (b.clientId !== undefined && row.clientId === undefined)
 			throw fail("invalid", "only a session has a client", { field: "clientId" });
 
-		const { packageId: _held, ...unpackaged } = row;
-		const paid = row.money?.paidCents ?? 0;
-		const next: AppointmentRow = {
-			...(packageId === null ? unpackaged : row),
-			...Object.fromEntries(Object.entries(b).filter(([, v]) => v !== undefined)),
-			...(typeof packageId === "string" ? { packageId } : {}),
-			...(priceCents === undefined
-				? {}
-				: {
-						money: { priceCents, paidCents: paid, paymentStatus: paymentStatus(priceCents, paid) },
-					}),
-			updatedAt: ctx.now,
-		};
+		const next = patchedRow(row, { ...b, packageId, priceCents }, ctx.now);
 		if (next.end <= next.start)
 			throw fail("invalid", "an appointment ends after it starts", { field: "end" });
 		await checkRefs(ctx, next);

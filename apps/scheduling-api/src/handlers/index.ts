@@ -14,6 +14,7 @@ import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
 import { rosterHandlers } from "./roster";
+import { seriesHandlers } from "./series";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
@@ -24,6 +25,7 @@ const complete: Handlers = {
 	...clientHandlers,
 	...appointmentHandlers,
 	...appointmentEditHandlers,
+	...seriesHandlers,
 	...packageHandlers,
 	...rosterHandlers,
 	...reminderHandlers,

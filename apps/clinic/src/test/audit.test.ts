@@ -16,7 +16,7 @@ describe("the journal", () => {
 	});
 
 	it("says what happened in words, and shows no raw action code in the table", async () => {
-		const html = await (await c.get("/audit")).text();
+		const html = await (await c.get("/settings/audit")).text();
 		expect(rowsOf(html)).toHaveLength(12);
 		expect(html).toContain("A anulat programarea lui");
 		expect(html).toContain("motiv: Clientul a anunțat că e bolnav");
@@ -28,64 +28,68 @@ describe("the journal", () => {
 	});
 
 	it("filters by object type, by person, by action and by day, each leaving the rest out", async () => {
-		const clients = rowsOf(await (await c.get("/audit?type=client")).text());
+		const clients = rowsOf(await (await c.get("/settings/audit?type=client")).text());
 		expect(clients.length).toBeGreaterThan(0);
 		expect(clients.length).toBeLessThan(12);
-		const one = rowsOf(await (await c.get("/audit?person=Terapeut%20Alfa")).text());
+		const one = rowsOf(await (await c.get("/settings/audit?person=Terapeut%20Alfa")).text());
 		expect(one.length).toBeGreaterThan(0);
 		expect(one.length).toBeLessThan(12);
-		const cancels = rowsOf(await (await c.get("/audit?action=appointment_cancel")).text());
+		const cancels = rowsOf(await (await c.get("/settings/audit?action=appointment_cancel")).text());
 		expect(cancels).toEqual(["e2"]);
 		const events = await c.port.audit("psizone");
 		const day = events[0]?.at.slice(0, 10) ?? "";
 		const same = events.filter((e) => e.at.slice(0, 10) === day).length;
-		expect(rowsOf(await (await c.get(`/audit?from=${day}&to=${day}`)).text())).toHaveLength(same);
+		expect(
+			rowsOf(await (await c.get(`/settings/audit?from=${day}&to=${day}`)).text()),
+		).toHaveLength(same);
 	});
 
 	it("searches the words, accents and case aside, and says so when nothing matches", async () => {
-		expect(rowsOf(await (await c.get("/audit?q=RECEPTIE")).text()).length).toBeGreaterThan(0);
-		expect(rowsOf(await (await c.get("/audit?q=Tudor")).text())).toContain("e2");
-		const none = await (await c.get("/audit?q=zzzzzz")).text();
+		expect(rowsOf(await (await c.get("/settings/audit?q=RECEPTIE")).text()).length).toBeGreaterThan(
+			0,
+		);
+		expect(rowsOf(await (await c.get("/settings/audit?q=Tudor")).text())).toContain("e2");
+		const none = await (await c.get("/settings/audit?q=zzzzzz")).text();
 		expect(rowsOf(none)).toEqual([]);
 		expect(none).toContain("Niciun eveniment pentru filtrele alese.");
 	});
 
 	it("refuses a filter that is not a value, without listing anything else", async () => {
-		const res = await c.get("/audit?from=not-a-day");
+		const res = await c.get("/settings/audit?from=not-a-day");
 		expect(res.status).toBe(400);
 		expect(rowsOf(await res.text())).toEqual([]);
 	});
 
 	it("opens one event in full: who, when, the object, the before and after, the source, the request", async () => {
-		const html = await (await c.get("/audit/e2", { headers: datastar })).text();
+		const html = await (await c.get("/settings/audit/e2", { headers: datastar })).text();
 		expect(html).toContain("Terapeut Alfa");
 		expect(html).toContain("Confirmat");
 		expect(html).toContain("Anulat");
 		expect(html).toContain("Consolă");
 		expect(html).toContain("req-seed-02");
 		expect(html).toContain("Clientul a anunțat că e bolnav");
-		const assistant = await (await c.get("/audit/e6", { headers: datastar })).text();
+		const assistant = await (await c.get("/settings/audit/e6", { headers: datastar })).text();
 		expect(assistant).toContain("Asistent");
-		const noted = await (await c.get("/audit/e9", { headers: datastar })).text();
+		const noted = await (await c.get("/settings/audit/e9", { headers: datastar })).text();
 		expect(noted).toContain("Import");
 		expect(noted).toContain("Nu a fost înregistrat");
 	});
 
 	it("an event that does not exist is a 404 and nothing of it is echoed", async () => {
-		const res = await c.get("/audit/nope%27%3Balert(1)", { headers: datastar });
+		const res = await c.get("/settings/audit/nope%27%3Balert(1)", { headers: datastar });
 		expect(res.status).toBe(404);
 		expect(await res.text()).not.toContain("alert");
 	});
 
 	it("exports what the filters show as a CSV, in words", async () => {
-		const res = await c.get("/audit/export.csv?type=client");
+		const res = await c.get("/settings/audit/export.csv?type=client");
 		expect(res.headers.get("content-type")).toContain("text/csv");
 		expect(res.headers.get("content-disposition")).toContain("attachment");
 		const bytes = new Uint8Array(await res.clone().arrayBuffer());
 		expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
 		const text = await res.text();
 		expect(text.split("\r\n").length - 2).toBe(
-			rowsOf(await (await c.get("/audit?type=client")).text()).length,
+			rowsOf(await (await c.get("/settings/audit?type=client")).text()).length,
 		);
 		expect(text).not.toContain("appointment.");
 	});
@@ -107,7 +111,7 @@ describe("who may open the journal", () => {
 			{ [MEMBER.sub]: [{ app: "psizone", roles: ["reception"] }] },
 		);
 		await c.signIn();
-		for (const path of ["/audit", "/audit/e2", "/audit/export.csv"])
+		for (const path of ["/settings/audit", "/settings/audit/e2", "/settings/audit/export.csv"])
 			expect((await c.get(path, { headers: datastar })).status).toBe(403);
 	});
 });

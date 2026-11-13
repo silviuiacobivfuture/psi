@@ -244,6 +244,17 @@
 	color: var(--ink);
 	border-bottom-color: var(--app);
 }
+/* On a phone every tab is in view: they wrap onto a second row instead of hiding behind a sideways scroll. */
+@media (max-width: 599px) {
+	.adm-tablist {
+		flex-wrap: wrap;
+		overflow-x: visible;
+	}
+	.adm-tablist__tab {
+		flex: 1 1 auto;
+		justify-content: center;
+	}
+}
 
 /* ── Status pill, stat card, empty state, skeleton ───────────────────── */
 .adm-pill {

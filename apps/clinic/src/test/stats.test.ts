@@ -79,8 +79,8 @@ describe("the statistics screen", () => {
 		expect(await (await c.get("/more")).text()).not.toContain('href="/stats"');
 	});
 
-	it("an accountant sees the money; a person without the money group would not see revenue", async () => {
-		await open(["accountant"]);
+	it("the owner sees the money tile", async () => {
+		await open(["owner"]);
 		expect(await (await c.get("/stats")).text()).toContain('data-kpi="revenue"');
 	});
 });

@@ -212,7 +212,6 @@ function rolesFor(): Role[] {
 				packages: { view: "all", export: "all" },
 				payments: { view: "all", export: "all" },
 				prices: { view: "all" },
-				reports: { view: "all" },
 			},
 			fieldGroups: ["money"],
 		},

@@ -124,9 +124,9 @@ export function EmptyActions({
 	entity?: EntityState;
 }): JSX.Element | null {
 	const list = actionsFor(ctx, screen, "empty", entity);
-	return list.length === 0
-		? null
-		: list.map((a, i) => (
+	return list.length === 0 ? null : (
+		<>
+			{list.map((a, i) => (
 				<ActionButton
 					key={a.id}
 					action={a}
@@ -134,7 +134,9 @@ export function EmptyActions({
 					entity={entity}
 					variant={i === 0 ? "primary" : "default"}
 				/>
-			));
+			))}
+		</>
+	);
 }
 
 /** What the command palette offers on a screen: where to go, and what can be done to what is open. */

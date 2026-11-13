@@ -20,7 +20,7 @@ import {
 } from "./validators";
 import { busyOfVisitsInfo } from "./visitConflicts";
 import { columnArg, links, resolveColumn } from "./visitLinks";
-import { moveIsTaken, prepareMove } from "./visitMove";
+import { moveTakenBy, prepareMove } from "./visitMove";
 
 /**
  * Staff-made visits for the staff API: create, edit, move, attendance, payment, cancel, soft
@@ -218,7 +218,8 @@ export const move = mutation({
 			Date.now(),
 		);
 		if (gate.stop !== undefined) return gate.stop;
-		if (await moveIsTaken(ctx, args.tenant, row, move, args)) return REFUSED("overlaps");
+		if ((await moveTakenBy(ctx, args.tenant, row, move, args)) !== undefined)
+			return REFUSED("overlaps");
 		const version = row.version + 1;
 		await ctx.db.patch(row._id, {
 			start: args.start,

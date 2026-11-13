@@ -49,7 +49,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 	const sdk = createContext(api, options.onError, options.fetch);
 	const calendar = calendarGroup(sdk);
 	const { clientsPage, ...cal } = calendar;
-	const catalog = catalogGroup(sdk, cal.columns);
+	const catalog = catalogGroup(sdk);
 	const clients = clientsGroup(sdk, clientsPage);
 	const clinical = clinicalGroup(sdk, clientsPage);
 	const admin = adminGroup(sdk);

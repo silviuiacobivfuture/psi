@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AppointmentRow } from "../types";
-import { personApiId } from "./ids";
+import { personApiId, toApiId } from "./ids";
 
 /** A deleted visit can be restored for 30 days: the wrapper (`RECOVERY_DAYS`) and the handlers agree. */
 export const RECOVERY_MS = 30 * 86_400_000;
@@ -41,6 +41,7 @@ export const VisitView = z.object({
 	deletedAt: z.number().optional(),
 	version: z.number(),
 	meta: Meta.optional(),
+	series: z.string().optional(),
 });
 export type VisitViewT = z.infer<typeof VisitView>;
 
@@ -121,6 +122,7 @@ export function toAppointment(app: string, v: VisitViewT): AppointmentRow | unde
 		end: v.end,
 		...(v.notes === undefined ? {} : { note: v.notes }),
 		remind: meta.remind ?? true,
+		...(v.series === undefined ? {} : { seriesId: toApiId(v.series) }),
 		...(meta.cancelReason === undefined ? {} : { cancelReason: meta.cancelReason }),
 		...(money === undefined ? {} : { money }),
 		...(v.deletedAt === undefined

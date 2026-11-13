@@ -38,9 +38,23 @@ export async function applyRooms(
 	const existing = await drain((cursor) =>
 		api.rooms.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 	);
+	const people = await drain((cursor) =>
+		api.people.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
+	);
 	const ids = new Map<string, string>();
 	for (const floor of seed.floors) {
 		for (const room of floor.rooms) {
+			// What the service keeps about the room: its category, floor, purpose and, when the practitioner is on the team, whose it is.
+			const home =
+				room.homePractitioner === null
+					? undefined
+					: people.find((p) => norm(p.displayName) === norm(room.homePractitioner ?? ""))?.id;
+			const facts = {
+				kind: room.category,
+				floor: floor.name,
+				purpose: room.purpose,
+				...(home === undefined ? {} : { homePractitionerId: home }),
+			};
 			const found = existing.find((r) => norm(r.name) === norm(room.name));
 			if (found === undefined) {
 				report.created.push(room.name);
@@ -48,15 +62,20 @@ export async function applyRooms(
 					room.id,
 					dryRun
 						? `pending-${room.id}`
-						: (await api.rooms.create({ app, name: room.name, kind: room.category })).id,
+						: (await api.rooms.create({ app, name: room.name, ...facts })).id,
 				);
 				continue;
 			}
 			ids.set(room.id, found.id);
-			if (found.kind === room.category) report.kept.push(room.name);
+			const same =
+				found.kind === facts.kind &&
+				found.floor === facts.floor &&
+				found.purpose === facts.purpose &&
+				found.homePractitionerId === facts.homePractitionerId;
+			if (same) report.kept.push(room.name);
 			else {
 				report.updated.push(room.name);
-				if (!dryRun) await api.rooms.update({ app, id: found.id, kind: room.category });
+				if (!dryRun) await api.rooms.update({ app, id: found.id, ...facts });
 			}
 		}
 	}
