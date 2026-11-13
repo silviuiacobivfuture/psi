@@ -2,6 +2,7 @@ import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan"
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { createFakeInvites } from "./fake-invites";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -74,6 +75,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		if (opts.failing?.has(method) === true)
 			throw new PortError("unavailable", `${method} is unavailable`);
 	};
+	const invites = createFakeInvites({
+		guard,
+		client: (app, id) => data(app).clients.find((c) => c.id === id),
+		now: Date.now,
+		log: (app, action, target) => log(data(app), "console", action, target),
+	});
 	const log = (d: AppData, actor: string, action: string, target: string): void => {
 		const e: AuditEvent = {
 			id: `e${++seq}`,
@@ -102,6 +109,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	];
 
 	return {
+		...invites,
 		async capabilities(subject, app, as) {
 			guard("capabilities");
 			const mine = opts.members[subject]?.find((x) => x.app === app);

@@ -69,6 +69,8 @@ export const ACTIONS = [
 	"override_admin",
 	"reply",
 	"close",
+	/** Turn a client into a registered user of the online account (an e-mail invitation). */
+	"invite",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -115,7 +117,17 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 		fieldGroups: ["core", "money", "clinical"],
 	},
 	clients: {
-		actions: ["view", "create", "edit", "archive", "delete", "restore", "export", "assign"],
+		actions: [
+			"view",
+			"create",
+			"edit",
+			"archive",
+			"delete",
+			"restore",
+			"export",
+			"assign",
+			"invite",
+		],
 		scopes: EVERYWHERE,
 		fieldGroups: ["contact", "guardian", "money", "clinical"],
 	},

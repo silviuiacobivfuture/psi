@@ -106,6 +106,8 @@ describe.each(factories)("on the $name store", (factory) => {
 					refused(() => call("hugo"), 404, "not_found"));
 				it("a stranger is told the app is not there", () =>
 					refused(() => call("mallory"), 404, "not_found"));
+				// The routes about oneself (how I want to be told) need membership and nothing more.
+				if (spec.permission === undefined) return;
 				it("a role that lacks the permission", () => {
 					// An object the caller cannot reach is "not found" (no leak); a dynamic route first asks for ANY candidate.
 					const target = spec.permission?.target.kind;

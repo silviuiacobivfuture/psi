@@ -7,6 +7,7 @@ import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
 import { CLIENT_TABS, type ClientTab, renderClient } from "./client-page";
 import { renderClients } from "./clients-list";
+import { inviteErrorFrom, inviteFlash, registerInviteRoutes } from "./invite-routes";
 import { registerPackageRoutes } from "./package-routes";
 
 function noticeOf(
@@ -41,10 +42,17 @@ export function registerClients(app: Hono<Env>): void {
 			const client = await ctx.port.client(ctx.app, id);
 			if (client === null) throw new PortError("not-found", id);
 			// Only what this person may see is asked for: a tab they cannot open must not break the ones they can.
-			const [appointments, packages, services] = await Promise.all([
+			const [appointments, packages, services, invite] = await Promise.all([
 				ctx.can.has("appointments_view") ? ctx.port.clientAppointments(ctx.app, id) : [],
 				ctx.can.has("packages_view") ? ctx.port.packages(ctx.app, id) : [],
 				ctx.can.has("services_view") ? ctx.port.services(ctx.app) : [],
+				// The invitation is shown only to whoever may act on it, and a service that cannot say leaves the card out.
+				ctx.can.has("clients_invite")
+					? ctx.port.invite(ctx.app, id).catch((err: unknown) => {
+							if (err instanceof PortError) return undefined;
+							throw err;
+						})
+					: undefined,
 			]);
 			return c.html(
 				await renderClient(
@@ -52,6 +60,8 @@ export function registerClients(app: Hono<Env>): void {
 					{
 						client,
 						tab,
+						invite,
+						inviteError: inviteErrorFrom(c.req.query("ierr")),
 						appointments,
 						packages,
 						services,
@@ -87,7 +97,9 @@ export function registerClients(app: Hono<Env>): void {
 		show(
 			c,
 			"overview",
-			c.req.query("done") === "archived" ? m.toast_archived({}, at(c.var.ctx.locale)) : undefined,
+			c.req.query("done") === "archived"
+				? m.toast_archived({}, at(c.var.ctx.locale))
+				: inviteFlash(c.req.query("done"), c.var.ctx.locale),
 		),
 	);
 	for (const tab of CLIENT_TABS.filter((t) => t !== "overview"))
@@ -114,5 +126,6 @@ export function registerClients(app: Hono<Env>): void {
 		}
 		return c.redirect("/clients?deleted=1", 303);
 	});
+	registerInviteRoutes(app);
 	registerPackageRoutes(app);
 }

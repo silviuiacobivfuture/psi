@@ -125,7 +125,11 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 				["view", "create", "edit", "cancel", "assign", "send"],
 				["core", "money"],
 			),
-			all("clients", ["view", "create", "edit", "archive", "delete", "assign"], NOT_CLINICAL),
+			all(
+				"clients",
+				["view", "create", "edit", "archive", "delete", "assign", "invite"],
+				NOT_CLINICAL,
+			),
 			all("packages", ["view", "create", "edit", "price"]),
 			all("payments", ["view", "create", "edit"]),
 			all("reminders", ["view", "send"]),

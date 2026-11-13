@@ -43,6 +43,7 @@ const config: Config = {
 	objects: undefined,
 	// Unset on purpose: the local run logs notifications and delivers none.
 	notify: undefined,
+	sso: undefined,
 	callerHashes: new Map(Object.entries(secrets).map(([id, s]) => [id, hashSecret(s)])),
 };
 const store = createMemoryStore();

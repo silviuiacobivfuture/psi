@@ -46,7 +46,7 @@ const EXPECTED: Record<string, string[]> = {
 		["people", "view", "all"],
 		["calendars", "view edit assign", "all"],
 		["appointments", "view create edit cancel assign send", "all", "core money"],
-		["clients", "view create edit archive delete assign", "all", "contact guardian money"],
+		["clients", "view create edit archive delete assign invite", "all", "contact guardian money"],
 		["packages", "view create edit price", "all"],
 		["payments", "view create edit", "all"],
 		["reminders", "view send", "all"],

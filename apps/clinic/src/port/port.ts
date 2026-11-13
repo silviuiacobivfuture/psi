@@ -10,6 +10,9 @@ import type {
 	AuditEvent,
 	Client,
 	Column,
+	Invite,
+	InvitePick,
+	InvitePreview,
 	Membership,
 	NewAppointment,
 	NewClient,
@@ -86,6 +89,8 @@ export class PortError extends Error {
 		message: string,
 		/** For `conflict`: what the asked time collides with. */
 		readonly conflicts: ReadonlyArray<Conflict> = [],
+		/** The service's own reason inside a code (`no_email`, `already_active`): a screen words each, never the message. */
+		readonly reason?: string,
 	) {
 		super(message);
 		this.name = "PortError";
@@ -126,6 +131,20 @@ export interface ClinicPort {
 	clientAppointments(app: AppSlug, id: string): Promise<ReadonlyArray<Appointment>>;
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
+	/** The client's online-account invitation, or `null` when they were never invited. */
+	invite(app: AppSlug, clientId: string): Promise<Invite | null>;
+	/** The e-mail as it would go; sends and writes nothing. */
+	previewInvite(app: AppSlug, clientId: string, pick: InvitePick): Promise<InvitePreview>;
+	/**
+	 * Turns the client into a registered user: creates (or finds) their sign-in account, links it, e-mails the invitation.
+	 * Refuses with `conflict` (reason `already_invited`, `already_active`, `account_disabled`, `client_not_active`),
+	 * `invalid` (`no_email`), `forbidden`, or `unavailable` (the sign-in is away); nothing is written then.
+	 */
+	sendInvite(app: AppSlug, clientId: string, pick: InvitePick): Promise<Invite>;
+	/** A fresh link (the earlier one stops working); refused within a minute of the last send (`too_soon`). */
+	resendInvite(app: AppSlug, clientId: string): Promise<Invite>;
+	/** Withdraws it: the link stops working and the client is unlinked; the sign-in account itself is never touched. */
+	revokeInvite(app: AppSlug, clientId: string): Promise<Invite>;
 	packages(app: AppSlug, clientId: string): Promise<ReadonlyArray<Package>>;
 	createPackage(app: AppSlug, clientId: string, input: NewPackage): Promise<Package>;
 	/** Refuses (`invalid`) sessions + bonus below the sessions already used. */

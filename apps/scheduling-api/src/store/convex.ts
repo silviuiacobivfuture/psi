@@ -8,6 +8,7 @@ import type { PartialCollections } from "./convex/collections";
 import { documentsPort } from "./convex/documents";
 import { createChangeFeed } from "./convex/feed";
 import { feedbackPort } from "./convex/feedback";
+import { keyedPort } from "./convex/keyed";
 import { appsOfSubject } from "./convex/members";
 import { recordCollections } from "./convex/records";
 import { requestsPort, visitorExtras } from "./convex/requests";
@@ -131,6 +132,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		docs: documentsPort(clients.rpc),
 		blacklist: blacklistPort(clients.rpc),
 		feedback: feedbackPort(clients.rpc),
+		keyed: keyedPort(clients.rpc),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

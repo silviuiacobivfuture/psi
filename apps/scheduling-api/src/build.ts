@@ -15,6 +15,7 @@ import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer } from "./ports/mail";
 import { createS3Store } from "./ports/objects";
 import { createLimiter } from "./ports/ratelimit";
+import { createAuthentikSso } from "./ports/sso-authentik";
 import { createConvexStore } from "./store/convex";
 import { createRpc } from "./store/convex/rpc";
 import { createMemoryStore } from "./store/memory";
@@ -64,9 +65,13 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 	const denials: Parameters<typeof createAccess>[1] = async (app, subject) =>
 		new Set((await store.c.members.get(app, subject))?.denies ?? []);
 	const clock = overrides.clock ?? Date.now;
+	const access = overrides.access ?? createAccess(authz, denials);
+	const sso = config.sso === undefined ? undefined : createAuthentikSso(config.sso);
 	const wiring = wireNotify({
 		config,
 		store: overrides.store ?? store,
+		access,
+		sso: overrides.sso ?? sso,
 		rpc,
 		clock,
 		log: stdoutLog,
@@ -75,7 +80,17 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		config,
 		store,
 		authz,
-		access: createAccess(authz, denials),
+		access,
+		sso,
+		links:
+			config.notify === undefined
+				? undefined
+				: {
+						secret: config.notify.reminderLinkSecret,
+						publicOrigin: config.publicUrl,
+						consoleUrl: config.notify.consoleUrl,
+					},
+		invites: wiring.invites,
 		verifier: createTokenVerifier({ issuers: config.issuers }),
 		crypto: createFieldCrypto(config.masterKey),
 		mailer: config.mail === undefined ? undefined : createHttpMailer(config.mail),

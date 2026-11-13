@@ -19,7 +19,9 @@ import { CLIENT_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
-import type { Appointment, Client, Package, Service } from "../port/schema";
+import type { PortError } from "../port/port";
+import type { Appointment, Client, Invite, Package, Service } from "../port/schema";
+import { InviteCard, inviteErrorText, RevokeSheet } from "./invite-page";
 import { NewPackageSheet, PackagesTab } from "./packages-tab";
 
 export type ClientTab = "overview" | "appointments" | "packages" | "records" | "files";
@@ -102,6 +104,10 @@ function Confirm({
 export interface ClientView {
 	client: Client;
 	tab: ClientTab;
+	/** The online-account invitation; `undefined` when this person may not see it (no `clients_invite`). */
+	invite?: Invite | null | undefined;
+	/** A refusal of the last resend or withdrawal, to show above the page. */
+	inviteError?: PortError | null | undefined;
 	appointments: ReadonlyArray<Appointment>;
 	packages: ReadonlyArray<Package>;
 	services: ReadonlyArray<Service>;
@@ -128,6 +134,11 @@ export async function renderClient(
 		title: client.name,
 		children: (
 			<div class="adm-page" data-signals="{askArchive:false,askDelete:false}">
+				{view.inviteError === null || view.inviteError === undefined ? null : (
+					<Banner tone="error" icon="alert">
+						{inviteErrorText(view.inviteError, ctx.locale)}
+					</Banner>
+				)}
 				<a class="adm-btn adm-btn--ghost" style="align-self:flex-start" href="/clients">
 					<Icon name="chevron-left" />
 					{m.client_back({}, o)}
@@ -218,7 +229,12 @@ export async function renderClient(
 			</div>
 		),
 		overlays: (
-			<div data-signals="{askArchive:false,askDelete:false,newPkg:false}">
+			<div data-signals="{askArchive:false,askDelete:false,newPkg:false,askRevoke:false}">
+				{view.invite === undefined ||
+				view.invite === null ||
+				!ctx.can.write("clients_invite") ? null : (
+					<RevokeSheet client={client} locale={ctx.locale} />
+				)}
 				{client.status === "archived" ? null : (
 					<Confirm
 						signal="askArchive"
@@ -280,6 +296,14 @@ function Overview({
 					<Field label={m.note_label({}, o)} value={client.note} />
 				) : null}
 			</div>
+			{view.invite === undefined ? null : (
+				<InviteCard
+					client={client}
+					invite={view.invite}
+					locale={ctx.locale}
+					canWrite={ctx.can.write("clients_invite") && client.status === "current"}
+				/>
+			)}
 			{ctx.can.has("packages_view") && ctx.can.group("money") ? (
 				<div class="adm-card adm-stack">
 					<h3 class="adm-h2">{m.tab_packages({}, o)}</h3>

@@ -9,7 +9,6 @@
 	"directory_prefix": "psi",
 	"platform_id": "psi",
 	"acces_module": "@rmx/acces/convex",
-	"i18n_module": "@rmx/i18n",
-	"i18n_messages_dirs": "packages/rmx-i18n/messages/ro",
+	"i18n_catalogues": "@psi/i18n=apps/scheduling-api/messages",
 	"doc_example_role": "administrator"
 }

@@ -29,6 +29,7 @@ const KEYS = {
 		archive: "clients_archive",
 		cancel: "clients_delete",
 		export: "clients_export",
+		invite: "clients_invite",
 	},
 	files: { view: "files_view", create: "files_upload", cancel: "files_delete" },
 	packages: {

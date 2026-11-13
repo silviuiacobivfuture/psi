@@ -2,6 +2,7 @@ import { currentActor } from "./actor";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
+import { createMemoryKeyed } from "./memory-keyed";
 import { applyVisitRules } from "./memory-rules";
 import { applyTeamRules } from "./memory-team";
 import { createMemoryVisitor } from "./memory-visitor";
@@ -57,6 +58,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 	};
 	const { visitor, requests, bookings, state } = createMemoryVisitor(c, clock, blacklist.online);
 	const feedback = createMemoryFeedback(c, clock, bookings.byReference, bookings.byId);
+	const keyed = createMemoryKeyed(c.apps, clock);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
 		get: (app, kind) => Promise.resolve(documents.get(`${app}|${kind}`)),
@@ -86,6 +88,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		docs,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
+		keyed: keyed.port,
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([
@@ -95,6 +98,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...documents.entries()],
 				blacklist.state(),
 				feedback.state(),
+				keyed.state(),
 			]),
 	};
 }

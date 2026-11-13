@@ -64,6 +64,8 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/clients/[^/]+/files", ["files_view"]),
 	g("POST", "/clients/[^/]+/archive", ["clients_archive"], true),
 	g("POST", "/clients/[^/]+/delete", ["clients_delete"], true),
+	g("GET", "/clients/[^/]+/invite", ["clients_invite"]),
+	g("POST", "/clients/[^/]+/invite/(preview|send|resend|revoke)", ["clients_invite"], true),
 	g("POST", "/clients/[^/]+/packages", ["packages_create"], true),
 	g("POST", "/clients/[^/]+/packages/[^/]+/field/[^/]+", ["packages_edit"], true),
 	g("POST", "/clients/[^/]+/packages/[^/]+/payments", ["payments_create"], true),

@@ -6,6 +6,9 @@ import { StoreRefused } from "../store/types";
 
 type C = Ctx<RouteSpec>;
 
+/** A rating this low or lower tells the owners. */
+const LOW_RATING = 2;
+
 /** Feedback text is sealed per app: a sealed value moved to another app does not open. */
 export const feedbackContext = (app: string): string => `feedback:${app}`;
 
@@ -75,6 +78,14 @@ export const feedbackHandlers: HandlersOf<
 					: { textSealed: ctx.deps.crypto.seal(text, feedbackContext(ctx.app)) }),
 			}),
 		);
+		// A low rating is for the people who answer to the clinic, at once; what was written is for them to read in the console.
+		if (rest.rating !== undefined && rest.rating <= LOW_RATING)
+			await ctx.notify(
+				"feedback.negative",
+				{ kind: "team", permission: "feedback_view" },
+				{ feedbackId: id, rating: rest.rating },
+				id,
+			);
 		return { id };
 	},
 

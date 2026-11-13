@@ -91,6 +91,7 @@ export const clientHandlers: HandlersOf<
 			...saved.treating.map((p) => treatingLink(saved.id, p)),
 		]);
 		await ctx.changed("client", "created", saved.id);
+		await tellAssigned(ctx, saved.id, saved.treating);
 		ctx.note({ groups: GROUPS.filter((g) => b[g] !== undefined) });
 		return view(ctx, saved);
 	},
@@ -157,6 +158,11 @@ export const clientHandlers: HandlersOf<
 		);
 		await writeTuples(ctx, change.writes, change.deletes);
 		await ctx.changed("client", "updated", row.id);
+		await tellAssigned(
+			ctx,
+			row.id,
+			next.treating.filter((p) => !row.treating.includes(p)),
+		);
 		// Every change of who treats a client is explicit and audited: from, to, and the reason the person gave.
 		ctx.note({ from: row.treating, to: next.treating, reason: ctx.body.reason });
 		return view(ctx, next);
@@ -198,6 +204,21 @@ export const clientHandlers: HandlersOf<
 		return { id: row.id, status: "deleted" as const, purgeAt };
 	},
 };
+
+/** A therapist who has just been given a client is told so (and not by their own hand). */
+async function tellAssigned(
+	ctx: Parameters<typeof clientView>[0],
+	clientId: string,
+	added: readonly string[],
+): Promise<void> {
+	for (const personId of added)
+		await ctx.notify(
+			"client.assigned",
+			{ kind: "team", permission: "clients_assign" },
+			{ clientId, personId, actor: ctx.subject },
+			`${clientId}:${personId}:${ctx.requestId}`,
+		);
+}
 
 async function view(
 	ctx: Parameters<typeof clientView>[0],
