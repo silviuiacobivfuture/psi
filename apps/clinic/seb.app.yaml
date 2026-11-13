@@ -1,9 +1,9 @@
 # clinic's declaration to the platform (SEB schema/app.schema.json): what it runs, where its
 # manifests are, which secrets it reads. SEB's doctor derives its health checks from it
 # (doctor/plan.mjs): the ExternalSecrets synced with every required key, the OpenBao paths present,
-# the workload, the host. NOT YET DEPLOYED: gitops/apps/overlays/dev/apps/clinic.yaml is not listed
-# in that directory's kustomization.yaml until the OpenBao keys, the Authentik client and the
-# scheduling adapter exist (docs/plans/clinic.md).
+# the workload, the host. Deployed on dev at programari-dev.psizone.ro (Argo Application
+# gitops/apps/overlays/dev/apps/clinic.yaml); its account database is the CNPG Cluster account-db in the
+# clinic namespace (docs/plans/clinic.md).
 schema: seb.app/v1
 key: clinic
 name: clinic
@@ -21,7 +21,7 @@ components:
       context: .
     port: 3000
     hosts:
-      - prefix: programari
+      - prefix: programari-dev
         exposure: public
         ingress: clinic
     overlayImages:
@@ -91,8 +91,8 @@ oidc:
   kind: confidential
   delegation: false
   platform: false
-  redirectUris: [https://programari.psizone.ro/auth/callback]
-  postLogoutRedirectUris: [https://programari.psizone.ro/]
+  redirectUris: [https://programari-dev.psizone.ro/auth/callback]
+  postLogoutRedirectUris: [https://programari-dev.psizone.ro/]
   frontchannelLogoutUris: []
 groups:
   - name: app-clinic-member
@@ -118,7 +118,7 @@ health:
         - OPENFGA_STORE_ID
         - OPENFGA_MODEL_ID
         - ACCOUNT_DATABASE_URL
-      - label: clinic OIDC client (Authentik)
+    - label: clinic OIDC client (Authentik)
       externalSecret: authentik/authentik-clinic-oidc
       secret: authentik-clinic-oidc
       keys: [AUTHENTIK_OIDC__CLINIC__ID, AUTHENTIK_OIDC__CLINIC__SECRET]

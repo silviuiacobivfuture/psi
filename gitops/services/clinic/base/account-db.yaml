@@ -1,0 +1,96 @@
+# The estate account's Postgres (@psi/account: accounts, identities, sessions, consent, journey) — a
+# CloudNativePG Cluster, the shape of cms-db (gitops/services/cms/base/cnpg-cluster.yaml). On dev it lives in the
+# clinic namespace, the only consumer there; production gets its own in its own namespace. One role, the owner:
+# @psi/account creates its own tables when the console boots (every statement is IF NOT EXISTS, serialised on an
+# advisory lock: packages/account/src/stores/postgres.ts), so no migration Job exists.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: account-db
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  instances: 1
+  # Fast clean stop (10 s), not the 180 s smart-shutdown default: pooled clients never leave.
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  bootstrap:
+    initdb:
+      database: account
+      owner: account
+      secret:
+        name: account-db-app
+  # hcloud-volumes: a single-instance Cluster has no live path onto another storage class.
+  # 10Gi is the Hetzner block-volume minimum, not a sizing estimate.
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      # The estate's backup bucket (psi-tfstate-dev, nbg1), one prefix per database.
+      destinationPath: s3://psi-tfstate-dev/cnpg/account-db
+      endpointURL: https://nbg1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: account-db-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: account-db-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# The base backup the WAL archive replays onto. CNPG cron has SIX fields (leading seconds).
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: account-db-base
+spec:
+  # 04:50 Sunday — grep `schedule:` across gitops/ before taking another slot.
+  schedule: "0 50 4 * * 0"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: account-db
+---
+# The database owner's credential in the form CNPG's bootstrap requires, from the SAME OpenBao properties
+# the console composes ACCOUNT_DATABASE_URL from (clinic-env), so the role and the URL cannot drift.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: account-db-app
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: account-db-app
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef: { key: apps/account/db, property: username }
+    - secretKey: password
+      remoteRef: { key: apps/account/db, property: password }
+---
+# CNPG's WAL-archive credentials, under the AWS_* names barman expects.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: account-db-backup-s3
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: account-db-backup-s3, creationPolicy: Owner, deletionPolicy: Retain }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }

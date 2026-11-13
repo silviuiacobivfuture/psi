@@ -68,6 +68,9 @@ resources:
   # psi's cms: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
   - blueprints-cms.yaml
   - cms-oidc-externalsecret.yaml
+  # psi's clinic console: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
+  - blueprints-clinic.yaml
+  - clinic-oidc-externalsecret.yaml
   # The working fields the estate's values are built in (never rendered). See below.
   - identity/lines.yaml
   - identity/backup-bucket.yaml

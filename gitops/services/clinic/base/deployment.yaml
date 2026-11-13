@@ -59,7 +59,7 @@ spec:
           env:
             - { name: PORT, value: "3000" }
             - { name: NODE_ENV, value: production }
-            - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
+            - { name: CLINIC_ORIGIN, value: "https://programari-dev.psizone.ro" }
             - { name: AUTHENTIK_URL, value: "https://auth.psizone.ro" }
             - { name: OPENFGA_ENDPOINT, value: "http://openfga.openfga.svc:8081" }
             # The in-cluster Service of scheduling-api: <service>.<namespace>.svc (port 80 -> pod 4380). The console calls

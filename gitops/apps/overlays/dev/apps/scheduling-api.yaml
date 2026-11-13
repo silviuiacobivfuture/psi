@@ -1,6 +1,5 @@
-# READY BUT NOT REGISTERED: this Application is deliberately absent from kustomization.yaml in this folder. Adding
-# `- scheduling-api.yaml` there is the one step that makes Argo deploy the service, once the OpenBao keys exist
-# (estate/APP-SECRETS.md) and SEB's OpenFGA policy admits the namespace.
+# scheduling-api on dev (api-programari-dev.psizone.ro). Needs its OpenBao keys (estate/APP-SECRETS.md) and SEB's
+# OpenFGA NetworkPolicy admitting namespace scheduling-api on :8081 and :8080 before it can authorize.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

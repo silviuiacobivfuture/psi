@@ -173,7 +173,7 @@ stops with `MISSING REQUIRED SECRET` naming them. In development the sites boot 
 | `OIDC_ISSUER` | `https://auth.psizone.ro/application/o/<app>/` (default derived from `AUTHENTIK_URL` + slug) | Deployment env |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | yes | `secret/apps/<app>/oidc` `client_id`, `client_secret` — the same pair the Authentik blueprint reads |
 | `SESSION_SECRET` | yes (≥ 32 chars, generated) | `secret/apps/<app>/env` `SESSION_SECRET` |
-| `ACCOUNT_DATABASE_URL` | shared | `secret/apps/account/db` `username`, `password` → `account-db-rw.account` |
+| `ACCOUNT_DATABASE_URL` | shared | `secret/apps/account/db` `username`, `password` → `account-db-rw.account` (dev, first consumer clinic: `account-db-rw` in namespace `clinic`, `gitops/services/clinic/base/account-db.yaml`) |
 | `OPENFGA_ENDPOINT` | `http://openfga.openfga.svc:8081` | Deployment env |
 | `OPENFGA_STORE_ID` | shared | `secret/apps/autorizare/env` `OPENFGA_STORE_ID`, the same property Polaris reads |
 | `OPENFGA_MODEL_ID` | shared | `secret/apps/account/openfga` `model_id`, written at Polaris's release of psi's model. **OWNER/SEB:** where the estate records its pin |

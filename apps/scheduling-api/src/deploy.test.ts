@@ -88,15 +88,27 @@ describe("the deployment declares every secret in all four places", () => {
 		expect(d).not.toMatch(/name: OPENFGA_MODEL_ID, value/);
 	});
 
-	it("is built by apps.yml (a Dockerfile in the app) and NOT registered with Argo", () => {
+	it("is built by apps.yml (a Dockerfile in the app) and registered with Argo, beside the clinic console", () => {
 		expect(read("apps/scheduling-api/Dockerfile")).toContain("scheduling-api");
 		// @psi/notify generates its messages: the image builds the packages the service depends on before it bundles.
 		expect(read("apps/scheduling-api/Dockerfile")).toContain('"@psi/scheduling-api^..."');
-		expect(read("gitops/apps/overlays/dev/apps/kustomization.yaml")).not.toContain(
-			"scheduling-api",
-		);
+		const registered = read("gitops/apps/overlays/dev/apps/kustomization.yaml");
+		expect(registered).toContain("- scheduling-api.yaml");
+		expect(registered).toContain("- clinic.yaml");
 		expect(read("gitops/apps/overlays/dev/apps/scheduling-api.yaml")).toContain(
 			"name: scheduling-api",
+		);
+	});
+
+	it("the dev host is the one the ingress, the public URL and the CORS origin name, and the store admits this pod", () => {
+		const d = read("gitops/services/scheduling-api/base/deployment.yaml");
+		const ingress = read("gitops/services/scheduling-api/base/ingress.yaml");
+		expect(ingress.match(/api-programari-dev\.psizone\.ro/g)).toHaveLength(3);
+		expect(d).toContain('name: PUBLIC_URL, value: "https://api-programari-dev.psizone.ro"');
+		expect(d).toContain('name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro"');
+		expect(d).toContain('name: CONSOLE_URL, value: "https://programari-dev.psizone.ro"');
+		expect(read("gitops/services/scheduling-backend/base/networkpolicy.yaml")).toMatch(
+			/kubernetes\.io\/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
 		);
 	});
 });

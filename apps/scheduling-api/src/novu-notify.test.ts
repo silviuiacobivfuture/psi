@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { wireNotify } from "./notify-wiring";
-import { createNovuNotify } from "./ports/novu-notify";
+import { createNovuNotify, notifyApps } from "./ports/novu-notify";
 import { createWorld, type Populated } from "./testing/populate";
 import { HOUR, LINK_SECRET, NOW, testConfig } from "./testing/world";
 
@@ -48,6 +48,20 @@ function adapter(links = true) {
 		},
 	});
 }
+
+describe("the console a notification's links lead to is the environment's own", () => {
+	it("both brands point at the configured console, never at another environment's", () => {
+		const apps = notifyApps("https://programari-dev.psizone.ro");
+		expect(Object.keys(apps).sort()).toEqual(["hemisync", "psizone"]);
+		for (const app of Object.values(apps)) {
+			expect(app.consoleUrl).toBe("https://programari-dev.psizone.ro");
+		}
+		expect(JSON.stringify(apps)).not.toContain("https://programari.psizone.ro");
+		expect(notifyApps("https://programari.psizone.ro").psizone?.consoleUrl).toBe(
+			"https://programari.psizone.ro",
+		);
+	});
+});
 
 describe("the catalogue's events, from what the handlers say happened", () => {
 	it("a staff booking tells the client and the practitioner, with the facts and a calendar link", async () => {
@@ -223,6 +237,7 @@ describe("through the real notifier: queued, durable-shaped, delivered to Novu w
 					novuApiUrl: "http://novu.test:3000",
 					novuSecretKey: "secret-novu-key",
 					reminderLinkSecret: LINK_SECRET,
+					consoleUrl: "https://programari.test",
 				},
 			},
 			store: w.store,

@@ -118,6 +118,7 @@ describe("configuration", () => {
 		NOVU_API_URL: "http://novu-api.novu.svc:3000",
 		NOVU_SECRET_KEY: "novu-secret",
 		REMINDER_LINK_SECRET: "r".repeat(64),
+		CONSOLE_URL: "https://programari-dev.psizone.ro",
 		SERVICE_CALLERS: "psizone-web=psizone",
 		[hashVariable("psizone-web")]: "c".repeat(64),
 	};
@@ -144,6 +145,8 @@ describe("configuration", () => {
 		["no Novu API address", { NOVU_API_URL: "" }],
 		["a Novu API address that is not a URL", { NOVU_API_URL: "novu-api" }],
 		["no Novu secret key", { NOVU_SECRET_KEY: "" }],
+		["no console URL", { CONSOLE_URL: "" }],
+		["a console URL that is not a URL", { CONSOLE_URL: "programari" }],
 		["no reminder link secret", { REMINDER_LINK_SECRET: "" }],
 		["a short reminder link secret", { REMINDER_LINK_SECRET: "r".repeat(31) }],
 		["no issuer", { OIDC_ISSUERS: "[]" }],
@@ -160,6 +163,7 @@ describe("configuration", () => {
 			novuApiUrl: "http://novu-api.novu.svc:3000",
 			novuSecretKey: "novu-secret",
 			reminderLinkSecret: "r".repeat(64),
+			consoleUrl: "https://programari-dev.psizone.ro",
 		});
 	});
 
@@ -170,6 +174,7 @@ describe("configuration", () => {
 	it.each([
 		["a Novu address alone", { NOVU_API_URL: "http://novu-api.novu.svc:3000" }],
 		["a link secret alone", { REMINDER_LINK_SECRET: "r".repeat(40) }],
+		["a console URL alone", { CONSOLE_URL: "https://programari-dev.psizone.ro" }],
 		[
 			"a short link secret",
 			{ NOVU_API_URL: "http://n:3000", NOVU_SECRET_KEY: "k", REMINDER_LINK_SECRET: "short" },

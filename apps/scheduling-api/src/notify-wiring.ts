@@ -4,7 +4,7 @@ import type { Hono } from "hono";
 import type { Config } from "./config";
 import type { LogEvent } from "./http/context";
 import { createLoggingNotify, type NotifyPort } from "./ports/notify";
-import { createNovuNotify, NOTIFY_APPS } from "./ports/novu-notify";
+import { createNovuNotify, notifyApps } from "./ports/novu-notify";
 import { createReminderActions } from "./reminder-actions";
 import { mountReminderRoutes } from "./reminder-routes";
 import { createConvexOutbox, createConvexUsedLinks } from "./store/convex/notify";
@@ -57,7 +57,7 @@ export function wireNotify(input: {
 			secretKey: config.notify.novuSecretKey,
 			...(input.fetch === undefined ? {} : { fetch: input.fetch }),
 		},
-		apps: NOTIFY_APPS,
+		apps: notifyApps(config.notify.consoleUrl),
 		outbox,
 		now: clock,
 		log: ({ level, msg, ...rest }) => log({ level, event: msg, requestId: "notify", ...rest }),
