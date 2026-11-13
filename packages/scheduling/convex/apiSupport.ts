@@ -29,7 +29,8 @@ type Owned =
 	| "rooms"
 	| "formDefinitions"
 	| "customFieldDefs"
-	| "builderDefs";
+	| "builderDefs"
+	| "leaveRequests";
 
 /** A row of the app by the id the caller holds, or null when it is not an id of that table or belongs to another app. */
 export async function owned<T extends Owned>(
@@ -86,3 +87,19 @@ export function stale(current: number | undefined, expected: number | undefined)
 }
 
 export type { Id, TableNames };
+
+/** Deletes rows of the app's own tables, one by one (an erasure or a rollback). */
+export async function deleteAll(
+	ctx: MutationCtx,
+	rows: ReadonlyArray<{
+		_id:
+			| Id<"roles">
+			| Id<"roleMembers">
+			| Id<"permissionOverrides">
+			| Id<"coordinatorAssignments">
+			| Id<"memberProfiles">
+			| Id<"formDefinitions">;
+	}>,
+): Promise<void> {
+	for (const row of rows) await ctx.db.delete(row._id);
+}

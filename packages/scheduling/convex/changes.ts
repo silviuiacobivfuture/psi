@@ -26,7 +26,13 @@ export const since = query({
 		requireServer(args.key);
 		const limit = Math.max(1, Math.min(CHANGES_PAGE, Math.floor(args.limit ?? CHANGES_PAGE)));
 		const wanted = args.kinds === undefined ? undefined : new Set<string>(args.kinds);
-		const found: Array<{ kind: string; entityId: string; at: number; version: number }> = [];
+		const found: Array<{
+			kind: string;
+			entityId: string;
+			at: number;
+			version: number;
+			seq: number;
+		}> = [];
 		let cursor = args.cursor;
 		let hasMore = false;
 		const rows = ctx.db
@@ -39,7 +45,13 @@ export const since = query({
 			}
 			cursor = row._creationTime;
 			if (wanted !== undefined && !wanted.has(row.kind)) continue;
-			found.push({ kind: row.kind, entityId: row.entityId, at: row.at, version: row.version });
+			found.push({
+				kind: row.kind,
+				entityId: row.entityId,
+				at: row.at,
+				version: row.version,
+				seq: row._creationTime,
+			});
 		}
 		return { changes: found, cursor, hasMore };
 	},

@@ -96,3 +96,16 @@ export const personValidator = v.union(
 );
 
 export const fileKindValidator = v.union(v.literal("client_file"), v.literal("notice"));
+
+/**
+ * What the staff API keeps about a visit that the calendar's own fields cannot hold: the API's kind (a session, a block of
+ * time, a group activity), the practitioner (a group visit sits in the group's column), the group, the service and the
+ * reason it was cancelled. Ids are the API's, opaque to Convex.
+ */
+export const visitMetaValidator = v.object({
+	kind: v.union(v.literal("session"), v.literal("block"), v.literal("group")),
+	practitioner: v.string(),
+	group: v.optional(v.string()),
+	service: v.optional(v.string()),
+	cancelReason: v.optional(v.string()),
+});

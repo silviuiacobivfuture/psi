@@ -1,5 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { apiDefinitions, leaveRequests } from "./tables/apiRecordsExtra";
+import { callbackRequests } from "./tables/callbacks";
 import {
 	coordinatorAssignments,
 	permissionOverrides,
@@ -21,6 +23,7 @@ import {
 } from "./tables/clinicRecords";
 import { devices, groupActivities, staffMembers } from "./tables/clinicResources";
 import { packages, payments, rosterDays, staffBlocks, visits } from "./tables/clinicVisits";
+import { memberProfiles } from "./tables/memberProfiles";
 import {
 	audienceValidator,
 	channelValidator,
@@ -51,6 +54,8 @@ export default defineSchema({
 		/** IANA zone the tenant's rules are written in: Europe/Bucharest. */
 		timeZone: v.string(),
 		active: v.boolean(),
+		/** When the app's name, zone or status last changed (UTC ms); absent on older rows. */
+		updatedAt: v.optional(v.number()),
 		/** The app's name and kind (a clinic, or a club like Hemi-Sync); absent on older rows. */
 		name: v.optional(v.string()),
 		kind: v.optional(v.union(v.literal("clinic"), v.literal("club"))),
@@ -65,6 +70,8 @@ export default defineSchema({
 
 	practitioners: defineTable({
 		tenant: v.string(),
+		/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+		extra: v.optional(v.string()),
 		slug: v.string(),
 		/** The public display name, as the practitioner agreed to be shown. */
 		displayName: v.string(),
@@ -100,6 +107,8 @@ export default defineSchema({
 
 	rooms: defineTable({
 		tenant: v.string(),
+		/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+		extra: v.optional(v.string()),
 		slug: v.string(),
 		/** What the team calls it: "Camera multisenzorială". */
 		name: v.string(),
@@ -133,6 +142,8 @@ export default defineSchema({
 
 	services: defineTable({
 		tenant: v.string(),
+		/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+		extra: v.optional(v.string()),
 		slug: v.string(),
 		durationMinutes: v.number(),
 		bufferMinutes: v.number(),
@@ -189,6 +200,8 @@ export default defineSchema({
 	 */
 	clients: defineTable({
 		tenant: v.string(),
+		/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+		extra: v.optional(v.string()),
 		name: v.string(),
 		kind: audienceValidator,
 		phone: v.optional(v.string()),
@@ -288,7 +301,8 @@ export default defineSchema({
 		.index("by_room_start", ["room", "start"])
 		.index("by_tenant_start", ["tenant", "start"])
 		.index("by_account_start", ["accountHash", "start"])
-		.index("by_updated", ["updatedAt"]),
+		.index("by_updated", ["updatedAt"])
+		.index("by_tenant_updated", ["tenant", "updatedAt"]),
 
 	// The clinic: every table below carries the app and starts every index with it.
 	devices,
@@ -307,11 +321,15 @@ export default defineSchema({
 	builderDefs,
 	files,
 	auditEvents,
+	apiDefinitions,
+	leaveRequests,
 	storageOutbox,
 	changeLog,
 	roles,
 	roleMembers,
+	memberProfiles,
 	permissionOverrides,
 	treating,
 	coordinatorAssignments,
+	callbackRequests,
 });

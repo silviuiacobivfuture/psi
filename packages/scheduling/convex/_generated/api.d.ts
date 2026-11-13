@@ -10,11 +10,18 @@
 
 import type * as account from "../account.js";
 import type * as apiAccess from "../apiAccess.js";
+import type * as apiAppsExtra from "../apiAppsExtra.js";
 import type * as apiAudit from "../apiAudit.js";
 import type * as apiBuilder from "../apiBuilder.js";
+import type * as apiCatalogExtra from "../apiCatalogExtra.js";
 import type * as apiClients from "../apiClients.js";
+import type * as apiDefinitionsExtra from "../apiDefinitionsExtra.js";
+import type * as apiLeaveExtra from "../apiLeaveExtra.js";
+import type * as apiMembersExtra from "../apiMembersExtra.js";
 import type * as apiMoney from "../apiMoney.js";
+import type * as apiMoneyExtra from "../apiMoneyExtra.js";
 import type * as apiRecords from "../apiRecords.js";
+import type * as apiRecordsExtra from "../apiRecordsExtra.js";
 import type * as apiResources from "../apiResources.js";
 import type * as apiRoster from "../apiRoster.js";
 import type * as apiSettings from "../apiSettings.js";
@@ -56,12 +63,16 @@ import type * as staffRequests from "../staffRequests.js";
 import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
+import type * as tables_apiRecordsExtra from "../tables/apiRecordsExtra.js";
+import type * as tables_callbacks from "../tables/callbacks.js";
 import type * as tables_clinicAccess from "../tables/clinicAccess.js";
 import type * as tables_clinicRecords from "../tables/clinicRecords.js";
 import type * as tables_clinicResources from "../tables/clinicResources.js";
 import type * as tables_clinicVisits from "../tables/clinicVisits.js";
+import type * as tables_memberProfiles from "../tables/memberProfiles.js";
 import type * as validators from "../validators.js";
 import type * as visitConflicts from "../visitConflicts.js";
+import type * as webRequests from "../webRequests.js";
 
 import type {
   ApiFromModules,
@@ -72,11 +83,18 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   apiAccess: typeof apiAccess;
+  apiAppsExtra: typeof apiAppsExtra;
   apiAudit: typeof apiAudit;
   apiBuilder: typeof apiBuilder;
+  apiCatalogExtra: typeof apiCatalogExtra;
   apiClients: typeof apiClients;
+  apiDefinitionsExtra: typeof apiDefinitionsExtra;
+  apiLeaveExtra: typeof apiLeaveExtra;
+  apiMembersExtra: typeof apiMembersExtra;
   apiMoney: typeof apiMoney;
+  apiMoneyExtra: typeof apiMoneyExtra;
   apiRecords: typeof apiRecords;
+  apiRecordsExtra: typeof apiRecordsExtra;
   apiResources: typeof apiResources;
   apiRoster: typeof apiRoster;
   apiSettings: typeof apiSettings;
@@ -118,12 +136,16 @@ declare const fullApi: ApiFromModules<{
   staffRooms: typeof staffRooms;
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
+  "tables/apiRecordsExtra": typeof tables_apiRecordsExtra;
+  "tables/callbacks": typeof tables_callbacks;
   "tables/clinicAccess": typeof tables_clinicAccess;
   "tables/clinicRecords": typeof tables_clinicRecords;
   "tables/clinicResources": typeof tables_clinicResources;
   "tables/clinicVisits": typeof tables_clinicVisits;
+  "tables/memberProfiles": typeof tables_memberProfiles;
   validators: typeof validators;
   visitConflicts: typeof visitConflicts;
+  webRequests: typeof webRequests;
 }>;
 
 /**
