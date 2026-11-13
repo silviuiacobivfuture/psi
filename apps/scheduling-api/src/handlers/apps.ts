@@ -85,6 +85,7 @@ function needsOwnerKept(role: RoleRow, permissions: readonly string[]): boolean 
 
 export const appHandlers: HandlersOf<
 	| "me.get"
+	| "me.capabilities"
 	| "apps.create"
 	| "apps.get"
 	| "apps.update"
@@ -108,6 +109,41 @@ export const appHandlers: HandlersOf<
 			if (await ctx.deps.access.isMember(ctx.subject, m.app))
 				apps.push({ app: m.app, roles: m.roles });
 		return { subject: ctx.subject, kind: "person" as const, apps };
+	},
+
+	async "me.capabilities"(ctx) {
+		if (ctx.principal.kind !== "person")
+			throw forbidden("service keys reach the visitor routes only");
+		const target = ctx.query.as ?? ctx.subject;
+		// Seeing what ANOTHER member may do is the roles editor's view-as: it needs the right to read roles.
+		if (target !== ctx.subject && !(await ctx.canAll("roles_view")))
+			throw forbidden("not allowed to see another member's access", { permission: "roles_view" });
+		const member = await ctx.deps.store.c.members.get(ctx.app, target);
+		if (member === undefined) throw fail("not_found", "member not found");
+		const denied = new Set(member.denies);
+		const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
+		for (const def of CATALOGUE) {
+			if (denied.has(def.key)) continue;
+			const scopes = def.scopes.length === 0 ? (["all"] as const) : def.scopes;
+			const held: ("all" | "assigned" | "own")[] = [];
+			for (const scope of scopes)
+				if (
+					await ctx.deps.authz.check(
+						`user:${target}`,
+						def.scopes.length === 0 ? def.key : `${def.key}_${scope}`,
+						`sched_app:${ctx.app}`,
+					)
+				)
+					held.push(scope);
+			if (held.length > 0) permissions[def.key] = held;
+		}
+		return {
+			subject: target,
+			app: ctx.app,
+			roles: member.roles,
+			permissions,
+			denied: [...denied].sort(),
+		};
 	},
 
 	async "apps.create"(ctx) {

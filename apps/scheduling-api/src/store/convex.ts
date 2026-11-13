@@ -42,13 +42,36 @@ export interface ConvexClients {
 	serverKey: string;
 }
 
-const ChangeSchema = z.object({
-	seq: z.number().int(),
-	at: z.number().int(),
-	kind: z.enum(["appointment", "client", "roster", "request", "ready"]),
-	op: z.enum(["created", "updated", "deleted", "ready"]),
-	id: z.string(),
+const CHANGES = makeFunctionReference<"query">("changes:since");
+const ChangesSchema = z.object({
+	changes: z.array(
+		z.object({ kind: z.string(), entityId: z.string(), at: z.number(), version: z.number() }),
+	),
+	cursor: z.number(),
+	hasMore: z.boolean(),
 });
+
+/** The store's change kinds as the calendar and inbox streams know them. */
+function toEvent(
+	change: { kind: string; entityId: string; at: number },
+	cursor: number,
+): {
+	seq: number;
+	at: number;
+	kind: "appointment" | "client" | "roster" | "request" | "ready";
+	op: "updated";
+	id: string;
+} {
+	const kind =
+		change.kind === "visit"
+			? "appointment"
+			: change.kind === "client"
+				? "client"
+				: change.kind === "roster" || change.kind === "staff_block"
+					? "roster"
+					: "ready";
+	return { seq: Math.floor(cursor), at: change.at, kind, op: "updated", id: change.entityId };
+}
 
 export function createConvexStore(clients: ConvexClients): StorePort {
 	const c = Object.fromEntries(COLLECTIONS.map((name) => [name, missing(name)])) as {
@@ -59,24 +82,29 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		c,
 		appsOf: () => unavailable("members.appsOf"),
 		changes: {
-			append: () => unavailable("changes.append (a mutation writing the change log)"),
-			since: () => unavailable("changes.since"),
-			head: () => unavailable("changes.head"),
-			// A live query: Convex pushes a new result whenever the log changes, over the WebSocket. The function
-			// `changes:since` does not exist yet (clinic/model2); until it does, the subscription fails and the stream closes.
+			// The clinic wrappers append to the change log themselves, in the same transaction as the write: nothing to do here.
+			append: () => Promise.resolve(),
+			async since(app, seq) {
+				const out = ChangesSchema.safeParse(
+					await clients.live.query(CHANGES, { key: clients.serverKey, tenant: app, cursor: seq }),
+				);
+				return out.success ? out.data.changes.map((c) => toEvent(c, out.data.cursor)) : [];
+			},
+			// The log's cursor is a creation time: "now" is the head.
+			head: () => Promise.resolve(Date.now()),
+			// A live query: Convex pushes a new result whenever the app's log grows, over the WebSocket. The reader keeps the cursor.
 			subscribe(app, after, onEvents, onError) {
 				let cursor = after;
 				const unsubscribe = clients.live.onUpdate(
-					makeFunctionReference<"query">("changes:since"),
-					{ key: clients.serverKey, tenant: app, after },
+					CHANGES,
+					{ key: clients.serverKey, tenant: app, cursor: after },
 					(raw: unknown) => {
-						const parsed = z.array(ChangeSchema).safeParse(raw);
+						const parsed = ChangesSchema.safeParse(raw);
 						if (!parsed.success)
 							return onError(new Error("changes:since answered an unexpected shape"));
-						const fresh = parsed.data.filter((e) => e.seq > cursor);
-						if (fresh.length === 0) return;
-						cursor = Math.max(cursor, ...fresh.map((e) => e.seq));
-						onEvents(fresh);
+						if (parsed.data.changes.length === 0) return;
+						cursor = Math.max(cursor, parsed.data.cursor);
+						onEvents(parsed.data.changes.map((c) => toEvent(c, parsed.data.cursor)));
 					},
 					(error: Error) => onError(error),
 				);

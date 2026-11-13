@@ -19,9 +19,9 @@ the model.
 ## Not available yet on the Convex adapter
 
 `src/store/convex.ts` wires the visitor flow and the web requests. Everything else answers `not_available_yet` (501):
-every collection (`apps`, `members`, `roles`, `people`, `rooms`, `devices`, `groups`, `services`, `clients`,
+every collection, still on the placeholder catalogue (`apps`, `members`, `roles`, `people`, `rooms`, `devices`, `groups`, `services`, `clients`,
 `appointments`, `packages`, `payments`, `roster`, `leave`, `reminders`, `records`, `files`, `audit`, `definitions`,
-`imports`), the change feed (`changes:since` as a live query, plus an append), `visitor.callback`, `visitor.mine`,
+`imports`), `visitor.callback`, `visitor.mine`,
 `visitor.cancelMine`, `members.appsOf`.
 
 ## Platform prerequisites (SEB changes; not made here)
@@ -48,3 +48,12 @@ every collection (`apps`, `members`, `roles`, `people`, `rooms`, `devices`, `gro
 Visitor routes only: a token bucket in memory per service key and visitor (the site forwards the visitor's address in
 `x-psi-client-ip`), or per subject for a signed-in visitor. 30 calls at once, refilling 5 a second; over it, `429
 rate_limited` with `Retry-After`. Per replica.
+
+## Convex: what is wired
+
+The change feed: `subscribe` is the live query `changes:since({key, tenant, cursor})` over `ConvexClient.onUpdate`
+(the clinic wrappers write the log themselves, so `append` is a no-op). Kinds map `visit` to appointment, `client`, and
+`roster`/`staff_block` to roster. The log has no web-request kind, so `requests.stream` and the inbox badge still need a
+live query over the requests. The collections need re-backing on `apiClients`, `apiVisits`, `apiMoney`, `apiRoster`,
+`apiRecords`, `apiAccess`, `apiBuilder`, `apiAudit`, `apiResources` and `apiSettings` together with the swap to
+`@psi/scheduling/permissions`.

@@ -238,3 +238,36 @@ describe("apps are closed worlds", () => {
 		expect((await w.call("root", "GET", "/v1/apps/psizone/roles")).status).toBe(200);
 	});
 });
+
+describe("what a member may do (/me), and the view-as", () => {
+	it("lists the permissions held with their scopes, and leaves out the denied", async () => {
+		await as("olga", "PUT", "/members/dora/overrides", { grant: [], deny: ["leave_create"] });
+		const me = (await as("dora", "GET", "/me")).json as {
+			permissions: Record<string, string[]>;
+			denied: string[];
+			roles: string[];
+		};
+		expect(me.roles).toEqual(["psizone-therapist"]);
+		expect(me.permissions.clients_view).toEqual(["own"]);
+		expect(me.permissions.calendar_view).toEqual(["own"]);
+		expect(me.permissions.rooms_view).toEqual(["all"]);
+		expect(Object.keys(me.permissions)).not.toContain("roles_edit");
+		expect(Object.keys(me.permissions)).not.toContain("leave_create");
+		expect(me.denied).toEqual(["leave_create"]);
+	});
+
+	it("shows another member's access only to someone who may read roles", async () => {
+		const seen = await as("olga", "GET", "/me?as=rita");
+		expect(seen.status).toBe(200);
+		expect(seen.json).toMatchObject({ subject: "rita" });
+		expect((await as("dora", "GET", "/me?as=rita")).status).toBe(403);
+		expect((await as("olga", "GET", "/me?as=ghost")).status).toBe(404);
+	});
+
+	it("is the same relations the server enforces: what /me lists works, what it omits is refused", async () => {
+		const me = (await as("rita", "GET", "/me")).json as { permissions: Record<string, string[]> };
+		expect(me.permissions.clients_view).toEqual(["all"]);
+		expect(Object.keys(me.permissions)).not.toContain("clients_clinical_view");
+		expect((await as("rita", "GET", `/clients/${w.ids.c1}`)).status).toBe(200);
+	});
+});

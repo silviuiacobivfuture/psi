@@ -94,7 +94,7 @@ describe("every team route refuses, and writes nothing", () => {
 					refused(() => call("olga"), 403, "forbidden"));
 				return;
 			}
-			if (spec.id === "me.get") return;
+			if (spec.id === "me.get" || spec.id === "me.capabilities") return;
 			it("a member of another app is told the app is not there", () =>
 				refused(() => call("hugo"), 404, "not_found"));
 			it("a stranger is told the app is not there", () =>

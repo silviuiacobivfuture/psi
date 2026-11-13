@@ -480,6 +480,17 @@ export const CalendarEvent = z.object({
 	id: z.string(),
 });
 
+/** What a member may do in an app, from the same relations the server enforces: the console shows only what works. */
+export const Capabilities = z.object({
+	subject: Subject,
+	app: AppId,
+	roles: z.array(Id),
+	/** Permission key to the scopes held (`["all"]` for an app-wide permission). A key not listed is not held. */
+	permissions: z.record(z.string(), z.array(z.enum(["all", "assigned", "own"]))),
+	/** Permissions individually denied; they are absent from `permissions`. */
+	denied: z.array(z.string()),
+});
+
 /** The inbox badge: what is waiting. `reminders` is absent for a caller who may not see reminders. */
 export const InboxCounts = z.object({
 	seq: z.number().int().nonnegative(),

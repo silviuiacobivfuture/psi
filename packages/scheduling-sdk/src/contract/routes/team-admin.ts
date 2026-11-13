@@ -4,6 +4,7 @@ import {
 	App,
 	AppCreate,
 	AppPatch,
+	Capabilities,
 	Device,
 	DeviceCreate,
 	DevicePatch,
@@ -56,6 +57,17 @@ export const ME_ROUTES = [
 		body: AppCreate,
 		response: App,
 		audit: "app.create",
+	}),
+	route({
+		id: "me.capabilities",
+		method: "GET",
+		path: "/v1/apps/:app/me",
+		side: "team",
+		summary:
+			"What the caller may do in this app (permission to scopes). With `as`, what another member may do: the view-as of the roles editor",
+		params: AppParam,
+		query: z.object({ as: Subject.optional() }),
+		response: Capabilities,
 	}),
 	route({
 		id: "apps.get",
