@@ -127,6 +127,7 @@ export function Header({
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
 				startWith={guideStart(locale)}
+				bookWith={m.compass_book_with({}, o)}
 				invite={psizoneInvite(locale, currentPath())}
 				chat={{
 					storageKey: "psi.chat.psizone",
@@ -137,7 +138,6 @@ export function Header({
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),
 						fullscreen: m.compass_fullscreen({}, o),
-						exitFullscreen: m.compass_exit_fullscreen({}, o),
 						fullscreenOn: m.compass_fullscreen_on({}, o),
 						guideTab: m.compass_tab_guide({}, o),
 						pagesTab: m.compass_tab_pages({}, o),

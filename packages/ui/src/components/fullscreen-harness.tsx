@@ -26,7 +26,6 @@ const CHAT: CompassChat = {
 		retry: "R",
 		unanswered: "U",
 		fullscreen: "Ecran complet",
-		exitFullscreen: "Ieși din ecran complet",
 		fullscreenOn: "Ecran complet activat",
 	},
 };
@@ -42,6 +41,7 @@ const HTML = String(
 		answerId="compass-answer"
 		chat={CHAT}
 		action={<a href="/contact">Programează evaluarea</a>}
+		bookWith="Vreau să programez o evaluare"
 	/>,
 );
 

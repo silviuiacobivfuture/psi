@@ -44,7 +44,6 @@ const CHAT_PROPS: CompassChat = {
 		retry: "RETRY",
 		unanswered: "UNANSWERED",
 		fullscreen: "FS",
-		exitFullscreen: "EXIT-FS",
 		fullscreenOn: "FS-ON",
 	},
 };
