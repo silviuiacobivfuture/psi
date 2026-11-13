@@ -1,0 +1,122 @@
+{
+	"$schema": "../../../seb/authz/manifest.schema.json",
+	"$comment": "The team console (apps/clinic). Permissions are per app: object sched_app:<psizone|hemisync> (one console, several closed worlds). This manifest declares only the app-level types and relations; the GRANULAR permissions (resource x action x scope x field group, docs/plans/clinic.md section 4) are roles-as-data in the scheduling service, which writes the tuples. The console asks Check(user:<sub>, member, sched_app:<app>) and ListObjects(sched_app, member); it stores no role.",
+	"app": "clinic",
+	"module": "clinic",
+	"version": 1,
+	"features": [
+		{
+			"key": "console",
+			"name": { "ro": "Consola echipei", "en": "Team console" },
+			"permissions": [
+				{
+					"key": "member",
+					"name": {
+						"ro": "Intră în aplicație și folosește ce permit rolurile lui",
+						"en": "Enter the app and use what their roles allow"
+					},
+					"grants": ["sched_app#member"],
+					"effect": "read"
+				},
+				{
+					"key": "manage_members",
+					"name": {
+						"ro": "Adaugă membri și le atribuie roluri",
+						"en": "Add members and assign them roles"
+					},
+					"grants": ["sched_app#manage_members"],
+					"effect": "write"
+				},
+				{
+					"key": "manage_roles",
+					"name": {
+						"ro": "Creează și modifică rolurile aplicației",
+						"en": "Create and edit the app's roles"
+					},
+					"grants": ["sched_app#manage_roles"],
+					"effect": "write"
+				},
+				{
+					"key": "read_audit",
+					"name": { "ro": "Citește jurnalul de activitate", "en": "Read the audit log" },
+					"grants": ["sched_app#read_audit"],
+					"effect": "read"
+				}
+			]
+		}
+	],
+	"objects": [
+		{
+			"type": "sched_app",
+			"scope": { "scope_type": "platform", "relation": "parent_platform" },
+			"relations": [
+				{ "name": "parent_platform", "from": ["[platform]"] },
+				{ "name": "owner", "from": ["[user, group#member]", "administrator from parent_platform"] },
+				{ "name": "member", "from": ["[user, group#member]", "owner"] },
+				{ "name": "manage_members", "from": ["[user, group#member]", "owner"] },
+				{ "name": "manage_roles", "from": ["[user, group#member]", "owner"] },
+				{ "name": "read_audit", "from": ["[user, group#member]", "owner"] }
+			]
+		}
+	],
+	"roles": [
+		{
+			"key": "clinic:owner",
+			"name": { "ro": "Proprietar (aplicație)", "en": "App owner" },
+			"description": {
+				"ro": "Administrează membrii, rolurile și jurnalul unei aplicații.",
+				"en": "Manages an app's members, roles and audit log."
+			},
+			"scope_type": "platform",
+			"grants": [
+				"sched_app#owner",
+				"sched_app#member",
+				"sched_app#manage_members",
+				"sched_app#manage_roles",
+				"sched_app#read_audit"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "clinic:member",
+			"name": { "ro": "Membru (aplicație)", "en": "App member" },
+			"description": {
+				"ro": "Intră în aplicație; ce poate face decid rolurile din serviciul de programări.",
+				"en": "Enters the app; what they can do is decided by the roles in the scheduling service."
+			},
+			"scope_type": "platform",
+			"grants": ["sched_app#member"],
+			"assignable": true,
+			"max_duration": null
+		}
+	],
+	"group_bindings": [],
+	"providers": {
+		"identity": { "supported": ["authentik"], "selected": "authentik" },
+		"authorization": { "supported": ["autorizare"], "selected": "autorizare" }
+	},
+	"public_reasons": [
+		{
+			"key": "sign_in",
+			"description": {
+				"ro": "Intrarea: /auth/sign-in și /auth/callback (Authentik).",
+				"en": "Signing in: /auth/sign-in and /auth/callback (Authentik)."
+			}
+		},
+		{
+			"key": "health_probe",
+			"description": {
+				"ro": "/healthz răspunde fără date.",
+				"en": "/healthz answers with no data."
+			}
+		},
+		{
+			"key": "pwa_shell",
+			"description": {
+				"ro": "Manifestul, service worker-ul, pagina offline și fișierele statice nu conțin date.",
+				"en": "The manifest, the service worker, the offline page and static files hold no data."
+			}
+		}
+	]
+}

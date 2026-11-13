@@ -18,6 +18,18 @@ if (ENV.devSignIn)
 		"[clinic] DEV sign-in is ON (CLINIC_DEV_SIGNIN): everyone is the demo person. Never in production.",
 	);
 
+if (!ENV.fakePort) {
+	// The scheduling service's SDK replaces the fake behind ClinicPort; until that adapter exists a
+	// deployment with no fake has nothing to serve, and says so instead of showing invented data.
+	throw new Error(
+		`the scheduling service adapter for ClinicPort is not wired yet (SCHEDULING_API_URL=${ENV.schedulingApi ?? ""}); set CLINIC_FAKE_PORT=1 for development`,
+	);
+}
+if (ENV.fakePort)
+	console.warn(
+		"[clinic] the synthetic in-memory clinic is ON (CLINIC_FAKE_PORT). Never in production.",
+	);
+
 const port = createFakePort({
 	members: {
 		[DEV_SUBJECT]: [

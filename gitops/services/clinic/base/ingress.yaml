@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: clinic
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Programări"
+    gethomepage.dev/description: "The team's calendar, clients and reminders"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/icon: "mdi-calendar-clock"
+    gethomepage.dev/pod-selector: "app=clinic"
+spec:
+  ingressClassName: traefik
+  tls: [{ hosts: [programari.psizone.ro], secretName: clinic-tls }]
+  rules:
+    - host: programari.psizone.ro
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: clinic, port: { name: http } } } }]

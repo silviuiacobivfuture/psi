@@ -1,0 +1,81 @@
+# Authentik Blueprint ConfigMap — psi's clinic console (apps/clinic, https://programari.psizone.ro): its
+# OIDC provider and application, the team's group, and who may sign in.
+#
+# NOT YET REGISTERED: it takes effect only once it is listed in kustomization.yaml (as blueprints-cms.yaml
+# is) AND named under blueprints.configMaps in gitops/apps/overlays/dev/authentik.yaml, together with the
+# secretRef for authentik-clinic-oidc there — and only after secret/apps/clinic/oidc exists in OpenBao
+# (client_id, client_secret): an envFrom of a missing Secret would stop Authentik's pods.
+#
+# The console signs in with the authorization code flow + PKCE (openid, email, profile). Sign-out goes
+# through default-invalidation-flow, as every provider here does.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-clinic
+  namespace: authentik
+data:
+  clinic.yaml: |
+    version: 1
+    metadata:
+      name: psi-clinic
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      clinic_client_id:     !Env [AUTHENTIK_OIDC__CLINIC__ID, ""]
+      clinic_client_secret: !Env [AUTHENTIK_OIDC__CLINIC__SECRET, ""]
+    entries:
+      # The people who edit content. Membership is granted in the directory.
+      - model: authentik_core.group
+        identifiers:
+          name: app-clinic-member
+        attrs:
+          is_superuser: false
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: clinic
+        attrs:
+          client_type: confidential
+          client_id: !Context clinic_client_id
+          client_secret: !Context clinic_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://programari.psizone.ro/auth/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: clinic
+        attrs:
+          name: Programări
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, clinic]]
+          meta_launch_url: https://programari.psizone.ro/calendar
+      # Without a binding an application lets ANY authenticated user through. Two bindings,
+      # engine mode `any`: the editors' group, and `authentik Admins` (Authentik's own
+      # superuser group, present in every directory) as break-glass — a binding must never
+      # lock the operator out, and a group another blueprint creates (platform-admins) may
+      # not exist when this one is applied: a !Find that finds nothing fails the blueprint.
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, clinic]]
+          group: !Find [authentik_core.group, [name, app-clinic-member]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, clinic]]
+          group: !Find [authentik_core.group, [name, authentik Admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1

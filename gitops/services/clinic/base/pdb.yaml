@@ -1,0 +1,7 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: clinic
+spec:
+  maxUnavailable: 1
+  selector: { matchLabels: { app: clinic } }
