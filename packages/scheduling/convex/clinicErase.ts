@@ -35,7 +35,15 @@ export async function eraseClinicData(
 		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
 		.collect();
 	const storageKeys = stored.map((f) => f.storageKey);
-	for (const row of stored) await ctx.db.delete(row._id);
+	for (const row of stored) {
+		await ctx.db.insert("storageOutbox", {
+			tenant,
+			storageKey: row.storageKey,
+			reason: "erasure",
+			createdAt: now,
+		});
+		await ctx.db.delete(row._id);
+	}
 
 	const relations = await ctx.db
 		.query("treating")

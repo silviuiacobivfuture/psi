@@ -16,6 +16,7 @@ import {
 	files,
 	formDefinitions,
 	formResponses,
+	storageOutbox,
 } from "./tables/clinicRecords";
 import { devices, groupActivities, staffMembers } from "./tables/clinicResources";
 import { packages, payments, rosterDays, staffBlocks, visits } from "./tables/clinicVisits";
@@ -304,6 +305,7 @@ export default defineSchema({
 	builderDefs,
 	files,
 	auditEvents,
+	storageOutbox,
 	roles,
 	roleMembers,
 	permissionOverrides,

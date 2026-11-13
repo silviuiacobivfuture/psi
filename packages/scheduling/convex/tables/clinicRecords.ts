@@ -131,3 +131,11 @@ export const auditEvents = defineTable({
 })
 	.index("by_tenant_at", ["tenant", "at"])
 	.index("by_tenant_entity", ["tenant", "entity", "entityId", "at"]);
+
+/** Object-storage keys whose bytes must be deleted (an erased client's files); the service drains it. */
+export const storageOutbox = defineTable({
+	tenant: v.string(),
+	storageKey: v.string(),
+	reason: v.literal("erasure"),
+	createdAt: v.number(),
+}).index("by_tenant_created", ["tenant", "createdAt"]);
