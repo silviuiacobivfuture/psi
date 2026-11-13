@@ -133,6 +133,12 @@ export interface PageContext {
 	headings: ReadonlyArray<string>;
 	excerpt?: string;
 	/**
+	 * The brand that published the page, for a site that carries several brands' pages (the blog):
+	 * a profile may hand a booking to that brand's own site. Set by the app's server, never read
+	 * from the browser.
+	 */
+	brand?: string;
+	/**
 	 * Whether the page's text is health content (a clinician reviews it). Absent means it is: the
 	 * guide then says a clinician is still reviewing a page that is not published; for `false` it
 	 * says the text is not yet approved by the team.
@@ -202,6 +208,10 @@ export const PageContextSchema: z.ZodType<PageContext, z.ZodTypeDef, unknown> = 
 			.max(PAGE_LIMITS.headings)
 			.readonly(),
 		excerpt: z.string().trim().min(1).max(PAGE_LIMITS.excerpt).optional(),
+		brand: z
+			.string()
+			.regex(/^[a-z]{2,20}$/)
+			.optional(),
 		clinical: z.boolean().optional(),
 	})
 	.strict()

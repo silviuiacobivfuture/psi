@@ -6,12 +6,12 @@ import {
 	type ProfileScheduling,
 } from "@psi/engine";
 import { BRANDS, type Brand, type Locale } from "../contract";
-import { bookingHandoffUrl, CENTRE_PHONES } from "../services/contact";
+import { bookingHandoffUrl, CENTRE_PHONES, hemisyncBookingUrl } from "../services/contact";
 import { bookingWordIn } from "../services/services";
 import { CONTACT_FACTS, conciergeRules } from "./concierge";
 import { CRISIS } from "./crisis";
 import { FOLLOW_UP_TOPICS, NEXT_STEP_PHRASES, NEXT_STEPS, policyOf } from "./policy";
-import { CLINICAL, HEMISYNC_ONLY, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
+import { CLINICAL, HEMISYNC_ONLY, isClinical, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
 import { SCREENING } from "./screening";
 import { voiceOf } from "./voices";
 import { FOLLOW_UPS, THANKS, UNKNOWN, WELCOMES } from "./welcome";
@@ -27,13 +27,16 @@ const NAMES: Readonly<Record<Brand, string>> = {
 };
 
 /**
- * Which brands schedule (docs/plans/scheduling.md). Psizone first. What each offers is whatever
- * active services the store has for its tenant.
- * EQ-SYNC's online sessions and Hemi-Sync's session requests join once their services exist.
+ * Which brands schedule (docs/plans/scheduling.md). Psizone first, then Hemi-Sync, each with its own
+ * tenant. What each offers is whatever active services the store has for its tenant.
+ * EQ-SYNC's online sessions join once their services exist.
  */
 const SCHEDULING: Readonly<Partial<Record<Brand, ProfileScheduling>>> = {
 	// The services come from the store at each turn (the port's catalogue); none are named here.
 	psizone: { tenant: "psizone", services: [] },
+	// Hemi-Sync books in its own chat, in its own tenant. While the store has none of its services,
+	// the chat shows its callback form: it never falls back to Psizone's times.
+	hemisync: { tenant: "hemisync", services: [] },
 };
 
 /** True when the brand's guide books inside its own chat (it has a scheduling tenant). */
@@ -43,7 +46,7 @@ export function schedulesInChat(brand: Brand): boolean {
 
 /**
  * Where a booking request goes on a site that cannot book itself: Psizone's chat, with the
- * booking started. Hemi-Sync's workshops are not Psizone's appointments, so it has none.
+ * booking started. Hemi-Sync books in its own chat, so it has none.
  */
 const HANDOFF_LINES: Readonly<
 	Partial<Record<Brand, Readonly<Record<Locale, { line: string; label: string }>>>>
@@ -89,7 +92,35 @@ function styled(
 	};
 }
 
-function handoffOf(brand: Brand, locale: Locale): Pick<ProfileLocale, "handoff"> {
+/**
+ * What the blog says when a booking starts on a Hemi-Sync article: Hemi-Sync's sessions are its
+ * own, requested on its own site, not at the Psizone centre.
+ */
+const HEMISYNC_HANDOFF: Readonly<Record<Locale, { line: string; label: string }>> = {
+	ro: {
+		line: "Sigur, te ajut să începi. Sesiunile și programele Hemi-Sync se programează pe site-ul Hemi-Sync România, unde vezi orele libere sau lași o cerere; apasă butonul și continui acolo.",
+		label: "Programează o sesiune Hemi-Sync",
+	},
+	en: {
+		line: "Of course, I can help you start. Hemi-Sync sessions and programmes are booked on the Hemi-Sync România site, where you see the free times or leave a request; press the button and carry on there.",
+		label: "Book a Hemi-Sync session",
+	},
+};
+
+/**
+ * A booking on the blog goes to the site that owns the page: a Hemi-Sync article's to Hemi-Sync's
+ * booking page. A clinical page, or a clinical question, always goes to the Psizone centre, and so
+ * does every other brand's page (EQ-SYNC has no appointments of its own).
+ */
+function handoffFor(locale: Locale): NonNullable<ProfileLocale["handoffFor"]> {
+	return ({ question, page }) => {
+		if (page?.brand !== "hemisync" || page.clinical === true || isClinical(question))
+			return undefined;
+		return { ...HEMISYNC_HANDOFF[locale], href: () => hemisyncBookingUrl(locale) };
+	};
+}
+
+function handoffOf(brand: Brand, locale: Locale): Pick<ProfileLocale, "handoff" | "handoffFor"> {
 	const words = HANDOFF_LINES[brand]?.[locale];
 	if (words === undefined) return {};
 	return {
@@ -97,6 +128,7 @@ function handoffOf(brand: Brand, locale: Locale): Pick<ProfileLocale, "handoff">
 			...words,
 			href: (question) => bookingHandoffUrl(locale, bookingWordIn(question, locale)),
 		},
+		...(brand === "blog" ? { handoffFor: handoffFor(locale) } : {}),
 	};
 }
 
@@ -110,7 +142,7 @@ function wording(brand: Brand, locale: Locale): ProfileLocale {
 		thanks: THANKS[brand][locale],
 		followUp: FOLLOW_UPS[brand][locale],
 		unknown: UNKNOWN[brand][locale],
-		facts: CONTACT_FACTS[locale],
+		facts: CONTACT_FACTS[brand][locale],
 		...handoffOf(brand, locale),
 	};
 }

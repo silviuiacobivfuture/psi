@@ -23,19 +23,20 @@ afterEach(async () => {
 });
 
 describe("scheduling in psi's guides", () => {
-	it("only Psizone opts in, and names no service: the store says which are active", () => {
+	it("Psizone and Hemi-Sync opt in, each with its own tenant and no service named: the store says which are active", () => {
 		expect(PSI_PROFILES.psizone.scheduling).toEqual({ tenant: "psizone", services: [] });
+		expect(PSI_PROFILES.hemisync.scheduling).toEqual({ tenant: "hemisync", services: [] });
 		expect(PSI_PROFILES.eqsync.scheduling).toBeUndefined();
-		expect(PSI_PROFILES.hemisync.scheduling).toBeUndefined();
 		expect(PSI_PROFILES.blog.scheduling).toBeUndefined();
 	});
 
-	it("with a store, Psizone gets a separate scheduling agent and Mastra the three tools", async () => {
+	it("with a store, Psizone and Hemi-Sync each get a separate scheduling agent and Mastra the three tools", async () => {
 		const engine = createPsiEngine({ knowledge: kb, scheduling: new MemorySchedulingStore() });
 		expect(Object.keys(engine.mastra.listAgents()).sort()).toEqual([
 			"blog",
 			"eqsync",
 			"hemisync",
+			"hemisync-scheduling",
 			"psizone",
 			"psizone-scheduling",
 		]);

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ConversationStyle } from "./behaviour";
 import { LocaleCodeSchema } from "./contract";
-import { type RefusalReason, RefusalReasonSchema } from "./events";
+import { type PageContext, type RefusalReason, RefusalReasonSchema } from "./events";
 import { type RuleSet, RuleSetsSchema } from "./rules";
 import { type ProfileScheduling, ProfileSchedulingSchema } from "./scheduling/port";
 
@@ -51,6 +51,15 @@ export interface ProfileLocale {
 	 * service they named). The reply is sent without asking the model.
 	 */
 	handoff?: ProfileHandoff;
+	/**
+	 * The handoff for this question on this page, when it is not `handoff`: a profile that carries
+	 * several brands' pages (the blog) sends a booking to the page's own brand. `undefined` means
+	 * `handoff` as it is.
+	 */
+	handoffFor?: (input: {
+		question: string;
+		page: PageContext | undefined;
+	}) => ProfileHandoff | undefined;
 	/**
 	 * The voice and policy rewritten for the owner's conversation style (warmth, length, address,
 	 * follow-ups), when the profile's own text states any of these. Called only for a style other
@@ -137,6 +146,9 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 				href: z.custom<ProfileHandoff["href"]>((value) => typeof value === "function"),
 			})
 			.strict()
+			.optional(),
+		handoffFor: z
+			.custom<NonNullable<ProfileLocale["handoffFor"]>>((value) => typeof value === "function")
 			.optional(),
 		restyle: z
 			.custom<NonNullable<ProfileLocale["restyle"]>>((value) => typeof value === "function")

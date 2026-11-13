@@ -100,4 +100,5 @@ export {
 	type PsiEngineOptions,
 } from "./psi-engine";
 export { type PsiScheduling, schedulingFromEnv, schedulingPort } from "./scheduling";
+export { HEMISYNC_BOOKING_PATHS, hemisyncBookingUrl } from "./services/contact";
 export { settingsFromEnv } from "./settings";
