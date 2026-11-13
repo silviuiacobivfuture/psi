@@ -23,6 +23,8 @@ export const CHANGE_KINDS = [
 	"form",
 	"setting",
 	"audit",
+	"blacklist",
+	"feedback",
 ] as const;
 export type ChangeKind = (typeof CHANGE_KINDS)[number];
 

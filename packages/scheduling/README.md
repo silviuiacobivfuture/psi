@@ -127,6 +127,48 @@ scripts/import-old.sh           --export <export.json> --mapping <mapping.json> 
 - Reported: practitioner changes inside a weekly series (the "moved by itself" bug), overlaps on a
   practitioner, device or room, package usage stored against derived, orphan references, duplicate
   client names, group-like clients, unknown statuses.
+- **Data check** (`src/clinic/validate.ts`, shown in the dry run and the real run, never blocking, changes
+  nothing): invalid or unnormalisable phones and e-mails (client and guardian), clients with no usable
+  contact, contacts shared by two clients, visits on a day off or outside the roster hours (judged in the
+  app's zone, DST included; people with no roster rows at all are counted, not flagged), packages used
+  past their sessions, clients matching a blacklist entry. Codes, counts and old ids only.
+  `validateClinicData(admin, app)` (`src/admin-validate.ts`) runs the same check over the stored data,
+  also with overlaps; `--validate-store` prints it after a real run.
+- **`--blacklist <entries.json>`** seeds blacklist entries (`blacklist.example.json`: `key`, `clientLegacy`
+  and/or `phone` and/or `email`, `reason`, `category`, `severity`, optional `expires`). The file is
+  validated whole; a wrong entry blocks a real run, by key. A seeded entry is created once; a re-run
+  never rewrites it, so what staff switched off stays off.
+
+## The blacklist, feedback and reports
+
+- **Blacklist** (`src/clinic/blacklist.ts`, `convex/apiBlacklist.ts`, `convex/blacklistGate.ts`): an entry
+  names a client record and/or an E.164 phone and/or an e-mail (a name alone never matches), with a
+  reason (staff-only text), a category, and a severity: `warn` (staff acknowledge, online allowed),
+  `block_online` (web and chat refused neutrally; staff need an override and a reason) or `block_all`
+  (only the admin override). `appointments.submit` and `apiBlacklist.screen` (the gate for the callback
+  form) answer `unavailable_online` and record an event + audit entry; `apiVisits.create` and `move` answer
+  `blocked` / `warning` with the reason unless given `override: { reason, authority }`, the authority being
+  what the API vouches for (`ack`, `staff` = `blacklist_override_all`, `admin` = `blacklist_override_admin_all`);
+  the override and its reason are stored (`apiBlacklist.events`). A hold carries no identifier, so the
+  check is at submit. An entry on a client record also turns away that client's phone and e-mail, and a guardian's, online. `clinicVisits.create` (internal, no override) refuses a client the blacklist names; staff rescheduling and confirming a public request do not re-check (the request was screened at submit).
+
+- **Feedback** (`src/clinic/feedback.ts`, `convex/apiFeedback.ts`, `convex/feedbackLinks.ts`): kind
+  (`appointment_rating`, `general`, `suggestion`, `complaint`, `site_issue`), a rating 1 to 5, a text up to
+  4000 characters (checked on the plain text; the store holds ciphertext and the replies too), a link to
+  the visit / booking / client / account hash, the channel (`account`, `email_link`, `chat`, `staff`), a
+  status (`new`, `read`, `answered`, `closed`), a reply thread, and consent to be contacted (contact
+  details are stored only with it). Field groups: `core` is the rating, text and replies, `contact` is who
+  wrote it. `feedbackLinks.issue` (the notify layer calls it with the server key, for a visit's id or a booking's reference) returns a signed token:
+  HMAC-SHA256 under a key derived from the server key, 14 days by default (1 hour to 90 days), usable
+  once, for one finished appointment of one app; `inspect` shows the form, `redeem` stores the rating and
+  uses the link up in one transaction. The parent questionnaire stays a form (`formResponses`). Erasing a
+  client deletes their feedback and its replies.
+
+- **Reports** (`src/clinic/reports/`, `convex/apiReports.ts`, `convex/apiReportsMoney.ts`): read-only, per
+  app, over a range of at most a year and a day, bucketed by local date; a query that would read too much
+  refuses (`too_many_rows`) rather than answer from part of the data. `permissions.ts` maps each report to
+  the catalogue key it needs: `reports_view_all_core` for counts and rates, `reports_view_all_money` for
+  `apiReportsMoney.revenue` alone.
 
 ## Tests
 

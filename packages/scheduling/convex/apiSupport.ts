@@ -30,7 +30,9 @@ type Owned =
 	| "formDefinitions"
 	| "customFieldDefs"
 	| "builderDefs"
-	| "leaveRequests";
+	| "leaveRequests"
+	| "blacklistEntries"
+	| "feedback";
 
 /** A row of the app by the id the caller holds, or null when it is not an id of that table or belongs to another app. */
 export async function owned<T extends Owned>(

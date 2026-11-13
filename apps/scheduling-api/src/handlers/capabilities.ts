@@ -12,7 +12,10 @@ type Held = ReadonlyMap<string, readonly ScopeName[]>;
 
 const ORDER: readonly ScopeName[] = ["all", "assigned", "own"];
 
-/** The permissions map, and the field groups it implies (a group is seen when some read permission of it is held). */
+/**
+ * The permissions map, and the field groups it implies (a group is seen when some read permission of it is held).
+ * Feedback has groups of its own (what a client wrote, how to reach them): they say nothing about client records.
+ */
 function summarize(held: Held): Pick<Out, "permissions" | "fieldGroups"> {
 	const permissions: Record<string, ScopeName[]> = {};
 	const groups = new Set<string>();
@@ -20,7 +23,9 @@ function summarize(held: Held): Pick<Out, "permissions" | "fieldGroups"> {
 		const scopes = held.get(def.key) ?? [];
 		if (scopes.length === 0) continue;
 		permissions[def.key] = ORDER.filter((s) => scopes.includes(s));
-		if (def.group !== undefined && def.effect === "read") groups.add(def.group);
+		if (def.group !== undefined && def.effect === "read" && def.resource !== "feedback") {
+			groups.add(def.group);
+		}
 	}
 	return { permissions, fieldGroups: FIELD_GROUPS.filter((g) => groups.has(g)) };
 }

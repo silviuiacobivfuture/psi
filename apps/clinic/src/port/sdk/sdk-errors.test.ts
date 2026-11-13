@@ -36,6 +36,7 @@ const EXPECTED: Readonly<Record<ErrorCode, PortErrorCode>> = {
 	conflict: "conflict",
 	slot_taken: "conflict",
 	hold_expired: "conflict",
+	unavailable_online: "conflict",
 	not_allowed: "forbidden",
 	rate_limited: "rate-limited",
 	internal: "unavailable",

@@ -54,6 +54,8 @@ const EXPECTED: Record<string, string[]> = {
 		["roster", "view", "all"],
 		["leave", "view", "all"],
 		["notice_board", "create edit", "all"],
+		["blacklist", "view create_warn", "all"],
+		["feedback", "view reply close", "all", "core contact"],
 	]),
 	Therapist: expand([
 		...VIEW_CATALOGUES,
@@ -97,7 +99,7 @@ const EXPECTED: Record<string, string[]> = {
 		["clients", "view", "all", "contact money"],
 		["packages", "view", "all"],
 		["payments", "view export", "all"],
-		["reports", "view export", "all"],
+		["reports", "view export", "all", "core money"],
 	]),
 };
 

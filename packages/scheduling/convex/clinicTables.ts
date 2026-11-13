@@ -35,6 +35,11 @@ export const CLINIC_TABLES = [
 	"auditEvents",
 	"storageOutbox",
 	"changeLog",
+	"blacklistEntries",
+	"blacklistEvents",
+	"feedback",
+	"feedbackReplies",
+	"feedbackLinks",
 ] as const satisfies ReadonlyArray<TableNames>;
 export type ClinicTable = (typeof CLINIC_TABLES)[number];
 
@@ -180,6 +185,31 @@ export async function rowsOf(
 			return ctx.db
 				.query("changeLog")
 				.withIndex("by_tenant", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "blacklistEntries":
+			return ctx.db
+				.query("blacklistEntries")
+				.withIndex("by_tenant_active", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "blacklistEvents":
+			return ctx.db
+				.query("blacklistEvents")
+				.withIndex("by_tenant_at", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "feedback":
+			return ctx.db
+				.query("feedback")
+				.withIndex("by_tenant_created", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "feedbackReplies":
+			return ctx.db
+				.query("feedbackReplies")
+				.withIndex("by_tenant_feedback", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "feedbackLinks":
+			return ctx.db
+				.query("feedbackLinks")
+				.withIndex("by_tenant_jti", (q) => q.eq("tenant", tenant))
 				.take(LIMIT);
 		default: {
 			const never: never = table;

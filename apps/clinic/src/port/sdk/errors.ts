@@ -23,6 +23,7 @@ export function toPortError(error: unknown): PortError {
 			case "conflict":
 			case "slot_taken":
 			case "hold_expired":
+			case "unavailable_online":
 				return new PortError("conflict", quote);
 			case "rate_limited":
 				return new PortError("rate-limited", quote);

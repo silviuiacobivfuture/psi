@@ -22,3 +22,4 @@ export type RosterRow = RowOf<typeof internal.importRoster.upsertRosterDays>;
 export type BlockRow = RowOf<typeof internal.importRoster.upsertStaffBlocks>;
 export type ResponseRow = RowOf<typeof internal.importRecords.upsertResponses>;
 export type FileRow = RowOf<typeof internal.importRecords.upsertFiles>;
+export type BlacklistRow = RowOf<typeof internal.importBlacklist.upsertEntries>;

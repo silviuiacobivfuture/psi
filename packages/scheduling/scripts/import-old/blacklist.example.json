@@ -1,0 +1,18 @@
+[
+	{
+		"key": "example-phone",
+		"phone": "0700 000 000",
+		"name": "Example Person",
+		"reason": "Synthetic example: did not come three times in a row.",
+		"category": "no_show_repeated",
+		"severity": "block_online",
+		"expires": "2027-12-31"
+	},
+	{
+		"key": "example-client",
+		"clientLegacy": "clients:1",
+		"reason": "Synthetic example: unpaid sessions, to be settled before booking again.",
+		"category": "unpaid",
+		"severity": "warn"
+	}
+]

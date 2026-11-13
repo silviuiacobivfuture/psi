@@ -2229,12 +2229,48 @@
 					"effect": "read"
 				},
 				{
+					"key": "reports_view_core",
+					"name": {
+						"ro": "Rapoarte: vede (detalii)",
+						"en": "Reports: view (details)"
+					},
+					"grants": ["sched_app#reports_view_all_core"],
+					"effect": "read"
+				},
+				{
+					"key": "reports_view_money",
+					"name": {
+						"ro": "Rapoarte: vede (sume)",
+						"en": "Reports: view (money)"
+					},
+					"grants": ["sched_app#reports_view_all_money"],
+					"effect": "read"
+				},
+				{
 					"key": "reports_export",
 					"name": {
 						"ro": "Rapoarte: exportă",
 						"en": "Reports: export"
 					},
 					"grants": ["sched_app#reports_export_all"],
+					"effect": "read"
+				},
+				{
+					"key": "reports_export_core",
+					"name": {
+						"ro": "Rapoarte: exportă (detalii)",
+						"en": "Reports: export (details)"
+					},
+					"grants": ["sched_app#reports_export_all_core"],
+					"effect": "read"
+				},
+				{
+					"key": "reports_export_money",
+					"name": {
+						"ro": "Rapoarte: exportă (sume)",
+						"en": "Reports: export (money)"
+					},
+					"grants": ["sched_app#reports_export_all_money"],
 					"effect": "read"
 				}
 			]
@@ -2299,6 +2335,168 @@
 					},
 					"grants": ["sched_app#imports_exports_export_all"],
 					"effect": "read"
+				}
+			]
+		},
+		{
+			"key": "blacklist",
+			"name": {
+				"ro": "blacklist",
+				"en": "blacklist"
+			},
+			"permissions": [
+				{
+					"key": "blacklist_view",
+					"name": {
+						"ro": "blacklist: vede",
+						"en": "blacklist: view"
+					},
+					"grants": ["sched_app#blacklist_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "blacklist_create",
+					"name": {
+						"ro": "blacklist: creează",
+						"en": "blacklist: create"
+					},
+					"grants": ["sched_app#blacklist_create_all"],
+					"effect": "write"
+				},
+				{
+					"key": "blacklist_edit",
+					"name": {
+						"ro": "blacklist: modifică",
+						"en": "blacklist: edit"
+					},
+					"grants": ["sched_app#blacklist_edit_all"],
+					"effect": "write"
+				},
+				{
+					"key": "blacklist_delete",
+					"name": {
+						"ro": "blacklist: șterge",
+						"en": "blacklist: delete"
+					},
+					"grants": ["sched_app#blacklist_delete_all"],
+					"effect": "write"
+				},
+				{
+					"key": "blacklist_create_warn",
+					"name": {
+						"ro": "blacklist: create_warn",
+						"en": "blacklist: create_warn"
+					},
+					"grants": ["sched_app#blacklist_create_warn_all"],
+					"effect": "write"
+				},
+				{
+					"key": "blacklist_override",
+					"name": {
+						"ro": "blacklist: override",
+						"en": "blacklist: override"
+					},
+					"grants": ["sched_app#blacklist_override_all"],
+					"effect": "write"
+				},
+				{
+					"key": "blacklist_override_admin",
+					"name": {
+						"ro": "blacklist: override_admin",
+						"en": "blacklist: override_admin"
+					},
+					"grants": ["sched_app#blacklist_override_admin_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "feedback",
+			"name": {
+				"ro": "feedback",
+				"en": "feedback"
+			},
+			"permissions": [
+				{
+					"key": "feedback_view",
+					"name": {
+						"ro": "feedback: vede",
+						"en": "feedback: view"
+					},
+					"grants": ["sched_app#feedback_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "feedback_view_core",
+					"name": {
+						"ro": "feedback: vede (detalii)",
+						"en": "feedback: view (details)"
+					},
+					"grants": ["sched_app#feedback_view_all_core"],
+					"effect": "read"
+				},
+				{
+					"key": "feedback_view_contact",
+					"name": {
+						"ro": "feedback: vede (contact)",
+						"en": "feedback: view (contact)"
+					},
+					"grants": ["sched_app#feedback_view_all_contact"],
+					"effect": "read"
+				},
+				{
+					"key": "feedback_reply",
+					"name": {
+						"ro": "feedback: reply",
+						"en": "feedback: reply"
+					},
+					"grants": ["sched_app#feedback_reply_all"],
+					"effect": "write"
+				},
+				{
+					"key": "feedback_reply_core",
+					"name": {
+						"ro": "feedback: reply (detalii)",
+						"en": "feedback: reply (details)"
+					},
+					"grants": ["sched_app#feedback_reply_all_core"],
+					"effect": "write"
+				},
+				{
+					"key": "feedback_reply_contact",
+					"name": {
+						"ro": "feedback: reply (contact)",
+						"en": "feedback: reply (contact)"
+					},
+					"grants": ["sched_app#feedback_reply_all_contact"],
+					"effect": "write"
+				},
+				{
+					"key": "feedback_close",
+					"name": {
+						"ro": "feedback: close",
+						"en": "feedback: close"
+					},
+					"grants": ["sched_app#feedback_close_all"],
+					"effect": "write"
+				},
+				{
+					"key": "feedback_close_core",
+					"name": {
+						"ro": "feedback: close (detalii)",
+						"en": "feedback: close (details)"
+					},
+					"grants": ["sched_app#feedback_close_all_core"],
+					"effect": "write"
+				},
+				{
+					"key": "feedback_close_contact",
+					"name": {
+						"ro": "feedback: close (contact)",
+						"en": "feedback: close (contact)"
+					},
+					"grants": ["sched_app#feedback_close_all_contact"],
+					"effect": "write"
 				}
 			]
 		}
@@ -3976,7 +4174,23 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "reports_view_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "reports_view_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "reports_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "reports_export_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "reports_export_all_money",
 					"from": ["[user, sched_role#member]"]
 				},
 				{
@@ -3997,6 +4211,70 @@
 				},
 				{
 					"name": "imports_exports_export_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_create_warn_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_override_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "blacklist_override_admin_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_view_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_view_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_reply_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_reply_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_reply_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_close_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_close_all_core",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "feedback_close_all_contact",
 					"from": ["[user, sched_role#member]"]
 				}
 			]

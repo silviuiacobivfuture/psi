@@ -9,6 +9,30 @@ export {
 	makeAuditEvent,
 } from "./audit";
 export {
+	AUTHORITY_NEEDED,
+	applies,
+	BLACKLIST_CATEGORIES,
+	BLACKLIST_SEVERITIES,
+	type BlacklistCandidate,
+	type BlacklistCategory,
+	type BlacklistEntry,
+	type BlacklistHit,
+	type BlacklistInput,
+	type BlacklistPatch,
+	type BlacklistSeverity,
+	blacklistGate,
+	blacklistInputSchema,
+	blacklistMatch,
+	blacklistPatchSchema,
+	type GateOutcome,
+	MAX_ACTIVE_ENTRIES,
+	type Override,
+	type OverrideAuthority,
+	overrideSchema,
+	REASON_MAX,
+	severityAllowed,
+} from "./blacklist";
+export {
 	ACTION_PLACEMENTS,
 	type ActionDefinition,
 	actionDefinitionSchema,
@@ -47,6 +71,34 @@ export {
 	type Visibility,
 	visibilityOf,
 } from "./clients";
+export {
+	CIPHERTEXT_MAX,
+	FEEDBACK_CHANNELS,
+	FEEDBACK_KINDS,
+	FEEDBACK_STATUSES,
+	type FeedbackChannel,
+	type FeedbackEvent,
+	type FeedbackInput,
+	type FeedbackKind,
+	type FeedbackStatus,
+	feedbackInputSchema,
+	feedbackProblems,
+	nextStatus,
+	replyInputSchema,
+	TEXT_MAX as FEEDBACK_TEXT_MAX,
+} from "./feedback";
+export {
+	deriveLinkKey,
+	LINK_TTL_DEFAULT_HOURS,
+	LINK_TTL_MAX_HOURS,
+	LINK_TTL_MIN_HOURS,
+	type LinkClaims,
+	type LinkRefusal,
+	newLinkId,
+	signLink,
+	ttlAllowed,
+	verifyLink,
+} from "./feedback-link";
 export { FILE_KINDS, type FileKind, type FileMeta, fileMetaSchema, storageKeyFor } from "./files";
 export {
 	COLUMN_TYPES,
@@ -67,6 +119,12 @@ export {
 	validateResponse,
 	valueSchemaFor,
 } from "./forms";
+export {
+	normalizedIdentifiers,
+	normalizeEmail,
+	normalizeName,
+	normalizePhone,
+} from "./identifiers";
 export { type LedgerLine, moneyOf, PAYMENT_METHODS, type PaymentMethod, toMinor } from "./money";
 export {
 	type LinkedVisit,
@@ -79,6 +137,7 @@ export {
 	usageMismatch,
 	usageOf,
 } from "./packages";
+export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
 export {
 	type BlockProblem,
@@ -93,6 +152,14 @@ export {
 	type StaffBlock,
 } from "./roster";
 export { SEED_FORM_TEMPLATES } from "./templates";
+export {
+	FINDING_CODES,
+	type Finding,
+	type FindingCode,
+	type Snapshot,
+	type ValidationReport,
+	validateSnapshot,
+} from "./validate";
 export {
 	ATTENDANCE,
 	type Attendance,

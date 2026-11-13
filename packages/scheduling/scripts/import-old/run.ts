@@ -1,5 +1,6 @@
 import { sha256Hex } from "../../src/crypto";
 import type { ObjectStorage } from "../../src/storage";
+import { planBlacklist } from "./blacklist";
 import { planClients } from "./clients";
 import { detect } from "./detect";
 import { type FileSource, planFiles } from "./files";
@@ -14,6 +15,7 @@ import type { ImportSink, Kind, RowsByKind, SlugKind } from "./sink";
 import { WRITE_ORDER } from "./sink";
 import { type ParsedExport, parseExport } from "./source";
 import { type Ctx, canonical, dryEncryptor, type Encryptor } from "./support";
+import { validatePlanned } from "./validate";
 import { planVisits } from "./visits";
 
 /** What a real run writes through: the store, the encryptor on its data key, and the object store. */
@@ -32,6 +34,8 @@ export interface RunOptions {
 	allowSkips: boolean;
 	/** Where the file bytes are; without it a non-empty files table is blocking. */
 	files: FileSource | undefined;
+	/** The parsed JSON of a `--blacklist` file: entries to seed. */
+	blacklist?: unknown;
 	/**
 	 * Opens the store (and makes the app and its data key if they are new). Absent in a dry run, which
 	 * touches no key, no store and no network. It is called only after the whole export has been
@@ -85,6 +89,7 @@ async function plan(
 		appointmentIds: new Set(visits.facts.map((f) => f.id)),
 		practitionerIds: people.practitionerIds,
 	});
+	const blacklist = planBlacklist(ctx, options.blacklist ?? [], clients.ids);
 	const files = await planFiles(ctx, r.client_files, r.avize, clients.ids, options.files, real);
 	const stats = detect(
 		visits.facts,
@@ -93,7 +98,30 @@ async function plan(
 		parsed.exportedAt,
 		log,
 	);
-	return { ctx, log, people, clients, packages, visits, roster, responses, files, stats };
+	const validation = validatePlanned({
+		zone: ZONE,
+		exportedAt: parsed.exportedAt,
+		clients: clients.rows,
+		visits: visits.rows,
+		packages: packages.packages,
+		roster: roster.roster,
+		blocks: roster.blocks,
+		blacklist: blacklist.rows,
+	});
+	return {
+		ctx,
+		log,
+		people,
+		clients,
+		packages,
+		visits,
+		roster,
+		responses,
+		files,
+		stats,
+		blacklist,
+		validation,
+	};
 }
 
 type Plan = Awaited<ReturnType<typeof plan>>;
@@ -192,6 +220,16 @@ function tableCounts(options: RunOptions, parsed: ParsedExport, p: Plan): TableC
 			p.files.checkedClientFiles,
 		),
 		count("avize", sourceCount("avize"), r.avize.length, p.files.checkedAvize),
+		...(options.blacklist === undefined
+			? []
+			: [
+					count(
+						"(file) blacklist",
+						p.blacklist.entries,
+						p.blacklist.entries,
+						p.blacklist.rows.length,
+					),
+				]),
 	];
 }
 
@@ -236,6 +274,7 @@ export async function runImport(options: RunOptions): Promise<Report> {
 		tables: tableCounts(options, parsed, first),
 		anomalies: first.log.list(),
 		stats: first.stats,
+		validation: first.validation,
 		filesChecked: first.files.checked,
 		written: [],
 	};
@@ -275,6 +314,7 @@ export async function runImport(options: RunOptions): Promise<Report> {
 		blocks: second.roster.blocks,
 		responses: second.responses.rows,
 		files: second.files.rows,
+		blacklist: second.blacklist.rows,
 	};
 	const written: Written[] = [];
 	for (const kind of WRITE_ORDER) {

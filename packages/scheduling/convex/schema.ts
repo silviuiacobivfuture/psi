@@ -9,6 +9,8 @@ import {
 	roles,
 	treating,
 } from "./tables/clinicAccess";
+import { blacklistEntries, blacklistEvents } from "./tables/clinicBlacklist";
+import { feedback, feedbackLinks, feedbackReplies } from "./tables/clinicFeedback";
 import {
 	appKeys,
 	auditEvents,
@@ -303,7 +305,8 @@ export default defineSchema({
 		.index("by_tenant_start", ["tenant", "start"])
 		.index("by_account_start", ["accountHash", "start"])
 		.index("by_updated", ["updatedAt"])
-		.index("by_tenant_updated", ["tenant", "updatedAt"]),
+		.index("by_tenant_updated", ["tenant", "updatedAt"])
+		.index("by_tenant_created", ["tenant"]),
 
 	// The clinic: every table below carries the app and starts every index with it.
 	devices,
@@ -335,4 +338,9 @@ export default defineSchema({
 	callbackRequests,
 	notifyOutbox,
 	usedLinks,
+	blacklistEntries,
+	blacklistEvents,
+	feedback,
+	feedbackReplies,
+	feedbackLinks,
 });

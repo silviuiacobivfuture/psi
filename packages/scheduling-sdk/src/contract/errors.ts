@@ -14,6 +14,8 @@ export const ERROR_STATUS = {
 	conflict: 409,
 	slot_taken: 409,
 	hold_expired: 410,
+	/** The neutral online refusal: the visitor is told only that this cannot be booked online, never why. */
+	unavailable_online: 409,
 	not_allowed: 403,
 	rate_limited: 429,
 	internal: 500,

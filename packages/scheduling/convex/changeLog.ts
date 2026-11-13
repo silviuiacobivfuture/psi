@@ -28,6 +28,7 @@ export function kindOfTable(table: string): ChangeKind | undefined {
 		staffBlocks: "staff_block",
 		formResponses: "record",
 		files: "file",
+		blacklistEntries: "blacklist",
 	};
 	return map[table];
 }

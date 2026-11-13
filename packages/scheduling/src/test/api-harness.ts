@@ -21,7 +21,7 @@ export function harness(prefix: string) {
 		kind: "mutation" | "query",
 		name: string,
 		args: Record<string, unknown>,
-		expected: { audit?: number; ok?: boolean } = {},
+		expected: { audit?: number; ok?: boolean; same?: boolean } = {},
 	): Promise<Record<string, unknown>> {
 		const call = kind === "mutation" ? callMutation : callQuery;
 		const before = await counts();
@@ -32,6 +32,8 @@ export function harness(prefix: string) {
 		const after = await counts();
 		const audit = expected.audit ?? (kind === "mutation" ? 1 : 0);
 		expect(n(after, "auditEvents") - n(before, "auditEvents"), `${name} audit events`).toBe(audit);
+		// A refusal that says `same` wrote nothing at all, in any table of the app.
+		if (expected.same === true) expect(after, `${name} wrote something`).toEqual(before);
 		if (expected.ok !== false) expect(out.ok, `${name}: ${JSON.stringify(out)}`).toBe(true);
 		else expect(out.ok).toBe(false);
 		return out;
@@ -39,9 +41,21 @@ export function harness(prefix: string) {
 	return {
 		TENANT,
 		counts,
-		mut: (name: string, args: Record<string, unknown>, e?: { audit?: number; ok?: boolean }) =>
-			run("mutation", name, { actor, ...args }, e),
-		qry: (name: string, args: Record<string, unknown>, e?: { audit?: number }) =>
-			run("query", name, args, e),
+		mut: (
+			name: string,
+			args: Record<string, unknown>,
+			e?: { audit?: number; ok?: boolean; same?: boolean },
+		) => run("mutation", name, { actor, ...args }, e),
+		/** A mutation no staff member makes (the online gates): no actor. */
+		sys: (
+			name: string,
+			args: Record<string, unknown>,
+			e?: { audit?: number; ok?: boolean; same?: boolean },
+		) => run("mutation", name, args, e),
+		qry: (
+			name: string,
+			args: Record<string, unknown>,
+			e?: { audit?: number; ok?: boolean; same?: boolean },
+		) => run("query", name, args, e),
 	};
 }

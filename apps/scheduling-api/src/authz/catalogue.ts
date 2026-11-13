@@ -59,6 +59,8 @@ const WHERE: Readonly<Record<Resource, Where>> = {
 	devices: APP,
 	group_activities: APP,
 	notice_board: APP,
+	blacklist: APP,
+	feedback: APP,
 	web_requests: APP,
 	reports: APP,
 	audit_log: APP,

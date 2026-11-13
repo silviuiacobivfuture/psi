@@ -4,6 +4,7 @@ import { columnKey, visitProblems } from "../src/clinic/visits";
 import { overlaps } from "../src/domain/conflicts";
 import { MINUTE_MS } from "../src/domain/time";
 import { internalMutation } from "./_generated/server";
+import { staffGate } from "./blacklistGate";
 import { busyAround } from "./calendar";
 import { logChange } from "./changeLog";
 import { practitionerOf } from "./setupSupport";
@@ -58,6 +59,9 @@ export const create = internalMutation({
 		});
 		if (problems.length > 0) return { ok: false as const, reason: problems[0] ?? "invalid" };
 		const now = Date.now();
+		// An internal path (the staff API uses apiVisits.create) with no override: it refuses a client the blacklist names.
+		const gate = await staffGate(ctx, args.tenant, client, undefined, now);
+		if (gate.stop !== undefined) return { ok: false as const, reason: gate.stop.reason };
 		const busy = await busyAround(ctx, practitioner._id, args.start, args.end, now);
 		if (busy.some((b) => overlaps({ start: args.start, until: args.end }, b))) {
 			return { ok: false as const, reason: "overlaps" };

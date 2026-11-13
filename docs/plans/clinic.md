@@ -216,3 +216,61 @@ deploy Job, notifications) runs TWICE on the one estate cluster: **dev** and **p
   anything in prod. Databases, backups, encryption keys and secrets are separate.
 - The visitor side: psizone-web and hemisync-web call the PROD API (their one deployment is the
   public one); the dev API serves the dev console and tests.
+
+## 10. Booking support: blacklist, data check, feedback, reports (2026-11-13)
+
+Owner: "it's a mini CRM, but we only focus on reservations". Everything here serves booking. All of it
+lives in `packages/scheduling` (domain in `src/clinic/`, store functions in `convex/api*.ts`), tested
+against a throwaway backend; the API (slice 3) wires permissions to it.
+
+**Blacklist, with a reason.** Per app, an entry names a client record and/or an E.164 phone and/or an
+e-mail (never a name alone), with a reason (staff-only text, at most 2000), a category (`no_show_repeated`,
+`unpaid`, `abusive`, `duplicate`, `other`), a severity, an optional expiry, an active flag, creator and
+dates, and an audit event for every change. Severities: `warn` (staff acknowledge; online allowed),
+`block_online` (web and chat refused neutrally; staff book with an override and a reason), `block_all`
+(only the elevated override books). `blacklistMatch(candidate, entries, now)` returns the strongest hit
+(harshest severity, then client > phone > e-mail) and which identifier matched; a guardian's phone is part of
+a child's candidate. Enforcement: `appointments.submit` (a hold carries no contact, so submit is the first
+moment to ask) and `apiBlacklist.screen` (the gate for the callback form and any other online path) answer
+`unavailable_online` and record an event and an audit entry; `apiVisits.create` and `move` answer
+`warning` / `blocked` with the reason unless given `override: { reason, authority }`, and store the override
+and its reason. Catalogue: `blacklist` view / create / edit / delete / `create_warn` / `override` /
+`override_admin`, scope all. Seed roles: Owner and Admin everything; Reception `view` + `create_warn`.
+
+**Data check.** `validateSnapshot` (pure) reports, without changing anything: invalid phones and e-mails,
+clients with no usable contact, contacts shared by two clients, visits on a day off or outside roster hours,
+overlaps, packages used past their sessions, clients matching the blacklist. The import runs it on what it
+would write (dry run and real run: codes, counts, old ids only; never blocking); `validateClinicData(admin,
+app)` runs it over the stored data. `--blacklist <file>` seeds entries (validated, idempotent, never rewritten
+once staff own them).
+
+**Feedback.** Kinds `appointment_rating`, `general`, `suggestion`, `complaint`, `site_issue`; rating 1 to 5;
+text up to 4000 characters (checked on the plain text, stored and replied to as ciphertext); linked to a
+visit, a booking, a client or an account hash; channels `account`, `email_link`, `chat`, `staff`; status
+`new` > `read` > `answered` > `closed`; a reply thread; consent to be contacted (contact details stored only
+with it). One-time links: signed (HMAC under a key derived from the server key), expiring (14 days, 1 hour
+to 90 days), single use, redeemed in one transaction; `feedbackLinks.issue` is what the notify layer calls.
+Catalogue: `feedback` view / reply / close with field groups `core` (rating, text, replies) and `contact`.
+The parent questionnaire stays a form.
+
+**Reports.** Read-only queries over a range (at most a year and a day), bucketed by LOCAL date: appointments
+by status / service / practitioner / room / device per day, week, month; utilisation (booked against
+available minutes from the roster; rooms and devices are available while any practitioner is); no-show and
+cancellation rates (and by client); new against returning clients; packages sold, used, remaining;
+revenue (paid, by method, outstanding); the web and chat funnel; feedback ratings; blacklist hits. Counts
+and rates need `reports_view_all_core`; **revenue alone** needs `reports_view_all_money`
+(`src/clinic/reports/permissions.ts` maps each report to its key).
+
+**Owner decisions taken for you (change any of them):**
+1. A hold has no contact, so the blacklist is asked at submit, not at hold.
+2. `warn` refuses once with `warning` and proceeds on an acknowledgement with a reason (no extra permission);
+   `block_online` needs `blacklist_override_all`; `block_all` needs `blacklist_override_admin_all` ("roles_admin
+   override" read as a separate, admin-only permission, since no `roles_admin` action exists).
+3. Reception may flag at `warn` level only, may not edit, delete or override.
+4. Erasing a client keeps their blacklist entries' phone, e-mail and reason (a safety record) but drops the
+   client link and name; it deletes their feedback and replies.
+5. Reception handles feedback (view, reply, close, with text and contact); no other seed role sees it.
+6. Accountant gains the `core` and `money` report groups; no one else reads reports but Owner and Admin.
+7. Seeded blacklist entries are created once; a re-run never revives what staff switched off.
+8. The feedback-link key is derived from the deployment's server key, so no new secret is deployed.
+

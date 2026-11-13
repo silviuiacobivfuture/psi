@@ -4,6 +4,7 @@ import { internal } from "../../convex/_generated/api";
 import type { AdminClient } from "../../src/admin-client";
 import { type WrappedKey, wrappedKeySchema } from "../../src/crypto";
 import type {
+	BlacklistRow,
 	BlockRow,
 	ClientRow,
 	DeviceRow,
@@ -35,6 +36,7 @@ export interface RowsByKind {
 	blocks: BlockRow;
 	responses: ResponseRow;
 	files: FileRow;
+	blacklist: BlacklistRow;
 }
 export type Kind = keyof RowsByKind;
 
@@ -53,6 +55,7 @@ export const WRITE_ORDER: ReadonlyArray<Kind> = [
 	"blocks",
 	"responses",
 	"files",
+	"blacklist",
 ];
 
 export const resultSchema = z.object({
@@ -112,6 +115,7 @@ const FUNCTION: Record<Kind, string> = {
 	blocks: getFunctionName(internal.importRoster.upsertStaffBlocks),
 	responses: getFunctionName(internal.importRecords.upsertResponses),
 	files: getFunctionName(internal.importRecords.upsertFiles),
+	blacklist: getFunctionName(internal.importBlacklist.upsertEntries),
 };
 
 export const BATCH = 200;

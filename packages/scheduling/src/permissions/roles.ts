@@ -133,6 +133,10 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			all("roster", ["view"]),
 			all("leave", ["view"]),
 			all("notice_board", ["create", "edit"]),
+			// View the list and flag someone at warn level; the stronger entries and every
+			// override are the admin's.
+			all("blacklist", ["view", "create_warn"]),
+			all("feedback", ["view", "reply", "close"], ["core", "contact"]),
 		]),
 	},
 	{
@@ -187,7 +191,7 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 			all("clients", ["view"], ["contact", "money"]),
 			all("packages", ["view"]),
 			all("payments", ["view", "export"]),
-			all("reports", ["view", "export"]),
+			all("reports", ["view", "export"], ["core", "money"]),
 		]),
 	},
 ];

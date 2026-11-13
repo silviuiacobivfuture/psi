@@ -250,6 +250,20 @@
 				"ro": "Importuri și exporturi",
 				"en": "Imports and exports"
 			}
+		},
+		{
+			"key": "blacklist",
+			"name": {
+				"ro": "blacklist",
+				"en": "blacklist"
+			}
+		},
+		{
+			"key": "feedback",
+			"name": {
+				"ro": "feedback",
+				"en": "feedback"
+			}
 		}
 	],
 	"roles": [

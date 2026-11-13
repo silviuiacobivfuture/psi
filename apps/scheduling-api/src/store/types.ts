@@ -182,6 +182,7 @@ export type Reason =
 	| "not_offered"
 	| "not_found"
 	| "hold_expired"
+	| "unavailable_online"
 	| "not_allowed";
 export type Failed = { ok: false; reason: Reason };
 

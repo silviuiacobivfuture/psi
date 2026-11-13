@@ -29,6 +29,7 @@ const REFERENCES: Record<Kind, ReadonlyArray<{ field: string; kind: Kind }>> = {
 	blocks: [],
 	responses: [{ field: "clientLegacy", kind: "clients" }],
 	files: [],
+	blacklist: [{ field: "clientLegacy", kind: "clients" }],
 };
 
 export class MemorySink implements ImportSink {
@@ -83,7 +84,8 @@ export class MemorySink implements ImportSink {
 				table.set(legacyId, { row, version: 1 });
 				this.changes += 1;
 				out.push({ legacyId, id: legacyId, outcome: "created" });
-			} else if (Reflect.get(found.row, "fingerprint") === fingerprint) {
+			} else if (kind === "blacklist" || Reflect.get(found.row, "fingerprint") === fingerprint) {
+				// Staff own a seeded blacklist entry from the moment it exists: a re-run never rewrites it.
 				out.push({ legacyId, id: legacyId, outcome: "unchanged" });
 			} else {
 				table.set(legacyId, { row, version: found.version + 1 });

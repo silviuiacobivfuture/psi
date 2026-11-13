@@ -12,6 +12,7 @@ const REASONS: Record<Reason, () => ApiError> = {
 	not_offered: () => fail("conflict", "the slot is not offered"),
 	not_found: () => fail("not_found", "not found"),
 	hold_expired: () => fail("hold_expired", "the hold lapsed"),
+	unavailable_online: () => fail("unavailable_online", "this cannot be booked online"),
 	not_allowed: () => fail("not_allowed", "not allowed"),
 };
 
