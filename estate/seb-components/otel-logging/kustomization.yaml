@@ -1,8 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# PSI's layer on SEB's otel-logging piece (slot `image`, schema/slots/otel-logging.yaml): the tag
-# of the log collector image psi built (scripts/estate-images.sh), sha256:5c444221… in
-# registry.psizone.ro/psi. The generated Application sets it (estate/seb-image-tags.mjs).
+# PSI's layer on SEB's otel-logging piece (schema/slots/otel-logging.yaml):
+# - slot `image`: the tag of the log collector image psi built (scripts/estate-images.sh),
+#   sha256:5c444221… in registry.psizone.ro/psi. The generated Application sets it
+#   (estate/seb-image-tags.mjs).
+# - slot `events-dataset`: the cluster collector sends Kubernetes events to psi's existing Axiom
+#   dataset WLSLUG-dev-node. psi's Axiom plan holds no WLSLUG-dev-k8s-events dataset, and Axiom
+#   refused every export to it ("Exporting failed. Dropping data", otlphttp/events).
 images:
   - name: WLREGISTRY/WLAPPS/otel-collector-journald
     newTag: seb-a94178986
+patches:
+  - target: { kind: ConfigMap, name: otel-dataset-names }
+    patch: |-
+      - { op: replace, path: /data/otel-cluster-11, value: "WLSLUG-dev-node." }
+      - { op: replace, path: /data/otel-cluster-112, value: "WLSLUG-dev-node\n\nservice:\n" }
