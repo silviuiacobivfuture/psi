@@ -265,3 +265,37 @@
 .pz-fp__heat-ramp i[data-heat="4"] {
 	background: color-mix(in srgb, var(--accent) 58%, var(--fp-paper));
 }
+
+/* Room categories: a room's own tint when it is not showing a live state. */
+.pz-fp__area--room[data-category="therapy"] .pz-fp__fill {
+	fill: color-mix(in srgb, var(--accent) 14%, var(--fp-paper));
+}
+.pz-fp__area--room[data-category="neuro"] .pz-fp__fill {
+	fill: color-mix(in srgb, var(--success) 20%, var(--fp-paper));
+}
+.pz-fp__category-legend {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.pz-fp__category-legend li {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.pz-fp__swatch {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--line-strong);
+}
+.pz-fp__swatch[data-category="therapy"] {
+	background: color-mix(in srgb, var(--accent) 14%, var(--fp-paper));
+}
+.pz-fp__swatch[data-category="neuro"] {
+	background: color-mix(in srgb, var(--success) 20%, var(--fp-paper));
+}

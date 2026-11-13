@@ -1,0 +1,71 @@
+/* Grouped sub-navigation: a column beside a screen on wide displays, a full-width list on a phone. */
+.adm-subnav {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-section-gap);
+}
+.adm-subnav__group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+}
+.adm-subnav__title {
+	margin: 0;
+	padding-inline: var(--space-3);
+	font: 700 12px / 1.2 var(--font-sans);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.adm-subnav__list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.adm-subnav__item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: var(--adm-touch);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	color: var(--ink);
+	text-decoration: none;
+}
+.adm-subnav__item:hover {
+	background: var(--surface-2);
+}
+.adm-subnav__item[aria-current="page"] {
+	background: var(--surface-2);
+	box-shadow: inset 3px 0 0 var(--app);
+}
+.adm-subnav__text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+/* A settings screen: the list beside it from 900px; on a phone the list is the landing and the screen stands alone. */
+.adm-settings {
+	display: grid;
+	gap: var(--adm-section-gap);
+	grid-template-columns: minmax(0, 1fr);
+}
+.adm-settings__nav {
+	display: none;
+}
+@media (min-width: 900px) {
+	.adm-settings {
+		grid-template-columns: 260px minmax(0, 1fr);
+		align-items: start;
+	}
+	.adm-settings__nav {
+		display: block;
+	}
+	.adm-settings__back {
+		display: none;
+	}
+}

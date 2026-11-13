@@ -1,3 +1,5 @@
+import { parseRoomsSeed } from "@psi/scheduling/clinic";
+import psizoneRooms from "@psi/scheduling/seed/psizone-rooms.json";
 import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import type { AppSlug } from "./schema";
 
@@ -30,39 +32,38 @@ const door = (id: string, x: number, y: number) => ({
 	swing: "left" as const,
 });
 
-const PLANS: Record<AppSlug, unknown> = {
-	psizone: {
+const FLOOR_SHAPES = (floorId: string) =>
+	parseRoomsSeed(psizoneRooms)
+		.floors.filter((f) => f.id === floorId)
+		.flatMap((f) =>
+			f.rooms.map((r) => ({
+				id: `r-${r.id}`,
+				kind: "room" as const,
+				label: "",
+				roomId: r.id,
+				category: r.category,
+				geometry: rect(r.geometry.x, r.geometry.y, r.geometry.w, r.geometry.h),
+			})),
+		);
+
+/** The plan of Psizone: the owner's three floors, the rooms where the seed puts them, and the categories' legend. */
+function psizonePlan(): unknown {
+	const seed = parseRoomsSeed(psizoneRooms);
+	return {
 		version: 1,
 		revision: 1,
 		width: 220,
 		height: 140,
 		northDeg: 0,
-		floors: [
-			{
-				id: "parter",
-				name: "Parter",
-				shapes: [
-					space("receptie", "reception", rect(10, 10, 50, 45)),
-					space("asteptare", "waiting", rect(60, 10, 50, 45)),
-					space("wc", "wc", rect(110, 10, 25, 45)),
-					space("hol", "corridor", rect(10, 55, 190, 14)),
-					room("r-terapie", "r1", "", rect(10, 69, 90, 55)),
-					room("r-grup", "g1", "", rect(100, 69, 100, 55)),
-					door("d-terapie", 50, 69),
-					door("d-grup", 145, 69),
-					{
-						id: "v-nfb",
-						kind: "device",
-						label: "",
-						at: { x: 60, y: 100 },
-						rotation: 0,
-						deviceType: "nfb-amplifier",
-						deviceId: "d1",
-					},
-				],
-			},
-		],
-	},
+		categories: seed.categories.map((c) => ({ id: c.id, label: c.label })),
+		floors: [...seed.floors]
+			.sort((a, b) => a.order - b.order)
+			.map((f) => ({ id: f.id, name: f.name, shapes: FLOOR_SHAPES(f.id) })),
+	};
+}
+
+const PLANS: Record<AppSlug, unknown> = {
+	psizone: psizonePlan(),
 	hemisync: {
 		version: 1,
 		revision: 1,

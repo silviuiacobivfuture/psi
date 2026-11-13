@@ -25,6 +25,31 @@ import type {
 	Service,
 	WebRequest,
 } from "./schema";
+import type {
+	CatalogKind,
+	DeviceInput,
+	NewRole,
+	PersonInput,
+	RoomInput,
+	ServiceInput,
+} from "./schema-catalog";
+import type {
+	Actor,
+	BlacklistEntry,
+	ClientFile,
+	ClientFlag,
+	ClientNote,
+	ClientPatch,
+	ClientRecord,
+	ClientSummary,
+	FormDefinition,
+	NewBlacklist,
+	NewFile,
+	NewNote,
+	NewRecord,
+	NotePatch,
+	RecordPatch,
+} from "./schema-clinical";
 
 export type ClientFilter = "current" | "archived";
 
@@ -155,6 +180,22 @@ export interface ClinicPort {
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;
 	columns(app: AppSlug): Promise<ReadonlyArray<Column>>;
+	/** Every person, room and device the team set up, the inactive ones too (the calendar's `columns` has only the active). */
+	catalogColumns(app: AppSlug): Promise<ReadonlyArray<Column>>;
+	/** Adds (`id` null) or changes a team member; a practitioner gets a calendar column. Refuses (`invalid`) a bad value, (`conflict`) an e-mail already on the team. */
+	savePerson(app: AppSlug, id: string | null, input: PersonInput): Promise<Column>;
+	saveRoom(app: AppSlug, id: string | null, input: RoomInput): Promise<Column>;
+	saveDevice(app: AppSlug, id: string | null, input: DeviceInput): Promise<Column>;
+	saveService(app: AppSlug, id: string | null, input: ServiceInput): Promise<Service>;
+	/** Removes it, or switches it off when it has history (appointments): `deactivated`. Never loses a booking. */
+	removeCatalog(
+		app: AppSlug,
+		kind: CatalogKind,
+		id: string,
+	): Promise<{ outcome: "deleted" | "deactivated" }>;
+	createRole(app: AppSlug, input: NewRole): Promise<Role>;
+	/** Refuses (`conflict`) a role still held by someone, and a system role. */
+	deleteRole(app: AppSlug, id: string): Promise<void>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
@@ -178,6 +219,53 @@ export interface ClinicPort {
 	floorPlan(app: AppSlug): Promise<{ doc: FloorPlanDoc; writable: boolean }>;
 	/** Saves a plan edited from `doc.revision`; `stale` when the stored one moved on, `not-available-yet` when it cannot be kept. */
 	saveFloorPlan(app: AppSlug, doc: FloorPlanDoc): Promise<SaveResult>;
+	/** Edits the client's own details; only what is present changes. */
+	updateClient(app: AppSlug, id: string, patch: ClientPatch): Promise<Client>;
+	/** The client list's rich rows in ONE read: next appointment, balance, blacklist, pinned notes. */
+	clientSummaries(
+		app: AppSlug,
+		filter: ClientFilter,
+		query: string,
+	): Promise<ReadonlyArray<ClientSummary>>;
+	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
+	clientFlags(
+		app: AppSlug,
+		clientIds: ReadonlyArray<string>,
+	): Promise<Readonly<Record<string, ClientFlag>>>;
+	/** Newest first; pinned ones are flagged, not moved. */
+	notes(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientNote>>;
+	addNote(app: AppSlug, clientId: string, input: NewNote, by: Actor): Promise<ClientNote>;
+	/** Changes the text or category (stamps "editat"), or pins / unpins. */
+	updateNote(app: AppSlug, noteId: string, patch: NotePatch): Promise<ClientNote>;
+	deleteNote(app: AppSlug, noteId: string): Promise<void>;
+	/** Every entry the client ever had, newest first: the blacklist's history. */
+	blacklistHistory(app: AppSlug, clientId: string): Promise<ReadonlyArray<BlacklistEntry>>;
+	addBlacklist(
+		app: AppSlug,
+		clientId: string,
+		input: NewBlacklist,
+		by: Actor,
+	): Promise<BlacklistEntry>;
+	/** Ends an entry by hand; it stays in the history with who ended it and why. */
+	endBlacklist(app: AppSlug, entryId: string, reason: string, by: Actor): Promise<BlacklistEntry>;
+	/** The form definitions a record may be started from (the seeded templates and the owners' own). */
+	formTemplates(app: AppSlug): Promise<ReadonlyArray<FormDefinition>>;
+	records(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientRecord>>;
+	record(app: AppSlug, id: string): Promise<ClientRecord | null>;
+	/** Refuses (`invalid`) a form that is unknown, or a finalised record whose values do not satisfy its form. */
+	createRecord(app: AppSlug, clientId: string, input: NewRecord, by: Actor): Promise<ClientRecord>;
+	/** A finalised record is changed only back through a patch that keeps it valid. */
+	updateRecord(app: AppSlug, id: string, patch: RecordPatch): Promise<ClientRecord>;
+	deleteRecord(app: AppSlug, id: string): Promise<void>;
+	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
+	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
+	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
+	downloadFile(
+		app: AppSlug,
+		id: string,
+	): Promise<{ name: string; contentType: string; bytes: Uint8Array }>;
+	renameFile(app: AppSlug, id: string, name: string): Promise<ClientFile>;
+	deleteFile(app: AppSlug, id: string): Promise<void>;
 	pushPrefs(subject: string): Promise<PushPrefs>;
 	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */

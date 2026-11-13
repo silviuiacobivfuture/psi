@@ -27,7 +27,7 @@ describe("what each person's menu offers follows what the service says they may 
 			"/roster",
 			"/reminders",
 			"/settings",
-			"/audit",
+			"/me/settings",
 			"/view-as",
 		])
 			expect(has(html, h), h).toBe(true);
@@ -73,19 +73,28 @@ describe("what each person's menu offers follows what the service says they may 
 	});
 });
 
-describe("the administration zone", () => {
-	it("the owner has the entry (set apart in the navigation) and a card per area; reception and volunteers do not", async () => {
+describe("the three kinds of settings", () => {
+	it("the owner reaches the organisation's settings and her own; the old addresses lead there; the platform is not hers", async () => {
 		const owner = await k.as("olga");
 		const nav = await text(await owner.get("/clients"));
-		expect(has(nav, "/admin")).toBe(true);
-		expect(nav).toContain("adm-nav__admin");
-		const page = await text(await owner.get("/admin"));
-		for (const area of ["roles", "members", "services", "rooms", "audit"])
-			expect(page, area).toContain(`data-admin-area="${area}"`);
+		expect(has(nav, "/settings")).toBe(true);
+		expect(has(nav, "/me/settings")).toBe(true);
+		expect(has(nav, "/platform")).toBe(false);
+		const page = await text(await owner.get("/settings"));
+		for (const area of ["roles", "people", "services", "rooms", "audit"])
+			expect(page, area).toContain(`data-subnav="${area}"`);
+		expect((await owner.raw("/admin")).headers.get("location")).toBe("/settings");
+		expect((await owner.raw("/audit")).headers.get("location")).toBe("/settings/audit");
+		expect((await owner.get("/platform")).status).toBe(403);
+	});
+	it("a volunteer has her own settings only", async () => {
 		const vera = await k.as("vera");
-		expect(has(await text(await vera.get("/roster")), "/admin")).toBe(false);
+		const roster = await text(await vera.get("/roster"));
+		expect(has(roster, "/settings")).toBe(false);
+		expect(has(roster, "/me/settings")).toBe(true);
 		const before = await k.api.world.fingerprint();
-		expect((await vera.get("/admin")).status).toBe(403);
+		expect((await vera.get("/settings")).status).toBe(403);
+		expect((await vera.get("/me/settings")).status).toBe(200);
 		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 });
@@ -270,7 +279,7 @@ describe("what the service has not built yet is said, not crashed on", () => {
 	}
 	it("the notification preferences say 'în curând' and keep the rest of the tab", async () => {
 		const s = await k.as("olga");
-		const html = await text(await s.get("/settings/notifications"));
+		const html = await text(await s.get("/me/settings"));
 		expect(html).toContain("În curând");
 	});
 	it("a refusal by the service on a screen the menu offered says there is no access", async () => {

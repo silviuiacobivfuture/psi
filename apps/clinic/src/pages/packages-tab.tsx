@@ -44,7 +44,12 @@ export function PackagesTab({
 			<div class="adm-row pk-list__bar">
 				<h3 class="adm-h2">{m.packages_title({}, o)}</h3>
 				{canCreate ? (
-					<button type="button" class="adm-btn adm-btn--primary" data-on:click="$newPkg = true">
+					<button
+						type="button"
+						class="adm-btn adm-btn--primary"
+						data-action="package.new"
+						data-on:click="$newPkg = true"
+					>
 						<Icon name="plus" />
 						{m.pkg_new({}, o)}
 					</button>
