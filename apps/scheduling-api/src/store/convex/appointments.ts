@@ -4,6 +4,7 @@ import { type AppointmentRow, type Collection, type Query, StoreRefused } from "
 import { personRef } from "./ids";
 import type { Rpc } from "./rpc";
 import { answer, Refusal, unwrap } from "./rpc";
+import { columnOf, editArgsOf } from "./visit-edit-args";
 import { attendanceOf, metaFor, toAppointment, VisitView, type VisitViewT } from "./visit-rows";
 
 const Id = answer({ id: z.string() });
@@ -18,21 +19,6 @@ const Version = z.union([
 ]);
 const One = z.union([answer({ visit: VisitView }), Refusal]);
 const Many = z.union([answer({ visits: z.array(VisitView) }), Refusal]);
-
-type Column = { kind: "practitioner" | "group"; id: string };
-
-/** The calendar column an API appointment sits in: its practitioner's, or its group's for a group activity. */
-function columnOf(row: AppointmentRow): Column {
-	if (row.kind === "group") {
-		if (row.groupId === undefined) throw new StoreRefused("invalid");
-		return { kind: "group", id: row.groupId };
-	}
-	const ref = personRef(row.practitionerId);
-	if (ref?.kind !== "practitioner") throw new StoreRefused("unknown_practitioner");
-	return { kind: "practitioner", id: ref.id };
-}
-
-const sameColumn = (a: Column, b: Column): boolean => a.kind === b.kind && a.id === b.id;
 
 /**
  * Appointments over `apiVisits` and `apiVisitEdit` (+ `apiMoneyExtra` for the unwindowed search). `replace` DIFFS the
@@ -63,13 +49,8 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 	): Promise<void> {
 		const base = { tenant: app, actor: actor(), visit: current.id };
 		const override = currentOverride();
-		// Nothing a person did not ask for is cleared: a note, a room or a device is replaced, never taken away.
-		for (const field of ["note", "roomId", "deviceId"] as const)
-			if (cur[field] !== undefined && next[field] === undefined) throw new StoreRefused("invalid");
-		if (cur.clientId !== undefined && next.clientId === undefined)
-			throw new StoreRefused("invalid");
-		if (cur.clientId === undefined && next.clientId !== undefined)
-			throw new StoreRefused("invalid");
+		// Every refusal that needs no store is decided before the first write.
+		const edits = editArgsOf(current, cur, next, force);
 		if (cur.deletedAt !== undefined && next.deletedAt === undefined)
 			unwrap(
 				await rpc.mutation(
@@ -78,65 +59,13 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 					Version,
 				),
 			);
-		if (cur.status === "cancelled" && next.status !== "cancelled")
-			throw new StoreRefused("not_allowed");
-		// A confirmed appointment does not go back to waiting for the client.
-		if (next.status === "requested" && cur.status !== "requested")
-			throw new StoreRefused("not_allowed");
-
-		const curColumn: Column | undefined =
-			current.column.kind === "group" || current.column.kind === "practitioner"
-				? { kind: current.column.kind, id: current.column.id }
-				: undefined;
-		const column = columnOf(next);
-		const moved =
-			next.start !== cur.start ||
-			next.end !== cur.end ||
-			next.roomId !== cur.roomId ||
-			next.deviceId !== cur.deviceId ||
-			curColumn === undefined ||
-			!sameColumn(curColumn, column);
-
 		// Every change of an edit goes in ONE mutation: it decides every refusal before it writes anything, so an edit
 		// that is refused leaves nothing behind (a client moved, then a clash found, would not).
-		const meta = metaFor(next);
-		const metaChanged = force || JSON.stringify(meta) !== JSON.stringify(metaFor(cur));
-		const price = next.money?.priceCents;
-		const edits = {
-			...(next.clientId !== cur.clientId && next.clientId !== undefined
-				? { client: next.clientId }
-				: {}),
-			...(next.packageId !== cur.packageId ? { package: next.packageId ?? null } : {}),
-			...(next.serviceId !== cur.serviceId && next.serviceId !== undefined
-				? { sessionType: next.serviceId }
-				: {}),
-			...(price !== undefined && price !== cur.money?.priceCents ? { priceMinor: price } : {}),
-			...(next.note !== cur.note && next.note !== undefined ? { notes: next.note } : {}),
-			...(metaChanged ? { meta } : {}),
-			...(cur.status === "requested" && next.status === "scheduled"
-				? { confirm: true as const }
-				: {}),
-		};
-		if (moved || Object.keys(edits).length > 0)
+		if (edits !== undefined)
 			unwrap(
 				await rpc.mutation(
 					"apiVisitEdit:edit",
-					{
-						...base,
-						...edits,
-						...(moved
-							? {
-									move: {
-										start: next.start,
-										end: next.end,
-										column,
-										...(next.roomId === undefined ? {} : { room: next.roomId }),
-										...(next.deviceId === undefined ? {} : { device: next.deviceId }),
-									},
-								}
-							: {}),
-						...(override === undefined ? {} : { override }),
-					},
+					{ ...base, ...edits, ...(override === undefined ? {} : { override }) },
 					Version,
 				),
 			);

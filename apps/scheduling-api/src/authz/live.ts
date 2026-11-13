@@ -114,11 +114,15 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 			return List.parse(raw).objects;
 		},
 		async write(change: TupleChange) {
-			const writes = keys(change.writes);
-			const deletes = keys(change.deletes);
-			for (let at = 0; at < Math.max(writes.length, deletes.length); at += WRITE_CHUNK) {
-				const w = writes.slice(at, at + WRITE_CHUNK);
-				const d = deletes.slice(at, at + WRITE_CHUNK);
+			// OpenFGA bounds one write request by the writes AND deletes together: 100 tuples in all, deletes first.
+			const all = [
+				...keys(change.deletes).map((tuple) => ({ tuple, delete: true })),
+				...keys(change.writes).map((tuple) => ({ tuple, delete: false })),
+			];
+			for (let at = 0; at < all.length; at += WRITE_CHUNK) {
+				const part = all.slice(at, at + WRITE_CHUNK);
+				const w = part.filter((p) => !p.delete).map((p) => p.tuple);
+				const d = part.filter((p) => p.delete).map((p) => p.tuple);
 				await post(options.writeUrl, "/write", {
 					authorization_model_id: options.modelId,
 					...(w.length > 0 ? { writes: { tuple_keys: w, on_duplicate: "ignore" } } : {}),

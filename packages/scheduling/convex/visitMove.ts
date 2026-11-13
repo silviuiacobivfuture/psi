@@ -60,22 +60,20 @@ export async function prepareMove(
 	};
 }
 
-/** Whether the prepared move would take a person, room or device something else already has. */
-export async function moveIsTaken(
+/** What the prepared move would take that something else already has: the person, the room or the device. */
+export function moveTakenBy(
 	ctx: QueryCtx,
 	tenant: string,
 	row: Doc<"visits">,
 	move: PreparedMove,
 	args: Pick<MoveArgs, "start" | "end">,
-): Promise<boolean> {
-	return (
-		(await busyOfVisitsInfo(ctx, tenant, {
-			column: move.column,
-			room: move.room,
-			device: move.device,
-			start: args.start,
-			end: args.end,
-			except: row._id,
-		})) !== undefined
-	);
+): Promise<"practitioner" | "room" | "device" | undefined> {
+	return busyOfVisitsInfo(ctx, tenant, {
+		column: move.column,
+		room: move.room,
+		device: move.device,
+		start: args.start,
+		end: args.end,
+		except: row._id,
+	});
 }

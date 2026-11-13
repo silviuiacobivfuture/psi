@@ -87,7 +87,9 @@ export function applyVisitRules(c: Collections, gate: StaffGate): void {
 		for (const o of await c.appointments.list(a.app)) {
 			if (o.id === a.id || o.deletedAt !== undefined || o.status === "cancelled") continue;
 			if (o.end <= a.start || o.start >= a.end) continue;
-			if (exclusives(o).some((key) => wanted.has(key))) throw new StoreRefused("overlaps");
+			const clash = exclusives(o).find((key) => wanted.has(key));
+			if (clash !== undefined)
+				throw new StoreRefused("overlaps", { with: clash.slice(0, clash.indexOf(":")) });
 		}
 	}
 

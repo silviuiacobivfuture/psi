@@ -85,8 +85,7 @@ export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 		// The service says whether it is paid, not by what means: the console only asks "paid or not" of this field.
 		paidMethod: a.money?.paymentStatus === "paid" ? "cash" : null,
 		remind: a.remind,
-		// A series is not yet a fact of the service's appointment.
-		seriesId: null,
+		seriesId: a.seriesId ?? null,
 		cancelReason: a.cancelReason ?? null,
 	};
 }

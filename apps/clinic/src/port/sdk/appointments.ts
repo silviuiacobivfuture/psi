@@ -74,13 +74,12 @@ export function appointmentsGroup(sdk: SdkContext) {
 			input: NewAppointment,
 		): Promise<ReadonlyArray<Appointment>> =>
 			run(async () => {
-				if (input.recurrence != null) throw soon("a weekly series of appointments");
 				const tz = await sdk.zone(app);
 				const minutes = await durationOf(app, input.serviceId, input.durationMin);
 				const start = instantOf(input.date, input.startMin, tz);
-				const made = await api.appointments.create({
+				const body = {
 					app,
-					kind: "session",
+					kind: "session" as const,
 					practitionerId: input.columnId,
 					clientId: input.clientId,
 					serviceId: input.serviceId,
@@ -92,8 +91,20 @@ export function appointmentsGroup(sdk: SdkContext) {
 					...(input.status === "requested" ? { status: "requested" as const } : {}),
 					...(input.remind === false ? { remind: false } : {}),
 					...(await resources(app, input.resourceIds ?? [])),
-				});
-				return [appointmentOf(made, tz)];
+				};
+				const recurrence = input.recurrence;
+				// Every week or none: the service books the series in one step and names each one that stopped it.
+				if (recurrence != null) {
+					const series = await api.series.create({
+						...body,
+						recurrence:
+							recurrence.count !== undefined
+								? { count: recurrence.count }
+								: { until: recurrence.until },
+					});
+					return series.items.map((a) => appointmentOf(a, tz));
+				}
+				return [appointmentOf(await api.appointments.create(body), tz)];
 			}),
 
 		updateAppointment: (app: AppSlug, id: string, patch: AppointmentPatch): Promise<Appointment> =>

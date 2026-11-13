@@ -3,6 +3,7 @@
  * revision, a screen of the blacklist, a report). Each takes the app first; none returns it, so one wrapper (the test
  * world's alias of app ids) covers every port.
  */
+import type { AppointmentRow } from "./types";
 
 export const DOCUMENT_KINDS = ["floor_plan"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
@@ -135,6 +136,28 @@ export interface BlacklistPort {
 		app: string,
 		query: { entry?: string; before?: number; limit?: number },
 	): Promise<BlacklistEventRow[]>;
+}
+
+/** An occurrence that stopped a series: its position, its start, why, and what it clashes with. */
+export interface SeriesConflictRow {
+	index: number;
+	start?: number | undefined;
+	reason: string;
+	with?: "practitioner" | "room" | "device" | undefined;
+}
+
+/**
+ * Appointments changed together, ALL OR NOTHING: the weekly series. A refusal is a `StoreRefused` whose detail may carry
+ * `conflicts` (a `SeriesConflictRow` for each occurrence that could not be had, by position in the rows given) and
+ * writes nothing; reasons are `conflicts`, `too_many`, `invalid`, and the blacklist's `warning` and `blocked`.
+ */
+export interface SeriesPort {
+	/** Makes every row or none, one series: the id of the first is the series' id on all. Returns the rows as stored. */
+	create(app: string, rows: readonly AppointmentRow[]): Promise<AppointmentRow[]>;
+	/** Replaces every row (an edit of each) or none, or cancels every row or none: never a mixture of the two. */
+	replace(app: string, rows: readonly AppointmentRow[]): Promise<void>;
+	/** The appointments of one series, deleted ones left out, in time order. */
+	list(app: string, seriesId: string): Promise<AppointmentRow[]>;
 }
 
 export type FeedbackGroups = readonly ("core" | "contact")[];

@@ -29,6 +29,7 @@ import type * as apiReports from "../apiReports.js";
 import type * as apiReportsMoney from "../apiReportsMoney.js";
 import type * as apiResources from "../apiResources.js";
 import type * as apiRoster from "../apiRoster.js";
+import type * as apiSeries from "../apiSeries.js";
 import type * as apiSettings from "../apiSettings.js";
 import type * as apiSupport from "../apiSupport.js";
 import type * as apiVisitEdit from "../apiVisitEdit.js";
@@ -123,6 +124,7 @@ declare const fullApi: ApiFromModules<{
   apiReportsMoney: typeof apiReportsMoney;
   apiResources: typeof apiResources;
   apiRoster: typeof apiRoster;
+  apiSeries: typeof apiSeries;
   apiSettings: typeof apiSettings;
   apiSupport: typeof apiSupport;
   apiVisitEdit: typeof apiVisitEdit;

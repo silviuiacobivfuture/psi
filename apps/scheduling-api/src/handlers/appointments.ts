@@ -1,4 +1,5 @@
-import type { RouteSpec } from "@psi/scheduling-sdk/contract";
+import type { AppointmentCreate, RouteSpec } from "@psi/scheduling-sdk/contract";
+import type { z } from "zod/v4";
 import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
@@ -76,6 +77,65 @@ export async function appointmentOut(ctx: C, row: AppointmentRow) {
 	});
 }
 
+type NewAppointment = z.output<typeof AppointmentCreate>;
+
+/** Everything that decides whether a booking may be made, before anything is written: the same for one and for a series. */
+export async function checkNewAppointment(ctx: C, b: NewAppointment): Promise<void> {
+	if (b.end <= b.start)
+		throw fail("invalid", "an appointment ends after it starts", { field: "end" });
+	if (b.kind === "session" && b.clientId === undefined)
+		throw fail("invalid", "a session needs a client", { field: "clientId" });
+	if (b.kind === "group" && b.groupId === undefined)
+		throw fail("invalid", "a group activity needs a group", { field: "groupId" });
+	if (b.status === "requested" && b.kind !== "session")
+		throw fail("invalid", "only a session waits for the client to confirm it", { field: "status" });
+	if (
+		b.priceCents !== undefined &&
+		!(await ctx.canOn("appointments_create_money", "sched_calendar", b.practitionerId))
+	)
+		throw forbidden("not allowed to write this field group", { group: "money" });
+	const core =
+		b.clientId !== undefined ||
+		b.groupId !== undefined ||
+		b.roomId !== undefined ||
+		b.deviceId !== undefined ||
+		b.serviceId !== undefined ||
+		b.packageId !== undefined ||
+		b.note !== undefined;
+	if (core && !(await ctx.canOn("appointments_create_core", "sched_calendar", b.practitionerId)))
+		throw forbidden("not allowed to write this field group", { group: "core" });
+	await checkRefs(ctx, b);
+}
+
+/** The row a booking makes, at the given time (a series makes one per week). */
+export function newAppointment(
+	ctx: C,
+	b: NewAppointment,
+	at: { start: number; end: number },
+): AppointmentRow {
+	return {
+		id: newId("a"),
+		app: ctx.app,
+		kind: b.kind,
+		status: b.status,
+		remind: b.remind,
+		practitionerId: b.practitionerId,
+		start: at.start,
+		end: at.end,
+		...(b.clientId === undefined ? {} : { clientId: b.clientId }),
+		...(b.groupId === undefined ? {} : { groupId: b.groupId }),
+		...(b.roomId === undefined ? {} : { roomId: b.roomId }),
+		...(b.deviceId === undefined ? {} : { deviceId: b.deviceId }),
+		...(b.serviceId === undefined ? {} : { serviceId: b.serviceId }),
+		...(b.packageId === undefined ? {} : { packageId: b.packageId }),
+		...(b.note === undefined ? {} : { note: b.note }),
+		...(b.priceCents === undefined
+			? {}
+			: { money: { priceCents: b.priceCents, paidCents: 0, paymentStatus: "unpaid" as const } }),
+		...stamps(ctx.now),
+	};
+}
+
 export const appointmentHandlers: HandlersOf<
 	| "appointments.list"
 	| "appointments.create"
@@ -115,54 +175,8 @@ export const appointmentHandlers: HandlersOf<
 
 	async "appointments.create"(ctx) {
 		const b = ctx.body;
-		if (b.end <= b.start)
-			throw fail("invalid", "an appointment ends after it starts", { field: "end" });
-		if (b.kind === "session" && b.clientId === undefined)
-			throw fail("invalid", "a session needs a client", { field: "clientId" });
-		if (b.kind === "group" && b.groupId === undefined)
-			throw fail("invalid", "a group activity needs a group", { field: "groupId" });
-		if (b.status === "requested" && b.kind !== "session")
-			throw fail("invalid", "only a session waits for the client to confirm it", {
-				field: "status",
-			});
-		if (
-			b.priceCents !== undefined &&
-			!(await ctx.canOn("appointments_create_money", "sched_calendar", b.practitionerId))
-		)
-			throw forbidden("not allowed to write this field group", { group: "money" });
-		const core =
-			b.clientId !== undefined ||
-			b.groupId !== undefined ||
-			b.roomId !== undefined ||
-			b.deviceId !== undefined ||
-			b.serviceId !== undefined ||
-			b.packageId !== undefined ||
-			b.note !== undefined;
-		if (core && !(await ctx.canOn("appointments_create_core", "sched_calendar", b.practitionerId)))
-			throw forbidden("not allowed to write this field group", { group: "core" });
-		await checkRefs(ctx, b);
-		const id = newId("a");
-		const row: AppointmentRow = {
-			id,
-			app: ctx.app,
-			kind: b.kind,
-			status: b.status,
-			remind: b.remind,
-			practitionerId: b.practitionerId,
-			start: b.start,
-			end: b.end,
-			...(b.clientId === undefined ? {} : { clientId: b.clientId }),
-			...(b.groupId === undefined ? {} : { groupId: b.groupId }),
-			...(b.roomId === undefined ? {} : { roomId: b.roomId }),
-			...(b.deviceId === undefined ? {} : { deviceId: b.deviceId }),
-			...(b.serviceId === undefined ? {} : { serviceId: b.serviceId }),
-			...(b.packageId === undefined ? {} : { packageId: b.packageId }),
-			...(b.note === undefined ? {} : { note: b.note }),
-			...(b.priceCents === undefined
-				? {}
-				: { money: { priceCents: b.priceCents, paidCents: 0, paymentStatus: "unpaid" as const } }),
-			...stamps(ctx.now),
-		};
+		await checkNewAppointment(ctx, b);
+		const row = newAppointment(ctx, b, { start: b.start, end: b.end });
 		const other = await clash(ctx, row);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });

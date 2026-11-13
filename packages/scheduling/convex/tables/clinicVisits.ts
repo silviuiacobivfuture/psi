@@ -53,6 +53,8 @@ export const visits = defineTable({
 	deletedAt: v.optional(v.number()),
 	/** What the staff API keeps beyond the calendar's own fields (see apiMoneyExtra.ts). */
 	meta: v.optional(visitMetaValidator),
+	/** The weekly series this visit is one of: the id of its first visit (see apiSeries.ts). */
+	series: v.optional(v.string()),
 })
 	.index("by_tenant_start", ["tenant", "start"])
 	.index("by_tenant_deleted", ["tenant", "deletedAt"])
@@ -61,6 +63,7 @@ export const visits = defineTable({
 	.index("by_tenant_package_start", ["tenant", "package", "start"])
 	.index("by_tenant_room_start", ["tenant", "room", "start"])
 	.index("by_tenant_device_start", ["tenant", "device", "start"])
+	.index("by_tenant_series_start", ["tenant", "series", "start"])
 	.index("by_tenant_legacy", ["tenant", "legacyId"]);
 
 export const packages = defineTable({

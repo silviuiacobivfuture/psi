@@ -153,6 +153,15 @@ export {
 	rosterProblem,
 	type StaffBlock,
 } from "./roster";
+export {
+	atWallTime,
+	MAX_SERIES,
+	type Occurrence,
+	type OccurrenceProblem,
+	type Occurrences,
+	type Recurrence,
+	weeklyOccurrences,
+} from "./series";
 export { SEED_FORM_TEMPLATES } from "./templates";
 export {
 	FINDING_CODES,
