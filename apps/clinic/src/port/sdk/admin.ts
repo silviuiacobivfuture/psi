@@ -1,4 +1,5 @@
-import { emptyPlan, type FloorPlanDoc, type SaveResult } from "@psi/ui/admin/floor-plan";
+import { SchedulingApiError } from "@psi/scheduling-sdk";
+import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { PortError, type TeamMember } from "../port";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
@@ -131,15 +132,42 @@ export function adminGroup(sdk: SdkContext) {
 			_entry: { actor: string; action: string; target: string },
 		): Promise<void> => {},
 
-		/** The service keeps no floor plan: an empty one, and drawing is "în curând" until it has somewhere to store it. */
-		floorPlan: async (): Promise<{ doc: FloorPlanDoc; writable: boolean }> => ({
-			doc: emptyPlan(),
-			writable: false,
-		}),
+		/**
+		 * The app's stored plan (an empty one when none was drawn), and whether this person may draw: the service's
+		 * `app_settings_edit`, asked of their capabilities. Reading needs only the calendar.
+		 */
+		floorPlan: (app: AppSlug): Promise<{ doc: FloorPlanDoc; writable: boolean }> =>
+			run(async () => {
+				const [stored, me] = await Promise.all([api.floorPlan.get({ app }), sdk.me(app)]);
+				const writable = me.platformAdmin || Object.hasOwn(me.permissions, "app_settings_edit");
+				if (stored.doc === undefined) return { doc: emptyPlan(), writable };
+				const parsed = parsePlan(stored.doc);
+				if (!parsed.success)
+					throw new PortError(
+						"unavailable",
+						"the stored floor plan is not one this console can draw",
+					);
+				return { doc: parsed.data, writable };
+			}),
 
-		saveFloorPlan: async (): Promise<SaveResult> => {
-			throw new PortError("not-available-yet", "the scheduling service keeps no floor plan");
-		},
+		/** A save from a revision the store has moved past is the editor's `stale`, never an error. */
+		saveFloorPlan: (app: AppSlug, doc: FloorPlanDoc): Promise<SaveResult> =>
+			run(async () => {
+				try {
+					const saved = await api.floorPlan.put({ app, doc });
+					const parsed = parsePlan(saved.doc);
+					if (!parsed.success)
+						throw new PortError("unavailable", "the saved floor plan cannot be read");
+					return { ok: true, doc: parsed.data };
+				} catch (error) {
+					if (error instanceof SchedulingApiError) {
+						if (error.code === "conflict" && error.detail?.reason === "stale")
+							return { ok: false, reason: "stale" };
+						if (error.code === "invalid") return { ok: false, reason: "invalid" };
+					}
+					throw error;
+				}
+			}),
 
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),

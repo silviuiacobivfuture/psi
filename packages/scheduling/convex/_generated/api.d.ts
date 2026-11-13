@@ -17,9 +17,10 @@ import type * as apiBuilder from "../apiBuilder.js";
 import type * as apiCatalogExtra from "../apiCatalogExtra.js";
 import type * as apiClients from "../apiClients.js";
 import type * as apiDefinitionsExtra from "../apiDefinitionsExtra.js";
+import type * as apiDocuments from "../apiDocuments.js";
+import type * as apiFeedback from "../apiFeedback.js";
 import type * as apiLeaveExtra from "../apiLeaveExtra.js";
 import type * as apiMembersExtra from "../apiMembersExtra.js";
-import type * as apiFeedback from "../apiFeedback.js";
 import type * as apiMoney from "../apiMoney.js";
 import type * as apiMoneyExtra from "../apiMoneyExtra.js";
 import type * as apiRecords from "../apiRecords.js";
@@ -79,6 +80,7 @@ import type * as staffSetup from "../staffSetup.js";
 import type * as tables_apiRecordsExtra from "../tables/apiRecordsExtra.js";
 import type * as tables_clinicAccess from "../tables/clinicAccess.js";
 import type * as tables_clinicBlacklist from "../tables/clinicBlacklist.js";
+import type * as tables_clinicDocs from "../tables/clinicDocs.js";
 import type * as tables_clinicFeedback from "../tables/clinicFeedback.js";
 import type * as tables_clinicRecords from "../tables/clinicRecords.js";
 import type * as tables_clinicResources from "../tables/clinicResources.js";
@@ -88,8 +90,8 @@ import type * as tables_notify from "../tables/notify.js";
 import type * as tenants from "../tenants.js";
 import type * as validators from "../validators.js";
 import type * as visitConflicts from "../visitConflicts.js";
-import type * as webRequests from "../webRequests.js";
 import type * as visitLinks from "../visitLinks.js";
+import type * as webRequests from "../webRequests.js";
 
 import type {
   ApiFromModules,
@@ -107,9 +109,10 @@ declare const fullApi: ApiFromModules<{
   apiCatalogExtra: typeof apiCatalogExtra;
   apiClients: typeof apiClients;
   apiDefinitionsExtra: typeof apiDefinitionsExtra;
+  apiDocuments: typeof apiDocuments;
+  apiFeedback: typeof apiFeedback;
   apiLeaveExtra: typeof apiLeaveExtra;
   apiMembersExtra: typeof apiMembersExtra;
-  apiFeedback: typeof apiFeedback;
   apiMoney: typeof apiMoney;
   apiMoneyExtra: typeof apiMoneyExtra;
   apiRecords: typeof apiRecords;
@@ -169,6 +172,7 @@ declare const fullApi: ApiFromModules<{
   "tables/apiRecordsExtra": typeof tables_apiRecordsExtra;
   "tables/clinicAccess": typeof tables_clinicAccess;
   "tables/clinicBlacklist": typeof tables_clinicBlacklist;
+  "tables/clinicDocs": typeof tables_clinicDocs;
   "tables/clinicFeedback": typeof tables_clinicFeedback;
   "tables/clinicRecords": typeof tables_clinicRecords;
   "tables/clinicResources": typeof tables_clinicResources;
@@ -178,8 +182,8 @@ declare const fullApi: ApiFromModules<{
   tenants: typeof tenants;
   validators: typeof validators;
   visitConflicts: typeof visitConflicts;
-  webRequests: typeof webRequests;
   visitLinks: typeof visitLinks;
+  webRequests: typeof webRequests;
 }>;
 
 /**

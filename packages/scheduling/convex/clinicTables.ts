@@ -40,6 +40,7 @@ export const CLINIC_TABLES = [
 	"feedback",
 	"feedbackReplies",
 	"feedbackLinks",
+	"appDocuments",
 ] as const satisfies ReadonlyArray<TableNames>;
 export type ClinicTable = (typeof CLINIC_TABLES)[number];
 
@@ -210,6 +211,11 @@ export async function rowsOf(
 			return ctx.db
 				.query("feedbackLinks")
 				.withIndex("by_tenant_jti", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "appDocuments":
+			return ctx.db
+				.query("appDocuments")
+				.withIndex("by_tenant_kind", (q) => q.eq("tenant", tenant))
 				.take(LIMIT);
 		default: {
 			const never: never = table;

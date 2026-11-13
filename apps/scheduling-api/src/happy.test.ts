@@ -1,5 +1,6 @@
 import { ROUTES, type RouteId, type RouteSpec } from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { EXTRA_HAPPY, type ExtraId } from "./happy-extra";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 import { worldFactories } from "./testing/worlds";
@@ -77,8 +78,8 @@ const newClient = async (w: Populated): Promise<string> =>
 	String((await olga(w, "POST", "/clients", { name: "Disposable Client" })).json.id);
 
 /** One happy path per route of the contract. The table's type is the contract's ids: a route without a case does not compile. */
-const HAPPY: Record<
-	Exclude<RouteId, "calendar.stream" | "requests.stream" | "inbox.stream">,
+const OWN: Record<
+	Exclude<RouteId, "calendar.stream" | "requests.stream" | "inbox.stream" | ExtraId>,
 	Case
 > = {
 	"meta.health": (w) => w.call(null, "GET", "/health"),
@@ -374,6 +375,8 @@ const HAPPY: Record<
 	},
 	"imports.list": (w) => olga(w, "GET", "/imports"),
 };
+
+const HAPPY = { ...OWN, ...EXTRA_HAPPY };
 
 const factories = await worldFactories();
 

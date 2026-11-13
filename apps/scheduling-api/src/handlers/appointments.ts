@@ -4,6 +4,7 @@ import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { AppointmentRow } from "../store/types";
+import { booking } from "./booking-gate";
 import { appointmentGroupReach, appointmentView } from "./fields";
 import { balances as packageBalances } from "./packages";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
@@ -161,7 +162,7 @@ export const appointmentHandlers: HandlersOf<
 		const other = await clash(ctx, row);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
-		const saved = await ctx.deps.store.c.appointments.insert(row);
+		const saved = await booking(ctx, b.override, () => ctx.deps.store.c.appointments.insert(row));
 		await writeTuples(ctx, links(saved));
 		await ctx.changed("appointment", "created", saved.id);
 		if (saved.clientId !== undefined)
@@ -188,7 +189,7 @@ export const appointmentHandlers: HandlersOf<
 			String(ctx.params.id),
 			"appointment",
 		);
-		const b = ctx.body;
+		const { override, ...b } = ctx.body;
 		if (row.status === "cancelled")
 			throw fail("conflict", "a cancelled appointment does not move", { status: row.status });
 		const detail =
@@ -215,7 +216,7 @@ export const appointmentHandlers: HandlersOf<
 		const other = await clash(ctx, next);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
-		await ctx.deps.store.c.appointments.replace(next);
+		await booking(ctx, override, () => ctx.deps.store.c.appointments.replace(next));
 		if (next.practitionerId !== row.practitionerId)
 			await writeTuples(ctx, links(next), links(row).slice(1));
 		await ctx.changed("appointment", "updated", row.id);
@@ -369,6 +370,7 @@ export const appointmentHandlers: HandlersOf<
 			amountCents: ctx.body.amountCents,
 			method: ctx.body.method,
 			paidAt: ctx.now,
+			recordedBy: ctx.subject,
 			...stamps(ctx.now),
 		});
 		await ctx.changed("appointment", "updated", row.id);
