@@ -171,6 +171,7 @@
 	"resource_clients": "Clients (contact)",
 	"resource_clinical": "Clinical record",
 	"resource_files": "Files",
+	"resource_blacklist": "Blacklist",
 	"resource_packages": "Packages",
 	"resource_payments": "Payments",
 	"resource_prices": "Prices",

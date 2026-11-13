@@ -5,6 +5,7 @@ import { adminGroup } from "./admin";
 import { appointmentsGroup } from "./appointments";
 import { calendarGroup } from "./calendar";
 import { clientsGroup } from "./clients";
+import { clinicalGroup } from "./clinical";
 import { createContext } from "./context";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 
@@ -46,12 +47,14 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 	const calendar = calendarGroup(sdk);
 	const { clientsPage, ...cal } = calendar;
 	const clients = clientsGroup(sdk, clientsPage);
+	const clinical = clinicalGroup(sdk, clientsPage);
 	const admin = adminGroup(sdk);
 	const appointments = appointmentsGroup(sdk);
 	return {
 		...cal,
 		...appointments,
 		...clients,
+		...clinical,
 		...admin,
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};

@@ -30,7 +30,20 @@ const KEYS = {
 		cancel: "clients_delete",
 		export: "clients_export",
 	},
+	clinical: {
+		view: "report_custom_view",
+		create: "report_custom_create",
+		edit: "report_custom_edit",
+		export: "report_custom_export",
+	},
 	files: { view: "files_view", create: "files_upload", cancel: "files_delete" },
+	blacklist: {
+		view: "blacklist_view",
+		create: "blacklist_create",
+		edit: "blacklist_edit",
+		cancel: "blacklist_delete",
+		approve: "blacklist_override",
+	},
 	packages: {
 		view: "packages_view",
 		create: "packages_create",

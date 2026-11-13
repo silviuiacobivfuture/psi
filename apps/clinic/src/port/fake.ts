@@ -2,6 +2,8 @@ import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan"
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { createFakeAccess } from "./fake-caps";
+import { createFakeClinical } from "./fake-clinical";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -11,7 +13,6 @@ import {
 	type ReminderItem,
 	type TeamMember,
 } from "./port";
-import { capabilityMap } from "./role-map";
 import type {
 	Appointment,
 	AppSlug,
@@ -91,98 +92,20 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		for (const l of listeners) if (l.app === app) l.push(signal);
 	};
 	const openRequests = (d: AppData): number => d.requests.filter((r) => !r.handled).length;
-	const LOOKUPS = [
-		"people_view",
-		"rooms_view",
-		"devices_view",
-		"services_view",
-		"group_activities_view",
-	];
+
+	const access = createFakeAccess({
+		members: opts.members,
+		names: opts.names,
+		data,
+		guard,
+		log,
+	});
+
+	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
 	return {
-		async capabilities(subject, app, as) {
-			guard("capabilities");
-			const mine = opts.members[subject]?.find((x) => x.app === app);
-			if (mine === undefined) throw new PortError("not-found", app);
-			const d = data(app);
-			const holds = (ids: ReadonlyArray<string>) => d.roles.filter((r) => ids.includes(r.id));
-			let roles = holds(mine.roles);
-			let who = subject;
-			if (as !== undefined) {
-				const here = holds(mine.roles);
-				if (!here.some((r) => r.grants.roles?.edit !== undefined))
-					throw new PortError("forbidden", "roles administrators only");
-				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
-				if (kind === "role") {
-					roles = holds([id]);
-					if (roles.length === 0) throw new PortError("not-found", as);
-				} else {
-					const other = Object.entries(opts.members).find(
-						([s, ms]) => s === id && ms.some((x) => x.app === app),
-					);
-					if (other === undefined) throw new PortError("not-found", as);
-					roles = holds(other[1].find((x) => x.app === app)?.roles ?? []);
-				}
-				who = as;
-			}
-			const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
-			const groups = new Set<string>();
-			for (const r of roles) {
-				for (const [k, v] of Object.entries(capabilityMap(r))) {
-					const had = permissions[k] ?? [];
-					permissions[k] = [...new Set([...had, ...v])];
-				}
-				for (const g of r.fieldGroups) groups.add(g);
-				if (r.grants.calendars?.view !== undefined || r.grants.settings?.view !== undefined)
-					for (const k of LOOKUPS) permissions[k] = ["all"];
-			}
-			return {
-				app,
-				appName: app === "psizone" ? "Psizone" : "Hemi-Sync",
-				timeZone: "Europe/Bucharest",
-				subject: who,
-				displayName:
-					as === undefined
-						? (opts.names?.[subject] ?? subject)
-						: as.startsWith("role:")
-							? (roles[0]?.name ?? as)
-							: (opts.names?.[as.slice("member:".length)] ?? as),
-				roles: roles.map((r) => r.id),
-				permissions,
-				denied: [],
-				...(as === undefined
-					? {}
-					: {
-							viewAs: {
-								kind: as.startsWith("role:") ? ("role" as const) : ("member" as const),
-								id: as.slice(as.indexOf(":") + 1),
-							},
-						}),
-				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
-					groups.has(g),
-				),
-				reach: { own: [], assigned: [] },
-				platformAdmin: false,
-			};
-		},
-		async members(app): Promise<ReadonlyArray<TeamMember>> {
-			guard("members");
-			return Object.entries(opts.members).flatMap(([subject, ms]) =>
-				ms
-					.filter((x) => x.app === app)
-					.map((x) => ({ subject, displayName: opts.names?.[subject] ?? subject, roles: x.roles })),
-			);
-		},
-		async startViewAs(subject, app, as) {
-			guard("startViewAs");
-			const caps = await this.capabilities(subject, app, as);
-			log(data(app), subject, "view_as.start", as);
-			return caps;
-		},
-		async stopViewAs(subject, app) {
-			guard("stopViewAs");
-			log(data(app), subject, "view_as.stop", app);
-		},
+		...access,
+		...clinical,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;

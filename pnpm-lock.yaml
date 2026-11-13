@@ -156,6 +156,9 @@ importers:
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../../packages/scheduling
       '@psi/scheduling-sdk':
         specifier: workspace:*
         version: link:../../packages/scheduling-sdk
