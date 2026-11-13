@@ -204,6 +204,11 @@ deploy Job, notifications) runs TWICE on the one estate cluster: **dev** and **p
 - Own data and keys: its own CNPG cluster and backups prefix (`cnpg/scheduling-db-prod`), own
   OpenBao paths (`secret/apps/scheduling-prod/*`, `secret/apps/clinic-prod/*`), own Convex
   instance secret, own OIDC client, own Novu environment or topics prefixed `prod:`.
+- As built (2026-11-13): the namespaces are `scheduling-backend-prod` (the store, its CNPG `scheduling-db` and the
+  deploy Job), `scheduling-api-prod`, `clinic-prod` and `account-db-prod`; the Argo Applications are `*-prod` in
+  `gitops/apps/overlays/dev/apps/`; the store's Postgres is `POSTGRES_URL` (Convex on CNPG). The API scopes its app
+  objects with `OPENFGA_APP_PREFIX` (`prod-` in production). Dev keeps its unprefixed `sched_app:psizone` until its
+  tuples are rewritten to `dev-`.
 - Hosts: prod `programari.psizone.ro` / `api-programari.psizone.ro`; dev
   `programari-dev.psizone.ro` / `api-programari-dev.psizone.ro`.
 - Promotion is explicit: CI moves only `overlays/dev` tags; a prod release is one commit that

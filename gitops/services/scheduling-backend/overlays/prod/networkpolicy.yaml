@@ -1,0 +1,41 @@
+# PRODUCTION's store admits ONLY production callers: scheduling-api-prod's pods and the scheduling-deploy Job of this
+# namespace. No dev pod (scheduling-api, psizone-web, the CMS) can open a connection to it; the server key is the second
+# lock. Each `from` element is namespace AND pod label (an AND). A JSON patch that REPLACES the whole `spec` of the base's
+# policy; the kubelet-probe addresses are appended after it (kustomization.yaml).
+#   EGRESS  DNS, the backend's own Service, and its Postgres (the CNPG pods of scheduling-db in this namespace).
+- op: replace
+  path: /spec
+  value:
+    podSelector:
+      matchLabels: { app: scheduling-backend }
+    policyTypes: [Ingress, Egress]
+    ingress:
+      - from:
+          - podSelector:
+              matchLabels: { app: scheduling-deploy }
+          - namespaceSelector:
+              matchLabels: { kubernetes.io/metadata.name: scheduling-api-prod }
+            podSelector:
+              matchLabels: { app: scheduling-api }
+        ports:
+          - { protocol: TCP, port: 3210 }
+    egress:
+      - to:
+          - namespaceSelector:
+              matchLabels: { kubernetes.io/metadata.name: kube-system }
+            podSelector:
+              matchLabels: { k8s-app: kube-dns }
+        ports:
+          - { protocol: UDP, port: 53 }
+          - { protocol: TCP, port: 53 }
+      - to:
+          - podSelector:
+              matchLabels: { app: scheduling-backend }
+        ports:
+          - { protocol: TCP, port: 3210 }
+          - { protocol: TCP, port: 3211 }
+      - to:
+          - podSelector:
+              matchLabels: { cnpg.io/cluster: scheduling-db }
+        ports:
+          - { protocol: TCP, port: 5432 }

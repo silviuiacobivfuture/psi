@@ -1,0 +1,84 @@
+# scheduling-api for PRODUCTION (api-programari.psizone.ro): its own namespace, its own store (scheduling-backend-prod),
+# its own OpenBao paths, its own master key, and its app objects scoped `prod-` in the estate's one OpenFGA store
+# (OPENFGA_APP_PREFIX: `sched_app:prod-psizone`, dev's are `sched_app:psizone`; a role held in one grants nothing in the
+# other). Registered as `scheduling-api-prod` in gitops/apps/overlays/dev/apps/.
+#
+# THE IMAGE TAG IS PROMOTED, NOT BUMPED: CI never writes this file; `tools/scheduling/promote.sh <sha>` does.
+# "unpromoted" until the first promotion.
+#
+# OpenBao (estate/APP-SECRETS.md): secret/apps/scheduling-api-prod/{env,mail}, secret/apps/scheduling-prod/env
+# (PSI_SCHEDULING_KEY), secret/apps/novu-prod/estate, secret/apps/notify-prod/reminder-links; shared with dev and only
+# read: secret/apps/openfga/env, secret/apps/autorizare/env, secret/platform/object-storage/dev.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling-api-prod
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/scheduling-api
+    newTag: "unpromoted"
+patches:
+  - target: { kind: Deployment, name: scheduling-api }
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: scheduling-api
+      spec:
+        template:
+          spec:
+            containers:
+              - name: api
+                env:
+                  - { name: PUBLIC_URL, value: "https://api-programari.psizone.ro" }
+                  - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling-backend-prod.svc:3210" }
+                  - { name: CONSOLE_URL, value: "https://programari.psizone.ro" }
+                  - { name: CORS_ORIGINS, value: "https://programari.psizone.ro" }
+                  - { name: S3_BUCKET, value: psi-scheduling-prod }
+                  # Scopes this instance's `sched_app` objects in the shared OpenFGA store.
+                  - { name: OPENFGA_APP_PREFIX, value: "prod-" }
+  - target: { kind: Ingress, name: scheduling-api }
+    patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: api-programari.psizone.ro
+      - op: replace
+        path: /spec/rules/0/host
+        value: api-programari.psizone.ro
+  # Only production callers: the production console, the public sites (their one deployment each), the CMS; the store is
+  # the production backend.
+  - target: { kind: NetworkPolicy, name: scheduling-api }
+    patch: |-
+      - op: replace
+        path: /spec/ingress/0/from/1/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: clinic-prod
+      - op: replace
+        path: /spec/egress/1/to/0/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: scheduling-backend-prod
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 4380 }
+  # Production's own paths (the layout of dev's, `-prod` suffixed).
+  - target: { kind: ExternalSecret, name: scheduling-api-env }
+    patch: |-
+      - { op: replace, path: /spec/data/0/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/1/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/2/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/3/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/4/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/5/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/6/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/7/remoteRef/key, value: apps/scheduling-api-prod/env }
+      - { op: replace, path: /spec/data/8/remoteRef/key, value: apps/scheduling-api-prod/mail }
+      - { op: replace, path: /spec/data/9/remoteRef/key, value: apps/scheduling-api-prod/mail }
+      - { op: replace, path: /spec/data/10/remoteRef/key, value: apps/scheduling-api-prod/mail }
+      - { op: replace, path: /spec/data/11/remoteRef/key, value: apps/scheduling-prod/env }
+      - { op: replace, path: /spec/data/14/remoteRef/key, value: apps/novu-prod/estate }
+      - { op: replace, path: /spec/data/15/remoteRef/key, value: apps/notify-prod/reminder-links }

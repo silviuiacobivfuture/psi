@@ -1,0 +1,91 @@
+# PRODUCTION's Convex store: a CloudNativePG Cluster (the shape of gitops/services/clinic/base/account-db.yaml and
+# cms-db) that the backend reaches through POSTGRES_URL (externalsecret.yaml). Own cluster, own credentials, own backup
+# prefix: nothing is shared with dev, whose store is SQLite on a volume. docs/plans/clinic.md section 5: real data never
+# lands on SQLite.
+#
+# Backups: continuous WAL archiving plus a nightly base backup to the estate's bucket under cnpg/scheduling-db-prod,
+# kept 30 days: point-in-time recovery. The restore drill (clinic.md section 5) is run against THIS prefix.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: scheduling-db
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  instances: 1
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  bootstrap:
+    initdb:
+      # Convex's database name: INSTANCE_NAME `psi-scheduling-prod`, dashes to underscores.
+      database: psi_scheduling_prod
+      owner: convex
+      secret:
+        name: scheduling-db-app
+  storage:
+    size: 20Gi
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      destinationPath: s3://psi-tfstate-dev/cnpg/scheduling-db-prod
+      endpointURL: https://nbg1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: scheduling-db-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: scheduling-db-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# CNPG cron has SIX fields (leading seconds). 03:20 daily: grep `schedule:` across gitops/ before taking another slot.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: scheduling-db-base
+spec:
+  schedule: "0 20 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: scheduling-db
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: scheduling-db-app
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: scheduling-db-app
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef: { key: apps/scheduling-prod/db, property: username }
+    - secretKey: password
+      remoteRef: { key: apps/scheduling-prod/db, property: password }
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: scheduling-db-backup-s3
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: scheduling-db-backup-s3, creationPolicy: Owner, deletionPolicy: Retain }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }

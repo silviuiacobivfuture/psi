@@ -1,0 +1,17 @@
+# The team console of PRODUCTION (programari.psizone.ro), on the same cluster as dev, in namespace clinic-prod. It follows
+# the `dev` branch like every Application here; its image tag moves only by `tools/scheduling/promote.sh`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clinic-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/clinic/overlays/prod
+  destination: { server: https://kubernetes.default.svc, namespace: clinic-prod }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

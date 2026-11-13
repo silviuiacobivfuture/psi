@@ -1,0 +1,31 @@
+# scheduling-deploy for PRODUCTION: the PostSync Job that deploys the Convex functions to the PRODUCTION backend (same
+# namespace as it: scheduling-backend-prod), with production's own admin key and server key. Registered as
+# `scheduling-deploy-prod` in gitops/apps/overlays/dev/apps/. It runs NO seed.
+#
+# THE IMAGE TAG IS PROMOTED, NOT BUMPED: CI never writes this file; `tools/scheduling/promote.sh <sha>` does.
+# "unpromoted" until the first promotion.
+#
+#   secret/apps/scheduling-prod/admin  CONVEX_SELF_HOSTED_ADMIN_KEY  derived from production's INSTANCE_NAME + INSTANCE_SECRET
+#   secret/apps/scheduling-prod/env    PSI_SCHEDULING_KEY            the SAME key scheduling-api-prod reads
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling-backend-prod
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/scheduling-deploy
+    newTag: "unpromoted"
+patches:
+  - target: { kind: Job, name: scheduling-deploy }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "http://scheduling-backend.scheduling-backend-prod.svc:3210"
+  - target: { kind: ExternalSecret, name: scheduling-deploy-env }
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: apps/scheduling-prod/admin
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: apps/scheduling-prod/env

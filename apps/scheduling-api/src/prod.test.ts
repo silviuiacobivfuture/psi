@@ -1,0 +1,306 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
+
+const rootUrl = new URL("../../../", import.meta.url);
+const root = rootUrl.pathname;
+const read = (p: string): string => readFileSync(new URL(p, rootUrl), "utf8");
+
+const OVERLAYS = [
+	"account-db",
+	"scheduling-backend",
+	"scheduling-deploy",
+	"scheduling-api",
+	"clinic",
+] as const;
+const PROD_NAMESPACES = [
+	"account-db-prod",
+	"clinic-prod",
+	"scheduling-api-prod",
+	"scheduling-backend-prod",
+];
+/** What production only READS from dev's paths: the estate's single OpenFGA, its store id, the registry, object storage. */
+const SHARED_PATHS = [
+	"apps/openfga/env",
+	"apps/autorizare/env",
+	"platform/harbor/pull",
+	"platform/object-storage/dev",
+];
+
+const kustomize = spawnSync("kustomize", ["version"]).status === 0;
+const render = (service: string): string =>
+	execFileSync("kustomize", ["build", `gitops/services/${service}/overlays/prod`], {
+		cwd: root,
+		encoding: "utf8",
+	});
+
+describe.skipIf(!kustomize)("the production overlays, rendered", () => {
+	const rendered = Object.fromEntries(OVERLAYS.map((s) => [s, render(s)]));
+	const all = Object.values(rendered).join("\n---\n");
+
+	it("every namespaced object lands in a production namespace, never dev's", () => {
+		const namespaces = [...all.matchAll(/^ {2}namespace: (\S+)$/gm)].map((m) => m[1]);
+		expect(namespaces.length).toBeGreaterThan(20);
+		for (const ns of namespaces) expect(PROD_NAMESPACES).toContain(ns);
+	});
+
+	it("no NetworkPolicy admits or targets a dev namespace of the appointments system", () => {
+		const targeted = [...all.matchAll(/kubernetes\.io\/metadata\.name: (\S+)/g)].map((m) => m[1]);
+		for (const dev of ["clinic", "scheduling", "scheduling-api"])
+			expect(targeted, `a policy names the dev namespace ${dev}`).not.toContain(dev);
+	});
+
+	it("reads only its own OpenBao paths, plus the estate's shared read-only ones", () => {
+		const keys = new Set(
+			[...all.matchAll(/key: ((?:apps|platform)\/\S+)/g)].map((m) => m[1] ?? ""),
+		);
+		const own = (k: string): boolean => /^apps\/[a-z-]+-prod\//.test(k);
+		for (const k of keys)
+			expect(own(k) || SHARED_PATHS.includes(k), `${k} is a dev path`).toBe(true);
+		expect([...keys].filter(own).sort()).toEqual([
+			"apps/account-prod/db",
+			"apps/account-prod/openfga",
+			"apps/clinic-prod/env",
+			"apps/clinic-prod/oidc",
+			"apps/notify-prod/reminder-links",
+			"apps/novu-prod/estate",
+			"apps/scheduling-api-prod/env",
+			"apps/scheduling-api-prod/mail",
+			"apps/scheduling-prod/admin",
+			"apps/scheduling-prod/db",
+			"apps/scheduling-prod/env",
+		]);
+	});
+
+	it("names no dev host, dev service address or dev bucket, and the production ones", () => {
+		expect(all).not.toMatch(/-dev\.psizone\.ro/);
+		expect(all).not.toMatch(/\.scheduling\.svc/);
+		expect(all).not.toMatch(/\.scheduling-api\.svc/);
+		expect(all).not.toContain("psi-scheduling-dev");
+		expect(all).not.toContain("cnpg/account-db\n");
+		for (const host of ["programari.psizone.ro", "api-programari.psizone.ro"])
+			expect(all).toContain(host);
+		expect(all).toContain("CONSOLE_URL");
+		expect(rendered["scheduling-api"]).toMatch(
+			/CONSOLE_URL\n\s+value: https:\/\/programari\.psizone\.ro/,
+		);
+	});
+
+	it("scopes the app objects in the shared OpenFGA store with prod-", () => {
+		expect(rendered["scheduling-api"]).toMatch(/OPENFGA_APP_PREFIX\n\s+value: prod-/);
+		expect(read("gitops/services/scheduling-api/base/deployment.yaml")).not.toContain(
+			"OPENFGA_APP_PREFIX",
+		);
+	});
+
+	it("has its own Postgres and backups: own prefixes, prune-guarded, nothing shared with dev", () => {
+		expect(rendered["scheduling-backend"]).toContain(
+			"s3://psi-tfstate-dev/cnpg/scheduling-db-prod",
+		);
+		expect(rendered["scheduling-backend"]).toContain("POSTGRES_URL");
+		expect(rendered["account-db"]).toContain("s3://psi-tfstate-dev/cnpg/account-db-prod");
+		expect(rendered.clinic).not.toMatch(/^kind: Cluster$/m);
+		for (const s of ["scheduling-backend", "account-db"])
+			expect(rendered[s]).toContain("argocd.argoproj.io/sync-options: Prune=false,Delete=false");
+	});
+
+	it("the prod store admits only prod callers", () => {
+		const policy = rendered["scheduling-backend"]?.split("kind: NetworkPolicy")[1] ?? "";
+		expect(policy).toContain("scheduling-api-prod");
+		for (const dev of ["psizone-web", "hemisync-web", "cms"]) expect(policy).not.toContain(dev);
+	});
+
+	it("every image is a promoted tag or the not-yet-promoted placeholder, never CI's bootstrap value", () => {
+		for (const s of OVERLAYS.filter((o) => o !== "account-db")) {
+			const tag = /newTag: "([^"]+)"/.exec(
+				read(`gitops/services/${s}/overlays/prod/kustomization.yaml`),
+			);
+			expect(tag?.[1]).toMatch(/^(unpromoted|[0-9a-f]{7})$/);
+		}
+	});
+});
+
+describe("production's registration and admission", () => {
+	it("each production Application points at its prod overlay and namespace, on the dev branch", () => {
+		const apps: Record<string, [string, string]> = {
+			"clinic-prod": ["clinic", "clinic-prod"],
+			"scheduling-api-prod": ["scheduling-api", "scheduling-api-prod"],
+			"scheduling-backend-prod": ["scheduling-backend", "scheduling-backend-prod"],
+			"scheduling-deploy-prod": ["scheduling-deploy", "scheduling-backend-prod"],
+			"account-db-prod": ["account-db", "account-db-prod"],
+		};
+		const list = read("gitops/apps/overlays/dev/apps/kustomization.yaml");
+		for (const [name, [service, ns]] of Object.entries(apps)) {
+			const a = read(`gitops/apps/overlays/dev/apps/${name}.yaml`);
+			expect(list).toContain(`- ${name}.yaml`);
+			expect(a).toMatch(new RegExp(`^ {2}name: ${name}$`, "m"));
+			expect(a).toContain(`path: gitops/services/${service}/overlays/prod`);
+			expect(a).toMatch(new RegExp(`namespace: ${ns} \\}|namespace: ${ns}$`, "m"));
+			expect(a).toContain("targetRevision: dev");
+		}
+	});
+
+	it("OpenFGA admits the production console and API on the same ports as dev's, the write port to the API only", () => {
+		const p = read("gitops/services/openfga-access/base/networkpolicy.yaml");
+		const rules = p.split("    - from:").slice(1);
+		const ruleFor = (port: number): string =>
+			rules.find((r) => r.includes(`port: ${port} }`)) ?? "";
+		const check = ruleFor(8081);
+		expect(check).toMatch(
+			/metadata\.name: clinic-prod \}\n\s+podSelector:\n\s+matchLabels: \{ app: clinic \}/,
+		);
+		expect(check).toMatch(
+			/metadata\.name: scheduling-api-prod \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
+		);
+		const write = ruleFor(8080);
+		expect(write).toMatch(/metadata\.name: scheduling-api-prod \}/);
+		expect(write).not.toContain("clinic");
+	});
+
+	it("CI never bumps a production tag: it runs on dev only and writes overlays/<branch>", () => {
+		const wf = read(".github/workflows/apps.yml");
+		expect(wf).toMatch(/branches: \[dev\]/);
+		expect(wf).toContain("overlays/$ENV_BRANCH/kustomization.yaml");
+		expect(wf).not.toContain("overlays/prod");
+	});
+
+	it("Authentik has the production client, its secrets and its blueprint, wired", () => {
+		const bp = read("gitops/platform/authentik/blueprints-clinic-prod.yaml");
+		expect(bp).toContain("https://programari.psizone.ro/auth/callback");
+		expect(bp).not.toContain("programari-dev");
+		expect(bp).toContain("name: clinic-prod");
+		expect(read("gitops/platform/authentik/clinic-prod-oidc-externalsecret.yaml")).toContain(
+			"apps/clinic-prod/oidc",
+		);
+		expect(read("gitops/platform/authentik/kustomization.yaml")).toContain(
+			"- blueprints-clinic-prod.yaml",
+		);
+		const a = read("gitops/apps/overlays/dev/authentik.yaml");
+		expect(a).toContain("authentik-blueprints-clinic-prod");
+		expect(a).toContain("authentik-clinic-prod-oidc");
+	});
+});
+
+describe("tools/scheduling/promote.sh", () => {
+	const dirs: string[] = [];
+	afterAll(() => {
+		for (const d of dirs) rmSync(d, { recursive: true, force: true });
+	});
+
+	/** A throwaway repository holding only the overlays the script touches, dev at `devTag`. */
+	function sandbox(devTag: string): string {
+		const dir = mkdtempSync(join(tmpdir(), "promote-"));
+		dirs.push(dir);
+		mkdirSync(join(dir, "tools/scheduling"), { recursive: true });
+		cpSync(join(root, "tools/scheduling/promote.sh"), join(dir, "tools/scheduling/promote.sh"));
+		for (const s of ["scheduling-backend", "scheduling-deploy", "scheduling-api", "clinic"]) {
+			for (const env of ["dev", "prod"]) {
+				mkdirSync(join(dir, `gitops/services/${s}/overlays/${env}`), { recursive: true });
+				cpSync(
+					join(root, `gitops/services/${s}/overlays/${env}/kustomization.yaml`),
+					join(dir, `gitops/services/${s}/overlays/${env}/kustomization.yaml`),
+				);
+			}
+		}
+		const dev = join(dir, "gitops/services/scheduling-api/overlays/dev/kustomization.yaml");
+		execFileSync("sed", ["-i", `s/newTag: ".*"/newTag: "${devTag}"/`, dev]);
+		const git = (...a: string[]): string => execFileSync("git", a, { cwd: dir, encoding: "utf8" });
+		git("init", "-q");
+		git("add", ".");
+		git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base");
+		return dir;
+	}
+	const run = (dir: string, args: string[], env: Record<string, string> = {}) =>
+		spawnSync("bash", [join(dir, "tools/scheduling/promote.sh"), ...args], {
+			cwd: dir,
+			encoding: "utf8",
+			env: {
+				...process.env,
+				GIT_AUTHOR_NAME: "t",
+				GIT_AUTHOR_EMAIL: "t@t",
+				GIT_COMMITTER_NAME: "t",
+				GIT_COMMITTER_EMAIL: "t@t",
+				...env,
+			},
+		});
+	const tags = (dir: string): string[] =>
+		["scheduling-backend", "scheduling-deploy", "scheduling-api", "clinic"].map(
+			(s) =>
+				/newTag: "([^"]*)"/.exec(
+					readFileSync(join(dir, `gitops/services/${s}/overlays/prod/kustomization.yaml`), "utf8"),
+				)?.[1] ?? "",
+		);
+
+	it("sets all four production tags to the sha's first seven characters and commits them", () => {
+		const dir = sandbox("abc1234");
+		const r = run(dir, ["abc1234def5678abc1234def5678abc1234def56"]);
+		expect(r.status).toBe(0);
+		expect(tags(dir)).toEqual(Array(4).fill("abc1234"));
+		const log = execFileSync("git", ["log", "-1", "--format=%s", "--name-only"], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		expect(log).toContain("promote abc1234 to production");
+		expect(log.match(/overlays\/prod\/kustomization\.yaml/g)).toHaveLength(4);
+	});
+
+	it("does not touch dev's overlays", () => {
+		const dir = sandbox("abc1234");
+		run(dir, ["abc1234", "--no-commit"]);
+		const dev = readFileSync(
+			join(dir, "gitops/services/clinic/overlays/dev/kustomization.yaml"),
+			"utf8",
+		);
+		expect(dev).toContain('newTag: "bootstrap"');
+	});
+
+	it("--no-commit edits and stops: the working tree is dirty, nothing is committed", () => {
+		const dir = sandbox("abc1234");
+		const before = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" });
+		expect(run(dir, ["abc1234", "--no-commit"]).status).toBe(0);
+		expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" })).toBe(before);
+		expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, encoding: "utf8" })).not.toBe(
+			"",
+		);
+	});
+
+	it("is a no-op the second time", () => {
+		const dir = sandbox("abc1234");
+		run(dir, ["abc1234"]);
+		const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" });
+		const again = run(dir, ["abc1234"]);
+		expect(again.status).toBe(0);
+		expect(again.stdout).toContain("already runs abc1234");
+		expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" })).toBe(head);
+	});
+
+	it.each([
+		["not hex", "zzzzzzz"],
+		["too short", "abc12"],
+		["upper case", "ABC1234"],
+		["too long", "a".repeat(41)],
+	])("refuses a sha that is %s, changing nothing", (_why, sha) => {
+		const dir = sandbox("abc1234");
+		const r = run(dir, [sha]);
+		expect(r.status).toBe(2);
+		expect(tags(dir)).toEqual(Array(4).fill("unpromoted"));
+	});
+
+	it("refuses a build dev does not run, unless the override is given", () => {
+		const dir = sandbox("abc1234");
+		const r = run(dir, ["fffffff"]);
+		expect(r.status).toBe(1);
+		expect(r.stderr).toContain("promote what was tested on dev");
+		expect(tags(dir)).toEqual(Array(4).fill("unpromoted"));
+		expect(run(dir, ["fffffff", "--no-commit"], { PROMOTE_ALLOW_UNTESTED: "1" }).status).toBe(0);
+		expect(tags(dir)).toEqual(Array(4).fill("fffffff"));
+	});
+
+	it("refuses missing or extra arguments", () => {
+		const dir = sandbox("abc1234");
+		expect(run(dir, []).status).toBe(2);
+		expect(run(dir, ["abc1234", "--push"]).status).toBe(2);
+	});
+});
