@@ -18,6 +18,7 @@ import {
 	StaffTurnInputSchema,
 } from "./events";
 import { type ConfirmOutcome, confirmProposal, dismissProposal, unconfirmed } from "./execute";
+import { openStaffMemory } from "./memory-store";
 import type { StaffLocale } from "./model";
 import { openSession, type SessionDeps } from "./open";
 import { baseKeys } from "./parity/needs";
@@ -45,12 +46,13 @@ export interface StaffEngineOptions {
 		sort?: ProviderSort;
 	};
 	/**
-	 * Conversation memory for staff, on its OWN LibSQL store (`staff:<sub>` resources). Without
-	 * it the memory lives in this process only and is gone on restart: threads hold client data,
-	 * so durable memory is the owner's decision. `visitorUrl`, when the app also runs a visitor
-	 * memory, must differ from `url`.
+	 * Durable conversation memory for staff, on its OWN LibSQL store (`staff:<sub>` resources):
+	 * every message is sealed (AES-256-GCM, a key per person derived from `root`) and deleted
+	 * `days` (30) days after it was written, by a sweep at start and every few hours. Without it
+	 * the memory lives in this process only and is gone on restart. `visitorUrl`, when the app
+	 * also runs a visitor memory, must differ from `url`.
 	 */
-	memory?: { url: string; visitorUrl?: string };
+	memory?: { url: string; root: Buffer; visitorUrl?: string; days?: number };
 	/** The clinic's time zone, for "today" and "tomorrow". Defaults to Europe/Bucharest. */
 	timeZone?: string;
 	proposals?: ProposalStore;
@@ -72,6 +74,7 @@ export interface StaffEngineOptions {
 
 const DEFAULT_TIMEOUTS: TurnTimeouts = { idleMs: 25_000, totalMs: 90_000 };
 const DEFAULT_ZONE = "Europe/Bucharest";
+const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 const TurnLimit = { limit: 30, windowMs: 60_000 } as const;
 
 const OptionsSchema = z.object({ timeZone: z.string().min(1).optional() }).passthrough();
@@ -98,6 +101,8 @@ export interface StaffEngine {
 	briefing(port: StaffPort | undefined): Promise<StaffCard | undefined>;
 	/** Suggestions per screen, in the person's language. */
 	suggestions(screen: StaffScreen, locale: StaffLocale): ReadonlyArray<string>;
+	/** Deletes conversation older than the retention now (it also runs by itself); how many rows went. */
+	sweepMemory(): Promise<number>;
 }
 
 function same(a: string, b: string): boolean {
@@ -120,7 +125,15 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		dataCollection: options.model.dataCollection ?? "deny",
 		sort: options.model.sort ?? "latency",
 	});
-	const memory = openMemory(options.memory?.url ?? "file::memory:", "staff-memory");
+	const durable =
+		options.memory === undefined
+			? undefined
+			: openStaffMemory({
+					url: options.memory.url,
+					root: options.memory.root,
+					...(options.memory.days === undefined ? {} : { days: options.memory.days }),
+				});
+	const memory = durable?.memory ?? openMemory("file::memory:", "staff-memory");
 	const agent = createStaffAgent({ model, memory });
 	const mastra = new Mastra({
 		agents: { [STAFF_AGENT_ID]: agent },
@@ -145,6 +158,20 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			// A failing log hook must not change the answer.
 		}
 	};
+
+	const sweepMemory = async (): Promise<number> => {
+		if (durable === undefined) return 0;
+		try {
+			return await durable.sweep();
+		} catch (error) {
+			fail("memory-sweep", error);
+			return 0;
+		}
+	};
+	if (durable !== undefined) {
+		void sweepMemory();
+		setInterval(() => void sweepMemory(), SWEEP_EVERY_MS).unref();
+	}
 
 	const deps: SessionDeps = {
 		timeZone,
@@ -223,5 +250,6 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			return session === undefined ? undefined : buildBriefing(session);
 		},
 		suggestions: (screen, locale) => staffCopy(locale).suggestions[screen],
+		sweepMemory,
 	};
 }

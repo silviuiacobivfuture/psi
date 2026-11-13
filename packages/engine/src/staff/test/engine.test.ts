@@ -17,6 +17,7 @@ import type { StaffEvent } from "../events";
 import { FAKE_NOW, FakeStaffPort, OWNER_PERMISSIONS } from "../testing";
 import { STAFF_TOOL_IDS } from "../tool-ids";
 
+const ROOT = Buffer.alloc(32, 7);
 let fake: FakeOpenRouter | undefined;
 let dir: string;
 beforeEach(() => {
@@ -334,7 +335,9 @@ describe("the agent itself", () => {
 describe("memory", () => {
 	it("is its own namespace per person: staff:<sub>", async () => {
 		const url = `file:${join(dir, "staff.db")}`;
-		const engine = await engineWith([{ kind: "text", chunks: ["Noted."] }], { memory: { url } });
+		const engine = await engineWith([{ kind: "text", chunks: ["Noted."] }], {
+			memory: { url, root: ROOT },
+		});
 		await collect(
 			engine.chat(new FakeStaffPort(), { message: "remember the blue room", threadId: "t1" }),
 		);
@@ -361,7 +364,7 @@ describe("memory", () => {
 		expect(() =>
 			createStaffEngine({
 				model: { id: "fake/model" },
-				memory: { url: "file:./m.db", visitorUrl: "file:./m.db" },
+				memory: { url: "file:./m.db", root: ROOT, visitorUrl: "file:./m.db" },
 			}),
 		).toThrow(/visitor/);
 	});

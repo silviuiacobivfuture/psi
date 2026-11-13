@@ -1,6 +1,7 @@
 import {
 	createStaffAssistantRoutes,
 	createStaffEngine,
+	STAFF_DEFAULT_MODEL,
 	type StaffEngine,
 	type StaffPage,
 	type StaffPort,
@@ -12,6 +13,7 @@ import { getCookie } from "hono/cookie";
 import type { Env } from "../app";
 import { at, localeFrom } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
+import { staffMemoryFrom } from "./memory";
 import { createStaffPort } from "./staff-port";
 
 /** The assistant's address inside the console. */
@@ -19,16 +21,19 @@ export const ASSISTANT_BASE = "/assistant";
 
 /**
  * The staff assistant's engine, made once. The model and its key come from the environment
- * (`OPENROUTER_API_KEY`, optionally `STAFF_ASSISTANT_MODEL`); without a key the panel opens and
- * says the assistant is not available. Conversation memory is in this process only.
+ * (`OPENROUTER_API_KEY`, optionally `STAFF_ASSISTANT_MODEL`, default `xiaomi/mimo-v2.6-flash`); without a key the panel
+ * opens and says the assistant is not available. Conversation memory is durable, sealed per person and
+ * deleted after 30 days (see `staffMemoryFrom`).
  */
 export function createAssistantEngine(
 	env: Readonly<Record<string, string | undefined>>,
 ): StaffEngine {
 	const dev = env.CLINIC_FAKE_PORT !== undefined && env.NODE_ENV !== "production";
+	const memory = staffMemoryFrom(env);
 	return createStaffEngine({
+		...(memory === undefined ? {} : { memory }),
 		model: {
-			id: env.STAFF_ASSISTANT_MODEL ?? "anthropic/claude-sonnet-4.5",
+			id: env.STAFF_ASSISTANT_MODEL ?? STAFF_DEFAULT_MODEL,
 			// Synthetic data only: the development fake may use any provider route.
 			dataCollection: dev && env.STAFF_ASSISTANT_DATA_COLLECTION === "allow" ? "allow" : "deny",
 		},

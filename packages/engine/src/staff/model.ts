@@ -8,6 +8,12 @@ import { z } from "zod";
  * integer bani (no floating point near a ledger).
  */
 
+/**
+ * The model the assistant answers with unless `STAFF_ASSISTANT_MODEL` says otherwise: the owner's choice
+ * for the visitor guide (2026-11-11), `xiaomi/mimo-v2.6-flash` on OpenRouter.
+ */
+export const STAFF_DEFAULT_MODEL = "xiaomi/mimo-v2.6-flash";
+
 export const IdSchema = z.string().min(1).max(120);
 export const DateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const MinuteSchema = z.number().int().min(0).max(1440);

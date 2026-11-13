@@ -4,6 +4,7 @@
  * so CI skips it. `pnpm --filter @psi/engine eval:staff [--only id,id] [--min 0.9]`.
  */
 import { readOpenRouterKey } from "../../model";
+import { STAFF_DEFAULT_MODEL } from "../model";
 import { judge, runScenario } from "./runner";
 import { SCENARIOS } from "./scenarios";
 
@@ -20,7 +21,7 @@ if (apiKey === undefined) {
 	process.exit(0);
 }
 const model =
-	process.env.STAFF_EVAL_MODEL ?? process.env.PSI_GUIDE_MODEL ?? "anthropic/claude-sonnet-4.5";
+	process.env.STAFF_EVAL_MODEL ?? process.env.STAFF_ASSISTANT_MODEL ?? STAFF_DEFAULT_MODEL;
 const only = arg("--only")?.split(",");
 const min = Number(arg("--min") ?? "0.9");
 const chosen = SCENARIOS.filter((s) => only === undefined || only.includes(s.id));

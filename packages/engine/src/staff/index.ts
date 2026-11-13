@@ -35,6 +35,8 @@ export {
 	type TurnRefusal,
 } from "./events";
 export type { ConfirmOutcome } from "./execute";
+export { type SealRoot, sealRootFrom } from "./memory-seal";
+export { STAFF_MEMORY_DAYS } from "./memory-store";
 export * from "./model";
 export type * from "./port";
 export { REFUSAL_CODES, STAFF_ACTIONS } from "./port";
