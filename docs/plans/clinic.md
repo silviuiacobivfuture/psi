@@ -209,5 +209,10 @@ deploy Job, notifications) runs TWICE on the one estate cluster: **dev** and **p
 - Promotion is explicit: CI moves only `overlays/dev` tags; a prod release is one commit that
   copies the tested dev tags into `overlays/prod` (`tools/scheduling/promote.sh`), after the dev
   restore drill and smoke tests pass. The real clinic data is imported into PROD only.
+- ONE sign-in for both (owner, 2026-11-13): the estate's Authentik; each instance is its own
+  OIDC client (`clinic-dev`, `clinic-prod`, and the API audiences likewise) with its own redirect
+  URIs, so the same person signs in to both. Roles are per instance: OpenFGA objects carry the
+  environment (`sched_app:dev-psizone`, `sched_app:prod-psizone`), so a dev role never grants
+  anything in prod. Databases, backups, encryption keys and secrets are separate.
 - The visitor side: psizone-web and hemisync-web call the PROD API (their one deployment is the
   public one); the dev API serves the dev console and tests.
