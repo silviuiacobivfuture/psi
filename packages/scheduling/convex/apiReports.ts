@@ -3,6 +3,7 @@ import {
 	appointmentsReport,
 	blacklistHitsReport,
 	clientsReport,
+	datesOf,
 	funnelReport,
 	GROUPS,
 	packagesReport,
@@ -81,9 +82,15 @@ export const utilisation = query({
 		// A visit that started the day before can run into the range (no visit lasts a day): read it too.
 		const visits = await visitsIn(ctx, args.tenant, { ...range, from: range.from - 86_400_000 });
 		if (visits === null) return TOO_MANY;
+		const dates = datesOf(range);
 		const roster = await ctx.db
 			.query("rosterDays")
-			.withIndex("by_tenant_date", (q) => q.eq("tenant", args.tenant))
+			.withIndex("by_tenant_date", (q) =>
+				q
+					.eq("tenant", args.tenant)
+					.gte("date", dates[0] ?? "")
+					.lte("date", dates[dates.length - 1] ?? ""),
+			)
 			.take(MAX_ROWS + 1);
 		if (roster.length > MAX_ROWS) return TOO_MANY;
 		const blocks = await ctx.db

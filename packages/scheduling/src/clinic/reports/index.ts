@@ -1,6 +1,6 @@
 export { type AppointmentsReport, appointmentsReport, GROUPS, type Group } from "./appointments";
 export { type BlacklistHitsReport, blacklistHitsReport } from "./blacklist-hits";
-export { bucketOf, bucketsOf, rangeProblem } from "./buckets";
+export { bucketOf, bucketsOf, datesOf, rangeProblem } from "./buckets";
 export { type ClientsReport, clientsReport } from "./clients";
 export { type Funnel, type FunnelReport, funnelReport } from "./funnel";
 export { type PackagesReport, packagesReport } from "./packages";

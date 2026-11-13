@@ -10,12 +10,14 @@ import {
 import type { Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { appointmentByReference } from "./calendar";
 import { itemArgs, makeFeedback, ratable } from "./feedbackSupport";
 import { requireServer, SERVER_KEY_ENV } from "./guard";
 import { actorValidator, serverKeyValidator } from "./validators";
 
 /**
- * One-time feedback links (src/clinic/feedback-link.ts). The notify layer (which holds the server
+ * One-time feedback links (src/clinic/feedback-link.ts). A link is issued for a visit (its id) or a
+ * public booking (its reference). The notify layer (which holds the server
  * key) calls `issue` when it sends the post-appointment e-mail and puts the token in the link;
  * the feedback page calls `inspect` to show the form and `redeem` to submit. A link works once,
  * for one appointment of one app, until it expires. Redeeming stores the feedback and marks the
@@ -40,6 +42,16 @@ async function subjectOf(
 	return row !== null && row.tenant === tenant ? row : null;
 }
 
+/** A public booking by the reference the visitor and the team know, inside the app. */
+async function bookingByReference(
+	ctx: QueryCtx,
+	tenant: string,
+	reference: string,
+): Promise<Doc<"appointments"> | null> {
+	const row = await appointmentByReference(ctx, reference);
+	return row !== undefined && row.tenant === tenant ? row : null;
+}
+
 export const issue = mutation({
 	args: {
 		key: serverKeyValidator,
@@ -55,7 +67,10 @@ export const issue = mutation({
 		const ttl = args.ttlHours ?? LINK_TTL_DEFAULT_HOURS;
 		if (!ttlAllowed(ttl)) return REFUSED("invalid_ttl");
 		const kind = args.visit === undefined ? "appointment" : "visit";
-		const subject = await subjectOf(ctx, args.tenant, kind, args.visit ?? args.appointment ?? "");
+		const subject =
+			args.visit !== undefined
+				? await subjectOf(ctx, args.tenant, "visit", args.visit)
+				: await bookingByReference(ctx, args.tenant, args.appointment ?? "");
 		if (subject === null) return REFUSED("not_found");
 		const now = Date.now();
 		if (!ratable(subject, now)) return REFUSED("not_eligible");

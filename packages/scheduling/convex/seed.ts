@@ -322,6 +322,48 @@ export const fixture = internalMutation({
 	},
 });
 
+/**
+ * A public booking that already took place (a confirmed appointment in the past), in a fixture
+ * tenant: the public flow can only book ahead, and the feedback rules need one that has ended.
+ */
+export const pastBooking = internalMutation({
+	args: { tenant: v.string(), reference: v.string(), daysAgo: v.number() },
+	handler: async (ctx, args): Promise<{ reference: string }> => {
+		if (!args.tenant.startsWith("test-")) throw new Error("fixture tenants start with test-");
+		const tenant = await tenantBySlug(ctx, args.tenant);
+		const practitioner = await ctx.db
+			.query("practitioners")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
+			.first();
+		const service = await ctx.db
+			.query("services")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
+			.first();
+		if (tenant === undefined || practitioner === null || service === null) {
+			throw new Error("run seed:fixture first");
+		}
+		const now = Date.now();
+		const start = now - args.daysAgo * 86_400_000;
+		await ctx.db.insert("appointments", {
+			tenant: args.tenant,
+			practitioner: practitioner._id,
+			service: service._id,
+			mode: "online",
+			start,
+			end: start + 30 * MINUTE_MS,
+			blockedUntil: start + 30 * MINUTE_MS,
+			status: "confirmed",
+			reference: args.reference,
+			holdTokenHash: "0".repeat(64),
+			locale: "ro",
+			channel: "form",
+			submittedAt: start - 86_400_000,
+			updatedAt: now,
+		});
+		return { reference: args.reference };
+	},
+});
+
 /** Removes a test tenant and everything in it. */
 export const dropFixture = internalMutation({
 	args: { tenant: v.string() },

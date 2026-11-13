@@ -87,6 +87,23 @@ describe.skipIf(!backendReady)("the blacklist gates", () => {
 			);
 		});
 
+		it("an entry on a child with no contact of their own turns away the guardian's phone, online", async () => {
+			const child = id(
+				await a.mut("apiClients:create", {
+					client: {
+						kind: "child",
+						consent: { contact: true, reminders: true },
+						name: "Test Small Child",
+						guardian: { name: "Test Parent", phone: "0700 666 666", email: "Parent@Test.example" },
+					},
+				}),
+			);
+			await flag({ client: child, severity: "block_online" });
+			await screen(a, { phone: "+40 700 666 666" }, { audit: 1, ok: false });
+			await screen(a, { email: "PARENT@test.example" }, { audit: 1, ok: false });
+			await screen(a, { phone: "0700 666 667" }, { audit: 0, same: true });
+		});
+
 		it("does not apply another app's entries", async () => {
 			await screen(b, { phone: "0700 000 009" }, { audit: 0, same: true });
 		});
@@ -334,7 +351,8 @@ describe.skipIf(!backendReady)("the blacklist gates", () => {
 					severity: "block_online",
 				}),
 			);
-			expect((await a.mut("staffClients:eraseClient", { client: person }, { audit: 1 })).ok).toBe(
+			// The erasure's two audit events: the client's, and the blacklist entry that lost its link.
+			expect((await a.mut("staffClients:eraseClient", { client: person }, { audit: 2 })).ok).toBe(
 				true,
 			);
 			const got = await a.qry("apiBlacklist:get", { entry });

@@ -8,7 +8,7 @@ import {
 	type Override,
 	type OverrideAuthority,
 } from "../src/clinic/blacklist";
-import { emailKey, phoneKey } from "../src/domain/clients";
+import { normalizedIdentifiers } from "../src/clinic/identifiers";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { record } from "./apiSupport";
@@ -67,31 +67,36 @@ export async function hitFor(
 	return blacklistMatch(candidate, await activeEntries(ctx, tenant), now);
 }
 
-/** The clients whose own phone or e-mail on file is one the candidate gave (the duplicate keys). */
+/**
+ * The clients the candidate is, by contact: for each active entry that names a client, whether the
+ * candidate's phone or e-mail is one that client has on file, their own or their guardian's (a
+ * child with no contact of their own is reached through the guardian's). So an entry made on a
+ * client record also turns away that client's phone and e-mail online.
+ */
 async function clientsByContact(
 	ctx: QueryCtx,
-	tenant: string,
+	entries: ReadonlyArray<BlacklistEntry>,
 	candidate: BlacklistCandidate,
-): Promise<ReadonlyArray<Id<"clients">>> {
-	const wanted = [
-		...(candidate.phones ?? []).flatMap((p) => {
-			const k = p === undefined ? undefined : phoneKey(p);
-			return k === undefined ? [] : [`p:${k}`];
-		}),
-		...(candidate.emails ?? []).flatMap((e) => {
-			const k = e === undefined ? undefined : emailKey(e);
-			return k === undefined ? [] : [`e:${k}`];
-		}),
-	];
-	const found = new Set<Id<"clients">>();
-	for (const key of wanted) {
-		const rows = await ctx.db
-			.query("clientKeys")
-			.withIndex("by_tenant_key", (q) => q.eq("tenant", tenant).eq("key", key))
-			.take(20);
-		for (const row of rows) found.add(row.client);
+): Promise<ReadonlyArray<string>> {
+	const mine = normalizedIdentifiers(candidate);
+	const found: string[] = [];
+	for (const entry of entries) {
+		if (entry.client === undefined) continue;
+		const id = ctx.db.normalizeId("clients", entry.client);
+		const row = id === null ? null : await ctx.db.get(id);
+		if (row === null || row.erasedAt !== undefined) continue;
+		const theirs = normalizedIdentifiers({
+			phones: [row.phone, row.guardian?.phone],
+			emails: [row.email, row.guardian?.email],
+		});
+		if (
+			theirs.phones.some((p) => mine.phones.includes(p)) ||
+			theirs.emails.some((e) => mine.emails.includes(e))
+		) {
+			found.push(entry.client);
+		}
 	}
-	return [...found];
+	return found;
 }
 
 export type OnlineChannel = "form" | "guide" | "callback";
@@ -108,11 +113,9 @@ export async function screenOnline(
 	subject?: string,
 ): Promise<{ refused: false } | { refused: true }> {
 	const now = Date.now();
-	const known = {
-		...candidate,
-		clients: await clientsByContact(ctx, tenant, candidate),
-	};
-	const decision = blacklistGate("online", await hitFor(ctx, tenant, known, now));
+	const entries = await activeEntries(ctx, tenant);
+	const known = { ...candidate, clients: await clientsByContact(ctx, entries, candidate) };
+	const decision = blacklistGate("online", blacklistMatch(known, entries, now));
 	if (decision.outcome !== "unavailable_online") return { refused: false };
 	const { entry } = decision.hit;
 	await ctx.db.insert("blacklistEvents", {

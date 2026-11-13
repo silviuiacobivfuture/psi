@@ -1,3 +1,4 @@
+import { type AuditAction, type AuditEntity, makeAuditEvent } from "../src/clinic/audit";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
@@ -11,6 +12,40 @@ import type { MutationCtx } from "./_generated/server";
  * outright, unless it was imported: that one keeps its old id on the tombstone so a re-import cannot
  * bring it back (`importSupport.clientRef`). The caller records the audit event (no content in it).
  */
+/** One audit event of the erasure: an action, the thing, field names and a count, never content. */
+async function audit(
+	ctx: MutationCtx,
+	tenant: string,
+	at: number,
+	action: AuditAction,
+	entity: AuditEntity,
+	entityId: string,
+	fields?: ReadonlyArray<string>,
+	count?: number,
+): Promise<void> {
+	const made = makeAuditEvent({
+		tenant,
+		at,
+		actor: "system:erase",
+		action,
+		entity,
+		entityId,
+		...(fields === undefined ? {} : { fields: [...fields] }),
+		...(count === undefined ? {} : { count }),
+	});
+	if (!made.ok) throw new Error(`audit event refused: ${made.problems.join(",")}`);
+	const e = made.event;
+	await ctx.db.insert("auditEvents", {
+		tenant: e.tenant,
+		at: e.at,
+		actor: e.actor,
+		action: e.action,
+		entity: e.entity,
+		entityId: e.entityId,
+		summary: e.summary,
+	});
+}
+
 export async function eraseClinicData(
 	ctx: MutationCtx,
 	tenant: string,
@@ -72,15 +107,7 @@ export async function eraseClinicData(
 		await ctx.db.delete(item._id);
 	}
 	if (said.length > 0) {
-		await ctx.db.insert("auditEvents", {
-			tenant,
-			at: now,
-			actor: "system:erase",
-			action: "feedback.erase",
-			entity: "feedback",
-			entityId: client,
-			summary: `feedback.erase; count: ${said.length}`,
-		});
+		await audit(ctx, tenant, now, "feedback.erase", "feedback", client, undefined, said.length);
 	}
 
 	// A blacklist entry keeps its phone, e-mail and reason (the clinic's legitimate interest in not
@@ -96,6 +123,7 @@ export async function eraseClinicData(
 			updatedAt: now,
 			version: row.version + 1,
 		});
+		await audit(ctx, tenant, now, "blacklist.update", "blacklist", row._id, ["client", "name"]);
 	}
 
 	const visits = await ctx.db

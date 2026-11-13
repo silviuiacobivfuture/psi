@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { deriveLinkKey, newLinkId, signLink } from "../clinic/feedback-link";
-import { backendReady } from "./admin";
+import { backendReady, runMutation } from "./admin";
 import { DAY, enc, HOUR, id, n } from "./api-harness";
 import { clinicWorld } from "./clinic-world";
 import { callMutation, serverKey } from "./server";
@@ -117,6 +117,104 @@ describe.skipIf(!backendReady)("feedback links", () => {
 				{ audit: 0, ok: false, same: true },
 			);
 			expect(out.reason).toBe("not_found");
+		});
+	});
+
+	describe("a public booking that took place", () => {
+		const reference = "PAST-0001";
+
+		it("is rated from its reference, once; a link for it is issued by reference and redeemed once", async () => {
+			await runMutation(
+				"seed:pastBooking",
+				{ tenant: a.TENANT, reference, daysAgo: 3.37 },
+				z.unknown(),
+			);
+			const rated = await a.sys(
+				"apiFeedback:submit",
+				{
+					channel: "chat",
+					kind: "appointment_rating",
+					rating: 4,
+					appointment: reference,
+					consentContact: false,
+				},
+				{ audit: 1 },
+			);
+			const got = await a.qry("apiFeedback:get", { feedback: String(rated.id), groups: [] });
+			expect(got.item).toHaveProperty("appointment");
+			const again = await a.sys(
+				"apiFeedback:submit",
+				{
+					channel: "chat",
+					kind: "appointment_rating",
+					rating: 1,
+					appointment: reference,
+					consentContact: false,
+				},
+				{ audit: 0, ok: false, same: true },
+			);
+			expect(again.reason).toBe("already_rated");
+		});
+
+		it("a link by reference redeems into a rating of that booking", async () => {
+			const other = "PAST-0002";
+			await runMutation(
+				"seed:pastBooking",
+				{ tenant: a.TENANT, reference: other, daysAgo: 2.41 },
+				z.unknown(),
+			);
+			const issued = await a.mut("feedbackLinks:issue", { appointment: other });
+			const token = String(issued.token);
+			expect(await a.qry("feedbackLinks:inspect", { token })).toMatchObject({ ok: true });
+			const out = await redeem(token, { rating: 2 }, { audit: 1 });
+			const got = await a.qry("apiFeedback:get", { feedback: String(out.id), groups: ["core"] });
+			expect(got.item).toMatchObject({
+				kind: "appointment_rating",
+				channel: "email_link",
+				rating: 2,
+			});
+			expect((await redeem(token, {}, { audit: 0, ok: false, same: true })).reason).toBe("used");
+		});
+
+		it("refuses a reference of no booking and of another app", async () => {
+			for (const reference of ["NONE-0000", "PAST-0001"]) {
+				const tenant = reference === "NONE-0000" ? a : b;
+				const out = await tenant.mut(
+					"feedbackLinks:issue",
+					{ appointment: reference },
+					{ audit: 0, ok: false, same: true },
+				);
+				expect(out.reason).toBe("not_found");
+			}
+		});
+	});
+
+	describe("a public booking still to come", () => {
+		it("is not ratable and gets no link", async () => {
+			const reference = "FUTR-0001";
+			await runMutation(
+				"seed:pastBooking",
+				{ tenant: a.TENANT, reference, daysAgo: -2.23 },
+				z.unknown(),
+			);
+			const link = await a.mut(
+				"feedbackLinks:issue",
+				{ appointment: reference },
+				{ audit: 0, ok: false, same: true },
+			);
+			expect(link.reason).toBe("not_eligible");
+			const rated = await a.sys(
+				"apiFeedback:submit",
+				{
+					channel: "chat",
+					kind: "appointment_rating",
+					rating: 5,
+					appointment: reference,
+					consentContact: false,
+				},
+				{ audit: 0, ok: false, same: true },
+			);
+			expect(rated.reason).toBe("not_eligible");
 		});
 	});
 
