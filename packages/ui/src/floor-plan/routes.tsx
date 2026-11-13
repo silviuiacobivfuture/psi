@@ -86,8 +86,12 @@ async function html(el: unknown): Promise<string> {
 }
 
 type Writer = { writeSSE(m: { event: string; data: string }): Promise<void> };
-const patch = async (w: Writer, el: unknown): Promise<void> =>
-	w.writeSSE({ event: "datastar-patch-elements", data: `elements ${await html(el)}` });
+const patch = async (w: Writer, el: unknown, svg = false): Promise<void> =>
+	w.writeSSE({
+		event: "datastar-patch-elements",
+		// An SVG fragment must be parsed in the SVG namespace, or its <g> and <path> become unknown HTML elements.
+		data: `${svg ? "namespace svg\n" : ""}elements ${await html(el)}`,
+	});
 const patchSignals = async (w: Writer, signals: Record<string, unknown>): Promise<void> =>
 	w.writeSSE({ event: "datastar-patch-signals", data: `signals ${JSON.stringify(signals)}` });
 
@@ -129,8 +133,8 @@ export function floorPlanRoutes(o: FloorPlanRoutesOptions): Hono {
 			};
 			const sp = sceneProps(props);
 			const pieces = DrawPieces(props, o.labels.unsaved);
-			await patch(w, <ShapesLayer {...sp} />);
-			await patch(w, <OverlayLayer {...sp} />);
+			await patch(w, <ShapesLayer {...sp} />, true);
+			await patch(w, <OverlayLayer {...sp} />, true);
 			await patch(w, pieces.inspector);
 			await patch(w, pieces.list);
 			await patch(w, pieces.status);
@@ -203,7 +207,7 @@ export function floorPlanRoutes(o: FloorPlanRoutesOptions): Hono {
 		const sp = sceneProps(props);
 		const pieces = LivePieces({ ...props, live });
 		return streamSSE(c, async (w) => {
-			await patch(w, <ShapesLayer {...sp} />);
+			await patch(w, <ShapesLayer {...sp} />, true);
 			await patch(w, pieces.list);
 			await patch(w, pieces.sheet);
 			await patch(w, pieces.status);

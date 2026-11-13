@@ -63,6 +63,13 @@ describe("draw routes", () => {
 		])
 			expect(text).toContain(id);
 		expect(text).toContain("data-handle");
+		// The SVG layers are parsed in the SVG namespace, or the browser makes them unknown HTML elements.
+		expect(
+			text
+				.split("\n\n")
+				.filter((e) => e.includes('id="fp-shapes"') || e.includes('id="fp-overlay"'))
+				.every((e) => e.includes("data: namespace svg")),
+		).toBe(true);
 	});
 	it("an invalid plan is answered with the status, and nothing else", async () => {
 		const { app } = setup();
@@ -128,6 +135,7 @@ describe("live routes", () => {
 	it("render shows each room's state and who, with initials for a viewer who may see clients", async () => {
 		const { app } = setup();
 		const text = await (await post(app, "/live/render", live({ fpRoom: "psih-1" }))).text();
+		expect(text).toContain('data: namespace svg\ndata: elements <g id="fp-shapes"');
 		expect(text).toContain("Suprapunere");
 		expect(text).toContain("AP · ZQ");
 		expect(text).toContain("WX");

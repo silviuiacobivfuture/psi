@@ -1,0 +1,267 @@
+/* The plan's drawn scene: areas, openings, devices, handles, the ghost. Token roles only. */
+.pz-fp__area {
+	cursor: pointer;
+}
+.pz-fp__fill {
+	fill: var(--fp-room);
+	stroke: none;
+}
+.pz-fp__area--space .pz-fp__fill {
+	fill: var(--fp-space);
+}
+.pz-fp__area.is-free .pz-fp__fill {
+	fill: var(--fp-free);
+}
+.pz-fp__area.is-booked .pz-fp__fill {
+	fill: var(--fp-booked);
+}
+.pz-fp__area.is-closed .pz-fp__fill {
+	fill: var(--fp-closed);
+}
+.pz-fp__area.is-conflict .pz-fp__fill {
+	fill: var(--fp-conflict);
+}
+.pz-fp__texture {
+	fill: none;
+	pointer-events: none;
+	opacity: 0.35;
+}
+.pz-fp__area--space .pz-fp__texture {
+	fill: url(#fp-hatch);
+}
+.pz-fp__area.is-closed .pz-fp__texture {
+	fill: url(#fp-hatch-closed);
+}
+.pz-fp__area.is-conflict .pz-fp__texture {
+	fill: url(#fp-hatch-alert);
+	opacity: 0.8;
+}
+.pz-fp__area .pz-fp__wall {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 1.5;
+	vector-effect: non-scaling-stroke;
+	stroke-linejoin: miter;
+}
+.pz-fp__area.is-selected .pz-fp__wall,
+.pz-fp__area.is-open .pz-fp__wall {
+	stroke: var(--accent);
+	stroke-width: 3;
+}
+.pz-fp__area:focus {
+	outline: none;
+}
+.pz-fp__area:focus-visible .pz-fp__wall {
+	stroke: var(--focus);
+	stroke-width: 3.5;
+}
+.pz-fp__area.is-conflict .pz-fp__wall {
+	stroke: var(--danger);
+	stroke-width: 2.5;
+}
+.pz-fp__area:hover .pz-fp__fill {
+	filter: brightness(0.97);
+}
+.pz-fp__name,
+.pz-fp__sub {
+	fill: var(--ink);
+	paint-order: stroke;
+	stroke: var(--fp-paper);
+	stroke-width: 0.9px;
+	stroke-linejoin: round;
+	pointer-events: none;
+}
+.pz-fp__name {
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+.pz-fp__sub {
+	fill: var(--ink-muted);
+	font-weight: 500;
+}
+.pz-fp__state {
+	pointer-events: none;
+}
+.pz-fp__mark {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 0.5;
+	stroke-linecap: round;
+}
+.pz-fp__mark--solid {
+	fill: var(--ink);
+}
+.pz-fp__state--conflict .pz-fp__mark {
+	stroke: var(--danger);
+}
+.pz-fp__state--conflict .pz-fp__mark--solid {
+	fill: var(--danger);
+}
+.pz-fp__area.has-heat .pz-fp__sub {
+	fill: var(--ink);
+}
+.pz-fp__area.has-heat .pz-fp__fill[data-heat="0"] {
+	fill: var(--fp-paper);
+}
+.pz-fp__area.has-heat .pz-fp__fill[data-heat="1"] {
+	fill: color-mix(in srgb, var(--accent) 16%, var(--fp-paper));
+}
+.pz-fp__area.has-heat .pz-fp__fill[data-heat="2"] {
+	fill: color-mix(in srgb, var(--accent) 30%, var(--fp-paper));
+}
+.pz-fp__area.has-heat .pz-fp__fill[data-heat="3"] {
+	fill: color-mix(in srgb, var(--accent) 44%, var(--fp-paper));
+}
+.pz-fp__area.has-heat .pz-fp__fill[data-heat="4"] {
+	fill: color-mix(in srgb, var(--accent) 58%, var(--fp-paper));
+}
+.pz-fp__gap {
+	fill: var(--fp-paper);
+	stroke: none;
+}
+.pz-fp__leaf {
+	stroke: var(--ink);
+	stroke-width: 0.9;
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__swing {
+	stroke: var(--ink-muted);
+	stroke-width: 0.5;
+	stroke-dasharray: 1.4 1;
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__window-line {
+	stroke: var(--ink);
+	stroke-width: 0.7;
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__window-glass {
+	stroke: var(--info);
+	stroke-width: 0.7;
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__opening {
+	cursor: pointer;
+}
+.pz-fp__device {
+	cursor: pointer;
+}
+.pz-fp__device-disc {
+	fill: var(--fp-paper);
+	stroke: var(--ink-muted);
+	stroke-width: 0.6;
+}
+.pz-fp__glyph {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 0.55;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.pz-fp__device.is-use .pz-fp__device-disc {
+	fill: var(--accent);
+	stroke: var(--ink);
+}
+.pz-fp__device.is-use .pz-fp__glyph {
+	stroke: var(--on-accent);
+}
+.pz-fp__device.is-selected .pz-fp__device-disc {
+	stroke: var(--accent);
+	stroke-width: 1.4;
+}
+.pz-fp__chrome {
+	pointer-events: none;
+}
+.pz-fp__north-ring {
+	fill: var(--fp-paper);
+	stroke: var(--ink-muted);
+	stroke-width: 0.5;
+}
+.pz-fp__north-arrow {
+	fill: var(--ink);
+}
+.pz-fp__north-n,
+.pz-fp__scale-text {
+	fill: var(--ink-muted);
+	font-size: 3.2px;
+	font-weight: 600;
+}
+.pz-fp__scale {
+	stroke: var(--ink);
+	stroke-width: 0.6;
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__handle-hit,
+.pz-fp__handle-dot {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+.pz-fp__handle-hit {
+	fill: transparent;
+	pointer-events: all;
+	transform: scale(calc(var(--fp-inv, 1) * 28));
+	cursor: nwse-resize;
+}
+.pz-fp__handle-dot {
+	fill: var(--fp-paper);
+	stroke: var(--accent);
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+	transform: scale(calc(var(--fp-inv, 1) * 10));
+	pointer-events: none;
+}
+.pz-fp__ring {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 1.5;
+	stroke-dasharray: 3 2;
+	vector-effect: non-scaling-stroke;
+	pointer-events: none;
+}
+.pz-fp__ghost {
+	pointer-events: none;
+}
+.pz-fp__ghost-shape {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 2;
+	stroke-dasharray: 5 3;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__ghost-dot {
+	fill: var(--accent);
+}
+.pz-fp__ghost-dot.is-first {
+	fill: var(--fp-paper);
+	stroke: var(--accent);
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+}
+.pz-fp__heat-ramp {
+	display: inline-flex;
+	gap: 2px;
+	vertical-align: middle;
+}
+.pz-fp__heat-ramp i {
+	width: 1rem;
+	height: 0.7rem;
+	border: 1px solid var(--line-control);
+	background: var(--fp-paper);
+}
+.pz-fp__heat-ramp i[data-heat="1"] {
+	background: color-mix(in srgb, var(--accent) 16%, var(--fp-paper));
+}
+.pz-fp__heat-ramp i[data-heat="2"] {
+	background: color-mix(in srgb, var(--accent) 30%, var(--fp-paper));
+}
+.pz-fp__heat-ramp i[data-heat="3"] {
+	background: color-mix(in srgb, var(--accent) 44%, var(--fp-paper));
+}
+.pz-fp__heat-ramp i[data-heat="4"] {
+	background: color-mix(in srgb, var(--accent) 58%, var(--fp-paper));
+}
