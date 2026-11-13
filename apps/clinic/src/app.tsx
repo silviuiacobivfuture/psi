@@ -8,6 +8,7 @@ import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
 import { at } from "./lib/i18n";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerCalendarWrites } from "./pages/calendar-routes";
+import { registerClients } from "./pages/clients-routes";
 import { NoAccessPage } from "./pages/gate";
 import { MorePage } from "./pages/more";
 import { registerSearch } from "./pages/search";
@@ -95,6 +96,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	);
 	registerCalendarWrites(app, deps);
 	registerSearch(app);
+	registerClients(app);
 	app.get("/more", async (c) =>
 		c.html(await MorePage(c.var.ctx), 200, { "cache-control": "private, no-store" }),
 	);

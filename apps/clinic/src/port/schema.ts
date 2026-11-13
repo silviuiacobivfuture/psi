@@ -10,6 +10,8 @@ export const MinuteSchema = z.number().int().min(0).max(1440);
 
 export const StatusSchema = z.enum(STATUSES);
 
+export const ClientFilterSchema = z.enum(["current", "archived"]);
+
 export const ColumnKindSchema = z.enum(["person", "device", "room", "group"]);
 export const ColumnSchema = z.object({
 	id: z.string(),
