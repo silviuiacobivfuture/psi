@@ -21,6 +21,9 @@ const CHAT: CompassChat = {
 		dropped: "X",
 		retry: "R",
 		unanswered: "U",
+		fullscreen: "FS",
+		exitFullscreen: "EXIT-FS",
+		fullscreenOn: "FS-ON",
 	},
 };
 

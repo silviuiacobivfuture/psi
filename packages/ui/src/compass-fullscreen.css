@@ -1,0 +1,121 @@
+/*
+ * The compass chat's full screen: the sheet and the capsule laid out over the whole viewport, the
+ * conversation centred at a comfortable reading width, the page behind covered by the theme's
+ * surface. The page script (client/compass-fullscreen.ts) toggles `.is-fullscreen` on the compass
+ * and `.pz-compass-lock` on the root. Selectors carry four classes so they win over the sheet's
+ * own rules (and the phone block) whatever the import order.
+ */
+
+.pz-compass {
+	background-color: transparent;
+	transition: background-color 0.28s ease;
+}
+
+/* ---------- The toggle in the sheet's head ---------- */
+
+.pz-compass__fs {
+	flex: none;
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--ink-muted);
+	cursor: pointer;
+}
+.pz-compass__fs:hover {
+	background: var(--surface-2);
+	color: var(--ink);
+}
+.pz-compass__fs-out,
+.pz-compass__fs[aria-pressed="true"] .pz-compass__fs-in {
+	display: none;
+}
+.pz-compass__fs[aria-pressed="true"] .pz-compass__fs-out {
+	display: block;
+}
+
+/* ---------- Full screen ---------- */
+
+html.pz-compass-lock {
+	overflow: hidden;
+}
+
+.pz-compass.is-fullscreen.is-open {
+	--pz-read: 760px;
+	--pz-gutter: max(16px, calc((100% - var(--pz-read)) / 2));
+	inset: 0 0 var(--pz-kb, 0px) 0;
+	z-index: 100;
+	align-items: stretch;
+	gap: 0;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+	background-color: var(--bg);
+	pointer-events: auto;
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__scrim {
+	visibility: hidden;
+}
+
+.pz-compass.is-fullscreen.is-open .pz-compass__sheet {
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+	height: auto;
+	max-height: none;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	backdrop-filter: none;
+	box-shadow: none;
+	animation: pz-compass-fs-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__handle {
+	display: none;
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__head {
+	padding: 14px var(--pz-gutter);
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__body {
+	padding: 32px var(--pz-gutter);
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__tools {
+	padding-inline: var(--pz-gutter);
+}
+.pz-compass.is-fullscreen.is-open .pz-exchange + .pz-exchange {
+	margin-top: 32px;
+}
+.pz-compass.is-fullscreen.is-open .pz-compass__bar {
+	align-self: center;
+	width: min(var(--pz-read), calc(100% - 32px));
+	margin-bottom: var(--pz-foot);
+}
+@keyframes pz-compass-fs-in {
+	from {
+		opacity: 0;
+		transform: scale(0.985);
+	}
+}
+
+@media (max-width: 640px) {
+	.pz-compass.is-fullscreen.is-open .pz-compass__head {
+		padding: 10px 12px;
+	}
+	.pz-compass.is-fullscreen.is-open .pz-compass__body {
+		padding: 20px var(--pz-gutter);
+	}
+	.pz-compass.is-fullscreen.is-open .pz-compass__bar {
+		width: calc(100% - 24px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pz-compass,
+	.pz-compass.is-fullscreen.is-open .pz-compass__bar {
+		transition: none;
+	}
+	.pz-compass.is-fullscreen.is-open .pz-compass__sheet {
+		animation: none;
+	}
+}
