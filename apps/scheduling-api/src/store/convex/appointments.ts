@@ -35,11 +35,12 @@ function columnOf(row: AppointmentRow): Column {
 const sameColumn = (a: Column, b: Column): boolean => a.kind === b.kind && a.id === b.id;
 
 /**
- * Appointments over `apiVisits` (+ `apiMoneyExtra` for the API's own facts and the unwindowed search). `replace` DIFFS the
- * stored appointment against the new one and calls the wrapper each change needs, cheapest-to-refuse first (a move can be
- * refused for an overlap; a note cannot), the soft delete last. Money is not written here: it is derived from the visit,
- * and payments change it (see money.ts). The calls are separate transactions: a later one refusing leaves the earlier
- * ones applied, each audited.
+ * Appointments over `apiVisits` and `apiVisitEdit` (+ `apiMoneyExtra` for the unwindowed search). `replace` DIFFS the
+ * stored appointment against the new one. Everything an edit changes (the client, the package, the service, the price,
+ * the note, the API's own facts, the confirmation and a move) goes in ONE mutation that decides every refusal before it
+ * writes, so a refused edit leaves nothing behind. The restore before it, and the attendance, cancel and soft delete
+ * after it, are each a different route's one change. The paid amount is derived from payments (see money.ts); the price
+ * is the visit's and an edit may change it.
  */
 export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 	const actor = (): { subject: string } => ({ subject: currentActor() });
@@ -62,9 +63,13 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 	): Promise<void> {
 		const base = { tenant: app, actor: actor(), visit: current.id };
 		const override = currentOverride();
-		if (next.clientId !== cur.clientId) throw new StoreRefused("invalid");
-		for (const field of ["note", "packageId", "roomId", "deviceId"] as const)
+		// Nothing a person did not ask for is cleared: a note, a room or a device is replaced, never taken away.
+		for (const field of ["note", "roomId", "deviceId"] as const)
 			if (cur[field] !== undefined && next[field] === undefined) throw new StoreRefused("invalid");
+		if (cur.clientId !== undefined && next.clientId === undefined)
+			throw new StoreRefused("invalid");
+		if (cur.clientId === undefined && next.clientId !== undefined)
+			throw new StoreRefused("invalid");
 		if (cur.deletedAt !== undefined && next.deletedAt === undefined)
 			unwrap(
 				await rpc.mutation(
@@ -74,6 +79,9 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 				),
 			);
 		if (cur.status === "cancelled" && next.status !== "cancelled")
+			throw new StoreRefused("not_allowed");
+		// A confirmed appointment does not go back to waiting for the client.
+		if (next.status === "requested" && cur.status !== "requested")
 			throw new StoreRefused("not_allowed");
 
 		const curColumn: Column | undefined =
@@ -88,40 +96,59 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 			next.deviceId !== cur.deviceId ||
 			curColumn === undefined ||
 			!sameColumn(curColumn, column);
-		if (moved)
+
+		// Every change of an edit goes in ONE mutation: it decides every refusal before it writes anything, so an edit
+		// that is refused leaves nothing behind (a client moved, then a clash found, would not).
+		const meta = metaFor(next);
+		const metaChanged = force || JSON.stringify(meta) !== JSON.stringify(metaFor(cur));
+		const price = next.money?.priceCents;
+		const edits = {
+			...(next.clientId !== cur.clientId && next.clientId !== undefined
+				? { client: next.clientId }
+				: {}),
+			...(next.packageId !== cur.packageId ? { package: next.packageId ?? null } : {}),
+			...(next.serviceId !== cur.serviceId && next.serviceId !== undefined
+				? { sessionType: next.serviceId }
+				: {}),
+			...(price !== undefined && price !== cur.money?.priceCents ? { priceMinor: price } : {}),
+			...(next.note !== cur.note && next.note !== undefined ? { notes: next.note } : {}),
+			...(metaChanged ? { meta } : {}),
+			...(cur.status === "requested" && next.status === "scheduled"
+				? { confirm: true as const }
+				: {}),
+		};
+		if (moved || Object.keys(edits).length > 0)
 			unwrap(
 				await rpc.mutation(
-					"apiVisits:move",
+					"apiVisitEdit:edit",
 					{
 						...base,
-						start: next.start,
-						end: next.end,
-						column,
-						...(next.roomId === undefined ? {} : { room: next.roomId }),
-						...(next.deviceId === undefined ? {} : { device: next.deviceId }),
+						...edits,
+						...(moved
+							? {
+									move: {
+										start: next.start,
+										end: next.end,
+										column,
+										...(next.roomId === undefined ? {} : { room: next.roomId }),
+										...(next.deviceId === undefined ? {} : { device: next.deviceId }),
+									},
+								}
+							: {}),
 						...(override === undefined ? {} : { override }),
 					},
 					Version,
 				),
 			);
 
-		const patch = {
-			...(next.note !== cur.note && next.note !== undefined ? { notes: next.note } : {}),
-			...(next.packageId !== cur.packageId && next.packageId !== undefined
-				? { package: next.packageId }
-				: {}),
-		};
-		if (Object.keys(patch).length > 0)
-			unwrap(await rpc.mutation("apiVisits:update", { ...base, patch }, Version));
-
-		const meta = metaFor(next);
-		if (force || JSON.stringify(meta) !== JSON.stringify(metaFor(cur)))
-			unwrap(await rpc.mutation("apiMoneyExtra:setVisitMeta", { ...base, meta }, Version));
-
 		const attendance = attendanceOf(next.status);
 		if (next.status === "cancelled") {
 			if (cur.status !== "cancelled") unwrap(await rpc.mutation("apiVisits:cancel", base, Version));
-		} else if (attendance !== undefined && attendance !== current.attendance) {
+		} else if (
+			attendance !== undefined &&
+			attendance !== current.attendance &&
+			next.status !== "requested"
+		) {
 			unwrap(await rpc.mutation("apiVisits:setAttendance", { ...base, attendance }, Version));
 		}
 
@@ -198,6 +225,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 						start: row.start,
 						end: row.end,
 						sessionType: row.serviceId ?? row.kind,
+						...(row.status === "requested" ? { status: "requested" as const } : {}),
 						...(held === undefined ? {} : { override: held }),
 						...(row.clientId === undefined ? {} : { client: row.clientId }),
 						...(row.roomId === undefined ? {} : { room: row.roomId }),

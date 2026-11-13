@@ -228,7 +228,17 @@ export const ClientTreating = z.object({
 });
 
 export const AppointmentKind = z.enum(["session", "block", "group"]);
-export const AppointmentStatus = z.enum(["scheduled", "attended", "no_show", "cancelled"]);
+/**
+ * `requested`: booked by the team but waiting for the client to confirm; it holds the time like a confirmed one does,
+ * takes no attendance and no reminder, and `appointments.confirm` turns it into `scheduled`.
+ */
+export const AppointmentStatus = z.enum([
+	"requested",
+	"scheduled",
+	"attended",
+	"no_show",
+	"cancelled",
+]);
 export const AppointmentMoney = z.object({
 	priceCents: Money,
 	paidCents: Money,
@@ -248,6 +258,8 @@ export const Appointment = z.object({
 	start: Ms,
 	end: Ms,
 	note: z.string().max(500).optional(),
+	/** The day-before reminder is sent for this one (the default); false leaves it off the reminder list. */
+	remind: z.boolean(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
 	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */
@@ -268,16 +280,28 @@ export const AppointmentCreate = z.object({
 	end: Ms,
 	note: z.string().max(500).optional(),
 	priceCents: Money.optional(),
+	/** `requested` books it without confirming it (see `AppointmentStatus`). */
+	status: z.enum(["scheduled", "requested"]).default("scheduled"),
+	remind: z.boolean().default(true),
 	override: BlacklistOverride.optional(),
 });
+/**
+ * Every field optional, only what is present changes. `packageId: null` takes the appointment out of its package.
+ * `clientId` moves it to another client (whose blacklist standing is checked, and whose package it must then be drawn
+ * from or none), `serviceId` and `remind` are plain changes, and `priceCents` is a change of the money group.
+ */
 export const AppointmentPatch = z.object({
-	packageId: Id.optional(),
+	clientId: Id.optional(),
+	serviceId: Id.optional(),
+	packageId: Id.nullable().optional(),
 	practitionerId: Id.optional(),
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
 	start: Ms.optional(),
 	end: Ms.optional(),
 	note: z.string().max(500).optional(),
+	priceCents: Money.optional(),
+	remind: z.boolean().optional(),
 	override: BlacklistOverride.optional(),
 });
 export const AppointmentCancel = z.object({ reason: z.string().trim().min(2).max(300) });

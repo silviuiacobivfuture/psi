@@ -94,6 +94,7 @@ export const draft = (
 	practitionerId: w.dora,
 	clientId: w.c1,
 	end: over.start + HOUR,
+	remind: true,
 	createdAt: Date.now(),
 	updatedAt: Date.now(),
 	...over,

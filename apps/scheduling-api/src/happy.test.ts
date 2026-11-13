@@ -241,6 +241,16 @@ const OWN: Record<
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>
 		olga(w, "PATCH", `/appointments/${w.ids.a1}`, { note: "bring the book" }),
+	"appointments.confirm": async (w) => {
+		const a = await olga(w, "POST", "/appointments", {
+			practitionerId: w.ids.dora,
+			clientId: w.ids.c1,
+			start: NOW + 96 * HOUR,
+			end: NOW + 97 * HOUR,
+			status: "requested",
+		});
+		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
+	},
 	"appointments.attendance": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" }),
 	"appointments.remove": async (w) => olga(w, "DELETE", `/appointments/${await spare(w)}`),

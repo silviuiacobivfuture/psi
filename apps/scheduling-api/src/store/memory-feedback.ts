@@ -86,7 +86,7 @@ export function createMemoryFeedback(
 			start: a.start,
 			end: a.end,
 			client: a.clientId,
-			confirmed: a.status !== "cancelled",
+			confirmed: a.status !== "cancelled" && a.status !== "requested",
 			attended: a.status !== "no_show",
 		};
 	}

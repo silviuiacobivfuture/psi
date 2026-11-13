@@ -48,6 +48,24 @@ export const column = (
 	...(capacity === undefined ? {} : { capacity }),
 });
 
+/** The console's word for an appointment's status (exhaustive: a status the service adds fails the build here). */
+export function statusOf(status: ApiAppointment["status"]): Appointment["status"] {
+	switch (status) {
+		case "requested":
+			return "requested";
+		case "scheduled":
+			return "confirmed";
+		case "attended":
+			return "attended";
+		case "no_show":
+			return "no-show";
+		case "cancelled":
+			return "cancelled";
+		default:
+			return status satisfies never;
+	}
+}
+
 export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 	const start = wallOf(a.start, tz);
 	return {
@@ -59,15 +77,15 @@ export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 		clientId: a.clientId ?? null,
 		title: a.kind === "session" ? null : (a.note ?? ""),
 		serviceId: a.serviceId ?? "",
-		status: a.status === "scheduled" ? "confirmed" : a.status === "no_show" ? "no-show" : a.status,
+		status: statusOf(a.status),
 		note: a.note ?? "",
 		packageId: a.packageId ?? null,
 		resourceIds: [a.roomId, a.deviceId].filter((id): id is string => id !== undefined),
 		priceBani: a.money?.priceCents ?? 0,
 		// The service says whether it is paid, not by what means: the console only asks "paid or not" of this field.
 		paidMethod: a.money?.paymentStatus === "paid" ? "cash" : null,
-		// Reminders and series are not facts of the service's appointment.
-		remind: true,
+		remind: a.remind,
+		// A series is not yet a fact of the service's appointment.
 		seriesId: null,
 		cancelReason: a.cancelReason ?? null,
 	};
