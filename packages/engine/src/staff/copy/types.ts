@@ -39,6 +39,9 @@ export const TOOL_KEYS = [
 	"newBookings",
 	"siteIssues",
 	"requestReply",
+	"createClient",
+	"listActions",
+	"runAction",
 	"api",
 ] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
@@ -112,6 +115,8 @@ export interface StaffCopy {
 		otherLanguage(detected: string): string;
 	};
 	chip(tool: ToolKey, phase: "running" | "done" | "refused"): string;
+	/** What a finished chip says when the tool found nothing, or found some: undefined keeps the plain "done" words. */
+	chipFound(tool: ToolKey, count: number): string | undefined;
 	refusal: Readonly<Record<RefusalKey, string>>;
 	confirmOutcome: Readonly<Record<ConfirmKey, string>>;
 	status: Readonly<Record<AppointmentStatus, string>>;
@@ -158,6 +163,8 @@ export interface StaffCopy {
 		notices: string;
 		toCreate: string;
 		moves: string;
+		birthYear: string;
+		action: string;
 		room: string;
 		free: string;
 		busy: string;
@@ -221,6 +228,10 @@ export interface StaffCopy {
 		channel: Readonly<Record<"form" | "chat", string>>;
 	};
 	proposal: {
+		createClient: string;
+		/** The title of a card that adds a client and books them in one go. */
+		createClientAndBook: string;
+		runAction(label: string): string;
 		create: string;
 		move: string;
 		cancel: string;
@@ -236,6 +247,7 @@ export interface StaffCopy {
 	result: {
 		done: string;
 		failed: string;
+		open: string;
 		openWhatsapp(name: string): string;
 		reminderSent: string;
 		undo: string;
@@ -272,6 +284,18 @@ export interface StaffCopy {
 	/** A reply that says a change awaits confirmation: true only if a card really does. */
 	claimsPrepared: RegExp;
 	unbackedClaim: string;
+	/** A reply that says the answer is "nothing found", so an empty result card would only repeat it. */
+	saysNothing: RegExp;
+	/** A reply that says the assistant has no way to do something. */
+	deniesAbility: RegExp;
+	/** What replaces such a reply when the person's actions say otherwise. */
+	actionsExist(labels: ReadonlyArray<string>): string;
+	/** The reply when the turn ran out of steps or the model went quiet before saying anything. */
+	stoppedShort: string;
+	/** Added after a reply that stopped before its end. */
+	cutShort: string;
+	/** Said when the turn ended with a card waiting and no words. */
+	reviewCard: string;
 	panel: PanelCopy;
 	suggestions: Readonly<Record<StaffScreen, ReadonlyArray<string>>>;
 }

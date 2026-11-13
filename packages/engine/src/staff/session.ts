@@ -43,6 +43,8 @@ export interface StaffSession {
 	readonly cards: Array<StaffCard>;
 	/** Tools a port refused for permission this turn: they are not called again. */
 	readonly blocked: Set<string>;
+	/** How many times each tool was called with the same input this turn: the third identical call is refused. */
+	readonly calls: Map<string, number>;
 	/** What this turn has read that strangers wrote (website requests): while set, no change is prepared but marking those requests handled. */
 	readonly taint: { stranger: boolean };
 	/** What the person may do here, loaded once per turn; undefined when the service could not say. */
@@ -85,6 +87,16 @@ export type ToolRun<O> =
 			subjects?: ReadonlyArray<string>;
 	  };
 
+/** The same tool with the same input more often than this in one turn is a loop, not progress. */
+const MAX_SAME_CALLS = 2;
+
+function repeated(session: StaffSession, id: string, input: unknown): number {
+	const key = `${id}:${JSON.stringify(input)}`;
+	const n = (session.calls.get(key) ?? 0) + 1;
+	session.calls.set(key, n);
+	return n;
+}
+
 /** A refusal that stops this tool for the rest of the turn: asking again cannot change the answer. */
 const FINAL: ReadonlySet<string> = new Set(["forbidden", "not_allowed"]);
 
@@ -113,13 +125,15 @@ export async function guardedRun<O>(
 	id: string,
 	phase: "read" | "propose",
 	work: () => Promise<ToolRun<O>>,
+	input?: unknown,
 ): Promise<O | RefusedOutput> {
 	const refuse = (reason: PortRefusal | "not_allowed" | "repeat" | "tainted"): RefusedOutput => ({
 		status: "refused",
 		reason,
 		explanation: session.copy.refusal[reason],
 	});
-	if (session.blocked.has(id)) {
+	const again = input === undefined ? 0 : repeated(session, id, input);
+	if (session.blocked.has(id) || again > MAX_SAME_CALLS) {
 		await record(session, {
 			tool: id,
 			phase: "refused",
@@ -178,6 +192,6 @@ export function staffTool<I, O>(session: StaffSession, spec: Spec<I, O>) {
 		inputSchema: spec.inputSchema,
 		outputSchema: z.union([spec.outputSchema, RefusedOutputSchema]),
 		execute: async (input: I): Promise<O | RefusedOutput> =>
-			guardedRun(session, id, spec.phase, () => spec.run(input, session)),
+			guardedRun(session, id, spec.phase, () => spec.run(input, session), input),
 	});
 }

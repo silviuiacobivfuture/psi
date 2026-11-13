@@ -37,6 +37,10 @@ export const NEEDS: Readonly<Record<ToolKey, Need>> = {
 	newBookings: { any: ["appointments_view", "calendar_view"] },
 	siteIssues: { all: ["app_settings_edit"] },
 	requestReply: { any: ["requests_view"] },
+	createClient: { all: ["clients_create"] },
+	/** The registry lists only what the person may do; the tools are always offered so it can be asked. */
+	listActions: "open",
+	runAction: "open",
 	api: "open",
 };
 

@@ -353,10 +353,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 				name: input.name,
 				guardian: input.guardian === "" ? null : input.guardian,
 				phone: input.phone === "" ? null : input.phone,
-				email: null,
+				email: input.email === "" || input.email === undefined ? null : input.email,
 				status: "current",
 				note: "",
 				practitionerId: null,
+				...(input.birthYear === undefined ? {} : { birthYear: input.birthYear }),
 			};
 			d.clients.push(c);
 			log(d, "console", "client.create", c.id);

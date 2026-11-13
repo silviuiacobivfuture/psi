@@ -42,6 +42,8 @@ export const ClientSchema = z.object({
 	status: z.enum(["current", "archived"]),
 	note: z.string(),
 	practitionerId: z.string().nullable(),
+	/** The year they were born, when it was recorded. */
+	birthYear: z.number().int().optional(),
 });
 export type Client = z.infer<typeof ClientSchema>;
 
@@ -93,6 +95,8 @@ export const NewClientSchema = z.object({
 	name: z.string().trim().min(1).max(120),
 	phone: z.string().trim().max(40).nullable(),
 	guardian: z.string().trim().max(120).nullable(),
+	email: z.string().trim().max(200).nullable().optional(),
+	birthYear: z.number().int().min(1900).max(2100).optional(),
 });
 export type NewClient = z.infer<typeof NewClientSchema>;
 

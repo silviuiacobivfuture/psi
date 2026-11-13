@@ -151,7 +151,12 @@ describe("capability filtering: a tool the person cannot use is not offered", ()
 		const port = new FakeStaffPort();
 		port.permissions = [];
 		const names = await offeredTo(port);
-		expect(names.sort()).toEqual(["staffApiMeGet", "staffResolveDate"]);
+		expect(names.sort()).toEqual([
+			"staffApiMeGet",
+			"staffListActions",
+			"staffResolveDate",
+			"staffRunAction",
+		]);
 	});
 
 	it("when the service cannot say what the person may do, no generated tool is offered", async () => {
