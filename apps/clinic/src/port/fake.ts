@@ -12,12 +12,10 @@ import {
 	type LiveSignal,
 	PortError,
 	type ReminderItem,
-	type TeamMember,
 } from "./port";
 import type {
 	Appointment,
 	AppSlug,
-	AssistantMode,
 	AuditEvent,
 	Client,
 	Membership,
@@ -68,7 +66,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		}
 		return d;
 	};
-	const modes = new Map<string, AssistantMode>();
 	let seq = 1000;
 	const guard = (method: keyof ClinicPort): void => {
 		if (opts.failing?.has(method) === true)
@@ -483,14 +480,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
-		},
-		async assistantMode(subject) {
-			guard("assistantMode");
-			return modes.get(subject) ?? null;
-		},
-		async saveAssistantMode(subject, mode) {
-			guard("saveAssistantMode");
-			modes.set(subject, mode);
 		},
 		...floorAndPrefs,
 	};

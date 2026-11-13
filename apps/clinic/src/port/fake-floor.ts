@@ -1,6 +1,6 @@
 import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import type { ClinicPort } from "./port";
-import type { AppSlug, PushPrefs } from "./schema";
+import type { AppSlug, AssistantMode, PushPrefs } from "./schema";
 import type { AppData } from "./seed";
 import { seedPlan } from "./seed-plan";
 
@@ -13,9 +13,18 @@ export interface FloorDeps {
 /** The floor plan and the push preferences of the fake. */
 export function createFakeFloorAndPrefs(
 	deps: FloorDeps,
-): Pick<ClinicPort, "floorPlan" | "saveFloorPlan" | "pushPrefs" | "savePushPrefs"> {
+): Pick<
+	ClinicPort,
+	| "floorPlan"
+	| "saveFloorPlan"
+	| "pushPrefs"
+	| "savePushPrefs"
+	| "assistantMode"
+	| "saveAssistantMode"
+> {
 	const { data, guard, log } = deps;
 	const prefs = new Map<string, PushPrefs>();
+	const modes = new Map<string, AssistantMode>();
 	const plans = new Map<AppSlug, FloorPlanDoc>();
 	return {
 		async floorPlan(app) {
@@ -40,6 +49,14 @@ export function createFakeFloorAndPrefs(
 		async savePushPrefs(subject, p) {
 			guard("savePushPrefs");
 			prefs.set(subject, p);
+		},
+		async assistantMode(subject) {
+			guard("assistantMode");
+			return modes.get(subject) ?? null;
+		},
+		async saveAssistantMode(subject, mode) {
+			guard("saveAssistantMode");
+			modes.set(subject, mode);
 		},
 	};
 }
