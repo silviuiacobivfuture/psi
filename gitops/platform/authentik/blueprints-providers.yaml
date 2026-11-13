@@ -810,6 +810,12 @@ data:
               url: https://WLMAILADMINPREFIX.WLDOMAIN/account/oauth/callback
             - matching_mode: strict
               url: https://WLMAILADMINPREFIX.WLDOMAIN/admin/oauth/callback
+            # Bulwark, the mail client (SEB stalwart piece from 0.1.30), at inbox.<apex> here
+            # (BULWARK_HOST_PREFIX: inbox; mail.<apex> has its own record outside the estate): its
+            # sign-in returns to /<locale>/auth/callback, one address per language it speaks, so one
+            # anchored pattern names exactly those (Bulwark 1.21.2, i18n/routing.ts).
+            - matching_mode: regex
+              url: ^https://inbox\.WLDOMAIN/(ar|ca|cs|da|de|el|en|es|et|fa|fr|he|hu|it|ja|ko|lv|mn|nb|nl|nn|pl|pt|ro|ru|sk|th|tr|uk|vi|zh|zh-TW)/auth/callback$
       - model: authentik_core.application
         identifiers:
           slug: mail-oidc
