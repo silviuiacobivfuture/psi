@@ -2,8 +2,9 @@
 # replacements). cert-manager issues the certificate (DNS-01); DNS is the *.<apex> wildcard.
 #
 # ONE Ingress, ALL of it gated: the web app, its API, the realtime socket and every file.
-# There is no machine surface to carve out (no webhook, no public API key), and AFFiNE's own
-# sign-in comes AFTER the gate. Public share links are therefore for the estate's people too.
+# AFFiNE's own sign-in comes AFTER the gate. Public share links are therefore for the estate's
+# people too. The ONE machine surface carved out is the MCP endpoint (affine-mcp, at the end):
+# its callers are MCP clients with AFFiNE's own token, never a browser.
 #
 # THE GATE: authentik-authentik-forwardauth → the embedded outpost, which matches the Host
 # EXACTLY against the `affine` proxy provider (mode forward_single, external_host
@@ -105,3 +106,30 @@ metadata:
 spec:
   ipAllowList:
     sourceRange: ["127.0.0.1/32"]
+---
+# AFFiNE's MCP server: ^/api/workspaces/<id>/mcp(/...)?, and nothing else, OUTSIDE the gate.
+# Its callers are MCP clients (Claude's custom connectors connect from Anthropic's cloud, not a
+# browser of ours), which cannot follow an Authentik sign-in: through the gate every call was a
+# 302 to the sign-in page. The check here is AFFiNE's own: `Authorization: Bearer aff_mcp_v1.…`,
+# a per-person, per-workspace, read-only, expiring credential its user makes and revokes in
+# the workspace's settings (Integrations → MCP Server; write-config.mjs turns that on). Without
+# a valid one AFFiNE answers 401 and nothing else, and the controller is throttled.
+#
+# An IngressRoute, not an Ingress: the path takes a workspace id, so it is a regular expression,
+# which a Kubernetes Ingress cannot express (a Prefix would also take /api/workspaces/<id>/<x>).
+# Priority above the gated Ingresses' (Traefik ranks those by rule length).
+# Host(...) MUST stay first: the piece's replacement writes the second backtick field.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: affine-mcp
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 200
+      match: Host(`docs.WLDOMAIN`) && PathRegexp(`^/api/workspaces/[^/]+/mcp(/.*)?$`)
+      services:
+        - { name: affine, port: http }
+  tls:
+    secretName: affine-tls

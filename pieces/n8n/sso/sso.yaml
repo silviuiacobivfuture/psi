@@ -80,6 +80,8 @@ spec:
             - { name: MAPPING_PATH, value: /config/mapping.json }
             - { name: RECONCILE_INTERVAL_SECONDS, value: "300" }
             - { name: LICENCE_RECHECK_SECONDS, value: "3600" }
+            # Who a refused person is told to write to: the estate's OPS_EMAIL (./kustomization.yaml).
+            - { name: OPS_EMAIL, value: ops@example.invalid }
           ports:
             - { name: http, containerPort: 8080 }
           readinessProbe:

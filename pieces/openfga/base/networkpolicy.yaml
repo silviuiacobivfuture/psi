@@ -116,6 +116,14 @@ spec:
             matchLabels:
               app.kubernetes.io/name: authentik
               app.kubernetes.io/component: server
+        # novu-sso: which declared account a person belongs to (apps/novu-sso/lib/polaris.mjs),
+        # the same read-only Checks under the pin as the directory's tile policy.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: novu
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: novu-sso
       ports:
         - { protocol: TCP, port: 8081 }
 

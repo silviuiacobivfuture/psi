@@ -3,7 +3,8 @@
 // A lookup that fails is never "clean".
 import { readFileSync } from "node:fs";
 
-const API = process.env.N8N_ADVISORY_API ?? "https://api.github.com/repos/n8n-io/n8n/security-advisories";
+const API =
+	process.env.N8N_ADVISORY_API ?? "https://api.github.com/repos/n8n-io/n8n/security-advisories";
 const PACKAGE = process.env.N8N_PACKAGE_JSON ?? "/usr/local/lib/node_modules/n8n/package.json";
 // GitHub pages this list by cursor, in the Link header; a `page` parameter is ignored and
 // answers the first hundred again (measured 2026-11-03).
@@ -11,7 +12,10 @@ const MAX_PAGES = 20;
 // Open-ended by nature: upstream states no fix, and it never leaves the list. Each is here
 // because of something the estate does and the selftest proves, and only that id passes.
 const ACCEPTED = new Map([
-	["GHSA-365g-vjw2-grx8", "Execute Command is what the node does: refused by NODES_EXCLUDE, selftest X6"],
+	[
+		"GHSA-365g-vjw2-grx8",
+		"Execute Command is what the node does: refused by NODES_EXCLUDE, selftest X6",
+	],
 ]);
 
 const parse = (v) => v.trim().split("-")[0].split(".").map(Number);
@@ -51,11 +55,14 @@ export function inRange(version, range) {
 export function isAffected(version, vulns) {
 	const fixed = [];
 	for (const v of vulns) {
-		if (!v.vulnerable_version_range && !v.patched_versions) throw new Error("states no version range");
+		if (!v.vulnerable_version_range && !v.patched_versions)
+			throw new Error("states no version range");
 		// Free text upstream. Forms in the real list: ">= 2.46.1", "1.123.80", "2.10.1, 2.9.3",
 		// and a bound written in the wrong field ("< 1.122.0"), which is the range's end.
 		if (/^\s*</.test(v.patched_versions ?? "")) {
-			v.vulnerable_version_range = [v.vulnerable_version_range, v.patched_versions].filter(Boolean).join(", ");
+			v.vulnerable_version_range = [v.vulnerable_version_range, v.patched_versions]
+				.filter(Boolean)
+				.join(", ");
 			continue;
 		}
 		for (const part of (v.patched_versions ?? "").split(",")) {
@@ -128,6 +135,9 @@ if (affected.length === 0) {
 	console.log(`n8n ${version}: inside none of ${read} published advisories`);
 	process.exit(0);
 }
-console.log(`n8n ${version} IS AFFECTED by ${affected.length} advisories. Move the pin (docs/n8n/00-plan.md §9):`);
-for (const item of affected) console.log(`  ${item.severity} ${item.ghsa_id} ${item.summary} ${item.html_url ?? ""}`);
+console.log(
+	`n8n ${version} IS AFFECTED by ${affected.length} advisories. Move the pin (docs/n8n/00-plan.md §9):`,
+);
+for (const item of affected)
+	console.log(`  ${item.severity} ${item.ghsa_id} ${item.summary} ${item.html_url ?? ""}`);
 process.exit(1);

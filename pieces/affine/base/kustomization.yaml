@@ -6,7 +6,8 @@
 #   cnpg-cluster.yaml  its Postgres (pgvector is in the CNPG image), WAL + weekly base backup
 #   db-dump.yaml       the 6-hourly logical dump
 #   redis.yaml         its queues and caches
-#   ingress.yaml       docs.<apex>, all of it behind the Authentik gate
+#   manticore.yaml     its search engine (Manticore), reachable by the server only
+#   ingress.yaml       docs.<apex> behind the Authentik gate; only its MCP endpoint outside it
 #
 # Files (images, attachments) live in the estate's object storage, bucket
 # <BUCKET_PREFIX>-affine-<env> (infrastructure/hetzner/environments/<env>, versioned), and
@@ -20,6 +21,7 @@ resources:
   - cnpg-cluster.yaml
   - db-dump.yaml
   - redis.yaml
+  - manticore.yaml
   - affine.yaml
   - first-admin.yaml
   - ingress.yaml
@@ -30,3 +32,7 @@ configMapGenerator:
     files:
       - write-config.mjs
       - first-admin.mjs
+  # Manticore's configuration (manticore.yaml); the hash rolls its pod when it changes.
+  - name: affine-manticore
+    files:
+      - manticore.conf

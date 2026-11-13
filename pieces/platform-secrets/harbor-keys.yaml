@@ -1,0 +1,49 @@
+# Harbor's internal keys → harbor-keys secret in the harbor namespace, read by the harbor Helm
+# chart (pieces/harbor/values.yaml: core.existingSecret, core.secretName,
+# core.existingXsrfSecret, jobservice.existingSecret, registry.existingSecret,
+# registry.credentials.existingSecret). Synced from OpenBao secret/platform/harbor/keys, seeded by
+# seed-secrets.sh (generated once, kept on re-runs).
+#
+# Without them the chart mints each value at render time, so every Argo render produced new
+# Secrets and new checksum/* annotations, and any change to the Application restarted core,
+# jobservice and the registry. Values stored here make two renders byte-identical
+# (.github/scripts/tests/helm-stable-render_test.sh).
+#
+#   secret                core's shared secret (16 chars)
+#   CSRF_KEY              core's XSRF key (32 chars)
+#   JOBSERVICE_SECRET     jobservice's secret (16 chars)
+#   REGISTRY_HTTP_SECRET  the registry's HTTP secret (16 chars)
+#   REGISTRY_PASSWD       the password core and jobservice use against the registry
+#   REGISTRY_HTPASSWD     harbor_registry_user:<bcrypt of REGISTRY_PASSWD>, what the registry checks
+#   tls.crt, tls.key      the key pair core signs registry tokens with; the registry trusts tls.crt
+#
+# harbor is exempt from Reloader (doctor.sh RELOADER_EXEMPT_NS): a rotated value reaches the pods
+# when they restart.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-keys
+  namespace: harbor
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: harbor-keys
+    creationPolicy: Owner
+  data:
+    - secretKey: secret
+      remoteRef: { key: platform/harbor/keys, property: core_secret }
+    - secretKey: CSRF_KEY
+      remoteRef: { key: platform/harbor/keys, property: csrf_key }
+    - secretKey: JOBSERVICE_SECRET
+      remoteRef: { key: platform/harbor/keys, property: jobservice_secret }
+    - secretKey: REGISTRY_HTTP_SECRET
+      remoteRef: { key: platform/harbor/keys, property: registry_http_secret }
+    - secretKey: REGISTRY_PASSWD
+      remoteRef: { key: platform/harbor/keys, property: registry_password }
+    - secretKey: REGISTRY_HTPASSWD
+      remoteRef: { key: platform/harbor/keys, property: registry_htpasswd }
+    - secretKey: tls.crt
+      remoteRef: { key: platform/harbor/keys, property: token_cert }
+    - secretKey: tls.key
+      remoteRef: { key: platform/harbor/keys, property: token_key }

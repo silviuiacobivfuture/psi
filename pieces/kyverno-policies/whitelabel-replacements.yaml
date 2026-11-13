@@ -6,6 +6,24 @@
     fieldPath: data.REGISTRY_HOST
   targets:
   - select:
+      kind: ExternalSecret
+      name: seb-signature-pull
+    fieldPaths:
+    - spec.target.template.data.[.dockerconfigjson]
+    options:
+      delimiter: '"'
+      index: 3
+  - select:
+      kind: ClusterPolicy
+      name: audit-images-from-harbor
+    fieldPaths:
+    - spec.rules.[name=images-from-harbor].validate.pattern.spec.=(ephemeralContainers).0.image
+    - spec.rules.[name=images-from-harbor].validate.pattern.spec.=(initContainers).0.image
+    - spec.rules.[name=images-from-harbor].validate.pattern.spec.containers.0.image
+    options:
+      delimiter: /
+      index: 0
+  - select:
       kind: ClusterPolicy
       name: verify-seb-signatures
     fieldPaths:
@@ -54,3 +72,14 @@
     options:
       delimiter: /
       index: 1
+- source:
+    kind: ConfigMap
+    name: whitelabel
+    fieldPath: data.SIGNATURE_PULL_STORE_KEY
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: seb-signature-pull
+    fieldPaths:
+    - spec.data.0.remoteRef.key
+    - spec.data.1.remoteRef.key

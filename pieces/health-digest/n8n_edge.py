@@ -1,6 +1,6 @@
 """n8n's edge still does what it was written to do: estate-watch's check of the running system.
 
-The redirect in front of n8n (gitops/services/n8n/sso/intercept.yaml) depends on things an upgrade
+The redirect in front of n8n (pieces/n8n/sso/intercept.yaml) depends on things an upgrade
 or a bad merge can change without a pod failing: the `n8n-auth` cookie's name, the /signup path,
 n8n's /rest/login, the rule's host. doctor reads the same facts, but doctor runs when somebody runs
 it. This runs every tick, so a break reaches #infra.
@@ -47,7 +47,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-SSO_YAML = "gitops/services/n8n/sso/sso.yaml"
+# Where an estate repository holds it: the n8n piece, vendored at the path SEB keeps it (084c649).
+SSO_YAML = "pieces/n8n/sso/sso.yaml"
 
 
 def fetch(base, host, path, cookie=None, site=None):

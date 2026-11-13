@@ -6,6 +6,15 @@ reloader:
   watchGlobally: true
   # Reload on a Secret/ConfigMap CHANGE (not just on referenced-resource events).
   reloadStrategy: annotations
+  # A referenced Secret that is CREATED (not only changed) restarts its consumers too. An
+  # application that mounts an OPTIONAL Secret (its GlitchTip DSN, say) starts without it, and
+  # without this it would keep running without it after the Secret appears: measured on RMX,
+  # 2026-11-13, Polaris and three of the first estate's own services all needed a restart.
+  reloadOnCreate: true
+  # ...but NOT for the Secrets that already exist when Reloader itself (re)starts: its first
+  # list arrives as "created" for every one of them, and this keeps that from restarting the
+  # estate. Stated although it is the chart's default, because the pair is the behaviour.
+  syncAfterRestart: false
   deployment:
     resources:
       requests: { cpu: 10m, memory: 64Mi }

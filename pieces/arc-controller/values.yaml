@@ -1,1 +1,6 @@
-# The chart defaults: nothing here, so the estate writes no spec.source.helm.values.
+# The controller's image from the estate's Harbor mirror, by digest (PLATFORM-11). The chart
+# renders repository:tag for the controller AND passes the same string to the listeners it
+# starts, so both move together. Everything else stays the chart's default.
+image:
+  repository: ${REGISTRY_HOST}/mirror/ghcr.io/actions/gha-runner-scale-set-controller
+  tag: 0.14.2@sha256:32f89ba454a42398f0b46f7271e2885d8ec976f155a3a3b1c50329f8d38f8e6f

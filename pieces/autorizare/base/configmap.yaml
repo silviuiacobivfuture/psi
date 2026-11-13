@@ -71,7 +71,7 @@ data:
   # when anything is missing.
   ESTATE_BRAND_DIR: "/estate-brand"
 
-  # The estate's changelog service, in the cluster (gitops/services/changelog).
+  # The estate's changelog service, in the cluster (pieces/changelog).
   # The bar's changelog bell in every estate application is served through this
   # service, which alone holds the changelog's key. REQUIRED.
   CHANGELOG_URL: "http://changelog.changelog.svc.cluster.local"
@@ -147,3 +147,9 @@ data:
   # a service whose APP_URL points at a separate SPA. The host is the console
   # Ingress's (kustomization.yaml replacements).
   APP_URL: "https://autorizare.example.invalid"
+
+  # An account's own identity provider (@rule ORG-6): the control plane writes
+  # its client secret to OpenBao as role autorizare-org-idp (this pod's service
+  # account) and never to Postgres. Without these two, binding is refused by name.
+  OPENBAO_ADDR: "http://openbao.openbao.svc:8200"
+  OPENBAO_ROLE: "autorizare-org-idp"

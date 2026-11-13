@@ -24,7 +24,7 @@ metadata:
     alerts/owner: ops@WLDOMAIN
     # The digest apps/n8n-sso's real and compose suites last passed against (apps/n8n-sso/TESTED;
     # the gate compares them). doctor and estate-watch compare the running pod with this.
-    n8n/tested-digest: sha256:4384b9ff20a78bc1708c35ce7864f84f724611de7801fb36d715998db7c000f1
+    n8n/tested-digest: sha256:3566fc1c340d8888a2e02c0dfbf7558fe4e3b300a9da892b1223e223404c5828
 spec:
   replicas: 1
   strategy: { type: Recreate }
@@ -86,7 +86,7 @@ spec:
             limits: { cpu: 100m, memory: 32Mi }
       containers:
         - name: n8n
-          image: WLREGISTRY/mirror/docker.io/n8nio/n8n:2.46.4@sha256:4384b9ff20a78bc1708c35ce7864f84f724611de7801fb36d715998db7c000f1
+          image: WLREGISTRY/mirror/docker.io/n8nio/n8n:2.47.6@sha256:3566fc1c340d8888a2e02c0dfbf7558fe4e3b300a9da892b1223e223404c5828
           envFrom:
             - secretRef: { name: n8n-app }
           env:
@@ -110,7 +110,7 @@ spec:
             - { name: DB_POSTGRESDB_PORT, value: "5432" }
             - { name: DB_POSTGRESDB_DATABASE, value: n8n }
             # ── Nothing leaves for n8n's servers (owner: "i no longer want it to
-            #    send data"). Each line is one thing the source of 2.46.4 contacts
+            #    send data"). Each line is one thing the source of 2.47.6 contacts
             #    otherwise; docs/n8n/00-plan.md §4 has the table, the harness the proof.
             - { name: N8N_DIAGNOSTICS_ENABLED, value: "false" }
             - { name: N8N_DIAGNOSTICS_CONFIG_FRONTEND, value: "" }

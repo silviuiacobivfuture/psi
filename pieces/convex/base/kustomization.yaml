@@ -14,6 +14,14 @@ resources:
   - dashboard.yaml
   - service.yaml
   - ingress.yaml
+# The tenant the instance is held for, on every object it renders: the neutral key platform/tenant,
+# its value from the declaration's TENANT (../instance), moved under the estate's label domain (platform.<label domain>/tenant)
+# by components/platform-labels. Selectors and pod templates keep theirs: a selector is immutable,
+# and the namespace already says whose a pod is.
+labels:
+  - pairs: { platform/tenant: WLTENANT }
+    includeSelectors: false
+    includeTemplates: false
 components:
   # Argo's prune/delete guard on the PVC and the CNPG Cluster (the data).
   - ../../../components/prune-guard

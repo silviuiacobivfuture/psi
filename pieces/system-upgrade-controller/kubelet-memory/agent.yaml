@@ -9,4 +9,3 @@ kubelet-arg+:
   - "eviction-soft=memory.available<4Gi"
   - "eviction-soft-grace-period=memory.available=60s"
   - "eviction-max-pod-grace-period=60"
-  - "max-pods=250"
