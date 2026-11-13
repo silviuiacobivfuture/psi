@@ -1,0 +1,491 @@
+# GENERATED FROM apps/agent-studio/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# The closure, proven by the engine — direct tuples AND the via-set hop.
+# See authz/tools/gen/closure_tests.py.
+name: agent-closure
+model_file: ../fga.mod
+
+tuples:
+  - user: user:c_platform_administrator
+    relation: administrator
+    object: platform:psi
+  - user: user:c_platform_auditor
+    relation: auditor
+    object: platform:psi
+  - user: user:c_platform_break_glass_opener
+    relation: break_glass_opener
+    object: platform:psi
+  - user: user:c_platform_changelog_manager
+    relation: changelog_manager
+    object: platform:psi
+  - user: user:c_platform_grantor
+    relation: grantor
+    object: platform:psi
+  - user: user:c_platform_model_releaser
+    relation: model_releaser
+    object: platform:psi
+  - user: user:c_platform_org_eraser
+    relation: org_eraser
+    object: platform:psi
+  - user: user:c_platform_org_restorer
+    relation: org_restorer
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_manage
+    relation: perm_blog_saved_manage
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_view
+    relation: perm_blog_saved_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_manage
+    relation: perm_eqsync_programme_manage
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_view
+    relation: perm_eqsync_programme_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_protocols_listen
+    relation: perm_eqsync_protocols_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_exercises_listen
+    relation: perm_hemisync_exercises_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_manage
+    relation: perm_hemisync_sessions_manage
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_view
+    relation: perm_hemisync_sessions_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_erase
+    relation: perm_psizone_account_erase
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_manage
+    relation: perm_psizone_account_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_view
+    relation: perm_psizone_account_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_manage
+    relation: perm_psizone_bookings_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_view
+    relation: perm_psizone_bookings_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_forget
+    relation: perm_psizone_guide_memory_forget
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_view
+    relation: perm_psizone_guide_memory_view
+    object: platform:psi
+  - user: user:c_platform_program_manager
+    relation: program_manager
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_operator
+    relation: role_agent_studio_operator
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_viewer
+    relation: role_agent_studio_viewer
+    object: platform:psi
+  - user: user:c_platform_role_blog_privacy_officer
+    relation: role_blog_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_admin
+    relation: role_cms_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_admin
+    relation: role_cms_ai_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_operator
+    relation: role_cms_ai_operator
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_manager
+    relation: role_cms_calendar_manager
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_viewer
+    relation: role_cms_calendar_viewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_clinical_reviewer
+    relation: role_cms_clinical_reviewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_editor
+    relation: role_cms_editor
+    object: platform:psi
+  - user: user:c_platform_role_cms_notifications_admin
+    relation: role_cms_notifications_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_privacy_officer
+    relation: role_cms_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_publisher
+    relation: role_cms_publisher
+    object: platform:psi
+  - user: user:c_platform_role_cms_reader
+    relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_cms_site_manager
+    relation: role_cms_site_manager
+    object: platform:psi
+  - user: user:c_platform_role_eqsync_programme_support
+    relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_hemisync_reception
+    relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_psizone_privacy_officer
+    relation: role_psizone_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_psizone_reception
+    relation: role_psizone_reception
+    object: platform:psi
+  - user: platform:psi
+    relation: parent_platform
+    object: agent_studio:closure
+
+tests:
+  - name: agent_studio#view is conferred by exactly ['administrator', 'role_agent_studio_operator', 'role_agent_studio_viewer']
+    check:
+      - user: user:c_platform_administrator
+        object: agent_studio:closure
+        assertions:
+          view: true
+      - user: user:c_platform_auditor
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_break_glass_opener
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_changelog_manager
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_grantor
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_model_releaser
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_org_eraser
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_org_restorer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_program_manager
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: agent_studio:closure
+        assertions:
+          view: true
+      - user: user:c_platform_role_agent_studio_viewer
+        object: agent_studio:closure
+        assertions:
+          view: true
+      - user: user:c_platform_role_blog_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_admin
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_editor
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_publisher
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_reader
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_cms_site_manager
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_hemisync_reception
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          view: false
+      - user: user:c_platform_role_psizone_reception
+        object: agent_studio:closure
+        assertions:
+          view: false
+  - name: agent_studio#operate is conferred by exactly ['administrator', 'role_agent_studio_operator']
+    check:
+      - user: user:c_platform_administrator
+        object: agent_studio:closure
+        assertions:
+          operate: true
+      - user: user:c_platform_auditor
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_break_glass_opener
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_changelog_manager
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_grantor
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_model_releaser
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_org_eraser
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_org_restorer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_program_manager
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: agent_studio:closure
+        assertions:
+          operate: true
+      - user: user:c_platform_role_agent_studio_viewer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_admin
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_editor
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_publisher
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_reader
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_cms_site_manager
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_hemisync_reception
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_psizone_reception
+        object: agent_studio:closure
+        assertions:
+          operate: false
