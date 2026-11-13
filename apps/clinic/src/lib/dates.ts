@@ -1,6 +1,10 @@
+import { z } from "zod";
 import type { Locale } from "./i18n";
 
-/** Calendar days as `YYYY-MM-DD`; arithmetic happens in UTC so a daylight-saving shift never moves a day. */
+/** A calendar day from the outside: `YYYY-MM-DD` or it is refused. */
+export const IsoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** Calendar days are `YYYY-MM-DD`; arithmetic happens in UTC so a daylight-saving shift never moves a day. */
 export function parseDay(iso: string): Date {
 	const [y, m, d] = iso.split("-").map(Number);
 	return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1));

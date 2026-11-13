@@ -30,7 +30,7 @@
 .adm *::after {
 	box-sizing: border-box;
 }
-.adm a {
+:where(.adm a) {
 	color: inherit;
 }
 .adm :focus-visible {

@@ -52,3 +52,49 @@
 .pk__wide {
 	grid-column: 1 / -1;
 }
+
+/* Roster, requests, reminders. */
+.roster th[scope="row"] {
+	position: sticky;
+	left: 0;
+	background: var(--surface-1);
+	z-index: 1;
+}
+.roster th[aria-current="date"] {
+	color: var(--ink);
+	box-shadow: inset 0 -3px 0 var(--app);
+}
+.roster td {
+	min-width: 132px;
+}
+.reminder {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: var(--space-3);
+}
+.reminder__when {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+}
+.reminder__who {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.reminder .adm-row {
+	grid-column: 1 / -1;
+}
+.reminder[data-sent="true"] {
+	background: var(--surface-2);
+}
+@media (min-width: 768px) {
+	.reminder {
+		grid-template-columns: 72px 1fr auto auto;
+	}
+	.reminder .adm-row {
+		grid-column: auto;
+	}
+}

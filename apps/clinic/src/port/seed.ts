@@ -273,7 +273,7 @@ export function seedApp(app: AppSlug, today: string): AppData {
 	}
 	const requests: WebRequest[] = Array.from({ length: app === "psizone" ? 5 : 2 }, (_, i) => ({
 		id: `w${i + 1}`,
-		receivedAt: `${addDays(today, -i)}T0${8 + i}:15:00`,
+		receivedAt: `${addDays(today, -i)}T${pad(8 + i)}:15:00`,
 		name: `Solicitant Exemplu ${pad(i + 1)}`,
 		phone: `0700 000 9${pad(i + 1)}`,
 		service: services[i % services.length]?.name ?? "",

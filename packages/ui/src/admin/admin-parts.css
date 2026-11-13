@@ -313,10 +313,47 @@
 	text-align: center;
 	color: var(--ink-muted);
 }
-.adm-empty .adm-icon {
-	width: 36px;
-	height: 36px;
-	color: var(--ink-faint);
+.adm-empty__art {
+	position: relative;
+	width: 132px;
+	height: 132px;
+	margin-bottom: var(--space-2);
+}
+.adm-empty__ring {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	border: 1.5px solid var(--line-strong);
+	background: var(--surface-1);
+}
+.adm-empty__ring::after {
+	content: "";
+	position: absolute;
+	inset: 14px;
+	border-radius: 50%;
+	border: 1px dashed var(--line-control);
+	opacity: 0.5;
+}
+.adm-empty__emblem {
+	position: absolute;
+	inset: 30px 24px 34px;
+	background: var(--ink-faint);
+	opacity: 0.55;
+	-webkit-mask: url("/assets/brand/psizone-emblem-320.webp") center / contain no-repeat;
+	mask: url("/assets/brand/psizone-emblem-320.webp") center / contain no-repeat;
+}
+.adm-empty__badge {
+	position: absolute;
+	right: 0;
+	bottom: 4px;
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: var(--app);
+	color: var(--on-app);
+	box-shadow: var(--shadow-float);
 }
 .adm-empty__title {
 	margin: 0;

@@ -80,7 +80,13 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, text, children }: EmptyStateProps): JSX.Element {
 	return (
 		<div class="adm-empty" role="status">
-			<Icon name={icon} />
+			<div class="adm-empty__art" aria-hidden="true">
+				<span class="adm-empty__ring" />
+				<span class="adm-empty__emblem" />
+				<span class="adm-empty__badge">
+					<Icon name={icon} />
+				</span>
+			</div>
 			<p class="adm-empty__title">{title}</p>
 			{text === undefined ? null : <p>{text}</p>}
 			{children}

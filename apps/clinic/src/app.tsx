@@ -11,6 +11,9 @@ import { registerCalendarWrites } from "./pages/calendar-routes";
 import { registerClients } from "./pages/clients-routes";
 import { NoAccessPage } from "./pages/gate";
 import { MorePage } from "./pages/more";
+import { registerReminders } from "./pages/reminders";
+import { registerRequests } from "./pages/requests";
+import { renderRoster } from "./pages/roster";
 import { registerSearch } from "./pages/search";
 import { m } from "./paraglide/messages.js";
 import type { ClinicPort } from "./port/port";
@@ -97,6 +100,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerCalendarWrites(app, deps);
 	registerSearch(app);
 	registerClients(app);
+	registerRequests(app);
+	registerReminders(app);
+	app.get("/roster", async (c) =>
+		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {
+			"cache-control": "private, no-store",
+		}),
+	);
 	app.get("/more", async (c) =>
 		c.html(await MorePage(c.var.ctx), 200, { "cache-control": "private, no-store" }),
 	);
