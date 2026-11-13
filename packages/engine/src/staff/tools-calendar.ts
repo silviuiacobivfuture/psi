@@ -191,7 +191,7 @@ export function agendaTool(session: StaffSession) {
 		key: "agenda",
 		phase: "read",
 		description:
-			"The agenda of a day or a few days, for everyone or for one person, room or device (by name or id). Dates are the clinic's calendar days.",
+			'The agenda of a day or a few days, for everyone or for one person, room or device (by name or id). Dates are the clinic\'s calendar days. It shows what is ALREADY booked: for free times ("ore libere", "when is X free") use staffFreeSlots instead.',
 		inputSchema: z
 			.object({
 				from: DateSchema.optional().describe("First day, YYYY-MM-DD; today by default"),
@@ -292,7 +292,7 @@ export function freeSlotsTool(session: StaffSession) {
 		key: "freeSlots",
 		phase: "read",
 		description:
-			"Free times for a service (by name or id), optionally for one person, room or device, over the coming days. Staff view: every column. Offer only these times.",
+			'THE tool for free times ("ore libere", "free times", "when is X free", "what can I book"): the times a person, room or device can still take, over the coming days, as buttons to pick from. The service (name or id) is optional: without it the tool uses the clinic\'s only service or the therapist\'s usual one, or answers with the services to ask the person once. Staff view: every column. Offer only these times; never infer free times from the agenda.',
 		inputSchema: z
 			.object({
 				service: z.string().trim().min(1).max(120).optional(),

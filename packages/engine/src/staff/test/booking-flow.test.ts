@@ -157,6 +157,46 @@ describe("a booking collects what it needs before any card", () => {
 	});
 });
 
+describe("free times are asked of staffFreeSlots, not read off the agenda", () => {
+	it("the model is told so by the rules and by both tools' own descriptions, in both languages", async () => {
+		const h = await startEngine([{ kind: "text", chunks: ["Bine."] }]);
+		try {
+			await collect(h.engine.chat(romanianOwner(), { message: "ce ore libere are Ana vineri?" }));
+			const body = JSON.stringify(h.fake.requests[0]?.body);
+			expect(body).toContain("ÎNTOTDEAUNA staffFreeSlots");
+			expect(body).toContain("THE tool for free times");
+			expect(body).toContain("use staffFreeSlots instead");
+		} finally {
+			await h.close();
+		}
+	});
+
+	it("replayed: the trajectory for a free-times question calls staffFreeSlots, offers buttons and prepares nothing", async () => {
+		const h = await startEngine([
+			{
+				kind: "tool",
+				query: "",
+				tool: "staffFreeSlots",
+				input: { resource: "Ana Pop", from: "2026-11-20", days: 1 },
+			},
+			{ kind: "text", chunks: ["Alege una dintre ore."] },
+		]);
+		try {
+			const port = romanianOwner();
+			port.data.services = [{ id: "s1", name: "Evaluare", durationMin: 50, priceBani: 15_000 }];
+			const events = await collect(
+				h.engine.chat(port, { message: "ce ore libere are Ana vineri?" }),
+			);
+			expect(events.some((e) => e.type === "card" && e.card.kind === "slots")).toBe(true);
+			expect(events.some((e) => e.type === "card" && e.card.kind === "proposal")).toBe(false);
+			expect(port.callsTo("agenda")).toEqual([]);
+			expect(port.writes()).toEqual([]);
+		} finally {
+			await h.close();
+		}
+	});
+});
+
 describe("asking twice for the same thing prepares it once", () => {
 	it("the same booking asked again is the same proposal and no second card", async () => {
 		const port = roPort();
