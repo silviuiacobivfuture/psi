@@ -7,6 +7,7 @@ import { blacklistHandlers } from "./blacklist";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
 import { feedbackHandlers } from "./feedback";
+import { fileHandlers } from "./files";
 import { floorPlanHandlers } from "./floorplan";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
@@ -25,6 +26,7 @@ const complete: Handlers = {
 	...rosterHandlers,
 	...reminderHandlers,
 	...recordHandlers,
+	...fileHandlers,
 	...floorPlanHandlers,
 	...blacklistHandlers,
 	...feedbackHandlers,

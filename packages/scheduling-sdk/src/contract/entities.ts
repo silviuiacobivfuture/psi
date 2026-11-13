@@ -3,6 +3,7 @@ import { BlacklistOverride } from "./entities-blacklist";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
 export * from "./entities-blacklist";
+export * from "./entities-files";
 export * from "./entities-money";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
@@ -371,28 +372,6 @@ export const RecordCreate = z.object({
 	data: z.record(z.string(), z.unknown()),
 });
 export const RecordPatch = z.object({ data: z.record(z.string(), z.unknown()) });
-
-export const FileMeta = z.object({
-	id: Id,
-	clientId: Id,
-	name: z.string().max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1),
-	status: z.enum(["pending", "ready"]),
-	uploadedBy: Subject,
-	...Stamps,
-});
-export const FileInit = z.object({
-	name: z.string().trim().min(1).max(200),
-	contentType: z.string().max(100),
-	size: z.number().int().min(1).max(50_000_000),
-});
-export const SignedUrl = z.object({
-	url: z.string().url(),
-	expiresAt: Ms,
-	method: z.enum(["GET", "PUT"]),
-});
-export const FileInitResult = z.object({ file: FileMeta, upload: SignedUrl });
 
 export const AuditEvent = z.object({
 	id: Id,

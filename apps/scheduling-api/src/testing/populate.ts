@@ -48,8 +48,13 @@ const str = (v: unknown): string => {
 	return v;
 };
 
+/** The browser's part of an upload: puts the bytes where the signed link points. */
+export type UploadFile = (url: string, size: number, contentType: string) => Promise<void>;
+
 /** Populates through the API itself, so the tuples, the audit log and the change feed are as real as in service. */
-export async function populate<T extends Pick<World, "call">>(world: T): Promise<T & { ids: Ids }> {
+export async function populate<T extends Pick<World, "call"> & { upload: UploadFile }>(
+	world: T,
+): Promise<T & { ids: Ids }> {
 	const { call } = world;
 	ok(
 		await call("root", "POST", "/v1/apps", {
@@ -229,7 +234,7 @@ export async function populate<T extends Pick<World, "call">>(world: T): Promise
 			"record",
 		).id,
 	);
-	const file = FileInitResult.parse(
+	const started = FileInitResult.parse(
 		ok(
 			await owner("POST", `/clients/${c1}/files`, {
 				name: "report.pdf",
@@ -238,7 +243,9 @@ export async function populate<T extends Pick<World, "call">>(world: T): Promise
 			}),
 			"file",
 		),
-	).file.id;
+	);
+	const file = started.file.id;
+	await world.upload(started.upload.url, started.file.size, started.file.contentType);
 	ok(await owner("POST", `/files/${file}/complete`), "file complete");
 	return {
 		...world,
@@ -266,5 +273,6 @@ export async function populate<T extends Pick<World, "call">>(world: T): Promise
 }
 
 export async function createWorld(options: WorldOptions = {}): Promise<Populated> {
-	return populate(await createBareWorld(options));
+	const bare = await createBareWorld(options);
+	return populate({ ...bare, upload: (url, size, type) => bare.objects.upload(url, size, type) });
 }
