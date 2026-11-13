@@ -629,6 +629,8 @@ spec:
           value: "300"
         - name: LICENCE_RECHECK_SECONDS
           value: "3600"
+        - name: OPS_EMAIL
+          value: ops@psizone.ro
         envFrom:
         - secretRef:
             name: n8n-sso
