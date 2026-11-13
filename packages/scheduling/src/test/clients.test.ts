@@ -13,6 +13,7 @@ import {
 	templateCsv,
 } from "../domain/clients";
 import { createStaffSchedulingClient } from "../staff-client";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 describe("reading the owner's CSV", () => {
 	it("writes one phone one way, whatever the spacing, prefix or punctuation", () => {
@@ -115,8 +116,8 @@ describe("reading the owner's CSV", () => {
 });
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((r) => r.ok)
 	.catch(() => false);
@@ -200,6 +201,7 @@ describe.skipIf(!ready)("importing clients into the local Convex", () => {
 		expect(await staff.eraseClient({ tenant: TENANT, client: id, actor })).toEqual({
 			ok: true,
 			unlinked: 0,
+			storageKeys: [],
 		});
 		expect(await staff.eraseClient({ tenant: TENANT, client: id, actor })).toEqual({
 			ok: false,

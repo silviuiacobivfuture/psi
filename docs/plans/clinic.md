@@ -192,3 +192,22 @@ the components render from them; a definition can never widen a permission.
 - Clinic record retention period (owner, medical-record law).
 - The old app's user accounts → estate sign-in accounts (who gets an account).
 - The "katy" role's meaning (mirrored as a role row until the owner says).
+
+## 9. Production (owner, 2026-11-13)
+
+The appointments system (store + its Postgres, scheduling-api, the console `apps/clinic`, the
+deploy Job, notifications) runs TWICE on the one estate cluster: **dev** and **prod**. The sites
+(landings, blog) stay single. Prod is a set of its own namespaces on the same cluster:
+- `gitops/services/<app>/overlays/prod` for scheduling-backend, scheduling-deploy,
+  scheduling-api, clinic; namespaces `scheduling-prod`, `scheduling-api-prod`, `clinic-prod`
+  (own quotas, NetworkPolicies that admit only prod callers: no dev pod can reach prod data).
+- Own data and keys: its own CNPG cluster and backups prefix (`cnpg/scheduling-db-prod`), own
+  OpenBao paths (`secret/apps/scheduling-prod/*`, `secret/apps/clinic-prod/*`), own Convex
+  instance secret, own OIDC client, own Novu environment or topics prefixed `prod:`.
+- Hosts: prod `programari.psizone.ro` / `api-programari.psizone.ro`; dev
+  `programari-dev.psizone.ro` / `api-programari-dev.psizone.ro`.
+- Promotion is explicit: CI moves only `overlays/dev` tags; a prod release is one commit that
+  copies the tested dev tags into `overlays/prod` (`tools/scheduling/promote.sh`), after the dev
+  restore drill and smoke tests pass. The real clinic data is imported into PROD only.
+- The visitor side: psizone-web and hemisync-web call the PROD API (their one deployment is the
+  public one); the dev API serves the dev console and tests.

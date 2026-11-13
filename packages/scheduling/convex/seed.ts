@@ -14,6 +14,7 @@ import {
 	serviceSpec,
 	tenantBySlug,
 } from "./calendar";
+import { CLINIC_TABLES, rowsOf } from "./clinicTables";
 
 /**
  * Seeding, for local development and tests only. Internal: reachable with the deployment's admin
@@ -380,6 +381,14 @@ export const dropFixture = internalMutation({
 				.collect();
 			for (const c of closures) await ctx.db.delete(c._id);
 			deleted += closures.length;
+		}
+		// The clinic's rows of the tenant, first: they point at the practitioners and rooms above.
+		for (const table of CLINIC_TABLES) {
+			if (table === "practitioners" || table === "rooms" || table === "clients") continue;
+			for (const row of await rowsOf(ctx, args.tenant, table)) {
+				await ctx.db.delete(row._id);
+				deleted += 1;
+			}
 		}
 		for (const row of [...appointments, ...practitioners, ...services, ...rooms, ...tenants]) {
 			await ctx.db.delete(row._id);

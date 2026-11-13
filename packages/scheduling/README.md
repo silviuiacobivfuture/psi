@@ -9,10 +9,37 @@ authorization model and the hosting decision are in `docs/plans/scheduling.md`.
 | Convex schema and functions: `catalog.services`, `availability.slots`, `appointments.hold / submit / release / cancel`, `staff.calendar / decide / reschedule / addException`, `staffCatalog.catalog / availability / updateService / addRule / removeRule / removeException`, `staffRooms.createRoom / updateRoom / addRoomClosure / removeRoomClosure / rooms`, `staffSchedule.setAlternating / setPeriod / removePeriod`, `staffBoard.board` (the staff calendar's data), `staffClients.importClients / createClient / clients / linkClient / eraseClient`, `staffSetup.createPractitioner / updatePractitioner / createService / setDayRules / addDaysOff` (the team's setup: the first create also makes the tenant, so production needs no seed; each records the acting staff subject), `staffRequests.requests`, the hold-expiry sweep (internal action) and retention (crons), the DEMO seed (`seed:demo`, `seed:demoRequests`) | `convex/` |
 | Server clients for Hono apps (`ConvexHttpClient`, every answer parsed with zod, a deadline per call) | `src/client.ts` (visitor), `src/staff-client.ts` (team) |
 | Configuration from the environment | `src/config.ts` |
+| **The clinic** (docs/plans/clinic.md): pure domain for staff-made visits and overlaps, packages and money derived from the calendar, roster, client standing (archive / soft delete), builder forms and the four seeded templates, custom fields, view and action definitions, audit events | `src/clinic/` |
+| Granular permissions: the catalogue (resource x action x scope x field group, legal OpenFGA relation names), seed roles, `effectivePermissions`, `can`, scope relations | `src/permissions/` |
+| Field encryption: AES-256-GCM per field, an envelope key per app wrapped by `CLINIC_MASTER_KEY` (never in Convex), rotation by re-wrapping | `src/crypto/` |
+| Object-storage port (S3 over SigV4, memory) and the admin client for internal functions | `src/storage/`, `src/admin-client.ts` |
+| The clinic's tables (every table and index starts with the app), app setup, wrapped keys, standing changes, the clinic's own erasure job, keyed upserts for the import | `convex/tables/clinic*.ts`, `convex/clinic*.ts`, `convex/import*.ts` |
+| The old-app import | `scripts/import-old/` |
 
 The engine's Mastra tools (`findAvailability`, `requestAppointment`, `cancelRequest`) are in
 `@psi/engine` (`src/scheduling/`) and take a port this client satisfies; `@psi/guide` wires the two
 (`schedulingFromEnv`).
+
+## The clinic: apps, privacy, retention
+
+- **Apps.** A tenant is an app (`psizone`, `hemisync`). Every clinic row carries it and every clinic
+  index starts with it. Practitioners, devices, rooms and group activities are different tables: only
+  practitioners are ever offered by the public picker.
+- **Staff-made appointments are `visits`**, not `appointments`; the public flow reads them as busy time of the practitioner (`calendar.busyAround`) and of the room (`roomPlan.ts`), so the two cannot take the same time or room, and `clinicVisits.create` refuses a visit over time the public flow holds. The web-request retention
+  (`retention.ts`, 30 days for a booking contact) only reads `appointments`, so it can never reach a
+  clinic row (`clinic-backend.test.ts` runs the real `retention:purgePage` over aged clinic rows).
+  The clinic's own job (`clinicRetention.eraseDue`, daily) erases one thing: a client soft-deleted
+  more than 30 days ago, with what hangs on them (the books keep visits, packages and payments on an
+  emptied client row). Clinical history is never erased by age.
+- **Encryption.** Diagnosis, the reason for coming, health notes, therapist notes, form answers and
+  clinical custom values are ciphertext (`{ keyVersion, iv, data }`); Convex stores them and the
+  wrapped data keys, and nothing else: no function encrypts or decrypts. `CLINIC_MASTER_KEY` (base64
+  of 32 bytes) lives with the process that encrypts (the import now, the service later).
+- **Nothing moves a client.** Who treats a client is the `treating` relation; the import writes it once
+  and only flags a later difference; `planTreatingChange` refuses every system origin but that seeding.
+- **Permissions** are a catalogue in code (`src/permissions/catalogue.ts`); roles, members and
+  per-person grant/deny overrides are data (`roles`, `roleMembers`, `permissionOverrides`), scope
+  relations too (`treating`, `coordinatorAssignments`, `practitioners.staffSubject`).
 
 ## Contract
 
@@ -70,6 +97,32 @@ curl -s -X POST localhost:4360/api/tools/findAvailability/execute -H 'content-ty
   -d '{"data":{"profile":"psizone","service":"evaluation","days":3,"partOfDay":"morning"}}'
 ```
 
+## Importing the old scheduling app
+
+`scripts/import-old/` (`scripts/import-old.sh`, `pnpm --filter @psi/scheduling import:old -- …`). Input
+is the export JSON (`{ exported_at, tables }`) and a mapping file (`mapping.example.json` has the clinic's
+rooms, devices, group-activity columns and roster-only staff). Every row is zod-parsed; the whole
+export is parsed and mapped before the first write.
+
+```sh
+scripts/import-old.sh --dry-run --export <export.json> --mapping <mapping.json> [--files <dir>]
+scripts/import-old.sh           --export <export.json> --mapping <mapping.json> --files <dir> [--allow-skips] [--report out.json]
+```
+
+- A dry run needs no key and no network; it prints aggregate counts, anomalies and OLD ids only.
+- A real run needs `CONVEX_SELF_HOSTED_URL` and the admin key (the wrapper reads the local secrets file
+  like `convex.sh`), `CLINIC_MASTER_KEY`, and for files `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`,
+  `S3_SECRET_ACCESS_KEY` (`S3_REGION`). Files are read from `<dir>/<bucket>/<file_path>`
+  (`client-files`, `avize`), hashed, encrypted and put in the object store.
+- Keyed on old ids (`legacyId`), never deleting. An unchanged row (keyed fingerprint) is not written,
+  versioned or audited; a changed one is updated and its version bumped; one audit event per batch.
+- **blocking** anomalies (a non-empty column nothing maps, a clinical value that cannot be read as its
+  field, a table that must be empty and is not, a row that does not parse) refuse the run;
+  **skipped** ones (a column that does not exist, a time the clocks skip) refuse it unless `--allow-skips`.
+- Reported: practitioner changes inside a weekly series (the "moved by itself" bug), overlaps on a
+  practitioner, device or room, package usage stored against derived, orphan references, duplicate
+  client names, group-like clients, unknown statuses.
+
 ## Tests
 
 ```sh
@@ -83,6 +136,13 @@ pnpm --filter @psi/scheduling exec vitest run --maxWorkers=2
 - `lifecycle.test.ts`: the state machine, hold expiry, what blocks, retention, codes, contact rules.
 - `rooms-schedules.test.ts` (pure): alternating weeks A/B, period schedules that replace the regular week, buffers, DST weeks, room suitability and room conflicts, closures across a 23-hour day. `staff-rooms.test.ts` and `clients.test.ts`: the same and the client import against the local backend (rooms never double-booked under racing holds' room reads, contractors invisible to visitors, dry run writes nothing, duplicates by phone/e-mail/guardian).
 - `staff-setup.test.ts`: against the local backend, in an empty `test-setup-…` tenant like production's first day: creating the tenant, practitioners, services, regular hours, days off, every refusal writing nothing, idempotent repeats, the server key.
+- Clinic: `crypto.test.ts`, `permissions.test.ts` (every refusal reason), `clinic-*.test.ts` (pure),
+  `storage.test.ts` (SigV4 against AWS's published example), `clinic-backend.test.ts` and
+  `scripts/import-old/*.test.ts` (the import against a synthetic export; `import.backend.test.ts` runs
+  it into a real backend). Backend tests are skipped, with a warning, when none is up.
+- A session that must not touch the shared `psi-convex` runs its own: `PSI_CONVEX_NAME=… PSI_CONVEX_PORT=3410
+  PSI_CONVEX_SITE_PORT=3411 PSI_CONVEX_DATA=<dir>` before `local-backend.sh up` / `env` / `convex.sh deploy`,
+  and the same `PSI_CONVEX_PORT` and `PSI_CONVEX_DATA` for the tests.
 - `convex.test.ts`: against the local backend, in a throwaway `test-…` tenant (internal fixture,
   dropped afterwards): twelve identical and ten overlapping holds racing from separate clients,
   exactly one wins; hold, wrong token, submit, cancel with the code, release, an off-grid start,

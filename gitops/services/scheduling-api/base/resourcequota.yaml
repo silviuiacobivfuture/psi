@@ -1,0 +1,24 @@
+# Guard-rails for the scheduling-api namespace: the LimitRange backfills any container that names no resources, the
+# quota caps the namespace (2 replicas + a rollout surge + the init containers).
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: scheduling-api
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 64Mi }
+      default: { cpu: 250m, memory: 256Mi }
+      max: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: scheduling-api
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 3Gi
+    pods: "6"

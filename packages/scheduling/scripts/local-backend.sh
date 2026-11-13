@@ -8,13 +8,17 @@
 set -euo pipefail
 
 IMAGE="ghcr.io/convex/convex-backend@sha256:e9c084e8bd6c1f249012c672193f0988c748824f55a24cdad45f6185a8462f9a"
-NAME="psi-convex"
+# A session that must not touch the shared backend runs its own: PSI_CONVEX_NAME, PSI_CONVEX_PORT,
+# PSI_CONVEX_SITE_PORT and PSI_CONVEX_DATA (its db and secrets). The defaults are the shared one.
+NAME="${PSI_CONVEX_NAME:-psi-convex}"
+PORT="${PSI_CONVEX_PORT:-3210}"
+SITE_PORT="${PSI_CONVEX_SITE_PORT:-3211}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG="$(cd "$HERE/.." && pwd)"
 ROOT="$(cd "$PKG/../.." && pwd)"
-DATA="$ROOT/.data/convex"
+DATA="${PSI_CONVEX_DATA:-$ROOT/.data/convex}"
 SECRETS="$DATA/secrets"
-URL="http://127.0.0.1:3210"
+URL="http://127.0.0.1:$PORT"
 
 secret() {
 	local file="$SECRETS/$1"
@@ -32,10 +36,10 @@ up() {
 	else
 		INSTANCE_SECRET="$(secret instance-secret)" docker run -d --name "$NAME" \
 			--restart unless-stopped \
-			-p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 \
+			-p "127.0.0.1:$PORT:3210" -p "127.0.0.1:$SITE_PORT:3211" \
 			-v "$DATA/db:/convex/data" \
-			-e INSTANCE_NAME=psi-local -e INSTANCE_SECRET \
-			-e CONVEX_CLOUD_ORIGIN="$URL" -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
+			-e INSTANCE_NAME="${PSI_CONVEX_INSTANCE:-psi-local}" -e INSTANCE_SECRET \
+			-e CONVEX_CLOUD_ORIGIN="$URL" -e CONVEX_SITE_ORIGIN="http://127.0.0.1:$SITE_PORT" \
 			-e DISABLE_BEACON=true -e REDACT_LOGS_TO_CLIENT=true \
 			"$IMAGE" >/dev/null
 	fi

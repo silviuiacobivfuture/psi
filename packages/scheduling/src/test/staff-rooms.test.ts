@@ -6,14 +6,15 @@ import { createSchedulingClient } from "../client";
 import type { SchedulingConfig } from "../config";
 import { toLocal } from "../domain/time";
 import { createStaffSchedulingClient } from "../staff-client";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * Rooms, alternating weeks, period schedules and contractors against the real local backend, in
  * a throwaway `test-rooms-…` tenant that starts empty (dropped afterwards).
  */
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((r) => r.ok)
 	.catch(() => false);

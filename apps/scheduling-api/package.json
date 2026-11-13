@@ -1,0 +1,34 @@
+{
+	"name": "@psi/scheduling-api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "psi's headless scheduling service: apps, teams, calendars, clients, packages, records and the visitor booking flow over JSON/HTTP + SSE, every call authorized with OpenFGA",
+	"scripts": {
+		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+		"dev": "pnpm i18n && tsx watch --env-file-if-exists=.env src/server.ts",
+		"build": "pnpm i18n && esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/server.js",
+		"start": "node --env-file-if-exists=.env dist/server.js",
+		"local": "tsx src/local.ts",
+		"authz:gen": "tsx scripts/gen-authz.ts",
+		"type-check": "pnpm i18n && tsc --noEmit",
+		"test": "vitest run --maxWorkers=2"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.19.0",
+		"@psi/scheduling": "workspace:*",
+		"@psi/scheduling-sdk": "workspace:*",
+		"convex": "1.49.0",
+		"hono": "^4.13.18",
+		"jose": "^6.2.17",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@inlang/paraglide-js": "^3.2.2",
+		"@types/node": "^24.19.2",
+		"esbuild": "^0.25.0",
+		"tsx": "^4.20.0",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

@@ -9,6 +9,7 @@ import { accountHashOf } from "../account-client";
 import { createSchedulingClient } from "../client";
 import type { SchedulingConfig } from "../config";
 import { createStaffSchedulingClient, type StaffSchedulingClient } from "../staff-client";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * The staff console's functions against the real local backend (README), in their own throwaway
@@ -17,8 +18,8 @@ import { createStaffSchedulingClient, type StaffSchedulingClient } from "../staf
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, {
 	signal: AbortSignal.timeout(2_000),
 })

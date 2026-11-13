@@ -1,0 +1,17 @@
+# api-programari.psizone.ro — the service's public address. Public because the sites' browsers and the console
+# reach it; every route authenticates itself (an estate SSO token or a service key), and the pod authorizes each
+# call with OpenFGA. TLS as psizone-web's: cert-manager, Traefik websecure. SSE needs no buffering: Traefik streams.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scheduling-api
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls: [{ hosts: [api-programari.psizone.ro], secretName: scheduling-api-tls }]
+  rules:
+    - host: api-programari.psizone.ro
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: scheduling-api, port: { name: http } } } }]

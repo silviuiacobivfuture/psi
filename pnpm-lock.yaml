@@ -435,6 +435,49 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
 
+  apps/scheduling-api:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.0
+        version: 1.19.19(hono@4.13.18)
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../../packages/scheduling
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../../packages/scheduling-sdk
+      convex:
+        specifier: 1.49.0
+        version: 1.49.0(react@19.3.1)
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
+      jose:
+        specifier: ^6.2.17
+        version: 6.2.17
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@inlang/paraglide-js':
+        specifier: ^3.2.2
+        version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      tsx:
+        specifier: ^4.20.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+
   packages/account:
     dependencies:
       '@psi/guide':
@@ -678,6 +721,25 @@ importers:
       convex:
         specifier: 1.49.0
         version: 1.49.0(react@19.3.1)
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+
+  packages/scheduling-sdk:
+    dependencies:
       zod:
         specifier: ^3.25.76
         version: 3.25.76

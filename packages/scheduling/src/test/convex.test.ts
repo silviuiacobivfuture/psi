@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createSchedulingClient, type OfferedSlot } from "../client";
 import type { SchedulingConfig } from "../config";
 import { SchedulingUnavailable } from "../transport";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * Against the real local backend (README: `scripts/local-backend.sh up && … env`, then deploy).
@@ -15,8 +16,8 @@ import { SchedulingUnavailable } from "../transport";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((res) => res.ok)
 	.catch(() => false);

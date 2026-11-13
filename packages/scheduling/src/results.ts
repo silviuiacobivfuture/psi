@@ -451,6 +451,11 @@ export const RawClientsSchema = z.object({
 });
 
 export const RawEraseClientSchema = z.discriminatedUnion("ok", [
-	z.object({ ok: z.literal(true), unlinked: z.number().int().nonnegative() }),
+	z.object({
+		ok: z.literal(true),
+		unlinked: z.number().int().nonnegative(),
+		/** Object-storage keys of the client's files: the caller deletes the bytes there. */
+		storageKeys: z.array(z.string()),
+	}),
 	z.object({ ok: z.literal(false), reason: z.literal("not_found") }),
 ]);

@@ -7,6 +7,7 @@ import type { SchedulingConfig } from "../config";
 import type { NewService, StaffSchedulingClient } from "../staff-client";
 import { createStaffSchedulingClient } from "../staff-client";
 import { SchedulingUnavailable } from "../transport";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * The team's setup functions against the real local backend (README), in their own throwaway
@@ -16,8 +17,8 @@ import { SchedulingUnavailable } from "../transport";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((res) => res.ok)
 	.catch(() => false);
