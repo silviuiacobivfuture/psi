@@ -1,8 +1,13 @@
+import { currentActor } from "./actor";
 import { MemoryCollection } from "./memory-collection";
 import { applyVisitRules } from "./memory-rules";
 import { applyTeamRules } from "./memory-team";
 import { createMemoryVisitor } from "./memory-visitor";
-import { COLLECTIONS, type CollectionName, type Rows, type StorePort } from "./types";
+import type { StoredDocument } from "./ports";
+import { COLLECTIONS, type CollectionName, type Rows, type StorePort, StoreRefused } from "./types";
+
+/** The store's own bound on one document (the Convex wrapper's `MAX_DOCUMENT_CHARS`). */
+const MAX_DOCUMENT_CHARS = 512_000;
 
 export interface MemoryStore extends StorePort {
 	/** Everything held, for tests that assert that a refusal wrote nothing. */
@@ -48,6 +53,20 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		head: (app) => Promise.resolve(events.get(app)?.at(-1)?.seq ?? 0),
 	};
 	const { visitor, requests, state } = createMemoryVisitor(c, clock);
+	const documents = new Map<string, StoredDocument>();
+	const docs: StorePort["docs"] = {
+		get: (app, kind) => Promise.resolve(documents.get(`${app}|${kind}`)),
+		async put(app, kind, expected, body) {
+			if ((await c.apps.get(app, app)) === undefined) throw new StoreRefused("not_found");
+			if (!Number.isInteger(expected) || expected < 0 || body.length > MAX_DOCUMENT_CHARS)
+				throw new StoreRefused("invalid");
+			const held = documents.get(`${app}|${kind}`);
+			if ((held?.revision ?? 0) !== expected) throw new StoreRefused("stale");
+			const saved = { revision: expected + 1, body, updatedAt: clock(), updatedBy: currentActor() };
+			documents.set(`${app}|${kind}`, saved);
+			return { revision: saved.revision, updatedAt: saved.updatedAt };
+		},
+	};
 	return {
 		c,
 		changes,
@@ -60,8 +79,14 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 			),
 		visitor,
 		requests,
+		docs,
 		ping: () => Promise.resolve(),
 		dump: () =>
-			JSON.stringify([COLLECTIONS.map((name) => c[name].all()), [...events.entries()], state()]),
+			JSON.stringify([
+				COLLECTIONS.map((name) => c[name].all()),
+				[...events.entries()],
+				state(),
+				[...documents.entries()],
+			]),
 	};
 }

@@ -1,5 +1,6 @@
 import { accessContract } from "./access.contract";
 import { catalogSection } from "./catalog.contract";
+import { docsContract } from "./docs.contract";
 import type { ContractSection } from "./env";
 import { moneyContract } from "./money.contract";
 import { notifyContract } from "./notify.contract";
@@ -16,4 +17,5 @@ export const SECTIONS: ReadonlyArray<ContractSection> = [
 	requestsSection,
 	visitsContract,
 	moneyContract,
+	docsContract,
 ];

@@ -23,6 +23,7 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
+import type { DocumentsPort } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -334,6 +335,8 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** Documents with a revision (the floor plan). */
+	docs: DocumentsPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

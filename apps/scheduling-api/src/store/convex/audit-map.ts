@@ -90,6 +90,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"file.complete": own("file.add", "file"),
 	"file.delete": rec("file.remove", "file"),
 	"file.download": own("file.read", "file"),
+	"floorplan.put": own("builder.change", "builder"),
 	"builder.put": rec("builder.change", "builder"),
 	"builder.delete": rec("builder.change", "builder"),
 	"clinical.read": own("record.read", "client"),

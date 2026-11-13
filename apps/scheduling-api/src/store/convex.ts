@@ -4,6 +4,7 @@ import { accessCollections } from "./convex/access";
 import { caller } from "./convex/call";
 import { catalogCollections } from "./convex/catalog";
 import type { PartialCollections } from "./convex/collections";
+import { documentsPort } from "./convex/documents";
 import { createChangeFeed } from "./convex/feed";
 import { appsOfSubject } from "./convex/members";
 import { recordCollections } from "./convex/records";
@@ -125,6 +126,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 			...visitorExtras(clients.rpc),
 		},
 		requests: requestsPort(clients.rpc, clients.staff),
+		docs: documentsPort(clients.rpc),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

@@ -342,6 +342,47 @@ describe("packages", () => {
 	});
 });
 
+describe("the floor plan", () => {
+	it("an app with no plan reads an empty one; the owner may draw, reception may not", async () => {
+		const owner = await (await as("olga")).floorPlan("psizone");
+		expect(owner.doc.revision).toBe(0);
+		expect(owner.doc.floors).toHaveLength(1);
+		expect(owner.writable).toBe(true);
+		const reception = await (await as("rita")).floorPlan("psizone");
+		expect(reception.writable).toBe(false);
+		expect(reception.doc.revision).toBe(0);
+	});
+	it("a plan is saved at the next revision and read back; a save from an old revision is stale", async () => {
+		const port = await as("olga");
+		const { doc } = await port.floorPlan("psizone");
+		const saved = await port.saveFloorPlan("psizone", { ...doc, northDeg: 30 });
+		expect(saved).toMatchObject({ ok: true, doc: { revision: doc.revision + 1, northDeg: 30 } });
+		expect((await port.floorPlan("psizone")).doc.northDeg).toBe(30);
+		expect(await port.saveFloorPlan("psizone", { ...doc, northDeg: 99 })).toEqual({
+			ok: false,
+			reason: "stale",
+		});
+		expect((await port.floorPlan("psizone")).doc.northDeg).toBe(30);
+	});
+	it("a plan the service refuses is invalid, and nothing is written", async () => {
+		const port = await as("olga");
+		const { doc } = await port.floorPlan("psizone");
+		const before = await api.world.fingerprint();
+		expect(await port.saveFloorPlan("psizone", { ...doc, width: 10 })).toEqual({
+			ok: false,
+			reason: "invalid",
+		});
+		expect(await api.world.fingerprint()).toBe(before);
+	});
+	it("someone who may not draw is refused, and nothing is written", async () => {
+		const port = await as("rita");
+		const { doc } = await port.floorPlan("psizone");
+		const before = await api.world.fingerprint();
+		expect((await refusal(() => port.saveFloorPlan("psizone", doc))).code).toBe("forbidden");
+		expect(await api.world.fingerprint()).toBe(before);
+	});
+});
+
 describe("what the service cannot do yet is 'în curând', never a crash", () => {
 	const mk = async (port: Awaited<ReturnType<typeof as>>) => {
 		const calendar = await port.calendar("psizone", "2026-11-19", "2026-11-19");

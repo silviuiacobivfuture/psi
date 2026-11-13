@@ -10,6 +10,7 @@ import {
 	treating,
 } from "./tables/clinicAccess";
 import { blacklistEntries, blacklistEvents } from "./tables/clinicBlacklist";
+import { appDocuments } from "./tables/clinicDocs";
 import { feedback, feedbackLinks, feedbackReplies } from "./tables/clinicFeedback";
 import {
 	appKeys,
@@ -343,4 +344,5 @@ export default defineSchema({
 	feedback,
 	feedbackReplies,
 	feedbackLinks,
+	appDocuments,
 });
