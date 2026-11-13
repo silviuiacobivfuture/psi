@@ -1,7 +1,7 @@
 import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
 import { screen } from "./ask-screen";
 import { CREATIVITY_TEMPERATURE, DEFAULT_BEHAVIOUR, type TurnBehaviour } from "./behaviour";
-import { bookingTurn } from "./booking";
+import { bookingTurn, reshow } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
 import { scopeSearch } from "./grounding/knowledge-tool";
@@ -128,7 +128,7 @@ async function* turn(
 		yield* refusal(screened.reason);
 		return;
 	}
-	const { input, settings, outOfScope } = screened;
+	const { input, settings, outOfScope, typed } = screened;
 	const behaviour = settings.behaviour ?? DEFAULT_BEHAVIOUR;
 	const copy = behaviour.copy[input.locale] ?? {};
 	if (ctx.booking !== undefined) {
@@ -136,6 +136,7 @@ async function* turn(
 			ctx.booking,
 			{
 				question: input.question,
+				typed,
 				...(input.booking === undefined ? {} : { state: input.booking }),
 			},
 			[...ctx.packs.values()],
@@ -223,6 +224,9 @@ async function* turn(
 		const notes = [
 			...(note === "" ? [] : [note]),
 			...(outOfScope && pack.prompt.outOfScope !== undefined ? [pack.prompt.outOfScope] : []),
+			...(ctx.booking !== undefined && pack.prompt.scheduling !== undefined
+				? [pack.prompt.scheduling]
+				: []),
 		];
 		const outcome = yield* converse(
 			{
@@ -254,6 +258,18 @@ async function* turn(
 			case "failed":
 				yield* fallback(outcome.error);
 				return;
+			case "calendar": {
+				// Never "I cannot see the calendar" where the calendar is the site's own: what the
+				// visitor sees is replaced by the booking's offer (the chosen time, or the free times).
+				if (display.text !== "") yield { type: "replace", text: "" };
+				if (ctx.booking === undefined) {
+					yield* refusal("unavailable");
+					return;
+				}
+				yield { type: "booking", offer: await reshow(ctx.booking, input.booking, input.question) };
+				yield { type: "done" };
+				return;
+			}
 			case "language": {
 				report(ctx, "model", new Error("reply not in the configured language after a retry"));
 				const line = cannedLine(ctx, input);

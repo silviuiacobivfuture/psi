@@ -132,6 +132,17 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 				unavailable: m.bk_chat_cancel_unavailable({}, o),
 			},
 			services: (services) => m.bk_chat_services({ services }, o),
+			details: {
+				thanksName: (name) => m.bk_chat_thanks_name({ name }, o),
+				thanks: m.bk_chat_thanks({}, o),
+				need: (what) => m.bk_chat_need({ what }, o),
+				needName: m.bk_chat_need_name({}, o),
+				needContact: m.bk_chat_need_contact({}, o),
+				needFor: m.bk_chat_need_for({}, o),
+				needConsent: m.bk_chat_need_consent({}, o),
+				ready: m.bk_chat_ready({}, o),
+				nudge: m.bk_chat_nudge({}, o),
+			},
 			summary: {
 				times: m.bk_chat_summary_times({}, o),
 				confirm: m.bk_chat_summary_confirm({}, o),

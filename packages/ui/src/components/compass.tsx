@@ -58,6 +58,9 @@ export interface CompassChatLabels {
 	retry: string;
 	/** Under a question a newer one replaced before any answer arrived. */
 	unanswered: string;
+	/** The head's toggle (its name stays the same, `aria-pressed` tells the state), and what is said on the automatic entry. */
+	fullscreen: string;
+	fullscreenOn: string;
 }
 
 export interface CompassChat {
@@ -104,6 +107,12 @@ export interface CompassProps {
 	 * stays the field's accessible name).
 	 */
 	invite?: CompassInvite;
+	/**
+	 * The visitor's own words that the action asks the guide: with it, a click on the action opens
+	 * the chat in full screen and asks them, so the booking starts in the conversation; without it,
+	 * or without script, the action is its plain link.
+	 */
+	bookWith?: string;
 	class?: string;
 }
 
@@ -204,7 +213,7 @@ function Destinations({
  *
  * The conversation is the page's: it survives collapsing the sheet, clicking outside, another page
  * of the site and a reload (kept per brand in the browser, restored through the guide route), and
- * only "New conversation" clears it. Escape, the close button and the scrim only collapse.
+ * only "New conversation" clears it. Escape, the close button and the scrim only collapse; in full screen Escape first leaves it.
  */
 export function Compass({
 	label,
@@ -221,6 +230,7 @@ export function Compass({
 	staffKeywords = STAFF_KEYWORDS,
 	startWith,
 	invite,
+	bookWith,
 	class: className,
 }: CompassProps): JSX.Element {
 	const { labels } = chat;
@@ -296,6 +306,41 @@ export function Compass({
 					</button>
 					<button
 						type="button"
+						class="pz-compass__fs"
+						aria-pressed="false"
+						aria-label={labels.fullscreen}
+					>
+						<svg
+							class="pz-compass__fs-in"
+							viewBox="0 0 20 20"
+							width="18"
+							height="18"
+							aria-hidden="true"
+						>
+							<path
+								d="M12 4h4v4M8 16H4v-4M16 4l-5 5M4 16l5-5"
+								stroke="currentColor"
+								stroke-width="1.8"
+								fill="none"
+							/>
+						</svg>
+						<svg
+							class="pz-compass__fs-out"
+							viewBox="0 0 20 20"
+							width="18"
+							height="18"
+							aria-hidden="true"
+						>
+							<path
+								d="M16 8h-4V4M4 12h4v4M12 8l5-5M8 12l-5 5"
+								stroke="currentColor"
+								stroke-width="1.8"
+								fill="none"
+							/>
+						</svg>
+					</button>
+					<button
+						type="button"
 						class="pz-compass__close"
 						aria-label={labels.close}
 						data-on:click="$compassOpen = false"
@@ -342,6 +387,13 @@ export function Compass({
 					</div>
 				) : null}
 			</div>
+			{/* Said once, politely, when the chat goes full screen by itself. */}
+			<p
+				class="sr-only pz-compass__fs-live"
+				role="status"
+				aria-live="polite"
+				data-on={labels.fullscreenOn}
+			/>
 			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
 			<form
 				class="pz-compass__bar pz-edge"
@@ -388,7 +440,14 @@ export function Compass({
 				>
 					<ArrowIcon size={18} />
 				</button>
-				{action ? <span class="pz-compass__action">{action}</span> : null}
+				{action ? (
+					<span
+						class="pz-compass__action"
+						{...(bookWith === undefined ? {} : { "data-book": bookWith })}
+					>
+						{action}
+					</span>
+				) : null}
 			</form>
 			{/* What the page shows itself when a question never reached the guide (no exchange came back). */}
 			<template class="pz-compass__unsent">

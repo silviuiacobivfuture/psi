@@ -162,6 +162,7 @@ export function BookingForm({
 							type="checkbox"
 							name="consent"
 							value="yes"
+							checked={values.consent === "yes"}
 							class="mt-1 size-5 accent-[var(--accent)]"
 						/>
 						<span>{copy.fields.consent}</span>

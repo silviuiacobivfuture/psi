@@ -108,5 +108,14 @@
 	"bk_mail_stored_yes": "da",
 	"bk_mail_stored_no": "NU: acest e-mail este singura copie, contactează persoana de îndată",
 	"bk_mail_link": "Cererile se văd și se marchează ca rezolvate aici",
-	"bk_mail_consent": "Persoana a acceptat să fie contactată."
+	"bk_mail_consent": "Persoana a acceptat să fie contactată.",
+	"bk_chat_thanks_name": "Mulțumesc, {name}!",
+	"bk_chat_thanks": "Mulțumesc!",
+	"bk_chat_need": "Mai am nevoie de {what}.",
+	"bk_chat_need_name": "numele tău",
+	"bk_chat_need_contact": "un număr de telefon sau un e-mail",
+	"bk_chat_need_for": "persoana pentru care este sesiunea",
+	"bk_chat_need_consent": "acordul tău, bifat mai jos",
+	"bk_chat_ready": "Totul e gata: verifică detaliile și apasă butonul ca să trimiți cererea.",
+	"bk_chat_nudge": "Completează detaliile în formularul de mai jos sau scrie-mi numele și un telefon ori un e-mail. Ora aleasă rămâne în formular."
 }

@@ -108,5 +108,14 @@
 	"bk_mail_stored_yes": "yes",
 	"bk_mail_stored_no": "NO: this e-mail is the only copy, contact the person right away",
 	"bk_mail_link": "Requests are listed, and marked as handled, here",
-	"bk_mail_consent": "The person agreed to be contacted."
+	"bk_mail_consent": "The person agreed to be contacted.",
+	"bk_chat_thanks_name": "Thank you, {name}!",
+	"bk_chat_thanks": "Thank you!",
+	"bk_chat_need": "I still need {what}.",
+	"bk_chat_need_name": "your name",
+	"bk_chat_need_contact": "a phone number or an e-mail",
+	"bk_chat_need_for": "who the session is for",
+	"bk_chat_need_consent": "your agreement, ticked below",
+	"bk_chat_ready": "All set: check the details and press the button to send the request.",
+	"bk_chat_nudge": "Fill in the details in the form below, or write me your name and a phone number or e-mail. The time you chose stays in the form."
 }

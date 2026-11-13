@@ -81,6 +81,46 @@ function startingChoices(offer: BookingOffer): Record<string, string> {
 	};
 }
 
+type Details = NonNullable<BookingOffer["details"]>;
+
+/** The form's starting values from what the chat told: the typed details fill it again every turn. */
+function typedValues(details: Details): Prefill & Pick<BookingValues, "forWhom" | "consent"> {
+	const { name, email, phone, forWhom, consent } = details.values;
+	return {
+		...(name === undefined ? {} : { name }),
+		...(email === undefined ? {} : { email }),
+		...(phone === undefined ? {} : { phone }),
+		...(forWhom === undefined ? {} : { forWhom }),
+		...(consent === undefined ? {} : { consent: "yes" }),
+	};
+}
+
+/**
+ * The guide's one line after a message in the details step: what it took, what it still needs. A
+ * site that serves one audience never asks who the appointment is for.
+ */
+function detailsLine(details: Details, env: BookingEnv): string {
+	const { chat } = env.copy;
+	const d = chat.details;
+	if (details.nudge) return d.nudge;
+	if (details.heard.length === 0) return chat.confirmPicker;
+	const missing = details.missing.filter((k) => k !== "forWhom" || env.audiences.length > 1);
+	if (missing.length === 0) return d.ready;
+	const names = {
+		name: d.needName,
+		contact: d.needContact,
+		forWhom: d.needFor,
+		consent: d.needConsent,
+	} as const;
+	const what = new Intl.ListFormat(env.locale, { type: "conjunction" }).format(
+		missing.map((k) => names[k]),
+	);
+	const first = details.values.name?.split(" ")[0];
+	const thanks =
+		first !== undefined && details.heard.includes("name") ? d.thanksName(first) : d.thanks;
+	return `${thanks} ${d.need(what)}`;
+}
+
 /**
  * The offer inside the conversation bubble. Times come as the booking picker (compact): the week
  * around the offered day, read from the store now, not from the offer's few slots. Picking a time
@@ -125,12 +165,15 @@ export async function ChatBooking({
 			</div>
 		);
 	}
+	const typed = offer.details === undefined ? {} : typedValues(offer.details);
 	const lead =
-		offer.kind === "confirm" && offer.chosen !== undefined
-			? chat.confirmPicker
-			: offer.notice === undefined
-				? chat.intro
-				: chat.notices[offer.notice];
+		offer.kind === "confirm" && offer.details !== undefined
+			? detailsLine(offer.details, env)
+			: offer.kind === "confirm" && offer.chosen !== undefined
+				? chat.confirmPicker
+				: offer.notice === undefined
+					? chat.intro
+					: chat.notices[offer.notice];
 	return (
 		<div class="space-y-4">
 			<p>{offer.status === "ok" || offer.kind === "confirm" ? lead : chat.none}</p>
@@ -139,7 +182,7 @@ export async function ChatBooking({
 				env={env}
 				schedule={schedule}
 				compact
-				values={prefill}
+				values={{ ...prefill, ...typed }}
 				{...accountProp}
 			/>
 		</div>

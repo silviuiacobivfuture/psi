@@ -156,6 +156,8 @@ export function Header({ locale, otherHref }: { locale: Locale; otherHref: strin
 						disclaimer: m.guide_footer({}, o),
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),
+						fullscreen: m.compass_fullscreen({}, o),
+						fullscreenOn: m.compass_fullscreen_on({}, o),
 						guideTab: m.compass_tab_guide({}, o),
 						pagesTab: m.compass_tab_pages({}, o),
 						views: m.compass_views({}, o),

@@ -140,6 +140,17 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 				unavailable: m.guide_booking_cancel_unavailable({}, o),
 			},
 			services: (services) => m.guide_booking_services({ services }, o),
+			details: {
+				thanksName: (name) => m.guide_details_thanks_name({ name }, o),
+				thanks: m.guide_details_thanks({}, o),
+				need: (what) => m.guide_details_need({ what }, o),
+				needName: m.guide_details_need_name({}, o),
+				needContact: m.guide_details_need_contact({}, o),
+				needFor: m.guide_details_need_for({}, o),
+				needConsent: m.guide_details_need_consent({}, o),
+				ready: m.guide_details_ready({}, o),
+				nudge: m.guide_details_nudge({}, o),
+			},
 			summary: {
 				times: m.guide_booking_summary({}, o),
 				confirm: m.guide_booking_summary_confirm({}, o),

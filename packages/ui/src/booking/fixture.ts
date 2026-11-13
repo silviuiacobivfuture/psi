@@ -90,6 +90,17 @@ export const FIXTURE_COPY: BookingCopy = {
 			unavailable: "k:unavailable",
 		},
 		services: (names) => `k:services ${names}`,
+		details: {
+			thanksName: (name) => `t:${name}`,
+			thanks: "t:thanks",
+			need: (what) => `t:need ${what}`,
+			needName: "t:name",
+			needContact: "t:contact",
+			needFor: "t:for",
+			needConsent: "t:consent",
+			ready: "t:ready",
+			nudge: "t:nudge",
+		},
 		summary: { times: "s:times", confirm: "s:confirm", cancel: "s:cancel", services: "s:services" },
 	},
 };

@@ -8,6 +8,7 @@
 @import "./compass-pages.css";
 @import "./ai-glow.css";
 @import "./compass-invite.css";
+@import "./compass-fullscreen.css";
 
 .pz-compass {
 	--pz-foot: max(16px, env(safe-area-inset-bottom));

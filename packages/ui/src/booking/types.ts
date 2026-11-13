@@ -16,7 +16,7 @@ export type AccountLine = { signedIn: true } | { signedIn: false; signInHref: st
 
 /** What a visitor may type, as the form carries it. */
 export type BookingValues = Partial<
-	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service", string>
+	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service" | "consent", string>
 >;
 
 export type BookingErrors = Partial<
@@ -118,6 +118,18 @@ export interface BookingCopy {
 			Record<"cancelled" | "not_found" | "not_cancellable" | "unavailable", string>
 		>;
 		services: (names: string) => string;
+		/** The guide's line after a message in the details step: what it took, what it still needs. */
+		details: {
+			thanksName: (name: string) => string;
+			thanks: string;
+			need: (what: string) => string;
+			needName: string;
+			needContact: string;
+			needFor: string;
+			needConsent: string;
+			ready: string;
+			nudge: string;
+		};
 		summary: Readonly<Record<"times" | "confirm" | "cancel" | "services", string>>;
 	};
 }

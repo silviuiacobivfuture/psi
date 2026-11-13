@@ -356,7 +356,11 @@ export function streamGuideAnswer(
 								sources,
 								...(actions.length === 0 ? {} : { actions }),
 							});
-							await remember({ answer: text });
+							// A question asked mid-booking is answered, and the chosen time stays in the state.
+							await remember({
+								answer: text,
+								...(booking?.stage === "details" ? { booking } : {}),
+							});
 						} else {
 							await remember({ refused });
 						}

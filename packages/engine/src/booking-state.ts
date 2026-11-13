@@ -31,13 +31,45 @@ export type BookingCriteria = z.infer<typeof BookingCriteriaSchema>;
 /** The most times a state remembers (an offer shows six). */
 export const MAX_SHOWN = 10;
 
+/** Who the appointment is for, as the booking form asks it. */
+export const ForWhomSchema = z.enum(["child", "teen", "adult"]);
+export type ForWhom = z.infer<typeof ForWhomSchema>;
+
+/**
+ * The details a visitor typed into the chat while a time was chosen, as far as they were
+ * recognised. They fill the booking form again on every turn and live only as long as the
+ * `details` stage: the state of any other stage carries none.
+ */
+export const BookingDetailsSchema = z
+	.object({
+		name: z.string().trim().min(2).max(80).optional(),
+		email: z.string().trim().email().max(120).optional(),
+		phone: z
+			.string()
+			.trim()
+			.regex(/^\+?[0-9 ()-]{9,20}$/)
+			.optional(),
+		forWhom: ForWhomSchema.optional(),
+		consent: z.literal(true).optional(),
+	})
+	.strict();
+export type BookingDetails = z.infer<typeof BookingDetailsSchema>;
+
 export const BookingStateSchema = z
 	.object({
-		/** `times`: a list is on screen; `confirm`: one time awaits the form; `cancel`: asked for the code. */
-		stage: z.enum(["times", "confirm", "cancel"]),
+		/**
+		 * `times`: a list is on screen; `confirm`: one time awaits the form (an older page's state);
+		 * `details`: the time is `chosen` and the form is up, so free text in the chat is read for
+		 * the details; `cancel`: asked for the code.
+		 */
+		stage: z.enum(["times", "confirm", "details", "cancel"]),
 		criteria: BookingCriteriaSchema,
 		/** The times last shown, in the order the visitor saw them (one per slot id). */
 		shown: z.array(ProposedSlotSchema).max(MAX_SHOWN).readonly(),
+		/** `details`: the time the visitor chose. It is re-checked on every turn, never trusted. */
+		chosen: ProposedSlotSchema.optional(),
+		/** `details`: what the chat has told so far. */
+		details: BookingDetailsSchema.optional(),
 	})
 	.strict();
 export type BookingState = z.infer<typeof BookingStateSchema>;
@@ -54,6 +86,18 @@ export type BookingKind =
 	| "cancel_result"
 	/** The services that can be booked here. */
 	| "services";
+
+/** What a `confirm` offer says about the details typed in the chat so far. */
+export interface BookingDetailsReport {
+	/** What the form shows already (and what the visitor has agreed to, by saying so). */
+	values: BookingDetails;
+	/** What is still needed before the one tap: `contact` is a phone or an e-mail. */
+	missing: ReadonlyArray<"name" | "contact" | "forWhom" | "consent">;
+	/** What this message told (for the line that thanks the visitor). */
+	heard: ReadonlyArray<"name" | "phone" | "email" | "forWhom" | "consent">;
+	/** The message told nothing: the line sends the visitor back to the form. */
+	nudge: boolean;
+}
 
 /** Why a list differs from what was asked: shown so the guide can say it plainly. */
 export type BookingNotice =

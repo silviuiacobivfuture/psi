@@ -251,6 +251,8 @@ export const ENGLISH: LanguagePack = {
 			"Your previous reply was not in English. Write ONLY in English, every word, whatever language the visitor uses.",
 		factsOnly:
 			"Your previous reply gave figures or facts that are not in the tool results. State only facts from the tool results, cited; if you have none, call a tool or say honestly that we do not have that on the site.",
+		scheduling:
+			"This site books its own appointments: the calendar with the free times is within the guide's reach, through the booking in the conversation. Never say you have no access to the calendar, the schedule or the free times, and never send the visitor elsewhere to book; if they want to book or ask about times, tell them to ask for an appointment right here in the conversation.",
 		noRepeat:
 			"Your previous reply repeated the one before it word for word. Write a different reply, in other words.",
 		page: {
