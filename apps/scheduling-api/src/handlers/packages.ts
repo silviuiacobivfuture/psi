@@ -31,23 +31,35 @@ export async function balances(ctx: C, p: PackageRow) {
 		paidCents: paid,
 		remainingCents: total - paid,
 		sessionsRemaining: p.sessions + p.bonus - used,
+		...(p.note === undefined ? {} : { note: p.note }),
 		createdAt: p.createdAt,
 		updatedAt: p.updatedAt,
 	};
 }
 
-const paymentOut = (y: PaymentRow) => ({
-	id: y.id,
-	clientId: y.clientId,
-	...(y.packageId === undefined ? {} : { packageId: y.packageId }),
-	...(y.appointmentId === undefined ? {} : { appointmentId: y.appointmentId }),
-	amountCents: y.amountCents,
-	method: y.method,
-	paidAt: y.paidAt,
-	...(y.note === undefined ? {} : { note: y.note }),
-	createdAt: y.createdAt,
-	updatedAt: y.updatedAt,
-});
+/** The ledger line as it is shown: who took the money, by subject and by the name they have in this app's team. */
+async function paymentOut(ctx: C, y: PaymentRow, names: Map<string, string | undefined>) {
+	if (!names.has(y.recordedBy))
+		names.set(
+			y.recordedBy,
+			(await ctx.deps.store.c.members.get(ctx.app, y.recordedBy))?.displayName,
+		);
+	const name = names.get(y.recordedBy);
+	return {
+		id: y.id,
+		clientId: y.clientId,
+		...(y.packageId === undefined ? {} : { packageId: y.packageId }),
+		...(y.appointmentId === undefined ? {} : { appointmentId: y.appointmentId }),
+		amountCents: y.amountCents,
+		method: y.method,
+		paidAt: y.paidAt,
+		...(y.note === undefined ? {} : { note: y.note }),
+		recordedBy: y.recordedBy,
+		...(name === undefined ? {} : { recordedByName: name }),
+		createdAt: y.createdAt,
+		updatedAt: y.updatedAt,
+	};
+}
 
 export const packageHandlers: HandlersOf<
 	| "packages.list"
@@ -80,6 +92,7 @@ export const packageHandlers: HandlersOf<
 			bonus: ctx.body.bonus,
 			priceCents: ctx.body.priceCents,
 			discountCents: ctx.body.discountCents,
+			...(ctx.body.note === undefined || ctx.body.note === "" ? {} : { note: ctx.body.note }),
 			...stamps(ctx.now),
 		};
 		const row = await ctx.deps.store.c.packages.insert(draft);
@@ -94,19 +107,24 @@ export const packageHandlers: HandlersOf<
 		const row = await must(ctx.deps.store.c.packages, ctx.app, String(ctx.params.id), "package");
 		const base = { package: await balances(ctx, row) };
 		if (!(await ctx.canOn("payments_view", "sched_package", row.id))) return base;
-		return {
-			...base,
-			payments: (await ctx.deps.store.c.payments.list(ctx.app, { eq: { packageId: row.id } }))
-				.sort((a, b) => a.paidAt - b.paidAt)
-				.map(paymentOut),
-		};
+		const names = new Map<string, string | undefined>();
+		const lines = (
+			await ctx.deps.store.c.payments.list(ctx.app, { eq: { packageId: row.id } })
+		).sort((a, b) => a.paidAt - b.paidAt);
+		const payments = [];
+		for (const line of lines) payments.push(await paymentOut(ctx, line, names));
+		return { ...base, payments };
 	},
 
 	async "packages.update"(ctx) {
 		const row = await must(ctx.deps.store.c.packages, ctx.app, String(ctx.params.id), "package");
+		const { note, ...rest } = ctx.body;
+		const { note: _held, ...kept } = row;
+		const wanted = note === undefined ? row.note : note === "" ? undefined : note;
 		const next: PackageRow = {
-			...row,
-			...Object.fromEntries(Object.entries(ctx.body).filter(([, v]) => v !== undefined)),
+			...kept,
+			...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)),
+			...(wanted === undefined ? {} : { note: wanted }),
 			updatedAt: ctx.now,
 		};
 		if (next.discountCents > next.priceCents)
@@ -155,6 +173,7 @@ export const packageHandlers: HandlersOf<
 			method: ctx.body.method,
 			paidAt: ctx.body.paidAt ?? ctx.now,
 			...(ctx.body.note === undefined ? {} : { note: ctx.body.note }),
+			recordedBy: ctx.subject,
 			...stamps(ctx.now),
 		};
 		const payment = await ctx.deps.store.c.payments.insert(draft);
@@ -171,7 +190,7 @@ export const packageHandlers: HandlersOf<
 			},
 			payment.id,
 		);
-		return paymentOut(payment);
+		return paymentOut(ctx, payment, new Map());
 	},
 
 	async "payments.remove"(ctx) {

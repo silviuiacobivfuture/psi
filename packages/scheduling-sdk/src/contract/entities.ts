@@ -1,6 +1,8 @@
 import { z } from "zod/v4";
 import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
+export * from "./entities-money";
+
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
 const Phone = z.string().trim().min(3).max(40);
@@ -279,52 +281,6 @@ export const AppointmentPayment = z.object({
 	amountCents: Money.min(1),
 	method: z.enum(["cash", "card", "transfer"]),
 });
-
-export const Payment = z.object({
-	id: Id,
-	clientId: Id,
-	packageId: Id.optional(),
-	appointmentId: Id.optional(),
-	amountCents: Money,
-	method: z.enum(["cash", "card", "transfer"]),
-	paidAt: Ms,
-	note: z.string().max(300).optional(),
-	...Stamps,
-});
-export const PaymentCreate = z.object({
-	amountCents: Money.min(1),
-	method: z.enum(["cash", "card", "transfer"]),
-	paidAt: Ms.optional(),
-	note: z.string().max(300).optional(),
-});
-/** A package with its balances computed by the service, never typed in. */
-export const Package = z.object({
-	id: Id,
-	clientId: Id,
-	name: Name,
-	sessions: z.number().int().min(1).max(500),
-	bonus: z.number().int().min(0).max(100),
-	used: z.number().int().min(0),
-	priceCents: Money,
-	discountCents: Money,
-	totalCents: Money,
-	paidCents: Money,
-	remainingCents: z.number().int(),
-	sessionsRemaining: z.number().int(),
-	...Stamps,
-});
-const PackageBase = z.object({
-	name: Name,
-	sessions: z.number().int().min(1).max(500),
-	bonus: z.number().int().min(0).max(100),
-	priceCents: Money,
-	discountCents: Money,
-});
-export const PackageCreate = PackageBase.extend({
-	bonus: PackageBase.shape.bonus.default(0),
-	discountCents: PackageBase.shape.discountCents.default(0),
-});
-export const PackagePatch = PackageBase.partial();
 
 export const RosterKind = z.enum(["work", "leave_co", "leave_cm", "free"]);
 export const RosterDay = z.object({

@@ -58,9 +58,10 @@ export type PackageRow = InApp<
 		| "discountCents"
 		| "createdAt"
 		| "updatedAt"
-	>
+	> & { note?: string }
 >;
-export type PaymentRow = InApp<Out<typeof Payment>>;
+/** `recordedBy` is the subject who took the money; the name is looked up when the row is shown, never stored. */
+export type PaymentRow = InApp<Omit<Out<typeof Payment>, "recordedByName">>;
 export type RosterRow = InApp<Out<typeof RosterDay>>;
 export type LeaveRow = InApp<Out<typeof Leave>>;
 export type ReminderRow = InApp<{

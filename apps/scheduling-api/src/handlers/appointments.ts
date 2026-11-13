@@ -369,6 +369,7 @@ export const appointmentHandlers: HandlersOf<
 			amountCents: ctx.body.amountCents,
 			method: ctx.body.method,
 			paidAt: ctx.now,
+			recordedBy: ctx.subject,
 			...stamps(ctx.now),
 		});
 		await ctx.changed("appointment", "updated", row.id);
