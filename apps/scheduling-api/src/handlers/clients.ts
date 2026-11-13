@@ -3,8 +3,9 @@ import { NONE, reaches } from "../authz/access";
 import { appLink, treatingLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { ClientRow } from "../store/types";
-import { clientGroupReach, clientView, clinicalContext } from "./fields";
+import { clientGroupReach, clientView } from "./fields";
 import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
 
 const GROUPS = [
@@ -44,7 +45,9 @@ export const clientHandlers: HandlersOf<
 		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
 		return {
 			...page,
-			items: page.items.map((row) => clientView(ctx, row, reach, include).client),
+			items: (await Promise.all(page.items.map((row) => clientView(ctx, row, reach, include)))).map(
+				(v) => v.client,
+			),
 		};
 	},
 
@@ -73,10 +76,11 @@ export const clientHandlers: HandlersOf<
 		};
 		let saved = await ctx.deps.store.c.clients.insert(row);
 		if (b.clinical !== undefined) {
-			// The envelope is bound to the client's id, which the store assigns on insert: sealed in a second step.
-			const clinicalSealed = ctx.deps.crypto.seal(
+			// Written in a second step: the clinical group is the store's own column, set once the client exists.
+			const clinicalSealed = await ctx.deps.crypto.seal(
+				ctx.app,
+				FIELDS.clinical,
 				JSON.stringify(b.clinical),
-				clinicalContext(ctx.app, saved.id),
 			);
 			saved = { ...saved, clinicalSealed };
 			try {
@@ -112,10 +116,11 @@ export const clientHandlers: HandlersOf<
 			const held =
 				clinicalSealed === undefined
 					? {}
-					: JSON.parse(ctx.deps.crypto.open(clinicalSealed, clinicalContext(ctx.app, row.id)));
-			sealed = ctx.deps.crypto.seal(
+					: JSON.parse(await ctx.deps.crypto.open(ctx.app, FIELDS.clinical, clinicalSealed));
+			sealed = await ctx.deps.crypto.seal(
+				ctx.app,
+				FIELDS.clinical,
 				JSON.stringify({ ...held, ...b.clinical }),
-				clinicalContext(ctx.app, row.id),
 			);
 		}
 		const next: ClientRow = {
@@ -202,8 +207,8 @@ export const clientHandlers: HandlersOf<
 async function view(
 	ctx: Parameters<typeof clientView>[0],
 	row: ClientRow,
-): Promise<ReturnType<typeof clientView>["client"]> {
-	const { client, clinicalRead } = clientView(ctx, row, await clientGroupReach(ctx));
+): Promise<Awaited<ReturnType<typeof clientView>>["client"]> {
+	const { client, clinicalRead } = await clientView(ctx, row, await clientGroupReach(ctx));
 	if (clinicalRead)
 		await ctx.auditNow("clinical.read", { type: "client", id: row.id }, { via: "clients" });
 	return client;

@@ -1,3 +1,4 @@
+import { CryptoError } from "@psi/scheduling/crypto";
 import {
 	type ErrorCode,
 	ROUTES,
@@ -356,6 +357,12 @@ export function refusal(
 		return make(fail("unavailable", "the store is unavailable"));
 	}
 	if (error instanceof StoreConflict) return make(fail("conflict", "already exists"));
+	if (error instanceof CryptoError) {
+		// Clinical text that cannot be opened (a wrong master key, an app without keys, a damaged value): nothing is
+		// returned in its place. The cause class is named; no key and no text ever is.
+		deps.log({ level: "error", event: "crypto_failed", requestId, code: error.code });
+		return make(fail("internal", `clinical data cannot be opened (${error.code})`));
+	}
 	deps.log({
 		level: "error",
 		event: "unhandled",

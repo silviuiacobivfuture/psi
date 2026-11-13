@@ -1,14 +1,16 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { createFieldCrypto } from "../../ports/crypto";
+import { createFieldCrypto, FIELDS } from "../../ports/crypto";
 import { withActor } from "../actor";
+import { memoryKeys } from "../memory-keys";
 import type { FeedbackGroups } from "../ports";
 import type { ContractSection } from "./env";
 import { draft, HOUR, useWorld, type World } from "./visits.world";
 
-const crypto = createFieldCrypto("ab".repeat(32));
-const seal = (text: string): string => crypto.seal(text, "feedback:contract");
-const open = (sealed: string | undefined): string | undefined =>
-	sealed === undefined ? undefined : crypto.open(sealed, "feedback:contract");
+const crypto = createFieldCrypto("ab".repeat(32), memoryKeys());
+const seal = (text: string): Promise<string> =>
+	crypto.seal("feedback-contract", FIELDS.feedback, text);
+const open = async (sealed: string | undefined): Promise<string | undefined> =>
+	sealed === undefined ? undefined : crypto.open("feedback-contract", FIELDS.feedback, sealed);
 const ALL: FeedbackGroups = ["core", "contact"];
 
 /** Feedback and its one-time links on every adapter. A refusal is its own case and leaves everything as it was. */
@@ -42,7 +44,7 @@ export const feedbackContract: ContractSection = (env) => {
 		return (
 			await fb().redeem(w.app, token, {
 				rating: over.rating ?? 5,
-				textSealed: seal(over.text ?? "wonderful"),
+				textSealed: await seal(over.text ?? "wonderful"),
 				consentContact: over.consent ?? true,
 				...(over.contact === false
 					? {}
@@ -74,7 +76,7 @@ export const feedbackContract: ContractSection = (env) => {
 				linkedAccount: false,
 				version: 1,
 			});
-			expect(open(got?.item.textSealed)).toBe("Mulțumim — foarte bine 🙂");
+			expect(await open(got?.item.textSealed)).toBe("Mulțumim — foarte bine 🙂");
 		});
 		it("a link works once: the second redeem is used, and nothing was stored", async () => {
 			const token = await linkFor();
@@ -178,12 +180,9 @@ export const feedbackContract: ContractSection = (env) => {
 		});
 		it("a text past the store's bound is too_long", async () => {
 			const token = await linkFor();
+			const textSealed = await seal("t".repeat(20_000));
 			await refused("too_long", () =>
-				fb().redeem(w.app, token, {
-					rating: 5,
-					textSealed: seal("t".repeat(20_000)),
-					consentContact: false,
-				}),
+				fb().redeem(w.app, token, { rating: 5, textSealed, consentContact: false }),
 			);
 		});
 	});
@@ -238,24 +237,26 @@ export const feedbackContract: ContractSection = (env) => {
 	describe("staff answering feedback", () => {
 		it("a reply makes the item answered, is sealed, names who wrote it, and says whether the author may be contacted", async () => {
 			const id = await rate({ consent: true });
-			const done = await withActor("rita", () => fb().reply(w.app, id, seal("Thank you!")));
+			const done = await withActor("rita", async () =>
+				fb().reply(w.app, id, await seal("Thank you!")),
+			);
 			expect(done).toMatchObject({ status: "answered", contactable: true });
 			const got = await fb().get(w.app, id, ALL);
 			expect(got?.item).toMatchObject({ status: "answered", version: 2 });
 			expect(got?.replies).toHaveLength(1);
 			expect(got?.replies[0]).toMatchObject({ id: done.replyId, by: "rita" });
-			expect(open(got?.replies[0]?.textSealed)).toBe("Thank you!");
+			expect(await open(got?.replies[0]?.textSealed)).toBe("Thank you!");
 		});
 		it("an author who did not agree to be contacted is not contactable", async () => {
 			const id = await rate({ consent: false, contact: false });
-			expect((await fb().reply(w.app, id, seal("Noted"))).contactable).toBe(false);
+			expect((await fb().reply(w.app, id, await seal("Noted"))).contactable).toBe(false);
 		});
 		it("a thread keeps every reply in order", async () => {
 			const id = await rate();
-			await fb().reply(w.app, id, seal("one"));
-			await fb().reply(w.app, id, seal("two"));
+			await fb().reply(w.app, id, await seal("one"));
+			await fb().reply(w.app, id, await seal("two"));
 			const replies = (await fb().get(w.app, id, ALL))?.replies ?? [];
-			expect(replies.map((r) => open(r.textSealed))).toEqual(["one", "two"]);
+			expect(await Promise.all(replies.map((r) => open(r.textSealed)))).toEqual(["one", "two"]);
 		});
 		it("an item is read once, then closed, then reopened to read", async () => {
 			const id = await rate();
@@ -280,7 +281,7 @@ export const feedbackContract: ContractSection = (env) => {
 			const id = await rate();
 			await refused("not_closed", () => fb().setStatus(w.app, id, "reopen", undefined));
 			await fb().setStatus(w.app, id, "close", undefined);
-			await refused("closed", () => fb().reply(w.app, id, seal("too late")));
+			await refused("closed", async () => fb().reply(w.app, id, await seal("too late")));
 			await refused("closed", () => fb().setStatus(w.app, id, "close", undefined));
 		});
 		it("a change from another version is stale", async () => {
@@ -289,12 +290,14 @@ export const feedbackContract: ContractSection = (env) => {
 			expect((await fb().setStatus(w.app, id, "read", 1)).changed).toBe(true);
 		});
 		it("an item that is not there, a reply past the bound: not_found, too_long", async () => {
-			await refused("not_found", () => fb().reply(w.app, "nosuchfeedback0000000000000", seal("x")));
+			await refused("not_found", async () =>
+				fb().reply(w.app, "nosuchfeedback0000000000000", await seal("x")),
+			);
 			await refused("not_found", () =>
 				fb().setStatus(w.app, "nosuchfeedback0000000000000", "read", undefined),
 			);
 			const id = await rate();
-			await refused("too_long", () => fb().reply(w.app, id, seal("t".repeat(20_000))));
+			await refused("too_long", async () => fb().reply(w.app, id, await seal("t".repeat(20_000))));
 		});
 	});
 };

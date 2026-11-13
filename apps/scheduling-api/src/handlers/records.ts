@@ -4,13 +4,12 @@ import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, unavailableFiles } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { FileRow, RecordRow } from "../store/types";
 import { must, newId, stamps, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
 const MAX_RECORD_BYTES = 100_000;
-/** Bound to the client, not the record: the store assigns the record's id when it is inserted. */
-const recordContext = (app: string, clientId: string): string => `${app}:client:${clientId}:record`;
 
 const summary = (r: RecordRow) => ({
 	id: r.id,
@@ -40,9 +39,7 @@ async function resourceOfForm(ctx: C, formId: string): Promise<string> {
 
 /** A record's content is opened only for a caller who may view this record (its form's resource), and the read is audited. */
 async function full(ctx: C, r: RecordRow, via: string) {
-	const data: unknown = JSON.parse(
-		ctx.deps.crypto.open(r.sealed, recordContext(r.app, r.clientId)),
-	);
+	const data: unknown = JSON.parse(await ctx.deps.crypto.open(r.app, FIELDS.record, r.sealed));
 	await ctx.auditNow("clinical.read", { type: "record", id: r.id }, { via });
 	return {
 		...summary(r),
@@ -69,11 +66,11 @@ const links = (type: "sched_record" | "sched_file", id: string, app: string, cli
 	parentLink(type, id, "client", "sched_client", clientId),
 ];
 
-function sealed(ctx: C, app: string, clientId: string, data: Record<string, unknown>): string {
+async function sealed(ctx: C, app: string, data: Record<string, unknown>): Promise<string> {
 	const json = JSON.stringify(data);
 	if (json.length > MAX_RECORD_BYTES)
 		throw fail("invalid", "the record is too large", { field: "data" });
-	return ctx.deps.crypto.seal(json, recordContext(app, clientId));
+	return ctx.deps.crypto.seal(app, FIELDS.record, json);
 }
 
 export const recordHandlers: HandlersOf<
@@ -121,7 +118,7 @@ export const recordHandlers: HandlersOf<
 			formVersion: form.version,
 			...(ctx.body.appointmentId === undefined ? {} : { appointmentId: ctx.body.appointmentId }),
 			authorSubject: ctx.subject,
-			sealed: sealed(ctx, ctx.app, client.id, ctx.body.data),
+			sealed: await sealed(ctx, ctx.app, ctx.body.data),
 			...stamps(ctx.now),
 		};
 		const row = await ctx.deps.store.c.records.insert(draft);
@@ -141,7 +138,7 @@ export const recordHandlers: HandlersOf<
 		await ctx.authorize(`${await resourceOfForm(ctx, row.formId)}_edit`, "sched_record", row.id);
 		const next: RecordRow = {
 			...row,
-			sealed: sealed(ctx, ctx.app, row.clientId, ctx.body.data),
+			sealed: await sealed(ctx, ctx.app, ctx.body.data),
 			updatedAt: ctx.now,
 		};
 		await ctx.deps.store.c.records.replace(next);

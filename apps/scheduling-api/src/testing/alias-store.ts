@@ -96,6 +96,10 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		docs: forApp(inner.docs, to),
 		blacklist: forApp(inner.blacklist, to),
 		feedback: forApp(inner.feedback, to),
+		keys: {
+			keys: (app) => inner.keys.keys(to(app)),
+			install: (app, version, wrapped) => inner.keys.install(to(app), version, wrapped),
+		},
 		ping: () => inner.ping(),
 	};
 }

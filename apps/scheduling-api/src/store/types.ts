@@ -23,6 +23,7 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
+import type { KeyStore } from "../ports/crypto";
 import type { BlacklistPort, DocumentsPort, FeedbackPort } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
@@ -344,6 +345,8 @@ export interface StorePort {
 	blacklist: BlacklistPort;
 	/** What clients say, and the staff's answers. */
 	feedback: FeedbackPort;
+	/** The apps' data keys, wrapped by the master key. */
+	keys: KeyStore;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }
