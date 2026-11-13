@@ -59,7 +59,7 @@ spec:
             readOnlyRootFilesystem: true
       containers:
         - name: novu-sso
-          image: WLREGISTRY/WLAPPS/novu-sso:3.19.0-a20b03b@sha256:1968722d17919f4d505d26809d1639913668fcd86f8bc0beb644055b45361495
+          image: WLREGISTRY/WLAPPS/novu-sso:3.19.0-47841ea@sha256:7c082ad5bec2eed2ccc711d70ffcc4bce8d1684d0b0b9ff67376cfb525399e20
           env:
             - name: JWT_SECRET
               valueFrom: { secretKeyRef: { name: novu-app, key: JWT_SECRET } }
@@ -83,6 +83,17 @@ spec:
             - { name: NOVU_SSO_SIGNOUT_URL, value: "https://auth.WLDOMAIN/flows/-/default/invalidation/" }
             # The dashboard novu-sso serves, guard added (dashboard.yaml).
             - { name: NOVU_SSO_UPSTREAM, value: "http://novu-dashboard-public.novu.svc.cluster.local:4000" }
+            # The estate's organisation and the bootstrap's password account, from the identity
+            # (MAIL_SENDER_NAME, OPS_EMAIL; ../kustomization.yaml): mapping.json names no estate.
+            - { name: NOVU_SSO_ORGANIZATION, value: WLSENDERNAME }
+            - { name: NOVU_SSO_SERVICE_ACCOUNT, value: WLOPSEMAIL }
+          # Polaris's data plane, for the accounts an estate declares in its mapping (tenants):
+          # who belongs to which, asked of the hub's person lookup and OpenFGA's read port under
+          # the pinned model (apps/novu-sso/lib/polaris.mjs). OPTIONAL: an estate that declares no
+          # account reads none of it, and novu-sso refuses to start, naming the key, when one is
+          # declared and a setting is missing (lib/config.mjs).
+          envFrom:
+            - secretRef: { name: novu-sso-polaris, optional: true }
           ports:
             - { name: http, containerPort: 8080 }
           readinessProbe:
@@ -132,3 +143,31 @@ spec:
   data:
     - secretKey: token
       remoteRef: { key: platform/authentik/novu-sso-api-token, property: token }
+---
+# What novu-sso reads of Polaris for an estate's accounts (apps/novu-sso/lib/polaris.mjs): the
+# SAME six values the directory's estate tile policy reads (pieces/platform-secrets/
+# authentik-estate-tiles.yaml), from the same paths — one pin, one store, one lookup bearer, moved
+# by the estate's pin procedure for both readers. Per key, so a missing one is SecretSyncedError
+# by name; mounted OPTIONAL (an estate with no account needs none of it); doctor.sh's "Novu
+# tenants" row fails while an estate declares accounts and this Secret is not synced.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: novu-sso-polaris
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: novu-sso-polaris, creationPolicy: Owner }
+  data:
+    - secretKey: OPENFGA_URL
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_URL }
+    - secretKey: OPENFGA_STORE_ID
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_STORE_ID }
+    - secretKey: OPENFGA_MODEL_ID
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: OPENFGA_MODEL_ID }
+    - secretKey: OPENFGA_TOKEN
+      remoteRef: { key: apps/openfga/env, property: OPENFGA_AUTHN_PRESHARED_KEYS }
+    - secretKey: HUB_PERSON_LOOKUP_URL
+      remoteRef: { key: apps/authentik-tiles/autorizare, property: HUB_PERSON_LOOKUP_URL }
+    - secretKey: HUB_PERSON_LOOKUP_TOKEN
+      remoteRef: { key: apps/autorizare/hub, property: HUB_PERSON_LOOKUP_TOKEN }

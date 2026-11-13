@@ -1,0 +1,4 @@
+{
+	"$comment": "Objects this piece takes only when the estate has a hosted Tailscale tailnet (tools/bundle/identity-components.mjs). tailnet: the break-glass dashboard novu-dashboard and its Service, which only the Tailscale-class doors in base/ingress-tailnet.yaml reach; taken only when TAILNET_DOMAIN is a hosted tailnet's (*.ts.net). Where it is not set the loader derives it as the mesh's own domain, no Tailscale operator runs, and the doors are left out (tools/bundle/mesh-pieces.mjs).",
+	"tailnet": { "key": "TAILNET_DOMAIN", "matches": "\\.ts\\.net$" }
+}

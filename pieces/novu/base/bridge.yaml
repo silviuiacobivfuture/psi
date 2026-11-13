@@ -83,7 +83,7 @@ spec:
             readOnlyRootFilesystem: true
       containers:
         - name: novu-bridge
-          image: WLREGISTRY/WLAPPS/novu-bridge:fed30c8b8@sha256:0a68ff47b5717b36bbd8830376547a7330b55f6b32bbba88fc2facbecaf6485f
+          image: WLREGISTRY/WLAPPS/novu-bridge:REPLACE_ME
           env:
             - name: NOVU_SECRET_KEY
               valueFrom: { secretKeyRef: { name: novu-bridge, key: NOVU_SECRET_KEY } }

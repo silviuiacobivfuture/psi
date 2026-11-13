@@ -37,6 +37,7 @@ spec:
     metadata:
       labels: { app: autorizare-hub }
     spec:
+      serviceAccountName: autorizare-hub
       imagePullSecrets:
         - name: harbor-pull
       securityContext:
@@ -126,6 +127,12 @@ spec:
           envFrom:
             - configMapRef: { name: autorizare-hub-config }
             - secretRef: { name: autorizare-hub-secrets }
+            # Error reporting (glitchtip-externalsecret.yaml): OPTIONAL — without it the hub
+            # starts, logs once that telemetry is off, and doctor.sh names the empty slot.
+            - secretRef: { name: autorizare-glitchtip, optional: true }
+          env:
+            - { name: SENTRY_ENVIRONMENT, value: dev }
+            - { name: SENTRY_SERVER_NAME, value: autorizare-hub }
           livenessProbe:
             httpGet: { path: /healthz, port: http }
             initialDelaySeconds: 5
@@ -192,8 +199,13 @@ data:
   HUB_REQUIRE_MFA: "true"
   # Set by the overlay: the one Authentik's issuer for the hub's broker client.
   HUB_UPSTREAM_ISSUER: "https://auth.example.invalid/application/o/autorizare-hub/"
+  # The organisations' own identity providers (@rule ORG-6): their client
+  # secrets, READ from OpenBao as role autorizare-hub-org-idp (this pod's service
+  # account). Without these two the hub offers the estate's provider only.
+  OPENBAO_ADDR: "http://openbao.openbao.svc:8200"
+  OPENBAO_ROLE: "autorizare-hub-org-idp"
 ---
-# The hub has no page of its own at `/`: a person who opens <hub host> is sent
+# The hub has no page of its own at `/`: a person who opens id.<apex> is sent
 # to the estate's front door at the apex. Only the bare root matches.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -201,7 +213,7 @@ metadata:
   name: hub-root-to-front
 spec:
   redirectRegex:
-    regex: "^https?://[^./]+\\.([^/]+)/?$"
+    regex: "^https?://id\\.([^/]+)/?$"
     replacement: "https://${1}/"
     permanent: false
 ---
@@ -317,6 +329,15 @@ spec:
           # hub's `__Host-` session cookie, which only this host carries, and
           # answers with a redirect back to the hub (domain/hub invitation.go).
           - path: /hub/invitatii/accepta
+            pathType: Exact
+            backend:
+              service:
+                name: autorizare-svc
+                port: { name: http }
+          # The same page FOUNDS an account for a person in no organisation
+          # (@rule ORG-11, domain/hub founding.go): the control plane's, for the
+          # same reasons, this one address only.
+          - path: /hub/cont/fondeaza
             pathType: Exact
             backend:
               service:

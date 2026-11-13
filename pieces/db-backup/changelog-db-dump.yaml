@@ -1,7 +1,7 @@
 # Changelog Postgres logical backup — 6-hourly `pg_dump` → Hetzner Object Storage.
-# Same shape as reportportal-db-dump.yaml, and the SECOND of changelog-db's two
+# Same shape as reportportal/reportportal-db-dump.yaml, and the SECOND of changelog-db's two
 # backup layers:
-#   - CNPG's barman WAL archive (services/changelog/base/cnpg-cluster.yaml) gives
+#   - CNPG's barman WAL archive (pieces/changelog/base/cnpg-cluster.yaml) gives
 #     PITR, but needs the operator and a matching Postgres major to restore;
 #   - THIS gives a plain .sql.gz that restores anywhere psql runs.
 #

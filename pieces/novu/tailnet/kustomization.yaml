@@ -1,0 +1,7 @@
+# The tailnet dashboard (novu-dashboard and its Service), for an estate with a hosted Tailscale
+# tailnet (TAILNET_DOMAIN set, ../identity-components.json). Without one nothing would reach it:
+# its doors are Tailscale-class Ingresses, which such an estate's render leaves out.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - dashboard.yaml

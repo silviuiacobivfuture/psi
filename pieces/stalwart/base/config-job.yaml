@@ -4,6 +4,9 @@
 # stalwart-cli applies it. The plan only upserts and reconciles, so it is re-run freely:
 #   - after every sync (this Argo hook Job),
 #   - daily (the CronJob below), which also carries each certificate renewal in.
+# Five steps, in order: render (init), unlink (init), prune (init), apply (init), listeners: every listener the plan
+# declares must answer on the server, which is restarted once when one does not (Stalwart
+# binds a listener only at start, and the plan's reload opens no new port: listeners.sh).
 # A refused plan fails the Job, by the operation's name, and Argo shows the sync failed.
 apiVersion: batch/v1
 kind: Job
@@ -18,7 +21,8 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
-      automountServiceAccountToken: false
+      serviceAccountName: stalwart-config
+      automountServiceAccountToken: true
       enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
@@ -45,7 +49,54 @@ spec:
             - { name: mailboxes, mountPath: /estate, readOnly: true }
             - { name: tls, mountPath: /tls, readOnly: true }
             - { name: ses, mountPath: /ses, readOnly: true }
-      containers:
+        # Then unlink.sh: every account's membership in exactly the Groups the estate now declares
+        # as lists is removed, by id; every other membership is kept (render-plan.sh says why).
+        - name: unlink
+          image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+          command: ["bash", "/scripts/unlink.sh"]
+          envFrom:
+            - configMapRef: { name: stalwart-settings }
+          env:
+            - { name: STALWART_URL, value: "http://stalwart:8080" }
+            - { name: HOME, value: /tmp }
+            - name: STALWART_USER
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+            - name: STALWART_PASSWORD
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+          volumeMounts:
+            - { name: work, mountPath: /work, readOnly: true }
+            - { name: plan, mountPath: /scripts, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+        # First the prune plan (render-plan.sh says why): it clears the declared mailboxes' group
+        # memberships and removes Group accounts, so a group address can be a mailing list.
+        - name: prune
+          image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+          args: ["apply", "--file", "/work/prune.ndjson", "--no-color"]
+          env:
+            - { name: STALWART_URL, value: "http://stalwart:8080" }
+            # The CLI writes its state under $HOME; the root filesystem is read-only.
+            - { name: HOME, value: /tmp }
+            - name: STALWART_USER
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+            - name: STALWART_PASSWORD
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+          volumeMounts:
+            - { name: work, mountPath: /work, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
         - name: apply
           image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
           args: ["apply", "--file", "/work/plan.ndjson", "--no-color"]
@@ -66,6 +117,27 @@ spec:
             limits: { cpu: 200m, memory: 64Mi }
           volumeMounts:
             - { name: work, mountPath: /work, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      containers:
+        # Last: every listener the plan declares answers, restarting the server once when one does
+        # not (Stalwart binds a listener only at start; listeners.sh says why).
+        - name: listeners
+          image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+          command: ["bash", "/scripts/listeners.sh"]
+          env:
+            - { name: HOME, value: /tmp }
+            - name: NS
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          volumeMounts:
+            - { name: work, mountPath: /work, readOnly: true }
+            - { name: plan, mountPath: /scripts, readOnly: true }
             - { name: tmp, mountPath: /tmp }
       volumes:
         - name: work
@@ -98,7 +170,8 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
-          automountServiceAccountToken: false
+          serviceAccountName: stalwart-config
+          automountServiceAccountToken: true
           enableServiceLinks: false
           securityContext:
             runAsNonRoot: true
@@ -125,7 +198,54 @@ spec:
                 - { name: mailboxes, mountPath: /estate, readOnly: true }
                 - { name: tls, mountPath: /tls, readOnly: true }
                 - { name: ses, mountPath: /ses, readOnly: true }
-          containers:
+            # Then unlink.sh: every account's membership in exactly the Groups the estate now declares
+            # as lists is removed, by id; every other membership is kept (render-plan.sh says why).
+            - name: unlink
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              command: ["bash", "/scripts/unlink.sh"]
+              envFrom:
+                - configMapRef: { name: stalwart-settings }
+              env:
+                - { name: STALWART_URL, value: "http://stalwart:8080" }
+                - { name: HOME, value: /tmp }
+                - name: STALWART_USER
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+                - name: STALWART_PASSWORD
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 200m, memory: 64Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work, readOnly: true }
+                - { name: plan, mountPath: /scripts, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+            # First the prune plan (render-plan.sh says why): it clears the declared mailboxes' group
+            # memberships and removes Group accounts, so a group address can be a mailing list.
+            - name: prune
+              image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+              args: ["apply", "--file", "/work/prune.ndjson", "--no-color"]
+              env:
+                - { name: STALWART_URL, value: "http://stalwart:8080" }
+                # The CLI writes its state under $HOME; the root filesystem is read-only.
+                - { name: HOME, value: /tmp }
+                - name: STALWART_USER
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+                - name: STALWART_PASSWORD
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 200m, memory: 64Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
             - name: apply
               image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
               args: ["apply", "--file", "/work/plan.ndjson", "--no-color"]
@@ -147,6 +267,27 @@ spec:
               volumeMounts:
                 - { name: work, mountPath: /work, readOnly: true }
                 - { name: tmp, mountPath: /tmp }
+          containers:
+            # Last: every listener the plan declares answers, restarting the server once when one does
+            # not (Stalwart binds a listener only at start; listeners.sh says why).
+            - name: listeners
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              command: ["bash", "/scripts/listeners.sh"]
+              env:
+                - { name: HOME, value: /tmp }
+                - name: NS
+                  valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { cpu: 200m, memory: 128Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work, readOnly: true }
+                - { name: plan, mountPath: /scripts, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
           volumes:
             - name: work
               emptyDir: { sizeLimit: 4Mi }
@@ -160,3 +301,35 @@ spec:
               secret: { secretName: stalwart-tls }
             - name: ses
               secret: { secretName: stalwart-ses }
+---
+# What the listeners step may do: see the server's pods and Deployment, and delete its pod once
+# so the Deployment starts it again with every listener bound. Nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stalwart-config
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stalwart-config
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["stalwart"]
+    verbs: ["get", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stalwart-config
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-config }
+subjects:
+  - { kind: ServiceAccount, name: stalwart-config }

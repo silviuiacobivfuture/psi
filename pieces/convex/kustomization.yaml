@@ -7,8 +7,28 @@
 # An instance directory (the example estate under examples/ declares one, in its seb-components):
 #   kustomization.yaml   namespace: convex-<name>; resources: [instance.yaml];
 #                        components: [../../instance]; optional patches (sizing, extra env)
-#   instance.yaml        the ConfigMap convex-instance (local-config): NAME, DATABASE, PURPOSE,
-#                        DB_SIZE, BACKUP_SCHEDULE
+#   instance.yaml        the ConfigMap convex-instance (local-config): NAME, TENANT, DATABASE,
+#                        PURPOSE, DB_SIZE, BACKUP_SCHEDULE
+#
+# TENANT (required: the render refuses an instance without it) is the Polaris account the instance
+# is held for: the estate's own tenant for its applications' backends, a consumer's for that
+# consumer's own backend. It is labelled platform.<label domain>/tenant on every object, and it
+# decides two things:
+#   who opens the data browser   convex-<name>-dash.<apex> has its own forward_single provider on
+#                                the embedded outpost, bound to the tenant's Authentik group
+#                                autorizare-tenant-<TENANT> and to platform-admins. The estate
+#                                writes those providers with tools/convex/tenant-gate.mjs (into its
+#                                authentik-platform component; --check refuses drift). Until it
+#                                does, the estate-wide domain gate answers on that host.
+#   who deploys functions        the instance's admin key, minted in its backend and patched into
+#                                apps/convex/<name>/instance admin_key by tools/convex/admin-key.mjs,
+#                                which prints the path and the tenant, never the key. The key
+#                                administers this instance and nothing else; the tenant's deploy job
+#                                (tools/convex/deploy.mjs) is handed that path.
+# Isolation between instances: namespace, Postgres cluster, volume, quota, instance secret and
+# admin key are each the instance's own. SHARED and held by the operator: the object-storage
+# credential (platform/object-storage/dev) the backend's file storage and the WAL/base backups use,
+# and the backup bucket (prefix cnpg/convex-<name>): backups are the operator's to run and restore.
 #
 # What every instance gets from the estate's identity: its hosts convex-<name>[-site|-dash].<apex>,
 # the images from the estate's registry mirror, the WAL/base backups to

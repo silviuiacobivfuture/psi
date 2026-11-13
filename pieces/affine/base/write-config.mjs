@@ -18,7 +18,19 @@
 //                                    passes through the server (and its gate) and no
 //                                    browser is ever sent to the bucket (no CORS needed)
 //   flags.allowGuestDemoWorkspace    false: nothing is made by someone who is not signed in
-//   copilot / indexer                off: no AI provider, no search engine to run
+//   copilot.enabled true             AFFiNE's AI plugin, for ONE part of it: its MCP server
+//                                    (/api/workspaces/<id>/mcp and the credentials screen,
+//                                    Integrations → MCP Server), which 0.27.4 serves only
+//                                    with the plugin on (CopilotEnabled on both). The MCP
+//                                    server needs no AI provider: it reads documents.
+//   copilot byok.* off, no provider  nothing that calls (and bills) an AI service: no
+//                                    provider profile, and workspace owners may NOT add their
+//                                    own keys (BYOK is on by default in 0.27.4). The AI
+//                                    buttons show and answer that no model is available.
+//   indexer on, manticoresearch      search (the web app's and the MCP server's doc_search)
+//                                    in the piece's own Manticore (manticore.yaml), at its
+//                                    ClusterIP Service. No credential: Manticore 10 has no
+//                                    authentication; its NetworkPolicy admits this server only
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -39,6 +51,8 @@ if (missing.length > 0) {
 	process.exit(1);
 }
 const env = (k) => process.env[k] ?? "";
+// The Service in manticore.yaml (name and port), in this namespace.
+const SEARCH_ENDPOINT = "http://affine-manticore:9308";
 
 const s3 = {
 	provider: "aws-s3",
@@ -74,8 +88,18 @@ const config = {
 		"avatar.storage": s3,
 	},
 	flags: { allowGuestDemoWorkspace: false },
-	copilot: { enabled: false },
-	indexer: { enabled: false },
+	copilot: {
+		enabled: true,
+		"byok.enabled": false,
+		"byok.allowedProviders": [],
+		"byok.allowCustomEndpoint": false,
+		"byok.allowPrivateEndpoint": false,
+	},
+	indexer: {
+		enabled: true,
+		"provider.type": "manticoresearch",
+		"provider.endpoint": SEARCH_ENDPOINT,
+	},
 };
 
 const dir = join(homedir(), ".affine", "config");
@@ -84,10 +108,15 @@ const file = join(dir, "config.json");
 writeFileSync(file, JSON.stringify(config, null, 2), { mode: 0o600 });
 // Read back: what AFFiNE will parse is exactly what was meant.
 const back = JSON.parse(readFileSync(file, "utf8"));
-if (back.oauth["providers.oidc"].issuer !== env("OIDC_ISSUER") || back.auth.allowSignup !== false) {
+if (
+	back.oauth["providers.oidc"].issuer !== env("OIDC_ISSUER") ||
+	back.auth.allowSignup !== false ||
+	back.copilot["byok.enabled"] !== false ||
+	back.indexer["provider.endpoint"] !== SEARCH_ENDPOINT
+) {
 	process.stderr.write(`FATAL: ${file} does not read back as written\n`);
 	process.exit(1);
 }
 process.stdout.write(
-	`wrote ${file}: sign-in ${env("OIDC_ISSUER")}, files in ${env("S3_BUCKET")} at ${env("S3_ENDPOINT")}\n`,
+	`wrote ${file}: sign-in ${env("OIDC_ISSUER")}, files in ${env("S3_BUCKET")} at ${env("S3_ENDPOINT")}, search at ${SEARCH_ENDPOINT}\n`,
 );

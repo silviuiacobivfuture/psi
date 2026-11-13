@@ -3,8 +3,8 @@
 # themselves are the estate's own (they name its GitHub owner and its runner secret).
 #
 # A HELM piece (contract: tools/bundle/helm-piece.mjs). The chart is pulled from its OCI address,
-# written without a scheme as Argo CD takes it. Its values.yaml is empty on purpose: the chart's
-# defaults, so the estate's Application carries no helm values at all.
+# written without a scheme as Argo CD takes it. Its values.yaml sets only the image, from the
+# estate's Harbor mirror by digest (PLATFORM-11); everything else is the chart's default.
 # CRDs are applied out-of-band (infrastructure/hetzner/scripts/arc-crds.sh): they are too big for
 # a client-side apply (annotation > 256KB), hence skipCrds.
 apiVersion: argoproj.io/v1alpha1

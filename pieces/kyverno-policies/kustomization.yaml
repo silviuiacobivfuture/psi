@@ -31,6 +31,12 @@ resources:
   # Ingress, which Kyverno cannot see) is checked by the architecture test in
   # apps/autorizare-svc/internal/architecture.
   - require-hub-annotation.yaml
+  # PLATFORM-11, step 1 of the flip (infrastructure/hetzner/RUNBOOK.md 2026-11-05): REPORTS a pod
+  # outside Harbor's cold start that pulls from anywhere but the estate's Harbor. AUDIT, and
+  # failurePolicy Ignore: it refuses nothing and restarts nothing. It stays Audit while CNPG and
+  # Kyverno run upstream by decision (renaming CNPG restarts every database; Kyverno from Harbor
+  # deadlocks a fresh node), so their reports are expected until the flip.
+  - audit-images-from-harbor.yaml
   # MUTATE (not a validation): injects resources onto Plane's migrator Job, the
   # one workload whose chart ships none and exposes no values key — so
   # require-requests-limits can stay ENFORCE instead of excluding the namespace.
@@ -54,6 +60,8 @@ resources:
   # only Argo CD changes an object a SEB piece deployed. Each switches to Enforce through its
   # estate slot (schema/slots/kyverno-policies.yaml), never by editing the policy.
   - verify-seb-signatures.yaml
+  # The robot verify-seb-signatures reads the signatures with (the projects are private).
+  - seb-signature-pull.yaml
   - audit-seb-object-changes.yaml
   # Scratch values (local-config, never rendered).
   - estate-values.yaml

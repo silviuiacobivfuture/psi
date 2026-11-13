@@ -119,9 +119,11 @@ spec:
   ports:
     - { name: http, port: 80, targetPort: http }
 ---
-# Settings, not secrets. BASE_DOMAIN is filled from the whitelabel component by
-# the piece, ESTATE_NAME by this base from the identity (the estate's component
-# may name itself otherwise) — never typed.
+# Settings, not secrets. BASE_DOMAIN and INVOICING_API_HOST are filled from the
+# whitelabel component by the piece, ESTATE_NAME by this base from the identity
+# (the estate's component may name itself otherwise) — never typed. The
+# applications' descriptions are the estate's: app-descriptions.json beside its
+# registry, in the ConfigMap its component mounts at /estate.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -129,6 +131,8 @@ metadata:
 data:
   ESTATE_NAME: "WLESTATENAME"
   BASE_DOMAIN: "WLDOMAIN"
+  INVOICING_API_HOST: "api.invoicing.WLDOMAIN"
+  ESTATE_APP_DESCRIPTIONS_FILE: /estate/app-descriptions.json
   ENVIRONMENT: "dev"
 ---
 # The everyday tools on the hub — user-facing only, in this order. Operator

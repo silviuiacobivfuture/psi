@@ -49,6 +49,10 @@ replacements:
       - select: { kind: ConfigMap, name: affine-settings }
         fieldPaths: [data.AFFINE_SERVER_EXTERNAL_URL]
         options: { delimiter: "/", index: 2 }
+      # The MCP route's Host(`...`): the second backtick field of its match.
+      - select: { kind: IngressRoute, name: affine-mcp }
+        fieldPaths: [spec.routes.0.match]
+        options: { delimiter: "`", index: 1 }
   # The sign-in issuer: https://<AUTHENTIK_HOST>/application/o/affine-oidc/.
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST }
     targets:

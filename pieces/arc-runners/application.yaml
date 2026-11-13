@@ -8,6 +8,9 @@
 # TEMPLATE; values.yaml beside it is the chart's values. The estate's GitHub owner and registry
 # come from the identity (placeholders below); the notes in values.yaml that name an estate's own
 # incidents are ESTATE SLOTS, filled from <estate-components>/arc-runners/<slot>.yaml.
+# The SIZING is the estate's too, as slots: min-runners, max-runners (the scale set's warm and
+# ceiling counts) and runner-cpu, runner-memory (the runner container's requests) — its servers,
+# not SEB's. An estate with estate/runners.json takes min/max from each set's `size` instead.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -23,7 +26,7 @@ spec:
       # Estate values: filled from the identity by the estate's upgrade step, never written here.
       parameters:
         - name: githubConfigUrl
-          value: https://${GIT_HOST}/${GIT_OWNER}
+          value: ${CI_RUNNER_CONFIG_URL}
           forceString: true
         - name: template.spec.initContainers[1].image
           value: ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/docker:dind@sha256:97545b7bab66319a476800a85b008b25c06681733d484909e2a776281e41574f

@@ -12,7 +12,16 @@
     - spec.template.spec.containers.[name=affine].image
     - spec.template.spec.initContainers.[name=assert-secrets].image
     - spec.template.spec.initContainers.[name=config].image
+    - spec.template.spec.initContainers.[name=wait-search].image
     - spec.template.spec.initContainers.[name=migrate].image
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: StatefulSet
+      name: affine-manticore
+    fieldPaths:
+    - spec.template.spec.containers.[name=manticore].image
     options:
       delimiter: /
       index: 0
