@@ -5,6 +5,4 @@ resources:
   - autorizare.yaml
   - homepage.yaml
   - netdata.yaml
-  - plane.yaml
-  - plunk.yaml
   - public-doors.yaml

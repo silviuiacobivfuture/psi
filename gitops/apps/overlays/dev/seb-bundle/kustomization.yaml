@@ -44,3 +44,5 @@ resources:
   - seb-openfga.yaml
   - seb-novu.yaml
   - seb-openbao-store.yaml
+  - seb-plunk.yaml
+  - seb-plane.yaml
