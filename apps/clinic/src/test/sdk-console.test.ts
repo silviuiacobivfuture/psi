@@ -73,6 +73,23 @@ describe("what each person's menu offers follows what the service says they may 
 	});
 });
 
+describe("the administration zone", () => {
+	it("the owner has the entry (set apart in the navigation) and a card per area; reception and volunteers do not", async () => {
+		const owner = await k.as("olga");
+		const nav = await text(await owner.get("/clients"));
+		expect(has(nav, "/admin")).toBe(true);
+		expect(nav).toContain("adm-nav__admin");
+		const page = await text(await owner.get("/admin"));
+		for (const area of ["roles", "members", "services", "rooms", "audit"])
+			expect(page, area).toContain(`data-admin-area="${area}"`);
+		const vera = await k.as("vera");
+		expect(has(await text(await vera.get("/roster")), "/admin")).toBe(false);
+		const before = await k.api.world.fingerprint();
+		expect((await vera.get("/admin")).status).toBe(403);
+		expect(await k.api.world.fingerprint()).toBe(before);
+	});
+});
+
 describe("a screen the person may not open is refused before it runs, and says so", () => {
 	it.each([
 		["vera", "/calendar"],

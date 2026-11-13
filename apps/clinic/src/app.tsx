@@ -19,6 +19,7 @@ import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
 import type { NotificationsPort } from "./notifications/port";
+import { registerAdmin } from "./pages/admin";
 import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
@@ -198,6 +199,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerViewAs(app, deps);
 	registerDesign(app);
 	registerSettings(app);
+	registerAdmin(app);
 	app.get("/audit", async (c) =>
 		c.html(await renderAudit(c.var.ctx), 200, { "cache-control": "private, no-store" }),
 	);

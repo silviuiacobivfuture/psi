@@ -1,7 +1,7 @@
 import { type AdminIcon, Icon } from "@psi/ui/admin";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
-import { settingsOpen } from "../lib/gates";
+import { adminOpen, settingsOpen } from "../lib/gates";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -35,6 +35,7 @@ export async function MorePage(ctx: Ctx) {
 			open: settingsOpen(can),
 		},
 		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_log_view") },
+		{ href: "/admin", label: m.nav_admin({}, o), icon: "shield", open: adminOpen(can) },
 	];
 	const items = all.filter((i) => i.open);
 	return Page({

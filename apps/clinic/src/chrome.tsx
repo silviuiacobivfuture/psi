@@ -12,7 +12,7 @@ import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
-import { settingsOpen } from "./lib/gates";
+import { adminOpen, settingsOpen } from "./lib/gates";
 import { at, type Locale } from "./lib/i18n";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
@@ -28,7 +28,8 @@ export type NavKey =
 	| "roster"
 	| "reminders"
 	| "settings"
-	| "audit";
+	| "audit"
+	| "admin";
 
 export function labels(locale: Locale): ShellLabels {
 	const o = at(locale);
@@ -147,6 +148,7 @@ export async function Page({
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
 		can.has("audit_log_view") ? item("audit", m.nav_audit({}, o), "list") : null,
+		adminOpen(can) ? { ...item("admin", m.nav_admin({}, o), "shield"), zone: "admin" } : null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
 	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "audit"];

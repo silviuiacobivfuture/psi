@@ -21,6 +21,22 @@ const g = (method: Gate["method"], path: string, keys: string[], write?: true): 
 	...(write === undefined ? {} : { write }),
 });
 
+/** What the administration zone offers, each with the permission it needs; the zone is for whoever holds any of them. */
+export const ADMIN_AREAS = [
+	{ id: "roles", href: "/settings/roles", key: "roles_view" },
+	{ id: "members", href: "/settings/people", key: "people_view" },
+	{ id: "plan", href: "/settings/plan", key: "app_settings_edit" },
+	{ id: "services", href: "/settings/services", key: "services_view" },
+	{ id: "rooms", href: "/settings/rooms", key: "rooms_view" },
+	{ id: "devices", href: "/settings/devices", key: "devices_view" },
+	{ id: "floor", href: "/floor", key: "app_settings_edit" },
+	{ id: "audit", href: "/audit", key: "audit_log_view" },
+] as const;
+
+const ADMIN_AREAS_KEYS: string[] = ADMIN_AREAS.map((a) => a.key);
+
+export const adminOpen = (can: Can): boolean => ADMIN_AREAS.some((a) => can.has(a.key));
+
 const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/calendar", ["calendars_view"]),
 	g("GET", "/calendar/print", ["calendars_view"]),
@@ -63,6 +79,7 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/settings/roles", ["roles_view"]),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
 	g("GET", "/audit", ["audit_log_view"]),
+	g("GET", "/admin", ADMIN_AREAS_KEYS),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];
 

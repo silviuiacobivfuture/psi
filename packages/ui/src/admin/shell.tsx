@@ -11,6 +11,8 @@ export interface NavItem {
 	icon: AdminIcon;
 	/** A count shown on the tab (open requests). */
 	badge?: number;
+	/** `admin`: the administration zone, set apart at the foot of the navigation. */
+	zone?: "admin";
 }
 
 export interface ShellApp {
@@ -95,7 +97,7 @@ const initials = (name: string): string =>
 
 function NavLink({ item, current }: { item: NavItem; current: string }): JSX.Element {
 	return (
-		<li>
+		<li class={item.zone === "admin" ? "adm-nav__admin" : undefined}>
 			<a
 				class="adm-nav__link"
 				href={item.href}
