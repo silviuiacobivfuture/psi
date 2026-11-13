@@ -137,6 +137,16 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	} else if (spec.side === "visitor") {
 		if (principal.kind === "service" && principal.app !== app)
 			throw forbidden("this key is for another app");
+		// One bucket per service key and visitor (the site forwards the visitor's address), or per signed-in person.
+		const bucket =
+			principal.kind === "service"
+				? `svc:${principal.callerId}:${c.req.header("x-psi-client-ip") ?? "-"}`
+				: `sub:${principal.subject}`;
+		const taken = deps.limiter.take(bucket);
+		if (!taken.ok)
+			throw fail("rate_limited", "too many requests", {
+				retryAfterSeconds: taken.retryAfterSeconds,
+			});
 		const row = await deps.store.c.apps.get(app, app);
 		if (row === undefined || row.status !== "active") throw notFound("app");
 		if (spec.path.includes("/me/") && visitorSubject(principal) === undefined)

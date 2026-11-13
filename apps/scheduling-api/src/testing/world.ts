@@ -10,6 +10,7 @@ import type { Deps, HttpEnv, LogEvent } from "../http/context";
 import { createMemoryMailer, type MemoryMailer } from "../ports/mail";
 import { createMemoryNotify, type MemoryNotify } from "../ports/notify";
 import { createMemoryObjects, type MemoryObjects } from "../ports/objects";
+import { createLimiter } from "../ports/ratelimit";
 import { createMemoryStore, type MemoryStore } from "../store/memory";
 import { createTestIssuer, type MintOptions, type TestIssuer } from "./tokens";
 
@@ -106,6 +107,7 @@ export async function createBareWorld(): Promise<World> {
 		mailer: mail,
 		objects,
 		notifier,
+		limiter: createLimiter({ capacity: 1000, refillPerSecond: 1000 }, () => clock.now),
 		clock: () => clock.now,
 		log: (e) => logs.push(e),
 		streamHeartbeatMs: 20,
