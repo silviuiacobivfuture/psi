@@ -2,8 +2,7 @@
 #
 # Two lists, read together by the `root` Application (gitops/bootstrap/root-dev.yaml):
 #   this file  — the PLATFORM list (SEB): every Application the estate's platform runs;
-#   rmx/       — the RMX list: the business applications (Sirius, Altair, Meridian,
-#                Pulsar, Vega, Wise, Convex, browser automation), composed below.
+#   rmx/       — the RMX list: the estate's own business applications, composed below.
 # One root, one rendered set: splitting the list changed nothing Argo deploys.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -11,6 +10,9 @@ resources:
   # The estate's own applications (gitops/apps/overlays/dev/apps/): psi's sites.
   - apps
   - seb-pieces
+  # SEB's bundle, by digest (estate/seb-upgrade.sh): Argo's read credential for it, the lock for
+  # Harbor housekeeping, and the Applications of the pieces estate/seb-pieces.dev switches to it.
+  - seb-bundle
   # The RMX list (business applications). Its own kustomization; see rmx/.
   - ../../base
   - harbor-route.yaml
@@ -73,7 +75,7 @@ replacements:
 patches:
   - target:
       kind: Application
-      labelSelector: platform.recomex.eu/source=git
+      labelSelector: platform.psizone.ro/source=git
     patch: |
       - op: add
         path: /spec/source/targetRevision

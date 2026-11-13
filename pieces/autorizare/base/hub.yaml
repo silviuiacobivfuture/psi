@@ -77,6 +77,34 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
+        # The FIRST START of an estate. The control plane (deployment.yaml) cannot start before
+        # autorizare-secrets syncs, and that secret carries the console's hub client secret, which
+        # only this hub can mint (seed-hub-clients.sh) — into tables only the migrations create.
+        # The control plane migrates in its own init containers, so on a new estate nothing ever
+        # moved: measured on a new estate, 2026-11-12, Polaris held at zero replicas for it. The hub runs the
+        # same migrations first, from secrets that exist from the first minute: the migration login
+        # (autorizare-db-app) and the application role's password (autorizare-app-credentials,
+        # the same OpenBao field). golang-migrate's advisory lock keeps the two from racing.
+        - name: migrate
+          image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME
+          command: ["/autorizaremigrate"]
+          env:
+            - name: DATABASE_MIGRATE_URL
+              valueFrom:
+                secretKeyRef: { name: autorizare-db-app, key: uri }
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: autorizare-app-credentials, key: password }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
       containers:
         - name: autorizare-hub
           image: WLREGISTRY/WLAPPS/autorizare-svc:REPLACE_ME

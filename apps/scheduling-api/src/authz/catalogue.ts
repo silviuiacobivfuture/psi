@@ -1,123 +1,141 @@
-import type { FieldGroupName, SchedType, ScopeName } from "@psi/scheduling-sdk/contract";
+import {
+	type Action,
+	ALL_PERMISSION_KEYS,
+	type BaseFieldGroup,
+	type Permission,
+	parsePermissionKey,
+	permissionKey,
+	CATALOGUE as RESOURCE_CATALOGUE,
+	RESOURCES,
+	type Resource,
+	relationName,
+	type Scope,
+} from "@psi/scheduling/permissions";
+import type { SchedType } from "@psi/scheduling-sdk/contract";
 
 /**
- * THE PERMISSION CATALOGUE (docs/plans/clinic.md section 4): resource x action x scope, optionally x field group.
- * The OpenFGA model, the manifest, the role matrix and the route table's permission keys are all generated from or
- * checked against it, so they cannot drift.
+ * THE PERMISSION CATALOGUE of this service is `@psi/scheduling/permissions`: resource x action x scope, optionally
+ * x field group, as keys `<resource>_<action>_<scope>[_<group>]`. Nothing is copied here. This module derives what the
+ * service needs from it: the keys WITHOUT a scope that a route and a handler name (`clients_view`,
+ * `clients_view_clinical`), where each is checked (the OpenFGA object types), and the relation names it is held under.
  *
- * PLACEHOLDER: packages/scheduling/src/domain is to export the real catalogue (branch clinic/model2). Until it is
- * there this module holds the same shape; when it lands, this file becomes a re-export and nothing else changes.
+ * A key without a group grants identity only; every field group is granted only by its own `_<group>` key. Custom
+ * groups (`custom-<slug>`) are not in `ALL_PERMISSION_KEYS`, so they are not relations of the pinned model.
  */
+export type { Action, BaseFieldGroup, Resource, Scope };
+export { ALL_PERMISSION_KEYS, RESOURCES, relationName };
+
+/** One permission as the service checks it: the key without its scope, and the scopes the catalogue defines for it. */
 export interface PermissionDef {
-	/** `clients_edit`. A scoped permission is held as `<key>_all`, `<key>_assigned`, `<key>_own` on the app. */
+	/** `clients_view`, `clients_view_clinical`: `<resource>_<action>[_<group>]`. */
 	key: string;
-	resource: string;
-	action: string;
+	resource: Resource;
+	action: Action;
+	group?: BaseFieldGroup;
 	effect: "read" | "write";
-	/** Empty: held on the app, with no scope. */
-	scopes: readonly ScopeName[];
-	/** The object types a Check of this permission is made on (a scoped permission is defined on each). */
+	scopes: readonly Scope[];
+	/** The object types a Check of this permission is made on; `["sched_app"]` when it is held on the whole app only. */
 	objects: readonly SchedType[];
-	fieldGroup?: FieldGroupName;
-	/** The estate's platform administrators hold it in every app (apps, members, roles). */
+	/** The estate's platform administrators hold it in every app (app settings, members, roles). */
 	platformAdmin?: true;
 }
 
-const ALL: readonly ScopeName[] = ["all", "assigned", "own"];
-const NONE: readonly ScopeName[] = [];
+const APP: readonly SchedType[] = ["sched_app"];
+const CALENDAR: readonly SchedType[] = ["sched_calendar"];
+const APPOINTMENT: readonly SchedType[] = ["sched_appointment"];
+const CLIENT: readonly SchedType[] = ["sched_client"];
 
-type Row = readonly [
-	resource: string,
-	action: string,
-	effect: "read" | "write",
-	scopes: readonly ScopeName[],
-	objects: readonly SchedType[],
-	extra?: { fieldGroup?: FieldGroupName; platformAdmin?: true },
-];
+type Where = readonly SchedType[] | Partial<Record<Action, readonly SchedType[]>>;
 
-const app = ["sched_app"] as const;
-const rows: readonly Row[] = [
-	["app_settings", "view", "read", NONE, app, { platformAdmin: true }],
-	["app_settings", "edit", "write", NONE, app, { platformAdmin: true }],
-	["members", "view", "read", NONE, app, { platformAdmin: true }],
-	["members", "edit", "write", NONE, app, { platformAdmin: true }],
-	["members", "remove", "write", NONE, app, { platformAdmin: true }],
-	["roles", "view", "read", NONE, app, { platformAdmin: true }],
-	["roles", "create", "write", NONE, app, { platformAdmin: true }],
-	["roles", "edit", "write", NONE, app, { platformAdmin: true }],
-	["roles", "delete", "write", NONE, app, { platformAdmin: true }],
-	...(["people", "rooms", "devices", "groups", "services"] as const).flatMap((r): Row[] => [
-		[r, "view", "read", NONE, app],
-		[r, "create", "write", NONE, app],
-		[r, "edit", "write", NONE, app],
-		[r, "delete", "write", NONE, app],
-	]),
-	["prices", "view", "read", NONE, app, { fieldGroup: "money" }],
-	["prices", "change", "write", NONE, app, { fieldGroup: "money" }],
-	["calendar", "view", "read", ALL, ["sched_calendar"]],
-	["appointments", "view", "read", ALL, ["sched_appointment"]],
-	["appointments", "create", "write", ALL, ["sched_calendar"]],
-	["appointments", "edit", "write", ALL, ["sched_appointment"]],
-	["appointments", "cancel", "write", ALL, ["sched_appointment"]],
-	["appointments", "attend", "write", ALL, ["sched_appointment"]],
-	["appointments", "assign", "write", ALL, ["sched_appointment"]],
-	["appointments", "money_view", "read", ALL, ["sched_appointment"], { fieldGroup: "money" }],
-	["appointments", "money_edit", "write", ALL, ["sched_appointment"], { fieldGroup: "money" }],
-	["clients", "create", "write", NONE, app],
-	...(["view", "edit", "archive", "restore", "delete", "assign", "export"] as const).map(
-		(a): Row => [
-			"clients",
-			a,
-			a === "view" || a === "export" ? "read" : "write",
-			ALL,
-			["sched_client"],
-		],
-	),
-	...(["contact", "guardian", "money", "clinical"] as const).flatMap((g): Row[] => [
-		["clients", `${g}_view`, "read", ALL, ["sched_client"], { fieldGroup: g }],
-		["clients", `${g}_edit`, "write", ALL, ["sched_client"], { fieldGroup: g }],
-	]),
-	["packages", "view", "read", ALL, ["sched_client", "sched_package"], { fieldGroup: "money" }],
-	["packages", "create", "write", ALL, ["sched_client"], { fieldGroup: "money" }],
-	["packages", "edit", "write", ALL, ["sched_package"], { fieldGroup: "money" }],
-	["packages", "delete", "write", ALL, ["sched_package"], { fieldGroup: "money" }],
-	["payments", "view", "read", ALL, ["sched_package"], { fieldGroup: "money" }],
-	["payments", "create", "write", ALL, ["sched_package"], { fieldGroup: "money" }],
-	["payments", "delete", "write", NONE, app, { fieldGroup: "money" }],
-	["roster", "view", "read", NONE, app],
-	["roster", "edit", "write", NONE, app],
-	["leave", "view", "read", ["all", "own"], ["sched_calendar"]],
-	["leave", "create", "write", ["all", "own"], ["sched_calendar"]],
-	["leave", "approve", "write", NONE, app],
-	["reminders", "view", "read", NONE, app],
-	["reminders", "send", "write", NONE, app],
-	["requests", "view", "read", NONE, app],
-	["requests", "decide", "write", NONE, app],
-	["records", "view", "read", ALL, ["sched_client", "sched_record"]],
-	["records", "create", "write", ALL, ["sched_client"], { fieldGroup: "clinical" }],
-	["records", "edit", "write", ALL, ["sched_record"], { fieldGroup: "clinical" }],
-	["records", "delete", "write", ALL, ["sched_record"], { fieldGroup: "clinical" }],
-	["records", "clinical_view", "read", ALL, ["sched_record"], { fieldGroup: "clinical" }],
-	["files", "view", "read", ALL, ["sched_client", "sched_file"]],
-	["files", "upload", "write", ALL, ["sched_client", "sched_file"]],
-	["files", "delete", "write", ALL, ["sched_file"]],
-	["audit", "view", "read", NONE, app],
-	["builder", "view", "read", NONE, app],
-	["builder", "edit", "write", NONE, app],
-	["imports", "view", "read", NONE, app],
-];
+/** Per resource, the object types its permissions are checked on (the rest of an action's list is the default). */
+const WHERE: Readonly<Record<Resource, Where>> = {
+	app_settings: APP,
+	members: APP,
+	roles: APP,
+	builder: APP,
+	services: APP,
+	prices: APP,
+	rooms: APP,
+	devices: APP,
+	group_activities: APP,
+	notice_board: APP,
+	web_requests: APP,
+	reports: APP,
+	audit_log: APP,
+	imports_exports: APP,
+	people: { create: APP, view: CALENDAR, edit: CALENDAR, archive: CALENDAR },
+	calendars: CALENDAR,
+	roster: CALENDAR,
+	leave: CALENDAR,
+	appointments: { create: CALENDAR, view: APPOINTMENT },
+	reminders: APPOINTMENT,
+	clients: { create: APP, view: CLIENT },
+	report_aba: reportWhere(),
+	report_racemeup: reportWhere(),
+	report_psychotherapy: reportWhere(),
+	report_custom: reportWhere(),
+	questionnaire_parent: reportWhere(),
+	files: {
+		view: ["sched_client", "sched_file"],
+		upload: ["sched_client", "sched_file"],
+		delete: ["sched_file"],
+		export: ["sched_file"],
+	},
+	packages: {
+		view: ["sched_client", "sched_package"],
+		create: CLIENT,
+		edit: ["sched_package"],
+		delete: ["sched_package"],
+		price: ["sched_package"],
+	},
+	payments: ["sched_client", "sched_package"],
+};
 
-export const CATALOGUE: readonly PermissionDef[] = rows.map(
-	([resource, action, effect, scopes, objects, extra]) => ({
-		key: `${resource}_${action}`,
-		resource,
-		action,
-		effect,
-		scopes,
-		objects,
-		...extra,
-	}),
-);
+function reportWhere(): Where {
+	return {
+		create: CLIENT,
+		view: ["sched_client", "sched_record"],
+		edit: ["sched_record"],
+		delete: ["sched_record"],
+		export: ["sched_record"],
+	};
+}
+
+/** The object types that an action of a resource without its own entry defaults to (clients: the client). */
+function objectsOf(resource: Resource, action: Action): readonly SchedType[] {
+	const where = WHERE[resource];
+	if (Array.isArray(where)) return where;
+	const given = (where as Partial<Record<Action, readonly SchedType[]>>)[action];
+	if (given !== undefined) return given;
+	if (resource === "appointments") return APPOINTMENT;
+	if (resource === "clients") return CLIENT;
+	throw new Error(`no placement for ${resource} ${action}`);
+}
+
+const PLATFORM_ADMIN: readonly Resource[] = ["app_settings", "members", "roles"];
+const READS: readonly Action[] = ["view", "export", "imports_view"];
+
+function base(resource: Resource, action: Action, group?: BaseFieldGroup): string {
+	return `${resource}_${action}${group === undefined ? "" : `_${group}`}`;
+}
+
+/** Every permission of the catalogue, once, without its scope: one entry per resource x action x (identity | group). */
+export const CATALOGUE: readonly PermissionDef[] = RESOURCES.flatMap((resource) => {
+	const def = RESOURCE_CATALOGUE[resource];
+	return def.actions.flatMap((action): PermissionDef[] =>
+		[undefined, ...(def.fieldGroups ?? [])].map((group) => ({
+			key: base(resource, action, group),
+			resource,
+			action,
+			...(group === undefined ? {} : { group }),
+			effect: READS.includes(action) ? ("read" as const) : ("write" as const),
+			scopes: def.scopes,
+			objects:
+				def.scopes.length === 1 && def.scopes[0] === "all" ? APP : objectsOf(resource, action),
+			...(PLATFORM_ADMIN.includes(resource) ? { platformAdmin: true as const } : {}),
+		})),
+	);
+});
 
 const BY_KEY = new Map(CATALOGUE.map((def) => [def.key, def]));
 
@@ -125,25 +143,45 @@ export function permissionOf(key: string): PermissionDef | undefined {
 	return BY_KEY.get(key);
 }
 
-/** The relation names a permission is held under on the app: its key, or the key per scope. */
+/** The relation a permission is held under on the app at one scope: `clients_view_own_clinical`. */
+export function appRelation(def: PermissionDef, scope: Scope): string {
+	const p: Permission = {
+		resource: def.resource,
+		action: def.action,
+		scope,
+		...(def.group === undefined ? {} : { fieldGroup: def.group }),
+	};
+	return relationName(permissionKey(p));
+}
+
+/** Every relation of the permission on the app, one per scope the catalogue defines. */
 export function appRelations(def: PermissionDef): string[] {
-	return def.scopes.length === 0 ? [def.key] : def.scopes.map((scope) => `${def.key}_${scope}`);
+	return def.scopes.map((scope) => appRelation(def, scope));
 }
 
 export function allAppRelations(): string[] {
 	return CATALOGUE.flatMap(appRelations);
 }
 
-/** Which permission key and scope an app relation name belongs to (`clients_edit_own` -> clients_edit, own). */
-export function parseRelation(
-	relation: string,
-): { def: PermissionDef; scope: ScopeName | undefined } | undefined {
-	const direct = BY_KEY.get(relation);
-	if (direct !== undefined && direct.scopes.length === 0) return { def: direct, scope: undefined };
-	for (const scope of ["all", "assigned", "own"] as const) {
-		if (!relation.endsWith(`_${scope}`)) continue;
-		const def = BY_KEY.get(relation.slice(0, -scope.length - 1));
-		if (def !== undefined && def.scopes.includes(scope)) return { def, scope };
-	}
-	return undefined;
+/** True when the permission is defined on this object type (Checked on it), or on the app alone. */
+export function checkedOn(def: PermissionDef, type: SchedType): boolean {
+	return def.objects.includes(type);
+}
+
+/** Which permission and scope an app relation name belongs to (`clients_view_own_clinical` -> clients_view_clinical, own). */
+export function parseRelation(relation: string): { def: PermissionDef; scope: Scope } | undefined {
+	const parsed = parsePermissionKey(relation);
+	if (parsed === undefined || parsed.fieldGroup?.startsWith("custom-") === true) return undefined;
+	const def = BY_KEY.get(
+		base(parsed.resource, parsed.action, parsed.fieldGroup as BaseFieldGroup | undefined),
+	);
+	return def === undefined ? undefined : { def, scope: parsed.scope };
+}
+
+/** Sanity for the generator's input: every catalogue key maps to a relation and back. */
+export function catalogueIsClosed(): boolean {
+	return (
+		allAppRelations().length === ALL_PERMISSION_KEYS.length &&
+		allAppRelations().every((relation) => ALL_PERMISSION_KEYS.includes(relation))
+	);
 }

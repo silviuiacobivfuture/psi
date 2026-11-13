@@ -65,7 +65,7 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 		expect(w.practitioners).toMatchObject({ created: 4, orphan: 0 });
 		expect(w.clients).toMatchObject({ created: 7, orphan: 0 });
 		expect(w.visits).toMatchObject({ created: 12, orphan: 0 });
-		expect(w.responses).toMatchObject({ created: 4, orphan: 0 });
+		expect(w.responses).toMatchObject({ created: 7, orphan: 0 });
 		expect(w.files).toMatchObject({ created: 2, orphan: 0 });
 		expect(w.payments).toMatchObject({ created: 1 });
 		const after = await counts();

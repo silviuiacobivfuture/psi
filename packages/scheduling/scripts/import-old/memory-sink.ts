@@ -102,6 +102,22 @@ export class MemorySink implements ImportSink {
 		return known;
 	}
 
+	learned: Array<{ definitionKey: string; field: string; values: string[] }> = [];
+
+	async learnOptions(
+		_tenant: string,
+		entries: ReadonlyArray<{
+			definitionKey: string;
+			definitionVersion: number;
+			field: string;
+			values: string[];
+		}>,
+	): Promise<void> {
+		this.learned.push(
+			...entries.map((e) => ({ definitionKey: e.definitionKey, field: e.field, values: e.values })),
+		);
+	}
+
 	async slugs(): Promise<Array<{ kind: SlugKind; slug: string; legacyId: string | undefined }>> {
 		const out: Array<{ kind: SlugKind; slug: string; legacyId: string | undefined }> = [];
 		for (const kind of ["practitioners", "rooms", "devices", "groups"] as const) {

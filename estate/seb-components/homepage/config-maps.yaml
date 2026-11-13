@@ -1,0 +1,429 @@
+# The two glossaries behind the "Ce înseamnă? · Glosar" tiles, one per side, and
+# their stylesheet (the same psi tokens as custom.css). Mounted as a directory at
+# /app/public/glosar (persistence.glosar), which homepage serves as static files:
+# /glosar/business.html, /glosar/tehnic.html. Every term has its own anchor.
+glosar:
+  enabled: true
+  data:
+    glosar.css: |
+      /* The hub's glossary pages: the same psi tokens (psizone-dark) and faces as the hub's custom.css. */
+      @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Manrope:wght@400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+      :root {
+        color-scheme: dark;
+        --bg: #0D0B07; --surface-1: #15120C; --surface-2: #1E1A12;
+        --line: rgba(255,240,210,0.10); --line-strong: #3E3626;
+        --ink: #F7F1E3; --ink-muted: #C2B79F; --ink-faint: #9C927C;
+        --glow-1: #D2AA50; --glow-2: #40D9C9; --accent: #C2983F; --accent-soft: rgba(194,152,63,0.16);
+        --focus: #40D9C9;
+        --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+        --font-sans: "Manrope", "Segoe UI", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+        --radius-sm: 10px; --radius-md: 18px; --radius-pill: 999px;
+        --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0; color: var(--ink); font: 400 16px/1.6 var(--font-sans);
+        background:
+          radial-gradient(60rem 36rem at 12% -8%, color-mix(in oklab, var(--glow-1) 12%, transparent), transparent 70%),
+          radial-gradient(48rem 30rem at 100% 0%, color-mix(in oklab, var(--glow-2) 6%, transparent), transparent 70%),
+          var(--bg);
+        background-attachment: fixed;
+      }
+      .wrap { max-width: 920px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-6); }
+      .back {
+        display: inline-flex; align-items: center; gap: var(--space-2);
+        padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
+        border: 1px solid var(--accent); background: var(--accent-soft);
+        color: var(--ink); font-weight: 600; font-size: 14px; text-decoration: none;
+      }
+      .back:hover { background: var(--surface-2); }
+      h1 { font: 400 40px/1.15 var(--font-display); font-variation-settings: "SOFT" 100, "opsz" 144; letter-spacing: -0.015em; margin: var(--space-5) 0 var(--space-3); }
+      h2 { font: 400 28px/1.2 var(--font-display); font-variation-settings: "SOFT" 100; letter-spacing: -0.015em; margin: 0 0 var(--space-2); }
+      .lead { color: var(--ink-muted); font-size: 17px; max-width: 70ch; }
+      nav.toc { margin: var(--space-5) 0; padding: var(--space-4); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-md); }
+      nav.toc h2 { font: 600 13px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: var(--space-2); }
+      nav.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+      nav.toc a { display: inline-block; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--line-strong); color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 600; }
+      nav.toc a:hover { border-color: var(--accent); background: var(--accent-soft); }
+      section { margin-top: var(--space-6); padding: var(--space-5); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-md); scroll-margin-top: var(--space-4); }
+      section > p { color: var(--ink-muted); margin: 0 0 var(--space-4); }
+      dl { margin: 0; }
+      dt { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--line); font-weight: 700; font-size: 17px; scroll-margin-top: var(--space-4); }
+      dt:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+      dt a { color: var(--ink); text-decoration: none; }
+      dt a:hover { color: var(--glow-1); text-decoration: underline; }
+      dt .also { font: 500 13px/1 var(--font-mono); color: var(--ink-faint); margin-left: var(--space-2); }
+      dt:target { color: var(--glow-1); }
+      dt:target + dd { border-left: 2px solid var(--accent); padding-left: var(--space-3); }
+      dd { margin: var(--space-1) 0 0; color: var(--ink-muted); max-width: 75ch; }
+      dd strong { color: var(--ink); font-weight: 600; }
+      .ex { display: block; margin-top: var(--space-1); color: var(--ink-faint); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.9em; color: var(--ink); }
+      footer { margin-top: var(--space-6); color: var(--ink-faint); font-size: 14px; }
+      footer a, dd a { color: var(--glow-1); }
+      a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+      @media (max-width: 600px) {
+        h1 { font-size: 30px; }
+        h2 { font-size: 23px; }
+        section { padding: var(--space-4); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+      }
+    business.html: |
+      <!doctype html>
+      <html lang="ro">
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Glosar Business · Psizone hub</title>
+      <meta name="description" content="Ce înseamnă cuvintele de pe partea Business a hub-ului Psizone și la ce folosește fiecare aplicație.">
+      <link rel="stylesheet" href="/glosar/glosar.css">
+      </head>
+      <body>
+      <div class="wrap">
+      <a class="back" href="/">← Înapoi la hub</a>
+      <main>
+      <h1>Ce înseamnă? · Glosar Business</h1>
+      <p class="lead">La ce folosește fiecare aplicație de pe partea <strong>Business</strong> a hub-ului și ce înseamnă cuvintele pe care le întâlnești în ele. Fiecare termen are o adresă proprie (de exemplu <code>#plane</code>), ca să-l poți trimite cuiva direct.</p>
+
+      <nav class="toc" aria-labelledby="toc-h">
+      <h2 id="toc-h">Secțiuni</h2>
+      <ul>
+      <li><a href="#cont">Contul tău</a></li>
+      <li><a href="#site-uri">Site-urile noastre</a></li>
+      <li><a href="#psicloud">PsiCloud</a></li>
+      <li><a href="#zi-cu-zi">Munca de zi cu zi</a></li>
+      <li><a href="#continut">Conținut și brand</a></li>
+      </ul>
+      </nav>
+
+      <section id="cont" aria-labelledby="cont-h">
+      <h2 id="cont-h">Contul tău și cum intri</h2>
+      <p>Cuvintele pe care le întâlnești în toate aplicațiile.</p>
+      <dl>
+      <dt id="hub"><a href="#hub">Hub</a></dt>
+      <dd>Pagina asta: punctul de plecare spre tot ce folosește echipa. Partea <strong>Business</strong> e pentru munca de zi cu zi; partea <strong>Tehnic</strong> e pentru cei care îngrijesc platforma.</dd>
+      <dt id="interfata-vs-fundal"><a href="#interfata-vs-fundal">Aplicație cu interfață vs serviciu de fundal</a></dt>
+      <dd>Tot ce e pe partea Business e o <strong>aplicație cu interfață</strong>: un card cu „Deschide ↗” pe care dai click și se deschide. Pe partea Tehnic există și <strong>servicii de fundal</strong>, fără ecran, marcate „doar stare”: lucrează pentru celelalte aplicații, nu le deschizi tu.</dd>
+      <dt id="cont-unic"><a href="#cont-unic">Cont</a> <span class="also">contul tău unic</span></dt>
+      <dd>Numele tău de utilizator, parola și codul din telefon. Ai un singur cont pentru toate aplicațiile Psizone: PsiCloud, Plane, CMS și restul.</dd>
+      <dt id="autentificare"><a href="#autentificare">Autentificare</a> <span class="also">cum intri</span></dt>
+      <dd>Momentul în care dovedești cine ești: pe pagina de autentificare Psizone îți pui parola și codul din aplicația de pe telefon. O faci o dată, iar celelalte aplicații te recunosc singure (autentificare unică).<span class="ex">Ca un ecuson care deschide toate ușile la care ai acces.</span></dd>
+      <dt id="al-doilea-factor"><a href="#al-doilea-factor">Al doilea factor</a> <span class="also">cod din telefon, TOTP</span></dt>
+      <dd>Un cod de 6 cifre care se schimbă la fiecare jumătate de minut, dintr-o aplicație de pe telefon. Chiar dacă cineva îți află parola, fără telefon nu intră.</dd>
+      <dt id="sesiune"><a href="#sesiune">Sesiune</a></dt>
+      <dd>Perioada în care rămâi autentificat fără să-ți mai ceri parola. Când expiră sau apeși „Ieșire”, te autentifici din nou.</dd>
+      <dt id="link-invitatie"><a href="#link-invitatie">Link de invitație</a></dt>
+      <dd>Linkul primit când ți se face cont: îl deschizi o singură dată ca să-ți alegi parola și să-ți legi telefonul pentru cod.</dd>
+      <dt id="grup"><a href="#grup">Grup</a></dt>
+      <dd>O echipă de oameni care au aceleași drepturi. În loc să primească fiecare drepturi separat, primește grupul.</dd>
+      <dt id="permisiune"><a href="#permisiune">Permisiune</a> <span class="also">drept de acces</span></dt>
+      <dd>Ce ai voie să faci într-o aplicație: să vezi, să editezi, să publici, să administrezi. Dacă un buton îți lipsește, de obicei e o permisiune pe care n-o ai; cere-o echipei tehnice.</dd>
+      <dt id="stare"><a href="#stare">Eticheta de stare</a> <span class="also">running</span></dt>
+      <dd>Cuvântul mic din colțul unui card. „running” înseamnă că aplicația merge; altceva înseamnă că are o problemă și echipa tehnică trebuie anunțată.</dd>
+      </dl>
+      </section>
+
+      <section id="site-uri" aria-labelledby="site-uri-h">
+      <h2 id="site-uri-h">Site-urile noastre</h2>
+      <p>Site-urile publice, cele pe care le văd clienții.</p>
+      <dl>
+      <dt id="psizone"><a href="#psizone">Psizone</a></dt>
+      <dd>Site-ul centrului Psizone: cine suntem, ce oferim, cum ne găsești.</dd>
+      <dt id="eq-sync"><a href="#eq-sync">EQ-SYNC</a></dt>
+      <dd>Site-ul programului sonor de 21 de zile.</dd>
+      <dt id="hemi-sync"><a href="#hemi-sync">Hemi-Sync România</a></dt>
+      <dd>Site-ul cu programele, produsele și atelierele Hemi-Sync®.</dd>
+      <dt id="blog"><a href="#blog">Blogul</a></dt>
+      <dd>Articolele tuturor brandurilor, într-un singur loc. Articolele se scriu și se publică din CMS (vezi <a href="#cms">Conținutul site-urilor</a>).</dd>
+      </dl>
+      </section>
+
+      <section id="psicloud" aria-labelledby="psicloud-h">
+      <h2 id="psicloud-h">PsiCloud</h2>
+      <p>Biroul online al echipei, construit pe Nextcloud. Fiecare card deschide direct o aplicație din meniul lui.</p>
+      <dl>
+      <dt id="psicloud-ce-e"><a href="#psicloud-ce-e">PsiCloud</a> <span class="also">Nextcloud</span></dt>
+      <dd>Locul unde echipa își ține fișierele, calendarul, contactele și discuțiile, pe serverele noastre, nu la o firmă străină.<span class="ex">Ca un birou comun, deschis din orice browser sau telefon.</span></dd>
+      <dt id="fisiere"><a href="#fisiere">Fișiere și dosare comune</a> <span class="also">Files</span></dt>
+      <dd>Documentele tale și ale echipei, pe dosare. Le poți deschide și edita direct în browser și le poți <strong>partaja</strong>: cu un coleg, cu un grup sau printr-un link trimis cuiva din afară.</dd>
+      <dt id="office"><a href="#office">Documente noi</a> <span class="also">Office</span></dt>
+      <dd>Începi un document, un tabel sau o prezentare, compatibile cu Word, Excel și PowerPoint, și le editezi împreună cu colegii în același timp.</dd>
+      <dt id="talk"><a href="#talk">Mesaje și apeluri</a> <span class="also">Talk</span></dt>
+      <dd>Discuții scrise, apeluri și videoconferințe cu echipa. Tot aici apar și alertele automate ale platformei.</dd>
+      <dt id="calendar"><a href="#calendar">Calendar</a></dt>
+      <dd>Întâlnirile și programul echipei; poți invita colegi și vedea când sunt liberi.</dd>
+      <dt id="contacte"><a href="#contacte">Contacte</a></dt>
+      <dd>Agenda cu oamenii și firmele cu care lucrezi, comună pentru echipă.</dd>
+      <dt id="fotografii"><a href="#fotografii">Fotografii</a> <span class="also">Photos</span></dt>
+      <dd>Pozele echipei, puse pe albume.</dd>
+      <dt id="activitate"><a href="#activitate">Activitate</a> <span class="also">Activity</span></dt>
+      <dd>Ce s-a schimbat recent în fișierele tale: cine a adăugat, modificat sau partajat ceva.</dd>
+      <dt id="formulare"><a href="#formulare">Formulare</a> <span class="also">Forms</span></dt>
+      <dd>Chestionare și înscrieri pe care le trimiți oricui printr-un link; răspunsurile se strâng automat.</dd>
+      <dt id="notite"><a href="#notite">Notițe</a> <span class="also">Notes</span></dt>
+      <dd>Notițele tale, sincronizate pe calculator și telefon.</dd>
+      <dt id="anunturi"><a href="#anunturi">Anunțuri</a> <span class="also">Announcement center</span></dt>
+      <dd>Anunțuri pentru toată echipa, pe care le vede fiecare când intră în PsiCloud.</dd>
+      <dt id="dicom"><a href="#dicom">DICOM Viewer</a></dt>
+      <dd>Deschide în PsiCloud imagini medicale în formatul DICOM (de exemplu, de la un RMN sau CT), fără alt program instalat.</dd>
+      <dt id="site-uri-externe"><a href="#site-uri-externe">Site-uri externe</a> <span class="also">External sites</span></dt>
+      <dd>Scurtături din meniul PsiCloud către cele patru site-uri ale noastre (Psizone, EQ-SYNC, Hemi-Sync, Blogul), deschise într-o filă nouă.</dd>
+      </dl>
+      </section>
+
+      <section id="zi-cu-zi" aria-labelledby="zi-cu-zi-h">
+      <h2 id="zi-cu-zi-h">Munca de zi cu zi</h2>
+      <p>Unde se organizează munca și unelte mici, la îndemână.</p>
+      <dl>
+      <dt id="e-mail"><a href="#e-mail">E-mail</a> <span class="also">post.psizone.ro, Stalwart</span></dt>
+      <dd>Căsuța ta de e-mail a echipei, cu adresa <em>nume@post.psizone.ro</em>. O citești în browser la webmail.psizone.ro, unde intri cu contul tău unic, fără altă parolă; pe telefon o citești cu aplicația de e-mail obișnuită, folosind o parolă de aplicație.<span class="ex">Adresele @psizone.ro rămân unde erau; aceasta este o adresă nouă, separată.</span></dd>
+      <dt id="parola-aplicatie"><a href="#parola-aplicatie">Parolă de aplicație</a> <span class="also">app password</span></dt>
+      <dd>O parolă separată, făcută de tine în pagina „Parole de aplicație (e-mail)”, pe care o pui doar în aplicația de e-mail a telefonului. Dacă pierzi telefonul, o ștergi pe aceea și restul conturilor rămân neatinse.</dd>
+      <dt id="plane"><a href="#plane">Plane</a> <span class="also">Proiecte și sarcini</span></dt>
+      <dd>Aplicația în care ținem evidența a ce e de făcut, cine se ocupă și până când.<span class="ex">Ca un panou cu bilețele, mutate din „de făcut” în „gata”.</span></dd>
+      <dt id="proiect"><a href="#proiect">Proiect</a></dt>
+      <dd>Un dosar mare de lucru în Plane (un site, o campanie, un produs), cu sarcinile lui.</dd>
+      <dt id="sarcina"><a href="#sarcina">Sarcină</a> <span class="also">work item</span></dt>
+      <dd>Un lucru concret de făcut, cu un responsabil, o stare și, dacă e cazul, un termen. Poate avea comentarii, imagini și sub-sarcini.</dd>
+      <dt id="stare-sarcina"><a href="#stare-sarcina">Starea unei sarcini</a></dt>
+      <dd>Unde se află sarcina: de exemplu „de făcut”, „în lucru”, „gata”. O muți pe măsură ce avansezi.</dd>
+      <dt id="ciclu"><a href="#ciclu">Ciclu</a> <span class="also">cycle</span></dt>
+      <dd>O perioadă fixă de lucru (de exemplu două săptămâni) și sarcinile pe care echipa și-a propus să le termine în ea.</dd>
+      <dt id="modul"><a href="#modul">Modul</a> <span class="also">module</span></dt>
+      <dd>Un grup de sarcini care țin de aceeași parte mai mare a unui proiect (de exemplu „pagina de prețuri”), urmărit ca un întreg.</dd>
+      <dt id="eticheta"><a href="#eticheta">Etichetă</a> <span class="also">label</span></dt>
+      <dd>Un cuvânt pus pe sarcini ca să le găsești și să le filtrezi ușor (de exemplu „urgent”, „text”, „design”).</dd>
+      <dt id="unelte-pdf"><a href="#unelte-pdf">Unelte PDF</a></dt>
+      <dd>Unești, împarți sau micșorezi fișiere PDF. Lucrul se face în browserul tău: fișierele nu pleacă de pe calculator.</dd>
+      </dl>
+      </section>
+
+      <section id="continut" aria-labelledby="continut-h">
+      <h2 id="continut-h">Conținut și brand</h2>
+      <p>Ce scriem pe site-uri și cum arată brandurile.</p>
+      <dl>
+      <dt id="cms"><a href="#cms">CMS</a> <span class="also">Conținutul site-urilor</span></dt>
+      <dd>Aplicația în care scrii și publici articole și pagini pentru site-uri, fără să atingi codul.<span class="ex">Ca o redacție: scrii, revizuiești, apoi dai la tipar.</span></dd>
+      <dt id="continut-def"><a href="#continut-def">Conținut</a></dt>
+      <dd>Tot ce citește un vizitator pe site: articole, oferte, prezentările oamenilor, imagini.</dd>
+      <dt id="draft"><a href="#draft">Draft</a> <span class="also">ciornă</span></dt>
+      <dd>Un articol încă nepublicat: îl vezi și îl editezi în CMS, dar vizitatorii nu îl văd.</dd>
+      <dt id="publicare"><a href="#publicare">Publicare</a></dt>
+      <dd>Momentul în care un articol devine vizibil pe site. CMS-ul publică doar un articol complet: cu introducere și text, iar unul despre sănătate și cu autor, surse și aprobarea unui specialist care l-a revizuit.</dd>
+      <dt id="media"><a href="#media">Media</a></dt>
+      <dd>Imaginile și fișierele încărcate în CMS, pe care le folosești în articole și pagini.</dd>
+      <dt id="ghid-vizual"><a href="#ghid-vizual">Ghidul vizual</a></dt>
+      <dd>Culorile, fonturile și componentele fiecărui brand, ca tot ce facem să arate la fel. Te uiți aici înainte de o prezentare, o postare sau un afiș.</dd>
+      </dl>
+      </section>
+      </main>
+      <footer>Lipsește un termen sau e neclar? Spune-i echipei în Talk. · <a href="/glosar/tehnic.html">Glosarul tehnic →</a></footer>
+      </div>
+      </body>
+      </html>
+    tehnic.html: |
+      <!doctype html>
+      <html lang="ro">
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Glosar tehnic · Psizone hub</title>
+      <meta name="description" content="Ce înseamnă cuvintele de pe partea Tehnic a hub-ului Psizone, explicate pe înțelesul tuturor.">
+      <link rel="stylesheet" href="/glosar/glosar.css">
+      </head>
+      <body>
+      <div class="wrap">
+      <a class="back" href="/">← Înapoi la hub</a>
+      <main>
+      <h1>Ce înseamnă? · Glosar tehnic</h1>
+      <p class="lead">Cuvintele de pe partea <strong>Tehnic</strong> a hub-ului, explicate pentru cineva care nu scrie cod. Fiecare termen are o adresă proprie (de exemplu <code>#cicd</code>), ca să-l poți trimite cuiva direct.</p>
+
+      <nav class="toc" aria-labelledby="toc-h">
+      <h2 id="toc-h">Secțiuni</h2>
+      <ul>
+      <li><a href="#concepte">Concepte de bază</a></li>
+      <li><a href="#livrare">Livrare</a></li>
+      <li><a href="#acces">Acces și securitate</a></li>
+      <li><a href="#comunicare">Comunicare și automatizări</a></li>
+      <li><a href="#monitorizare">Monitorizare</a></li>
+      <li><a href="#infrastructura">Infrastructură</a></li>
+      <li><a href="#fundal">Rulează în fundal</a></li>
+      </ul>
+      </nav>
+
+      <section id="concepte" aria-labelledby="concepte-h">
+      <h2 id="concepte-h">Concepte de bază</h2>
+      <p>Cuvintele care apar peste tot, în orice secțiune.</p>
+      <dl>
+      <dt id="interfata-vs-fundal"><a href="#interfata-vs-fundal">Aplicație cu interfață vs serviciu de fundal</a></dt>
+      <dd>O <strong>aplicație cu interfață</strong> are un ecran pe care îl deschizi în browser: pe hub, cardul ei are săgeata „Deschide ↗”. Un <strong>serviciu de fundal</strong> nu are ecran; doar lucrează pentru celelalte aplicații, iar hub-ul îți arată numai dacă merge, cu eticheta „doar stare”.<span class="ex">Ca la un restaurant: sala e interfața, bucătăria e serviciul de fundal.</span></dd>
+      <dt id="cod"><a href="#cod">Cod</a></dt>
+      <dd>Instrucțiunile scrise de programatori, într-un limbaj pe care calculatorul îl poate executa. Fiecare aplicație e, în final, cod.<span class="ex">Ca o rețetă: pașii exacți pe care bucătarul (calculatorul) îi urmează.</span></dd>
+      <dt id="cod-sursa"><a href="#cod-sursa">Cod sursă</a></dt>
+      <dd>Codul în forma în care l-a scris omul, înainte să fie transformat în ceva ce rulează. E „originalul” din care se construiește totul.</dd>
+      <dt id="codebase"><a href="#codebase">Codebase</a> <span class="also">baza de cod</span></dt>
+      <dd>Tot codul sursă al unui proiect, la un loc: toate aplicațiile, configurările și scripturile. La Psizone, codebase-ul e depozitul <code>psi</code> de pe GitHub.</dd>
+      <dt id="depozit"><a href="#depozit">Depozit</a> <span class="also">repository, repo</span></dt>
+      <dd>Locul unde stă codul sursă, împreună cu tot istoricul lui: cine a schimbat ce și când. Tile-ul „Codul sursă” îl deschide.<span class="ex">Ca un dosar cu toate versiunile unui document, niciuna pierdută.</span></dd>
+      <dt id="commit"><a href="#commit">Commit</a></dt>
+      <dd>O schimbare salvată în depozit, cu un mesaj care spune ce și de ce s-a schimbat. Istoricul unui proiect e un șir de commit-uri.</dd>
+      <dt id="pull-request"><a href="#pull-request">Pull request</a> <span class="also">PR</span></dt>
+      <dd>O propunere de schimbare: cineva arată ce vrea să modifice, ceilalți (și verificările automate) se uită, apoi schimbarea e acceptată sau nu.<span class="ex">Ca un document trimis „spre aprobare” înainte să intre în dosar.</span></dd>
+      <dt id="ca-cod"><a href="#ca-cod">„Ca cod”</a> <span class="also">as code</span></dt>
+      <dd>Configurarea serverelor și a aplicațiilor e scrisă în fișiere din depozit, nu făcută manual prin click-uri. Așa se poate reface oricând exact la fel și se vede cine a schimbat ce.</dd>
+      <dt id="estate"><a href="#estate">Estate</a></dt>
+      <dd>Tot ansamblul Psizone: serverele, aplicațiile, bazele de date și serviciile care le leagă, conduse ca cod dintr-un singur depozit. Când spunem „estate-ul psi”, ne referim la tot ce vezi pe partea Tehnic.</dd>
+      <dt id="seb"><a href="#seb">SEB</a></dt>
+      <dd>Platforma comună din care e construit estate-ul Psizone (și un alt estate, al unei alte companii). SEB dă piesele standard — autentificare, livrare, monitorizare — iar fiecare estate le folosește cu numele și aspectul lui.</dd>
+      <dt id="mediu"><a href="#mediu">Mediu</a> <span class="also">dev / prod</span></dt>
+      <dd>O copie completă a platformei, separată de celelalte. <strong>dev</strong> e mediul de dezvoltare, unde ajung întâi schimbările; <strong>prod</strong> (producție) e cel folosit de clienți. Psizone rulează azi în mediul dev.</dd>
+      </dl>
+      </section>
+
+      <section id="livrare" aria-labelledby="livrare-h">
+      <h2 id="livrare-h">Livrare</h2>
+      <p>Drumul unei schimbări: de la cod scris, la aplicația care rulează pentru oameni.</p>
+      <dl>
+      <dt id="github"><a href="#github">GitHub</a> <span class="also">Codul sursă</span></dt>
+      <dd>Serviciul online unde stă depozitul <code>psi</code>: codul, pull request-urile și listele de probleme (issues).</dd>
+      <dt id="cicd"><a href="#cicd">CI/CD</a> <span class="also">integrare și livrare continuă</span></dt>
+      <dd>Bandă automată: la fiecare schimbare, codul e verificat (teste), construit și livrat, fără pași manuali. <strong>CI</strong> = verificarea și construirea; <strong>CD</strong> = livrarea.<span class="ex">Ca o linie de producție cu control de calitate la fiecare stație.</span></dd>
+      <dt id="runner"><a href="#runner">Runner</a> <span class="also">Rulări CI · ARC</span></dt>
+      <dd>Calculatorul care execută efectiv pașii benzii CI/CD. La Psizone, runner-ele GitHub Actions rulează în propriul cluster, pornite la nevoie de ARC. Cardul „Runner-ele CI” arată dacă piesa care le pornește merge.</dd>
+      <dt id="build"><a href="#build">Build</a> <span class="also">construire</span></dt>
+      <dd>Transformarea codului sursă într-o aplicație gata de pornit.<span class="ex">Rețeta (codul) devine prăjitura (aplicația).</span></dd>
+      <dt id="cache-build"><a href="#cache-build">Cache de build</a> <span class="also">Nx</span></dt>
+      <dd>Memoria construcțiilor deja făcute: dacă o parte din cod nu s-a schimbat, rezultatul e luat din cache în loc să fie reconstruit. Nu are ecran; dacă e oprit, nimic nu se strică, doar construcțiile merg mai încet.</dd>
+      <dt id="imagine-container"><a href="#imagine-container">Imagine de container</a></dt>
+      <dd>Aplicația împachetată împreună cu tot ce îi trebuie ca să ruleze, într-un singur pachet care pornește la fel pe orice server.<span class="ex">Ca un container de transport: se încarcă la fel pe orice navă.</span></dd>
+      <dt id="registru"><a href="#registru">Registru de imagini</a> <span class="also">Harbor</span></dt>
+      <dd>Depozitul unde se păstrează imaginile de container construite, fiecare cu versiunea ei. Clusterul își ia aplicațiile de aici (registry.psizone.ro).</dd>
+      <dt id="deploy"><a href="#deploy">Deploy · livrare</a></dt>
+      <dd>Momentul în care o versiune nouă a unei aplicații începe să ruleze pentru oameni. La Psizone, livrarea e automată după ce schimbarea intră în depozit.</dd>
+      <dt id="gitops"><a href="#gitops">GitOps</a></dt>
+      <dd>Regula după care depozitul spune ce trebuie să ruleze, iar clusterul se aliniază singur după el. Schimbi fișierul, nu serverul.</dd>
+      <dt id="argocd"><a href="#argocd">Argo CD</a> <span class="also">Ce rulează în cluster</span></dt>
+      <dd>Unealta care aplică GitOps: compară ce scrie în depozit cu ce rulează și le aduce la același lucru. Ecranul ei arată ce versiune e livrată și dacă e „sincronizată”.</dd>
+      <dt id="changelog"><a href="#changelog">Note de versiune</a> <span class="also">changelog</span></dt>
+      <dd>Lista, pe aplicații, cu ce s-a schimbat de la o versiune la alta, scrisă pentru cei care folosesc aplicația. Serviciul are adresa changelog.psizone.ro, după autentificare; e un serviciu pentru aplicații (cardul deschide pagina lui de stare), iar notele le citești în clopoțelul din Polaris.</dd>
+      <dt id="teste"><a href="#teste">Teste</a></dt>
+      <dd>Programe care verifică automat că aplicațiile fac ce trebuie, la fiecare schimbare, înainte de livrare.</dd>
+      <dt id="reguli-verificate"><a href="#reguli-verificate">Regulile verificate</a></dt>
+      <dd>Pagina (tests.psizone.ro) care arată ce reguli trebuie să respecte fiecare aplicație și dacă testele le confirmă.</dd>
+      <dt id="documentatie"><a href="#documentatie">Documentația tehnică</a> <span class="also">Reference</span></dt>
+      <dd>Referința pentru dezvoltatori: cum se folosesc serviciile platformei și ce oferă fiecare.</dd>
+      </dl>
+      </section>
+
+      <section id="acces" aria-labelledby="acces-h">
+      <h2 id="acces-h">Acces și securitate</h2>
+      <p>Cine intră, ce are voie să facă și unde stau parolele.</p>
+      <dl>
+      <dt id="sso"><a href="#sso">Autentificare unică</a> <span class="also">SSO</span></dt>
+      <dd>Un singur cont și o singură autentificare pentru toate aplicațiile Psizone. Te autentifici o dată, iar aplicațiile te recunosc.<span class="ex">Ca un ecuson care deschide toate ușile la care ai acces.</span></dd>
+      <dt id="authentik"><a href="#authentik">Authentik</a> <span class="also">Conturi și autentificare</span></dt>
+      <dd>Aplicația care ține conturile și grupurile echipei și pagina de autentificare (auth.psizone.ro). Tot aici se pune protecția cu al doilea factor (cod din telefon).</dd>
+      <dt id="polaris"><a href="#polaris">Polaris</a> <span class="also">Drepturi de acces</span></dt>
+      <dd>Serviciul care ține evidența drepturilor: cine ce are voie să facă în fiecare aplicație, cu un catalog al drepturilor și un jurnal (audit) al schimbărilor. Se deschide la access.psizone.ro, după autentificare.</dd>
+      <dt id="openid"><a href="#openid">Furnizorul de identitate</a> <span class="also">Polaris id · OpenID</span></dt>
+      <dd>Partea care le confirmă aplicațiilor cine ești, după un standard comun (OpenID), la sso.psizone.ro. Nu are ecran propriu: cardul deschide configurația lui publică, pe care o citesc aplicațiile.</dd>
+      <dt id="openfga"><a href="#openfga">OpenFGA</a> <span class="also">Motorul de autorizare</span></dt>
+      <dd>Motorul care răspunde, de mii de ori pe zi, la întrebarea „are voie persoana asta să facă asta?”. Polaris îi spune regulile; aplicațiile îl întreabă direct. Nu are ecran.</dd>
+      <dt id="secret"><a href="#secret">Secret</a></dt>
+      <dd>O parolă, o cheie sau un token pe care o aplicație îl folosește ca să intre în alt serviciu. Nu se scrie niciodată în cod.</dd>
+      <dt id="openbao"><a href="#openbao">OpenBao</a> <span class="also">Seiful de secrete</span></dt>
+      <dd>Seiful în care stau toate secretele platformei, sub cheie și cu evidența accesului.<span class="ex">Ca seiful unei firme: cheile nu stau pe birou.</span></dd>
+      <dt id="external-secrets"><a href="#external-secrets">Sincronizarea secretelor</a> <span class="also">External Secrets</span></dt>
+      <dd>Serviciul care aduce secretele din OpenBao exact la aplicațiile care au nevoie de ele, fără ca cineva să le copieze de mână.</dd>
+      </dl>
+      </section>
+
+      <section id="comunicare" aria-labelledby="comunicare-h">
+      <h2 id="comunicare-h">Comunicare și automatizări</h2>
+      <p>Ce trimite mesaje, e-mailuri și notificări și ce face treburi singur.</p>
+      <dl>
+      <dt id="n8n"><a href="#n8n">n8n</a> <span class="also">Automatizări</span></dt>
+      <dd>Unealta în care desenezi fluxuri automate: „când se întâmplă X, fă Y și Z”, între aplicații diferite.<span class="ex">De exemplu: un formular nou completat → un mesaj în Talk.</span></dd>
+      <dt id="webhook"><a href="#webhook">Webhook</a></dt>
+      <dd>Un anunț automat pe care o aplicație îl trimite alteia când se întâmplă ceva, ca să poată reacționa imediat.</dd>
+      <dt id="novu"><a href="#novu">Novu</a> <span class="also">Notificări</span></dt>
+      <dd>Centrul de notificări: hotărăște ce mesaj primește cine și pe ce canal (e-mail, în aplicație), după reguli numite fluxuri.</dd>
+      <dt id="plunk"><a href="#plunk">Plunk</a> <span class="also">E-mail</span></dt>
+      <dd>Serviciul care trimite e-mailurile platformei: mesaje automate, șabloane și campanii.</dd>
+      <dt id="alerte-talk"><a href="#alerte-talk">Alerte în Talk</a></dt>
+      <dd>Un serviciu fără ecran care transformă alertele platformei (ceva s-a oprit, ceva e plin) în mesaje în Talk, unde le vede echipa.</dd>
+      <dt id="talk-hpb"><a href="#talk-hpb">Apeluri video</a> <span class="also">Talk HPB</span></dt>
+      <dd>Serverul care ține legătura în apelurile Talk cu mai mulți participanți, ca să nu se încarce telefoanele și laptopurile. Nu are ecran.</dd>
+      <dt id="collabora"><a href="#collabora">Editarea documentelor</a> <span class="also">Collabora</span></dt>
+      <dd>Motorul care deschide și editează documentele Word, Excel și PowerPoint direct în PsiCloud. Nu are ecran propriu: îl vezi în Fișiere și Documente noi.</dd>
+      <dt id="chroma"><a href="#chroma">Memoria ghidului AI</a> <span class="also">Chroma</span></dt>
+      <dd>O bază de date care ține conținutul site-urilor într-o formă pe care asistentul AI o poate căuta după înțeles, nu doar după cuvinte. Se folosește doar prin API, cu cheie.</dd>
+      </dl>
+      </section>
+
+      <section id="monitorizare" aria-labelledby="monitorizare-h">
+      <h2 id="monitorizare-h">Monitorizare</h2>
+      <p>Cum vedem dacă totul merge și ce s-a întâmplat când n-a mers.</p>
+      <dl>
+      <dt id="netdata"><a href="#netdata">Netdata</a> <span class="also">Starea serverelor</span></dt>
+      <dd>Grafice în timp real cu cât procesor, memorie și rețea folosește fiecare server și fiecare aplicație.<span class="ex">Ca bordul unei mașini: viteză, temperatură, benzină.</span></dd>
+      <dt id="headlamp"><a href="#headlamp">Headlamp</a> <span class="also">Consola Kubernetes</span></dt>
+      <dd>Ecranul din care un operator vede și administrează tot ce rulează în cluster.</dd>
+      <dt id="jurnale"><a href="#jurnale">Jurnale și urme</a> <span class="also">OpenTelemetry · Axiom</span></dt>
+      <dd><strong>Jurnalele</strong> sunt însemnările pe care le scrie fiecare aplicație despre ce face; <strong>urmele</strong> arată drumul unei cereri prin mai multe servicii. OpenTelemetry le adună din cluster și le trimite în Axiom, unde pot fi căutate.<span class="ex">Ca jurnalul de bord al unei nave.</span></dd>
+      <dt id="raport-zilnic"><a href="#raport-zilnic">Raportul zilnic</a></dt>
+      <dd>Un rezumat al stării clusterului, trimis automat în fiecare zi în Talk. Rulează o dată pe zi, așa că între rulări nu are stare de arătat.</dd>
+      </dl>
+      </section>
+
+      <section id="infrastructura" aria-labelledby="infrastructura-h">
+      <h2 id="infrastructura-h">Infrastructură</h2>
+      <p>Temelia pe care stau toate aplicațiile.</p>
+      <dl>
+      <dt id="server"><a href="#server">Server · nod</a></dt>
+      <dd>Un calculator din centrul de date, pornit non-stop, pe care rulează aplicațiile. Într-un cluster, fiecare server se numește nod.</dd>
+      <dt id="cluster"><a href="#cluster">Cluster</a></dt>
+      <dd>Unul sau mai multe servere conduse împreună, ca un singur loc în care rulează toate aplicațiile Psizone.</dd>
+      <dt id="kubernetes"><a href="#kubernetes">Kubernetes</a> <span class="also">k3s</span></dt>
+      <dd>Sistemul care conduce clusterul: pornește aplicațiile, le repornește când cad și le împarte resursele. Psizone folosește k3s, o variantă ușoară de Kubernetes.<span class="ex">Ca un dispecer care știe în orice moment ce rulează și unde.</span></dd>
+      <dt id="pod"><a href="#pod">Pod</a></dt>
+      <dd>O aplicație pornită în cluster: unul sau mai multe containere care rulează împreună. Eticheta „running” de pe un card înseamnă că podurile ei merg.</dd>
+      <dt id="namespace"><a href="#namespace">Namespace</a></dt>
+      <dd>Un „sertar” din cluster în care stau toate piesele unei aplicații, separate de ale celorlalte.</dd>
+      <dt id="certificate"><a href="#certificate">Certificate</a> <span class="also">TLS · Let's Encrypt · cert-manager</span></dt>
+      <dd>Dovada că un site e cu adevărat al nostru și că legătura e criptată (lacătul din browser). cert-manager le cere de la Let's Encrypt și le reînnoiește singur.</dd>
+      <dt id="dns"><a href="#dns">Domenii · DNS</a> <span class="also">Cloudflare · external-dns</span></dt>
+      <dd>DNS e cartea de telefon a internetului: transformă un nume (cloud.psizone.ro) în adresa serverului. external-dns scrie singur înregistrările în Cloudflare.</dd>
+      <dt id="intrarea-publica"><a href="#intrarea-publica">Intrarea publică</a> <span class="also">Traefik</span></dt>
+      <dd>Poarta prin care intră traficul de pe internet; fiecare cerere e trimisă la aplicația potrivită după adresă.<span class="ex">Ca recepția unei clădiri care îndrumă vizitatorii la birouri.</span></dd>
+      <dt id="kyverno"><a href="#kyverno">Reguli de admitere</a> <span class="also">Kyverno</span></dt>
+      <dd>Paznicul clusterului: verifică fiecare aplicație nouă după reguli de siguranță și o refuză pe cea care nu le respectă.</dd>
+      <dt id="baze-de-date"><a href="#baze-de-date">Baze de date</a> <span class="also">PostgreSQL · CloudNativePG</span></dt>
+      <dd>Locul unde aplicațiile își țin datele (conturi, articole, sarcini). CloudNativePG pornește și îngrijește bazele PostgreSQL din cluster.</dd>
+      <dt id="copii-siguranta"><a href="#copii-siguranta">Copii de siguranță</a> <span class="also">backup · Velero</span></dt>
+      <dd>Copii ale clusterului și ale datelor, păstrate separat, din care totul se poate reface după o defecțiune.</dd>
+      <dt id="reloader"><a href="#reloader">Reporniri la rotire</a> <span class="also">Reloader</span></dt>
+      <dd>Când o parolă sau o cheie e schimbată (rotită), repornește aplicațiile care o folosesc, ca să o ia pe cea nouă.</dd>
+      <dt id="actualizari"><a href="#actualizari">Actualizări de sistem</a></dt>
+      <dd>Serviciul care aduce serverele la versiuni noi de k3s, pe rând și controlat.</dd>
+      <dt id="discuri"><a href="#discuri">Discuri</a> <span class="also">volume · hcloud CSI</span></dt>
+      <dd>Spațiul de stocare permanent al aplicațiilor, luat din Hetzner Cloud; datele rămân și după ce aplicația repornește.</dd>
+      <dt id="consola-cloud"><a href="#consola-cloud">Consola cloud</a> <span class="also">Hetzner Cloud</span></dt>
+      <dd>Panoul firmei Hetzner, de la care închiriem serverele, rețeaua și stocarea.</dd>
+      </dl>
+      </section>
+
+      <section id="fundal" aria-labelledby="fundal-h">
+      <h2 id="fundal-h">Rulează în fundal</h2>
+      <p>Ultimul grup de pe partea Tehnic adună serviciile fără ecran: piese care lucrează pentru celelalte aplicații. Cardul lor nu se deschide; eticheta „doar stare” și culoarea stării (running) îți spun doar dacă merg. Fiecare are, în descriere, secțiunea de care ține. Vezi și <a href="#interfata-vs-fundal">aplicație cu interfață vs serviciu de fundal</a>.</p>
+      </section>
+      </main>
+      <footer>Lipsește un termen sau e neclar? Spune-i echipei tehnice în Talk. · <a href="/glosar/business.html">Glosarul pentru Business →</a></footer>
+      </div>
+      </body>
+      </html>

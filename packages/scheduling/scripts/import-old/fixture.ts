@@ -1,4 +1,5 @@
-import { mappingSchema } from "./mapping";
+import { feedbackTables } from "./fixture-feedback";
+import { SENTINELS } from "./sentinels";
 
 /**
  * A SYNTHETIC export for the tests: invented names ("Test Client A"), obviously fake phones
@@ -6,37 +7,7 @@ import { mappingSchema } from "./mapping";
  * them reaches a report, a log or a plain column. It covers every table, every status, nulls,
  * unknown ids, duplicates and the daylight-saving day 2026-10-25. Nothing here comes from real data.
  */
-export const SENTINELS = {
-	diagnosis: "SENTINEL-DIAGNOSIS",
-	notes: "SENTINEL-HEALTH-NOTES",
-	reason: "SENTINEL-MAIN-REASON",
-	therapistNote: "SENTINEL-THERAPIST-NOTE",
-	feedback: "SENTINEL-PARENT-FEEDBACK",
-	visitNote: "SENTINEL-VISIT-NOTE",
-	name: "Test Client A",
-	phone: "0700 000 001",
-	fileBytes: "SENTINEL-FILE-BYTES",
-} as const;
-
-export const MAPPING = mappingSchema.parse({
-	app: "psizone",
-	appName: "Psizone",
-	appKind: "clinic",
-	address: "Test address 1",
-	resources: [
-		{ slug: "nfb-1", name: "NFB 1", kind: "device" },
-		{ slug: "nfb-2", name: "NFB 2", kind: "device" },
-		{ slug: "cabinet-1", name: "Cabinet 1", kind: "room", roomKind: "therapy" },
-		{ slug: "cabinet-grup", name: "Cabinet Grup", kind: "room", roomKind: "group", capacity: 8 },
-	],
-	roomIds: { "1": "nfb-1", "2": "nfb-2", "3": "cabinet-1" },
-	therapistResources: { "7": "nfb-1", "8": "nfb-2", "9": "cabinet-grup" },
-	groupActivityColumns: [10, 11, 12, 13, 14],
-	staff: [
-		{ legacyId: 101, name: "Test Reception", kind: "reception" },
-		{ legacyId: 102, name: "Test Other", kind: "other" },
-	],
-});
+export { MAPPING, SENTINELS } from "./sentinels";
 
 const T = "2026-06-01T08:00:00Z";
 
@@ -124,9 +95,13 @@ export function syntheticExport(): { exported_at: string; tables: Record<string,
 		exported_at: "2026-11-13T09:00:00Z",
 		tables: {
 			therapists: [
-				therapist(1, "Test Therapist One", { short_name: "T1" }),
+				therapist(1, "Test Therapist One", {
+					short_name: "T1",
+					start_hour: "09:00",
+					end_hour: "17:30",
+				}),
 				therapist(2, "Test Therapist Two", { short_name: "T2", days: "{1,3,5}", is_active: false }),
-				therapist(3, null),
+				therapist(3, null, { start_hour: "", end_hour: null }),
 				therapist(4, "Test Therapist Four", { short_name: "T1" }),
 				therapist(7, "NFB 1"),
 				therapist(8, "NFB 2"),
@@ -165,10 +140,11 @@ export function syntheticExport(): { exported_at: string; tables: Record<string,
 					tutor_name: "Test Guardian",
 					tutor_relationship: "mother",
 					tutor_phone: "0700 000 099",
-					first_therapy: "ABA",
+					first_therapy: true,
 					gender: "F",
 				}),
 				client(2, "Test Client B", {
+					first_therapy: false,
 					therapist_id: 2,
 					status: "Finalizat",
 					is_archived: true,
@@ -396,58 +372,7 @@ export function syntheticExport(): { exported_at: string; tables: Record<string,
 					created_at: T,
 				},
 			],
-			session_feedback: [
-				{
-					id: 1,
-					appointment_id: 100,
-					client_id: 1,
-					therapist_id: 1,
-					created_at: T,
-					updated_at: T,
-					programs: ["Test program A", "Test program B"],
-					reward_quality: "good",
-					intervention_efficiency: 4,
-					parent_feedback: SENTINELS.feedback,
-					behaviors: ["Test behaviour"],
-				},
-			],
-			racemeup_feedback: [
-				{
-					id: 1,
-					appointment_id: null,
-					client_id: 3,
-					therapist_id: 3,
-					created_at: T,
-					updated_at: T,
-					posts: '["p1","p2"]',
-					emotional_states: null,
-				},
-			],
-			psychotherapy_feedback: [
-				{
-					id: 1,
-					appointment_id: 777,
-					client_id: 1,
-					therapist_id: 88,
-					created_at: T,
-					updated_at: T,
-					session_number: "5",
-					duration_min: 50,
-					next_session_date: "2026-11-01",
-				},
-			],
-			parent_feedback: [
-				{
-					id: 1,
-					appointment_id: null,
-					client_id: 1,
-					therapist_id: null,
-					created_at: T,
-					updated_at: T,
-					reception_rating: 5,
-					would_recommend: true,
-				},
-			],
+			...feedbackTables(T),
 			client_files: [
 				{
 					id: 1,

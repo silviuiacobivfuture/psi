@@ -1,7 +1,8 @@
-import { buildOpenApi, ROUTES, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import { buildOpenApi, ROUTES, type RouteSpec, VIEW_AS_HEADER } from "@psi/scheduling-sdk/contract";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { handlers } from "../handlers/index";
+import { withActor } from "../store/actor";
 import type { Deps, HttpEnv } from "./context";
 import { fail } from "./errors";
 import { finish, prepare, refusal } from "./pipeline";
@@ -35,7 +36,13 @@ export function createApp(
 			"/v1/*",
 			cors({
 				origin: [...options.corsOrigins],
-				allowHeaders: ["authorization", "content-type", "x-service-key", "x-psi-subject"],
+				allowHeaders: [
+					"authorization",
+					"content-type",
+					"x-service-key",
+					"x-psi-subject",
+					VIEW_AS_HEADER,
+				],
 				allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 				maxAge: 600,
 			}),
@@ -57,6 +64,8 @@ export function createApp(
 		}
 	});
 	app.get("/v1/openapi.json", (c) => c.json(openapi));
+	// Public by design: the link IS the credential (signed, single-use, expiring); a GET changes nothing.
+	if (deps.reminders !== undefined) app.route("/v1/public/reminders", deps.reminders);
 
 	for (const spec of ROUTES as ReadonlyArray<RouteSpec>) {
 		if (spec.side === "meta") continue;
@@ -69,7 +78,7 @@ export function createApp(
 		app.on(spec.method, spec.path, async (c) => {
 			try {
 				const prepared = await prepare(deps, spec, c);
-				const result = await handler(prepared.ctx);
+				const result = await withActor(prepared.ctx.subject, () => handler(prepared.ctx));
 				return c.json(await finish(deps, prepared, result));
 			} catch (error) {
 				const r = refusal(deps, error, c.get("requestId"));

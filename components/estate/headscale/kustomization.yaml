@@ -3,8 +3,8 @@ kind: Component
 # The ESTATE's additions to the headscale piece. SEB adds nothing: this is the default.
 # An estate supplies its own directory of the same name to the bundle builder
 # (tools/bundle/build.mjs --estate-components <dir>, one sub-directory per piece), which
-# replaces this one in the build workdir. What belongs there (the sample is
-# examples/lumen/seb-components/headscale): the ConfigMaps headscale-config (config.yaml,
+# replaces this one in the build workdir. What belongs there (SEB's test fixture has one
+# under examples/, by name, for its own tests only): headscale the ConfigMaps headscale-config (config.yaml,
 # derp.yaml, policy.hujson, extra-records.json) and headplane-config (config.yaml), and beside
 # them the tailnet's register services.yaml and its tools/, which the headscale tooling reads
 # through tools/bundle/estate-components.mjs `dir`.

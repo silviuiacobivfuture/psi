@@ -1,3 +1,4 @@
+import { recordResourceFor } from "@psi/scheduling/permissions";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
@@ -8,7 +9,8 @@ import { must, newId, stamps, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
 const MAX_RECORD_BYTES = 100_000;
-const recordContext = (app: string, id: string): string => `${app}:record:${id}`;
+/** Bound to the client, not the record: the store assigns the record's id when it is inserted. */
+const recordContext = (app: string, clientId: string): string => `${app}:client:${clientId}:record`;
 
 const summary = (r: RecordRow) => ({
 	id: r.id,
@@ -21,10 +23,26 @@ const summary = (r: RecordRow) => ({
 	updatedAt: r.updatedAt,
 });
 
-/** A record's content is opened only for a caller with the clinical permission on THIS record, and the read is audited. */
+/** The five permission resources a record can belong to, by the form that wrote it. */
+const RECORD_RESOURCES = [
+	"report_aba",
+	"report_racemeup",
+	"report_psychotherapy",
+	"report_custom",
+	"questionnaire_parent",
+] as const;
+
+/** The resource that governs a record: its form's. A form that no longer exists falls to `report_custom`. */
+async function resourceOfForm(ctx: C, formId: string): Promise<string> {
+	const form = await ctx.deps.store.c.definitions.get(ctx.app, formId);
+	return recordResourceFor(form?.kind === "forms" ? form.id : "");
+}
+
+/** A record's content is opened only for a caller who may view this record (its form's resource), and the read is audited. */
 async function full(ctx: C, r: RecordRow, via: string) {
-	if (!(await ctx.canOn("records_clinical_view", "sched_record", r.id))) return summary(r);
-	const data: unknown = JSON.parse(ctx.deps.crypto.open(r.sealed, recordContext(r.app, r.id)));
+	const data: unknown = JSON.parse(
+		ctx.deps.crypto.open(r.sealed, recordContext(r.app, r.clientId)),
+	);
 	await ctx.auditNow("clinical.read", { type: "record", id: r.id }, { via });
 	return {
 		...summary(r),
@@ -51,11 +69,11 @@ const links = (type: "sched_record" | "sched_file", id: string, app: string, cli
 	parentLink(type, id, "client", "sched_client", clientId),
 ];
 
-function sealed(ctx: C, app: string, id: string, data: Record<string, unknown>): string {
+function sealed(ctx: C, app: string, clientId: string, data: Record<string, unknown>): string {
 	const json = JSON.stringify(data);
 	if (json.length > MAX_RECORD_BYTES)
 		throw fail("invalid", "the record is too large", { field: "data" });
-	return ctx.deps.crypto.seal(json, recordContext(app, id));
+	return ctx.deps.crypto.seal(json, recordContext(app, clientId));
 }
 
 export const recordHandlers: HandlersOf<
@@ -72,51 +90,58 @@ export const recordHandlers: HandlersOf<
 > = {
 	async "records.list"(ctx) {
 		const client = String(ctx.params.id);
-		const visible = await ctx.reachOf("records_view", "sched_record");
-		const rows = (await ctx.deps.store.c.records.list(ctx.app, { eq: { clientId: client } }))
-			.filter((r) => reaches(visible, r.id))
-			.sort((a, b) => b.createdAt - a.createdAt);
-		return { items: await Promise.all(rows.map((r) => full(ctx, r, "records.list"))) };
+		const held = await ctx.authorizeAny(
+			RECORD_RESOURCES.map((r) => `${r}_view`),
+			"sched_client",
+			client,
+		);
+		const rows = (await ctx.deps.store.c.records.list(ctx.app, { eq: { clientId: client } })).sort(
+			(a, b) => b.createdAt - a.createdAt,
+		);
+		const shown: RecordRow[] = [];
+		for (const r of rows)
+			if (held.includes(`${await resourceOfForm(ctx, r.formId)}_view`)) shown.push(r);
+		return { items: await Promise.all(shown.map((r) => full(ctx, r, "records.list"))) };
 	},
 
 	async "records.create"(ctx) {
-		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		const form = await ctx.deps.store.c.definitions.get(ctx.app, ctx.body.formId);
+		const resource = recordResourceFor(form?.kind === "forms" ? form.id : "");
+		await ctx.authorize(`${resource}_create`, "sched_client", String(ctx.params.id));
+		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		if (form === undefined || form.kind !== "forms")
 			throw fail("invalid", "unknown form", { field: "formId" });
 		if (ctx.body.appointmentId !== undefined)
 			await must(ctx.deps.store.c.appointments, ctx.app, ctx.body.appointmentId, "appointment");
-		const id = newId("x");
-		const row: RecordRow = {
-			id,
+		const draft: RecordRow = {
+			id: newId("x"),
 			app: ctx.app,
 			clientId: client.id,
 			formId: form.id,
 			formVersion: form.version,
 			...(ctx.body.appointmentId === undefined ? {} : { appointmentId: ctx.body.appointmentId }),
 			authorSubject: ctx.subject,
-			sealed: sealed(ctx, ctx.app, id, ctx.body.data),
+			sealed: sealed(ctx, ctx.app, client.id, ctx.body.data),
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.records.insert(row);
-		await writeTuples(ctx, links("sched_record", id, ctx.app, client.id));
+		const row = await ctx.deps.store.c.records.insert(draft);
+		await writeTuples(ctx, links("sched_record", row.id, ctx.app, client.id));
 		ctx.note({ formId: form.id, formVersion: form.version });
 		return summary(row);
 	},
 
 	async "records.get"(ctx) {
-		return full(
-			ctx,
-			await must(ctx.deps.store.c.records, ctx.app, String(ctx.params.id), "record"),
-			"records.get",
-		);
+		const row = await must(ctx.deps.store.c.records, ctx.app, String(ctx.params.id), "record");
+		await ctx.authorize(`${await resourceOfForm(ctx, row.formId)}_view`, "sched_record", row.id);
+		return full(ctx, row, "records.get");
 	},
 
 	async "records.update"(ctx) {
 		const row = await must(ctx.deps.store.c.records, ctx.app, String(ctx.params.id), "record");
+		await ctx.authorize(`${await resourceOfForm(ctx, row.formId)}_edit`, "sched_record", row.id);
 		const next: RecordRow = {
 			...row,
-			sealed: sealed(ctx, ctx.app, row.id, ctx.body.data),
+			sealed: sealed(ctx, ctx.app, row.clientId, ctx.body.data),
 			updatedAt: ctx.now,
 		};
 		await ctx.deps.store.c.records.replace(next);
@@ -125,6 +150,7 @@ export const recordHandlers: HandlersOf<
 
 	async "records.remove"(ctx) {
 		const row = await must(ctx.deps.store.c.records, ctx.app, String(ctx.params.id), "record");
+		await ctx.authorize(`${await resourceOfForm(ctx, row.formId)}_delete`, "sched_record", row.id);
 		await ctx.deps.store.c.records.remove(ctx.app, row.id);
 		await writeTuples(ctx, [], links("sched_record", row.id, ctx.app, row.clientId));
 		return { ok: true as const };
@@ -146,9 +172,8 @@ export const recordHandlers: HandlersOf<
 		const objects = ctx.deps.objects;
 		if (objects === undefined) throw unavailableFiles();
 		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
-		const id = newId("f");
-		const row: FileRow = {
-			id,
+		const draft: FileRow = {
+			id: newId("f"),
 			app: ctx.app,
 			clientId: client.id,
 			name: ctx.body.name,
@@ -156,11 +181,11 @@ export const recordHandlers: HandlersOf<
 			size: ctx.body.size,
 			status: "pending",
 			uploadedBy: ctx.subject,
-			objectKey: `${ctx.app}/${client.id}/${id}`,
+			objectKey: `${ctx.app}/${client.id}/${newId("o")}`,
 			...stamps(ctx.now),
 		};
-		await ctx.deps.store.c.files.insert(row);
-		await writeTuples(ctx, links("sched_file", id, ctx.app, client.id));
+		const row = await ctx.deps.store.c.files.insert(draft);
+		await writeTuples(ctx, links("sched_file", row.id, ctx.app, client.id));
 		const link = objects.signUpload(row.objectKey, row.contentType, 900);
 		return {
 			file: fileOut(row),

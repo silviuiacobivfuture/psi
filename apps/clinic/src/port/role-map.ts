@@ -15,12 +15,12 @@ const KEYS = {
 		cancel: "appointments_cancel",
 		assign: "appointments_assign",
 	},
-	calendars: { view: "calendar_view" },
+	calendars: { view: "calendars_view" },
 	groups: {
-		view: "groups_view",
-		create: "groups_create",
-		edit: "groups_edit",
-		cancel: "groups_delete",
+		view: "group_activities_view",
+		create: "group_activities_create",
+		edit: "group_activities_edit",
+		cancel: "group_activities_delete",
 	},
 	clients: {
 		view: "clients_view",
@@ -30,7 +30,6 @@ const KEYS = {
 		cancel: "clients_delete",
 		export: "clients_export",
 	},
-	clinical: { view: "records_view", create: "records_create", edit: "records_edit" },
 	files: { view: "files_view", create: "files_upload", cancel: "files_delete" },
 	packages: {
 		view: "packages_view",
@@ -39,15 +38,15 @@ const KEYS = {
 		cancel: "packages_delete",
 	},
 	payments: { view: "payments_view", create: "payments_create" },
-	prices: { view: "prices_view", edit: "prices_change" },
+	prices: { view: "prices_view", edit: "prices_edit" },
 	roster: { view: "roster_view", edit: "roster_edit" },
 	leave: { view: "leave_view", create: "leave_create", approve: "leave_approve" },
 	reminders: { view: "reminders_view", send: "reminders_send" },
-	requests: { view: "requests_view", approve: "requests_decide" },
+	requests: { view: "web_requests_view", approve: "web_requests_approve" },
 	settings: { view: "app_settings_view", edit: "app_settings_edit" },
-	members: { view: "members_view", edit: "members_edit", cancel: "members_remove" },
+	members: { view: "members_view", edit: "members_edit", cancel: "members_delete" },
 	roles: { view: "roles_view", create: "roles_create", edit: "roles_edit", cancel: "roles_delete" },
-	audit: { view: "audit_view" },
+	audit: { view: "audit_log_view" },
 } as const satisfies Record<string, Record<string, string>>;
 
 type Entry = { resource: string; action: string; key: string };
@@ -57,17 +56,32 @@ const ENTRIES: ReadonlyArray<Entry> = Object.entries(KEYS).flatMap(([resource, a
 const BY_KEY = new Map(ENTRIES.map((e) => [e.key, e]));
 const WIDTH: Readonly<Record<ScopeName, number>> = { all: 3, assigned: 2, own: 1 };
 
-const GROUP_KEY = (g: FieldGroupName): string => `clients_${g}_view`;
-const GROUP_KEYS = new Set<string>(FIELD_GROUPS.map(GROUP_KEY));
+/** A field group's view key as `/me` names it (`clients_view_clinical`); the stored relation adds the scope before the group. */
+const GROUP_KEY = (g: FieldGroupName): string => `clients_view_${g}`;
+const RELATION = /^(.+?)_(all|assigned|own)(?:_(contact|guardian|money|clinical|core))?$/;
 
-/** `clients_view_all` -> (clients_view, all); an unscoped relation is its own key with no scope. */
-export function splitRelation(relation: string): { key: string; scope: ScopeName | null } {
-	for (const scope of SCOPES)
-		if (relation.endsWith(`_${scope}`)) return { key: relation.slice(0, -scope.length - 1), scope };
-	return { key: relation, scope: null };
+interface Parsed {
+	key: string;
+	scope: ScopeName;
+	group: FieldGroupName | null;
 }
 
-/** The role editor's view of a role's permissions (relation names or bare keys): the widest scope per pair. */
+/** `clients_view_all_contact` -> (clients_view, all, contact); every stored permission names its scope. */
+export function splitRelation(
+	relation: string,
+): Parsed | { key: string; scope: null; group: null } {
+	const match = RELATION.exec(relation);
+	if (match === null) return { key: relation, scope: null, group: null };
+	const [, key = relation, scope, group] = match;
+	const groupName = FIELD_GROUPS.find((g) => g === group);
+	return {
+		key,
+		scope: SCOPES.find((x) => x === scope) ?? "all",
+		group: groupName ?? null,
+	};
+}
+
+/** The role editor's view of a role's permissions (stored relations): the widest scope per pair. */
 export function grantsFromRelations(relations: ReadonlyArray<string>): {
 	grants: Role["grants"];
 	fieldGroups: Role["fieldGroups"];
@@ -75,9 +89,11 @@ export function grantsFromRelations(relations: ReadonlyArray<string>): {
 	const widest = new Map<string, ScopeName>();
 	const groups = new Set<FieldGroupName>();
 	for (const relation of relations) {
-		const { key, scope } = splitRelation(relation);
-		const group = FIELD_GROUPS.find((g) => GROUP_KEY(g) === key);
-		if (group !== undefined) groups.add(group);
+		const { key, scope, group } = splitRelation(relation);
+		if (group !== null) {
+			if (key === "clients_view") groups.add(group);
+			continue;
+		}
 		const held = scope ?? "all";
 		const had = widest.get(key);
 		if (had === undefined || WIDTH[held] > WIDTH[had]) widest.set(key, held);
@@ -93,36 +109,32 @@ export function grantsFromRelations(relations: ReadonlyArray<string>): {
 
 /**
  * The permission set to store after the editor saved a role: what the editor shows is replaced, what it cannot show
- * is kept as it was. `scopesOf(key)` is what the service's matrix says the key can be held at (`[]`: unscoped).
+ * is kept as it was. Every stored permission names its scope (`prices_view_all`); a field group is the identity
+ * key's own (`clients_view_all_contact`).
  */
 export function relationsFromGrants(
 	role: Pick<Role, "grants" | "fieldGroups">,
 	existing: ReadonlyArray<string>,
-	scopesOf: (key: string) => ReadonlyArray<ScopeName>,
 ): string[] {
 	const kept = existing.filter((relation) => {
-		const { key } = splitRelation(relation);
-		return !BY_KEY.has(key) && !GROUP_KEYS.has(key);
-	});
-	// A field group still granted keeps its edit relation as it was; one removed loses view and edit together.
-	const editKept = existing.filter((relation) => {
-		const { key } = splitRelation(relation);
-		const group = FIELD_GROUPS.find((g) => `clients_${g}_edit` === key);
-		return group !== undefined && role.fieldGroups.includes(group);
+		const { key, group } = splitRelation(relation);
+		if (BY_KEY.has(key)) return false;
+		// A group of the clients' view is the editor's; any other action's group is kept while that group is granted.
+		if (group !== null && key === "clients_view") return false;
+		if (group !== null && key.startsWith("clients_") && !role.fieldGroups.includes(group))
+			return false;
+		return true;
 	});
 	const written: string[] = [];
 	for (const [resource, actions] of Object.entries(role.grants)) {
 		for (const [action, scope] of Object.entries(actions)) {
 			const key = (KEYS as Record<string, Record<string, string>>)[resource]?.[action];
 			if (key === undefined) continue;
-			written.push(scopesOf(key).length === 0 ? key : `${key}_${scope}`);
+			written.push(`${key}_${scope}`);
 		}
 	}
-	for (const g of role.fieldGroups) {
-		const key = GROUP_KEY(g);
-		written.push(scopesOf(key).length === 0 ? key : `${key}_all`);
-	}
-	return [...new Set([...kept, ...editKept, ...written])].sort();
+	for (const g of role.fieldGroups) written.push(`clients_view_all_${g}`);
+	return [...new Set([...kept, ...written])].sort();
 }
 
 /** The permission keys a role holds, for the capabilities a fake answers with (`{key: [scope]}`). */

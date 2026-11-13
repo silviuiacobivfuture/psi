@@ -48,7 +48,7 @@ function routesFor(ctx: Ctx): Hono {
 		live: liveSource(ctx),
 		authorize: async (_c, need) => {
 			if (need === "settings") return mayDraw(ctx);
-			if (need === "calendar") return ctx.can.has("calendar_view");
+			if (need === "calendar") return ctx.can.has("calendars_view");
 			return ctx.can.has("clients_view");
 		},
 		labels: FLOOR_PLAN_LABELS[ctx.locale],

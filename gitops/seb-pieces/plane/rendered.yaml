@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-srv-account
   namespace: plane
 ---
@@ -31,6 +32,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-app-vars
   namespace: plane
 ---
@@ -46,6 +48,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-live-vars
   namespace: plane
 ---
@@ -195,6 +198,8 @@ data:
     tab of tabs) tab.navigate(tab.url);\n\t\t})(),\n\t);\n});\n"
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: plane
   name: plane-sso-web-gkg6bm5b46
   namespace: plane
 ---
@@ -208,6 +213,7 @@ metadata:
     app.kubernetes.io/version: 1.4.2
     app.name: plane-plane-admin
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-admin
   namespace: plane
 spec:
@@ -229,6 +235,7 @@ metadata:
     app.kubernetes.io/version: 1.4.2
     app.name: plane-plane-api
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-api
   namespace: plane
 spec:
@@ -250,6 +257,7 @@ metadata:
     app.kubernetes.io/version: 1.4.2
     app.name: plane-plane-live
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-live
   namespace: plane
 spec:
@@ -271,6 +279,7 @@ metadata:
     app.kubernetes.io/version: 1.4.2
     app.name: plane-plane-space
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-space
   namespace: plane
 spec:
@@ -292,6 +301,7 @@ metadata:
     app.kubernetes.io/version: 1.4.2
     app.name: plane-plane-web
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-web
   namespace: plane
 spec:
@@ -314,6 +324,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-admin-wl
   namespace: plane
 spec:
@@ -360,6 +371,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-api-wl
   namespace: plane
 spec:
@@ -427,6 +439,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-beat-worker-wl
   namespace: plane
 spec:
@@ -485,6 +498,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-live-wl
   namespace: plane
 spec:
@@ -537,6 +551,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-space-wl
   namespace: plane
 spec:
@@ -582,6 +597,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-web-wl
   namespace: plane
 spec:
@@ -640,6 +656,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-worker-wl
   namespace: plane
 spec:
@@ -699,6 +716,7 @@ metadata:
     app.kubernetes.io/name: plane-ce
     app.kubernetes.io/version: 1.4.2
     helm.sh/chart: plane-ce-1.8.5
+    seb.platform/piece: plane
   name: plane-api-migrate-1
   namespace: plane
 spec:

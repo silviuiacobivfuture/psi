@@ -363,7 +363,12 @@ describe.skipIf(!backendReady)("the clinic's rows on the local Convex", () => {
 		expect(outcomes(changed)).toEqual(["updated"]);
 		expect(changed[0]?.flag).toBe("treating_differs");
 		const after = await counts();
-		expect({ ...after, auditEvents: 0 }).toEqual({ ...before, auditEvents: 0 });
+		expect({ ...after, auditEvents: 0, changeLog: 0 }).toEqual({
+			...before,
+			auditEvents: 0,
+			changeLog: 0,
+		});
+		expect(at(after, "changeLog")).toBe(at(before, "changeLog") + 1);
 		expect(at(after, "auditEvents")).toBe(at(before, "auditEvents") + 1);
 		const dump = dumpTable("clients");
 		expect(dump).toContain("Test Client A Renamed");

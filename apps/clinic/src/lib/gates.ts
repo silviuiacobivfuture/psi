@@ -22,9 +22,9 @@ const g = (method: Gate["method"], path: string, keys: string[], write?: true): 
 });
 
 const GATES: ReadonlyArray<Gate> = [
-	g("GET", "/calendar", ["calendar_view"]),
-	g("GET", "/calendar/print", ["calendar_view"]),
-	g("GET", "/calendar/appointment/[^/]+", ["calendar_view", "appointments_view"]),
+	g("GET", "/calendar", ["calendars_view"]),
+	g("GET", "/calendar/print", ["calendars_view"]),
+	g("GET", "/calendar/appointment/[^/]+", ["calendars_view", "appointments_view"]),
 	g("GET", "/calendar/editor", ["appointments_create", "appointments_edit"], true),
 	g("POST", "/calendar/editor/check", ["appointments_create", "appointments_edit"]),
 	g("POST", "/calendar/editor/clients", ["clients_create"], true),
@@ -33,9 +33,9 @@ const GATES: ReadonlyArray<Gate> = [
 	g("POST", "/appointments/[^/]+/cancel", ["appointments_cancel"], true),
 	g("POST", "/appointments/[^/]+/pay", ["payments_create"], true),
 	g("POST", "/inbox/read(-all)?", [], true),
-	g("GET", "/floor", ["calendar_view"]),
-	g("GET", "/floor/api/live/(stream)", ["calendar_view"]),
-	g("POST", "/floor/api/live/render", ["calendar_view"]),
+	g("GET", "/floor", ["calendars_view"]),
+	g("GET", "/floor/api/live/(stream)", ["calendars_view"]),
+	g("POST", "/floor/api/live/render", ["calendars_view"]),
 	g("POST", "/floor/api/draw/render", ["app_settings_edit"]),
 	g("POST", "/floor/api/draw/save", ["app_settings_edit"], true),
 	g("GET", "/settings/plan", ["app_settings_edit"]),
@@ -44,15 +44,15 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/clients/[^/]+", ["clients_view"]),
 	g("GET", "/clients/[^/]+/appointments", ["appointments_view"]),
 	g("GET", "/clients/[^/]+/packages", ["packages_view"]),
-	g("GET", "/clients/[^/]+/records", ["records_view"]),
+	g("GET", "/clients/[^/]+/records", ["clients_view_clinical"]),
 	g("GET", "/clients/[^/]+/files", ["files_view"]),
 	g("POST", "/clients/[^/]+/archive", ["clients_archive"], true),
 	g("POST", "/clients/[^/]+/delete", ["clients_delete"], true),
 	g("POST", "/clients/[^/]+/packages", ["packages_create"], true),
 	g("POST", "/clients/[^/]+/packages/[^/]+/field/[^/]+", ["packages_edit"], true),
 	g("POST", "/clients/[^/]+/packages/[^/]+/payments", ["payments_create"], true),
-	g("GET", "/requests", ["requests_view"]),
-	g("POST", "/requests/[^/]+/handled", ["requests_decide"], true),
+	g("GET", "/requests", ["web_requests_view"]),
+	g("POST", "/requests/[^/]+/handled", ["web_requests_approve"], true),
 	g("GET", "/roster", ["roster_view"]),
 	g("GET", "/reminders", ["reminders_view"]),
 	g("POST", "/reminders/[^/]+/sent", ["reminders_send"], true),
@@ -62,8 +62,8 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/settings/services", ["services_view"]),
 	g("GET", "/settings/roles", ["roles_view"]),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
-	g("GET", "/audit", ["audit_view"]),
-	g("GET", "/live", ["calendar_view", "requests_view"]),
+	g("GET", "/audit", ["audit_log_view"]),
+	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];
 
 export type Verdict = "allowed" | "forbidden" | "read-only";
@@ -94,19 +94,19 @@ export const CLIENT_TAB_KEYS = {
 	overview: "clients_view",
 	appointments: "appointments_view",
 	packages: "packages_view",
-	records: "records_view",
+	records: "clients_view_clinical",
 	files: "files_view",
 } as const;
 
 /** Where someone lands when what they are viewing as has no calendar: the first screen that role may open. */
 export function landingFor(can: Can): string {
 	const order: ReadonlyArray<readonly [string, string]> = [
-		["calendar_view", "/calendar"],
+		["calendars_view", "/calendar"],
 		["clients_view", "/clients"],
-		["requests_view", "/requests"],
+		["web_requests_view", "/requests"],
 		["roster_view", "/roster"],
 		["reminders_view", "/reminders"],
-		["audit_view", "/audit"],
+		["audit_log_view", "/audit"],
 	];
 	return order.find(([key]) => can.has(key))?.[1] ?? "/more";
 }

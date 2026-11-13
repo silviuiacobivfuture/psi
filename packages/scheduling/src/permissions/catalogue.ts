@@ -5,13 +5,15 @@
  * matrix in the console are generated from `CATALOGUE`, so they cannot drift from the code.
  *
  * A key is a legal OpenFGA relation name (letters, digits, underscore, hyphen, at most 50
- * characters): `appointments_edit_own`, `clients_view_all_clinical`. A key WITHOUT a field group
- * on a resource that has groups covers every group, including an app's custom ones.
+ * characters): `appointments_edit_own`, `clients_view_all_clinical`. On a resource that has field
+ * groups, a key WITHOUT a group grants identity only (name, status, ids): every field group is
+ * granted only by its own explicit `_<group>` key, custom groups included.
  */
 
 export const RESOURCES = [
 	"app_settings",
 	"members",
+	"people",
 	"roles",
 	"builder",
 	"services",
@@ -23,9 +25,10 @@ export const RESOURCES = [
 	"appointments",
 	"clients",
 	"report_aba",
-	"report_race_me_up",
+	"report_racemeup",
 	"report_psychotherapy",
-	"parent_questionnaires",
+	"report_custom",
+	"questionnaire_parent",
 	"files",
 	"packages",
 	"payments",
@@ -52,6 +55,10 @@ export const ACTIONS = [
 	"approve",
 	"assign",
 	"price",
+	"restore",
+	"upload",
+	"imports_view",
+	"imports_run",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -83,6 +90,7 @@ const CRUD: ReadonlyArray<Action> = ["view", "create", "edit", "delete"];
 export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	app_settings: { actions: ["view", "edit"], scopes: ALL },
 	members: { actions: CRUD, scopes: ALL },
+	people: { actions: ["view", "create", "edit", "archive"], scopes: ["all", "own"] },
 	roles: { actions: CRUD, scopes: ALL },
 	builder: { actions: CRUD, scopes: ALL },
 	services: { actions: [...CRUD, "price"], scopes: ALL },
@@ -92,22 +100,23 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	group_activities: { actions: CRUD, scopes: ALL },
 	calendars: { actions: ["view", "edit", "assign"], scopes: EVERYWHERE },
 	appointments: {
-		actions: ["view", "create", "edit", "cancel", "delete", "assign", "send"],
+		actions: ["view", "create", "edit", "cancel", "delete", "restore", "assign", "send"],
 		scopes: EVERYWHERE,
 		fieldGroups: ["core", "money", "clinical"],
 	},
 	clients: {
-		actions: ["view", "create", "edit", "archive", "delete", "export", "assign"],
+		actions: ["view", "create", "edit", "archive", "delete", "restore", "export", "assign"],
 		scopes: EVERYWHERE,
 		fieldGroups: ["contact", "guardian", "money", "clinical"],
 	},
 	report_aba: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
-	report_race_me_up: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
+	report_racemeup: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
 	report_psychotherapy: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
-	parent_questionnaires: { actions: CRUD, scopes: EVERYWHERE },
-	files: { actions: ["view", "create", "delete", "export"], scopes: EVERYWHERE },
+	report_custom: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
+	questionnaire_parent: { actions: CRUD, scopes: EVERYWHERE },
+	files: { actions: ["view", "upload", "delete", "export"], scopes: EVERYWHERE },
 	packages: { actions: [...CRUD, "price"], scopes: EVERYWHERE },
-	payments: { actions: [...CRUD, "export"], scopes: ALL },
+	payments: { actions: [...CRUD, "export"], scopes: EVERYWHERE },
 	roster: { actions: ["view", "edit"], scopes: EVERYWHERE },
 	leave: { actions: ["view", "create", "edit", "cancel", "approve"], scopes: EVERYWHERE },
 	notice_board: { actions: CRUD, scopes: ALL },
@@ -115,7 +124,7 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	web_requests: { actions: ["view", "approve"], scopes: ALL },
 	reports: { actions: ["view", "export"], scopes: ALL },
 	audit_log: { actions: ["view", "export"], scopes: ALL },
-	imports_exports: { actions: ["create", "export"], scopes: ALL },
+	imports_exports: { actions: ["imports_view", "imports_run", "export"], scopes: ALL },
 };
 
 /** A permission as structure. */
@@ -192,4 +201,33 @@ export function isPermissionKey(key: string): boolean {
 /** True when the resource's records carry field groups. */
 export function hasFieldGroups(resource: Resource): boolean {
 	return CATALOGUE[resource].fieldGroups !== undefined;
+}
+
+/** Every key the catalogue defines, once: the single source of the API's OpenFGA model and the console's matrix. */
+export const ALL_PERMISSION_KEYS: ReadonlyArray<string> = allPermissionKeys();
+
+/**
+ * The OpenFGA relation name of a permission key. It is the key itself, checked: a legal relation
+ * name (letters, digits, underscore, hyphen; at most 50 characters) of a key the catalogue allows.
+ */
+export function relationName(key: string): string {
+	if (!isPermissionKey(key) || key.length > RELATION_NAME_MAX || !/^[a-z0-9_-]+$/.test(key)) {
+		throw new RangeError(`not a permission key: ${key}`);
+	}
+	return key;
+}
+
+const RECORD_RESOURCES: Readonly<Record<string, Resource>> = {
+	"aba-session-report": "report_aba",
+	"race-me-up-report": "report_racemeup",
+	"psychotherapy-report": "report_psychotherapy",
+	"parent-questionnaire": "questionnaire_parent",
+};
+
+/**
+ * The permission resource that governs the responses of a form: the seeded template's own, and
+ * `report_custom` for every form an app's owners built.
+ */
+export function recordResourceFor(formKey: string): Resource {
+	return RECORD_RESOURCES[formKey] ?? "report_custom";
 }

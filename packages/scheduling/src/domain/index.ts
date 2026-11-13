@@ -62,6 +62,8 @@ export {
 	remindersFor,
 } from "./reminders";
 export {
+	type CallbackStatus,
+	callbackRetentionAction,
 	DEFAULT_RETENTION,
 	type RetentionAction,
 	type RetentionPolicy,

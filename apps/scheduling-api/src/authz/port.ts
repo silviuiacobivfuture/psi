@@ -5,6 +5,12 @@ export interface Tuple {
 	object: string;
 }
 
+export interface CheckQuestion {
+	user: string;
+	relation: string;
+	object: string;
+}
+
 export interface TupleChange {
 	writes: readonly Tuple[];
 	deletes: readonly Tuple[];
@@ -22,6 +28,11 @@ export class AuthzUnavailable extends Error {
  */
 export interface AuthzPort {
 	check(user: string, relation: string, object: string): Promise<boolean>;
+	/**
+	 * Many Checks in one round trip (OpenFGA's BatchCheck), answers in the order asked. For the questions a console
+	 * asks all at once (every permission a person holds). One failed item fails the whole call: closed, never partial.
+	 */
+	checkMany(checks: readonly CheckQuestion[]): Promise<boolean[]>;
 	/** The ids (`type:id`) of the objects of `type` on which `user` holds `relation`. */
 	listObjects(user: string, relation: string, type: string): Promise<string[]>;
 	/** Idempotent: writing a tuple that exists, or deleting one that does not, is not an error. */

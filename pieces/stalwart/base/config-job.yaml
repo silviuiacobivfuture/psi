@@ -1,0 +1,162 @@
+# The server's configuration, as code: plan.ndjson.tmpl (Stalwart v1 keeps it in its database,
+# set through its API). render-plan.sh fills in the estate's hosts, the certificate and the SES
+# credential, and the estate's mailboxes (stalwart-mailboxes, from the estate's layer);
+# stalwart-cli applies it. The plan only upserts and reconciles, so it is re-run freely:
+#   - after every sync (this Argo hook Job),
+#   - daily (the CronJob below), which also carries each certificate renewal in.
+# A refused plan fails the Job, by the operation's name, and Argo shows the sync failed.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-config
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    alerts/owner: WLOPSEMAIL
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: render
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          command: ["sh", "/scripts/render-plan.sh"]
+          envFrom:
+            - configMapRef: { name: stalwart-settings }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          volumeMounts:
+            - { name: work, mountPath: /work }
+            - { name: plan, mountPath: /plan, readOnly: true }
+            - { name: plan, mountPath: /scripts, readOnly: true }
+            - { name: mailboxes, mountPath: /estate, readOnly: true }
+            - { name: tls, mountPath: /tls, readOnly: true }
+            - { name: ses, mountPath: /ses, readOnly: true }
+      containers:
+        - name: apply
+          image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+          args: ["apply", "--file", "/work/plan.ndjson", "--no-color"]
+          env:
+            - { name: STALWART_URL, value: "http://stalwart:8080" }
+            # The CLI writes its state under $HOME; the root filesystem is read-only.
+            - { name: HOME, value: /tmp }
+            - name: STALWART_USER
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+            - name: STALWART_PASSWORD
+              valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+          volumeMounts:
+            - { name: work, mountPath: /work, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: work
+          emptyDir: { sizeLimit: 4Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 16Mi }
+        - name: plan
+          configMap: { name: stalwart-plan }
+        - name: mailboxes
+          configMap: { name: stalwart-mailboxes }
+        - name: tls
+          secret: { secretName: stalwart-tls }
+        - name: ses
+          secret: { secretName: stalwart-ses }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stalwart-config
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  schedule: "17 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: render
+              image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              command: ["sh", "/scripts/render-plan.sh"]
+              envFrom:
+                - configMapRef: { name: stalwart-settings }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: plan, mountPath: /plan, readOnly: true }
+                - { name: plan, mountPath: /scripts, readOnly: true }
+                - { name: mailboxes, mountPath: /estate, readOnly: true }
+                - { name: tls, mountPath: /tls, readOnly: true }
+                - { name: ses, mountPath: /ses, readOnly: true }
+          containers:
+            - name: apply
+              image: WLREGISTRY/mirror/docker.io/stalwartlabs/cli:1.0.14@sha256:ec10580b6c4340c467b26349716b63892b3953776a8008da8fdca5901c0fb31b
+              args: ["apply", "--file", "/work/plan.ndjson", "--no-color"]
+              env:
+                - { name: STALWART_URL, value: "http://stalwart:8080" }
+                # The CLI writes its state under $HOME; the root filesystem is read-only.
+                - { name: HOME, value: /tmp }
+                - name: STALWART_USER
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_USER } }
+                - name: STALWART_PASSWORD
+                  valueFrom: { secretKeyRef: { name: stalwart-admin, key: STALWART_PASSWORD } }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 200m, memory: 64Mi }
+              volumeMounts:
+                - { name: work, mountPath: /work, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: work
+              emptyDir: { sizeLimit: 4Mi }
+            - name: tmp
+              emptyDir: { sizeLimit: 16Mi }
+            - name: plan
+              configMap: { name: stalwart-plan }
+            - name: mailboxes
+              configMap: { name: stalwart-mailboxes }
+            - name: tls
+              secret: { secretName: stalwart-tls }
+            - name: ses
+              secret: { secretName: stalwart-ses }

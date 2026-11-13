@@ -10,7 +10,14 @@ import {
 import { newId } from "./ids";
 import type { Collection, Failed, OfferedSlot, RequestsPort, Rows, VisitorPort } from "./types";
 
-type Status = "held" | "requested" | "confirmed" | "declined" | "cancelled" | "callback";
+type Status =
+	| "held"
+	| "requested"
+	| "confirmed"
+	| "declined"
+	| "cancelled"
+	| "callback"
+	| "handled";
 interface Req {
 	id: string;
 	app: string;
@@ -26,6 +33,8 @@ interface Req {
 	cancelHash?: string;
 	contact?: { name: string; email?: string | undefined; phone?: string | undefined };
 	accountHash?: string;
+	/** Left as a callback (a contact and no slot): listed by when it came, never with a start. */
+	callback?: true;
 	createdAt: number;
 }
 
@@ -297,6 +306,7 @@ export function createMemoryVisitor(
 				app,
 				reference: makeReference(),
 				status: "callback",
+				callback: true,
 				start: clock(),
 				end: clock(),
 				mode: "onsite",
@@ -341,18 +351,14 @@ export function createMemoryVisitor(
 					(r) =>
 						r.app === app &&
 						r.status !== "held" &&
-						(r.status === "callback" ? r.createdAt : r.start) >= from &&
-						(r.status === "callback" ? r.createdAt : r.start) < to,
+						(r.callback === true ? r.createdAt : r.start) >= from &&
+						(r.callback === true ? r.createdAt : r.start) < to,
 				)
 				.map((r) => ({
 					reference: r.reference,
 					status:
-						r.status === "callback"
-							? ("requested" as const)
-							: r.status === "held"
-								? ("requested" as const)
-								: r.status,
-					...(r.status === "callback" ? {} : { start: r.start, end: r.end }),
+						r.status === "callback" || r.status === "held" ? ("requested" as const) : r.status,
+					...(r.callback === true ? {} : { start: r.start, end: r.end }),
 					...(r.serviceSlug === undefined ? {} : { serviceSlug: r.serviceSlug }),
 					createdAt: r.createdAt,
 					...(r.contact === undefined
@@ -373,10 +379,16 @@ export function createMemoryVisitor(
 		},
 		async decide(app, reference, decision, _reason, actor) {
 			const r = byReference(app, reference);
-			if (
-				r === undefined ||
-				(r.status !== "requested" && r.status !== "confirmed" && r.status !== "callback")
-			)
+			if (r === undefined) return { ok: false, reason: "not_found" };
+			// A callback can only be called back, once: there is no slot to confirm and no booking to decline.
+			if (r.callback === true) {
+				if (decision !== "handle" || r.status !== "callback")
+					return { ok: false, reason: "not_allowed" };
+				r.status = "handled";
+				return { ok: true };
+			}
+			if (decision === "handle") return { ok: false, reason: "not_allowed" };
+			if (r.status !== "requested" && r.status !== "confirmed")
 				return { ok: false, reason: "not_found" };
 			if (decision === "confirm") {
 				if (r.status !== "requested") return { ok: false, reason: "not_allowed" };

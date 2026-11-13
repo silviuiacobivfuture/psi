@@ -1,0 +1,489 @@
+/*
+ * PSI'S LOOK ON THE SIGN-IN — Authentik's brand stylesheet (auth.psizone.ro).
+ *
+ * Read by the blueprint (`branding_custom_css: !File …/psi.css`, see
+ * blueprints-theme.yaml). Authentik 2026.5 puts it in the page head AND adopts
+ * it into the shadow root of every one of its web components, so the token
+ * block below is declared for both `:root` and `:host`.
+ *
+ * NO COLOUR IS WRITTEN HERE. The token block is GENERATED from psi's design
+ * system (packages/design/theme.generated.css: Psizone Gold for light, Psizone
+ * Night for dark), through the role map in brand/signin-theme.json, by SEB's
+ * packages/rmx-ui/scripts/authentik-assets.mjs. Everything after it maps
+ * Authentik's PatternFly variables onto those roles, the way psi's own
+ * components draw them (packages/ui/src/components.css): pill buttons in the
+ * accent, soft-cornered fields on surface-1, a solid card, Fraunces for titles
+ * and Manrope for text — the same faces and mapping as the hub (hub.psizone.ro).
+ *
+ * THE GROUND is psi's ambient field — the three glows of `.pz-ambient` (gold,
+ * teal, warm gold), blurred, at the "low" strength — drawn at rest in
+ * fundal.svg (Night) and fundal-light.svg (Gold), both generated. It does not
+ * move, so there is nothing for reduced motion to stop on it; the last block
+ * still cuts every transition and animation Authentik itself declares.
+ *
+ * THEMES. `html[data-theme]` on the page and `theme="…"` on each component are
+ * Authentik's own switch; the brand's theme is "automatic", so they follow the
+ * person's system preference. Every text/ground pair used here is AA in both
+ * themes (packages/design/PALETTE.md and the pairs measured when this was cut).
+ *
+ * No `&`, `<` or `>` anywhere: Authentik escapes them when it writes this file
+ * into the page head. That is why each face is its own request below.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..600,0..100");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400..800");
+
+/* ── BEGIN GENERATED TOKENS — packages/rmx-ui/scripts/authentik-assets.mjs, from the estate's design system (SIGNIN_THEME: signin-theme.json, tokens ../packages/design/theme.generated.css). Do not edit by hand. ── */
+:root,
+:host {
+	--rx-radius: 10px;
+	--rx-radius-field: 18px;
+	--rx-radius-card: 28px;
+	--rx-radius-pill: 999px;
+	--rx-font-sans: "Manrope", "Segoe UI", system-ui, sans-serif;
+	--rx-font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+	--rx-font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+	--rx-background: #F4EEE2;
+	--rx-foreground: #16120A;
+	--rx-card: #FAF6EE;
+	--rx-card-foreground: #16120A;
+	--rx-popover: #ECE3D1;
+	--rx-popover-foreground: #16120A;
+	--rx-primary: #A97B24;
+	--rx-primary-hover: #B8892F;
+	--rx-primary-foreground: #1A1405;
+	--rx-secondary: #ECE3D1;
+	--rx-secondary-foreground: #16120A;
+	--rx-muted: #ECE3D1;
+	--rx-muted-foreground: #554C3B;
+	--rx-faint-foreground: #665D4A;
+	--rx-accent: rgba(169,123,36,0.16);
+	--rx-accent-foreground: #16120A;
+	--rx-link: #86650F;
+	--rx-destructive: #B42318;
+	--rx-destructive-foreground: #F4EEE2;
+	--rx-border: rgba(46,34,10,0.10);
+	--rx-edge: #D8CBAE;
+	--rx-input: #857759;
+	--rx-ring: #0D7A70;
+	--rx-success: #ECE3D1;
+	--rx-success-foreground: #12704A;
+	--rx-warning: #ECE3D1;
+	--rx-warning-foreground: #8A5A00;
+	--rx-danger: #ECE3D1;
+	--rx-danger-foreground: #B42318;
+	--rx-info: #ECE3D1;
+	--rx-info-foreground: #1F5FAD;
+	--rx-scrim: rgba(250,246,238,0.72);
+	--rx-shadow: 0 12px 28px rgba(60,44,10,0.12);
+	--rx-glow-1: #86650F;
+	--rx-glow-2: #2FC8BA;
+	--rx-glow-3: #D9B25A;
+}
+html[data-theme="dark"],
+:host([theme="dark"]) {
+	--rx-background: #0D0B07;
+	--rx-foreground: #F7F1E3;
+	--rx-card: #15120C;
+	--rx-card-foreground: #F7F1E3;
+	--rx-popover: #1E1A12;
+	--rx-popover-foreground: #F7F1E3;
+	--rx-primary: #C2983F;
+	--rx-primary-hover: #CDA449;
+	--rx-primary-foreground: #1A1405;
+	--rx-secondary: #1E1A12;
+	--rx-secondary-foreground: #F7F1E3;
+	--rx-muted: #1E1A12;
+	--rx-muted-foreground: #C2B79F;
+	--rx-faint-foreground: #9C927C;
+	--rx-accent: rgba(194,152,63,0.16);
+	--rx-accent-foreground: #F7F1E3;
+	--rx-link: #D2AA50;
+	--rx-destructive: #FF9A8F;
+	--rx-destructive-foreground: #0D0B07;
+	--rx-border: rgba(255,240,210,0.10);
+	--rx-edge: #3E3626;
+	--rx-input: #8A7D62;
+	--rx-ring: #40D9C9;
+	--rx-success: #1E1A12;
+	--rx-success-foreground: #6EE7A8;
+	--rx-warning: #1E1A12;
+	--rx-warning-foreground: #FFD27A;
+	--rx-danger: #1E1A12;
+	--rx-danger-foreground: #FF9A8F;
+	--rx-info: #1E1A12;
+	--rx-info-foreground: #8CC8FF;
+	--rx-scrim: rgba(30,26,18,0.58);
+	--rx-shadow: 0 12px 32px rgba(0,0,0,0.45);
+	--rx-glow-1: #D2AA50;
+	--rx-glow-2: #40D9C9;
+	--rx-glow-3: #E3C88E;
+}
+/* ── END GENERATED TOKENS ── */
+
+/* ── PatternFly and Authentik, re-pointed at psi's roles ──────────────────── */
+:root,
+:host,
+html[data-theme="dark"],
+:host([theme="dark"]) {
+	--ak-generic-sans-serif: var(--rx-font-sans);
+	--ak-generic-body: var(--rx-font-sans);
+	--ak-generic-heading: var(--rx-font-display);
+	--ak-generic-display: var(--rx-font-display);
+	--ak-font-family-sans-serif: var(--rx-font-sans);
+	--ak-font-family-heading: var(--rx-font-display);
+	--pf-global--FontFamily--sans-serif: var(--rx-font-sans);
+	--pf-global--FontFamily--heading--sans-serif: var(--rx-font-display);
+	--pf-global--FontFamily--redhat-updated--sans-serif: var(--rx-font-sans);
+	--pf-global--FontFamily--redhat-updated--heading--sans-serif: var(--rx-font-display);
+	--pf-global--FontFamily--monospace: var(--rx-font-mono);
+
+	--ak-accent: var(--rx-primary);
+	--ak-dark-foreground: var(--rx-foreground);
+	--ak-dark-background: var(--rx-background);
+	--ak-dark-background-light: var(--rx-card);
+	--ak-dark-background-lighter: var(--rx-popover);
+	--ak-global--background-color: var(--rx-background);
+
+	--pf-global--BackgroundColor--100: var(--rx-card);
+	--pf-global--BackgroundColor--150: var(--rx-muted);
+	--pf-global--BackgroundColor--200: var(--rx-background);
+	--pf-global--BackgroundColor--300: var(--rx-secondary);
+	--pf-global--BackgroundColor--400: var(--rx-accent);
+	--pf-global--BackgroundColor--light-100: var(--rx-card);
+	--pf-global--BackgroundColor--light-200: var(--rx-background);
+	--pf-global--BackgroundColor--light-300: var(--rx-secondary);
+	--pf-global--BackgroundColor--dark-100: var(--rx-card);
+	--pf-global--BackgroundColor--dark-200: var(--rx-background);
+	--pf-global--BackgroundColor--dark-300: var(--rx-secondary);
+	--pf-global--BackgroundColor--dark-400: var(--rx-secondary);
+	--pf-global--BackgroundColor--dark-transparent-100: var(--rx-scrim);
+	--pf-global--BackgroundColor--dark-transparent-200: var(--rx-scrim);
+
+	--pf-global--Color--100: var(--rx-foreground);
+	--pf-global--Color--200: var(--rx-muted-foreground);
+	--pf-global--Color--300: var(--rx-muted-foreground);
+	--pf-global--Color--400: var(--rx-muted-foreground);
+	--pf-global--Color--dark-100: var(--rx-foreground);
+	--pf-global--Color--dark-200: var(--rx-muted-foreground);
+	--pf-global--Color--light-100: var(--rx-foreground);
+	--pf-global--Color--light-200: var(--rx-muted-foreground);
+	--pf-global--Color--light-300: var(--rx-muted-foreground);
+
+	--pf-global--BorderColor--100: var(--rx-edge);
+	--pf-global--BorderColor--200: var(--rx-border);
+	--pf-global--BorderColor--300: var(--rx-border);
+	--pf-global--BorderColor--dark-100: var(--rx-edge);
+	--pf-global--BorderColor--light-100: var(--rx-edge);
+
+	--pf-global--primary-color--100: var(--rx-primary);
+	--pf-global--primary-color--200: var(--rx-primary-hover);
+	--pf-global--primary-color--light-100: var(--rx-primary);
+	--pf-global--primary-color--dark-100: var(--rx-primary);
+	--pf-global--active-color--100: var(--rx-primary);
+	--pf-global--active-color--200: var(--rx-primary);
+	/* Text links take the brand's text-strength gold (glow-1, AA on every surface), not the button fill. */
+	--pf-global--link--Color: var(--rx-link);
+	--pf-global--link--Color--hover: var(--rx-link);
+	--pf-global--link--Color--light: var(--rx-link);
+	--pf-global--link--Color--light--hover: var(--rx-link);
+	--pf-global--link--Color--dark: var(--rx-link);
+	--pf-global--link--Color--dark--hover: var(--rx-link);
+
+	--pf-global--danger-color--100: var(--rx-danger-foreground);
+	--pf-global--danger-color--200: var(--rx-danger-foreground);
+	--pf-global--success-color--100: var(--rx-success-foreground);
+	--pf-global--success-color--200: var(--rx-success-foreground);
+	--pf-global--warning-color--100: var(--rx-warning-foreground);
+	--pf-global--warning-color--200: var(--rx-warning-foreground);
+	--pf-global--info-color--100: var(--rx-info-foreground);
+	--pf-global--info-color--200: var(--rx-info-foreground);
+	--pf-global--disabled-color--100: var(--rx-muted-foreground);
+	--pf-global--disabled-color--200: var(--rx-muted);
+	--pf-global--disabled-color--300: var(--rx-muted);
+
+	--pf-global--BorderRadius--sm: var(--rx-radius);
+	--pf-global--BorderRadius--lg: var(--rx-radius-card);
+
+	--ak-c-login__main--BackgroundColor: var(--rx-card);
+	--ak-c-login__main--Color: var(--rx-card-foreground);
+	--ak-c-login__footer--Color: var(--rx-muted-foreground);
+}
+
+/* ── The ground: psi's ambient field, per theme ───────────────────────────── */
+/* The flow pages paint `--ak-global--background-image` (the brand's flow
+ * background, fundal.svg — Night); the light theme takes its own field. The
+ * account pages have no flow background, so the body carries the same field. */
+html[data-theme="light"] {
+	--ak-global--background-image: url("/static/dist/assets/psi/fundal-light.svg");
+}
+html[data-theme="dark"] {
+	--ak-global--background-image: url("/static/dist/assets/psi/fundal.svg");
+}
+html[data-theme] body,
+html[data-theme] body:has(ak-flow-executor) {
+	font-family: var(--rx-font-sans);
+	color: var(--rx-foreground);
+	background-color: var(--rx-background);
+	background-image: var(--ak-global--background-image);
+	background-size: cover;
+	background-position: center top;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* ── The card ─────────────────────────────────────────────────────────────── */
+/* psi's solid glass card (`.pz-glass--solid`): surface-1, a hairline, the
+ * largest radius, the floating shadow. */
+.pf-c-login__main {
+	background-color: var(--rx-card);
+	color: var(--rx-card-foreground);
+	border: 1px solid var(--rx-border);
+	border-radius: var(--rx-radius-card);
+	box-shadow: var(--rx-shadow) !important;
+	overflow: clip;
+}
+.pf-c-login__main-header.pf-c-brand {
+	padding-inline: 1.5rem;
+}
+.pf-c-login__main-header.pf-c-brand .branding-logo {
+	max-height: 2.5rem;
+	width: auto;
+	max-width: 100%;
+}
+/* Titles in Fraunces, the family's voice (soft, optical size up). */
+.pf-c-title,
+h1.pf-c-title {
+	font-family: var(--rx-font-display);
+	font-variation-settings: "SOFT" 100;
+	font-weight: 400;
+	letter-spacing: -0.015em;
+	color: var(--rx-card-foreground);
+}
+.pf-c-login__main-header .pf-c-title.pf-m-3xl {
+	font-size: 1.75rem;
+	line-height: 1.15;
+}
+.pf-c-login__main-footer-band {
+	background-color: transparent;
+	border-top: 1px solid var(--rx-border);
+}
+
+/* Only the language the estate speaks, and no "Powered by authentik". */
+ak-locale-select,
+ak-brand-links,
+footer[name="site-footer"] [name="flow-links"] {
+	display: none !important;
+}
+
+/* The SERVER-rendered pages (errors, an application's refusal) draw the logo
+ * from the brand's single URL, where `%(theme)s` is not resolved; these two
+ * rules reach them alone. */
+html[data-theme="dark"] .pf-c-brand img.branding-logo {
+	content: url("/static/dist/assets/psi/logo-dark.svg");
+}
+html[data-theme="light"] .pf-c-brand img.branding-logo {
+	content: url("/static/dist/assets/psi/logo-light.svg");
+}
+
+/* ── Fields: psi's `.pz-input` ────────────────────────────────────────────── */
+.pf-c-form__label,
+.pf-c-form__label-text {
+	color: var(--rx-card-foreground);
+	font-weight: 600;
+}
+.pf-c-form-control {
+	--pf-c-form-control--BackgroundColor: var(--rx-card);
+	--pf-c-form-control--Color: var(--rx-foreground);
+	color: var(--rx-foreground);
+	background-color: var(--rx-card);
+	border: 1px solid var(--rx-input) !important;
+	border-radius: var(--rx-radius-field) !important;
+	min-height: 3.25rem;
+	padding-inline: 1rem;
+}
+.pf-c-form-control::placeholder {
+	color: var(--rx-faint-foreground);
+	font-style: normal;
+}
+.pf-c-form-control:focus,
+.pf-c-form-control:focus-visible {
+	outline: 2px solid var(--rx-ring);
+	outline-offset: 2px;
+	border-color: var(--rx-primary) !important;
+}
+.pf-c-form-control[aria-invalid="true"] {
+	border-color: var(--rx-danger-foreground) !important;
+}
+.pf-c-form__helper-text {
+	--pf-c-form__helper-text--m-error--Color: var(--rx-danger-foreground);
+	color: var(--rx-muted-foreground);
+}
+.pf-c-form__helper-text.pf-m-error {
+	color: var(--rx-danger-foreground);
+}
+
+/* ── Buttons and links: psi's `.pz-btn` — pills ───────────────────────────── */
+.pf-c-button {
+	--pf-c-button--BorderRadius: var(--rx-radius-pill);
+	font-weight: 600;
+	border-radius: var(--rx-radius-pill);
+}
+.pf-c-button.pf-m-primary {
+	--pf-c-button--m-primary--BackgroundColor: var(--rx-primary);
+	--pf-c-button--m-primary--hover--BackgroundColor: var(--rx-primary-hover);
+	--pf-c-button--m-primary--focus--BackgroundColor: var(--rx-primary);
+	--pf-c-button--m-primary--active--BackgroundColor: var(--rx-primary-hover);
+	--pf-c-button--m-primary--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--hover--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--focus--Color: var(--rx-primary-foreground);
+	--pf-c-button--m-primary--active--Color: var(--rx-primary-foreground);
+	background-color: var(--pf-c-button--m-primary--BackgroundColor);
+	color: var(--rx-primary-foreground);
+	min-height: 3rem;
+}
+.pf-c-button.pf-m-primary:hover {
+	background-color: var(--pf-c-button--m-primary--hover--BackgroundColor);
+}
+.pf-c-button.pf-m-secondary,
+.pf-c-button.pf-m-tertiary {
+	--pf-c-button--m-secondary--Color: var(--rx-foreground);
+	--pf-c-button--m-secondary--hover--Color: var(--rx-foreground);
+	--pf-c-button--m-secondary--BackgroundColor: transparent;
+	--pf-c-button--m-secondary--hover--BackgroundColor: var(--rx-secondary);
+	--pf-c-button--m-secondary--after--BorderColor: var(--rx-input);
+	--pf-c-button--m-secondary--hover--after--BorderColor: var(--rx-input);
+	--pf-c-button--m-tertiary--Color: var(--rx-foreground);
+	--pf-c-button--m-tertiary--after--BorderColor: var(--rx-input);
+}
+.pf-c-button.pf-m-danger {
+	--pf-c-button--m-danger--BackgroundColor: var(--rx-destructive);
+	--pf-c-button--m-danger--hover--BackgroundColor: var(--rx-destructive);
+	--pf-c-button--m-danger--Color: var(--rx-destructive-foreground);
+	--pf-c-button--m-danger--hover--Color: var(--rx-destructive-foreground);
+}
+.pf-c-button.pf-m-link,
+.pf-c-button.pf-m-link.pf-m-inline {
+	--pf-c-button--m-link--Color: var(--rx-link);
+	--pf-c-button--m-link--hover--Color: var(--rx-link);
+}
+a {
+	color: var(--rx-link);
+	text-underline-offset: 0.2em;
+}
+a:hover {
+	text-decoration: underline;
+}
+
+/* Focus: a 2px ring in psi's focus colour, 2px off, on everything interactive. */
+a:focus-visible,
+button:focus-visible,
+.pf-c-button:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+	outline: 2px solid var(--rx-ring);
+	outline-offset: 2px;
+}
+
+/* ── Notices ──────────────────────────────────────────────────────────────── */
+.pf-c-alert {
+	--pf-c-alert--BackgroundColor: var(--rx-card);
+	border-radius: var(--rx-radius-field);
+}
+.pf-c-alert.pf-m-danger,
+.pf-c-alert.pf-m-inline.pf-m-danger {
+	--pf-c-alert--BackgroundColor: var(--rx-danger);
+	--pf-c-alert__title--Color: var(--rx-danger-foreground);
+	--pf-c-alert__icon--Color: var(--rx-danger-foreground);
+	color: var(--rx-danger-foreground);
+}
+.pf-c-alert.pf-m-success {
+	--pf-c-alert--BackgroundColor: var(--rx-success);
+	--pf-c-alert__title--Color: var(--rx-success-foreground);
+	--pf-c-alert__icon--Color: var(--rx-success-foreground);
+}
+.pf-c-alert.pf-m-warning {
+	--pf-c-alert--BackgroundColor: var(--rx-warning);
+	--pf-c-alert__title--Color: var(--rx-warning-foreground);
+	--pf-c-alert__icon--Color: var(--rx-warning-foreground);
+}
+.pf-c-alert.pf-m-info {
+	--pf-c-alert--BackgroundColor: var(--rx-info);
+	--pf-c-alert__title--Color: var(--rx-info-foreground);
+	--pf-c-alert__icon--Color: var(--rx-info-foreground);
+}
+
+/* ── The account pages (/if/user/) ────────────────────────────────────────── */
+/* Authentik paints a slanted band behind the top half of these pages; on psi
+ * the ground is the ambient field, unbroken. */
+[part="background-wrapper"],
+[part="background-default-slant"] {
+	display: none !important;
+}
+.pf-c-page {
+	--pf-c-page--BackgroundColor: transparent;
+	--pf-c-page__main-section--BackgroundColor: transparent;
+	background-color: transparent;
+}
+.pf-c-page__header {
+	--pf-c-page__header--BackgroundColor: transparent;
+	background-color: transparent;
+	border-bottom: 1px solid var(--rx-border);
+}
+.pf-c-page__main-section,
+.pf-c-page__main,
+.pf-c-page__drawer,
+.pf-c-drawer__content,
+.pf-c-drawer__body {
+	--pf-c-page__main-section--BackgroundColor: transparent;
+	--pf-c-drawer__content--BackgroundColor: transparent;
+	background-color: transparent;
+}
+.pf-c-card {
+	--pf-c-card--BackgroundColor: var(--rx-card);
+	background-color: var(--rx-card);
+	border: 1px solid var(--rx-border);
+	border-radius: var(--rx-radius-field);
+	color: var(--rx-card-foreground);
+	box-shadow: none;
+}
+.pf-c-card:hover {
+	border-color: var(--rx-edge);
+}
+.pf-c-tabs__link {
+	color: var(--rx-muted-foreground);
+}
+.pf-c-tabs__item.pf-m-current .pf-c-tabs__link {
+	color: var(--rx-foreground);
+}
+.pf-c-tabs {
+	--pf-c-tabs__item--m-current__link--after--BorderColor: var(--rx-primary);
+}
+.pf-c-table {
+	--pf-c-table--BackgroundColor: var(--rx-card);
+	--pf-c-table--BorderColor: var(--rx-border);
+	--pf-c-table--cell--Color: var(--rx-card-foreground);
+}
+.pf-c-toolbar,
+.pf-c-pagination {
+	--pf-c-toolbar--BackgroundColor: var(--rx-card);
+	--pf-c-pagination--m-bottom--BackgroundColor: var(--rx-card);
+}
+.pf-c-avatar,
+.pf-c-avatar.pf-m-md {
+	border-radius: 9999px;
+}
+
+/* ── Reduced motion wins against every animation and transition on the page,
+ * Authentik's own included. ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

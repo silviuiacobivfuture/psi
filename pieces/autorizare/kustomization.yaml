@@ -19,6 +19,7 @@ namespace: autorizare
 resources:
   - base
   - bucket.yaml
+  - hub-host.yaml
 
 patches:
   # The console's real host, kept OUT of the base so an un-overlaid apply cannot claim it:
@@ -45,25 +46,40 @@ patches:
       - op: replace
         path: /data/HUB_UPSTREAM_ISSUER
         value: https://WLAUTHHOST/application/o/autorizare-hub/
-  # The hub's real host, kept out of the base like the console's: the label is the
-  # estate's HUB_HOST_PREFIX (default `id`), WLDOMAIN the apex — both filled in below.
+  # The hub's real host, kept out of the base like the console's: `id.` is the default
+  # label (hub-host.yaml; another estate's HUB_HOST_PREFIX through the hub-host component),
+  # WLDOMAIN the apex — both filled in by the replacements below.
   - target: { kind: Ingress, name: autorizare-hub }
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: WLHUB.WLDOMAIN
+        value: id.WLDOMAIN
       - op: replace
         path: /spec/tls/0/hosts/0
-        value: WLHUB.WLDOMAIN
+        value: id.WLDOMAIN
 
 components:
   # Argo's prune/delete guard on the PVCs and CNPG Clusters rendered here (the data).
   - ../../components/prune-guard
   - ../../components/whitelabel
   - ../../components/estate/autorizare
+  # (hub-host, for an estate whose hub label is not `id`, is added after these by the bundle
+  # builder: identity-components.json.)
 
 replacements:
   - path: whitelabel-replacements.yaml
+  # The hub's label (hub-host.yaml: `id`, or the estate's HUB_HOST_PREFIX), first of its host,
+  # before the apex below fills the rest; and the label in the hub's root-redirect regex.
+  - source: { kind: ConfigMap, name: autorizare-hub-host, fieldPath: data.LABEL }
+    targets:
+      - select: { kind: Ingress, name: autorizare-hub }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: autorizare-hub-host, fieldPath: data.ROOT_REGEX_TAIL }
+    targets:
+      - select: { kind: Middleware, name: hub-root-to-front }
+        fieldPaths: [spec.redirectRegex.regex]
+        options: { delimiter: "://", index: 1 }
   # The ONE Authentik's host in the hub's upstream issuer: https://WLAUTHHOST/… → auth.<apex>.
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST }
     targets:
@@ -99,20 +115,6 @@ replacements:
       - select: { kind: ConfigMap, name: autorizare-config }
         fieldPaths: [data.AUTHENTIK_API_URL, data.NOVU_PUBLIC_API_URL, data.NOVU_PUBLIC_WS_URL]
         options: { delimiter: ".", index: 1 }
-  # The hub's label, <HUB_HOST_PREFIX>.<apex>: its Ingress, and the setting the hub and the
-  # control plane read (hubconfig HostPrefix, config HubHostPrefix) so the issuer they build
-  # is the host the Ingress answers at.
-  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX }
-    targets:
-      - select: { kind: Ingress, name: autorizare-hub }
-        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
-        options: { delimiter: ".", index: 0 }
-      - select: { kind: ConfigMap, name: autorizare-hub-config }
-        fieldPaths: [data.HUB_HOST_PREFIX]
-        options: { create: true }
-      - select: { kind: ConfigMap, name: autorizare-config }
-        fieldPaths: [data.HUB_HOST_PREFIX]
-        options: { create: true }
   # The console's host, once filled in, into the URLs that carry it (slash-split index 2).
   - source: { kind: Ingress, name: autorizare-svc, fieldPath: spec.rules.0.host }
     targets:
@@ -127,7 +129,7 @@ replacements:
       - select: { kind: Ingress, name: autorizare-hub }
         fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
         options: { delimiter: "/", index: 2 }
-      # The console's issuer pin, https://<hub host>: it moves with the hub's host.
+      # The console's issuer pin, https://<hub host>: it moves with the hub's host, label and all.
       - select: { kind: ConfigMap, name: autorizare-config }
         fieldPaths: [data.OIDC_ISSUER_URL]
         options: { delimiter: "/", index: 2 }

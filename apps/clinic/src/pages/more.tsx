@@ -14,7 +14,7 @@ export async function MorePage(ctx: Ctx) {
 			href: "/floor",
 			label: m.nav_floor({}, o),
 			icon: "sidebar",
-			open: can.has("calendar_view"),
+			open: can.has("calendars_view"),
 		},
 		{
 			href: "/roster",
@@ -34,7 +34,7 @@ export async function MorePage(ctx: Ctx) {
 			icon: "settings",
 			open: settingsOpen(can),
 		},
-		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_view") },
+		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_log_view") },
 	];
 	const items = all.filter((i) => i.open);
 	return Page({

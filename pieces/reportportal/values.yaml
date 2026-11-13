@@ -198,10 +198,10 @@ searchengine:
 # chart or image bump is what would make it wrong.
 storage:
   type: minio
-  endpoint: nbg1.your-objectstorage.com
+  endpoint: ${OBJECT_STORAGE_REGION}.your-objectstorage.com
   port: "443"
   ssl: true
-  region: nbg1
+  region: ${OBJECT_STORAGE_REGION}
   secretName: reportportal-storage
   accesskeyName: access-key
   secretkeyName: secret-key

@@ -10,7 +10,7 @@ import { verifyServiceKey } from "../auth/service-keys";
 import { NONE, type Reach } from "../authz/access";
 import { AuthzUnavailable } from "../authz/port";
 import { MailUnavailable } from "../ports/mail";
-import { NotAvailableYet, StoreConflict } from "../store/types";
+import { StoreConflict, StoreRefused, StoreUnavailable } from "../store/types";
 import { writeAudit } from "./audit";
 import type { Ctx, Deps, HttpEnv } from "./context";
 import { ApiError, fail, forbidden, notFound } from "./errors";
@@ -21,6 +21,8 @@ export interface Prepared {
 	principal: Principal;
 	/** What the handler asked to be audited. */
 	audit: { id: string | undefined; detail: Record<string, unknown> };
+	/** A dynamic route is answered only once its handler has asked `ctx.authorize`. */
+	dynamic: { required: boolean; asked: boolean };
 }
 
 type Parsed = {
@@ -138,6 +140,13 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 				reach = await deps.access.reach(subject, app, permission.key, target.type);
 				if (reach.kind === "none")
 					throw forbidden("the role does not allow this", { permission: permission.key });
+			} else if (target.kind === "dynamic") {
+				// The question proper is the handler's (ctx.authorize, after it loads the row; `finish` refuses a handler that
+				// did not ask). Here the caller must hold SOME candidate in this app, so a role with none learns nothing.
+				let any = false;
+				for (const key of target.candidates)
+					if ((await deps.access.scopesHeld(subject, app, key)).length > 0) any = true;
+				if (!any) throw forbidden("the role does not allow this", { permission: permission.key });
 			} else {
 				if (target.idFrom?.in === "body") parsed.body = await parseBody(spec, c);
 				const source = target.idFrom?.in === "body" ? parsed.body : parsed.params;
@@ -169,6 +178,7 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	parsed.query = parseQuery(spec, c);
 	if (Object.keys(parsed.body).length === 0) parsed.body = await parseBody(spec, c);
 	const audit: Prepared["audit"] = { id: undefined, detail: {} };
+	const dynamic = { required: spec.permission?.target.kind === "dynamic", asked: false };
 	const now = deps.clock();
 	const ctx: Ctx<RouteSpec> = {
 		deps,
@@ -184,6 +194,18 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		canAll: (key) => deps.access.canAll(subject, app, key),
 		canOn: (key, type, id) => deps.access.canOn(subject, app, key, type, id),
 		reachOf: (key, type) => deps.access.reach(subject, app, key, type),
+		async authorizeAny(keys, type, id) {
+			dynamic.asked = true;
+			const held: string[] = [];
+			for (const key of keys)
+				if (await deps.access.canOn(subject, app, key, type, id)) held.push(key);
+			if (held.length === 0) throw notFound("object");
+			return held;
+		},
+		async authorize(key, type, id) {
+			dynamic.asked = true;
+			if (!(await deps.access.canOn(subject, app, key, type, id))) throw notFound("object");
+		},
 		note(d) {
 			audit.detail = { ...audit.detail, ...d };
 		},
@@ -213,12 +235,29 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		},
 		changed: (kind, op, id) => deps.store.changes.append(app, { kind, op, id }),
 	};
-	return { spec, ctx, principal, audit };
+	return { spec, ctx, principal, audit, dynamic };
+}
+
+/** A dynamic route is answered only when its handler asked; a handler that forgot would be an open route. */
+export function requireAsked(dynamic: Prepared["dynamic"]): void {
+	if (dynamic.required && !dynamic.asked)
+		throw fail("internal", "the route did not authorize itself");
 }
 
 /** The mutation's audit event, written once the handler succeeded. */
 export async function finish(deps: Deps, prepared: Prepared, result: unknown): Promise<unknown> {
 	const { spec, ctx, principal, audit } = prepared;
+	try {
+		requireAsked(prepared.dynamic);
+	} catch (error) {
+		deps.log({
+			level: "error",
+			event: "dynamic_route_not_authorized",
+			requestId: ctx.requestId,
+			route: spec.id,
+		});
+		throw error;
+	}
 	const parsed = spec.response.safeParse(result);
 	if (!parsed.success) {
 		deps.log({
@@ -250,6 +289,25 @@ export async function finish(deps: Deps, prepared: Prepared, result: unknown): P
 		});
 	}
 	return parsed.data;
+}
+
+/** The wrappers' refusal reasons as the contract's codes: the state forbids it (409), it is not there (404), or it is malformed (400). */
+const CONFLICTS = new Set([
+	"stale",
+	"exists",
+	"overlaps",
+	"in_use",
+	"already_deleted",
+	"not_deleted",
+	"recovery_expired",
+	"not_allowed",
+	"slot_taken",
+]);
+function refusedByStore(reason: string): ApiError {
+	if (reason === "not_found") return notFound("object");
+	return CONFLICTS.has(reason)
+		? fail("conflict", "the store refused the change", { reason })
+		: fail("invalid", "the store refused the change", { reason });
 }
 
 /** Turns anything thrown into the contract's refusal; nothing else leaves the process. */
@@ -284,8 +342,12 @@ export function refusal(
 		deps.log({ level: "error", event: "authz_unavailable", requestId });
 		return make(fail("unavailable", "authorization is unavailable; refusing"));
 	}
-	if (error instanceof NotAvailableYet) return make(fail("not_available_yet", error.message));
 	if (error instanceof MailUnavailable) return make(fail("unavailable", "mail is unavailable"));
+	if (error instanceof StoreRefused) return make(refusedByStore(error.reason));
+	if (error instanceof StoreUnavailable) {
+		deps.log({ level: "error", event: "store_unavailable", requestId });
+		return make(fail("unavailable", "the store is unavailable"));
+	}
 	if (error instanceof StoreConflict) return make(fail("conflict", "already exists"));
 	deps.log({
 		level: "error",

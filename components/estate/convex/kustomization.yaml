@@ -1,0 +1,5 @@
+# The estate's additions to the convex piece: none by default. An estate's own directory for this
+# piece also holds instances/<name>/, one per Convex instance (pieces/convex/kustomization.yaml).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources: []

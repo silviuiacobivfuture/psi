@@ -91,7 +91,13 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		for (const l of listeners) if (l.app === app) l.push(signal);
 	};
 	const openRequests = (d: AppData): number => d.requests.filter((r) => !r.handled).length;
-	const LOOKUPS = ["people_view", "rooms_view", "devices_view", "services_view", "groups_view"];
+	const LOOKUPS = [
+		"people_view",
+		"rooms_view",
+		"devices_view",
+		"services_view",
+		"group_activities_view",
+	];
 
 	return {
 		async capabilities(subject, app, as) {
@@ -143,6 +149,15 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 							: (opts.names?.[as.slice("member:".length)] ?? as),
 				roles: roles.map((r) => r.id),
 				permissions,
+				denied: [],
+				...(as === undefined
+					? {}
+					: {
+							viewAs: {
+								kind: as.startsWith("role:") ? ("role" as const) : ("member" as const),
+								id: as.slice(as.indexOf(":") + 1),
+							},
+						}),
 				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
 					groups.has(g),
 				),

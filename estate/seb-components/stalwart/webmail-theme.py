@@ -18,7 +18,7 @@ re-emits only the colour declarations, moved into psi's palette:
 
 Layout, sizes and behaviour stay Elastic's: nothing here but colour. The hand-written part
 (webmail.overrides.css: fonts, the logo, labels that must not be cut, the message frame) is appended
-after the generated rules. Tokens: psi's sign-in (gitops/platform/authentik/estate/recomex.css,
+after the generated rules. Tokens: psi's sign-in stylesheet (the CSS beside ro.js in gitops/platform/authentik/estate/,
 generated from brand/signin-theme.json): Psizone Gold (light), Psizone Night (dark).
 
 Re-run whenever the Roundcube image changes (the input's sha256 is written into the output header):
@@ -34,7 +34,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 
-# psi's tokens (recomex.css). Light = Psizone Gold, dark = Psizone Night.
+# psi's tokens (its sign-in stylesheet). Light = Psizone Gold, dark = Psizone Night.
 TOKENS = {
     "light": {"primary": "#A97B24", "link": "#86650F", "card": "#FAF6EE"},
     "dark": {"primary": "#C2983F", "link": "#D2AA50", "card": "#15120C"},

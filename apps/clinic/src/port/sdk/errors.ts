@@ -26,8 +26,6 @@ export function toPortError(error: unknown): PortError {
 				return new PortError("conflict", quote);
 			case "rate_limited":
 				return new PortError("rate-limited", quote);
-			case "not_available_yet":
-				return new PortError("not-available-yet", quote);
 			case "internal":
 			case "unavailable":
 				return new PortError("unavailable", quote);

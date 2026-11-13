@@ -1,0 +1,7 @@
+# The glossaries, as files homepage serves from its public dir.
+glosar:
+  enabled: true
+  type: configMap
+  name: homepage-glosar
+  readOnly: true
+  mountPath: /app/public/glosar

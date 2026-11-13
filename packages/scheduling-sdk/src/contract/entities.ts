@@ -1,16 +1,5 @@
 import { z } from "zod/v4";
-import {
-	AppId,
-	DateKey,
-	FieldGroup,
-	Id,
-	Label,
-	Locale,
-	Money,
-	Ms,
-	Scope,
-	Subject,
-} from "./primitives";
+import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
 
 const Stamps = { createdAt: Ms, updatedAt: Ms };
 const Name = z.string().trim().min(1).max(200);
@@ -36,36 +25,6 @@ export const AppPatch = z.object({
 	timeZone: z.string().min(1).max(60).optional(),
 	status: AppStatus.optional(),
 });
-
-/**
- * Who the caller is in ONE app and what they may do there: what a console needs to decide which screens, menu items,
- * actions and fields to offer. A hint, never the authority: every call is authorized again when it is made.
- */
-export const AppMe = z.object({
-	app: AppId,
-	appName: Name,
-	timeZone: z.string().min(1).max(60),
-	subject: Subject,
-	displayName: z.string().optional(),
-	roles: z.array(Id),
-	/** Every catalogue permission the caller holds, by key, with the scopes (`[]`: an unscoped permission). Absent: not held. */
-	permissions: z.record(z.string(), z.array(Scope)),
-	/** The field groups the caller may see on at least some clients, derived from `permissions`. */
-	fieldGroups: z.array(FieldGroup),
-	/**
-	 * Whose rows the narrowed scopes reach: the people (calendar columns) that are the caller's own, and the ones they
-	 * coordinate. A role has no person, so viewing as a role reaches neither.
-	 */
-	reach: z.object({ own: z.array(Id), assigned: z.array(Id) }),
-	/** The estate's platform administrator (holds apps, members and roles in every app). */
-	platformAdmin: z.boolean(),
-});
-
-/** `role:<id>` or `member:<subject>`: who a roles administrator looks at the app as. */
-export const ViewAsTarget = z.string().regex(/^(role|member):[^\s:][^\s]{0,199}$/);
-export const ViewAsBody = z.object({ as: ViewAsTarget });
-/** The header every call sends while viewing as someone else; the service refuses a write that carries it. */
-export const VIEW_AS_HEADER = "x-psi-view-as";
 
 export const Member = z.object({
 	subject: Subject,
@@ -106,7 +65,7 @@ export const RolePatch = z.object({
 	description: z.string().max(500).optional(),
 });
 export const RolePermissions = z.object({
-	permissions: z.array(z.string().min(1).max(120)).max(400),
+	permissions: z.array(z.string().min(1).max(120)).max(600),
 });
 export const MatrixRow = z.object({
 	key: z.string(),
@@ -115,7 +74,7 @@ export const MatrixRow = z.object({
 	effect: z.enum(["read", "write"]),
 	fieldGroup: FieldGroup.optional(),
 	name: Label,
-	/** False: held on the whole app with no scope (`scopes` is then just `["all"]`, and the relation is the bare key). */
+	/** False: the catalogue defines only the `all` scope for it (nothing narrower to choose). */
 	scoped: z.boolean(),
 	scopes: z.array(z.enum(["all", "assigned", "own"])),
 	held: z.array(z.enum(["all", "assigned", "own"])),
@@ -286,6 +245,9 @@ export const Appointment = z.object({
 	note: z.string().max(500).optional(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
+	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */
+	deletedAt: Ms.optional(),
+	purgeAt: Ms.optional(),
 	...Stamps,
 });
 export const AppointmentCreate = z.object({
@@ -411,7 +373,8 @@ export const ReminderMark = z.object({ state: z.enum(["sent", "confirmed"]) });
 export const ReminderEmail = z.object({ locale: Locale.default("ro") });
 export const WhatsappLink = z.object({ url: z.string().url(), text: z.string() });
 
-export const RequestStatus = z.enum(["requested", "confirmed", "declined", "cancelled"]);
+/** `handled`: a callback request the team has called back (a booking is confirmed, declined or cancelled instead). */
+export const RequestStatus = z.enum(["requested", "confirmed", "declined", "cancelled", "handled"]);
 export const WebRequest = z.object({
 	reference: z.string(),
 	status: RequestStatus,
@@ -424,7 +387,8 @@ export const WebRequest = z.object({
 		.optional(),
 });
 export const RequestDecision = z.object({
-	decision: z.enum(["confirm", "decline", "cancel"]),
+	/** `handle` is for a callback request only: it was called back. */
+	decision: z.enum(["confirm", "decline", "cancel", "handle"]),
 	reason: z.string().max(60).optional(),
 });
 

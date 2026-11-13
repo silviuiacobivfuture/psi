@@ -40,7 +40,7 @@ spec:
     - name: origin
       barmanObjectStore:
         destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plane-db
-        endpointURL: https://nbg1.your-objectstorage.com
+        endpointURL: WLENDPOINT
         serverName: plane-db
         s3Credentials:
           accessKeyId:
@@ -77,7 +77,7 @@ spec:
 #     retentionPolicy: "14d"
 #     barmanObjectStore:
 #       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/plane-db-hv   # NOT the old path
-#       endpointURL: https://nbg1.your-objectstorage.com
+#       endpointURL: WLENDPOINT
 #       s3Credentials:
 #         accessKeyId: { name: plane-backup-s3, key: AWS_ACCESS_KEY_ID }
 #         secretAccessKey: { name: plane-backup-s3, key: AWS_SECRET_ACCESS_KEY }

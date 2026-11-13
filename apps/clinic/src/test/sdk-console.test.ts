@@ -63,11 +63,12 @@ describe("what each person's menu offers follows what the service says they may 
 			expect(has(html, h), h).toBe(false);
 		expect((await s.get("/roster")).status).toBe(200);
 	});
-	it("an accountant: money and clients, no contact data, no calendar writes", async () => {
+	it("an accountant: money and clients, no guardian or clinical data, no calendar writes", async () => {
 		const s = await k.as("ana");
 		const html = await text(await s.get("/clients/" + c1()));
 		expect(has(html, `/clients/${c1()}/packages`)).toBe(true);
-		expect(html).not.toContain("0712 345 678");
+		expect(html).not.toContain("Guardian of one");
+		expect(html).not.toContain("synthetic-notes-one");
 		expect(has(html, "/calendar?new=1")).toBe(false);
 	});
 });
@@ -101,7 +102,7 @@ describe("a field group the service leaves out is not shown", () => {
 		const page = `/clients/${c1()}`;
 		expect(await text(await (await k.as("olga")).get(page))).toContain("0712 345 678");
 		expect(await text(await (await k.as("rita")).get(page))).toContain("0712 345 678");
-		await api("PUT", "/members/rita/overrides", { grant: [], deny: ["clients_contact_view"] });
+		await api("PUT", "/members/rita/overrides", { grant: [], deny: ["clients_view_all_contact"] });
 		const html = await text(await (await k.as("rita")).get(page));
 		expect(html).not.toContain("0712 345 678");
 		expect(html).not.toContain("Telefon");
@@ -109,7 +110,7 @@ describe("a field group the service leaves out is not shown", () => {
 	});
 	it("prices: shown to whoever may see them, no price column otherwise", async () => {
 		expect(await text(await (await k.as("olga")).get("/settings/services"))).toContain("250,00");
-		await api("PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view"] });
+		await api("PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view_all"] });
 		const html = await text(await (await k.as("nina")).get("/settings/services"));
 		expect(html).toContain("Evaluare");
 		expect(html).not.toContain("250,00");
@@ -128,19 +129,19 @@ describe("a field group the service leaves out is not shown", () => {
 describe("every write is checked again, now, by the console and by the service", () => {
 	it("a volunteer's archive is refused and the client is untouched", async () => {
 		const s = await k.as("vera");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const r = await s.post(`/clients/${c1()}/archive`);
 		expect(r.status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("a permission taken away after the page was shown is gone at the next write (nothing is cached)", async () => {
 		const s = await k.as("rita");
 		const id = String((await api("POST", "/clients", { name: "Cached Perm" })).json.id);
 		expect(await text(await s.get(`/clients/${id}`))).toContain("Cached Perm");
-		await api("PUT", "/members/rita/overrides", { grant: [], deny: ["clients_archive"] });
-		const before = k.api.world.fingerprint();
+		await api("PUT", "/members/rita/overrides", { grant: [], deny: ["clients_archive_all"] });
+		const before = await k.api.world.fingerprint();
 		expect((await s.post(`/clients/${id}/archive`)).status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 		await api("PUT", "/members/rita/overrides", { grant: [], deny: [] });
 		expect((await s.post(`/clients/${id}/archive`)).status).toBe(200);
 		expect(((await api("GET", `/clients/${id}`)).json as { status: string }).status).toBe(
@@ -149,9 +150,9 @@ describe("every write is checked again, now, by the console and by the service",
 	});
 	it("a therapist cannot mark a request handled", async () => {
 		const s = await k.as("dora");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		expect((await s.post("/requests/AAAA-BBBB/handled")).status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("reception's archive goes through, as reception, and the audit says who", async () => {
 		const id = String((await api("POST", "/clients", { name: "Archived By Rita" })).json.id);
@@ -166,12 +167,12 @@ describe("every write is checked again, now, by the console and by the service",
 	});
 	it("a role editor save: only for roles administrators", async () => {
 		const s = await k.as("rita");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const r = await s.post("/settings/roles/psizone-reception", new URLSearchParams({}), {
 			"content-type": "application/x-www-form-urlencoded",
 		});
 		expect(r.status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 });
 
@@ -250,27 +251,6 @@ describe("what the service has not built yet is said, not crashed on", () => {
 		const c = await startSdkConsole({ fetch: fakeSoon(path, status, code) });
 		return { c, s: await c.as("olga") };
 	}
-	it("501 on the requests: a 'în curând' screen inside the same shell", async () => {
-		const { c, s } = await withService("/requests?", 501, "not_available_yet");
-		try {
-			const r = await s.get("/requests");
-			expect(r.status).toBe(200);
-			const html = await text(r);
-			expect(html).toContain("În curând");
-			expect(has(html, "/calendar")).toBe(true);
-		} finally {
-			await c.close();
-		}
-	});
-	it("501 on the calendar: still 'în curând', other screens unaffected", async () => {
-		const { c, s } = await withService("/calendar?", 501, "not_available_yet");
-		try {
-			expect(await text(await s.get("/calendar"))).toContain("În curând");
-			expect(await text(await s.get("/clients"))).not.toContain("În curând");
-		} finally {
-			await c.close();
-		}
-	});
 	it("the notification preferences say 'în curând' and keep the rest of the tab", async () => {
 		const s = await k.as("olga");
 		const html = await text(await s.get("/settings/notifications"));

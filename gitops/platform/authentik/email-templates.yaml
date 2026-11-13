@@ -1,10 +1,10 @@
 # The directory's own mail, in Romanian — the set-password link every person
 # receives first (doc 18, step 3), and the same mail for "Ai uitat parola?".
 #
-# Mounted at /templates/recomex/ on server AND worker (global.volumes in
+# Mounted at /templates/<slug>/ on server AND worker (global.volumes in
 # gitops/apps/overlays/dev/authentik.yaml): Authentik's `email.template_dir` is
 # /templates and an email stage names a custom template by its path relative to
-# it, here `recomex/setare-parola.html` (blueprints-recovery.yaml). The worker
+# it, here `<slug>/setare-parola.html` (blueprints-recovery.yaml). The worker
 # is the half that renders and sends; the server lists the choice in the UI.
 # The `.txt` beside it is the plain-text part — Authentik looks it up by
 # replacing `html` with `txt` in the name, so the two names must stay paired.
@@ -16,7 +16,7 @@
 # token (`expires`), never a number written here, so the mail cannot disagree
 # with `token_expiry` in the blueprint. It is shown in Romania's time.
 #
-# THE LOOK (`base.html`, which every Recomex mail extends instead of Authentik's
+# THE LOOK (`base.html`, which every estate mail extends instead of Authentik's
 # own `email/base.html`): the estate's light theme — a mail client cannot read a
 # CSS variable, so each colour is the sRGB of a token in packages/rmx-ui/src/
 # tokens.css (`:root`), and the drift test (packages/rmx-ui/src/__tests__/
@@ -69,7 +69,7 @@ data:
       </body>
     </html>
   setare-parola.html: |
-    {% extends "recomex/base.html" %}
+    {% extends "WLSLUG/base.html" %}
     {% load tz %}
     {% block content %}
     <h1 style="margin: 0 0 16px 0; font-size: 22px; line-height: 1.3; font-weight: 600; color: #0e192e;">Bună{% if user.name %}, {{ user.name }}{% endif %}!</h1>

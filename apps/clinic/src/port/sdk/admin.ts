@@ -46,7 +46,7 @@ export function adminGroup(sdk: SdkContext) {
 			}),
 
 		capabilities: (_subject: string, app: AppSlug, as?: `role:${string}` | `member:${string}`) =>
-			run(() => api.me.app({ app, ...(as === undefined ? {} : { as }) })),
+			run(() => api.me.capabilities({ app, ...(as === undefined ? {} : { as }) })),
 
 		startViewAs: (_subject: string, app: AppSlug, as: `role:${string}` | `member:${string}`) =>
 			run(() => api.viewAs.start({ app, as })),
@@ -79,12 +79,11 @@ export function adminGroup(sdk: SdkContext) {
 					await api.requests.list({ app, from: now - 90 * DAY, to: now + 365 * DAY })
 				).items.find((r) => r.reference === id);
 				if (found === undefined) throw new PortError("not-found", id);
-				// A held slot is confirmed. A callback has no slot to confirm: the service can only close it as declined
-				// (it has no "called back" state yet; see the report).
+				// A held slot is confirmed; a callback has no slot, it was called back.
 				await api.requests.decide({
 					app,
 					reference: id,
-					decision: found.start === undefined ? "decline" : "confirm",
+					decision: found.start === undefined ? "handle" : "confirm",
 				});
 			}),
 
@@ -103,15 +102,7 @@ export function adminGroup(sdk: SdkContext) {
 		saveRole: (app: AppSlug, role: Role): Promise<Role> =>
 			run(async () => {
 				const held = await api.roles.get({ app, id: role.id });
-				// An unscoped permission is held under its bare key: no scope to choose.
-				const scopes = new Map<string, ReadonlyArray<ScopeName>>(
-					held.matrix.map((row) => [row.key, row.scoped ? row.scopes : []]),
-				);
-				const next = relationsFromGrants(
-					role,
-					held.role.permissions,
-					(key) => scopes.get(key) ?? [],
-				);
+				const next = relationsFromGrants(role, held.role.permissions);
 				if (role.name !== held.role.name || role.description !== (held.role.description ?? ""))
 					await api.roles.update({
 						app,

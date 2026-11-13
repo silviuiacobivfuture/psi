@@ -4,7 +4,7 @@ import { createStaffPort } from "./staff-port";
 
 const TODAY = "2026-11-13";
 const RECEPTION_KEYS = [
-	"calendar_view",
+	"calendars_view",
 	"appointments_view",
 	"appointments_create",
 	"appointments_edit",
@@ -13,9 +13,9 @@ const RECEPTION_KEYS = [
 	"packages_view",
 	"payments_create",
 	"reminders_send",
-	"requests_decide",
+	"web_requests_approve",
 ];
-const OWNER_KEYS = [...RECEPTION_KEYS, "audit_view", "leave_create"];
+const OWNER_KEYS = [...RECEPTION_KEYS, "audit_log_view", "leave_create"];
 const person = { subject: "sub-1", name: "Recepție Demo", email: null };
 
 function setup(roles: ReadonlyArray<string>) {
@@ -125,7 +125,7 @@ describe("the assistant's port over the console's own port", () => {
 		const { staff } = setup(["reception"]);
 		const caps = await staff.capabilities();
 		expect(caps.ok && caps.value.permissions).toEqual(
-			expect.arrayContaining(["calendar_view", "reminders_send"]),
+			expect.arrayContaining(["calendars_view", "reminders_send"]),
 		);
 		expect(
 			caps.ok && caps.value.permissions.some((p) => /audit|roles|settings|records/.test(p)),

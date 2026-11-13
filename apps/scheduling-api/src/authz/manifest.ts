@@ -1,21 +1,28 @@
-import { allAppRelations, CATALOGUE, parseRelation } from "./catalogue";
-import { ACTION_LABEL, RESOURCE_LABEL } from "./labels";
+import {
+	allAppRelations,
+	appRelations,
+	CATALOGUE,
+	type PermissionDef,
+	parseRelation,
+} from "./catalogue";
+import { ACTION_LABEL, GROUP_LABEL, RESOURCE_LABEL } from "./labels";
 import { buildModel, type Clause, PLATFORM_CLAUSE, render } from "./model";
 
 type Label = { ro: string; en: string };
 
-function labelOf(resource: string, action: string): Label {
-	const r = RESOURCE_LABEL[resource] ?? { ro: resource, en: resource };
-	const a = ACTION_LABEL[action] ?? { ro: action, en: action };
-	return { ro: `${r.ro}: ${a.ro}`, en: `${r.en}: ${a.en}` };
+export function labelOf(def: Pick<PermissionDef, "resource" | "action" | "group">): Label {
+	const r = RESOURCE_LABEL[def.resource] ?? { ro: def.resource, en: def.resource };
+	const a = ACTION_LABEL[def.action] ?? { ro: def.action, en: def.action };
+	const g = def.group === undefined ? undefined : GROUP_LABEL[def.group];
+	return {
+		ro: `${r.ro}: ${a.ro}${g === undefined ? "" : ` (${g.ro})`}`,
+		en: `${r.en}: ${a.en}${g === undefined ? "" : ` (${g.en})`}`,
+	};
 }
 
 /** The role the estate's platform administrators hold: it manages apps, members and roles, never clinical content. */
-const PLATFORM_ADMIN_GRANTS = CATALOGUE.filter((def) => def.platformAdmin === true).flatMap(
-	(def) =>
-		def.scopes.length === 0
-			? [`sched_app#${def.key}`]
-			: def.scopes.map((s) => `sched_app#${def.key}_${s}`),
+const PLATFORM_ADMIN_GRANTS = CATALOGUE.filter((def) => def.platformAdmin === true).flatMap((def) =>
+	appRelations(def).map((relation) => `sched_app#${relation}`),
 );
 
 /** The manifest for Polaris's generator (SEB authz/manifest.schema.json), rendered from the catalogue and the model. */
@@ -25,11 +32,8 @@ export function buildManifest(): Record<string, unknown> {
 		name: RESOURCE_LABEL[resource] ?? { ro: resource, en: resource },
 		permissions: CATALOGUE.filter((d) => d.resource === resource).map((def) => ({
 			key: def.key,
-			name: labelOf(def.resource, def.action),
-			grants:
-				def.scopes.length === 0
-					? [`sched_app#${def.key}`]
-					: def.scopes.map((s) => `sched_app#${def.key}_${s}`),
+			name: labelOf(def),
+			grants: appRelations(def).map((relation) => `sched_app#${relation}`),
 			effect: def.effect,
 		})),
 	}));

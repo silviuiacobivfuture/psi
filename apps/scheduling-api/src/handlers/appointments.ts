@@ -4,12 +4,14 @@ import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { AppointmentRow } from "../store/types";
-import { appointmentView } from "./fields";
+import { appointmentGroupReach, appointmentView } from "./fields";
 import { balances as packageBalances } from "./packages";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
 
 /** A package with this many sessions or fewer left tells the team. */
 const LOW_SESSIONS = 2;
+/** A deleted appointment can be restored for 30 days. */
+const RECOVERY_MS = 30 * 86_400_000;
 
 type C = Ctx<RouteSpec>;
 
@@ -26,13 +28,13 @@ async function clash(
 		"id" | "practitionerId" | "roomId" | "deviceId" | "start" | "end" | "kind"
 	>,
 ): Promise<string | undefined> {
-	if (candidate.kind === "block") return undefined;
 	const near = await ctx.deps.store.c.appointments.list(ctx.app, {
 		range: { field: "start", gte: candidate.start - 24 * 3_600_000, lt: candidate.end },
 	});
 	return near.find(
 		(o) =>
 			o.id !== candidate.id &&
+			o.deletedAt === undefined &&
 			o.status !== "cancelled" &&
 			o.end > candidate.start &&
 			o.start < candidate.end &&
@@ -67,10 +69,10 @@ async function checkRefs(
 }
 
 export async function appointmentOut(ctx: C, row: AppointmentRow) {
-	return appointmentView(
-		row,
-		await ctx.canOn("appointments_money_view", "sched_appointment", row.id),
-	);
+	return appointmentView(row, {
+		core: await ctx.canOn("appointments_view_core", "sched_appointment", row.id),
+		money: await ctx.canOn("appointments_view_money", "sched_appointment", row.id),
+	});
 }
 
 export const appointmentHandlers: HandlersOf<
@@ -80,6 +82,8 @@ export const appointmentHandlers: HandlersOf<
 	| "appointments.update"
 	| "appointments.cancel"
 	| "appointments.attendance"
+	| "appointments.remove"
+	| "appointments.restore"
 	| "appointments.pay"
 	| "calendar.get"
 > = {
@@ -91,13 +95,22 @@ export const appointmentHandlers: HandlersOf<
 		)
 			.filter(
 				(a) =>
+					a.deletedAt === undefined &&
 					reaches(ctx.reach, a.id) &&
 					(ctx.query.clientId === undefined || a.clientId === ctx.query.clientId),
 			)
 			.sort((a, b) => a.start - b.start);
-		const money = await ctx.reachOf("appointments_money_view", "sched_appointment");
+		const groups = await appointmentGroupReach(ctx);
 		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
-		return { ...page, items: page.items.map((a) => appointmentView(a, reaches(money, a.id))) };
+		return {
+			...page,
+			items: page.items.map((a) =>
+				appointmentView(a, {
+					core: reaches(groups.core, a.id),
+					money: reaches(groups.money, a.id),
+				}),
+			),
+		};
 	},
 
 	async "appointments.create"(ctx) {
@@ -108,8 +121,21 @@ export const appointmentHandlers: HandlersOf<
 			throw fail("invalid", "a session needs a client", { field: "clientId" });
 		if (b.kind === "group" && b.groupId === undefined)
 			throw fail("invalid", "a group activity needs a group", { field: "groupId" });
-		if (b.priceCents !== undefined && !(await ctx.canAll("appointments_money_edit")))
+		if (
+			b.priceCents !== undefined &&
+			!(await ctx.canOn("appointments_create_money", "sched_calendar", b.practitionerId))
+		)
 			throw forbidden("not allowed to write this field group", { group: "money" });
+		const core =
+			b.clientId !== undefined ||
+			b.groupId !== undefined ||
+			b.roomId !== undefined ||
+			b.deviceId !== undefined ||
+			b.serviceId !== undefined ||
+			b.packageId !== undefined ||
+			b.note !== undefined;
+		if (core && !(await ctx.canOn("appointments_create_core", "sched_calendar", b.practitionerId)))
+			throw forbidden("not allowed to write this field group", { group: "core" });
 		await checkRefs(ctx, b);
 		const id = newId("a");
 		const row: AppointmentRow = {
@@ -135,22 +161,17 @@ export const appointmentHandlers: HandlersOf<
 		const other = await clash(ctx, row);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
-		await ctx.deps.store.c.appointments.insert(row);
-		await writeTuples(ctx, links(row));
-		await ctx.changed("appointment", "created", id);
-		if (row.clientId !== undefined)
+		const saved = await ctx.deps.store.c.appointments.insert(row);
+		await writeTuples(ctx, links(saved));
+		await ctx.changed("appointment", "created", saved.id);
+		if (saved.clientId !== undefined)
 			await ctx.notify(
 				"appointment.confirmed",
-				{ kind: "client", clientId: row.clientId },
-				{ appointmentId: id, start: row.start },
-				id,
+				{ kind: "client", clientId: saved.clientId },
+				{ appointmentId: saved.id, start: saved.start },
+				saved.id,
 			);
-		return appointmentView(
-			row,
-			b.priceCents === undefined
-				? false
-				: await ctx.canOn("appointments_money_view", "sched_appointment", id),
-		);
+		return appointmentOut(ctx, saved);
 	},
 
 	async "appointments.get"(ctx) {
@@ -170,6 +191,13 @@ export const appointmentHandlers: HandlersOf<
 		const b = ctx.body;
 		if (row.status === "cancelled")
 			throw fail("conflict", "a cancelled appointment does not move", { status: row.status });
+		const detail =
+			b.packageId !== undefined ||
+			b.roomId !== undefined ||
+			b.deviceId !== undefined ||
+			b.note !== undefined;
+		if (detail && !(await ctx.canOn("appointments_edit_core", "sched_appointment", row.id)))
+			throw forbidden("not allowed to write this field group", { group: "core" });
 		const reassigns =
 			(b.practitionerId !== undefined && b.practitionerId !== row.practitionerId) ||
 			(b.roomId !== undefined && b.roomId !== row.roomId) ||
@@ -205,7 +233,7 @@ export const appointmentHandlers: HandlersOf<
 			await ctx.notify(
 				"appointment.moved",
 				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: next.start },
+				{ appointmentId: row.id, start: next.start, previousStart: row.start },
 				`${row.id}:${next.start}:${next.practitionerId}`,
 			);
 		}
@@ -277,6 +305,43 @@ export const appointmentHandlers: HandlersOf<
 		return appointmentOut(ctx, next);
 	},
 
+	async "appointments.remove"(ctx) {
+		const row = await must(
+			ctx.deps.store.c.appointments,
+			ctx.app,
+			String(ctx.params.id),
+			"appointment",
+		);
+		if (row.deletedAt !== undefined) throw fail("conflict", "already deleted");
+		const purgeAt = ctx.now + RECOVERY_MS;
+		await ctx.deps.store.c.appointments.replace({
+			...row,
+			deletedAt: ctx.now,
+			purgeAt,
+			updatedAt: ctx.now,
+		});
+		await ctx.changed("appointment", "deleted", row.id);
+		return { id: row.id, status: "deleted" as const, purgeAt };
+	},
+
+	async "appointments.restore"(ctx) {
+		const row = await must(
+			ctx.deps.store.c.appointments,
+			ctx.app,
+			String(ctx.params.id),
+			"appointment",
+		);
+		if (row.deletedAt === undefined) throw fail("conflict", "the appointment is not deleted");
+		const { deletedAt: _d, purgeAt: _p, ...kept } = row;
+		const next: AppointmentRow = { ...kept, updatedAt: ctx.now };
+		const other = await clash(ctx, next);
+		if (other !== undefined)
+			throw fail("conflict", "the person, room or device is booked then", { with: other });
+		await ctx.deps.store.c.appointments.replace(next);
+		await ctx.changed("appointment", "updated", row.id);
+		return appointmentOut(ctx, next);
+	},
+
 	async "appointments.pay"(ctx) {
 		const row = await must(
 			ctx.deps.store.c.appointments,
@@ -296,7 +361,7 @@ export const appointmentHandlers: HandlersOf<
 		};
 		const next: AppointmentRow = { ...row, money, updatedAt: ctx.now };
 		await ctx.deps.store.c.appointments.replace(next);
-		await ctx.deps.store.c.payments.insert({
+		const recorded = await ctx.deps.store.c.payments.insert({
 			id: newId("y"),
 			app: ctx.app,
 			clientId: row.clientId,
@@ -311,7 +376,13 @@ export const appointmentHandlers: HandlersOf<
 		await ctx.notify(
 			"payment.recorded",
 			{ kind: "team", permission: "payments_view" },
-			{ appointmentId: row.id, amountCents: ctx.body.amountCents },
+			{
+				appointmentId: row.id,
+				paymentId: recorded.id,
+				clientId: row.clientId,
+				amountCents: ctx.body.amountCents,
+				what: "Programare",
+			},
 			`${row.id}:${paid}`,
 		);
 		return appointmentOut(ctx, next);
@@ -322,9 +393,15 @@ export const appointmentHandlers: HandlersOf<
 		const { columns, from, to } = ctx.query;
 		const inRange = (
 			await s.appointments.list(ctx.app, { range: { field: "start", gte: from, lt: to } })
-		).filter((a) => a.status !== "cancelled" && reaches(ctx.reach, a.practitionerId));
-		const money = await ctx.reachOf("appointments_money_view", "sched_appointment");
-		const out = (a: AppointmentRow) => appointmentView(a, reaches(money, a.id));
+		).filter(
+			(a) =>
+				a.deletedAt === undefined &&
+				a.status !== "cancelled" &&
+				reaches(ctx.reach, a.practitionerId),
+		);
+		const groups = await appointmentGroupReach(ctx);
+		const out = (a: AppointmentRow) =>
+			appointmentView(a, { core: reaches(groups.core, a.id), money: reaches(groups.money, a.id) });
 		if (columns === "person") {
 			const people = (await s.people.list(ctx.app))
 				.filter((p) => p.active && reaches(ctx.reach, p.id))

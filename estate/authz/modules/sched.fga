@@ -12,110 +12,356 @@ type sched_app
   relations
     define parent_platform: [platform]
     define member: [user] or administrator from parent_platform
-    define app_settings_view: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define app_settings_edit: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define members_view: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define members_edit: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define members_remove: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define roles_view: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define roles_create: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define roles_edit: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define roles_delete: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
-    define people_view: [user, sched_role#member]
-    define people_create: [user, sched_role#member]
-    define people_edit: [user, sched_role#member]
-    define people_delete: [user, sched_role#member]
-    define rooms_view: [user, sched_role#member]
-    define rooms_create: [user, sched_role#member]
-    define rooms_edit: [user, sched_role#member]
-    define rooms_delete: [user, sched_role#member]
-    define devices_view: [user, sched_role#member]
-    define devices_create: [user, sched_role#member]
-    define devices_edit: [user, sched_role#member]
-    define devices_delete: [user, sched_role#member]
-    define groups_view: [user, sched_role#member]
-    define groups_create: [user, sched_role#member]
-    define groups_edit: [user, sched_role#member]
-    define groups_delete: [user, sched_role#member]
-    define services_view: [user, sched_role#member]
-    define services_create: [user, sched_role#member]
-    define services_edit: [user, sched_role#member]
-    define services_delete: [user, sched_role#member]
-    define prices_view: [user, sched_role#member]
-    define prices_change: [user, sched_role#member]
-    define calendar_view_all: [user, sched_role#member]
-    define calendar_view_assigned: [user, sched_role#member]
-    define calendar_view_own: [user, sched_role#member]
+    define app_settings_view_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define app_settings_edit_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define members_view_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define members_create_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define members_edit_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define members_delete_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define people_view_all: [user, sched_role#member]
+    define people_view_own: [user, sched_role#member]
+    define people_create_all: [user, sched_role#member]
+    define people_create_own: [user, sched_role#member]
+    define people_edit_all: [user, sched_role#member]
+    define people_edit_own: [user, sched_role#member]
+    define people_archive_all: [user, sched_role#member]
+    define people_archive_own: [user, sched_role#member]
+    define roles_view_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define roles_create_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define roles_edit_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define roles_delete_all: [user, sched_role#member] or administrator from parent_platform or role_sched_app_admin from parent_platform
+    define builder_view_all: [user, sched_role#member]
+    define builder_create_all: [user, sched_role#member]
+    define builder_edit_all: [user, sched_role#member]
+    define builder_delete_all: [user, sched_role#member]
+    define services_view_all: [user, sched_role#member]
+    define services_create_all: [user, sched_role#member]
+    define services_edit_all: [user, sched_role#member]
+    define services_delete_all: [user, sched_role#member]
+    define services_price_all: [user, sched_role#member]
+    define prices_view_all: [user, sched_role#member]
+    define prices_edit_all: [user, sched_role#member]
+    define rooms_view_all: [user, sched_role#member]
+    define rooms_create_all: [user, sched_role#member]
+    define rooms_edit_all: [user, sched_role#member]
+    define rooms_delete_all: [user, sched_role#member]
+    define devices_view_all: [user, sched_role#member]
+    define devices_create_all: [user, sched_role#member]
+    define devices_edit_all: [user, sched_role#member]
+    define devices_delete_all: [user, sched_role#member]
+    define group_activities_view_all: [user, sched_role#member]
+    define group_activities_create_all: [user, sched_role#member]
+    define group_activities_edit_all: [user, sched_role#member]
+    define group_activities_delete_all: [user, sched_role#member]
+    define calendars_view_all: [user, sched_role#member]
+    define calendars_view_assigned: [user, sched_role#member]
+    define calendars_view_own: [user, sched_role#member]
+    define calendars_edit_all: [user, sched_role#member]
+    define calendars_edit_assigned: [user, sched_role#member]
+    define calendars_edit_own: [user, sched_role#member]
+    define calendars_assign_all: [user, sched_role#member]
+    define calendars_assign_assigned: [user, sched_role#member]
+    define calendars_assign_own: [user, sched_role#member]
     define appointments_view_all: [user, sched_role#member]
     define appointments_view_assigned: [user, sched_role#member]
     define appointments_view_own: [user, sched_role#member]
+    define appointments_view_all_core: [user, sched_role#member]
+    define appointments_view_assigned_core: [user, sched_role#member]
+    define appointments_view_own_core: [user, sched_role#member]
+    define appointments_view_all_money: [user, sched_role#member]
+    define appointments_view_assigned_money: [user, sched_role#member]
+    define appointments_view_own_money: [user, sched_role#member]
+    define appointments_view_all_clinical: [user, sched_role#member]
+    define appointments_view_assigned_clinical: [user, sched_role#member]
+    define appointments_view_own_clinical: [user, sched_role#member]
     define appointments_create_all: [user, sched_role#member]
     define appointments_create_assigned: [user, sched_role#member]
     define appointments_create_own: [user, sched_role#member]
+    define appointments_create_all_core: [user, sched_role#member]
+    define appointments_create_assigned_core: [user, sched_role#member]
+    define appointments_create_own_core: [user, sched_role#member]
+    define appointments_create_all_money: [user, sched_role#member]
+    define appointments_create_assigned_money: [user, sched_role#member]
+    define appointments_create_own_money: [user, sched_role#member]
+    define appointments_create_all_clinical: [user, sched_role#member]
+    define appointments_create_assigned_clinical: [user, sched_role#member]
+    define appointments_create_own_clinical: [user, sched_role#member]
     define appointments_edit_all: [user, sched_role#member]
     define appointments_edit_assigned: [user, sched_role#member]
     define appointments_edit_own: [user, sched_role#member]
+    define appointments_edit_all_core: [user, sched_role#member]
+    define appointments_edit_assigned_core: [user, sched_role#member]
+    define appointments_edit_own_core: [user, sched_role#member]
+    define appointments_edit_all_money: [user, sched_role#member]
+    define appointments_edit_assigned_money: [user, sched_role#member]
+    define appointments_edit_own_money: [user, sched_role#member]
+    define appointments_edit_all_clinical: [user, sched_role#member]
+    define appointments_edit_assigned_clinical: [user, sched_role#member]
+    define appointments_edit_own_clinical: [user, sched_role#member]
     define appointments_cancel_all: [user, sched_role#member]
     define appointments_cancel_assigned: [user, sched_role#member]
     define appointments_cancel_own: [user, sched_role#member]
-    define appointments_attend_all: [user, sched_role#member]
-    define appointments_attend_assigned: [user, sched_role#member]
-    define appointments_attend_own: [user, sched_role#member]
+    define appointments_cancel_all_core: [user, sched_role#member]
+    define appointments_cancel_assigned_core: [user, sched_role#member]
+    define appointments_cancel_own_core: [user, sched_role#member]
+    define appointments_cancel_all_money: [user, sched_role#member]
+    define appointments_cancel_assigned_money: [user, sched_role#member]
+    define appointments_cancel_own_money: [user, sched_role#member]
+    define appointments_cancel_all_clinical: [user, sched_role#member]
+    define appointments_cancel_assigned_clinical: [user, sched_role#member]
+    define appointments_cancel_own_clinical: [user, sched_role#member]
+    define appointments_delete_all: [user, sched_role#member]
+    define appointments_delete_assigned: [user, sched_role#member]
+    define appointments_delete_own: [user, sched_role#member]
+    define appointments_delete_all_core: [user, sched_role#member]
+    define appointments_delete_assigned_core: [user, sched_role#member]
+    define appointments_delete_own_core: [user, sched_role#member]
+    define appointments_delete_all_money: [user, sched_role#member]
+    define appointments_delete_assigned_money: [user, sched_role#member]
+    define appointments_delete_own_money: [user, sched_role#member]
+    define appointments_delete_all_clinical: [user, sched_role#member]
+    define appointments_delete_assigned_clinical: [user, sched_role#member]
+    define appointments_delete_own_clinical: [user, sched_role#member]
+    define appointments_restore_all: [user, sched_role#member]
+    define appointments_restore_assigned: [user, sched_role#member]
+    define appointments_restore_own: [user, sched_role#member]
+    define appointments_restore_all_core: [user, sched_role#member]
+    define appointments_restore_assigned_core: [user, sched_role#member]
+    define appointments_restore_own_core: [user, sched_role#member]
+    define appointments_restore_all_money: [user, sched_role#member]
+    define appointments_restore_assigned_money: [user, sched_role#member]
+    define appointments_restore_own_money: [user, sched_role#member]
+    define appointments_restore_all_clinical: [user, sched_role#member]
+    define appointments_restore_assigned_clinical: [user, sched_role#member]
+    define appointments_restore_own_clinical: [user, sched_role#member]
     define appointments_assign_all: [user, sched_role#member]
     define appointments_assign_assigned: [user, sched_role#member]
     define appointments_assign_own: [user, sched_role#member]
-    define appointments_money_view_all: [user, sched_role#member]
-    define appointments_money_view_assigned: [user, sched_role#member]
-    define appointments_money_view_own: [user, sched_role#member]
-    define appointments_money_edit_all: [user, sched_role#member]
-    define appointments_money_edit_assigned: [user, sched_role#member]
-    define appointments_money_edit_own: [user, sched_role#member]
-    define clients_create: [user, sched_role#member]
+    define appointments_assign_all_core: [user, sched_role#member]
+    define appointments_assign_assigned_core: [user, sched_role#member]
+    define appointments_assign_own_core: [user, sched_role#member]
+    define appointments_assign_all_money: [user, sched_role#member]
+    define appointments_assign_assigned_money: [user, sched_role#member]
+    define appointments_assign_own_money: [user, sched_role#member]
+    define appointments_assign_all_clinical: [user, sched_role#member]
+    define appointments_assign_assigned_clinical: [user, sched_role#member]
+    define appointments_assign_own_clinical: [user, sched_role#member]
+    define appointments_send_all: [user, sched_role#member]
+    define appointments_send_assigned: [user, sched_role#member]
+    define appointments_send_own: [user, sched_role#member]
+    define appointments_send_all_core: [user, sched_role#member]
+    define appointments_send_assigned_core: [user, sched_role#member]
+    define appointments_send_own_core: [user, sched_role#member]
+    define appointments_send_all_money: [user, sched_role#member]
+    define appointments_send_assigned_money: [user, sched_role#member]
+    define appointments_send_own_money: [user, sched_role#member]
+    define appointments_send_all_clinical: [user, sched_role#member]
+    define appointments_send_assigned_clinical: [user, sched_role#member]
+    define appointments_send_own_clinical: [user, sched_role#member]
     define clients_view_all: [user, sched_role#member]
     define clients_view_assigned: [user, sched_role#member]
     define clients_view_own: [user, sched_role#member]
+    define clients_view_all_contact: [user, sched_role#member]
+    define clients_view_assigned_contact: [user, sched_role#member]
+    define clients_view_own_contact: [user, sched_role#member]
+    define clients_view_all_guardian: [user, sched_role#member]
+    define clients_view_assigned_guardian: [user, sched_role#member]
+    define clients_view_own_guardian: [user, sched_role#member]
+    define clients_view_all_money: [user, sched_role#member]
+    define clients_view_assigned_money: [user, sched_role#member]
+    define clients_view_own_money: [user, sched_role#member]
+    define clients_view_all_clinical: [user, sched_role#member]
+    define clients_view_assigned_clinical: [user, sched_role#member]
+    define clients_view_own_clinical: [user, sched_role#member]
+    define clients_create_all: [user, sched_role#member]
+    define clients_create_assigned: [user, sched_role#member]
+    define clients_create_own: [user, sched_role#member]
+    define clients_create_all_contact: [user, sched_role#member]
+    define clients_create_assigned_contact: [user, sched_role#member]
+    define clients_create_own_contact: [user, sched_role#member]
+    define clients_create_all_guardian: [user, sched_role#member]
+    define clients_create_assigned_guardian: [user, sched_role#member]
+    define clients_create_own_guardian: [user, sched_role#member]
+    define clients_create_all_money: [user, sched_role#member]
+    define clients_create_assigned_money: [user, sched_role#member]
+    define clients_create_own_money: [user, sched_role#member]
+    define clients_create_all_clinical: [user, sched_role#member]
+    define clients_create_assigned_clinical: [user, sched_role#member]
+    define clients_create_own_clinical: [user, sched_role#member]
     define clients_edit_all: [user, sched_role#member]
     define clients_edit_assigned: [user, sched_role#member]
     define clients_edit_own: [user, sched_role#member]
+    define clients_edit_all_contact: [user, sched_role#member]
+    define clients_edit_assigned_contact: [user, sched_role#member]
+    define clients_edit_own_contact: [user, sched_role#member]
+    define clients_edit_all_guardian: [user, sched_role#member]
+    define clients_edit_assigned_guardian: [user, sched_role#member]
+    define clients_edit_own_guardian: [user, sched_role#member]
+    define clients_edit_all_money: [user, sched_role#member]
+    define clients_edit_assigned_money: [user, sched_role#member]
+    define clients_edit_own_money: [user, sched_role#member]
+    define clients_edit_all_clinical: [user, sched_role#member]
+    define clients_edit_assigned_clinical: [user, sched_role#member]
+    define clients_edit_own_clinical: [user, sched_role#member]
     define clients_archive_all: [user, sched_role#member]
     define clients_archive_assigned: [user, sched_role#member]
     define clients_archive_own: [user, sched_role#member]
-    define clients_restore_all: [user, sched_role#member]
-    define clients_restore_assigned: [user, sched_role#member]
-    define clients_restore_own: [user, sched_role#member]
+    define clients_archive_all_contact: [user, sched_role#member]
+    define clients_archive_assigned_contact: [user, sched_role#member]
+    define clients_archive_own_contact: [user, sched_role#member]
+    define clients_archive_all_guardian: [user, sched_role#member]
+    define clients_archive_assigned_guardian: [user, sched_role#member]
+    define clients_archive_own_guardian: [user, sched_role#member]
+    define clients_archive_all_money: [user, sched_role#member]
+    define clients_archive_assigned_money: [user, sched_role#member]
+    define clients_archive_own_money: [user, sched_role#member]
+    define clients_archive_all_clinical: [user, sched_role#member]
+    define clients_archive_assigned_clinical: [user, sched_role#member]
+    define clients_archive_own_clinical: [user, sched_role#member]
     define clients_delete_all: [user, sched_role#member]
     define clients_delete_assigned: [user, sched_role#member]
     define clients_delete_own: [user, sched_role#member]
-    define clients_assign_all: [user, sched_role#member]
-    define clients_assign_assigned: [user, sched_role#member]
-    define clients_assign_own: [user, sched_role#member]
+    define clients_delete_all_contact: [user, sched_role#member]
+    define clients_delete_assigned_contact: [user, sched_role#member]
+    define clients_delete_own_contact: [user, sched_role#member]
+    define clients_delete_all_guardian: [user, sched_role#member]
+    define clients_delete_assigned_guardian: [user, sched_role#member]
+    define clients_delete_own_guardian: [user, sched_role#member]
+    define clients_delete_all_money: [user, sched_role#member]
+    define clients_delete_assigned_money: [user, sched_role#member]
+    define clients_delete_own_money: [user, sched_role#member]
+    define clients_delete_all_clinical: [user, sched_role#member]
+    define clients_delete_assigned_clinical: [user, sched_role#member]
+    define clients_delete_own_clinical: [user, sched_role#member]
+    define clients_restore_all: [user, sched_role#member]
+    define clients_restore_assigned: [user, sched_role#member]
+    define clients_restore_own: [user, sched_role#member]
+    define clients_restore_all_contact: [user, sched_role#member]
+    define clients_restore_assigned_contact: [user, sched_role#member]
+    define clients_restore_own_contact: [user, sched_role#member]
+    define clients_restore_all_guardian: [user, sched_role#member]
+    define clients_restore_assigned_guardian: [user, sched_role#member]
+    define clients_restore_own_guardian: [user, sched_role#member]
+    define clients_restore_all_money: [user, sched_role#member]
+    define clients_restore_assigned_money: [user, sched_role#member]
+    define clients_restore_own_money: [user, sched_role#member]
+    define clients_restore_all_clinical: [user, sched_role#member]
+    define clients_restore_assigned_clinical: [user, sched_role#member]
+    define clients_restore_own_clinical: [user, sched_role#member]
     define clients_export_all: [user, sched_role#member]
     define clients_export_assigned: [user, sched_role#member]
     define clients_export_own: [user, sched_role#member]
-    define clients_contact_view_all: [user, sched_role#member]
-    define clients_contact_view_assigned: [user, sched_role#member]
-    define clients_contact_view_own: [user, sched_role#member]
-    define clients_contact_edit_all: [user, sched_role#member]
-    define clients_contact_edit_assigned: [user, sched_role#member]
-    define clients_contact_edit_own: [user, sched_role#member]
-    define clients_guardian_view_all: [user, sched_role#member]
-    define clients_guardian_view_assigned: [user, sched_role#member]
-    define clients_guardian_view_own: [user, sched_role#member]
-    define clients_guardian_edit_all: [user, sched_role#member]
-    define clients_guardian_edit_assigned: [user, sched_role#member]
-    define clients_guardian_edit_own: [user, sched_role#member]
-    define clients_money_view_all: [user, sched_role#member]
-    define clients_money_view_assigned: [user, sched_role#member]
-    define clients_money_view_own: [user, sched_role#member]
-    define clients_money_edit_all: [user, sched_role#member]
-    define clients_money_edit_assigned: [user, sched_role#member]
-    define clients_money_edit_own: [user, sched_role#member]
-    define clients_clinical_view_all: [user, sched_role#member]
-    define clients_clinical_view_assigned: [user, sched_role#member]
-    define clients_clinical_view_own: [user, sched_role#member]
-    define clients_clinical_edit_all: [user, sched_role#member]
-    define clients_clinical_edit_assigned: [user, sched_role#member]
-    define clients_clinical_edit_own: [user, sched_role#member]
+    define clients_export_all_contact: [user, sched_role#member]
+    define clients_export_assigned_contact: [user, sched_role#member]
+    define clients_export_own_contact: [user, sched_role#member]
+    define clients_export_all_guardian: [user, sched_role#member]
+    define clients_export_assigned_guardian: [user, sched_role#member]
+    define clients_export_own_guardian: [user, sched_role#member]
+    define clients_export_all_money: [user, sched_role#member]
+    define clients_export_assigned_money: [user, sched_role#member]
+    define clients_export_own_money: [user, sched_role#member]
+    define clients_export_all_clinical: [user, sched_role#member]
+    define clients_export_assigned_clinical: [user, sched_role#member]
+    define clients_export_own_clinical: [user, sched_role#member]
+    define clients_assign_all: [user, sched_role#member]
+    define clients_assign_assigned: [user, sched_role#member]
+    define clients_assign_own: [user, sched_role#member]
+    define clients_assign_all_contact: [user, sched_role#member]
+    define clients_assign_assigned_contact: [user, sched_role#member]
+    define clients_assign_own_contact: [user, sched_role#member]
+    define clients_assign_all_guardian: [user, sched_role#member]
+    define clients_assign_assigned_guardian: [user, sched_role#member]
+    define clients_assign_own_guardian: [user, sched_role#member]
+    define clients_assign_all_money: [user, sched_role#member]
+    define clients_assign_assigned_money: [user, sched_role#member]
+    define clients_assign_own_money: [user, sched_role#member]
+    define clients_assign_all_clinical: [user, sched_role#member]
+    define clients_assign_assigned_clinical: [user, sched_role#member]
+    define clients_assign_own_clinical: [user, sched_role#member]
+    define report_aba_view_all: [user, sched_role#member]
+    define report_aba_view_assigned: [user, sched_role#member]
+    define report_aba_view_own: [user, sched_role#member]
+    define report_aba_create_all: [user, sched_role#member]
+    define report_aba_create_assigned: [user, sched_role#member]
+    define report_aba_create_own: [user, sched_role#member]
+    define report_aba_edit_all: [user, sched_role#member]
+    define report_aba_edit_assigned: [user, sched_role#member]
+    define report_aba_edit_own: [user, sched_role#member]
+    define report_aba_delete_all: [user, sched_role#member]
+    define report_aba_delete_assigned: [user, sched_role#member]
+    define report_aba_delete_own: [user, sched_role#member]
+    define report_aba_export_all: [user, sched_role#member]
+    define report_aba_export_assigned: [user, sched_role#member]
+    define report_aba_export_own: [user, sched_role#member]
+    define report_racemeup_view_all: [user, sched_role#member]
+    define report_racemeup_view_assigned: [user, sched_role#member]
+    define report_racemeup_view_own: [user, sched_role#member]
+    define report_racemeup_create_all: [user, sched_role#member]
+    define report_racemeup_create_assigned: [user, sched_role#member]
+    define report_racemeup_create_own: [user, sched_role#member]
+    define report_racemeup_edit_all: [user, sched_role#member]
+    define report_racemeup_edit_assigned: [user, sched_role#member]
+    define report_racemeup_edit_own: [user, sched_role#member]
+    define report_racemeup_delete_all: [user, sched_role#member]
+    define report_racemeup_delete_assigned: [user, sched_role#member]
+    define report_racemeup_delete_own: [user, sched_role#member]
+    define report_racemeup_export_all: [user, sched_role#member]
+    define report_racemeup_export_assigned: [user, sched_role#member]
+    define report_racemeup_export_own: [user, sched_role#member]
+    define report_psychotherapy_view_all: [user, sched_role#member]
+    define report_psychotherapy_view_assigned: [user, sched_role#member]
+    define report_psychotherapy_view_own: [user, sched_role#member]
+    define report_psychotherapy_create_all: [user, sched_role#member]
+    define report_psychotherapy_create_assigned: [user, sched_role#member]
+    define report_psychotherapy_create_own: [user, sched_role#member]
+    define report_psychotherapy_edit_all: [user, sched_role#member]
+    define report_psychotherapy_edit_assigned: [user, sched_role#member]
+    define report_psychotherapy_edit_own: [user, sched_role#member]
+    define report_psychotherapy_delete_all: [user, sched_role#member]
+    define report_psychotherapy_delete_assigned: [user, sched_role#member]
+    define report_psychotherapy_delete_own: [user, sched_role#member]
+    define report_psychotherapy_export_all: [user, sched_role#member]
+    define report_psychotherapy_export_assigned: [user, sched_role#member]
+    define report_psychotherapy_export_own: [user, sched_role#member]
+    define report_custom_view_all: [user, sched_role#member]
+    define report_custom_view_assigned: [user, sched_role#member]
+    define report_custom_view_own: [user, sched_role#member]
+    define report_custom_create_all: [user, sched_role#member]
+    define report_custom_create_assigned: [user, sched_role#member]
+    define report_custom_create_own: [user, sched_role#member]
+    define report_custom_edit_all: [user, sched_role#member]
+    define report_custom_edit_assigned: [user, sched_role#member]
+    define report_custom_edit_own: [user, sched_role#member]
+    define report_custom_delete_all: [user, sched_role#member]
+    define report_custom_delete_assigned: [user, sched_role#member]
+    define report_custom_delete_own: [user, sched_role#member]
+    define report_custom_export_all: [user, sched_role#member]
+    define report_custom_export_assigned: [user, sched_role#member]
+    define report_custom_export_own: [user, sched_role#member]
+    define questionnaire_parent_view_all: [user, sched_role#member]
+    define questionnaire_parent_view_assigned: [user, sched_role#member]
+    define questionnaire_parent_view_own: [user, sched_role#member]
+    define questionnaire_parent_create_all: [user, sched_role#member]
+    define questionnaire_parent_create_assigned: [user, sched_role#member]
+    define questionnaire_parent_create_own: [user, sched_role#member]
+    define questionnaire_parent_edit_all: [user, sched_role#member]
+    define questionnaire_parent_edit_assigned: [user, sched_role#member]
+    define questionnaire_parent_edit_own: [user, sched_role#member]
+    define questionnaire_parent_delete_all: [user, sched_role#member]
+    define questionnaire_parent_delete_assigned: [user, sched_role#member]
+    define questionnaire_parent_delete_own: [user, sched_role#member]
+    define files_view_all: [user, sched_role#member]
+    define files_view_assigned: [user, sched_role#member]
+    define files_view_own: [user, sched_role#member]
+    define files_upload_all: [user, sched_role#member]
+    define files_upload_assigned: [user, sched_role#member]
+    define files_upload_own: [user, sched_role#member]
+    define files_delete_all: [user, sched_role#member]
+    define files_delete_assigned: [user, sched_role#member]
+    define files_delete_own: [user, sched_role#member]
+    define files_export_all: [user, sched_role#member]
+    define files_export_assigned: [user, sched_role#member]
+    define files_export_own: [user, sched_role#member]
     define packages_view_all: [user, sched_role#member]
     define packages_view_assigned: [user, sched_role#member]
     define packages_view_own: [user, sched_role#member]
@@ -128,54 +374,66 @@ type sched_app
     define packages_delete_all: [user, sched_role#member]
     define packages_delete_assigned: [user, sched_role#member]
     define packages_delete_own: [user, sched_role#member]
+    define packages_price_all: [user, sched_role#member]
+    define packages_price_assigned: [user, sched_role#member]
+    define packages_price_own: [user, sched_role#member]
     define payments_view_all: [user, sched_role#member]
     define payments_view_assigned: [user, sched_role#member]
     define payments_view_own: [user, sched_role#member]
     define payments_create_all: [user, sched_role#member]
     define payments_create_assigned: [user, sched_role#member]
     define payments_create_own: [user, sched_role#member]
-    define payments_delete: [user, sched_role#member]
-    define roster_view: [user, sched_role#member]
-    define roster_edit: [user, sched_role#member]
+    define payments_edit_all: [user, sched_role#member]
+    define payments_edit_assigned: [user, sched_role#member]
+    define payments_edit_own: [user, sched_role#member]
+    define payments_delete_all: [user, sched_role#member]
+    define payments_delete_assigned: [user, sched_role#member]
+    define payments_delete_own: [user, sched_role#member]
+    define payments_export_all: [user, sched_role#member]
+    define payments_export_assigned: [user, sched_role#member]
+    define payments_export_own: [user, sched_role#member]
+    define roster_view_all: [user, sched_role#member]
+    define roster_view_assigned: [user, sched_role#member]
+    define roster_view_own: [user, sched_role#member]
+    define roster_edit_all: [user, sched_role#member]
+    define roster_edit_assigned: [user, sched_role#member]
+    define roster_edit_own: [user, sched_role#member]
     define leave_view_all: [user, sched_role#member]
+    define leave_view_assigned: [user, sched_role#member]
     define leave_view_own: [user, sched_role#member]
     define leave_create_all: [user, sched_role#member]
+    define leave_create_assigned: [user, sched_role#member]
     define leave_create_own: [user, sched_role#member]
-    define leave_approve: [user, sched_role#member]
-    define reminders_view: [user, sched_role#member]
-    define reminders_send: [user, sched_role#member]
-    define requests_view: [user, sched_role#member]
-    define requests_decide: [user, sched_role#member]
-    define records_view_all: [user, sched_role#member]
-    define records_view_assigned: [user, sched_role#member]
-    define records_view_own: [user, sched_role#member]
-    define records_create_all: [user, sched_role#member]
-    define records_create_assigned: [user, sched_role#member]
-    define records_create_own: [user, sched_role#member]
-    define records_edit_all: [user, sched_role#member]
-    define records_edit_assigned: [user, sched_role#member]
-    define records_edit_own: [user, sched_role#member]
-    define records_delete_all: [user, sched_role#member]
-    define records_delete_assigned: [user, sched_role#member]
-    define records_delete_own: [user, sched_role#member]
-    define records_clinical_view_all: [user, sched_role#member]
-    define records_clinical_view_assigned: [user, sched_role#member]
-    define records_clinical_view_own: [user, sched_role#member]
-    define files_view_all: [user, sched_role#member]
-    define files_view_assigned: [user, sched_role#member]
-    define files_view_own: [user, sched_role#member]
-    define files_upload_all: [user, sched_role#member]
-    define files_upload_assigned: [user, sched_role#member]
-    define files_upload_own: [user, sched_role#member]
-    define files_delete_all: [user, sched_role#member]
-    define files_delete_assigned: [user, sched_role#member]
-    define files_delete_own: [user, sched_role#member]
-    define audit_view: [user, sched_role#member]
-    define builder_view: [user, sched_role#member]
-    define builder_edit: [user, sched_role#member]
-    define imports_view: [user, sched_role#member]
+    define leave_edit_all: [user, sched_role#member]
+    define leave_edit_assigned: [user, sched_role#member]
+    define leave_edit_own: [user, sched_role#member]
+    define leave_cancel_all: [user, sched_role#member]
+    define leave_cancel_assigned: [user, sched_role#member]
+    define leave_cancel_own: [user, sched_role#member]
+    define leave_approve_all: [user, sched_role#member]
+    define leave_approve_assigned: [user, sched_role#member]
+    define leave_approve_own: [user, sched_role#member]
+    define notice_board_view_all: [user, sched_role#member]
+    define notice_board_create_all: [user, sched_role#member]
+    define notice_board_edit_all: [user, sched_role#member]
+    define notice_board_delete_all: [user, sched_role#member]
+    define reminders_view_all: [user, sched_role#member]
+    define reminders_view_assigned: [user, sched_role#member]
+    define reminders_view_own: [user, sched_role#member]
+    define reminders_send_all: [user, sched_role#member]
+    define reminders_send_assigned: [user, sched_role#member]
+    define reminders_send_own: [user, sched_role#member]
+    define web_requests_view_all: [user, sched_role#member]
+    define web_requests_approve_all: [user, sched_role#member]
+    define reports_view_all: [user, sched_role#member]
+    define reports_export_all: [user, sched_role#member]
+    define audit_log_view_all: [user, sched_role#member]
+    define audit_log_export_all: [user, sched_role#member]
+    define imports_exports_imports_view_all: [user, sched_role#member]
+    define imports_exports_imports_run_all: [user, sched_role#member]
+    define imports_exports_export_all: [user, sched_role#member]
     # app_sched_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
-    define app_sched_access: people_view or people_create or people_edit or people_delete or rooms_view or rooms_create or rooms_edit or rooms_delete or devices_view or devices_create or devices_edit or devices_delete or groups_view or groups_create or groups_edit or groups_delete or services_view or services_create or services_edit or services_delete or prices_view or prices_change or calendar_view_all or calendar_view_assigned or calendar_view_own or appointments_view_all or appointments_view_assigned or appointments_view_own or appointments_create_all or appointments_create_assigned or appointments_create_own or appointments_edit_all or appointments_edit_assigned or appointments_edit_own or appointments_cancel_all or appointments_cancel_assigned or appointments_cancel_own or appointments_attend_all or appointments_attend_assigned or appointments_attend_own or appointments_assign_all or appointments_assign_assigned or appointments_assign_own or appointments_money_view_all or appointments_money_view_assigned or appointments_money_view_own or appointments_money_edit_all or appointments_money_edit_assigned or appointments_money_edit_own or clients_create or clients_view_all or clients_view_assigned or clients_view_own or clients_edit_all or clients_edit_assigned or clients_edit_own or clients_archive_all or clients_archive_assigned or clients_archive_own or clients_restore_all or clients_restore_assigned or clients_restore_own or clients_delete_all or clients_delete_assigned or clients_delete_own or clients_assign_all or clients_assign_assigned or clients_assign_own or clients_export_all or clients_export_assigned or clients_export_own or clients_contact_view_all or clients_contact_view_assigned or clients_contact_view_own or clients_contact_edit_all or clients_contact_edit_assigned or clients_contact_edit_own or clients_guardian_view_all or clients_guardian_view_assigned or clients_guardian_view_own or clients_guardian_edit_all or clients_guardian_edit_assigned or clients_guardian_edit_own or clients_money_view_all or clients_money_view_assigned or clients_money_view_own or clients_money_edit_all or clients_money_edit_assigned or clients_money_edit_own or clients_clinical_view_all or clients_clinical_view_assigned or clients_clinical_view_own or clients_clinical_edit_all or clients_clinical_edit_assigned or clients_clinical_edit_own or packages_view_all or packages_view_assigned or packages_view_own or packages_create_all or packages_create_assigned or packages_create_own or packages_edit_all or packages_edit_assigned or packages_edit_own or packages_delete_all or packages_delete_assigned or packages_delete_own or payments_view_all or payments_view_assigned or payments_view_own or payments_create_all or payments_create_assigned or payments_create_own or payments_delete or roster_view or roster_edit or leave_view_all or leave_view_own or leave_create_all or leave_create_own or leave_approve or reminders_view or reminders_send or requests_view or requests_decide or records_view_all or records_view_assigned or records_view_own or records_create_all or records_create_assigned or records_create_own or records_edit_all or records_edit_assigned or records_edit_own or records_delete_all or records_delete_assigned or records_delete_own or records_clinical_view_all or records_clinical_view_assigned or records_clinical_view_own or files_view_all or files_view_assigned or files_view_own or files_upload_all or files_upload_assigned or files_upload_own or files_delete_all or files_delete_assigned or files_delete_own or audit_view or builder_view or builder_edit or imports_view
+    define app_sched_access: people_view_all or people_view_own or people_create_all or people_create_own or people_edit_all or people_edit_own or people_archive_all or people_archive_own or builder_view_all or builder_create_all or builder_edit_all or builder_delete_all or services_view_all or services_create_all or services_edit_all or services_delete_all or services_price_all or prices_view_all or prices_edit_all or rooms_view_all or rooms_create_all or rooms_edit_all or rooms_delete_all or devices_view_all or devices_create_all or devices_edit_all or devices_delete_all or group_activities_view_all or group_activities_create_all or group_activities_edit_all or group_activities_delete_all or calendars_view_all or calendars_view_assigned or calendars_view_own or calendars_edit_all or calendars_edit_assigned or calendars_edit_own or calendars_assign_all or calendars_assign_assigned or calendars_assign_own or appointments_view_all or appointments_view_assigned or appointments_view_own or appointments_view_all_core or appointments_view_assigned_core or appointments_view_own_core or appointments_view_all_money or appointments_view_assigned_money or appointments_view_own_money or appointments_view_all_clinical or appointments_view_assigned_clinical or appointments_view_own_clinical or appointments_create_all or appointments_create_assigned or appointments_create_own or appointments_create_all_core or appointments_create_assigned_core or appointments_create_own_core or appointments_create_all_money or appointments_create_assigned_money or appointments_create_own_money or appointments_create_all_clinical or appointments_create_assigned_clinical or appointments_create_own_clinical or appointments_edit_all or appointments_edit_assigned or appointments_edit_own or appointments_edit_all_core or appointments_edit_assigned_core or appointments_edit_own_core or appointments_edit_all_money or appointments_edit_assigned_money or appointments_edit_own_money or appointments_edit_all_clinical or appointments_edit_assigned_clinical or appointments_edit_own_clinical or appointments_cancel_all or appointments_cancel_assigned or appointments_cancel_own or appointments_cancel_all_core or appointments_cancel_assigned_core or appointments_cancel_own_core or appointments_cancel_all_money or appointments_cancel_assigned_money or appointments_cancel_own_money or appointments_cancel_all_clinical or appointments_cancel_assigned_clinical or appointments_cancel_own_clinical or appointments_delete_all or appointments_delete_assigned or appointments_delete_own or appointments_delete_all_core or appointments_delete_assigned_core or appointments_delete_own_core or appointments_delete_all_money or appointments_delete_assigned_money or appointments_delete_own_money or appointments_delete_all_clinical or appointments_delete_assigned_clinical or appointments_delete_own_clinical or appointments_restore_all or appointments_restore_assigned or appointments_restore_own or appointments_restore_all_core or appointments_restore_assigned_core or appointments_restore_own_core or appointments_restore_all_money or appointments_restore_assigned_money or appointments_restore_own_money or appointments_restore_all_clinical or appointments_restore_assigned_clinical or appointments_restore_own_clinical or appointments_assign_all or appointments_assign_assigned or appointments_assign_own or appointments_assign_all_core or appointments_assign_assigned_core or appointments_assign_own_core or appointments_assign_all_money or appointments_assign_assigned_money or appointments_assign_own_money or appointments_assign_all_clinical or appointments_assign_assigned_clinical or appointments_assign_own_clinical or appointments_send_all or appointments_send_assigned or appointments_send_own or appointments_send_all_core or appointments_send_assigned_core or appointments_send_own_core or appointments_send_all_money or appointments_send_assigned_money or appointments_send_own_money or appointments_send_all_clinical or appointments_send_assigned_clinical or appointments_send_own_clinical or clients_view_all or clients_view_assigned or clients_view_own or clients_view_all_contact or clients_view_assigned_contact or clients_view_own_contact or clients_view_all_guardian or clients_view_assigned_guardian or clients_view_own_guardian or clients_view_all_money or clients_view_assigned_money or clients_view_own_money or clients_view_all_clinical or clients_view_assigned_clinical or clients_view_own_clinical or clients_create_all or clients_create_assigned or clients_create_own or clients_create_all_contact or clients_create_assigned_contact or clients_create_own_contact or clients_create_all_guardian or clients_create_assigned_guardian or clients_create_own_guardian or clients_create_all_money or clients_create_assigned_money or clients_create_own_money or clients_create_all_clinical or clients_create_assigned_clinical or clients_create_own_clinical or clients_edit_all or clients_edit_assigned or clients_edit_own or clients_edit_all_contact or clients_edit_assigned_contact or clients_edit_own_contact or clients_edit_all_guardian or clients_edit_assigned_guardian or clients_edit_own_guardian or clients_edit_all_money or clients_edit_assigned_money or clients_edit_own_money or clients_edit_all_clinical or clients_edit_assigned_clinical or clients_edit_own_clinical or clients_archive_all or clients_archive_assigned or clients_archive_own or clients_archive_all_contact or clients_archive_assigned_contact or clients_archive_own_contact or clients_archive_all_guardian or clients_archive_assigned_guardian or clients_archive_own_guardian or clients_archive_all_money or clients_archive_assigned_money or clients_archive_own_money or clients_archive_all_clinical or clients_archive_assigned_clinical or clients_archive_own_clinical or clients_delete_all or clients_delete_assigned or clients_delete_own or clients_delete_all_contact or clients_delete_assigned_contact or clients_delete_own_contact or clients_delete_all_guardian or clients_delete_assigned_guardian or clients_delete_own_guardian or clients_delete_all_money or clients_delete_assigned_money or clients_delete_own_money or clients_delete_all_clinical or clients_delete_assigned_clinical or clients_delete_own_clinical or clients_restore_all or clients_restore_assigned or clients_restore_own or clients_restore_all_contact or clients_restore_assigned_contact or clients_restore_own_contact or clients_restore_all_guardian or clients_restore_assigned_guardian or clients_restore_own_guardian or clients_restore_all_money or clients_restore_assigned_money or clients_restore_own_money or clients_restore_all_clinical or clients_restore_assigned_clinical or clients_restore_own_clinical or clients_export_all or clients_export_assigned or clients_export_own or clients_export_all_contact or clients_export_assigned_contact or clients_export_own_contact or clients_export_all_guardian or clients_export_assigned_guardian or clients_export_own_guardian or clients_export_all_money or clients_export_assigned_money or clients_export_own_money or clients_export_all_clinical or clients_export_assigned_clinical or clients_export_own_clinical or clients_assign_all or clients_assign_assigned or clients_assign_own or clients_assign_all_contact or clients_assign_assigned_contact or clients_assign_own_contact or clients_assign_all_guardian or clients_assign_assigned_guardian or clients_assign_own_guardian or clients_assign_all_money or clients_assign_assigned_money or clients_assign_own_money or clients_assign_all_clinical or clients_assign_assigned_clinical or clients_assign_own_clinical or report_aba_view_all or report_aba_view_assigned or report_aba_view_own or report_aba_create_all or report_aba_create_assigned or report_aba_create_own or report_aba_edit_all or report_aba_edit_assigned or report_aba_edit_own or report_aba_delete_all or report_aba_delete_assigned or report_aba_delete_own or report_aba_export_all or report_aba_export_assigned or report_aba_export_own or report_racemeup_view_all or report_racemeup_view_assigned or report_racemeup_view_own or report_racemeup_create_all or report_racemeup_create_assigned or report_racemeup_create_own or report_racemeup_edit_all or report_racemeup_edit_assigned or report_racemeup_edit_own or report_racemeup_delete_all or report_racemeup_delete_assigned or report_racemeup_delete_own or report_racemeup_export_all or report_racemeup_export_assigned or report_racemeup_export_own or report_psychotherapy_view_all or report_psychotherapy_view_assigned or report_psychotherapy_view_own or report_psychotherapy_create_all or report_psychotherapy_create_assigned or report_psychotherapy_create_own or report_psychotherapy_edit_all or report_psychotherapy_edit_assigned or report_psychotherapy_edit_own or report_psychotherapy_delete_all or report_psychotherapy_delete_assigned or report_psychotherapy_delete_own or report_psychotherapy_export_all or report_psychotherapy_export_assigned or report_psychotherapy_export_own or report_custom_view_all or report_custom_view_assigned or report_custom_view_own or report_custom_create_all or report_custom_create_assigned or report_custom_create_own or report_custom_edit_all or report_custom_edit_assigned or report_custom_edit_own or report_custom_delete_all or report_custom_delete_assigned or report_custom_delete_own or report_custom_export_all or report_custom_export_assigned or report_custom_export_own or questionnaire_parent_view_all or questionnaire_parent_view_assigned or questionnaire_parent_view_own or questionnaire_parent_create_all or questionnaire_parent_create_assigned or questionnaire_parent_create_own or questionnaire_parent_edit_all or questionnaire_parent_edit_assigned or questionnaire_parent_edit_own or questionnaire_parent_delete_all or questionnaire_parent_delete_assigned or questionnaire_parent_delete_own or files_view_all or files_view_assigned or files_view_own or files_upload_all or files_upload_assigned or files_upload_own or files_delete_all or files_delete_assigned or files_delete_own or files_export_all or files_export_assigned or files_export_own or packages_view_all or packages_view_assigned or packages_view_own or packages_create_all or packages_create_assigned or packages_create_own or packages_edit_all or packages_edit_assigned or packages_edit_own or packages_delete_all or packages_delete_assigned or packages_delete_own or packages_price_all or packages_price_assigned or packages_price_own or payments_view_all or payments_view_assigned or payments_view_own or payments_create_all or payments_create_assigned or payments_create_own or payments_edit_all or payments_edit_assigned or payments_edit_own or payments_delete_all or payments_delete_assigned or payments_delete_own or payments_export_all or payments_export_assigned or payments_export_own or roster_view_all or roster_view_assigned or roster_view_own or roster_edit_all or roster_edit_assigned or roster_edit_own or leave_view_all or leave_view_assigned or leave_view_own or leave_create_all or leave_create_assigned or leave_create_own or leave_edit_all or leave_edit_assigned or leave_edit_own or leave_cancel_all or leave_cancel_assigned or leave_cancel_own or leave_approve_all or leave_approve_assigned or leave_approve_own or notice_board_view_all or notice_board_create_all or notice_board_edit_all or notice_board_delete_all or reminders_view_all or reminders_view_assigned or reminders_view_own or reminders_send_all or reminders_send_assigned or reminders_send_own or web_requests_view_all or web_requests_approve_all or reports_view_all or reports_export_all or audit_log_view_all or audit_log_export_all or imports_exports_imports_view_all or imports_exports_imports_run_all or imports_exports_export_all
 
 type sched_role
   relations
@@ -188,37 +446,87 @@ type sched_client
     define treating: [sched_calendar]
     define practitioner: owner from treating
     define coordinator: coordinator from treating
-    define clients_view: clients_view_all from app or (clients_view_assigned from app and coordinator) or (clients_view_own from app and practitioner)
-    define clients_edit: clients_edit_all from app or (clients_edit_assigned from app and coordinator) or (clients_edit_own from app and practitioner)
-    define clients_archive: clients_archive_all from app or (clients_archive_assigned from app and coordinator) or (clients_archive_own from app and practitioner)
-    define clients_restore: clients_restore_all from app or (clients_restore_assigned from app and coordinator) or (clients_restore_own from app and practitioner)
-    define clients_delete: clients_delete_all from app or (clients_delete_assigned from app and coordinator) or (clients_delete_own from app and practitioner)
-    define clients_assign: clients_assign_all from app or (clients_assign_assigned from app and coordinator) or (clients_assign_own from app and practitioner)
-    define clients_export: clients_export_all from app or (clients_export_assigned from app and coordinator) or (clients_export_own from app and practitioner)
-    define clients_contact_view: clients_contact_view_all from app or (clients_contact_view_assigned from app and coordinator) or (clients_contact_view_own from app and practitioner)
-    define clients_contact_edit: clients_contact_edit_all from app or (clients_contact_edit_assigned from app and coordinator) or (clients_contact_edit_own from app and practitioner)
-    define clients_guardian_view: clients_guardian_view_all from app or (clients_guardian_view_assigned from app and coordinator) or (clients_guardian_view_own from app and practitioner)
-    define clients_guardian_edit: clients_guardian_edit_all from app or (clients_guardian_edit_assigned from app and coordinator) or (clients_guardian_edit_own from app and practitioner)
-    define clients_money_view: clients_money_view_all from app or (clients_money_view_assigned from app and coordinator) or (clients_money_view_own from app and practitioner)
-    define clients_money_edit: clients_money_edit_all from app or (clients_money_edit_assigned from app and coordinator) or (clients_money_edit_own from app and practitioner)
-    define clients_clinical_view: clients_clinical_view_all from app or (clients_clinical_view_assigned from app and coordinator) or (clients_clinical_view_own from app and practitioner)
-    define clients_clinical_edit: clients_clinical_edit_all from app or (clients_clinical_edit_assigned from app and coordinator) or (clients_clinical_edit_own from app and practitioner)
-    define packages_view: packages_view_all from app or (packages_view_assigned from app and coordinator) or (packages_view_own from app and practitioner)
-    define packages_create: packages_create_all from app or (packages_create_assigned from app and coordinator) or (packages_create_own from app and practitioner)
-    define records_view: records_view_all from app or (records_view_assigned from app and coordinator) or (records_view_own from app and practitioner)
-    define records_create: records_create_all from app or (records_create_assigned from app and coordinator) or (records_create_own from app and practitioner)
-    define files_view: files_view_all from app or (files_view_assigned from app and coordinator) or (files_view_own from app and practitioner)
-    define files_upload: files_upload_all from app or (files_upload_assigned from app and coordinator) or (files_upload_own from app and practitioner)
+    define reach_own: practitioner
+    define reach_assigned: coordinator
+    define clients_view: clients_view_all from app or (clients_view_assigned from app and reach_assigned) or (clients_view_own from app and reach_own)
+    define clients_view_contact: clients_view_all_contact from app or (clients_view_assigned_contact from app and reach_assigned) or (clients_view_own_contact from app and reach_own)
+    define clients_view_guardian: clients_view_all_guardian from app or (clients_view_assigned_guardian from app and reach_assigned) or (clients_view_own_guardian from app and reach_own)
+    define clients_view_money: clients_view_all_money from app or (clients_view_assigned_money from app and reach_assigned) or (clients_view_own_money from app and reach_own)
+    define clients_view_clinical: clients_view_all_clinical from app or (clients_view_assigned_clinical from app and reach_assigned) or (clients_view_own_clinical from app and reach_own)
+    define clients_edit: clients_edit_all from app or (clients_edit_assigned from app and reach_assigned) or (clients_edit_own from app and reach_own)
+    define clients_edit_contact: clients_edit_all_contact from app or (clients_edit_assigned_contact from app and reach_assigned) or (clients_edit_own_contact from app and reach_own)
+    define clients_edit_guardian: clients_edit_all_guardian from app or (clients_edit_assigned_guardian from app and reach_assigned) or (clients_edit_own_guardian from app and reach_own)
+    define clients_edit_money: clients_edit_all_money from app or (clients_edit_assigned_money from app and reach_assigned) or (clients_edit_own_money from app and reach_own)
+    define clients_edit_clinical: clients_edit_all_clinical from app or (clients_edit_assigned_clinical from app and reach_assigned) or (clients_edit_own_clinical from app and reach_own)
+    define clients_archive: clients_archive_all from app or (clients_archive_assigned from app and reach_assigned) or (clients_archive_own from app and reach_own)
+    define clients_archive_contact: clients_archive_all_contact from app or (clients_archive_assigned_contact from app and reach_assigned) or (clients_archive_own_contact from app and reach_own)
+    define clients_archive_guardian: clients_archive_all_guardian from app or (clients_archive_assigned_guardian from app and reach_assigned) or (clients_archive_own_guardian from app and reach_own)
+    define clients_archive_money: clients_archive_all_money from app or (clients_archive_assigned_money from app and reach_assigned) or (clients_archive_own_money from app and reach_own)
+    define clients_archive_clinical: clients_archive_all_clinical from app or (clients_archive_assigned_clinical from app and reach_assigned) or (clients_archive_own_clinical from app and reach_own)
+    define clients_delete: clients_delete_all from app or (clients_delete_assigned from app and reach_assigned) or (clients_delete_own from app and reach_own)
+    define clients_delete_contact: clients_delete_all_contact from app or (clients_delete_assigned_contact from app and reach_assigned) or (clients_delete_own_contact from app and reach_own)
+    define clients_delete_guardian: clients_delete_all_guardian from app or (clients_delete_assigned_guardian from app and reach_assigned) or (clients_delete_own_guardian from app and reach_own)
+    define clients_delete_money: clients_delete_all_money from app or (clients_delete_assigned_money from app and reach_assigned) or (clients_delete_own_money from app and reach_own)
+    define clients_delete_clinical: clients_delete_all_clinical from app or (clients_delete_assigned_clinical from app and reach_assigned) or (clients_delete_own_clinical from app and reach_own)
+    define clients_restore: clients_restore_all from app or (clients_restore_assigned from app and reach_assigned) or (clients_restore_own from app and reach_own)
+    define clients_restore_contact: clients_restore_all_contact from app or (clients_restore_assigned_contact from app and reach_assigned) or (clients_restore_own_contact from app and reach_own)
+    define clients_restore_guardian: clients_restore_all_guardian from app or (clients_restore_assigned_guardian from app and reach_assigned) or (clients_restore_own_guardian from app and reach_own)
+    define clients_restore_money: clients_restore_all_money from app or (clients_restore_assigned_money from app and reach_assigned) or (clients_restore_own_money from app and reach_own)
+    define clients_restore_clinical: clients_restore_all_clinical from app or (clients_restore_assigned_clinical from app and reach_assigned) or (clients_restore_own_clinical from app and reach_own)
+    define clients_export: clients_export_all from app or (clients_export_assigned from app and reach_assigned) or (clients_export_own from app and reach_own)
+    define clients_export_contact: clients_export_all_contact from app or (clients_export_assigned_contact from app and reach_assigned) or (clients_export_own_contact from app and reach_own)
+    define clients_export_guardian: clients_export_all_guardian from app or (clients_export_assigned_guardian from app and reach_assigned) or (clients_export_own_guardian from app and reach_own)
+    define clients_export_money: clients_export_all_money from app or (clients_export_assigned_money from app and reach_assigned) or (clients_export_own_money from app and reach_own)
+    define clients_export_clinical: clients_export_all_clinical from app or (clients_export_assigned_clinical from app and reach_assigned) or (clients_export_own_clinical from app and reach_own)
+    define clients_assign: clients_assign_all from app or (clients_assign_assigned from app and reach_assigned) or (clients_assign_own from app and reach_own)
+    define clients_assign_contact: clients_assign_all_contact from app or (clients_assign_assigned_contact from app and reach_assigned) or (clients_assign_own_contact from app and reach_own)
+    define clients_assign_guardian: clients_assign_all_guardian from app or (clients_assign_assigned_guardian from app and reach_assigned) or (clients_assign_own_guardian from app and reach_own)
+    define clients_assign_money: clients_assign_all_money from app or (clients_assign_assigned_money from app and reach_assigned) or (clients_assign_own_money from app and reach_own)
+    define clients_assign_clinical: clients_assign_all_clinical from app or (clients_assign_assigned_clinical from app and reach_assigned) or (clients_assign_own_clinical from app and reach_own)
+    define report_aba_view: report_aba_view_all from app or (report_aba_view_assigned from app and reach_assigned) or (report_aba_view_own from app and reach_own)
+    define report_aba_create: report_aba_create_all from app or (report_aba_create_assigned from app and reach_assigned) or (report_aba_create_own from app and reach_own)
+    define report_racemeup_view: report_racemeup_view_all from app or (report_racemeup_view_assigned from app and reach_assigned) or (report_racemeup_view_own from app and reach_own)
+    define report_racemeup_create: report_racemeup_create_all from app or (report_racemeup_create_assigned from app and reach_assigned) or (report_racemeup_create_own from app and reach_own)
+    define report_psychotherapy_view: report_psychotherapy_view_all from app or (report_psychotherapy_view_assigned from app and reach_assigned) or (report_psychotherapy_view_own from app and reach_own)
+    define report_psychotherapy_create: report_psychotherapy_create_all from app or (report_psychotherapy_create_assigned from app and reach_assigned) or (report_psychotherapy_create_own from app and reach_own)
+    define report_custom_view: report_custom_view_all from app or (report_custom_view_assigned from app and reach_assigned) or (report_custom_view_own from app and reach_own)
+    define report_custom_create: report_custom_create_all from app or (report_custom_create_assigned from app and reach_assigned) or (report_custom_create_own from app and reach_own)
+    define questionnaire_parent_view: questionnaire_parent_view_all from app or (questionnaire_parent_view_assigned from app and reach_assigned) or (questionnaire_parent_view_own from app and reach_own)
+    define questionnaire_parent_create: questionnaire_parent_create_all from app or (questionnaire_parent_create_assigned from app and reach_assigned) or (questionnaire_parent_create_own from app and reach_own)
+    define files_view: files_view_all from app or (files_view_assigned from app and reach_assigned) or (files_view_own from app and reach_own)
+    define files_upload: files_upload_all from app or (files_upload_assigned from app and reach_assigned) or (files_upload_own from app and reach_own)
+    define packages_view: packages_view_all from app or (packages_view_assigned from app and reach_assigned) or (packages_view_own from app and reach_own)
+    define packages_create: packages_create_all from app or (packages_create_assigned from app and reach_assigned) or (packages_create_own from app and reach_own)
+    define payments_view: payments_view_all from app or (payments_view_assigned from app and reach_assigned) or (payments_view_own from app and reach_own)
+    define payments_create: payments_create_all from app or (payments_create_assigned from app and reach_assigned) or (payments_create_own from app and reach_own)
+    define payments_edit: payments_edit_all from app or (payments_edit_assigned from app and reach_assigned) or (payments_edit_own from app and reach_own)
+    define payments_delete: payments_delete_all from app or (payments_delete_assigned from app and reach_assigned) or (payments_delete_own from app and reach_own)
+    define payments_export: payments_export_all from app or (payments_export_assigned from app and reach_assigned) or (payments_export_own from app and reach_own)
 
 type sched_calendar
   relations
     define app: [sched_app]
     define owner: [user]
     define coordinator: [user]
-    define calendar_view: calendar_view_all from app or (calendar_view_assigned from app and coordinator) or (calendar_view_own from app and owner)
-    define appointments_create: appointments_create_all from app or (appointments_create_assigned from app and coordinator) or (appointments_create_own from app and owner)
-    define leave_view: leave_view_all from app or (leave_view_own from app and owner)
-    define leave_create: leave_create_all from app or (leave_create_own from app and owner)
+    define reach_own: owner
+    define reach_assigned: coordinator
+    define people_view: people_view_all from app or (people_view_own from app and reach_own)
+    define people_edit: people_edit_all from app or (people_edit_own from app and reach_own)
+    define people_archive: people_archive_all from app or (people_archive_own from app and reach_own)
+    define calendars_view: calendars_view_all from app or (calendars_view_assigned from app and reach_assigned) or (calendars_view_own from app and reach_own)
+    define calendars_edit: calendars_edit_all from app or (calendars_edit_assigned from app and reach_assigned) or (calendars_edit_own from app and reach_own)
+    define calendars_assign: calendars_assign_all from app or (calendars_assign_assigned from app and reach_assigned) or (calendars_assign_own from app and reach_own)
+    define appointments_create: appointments_create_all from app or (appointments_create_assigned from app and reach_assigned) or (appointments_create_own from app and reach_own)
+    define appointments_create_core: appointments_create_all_core from app or (appointments_create_assigned_core from app and reach_assigned) or (appointments_create_own_core from app and reach_own)
+    define appointments_create_money: appointments_create_all_money from app or (appointments_create_assigned_money from app and reach_assigned) or (appointments_create_own_money from app and reach_own)
+    define appointments_create_clinical: appointments_create_all_clinical from app or (appointments_create_assigned_clinical from app and reach_assigned) or (appointments_create_own_clinical from app and reach_own)
+    define roster_view: roster_view_all from app or (roster_view_assigned from app and reach_assigned) or (roster_view_own from app and reach_own)
+    define roster_edit: roster_edit_all from app or (roster_edit_assigned from app and reach_assigned) or (roster_edit_own from app and reach_own)
+    define leave_view: leave_view_all from app or (leave_view_assigned from app and reach_assigned) or (leave_view_own from app and reach_own)
+    define leave_create: leave_create_all from app or (leave_create_assigned from app and reach_assigned) or (leave_create_own from app and reach_own)
+    define leave_edit: leave_edit_all from app or (leave_edit_assigned from app and reach_assigned) or (leave_edit_own from app and reach_own)
+    define leave_cancel: leave_cancel_all from app or (leave_cancel_assigned from app and reach_assigned) or (leave_cancel_own from app and reach_own)
+    define leave_approve: leave_approve_all from app or (leave_approve_assigned from app and reach_assigned) or (leave_approve_own from app and reach_own)
     # app_sched_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
     define app_sched_access: owner or coordinator
 
@@ -226,13 +534,38 @@ type sched_appointment
   relations
     define app: [sched_app]
     define calendar: [sched_calendar]
-    define appointments_view: appointments_view_all from app or (appointments_view_assigned from app and coordinator from calendar) or (appointments_view_own from app and owner from calendar)
-    define appointments_edit: appointments_edit_all from app or (appointments_edit_assigned from app and coordinator from calendar) or (appointments_edit_own from app and owner from calendar)
-    define appointments_cancel: appointments_cancel_all from app or (appointments_cancel_assigned from app and coordinator from calendar) or (appointments_cancel_own from app and owner from calendar)
-    define appointments_attend: appointments_attend_all from app or (appointments_attend_assigned from app and coordinator from calendar) or (appointments_attend_own from app and owner from calendar)
-    define appointments_assign: appointments_assign_all from app or (appointments_assign_assigned from app and coordinator from calendar) or (appointments_assign_own from app and owner from calendar)
-    define appointments_money_view: appointments_money_view_all from app or (appointments_money_view_assigned from app and coordinator from calendar) or (appointments_money_view_own from app and owner from calendar)
-    define appointments_money_edit: appointments_money_edit_all from app or (appointments_money_edit_assigned from app and coordinator from calendar) or (appointments_money_edit_own from app and owner from calendar)
+    define reach_own: owner from calendar
+    define reach_assigned: coordinator from calendar
+    define appointments_view: appointments_view_all from app or (appointments_view_assigned from app and reach_assigned) or (appointments_view_own from app and reach_own)
+    define appointments_view_core: appointments_view_all_core from app or (appointments_view_assigned_core from app and reach_assigned) or (appointments_view_own_core from app and reach_own)
+    define appointments_view_money: appointments_view_all_money from app or (appointments_view_assigned_money from app and reach_assigned) or (appointments_view_own_money from app and reach_own)
+    define appointments_view_clinical: appointments_view_all_clinical from app or (appointments_view_assigned_clinical from app and reach_assigned) or (appointments_view_own_clinical from app and reach_own)
+    define appointments_edit: appointments_edit_all from app or (appointments_edit_assigned from app and reach_assigned) or (appointments_edit_own from app and reach_own)
+    define appointments_edit_core: appointments_edit_all_core from app or (appointments_edit_assigned_core from app and reach_assigned) or (appointments_edit_own_core from app and reach_own)
+    define appointments_edit_money: appointments_edit_all_money from app or (appointments_edit_assigned_money from app and reach_assigned) or (appointments_edit_own_money from app and reach_own)
+    define appointments_edit_clinical: appointments_edit_all_clinical from app or (appointments_edit_assigned_clinical from app and reach_assigned) or (appointments_edit_own_clinical from app and reach_own)
+    define appointments_cancel: appointments_cancel_all from app or (appointments_cancel_assigned from app and reach_assigned) or (appointments_cancel_own from app and reach_own)
+    define appointments_cancel_core: appointments_cancel_all_core from app or (appointments_cancel_assigned_core from app and reach_assigned) or (appointments_cancel_own_core from app and reach_own)
+    define appointments_cancel_money: appointments_cancel_all_money from app or (appointments_cancel_assigned_money from app and reach_assigned) or (appointments_cancel_own_money from app and reach_own)
+    define appointments_cancel_clinical: appointments_cancel_all_clinical from app or (appointments_cancel_assigned_clinical from app and reach_assigned) or (appointments_cancel_own_clinical from app and reach_own)
+    define appointments_delete: appointments_delete_all from app or (appointments_delete_assigned from app and reach_assigned) or (appointments_delete_own from app and reach_own)
+    define appointments_delete_core: appointments_delete_all_core from app or (appointments_delete_assigned_core from app and reach_assigned) or (appointments_delete_own_core from app and reach_own)
+    define appointments_delete_money: appointments_delete_all_money from app or (appointments_delete_assigned_money from app and reach_assigned) or (appointments_delete_own_money from app and reach_own)
+    define appointments_delete_clinical: appointments_delete_all_clinical from app or (appointments_delete_assigned_clinical from app and reach_assigned) or (appointments_delete_own_clinical from app and reach_own)
+    define appointments_restore: appointments_restore_all from app or (appointments_restore_assigned from app and reach_assigned) or (appointments_restore_own from app and reach_own)
+    define appointments_restore_core: appointments_restore_all_core from app or (appointments_restore_assigned_core from app and reach_assigned) or (appointments_restore_own_core from app and reach_own)
+    define appointments_restore_money: appointments_restore_all_money from app or (appointments_restore_assigned_money from app and reach_assigned) or (appointments_restore_own_money from app and reach_own)
+    define appointments_restore_clinical: appointments_restore_all_clinical from app or (appointments_restore_assigned_clinical from app and reach_assigned) or (appointments_restore_own_clinical from app and reach_own)
+    define appointments_assign: appointments_assign_all from app or (appointments_assign_assigned from app and reach_assigned) or (appointments_assign_own from app and reach_own)
+    define appointments_assign_core: appointments_assign_all_core from app or (appointments_assign_assigned_core from app and reach_assigned) or (appointments_assign_own_core from app and reach_own)
+    define appointments_assign_money: appointments_assign_all_money from app or (appointments_assign_assigned_money from app and reach_assigned) or (appointments_assign_own_money from app and reach_own)
+    define appointments_assign_clinical: appointments_assign_all_clinical from app or (appointments_assign_assigned_clinical from app and reach_assigned) or (appointments_assign_own_clinical from app and reach_own)
+    define appointments_send: appointments_send_all from app or (appointments_send_assigned from app and reach_assigned) or (appointments_send_own from app and reach_own)
+    define appointments_send_core: appointments_send_all_core from app or (appointments_send_assigned_core from app and reach_assigned) or (appointments_send_own_core from app and reach_own)
+    define appointments_send_money: appointments_send_all_money from app or (appointments_send_assigned_money from app and reach_assigned) or (appointments_send_own_money from app and reach_own)
+    define appointments_send_clinical: appointments_send_all_clinical from app or (appointments_send_assigned_clinical from app and reach_assigned) or (appointments_send_own_clinical from app and reach_own)
+    define reminders_view: reminders_view_all from app or (reminders_view_assigned from app and reach_assigned) or (reminders_view_own from app and reach_own)
+    define reminders_send: reminders_send_all from app or (reminders_send_assigned from app and reach_assigned) or (reminders_send_own from app and reach_own)
 
 type sched_room
   relations
@@ -246,28 +579,54 @@ type sched_package
   relations
     define app: [sched_app]
     define client: [sched_client]
-    define packages_view: packages_view_all from app or (packages_view_assigned from app and coordinator from client) or (packages_view_own from app and practitioner from client)
-    define packages_edit: packages_edit_all from app or (packages_edit_assigned from app and coordinator from client) or (packages_edit_own from app and practitioner from client)
-    define packages_delete: packages_delete_all from app or (packages_delete_assigned from app and coordinator from client) or (packages_delete_own from app and practitioner from client)
-    define payments_view: payments_view_all from app or (payments_view_assigned from app and coordinator from client) or (payments_view_own from app and practitioner from client)
-    define payments_create: payments_create_all from app or (payments_create_assigned from app and coordinator from client) or (payments_create_own from app and practitioner from client)
+    define reach_own: practitioner from client
+    define reach_assigned: coordinator from client
+    define packages_view: packages_view_all from app or (packages_view_assigned from app and reach_assigned) or (packages_view_own from app and reach_own)
+    define packages_edit: packages_edit_all from app or (packages_edit_assigned from app and reach_assigned) or (packages_edit_own from app and reach_own)
+    define packages_delete: packages_delete_all from app or (packages_delete_assigned from app and reach_assigned) or (packages_delete_own from app and reach_own)
+    define packages_price: packages_price_all from app or (packages_price_assigned from app and reach_assigned) or (packages_price_own from app and reach_own)
+    define payments_view: payments_view_all from app or (payments_view_assigned from app and reach_assigned) or (payments_view_own from app and reach_own)
+    define payments_create: payments_create_all from app or (payments_create_assigned from app and reach_assigned) or (payments_create_own from app and reach_own)
+    define payments_edit: payments_edit_all from app or (payments_edit_assigned from app and reach_assigned) or (payments_edit_own from app and reach_own)
+    define payments_delete: payments_delete_all from app or (payments_delete_assigned from app and reach_assigned) or (payments_delete_own from app and reach_own)
+    define payments_export: payments_export_all from app or (payments_export_assigned from app and reach_assigned) or (payments_export_own from app and reach_own)
 
 type sched_record
   relations
     define app: [sched_app]
     define client: [sched_client]
-    define records_view: records_view_all from app or (records_view_assigned from app and coordinator from client) or (records_view_own from app and practitioner from client)
-    define records_edit: records_edit_all from app or (records_edit_assigned from app and coordinator from client) or (records_edit_own from app and practitioner from client)
-    define records_delete: records_delete_all from app or (records_delete_assigned from app and coordinator from client) or (records_delete_own from app and practitioner from client)
-    define records_clinical_view: records_clinical_view_all from app or (records_clinical_view_assigned from app and coordinator from client) or (records_clinical_view_own from app and practitioner from client)
+    define reach_own: practitioner from client
+    define reach_assigned: coordinator from client
+    define report_aba_view: report_aba_view_all from app or (report_aba_view_assigned from app and reach_assigned) or (report_aba_view_own from app and reach_own)
+    define report_aba_edit: report_aba_edit_all from app or (report_aba_edit_assigned from app and reach_assigned) or (report_aba_edit_own from app and reach_own)
+    define report_aba_delete: report_aba_delete_all from app or (report_aba_delete_assigned from app and reach_assigned) or (report_aba_delete_own from app and reach_own)
+    define report_aba_export: report_aba_export_all from app or (report_aba_export_assigned from app and reach_assigned) or (report_aba_export_own from app and reach_own)
+    define report_racemeup_view: report_racemeup_view_all from app or (report_racemeup_view_assigned from app and reach_assigned) or (report_racemeup_view_own from app and reach_own)
+    define report_racemeup_edit: report_racemeup_edit_all from app or (report_racemeup_edit_assigned from app and reach_assigned) or (report_racemeup_edit_own from app and reach_own)
+    define report_racemeup_delete: report_racemeup_delete_all from app or (report_racemeup_delete_assigned from app and reach_assigned) or (report_racemeup_delete_own from app and reach_own)
+    define report_racemeup_export: report_racemeup_export_all from app or (report_racemeup_export_assigned from app and reach_assigned) or (report_racemeup_export_own from app and reach_own)
+    define report_psychotherapy_view: report_psychotherapy_view_all from app or (report_psychotherapy_view_assigned from app and reach_assigned) or (report_psychotherapy_view_own from app and reach_own)
+    define report_psychotherapy_edit: report_psychotherapy_edit_all from app or (report_psychotherapy_edit_assigned from app and reach_assigned) or (report_psychotherapy_edit_own from app and reach_own)
+    define report_psychotherapy_delete: report_psychotherapy_delete_all from app or (report_psychotherapy_delete_assigned from app and reach_assigned) or (report_psychotherapy_delete_own from app and reach_own)
+    define report_psychotherapy_export: report_psychotherapy_export_all from app or (report_psychotherapy_export_assigned from app and reach_assigned) or (report_psychotherapy_export_own from app and reach_own)
+    define report_custom_view: report_custom_view_all from app or (report_custom_view_assigned from app and reach_assigned) or (report_custom_view_own from app and reach_own)
+    define report_custom_edit: report_custom_edit_all from app or (report_custom_edit_assigned from app and reach_assigned) or (report_custom_edit_own from app and reach_own)
+    define report_custom_delete: report_custom_delete_all from app or (report_custom_delete_assigned from app and reach_assigned) or (report_custom_delete_own from app and reach_own)
+    define report_custom_export: report_custom_export_all from app or (report_custom_export_assigned from app and reach_assigned) or (report_custom_export_own from app and reach_own)
+    define questionnaire_parent_view: questionnaire_parent_view_all from app or (questionnaire_parent_view_assigned from app and reach_assigned) or (questionnaire_parent_view_own from app and reach_own)
+    define questionnaire_parent_edit: questionnaire_parent_edit_all from app or (questionnaire_parent_edit_assigned from app and reach_assigned) or (questionnaire_parent_edit_own from app and reach_own)
+    define questionnaire_parent_delete: questionnaire_parent_delete_all from app or (questionnaire_parent_delete_assigned from app and reach_assigned) or (questionnaire_parent_delete_own from app and reach_own)
 
 type sched_file
   relations
     define app: [sched_app]
     define client: [sched_client]
-    define files_view: files_view_all from app or (files_view_assigned from app and coordinator from client) or (files_view_own from app and practitioner from client)
-    define files_upload: files_upload_all from app or (files_upload_assigned from app and coordinator from client) or (files_upload_own from app and practitioner from client)
-    define files_delete: files_delete_all from app or (files_delete_assigned from app and coordinator from client) or (files_delete_own from app and practitioner from client)
+    define reach_own: practitioner from client
+    define reach_assigned: coordinator from client
+    define files_view: files_view_all from app or (files_view_assigned from app and reach_assigned) or (files_view_own from app and reach_own)
+    define files_upload: files_upload_all from app or (files_upload_assigned from app and reach_assigned) or (files_upload_own from app and reach_own)
+    define files_delete: files_delete_all from app or (files_delete_assigned from app and reach_assigned) or (files_delete_own from app and reach_own)
+    define files_export: files_export_all from app or (files_export_assigned from app and reach_assigned) or (files_export_own from app and reach_own)
 
 # The module's roles, as relations somebody can actually hold.
 extend type platform

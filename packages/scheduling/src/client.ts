@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { api } from "../convex/_generated/api";
+import { type CallbackRequester, callbackRequesterOn } from "./callbacks-client";
 import type { SchedulingConfig } from "./config";
 import type { Audience, Mode } from "./domain/catalog";
 import { type Contact, cleanContact, contactProblem } from "./domain/contact";
@@ -119,7 +120,7 @@ export interface ServiceInfo {
 }
 
 /** What a visitor-facing server does with the scheduling store. */
-export interface SchedulingClient {
+export interface SchedulingClient extends CallbackRequester {
 	services(
 		tenant: string,
 	): Promise<{ timeZone: string; services: ReadonlyArray<ServiceInfo> } | undefined>;
@@ -161,6 +162,7 @@ export function createSchedulingClient(config: SchedulingConfig): SchedulingClie
 export function clientOn(transport: Transport): SchedulingClient {
 	const key = transport.serverKey;
 	return {
+		...callbackRequesterOn(transport),
 		async services(tenant) {
 			const raw = await transport.call(RawServicesSchema, (c) =>
 				c.query(api.catalog.services, { key, tenant }),

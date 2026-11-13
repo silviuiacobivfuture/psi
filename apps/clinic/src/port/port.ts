@@ -1,4 +1,4 @@
-import type { AppMe } from "@psi/scheduling-sdk/contract";
+import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/contract";
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
@@ -45,7 +45,7 @@ export interface ReminderItem {
  * What the signed-in person may do in one app, as the scheduling service says it (`GET /v1/apps/:app/me`): a hint for
  * what to offer, never the authority — the service authorizes every call again.
  */
-export type Capabilities = z.output<typeof AppMe>;
+export type Capabilities = z.output<typeof ScheduleCapabilities>;
 
 /** Who the console is looking at the app as (read-only), when a roles administrator has chosen "Vezi ca…". */
 export type ViewAsTarget = `role:${string}` | `member:${string}`;

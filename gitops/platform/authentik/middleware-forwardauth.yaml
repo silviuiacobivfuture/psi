@@ -1,5 +1,5 @@
 # Traefik forward-auth Middleware → Authentik embedded outpost. Reference this on
-# any PUBLIC Traefik ingress to gate it behind Authentik SSO (the recomex-forward-auth
+# any PUBLIC Traefik ingress to gate it behind Authentik SSO (the <slug>-forward-auth
 # proxy provider, mode forward_domain). Traefik calls the outpost's auth endpoint;
 # on 2xx it forwards the request (and the X-authentik-* identity headers), otherwise
 # it redirects the browser to the Authentik login.
@@ -11,7 +11,7 @@
 #
 # GUARDRAIL: not attached to any existing ingress here. Apps keep working unchanged
 # until the user opts a given ingress in. The embedded outpost redirects the browser
-# to the PUBLIC authentik host (auth.recomex.eu) — pinned in
+# to the PUBLIC authentik host (AUTHENTIK_HOST) — pinned in
 # blueprints-outpost.yaml; the proxy provider's external_host is the same public
 # host — see blueprints-providers.yaml.
 apiVersion: traefik.io/v1alpha1

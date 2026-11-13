@@ -1,0 +1,27 @@
+# SEB piece `convex`: one self-hosted Convex backend + its own Postgres PER APP, for the estate's
+# applications that keep their data in Convex. A MULTI-INSTANCE piece (tools/bundle/instances.mjs):
+# SEB ships the instance template (base/ + instance/) and no instance; the estate declares each
+# one as <estate components>/convex/instances/<name>/ and the builder renders them all here, each
+# in its own namespace convex-<name>.
+#
+# An instance directory (the example estate under examples/ declares one, in its seb-components):
+#   kustomization.yaml   namespace: convex-<name>; resources: [instance.yaml];
+#                        components: [../../instance]; optional patches (sizing, extra env)
+#   instance.yaml        the ConfigMap convex-instance (local-config): NAME, DATABASE, PURPOSE,
+#                        DB_SIZE, BACKUP_SCHEDULE
+#
+# What every instance gets from the estate's identity: its hosts convex-<name>[-site|-dash].<apex>,
+# the images from the estate's registry mirror, the WAL/base backups to
+# s3://<bucket prefix>-tfstate-dev/cnpg/convex-<name> at the estate object storage, the alert owner.
+# Its secrets: OpenBao apps/convex/<name>/instance (instance_secret) and apps/convex/<name>/db
+# (username, password); platform/object-storage/dev for storage and backups.
+#
+# Kyverno: the backend image runs as root (its entrypoint), so each convex-<name> namespace is
+# excluded from require-run-as-non-root in the estate's kyverno-policies component. Every other
+# policy is met here (requests/limits, alert owner, reloader, hub annotations, pinned digests).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - instances
+components:
+  - ../../components/estate/convex

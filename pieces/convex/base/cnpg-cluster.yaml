@@ -1,0 +1,60 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: convex-db
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+spec:
+  instances: 1
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: WLDATABASE
+      owner: convex
+      secret:
+        name: convex-db-app
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+  storage:
+    size: WLDBSIZE
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      effective_cache_size: "512MB"
+      work_mem: "8MB"
+      max_connections: "200"
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/convex-WLINSTANCE
+      endpointURL: WLENDPOINT
+      s3Credentials:
+        accessKeyId:
+          name: convex-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: convex-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: convex-db-base
+spec:
+  schedule: WLSCHEDULE
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: convex-db

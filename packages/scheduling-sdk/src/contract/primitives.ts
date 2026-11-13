@@ -18,8 +18,8 @@ export const SCOPES = ["all", "assigned", "own"] as const;
 export const Scope = z.enum(SCOPES);
 export type ScopeName = z.infer<typeof Scope>;
 
-/** Field groups the permissions govern on clients and appointments. A group the caller may not see is ABSENT. */
-export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
+/** Field groups the permissions govern (appointments: core, money, clinical; clients: contact, guardian, money, clinical). A group the caller may not see is ABSENT. */
+export const FIELD_GROUPS = ["core", "contact", "guardian", "money", "clinical"] as const;
 export const FieldGroup = z.enum(FIELD_GROUPS);
 export type FieldGroupName = z.infer<typeof FieldGroup>;
 

@@ -1,7 +1,9 @@
 import { v } from "convex/values";
+import { formDefinitionSchema } from "../src/clinic/forms";
 import { SEED_FORM_TEMPLATES } from "../src/clinic/templates";
 import { SEED_ROLES } from "../src/permissions/roles";
 import { internalMutation } from "./_generated/server";
+import { logChange } from "./changeLog";
 import { localeValidator } from "./validators";
 
 /**
@@ -102,5 +104,64 @@ export const ensureApp = internalMutation({
 			formsAdded += 1;
 		}
 		return { created, rolesAdded, formsAdded };
+	},
+});
+
+/**
+ * Adds options an import learned from data to a stored form version, for the fields that declare
+ * `learnOptions`. Options are only ever added, never removed or reordered, so what an owner edited
+ * stays; a field that does not learn options is refused. Idempotent.
+ */
+export const learnFormOptions = internalMutation({
+	args: {
+		tenant: v.string(),
+		definitionKey: v.string(),
+		definitionVersion: v.number(),
+		field: v.string(),
+		values: v.array(v.string()),
+	},
+	returns: v.object({ added: v.number() }),
+	handler: async (ctx, args) => {
+		const row = await ctx.db
+			.query("formDefinitions")
+			.withIndex("by_tenant_key_version", (q) =>
+				q
+					.eq("tenant", args.tenant)
+					.eq("key", args.definitionKey)
+					.eq("version", args.definitionVersion),
+			)
+			.unique();
+		if (row === null) throw new Error("no such form version");
+		const parsed = formDefinitionSchema.parse(JSON.parse(row.definition));
+		let added = 0;
+		const fields = parsed.fields.map((field) => {
+			if (field.key !== args.field) return field;
+			if (field.learnOptions !== true) throw new Error("field does not learn options");
+			const have = new Set(field.options.map((o) => o.value));
+			const fresh = args.values.filter((value) => !have.has(value));
+			added = fresh.length;
+			return {
+				...field,
+				options: [
+					...field.options,
+					...fresh.map((value) => ({ value, label: { ro: value, en: value } })),
+				],
+			};
+		});
+		if (added === 0) return { added };
+		await ctx.db.patch(row._id, {
+			definition: JSON.stringify(formDefinitionSchema.parse({ ...parsed, fields })),
+		});
+		await logChange(ctx, args.tenant, "form", row._id, 1);
+		await ctx.db.insert("auditEvents", {
+			tenant: args.tenant,
+			at: Date.now(),
+			actor: "system:import",
+			action: "form.define",
+			entity: "form",
+			entityId: `${args.definitionKey}:${args.definitionVersion}`,
+			summary: `form.define; fields: ${args.field}; count: ${added}`,
+		});
+		return { added };
 	},
 });

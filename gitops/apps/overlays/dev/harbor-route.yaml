@@ -6,7 +6,7 @@ metadata:
   name: harbor-route
   namespace: argocd
   labels:
-    platform.recomex.eu/source: git
+    platform.psizone.ro/source: git
 spec:
   project: default
   source:

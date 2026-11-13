@@ -80,6 +80,16 @@ export interface ImportSink {
 		rows: ReadonlyArray<RowsByKind[K]>,
 	): Promise<UpsertResult[]>;
 	knownFiles(tenant: string, legacyIds: ReadonlyArray<string>): Promise<Map<string, string>>;
+	/** Adds learned options to a stored form version (only ever adds). */
+	learnOptions(
+		tenant: string,
+		entries: ReadonlyArray<{
+			definitionKey: string;
+			definitionVersion: number;
+			field: string;
+			values: string[];
+		}>,
+	): Promise<void>;
 	/** The slugs already in the app's practitioners, rooms, devices and group activities. */
 	slugs(
 		tenant: string,
@@ -147,6 +157,15 @@ export function createConvexSink(admin: AdminClient): ImportSink {
 				);
 			}
 			return out;
+		},
+		async learnOptions(tenant, entries) {
+			for (const entry of entries) {
+				await admin.mutation(
+					getFunctionName(internal.clinicApps.learnFormOptions),
+					{ tenant, ...entry },
+					z.object({ added: z.number() }),
+				);
+			}
 		},
 		async slugs(tenant) {
 			const found = await admin.query(

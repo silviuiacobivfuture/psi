@@ -1,0 +1,195 @@
+# AFFiNE's server — upstream's UNCHANGED image (AFFiNE Community Edition 0.27.4): the API,
+# the realtime sync (socket.io on the same port) and the web app it serves, one process on
+# :3010. One replica, Recreate: its init container runs the migrations (upstream's own
+# self-host-predeploy.js), and two pods migrating at once is how a schema upgrade breaks.
+#
+# START, in order (each init container must finish before the next):
+#   assert-secrets  every key the pod needs is there, by name (fail loud, never a blank key)
+#   config          write-config.mjs: config.json from affine-settings + affine-app
+#   migrate         upstream's predeploy: prisma migrate deploy + AFFiNE's data migrations
+#   affine          the server
+#
+# NON-ROOT: upstream runs as root; here uid 1000 (the node user its base image carries), with
+# HOME on an emptyDir (its config dir) and /app/src (its generated GraphQL schema) are the
+# only places AFFiNE writes; the rest of /app is read, never written. The root filesystem is read-only; /tmp is an emptyDir.
+#
+# SIGN-IN: the gate in front (ingress.yaml) and AFFiNE's own sign-in, both Authentik
+# (write-config.mjs says what AFFiNE is told). AFFiNE's desktop and mobile apps cannot pass
+# the gate: this instance is used in the browser.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affine
+  labels:
+    app.kubernetes.io/name: affine
+  annotations:
+    # REQUIRED: every secret is env (envFrom affine-app) — a rotation must restart.
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: affine
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: affine
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # Fail loud and NAMED (infrastructure/hetzner/CLAUDE.md, secret schema).
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: affine-app }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in DATABASE_URL REDIS_SERVER_PASSWORD AFFINE_PRIVATE_KEY OIDC_CLIENT_ID OIDC_CLIENT_SECRET S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              echo "all required secrets present"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+        - name: config
+          image: WLREGISTRY/mirror/ghcr.io/toeverything/affine:0.27.4@sha256:c312116a134184947d98749c8a8e29f4e3bc97f4f2a51c9a3497f9baea2eec2b
+          command: ["node", "/scripts/write-config.mjs"]
+          envFrom:
+            - configMapRef: { name: affine-settings }
+            - secretRef: { name: affine-app }
+          env:
+            - { name: HOME, value: /home/affine }
+            - { name: NODE_ENV, value: production }
+            - { name: AFFINE_SERVER_HTTPS, value: "true" }
+            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
+            - { name: REDIS_SERVER_HOST, value: affine-redis }
+            - { name: REDIS_SERVER_PORT, value: "6379" }
+            # Inside the limit below, so a big document makes V8 collect instead of the
+            # kernel killing the pod.
+            - { name: NODE_OPTIONS, value: --max-old-space-size=1024 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          volumeMounts:
+            - { name: home, mountPath: /home/affine }
+            - { name: tmp, mountPath: /tmp }
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+        - name: migrate
+          image: WLREGISTRY/mirror/ghcr.io/toeverything/affine:0.27.4@sha256:c312116a134184947d98749c8a8e29f4e3bc97f4f2a51c9a3497f9baea2eec2b
+          command: ["node", "./scripts/self-host-predeploy.js"]
+          envFrom:
+            - configMapRef: { name: affine-settings }
+            - secretRef: { name: affine-app }
+          env:
+            - { name: HOME, value: /home/affine }
+            - { name: NODE_ENV, value: production }
+            - { name: AFFINE_SERVER_HTTPS, value: "true" }
+            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
+            - { name: REDIS_SERVER_HOST, value: affine-redis }
+            - { name: REDIS_SERVER_PORT, value: "6379" }
+            # Inside the limit below, so a big document makes V8 collect instead of the
+            # kernel killing the pod.
+            - { name: NODE_OPTIONS, value: --max-old-space-size=1024 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: home, mountPath: /home/affine }
+            - { name: tmp, mountPath: /tmp }
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+      containers:
+        - name: affine
+          image: WLREGISTRY/mirror/ghcr.io/toeverything/affine:0.27.4@sha256:c312116a134184947d98749c8a8e29f4e3bc97f4f2a51c9a3497f9baea2eec2b
+          command: ["node", "./dist/main.js"]
+          envFrom:
+            - configMapRef: { name: affine-settings }
+            - secretRef: { name: affine-app }
+          env:
+            - { name: HOME, value: /home/affine }
+            - { name: NODE_ENV, value: production }
+            - { name: AFFINE_SERVER_HTTPS, value: "true" }
+            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
+            - { name: REDIS_SERVER_HOST, value: affine-redis }
+            - { name: REDIS_SERVER_PORT, value: "6379" }
+            # Inside the limit below, so a big document makes V8 collect instead of the
+            # kernel killing the pod.
+            - { name: NODE_OPTIONS, value: --max-old-space-size=1024 }
+          ports:
+            - { name: http, containerPort: 3010 }
+          startupProbe:
+            httpGet: { path: /info, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /info, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /info, port: http }
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { cpu: "2", memory: 1536Mi }
+          volumeMounts:
+            - { name: home, mountPath: /home/affine }
+            - { name: tmp, mountPath: /tmp }
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+            # The server writes its GraphQL schema to /app/src at start (EROFS without this,
+            # measured 2026-11-12); nothing else under /app is written.
+            - { name: generated, mountPath: /app/src }
+      volumes:
+        - name: home
+          emptyDir: { sizeLimit: 64Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 512Mi }
+        - name: generated
+          emptyDir: { sizeLimit: 16Mi }
+        - name: scripts
+          configMap: { name: affine-scripts }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: affine
+  labels:
+    app.kubernetes.io/name: affine
+spec:
+  selector:
+    app.kubernetes.io/name: affine
+  ports:
+    - { name: http, port: 3010, targetPort: http }

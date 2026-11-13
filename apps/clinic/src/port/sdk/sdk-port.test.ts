@@ -39,10 +39,11 @@ describe("memberships and capabilities", () => {
 	});
 	it("capabilities: what the service says this person may do, by role", async () => {
 		const reception = await (await as("rita")).capabilities("rita", "psizone");
-		expect(reception.fieldGroups).toEqual(["contact", "guardian", "money"]);
-		expect(Object.hasOwn(reception.permissions, "clients_clinical_view")).toBe(false);
+		expect(reception.fieldGroups).toEqual(expect.arrayContaining(["contact", "guardian", "money"]));
+		expect(reception.fieldGroups).not.toContain("clinical");
+		expect(Object.hasOwn(reception.permissions, "clients_view_clinical")).toBe(false);
 		const therapist = await (await as("dora")).capabilities("dora", "psizone");
-		expect(therapist.permissions.calendar_view).toEqual(["own"]);
+		expect(therapist.permissions.calendars_view).toEqual(["own"]);
 		expect(therapist.timeZone).toBe("Europe/Bucharest");
 	});
 });
@@ -110,14 +111,14 @@ describe("the calendar and appointments", () => {
 			serviceId: service.id,
 		};
 		await port.createAppointments("psizone", input);
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const second = await refusal(() => port.createAppointments("psizone", input));
 		expect(second.code).toBe("conflict");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("createAppointments: an unknown service is invalid before anything is sent", async () => {
 		const port = await as("olga");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createAppointments("psizone", {
 				date: "2026-11-18",
@@ -128,11 +129,11 @@ describe("the calendar and appointments", () => {
 			}),
 		);
 		expect(e.code).toBe("invalid");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("createAppointments: a volunteer is forbidden, and nothing is written", async () => {
 		const port = await as("vera");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createAppointments("psizone", {
 				date: "2026-11-18",
@@ -143,7 +144,7 @@ describe("the calendar and appointments", () => {
 			}),
 		);
 		expect(e.code).toBe("forbidden");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("clientAppointments: sorted, only that client's", async () => {
 		const list = await (await as("olga")).clientAppointments("psizone", api.world.ids.c1);
@@ -176,7 +177,7 @@ describe("clients and search", () => {
 		expect(reception?.phone).toBe("0712 345 678");
 		expect(reception?.note).toBe("");
 		const accountant = await (await as("ana")).client("psizone", api.world.ids.c1);
-		expect(accountant).toMatchObject({ phone: null, email: null, guardian: null, note: "" });
+		expect(accountant).toMatchObject({ phone: "0712 345 678", guardian: null, note: "" });
 	});
 	it("client: one that does not exist (or is not theirs) is null, not an error", async () => {
 		expect(await (await as("olga")).client("psizone", "x00000000009")).toBeNull();
@@ -232,7 +233,7 @@ describe("packages", () => {
 	});
 	it("createPackage: a note is 'în curând' (the service has none), and nothing is written", async () => {
 		const port = await as("olga");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createPackage("psizone", api.world.ids.c1, {
 				name: "Cu notă",
@@ -243,7 +244,7 @@ describe("packages", () => {
 			}),
 		);
 		expect(e.code).toBe("not-available-yet");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("updatePackage: a new total keeps the discount the package already has", async () => {
 		const port = await as("olga");
@@ -264,34 +265,34 @@ describe("packages", () => {
 		const port = await as("olga");
 		const [pkg] = await port.packages("psizone", api.world.ids.c1);
 		if (!pkg) throw new Error("fixture");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.updatePackage("psizone", api.world.ids.c1, pkg.id, { sessions: 0, bonus: 0 }),
 		);
 		expect(["invalid"]).toContain(e.code);
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("updatePackage: a package of another client is not found, and nothing is written", async () => {
 		const port = await as("olga");
 		const [pkg] = await port.packages("psizone", api.world.ids.c1);
 		if (!pkg) throw new Error("fixture");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.updatePackage("psizone", api.world.ids.c2, pkg.id, { name: "x" }),
 		);
 		expect(e.code).toBe("not-found");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("updatePackage: someone who may not edit it is refused, and nothing is written", async () => {
 		const port = await as("ana");
 		const [pkg] = await port.packages("psizone", api.world.ids.c1);
 		if (!pkg) throw new Error("fixture");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.updatePackage("psizone", api.world.ids.c1, pkg.id, { name: "Nope" }),
 		);
 		expect(["forbidden", "not-found"]).toContain(e.code);
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("addPayment: appends a payment and the ledger follows", async () => {
 		const port = await as("olga");
@@ -328,21 +329,21 @@ describe("what the service cannot do yet is 'în curând', never a crash", () =>
 	it("a weekly series is not available, and nothing is written", async () => {
 		const port = await as("olga");
 		const input = await mk(port);
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createAppointments("psizone", { ...input, recurrence: { count: 4 } }),
 		);
 		expect(e.code).toBe("not-available-yet");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("changing the client of an appointment is not available, and nothing is written", async () => {
 		const port = await as("olga");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.updateAppointment("psizone", api.world.ids.a1, { clientId: api.world.ids.c2 }),
 		);
 		expect(e.code).toBe("not-available-yet");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 });
 
@@ -530,11 +531,17 @@ describe("the roster, requests and reminders", () => {
 				?.sent,
 		).toBe(true);
 	});
-	it("markReminderSent: a therapist is forbidden", async () => {
-		expect(
-			(await refusal(async () => (await as("dora")).markReminderSent("psizone", api.world.ids.a1)))
-				.code,
-		).toBe("forbidden");
+	it("markReminderSent: someone whose reminders were taken away is refused", async () => {
+		await owner("PUT", "/members/rita/overrides", { grant: [], deny: ["reminders_send_all"] });
+		const before = await api.world.fingerprint();
+		const refused = await refusal(async () =>
+			(await as("rita")).markReminderSent("psizone", api.world.ids.a1),
+		);
+		const after = await api.world.fingerprint();
+		await owner("PUT", "/members/rita/overrides", { grant: [], deny: [] });
+		// the service answers a record it will not let her act on as it does for one she cannot see
+		expect(["forbidden", "not-found"]).toContain(refused.code);
+		expect(after).toBe(before);
 	});
 });
 
@@ -545,7 +552,7 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 		expect([...kinds].sort()).toEqual(["device", "group", "person", "room"]);
 	});
 	it("columns: a kind the person may not list is left out, not an error", async () => {
-		await owner("PUT", "/members/nina/overrides", { grant: [], deny: ["rooms_view"] });
+		await owner("PUT", "/members/nina/overrides", { grant: [], deny: ["rooms_view_all"] });
 		const cols = await (await as("nina")).columns("psizone");
 		expect(cols.some((c) => c.kind === "room")).toBe(false);
 		expect(cols.some((c) => c.kind === "person")).toBe(true);
@@ -555,7 +562,7 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 		expect(
 			(await (await as("olga")).services("psizone")).find((s) => s.name === "Evaluare")?.priceBani,
 		).toBe(25_000);
-		await owner("PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view"] });
+		await owner("PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view_all"] });
 		expect(
 			(await (await as("nina")).services("psizone")).find((s) => s.name === "Evaluare")?.priceBani,
 		).toBeNull();
@@ -588,21 +595,21 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 		});
 		expect(saved.name).toBe("Edited");
 		const after = (await owner("GET", `/roles/${id}`)).json as { role: { permissions: string[] } };
-		// an unmapped permission (people_view: the role editor has no row for it) survives
-		expect(before.role.permissions).toContain("people_view");
-		expect(after.role.permissions).toContain("people_view");
-		expect(after.role.permissions).toContain("clients_contact_view_all");
-		expect(after.role.permissions).not.toContain("clients_money_view_all");
-		expect(after.role.permissions).toContain("requests_view");
+		// an unmapped permission (people_view_all: the role editor has no row for it) survives
+		expect(before.role.permissions).toContain("people_view_all");
+		expect(after.role.permissions).toContain("people_view_all");
+		expect(after.role.permissions).toContain("clients_view_all_contact");
+		expect(after.role.permissions).not.toContain("clients_view_all_money");
+		expect(after.role.permissions).toContain("web_requests_view_all");
 	});
 	it("saveRole: a role administrator only, and a refusal changes nothing", async () => {
 		const port = await as("rita");
 		const roles = await (await as("olga")).roles("psizone");
 		const target = roles[0];
 		if (!target) throw new Error("fixture");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		expect((await refusal(() => port.saveRole("psizone", target))).code).toBe("forbidden");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("audit: the events, newest first, in the console's shape", async () => {
 		const events = await (await as("olga")).audit("psizone");
@@ -631,12 +638,12 @@ describe("view as", () => {
 	it("start and stop are audited events of the administrator, and a non-administrator is forbidden", async () => {
 		const port = await as("olga");
 		const seen = await port.startViewAs("olga", "psizone", "role:psizone-reception");
-		expect(seen.fieldGroups).toEqual(["contact", "guardian", "money"]);
+		expect(seen.fieldGroups).toEqual(expect.arrayContaining(["contact", "guardian", "money"]));
 		await port.stopViewAs("olga", "psizone");
 		const actions = (await port.audit("psizone")).map((e) => e.action);
 		expect(actions).toContain("view_as.start");
 		expect(actions).toContain("view_as.stop");
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		expect(
 			(
 				await refusal(async () =>
@@ -651,7 +658,7 @@ describe("view as", () => {
 				)
 			).code,
 		).toBe("forbidden");
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("a port made for viewing as someone else is read-only at the service: every write is forbidden", async () => {
 		const port = createSdkPort({
@@ -659,14 +666,14 @@ describe("view as", () => {
 			bearer: () => api.tokenFor("olga"),
 			viewAs: "role:psizone-reception",
 		});
-		const before = api.world.fingerprint();
+		const before = await api.world.fingerprint();
 		expect((await refusal(() => port.archiveClient("psizone", api.world.ids.c1))).code).toBe(
 			"forbidden",
 		);
 		expect((await refusal(() => port.markReminderSent("psizone", api.world.ids.a1))).code).toBe(
 			"forbidden",
 		);
-		expect(api.world.fingerprint()).toBe(before);
+		expect(await api.world.fingerprint()).toBe(before);
 		expect((await port.clients("psizone", "current", "")).length).toBeGreaterThan(0);
 	});
 });

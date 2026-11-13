@@ -49,6 +49,8 @@ components:
           - OPENFGA_STORE_ID
           - S3_ACCESS_KEY_ID
           - S3_SECRET_ACCESS_KEY
+          - NOVU_SECRET_KEY
+          - REMINDER_LINK_SECRET
         initContainers: [assert-secrets]
         probes:
           startup: { path: /health, port: 4380 }
@@ -59,7 +61,7 @@ externalSecrets:
     namespace: scheduling-api
     target: scheduling-api-env
     manifest: gitops/services/scheduling-api/base/externalsecret.yaml
-    template: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY]
+    template: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, NOVU_SECRET_KEY, REMINDER_LINK_SECRET]
   - name: harbor-pull
     namespace: scheduling-api
     target: harbor-pull
@@ -98,9 +100,17 @@ secrets:
       - name: MAIL_API_KEY
         source: { kind: literal }
         readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: MAIL_API_KEY }]
+  - path: apps/notify/reminder-links
+    owner: scheduling-api
+    keys:
+      - name: REMINDER_LINK_SECRET
+        source: { kind: literal }
+        readers: [{ kind: external-secret, secret: scheduling-api/scheduling-api-env, env: REMINDER_LINK_SECRET }]
 consumes:
   - service: scheduling-backend
     env: [CONVEX_URL, PSI_SCHEDULING_KEY]
+  - service: novu
+    env: [NOVU_API_URL, NOVU_SECRET_KEY]
   - service: openfga
     env: [OPENFGA_ENDPOINT, OPENFGA_WRITE_ENDPOINT, OPENFGA_STORE_ID, OPENFGA_MODEL_ID, OPENFGA_TOKEN]
 egress: [auth.psizone.ro, nbg1.your-objectstorage.com]
@@ -115,11 +125,11 @@ health:
     - label: scheduling-api environment
       externalSecret: scheduling-api/scheduling-api-env
       secret: scheduling-api-env
-      keys: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY]
+      keys: [CLINIC_MASTER_KEY, OIDC_ISSUERS, OPENFGA_MODEL_ID, SERVICE_KEY_HASH_PSIZONE_WEB, SERVICE_KEY_HASH_HEMISYNC_WEB, SERVICE_KEY_HASH_GUIDE_PSIZONE, SERVICE_KEY_HASH_GUIDE_HEMISYNC, SERVICE_KEY_HASH_CMS, MAIL_API_URL, MAIL_API_KEY, MAIL_FROM, PSI_SCHEDULING_KEY, OPENFGA_TOKEN, OPENFGA_STORE_ID, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, NOVU_SECRET_KEY, REMINDER_LINK_SECRET]
   buildVarChecks: []
   convexEnvChecks: []
 docs:
   appSecretsRows: []
-  paths: [apps/scheduling-api/env, apps/scheduling-api/mail]
+  paths: [apps/scheduling-api/env, apps/scheduling-api/mail, apps/notify/reminder-links]
   keys: []
 findings: []

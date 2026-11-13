@@ -112,7 +112,7 @@ export async function Page({
 	const o = at(locale);
 	const { can } = ctx;
 	let open = 0;
-	if (can.has("requests_view")) {
+	if (can.has("web_requests_view")) {
 		try {
 			open = (await ctx.port.requests(ctx.app)).filter((r) => !r.handled).length;
 		} catch {
@@ -139,14 +139,14 @@ export async function Page({
 	// Only what this person may open: a menu entry for a screen the service would refuse is never offered.
 	const settingsAllowed = settingsOpen(can);
 	const offered: ReadonlyArray<NavItem | null> = [
-		can.has("calendar_view") ? item("calendar", m.nav_calendar({}, o), "calendar") : null,
-		can.has("calendar_view") ? item("floor", m.nav_floor({}, o), "sidebar") : null,
+		can.has("calendars_view") ? item("calendar", m.nav_calendar({}, o), "calendar") : null,
+		can.has("calendars_view") ? item("floor", m.nav_floor({}, o), "sidebar") : null,
 		can.has("clients_view") ? item("clients", m.nav_clients({}, o), "users") : null,
-		can.has("requests_view") ? item("requests", m.nav_requests({}, o), "inbox", open) : null,
+		can.has("web_requests_view") ? item("requests", m.nav_requests({}, o), "inbox", open) : null,
 		can.has("roster_view") ? item("roster", m.nav_roster({}, o), "briefcase") : null,
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
 		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
-		can.has("audit_view") ? item("audit", m.nav_audit({}, o), "list") : null,
+		can.has("audit_log_view") ? item("audit", m.nav_audit({}, o), "list") : null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
 	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "audit"];

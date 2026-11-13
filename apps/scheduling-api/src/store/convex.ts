@@ -1,40 +1,26 @@
-import {
-	accountHashOf,
-	DecisionReasonSchema,
-	type SchedulingClient,
-	type StaffSchedulingClient,
-} from "@psi/scheduling";
+import { accountHashOf, type SchedulingClient, type StaffSchedulingClient } from "@psi/scheduling";
 import type { ConvexClient } from "convex/browser";
-import { makeFunctionReference } from "convex/server";
-import { z } from "zod";
-import {
-	COLLECTIONS,
-	type Collection,
-	type CollectionName,
-	NotAvailableYet,
-	type Rows,
-	type StorePort,
-} from "./types";
+import { accessCollections } from "./convex/access";
+import { caller } from "./convex/call";
+import { catalogCollections } from "./convex/catalog";
+import type { PartialCollections } from "./convex/collections";
+import { createChangeFeed } from "./convex/feed";
+import { appsOfSubject } from "./convex/members";
+import { recordCollections } from "./convex/records";
+import { requestsPort, visitorExtras } from "./convex/requests";
+import type { Rpc } from "./convex/rpc";
+import { visitCollections } from "./convex/visits";
+import type { Collection, CollectionName, Rows, StorePort } from "./types";
 
 /**
- * The Convex adapter. What the deployment already has is wired: the visitor flow (services, slots, holds, requests,
- * cancel) and the web requests. Everything the new model adds (clients, appointments CRUD, packages, records, files,
- * roles, audit, builder definitions, the change feed) is `not_available_yet` until packages/scheduling/convex gains
- * those functions (branch clinic/model2); the list is in apps/scheduling-api/README.md. Every method names what it needs.
+ * The Convex adapter: every collection of the StorePort re-backed on the server-keyed wrappers of
+ * packages/scheduling/convex (one area per file under ./convex), the visitor flow on the existing clients, web requests
+ * and the change feed on live queries. Nothing answers "not available": a store that cannot be reached is
+ * `StoreUnavailable` (503).
  */
-function missing<R extends { id: string; app: string }>(name: string): Collection<R> {
-	const refuse = (op: string): Promise<never> =>
-		Promise.reject(new NotAvailableYet(`${name}.${op}`));
-	return {
-		get: () => refuse("get"),
-		list: () => refuse("list"),
-		insert: () => refuse("insert"),
-		replace: () => refuse("replace"),
-		remove: () => refuse("remove"),
-	};
-}
-
 export interface ConvexClients {
+	/** The server-keyed wrappers (`api*`, `staff*`) over Convex's HTTP API. */
+	rpc: Rpc;
 	visitor: SchedulingClient;
 	staff: StaffSchedulingClient;
 	/** A WebSocket client of the deployment: live queries (`onUpdate`) feed the streams. */
@@ -42,47 +28,46 @@ export interface ConvexClients {
 	serverKey: string;
 }
 
-const ChangeSchema = z.object({
-	seq: z.number().int(),
-	at: z.number().int(),
-	kind: z.enum(["appointment", "client", "roster", "request", "ready"]),
-	op: z.enum(["created", "updated", "deleted", "ready"]),
-	id: z.string(),
-});
+/** A collection an area was meant to provide; one missing is a bug found at start-up, never an answer to a caller. */
+function need<K extends CollectionName>(wired: PartialCollections, name: K): Collection<Rows[K]> {
+	const found = wired[name];
+	if (found === undefined) throw new Error(`the Convex adapter does not wire ${name}`);
+	return found;
+}
 
 export function createConvexStore(clients: ConvexClients): StorePort {
-	const c = Object.fromEntries(COLLECTIONS.map((name) => [name, missing(name)])) as {
-		[K in CollectionName]: Collection<Rows[K]>;
+	const wired = {
+		...catalogCollections(clients.rpc),
+		...visitCollections(clients.rpc),
+		...recordCollections(clients.rpc),
+		...accessCollections(clients.rpc),
 	};
-	const unavailable = (what: string): Promise<never> => Promise.reject(new NotAvailableYet(what));
+	const c: StorePort["c"] = {
+		apps: need(wired, "apps"),
+		members: need(wired, "members"),
+		roles: need(wired, "roles"),
+		people: need(wired, "people"),
+		rooms: need(wired, "rooms"),
+		devices: need(wired, "devices"),
+		groups: need(wired, "groups"),
+		services: need(wired, "services"),
+		clients: need(wired, "clients"),
+		appointments: need(wired, "appointments"),
+		packages: need(wired, "packages"),
+		payments: need(wired, "payments"),
+		roster: need(wired, "roster"),
+		leave: need(wired, "leave"),
+		reminders: need(wired, "reminders"),
+		records: need(wired, "records"),
+		files: need(wired, "files"),
+		audit: need(wired, "audit"),
+		definitions: need(wired, "definitions"),
+		imports: need(wired, "imports"),
+	};
 	return {
 		c,
-		appsOf: () => unavailable("members.appsOf"),
-		changes: {
-			append: () => unavailable("changes.append (a mutation writing the change log)"),
-			since: () => unavailable("changes.since"),
-			head: () => unavailable("changes.head"),
-			// A live query: Convex pushes a new result whenever the log changes, over the WebSocket. The function
-			// `changes:since` does not exist yet (clinic/model2); until it does, the subscription fails and the stream closes.
-			subscribe(app, after, onEvents, onError) {
-				let cursor = after;
-				const unsubscribe = clients.live.onUpdate(
-					makeFunctionReference<"query">("changes:since"),
-					{ key: clients.serverKey, tenant: app, after },
-					(raw: unknown) => {
-						const parsed = z.array(ChangeSchema).safeParse(raw);
-						if (!parsed.success)
-							return onError(new Error("changes:since answered an unexpected shape"));
-						const fresh = parsed.data.filter((e) => e.seq > cursor);
-						if (fresh.length === 0) return;
-						cursor = Math.max(cursor, ...fresh.map((e) => e.seq));
-						onEvents(fresh);
-					},
-					(error: Error) => onError(error),
-				);
-				return Promise.resolve(() => unsubscribe());
-			},
-		},
+		appsOf: (subject) => appsOfSubject(caller(clients.rpc), subject),
+		changes: createChangeFeed(clients.live, clients.rpc, clients.serverKey),
 		visitor: {
 			async services(app) {
 				const out = await clients.visitor.services(app);
@@ -137,53 +122,9 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 				return out.ok ? out : { ok: false, reason: out.reason };
 			},
 			cancel: (_app, reference, cancelCode) => clients.visitor.cancel({ reference, cancelCode }),
-			callback: () => unavailable("visitor.callback (a request with no slot)"),
-			mine: () => unavailable("visitor.mine (the visitor's appointments by subject)"),
-			cancelMine: () => unavailable("visitor.cancelMine"),
+			...visitorExtras(clients.rpc),
 		},
-		requests: {
-			async list(app, from, to) {
-				const out = await clients.staff.requests({ tenant: app, from, to });
-				if (!out.ok) return [];
-				return out.requests.map((r) => ({
-					reference: r.reference,
-					status: r.status === "held" || r.status === "expired" ? ("requested" as const) : r.status,
-					start: r.start,
-					end: r.end,
-					serviceSlug: r.serviceSlug,
-					createdAt: r.submittedAt ?? r.start,
-					...(r.contact === undefined
-						? {}
-						: {
-								contact: {
-									name: r.contact.name,
-									...(r.contact.phone === undefined ? {} : { phone: r.contact.phone }),
-									...(r.contact.email === undefined ? {} : { email: r.contact.email }),
-								},
-							}),
-				}));
-			},
-			async pending(app) {
-				const out = await clients.staff.requests({
-					tenant: app,
-					from: 0,
-					to: Number.MAX_SAFE_INTEGER,
-					statuses: ["requested"],
-				});
-				return out.ok ? out.requests.length : 0;
-			},
-			async decide(app, reference, decision, reason, actor) {
-				const known = DecisionReasonSchema.safeParse(reason);
-				const out = await clients.staff.decide({
-					tenant: app,
-					reference,
-					decision,
-					...(known.success ? { reason: known.data } : {}),
-					actor: { subject: actor },
-				});
-				return out.ok ? { ok: true } : { ok: false, reason: out.reason };
-			},
-		},
+		requests: requestsPort(clients.rpc, clients.staff),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

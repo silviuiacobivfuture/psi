@@ -1,11 +1,11 @@
 # Authentik Blueprint ConfigMap — EMBEDDED OUTPOST host pin (config-as-code).
 # Mounted at /blueprints/mounted/, reconciled by the worker on boot.
 #
-# WHY: authentik's tailnet host (authentik.tailf6f2e6.ts.net) was decommissioned in
-# fe38c4b — authentik is now PUBLIC-only at auth.recomex.eu. But the embedded
+# WHY: authentik's tailnet host (authentik.<tailnet>) was decommissioned in
+# fe38c4b — authentik is now PUBLIC-only at its public host. But the embedded
 # outpost's `authentik_host` / `authentik_host_browser` were DB-managed and still
 # pointed at the dead tailnet host, so every gated-dashboard login 302'd the browser
-# to authentik.tailf6f2e6.ts.net/application/o/authorize/ → DNS_PROBE / "can't be
+# to authentik.<tailnet>/application/o/authorize/ → DNS_PROBE / "can't be
 # reached" (the 2026-06-19 outage). Fixed live in the admin UI; this blueprint PINS
 # it so a rebuild/reseed can never resurrect the dead host again.
 #

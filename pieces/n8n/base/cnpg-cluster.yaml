@@ -53,7 +53,7 @@ spec:
     retentionPolicy: "14d"
     barmanObjectStore:
       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/n8n-db
-      endpointURL: https://nbg1.your-objectstorage.com
+      endpointURL: WLENDPOINT
       s3Credentials:
         accessKeyId: { name: n8n-backup-s3, key: AWS_ACCESS_KEY_ID }
         secretAccessKey: { name: n8n-backup-s3, key: AWS_SECRET_ACCESS_KEY }

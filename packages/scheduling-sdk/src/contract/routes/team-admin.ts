@@ -1,9 +1,9 @@
 import { z } from "zod/v4";
-import { route } from "../define";
+import { Capabilities, ViewAsBody, ViewAsTarget } from "../capabilities";
+import { route, type Target } from "../define";
 import {
 	App,
 	AppCreate,
-	AppMe,
 	AppPatch,
 	Device,
 	DeviceCreate,
@@ -29,10 +29,18 @@ import {
 	ServiceCreate,
 	ServicePatch,
 	ServicePrice,
-	ViewAsBody,
-	ViewAsTarget,
 } from "../entities";
-import { AppId, AppParam, Id, IdParam, Ok, PageQuery, page, Subject } from "../primitives";
+import {
+	AppId,
+	AppParam,
+	Id,
+	IdParam,
+	Ok,
+	PageQuery,
+	page,
+	type SchedType,
+	Subject,
+} from "../primitives";
 
 const SubjectParam = AppParam.extend({ subject: Subject });
 
@@ -50,41 +58,6 @@ export const ME_ROUTES = [
 		}),
 	}),
 	route({
-		id: "me.app",
-		method: "GET",
-		path: "/v1/apps/:app/me",
-		side: "team",
-		summary:
-			"The caller in this app: their roles and every permission they hold, for a console to decide what to offer",
-		params: AppParam,
-		query: z.object({ as: ViewAsTarget.optional() }),
-		response: AppMe,
-	}),
-	route({
-		id: "viewAs.start",
-		method: "POST",
-		path: "/v1/apps/:app/view-as",
-		side: "team",
-		summary:
-			"Start seeing the app as a role or a member (roles administrators only); answers what that role or member holds. Read-only: the console then sends x-psi-view-as and the service refuses every write carrying it",
-		params: AppParam,
-		body: ViewAsBody,
-		response: AppMe,
-		permission: { key: "roles_edit", target: { kind: "app" } },
-		audit: "view_as.start",
-	}),
-	route({
-		id: "viewAs.stop",
-		method: "DELETE",
-		path: "/v1/apps/:app/view-as",
-		side: "team",
-		summary: "Stop seeing the app as someone else",
-		params: AppParam,
-		response: Ok,
-		permission: { key: "roles_edit", target: { kind: "app" } },
-		audit: "view_as.stop",
-	}),
-	route({
 		id: "apps.create",
 		method: "POST",
 		path: "/v1/apps",
@@ -94,6 +67,41 @@ export const ME_ROUTES = [
 		body: AppCreate,
 		response: App,
 		audit: "app.create",
+	}),
+	route({
+		id: "me.capabilities",
+		method: "GET",
+		path: "/v1/apps/:app/me",
+		side: "team",
+		summary:
+			"Who the caller is in this app and every permission they hold, with its scopes, the field groups they see and whose rows they reach. With `as` (role:<id> or member:<subject>; roles editors only), the same for a role or another member",
+		params: AppParam,
+		query: z.object({ as: ViewAsTarget.optional() }),
+		response: Capabilities,
+	}),
+	route({
+		id: "viewAs.start",
+		method: "POST",
+		path: "/v1/apps/:app/view-as",
+		side: "team",
+		summary:
+			"Start seeing the app as a role or a member (roles editors only); answers what they hold. Read-only: the console then sends x-psi-view-as and the service refuses every write carrying it. The start is an audited event",
+		params: AppParam,
+		body: ViewAsBody,
+		response: Capabilities,
+		permission: { key: "roles_edit", target: { kind: "app" } },
+		audit: "view_as.start",
+	}),
+	route({
+		id: "viewAs.stop",
+		method: "DELETE",
+		path: "/v1/apps/:app/view-as",
+		side: "team",
+		summary: "Stop seeing the app as someone else (an audited event)",
+		params: AppParam,
+		response: Ok,
+		permission: { key: "roles_edit", target: { kind: "app" } },
+		audit: "view_as.stop",
 	}),
 	route({
 		id: "apps.get",
@@ -148,7 +156,7 @@ export const ME_ROUTES = [
 		summary: "Remove a person from the app (their roles and grants go with them)",
 		params: SubjectParam,
 		response: Ok,
-		permission: { key: "members_remove", target: { kind: "app" } },
+		permission: { key: "members_delete", target: { kind: "app" } },
 		audit: "member.remove",
 	}),
 	route({
@@ -238,7 +246,24 @@ function catalog<
 	E extends z.ZodObject,
 	C extends z.ZodObject,
 	P extends z.ZodObject,
->(group: G, seg: string, entity: E, create: C, patch: P, label: string) {
+>(
+	group: G,
+	seg: string,
+	entity: E,
+	create: C,
+	patch: P,
+	label: string,
+	resource: string = group,
+	/** People are calendars (the object a person's scopes are resolved on); everything else is app-wide. */
+	object?: SchedType,
+	removal = "delete",
+) {
+	const on = (list: boolean): Target =>
+		object === undefined
+			? { kind: "app" }
+			: list
+				? { kind: "list", type: object }
+				: { kind: "object", type: object };
 	return [
 		route({
 			id: `${group}.list` as const,
@@ -249,7 +274,7 @@ function catalog<
 			params: AppParam,
 			query: PageQuery,
 			response: page(entity),
-			permission: { key: `${group}_view`, target: { kind: "app" } },
+			permission: { key: `${resource}_view`, target: on(true) },
 		}),
 		route({
 			id: `${group}.create` as const,
@@ -260,7 +285,7 @@ function catalog<
 			params: AppParam,
 			body: create,
 			response: entity,
-			permission: { key: `${group}_create`, target: { kind: "app" } },
+			permission: { key: `${resource}_create`, target: { kind: "app" } },
 			audit: `${group}.create`,
 		}),
 		route({
@@ -272,7 +297,7 @@ function catalog<
 			params: IdParam,
 			body: patch,
 			response: entity,
-			permission: { key: `${group}_edit`, target: { kind: "app" } },
+			permission: { key: `${resource}_edit`, target: on(false) },
 			audit: `${group}.update`,
 		}),
 		route({
@@ -283,17 +308,35 @@ function catalog<
 			summary: `Remove ${label} (deactivates when it has history)`,
 			params: IdParam,
 			response: Ok,
-			permission: { key: `${group}_delete`, target: { kind: "app" } },
+			permission: { key: `${resource}_${removal}`, target: on(false) },
 			audit: `${group}.delete`,
 		}),
 	] as const;
 }
 
 export const CATALOG_ROUTES = [
-	...catalog("people", "people", Person, PersonCreate, PersonPatch, "people and practitioners"),
+	...catalog(
+		"people",
+		"people",
+		Person,
+		PersonCreate,
+		PersonPatch,
+		"people and practitioners",
+		"people",
+		"sched_calendar",
+		"archive",
+	),
 	...catalog("rooms", "rooms", Room, RoomCreate, RoomPatch, "rooms"),
 	...catalog("devices", "devices", Device, DeviceCreate, DevicePatch, "devices"),
-	...catalog("groups", "groups", Group, GroupCreate, GroupPatch, "group activities"),
+	...catalog(
+		"groups",
+		"groups",
+		Group,
+		GroupCreate,
+		GroupPatch,
+		"group activities",
+		"group_activities",
+	),
 	...catalog("services", "services", Service, ServiceCreate, ServicePatch, "services"),
 	route({
 		id: "services.setPrice",
@@ -304,7 +347,7 @@ export const CATALOG_ROUTES = [
 		params: IdParam,
 		body: ServicePrice,
 		response: Service,
-		permission: { key: "prices_change", target: { kind: "app" } },
+		permission: { key: "prices_edit", target: { kind: "app" } },
 		audit: "service.price",
 	}),
 ] as const;

@@ -49,6 +49,7 @@ export {
 } from "./clients";
 export { FILE_KINDS, type FileKind, type FileMeta, fileMetaSchema, storageKeyFor } from "./files";
 export {
+	COLUMN_TYPES,
 	coerceAnswer,
 	FIELD_TYPES,
 	type FieldType,
@@ -57,8 +58,12 @@ export {
 	type FormField,
 	formDefinitionSchema,
 	formFieldSchema,
+	LONGTEXT_MAX,
 	type ResponseCheck,
 	type ResponseProblem,
+	TABLE_CELL_MAX,
+	type TableColumn,
+	TEXT_MAX,
 	validateResponse,
 	valueSchemaFor,
 } from "./forms";
@@ -87,7 +92,7 @@ export {
 	rosterProblem,
 	type StaffBlock,
 } from "./roster";
-export { SEED_FORM_TEMPLATES, TEMPLATE_RESOURCE } from "./templates";
+export { SEED_FORM_TEMPLATES } from "./templates";
 export {
 	ATTENDANCE,
 	type Attendance,

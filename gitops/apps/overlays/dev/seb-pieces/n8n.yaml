@@ -29,7 +29,7 @@
       "path": "gitops/seb-pieces/n8n",
       "kustomize": {
         "images": [
-          "registry.psizone.ro/psi/n8n-sso=registry.psizone.ro/psi/n8n-sso@sha256:b155abf52c908185971fcd8b2ef10ff35406e11b56130c33ebb876115c904a57"
+          "registry.psizone.ro/psi/n8n-sso=registry.psizone.ro/psi/n8n-sso@sha256:cc65259618b5ba52e36e4da76ef5c0c8f6d15582fce127329ab58bec4f4ccde3"
         ]
       }
     },

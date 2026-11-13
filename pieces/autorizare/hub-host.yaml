@@ -1,0 +1,18 @@
+# The sign-in hub's host label, <label>.<apex>, and the Middleware regex that carries it. A
+# replacements SOURCE only: config.kubernetes.io/local-config keeps it out of the render.
+#
+# `id` is the default label (HostPrefix in packages/autorizare-sdk-go/hub/issuer.go) and what
+# this file renders. An estate whose identity names another HUB_HOST_PREFIX takes the
+# hub-host component (identity-components.json), which writes its label here and tells the
+# hub and the console the label they must build the issuer from. An estate on `id` renders
+# exactly what it rendered before the label was a setting.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: autorizare-hub-host
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  LABEL: id
+  # The hub's root-redirect regex after its `://`: the label, an escaped dot, the apex.
+  ROOT_REGEX_TAIL: "id\\.([^/]+)/?$"

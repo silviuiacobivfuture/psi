@@ -3,7 +3,7 @@ import type { Capabilities, ClinicPort } from "../port/port";
 /** The people whose rows a permission reaches, or null when it reaches everyone's. */
 function reachSet(caps: Capabilities, key: string): ReadonlySet<string> | null {
 	const scopes = caps.permissions[key] ?? [];
-	// `[]` is an unscoped permission; "all" is everything.
+	// "all" is everything (an empty list is a permission not held).
 	if (scopes.length === 0 || scopes.includes("all")) return null;
 	return new Set([
 		...(scopes.includes("own") ? caps.reach.own : []),
@@ -17,7 +17,7 @@ function reachSet(caps: Capabilities, key: string): ReadonlySet<string> | null {
  * that role or member really sees: a therapist's calendar is their own column, not the clinic's.
  */
 export function scopedPort(port: ClinicPort, caps: Capabilities): ClinicPort {
-	const calendar = reachSet(caps, "calendar_view");
+	const calendar = reachSet(caps, "calendars_view");
 	const clients = reachSet(caps, "clients_view");
 	const appointments = reachSet(caps, "appointments_view");
 	return {

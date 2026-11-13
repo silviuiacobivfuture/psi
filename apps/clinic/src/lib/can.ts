@@ -12,7 +12,7 @@ export interface Can {
 	any(...keys: string[]): boolean;
 	/** May WRITE with it: held, and not looking at the app as someone else (that view is read-only). */
 	write(key: string): boolean;
-	/** The scopes held (`[]` for an unscoped permission or one not held). */
+	/** The scopes held (`["all"]` app-wide; `[]` not held). */
 	scopes(key: string): ReadonlyArray<ScopeName>;
 	/** Only their own / assigned rows: the permission is held but not on everything. */
 	narrowed(key: string): boolean;

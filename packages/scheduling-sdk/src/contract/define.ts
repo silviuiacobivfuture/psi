@@ -14,10 +14,26 @@ export type Side = "visitor" | "team" | "meta";
 export type Target =
 	| { kind: "app" }
 	| { kind: "object"; type: SchedType; idFrom?: { in: "params" | "body"; key: string } }
-	| { kind: "list"; type: SchedType };
-
+	| { kind: "list"; type: SchedType }
+	/**
+	 * Authorized by the handler after it loads what the path names: the permission depends on a row (a record's form
+	 * decides its resource; a payment belongs to a package or a client). The handler calls `ctx.authorize` BEFORE it
+	 * writes; a handler that returns without having asked is refused by the pipeline, and the matrix tests cover each.
+	 */
+	| {
+			kind: "dynamic";
+			type: SchedType;
+			/**
+			 * Before anything is parsed, the caller must hold at least one of these (at any scope) in the app: a role
+			 * with none of them is refused (403) like on any other route. Which one decides is the handler's to ask.
+			 */
+			candidates: readonly string[];
+	  };
 export interface Permission {
-	/** A catalogue permission key (`clients_edit`); a scoped one is checked as `<key>_all|_assigned|_own`. */
+	/**
+	 * A catalogue permission without its scope (`clients_edit`, `clients_view_clinical`): held as
+	 * `<resource>_<action>_<scope>[_<group>]`. `record:dynamic` names the five record resources, chosen by the form.
+	 */
 	key: string;
 	target: Target;
 }

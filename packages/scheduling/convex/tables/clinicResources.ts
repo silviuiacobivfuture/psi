@@ -10,6 +10,8 @@ import { v } from "convex/values";
 
 export const devices = defineTable({
 	tenant: v.string(),
+	/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+	extra: v.optional(v.string()),
 	slug: v.string(),
 	name: v.string(),
 	kind: v.union(v.literal("neurofeedback"), v.literal("other")),
@@ -27,6 +29,8 @@ export const devices = defineTable({
 
 export const groupActivities = defineTable({
 	tenant: v.string(),
+	/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+	extra: v.optional(v.string()),
 	slug: v.string(),
 	name: v.string(),
 	shortName: v.optional(v.string()),
@@ -45,6 +49,8 @@ export const groupActivities = defineTable({
 /** Reception, other roster-only people and volunteers: on the roster, never bookable. */
 export const staffMembers = defineTable({
 	tenant: v.string(),
+	/** What the service's API holds about this row that no column here does (JSON text, `apiCatalogExtra`). Wiped with the row. */
+	extra: v.optional(v.string()),
 	name: v.string(),
 	kind: v.union(v.literal("reception"), v.literal("other"), v.literal("volunteer")),
 	active: v.boolean(),

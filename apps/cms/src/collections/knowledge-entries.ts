@@ -1,11 +1,6 @@
 import type { CollectionConfig } from "payload";
-import {
-	createByBrand,
-	deleteByBrand,
-	readByBrand,
-	readVersionsByBrand,
-	updateByBrand,
-} from "../authz/access";
+import { brandAccess } from "../authz/access";
+import { BRANDS as SITE_BRANDS } from "../authz/types";
 import { brandListFilter } from "../brand/filter";
 import { indexKnowledge, unindexKnowledge } from "../knowledge/hooks";
 import { knowledgeReviewRequired } from "../knowledge/rule";
@@ -55,13 +50,7 @@ export const KnowledgeEntries: CollectionConfig = {
 		baseListFilter: brandListFilter(),
 	},
 	versions: { drafts: true, maxPerDoc: 50 },
-	access: {
-		read: readByBrand,
-		readVersions: readVersionsByBrand,
-		create: createByBrand,
-		update: updateByBrand,
-		delete: deleteByBrand,
-	},
+	access: brandAccess(SITE_BRANDS),
 	hooks: {
 		beforeChange: [reviewGate(knowledgeReview)],
 		afterChange: [indexKnowledge],

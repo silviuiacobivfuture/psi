@@ -35,10 +35,20 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 		expect(c).toHaveProperty("contact");
 	});
 
-	it("an accountant sees money and nothing else of the client but the name", async () => {
+	it("an accountant sees contact and money, and no guardian or clinical key at all", async () => {
 		const c = (await as("ana", "GET", `/clients/${w.ids.c1}`)).json;
 		expect(Object.keys(c).sort()).toEqual(
-			["createdAt", "id", "money", "name", "status", "treating", "updatedAt", "birthYear"].sort(),
+			[
+				"createdAt",
+				"id",
+				"contact",
+				"money",
+				"name",
+				"status",
+				"treating",
+				"updatedAt",
+				"birthYear",
+			].sort(),
 		);
 	});
 
@@ -51,6 +61,32 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 		const items = (await as("rita", "GET", "/clients")).json.items as Record<string, unknown>[];
 		expect(items).toHaveLength(2);
 		for (const c of items) expect(Object.keys(c)).not.toContain("clinical");
+	});
+
+	it("a list never carries the clinical group, not even for the owner, and never audits a clinical read", async () => {
+		const before = (await auditActions()).length;
+		const items = (await as("olga", "GET", "/clients")).json.items as Record<string, unknown>[];
+		expect(items).toHaveLength(2);
+		for (const c of items) {
+			expect(Object.keys(c)).not.toContain("clinical");
+			expect(c).toHaveProperty("contact");
+		}
+		expect(JSON.stringify(items)).not.toContain("synthetic-diagnosis");
+		expect((await auditActions()).length).toBe(before);
+	});
+
+	it("fields=identity is who the client is and nothing more: no group, for anyone", async () => {
+		const items = (await as("olga", "GET", "/clients?fields=identity")).json.items as Record<
+			string,
+			unknown
+		>[];
+		expect(items).toHaveLength(2);
+		for (const c of items) {
+			expect(Object.keys(c).sort()).toEqual(
+				["birthYear", "createdAt", "id", "name", "status", "treating", "updatedAt"].sort(),
+			);
+		}
+		expect((await as("olga", "GET", "/clients?fields=everything")).status).toBe(400);
 	});
 
 	it("the clinical content is not in the store in clear: only a sealed envelope", async () => {
@@ -69,7 +105,7 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 	});
 
 	it("a service's prices are absent unless the caller may see prices", async () => {
-		await as("olga", "PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view"] });
+		await as("olga", "PUT", "/members/nina/overrides", { grant: [], deny: ["prices_view_all"] });
 		expect(
 			Object.keys(((await as("nina", "GET", "/services")).json.items as object[])[0] ?? {}),
 		).not.toContain("prices");
@@ -79,7 +115,7 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 	});
 
 	it("a package's payments are absent without the payments permission", async () => {
-		await as("olga", "PUT", "/members/ana/overrides", { grant: [], deny: ["payments_view"] });
+		await as("olga", "PUT", "/members/ana/overrides", { grant: [], deny: ["payments_view_all"] });
 		expect(Object.keys((await as("ana", "GET", `/packages/${w.ids.pkg}`)).json)).not.toContain(
 			"payments",
 		);
@@ -89,7 +125,7 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 	it("reminders hide the contact from a caller who may not see contact data", async () => {
 		await as("olga", "PUT", "/members/rita/overrides", {
 			grant: [],
-			deny: ["clients_contact_view"],
+			deny: ["clients_view_all_contact"],
 		});
 		const items = (
 			await as(
@@ -104,11 +140,11 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 
 	it("writing a group the role cannot edit is refused, naming the group, and writes nothing", async () => {
 		await as("olga", "PUT", "/members/dora/overrides", { grant: ["clients_edit_own"], deny: [] });
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		const r = await as("dora", "PATCH", `/clients/${w.ids.c1}`, { money: { tariffCents: 1 } });
 		expect(r.status).toBe(403);
 		expect(r.json.error).toMatchObject({ code: "forbidden", detail: { group: "money" } });
-		expect(w.fingerprint()).toBe(before);
+		expect(await w.fingerprint()).toBe(before);
 	});
 
 	it("creating a client with a group the role cannot write is refused", async () => {
@@ -159,7 +195,7 @@ describe("scope: own, assigned, all", () => {
 		});
 		await as("olga", "PUT", "/members/newbie", {
 			displayName: "Newbie",
-			roles: ["psizone-therapist"],
+			roles: [w.ids.roles.therapist],
 			coordinates: [],
 		});
 		const r = await as("newbie", "GET", "/clients");
@@ -230,15 +266,22 @@ describe("clinical data is read only by the permitted, and every read is audited
 		expect((await as("dora", "GET", `/records/${w.ids.record}`)).json.data).toEqual({
 			summary: "synthetic-session-summary",
 		});
+		// Reception holds no record permission at all: refused outright, as on any route.
 		const rita = await as("rita", "GET", `/records/${w.ids.record}`);
-		expect(rita.status).toBe(404);
+		expect(rita.status).toBe(403);
 	});
 
-	it("a role that may see a record exists but not its content gets the summary without the data key", async () => {
-		await as("olga", "PUT", "/members/ana/overrides", { grant: ["records_view_all"], deny: [] });
+	it("a record is governed by its form's resource: the holder of another record resource is refused", async () => {
+		// The populated form is a custom one, so report_custom governs it; report_aba does not.
+		await as("olga", "PUT", "/members/ana/overrides", { grant: ["report_aba_view_all"], deny: [] });
+		expect((await as("ana", "GET", `/records/${w.ids.record}`)).status).toBe(404);
+		await as("olga", "PUT", "/members/ana/overrides", {
+			grant: ["report_custom_view_all"],
+			deny: [],
+		});
 		const r = await as("ana", "GET", `/records/${w.ids.record}`);
 		expect(r.status).toBe(200);
-		expect(Object.keys(r.json)).not.toContain("data");
+		expect(r.json.data).toEqual({ summary: "synthetic-session-summary" });
 	});
 
 	it("every clinical read lands in the audit log, with who and what, and never the content", async () => {
@@ -324,8 +367,8 @@ describe("mutations are audited, and nothing moves a client by itself", () => {
 	});
 
 	it("the fingerprint is sensitive: a successful write changes it", async () => {
-		const before = w.fingerprint();
+		const before = await w.fingerprint();
 		await as("olga", "POST", "/rooms", { name: "Another", kind: "x" });
-		expect(w.fingerprint()).not.toBe(before);
+		expect(await w.fingerprint()).not.toBe(before);
 	});
 });

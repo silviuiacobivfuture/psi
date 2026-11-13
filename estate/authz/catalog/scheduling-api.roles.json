@@ -63,13 +63,6 @@
 			}
 		},
 		{
-			"key": "roles",
-			"name": {
-				"ro": "Roluri",
-				"en": "Roles"
-			}
-		},
-		{
 			"key": "people",
 			"name": {
 				"ro": "Persoane și practicieni",
@@ -77,24 +70,17 @@
 			}
 		},
 		{
-			"key": "rooms",
+			"key": "roles",
 			"name": {
-				"ro": "Camere",
-				"en": "Rooms"
+				"ro": "Roluri",
+				"en": "Roles"
 			}
 		},
 		{
-			"key": "devices",
+			"key": "builder",
 			"name": {
-				"ro": "Aparate",
-				"en": "Devices"
-			}
-		},
-		{
-			"key": "groups",
-			"name": {
-				"ro": "Activități de grup",
-				"en": "Group activities"
+				"ro": "Constructor",
+				"en": "Builder"
 			}
 		},
 		{
@@ -112,10 +98,31 @@
 			}
 		},
 		{
-			"key": "calendar",
+			"key": "rooms",
 			"name": {
-				"ro": "Calendar",
-				"en": "Calendar"
+				"ro": "Camere",
+				"en": "Rooms"
+			}
+		},
+		{
+			"key": "devices",
+			"name": {
+				"ro": "Aparate",
+				"en": "Devices"
+			}
+		},
+		{
+			"key": "group_activities",
+			"name": {
+				"ro": "Activități de grup",
+				"en": "Group activities"
+			}
+		},
+		{
+			"key": "calendars",
+			"name": {
+				"ro": "Calendare",
+				"en": "Calendars"
 			}
 		},
 		{
@@ -130,6 +137,48 @@
 			"name": {
 				"ro": "Clienți",
 				"en": "Clients"
+			}
+		},
+		{
+			"key": "report_aba",
+			"name": {
+				"ro": "Rapoarte ABA",
+				"en": "ABA reports"
+			}
+		},
+		{
+			"key": "report_racemeup",
+			"name": {
+				"ro": "Rapoarte Race Me Up",
+				"en": "Race Me Up reports"
+			}
+		},
+		{
+			"key": "report_psychotherapy",
+			"name": {
+				"ro": "Rapoarte de psihoterapie",
+				"en": "Psychotherapy reports"
+			}
+		},
+		{
+			"key": "report_custom",
+			"name": {
+				"ro": "Alte rapoarte și formulare",
+				"en": "Other reports and forms"
+			}
+		},
+		{
+			"key": "questionnaire_parent",
+			"name": {
+				"ro": "Chestionare pentru părinți",
+				"en": "Parent questionnaires"
+			}
+		},
+		{
+			"key": "files",
+			"name": {
+				"ro": "Fișiere",
+				"en": "Files"
 			}
 		},
 		{
@@ -161,6 +210,13 @@
 			}
 		},
 		{
+			"key": "notice_board",
+			"name": {
+				"ro": "Panou de anunțuri",
+				"en": "Notice board"
+			}
+		},
+		{
 			"key": "reminders",
 			"name": {
 				"ro": "Mementouri",
@@ -168,45 +224,31 @@
 			}
 		},
 		{
-			"key": "requests",
+			"key": "web_requests",
 			"name": {
 				"ro": "Cereri web",
 				"en": "Web requests"
 			}
 		},
 		{
-			"key": "records",
+			"key": "reports",
 			"name": {
-				"ro": "Fișe și rapoarte",
-				"en": "Records and reports"
+				"ro": "Rapoarte",
+				"en": "Reports"
 			}
 		},
 		{
-			"key": "files",
-			"name": {
-				"ro": "Fișiere",
-				"en": "Files"
-			}
-		},
-		{
-			"key": "audit",
+			"key": "audit_log",
 			"name": {
 				"ro": "Jurnal de audit",
 				"en": "Audit log"
 			}
 		},
 		{
-			"key": "builder",
+			"key": "imports_exports",
 			"name": {
-				"ro": "Constructor",
-				"en": "Builder"
-			}
-		},
-		{
-			"key": "imports",
-			"name": {
-				"ro": "Importuri",
-				"en": "Imports"
+				"ro": "Importuri și exporturi",
+				"en": "Imports and exports"
 			}
 		}
 	],
@@ -224,15 +266,16 @@
 			"scope_type": "platform",
 			"relation": "role_sched_app_admin",
 			"grants": [
-				"sched_app#app_settings_view",
-				"sched_app#app_settings_edit",
-				"sched_app#members_view",
-				"sched_app#members_edit",
-				"sched_app#members_remove",
-				"sched_app#roles_view",
-				"sched_app#roles_create",
-				"sched_app#roles_edit",
-				"sched_app#roles_delete"
+				"sched_app#app_settings_view_all",
+				"sched_app#app_settings_edit_all",
+				"sched_app#members_view_all",
+				"sched_app#members_create_all",
+				"sched_app#members_edit_all",
+				"sched_app#members_delete_all",
+				"sched_app#roles_view_all",
+				"sched_app#roles_create_all",
+				"sched_app#roles_edit_all",
+				"sched_app#roles_delete_all"
 			],
 			"assignable": true,
 			"max_duration": null

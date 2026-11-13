@@ -1,0 +1,39 @@
+# The kubelet's max-pods, for an estate whose identity sets KUBELET_MAX_PODS (110 to 250). Taken
+# only then (../identity-components.json): an estate without the key, or on the kubelet's own 110,
+# renders this piece byte for byte as before, and none of its nodes re-applies anything.
+#
+# Taken, it replaces the two drop-ins the kubelet-memory ConfigMap delivers with agent.yaml and
+# server.yaml here, and moves both Plans' version to <the piece's version>-max-pods-<n>, so SUC runs
+# them once (it hashes the Plan spec, never the ConfigMap). A node whose drop-in already carries
+# these bytes restarts nothing (apply.sh compares first).
+#
+# GENERATED, never edited by hand: agent.yaml and server.yaml are ../kubelet-memory/<role>.yaml plus
+# one max-pods line, and the version below is the piece's own plus the suffix. Both move with
+# infrastructure/hetzner/scripts/kubelet-memory-mode.sh, and scripts/tests/kubelet-memory.test.sh
+# fails when they disagree. The placeholders are filled by the bundle builder from the
+# estate's identity (identity-files.txt here), only when the component is taken.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+  - name: kubelet-memory
+    behavior: merge
+    options:
+      disableNameSuffixHash: true
+    files:
+      - KM_DROPIN_AGENT=agent.yaml
+      - KM_DROPIN_SERVER=server.yaml
+patches:
+  - target:
+      kind: Plan
+      name: kubelet-memory-agent
+    patch: |
+      - op: replace
+        path: /spec/version
+        value: kubelet-memory-apply-12e277c6-max-pods-${KUBELET_MAX_PODS}
+  - target:
+      kind: Plan
+      name: kubelet-memory-server
+    patch: |
+      - op: replace
+        path: /spec/version
+        value: kubelet-memory-apply-12e277c6-max-pods-${KUBELET_MAX_PODS}

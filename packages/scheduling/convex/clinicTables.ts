@@ -34,6 +34,7 @@ export const CLINIC_TABLES = [
 	"appKeys",
 	"auditEvents",
 	"storageOutbox",
+	"changeLog",
 ] as const satisfies ReadonlyArray<TableNames>;
 export type ClinicTable = (typeof CLINIC_TABLES)[number];
 
@@ -174,6 +175,11 @@ export async function rowsOf(
 			return ctx.db
 				.query("storageOutbox")
 				.withIndex("by_tenant_created", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "changeLog":
+			return ctx.db
+				.query("changeLog")
+				.withIndex("by_tenant", (q) => q.eq("tenant", tenant))
 				.take(LIMIT);
 		default: {
 			const never: never = table;

@@ -6,6 +6,18 @@ export {
 	OwnRequestSchema,
 } from "./account-client";
 export {
+	type CallbackHandledResult,
+	type CallbackInput,
+	CallbackInputSchema,
+	type CallbackListResult,
+	type CallbackRequester,
+	type CallbackResult,
+	type CallbackRow,
+	CallbackRowSchema,
+	type CallbacksStaff,
+	type CallbackWhen,
+} from "./callbacks-client";
+export {
 	type CancelResult,
 	clientOn,
 	createSchedulingClient,

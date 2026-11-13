@@ -13,11 +13,3 @@ export const SEED_FORM_TEMPLATES: ReadonlyArray<FormDefinition> = [
 	PSYCHOTHERAPY_REPORT,
 	PARENT_QUESTIONNAIRE,
 ];
-
-/** The permission resource that governs each seeded template's responses. */
-export const TEMPLATE_RESOURCE = {
-	"aba-session-report": "report_aba",
-	"race-me-up-report": "report_race_me_up",
-	"psychotherapy-report": "report_psychotherapy",
-	"parent-questionnaire": "parent_questionnaires",
-} as const;

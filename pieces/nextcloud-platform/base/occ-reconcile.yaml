@@ -210,6 +210,23 @@ spec:
                   value: nextcloud-occ
                 - name: CHANNELS_PATH
                   value: platform/talk/channels
+                # ---- the ESTATE's apps -------------------------------------------
+                # The apps the estate wants on top of the five the platform needs, by app
+                # store id, space separated; installed and enabled like those five, and
+                # re-asserted every run, so a rebuilt cluster comes back with them. An id
+                # with no release for the running Nextcloud fails the run loudly (occ says
+                # why). SEB ships the list empty: which apps a business uses is the
+                # estate's choice, set in its nextcloud-platform component (a patch of
+                # this CronJob's env, as for the three lists above). Removing an id does
+                # NOT disable the app — that is a deliberate `occ app:disable`.
+                - name: NC_APPS
+                  value: ""
+                # The `external` app's links (External sites), as the JSON object that app
+                # stores: {"<id>": {"id": <id>, "name": ..., "url": ..., ...}}. Asserted
+                # whole every run when set, so a link edited in the admin UI comes back as
+                # declared. Empty: the reconcile leaves the app's links alone.
+                - name: NC_EXTERNAL_SITES
+                  value: ""
               resources:
                 requests: { cpu: 50m, memory: 64Mi }
                 limits: { cpu: 500m, memory: 256Mi }
@@ -268,7 +285,8 @@ spec:
                   # app:install errors when already present, so check first. These
                   # five are the Teams-shaped surface: SSO, Office, chat/calls,
                   # calendar, contacts.
-                  for app in user_oidc richdocuments spreed calendar contacts; do
+                  # Then the estate's own (NC_APPS, empty unless the estate sets it).
+                  for app in user_oidc richdocuments spreed calendar contacts $NC_APPS; do
                     if occ app:list --output=json | grep -q "\"$app\""; then
                       occ app:enable "$app" >/dev/null
                     else
@@ -286,6 +304,17 @@ spec:
                   # out for no reason (owner, 2026-11-03).
                   if [ "$(occ config:app:get survey_client enabled)" = "yes" ]; then
                     occ app:disable survey_client >/dev/null
+                  fi
+
+                  # ---- External sites: the estate's links ------------------------
+                  # max_site is the app's id counter; kept at the highest declared id so
+                  # a link added in the UI never reuses one. A malformed declaration
+                  # fails here (jq), before anything is written.
+                  if [ -n "$NC_EXTERNAL_SITES" ]; then
+                    MAX_SITE="$(printf %s "$NC_EXTERNAL_SITES" | jq -er 'keys | map(tonumber) | max')"
+                    occ config:app:set external sites --value="$(printf %s "$NC_EXTERNAL_SITES" | jq -c .)" --type=string >/dev/null
+                    occ config:app:set external max_site --value="$MAX_SITE" --type=integer >/dev/null
+                    echo "external sites asserted (highest id $MAX_SITE)"
                   fi
 
                   occ user_oidc:provider Authentik \

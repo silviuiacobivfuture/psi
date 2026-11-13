@@ -1,4 +1,5 @@
 import type { Endpoint, PayloadRequest } from "payload";
+import { z } from "zod";
 import { Decision, decideRequest } from "./decisions";
 import { type Allowed, allow, back, bodyOf, log } from "./http";
 import { SECTIONS } from "./sections";
@@ -11,6 +12,7 @@ import { schedulingStaff, tenantOf } from "./services";
  * person through the PWA hook when it is configured.
  */
 const VIEW = "/admin/platform/scheduling";
+const CallbackId = z.string().regex(/^[a-z0-9]{10,64}$/);
 
 type Run = (
 	a: Allowed,
@@ -18,7 +20,7 @@ type Run = (
 	body: Record<string, string>,
 ) => Promise<{ done?: string; error?: string; note?: string }>;
 
-function action(path: string, run: Run): Endpoint {
+function action(path: string, run: Run, tab = "requests"): Endpoint {
 	return {
 		path: `/platform/scheduling/${path}`,
 		method: "post",
@@ -32,10 +34,10 @@ function action(path: string, run: Run): Endpoint {
 			try {
 				const out = await run(a, tenant, body);
 				if (out.done !== undefined)
-					await log(req, a, "decide", body.reference ?? "-", out.note ?? out.done);
-				return back(VIEW, a.brand, out, "&tab=requests");
+					await log(req, a, "decide", body.reference ?? body.id ?? "-", out.note ?? out.done);
+				return back(VIEW, a.brand, out, `&tab=${tab}`);
 			} catch {
-				return back(VIEW, a.brand, { error: "unreachable" }, "&tab=requests");
+				return back(VIEW, a.brand, { error: "unreachable" }, `&tab=${tab}`);
 			}
 		},
 	};
@@ -47,4 +49,21 @@ const decide = action("decide", async (a, tenant, body) => {
 	return decideRequest(a.brand, a.actor, tenant, d.data);
 });
 
-export const schedulingEndpoints: Endpoint[] = [decide];
+/** The team called a callback request back: it leaves the list of what is still to do. */
+const callbackHandled = action(
+	"callback-handled",
+	async (a, tenant, body) => {
+		const id = CallbackId.safeParse(body.id);
+		const staff = schedulingStaff();
+		if (!id.success || staff === null) return { error: "invalid" };
+		const r = await staff.markCallbackHandled({
+			tenant,
+			id: id.data,
+			actor: { subject: `cms:${a.actor}` },
+		});
+		return r.ok ? { done: "done", note: "callback handled" } : { error: "notFound" };
+	},
+	"callbacks",
+);
+
+export const schedulingEndpoints: Endpoint[] = [decide, callbackHandled];

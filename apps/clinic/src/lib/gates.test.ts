@@ -9,6 +9,7 @@ const caps = (keys: string[]) => ({
 	subject: "s",
 	roles: [],
 	permissions: Object.fromEntries(keys.map((k) => [k, ["all" as const]])),
+	denied: [],
 	fieldGroups: [],
 	reach: { own: [], assigned: [] },
 	platformAdmin: false,

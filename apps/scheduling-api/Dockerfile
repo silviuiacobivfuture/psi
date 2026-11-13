@@ -12,6 +12,8 @@ COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@psi/scheduling-api..."
 # esbuild bundles the workspace packages (TypeScript sources) and every dependency into dist/server.js, so the
 # runtime image needs neither node_modules nor pnpm.
+# The workspace packages that generate code (@psi/notify compiles its messages) build first, as nx does.
+RUN pnpm --filter "@psi/scheduling-api^..." --if-present build
 RUN pnpm --filter @psi/scheduling-api build
 
 FROM ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/node:24-alpine

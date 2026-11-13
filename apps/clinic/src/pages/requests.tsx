@@ -97,7 +97,7 @@ export function RequestsBody({
 							key={r.id}
 							r={r}
 							locale={ctx.locale}
-							canDecide={ctx.can.write("requests_decide")}
+							canDecide={ctx.can.write("web_requests_approve")}
 						/>
 					))}
 				</div>

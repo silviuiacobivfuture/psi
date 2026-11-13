@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga
   namespace: openfga
 spec:
@@ -16,6 +18,7 @@ kind: Service
 metadata:
   labels:
     app: openfga
+    seb.platform/piece: openfga
   name: openfga
   namespace: openfga
 spec:
@@ -32,6 +35,7 @@ kind: Service
 metadata:
   labels:
     app: openfga
+    seb.platform/piece: openfga
   name: openfga-admin
   namespace: openfga
 spec:
@@ -51,6 +55,7 @@ metadata:
     reloader.stakater.com/auto: "true"
   labels:
     app: openfga
+    seb.platform/piece: openfga
   name: openfga
   namespace: openfga
 spec:
@@ -260,6 +265,8 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga
   namespace: openfga
 spec:
@@ -271,6 +278,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: harbor-pull
   namespace: openfga
 spec:
@@ -300,6 +309,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga-backup-s3
   namespace: openfga
 spec:
@@ -324,6 +335,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga-db-app
   namespace: openfga
 spec:
@@ -354,6 +367,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga-secrets
   namespace: openfga
 spec:
@@ -374,6 +389,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga
   namespace: openfga
 spec:
@@ -429,6 +446,8 @@ metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    seb.platform/piece: openfga
   name: openfga-db
   namespace: openfga
 spec:
@@ -472,6 +491,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  labels:
+    seb.platform/piece: openfga
   name: openfga-db-base
   namespace: openfga
 spec:

@@ -1,0 +1,9 @@
+# The instance's namespace, so ONE Argo Application can own every instance (the piece spans
+# several namespaces; Argo's CreateNamespace creates only its destination). Never pruned or
+# deleted by Argo: it holds the instance's data.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: convex-WLINSTANCE
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false

@@ -122,7 +122,7 @@ describe("over the scheduling service, which keeps no plan", () => {
 	});
 	it("a save is refused and nothing is written", async () => {
 		const s = await k.as("olga");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const r = await s.post(
 			"/floor/api/draw/save",
 			JSON.stringify({ fpDoc: "{}", fpSel: "", fpFloor: "f1" }),
@@ -131,6 +131,6 @@ describe("over the scheduling service, which keeps no plan", () => {
 			},
 		);
 		expect(r.status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 });

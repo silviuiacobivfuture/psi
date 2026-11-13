@@ -1,5 +1,5 @@
 import { formDefinitionSchema } from "../forms";
-import { f } from "./build";
+import { col, f } from "./build";
 
 export const ABA_SESSION_REPORT = formDefinitionSchema.parse({
 	key: "aba-session-report",
@@ -7,7 +7,14 @@ export const ABA_SESSION_REPORT = formDefinitionSchema.parse({
 	kind: "report",
 	title: { ro: "Raport de ședință ABA", en: "ABA session report" },
 	fields: [
-		f.multi("programs", "Programe lucrate", "Programs worked on"),
+		f.table("programs", "Programe lucrate", "Programs worked on", [
+			col("name", "Program", "Program", "text"),
+			col("prompt", "Ajutor (prompt)", "Prompt", "choice"),
+			col("sd", "SD", "SD", "text"),
+			col("status", "Stare", "Status", "choice"),
+			col("success", "Reușită", "Success", "text"),
+			col("notes", "Observații", "Notes", "longtext"),
+		]),
 		f.multi("rewards_used", "Recompense folosite", "Rewards used"),
 		f.multi("reward_types", "Tipuri de recompense", "Reward types"),
 		f.choice("reward_quality", "Calitatea recompensei", "Reward quality"),
@@ -22,7 +29,7 @@ export const ABA_SESSION_REPORT = formDefinitionSchema.parse({
 		f.text("other_behaviour", "Alt comportament", "Other behaviour"),
 		f.multi("strategies", "Strategii", "Strategies"),
 		f.text("other_strategy", "Altă strategie", "Other strategy"),
-		f.rating("intervention_efficiency", "Eficiența intervenției", "Intervention efficiency"),
+		f.learned("intervention_efficiency", "Eficiența intervenției", "Intervention efficiency"),
 		f.multi("triggers", "Factori declanșatori", "Triggers"),
 		f.longtext("parent_feedback", "Feedback pentru părinte", "Parent feedback"),
 		f.longtext("recommendations", "Recomandări", "Recommendations"),

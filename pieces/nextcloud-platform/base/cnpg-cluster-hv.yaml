@@ -69,7 +69,7 @@ spec:
     - name: origin
       barmanObjectStore:
         destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db
-        endpointURL: https://nbg1.your-objectstorage.com
+        endpointURL: WLENDPOINT
         # Pinned to the ORIGIN cluster's own name, not this cluster's name —
         # this is the one line that keeps the archive read pointed at the right
         # sub-prefix. See the collision note above.
@@ -117,7 +117,7 @@ spec:
 #     retentionPolicy: "14d"
 #     barmanObjectStore:
 #       destinationPath: s3://WLBUCKET-tfstate-dev/cnpg/nextcloud-db-hv   # NOT the old path
-#       endpointURL: https://nbg1.your-objectstorage.com
+#       endpointURL: WLENDPOINT
 #       s3Credentials:
 #         accessKeyId: { name: nextcloud-backup-s3, key: AWS_ACCESS_KEY_ID }
 #         secretAccessKey: { name: nextcloud-backup-s3, key: AWS_SECRET_ACCESS_KEY }

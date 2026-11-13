@@ -128,8 +128,6 @@
 	"form_err_for": "Error: choose who the evaluation is for.",
 	"form_err_consent": "Error: we need your consent to contact you.",
 	"form_ok_title": "Thank you, {name}.",
-	"form_ok_text": "Your request is complete.",
-	"form_not_connected": "Sending to the team switches on at launch; until then the request goes nowhere and is not stored.",
 	"form_err_slot": "Error: that time was just taken. Pick another one.",
 	"form_err_hold": "Error: the time was no longer held for you. Pick again.",
 	"confirm_title": "Confirm your request",

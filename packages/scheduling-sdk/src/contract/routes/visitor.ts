@@ -149,7 +149,16 @@ export const VISITOR_ROUTES = [
 		side: "visitor",
 		summary: "Ask the team to call back, with no slot",
 		params: AppParam,
-		body: z.object({ contact: Contact, audience: Audience.optional(), locale: Locale }),
+		body: z.object({
+			contact: Contact,
+			audience: Audience.optional(),
+			locale: Locale,
+			/** When the visitor would like the call. */
+			when: z.enum(["morning", "afternoon", "any"]).default("any"),
+			/** The page the form was on. */
+			page: z.string().max(120).default("/"),
+			channel: z.enum(["form", "guide"]).default("form"),
+		}),
 		response: CallbackRequest,
 		audit: "callback.create",
 	}),

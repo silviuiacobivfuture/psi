@@ -1,0 +1,22 @@
+# OpenBao (UI and API): its own OIDC sign-in, and the estate's domain sign-in in front of it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openbao-public
+  namespace: openbao
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [openbao.WLTAILNET]
+      secretName: openbao-public-tls
+  rules:
+    - host: openbao.WLTAILNET
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: openbao, port: { number: 8200 } } }

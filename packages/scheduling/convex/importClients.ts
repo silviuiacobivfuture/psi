@@ -49,7 +49,7 @@ export const upsertClients = internalMutation({
 				occupation: v.optional(v.string()),
 				referralSource: v.optional(v.string()),
 				location: v.optional(v.string()),
-				firstTherapy: v.optional(v.string()),
+				firstTherapy: v.optional(v.boolean()),
 				mainReasonEnc: v.optional(encryptedValidator),
 				diagnosisEnc: v.optional(encryptedValidator),
 				healthNotesEnc: v.optional(encryptedValidator),

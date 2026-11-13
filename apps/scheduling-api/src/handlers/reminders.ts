@@ -87,7 +87,13 @@ export async function pendingReminderCount(deps: Deps, app: string, now: number)
 				lt: startOfLocalDay(addDaysKey(date, 1), row.timeZone),
 			},
 		})
-	).filter((a) => a.status !== "cancelled" && a.clientId !== undefined && a.kind === "session");
+	).filter(
+		(a) =>
+			a.deletedAt === undefined &&
+			a.status !== "cancelled" &&
+			a.clientId !== undefined &&
+			a.kind === "session",
+	);
 	const states = new Map((await deps.store.c.reminders.list(app)).map((r) => [r.id, r.state]));
 	return due.filter((a) => (states.get(a.id) ?? "pending") === "pending").length;
 }
@@ -110,13 +116,19 @@ export const reminderHandlers: HandlersOf<
 				range: { field: "start", gte: from, lt: to },
 			})
 		)
-			.filter((a) => a.status !== "cancelled" && a.clientId !== undefined && a.kind === "session")
+			.filter(
+				(a) =>
+					a.deletedAt === undefined &&
+					a.status !== "cancelled" &&
+					a.clientId !== undefined &&
+					a.kind === "session",
+			)
 			.sort((a, b) => a.start - b.start);
 		const states = new Map(
 			(await ctx.deps.store.c.reminders.list(ctx.app)).map((r) => [r.id, r.state]),
 		);
 		const names = await ctx.reachOf("clients_view", "sched_client");
-		const contacts = await ctx.reachOf("clients_contact_view", "sched_client");
+		const contacts = await ctx.reachOf("clients_view_contact", "sched_client");
 		const items = [];
 		for (const a of due) {
 			const client =
@@ -157,7 +169,7 @@ export const reminderHandlers: HandlersOf<
 		const mailer = ctx.deps.mailer;
 		if (mailer === undefined) throw fail("unavailable", "mail is not configured");
 		const { appointment, client, timeZone, placeName } = await target(ctx);
-		if (!(await ctx.canOn("clients_contact_view", "sched_client", client.id)))
+		if (!(await ctx.canOn("clients_view_contact", "sched_client", client.id)))
 			throw forbidden("not allowed to see contact data", { group: "contact" });
 		const to = client.contact?.email ?? client.guardian?.email;
 		if (to === undefined) throw fail("conflict", "the client has no e-mail address");
@@ -192,7 +204,7 @@ export const reminderHandlers: HandlersOf<
 
 	async "reminders.whatsapp"(ctx) {
 		const { appointment, client, timeZone, placeName } = await target(ctx);
-		if (!(await ctx.canOn("clients_contact_view", "sched_client", client.id)))
+		if (!(await ctx.canOn("clients_view_contact", "sched_client", client.id)))
 			throw forbidden("not allowed to see contact data", { group: "contact" });
 		const number = whatsappNumber(client.contact?.phone ?? client.guardian?.phone ?? "");
 		if (number === undefined) throw fail("conflict", "the client has no usable phone number");
@@ -225,7 +237,9 @@ export const reminderHandlers: HandlersOf<
 				: fail("not_found", "request not found");
 		await ctx.changed("request", "updated", String(ctx.params.reference));
 		const to = { kind: "request", reference: String(ctx.params.reference) } as const;
-		if (ctx.body.decision === "confirm")
+		// Calling a callback back tells the visitor nothing: they were on the phone.
+		if (ctx.body.decision === "handle") ctx.note({ decision: "handle" });
+		else if (ctx.body.decision === "confirm")
 			await ctx.notify("appointment.confirmed", to, { reference: to.reference }, to.reference);
 		else
 			await ctx.notify(

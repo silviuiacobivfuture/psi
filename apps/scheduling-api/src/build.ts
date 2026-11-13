@@ -10,12 +10,13 @@ import { createLiveAuthz } from "./authz/live";
 import { createMemoryAuthz, type MemoryAuthz } from "./authz/memory";
 import type { Config } from "./config";
 import type { Deps, LogEvent } from "./http/context";
+import { wireNotify } from "./notify-wiring";
 import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer } from "./ports/mail";
-import { createLoggingNotify } from "./ports/notify";
 import { createS3Store } from "./ports/objects";
 import { createLimiter } from "./ports/ratelimit";
 import { createConvexStore } from "./store/convex";
+import { createRpc } from "./store/convex/rpc";
 import { createMemoryStore } from "./store/memory";
 import type { StorePort } from "./store/types";
 
@@ -25,9 +26,14 @@ const stdoutLog = (event: LogEvent): void => {
 
 /** Wires the live adapters (or the in-memory ones the config allows outside production). */
 export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
-	const store: StorePort =
+	const rpc =
 		config.store.kind === "convex"
+			? createRpc({ url: config.store.url, serverKey: config.store.serverKey })
+			: undefined;
+	const store: StorePort =
+		config.store.kind === "convex" && rpc !== undefined
 			? createConvexStore({
+					rpc,
 					live: new ConvexClient(config.store.url, {
 						skipConvexDeploymentUrlCheck: true,
 						logger: false,
@@ -57,6 +63,14 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 			: createMemoryAuthz();
 	const denials: Parameters<typeof createAccess>[1] = async (app, subject) =>
 		new Set((await store.c.members.get(app, subject))?.denies ?? []);
+	const clock = overrides.clock ?? Date.now;
+	const wiring = wireNotify({
+		config,
+		store: overrides.store ?? store,
+		rpc,
+		clock,
+		log: stdoutLog,
+	});
 	return {
 		config,
 		store,
@@ -66,7 +80,8 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		crypto: createFieldCrypto(config.masterKey),
 		mailer: config.mail === undefined ? undefined : createHttpMailer(config.mail),
 		objects: config.objects === undefined ? undefined : createS3Store(config.objects),
-		notifier: createLoggingNotify(stdoutLog),
+		notifier: wiring.notifier,
+		reminders: wiring.reminders,
 		limiter: createLimiter({ capacity: 30, refillPerSecond: 5 }, Date.now),
 		clock: Date.now,
 		log: stdoutLog,

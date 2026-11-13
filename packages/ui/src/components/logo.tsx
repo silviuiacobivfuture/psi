@@ -1,4 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import { live, RETIRED_SITES } from "@psi/content/retired";
 import { MARK_ATTRS, MARKS, type MarkBrand } from "@psi/design/logos";
 import { raw } from "hono/html";
 import type { JSX } from "hono/jsx/jsx-runtime";
@@ -17,6 +18,8 @@ export interface LogoProps {
 	 * Shown under the wordmark of EQ-SYNC, Hemi-Sync and the Blog, never on Psizone's own.
 	 */
 	endorsement?: string;
+	/** The retired sites, left out of `brand="auto"`; `RETIRED_SITES` unless a test says otherwise. */
+	retired?: ReadonlyArray<string>;
 }
 
 /** The smallest size that carries the full emblem (its hairlines need room); below it the compact cut keeps its strokes whole. */
@@ -107,7 +110,7 @@ const ALL: ReadonlyArray<MarkBrand> = ["psizone", "eqsync", "hemisync", "blog"];
 
 /**
  * The current theme's brand (brand="auto": every brand is rendered and the theme shows its own),
- * or the one named. The marks are one family: Psizone's emblem and its sisters in the same frame.
+ * or the one named. A retired site (`RETIRED_SITES`) is not among the auto brands. The marks are one family: Psizone's emblem and its sisters in the same frame.
  */
 export function Logo({
 	size = 32,
@@ -116,8 +119,9 @@ export function Logo({
 	href,
 	class: className,
 	endorsement,
+	retired = RETIRED_SITES,
 }: LogoProps): JSX.Element {
-	const brands = brand === "auto" ? ALL : [brand];
+	const brands = brand === "auto" ? live(ALL, retired) : [brand];
 	const inner = brands.map((b) => (
 		<Lockup brand={b} size={size} word={variant !== "mark"} endorsement={endorsement} />
 	));

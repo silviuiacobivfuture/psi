@@ -39,7 +39,7 @@ export const CALENDAR_ROUTES = [
 		params: AppParam,
 		query: CalendarQuery,
 		response: CalendarResult,
-		permission: { key: "calendar_view", target: { kind: "list", type: "sched_calendar" } },
+		permission: { key: "calendars_view", target: { kind: "list", type: "sched_calendar" } },
 	}),
 	route({
 		id: "calendar.stream",
@@ -51,7 +51,7 @@ export const CALENDAR_ROUTES = [
 		params: AppParam,
 		query: z.object({ after: z.coerce.number().int().nonnegative().optional() }),
 		response: CalendarEvent,
-		permission: { key: "calendar_view", target: { kind: "list", type: "sched_calendar" } },
+		permission: { key: "calendars_view", target: { kind: "list", type: "sched_calendar" } },
 		stream: true,
 	}),
 	route({
@@ -138,7 +138,7 @@ export const CALENDAR_ROUTES = [
 		body: Attendance,
 		response: Appointment,
 		permission: {
-			key: "appointments_attend",
+			key: "appointments_edit",
 			target: { kind: "object", type: "sched_appointment" },
 		},
 		audit: "appointment.attendance",
@@ -153,22 +153,56 @@ export const CALENDAR_ROUTES = [
 		body: AppointmentPayment,
 		response: Appointment,
 		permission: {
-			key: "appointments_money_edit",
+			key: "appointments_edit_money",
 			target: { kind: "object", type: "sched_appointment" },
 		},
 		audit: "appointment.payment",
+	}),
+	route({
+		id: "appointments.remove",
+		method: "DELETE",
+		path: "/v1/apps/:app/appointments/:id",
+		side: "team",
+		summary: "Delete an appointment: soft for 30 days, recoverable by restore",
+		params: IdParam,
+		response: Deleted,
+		permission: {
+			key: "appointments_delete",
+			target: { kind: "object", type: "sched_appointment" },
+		},
+		audit: "appointment.delete",
+	}),
+	route({
+		id: "appointments.restore",
+		method: "POST",
+		path: "/v1/apps/:app/appointments/:id/restore",
+		side: "team",
+		summary: "Bring back a soft-deleted appointment",
+		params: IdParam,
+		response: Appointment,
+		permission: {
+			key: "appointments_restore",
+			target: { kind: "object", type: "sched_appointment" },
+		},
+		audit: "appointment.restore",
 	}),
 	route({
 		id: "clients.list",
 		method: "GET",
 		path: "/v1/apps/:app/clients",
 		side: "team",
-		summary: "Clients (current or archive), each with only the field groups the caller may see",
+		summary:
+			"Clients (current or archive), each with only the field groups the caller may see; never the clinical group (read one client for that)",
 		params: AppParam,
 		query: z
 			.object({
 				status: z.enum(["active", "archived", "deleted"]).default("active"),
 				q: z.string().trim().max(100).optional(),
+				/**
+				 * `identity`: only who the client is (id, name, status, who treats them, birth year). `groups`: also the contact,
+				 * guardian and money groups the caller may see. Clinical data is never in a list: ask for the client.
+				 */
+				fields: z.enum(["identity", "groups"]).default("groups"),
 			})
 			.extend(PageQuery.shape),
 		response: page(Client),
@@ -328,7 +362,10 @@ export const CALENDAR_ROUTES = [
 		summary: "Delete a payment (audited; the package's balance follows)",
 		params: IdParam,
 		response: Ok,
-		permission: { key: "payments_delete", target: { kind: "app" } },
+		permission: {
+			key: "payments_delete",
+			target: { kind: "dynamic", type: "sched_package", candidates: ["payments_delete"] },
+		},
 		audit: "payment.delete",
 	}),
 	route({
@@ -340,7 +377,7 @@ export const CALENDAR_ROUTES = [
 		params: AppParam,
 		query: z.object({ from: DateKey, to: DateKey }),
 		response: z.object({ items: z.array(RosterDay) }),
-		permission: { key: "roster_view", target: { kind: "app" } },
+		permission: { key: "roster_view", target: { kind: "list", type: "sched_calendar" } },
 	}),
 	route({
 		id: "roster.put",
@@ -351,7 +388,7 @@ export const CALENDAR_ROUTES = [
 		params: IdParam.extend({ date: DateKey }),
 		body: RosterPut,
 		response: RosterDay,
-		permission: { key: "roster_edit", target: { kind: "app" } },
+		permission: { key: "roster_edit", target: { kind: "object", type: "sched_calendar" } },
 		audit: "roster.put",
 	}),
 	route({
@@ -388,7 +425,10 @@ export const CALENDAR_ROUTES = [
 		params: IdParam,
 		body: LeaveDecision,
 		response: Leave,
-		permission: { key: "leave_approve", target: { kind: "app" } },
+		permission: {
+			key: "leave_approve",
+			target: { kind: "dynamic", type: "sched_calendar", candidates: ["leave_approve"] },
+		},
 		audit: "leave.decide",
 	}),
 ] as const;

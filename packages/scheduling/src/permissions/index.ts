@@ -1,6 +1,7 @@
 export {
 	ACTIONS,
 	type Action,
+	ALL_PERMISSION_KEYS,
 	allPermissionKeys,
 	type BaseFieldGroup,
 	CATALOGUE,
@@ -15,6 +16,8 @@ export {
 	RELATION_NAME_MAX,
 	RESOURCES,
 	type Resource,
+	recordResourceFor,
+	relationName,
 	SCOPES,
 	type Scope,
 } from "./catalogue";

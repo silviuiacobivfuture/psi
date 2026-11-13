@@ -5,7 +5,7 @@
 #            two elements would be an OR). Kubelet probes come from node addresses: the dev overlay adds them.
 #   EGRESS   DNS; the Convex backend (scheduling-backend:3210, queries, mutations and the live-query WebSocket);
 #            OpenFGA (:8081 read, :8080 write); Authentik's server pods (:9000, the issuers' JWKS in-cluster);
-#            HTTPS out to the mail service, object storage and Novu.
+#            Novu's API (novu:3000, in-cluster); HTTPS out to the mail service and object storage.
 #   NOTE     OpenFGA's own NetworkPolicy is rendered by SEB (gitops/seb-pieces/openfga) and admits only Polaris and
 #            Authentik today: it must admit this namespace on 8081 and 8080 before the service can authorize.
 apiVersion: networking.k8s.io/v1
@@ -71,6 +71,13 @@ spec:
             matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
       ports:
         - { protocol: TCP, port: 9000 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: novu }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: novu-api }
+      ports:
+        - { protocol: TCP, port: 3000 }
     - to:
         - ipBlock: { cidr: 0.0.0.0/0 }
       ports:

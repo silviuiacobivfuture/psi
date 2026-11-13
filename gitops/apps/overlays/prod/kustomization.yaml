@@ -18,8 +18,15 @@ resources:
 patches:
   - target:
       kind: Application
-      labelSelector: platform.recomex.eu/source=git
+      labelSelector: platform.psizone.ro/source=git
     patch: |
       - op: add
         path: /spec/source/targetRevision
         value: prod
+
+# The estate's values where a manifest names them by token (previews.yaml: the repository whose
+# pull requests are watched), from the whitelabel ConfigMap ../../base brings in.
+# whitelabel-replacements.yaml is GENERATED:
+#   python3 tools/whitelabel/replacements.py write gitops/apps/overlays/prod
+replacements:
+  - path: whitelabel-replacements.yaml

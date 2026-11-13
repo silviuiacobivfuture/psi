@@ -11,8 +11,11 @@ describe("the admin's brand filter", () => {
 			brand: { equals: "eqsync" },
 		});
 	});
-	it("shows nothing for a brand the collection does not have (articles: no blog)", () => {
-		expect(brandWhere(["psizone", "eqsync", "hemisync"], "psi-cms-brand=blog")).toEqual({
+	it("the Blog shows every app's articles on a collection without a blog value", () => {
+		expect(brandWhere(["psizone", "eqsync", "hemisync"], "psi-cms-brand=blog")).toBeNull();
+	});
+	it("shows nothing for another app the collection does not have", () => {
+		expect(brandWhere(["psizone", "blog"], "psi-cms-brand=hemisync")).toEqual({
 			id: { exists: false },
 		});
 	});

@@ -10,19 +10,34 @@ curl -XPOST localhost:4380/dev/token -H 'content-type: application/json' -d '{"s
 pnpm --filter @psi/scheduling-api authz:gen   # authz.manifest.json from src/authz/catalogue.ts + model.ts
 ```
 
-Regenerating the OpenFGA module needs a SEB checkout: copy the manifest next to a scratch copy of SEB's `authz/` and run
-`python3 authz/tools/generate.py --estate estate/authz.json <manifest>`; commit `estate/authz/modules/sched.fga`,
-`estate/authz/catalog/scheduling-api.roles.json` and `src/authz/permissions.generated.ts`. The 1 MB closure test the
-generator also writes is not committed. `src/authz/drift.test.ts` fails when the committed module or manifest differ from
-the model.
+The catalogue is `@psi/scheduling/permissions` (nothing is copied here); `src/authz/catalogue.ts` derives from it what the
+service checks, and `model.ts` / `manifest.ts` / `roles-seed.ts` generate the rest. Regenerating the OpenFGA module,
+the role catalog and the permission constants needs a SEB checkout (default `../seb`, or `SEB_CHECKOUT`); the script
+takes the generator at the release `estate/platform.lock` pins:
 
-## Not available yet on the Convex adapter
+```bash
+pnpm --filter @psi/scheduling-api authz:gen   # manifest, then scripts/regen-authz.sh
+```
 
-`src/store/convex.ts` wires the visitor flow and the web requests. Everything else answers `not_available_yet` (501):
-every collection (`apps`, `members`, `roles`, `people`, `rooms`, `devices`, `groups`, `services`, `clients`,
-`appointments`, `packages`, `payments`, `roster`, `leave`, `reminders`, `records`, `files`, `audit`, `definitions`,
-`imports`), the change feed (`changes:since` as a live query, plus an append), `visitor.callback`, `visitor.mine`,
-`visitor.cancelMine`, `members.appsOf`.
+and commit `authz.manifest.json`, `estate/authz/modules/sched.fga`, `estate/authz/catalog/scheduling-api.roles.json` and
+`src/authz/permissions.generated.ts`. `src/authz/drift.test.ts` fails when a committed file differs from the model.
+`fga model validate` on `estate/authz/fga.mod` must stay under SEB's 80% size gate (the model is about 95 KB of 256).
+
+## Permissions
+
+A key is `<resource>_<action>_<scope>[_<group>]` (scope `all`, `assigned`, `own`). A key without a group grants identity
+only; every field group (`core`, `contact`, `guardian`, `money`, `clinical`) is granted by its own key. A route names the
+key without its scope (`clients_view`), and the service checks `clients_view_all` on the app, or the narrower scopes
+together with the object's reach (`reach_own`, `reach_assigned`). An individual denial names ONE relation
+(`clients_view_own`), so a denial of one scope leaves the others; it is evaluated scope by scope.
+
+* Record routes declare `record:dynamic`: the caller must hold ANY record resource first (403), then the handler asks for
+  the resource of the record's form (`recordResourceFor(form id)`, 404) before it writes; the pipeline refuses to answer a
+  handler that never asked. `payments.remove` and `leave.decide` are dynamic the same way.
+* View-as: `GET /v1/apps/:app/me?as=` needs `roles_edit`; a request carrying `x-psi-view-as` that is not a GET is refused
+  (`view_as_read_only`) before anything else.
+* Role, member and app writes are one operation with their tuples: the row is written, then the tuples; a tuple failure
+  puts the row back (and a removal writes the tuples first).
 
 ## Platform prerequisites (SEB changes; not made here)
 
@@ -43,8 +58,73 @@ every collection (`apps`, `members`, `roles`, `people`, `rooms`, `devices`, `gro
    key as the read port. If SEB would rather route those writes through Polaris, only `src/authz/live.ts` changes.
 3. The released model id, pinned in `secret/apps/scheduling-api/env` (`OPENFGA_MODEL_ID`), never `latest`.
 
+## Notifications
+
+Three settings, all REQUIRED in production (a start without any of them is refused by name) and optional elsewhere:
+
+| Variable | Where it comes from |
+| --- | --- |
+| `NOVU_API_URL` | plain env in the Deployment: `http://novu-api.novu.svc:3000` (NetworkPolicy egress to the `novu-api` pods on 3000) |
+| `NOVU_SECRET_KEY` | OpenBao `secret/apps/novu/estate`, key `secret_key` (the service never creates it) |
+| `REMINDER_LINK_SECRET` | OpenBao `secret/apps/notify/reminder-links` (at least 32 characters, `openssl rand -hex 32`; rotating it invalidates every link already sent) |
+
+Without them (development, tests, the local run) `config.notify` is `undefined`: notifications are logged and none is
+delivered. Setting only some of them is refused in every environment: half a setup delivers nothing.
+
+With them, `@psi/notify` delivers through the estate's Novu. The OUTBOX (a job waits there until Novu has it, retried with
+backoff, the action's own key as the idempotency key) and the single-use record of the reminder links are DURABLE in
+Convex (`notifyOutbox`, `usedLinks`), drained by the API process (`notifier.start`), so a restart or a second replica
+loses and repeats nothing. The handlers say WHAT happened by reference; `ports/novu-notify.ts` resolves who is told and
+what the message prints from the store:
+
+| Happens | Catalogue event | Told |
+| --- | --- | --- |
+| a visitor's request or callback | `request.new` | the team |
+| a visitor's request, its confirmation, its cancellation | `appointment.requested/confirmed/cancelled` | the visitor (their contact) |
+| a staff booking, move, cancellation | `appointment.confirmed/moved/cancelled` | the client and the practitioner |
+| a reminder link answered | `reminder.confirmed/declined` | reception |
+| a package with two sessions or fewer left | `package.running_low` | reception |
+| leave asked, decided | `leave.requested`, `leave.approved/declined` | the owners, the requester |
+| a payment | `payment.recorded` | the client (when the app turns receipts on) |
+
+The links: `GET/POST /v1/public/reminders/:token/(confirm|cancel|ics)` (a GET changes nothing, the POST is the action, a
+link is used up by the first POST, the calendar link can be fetched again). The token names its app, so one host serves
+every app. Members and their roles keep Novu's subscribers and the `team` / `reception` / `owners` topics in step.
+
+Not done, on purpose: `reminder.day_before` needs a daily job that picks tomorrow's appointments (the reminders list and
+the e-mail route keep working meanwhile); `assistant.action_done` belongs to the assistant, which is not in this service;
+the people's push preferences (`@psi/notify/push`) are the console's account settings, not routes here; a no-show has no
+message in the catalogue.
+
 ## Rate limits
 
 Visitor routes only: a token bucket in memory per service key and visitor (the site forwards the visitor's address in
 `x-psi-client-ip`), or per subject for a signed-in visitor. 30 calls at once, refilling 5 a second; over it, `429
 rate_limited` with `Retry-After`. Per replica.
+
+## Convex: what is wired
+
+Every collection is re-backed on the server-keyed wrappers of `packages/scheduling/convex` (see `src/store/convex/`),
+and no route answers `not_available_yet`. The service calls them over Convex's HTTP API (`store/convex/rpc.ts`, the
+server key added in one place) and the change feed over its WebSocket. The CONTRACT SUITE (`src/store/contract/`) runs
+the same assertions on the in-memory adapter and on Convex, and `src/happy.test.ts` runs every route's happy path on
+both.
+
+```bash
+# a throwaway backend of your own, on a free port (data outside the repository's .data)
+export PSI_CONVEX_NAME=psi-convex-api PSI_CONVEX_PORT=3580 PSI_CONVEX_SITE_PORT=3581 PSI_CONVEX_DATA=<dir>
+packages/scheduling/scripts/local-backend.sh up && packages/scheduling/scripts/local-backend.sh env
+packages/scheduling/scripts/convex.sh deploy --yes
+CONVEX_URL=http://127.0.0.1:3580 pnpm --filter @psi/scheduling-api test
+packages/scheduling/scripts/local-backend.sh down
+```
+
+Without `CONVEX_URL` and `PSI_CONVEX_DATA` the Convex run is skipped, loudly (CI has no backend).
+
+* Convex assigns ids; the API passes them through (`store/convex/ids.ts` is the one module that maps them: a table
+  prefix where the API merges tables, a derived id for a roster day).
+* The acting person reaches the wrappers through `store/actor.ts` (the HTTP layer runs each handler in `withActor`).
+* Clinical text is sealed in the service (`CLINIC_MASTER_KEY`, `ports/crypto.ts`) and travels as Convex's encrypted
+  field (`store/convex/envelope.ts`); Convex never sees plain text.
+* The change feed: `changes:since` and `webRequests:feed` are live queries; the clinic wrappers write the log in the
+  transaction of the write, so `append` does nothing.

@@ -1,0 +1,22 @@
+# SEB's release-signing PUBLIC key, for the pieces that verify a signature (kyverno-policies'
+# verify-seb-signatures). The key pair was generated for SEB; the private half lives only in each
+# publishing estate's OpenBao (secret/platform/seb/cosign, fields `key` and `password`) and signs,
+# in CI, the release, every image SEB builds and every bundle an estate builds from a release
+# (tools/release/cosign.sh). cosign.pub here is the ONE copy SEB ships: the policy takes it by
+# replacement, tools/release/cosign.sh verifies with it, and an estate pins its own copy
+# (estate/seb-cosign.pub) as the trust anchor its upgrade check judges a lock against.
+#
+# Rotating the key is a release: a new cosign.pub here, the new private key in every publishing
+# estate's OpenBao, and every estate's pinned copy updated with its next upgrade.
+#
+# The ConfigMap is local-config: the value reaches the policy and nothing is applied.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+  - name: seb-signing
+    files:
+      - cosign.pub
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        config.kubernetes.io/local-config: "true"

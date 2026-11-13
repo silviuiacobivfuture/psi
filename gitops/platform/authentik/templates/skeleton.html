@@ -17,10 +17,10 @@
     watch each component from the moment it is created.
 
     What the script does and why: gitops/platform/authentik/estate/ro.js.
-    Served from /web/dist/assets/recomex/ (the estate ConfigMap).
+    Served from /web/dist/assets/<slug>/ (the estate ConfigMap).
 {% endcomment %}
 {% load static %}
 {% block scripts %}
 {{ block.super }}
-<script data-id="recomex-ro" src="{% static 'dist/assets/recomex/ro.js' %}"></script>
+<script data-id="psi-ro" src="{% static 'dist/assets/psi/ro.js' %}"></script>
 {% endblock %}

@@ -196,14 +196,14 @@ describe("the requests stream and the inbox badge", () => {
 		expect(await s.next()).toMatchObject({ requests: 1, reminders: 2 });
 		await w.call("rita", "POST", `${A}/reminders/${w.ids.a1}/state`, { state: "sent" });
 		await book(w.ids.dora, w.ids.c1, 140);
-		expect(((await s.next()) ?? {}).requests).toBe(1);
+		expect((await s.next())?.requests).toBe(1);
 		await s.close();
 	});
 
 	it("the badge leaves the reminder count out for a caller who may not see reminders", async () => {
 		await w.call("olga", "PUT", `${A}/members/rita/overrides`, {
 			grant: [],
-			deny: ["reminders_view"],
+			deny: ["reminders_view_all"],
 		});
 		const s = await open("rita", "/inbox-counts/stream");
 		const first = await s.next();

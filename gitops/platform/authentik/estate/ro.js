@@ -32,7 +32,7 @@
  */
 (() => {
 	if (window.location.pathname.startsWith("/if/admin")) return;
-	if (window.__recomexRo) return;
+	if (window.__estateRo) return;
 
 	/** Authentik's English, exactly as it renders, → the estate's Romanian. */
 	const RO = new Map(
@@ -247,7 +247,7 @@
 			"Row Actions": "Acțiuni",
 			"Column actions": "Acțiuni",
 			"Avatar image": "Avatar",
-			"authentik Logo": "Recomex",
+			"authentik Logo": "Psi",
 			"User avatar": "Avatar",
 		}),
 	);
@@ -262,7 +262,10 @@
 		[/^(.+) Icon$/, (_, app) => `Pictograma ${app}`],
 		[/^Sort by "(.+)"$/, (_, col) => `Sortează după „${RO.get(col) ?? col}”`],
 		[/^Welcome, (.+)\.?$/, (_, who) => `Bine ai venit, ${who}`],
-		[/^(.+) - (?:authentik|Recomex)$/, (_, title) => `${RO.get(title) ?? title} — Recomex`],
+		[
+			/^(.+) - (?:authentik|Psi)$/,
+			(_, title) => `${RO.get(title) ?? title} — Psi`,
+		],
 		[
 			/^Select all rows on page \((\d+) of (\d+) selected\)$/,
 			(_, a, b) => `Selectează toate rândurile (${a} din ${b})`,
@@ -356,6 +359,8 @@
 	document.documentElement.lang = "ro";
 	watch(document);
 
-	// For the drift test and for doctor.sh: what this file knows, by key.
-	window.__recomexRo = { translate, size: RO.size };
+	// For the drift test and for doctor.sh: what this file knows, by key. One fixed
+	// global for every estate: a name built from the short name would not be valid
+	// JavaScript for a hyphenated one.
+	window.__estateRo = { translate, size: RO.size };
 })();

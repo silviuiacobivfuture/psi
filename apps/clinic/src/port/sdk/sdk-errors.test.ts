@@ -39,7 +39,6 @@ const EXPECTED: Readonly<Record<ErrorCode, PortErrorCode>> = {
 	not_allowed: "forbidden",
 	rate_limited: "rate-limited",
 	internal: "unavailable",
-	not_available_yet: "not-available-yet",
 	unavailable: "unavailable",
 };
 
@@ -60,10 +59,6 @@ describe("every refusal of the service becomes a typed result", () => {
 	it("an answer in a shape the contract does not allow is unavailable, not trusted", async () => {
 		expect((await failure(answering(502, "<html>bad gateway</html>"))).code).toBe("unavailable");
 		expect((await failure(answering(200, { items: "nope" }))).code).toBe("unavailable");
-	});
-	it("a 501 names itself, so the screen can say `în curând`", async () => {
-		const e = await failure(answering(501, refusalBody("not_available_yet")));
-		expect(e).toMatchObject({ code: "not-available-yet", name: "PortError" });
 	});
 	it("a refusal is told to whoever is listening, once per call", async () => {
 		const told: PortError[] = [];

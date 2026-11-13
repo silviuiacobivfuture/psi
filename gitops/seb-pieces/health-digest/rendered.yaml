@@ -1,18 +1,24 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch
   namespace: observability
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: health-digest
   namespace: observability
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-n8n-edge
   namespace: n8n
 rules:
@@ -34,6 +40,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-state
   namespace: observability
 rules:
@@ -50,6 +58,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch
 rules:
 - apiGroups:
@@ -101,6 +111,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: health-digest
 rules:
 - apiGroups:
@@ -158,6 +170,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-n8n-edge
   namespace: n8n
 roleRef:
@@ -172,6 +186,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-state
   namespace: observability
 roleRef:
@@ -186,6 +202,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -199,6 +217,8 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: health-digest
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1669,12 +1689,16 @@ data:
     }
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-script-f44b6645fb
   namespace: observability
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch-state
   namespace: observability
 ---
@@ -1925,6 +1949,8 @@ data:
     exit 0
 kind: ConfigMap
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: health-digest-script
   namespace: observability
 ---
@@ -1933,6 +1959,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch
   namespace: observability
 spec:
@@ -2075,6 +2103,8 @@ kind: CronJob
 metadata:
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
+  labels:
+    seb.platform/piece: health-digest
   name: health-digest
   namespace: observability
 spec:
@@ -2181,6 +2211,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: estate-watch
   namespace: observability
 spec:
@@ -2204,6 +2236,8 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  labels:
+    seb.platform/piece: health-digest
   name: talk-webhook-token
   namespace: observability
 spec:

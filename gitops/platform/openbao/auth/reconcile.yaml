@@ -48,7 +48,7 @@ metadata:
   name: openbao-auth-reconcile
   namespace: openbao
   annotations:
-    alerts.recomex.eu/owner: ops@recomex.eu
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid

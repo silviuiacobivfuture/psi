@@ -3,8 +3,8 @@
 /*
  * The hand-written part of psi's webmail look, appended after the colours webmail-theme.py
  * generates from Elastic's own stylesheet. Only what a colour map cannot do: psi's faces, the
- * logo, labels that must never be cut, and the message frame. Tokens are psi's sign-in's
- * (recomex.css): Psizone Gold in light, Psizone Night in dark (Roundcube's own dark mode, which
+ * logo, labels that must never be cut, and the message frame. Tokens are psi's sign-in
+ * stylesheet's: Psizone Gold in light, Psizone Night in dark (Roundcube's own dark mode, which
  * follows the system preference until the person picks one with "Mod întunecat").
  */
 :root {

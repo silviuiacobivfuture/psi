@@ -132,19 +132,80 @@ describe("scope comes from relations, not from code", () => {
 		expect(await access.isPlatformAdmin("root")).toBe(true);
 		expect(await access.isPlatformAdmin("rita")).toBe(false);
 		expect(await access.canAll("root", "psizone", "roles_edit")).toBe(true);
-		expect(await access.canAll("root", "psizone", "clients_clinical_view")).toBe(false);
+		expect(await access.canAll("root", "psizone", "clients_view_clinical")).toBe(false);
 		expect(await access.isMember("root", "psizone")).toBe(true);
 	});
 
-	it("an individual denial refuses the permission in every scope, before OpenFGA", async () => {
-		const denied = accessOf(tuples, ["clients_view"]);
-		expect(await denied.reach("rita", "psizone", "clients_view", "sched_client")).toEqual({
+	it("an individual denial refuses exactly the relations it names", async () => {
+		const both = accessOf(tuples, [
+			"clients_view_all",
+			"clients_view_own",
+			"clients_view_assigned",
+		]);
+		expect(await both.reach("rita", "psizone", "clients_view", "sched_client")).toEqual({
 			kind: "none",
 		});
-		expect(await denied.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+		expect(await both.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
 			false,
 		);
-		expect(await denied.canAll("rita", "psizone", "clients_view")).toBe(false);
+		expect(await both.canAll("rita", "psizone", "clients_view")).toBe(false);
+		// Denying the scope a person does not hold changes nothing for them.
+		const other = accessOf(tuples, ["clients_view_all"]);
+		expect(await other.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+			true,
+		);
+		expect(await other.canAll("rita", "psizone", "clients_view")).toBe(false);
+	});
+
+	it("denying the scope a person holds removes that way in only: the answer is worked out scope by scope", async () => {
+		const ownDenied = accessOf(tuples, ["clients_view_own"]);
+		expect(await ownDenied.canOn("dora", "psizone", "clients_view", "sched_client", "c-dora")).toBe(
+			false,
+		);
+		expect(await ownDenied.reach("dora", "psizone", "clients_view", "sched_client")).toEqual({
+			kind: "none",
+		});
+		// Rita holds `all`: a denial of `own` does not touch her.
+		expect(
+			await ownDenied.canOn("rita", "psizone", "clients_view", "sched_client", "c-elena"),
+		).toBe(true);
+	});
+
+	it("the scope-by-scope answer equals the object relation's answer wherever nothing is denied", async () => {
+		// Denying a relation nobody here holds forces the slow path without changing any answer.
+		const fast = accessOf(tuples);
+		const slow = accessOf(tuples, ["clients_view_own_clinical"]);
+		for (const who of ["rita", "dora", "cora", "hugo", "nobody"])
+			for (const object of ["c-dora", "c-elena", "c-hemi"])
+				expect(
+					await slow.canOn(who, "psizone", "clients_view_clinical", "sched_client", object),
+				).toBe(await fast.canOn(who, "psizone", "clients_view_clinical", "sched_client", object));
+		for (const who of ["rita", "dora", "cora"])
+			expect(await slow.reach(who, "psizone", "clients_view", "sched_client")).toEqual(
+				await fast.reach(who, "psizone", "clients_view", "sched_client"),
+			);
+	});
+
+	it("every permission a person holds comes in one batch, equal to asking one by one", async () => {
+		const keys = [
+			"clients_view",
+			"clients_view_clinical",
+			"packages_view",
+			"appointments_view",
+			"roles_edit",
+		];
+		for (const [who, denied] of [
+			["rita", []],
+			["dora", []],
+			["dora", ["clients_view_own"]],
+		] as const) {
+			const access = accessOf(tuples, [...denied]);
+			const many = await access.scopesHeldMany(who, "psizone", keys);
+			for (const key of keys)
+				expect(many.get(key), `${who} ${key}`).toEqual(
+					await access.scopesHeld(who, "psizone", key),
+				);
+		}
 	});
 
 	it("an individual grant adds a relation on top of the roles", async () => {
@@ -197,6 +258,52 @@ describe("the live adapter", () => {
 			fetch,
 			now,
 		});
+
+	it("asks many questions in one BatchCheck, in chunks of 50, and answers in the order asked", async () => {
+		calls.length = 0;
+		const batch: typeof globalThis.fetch = (input, init) => {
+			const body = JSON.parse(String(init?.body)) as {
+				checks: { correlation_id: string; tuple_key: { relation: string } }[];
+			};
+			calls.push({ url: String(input), body });
+			const result = Object.fromEntries(
+				body.checks.map((c) => [
+					c.correlation_id,
+					c.tuple_key.relation === "yes" ? { allowed: true } : {},
+				]),
+			);
+			return Promise.resolve(new Response(JSON.stringify({ result }), { status: 200 }));
+		};
+		const questions = Array.from({ length: 120 }, (_v, i) => ({
+			user: "user:a",
+			relation: i % 3 === 0 ? "yes" : "no",
+			object: "sched_app:x",
+		}));
+		const out = await build(batch).checkMany(questions);
+		expect(calls.map((c) => c.url)).toEqual(Array(3).fill("http://fga:8081/stores/S/batch-check"));
+		expect(out).toEqual(questions.map((q) => q.relation === "yes"));
+		expect(calls[0]?.body).toMatchObject({
+			authorization_model_id: "M1",
+			checks: expect.any(Array),
+		});
+	});
+
+	it("an item OpenFGA could not answer fails the whole batch, never a partial answer", async () => {
+		const bad = () =>
+			Promise.resolve(
+				new Response(JSON.stringify({ result: { "0": { error: { code: "x" } } } }), {
+					status: 200,
+				}),
+			);
+		await expect(
+			build(bad).checkMany([{ user: "u", relation: "r", object: "o:1" }]),
+		).rejects.toBeInstanceOf(AuthzUnavailable);
+		const missing = () =>
+			Promise.resolve(new Response(JSON.stringify({ result: {} }), { status: 200 }));
+		await expect(
+			build(missing).checkMany([{ user: "u", relation: "r", object: "o:1" }]),
+		).rejects.toBeInstanceOf(AuthzUnavailable);
+	});
 
 	it("pins the model id on every call and supplies `now` itself", async () => {
 		calls.length = 0;

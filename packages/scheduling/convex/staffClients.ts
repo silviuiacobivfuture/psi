@@ -8,6 +8,7 @@ import {
 } from "../src/domain/clients";
 import type { Id } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
+import { logChange } from "./changeLog";
 import { eraseClinicData } from "./clinicErase";
 import { requireServer } from "./guard";
 import { ensureTenantRow, SLUG } from "./setupSupport";
@@ -75,6 +76,7 @@ async function insertClient(
 	});
 	for (const key of identityKeys(client))
 		await ctx.db.insert("clientKeys", { tenant, key, client: id });
+	await logChange(ctx, tenant, "client", id, 1);
 	return id;
 }
 
@@ -233,6 +235,7 @@ export const eraseClient = mutation({
 			unlinked += 1;
 		}
 		const erased = await eraseClinicData(ctx, args.tenant, client._id, Date.now());
+		await logChange(ctx, args.tenant, "client", client._id, (client.version ?? 0) + 1);
 		await ctx.db.insert("auditEvents", {
 			tenant: args.tenant,
 			at: Date.now(),

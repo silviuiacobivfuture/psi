@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: convex-dashboard
+  labels: { app: convex-dashboard }
+  annotations:
+    alerts/owner: ops@WLDOMAIN
+    reloader.stakater.com/auto: "false"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: convex-dashboard }
+  template:
+    metadata:
+      labels: { app: convex-dashboard }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: dashboard
+          image: WLREGISTRY/WLMIRROR/ghcr.io/convex/convex-dashboard:c0cb7ae17f54e14846c243c5332a8a5e6d0e19d4@sha256:284a2638e0c1a4ec0c2327d8219776f3a426ca5824b81686ae4d9454dc0ce8ed
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          ports:
+            - { name: http, containerPort: 6791 }
+          env:
+            - name: NEXT_PUBLIC_DEPLOYMENT_URL
+              value: https://convex-WLINSTANCE.WLDOMAIN
+            - name: NEXT_PUBLIC_LOAD_MONACO_INTERNALLY
+              value: "true"
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { cpu: 500m, memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20

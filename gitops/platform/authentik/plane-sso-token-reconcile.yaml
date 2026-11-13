@@ -1,6 +1,6 @@
 # The DEDICATED, READ-ONLY Authentik API token the Plane SSO reconcile reads the
 # directory with — minted, permissioned and maintained as code, on the ONE
-# directory. Vega's shape (vega-token-reconcile.yaml) with its own ServiceAccount,
+# directory. An application token reconcile's shape (apps/) with its own ServiceAccount,
 # OpenBao role (authentik-plane-sso-token, openbao-bootstrap.sh) and slot,
 # secret/platform/authentik/plane-sso-api-token, which the plane namespace's
 # plane-sso ExternalSecret reads as AUTHENTIK_API_TOKEN.
@@ -27,7 +27,7 @@ kind: CronJob
 metadata:
   name: authentik-plane-sso-token-reconcile
   annotations:
-    alerts.recomex.eu/owner: WLOPSEMAIL
+    alerts.psizone.ro/owner: WLOPSEMAIL
 spec:
   schedule: "11,26,41,56 * * * *"
   concurrencyPolicy: Forbid

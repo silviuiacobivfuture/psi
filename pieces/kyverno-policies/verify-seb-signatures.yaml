@@ -1,0 +1,116 @@
+# Every image SEB builds, and the SEB bundle Argo CD deploys the platform from, carries SEB's
+# signature (tools/release/cosign.sh: cosign, SEB's key pair, the private half only in each
+# publishing estate's OpenBao at secret/platform/seb/cosign). The public key comes from
+# components/seb-signing/cosign.pub by replacement (kustomization.yaml), never typed here.
+#
+# MODE: AUDIT. A missing or foreign signature is REPORTED (PolicyReports, `kubectl get polr -A`),
+# nothing is refused. Images built before signing existed are unsigned, and refusing them would
+# refuse every restart of the platform. The switch to Enforce is one estate setting, the slot
+# `signature-enforcement` (schema/slots/kyverno-policies.yaml), set ONLY once the reports show
+# no failure for this policy on the estate (procedure: docs/lockdown.md, "Audit to Enforce").
+#
+# The SEB images are the ones infrastructure/hetzner/scripts/estate-images.sh builds; a gate
+# (.github/scripts/tests/seb-lockdown-policies_test.sh) refuses a difference between that list and
+# the references below. The bundle is not a pod image: its reference is read off the Argo CD
+# Application that deploys it, from spec.info (name seb-bundle, value <registry>/seb/bundle@sha256:…),
+# which the estate's upgrade step writes beside targetRevision. An Application labelled as deploying
+# from the bundle that does not name it there is reported by the second rule.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-seb-signatures
+  annotations:
+    policies.kyverno.io/title: SEB Images And Bundle Are Signed
+    policies.kyverno.io/category: Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod, Application
+    policies.kyverno.io/description: >-
+      An image SEB builds, and the SEB bundle an Argo CD Application deploys, must carry SEB's
+      cosign signature. Audit first; the estate switches it to Enforce through its slot.
+spec:
+  background: false
+  webhookTimeoutSeconds: 30
+  # Kyverno down must not add a second way to block pods (mutate.kyverno.svc-fail already does).
+  failurePolicy: Ignore
+  rules:
+    - name: seb-images-signed
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - failureAction: Audit
+          imageReferences:
+            - "WLREGISTRY/WLAPPS/autorizare-svc*"
+            - "WLREGISTRY/WLAPPS/estate-front*"
+            - "WLREGISTRY/WLAPPS/nx-cache-svc*"
+            - "WLREGISTRY/WLAPPS/changelog*"
+            - "WLREGISTRY/WLAPPS/otel-collector-journald*"
+            - "WLREGISTRY/WLAPPS/n8n-sso*"
+            - "WLREGISTRY/WLAPPS/novu-sso*"
+            - "WLREGISTRY/WLAPPS/novu-bridge*"
+            - "WLREGISTRY/WLAPPS/plunk-sso*"
+            - "WLREGISTRY/WLAPPS/plane-backend-sso*"
+          mutateDigest: false
+          verifyDigest: false
+          required: true
+          attestors:
+            - entries:
+                - keys:
+                    publicKeys: SEB_COSIGN_PUBLIC_KEY
+                    signatureAlgorithm: sha256
+                    rekor:
+                      ignoreTlog: true
+                    ctlog:
+                      ignoreSCT: true
+    - name: seb-bundle-signed
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/Application
+      imageExtractors:
+        Application:
+          - name: seb-bundle
+            path: /spec/info/*
+            key: name
+            value: value
+      verifyImages:
+        - failureAction: Audit
+          imageReferences:
+            - "WLREGISTRY/seb/bundle@*"
+          mutateDigest: false
+          verifyDigest: true
+          required: true
+          attestors:
+            - entries:
+                - keys:
+                    publicKeys: SEB_COSIGN_PUBLIC_KEY
+                    signatureAlgorithm: sha256
+                    rekor:
+                      ignoreTlog: true
+                    ctlog:
+                      ignoreSCT: true
+    - name: seb-bundle-named
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/Application
+      preconditions:
+        all:
+          - key: "{{ request.object.spec.source.repoURL || '' }}"
+            operator: Equals
+            value: "oci://WLREGISTRY/seb/bundle"
+      validate:
+        failureAction: Audit
+        message: >-
+          This Application deploys from the SEB bundle but does not name it by digest in
+          spec.info (name seb-bundle): its signature cannot be verified. Re-run the estate's upgrade.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.info[?name=='seb-bundle'].value | [0] || '' }}"
+                operator: NotEquals
+                value: "WLREGISTRY/seb/bundle@{{ request.object.spec.source.targetRevision }}"

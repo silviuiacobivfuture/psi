@@ -115,6 +115,9 @@ describe("configuration", () => {
 		S3_BUCKET: "b",
 		S3_ACCESS_KEY_ID: "a",
 		S3_SECRET_ACCESS_KEY: "s",
+		NOVU_API_URL: "http://novu-api.novu.svc:3000",
+		NOVU_SECRET_KEY: "novu-secret",
+		REMINDER_LINK_SECRET: "r".repeat(64),
 		SERVICE_CALLERS: "psizone-web=psizone",
 		[hashVariable("psizone-web")]: "c".repeat(64),
 	};
@@ -138,6 +141,11 @@ describe("configuration", () => {
 		["a short master key", { CLINIC_MASTER_KEY: "abcd" }],
 		["no mail", { MAIL_API_KEY: "" }],
 		["no object storage", { S3_BUCKET: "" }],
+		["no Novu API address", { NOVU_API_URL: "" }],
+		["a Novu API address that is not a URL", { NOVU_API_URL: "novu-api" }],
+		["no Novu secret key", { NOVU_SECRET_KEY: "" }],
+		["no reminder link secret", { REMINDER_LINK_SECRET: "" }],
+		["a short reminder link secret", { REMINDER_LINK_SECRET: "r".repeat(31) }],
 		["no issuer", { OIDC_ISSUERS: "[]" }],
 		["issuers that are not JSON", { OIDC_ISSUERS: "{" }],
 		["a caller without its key hash", { [hashVariable("psizone-web")]: "" }],
@@ -145,6 +153,29 @@ describe("configuration", () => {
 		["a convex store with no server key", { PSI_SCHEDULING_KEY: "short" }],
 	])("production refuses %s, by name", (_what, change) => {
 		expect(() => loadConfig({ ...prod, ...change })).toThrow();
+	});
+
+	it("production carries the notification settings through", () => {
+		expect(loadConfig(prod).notify).toEqual({
+			novuApiUrl: "http://novu-api.novu.svc:3000",
+			novuSecretKey: "novu-secret",
+			reminderLinkSecret: "r".repeat(64),
+		});
+	});
+
+	it("locally the notification settings are optional: absent means none are delivered", () => {
+		expect(loadConfig(base).notify).toBeUndefined();
+	});
+
+	it.each([
+		["a Novu address alone", { NOVU_API_URL: "http://novu-api.novu.svc:3000" }],
+		["a link secret alone", { REMINDER_LINK_SECRET: "r".repeat(40) }],
+		[
+			"a short link secret",
+			{ NOVU_API_URL: "http://n:3000", NOVU_SECRET_KEY: "k", REMINDER_LINK_SECRET: "short" },
+		],
+	])("outside production, %s is still refused (half a setup delivers nothing)", (_what, extra) => {
+		expect(() => loadConfig({ ...base, ...extra })).toThrow(/NOVU|REMINDER/);
 	});
 
 	it("the error names the variable and never echoes a value", () => {

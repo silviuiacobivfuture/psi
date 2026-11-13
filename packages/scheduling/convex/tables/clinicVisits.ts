@@ -9,6 +9,7 @@ import {
 	personValidator,
 	rosterStatusValidator,
 	statusValidator,
+	visitMetaValidator,
 } from "../validators";
 
 /**
@@ -48,8 +49,13 @@ export const visits = defineTable({
 	legacyId: v.optional(v.string()),
 	fingerprint: v.optional(v.string()),
 	version: v.number(),
+	/** Soft delete: recoverable for 30 days, then erased by the clinic's job. */
+	deletedAt: v.optional(v.number()),
+	/** What the staff API keeps beyond the calendar's own fields (see apiMoneyExtra.ts). */
+	meta: v.optional(visitMetaValidator),
 })
 	.index("by_tenant_start", ["tenant", "start"])
+	.index("by_tenant_deleted", ["tenant", "deletedAt"])
 	.index("by_tenant_column_start", ["tenant", "columnKey", "start"])
 	.index("by_tenant_client_start", ["tenant", "client", "start"])
 	.index("by_tenant_package_start", ["tenant", "package", "start"])
@@ -66,6 +72,8 @@ export const packages = defineTable({
 	priceMinor: v.number(),
 	startDate: v.optional(v.string()),
 	notes: v.optional(v.string()),
+	/** The offer taken off the price, in bani (set through apiMoneyExtra). */
+	discountMinor: v.optional(v.number()),
 	createdAt: v.number(),
 	updatedAt: v.number(),
 	legacyId: v.optional(v.string()),
@@ -82,6 +90,9 @@ export const payments = defineTable({
 	package: v.optional(v.id("packages")),
 	amountMinor: v.number(),
 	method: v.optional(paymentMethodValidator),
+	/** The visit this money was taken for, when it was taken at the desk for one appointment. */
+	visit: v.optional(v.id("visits")),
+	note: v.optional(v.string()),
 	at: v.number(),
 	createdBy: v.string(),
 	legacyId: v.optional(v.string()),

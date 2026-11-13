@@ -8,7 +8,7 @@ const ACTION_KEY: Readonly<Record<StaffAction, string>> = {
 	"attendance.mark": "appointments_edit",
 	"payments.record": "payments_create",
 	"leave.request": "leave_create",
-	"requests.handle": "requests_decide",
+	"requests.handle": "web_requests_approve",
 	"reminders.send": "reminders_send",
 };
 

@@ -36,7 +36,7 @@ export function registerLive(app: Hono<Env>): void {
 			if (
 				signal.stream === "inbox" &&
 				signal.counts !== undefined &&
-				ctx.can.has("requests_view")
+				ctx.can.has("web_requests_view")
 			) {
 				stream.patchElements(badge(signal.counts.requests));
 			} else if (signal.stream === "calendar" && query.screen === "calendar") {

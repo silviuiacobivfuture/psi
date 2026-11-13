@@ -31,6 +31,9 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+      yaml:
+        specifier: ^2.8.1
+        version: 2.9.1
 
   apps/agent-studio:
     dependencies:
@@ -421,6 +424,9 @@ importers:
       hono:
         specifier: ^4.13.18
         version: 4.13.18
+      nodemailer:
+        specifier: ^10.5.0
+        version: 10.5.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -431,6 +437,9 @@ importers:
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -452,6 +461,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.19(hono@4.13.18)
+      '@psi/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling
@@ -4297,6 +4309,9 @@ packages:
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
 
+  '@types/nodemailer@8.0.2':
+    resolution: {integrity: sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==}
+
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
 
@@ -6362,6 +6377,10 @@ packages:
   node-releases@2.0.63:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
+
+  nodemailer@10.5.0:
+    resolution: {integrity: sha512-L/w/HH5MqpzMDuZD7fQdt/+KqymuvrpaApaIjAH2XA3ILePwlcvXCVVvP75xVrXCEt2ggK2marrrHHFB5Qu0kA==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -11010,6 +11029,10 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
+  '@types/nodemailer@8.0.2':
+    dependencies:
+      '@types/node': 24.19.2
+
   '@types/parse-json@4.0.2': {}
 
   '@types/pg@8.20.0':
@@ -13281,6 +13304,8 @@ snapshots:
   node-machine-id@1.1.12: {}
 
   node-releases@2.0.63: {}
+
+  nodemailer@10.5.0: {}
 
   normalize-path@3.0.0: {}
 

@@ -4,10 +4,9 @@ import {
 	type FormDefinition,
 	formDefinitionSchema,
 	SEED_FORM_TEMPLATES,
-	TEMPLATE_RESOURCE,
 	validateResponse,
 } from "../clinic";
-import { isPermissionKey } from "../permissions";
+import { isPermissionKey, recordResourceFor } from "../permissions";
 
 const template = (key: string): FormDefinition => {
 	const found = SEED_FORM_TEMPLATES.find((t) => t.key === key);
@@ -115,9 +114,7 @@ describe("the four seeded templates", () => {
 				expect(f.label.ro.length).toBeGreaterThan(0);
 				expect(f.label.en.length).toBeGreaterThan(0);
 			}
-			expect(
-				isPermissionKey(`${TEMPLATE_RESOURCE[t.key as keyof typeof TEMPLATE_RESOURCE]}_view_own`),
-			).toBe(true);
+			expect(isPermissionKey(`${recordResourceFor(t.key)}_view_own`)).toBe(true);
 		}
 	});
 
@@ -130,6 +127,7 @@ describe("the four seeded templates", () => {
 			"multichoice",
 			"number",
 			"rating",
+			"table",
 			"text",
 		]);
 	});
@@ -140,8 +138,8 @@ describe("validating a response against the version it was written with", () => 
 
 	it("accepts a partial response (every seeded field is optional)", () => {
 		const check = validateResponse(aba, {
-			programs: ["Test program 1"],
-			intervention_efficiency: 4,
+			programs: [{ name: "Test program 1", success: "3/5" }],
+			intervention_efficiency: "Eficient",
 			parent_feedback: "Test feedback",
 		});
 		expect(check).toMatchObject({ ok: true });

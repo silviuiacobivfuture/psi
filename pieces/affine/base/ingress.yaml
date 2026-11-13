@@ -1,0 +1,107 @@
+# docs.<apex> (AFFINE_HOST_PREFIX.BASE_DOMAIN; the hosts are written by the piece's
+# replacements). cert-manager issues the certificate (DNS-01); DNS is the *.<apex> wildcard.
+#
+# ONE Ingress, ALL of it gated: the web app, its API, the realtime socket and every file.
+# There is no machine surface to carve out (no webhook, no public API key), and AFFiNE's own
+# sign-in comes AFTER the gate. Public share links are therefore for the estate's people too.
+#
+# THE GATE: authentik-authentik-forwardauth → the embedded outpost, which matches the Host
+# EXACTLY against the `affine` proxy provider (mode forward_single, external_host
+# https://docs.<apex>, gitops/platform/authentik/blueprints-providers.yaml) before the
+# domain-wide one, so only the affine application's bindings decide here (app-affine-user,
+# app-affine-admin, platform-admins). Signed out → 302 to the estate's Authentik.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: affine
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "AFFiNE"
+    gethomepage.dev/description: "Documente, notițe și table albe"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "20"
+    gethomepage.dev/icon: "mdi-notebook-edit"
+    gethomepage.dev/href: "https://docs.WLDOMAIN"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=affine"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [docs.WLDOMAIN]
+      secretName: affine-tls
+  rules:
+    - host: docs.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: affine
+                port: { name: http }
+---
+# The outpost's CALLBACK on this host, with the estate's restart in front of the gate: a
+# callback the outpost refuses (state from another browser or session) is answered by the
+# sign-in restart page instead of a blank 400. Order is the mechanism. Why and how:
+# gitops/platform/authentik/sso-restart.yaml; the gate .github/scripts/sso-restart.sh refuses
+# this host without it. The backend is never reached — the outpost answers the callback.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: affine-callback
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [docs.WLDOMAIN]
+      secretName: affine-tls
+  rules:
+    - host: docs.WLDOMAIN
+      http:
+        paths:
+          - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: affine
+                port: { name: http }
+---
+# Sign-in ONLY through Authentik. AFFiNE has no switch that turns off its own e-mail sign-in
+# (password and magic link: 0.27.4 has none in its config), so its three endpoints are
+# refused here, at the edge, for every caller: the e-mail check, the password sign-in and the
+# magic link. The OIDC flow uses /api/oauth/* and /api/auth/session/*, which stay open.
+# The instance's first account is made in-cluster (first-admin.yaml), never through here.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: affine-local-auth
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd,affine-affine-local-auth-off@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [docs.WLDOMAIN]
+      secretName: affine-tls
+  rules:
+    - host: docs.WLDOMAIN
+      http:
+        paths:
+          - { path: /api/auth/preflight, pathType: Exact, backend: { service: { name: affine, port: { name: http } } } }
+          - { path: /api/auth/sign-in, pathType: Exact, backend: { service: { name: affine, port: { name: http } } } }
+          - { path: /api/auth/magic-link, pathType: Exact, backend: { service: { name: affine, port: { name: http } } } }
+---
+# Traefik has no "deny" middleware: an allow-list naming only the loopback answers 403 to
+# every request that reaches it through the edge.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: affine-local-auth-off
+spec:
+  ipAllowList:
+    sourceRange: ["127.0.0.1/32"]

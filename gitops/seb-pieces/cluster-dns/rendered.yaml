@@ -1,8 +1,0 @@
-apiVersion: v1
-data:
-  plunk-smtp.override: |
-    rewrite stop name exact plunk-smtp.psizone.ro plunk-smtp.plunk.svc.cluster.local answer auto
-kind: ConfigMap
-metadata:
-  name: coredns-custom
-  namespace: kube-system

@@ -1,7 +1,9 @@
 "use client";
 import { NavGroup, useTranslation } from "@payloadcms/ui";
 import { live } from "@psi/content/retired";
+import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactElement, useEffect, useState } from "react";
+import { withApp } from "../brand/app-url";
 import type { CustomKey } from "../i18n";
 
 const ALL_BRANDS = ["psizone", "eqsync", "hemisync", "blog"] as const;
@@ -61,18 +63,23 @@ export function AdminNav(): ReactElement {
 	const { t } = useTranslation<object, CustomKey>();
 	// Read in the browser: the server render has neither the cookie nor the path.
 	const [brand, setBrand] = useState("");
-	const [path, setPath] = useState("");
+	const pathname = usePathname();
+	const search = useSearchParams();
+	const path = pathname ?? "";
+	// The address always names the app: after every navigation, `?app=` is written back without
+	// a reload (Next keeps replaceState in step with its router), so a copied or bookmarked
+	// address opens the same app.
 	useEffect(() => {
-		setBrand(current());
-		setPath(window.location.pathname);
-	}, []);
+		const chosen = current();
+		setBrand(chosen);
+		if (search?.get("app") !== (chosen === "" ? "all" : chosen)) {
+			window.history.replaceState(null, "", withApp(window.location.href, chosen));
+		}
+	}, [search]);
+	// Choosing an app is a navigation to the same page with `?app=`: the proxy stores it and the
+	// server renders the list already filtered.
 	const choose = (next: string): void => {
-		// biome-ignore lint/suspicious/noDocumentCookie: a plain preference the server reads on the next request; the Cookie Store API is not in every browser the editors use.
-		document.cookie =
-			next === ""
-				? `${COOKIE}=; path=/; max-age=0; samesite=lax`
-				: `${COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
-		window.location.reload();
+		window.location.assign(withApp(window.location.href, next));
 	};
 	return (
 		<div style={{ display: "grid", gap: "calc(var(--base) / 2)", marginBottom: "var(--base)" }}>

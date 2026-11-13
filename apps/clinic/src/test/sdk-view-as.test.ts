@@ -63,9 +63,9 @@ describe("only a roles administrator can start it", () => {
 		const menu = await text(await owner.get("/view-as/menu"));
 		expect(menu).toContain('data-view-as-choice="role:psizone-reception"');
 		expect(menu).toContain('data-view-as-choice="member:');
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		expect((await (await k.as("rita")).get("/view-as/menu")).status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("while viewing, the pill turns into the way out", async () => {
 		const s = await startAs("olga", "role:psizone-reception");
@@ -82,21 +82,21 @@ describe("only a roles administrator can start it", () => {
 		"ana",
 	])("%s: the picker is refused, starting is refused, no cookie is set, nothing is written", async (who) => {
 		const s = await k.as(who);
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		expect((await s.get("/view-as")).status).toBe(403);
 		const r = await viewAs(s, "role:psizone-owner");
 		expect(r.status).toBe(403);
 		expect(r.headers.getSetCookie().join(";")).not.toContain(COOKIE);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("a malformed target is refused, and so is a role that does not exist", async () => {
 		const s = await k.as("olga");
 		expect((await viewAs(s, "everyone")).status).toBe(400);
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const missing = await viewAs(s, "role:nope-nope");
 		expect(missing.status).toBe(404);
 		expect(missing.headers.getSetCookie().join(";")).not.toContain(COOKIE);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("a cookie copied from the administrator to someone else does nothing", async () => {
 		const owner = await startAs("olga", "role:psizone-volunteer");
@@ -164,11 +164,11 @@ describe("while viewing as a role the console shows what that role's people see"
 		expect((await s.get("/calendar")).status).toBe(403);
 		expect((await s.get("/roster")).status).toBe(200);
 	});
-	it("Accountant: money, no contact data and no clinical data", async () => {
+	it("Accountant: money and contact, no clinical data", async () => {
 		const s = await startAs("olga", "role:psizone-accountant");
 		const html = await text(await s.get(`/clients/${c1()}`));
 		expect(has(html, `/clients/${c1()}/packages`)).toBe(true);
-		expect(html).not.toContain("0712 345 678");
+		expect(html).not.toContain("Guardian of one");
 		expect(html).not.toContain("synthetic-notes-one");
 	});
 	it("a custom role is listed and can be viewed as", async () => {
@@ -181,7 +181,7 @@ describe("while viewing as a role the console shows what that role's people see"
 describe("viewing as someone else is read-only, in the console and at the service", () => {
 	it("every write is refused with a clear message, and nothing changes", async () => {
 		const s = await startAs("olga", "role:psizone-reception");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		for (const path of [
 			`/clients/${c1()}/archive`,
 			`/clients/${c1()}/delete`,
@@ -194,16 +194,16 @@ describe("viewing as someone else is read-only, in the console and at the servic
 			expect(r.status, path).toBe(403);
 			expect(await text(r), path).toContain("nimic nu se poate modifica");
 		}
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("even viewing as the owner, who may write, nothing can be written", async () => {
 		const s = await startAs("olga", "role:psizone-owner");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const r = await s.post("/settings/roles/psizone-reception", new URLSearchParams({}), form);
 		expect(r.status).toBe(403);
 		expect(await text(r)).toContain("nimic nu se poate modifica");
 		expect((await s.post(`/clients/${c1()}/archive`)).status).toBe(403);
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 	it("a Datastar write gets a toast, not a broken page", async () => {
 		const s = await startAs("olga", "role:psizone-reception");
@@ -224,14 +224,14 @@ describe("viewing as someone else is read-only, in the console and at the servic
 	});
 	it("the service itself refuses a write that says it is a view, even from a console that forgot", async () => {
 		const token = await k.api.tokenFor("olga");
-		const before = k.api.world.fingerprint();
+		const before = await k.api.world.fingerprint();
 		const r = await fetch(`${k.api.url}${A}/clients/${c1()}/archive`, {
 			method: "POST",
 			headers: { authorization: `Bearer ${token}`, "x-psi-view-as": "role:psizone-reception" },
 		});
 		expect(r.status).toBe(403);
 		expect(await r.json()).toMatchObject({ error: { detail: { reason: "view_as_readonly" } } });
-		expect(k.api.world.fingerprint()).toBe(before);
+		expect(await k.api.world.fingerprint()).toBe(before);
 	});
 });
 

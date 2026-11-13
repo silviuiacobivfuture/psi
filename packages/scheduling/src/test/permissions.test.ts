@@ -43,7 +43,7 @@ describe("the catalogue", () => {
 	});
 
 	it("covers every resource of the plan with at least one action", () => {
-		expect(RESOURCES.length).toBe(27);
+		expect(RESOURCES.length).toBe(29);
 		for (const resource of RESOURCES) expect(CATALOGUE[resource].actions.length).toBeGreaterThan(0);
 	});
 
@@ -129,11 +129,34 @@ describe("can: allowed", () => {
 		});
 	});
 
-	it("a key without a field group covers every group, custom ones too", () => {
-		const eff = effectivePermissions([role(OWNER)]);
-		for (const fieldGroup of ["contact", "clinical", "custom-school"] as const) {
-			expect(can(eff, "clients", "view", { ...NONE, fieldGroup }).allowed).toBe(true);
+	it("a key without a field group grants identity only; each group needs its own key", () => {
+		const identity = effectivePermissions([{ name: "R", permissions: ["clients_view_all"] }]);
+		expect(can(identity, "clients", "view", NONE).allowed).toBe(true);
+		for (const fieldGroup of [
+			"contact",
+			"guardian",
+			"money",
+			"clinical",
+			"custom-school",
+		] as const) {
+			expect(can(identity, "clients", "view", { ...NONE, fieldGroup })).toEqual({
+				allowed: false,
+				reason: "field_group_not_granted",
+			});
 		}
+		// The owner holds every explicit key, and so every group.
+		const owner = effectivePermissions([role(OWNER)]);
+		for (const fieldGroup of ["contact", "guardian", "money", "clinical"] as const) {
+			expect(can(owner, "clients", "view", { ...NONE, fieldGroup }).allowed).toBe(true);
+		}
+		// A group key alone does not give identity.
+		const groupOnly = effectivePermissions([
+			{ name: "R", permissions: ["clients_view_all_contact"] },
+		]);
+		expect(can(groupOnly, "clients", "view", NONE)).toEqual({
+			allowed: false,
+			reason: "field_group_not_granted",
+		});
 	});
 
 	it("a custom group is covered only when its own key is granted", () => {
@@ -200,8 +223,12 @@ describe("can: every refusal reason", () => {
 		});
 	});
 
-	it("field_group_not_granted: no group named where only groups are granted", () => {
-		expect(can(perms(RECEPTION), "clients", "view", NONE)).toEqual({
+	it("no group named is identity only: reception has it, a role with only a group key does not", () => {
+		expect(can(perms(RECEPTION), "clients", "view", NONE).allowed).toBe(true);
+		const onlyGroup = effectivePermissions([
+			{ name: "R", permissions: ["clients_view_all_contact"] },
+		]);
+		expect(can(onlyGroup, "clients", "view", NONE)).toEqual({
 			allowed: false,
 			reason: "field_group_not_granted",
 		});
@@ -249,12 +276,31 @@ describe("can: every refusal reason", () => {
 		});
 	});
 
-	it("denying a key without a group denies every group at that scope", () => {
+	it("denying the key without a group denies identity only, and a group key only that group", () => {
 		const eff = effectivePermissions(
-			[{ name: "R", permissions: ["clients_view_all_clinical", "clients_view_all_contact"] }],
+			[
+				{
+					name: "R",
+					permissions: [
+						"clients_view_all",
+						"clients_view_all_clinical",
+						"clients_view_all_contact",
+					],
+				},
+			],
 			[{ permission: "clients_view_all", effect: "deny" }],
 		);
-		expect(can(eff, "clients", "view", { ...NONE, fieldGroup: "clinical" })).toEqual({
+		expect(can(eff, "clients", "view", NONE)).toEqual({
+			allowed: false,
+			reason: "denied_by_override",
+		});
+		expect(can(eff, "clients", "view", { ...NONE, fieldGroup: "clinical" }).allowed).toBe(true);
+		const group = effectivePermissions(
+			[{ name: "R", permissions: ["clients_view_all", "clients_view_all_clinical"] }],
+			[{ permission: "clients_view_all_clinical", effect: "deny" }],
+		);
+		expect(can(group, "clients", "view", NONE).allowed).toBe(true);
+		expect(can(group, "clients", "view", { ...NONE, fieldGroup: "clinical" })).toEqual({
 			allowed: false,
 			reason: "denied_by_override",
 		});
@@ -312,9 +358,9 @@ describe("seed roles", () => {
 		const eff = perms(RECEPTION);
 		for (const resource of [
 			"report_aba",
-			"report_race_me_up",
+			"report_racemeup",
 			"report_psychotherapy",
-			"parent_questionnaires",
+			"questionnaire_parent",
 			"files",
 		] as const) {
 			expect(can(eff, resource, "view", { own: true, assigned: true }).allowed).toBe(false);

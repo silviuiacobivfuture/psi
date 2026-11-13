@@ -9,7 +9,7 @@ metadata:
   namespace: argocd
   # git-sourced → the overlay stamps targetRevision (= env branch). See BRANCHING.md.
   labels:
-    platform.recomex.eu/source: git
+    platform.psizone.ro/source: git
 spec:
   project: default
   source:

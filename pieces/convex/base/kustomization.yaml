@@ -1,0 +1,19 @@
+# ONE self-hosted Convex instance: its backend, its data browser, its own CNPG Postgres and the
+# secrets they read. Every per-instance and per-estate value is a WL token here; the instance
+# component (../instance) fills them from the instance's declaration and the estate's identity.
+# Never rendered alone: an instance (instances/<name>) brings it in through ../instance.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - resourcequota.yaml
+  - externalsecret.yaml
+  - backup-s3-externalsecret.yaml
+  - cnpg-cluster.yaml
+  - backend.yaml
+  - dashboard.yaml
+  - service.yaml
+  - ingress.yaml
+components:
+  # Argo's prune/delete guard on the PVC and the CNPG Cluster (the data).
+  - ../../../components/prune-guard
