@@ -133,6 +133,55 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
 
+  apps/clinic:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.0
+        version: 1.19.19(hono@4.13.18)
+      '@psi/account':
+        specifier: workspace:*
+        version: link:../../packages/account
+      '@psi/design':
+        specifier: workspace:*
+        version: link:../../packages/design
+      '@psi/pwa':
+        specifier: workspace:*
+        version: link:../../packages/pwa
+      '@psi/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@starfederation/datastar-sdk':
+        specifier: 1.0.0
+        version: 1.0.0
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@inlang/paraglide-js':
+        specifier: ^3.2.2
+        version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@tailwindcss/cli':
+        specifier: ^4.3.5
+        version: 4.3.5
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      tailwindcss:
+        specifier: ^4.3.5
+        version: 4.3.5
+      tsx:
+        specifier: ^4.20.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
+
   apps/cms:
     dependencies:
       '@payloadcms/db-postgres':
@@ -446,7 +495,11 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
-  packages/design: {}
+  packages/design:
+    devDependencies:
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
 
   packages/engine:
     dependencies:
@@ -3902,6 +3955,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@starfederation/datastar-sdk@1.0.0':
+    resolution: {integrity: sha512-VT1co9LeRLJ3wynffvkxXLJaCh4PHt1YUhH3zCQYhjTuaeWjozNjQQrg+BUbkDMO58mSgeQp9pgOXRWciy0y6g==}
 
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
@@ -10486,6 +10542,8 @@ snapshots:
       zod: 3.25.76
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@starfederation/datastar-sdk@1.0.0': {}
 
   '@swc/helpers@0.5.23':
     dependencies:

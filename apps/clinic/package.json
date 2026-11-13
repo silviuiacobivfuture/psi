@@ -1,0 +1,36 @@
+{
+	"name": "@psi/clinic",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Programări — the team's scheduling console: server-rendered TSX on Hono, Datastar, Tailwind, psi's admin theme; a PWA; single sign-on through the estate's Authentik",
+	"scripts": {
+		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+		"css": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --minify",
+		"css:watch": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --watch",
+		"dev": "pnpm i18n && pnpm css && (pnpm css:watch & tsx watch --env-file-if-exists=.env src/server.tsx)",
+		"build": "pnpm i18n && pnpm css && esbuild src/server.tsx --bundle --platform=node --format=esm --target=node24 --jsx=automatic --jsx-import-source=hono/jsx --external:hono --external:@hono/node-server --external:zod --external:postgres --external:web-push --external:openid-client --external:jose --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/server.js",
+		"start": "node --env-file-if-exists=.env dist/server.js",
+		"type-check": "pnpm i18n && tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.19.0",
+		"@psi/account": "workspace:*",
+		"@psi/design": "workspace:*",
+		"@psi/pwa": "workspace:*",
+		"@psi/ui": "workspace:*",
+		"@starfederation/datastar-sdk": "1.0.0",
+		"hono": "^4.13.18",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@inlang/paraglide-js": "^3.2.2",
+		"@tailwindcss/cli": "^4.3.5",
+		"esbuild": "^0.25.0",
+		"tailwindcss": "^4.3.5",
+		"tsx": "^4.20.0",
+		"typescript": "^5.7.3",
+		"vitest": "^2.1.9"
+	}
+}
