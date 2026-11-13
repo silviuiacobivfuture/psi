@@ -818,6 +818,12 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      axe-core:
+        specifier: 4.10.3
+        version: 4.10.3
+      happy-dom:
+        specifier: 20.14.6
+        version: 20.14.6
       hono:
         specifier: ^4.13.18
         version: 4.13.18
