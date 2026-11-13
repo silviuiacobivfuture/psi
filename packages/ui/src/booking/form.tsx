@@ -2,6 +2,7 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Button } from "../components/button";
 import { TextField } from "../components/text-field";
+import { cx } from "../cx";
 import { type Schedule, ScheduleSection } from "./schedule";
 import { fieldPrefix } from "./schemas";
 import type { AccountLine, BookingEnv, BookingErrors, BookingValues } from "./types";
@@ -23,6 +24,21 @@ function Choice({
 			{label}
 		</label>
 	);
+}
+
+/** The first field with an error, in the order the form shows them: it takes the focus. */
+const ORDER = ["name", "age", "phone", "email", "details", "forWhom", "consent"] as const;
+function firstError(errors: BookingErrors): (typeof ORDER)[number] | undefined {
+	return ORDER.find((field) => errors[field] !== undefined);
+}
+
+/** A field's input attributes: its own, plus focus when it is the first with an error. */
+function attrs(
+	field: (typeof ORDER)[number],
+	errors: BookingErrors,
+	own: Record<string, string>,
+): Record<string, string> {
+	return firstError(errors) === field ? { ...own, autofocus: "autofocus" } : own;
 }
 
 const PERIODS = ["morning", "afternoon", "any"] as const;
@@ -99,16 +115,26 @@ export function BookingForm({
 						label={copy.fields.name}
 						value={values.name}
 						error={errors.name}
+						hint={copy.fields.nameHint}
+						autocomplete="name"
+						required
+						attrs={attrs("name", errors, { minlength: "2", maxlength: "100" })}
 					/>
 					<div class="grid gap-5 sm:grid-cols-2">
 						<TextField
-							id={`${f}-email`}
-							name="email"
-							type="email"
-							label={copy.fields.email}
-							value={values.email}
-							error={errors.contact}
-							hint={errors.contact ? undefined : copy.fields.contactHint}
+							id={`${f}-age`}
+							name="age"
+							label={copy.fields.age}
+							value={values.age}
+							error={errors.age}
+							hint={copy.fields.ageHint}
+							autocomplete="off"
+							required
+							attrs={attrs("age", errors, {
+								inputmode: "numeric",
+								pattern: "[0-9]{1,3}",
+								maxlength: "3",
+							})}
 						/>
 						<TextField
 							id={`${f}-phone`}
@@ -116,7 +142,42 @@ export function BookingForm({
 							type="tel"
 							label={copy.fields.phone}
 							value={values.phone}
+							error={errors.phone}
+							required
+							attrs={attrs("phone", errors, { inputmode: "tel" })}
 						/>
+					</div>
+					<TextField
+						id={`${f}-email`}
+						name="email"
+						type="email"
+						label={copy.fields.email}
+						value={values.email}
+						error={errors.email}
+						required
+						attrs={attrs("email", errors, { inputmode: "email", maxlength: "120" })}
+					/>
+					<div class={cx("pz-field", errors.details !== undefined && "pz-field--error")}>
+						<label class="pz-field__label" for={`${f}-details`}>
+							{copy.fields.details}
+						</label>
+						<textarea
+							class="pz-input"
+							id={`${f}-details`}
+							name="details"
+							rows={5}
+							required
+							minlength={10}
+							maxlength={2000}
+							aria-invalid={errors.details !== undefined ? "true" : undefined}
+							aria-describedby={`${f}-details-hint`}
+							{...(firstError(errors) === "details" ? { autofocus: true } : {})}
+						>
+							{values.details ?? ""}
+						</textarea>
+						<span class="pz-field__hint" id={`${f}-details-hint`}>
+							{errors.details ?? copy.fields.detailsHint}
+						</span>
 					</div>
 					{onlyAudience !== undefined && env.audiences.length === 1 ? (
 						<input type="hidden" name="forWhom" value={onlyAudience} />
@@ -174,7 +235,7 @@ export function BookingForm({
 				</div>
 			) : (
 				// The details wait for a time: what was typed stays in the form, so a change of week or day loses nothing.
-				(["name", "email", "phone", "forWhom"] as const).map((field) =>
+				(["name", "age", "details", "email", "phone", "forWhom"] as const).map((field) =>
 					values[field] === undefined || values[field] === "" ? null : (
 						<input type="hidden" name={field} value={values[field]} />
 					),

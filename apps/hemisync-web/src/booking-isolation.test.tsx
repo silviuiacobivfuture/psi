@@ -61,6 +61,9 @@ const person = {
 	form: "booking",
 	name: "Ana Popescu",
 	email: "ana@example.test",
+	phone: "0700123456",
+	age: "34",
+	details: "Vreau să aflu ce sesiune mi se potrivește.",
 	when: "any",
 	consent: "yes",
 };
@@ -179,7 +182,13 @@ describe("while the store has none of Hemi-Sync's sessions", () => {
 		expect(fake.callbacks).toEqual([
 			{
 				tenant: "hemisync",
-				contact: { name: "Ana Popescu", email: "ana@example.test" },
+				contact: {
+					name: "Ana Popescu",
+					email: "ana@example.test",
+					phone: "+40700123456",
+					age: 34,
+					details: "Vreau să aflu ce sesiune mi se potrivește.",
+				},
 				audience: "adult",
 				when: "any",
 				locale: "ro",
@@ -246,5 +255,37 @@ describe("in-chat booking switched off in the CMS", () => {
 			expect(html).not.toContain("<form");
 		}
 		expect(deps.site.tenant).toBe("hemisync");
+	});
+});
+
+describe("every field is mandatory and checked on the server, in Hemi-Sync's own words", () => {
+	it.each([
+		["ro", "/programare", "no name", { name: "" }, "numele complet"],
+		["ro", "/programare", "no age", { age: "" }, "vârsta"],
+		["en", "/en/booking", "an age of 121", { age: "121" }, "whole number from 0 to 120"],
+		["ro", "/programare", "no phone", { phone: "" }, "telefonul"],
+		["en", "/en/booking", "a bad phone", { phone: "12345" }, "phone number"],
+		["ro", "/programare", "no e-mail", { email: "" }, "e-mail"],
+		["en", "/en/booking", "a typo domain", { email: "ana@gmial.com" }, "did you mean gmail.com?"],
+		["ro", "/programare", "short details", { details: "scurt" }, "între 10 și 2000"],
+		["en", "/en/booking", "no consent", { consent: "" }, "your agreement"],
+	])("%s %s: %s comes back with the error and the typed values, storing nothing", async (_l, path, _w, over, shown) => {
+		const { app, fake } = rig({ own: false });
+		const html = await post(app, path, { ...person, callback: "1", ...over });
+		expect(html).toContain(shown);
+		expect(html).toContain('<form id="booking"');
+		if (!("name" in over)) expect(html).toContain('value="Ana Popescu"');
+		expect(fake.callbacks).toEqual([]);
+	});
+
+	it("marks the first wrong field for focus and links every error to its field", async () => {
+		const { app } = rig({ own: false });
+		const html = await post(app, "/programare", { ...person, callback: "1", age: "x", phone: "1" });
+		expect(html).toMatch(/name="age"[^>]*autofocus|autofocus[^>]*name="age"/);
+		expect(html).toContain('aria-invalid="true"');
+		expect(html).toMatch(/id="b-age-hint"/);
+		expect(html).toMatch(/inputmode="numeric"/);
+		expect(html).toMatch(/type="tel"/);
+		expect(html).toMatch(/type="email"/);
 	});
 });

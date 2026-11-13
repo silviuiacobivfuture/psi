@@ -321,6 +321,24 @@ export const fixture = internalMutation({
 	},
 });
 
+/**
+ * Test only: makes `tenant`'s fixture service list `foreign`'s practitioner as well (data that
+ * should never exist), so a test can prove the functions still refuse the foreign person.
+ */
+export const fixtureForeign = internalMutation({
+	args: { tenant: v.string(), foreign: v.id("practitioners") },
+	handler: async (ctx, args): Promise<{ listed: number }> => {
+		if (!args.tenant.startsWith("test-")) throw new Error("fixture tenants start with test-");
+		const service = await ctx.db
+			.query("services")
+			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant).eq("slug", "race"))
+			.unique();
+		if (service === null) throw new Error("no fixture service");
+		await ctx.db.patch(service._id, { practitioners: [...service.practitioners, args.foreign] });
+		return { listed: service.practitioners.length + 1 };
+	},
+});
+
 /** Removes a test tenant and everything in it. */
 export const dropFixture = internalMutation({
 	args: { tenant: v.string() },

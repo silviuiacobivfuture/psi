@@ -7,6 +7,8 @@ const COPY: CallbackMailCopy = {
 	name: "Nume",
 	phone: "Telefon",
 	email: "E-mail",
+	age: "Vârsta",
+	details: "Detalii",
 	forWhom: "Pentru",
 	when: "Când",
 	slot: "Ora",

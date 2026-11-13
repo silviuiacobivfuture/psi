@@ -82,12 +82,14 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 			);
 		};
 		const parsed = BookingRequest.safeParse(raw);
-		if (!parsed.success) return form(errorsFor(parsed.error.issues, copy, raw), raw);
+		if (!parsed.success) return form(errorsFor(parsed.error.issues, copy), raw);
 		const v = parsed.data;
 		const request = {
 			name: v.name,
 			email: v.email,
 			phone: v.phone,
+			age: v.age,
+			details: v.details,
 			forWhom: v.forWhom,
 			when: v.when,
 			...(v.service === "" ? {} : { service: v.service }),
@@ -145,20 +147,21 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 			);
 		};
 		if (!parsed.success || scheduling === undefined) {
-			return again(parsed.success ? {} : errorsFor(parsed.error.issues, copy, raw));
+			return again(parsed.success ? {} : errorsFor(parsed.error.issues, copy));
 		}
-		const { reference, holdToken, name, email, phone, forWhom, when, start } = parsed.data;
+		const { reference, holdToken, name, email, phone, age, details, forWhom, when, start } =
+			parsed.data;
 		try {
 			const sent = await scheduling.submit({
 				reference,
 				holdToken,
-				contact: { name, email, phone },
+				contact: { name, email, phone, age, details },
 				audience: forWhom,
 				...(who.accountHash === undefined ? {} : { accountHash: who.accountHash }),
 			});
 			if (!sent.ok) {
 				return again(
-					sent.reason === "invalid" ? { contact: copy.errors.contact } : { slot: copy.errors.hold },
+					sent.reason === "invalid" ? { email: copy.errors.email } : { slot: copy.errors.hold },
 				);
 			}
 			return c.html(
@@ -184,6 +187,8 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 					name,
 					email,
 					phone,
+					age,
+					details,
 					forWhom,
 					when,
 					...(start === "" ? {} : { preferredStart: Number(start) }),

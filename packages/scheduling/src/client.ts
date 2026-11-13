@@ -145,6 +145,8 @@ const SubmitInputSchema = z
 			name: z.string().max(200),
 			email: z.string().max(200).optional(),
 			phone: z.string().max(40).optional(),
+			age: z.number().int().min(0).max(120).optional(),
+			details: z.string().max(2000).optional(),
 		}),
 		audience: z.enum(["child", "teen", "adult"]).optional(),
 		accountHash: z

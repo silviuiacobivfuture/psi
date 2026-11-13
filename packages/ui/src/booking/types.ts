@@ -16,11 +16,23 @@ export type AccountLine = { signedIn: true } | { signedIn: false; signInHref: st
 
 /** What a visitor may type, as the form carries it. */
 export type BookingValues = Partial<
-	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service" | "consent", string>
+	Record<
+		| "name"
+		| "age"
+		| "details"
+		| "email"
+		| "phone"
+		| "forWhom"
+		| "when"
+		| "slot"
+		| "service"
+		| "consent",
+		string
+	>
 >;
 
 export type BookingErrors = Partial<
-	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
+	Record<"name" | "age" | "details" | "phone" | "email" | "forWhom" | "consent" | "slot", string>
 >;
 
 /**
@@ -45,7 +57,12 @@ export interface BookingAccount {
 export interface BookingCopy {
 	errors: {
 		name: string;
-		contact: string;
+		age: string;
+		details: string;
+		phone: string;
+		email: string;
+		/** "Did you mean gmail.com?": the domain the typo probably meant. */
+		emailTypo: (domain: string) => string;
 		forWhom: string;
 		consent: string;
 		/** The chosen time is not one the page offered. */
@@ -58,9 +75,13 @@ export interface BookingCopy {
 	details: { title: string; hint: string };
 	fields: {
 		name: string;
+		/** The guardian's name for a child: the contact is the one who answers. */
+		nameHint: string;
+		age: string;
+		ageHint: string;
+		details: string;
+		detailsHint: string;
 		email: string;
-		/** "One of them reaches us." */
-		contactHint: string;
 		phone: string;
 		consent: string;
 		submit: string;

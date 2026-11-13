@@ -128,6 +128,18 @@ describe.skipIf(!ready)("a tenant's calendar is its own", () => {
 		expect(found).toEqual({ ok: false, reason: "unknown_service" });
 	});
 
+	it("refuses the other tenant's person even when a service wrongly lists them, in the offer and in the hold", async () => {
+		const client = createSchedulingClient(config());
+		const foreign = practitioner[B];
+		if (foreign === undefined) throw new Error("no fixture");
+		const [b] = (await free(B)).slice(30, 31);
+		if (b === undefined) throw new Error("no slot");
+		convexRun("seed:fixtureForeign", { tenant: A, foreign });
+		expect((await free(A)).filter((s) => s.practitioner === foreign)).toEqual([]);
+		expect(await client.hold(holdOf(A, b))).toEqual({ ok: false, reason: "unknown_service" });
+		expect((await free(B)).some((s) => s.start === b.start)).toBe(true);
+	});
+
 	it("still holds a tenant's own time (the refusals above were about the tenant, not the ids)", async () => {
 		const client = createSchedulingClient(config());
 		const [a] = (await free(A)).slice(20, 21);

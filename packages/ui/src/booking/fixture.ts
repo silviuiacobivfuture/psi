@@ -5,7 +5,11 @@ import { routesUnder } from "./types";
 export const FIXTURE_COPY: BookingCopy = {
 	errors: {
 		name: "e:name",
-		contact: "e:contact",
+		age: "e:age",
+		details: "e:details",
+		phone: "e:phone",
+		email: "e:email",
+		emailTypo: (d) => `e:typo ${d}`,
 		forWhom: "e:for",
 		consent: "e:consent",
 		slot: "e:slot",
@@ -16,7 +20,11 @@ export const FIXTURE_COPY: BookingCopy = {
 	fields: {
 		name: "f:name",
 		email: "f:email",
-		contactHint: "f:hint",
+		nameHint: "f:namehint",
+		age: "f:age",
+		ageHint: "f:agehint",
+		details: "f:details",
+		detailsHint: "f:detailshint",
 		phone: "f:phone",
 		consent: "f:consent",
 		submit: "f:submit",

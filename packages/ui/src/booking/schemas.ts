@@ -1,41 +1,44 @@
+import { AgeSchema, DetailsSchema, EmailSchema, NameSchema, PhoneSchema } from "@psi/scheduling";
 import { z } from "zod";
-import type { BookingCopy, BookingEnv, BookingErrors, BookingLocale, BookingValues } from "./types";
+import type { BookingCopy, BookingEnv, BookingErrors, BookingLocale } from "./types";
 
-/** A booking request carries logistics only: never health details, never free text. */
-export const BookingRequest = z
-	.object({
-		name: z.string().trim().min(2).max(80),
-		email: z.union([z.string().trim().email().max(120), z.literal("")]).default(""),
-		phone: z
-			.union([
-				z
-					.string()
-					.trim()
-					.regex(/^\+?[0-9 ()-]{9,20}$/),
-				z.literal(""),
-			])
-			.default(""),
-		forWhom: z.enum(["child", "teen", "adult"]),
-		when: z.enum(["morning", "afternoon", "any"]).default("any"),
-		/** A free slot's id when scheduling is on; empty (or absent) means "call me back". */
-		slot: z.string().max(120).default(""),
-		/** The service the slot is for; empty means the store's default. */
-		service: z.union([z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/), z.literal("")]).default(""),
-		/** "1" when the form is the booking page's (service cards), so every step re-renders it so. */
-		cards: z.enum(["1", ""]).catch(""),
-		consent: z.literal("yes"),
-	})
-	.refine((v) => v.email !== "" || v.phone !== "", { path: ["contact"] });
+const Audience = z.enum(["child", "teen", "adult"]);
+const Period = z.enum(["morning", "afternoon", "any"]);
 
-/** The confirm step's form: the hold it confirms and the contact typed in the first step. */
+/**
+ * A booking request: who is asking and what is going on, every field mandatory and validated by
+ * the shared rules (@psi/scheduling's `fields`), the single source the client's attributes mirror.
+ * For a child the guardian is the contact; the age is the child's. The details are the person's
+ * own words: personal data, kept with the contact and erased with it.
+ */
+export const BookingRequest = z.object({
+	name: NameSchema,
+	age: AgeSchema,
+	details: DetailsSchema,
+	phone: PhoneSchema,
+	email: EmailSchema,
+	forWhom: Audience,
+	when: Period.default("any"),
+	/** A free slot's id when scheduling is on; empty (or absent) means "call me back". */
+	slot: z.string().max(120).default(""),
+	/** The service the slot is for; empty means the store's default. */
+	service: z.union([z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/), z.literal("")]).default(""),
+	/** "1" when the form is the booking page's (service cards), so every step re-renders it so. */
+	cards: z.enum(["1", ""]).catch(""),
+	consent: z.literal("yes"),
+});
+
+/** The confirm step's form: the hold it confirms and the details typed in the first step. */
 export const BookingConfirmation = z.object({
 	reference: z.string().trim().min(8).max(12),
 	holdToken: z.string().trim().min(16).max(64),
-	name: z.string().trim().min(2).max(80),
-	email: z.string().trim().max(120).default(""),
-	phone: z.string().trim().max(20).default(""),
-	forWhom: z.enum(["child", "teen", "adult"]),
-	when: z.enum(["morning", "afternoon", "any"]).default("any"),
+	name: NameSchema,
+	age: AgeSchema,
+	details: DetailsSchema,
+	phone: PhoneSchema,
+	email: EmailSchema,
+	forWhom: Audience,
+	when: Period.default("any"),
 	/** The held slot's start (UTC ms), carried so a failed confirm still tells the team the time. */
 	start: z.union([z.string().regex(/^[0-9]{10,15}$/), z.literal("")]).default(""),
 	consent: z.literal("yes"),
@@ -95,23 +98,21 @@ export function wallClock(
 	return { day, time };
 }
 
-/** Maps the parser's issues to the field errors a person reads. */
-export function errorsFor(
-	issues: ReadonlyArray<z.ZodIssue>,
-	copy: BookingCopy,
-	values: BookingValues,
-): BookingErrors {
+/** Maps the parser's issues to the field errors a person reads: one per field, the first issue wins. */
+export function errorsFor(issues: ReadonlyArray<z.ZodIssue>, copy: BookingCopy): BookingErrors {
 	const errors: BookingErrors = {};
 	for (const issue of issues) {
 		const field = issue.path[0];
-		if (field === "name") errors.name = copy.errors.name;
-		else if (field === "email" || field === "phone" || field === "contact")
-			errors.contact = copy.errors.contact;
-		else if (field === "forWhom") errors.forWhom = copy.errors.forWhom;
-		else if (field === "consent") errors.consent = copy.errors.consent;
+		if (field === "name") errors.name ??= copy.errors.name;
+		else if (field === "age") errors.age ??= copy.errors.age;
+		else if (field === "details") errors.details ??= copy.errors.details;
+		else if (field === "phone") errors.phone ??= copy.errors.phone;
+		else if (field === "email") {
+			errors.email ??= issue.message.startsWith("typo:")
+				? copy.errors.emailTypo(issue.message.slice(5))
+				: copy.errors.email;
+		} else if (field === "forWhom") errors.forWhom ??= copy.errors.forWhom;
+		else if (field === "consent") errors.consent ??= copy.errors.consent;
 	}
-	// The either-or rule runs only once every field parses, so check it directly as well.
-	if ((values.email ?? "").trim() === "" && (values.phone ?? "").trim() === "")
-		errors.contact = copy.errors.contact;
 	return errors;
 }

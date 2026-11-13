@@ -51,10 +51,19 @@ describe("the form's states", () => {
 		const out = html(
 			<BookingForm
 				env={fixtureEnv()}
-				errors={{ name: "E1", contact: "E2", forWhom: "E3", consent: "E4", slot: "E5" }}
+				errors={{
+					name: "E1",
+					phone: "E2",
+					forWhom: "E3",
+					consent: "E4",
+					slot: "E5",
+					age: "E6",
+					details: "E7",
+					email: "E8",
+				}}
 			/>,
 		);
-		for (const e of ["E1", "E2", "E3", "E4", "E5"]) expect(out).toContain(e);
+		for (const e of ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8"]) expect(out).toContain(e);
 	});
 
 	it("posts to the site's own booking route in the chat form's id", () => {
@@ -105,8 +114,10 @@ describe("the other results", () => {
 					timeZone: "Europe/Bucharest",
 					values: {
 						name: "Ana",
-						email: "",
-						phone: "0700 000 001",
+						age: 30,
+						details: "Ceva de spus aici",
+						email: "ana@example.ro",
+						phone: "+40700000001",
 						forWhom: "adult",
 						when: "any",
 						slot: "",

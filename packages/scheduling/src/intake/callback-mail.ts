@@ -3,6 +3,10 @@ export interface CallbackRequest {
 	name: string;
 	email: string;
 	phone: string;
+	/** Whole years. */
+	age?: number;
+	/** What is going on, in the person's words. */
+	details?: string;
 	forWhom: "child" | "teen" | "adult";
 	when: "morning" | "afternoon" | "any";
 	/** A slot the visitor chose that could not be held (UTC ms). */
@@ -24,6 +28,8 @@ export interface CallbackMailCopy {
 	name: string;
 	phone: string;
 	email: string;
+	age: string;
+	details: string;
 	forWhom: string;
 	when: string;
 	slot: string;
@@ -80,6 +86,7 @@ export function callbackMail(input: {
 		line(c.name, r.name),
 		...(r.phone === "" ? [] : [line(c.phone, r.phone)]),
 		...(r.email === "" ? [] : [line(c.email, r.email)]),
+		...(r.age === undefined ? [] : [line(c.age, String(r.age))]),
 		line(c.forWhom, c.audience[r.forWhom] ?? r.forWhom),
 		line(c.when, c.period[r.when]),
 		...(r.preferredStart === undefined ? [] : [line(c.slot, stamp(r.preferredStart, input.zone))]),
@@ -89,6 +96,7 @@ export function callbackMail(input: {
 		line(c.received, stamp(input.received, input.zone)),
 		line(c.stored, input.stored ? c.storedYes : c.storedNo),
 		c.consent,
+		...(r.details === undefined ? [] : ["", `${c.details}:`, r.details.trim()]),
 		...(input.listUrl === undefined ? [] : ["", `${c.link}: ${input.listUrl}`]),
 	];
 	return {

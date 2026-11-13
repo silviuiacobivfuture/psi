@@ -12,7 +12,7 @@ import { callbackMailCopy, site } from "./booking-site";
  */
 
 const TEAM = ["team@example.test"];
-const LOG_FORBIDDEN = /Ana Popescu|0700 123 456|ana@example\.test/;
+const LOG_FORBIDDEN = /Ana Popescu|0700 123 456|40700123456|somnul|ana@example\.test/;
 const SLOT = encodeSlot({ practitioner: ANA, start: NOW + 86_400_000, mode: "onsite" });
 
 const valid = {
@@ -20,6 +20,8 @@ const valid = {
 	name: "Ana Popescu",
 	email: "ana@example.test",
 	phone: "0700 123 456",
+	age: "34",
+	details: "Copilul are probleme cu somnul de câteva luni.",
 	forWhom: "child",
 	when: "morning",
 	consent: "yes",
@@ -104,7 +106,13 @@ describe("a callback request (no time chosen)", () => {
 		expect(fake.callbacks).toEqual([
 			{
 				tenant: "psizone",
-				contact: { name: "Ana Popescu", email: "ana@example.test", phone: "0700 123 456" },
+				contact: {
+					name: "Ana Popescu",
+					email: "ana@example.test",
+					phone: "+40700123456",
+					age: 34,
+					details: "Copilul are probleme cu somnul de câteva luni.",
+				},
 				audience: "child",
 				when: "morning",
 				locale: "ro",
@@ -118,7 +126,7 @@ describe("a callback request (no time chosen)", () => {
 		const text = sent[0]?.text ?? "";
 		for (const part of [
 			"Nume: Ana Popescu",
-			"Telefon: 0700 123 456",
+			"Telefon: +40700123456",
 			"E-mail: ana@example.test",
 			"Pentru: ",
 			"Salvată în sistemul de programări: da",
@@ -218,20 +226,39 @@ describe("a callback request (no time chosen)", () => {
 		expect(fake.callbacks[2]?.page).toBe("/contact");
 	});
 
-	it("a typed line break cannot add a header or a line to the e-mail", async () => {
+	it("a name with a line break is refused, and a line break in the details stays in the body, never in a header", async () => {
+		const bad = rig();
+		const html = await post(bad.app, "/programare", {
+			...valid,
+			callback: "1",
+			name: "Ana\r\nBcc: evil@example.test",
+		});
+		expect(html).toContain("Eroare");
+		expect(bad.sent).toHaveLength(0);
 		const { app, sent } = rig();
-		await post(app, "/programare", { ...valid, name: "Ana\r\nBcc: evil@example.test" });
+		await post(app, "/programare", {
+			...valid,
+			details: "Prima linie a problemei.\nBcc: evil@example.test",
+		});
 		expect(sent[0]?.subject).not.toMatch(/[\r\n]/);
-		expect(sent[0]?.text).toContain("Nume: Ana Bcc: evil@example.test");
-		expect(sent[0]?.text).not.toContain("\nBcc:");
+		expect(sent[0]?.text).toContain("Detalii:\nPrima linie a problemei.\nBcc: evil@example.test");
+		expect(sent[0]?.text).toContain("Vârsta: 34");
 	});
 });
 
 describe("a request that is not valid reaches nobody", () => {
 	it.each([
 		["a name that is too short", { name: "A" }, "Eroare"],
-		["no way to reach the person", { email: "", phone: "" }, "Eroare"],
-		["a malformed e-mail", { email: "nope" }, "Eroare"],
+		["no phone", { phone: "" }, "telefonul"],
+		["a malformed phone", { phone: "0122 123 456" }, "telefonul"],
+		["no e-mail", { email: "" }, "e-mail"],
+		["a malformed e-mail", { email: "nope" }, "e-mail"],
+		["a typo in a common domain", { email: "ana@gmial.com" }, "ai vrut să scrii gmail.com"],
+		["no age", { age: "" }, "vârsta"],
+		["an age of 121", { age: "121" }, "vârsta"],
+		["a fractional age", { age: "3.5" }, "vârsta"],
+		["details of nine characters", { details: "123456789" }, "ce se întâmplă"],
+		["a name with digits", { name: "Ana 2" }, "numele"],
 		["the consent box left empty", { consent: "" }, "acordul"],
 		["nobody chosen to book for", { forWhom: "" }, "Eroare"],
 	])("%s: the form comes back with the error, nothing stored, nothing sent", async (_why, over, shown) => {

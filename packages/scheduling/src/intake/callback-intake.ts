@@ -58,6 +58,8 @@ export function createIntake(deps: IntakeDeps): Intake {
 							name: request.name,
 							...(request.email === "" ? {} : { email: request.email }),
 							...(request.phone === "" ? {} : { phone: request.phone }),
+							...(request.age === undefined ? {} : { age: request.age }),
+							...(request.details === undefined ? {} : { details: request.details }),
 						},
 						audience: request.forWhom,
 						when: request.when,

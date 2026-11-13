@@ -52,6 +52,16 @@ export {
 } from "./domain/clients";
 export type { AppointmentStatus } from "./domain/conflicts";
 export type { Contact } from "./domain/contact";
+export {
+	AgeSchema,
+	DetailsSchema,
+	EmailSchema,
+	emailSuggestion,
+	FIELD_LIMITS,
+	NameSchema,
+	normalisePhone,
+	PhoneSchema,
+} from "./domain/fields";
 export { DECISION_REASONS, type DecisionReason } from "./domain/lifecycle";
 export { ROOM_KINDS, type RoomKind } from "./domain/rooms";
 export { toLocal } from "./domain/time";

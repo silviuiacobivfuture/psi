@@ -100,6 +100,8 @@ export function BookingConfirm({
 		["name", held.values.name],
 		["email", held.values.email],
 		["phone", held.values.phone],
+		["age", String(held.values.age)],
+		["details", held.values.details],
 		["forWhom", held.values.forWhom],
 		["when", held.values.when],
 		["start", String(held.start)],
