@@ -75,7 +75,7 @@ const pairRows = PAIRS.map(([a, b, min]) => {
 });
 
 const md = [
-	"# Palette and contrast, all eight themes",
+	"# Palette and contrast, all ten themes",
 	"",
 	"GENERATED from `tokens.json` by `scripts/build-palette.mjs` — do not edit. Ratios are WCAG 2",
 	"contrast. Minimums: text 4.5:1; focus ring and control borders 3:1. `glow-2` and `glow-3` are",
