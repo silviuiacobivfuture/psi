@@ -1,5 +1,5 @@
 import { getContext } from "hono/context-storage";
-import type { Locale } from "./i18n";
+import type { BookingLocale as Locale } from "./types";
 
 /** A service word the hand-over may carry: lowercase letters and hyphens, as the guide writes it. */
 const SERVICE = /^[a-z][a-z-]{1,39}$/;

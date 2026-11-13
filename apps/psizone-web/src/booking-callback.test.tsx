@@ -1,11 +1,9 @@
-import { encodeSlot } from "@psi/scheduling";
+import { encodeSlot, type Mail, type Mailer, MailFailed } from "@psi/scheduling";
+import { ANA, NOW, type StoreOptions, store } from "@psi/scheduling/testing";
+import { createBookingDeps, registerBookingSubmit } from "@psi/ui";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { createPicker } from "./booking-picker";
-import { type BookingDeps, registerBookingSubmit } from "./booking-submit";
-import { createIntake } from "./callback-intake";
-import { type Mail, type Mailer, MailFailed } from "./mailer";
-import { ANA, NOW, type StoreOptions, store } from "./test-store";
+import { callbackMailCopy, site } from "./booking-site";
 
 /**
  * A visitor's request is never lost, and the team is told. The routes run for real; only the two
@@ -47,32 +45,22 @@ function rig(setup: Setup = {}) {
 				};
 	const scheduling = setup.store === "off" ? undefined : fake.client;
 	const failed: string[] = [];
-	const picker = createPicker(
+	const deps = createBookingDeps({
+		site,
 		scheduling,
-		"psizone",
-		() => NOW,
-		(e) => failed.push(String(e)),
-	);
-	const deps: BookingDeps = {
-		scheduling,
-		picker,
-		tenant: "psizone",
+		mailer,
+		notifyTo: TEAM,
+		mailCopy: callbackMailCopy(),
+		host: "landing.test",
+		zone: "Europe/Bucharest",
+		listUrl: "https://cms.example.test/admin/platform/scheduling?brand=psizone&tab=callbacks",
+		now: () => NOW,
+		log: (line) => log.push(line),
 		failed: (e) => failed.push(String(e)),
-		intake: createIntake({
-			tenant: "psizone",
-			store: scheduling,
-			mailer,
-			notifyTo: TEAM,
-			site: "landing.test",
-			zone: "Europe/Bucharest",
-			listUrl: "https://cms.example.test/admin/platform/scheduling?brand=psizone&tab=callbacks",
-			now: () => NOW,
-			log: (line) => log.push(line),
-		}),
-	};
+	});
 	const app = new Hono();
-	registerBookingSubmit(app, "ro", "", deps);
-	registerBookingSubmit(app, "en", "/en", deps);
+	registerBookingSubmit(app, deps, "ro");
+	registerBookingSubmit(app, deps, "en");
 	return { app, fake, sent, log, failed };
 }
 

@@ -3,12 +3,11 @@
 import { siteSettingsFor } from "@psi/cms-client";
 import type { BookingOffer } from "@psi/guide";
 import { encodeSlot } from "@psi/scheduling";
+import { ANA, NOW, store } from "@psi/scheduling/testing";
+import { createPicker } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import { describe, expect, it } from "vitest";
-import { createPicker } from "./booking-picker";
-import { bookingSummary } from "./chat-booking";
 import { guideLabels } from "./guide";
-import { ANA, NOW, store } from "./test-store";
 
 const START = Date.parse("2026-11-20T08:00:00Z");
 const SLOT = encodeSlot({ practitioner: ANA, start: START, mode: "onsite" });
@@ -164,7 +163,11 @@ describe("booking in the guide's chat", () => {
 
 	it("the guide's memory of a booking turn never holds a time, a name or a code", () => {
 		for (const kind of ["times", "confirm", "cancel_ask", "cancel_result", "services"] as const) {
-			const text = bookingSummary({ ...confirm, kind }, "ro");
+			const text =
+				guideLabels("ro", { settings: siteSettingsFor({}, "psizone"), picker }).booking?.summary({
+					...confirm,
+					kind,
+				}) ?? "";
 			expect(text).not.toMatch(/\d{2}:\d{2}|demo|Ana/i);
 		}
 	});

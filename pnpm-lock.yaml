@@ -284,6 +284,9 @@ importers:
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../../packages/scheduling
       '@psi/site-control':
         specifier: workspace:*
         version: link:../../packages/site-control
@@ -357,9 +360,6 @@ importers:
       hono:
         specifier: ^4.13.18
         version: 4.13.18
-      nodemailer:
-        specifier: ^10.5.0
-        version: 10.5.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -370,9 +370,6 @@ importers:
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
-      '@types/nodemailer':
-        specifier: ^8.0.2
-        version: 8.0.2
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -394,6 +391,9 @@ importers:
       '@psi/guide':
         specifier: workspace:*
         version: link:../guide
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../scheduling
       '@psi/ui':
         specifier: workspace:*
         version: link:../ui
@@ -628,6 +628,9 @@ importers:
       convex:
         specifier: 1.49.0
         version: 1.49.0(react@19.3.1)
+      nodemailer:
+        specifier: ^10.5.0
+        version: 10.5.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -635,6 +638,9 @@ importers:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -687,6 +693,9 @@ importers:
       '@psi/guide':
         specifier: workspace:*
         version: link:../guide
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../scheduling
       zod:
         specifier: ^3.25.76
         version: 3.25.76

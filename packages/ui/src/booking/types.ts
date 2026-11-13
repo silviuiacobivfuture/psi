@@ -1,0 +1,170 @@
+import type { Audience } from "@psi/scheduling";
+import type { Context } from "hono";
+import type { SlotPickerLabels } from "../components/slot-picker";
+
+/** The two languages every psi site is written in. */
+export type BookingLocale = "ro" | "en";
+
+/** A published phone number: `tel` for the link, `display` for the eye. */
+export interface BookingPhone {
+	tel: string;
+	display: string;
+}
+
+/** What the form says about the estate account, when sign-in is available on the site. */
+export type AccountLine = { signedIn: true } | { signedIn: false; signInHref: string };
+
+/** What a visitor may type, as the form carries it. */
+export type BookingValues = Partial<
+	Record<"name" | "email" | "phone" | "forWhom" | "when" | "slot" | "service", string>
+>;
+
+export type BookingErrors = Partial<
+	Record<"name" | "contact" | "forWhom" | "consent" | "slot", string>
+>;
+
+/**
+ * The estate account in a booking: pre-fill for a signed-in person, a sign-in line for anyone
+ * else, and the account hash on the request when the site lists requests in its account.
+ */
+export interface BookingAccount {
+	/** What the form says about the account; undefined when sign-in is not configured here. */
+	form?: AccountLine;
+	/** The profile's name, e-mail and phone, editable; empty for an anonymous visitor. */
+	prefill: Pick<BookingValues, "name" | "email" | "phone">;
+	/** `accountHashOf(subject)` for the scheduling store; undefined when anonymous. */
+	accountHash?: string;
+	/** The person's bookings page, when signed in and the site has one. */
+	bookingsHref?: string;
+}
+
+/**
+ * Every word the booking flow shows, in one locale, from the app's own i18n: the library ships
+ * none (a site's sessions, its voice and its people are its own).
+ */
+export interface BookingCopy {
+	errors: {
+		name: string;
+		contact: string;
+		forWhom: string;
+		consent: string;
+		/** The chosen time is not one the page offered. */
+		slot: string;
+		/** The held time could not be requested. */
+		hold: string;
+	};
+	account: { signedIn: string; signInHint: string; signIn: string };
+	/** The heading above the contact fields, and the line under it while a time is being chosen. */
+	details: { title: string; hint: string };
+	fields: {
+		name: string;
+		email: string;
+		/** "One of them reaches us." */
+		contactHint: string;
+		phone: string;
+		consent: string;
+		submit: string;
+	};
+	/** Who it is for: a label for each audience the site serves (a site with one audience asks no question). */
+	audience: { legend: string; labels: Readonly<Partial<Record<Audience, string>>> };
+	when: {
+		legend: string;
+		labels: Readonly<Record<"morning" | "afternoon" | "any", string>>;
+	};
+	done: { title: (name: string) => string; text: string };
+	confirm: {
+		title: string;
+		text: (time: string, day: string, minutes: string) => string;
+		with: (practitioner: string) => string;
+		submit: string;
+		change: string;
+	};
+	requested: {
+		title: (name: string) => string;
+		text: (time: string, day: string) => string;
+		reference: string;
+		cancel: string;
+		cancelHow: string;
+		/** Where the request is found in the site's account: absent on a site that lists none. */
+		inAccount?: { text: string; link: string };
+	};
+	/** The request reached nobody: said plainly, never "thank you". `phones` leads the numbers, when the site has any. */
+	failed: { title: string; text: string; phones: string; retry: string };
+	picker: {
+		/** The slot picker's own words. */
+		slots: SlotPickerLabels;
+		/** The legend of the service cards. */
+		service: string;
+		/** The calendar cannot be read, or the site has no services yet: the callback form stands. */
+		unavailable: string;
+		callback: string;
+		back: string;
+		modeOnsite: string;
+		modeOnline: string;
+	};
+	/** A service's name when the store gives none. */
+	serviceFallback: (slug: string) => string;
+	chat: {
+		contactLink: string;
+		intro: string;
+		confirmPicker: string;
+		none: string;
+		/** Switched off in the CMS: where to book instead, and the link's label. */
+		elsewhere: string;
+		elsewhereCta: string;
+		notices: Readonly<Record<"refined" | "relaxed" | "taken" | "not_free" | "ambiguous", string>>;
+		cancelAsk: string;
+		cancelResult: Readonly<
+			Record<"cancelled" | "not_found" | "not_cancellable" | "unavailable", string>
+		>;
+		services: (names: string) => string;
+		summary: Readonly<Record<"times" | "confirm" | "cancel" | "services", string>>;
+	};
+}
+
+/** The site's pages the booking flow posts to and links to, full paths with the locale's prefix. */
+export interface BookingRoutes {
+	booking: string;
+	/** The picker's route: every change of week, day, time, mode or practitioner posts here. */
+	slots: string;
+	confirm: string;
+	release: string;
+	contact: string;
+	/** Where the chat sends a visitor when in-chat booking is switched off. */
+	elsewhere: string;
+}
+
+/**
+ * The routes under a booking page: `/ore`, `/confirma` and `/renunta` beneath it. `elsewhere` is
+ * where the chat points when it may not book (by default the contact page).
+ */
+export function routesUnder(booking: string, contact: string, elsewhere = contact): BookingRoutes {
+	return {
+		booking,
+		slots: `${booking}/ore`,
+		confirm: `${booking}/confirma`,
+		release: `${booking}/renunta`,
+		contact,
+		elsewhere,
+	};
+}
+
+/** Everything the booking components need for one request's locale. */
+export interface BookingEnv {
+	locale: BookingLocale;
+	copy: BookingCopy;
+	routes: BookingRoutes;
+	/** The site's own numbers; none is a valid state (the site publishes none yet). */
+	phones: ReadonlyArray<BookingPhone>;
+	/** Who a booking may be for: one entry means the question is not asked. */
+	audiences: ReadonlyArray<Audience>;
+}
+
+/** A site's booking: its tenant in the store, and its words, routes and account per locale. */
+export interface BookingSite {
+	/** The app's calendar space in the scheduling store: every call carries this and no other. */
+	readonly tenant: string;
+	env(locale: BookingLocale): BookingEnv;
+	/** The account side of a request; `fallback` is the full path sign-in returns to. */
+	account(c: Context, locale: BookingLocale, fallback: string): Promise<BookingAccount>;
+}

@@ -1,6 +1,6 @@
 {
 	"name": "@psi/psizone-web",
-	"version": "0.9.2",
+	"version": "0.10.0",
 	"private": true,
 	"type": "module",
 	"description": "psizone.ro — the Psizone landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
@@ -28,13 +28,11 @@
 		"@psi/site-control": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
-		"nodemailer": "^10.5.0",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@inlang/paraglide-js": "^3.2.2",
 		"@tailwindcss/cli": "^4.3.5",
-		"@types/nodemailer": "^8.0.2",
 		"esbuild": "^0.25.0",
 		"tailwindcss": "^4.3.5",
 		"tsx": "^4.20.0",

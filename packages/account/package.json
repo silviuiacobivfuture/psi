@@ -18,6 +18,7 @@
 	},
 	"dependencies": {
 		"@psi/guide": "workspace:*",
+		"@psi/scheduling": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
 		"jose": "^6.2.17",

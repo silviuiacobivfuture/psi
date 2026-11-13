@@ -1,5 +1,6 @@
-import { type CallbackRequester, SchedulingUnavailable } from "@psi/scheduling";
-import { type CallbackRequest, callbackMail } from "./callback-mail";
+import type { CallbackRequester } from "../callbacks-client";
+import { SchedulingUnavailable } from "../transport";
+import { type CallbackMailCopy, type CallbackRequest, callbackMail } from "./callback-mail";
 import { type Mailer, MailFailed } from "./mailer";
 
 /**
@@ -11,13 +12,15 @@ export interface Intake {
 }
 
 export interface IntakeDeps {
-	/** The app (tenant) on the store: `psizone`. */
+	/** The app (tenant) on the store: `psizone`, `hemisync`. */
 	tenant: string;
 	/** Absent: the store is off for this site. */
 	store: CallbackRequester | undefined;
 	/** Absent: mail is not configured for this site. */
 	mailer: Mailer | undefined;
 	notifyTo: ReadonlyArray<string>;
+	/** The team e-mail's words (the site's own). */
+	mailCopy: CallbackMailCopy;
 	/** The site's name in the team's e-mail. */
 	site: string;
 	/** The practice's time zone, for the times in the e-mail. */
@@ -78,6 +81,7 @@ export function createIntake(deps: IntakeDeps): Intake {
 				deps.log("callbacks: team not e-mailed (mail is not configured)");
 			} else {
 				const mail = callbackMail({
+					copy: deps.mailCopy,
 					request,
 					site: deps.site,
 					zone: deps.zone,

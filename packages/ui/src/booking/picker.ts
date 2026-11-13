@@ -1,7 +1,13 @@
-import { decodeSlot } from "@psi/guide";
-import type { SchedulingClient, ServiceInfo } from "@psi/scheduling";
-import { addDays, isLocalDate, localDate, mondayOf, type PickerSlot, type SlotMode } from "@psi/ui";
+import { decodeSlot, type SchedulingClient, type ServiceInfo } from "@psi/scheduling";
 import { z } from "zod";
+import {
+	addDays,
+	isLocalDate,
+	localDate,
+	mondayOf,
+	type PickerSlot,
+	type SlotMode,
+} from "../slot-week";
 
 /**
  * What the booking picker shows, read from the scheduling store for one request. The visitor's

@@ -1,5 +1,13 @@
 import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
-import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
+import {
+	Button,
+	Compass,
+	type CompassGroup,
+	DayNight,
+	guideStart,
+	Logo,
+	ThemeToggle,
+} from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { HUBS } from "../content/hubs";
@@ -7,7 +15,6 @@ import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
-import { guideStart } from "../guide-start";
 import { at, base, type Locale } from "../i18n";
 import { psizoneInvite } from "../invite";
 import { m } from "../paraglide/messages.js";

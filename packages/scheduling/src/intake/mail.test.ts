@@ -62,7 +62,9 @@ describe("the mail settings", () => {
 		],
 		[
 			"more than ten recipients",
-			{ BOOKING_NOTIFY_TO: Array.from({ length: 11 }, (_, i) => `u${i}@example.test`).join(",") },
+			{
+				BOOKING_NOTIFY_TO: Array.from({ length: 11 }, (_, i) => `u${i}@example.test`).join(","),
+			},
 			["BOOKING_NOTIFY_TO"],
 		],
 		["a sender that is not an address", { MAIL_FROM: "nope" }, ["MAIL_FROM"]],

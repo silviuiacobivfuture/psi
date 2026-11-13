@@ -1,7 +1,7 @@
 import { encodeSlot } from "@psi/scheduling";
+import { ANA, DAN, type Free, NOW, store } from "@psi/scheduling/testing";
 import { describe, expect, it } from "vitest";
-import { createPicker, HORIZON_WEEKS, PickerChoices, type PickerView } from "./booking-picker";
-import { ANA, DAN, type Free, NOW, store } from "./test-store";
+import { createPicker, HORIZON_WEEKS, PickerChoices, type PickerView } from "./picker";
 
 const FRI_9 = Date.parse("2026-11-13T07:00:00Z");
 const FRI_11 = Date.parse("2026-11-13T09:00:00Z");
@@ -69,7 +69,10 @@ describe("the picker's view of the store", () => {
 		const data = await ready(make(ONSITE), { week: "2026-11-23" });
 		expect(data.slots).toHaveLength(0);
 		expect(data.nextWithTimes).toBeUndefined();
-		const earlier = await ready(make(ONSITE), { week: "2026-11-09", mode: "online" });
+		const earlier = await ready(make(ONSITE), {
+			week: "2026-11-09",
+			mode: "online",
+		});
 		expect(earlier.nextWithTimes).toBeUndefined();
 		const gap = await ready(
 			make([
@@ -132,7 +135,12 @@ describe("a slot id from the browser is never trusted", () => {
 
 	it("a real slot of another service is not free for this one", async () => {
 		const others = [
-			{ service: "therapy", practitioner: ANA, start: FRI_9, mode: "onsite" as const },
+			{
+				service: "therapy",
+				practitioner: ANA,
+				start: FRI_9,
+				mode: "onsite" as const,
+			},
 		];
 		const id = encodeSlot({ practitioner: ANA, start: FRI_9, mode: "onsite" });
 		const data = await ready(make(others), { service: "evaluation", slot: id });
@@ -141,7 +149,11 @@ describe("a slot id from the browser is never trusted", () => {
 	});
 
 	it("an id for a mode that is not shown is dropped without a notice", async () => {
-		const online = encodeSlot({ practitioner: ANA, start: FRI_11, mode: "online" });
+		const online = encodeSlot({
+			practitioner: ANA,
+			start: FRI_11,
+			mode: "online",
+		});
 		const data = await ready(make(ONSITE), { slot: online, mode: "onsite" });
 		expect(data.selected).toBeUndefined();
 		expect(data.taken).toBe(false);
@@ -169,7 +181,15 @@ describe("a slot id from the browser is never trusted", () => {
 	it("a past time is never offered", async () => {
 		const past = Date.parse("2026-11-12T06:00:00Z");
 		const data = await ready(
-			make([...ONSITE, { service: "evaluation", practitioner: ANA, start: past, mode: "onsite" }]),
+			make([
+				...ONSITE,
+				{
+					service: "evaluation",
+					practitioner: ANA,
+					start: past,
+					mode: "onsite",
+				},
+			]),
 		);
 		expect(data.slots.some((s) => s.start === past)).toBe(false);
 	});
