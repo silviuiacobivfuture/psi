@@ -14,8 +14,10 @@ import {
 	requestLeaveTool,
 	sendRemindersTool,
 } from "./tools-office";
+import { absenceTool, copyWeekTool, paymentRemindersTool } from "./tools-plans";
 import { packageBalanceTool, rosterTool, searchNotesTool } from "./tools-records";
 import { draftRemindersTool, statsTool, webRequestsTool } from "./tools-requests";
+import { attentionTool, freeRoomsTool, resolveDateTool, roomsAtTool } from "./tools-rooms";
 
 const verified = new WeakSet<object>();
 
@@ -61,5 +63,12 @@ export function staffTools({
 		staffSendReminders: sendRemindersTool(session),
 		staffSearchNotes: searchNotesTool(session),
 		staffStats: statsTool(session),
+		staffResolveDate: resolveDateTool(session),
+		staffRoomsAt: roomsAtTool(session),
+		staffFreeRooms: freeRoomsTool(session),
+		staffAttention: attentionTool(session),
+		staffPaymentReminders: paymentRemindersTool(session),
+		staffCopyWeek: copyWeekTool(session),
+		staffAbsence: absenceTool(session),
 	});
 }

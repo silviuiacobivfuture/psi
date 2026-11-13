@@ -24,6 +24,13 @@ export const STAFF_TOOLS = {
 	sendReminders: "staffSendReminders",
 	searchNotes: "staffSearchNotes",
 	stats: "staffStats",
+	resolveDate: "staffResolveDate",
+	roomsAt: "staffRoomsAt",
+	freeRooms: "staffFreeRooms",
+	attention: "staffAttention",
+	paymentReminders: "staffPaymentReminders",
+	copyWeek: "staffCopyWeek",
+	absence: "staffAbsence",
 } as const satisfies Readonly<Record<ToolKey, string>>;
 
 export const STAFF_TOOL_IDS: ReadonlyArray<string> = Object.values(STAFF_TOOLS);

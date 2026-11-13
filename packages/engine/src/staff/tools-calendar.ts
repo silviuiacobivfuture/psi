@@ -48,7 +48,19 @@ export function findClientTool(session: StaffSession) {
 			return {
 				ok: true,
 				subjects: hits.map((h) => h.id),
-				cards: [clientHitsCard(s.copy, hits, s.links)],
+				cards: [
+					hits.length > 1
+						? {
+								kind: "choices" as const,
+								title: s.copy.refusal.ambiguous,
+								options: hits.map((h) => ({
+									label: h.name,
+									...(h.phone ? { detail: h.phone } : {}),
+									ask: `${h.name} [${h.id}]`,
+								})),
+							}
+						: clientHitsCard(s.copy, hits, s.links),
+				],
 				output:
 					hits.length === 0
 						? { status: "none" }

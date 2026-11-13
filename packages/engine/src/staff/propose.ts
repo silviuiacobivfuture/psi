@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { CardLine } from "./events";
 import { fence } from "./fence";
 import {
-	actionOf,
+	actionsOf,
 	type Change,
 	newProposalId,
 	PROPOSAL_TTL_MS,
@@ -42,11 +42,13 @@ export async function propose(
 	},
 ): Promise<ToolRun<NeedsConfirmation>> {
 	const subjects = subjectsOf(change);
-	if (s.taint.stranger && change.kind !== "handle_request")
+	if (s.taint.stranger && !(change.kind === "handle_request"))
 		return { ok: false, reason: "tainted", subjects };
-	const allowed = await s.port.can(actionOf(change), subjects[0]);
-	if (!allowed.ok) return { ok: false, reason: allowed.reason, subjects };
-	if (!allowed.value) return { ok: false, reason: "not_allowed", subjects };
+	for (const action of actionsOf(change)) {
+		const allowed = await s.port.can(action, subjects[0]);
+		if (!allowed.ok) return { ok: false, reason: allowed.reason, subjects };
+		if (!allowed.value) return { ok: false, reason: "not_allowed", subjects };
+	}
 	const now = s.now();
 	const proposal: Proposal = {
 		id: newProposalId(),

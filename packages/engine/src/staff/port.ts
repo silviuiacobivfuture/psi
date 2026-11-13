@@ -3,6 +3,8 @@ import {
 	type Appointment,
 	AppointmentSchema,
 	type AppointmentStatus,
+	type Attention,
+	AttentionSchema,
 	type ClientHit,
 	ClientHitSchema,
 	type ClientSummary,
@@ -20,6 +22,8 @@ import {
 	ReminderTargetSchema,
 	type Resource,
 	ResourceSchema,
+	type ResourceState,
+	ResourceStateSchema,
 	type RosterEntry,
 	RosterEntrySchema,
 	type Service,
@@ -146,7 +150,10 @@ export interface LeaveInput {
 	kind: (typeof LEAVE_KINDS)[number];
 }
 export interface ReminderInput {
-	appointmentId: string;
+	/** A reminder about one appointment, or a notice about a balance due (then `clientId`). */
+	about: "appointment" | "payment";
+	appointmentId?: string;
+	clientId?: string;
 	expectedVersion: string;
 	channel: (typeof REMINDER_CHANNELS)[number];
 	text: string;
@@ -206,6 +213,18 @@ export interface StaffPort {
 		limit: number;
 	}): Promise<PortResult<ReadonlyArray<NoteHit>>>;
 	stats(query: { from: string; to: string }): Promise<PortResult<Stats>>;
+	/** Every room and device at a time: free, or held by whom. Feeds the floor plan too. */
+	roomsAt(query: {
+		date: string;
+		startMin: number;
+		durationMin: number;
+	}): Promise<PortResult<ReadonlyArray<ResourceState>>>;
+	/** Clients with a balance due or a package running out, with how many sessions they have booked in the period. */
+	attention(query: {
+		from: string;
+		to: string;
+		lowAt: number;
+	}): Promise<PortResult<ReadonlyArray<Attention>>>;
 }
 
 /** The schema of the value each port method returns. */
@@ -231,4 +250,6 @@ export const PORT_VALUES = {
 	reminderSent: ReminderSentSchema,
 	notes: z.array(NoteHitSchema).readonly(),
 	stats: StatsSchema,
+	roomsAt: z.array(ResourceStateSchema).readonly(),
+	attention: z.array(AttentionSchema).readonly(),
 } as const;

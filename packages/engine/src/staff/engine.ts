@@ -2,15 +2,21 @@ import type { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
 import { Mastra } from "@mastra/core/mastra";
 import { z } from "zod";
-import { ConfigurationError } from "../ask-context";
 import { createLanguageDetector } from "../language/detect";
 import { BUNDLED_LANGUAGES } from "../language/index";
 import { openMemory } from "../memory";
 import { openRouterModel, type ProviderSort, readOpenRouterKey } from "../model";
 import { createMemoryRateLimiter, type RateLimiter } from "../screening/rate-limit";
 import { createStaffAgent, STAFF_AGENT_ID } from "./agent";
+import { buildBriefing } from "./briefing";
 import { staffCopy } from "./copy";
-import { type StaffEvent, type StaffPage, type StaffScreen, StaffTurnInputSchema } from "./events";
+import {
+	type StaffCard,
+	type StaffEvent,
+	type StaffPage,
+	type StaffScreen,
+	StaffTurnInputSchema,
+} from "./events";
 import { type ConfirmOutcome, confirmProposal, dismissProposal, unconfirmed } from "./execute";
 import type { StaffLocale } from "./model";
 import { openSession, type SessionDeps } from "./open";
@@ -19,6 +25,14 @@ import { staffInstructions } from "./prompt";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
 import type { StaffLinks } from "./session";
 import { runTurn, type TurnTimeouts } from "./turn";
+
+/** The staff engine was set up wrongly: raised at startup, never during a turn. */
+export class StaffConfigurationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "StaffConfigurationError";
+	}
+}
 
 export interface StaffEngineOptions {
 	model: {
@@ -71,6 +85,8 @@ export interface StaffEngine {
 		fallback?: StaffLocale,
 	): Promise<ConfirmOutcome>;
 	dismiss(port: StaffPort | undefined, proposalId: string): Promise<boolean>;
+	/** The day at a glance, built without a model; undefined when nobody is signed in. */
+	briefing(port: StaffPort | undefined): Promise<StaffCard | undefined>;
 	/** Suggestions per screen, in the person's language. */
 	suggestions(screen: StaffScreen, locale: StaffLocale): ReadonlyArray<string>;
 }
@@ -85,7 +101,7 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		options.memory?.visitorUrl !== undefined &&
 		same(options.memory.url, options.memory.visitorUrl)
 	) {
-		throw new ConfigurationError("the staff memory must not be the visitor memory");
+		throw new StaffConfigurationError("the staff memory must not be the visitor memory");
 	}
 	const apiKey = options.model.apiKey ?? readOpenRouterKey(process.env);
 	const model = openRouterModel({
@@ -183,6 +199,10 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		async dismiss(port, proposalId) {
 			const session = port === undefined ? undefined : await open(port, {});
 			return session === undefined ? false : dismissProposal(session, proposalId);
+		},
+		async briefing(port) {
+			const session = port === undefined ? undefined : await open(port, {});
+			return session === undefined ? undefined : buildBriefing(session);
 		},
 		suggestions: (screen, locale) => staffCopy(locale).suggestions[screen],
 	};

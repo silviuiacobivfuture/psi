@@ -192,6 +192,7 @@ export function moveAppointmentTool(session: StaffSession) {
 					kind: "move_appointment",
 					id: a.id,
 					expectedVersion: a.version,
+					before: { date: a.date, startMin: a.startMin, resourceIds: a.resourceIds },
 					date: input.date,
 					startMin,
 					durationMin: a.durationMin,

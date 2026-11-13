@@ -22,6 +22,13 @@ export const TOOL_KEYS = [
 	"sendReminders",
 	"searchNotes",
 	"stats",
+	"resolveDate",
+	"roomsAt",
+	"freeRooms",
+	"attention",
+	"paymentReminders",
+	"copyWeek",
+	"absence",
 ] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
 
@@ -69,6 +76,7 @@ export interface PanelCopy {
 		string
 	>;
 	sheetLabel: string;
+	undo: string;
 }
 
 export interface StaffCopy {
@@ -85,6 +93,7 @@ export interface StaffCopy {
 			screen: string;
 			clientId?: string;
 			appointmentId?: string;
+			resourceId?: string;
 			date?: string;
 		}): string;
 		today(date: string, weekday: string, timeZone: string): string;
@@ -132,6 +141,15 @@ export interface StaffCopy {
 		total: string;
 		paid: string;
 		due: string;
+		reassigned: string;
+		toReschedule: string;
+		conflicts: string;
+		notices: string;
+		toCreate: string;
+		moves: string;
+		room: string;
+		free: string;
+		busy: string;
 	};
 	method: Readonly<Record<"cash" | "card" | "transfer", string>>;
 	channel: Readonly<Record<"email" | "whatsapp", string>>;
@@ -169,6 +187,15 @@ export interface StaffCopy {
 		notSent: string;
 		noEmail: string;
 		noPhone: string;
+		rooms(time: string): string;
+		freeRooms: string;
+		noFreeRooms: string;
+		attention: string;
+		noAttention: string;
+		attentionLine(args: { sessionsLeft: number; due: string; booked: number }): string;
+		choose(what: string): string;
+		conflictBusy: string;
+		conflictLeave: string;
 	};
 	proposal: {
 		create: string;
@@ -179,12 +206,18 @@ export interface StaffCopy {
 		leave: string;
 		handle: string;
 		reminders(n: number): string;
+		paymentReminders(n: number): string;
+		copyWeek(n: number): string;
+		absence(name: string): string;
 	};
 	result: {
 		done: string;
 		failed: string;
 		openWhatsapp(name: string): string;
 		reminderSent: string;
+		undo: string;
+		undoTitle(title: string): string;
+		progress(ran: number, total: number): string;
 	};
 	reminderText(args: {
 		name: string;
@@ -193,6 +226,25 @@ export interface StaffCopy {
 		appName: string;
 		channel: "email" | "whatsapp";
 	}): string;
+	paymentText(args: { name: string; due: string; appName: string }): string;
+	absenceText(args: { name: string; when: string; appName: string; newWhere?: string }): string;
+	briefing: {
+		title(date: string): string;
+		today(args: { count: number; first: string }): string;
+		freeToday: string;
+		unconfirmed(n: number): string;
+		unpaid(n: number): string;
+		lowPackages(n: number): string;
+		requests(n: number): string;
+		leave(names: string): string;
+		conflicts(n: number): string;
+		clear: string;
+		sections: Record<"today" | "tomorrow" | "money" | "requests" | "team", string>;
+		asks: Record<
+			"agenda" | "reminders" | "attention" | "requests" | "roster" | "paymentReminders",
+			string
+		>;
+	};
 	panel: PanelCopy;
 	suggestions: Readonly<Record<StaffScreen, ReadonlyArray<string>>>;
 }

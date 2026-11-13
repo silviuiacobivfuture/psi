@@ -185,6 +185,7 @@ export function sendRemindersTool(session: StaffSession) {
 			);
 			if (chosen.length === 0) return { ok: true, subjects: [], output: { status: "none" } };
 			const items = chosen.map((t) => ({
+				about: "appointment" as const,
 				appointmentId: t.appointmentId,
 				expectedVersion: t.version,
 				channel: input.channel,

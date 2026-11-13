@@ -33,6 +33,8 @@ export interface StaffViews {
 	refusal(x: { id: string; reason: TurnRefusal }): ViewPatch;
 	/** The turn is over. */
 	done(x: { id: string }): ViewPatch;
+	/** The day at a glance, shown when the panel opens. */
+	briefing(x: { card: StaffCard }): ViewPatch;
 	/** What a confirmation came to, replacing the proposal's card. */
 	result(x: { outcome: ConfirmOutcome }): ViewPatch;
 	/** The proposal was dismissed. */

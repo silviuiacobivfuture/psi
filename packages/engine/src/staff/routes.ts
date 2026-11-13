@@ -149,6 +149,15 @@ export function createStaffAssistantRoutes(
 		});
 	});
 
+	app.get("/briefing", async (c) => {
+		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
+		const port = await portFor(c);
+		return streamSSE(c, async (stream) => {
+			const card = await engine.briefing(port);
+			if (card !== undefined) await write(stream, views.briefing({ card }));
+		});
+	});
+
 	app.post("/confirm", async (c) => {
 		if (!fromOurPage(c)) return c.json({ error: "forbidden" }, 403);
 		const proposal = ProposalQuerySchema.safeParse(c.req.query("proposal"));

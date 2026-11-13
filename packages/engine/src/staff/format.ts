@@ -61,3 +61,15 @@ export function weekStart(date: string): string {
 export function foldName(text: string): string {
 	return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
+
+/** Minutes after local midnight now, in a time zone. */
+export function minutesNowIn(timeZone: string, now: number): number {
+	const parts = new Intl.DateTimeFormat("en-GB", {
+		timeZone,
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23",
+	}).formatToParts(new Date(now));
+	const get = (t: string): number => Number(parts.find((p) => p.type === t)?.value ?? 0);
+	return get("hour") * 60 + get("minute");
+}

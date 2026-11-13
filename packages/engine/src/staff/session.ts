@@ -39,6 +39,11 @@ export interface StaffSession {
 	readonly taint: { stranger: boolean };
 }
 
+const AmbiguousSchema = z.object({
+	status: z.literal("ambiguous"),
+	candidates: z.array(z.object({ id: z.string(), name: z.string() })),
+});
+
 export const RefusedOutputSchema = z.object({
 	status: z.literal("refused"),
 	reason: z.enum([
@@ -142,6 +147,17 @@ export function staffTool<I, O>(session: StaffSession, spec: Spec<I, O>) {
 				return refuse(run.reason);
 			}
 			session.cards.push(...(run.cards ?? []));
+			const ambiguous = AmbiguousSchema.safeParse(run.output);
+			if (ambiguous.success) {
+				session.cards.push({
+					kind: "choices",
+					title: session.copy.refusal.ambiguous,
+					options: ambiguous.data.candidates.map((c) => ({
+						label: c.name,
+						ask: `${c.name} [${c.id}]`,
+					})),
+				});
+			}
 			await record(session, {
 				tool: id,
 				phase: spec.phase,

@@ -56,5 +56,7 @@ export function guardPort(port: StaffPort): StaffPort {
 		sendReminder: (i) => guarded(p.reminderSent, "sendReminder", () => port.sendReminder(i)),
 		searchNotes: (q) => guarded(p.notes, "searchNotes", () => port.searchNotes(q)),
 		stats: (q) => guarded(p.stats, "stats", () => port.stats(q)),
+		roomsAt: (q) => guarded(p.roomsAt, "roomsAt", () => port.roomsAt(q)),
+		attention: (q) => guarded(p.attention, "attention", () => port.attention(q)),
 	};
 }

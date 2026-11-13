@@ -1,8 +1,17 @@
 import type { StaffCopy } from "./copy";
-import type { ConfirmStatus, StaffCard } from "./events";
+import type { CardLine, ConfirmStatus, StaffCard } from "./events";
 import type { Principal } from "./model";
 import type { AuditEntry, PortRefusal, PortResult, StaffPort } from "./port";
-import { type Change, type Proposal, type ProposalStore, subjectsOf } from "./proposals";
+import {
+	ANY_VERSION,
+	type Change,
+	newProposalId,
+	PROPOSAL_TTL_MS,
+	type Proposal,
+	type ProposalStore,
+	type Step,
+	subjectsOf,
+} from "./proposals";
 
 export interface ConfirmDeps {
 	port: StaffPort;
@@ -22,192 +31,240 @@ export interface ConfirmOutcome {
 const WHATSAPP_LINK = /^https:\/\/wa\.me\/\d{6,15}(\?text=[^\s]*)?$/;
 
 type Currency = "current" | "stale" | PortRefusal;
+type Read<T> = { ok: true; value: T } | { ok: false; verdict: Currency };
 
-function fromPort<T>(
-	result: PortResult<T>,
-): { ok: true; value: T } | { ok: false; verdict: Currency } {
+function read<T>(result: PortResult<T>): Read<T> {
 	return result.ok ? result : { ok: false, verdict: result.reason };
 }
 
-/** Whether what the proposal was prepared against is still true, read afresh from the service. */
-async function stillCurrent(port: StaffPort, change: Change): Promise<Currency> {
-	switch (change.kind) {
-		case "create_appointment": {
-			const check = fromPort(
-				await port.checkSlot({
-					date: change.date,
-					startMin: change.startMin,
-					durationMin: change.durationMin,
-					resourceIds: change.resourceIds,
-				}),
-			);
-			if (!check.ok) return check.verdict;
-			return check.value.free ? "current" : "stale";
-		}
+async function slotStill(
+	port: StaffPort,
+	step: Extract<Step, { kind: "create_appointment" | "move_appointment" }>,
+): Promise<Currency> {
+	const check = read(
+		await port.checkSlot({
+			date: step.date,
+			startMin: step.startMin,
+			durationMin: step.durationMin,
+			resourceIds: step.resourceIds,
+			...(step.kind === "move_appointment" ? { ignoreAppointmentId: step.id } : {}),
+		}),
+	);
+	if (!check.ok) return check.verdict;
+	return check.value.free ? "current" : "stale";
+}
+
+async function versionIs(port: StaffPort, id: string, version: string): Promise<Currency> {
+	if (version === ANY_VERSION) return "current";
+	const found = read(await port.appointment(id));
+	if (!found.ok) return found.verdict;
+	return found.value.version === version ? "current" : "stale";
+}
+
+/** Whether what a step was prepared against is still true, read afresh from the service. */
+async function stepCurrent(port: StaffPort, step: Step): Promise<Currency> {
+	switch (step.kind) {
+		case "create_appointment":
+			return slotStill(port, step);
 		case "move_appointment": {
-			const found = fromPort(await port.appointment(change.id));
-			if (!found.ok) return found.verdict;
-			if (found.value.version !== change.expectedVersion) return "stale";
-			const check = fromPort(
-				await port.checkSlot({
-					date: change.date,
-					startMin: change.startMin,
-					durationMin: change.durationMin,
-					resourceIds: change.resourceIds,
-					ignoreAppointmentId: change.id,
-				}),
-			);
-			if (!check.ok) return check.verdict;
-			return check.value.free ? "current" : "stale";
+			const version = await versionIs(port, step.id, step.expectedVersion);
+			return version === "current" ? slotStill(port, step) : version;
 		}
 		case "cancel_appointment":
-		case "mark_attendance": {
-			const found = fromPort(await port.appointment(change.id));
-			if (!found.ok) return found.verdict;
-			return found.value.version === change.expectedVersion ? "current" : "stale";
-		}
+		case "mark_attendance":
+			return versionIs(port, step.id, step.expectedVersion);
 		case "record_payment": {
-			const found = fromPort(await port.packages(change.clientId));
+			const found = read(await port.packages(step.clientId));
 			if (!found.ok) return found.verdict;
-			const pkg = found.value.find((p) => p.id === change.packageId);
+			const pkg = found.value.find((p) => p.id === step.packageId);
 			if (pkg === undefined) return "not_found";
-			return pkg.version === change.expectedVersion ? "current" : "stale";
+			return pkg.version === step.expectedVersion ? "current" : "stale";
 		}
 		case "request_leave":
 			return "current";
 		case "handle_request": {
-			const found = fromPort(await port.webRequest(change.id));
+			const found = read(await port.webRequest(step.id));
 			if (!found.ok) return found.verdict;
-			return found.value.version === change.expectedVersion && !found.value.handled
+			return found.value.version === step.expectedVersion && !found.value.handled
 				? "current"
 				: "stale";
 		}
 		case "send_reminders": {
-			for (const item of change.items) {
-				const found = fromPort(await port.appointment(item.appointmentId));
-				if (!found.ok) return found.verdict;
-				if (found.value.version !== item.expectedVersion) return "stale";
+			for (const item of step.items) {
+				if (item.about !== "appointment" || item.appointmentId === undefined) continue;
+				const verdict = await versionIs(port, item.appointmentId, item.expectedVersion);
+				if (verdict !== "current") return verdict;
 			}
 			return "current";
 		}
 		default: {
-			const never: never = change;
+			const never: never = step;
 			return never;
 		}
 	}
+}
+
+async function stillCurrent(port: StaffPort, change: Change): Promise<Currency> {
+	for (const step of change.kind === "batch" ? change.steps : [change]) {
+		const verdict = await stepCurrent(port, step);
+		if (verdict !== "current") return verdict;
+	}
+	return "current";
 }
 
 interface Done {
 	refusal?: PortRefusal;
 	links: Array<{ label: string; href: string }>;
-	lines: Array<{ label: string; value: string }>;
+	lines: Array<CardLine>;
+	/** The inverses of the steps that ran and can be reversed, in the order they ran. */
+	undo: Array<Step>;
+	ran: number;
 }
 
-async function perform(port: StaffPort, copy: StaffCopy, change: Change): Promise<Done> {
-	const done: Done = { links: [], lines: [] };
-	const refused = (result: PortResult<unknown>): Done =>
-		result.ok ? done : { ...done, refusal: result.reason };
-	switch (change.kind) {
-		case "create_appointment":
-			return refused(
-				await port.createAppointment({
-					clientId: change.clientId,
-					serviceId: change.serviceId,
-					date: change.date,
-					startMin: change.startMin,
-					durationMin: change.durationMin,
-					resourceIds: change.resourceIds,
-				}),
-			);
-		case "move_appointment":
-			return refused(
-				await port.moveAppointment({
-					id: change.id,
-					expectedVersion: change.expectedVersion,
-					date: change.date,
-					startMin: change.startMin,
-					resourceIds: change.resourceIds,
-				}),
-			);
+async function performStep(
+	port: StaffPort,
+	copy: StaffCopy,
+	step: Step,
+	done: Done,
+): Promise<void> {
+	const refused = (result: PortResult<unknown>): void => {
+		if (!result.ok) done.refusal = result.reason;
+	};
+	switch (step.kind) {
+		case "create_appointment": {
+			const made = await port.createAppointment({
+				clientId: step.clientId,
+				serviceId: step.serviceId,
+				date: step.date,
+				startMin: step.startMin,
+				durationMin: step.durationMin,
+				resourceIds: step.resourceIds,
+			});
+			refused(made);
+			if (made.ok)
+				done.undo.push({
+					kind: "cancel_appointment",
+					id: made.value.id,
+					expectedVersion: made.value.version,
+				});
+			return;
+		}
+		case "move_appointment": {
+			const moved = await port.moveAppointment({
+				id: step.id,
+				expectedVersion: step.expectedVersion,
+				date: step.date,
+				startMin: step.startMin,
+				resourceIds: step.resourceIds,
+			});
+			refused(moved);
+			if (moved.ok) {
+				done.undo.push({
+					kind: "move_appointment",
+					id: step.id,
+					expectedVersion: moved.value.version,
+					date: step.before.date,
+					startMin: step.before.startMin,
+					durationMin: step.durationMin,
+					resourceIds: step.before.resourceIds,
+					before: { date: step.date, startMin: step.startMin, resourceIds: step.resourceIds },
+				});
+			}
+			return;
+		}
 		case "cancel_appointment":
 			return refused(
-				await port.cancelAppointment({
-					id: change.id,
-					expectedVersion: change.expectedVersion,
-				}),
+				await port.cancelAppointment({ id: step.id, expectedVersion: step.expectedVersion }),
 			);
 		case "mark_attendance":
 			return refused(
 				await port.markAttendance({
-					id: change.id,
-					expectedVersion: change.expectedVersion,
-					status: change.status,
+					id: step.id,
+					expectedVersion: step.expectedVersion,
+					status: step.status,
 				}),
 			);
 		case "record_payment":
 			return refused(
 				await port.recordPayment({
-					clientId: change.clientId,
-					packageId: change.packageId,
-					expectedVersion: change.expectedVersion,
-					amountBani: change.amountBani,
-					method: change.method,
+					clientId: step.clientId,
+					packageId: step.packageId,
+					expectedVersion: step.expectedVersion,
+					amountBani: step.amountBani,
+					method: step.method,
 				}),
 			);
 		case "request_leave":
 			return refused(
 				await port.requestLeave({
-					personId: change.personId,
-					from: change.from,
-					to: change.to,
-					kind: change.leaveKind,
+					personId: step.personId,
+					from: step.from,
+					to: step.to,
+					kind: step.leaveKind,
 				}),
 			);
 		case "handle_request":
 			return refused(
-				await port.markRequestHandled({
-					id: change.id,
-					expectedVersion: change.expectedVersion,
-				}),
+				await port.markRequestHandled({ id: step.id, expectedVersion: step.expectedVersion }),
 			);
 		case "send_reminders": {
-			for (const item of change.items) {
+			for (const item of step.items) {
+				let version = item.expectedVersion;
+				if (version === ANY_VERSION && item.appointmentId !== undefined) {
+					const current = await port.appointment(item.appointmentId);
+					version = current.ok ? current.value.version : version;
+				}
 				const sent = await port.sendReminder({
-					appointmentId: item.appointmentId,
-					expectedVersion: item.expectedVersion,
+					about: item.about,
+					...(item.appointmentId === undefined ? {} : { appointmentId: item.appointmentId }),
+					...(item.clientId === undefined ? {} : { clientId: item.clientId }),
+					expectedVersion: version,
 					channel: item.channel,
 					text: item.text,
 				});
 				if (!sent.ok) {
-					done.lines.push({
-						label: item.name,
-						value: copy.refusal[sent.reason],
-					});
+					done.lines.push({ label: item.name, value: copy.refusal[sent.reason] });
 					done.refusal ??= sent.reason;
 					continue;
 				}
 				done.lines.push({ label: item.name, value: copy.result.reminderSent });
 				if (sent.value.link !== undefined && WHATSAPP_LINK.test(sent.value.link)) {
-					done.links.push({
-						label: copy.result.openWhatsapp(item.name),
-						href: sent.value.link,
-					});
+					done.links.push({ label: copy.result.openWhatsapp(item.name), href: sent.value.link });
 				}
 			}
-			return done;
+			return;
 		}
 		default: {
-			const never: never = change;
+			const never: never = step;
 			return never;
 		}
 	}
 }
 
+/** Runs the steps in order and stops at the first the service refuses; what ran is reported. */
+async function perform(port: StaffPort, copy: StaffCopy, change: Change): Promise<Done> {
+	const done: Done = { links: [], lines: [], undo: [], ran: 0 };
+	for (const step of change.kind === "batch" ? change.steps : [change]) {
+		try {
+			await performStep(port, copy, step, done);
+		} catch {
+			done.refusal = "unavailable";
+		}
+		if (done.refusal !== undefined) break;
+		done.ran += 1;
+	}
+	return done;
+}
+
 function resultCard(
 	copy: StaffCopy,
-	proposal: { id: string; title: string },
+	proposal: { id: string; title: string; lines?: ReadonlyArray<CardLine> },
 	status: ConfirmStatus,
-	extra: Partial<Pick<Done, "links" | "lines">> = {},
+	extra: {
+		links?: Done["links"];
+		lines?: Done["lines"];
+		undo?: { proposalId: string; label: string };
+	} = {},
 ): ConfirmOutcome {
 	const ok = status === "done";
 	return {
@@ -217,8 +274,13 @@ function resultCard(
 			proposalId: proposal.id,
 			ok,
 			title: `${ok ? copy.result.done : copy.result.failed} · ${proposal.title}`,
-			lines: [{ label: "", value: copy.confirmOutcome[status] }, ...(extra.lines ?? [])],
+			lines: [
+				{ label: "", value: copy.confirmOutcome[status] },
+				...(ok ? (proposal.lines ?? []) : []),
+				...(extra.lines ?? []),
+			],
 			links: extra.links ?? [],
+			...(extra.undo === undefined ? {} : { undo: extra.undo }),
 		},
 	};
 }
@@ -236,12 +298,35 @@ async function audit(port: StaffPort, entry: AuditEntry): Promise<boolean> {
 	return (await port.audit(entry)).ok;
 }
 
+/** The inverse of what ran, prepared for the person to press once more; undefined when nothing can be reversed. */
+async function prepareUndo(deps: ConfirmDeps, proposal: Proposal, steps: ReadonlyArray<Step>) {
+	const [first, ...rest] = [...steps].reverse();
+	if (first === undefined) return undefined;
+	const change: Change = rest.length === 0 ? first : { kind: "batch", steps: [first, ...rest] };
+	const now = deps.now();
+	const undo: Proposal = {
+		id: newProposalId(),
+		sub: deps.principal.sub,
+		appId: deps.principal.appId,
+		createdAt: now,
+		expiresAt: now + PROPOSAL_TTL_MS,
+		change,
+		title: deps.copy.result.undoTitle(proposal.title),
+		lines: proposal.lines,
+		destructive: false,
+		state: "open",
+	};
+	await deps.proposals.put(undo);
+	return { proposalId: undo.id, label: deps.copy.result.undo };
+}
+
 /**
  * Executes a proposal the person confirmed, once. In order: the proposal must exist for this very
  * person and app, be open and unexpired (claimed atomically, so a double click runs one); the
  * person must still be who they were; what it was prepared against must still be true; the audit
  * entry for the start must be recorded (no record, no write); only then the service is called,
- * with the same token, so its own permission check answers. Anything refused is final.
+ * with the same token, so its own permission check answers. Anything refused is final. A change
+ * that can be reversed comes back with a prepared undo.
  */
 export async function confirmProposal(
 	deps: ConfirmDeps,
@@ -256,30 +341,31 @@ export async function confirmProposal(
 	);
 	if (!claimed.ok) return unconfirmed(copy, proposalId, claimed.reason);
 	const proposal: Proposal = claimed.proposal;
-	const settle = async (status: ConfirmStatus, extra?: Partial<Pick<Done, "links" | "lines">>) => {
+	const settle = async (status: ConfirmStatus, extra?: Parameters<typeof resultCard>[3]) => {
 		await deps.proposals.finish(proposal.id, "done");
 		return resultCard(copy, proposal, status, extra);
 	};
-	const who = fromPort(await port.whoami());
+	const who = read(await port.whoami());
 	if (!who.ok || who.value.sub !== principal.sub || who.value.appId !== principal.appId) {
 		return settle("no_principal");
 	}
+	const subjects = [...subjectsOf(proposal.change)];
+	const tool = proposal.change.kind;
 	const verdict = await stillCurrent(port, proposal.change);
 	if (verdict !== "current") {
 		await audit(port, {
-			tool: proposal.change.kind,
+			tool,
 			phase: "refused",
 			outcome: "refused",
-			subjects: [...subjectsOf(proposal.change)],
+			subjects,
 			proposalId: proposal.id,
 			reason: verdict,
 		});
 		return settle(verdict);
 	}
-	const subjects = [...subjectsOf(proposal.change)];
 	if (
 		!(await audit(port, {
-			tool: proposal.change.kind,
+			tool,
 			phase: "execute_start",
 			outcome: "ok",
 			subjects,
@@ -288,21 +374,23 @@ export async function confirmProposal(
 	) {
 		return settle("audit_failed");
 	}
-	let done: Done;
-	try {
-		done = await perform(port, copy, proposal.change);
-	} catch {
-		done = { refusal: "unavailable", links: [], lines: [] };
-	}
+	const done = await perform(port, copy, proposal.change);
 	await audit(port, {
-		tool: proposal.change.kind,
+		tool,
 		phase: "execute",
 		outcome: done.refusal === undefined ? "ok" : "refused",
 		subjects,
 		proposalId: proposal.id,
 		...(done.refusal === undefined ? {} : { reason: done.refusal }),
 	});
-	return settle(done.refusal ?? "done", done);
+	const total = proposal.change.kind === "batch" ? proposal.change.steps.length : 1;
+	const progress = total > 1 ? [{ label: "", value: copy.result.progress(done.ran, total) }] : [];
+	const undo = await prepareUndo(deps, proposal, done.undo);
+	return settle(done.refusal ?? "done", {
+		links: done.links,
+		lines: [...progress, ...done.lines],
+		...(undo === undefined ? {} : { undo }),
+	});
 }
 
 /** The person chose not to: the proposal is closed so it can never be confirmed later. */

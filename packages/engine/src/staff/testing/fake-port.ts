@@ -1,12 +1,14 @@
 import { foldName } from "../format";
 import type {
 	Appointment,
+	Attention,
 	ClientSummary,
 	NoteHit,
 	PackageBalance,
 	Principal,
 	ReminderTarget,
 	Resource,
+	ResourceState,
 	RosterEntry,
 	Service,
 	WebRequest,
@@ -88,8 +90,9 @@ function seed(): FakeData {
 		resources: [
 			{ id: "p1", kind: "person", name: "Ana Pop" },
 			{ id: "p2", kind: "person", name: "Dan Ionescu" },
-			{ id: "r1", kind: "room", name: "Cabinet Terapie" },
-			{ id: "d1", kind: "device", name: "NFB 1" },
+			{ id: "r1", kind: "room", name: "Cabinet Terapie", equipment: ["therapy"] },
+			{ id: "r2", kind: "room", name: "Sala Grup", equipment: ["group"] },
+			{ id: "d1", kind: "device", name: "NFB 1", equipment: ["nfb"] },
 		],
 		services: [
 			{ id: "s1", name: "Evaluare", durationMin: 50, priceBani: 15_000 },
@@ -223,6 +226,29 @@ export class FakeStaffPort implements StaffPort {
 	appointmentOf(id: string): Appointment {
 		const found = this.data.appointments.find((a) => a.id === id);
 		if (found === undefined) throw new Error(`no appointment ${id}`);
+		return found;
+	}
+
+	packageOf(id: string): PackageBalance {
+		const found = this.data.packages.find((p) => p.id === id);
+		if (found === undefined) throw new Error(`no package ${id}`);
+		return found;
+	}
+
+	reminderOf(appointmentId: string): ReminderTarget {
+		const found = this.data.reminders.find((r) => r.appointmentId === appointmentId);
+		if (found === undefined) throw new Error(`no reminder ${appointmentId}`);
+		return found;
+	}
+
+	/** The signed-in person with some fields changed. */
+	signIn(change: Partial<Principal>): void {
+		this.principal = { ...FAKE_PRINCIPAL, ...change };
+	}
+
+	noteOf(id: string): NoteHit {
+		const found = this.data.notes.find((n) => n.id === id);
+		if (found === undefined) throw new Error(`no note ${id}`);
 		return found;
 	}
 
@@ -567,7 +593,9 @@ export class FakeStaffPort implements StaffPort {
 	}
 
 	async sendReminder(i: {
-		appointmentId: string;
+		about: "appointment" | "payment";
+		appointmentId?: string;
+		clientId?: string;
 		expectedVersion: string;
 		channel: "email" | "whatsapp";
 		text: string;
@@ -575,7 +603,7 @@ export class FakeStaffPort implements StaffPort {
 		const denied = this.gate("sendReminder", i);
 		if (denied) return denied;
 		this.data.sent.push({
-			appointmentId: i.appointmentId,
+			appointmentId: i.appointmentId ?? i.clientId ?? "",
 			channel: i.channel,
 			text: i.text,
 		});
@@ -623,5 +651,64 @@ export class FakeStaffPort implements StaffPort {
 				0,
 			),
 		});
+	}
+
+	async roomsAt(q: { date: string; startMin: number; durationMin: number }) {
+		const denied = this.gate("roomsAt", q);
+		if (denied) return denied;
+		const states: Array<ResourceState> = this.data.resources
+			.filter((r) => r.kind !== "person")
+			.map((resource) => {
+				const held = this.data.appointments.find(
+					(a) =>
+						a.status !== "cancelled" &&
+						a.date === q.date &&
+						a.resourceIds.includes(resource.id) &&
+						a.startMin < q.startMin + q.durationMin &&
+						q.startMin < a.startMin + a.durationMin,
+				);
+				return {
+					resource,
+					busy: held
+						? {
+								appointmentId: held.id,
+								startMin: held.startMin,
+								durationMin: held.durationMin,
+								clientName: held.clientName,
+							}
+						: null,
+				};
+			});
+		return ok(states);
+	}
+
+	async attention(q: { from: string; to: string; lowAt: number }) {
+		const denied = this.gate("attention", q);
+		if (denied) return denied;
+		const out: Array<Attention> = [];
+		for (const p of this.data.packages) {
+			const left = p.sessions + p.bonus - p.used;
+			const due = Math.max(0, p.totalBani - p.paidBani);
+			if (due === 0 && left > q.lowAt) continue;
+			const client = this.data.clients.find((c) => c.id === p.clientId);
+			out.push({
+				clientId: p.clientId,
+				clientName: client?.name ?? p.clientId,
+				packageId: p.id,
+				packageName: p.name,
+				sessionsLeft: left,
+				dueBani: due,
+				canEmail: (client?.email ?? null) !== null,
+				canWhatsapp: (client?.phone ?? null) !== null,
+				bookedInPeriod: this.data.appointments.filter(
+					(a) =>
+						a.clientId === p.clientId &&
+						a.date >= q.from &&
+						a.date <= q.to &&
+						a.status !== "cancelled",
+				).length,
+			});
+		}
+		return ok(out);
 	}
 }

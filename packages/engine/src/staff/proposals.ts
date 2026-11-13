@@ -19,30 +19,36 @@ import type { StaffAction } from "./port";
  * change carries everything execution needs and the versions it was prepared against, so a
  * confirmation after anything changed is refused.
  */
-export const ChangeSchema = z.discriminatedUnion("kind", [
+/** A version the change was not prepared against: read fresh when it runs (a notice about a move made in the same batch). */
+export const ANY_VERSION = "*";
+
+const Where = {
+	date: DateSchema,
+	startMin: MinuteSchema,
+	durationMin: z.number().int().positive(),
+	resourceIds: z.array(IdSchema).min(1).max(10),
+};
+
+const StepSchema = z.discriminatedUnion("kind", [
 	z.object({
 		kind: z.literal("create_appointment"),
 		clientId: IdSchema,
 		serviceId: IdSchema,
-		date: DateSchema,
-		startMin: MinuteSchema,
-		durationMin: z.number().int().positive(),
-		resourceIds: z.array(IdSchema).min(1).max(10),
+		...Where,
 	}),
 	z.object({
 		kind: z.literal("move_appointment"),
 		id: IdSchema,
 		expectedVersion: VersionSchema,
-		date: DateSchema,
-		startMin: MinuteSchema,
-		durationMin: z.number().int().positive(),
-		resourceIds: z.array(IdSchema).min(1).max(10),
+		...Where,
+		/** Where it was, so the move can be undone. */
+		before: z.object({
+			date: DateSchema,
+			startMin: MinuteSchema,
+			resourceIds: z.array(IdSchema).min(1).max(10),
+		}),
 	}),
-	z.object({
-		kind: z.literal("cancel_appointment"),
-		id: IdSchema,
-		expectedVersion: VersionSchema,
-	}),
+	z.object({ kind: z.literal("cancel_appointment"), id: IdSchema, expectedVersion: VersionSchema }),
 	z.object({
 		kind: z.literal("mark_attendance"),
 		id: IdSchema,
@@ -64,17 +70,16 @@ export const ChangeSchema = z.discriminatedUnion("kind", [
 		to: DateSchema,
 		leaveKind: z.enum(LEAVE_KINDS),
 	}),
-	z.object({
-		kind: z.literal("handle_request"),
-		id: IdSchema,
-		expectedVersion: VersionSchema,
-	}),
+	z.object({ kind: z.literal("handle_request"), id: IdSchema, expectedVersion: VersionSchema }),
 	z.object({
 		kind: z.literal("send_reminders"),
 		items: z
 			.array(
 				z.object({
-					appointmentId: IdSchema,
+					/** `appointment`: about one appointment; `payment`: about a balance (needs the client). */
+					about: z.enum(["appointment", "payment"]),
+					appointmentId: IdSchema.optional(),
+					clientId: IdSchema.optional(),
 					expectedVersion: VersionSchema,
 					channel: z.enum(REMINDER_CHANNELS),
 					text: z.string().min(1).max(2000),
@@ -82,14 +87,20 @@ export const ChangeSchema = z.discriminatedUnion("kind", [
 				}),
 			)
 			.min(1)
-			.max(25),
+			.max(40),
 	}),
+]);
+export type Step = z.infer<typeof StepSchema>;
+
+/** One change, or several that the person confirms together and that run in order. */
+export const ChangeSchema = z.union([
+	StepSchema,
+	z.object({ kind: z.literal("batch"), steps: z.array(StepSchema).min(1).max(60) }),
 ]);
 export type Change = z.infer<typeof ChangeSchema>;
 
-/** The permission a change needs: what `can` is asked before a proposal exists. */
-export function actionOf(change: Change): StaffAction {
-	switch (change.kind) {
+function actionOfStep(step: Step): StaffAction {
+	switch (step.kind) {
 		case "create_appointment":
 			return "appointments.create";
 		case "move_appointment":
@@ -107,33 +118,44 @@ export function actionOf(change: Change): StaffAction {
 		case "send_reminders":
 			return "reminders.send";
 		default: {
-			const never: never = change;
+			const never: never = step;
 			return never;
 		}
 	}
 }
 
-/** What a change touches, as ids: for the audit entry. */
-export function subjectsOf(change: Change): ReadonlyArray<string> {
-	switch (change.kind) {
+/** The permissions a change needs, each asked before a proposal exists. */
+export function actionsOf(change: Change): ReadonlyArray<StaffAction> {
+	const steps = change.kind === "batch" ? change.steps : [change];
+	return [...new Set(steps.map(actionOfStep))];
+}
+
+function subjectsOfStep(step: Step): ReadonlyArray<string> {
+	switch (step.kind) {
 		case "create_appointment":
-			return [change.clientId];
+			return [step.clientId];
 		case "move_appointment":
 		case "cancel_appointment":
 		case "mark_attendance":
 		case "handle_request":
-			return [change.id];
+			return [step.id];
 		case "record_payment":
-			return [change.clientId, change.packageId];
+			return [step.clientId, step.packageId];
 		case "request_leave":
-			return [change.personId];
+			return [step.personId];
 		case "send_reminders":
-			return change.items.map((item) => item.appointmentId);
+			return step.items.map((item) => item.appointmentId ?? item.clientId ?? "");
 		default: {
-			const never: never = change;
+			const never: never = step;
 			return never;
 		}
 	}
+}
+
+/** What a change touches, as ids: for the audit entry (at most 50). */
+export function subjectsOf(change: Change): ReadonlyArray<string> {
+	const steps = change.kind === "batch" ? change.steps : [change];
+	return [...new Set(steps.flatMap(subjectsOfStep))].slice(0, 50);
 }
 
 export interface Proposal {

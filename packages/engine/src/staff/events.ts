@@ -25,6 +25,8 @@ export const StaffPageSchema = z
 		screen: z.enum(STAFF_SCREENS),
 		clientId: IdSchema.optional(),
 		appointmentId: IdSchema.optional(),
+		/** The room, device or person column open (the floor plan, a calendar column). */
+		resourceId: IdSchema.optional(),
 		date: DateSchema.optional(),
 	})
 	.strict();
@@ -112,6 +114,29 @@ export const StaffCardSchema = z.discriminatedUnion("kind", [
 		title: z.string(),
 		lines: z.array(Line),
 		links: z.array(z.object({ label: z.string(), href: z.string() })),
+		/** What undoes it: a prepared proposal the person confirms with one more press. */
+		undo: z.object({ proposalId: z.string(), label: z.string() }).optional(),
+	}),
+	/** Several people or things match: each option is tappable and sends `ask` as the next message. */
+	z.object({
+		kind: z.literal("choices"),
+		title: z.string(),
+		options: z.array(
+			z.object({ label: z.string(), detail: z.string().optional(), ask: z.string() }),
+		),
+	}),
+	/** The day at a glance: sections of items, each with a one-tap follow-up. */
+	z.object({
+		kind: z.literal("briefing"),
+		title: z.string(),
+		sections: z.array(
+			z.object({
+				title: z.string(),
+				tone: Tone,
+				items: z.array(z.object({ text: z.string(), ask: z.string().optional() })),
+			}),
+		),
+		clear: z.string().optional(),
 	}),
 ]);
 export type StaffCard = z.infer<typeof StaffCardSchema>;

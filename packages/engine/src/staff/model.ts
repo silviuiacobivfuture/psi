@@ -36,6 +36,8 @@ export const ResourceSchema = z.object({
 	id: IdSchema,
 	kind: z.enum(RESOURCE_KINDS),
 	name: z.string().min(1).max(200),
+	/** What a room or device offers ("nfb", "kinetotherapy", "group"): configured by the team. */
+	equipment: z.array(z.string().max(60)).max(20).optional(),
 });
 export type Resource = z.infer<typeof ResourceSchema>;
 
@@ -194,3 +196,33 @@ export type Stats = z.infer<typeof StatsSchema>;
 export const PAYMENT_METHODS = ["cash", "card", "transfer"] as const;
 export const REMINDER_CHANNELS = ["email", "whatsapp"] as const;
 export const LEAVE_KINDS = ["leave", "medical"] as const;
+
+/** A room or device at one time: free, or held by an appointment. */
+export const ResourceStateSchema = z.object({
+	resource: ResourceSchema,
+	busy: z
+		.object({
+			appointmentId: IdSchema,
+			startMin: MinuteSchema,
+			durationMin: z.number().int().positive().max(1440),
+			clientName: z.string().max(300).nullable(),
+		})
+		.nullable(),
+});
+export type ResourceState = z.infer<typeof ResourceStateSchema>;
+
+/** A client with something to act on: a balance due, or a package running out. */
+export const AttentionSchema = z.object({
+	clientId: IdSchema,
+	clientName: z.string().max(300),
+	packageId: IdSchema,
+	packageName: z.string().max(300),
+	sessionsLeft: z.number().int(),
+	dueBani: BaniSchema,
+	/** Sessions of this client still booked from today to the end of the asked period. */
+	bookedInPeriod: z.number().int().nonnegative(),
+	/** Whether the service holds an address / a phone number to send a notice to. */
+	canEmail: z.boolean(),
+	canWhatsapp: z.boolean(),
+});
+export type Attention = z.infer<typeof AttentionSchema>;
