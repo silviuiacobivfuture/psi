@@ -66,7 +66,7 @@ spec:
             readOnlyRootFilesystem: true
       containers:
         - name: n8n-sso
-          image: WLREGISTRY/WLAPPS/n8n-sso:1a34fbe14@sha256:fe1b379f1a6708995192b125ed9fbfd3e0dd21ca21e409c93d7e487fe0b6b2f0
+          image: WLREGISTRY/WLAPPS/n8n-sso:3de0a5afe@sha256:4fc8bed59db5de42b56fb0e810f9fbc52d18518c506250b24757078f8b49e391
           envFrom:
             - secretRef: { name: n8n-sso }
           env:
