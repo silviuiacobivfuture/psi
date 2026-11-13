@@ -194,3 +194,54 @@ describe("the generated bundles", () => {
 		expect(out).toContain("bundles up to date");
 	});
 });
+
+describe("createPwa and Novu's push path", () => {
+	const ON: PushConfig = {
+		...CONFIG,
+		vapid: {
+			publicKey: `B${"k".repeat(86)}`,
+			privateKey: "p".repeat(43),
+			subject: "mailto:ops@psizone.ro",
+		},
+		storage: "memory",
+		off: null,
+	};
+	const KEYS = { p256dh: `B${"p".repeat(86)}`, auth: "a".repeat(22) };
+
+	it("exposes the VAPID transport only while push is on", () => {
+		expect(createPwa(SITE, CONFIG).transport()).toBeNull();
+		expect(createPwa(SITE, ON).transport()).not.toBeNull();
+	});
+
+	it("passes the device-change hook through to the push API", async () => {
+		const seen: string[] = [];
+		const site: PwaSite = {
+			...SITE,
+			topics: ["booking", "requests"],
+			identity: {
+				session: () => async (_c, next) => next(),
+				current: () => ({ subject: "alice", user: "u", email: null, name: null }),
+			},
+			onDevicesChanged: async (s) => {
+				seen.push(s);
+			},
+		};
+		const app = new Hono();
+		createPwa(site, ON).mount(app);
+		const res = await app.request("/pwa/push/subscribe", {
+			method: "POST",
+			headers: { "content-type": "application/json", origin: SITE.origin },
+			body: JSON.stringify({
+				subscription: {
+					endpoint: "https://fcm.googleapis.com/fcm/send/x1",
+					expirationTime: null,
+					keys: KEYS,
+				},
+				topics: ["requests"],
+				locale: "ro",
+			}),
+		});
+		expect(res.status).toBe(200);
+		expect(seen).toEqual(["alice"]);
+	});
+});

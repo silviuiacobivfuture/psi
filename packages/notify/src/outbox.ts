@@ -9,6 +9,8 @@ export interface Job {
 	readonly app: string;
 	readonly event: string;
 	attempts: number;
+	/** How many times Novu answered from a kept refusal: the key walks to `<key>:r<n>`. */
+	replays: number;
 	dueAt: number;
 }
 
@@ -20,7 +22,7 @@ export interface Outbox {
 	add(job: Job): Promise<void>;
 	/** Jobs due at `now`, oldest first, at most `limit`. */
 	due(now: number, limit: number): Promise<ReadonlyArray<Job>>;
-	reschedule(id: string, attempts: number, dueAt: number): Promise<void>;
+	reschedule(id: string, attempts: number, dueAt: number, replays: number): Promise<void>;
 	remove(id: string): Promise<void>;
 	size(): Promise<number>;
 }
@@ -40,10 +42,11 @@ export function createMemoryOutbox(): Outbox {
 					.slice(0, limit),
 			);
 		},
-		reschedule(id, attempts, dueAt) {
+		reschedule(id, attempts, dueAt, replays) {
 			const job = jobs.get(id);
 			if (job) {
 				job.attempts = attempts;
+				job.replays = replays;
 				job.dueAt = dueAt;
 			}
 			return Promise.resolve();

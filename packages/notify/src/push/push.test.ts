@@ -49,8 +49,8 @@ function setup(result: SendResult = { ok: true, status: 201 }) {
 	};
 	const app = createPushHook({
 		secret: SECRET,
-		store,
-		transport,
+		store: async () => store,
+		transport: () => transport,
 		site: "psizone",
 		now: () => 5000,
 	});
@@ -195,6 +195,21 @@ describe("push hook: the push service's answers", () => {
 		const res = await post(app, body([d.id]));
 		expect(res.status).toBe(502);
 		expect((await store.byEndpoint(d.endpoint))?.failures).toBe(1);
+	});
+});
+
+describe("push hook: push switched off", () => {
+	it("answers 503 and touches no device while there is no VAPID transport", async () => {
+		const store = memoryPushStore();
+		const d = await device(store, 1);
+		const app = createPushHook({
+			secret: SECRET,
+			store: async () => store,
+			transport: () => null,
+			site: "psizone",
+		});
+		const raw = body([d.id]);
+		expect((await post(app, raw)).status).toBe(503);
 	});
 });
 

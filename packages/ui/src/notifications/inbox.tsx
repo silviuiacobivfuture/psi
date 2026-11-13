@@ -31,7 +31,6 @@ export interface InboxLabels {
 	groupToday: string;
 	groupEarlier: string;
 	unread: string;
-	close: string;
 }
 
 /** The endpoints the console serves (see @psi/notify/inbox). */
@@ -92,14 +91,102 @@ function Group(props: {
 	);
 }
 
+const unreadOf = (data: InboxData): number => (data.state === "ready" ? data.unread : 0);
+
+/** The unread count on the bell: a patch target of its own, so a patch never touches the bell's button. */
+export function InboxBadge({ data }: { data: InboxData }): JSX.Element {
+	const unread = unreadOf(data);
+	return (
+		<span id="psi-inbox-badge" class="psi-inbox__badge" aria-hidden="true" hidden={unread === 0}>
+			{unread === 0 ? "" : count(unread)}
+		</span>
+	);
+}
+
+/** What the bell announces and what describes it to a screen reader. */
+export function InboxStatus({
+	data,
+	labels,
+}: {
+	data: InboxData;
+	labels: InboxLabels;
+}): JSX.Element {
+	return (
+		<output id="psi-inbox-status" class="psi-inbox__sr" aria-live="polite">
+			{labels.bell(unreadOf(data))}
+		</output>
+	);
+}
+
+/** The panel's content: the head, then the groups, the empty message or the error. */
+export function InboxBody({ data, labels, urls }: InboxProps): JSX.Element {
+	const unread = unreadOf(data);
+	const entries = data.state === "ready" ? data.entries : [];
+	return (
+		<div id="psi-inbox-body">
+			<header class="psi-inbox__head">
+				<h2 class="psi-inbox__title">{labels.title}</h2>
+				{unread > 0 ? (
+					<button
+						type="button"
+						class="psi-inbox__all"
+						data-on:click={`@post('${urls.readAll}', {retry: 'never'})`}
+					>
+						{labels.markAll}
+					</button>
+				) : null}
+			</header>
+			{data.state === "error" ? (
+				<div class="psi-inbox__message" role="alert">
+					<p>{labels.error}</p>
+					<button type="button" class="psi-inbox__retry" data-on:click={`@get('${urls.panel}')`}>
+						{labels.retry}
+					</button>
+				</div>
+			) : entries.length === 0 ? (
+				<p class="psi-inbox__message">{labels.empty}</p>
+			) : (
+				<>
+					<Group
+						title={labels.groupToday}
+						entries={entries.filter((e) => e.group === "today")}
+						labels={labels}
+						urls={urls}
+					/>
+					<Group
+						title={labels.groupEarlier}
+						entries={entries.filter((e) => e.group === "earlier")}
+						labels={labels}
+						urls={urls}
+					/>
+				</>
+			)}
+		</div>
+	);
+}
+
+/**
+ * What the server sends on every change: the three live regions as Datastar element patches. The
+ * shell (the bell button, the open panel, the stream) is never re-sent, so an open panel stays open
+ * and the one stream stays the one stream.
+ */
+export function inboxPatch(props: InboxProps): string {
+	return [
+		(<InboxBadge data={props.data} />).toString(),
+		(<InboxStatus data={props.data} labels={props.labels} />).toString(),
+		(<InboxBody {...props} />).toString(),
+	]
+		.join("")
+		.replace(/\n/g, " ");
+}
+
 /**
  * The bell with its unread badge and the panel it opens: grouped notifications, mark one or all as
- * read, deep links. Server-rendered; the stream patches `#psi-inbox` in place, so the badge moves
- * live. No React, no script of its own beyond Datastar expressions.
+ * read, deep links. Server-rendered; the stream patches the badge, the status and the body in
+ * place, so the count moves live. No React, no script of its own beyond Datastar expressions.
  */
-export function Inbox({ data, labels, urls, class: className }: InboxProps): JSX.Element {
-	const unread = data.state === "ready" ? data.unread : 0;
-	const entries = data.state === "ready" ? data.entries : [];
+export function Inbox(props: InboxProps): JSX.Element {
+	const { data, labels, urls, class: className } = props;
 	return (
 		<div
 			id="psi-inbox"
@@ -112,10 +199,11 @@ export function Inbox({ data, labels, urls, class: className }: InboxProps): JSX
 				id="psi-inbox-bell"
 				type="button"
 				class="psi-inbox__bell"
-				aria-label={labels.bell(unread)}
+				aria-label={labels.title}
+				aria-describedby="psi-inbox-status"
 				aria-expanded="false"
 				aria-controls="psi-inbox-panel"
-				data-attr:aria-expanded="$inboxOpen"
+				data-attr:aria-expanded="$inboxOpen ? 'true' : 'false'"
 				data-on:click="$inboxOpen = !$inboxOpen"
 			>
 				<svg
@@ -133,11 +221,7 @@ export function Inbox({ data, labels, urls, class: className }: InboxProps): JSX
 					<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9Z" />
 					<path d="M10 19a2 2 0 0 0 4 0" />
 				</svg>
-				{unread > 0 ? (
-					<span class="psi-inbox__badge" aria-hidden="true">
-						{count(unread)}
-					</span>
-				) : null}
+				<InboxBadge data={data} />
 			</button>
 			<section
 				id="psi-inbox-panel"
@@ -146,47 +230,9 @@ export function Inbox({ data, labels, urls, class: className }: InboxProps): JSX
 				data-show="$inboxOpen"
 				style="display:none"
 			>
-				<header class="psi-inbox__head">
-					<h2 class="psi-inbox__title">{labels.title}</h2>
-					{unread > 0 ? (
-						<button
-							type="button"
-							class="psi-inbox__all"
-							data-on:click={`@post('${urls.readAll}', {retry: 'never'})`}
-						>
-							{labels.markAll}
-						</button>
-					) : null}
-				</header>
-				{data.state === "error" ? (
-					<div class="psi-inbox__message" role="alert">
-						<p>{labels.error}</p>
-						<button type="button" class="psi-inbox__retry" data-on:click={`@get('${urls.panel}')`}>
-							{labels.retry}
-						</button>
-					</div>
-				) : entries.length === 0 ? (
-					<p class="psi-inbox__message">{labels.empty}</p>
-				) : (
-					<>
-						<Group
-							title={labels.groupToday}
-							entries={entries.filter((e) => e.group === "today")}
-							labels={labels}
-							urls={urls}
-						/>
-						<Group
-							title={labels.groupEarlier}
-							entries={entries.filter((e) => e.group === "earlier")}
-							labels={labels}
-							urls={urls}
-						/>
-					</>
-				)}
+				<InboxBody {...props} />
 			</section>
-			<output class="psi-inbox__sr" aria-live="polite">
-				{labels.bell(unread)}
-			</output>
+			<InboxStatus data={data} labels={labels} />
 		</div>
 	);
 }

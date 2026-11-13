@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import { Inbox, type InboxEntry, type InboxLabels, type InboxUrls } from "./inbox";
+import { Inbox, type InboxEntry, type InboxLabels, type InboxUrls, inboxPatch } from "./inbox";
 
 const labels: InboxLabels = {
 	title: "Notificări",
@@ -17,7 +17,6 @@ const labels: InboxLabels = {
 	groupToday: "Azi",
 	groupEarlier: "Mai devreme",
 	unread: "necitit",
-	close: "Închide",
 };
 const urls: InboxUrls = {
 	panel: "/inbox/panel",
@@ -60,9 +59,9 @@ describe("Inbox states", () => {
 	it("empty: no badge, a calm message, no mark-all", () => {
 		const html = render({ state: "ready", entries: [], unread: 0 });
 		expect(html).toContain("Nu ai notificări.");
-		expect(html).not.toContain("psi-inbox__badge");
+		expect(html).toMatch(/id="psi-inbox-badge"[^>]*\shidden/);
 		expect(html).not.toContain("Marchează tot ca citit");
-		expect(html).toContain('aria-label="Notificări, nimic necitit"');
+		expect(html).toMatch(/<output[^>]*>Notificări, nimic necitit<\/output>/);
 	});
 
 	it("unread: the badge shows the count, the bell names it, unread entries can be marked", () => {
@@ -71,8 +70,9 @@ describe("Inbox states", () => {
 			entries: [entry(1), entry(2, { read: true })],
 			unread: 1,
 		});
-		expect(html).toContain('aria-label="Notificări, 1 necitite"');
-		expect(html).toMatch(/psi-inbox__badge"[^>]*>\s*1</);
+		expect(html).toMatch(/<output[^>]*>Notificări, 1 necitite<\/output>/);
+		expect(html).toMatch(/id="psi-inbox-badge"[^>]*>1</);
+		expect(html).not.toMatch(/id="psi-inbox-badge"[^>]*\shidden/);
 		expect(html.match(/psi-inbox__mark/g)?.length).toBe(1);
 		expect(html).toContain("Marchează tot ca citit");
 		expect(html).toContain("@post('/inbox/read?id=n1'");
@@ -100,7 +100,7 @@ describe("Inbox states", () => {
 		expect(html).toContain('role="alert"');
 		expect(html).toContain("Nu am putut încărca notificările.");
 		expect(html).toContain("@get('/inbox/panel')");
-		expect(html).not.toContain("psi-inbox__badge");
+		expect(html).toMatch(/id="psi-inbox-badge"[^>]*\shidden/);
 	});
 
 	it("opens the live stream once and toggles with the bell; Escape closes and returns focus to the bell", () => {
@@ -124,6 +124,40 @@ describe("Inbox states", () => {
 	it("an id in the read URL is encoded", () => {
 		const html = render({ state: "ready", entries: [entry(1, { id: "a b&c" })], unread: 1 });
 		expect(html).toContain("id=a%20b%26c");
+	});
+});
+
+describe("Inbox patches", () => {
+	const patchOf = (data: Parameters<typeof Inbox>[0]["data"]): string =>
+		inboxPatch({ data, labels, urls }).replaceAll("&#39;", "'");
+
+	it("carry only the three live regions, never the shell, so an open panel and the one stream survive", () => {
+		const html = patchOf({ state: "ready", entries: [entry(1)], unread: 1 });
+		for (const id of ["psi-inbox-badge", "psi-inbox-status", "psi-inbox-body"])
+			expect(html.match(new RegExp(`id="${id}"`, "g"))?.length, id).toBe(1);
+		for (const shell of [
+			'id="psi-inbox"',
+			'id="psi-inbox-bell"',
+			'id="psi-inbox-panel"',
+			"data-init",
+			"data-show",
+			"display:none",
+		])
+			expect(html, shell).not.toContain(shell);
+		expect(html).not.toContain("\n");
+	});
+
+	it("the badge, status and body agree on the count", () => {
+		const html = patchOf({ state: "ready", entries: [entry(1), entry(2)], unread: 2 });
+		expect(html).toMatch(/id="psi-inbox-badge"[^>]*>2</);
+		expect(html).toContain("Notificări, 2 necitite");
+		expect(html.match(/psi-inbox__mark/g)?.length).toBe(2);
+	});
+
+	it("an error patch hides the badge and offers the retry", () => {
+		const html = patchOf({ state: "error" });
+		expect(html).toMatch(/id="psi-inbox-badge"[^>]*\shidden/);
+		expect(html).toContain("@get('/inbox/panel')");
 	});
 });
 

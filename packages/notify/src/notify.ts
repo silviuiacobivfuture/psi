@@ -232,6 +232,7 @@ export function createNotifier(options: NotifyOptions): Notifier {
 						app,
 						event,
 						attempts: 0,
+						replays: 0,
 						dueAt: now(),
 					});
 				}
@@ -248,7 +249,10 @@ export function createNotifier(options: NotifyOptions): Notifier {
 			let delivered = 0;
 			for (const job of await outbox.due(now(), 50)) {
 				try {
-					await http.trigger(job.body, job.idempotencyKey);
+					await http.trigger(
+						job.body,
+						job.replays === 0 ? job.idempotencyKey : `${job.idempotencyKey}:r${job.replays}`,
+					);
 					await outbox.remove(job.id);
 					delivered++;
 				} catch (error) {
@@ -267,10 +271,15 @@ export function createNotifier(options: NotifyOptions): Notifier {
 							status,
 						});
 					} else {
+						// Novu keeps a refusal under its Idempotency-Key for 24 h and answers a repeat from
+						// it: the same key can never succeed, so the key walks on (`:r1`, `:r2`, …).
+						const replays =
+							error instanceof NovuRefused && error.replay ? job.replays + 1 : job.replays;
 						await outbox.reschedule(
 							job.id,
 							attempts,
 							now() + Math.min(backoff * 2 ** (attempts - 1), 3_600_000),
+							replays,
 						);
 						log({
 							level: "warn",
