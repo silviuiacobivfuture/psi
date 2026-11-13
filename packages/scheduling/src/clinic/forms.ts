@@ -124,7 +124,7 @@ export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 
 /** The value schema of one field. Bounds default sensibly; unknown choices are refused only where options exist. */
 export function valueSchemaFor(
-	field: FormField,
+	field: Omit<FormField, "group">,
 	options_: { uncapped?: boolean } = {},
 ): z.ZodType<unknown> {
 	const cap = (n: number): number => (options_.uncapped === true ? Number.MAX_SAFE_INTEGER : n);

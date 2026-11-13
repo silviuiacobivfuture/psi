@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { ROOM_KINDS } from "../src/domain/rooms";
 import { addDays, isLocalDate } from "../src/domain/time";
 import { mutation, query } from "./_generated/server";
+import { record } from "./apiSupport";
 import { requireServer } from "./guard";
 import { cleanText, ensureTenantRow, SLUG } from "./setupSupport";
 import { actorValidator, audienceValidator, serverKeyValidator } from "./validators";
@@ -85,6 +86,16 @@ export const createRoom = mutation({
 			updatedBy: args.actor.subject,
 			updatedAt: Date.now(),
 		});
+		await record(ctx, {
+			tenant: args.tenant,
+			actor: args.actor.subject,
+			action: "builder.change",
+			entity: "builder",
+			entityId: id,
+			kind: "room",
+			version: 1,
+			fields: ["room"],
+		});
 		return { ok: true as const, id, created: true };
 	},
 });
@@ -137,6 +148,16 @@ export const updateRoom = mutation({
 			active: p.active ?? row.active,
 			updatedBy: args.actor.subject,
 			updatedAt: Date.now(),
+		});
+		await record(ctx, {
+			tenant: args.tenant,
+			actor: args.actor.subject,
+			action: "builder.change",
+			entity: "builder",
+			entityId: row._id,
+			kind: "room",
+			version: (row.version ?? 0) + 1,
+			fields: ["room"],
 		});
 		return { ok: true as const };
 	},
@@ -203,6 +224,18 @@ export const addRoomClosure = mutation({
 			});
 			added += 1;
 		}
+		if (added > 0) {
+			await record(ctx, {
+				tenant: args.tenant,
+				actor: args.actor.subject,
+				action: "builder.change",
+				entity: "builder",
+				entityId: row._id,
+				kind: "room",
+				version: 1,
+				fields: ["closure"],
+			});
+		}
 		return { ok: true as const, added };
 	},
 });
@@ -218,6 +251,16 @@ export const removeRoomClosure = mutation({
 			return { ok: false as const, reason: "not_found" as const };
 		}
 		await ctx.db.delete(row._id);
+		await record(ctx, {
+			tenant: args.tenant,
+			actor: args.actor.subject,
+			action: "builder.change",
+			entity: "builder",
+			entityId: room._id,
+			kind: "room",
+			version: 1,
+			fields: ["closure"],
+		});
 		return { ok: true as const };
 	},
 });

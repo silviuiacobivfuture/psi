@@ -9,6 +9,17 @@
  */
 
 import type * as account from "../account.js";
+import type * as apiAccess from "../apiAccess.js";
+import type * as apiAudit from "../apiAudit.js";
+import type * as apiBuilder from "../apiBuilder.js";
+import type * as apiClients from "../apiClients.js";
+import type * as apiMoney from "../apiMoney.js";
+import type * as apiRecords from "../apiRecords.js";
+import type * as apiResources from "../apiResources.js";
+import type * as apiRoster from "../apiRoster.js";
+import type * as apiSettings from "../apiSettings.js";
+import type * as apiSupport from "../apiSupport.js";
+import type * as apiVisits from "../apiVisits.js";
 import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
 import type * as calendar from "../calendar.js";
@@ -50,6 +61,7 @@ import type * as tables_clinicRecords from "../tables/clinicRecords.js";
 import type * as tables_clinicResources from "../tables/clinicResources.js";
 import type * as tables_clinicVisits from "../tables/clinicVisits.js";
 import type * as validators from "../validators.js";
+import type * as visitConflicts from "../visitConflicts.js";
 
 import type {
   ApiFromModules,
@@ -59,6 +71,17 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   account: typeof account;
+  apiAccess: typeof apiAccess;
+  apiAudit: typeof apiAudit;
+  apiBuilder: typeof apiBuilder;
+  apiClients: typeof apiClients;
+  apiMoney: typeof apiMoney;
+  apiRecords: typeof apiRecords;
+  apiResources: typeof apiResources;
+  apiRoster: typeof apiRoster;
+  apiSettings: typeof apiSettings;
+  apiSupport: typeof apiSupport;
+  apiVisits: typeof apiVisits;
   appointments: typeof appointments;
   availability: typeof availability;
   calendar: typeof calendar;
@@ -100,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "tables/clinicResources": typeof tables_clinicResources;
   "tables/clinicVisits": typeof tables_clinicVisits;
   validators: typeof validators;
+  visitConflicts: typeof visitConflicts;
 }>;
 
 /**

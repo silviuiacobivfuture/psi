@@ -23,6 +23,17 @@ export const eraseDue = internalMutation({
 		const tenants = only === undefined ? all : all.filter((t) => t.slug === only);
 		let erased = 0;
 		for (const tenant of tenants) {
+			// A visit soft-deleted more than 30 days ago goes for good (its audit trail stays).
+			const gone = await ctx.db
+				.query("visits")
+				.withIndex("by_tenant_deleted", (q) =>
+					q.eq("tenant", tenant.slug).gt("deletedAt", 0).lte("deletedAt", cutoff),
+				)
+				.take(BATCH);
+			for (const visit of gone) {
+				await ctx.db.delete(visit._id);
+				await logChange(ctx, tenant.slug, "visit", visit._id, visit.version + 1);
+			}
 			if (erased >= BATCH) return { erased, more: true };
 			const due = await ctx.db
 				.query("clients")
