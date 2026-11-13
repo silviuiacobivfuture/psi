@@ -1,0 +1,84 @@
+/* The role switcher pill in the top bar: neutral at rest, amber while viewing as someone else. */
+.role-switch {
+	display: inline-flex;
+}
+.role-switch__btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 36px;
+	padding: 0 var(--space-3);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 13px / 1 var(--font-sans);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.role-switch__btn:hover {
+	background: var(--surface-2);
+}
+.role-switch__btn svg {
+	width: 14px;
+	height: 14px;
+	flex: none;
+}
+.role-switch__btn--viewing {
+	border-color: var(--status-requested);
+	background: var(--status-requested-soft);
+	color: var(--status-requested);
+}
+.role-switch__btn--viewing:hover {
+	background: var(--status-requested-soft);
+	filter: brightness(0.96);
+}
+.role-switch__panel {
+	min-width: 280px;
+	max-height: min(70dvh, 520px);
+	overflow-y: auto;
+}
+.role-switch__group {
+	padding: var(--space-2) var(--space-3) var(--space-1);
+	color: var(--ink-muted, var(--ink));
+	font: 700 11px / 1.2 var(--font-sans);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.role-switch__option {
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 2px;
+	padding-block: var(--space-2);
+}
+.role-switch__hint {
+	font-weight: 400;
+	font-size: 12px;
+}
+@media (max-width: 700px) {
+	/* On a phone the pill is its icon: the banner under the bar carries the words and the exit. */
+	.role-switch__label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+	.role-switch__btn {
+		width: 36px;
+		height: 36px;
+		justify-content: center;
+		padding: 0;
+	}
+	.role-switch__btn > svg:last-child:not(:first-child) {
+		display: none;
+	}
+	.role-switch__panel {
+		position: fixed;
+		left: var(--space-3);
+		right: var(--space-3);
+		top: calc(var(--adm-bar-h) + env(safe-area-inset-top) + 6px);
+		max-width: none;
+	}
+}

@@ -287,6 +287,7 @@
 	"dev_signin_title": "Sign in as… (development only)",
 	"dev_signin_text": "Pick a person from the local service; the console treats them as a real account.",
 	"dev_signin_unreachable": "The scheduling service does not answer.",
+	"role_switch_label": "Role: {name}",
 	"view_as_menu": "View as…",
 	"view_as_title": "View as…",
 	"view_as_lead": "See the app as a role or a team member sees it. It is view-only: while it is on, nothing can be changed.",

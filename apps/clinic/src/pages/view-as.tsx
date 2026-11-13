@@ -2,16 +2,18 @@ import { Banner, EmptyState, Icon } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { AppDeps, Env } from "../app";
-import { Page } from "../chrome";
+import { Page, roleName } from "../chrome";
 import { canOf } from "../lib/can";
 import type { Ctx } from "../lib/context";
 import { landingFor } from "../lib/gates";
 import { at } from "../lib/i18n";
+import { sse } from "../lib/sse";
 import { clearViewAs, writeViewAs } from "../lib/view-as";
 import { m } from "../paraglide/messages.js";
 import type { TeamMember, ViewAsTarget } from "../port/port";
 import { PortError } from "../port/port";
 import type { Role } from "../port/schema";
+import { RoleMenuBody } from "../role-switcher";
 
 const TARGET = /^(role|member):[^\s:][^\s]{0,199}$/;
 const isTarget = (s: string): s is ViewAsTarget => TARGET.test(s);
@@ -111,6 +113,29 @@ export function registerViewAs(app: Hono<Env>, deps: AppDeps): void {
 		]);
 		return c.html(await renderViewAs(ctx, roles, members), 200, {
 			"cache-control": "private, no-store",
+		});
+	});
+	// The pill's menu fills itself on first open, so no page pays for the lists until someone asks.
+	app.get("/view-as/menu", async (c) => {
+		const ctx = c.var.ctx;
+		guardAdmin(ctx);
+		const own = await deps.ports.forPerson(c);
+		const [roles, members] = await Promise.all([
+			own.roles(ctx.app),
+			own.members(ctx.app).catch(() => []),
+		]);
+		const body = (
+			<RoleMenuBody
+				ctx={ctx}
+				roles={roles}
+				members={members}
+				roleLabel={(r) =>
+					roleName(r.id, ctx.locale) === r.id ? r.name : roleName(r.id, ctx.locale)
+				}
+			/>
+		).toString();
+		return sse((stream) => {
+			stream.patchElements(body);
 		});
 	});
 	app.post("/view-as", async (c) => {

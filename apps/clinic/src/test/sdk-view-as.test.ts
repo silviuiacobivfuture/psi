@@ -50,6 +50,30 @@ describe("only a roles administrator can start it", () => {
 		const rita = await k.as("rita");
 		expect(has(await text(await rita.get("/clients")), "/view-as")).toBe(false);
 	});
+	it("the top bar carries the role pill and the assistant for the owner, the pill for nobody else", async () => {
+		const owner = await k.as("olga");
+		const bar = await text(await owner.get("/clients"));
+		expect(bar).toContain("data-role-switch");
+		expect(bar).toContain("Rol: Proprietar");
+		const rita = await k.as("rita");
+		expect(await text(await rita.get("/clients"))).not.toContain("data-role-switch");
+	});
+	it("the pill's menu lists roles and people, and is refused to anyone who cannot view as", async () => {
+		const owner = await k.as("olga");
+		const menu = await text(await owner.get("/view-as/menu"));
+		expect(menu).toContain('data-view-as-choice="role:psizone-reception"');
+		expect(menu).toContain('data-view-as-choice="member:');
+		const before = k.api.world.fingerprint();
+		expect((await (await k.as("rita")).get("/view-as/menu")).status).toBe(403);
+		expect(k.api.world.fingerprint()).toBe(before);
+	});
+	it("while viewing, the pill turns into the way out", async () => {
+		const s = await startAs("olga", "role:psizone-reception");
+		const bar = await text(await s.get("/clients"));
+		expect(bar).toContain("data-view-as-pill");
+		expect(bar).toContain('action="/view-as/stop"');
+		expect(bar).not.toContain("data-role-switch");
+	});
 	it.each([
 		"rita",
 		"nina",

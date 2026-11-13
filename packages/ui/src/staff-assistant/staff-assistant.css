@@ -605,6 +605,9 @@
 	box-shadow: 0 0 0 1px color-mix(in srgb, var(--app, var(--accent)) 60%, transparent);
 	animation: sa-glow 3.2s ease-in-out infinite;
 }
+.sa-trigger--bar .sa-trigger__key {
+	display: none;
+}
 .sa-trigger--bar:hover {
 	animation-play-state: paused;
 	filter: brightness(1.08);
@@ -629,8 +632,8 @@
 }
 @media (max-width: 700px) {
 	.sa-trigger--bar {
-		width: 40px;
-		height: 40px;
-		min-height: 40px;
+		width: 36px;
+		height: 36px;
+		min-height: 36px;
 	}
 }

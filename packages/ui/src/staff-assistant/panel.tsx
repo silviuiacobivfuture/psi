@@ -39,6 +39,7 @@ export function StaffTrigger({ labels, base, variant = "fab" }: StaffTriggerProp
 			type="button"
 			class={`sa-trigger sa-trigger--${variant}`}
 			data-staff-trigger
+			title={`${labels.title} (${labels.shortcut})`}
 			aria-controls="staff-assistant"
 			data-attr:aria-expanded="$staff.open ? 'true' : 'false'"
 			data-on:click={toggleExpression(base)}

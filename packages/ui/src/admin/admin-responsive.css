@@ -58,6 +58,16 @@
 		width: var(--adm-touch);
 	}
 }
+/* A phone's top bar holds the app switcher, search, assistant, role pill, bell and account: pack it. */
+@media (max-width: 767px) {
+	.adm-top {
+		gap: 6px;
+	}
+	.adm-top .adm-top__phone .adm-switch {
+		padding: 0 8px;
+		gap: 8px;
+	}
+}
 @media (min-width: 1024px) {
 	.adm-top__desktop-collapse {
 		display: inline-grid;

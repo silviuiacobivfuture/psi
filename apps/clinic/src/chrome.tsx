@@ -17,6 +17,7 @@ import { at, type Locale } from "./lib/i18n";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
+import { RoleSwitcher } from "./role-switcher";
 
 export type NavKey =
 	| "calendar"
@@ -194,17 +195,16 @@ export async function Page({
 								{m.view_as_menu({}, o)}
 							</a>
 						) : null}
-						<AssistantTrigger ctx={ctx} />
 						{ctx.pwa.tools(locale)}
 					</>
 				}
 				topStatus={
 					<>
-						{ctx.viewAs === null ? null : (
-							<span class="adm-pill adm-pill--requested" data-view-as-pill>
-								{m.view_as_pill({ name: ctx.viewAs.label }, o)}
-							</span>
-						)}
+						<AssistantTrigger ctx={ctx} />
+						<RoleSwitcher
+							ctx={ctx}
+							mine={ctx.caps.roles.map((r) => roleName(r, locale)).join(", ")}
+						/>
 						{bell}
 					</>
 				}
