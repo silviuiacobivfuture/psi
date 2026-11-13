@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: psizone_account:closure
@@ -321,6 +324,10 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_account:closure
+        assertions:
+          viewer: false
   - name: psizone_account#editor is conferred by exactly ['administrator', 'perm_psizone_account_manage']
     check:
       - user: user:c_platform_administrator
@@ -492,6 +499,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_account:closure
         assertions:
           editor: false
@@ -669,6 +680,10 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_account:closure
+        assertions:
+          eraser: false
   - name: psizone_booking_request#viewer is conferred by exactly ['administrator', 'perm_psizone_bookings_manage', 'perm_psizone_bookings_view', 'role_psizone_reception']
     check:
       - user: user:c_platform_administrator
@@ -843,6 +858,10 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: true
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
   - name: psizone_booking_request#editor is conferred by exactly ['administrator', 'perm_psizone_bookings_manage', 'role_psizone_reception']
     check:
       - user: user:c_platform_administrator
@@ -1017,6 +1036,10 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: true
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
   - name: psizone_guide_thread#viewer is conferred by exactly ['administrator', 'perm_psizone_guide_memory_forget', 'perm_psizone_guide_memory_view']
     check:
       - user: user:c_platform_administrator
@@ -1191,6 +1214,10 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
   - name: psizone_guide_thread#forgetter is conferred by exactly ['administrator', 'perm_psizone_guide_memory_forget']
     check:
       - user: user:c_platform_administrator
@@ -1362,6 +1389,10 @@ tests:
         assertions:
           forgetter: false
       - user: user:c_platform_role_psizone_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false

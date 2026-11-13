@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: blog_saved_article:closure
@@ -315,6 +318,10 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
   - name: blog_saved_article#editor is conferred by exactly ['administrator', 'perm_blog_saved_manage']
     check:
       - user: user:c_platform_administrator
@@ -486,6 +493,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_psizone_reception
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_sched_app_admin
         object: blog_saved_article:closure
         assertions:
           editor: false

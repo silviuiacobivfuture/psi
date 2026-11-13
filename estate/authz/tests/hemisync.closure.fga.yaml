@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: hemisync_exercise:closure
@@ -318,6 +321,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
   - name: hemisync_session_request#editor is conferred by exactly ['administrator', 'perm_hemisync_sessions_manage', 'role_hemisync_reception']
     check:
       - user: user:c_platform_administrator
@@ -492,6 +499,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_sched_app_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
   - name: hemisync_exercise#listener is conferred by exactly ['administrator', 'perm_hemisync_exercises_listen']
     check:
       - user: user:c_platform_administrator
@@ -663,6 +674,10 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_role_psizone_reception
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_sched_app_admin
         object: hemisync_exercise:closure
         assertions:
           listener: false

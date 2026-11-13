@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: agent_studio:closure
@@ -315,6 +318,10 @@ tests:
         object: agent_studio:closure
         assertions:
           view: false
+      - user: user:c_platform_role_sched_app_admin
+        object: agent_studio:closure
+        assertions:
+          view: false
   - name: agent_studio#operate is conferred by exactly ['administrator', 'role_agent_studio_operator']
     check:
       - user: user:c_platform_administrator
@@ -486,6 +493,10 @@ tests:
         assertions:
           operate: false
       - user: user:c_platform_role_psizone_reception
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_sched_app_admin
         object: agent_studio:closure
         assertions:
           operate: false

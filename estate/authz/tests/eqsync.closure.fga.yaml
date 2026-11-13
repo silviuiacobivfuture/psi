@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: eqsync_programme_enrollment:closure
@@ -318,6 +321,10 @@ tests:
         object: eqsync_programme_enrollment:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: eqsync_programme_enrollment:closure
+        assertions:
+          viewer: false
   - name: eqsync_programme_enrollment#editor is conferred by exactly ['administrator', 'perm_eqsync_programme_manage']
     check:
       - user: user:c_platform_administrator
@@ -492,6 +499,10 @@ tests:
         object: eqsync_programme_enrollment:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_sched_app_admin
+        object: eqsync_programme_enrollment:closure
+        assertions:
+          editor: false
   - name: eqsync_protocol_licence#listener is conferred by exactly ['administrator', 'perm_eqsync_protocols_listen']
     check:
       - user: user:c_platform_administrator
@@ -663,6 +674,10 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_role_psizone_reception
+        object: eqsync_protocol_licence:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_sched_app_admin
         object: eqsync_protocol_licence:closure
         assertions:
           listener: false

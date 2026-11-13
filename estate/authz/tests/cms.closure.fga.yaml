@@ -136,6 +136,9 @@ tuples:
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
     object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
   - user: platform:psi
     relation: parent_platform
     object: cms_brand:closure
@@ -315,6 +318,10 @@ tests:
         object: cms_brand:closure
         assertions:
           read: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          read: false
   - name: cms_brand#write is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_editor', 'role_cms_publisher']
     check:
       - user: user:c_platform_administrator
@@ -486,6 +493,10 @@ tests:
         assertions:
           write: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           write: false
@@ -663,6 +674,10 @@ tests:
         object: cms_brand:closure
         assertions:
           publish: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          publish: false
   - name: cms_brand#clinical_review is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_clinical_reviewer']
     check:
       - user: user:c_platform_administrator
@@ -834,6 +849,10 @@ tests:
         assertions:
           clinical_review: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           clinical_review: false
@@ -1011,6 +1030,10 @@ tests:
         object: cms_brand:closure
         assertions:
           manage_media: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
   - name: cms_brand#admin is conferred by exactly ['administrator', 'role_cms_admin']
     check:
       - user: user:c_platform_administrator
@@ -1182,6 +1205,10 @@ tests:
         assertions:
           admin: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           admin: false
@@ -1359,6 +1386,10 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_admin: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
   - name: cms_brand#ai_operator is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_ai_admin', 'role_cms_ai_operator']
     check:
       - user: user:c_platform_administrator
@@ -1530,6 +1561,10 @@ tests:
         assertions:
           ai_operator: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           ai_operator: false
@@ -1707,6 +1742,10 @@ tests:
         object: cms_brand:closure
         assertions:
           calendar_viewer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
   - name: cms_brand#calendar_manager is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_calendar_manager']
     check:
       - user: user:c_platform_administrator
@@ -1878,6 +1917,10 @@ tests:
         assertions:
           calendar_manager: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           calendar_manager: false
@@ -2055,6 +2098,10 @@ tests:
         object: cms_brand:closure
         assertions:
           privacy_officer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
   - name: cms_brand#notifications_admin is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_notifications_admin']
     check:
       - user: user:c_platform_administrator
@@ -2229,6 +2276,10 @@ tests:
         object: cms_brand:closure
         assertions:
           notifications_admin: false
+      - user: user:c_platform_role_sched_app_admin
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
   - name: cms_brand#site_manager is conferred by exactly ['administrator', 'role_cms_admin', 'role_cms_site_manager']
     check:
       - user: user:c_platform_administrator
@@ -2400,6 +2451,10 @@ tests:
         assertions:
           site_manager: false
       - user: user:c_platform_role_psizone_reception
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_sched_app_admin
         object: cms_brand:closure
         assertions:
           site_manager: false
