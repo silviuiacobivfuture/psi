@@ -213,12 +213,38 @@ export const WebRequestSchema = z.object({
 });
 export type WebRequest = z.infer<typeof WebRequestSchema>;
 
+/** Where a change came from: the console, the staff assistant, the public site, an import run, a service key. */
+export const AUDIT_SOURCES = ["console", "assistant", "site", "import", "api-key"] as const;
+export const AuditSourceSchema = z.enum(AUDIT_SOURCES);
+export type AuditSource = z.infer<typeof AuditSourceSchema>;
+
+/** One field that changed, as text: what it was and what it became (`null`: it had no value). */
+export const AuditChangeSchema = z.object({
+	field: z.string(),
+	before: z.string().nullable(),
+	after: z.string().nullable(),
+});
+export type AuditChange = z.infer<typeof AuditChangeSchema>;
+
 export const AuditEventSchema = z.object({
 	id: z.string(),
 	at: z.string(),
+	/** The person's subject, or a name where the store only kept one. */
 	actor: z.string(),
 	action: z.string(),
+	/** `type:id`, or a bare id where the store kept no type. */
 	target: z.string(),
+	targetType: z.string().optional(),
+	targetId: z.string().optional(),
+	/** Looking at the app as someone else: who it was (the actor is the administrator). */
+	asWhom: z.string().optional(),
+	/** The reason the person gave (a cancellation). */
+	reason: z.string().optional(),
+	source: AuditSourceSchema.optional(),
+	requestId: z.string().optional(),
+	ip: z.string().optional(),
+	device: z.string().optional(),
+	changes: z.array(AuditChangeSchema).optional(),
 });
 export type AuditEvent = z.infer<typeof AuditEventSchema>;
 

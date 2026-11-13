@@ -8,6 +8,7 @@
 @import "./screens.css";
 @import "./topbar.css";
 @import "./appointment.css";
+@import "./audit.css";
 @import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";

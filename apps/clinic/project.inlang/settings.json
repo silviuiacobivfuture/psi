@@ -8,7 +8,8 @@
 			"./messages/{locale}.json",
 			"./messages/pwa/{locale}.json",
 			"./messages/appointments/{locale}.json",
-			"./messages/shell/{locale}.json"
+			"./messages/shell/{locale}.json",
+			"./messages/audit/{locale}.json"
 		]
 	}
 }

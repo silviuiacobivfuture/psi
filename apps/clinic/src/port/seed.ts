@@ -13,6 +13,7 @@ import {
 	type Service,
 	type WebRequest,
 } from "./schema";
+import { seedAudit } from "./seed-audit";
 import { seedPackages } from "./seed-packages";
 
 /** Everything here is synthetic: invented names, `0700 000 …` numbers, `example.test` e-mail. */
@@ -287,20 +288,7 @@ export function seedApp(app: AppSlug, today: string): AppData {
 				: "Vă rog sunați-mă înapoi.",
 		handled: i >= 3,
 	}));
-	const audit: AuditEvent[] = Array.from({ length: 12 }, (_, i) => ({
-		id: `e${i + 1}`,
-		at: `${addDays(today, -Math.floor(i / 3))}T${pad(9 + i)}:${pad((i * 7) % 60)}:00`,
-		actor: i % 2 === 0 ? "Recepție Exemplu" : "Terapeut Alfa",
-		action:
-			[
-				"appointment.create",
-				"appointment.cancel",
-				"client.edit",
-				"package.payment",
-				"reminder.send",
-			][i % 5] ?? "client.edit",
-		target: i % 5 < 2 ? `a${i + 3}` : `c${(i % clientCount) + 1}`,
-	}));
+	const audit = seedAudit(today, clientCount);
 	return {
 		columns,
 		services,

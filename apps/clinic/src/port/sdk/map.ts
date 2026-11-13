@@ -20,6 +20,7 @@ import type {
 	Service,
 	WebRequest,
 } from "../schema";
+import { auditExtras } from "./audit-detail";
 import { wallOf } from "./time";
 
 export type ApiAppointment = z.output<typeof ApiAppointmentSchema>;
@@ -139,6 +140,9 @@ export const auditOf = (e: ApiAudit): AuditEvent => ({
 	actor: e.actor.subject,
 	action: e.action,
 	target: `${e.target.type}:${e.target.id}`,
+	targetType: e.target.type,
+	targetId: e.target.id,
+	...auditExtras(e.detail),
 });
 
 /** Every page of a list, up to a bound (a console shows what fits a screen, never an unbounded table). */

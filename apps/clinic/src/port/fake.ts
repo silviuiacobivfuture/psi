@@ -2,6 +2,7 @@ import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan"
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { appointmentChanges } from "./fake-audit";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -76,13 +77,31 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		if (opts.failing?.has(method) === true)
 			throw new PortError("unavailable", `${method} is unavailable`);
 	};
-	const log = (d: AppData, actor: string, action: string, target: string): void => {
+	// The fake does not know who asks: what the console does is the first member's, as the service would record the subject.
+	const me = Object.keys(opts.members)[0] ?? "console";
+	const log = (
+		d: AppData,
+		actor: string,
+		action: string,
+		target: string,
+		extra: Partial<AuditEvent> = {},
+	): void => {
+		const assistant = actor.endsWith(" · assistant");
 		const e: AuditEvent = {
 			id: `e${++seq}`,
 			at: new Date().toISOString().slice(0, 19),
-			actor,
+			actor: actor === "console" ? me : actor,
 			action,
 			target,
+			targetType: target.includes(":")
+				? target.slice(0, target.indexOf(":"))
+				: (action.replace(/^assistant\./, "").split(".")[0] ?? ""),
+			targetId: target.includes(":") ? target.slice(target.indexOf(":") + 1) : target,
+			source: assistant ? "assistant" : "console",
+			requestId: `req-${seq}`,
+			ip: "192.0.2.10",
+			device: "Chrome pe Linux",
+			...extra,
 		};
 		d.audit.unshift(e);
 	};
@@ -321,8 +340,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 					})
 				: [];
 			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
+			const changes = appointmentChanges(a, patch);
 			Object.assign(a, next);
-			log(d, "console", "appointment.edit", id);
+			log(d, "console", "appointment.edit", id, { changes });
 			tell(app, { stream: "calendar" });
 			return a;
 		},
@@ -331,9 +351,13 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			const d = data(app);
 			const a = d.appointments.find((x) => x.id === id);
 			if (a === undefined) throw new PortError("not-found", id);
+			const was = a.status;
 			a.status = "cancelled";
 			a.cancelReason = reason.slice(0, 500);
-			log(d, "console", "appointment.cancel", id);
+			log(d, "console", "appointment.cancel", id, {
+				reason: a.cancelReason,
+				changes: [{ field: "status", before: was, after: "cancelled" }],
+			});
 			tell(app, { stream: "calendar" });
 			return a;
 		},

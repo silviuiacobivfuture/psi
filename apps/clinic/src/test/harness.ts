@@ -43,7 +43,7 @@ export interface Console {
 	port: ReturnType<typeof createFakePort>;
 	/** Signs the browser in through the Authentik-shaped issuer, returning to `path`. */
 	signIn(path?: string): Promise<Response>;
-	get(path: string): Promise<Response>;
+	get(path: string, init?: RequestInit): Promise<Response>;
 	/** One request, redirects not followed, no cookies: what the server first answers. */
 	raw(path: string, init?: RequestInit): Promise<Response>;
 	post(path: string, body?: BodyInit, headers?: Record<string, string>): Promise<Response>;
@@ -122,7 +122,7 @@ export async function startConsole(
 		port,
 		signIn: async (path = "/calendar") =>
 			(await browser.go(`${ORIGIN}/auth/sign-in?return=${encodeURIComponent(path)}`)).res,
-		get: (path) => send(path),
+		get: (path, init) => send(path, init),
 		raw: async (path, init) => await served.fetch(new Request(`${ORIGIN}${path}`, init)),
 		post: (path, body, headers) =>
 			send(path, {
