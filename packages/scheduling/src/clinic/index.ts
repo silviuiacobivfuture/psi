@@ -137,6 +137,7 @@ export {
 	usageMismatch,
 	usageOf,
 } from "./packages";
+export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
 export {
 	type BlockProblem,

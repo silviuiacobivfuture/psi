@@ -290,7 +290,8 @@ export default defineSchema({
 		.index("by_room_start", ["room", "start"])
 		.index("by_tenant_start", ["tenant", "start"])
 		.index("by_account_start", ["accountHash", "start"])
-		.index("by_updated", ["updatedAt"]),
+		.index("by_updated", ["updatedAt"])
+		.index("by_tenant_created", ["tenant"]),
 
 	// The clinic: every table below carries the app and starts every index with it.
 	devices,

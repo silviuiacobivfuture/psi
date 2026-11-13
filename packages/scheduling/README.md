@@ -159,6 +159,12 @@ scripts/import-old.sh           --export <export.json> --mapping <mapping.json> 
   uses the link up in one transaction. The parent questionnaire stays a form (`formResponses`). Erasing a
   client deletes their feedback and its replies.
 
+- **Reports** (`src/clinic/reports/`, `convex/apiReports.ts`, `convex/apiReportsMoney.ts`): read-only, per
+  app, over a range of at most a year and a day, bucketed by local date; a query that would read too much
+  refuses (`too_many_rows`) rather than answer from part of the data. `permissions.ts` maps each report to
+  the catalogue key it needs: `reports_view_all_core` for counts and rates, `reports_view_all_money` for
+  `apiReportsMoney.revenue` alone.
+
 ## Tests
 
 ```sh
