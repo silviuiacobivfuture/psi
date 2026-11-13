@@ -19,16 +19,20 @@
 		"./imagery.css": "./src/imagery.css",
 		"./testing": "./src/testing.ts",
 		"./admin": "./src/admin/index.ts",
-		"./admin.css": "./src/admin/admin.css"
+		"./admin.css": "./src/admin/admin.css",
+		"./staff-assistant": "./src/staff-assistant/index.ts",
+		"./staff-assistant.css": "./src/staff-assistant/staff-assistant.css"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
-		"build:client": "node scripts/build-client.ts"
+		"build:client": "node scripts/build-client.ts",
+		"build:staff-client": "node scripts/build-staff-client.ts"
 	},
 	"dependencies": {
 		"@psi/content": "workspace:*",
 		"@psi/design": "workspace:*",
+		"@psi/engine": "workspace:*",
 		"@psi/guide": "workspace:*",
 		"zod": "^3.25.76"
 	},

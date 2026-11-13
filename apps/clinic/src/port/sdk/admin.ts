@@ -129,6 +129,16 @@ export function adminGroup(sdk: SdkContext) {
 				};
 			}),
 
+		/**
+		 * The service has no route to add an audit entry: it records every write itself, with the signed-in person as the
+		 * actor. The assistant's own note ("done through the assistant") is therefore not stored over the SDK, and the
+		 * write it follows is never failed for that.
+		 */
+		appendAudit: async (
+			_app: AppSlug,
+			_entry: { actor: string; action: string; target: string },
+		): Promise<void> => {},
+
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),
 

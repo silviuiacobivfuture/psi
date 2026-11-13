@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@psi/design/theme.css";
 @import "@psi/ui/admin.css";
+@import "@psi/ui/staff-assistant.css";
 @import "./calendar.css";
 @import "./screens.css";
 @import "./appointment.css";

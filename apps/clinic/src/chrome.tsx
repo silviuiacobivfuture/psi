@@ -8,6 +8,7 @@ import {
 } from "@psi/ui/admin";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
@@ -195,6 +196,7 @@ export async function Page({
 								{m.view_as_menu({}, o)}
 							</a>
 						) : null}
+						<AssistantTrigger ctx={ctx} />
 						{ctx.pwa.tools(locale)}
 					</>
 				}
@@ -209,7 +211,12 @@ export async function Page({
 				themePref={ctx.pref}
 				deco={ctx.deco}
 				searchAction="/search"
-				overlays={overlays}
+				overlays={
+					<>
+						{overlays}
+						<AssistantPanel ctx={ctx} />
+					</>
+				}
 			>
 				{ctx.viewAs === null ? null : (
 					<form method="post" action="/view-as/stop" data-view-as-banner>

@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { account } from "./account";
 import { createApp } from "./app";
+import { createAssistantEngine } from "./assistant/mount";
 import { accountAuth, DEV_SUBJECT, devAuth } from "./auth";
 import { ENV, ORIGIN } from "./config";
 import { devApiSignIn } from "./dev-signin";
@@ -37,6 +38,7 @@ if (ENV.fakePort) {
 				},
 			}),
 		),
+		assistant: createAssistantEngine(process.env),
 		viewAsSecret: ENV.sessionSecret,
 		auth,
 		pwa,
@@ -58,6 +60,7 @@ if (ENV.fakePort) {
 	const auth = dev?.auth ?? accountAuth(account);
 	const app = createApp({
 		ports: sdkPortSource({ baseUrl: ENV.schedulingApi, auth }),
+		assistant: createAssistantEngine(process.env),
 		viewAsSecret: ENV.sessionSecret,
 		auth,
 		pwa,

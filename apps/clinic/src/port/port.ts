@@ -113,6 +113,11 @@ export interface ClinicPort {
 	/** What a time on a day collides with: the same rule the writes enforce, for showing it before saving. */
 	findConflicts(app: AppSlug, probe: Probe): Promise<ReadonlyArray<Conflict>>;
 	createClient(app: AppSlug, input: NewClient): Promise<Client>;
+	/** Records who did what (the staff assistant's actions land in the audit log). */
+	appendAudit(
+		app: AppSlug,
+		entry: { actor: string; action: string; target: string },
+	): Promise<void>;
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;

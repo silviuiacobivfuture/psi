@@ -336,6 +336,10 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			log(d, "console", "client.create", c.id);
 			return c;
 		},
+		async appendAudit(app, entry) {
+			guard("appendAudit");
+			log(data(app), entry.actor, entry.action, entry.target);
+		},
 		async search(app, query): Promise<ReadonlyArray<SearchHit>> {
 			guard("search");
 			const q = query.trim().toLocaleLowerCase();

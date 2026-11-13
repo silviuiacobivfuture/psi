@@ -1,24 +1,28 @@
 {
 	"name": "@psi/engine",
-	"version": "0.4.0",
+	"version": "0.11.1",
 	"private": true,
 	"type": "module",
 	"description": "A reusable grounded-answer engine on Mastra: profiles (personas as data), screening, retrieval, the per-sentence gate and the faithfulness scorer, on OpenRouter models",
 	"exports": {
 		".": "./src/index.ts",
-		"./testing": "./src/testing/index.ts"
+		"./testing": "./src/testing/index.ts",
+		"./staff": "./src/staff/index.ts",
+		"./staff/testing": "./src/staff/testing/index.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
 		"studio": "PORT=4360 MASTRA_TELEMETRY_DISABLED=1 mastra dev --dir studio",
-		"ask": "tsx scripts/ask-local.ts"
+		"ask": "tsx scripts/ask-local.ts",
+		"eval:staff": "tsx src/staff/evals/cli.ts"
 	},
 	"dependencies": {
 		"@mastra/core": "^1.82.0",
 		"@mastra/libsql": "^1.29.0",
 		"@mastra/memory": "^1.41.0",
 		"@openrouter/ai-sdk-provider": "^3.1.0",
+		"hono": "^4.13.18",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {
