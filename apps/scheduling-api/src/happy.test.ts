@@ -74,6 +74,20 @@ const spare = async (w: Populated): Promise<string> =>
 			})
 		).json.id,
 	);
+let spareSeriesAt = 0;
+/** A series of two appointments, a day further on each time so that no two meet. */
+const spareSeries = async (w: Populated): Promise<string> =>
+	String(
+		(
+			await olga(w, "POST", "/series", {
+				practitionerId: w.ids.dora,
+				clientId: w.ids.c1,
+				start: NOW + (400 + 24 * ++spareSeriesAt) * HOUR,
+				end: NOW + (401 + 24 * spareSeriesAt) * HOUR,
+				recurrence: { count: 2 },
+			})
+		).json.seriesId,
+	);
 const newClient = async (w: Populated): Promise<string> =>
 	String((await olga(w, "POST", "/clients", { name: "Disposable Client" })).json.id);
 
@@ -250,6 +264,33 @@ const OWN: Record<
 			status: "requested",
 		});
 		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
+	},
+	"series.create": (w) =>
+		olga(w, "POST", "/series", {
+			practitionerId: w.ids.dora,
+			clientId: w.ids.c1,
+			start: NOW + 120 * HOUR,
+			end: NOW + 121 * HOUR,
+			recurrence: { count: 3 },
+		}),
+	"series.get": async (w) => olga(w, "GET", `/series/${await spareSeries(w)}`),
+	"series.update": async (w) => {
+		const id = await spareSeries(w);
+		const items = (await olga(w, "GET", `/series/${id}`)).json.items as { id: string }[];
+		return olga(w, "PATCH", `/series/${id}`, {
+			occurrenceId: items[0]?.id,
+			scope: "all",
+			note: "bring the book",
+		});
+	},
+	"series.cancel": async (w) => {
+		const id = await spareSeries(w);
+		const items = (await olga(w, "GET", `/series/${id}`)).json.items as { id: string }[];
+		return olga(w, "POST", `/series/${id}/cancel`, {
+			occurrenceId: items[0]?.id,
+			scope: "all",
+			reason: "client asked",
+		});
 	},
 	"appointments.attendance": (w) =>
 		olga(w, "POST", `/appointments/${w.ids.a1}/attendance`, { status: "attended" }),

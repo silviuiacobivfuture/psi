@@ -260,6 +260,8 @@ export const Appointment = z.object({
 	note: z.string().max(500).optional(),
 	/** The day-before reminder is sent for this one (the default); false leaves it off the reminder list. */
 	remind: z.boolean(),
+	/** The weekly series it is one of (see `series.create`); absent for one that stands alone. */
+	seriesId: Id.optional(),
 	cancelReason: z.string().max(300).optional(),
 	money: AppointmentMoney.optional(),
 	/** Set on a soft-deleted appointment; it is listed nowhere and `restore` brings it back until `purgeAt`. */

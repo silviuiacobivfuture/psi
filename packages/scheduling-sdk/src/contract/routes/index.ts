@@ -4,6 +4,7 @@ import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
 import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
+import { SERIES_ROUTES } from "./team-series";
 import { VISITOR_ROUTES } from "./visitor";
 
 /** THE contract: one row per route. The server mounts it, the SDK and the OpenAPI document derive from it. */
@@ -13,6 +14,7 @@ export const ROUTES = [
 	...ME_ROUTES,
 	...CATALOG_ROUTES,
 	...CALENDAR_ROUTES,
+	...SERIES_ROUTES,
 	...OPERATION_ROUTES,
 	...PLAN_ROUTES,
 	...BLACKLIST_ROUTES,
