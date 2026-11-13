@@ -37,8 +37,8 @@ export const DEV_SUBJECT = "dev-demo-0001";
 export function devAuth(): Auth {
 	const demo: Person = {
 		subject: DEV_SUBJECT,
-		name: "Recepție Demo",
-		email: "recepție.demo@example.test",
+		name: "Demo Proprietar",
+		email: "proprietar.demo@example.test",
 	};
 	return {
 		person: async () => demo,

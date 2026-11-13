@@ -75,6 +75,25 @@ export async function renderViewAs(
 				<Banner tone="info" icon="shield">
 					{m.view_as_lead({}, o)}
 				</Banner>
+				{ctx.platformAdmin ? (
+					<form method="post" action="/view-as/stop" class="adm-card adm-row" data-view-as-platform>
+						<div style="flex:1">
+							<strong>{m.role_platform_admin({}, o)}</strong>
+							<div class="adm-muted">{m.view_as_platform_hint({}, o)}</div>
+						</div>
+						{ctx.viewAs === null ? (
+							<span class="adm-pill adm-pill--attended">
+								<Icon name="check" />
+								{m.view_as_current({}, o)}
+							</span>
+						) : (
+							<button class="adm-btn" type="submit">
+								<Icon name="shield" />
+								{m.view_as_back({}, o)}
+							</button>
+						)}
+					</form>
+				) : null}
 				<h2 class="adm-h2">{m.view_as_roles({}, o)}</h2>
 				{roles.length === 0 ? (
 					<EmptyState icon="shield" title={m.view_as_none({}, o)} />

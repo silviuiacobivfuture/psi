@@ -34,6 +34,8 @@ export interface FakeOptions {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	/** subject → the name the team picker shows (the subject itself when absent). */
 	names?: Readonly<Record<string, string>>;
+	/** Subjects that are the estate's platform administrator (they may look at the app as anyone). */
+	platformAdmins?: ReadonlyArray<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
@@ -112,7 +114,10 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			let who = subject;
 			if (as !== undefined) {
 				const here = holds(mine.roles);
-				if (!here.some((r) => r.grants.roles?.edit !== undefined))
+				if (
+					opts.platformAdmins?.includes(subject) !== true &&
+					!here.some((r) => r.grants.roles?.edit !== undefined)
+				)
 					throw new PortError("forbidden", "roles administrators only");
 				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
 				if (kind === "role") {
@@ -164,7 +169,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 					groups.has(g),
 				),
 				reach: { own: [], assigned: [] },
-				platformAdmin: false,
+				platformAdmin: as === undefined && opts.platformAdmins?.includes(subject) === true,
 			};
 		},
 		async members(app): Promise<ReadonlyArray<TeamMember>> {

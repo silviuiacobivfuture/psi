@@ -180,6 +180,11 @@ export async function Page({
 		href: `/switch/${mb.app}`,
 	}));
 	const effective: NavKey = moreKeys.includes(current) ? "more" : current;
+	// What the pill and the menu call this person: the platform's administrator is told as such, never as a clinic role.
+	const mine =
+		ctx.platformAdmin && ctx.viewAs === null
+			? m.role_platform_admin({}, o)
+			: ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ");
 	return (
 		<Layout
 			locale={locale}
@@ -221,8 +226,7 @@ export async function Page({
 				extras={
 					<>
 						<div class="adm-menu__item adm-muted" data-who>
-							{ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ")} ·{" "}
-							{appName(ctx.app, locale)}
+							{mine} · {appName(ctx.app, locale)}
 						</div>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">
@@ -230,16 +234,13 @@ export async function Page({
 								{m.view_as_menu({}, o)}
 							</a>
 						) : null}
-						{ctx.pwa.tools(locale)}
+						{ctx.pwa.tools(locale, { menu: true })}
 					</>
 				}
 				topStatus={
 					<>
 						<AssistantTrigger ctx={ctx} />
-						<RoleSwitcher
-							ctx={ctx}
-							mine={ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ")}
-						/>
+						<RoleSwitcher ctx={ctx} mine={mine} />
 						{bell}
 					</>
 				}

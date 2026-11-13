@@ -7,7 +7,7 @@ import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
-import type { Auth } from "./auth";
+import type { Auth, Person } from "./auth";
 import { Page } from "./chrome";
 import { registerFloor } from "./floor/mount";
 import { backPath } from "./lib/back";
@@ -116,7 +116,12 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		}
 		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next.
 		const real = await own.capabilities(person.subject, active);
-		const mayViewAs = Object.hasOwn(real.permissions, "roles_edit");
+		const mayViewAs = real.platformAdmin || Object.hasOwn(real.permissions, "roles_edit");
+		// A sign-in that only knows a subject (the development one) is named as the service names it.
+		const self: Person =
+			person.name === person.subject && real.displayName !== undefined
+				? { ...person, name: real.displayName }
+				: person;
 		let port = own;
 		let caps = real;
 		let viewAs: ViewAsState | null = null;
@@ -141,7 +146,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			pref,
 			theme,
 			deco,
-			person,
+			person: self,
+			platformAdmin: real.platformAdmin,
 			app: active,
 			memberships,
 			port,
