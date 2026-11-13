@@ -6,4 +6,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/cms
-    newTag: "c1b3a4c"
+    newTag: "f4d8a31"
