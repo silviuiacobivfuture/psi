@@ -7,7 +7,7 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/scheduling-backend
-    newTag: "43be72f"
+    newTag: "c1b3a4c"
 patches:
   # Kubelet health probes through the NetworkPolicy: they arrive from the node the pod runs on, its
   # InternalIP, or its cni0 gateway when flannel SNATs a same-node connection. The same addresses
