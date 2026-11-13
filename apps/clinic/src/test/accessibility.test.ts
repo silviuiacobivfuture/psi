@@ -67,6 +67,8 @@ describe("axe, WCAG 2.2 AA, every main screen in both admin themes and both view
 		const page = await context.newPage();
 		const failures: string[] = [];
 		const check = async (label: string): Promise<void> => {
+			// Contrast is judged on what has settled, not mid-transition.
+			await page.waitForTimeout(450);
 			await page.addScriptTag({ path: AXE_SOURCE });
 			for (const v of ViolationsSchema.parse(await page.evaluate(AXE_RUN)))
 				failures.push(`${label}: ${v.id} ${v.nodes.slice(0, 3).join(" | ")}`);
