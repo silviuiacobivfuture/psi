@@ -82,3 +82,4 @@ REF_GIT_TOKEN_PATH: secret/platform/git/token
 REF_GIT_TOKEN_FIELD: token
 REF_OBJECT_STORAGE_PATH: secret/platform/object-storage/{env}
 REF_APP_ENV_PATH: secret/apps/{app}/env
+BULWARK_HOST_PREFIX: inbox
