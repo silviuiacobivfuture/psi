@@ -140,6 +140,14 @@ export {
 export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
 export {
+	parseRoomsSeed,
+	ROOM_CATEGORIES,
+	type RoomCategory,
+	type RoomsSeed,
+	roomCategorySchema,
+	roomsSeedSchema,
+} from "./rooms-seed";
+export {
 	type BlockProblem,
 	blockProblem,
 	type DayAvailability,

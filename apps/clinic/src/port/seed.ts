@@ -1,3 +1,5 @@
+import { parseRoomsSeed } from "@psi/scheduling/clinic";
+import psizoneRooms from "@psi/scheduling/seed/psizone-rooms.json";
 import { addDays, weekStart } from "../lib/dates";
 import {
 	ACTIONS,
@@ -68,13 +70,39 @@ function columnsFor(app: AppSlug): Column[] {
 			{ id: "hr1", kind: "room", name: "Sala Hemi-Sync", colour: 5, capacity: 8 },
 			{ id: "hg1", kind: "group", name: "Club Hemi-Sync", colour: 6, capacity: 12 },
 		];
+	const seed = parseRoomsSeed(psizoneRooms);
+	const homes: Readonly<Record<string, string>> = {
+		"Pavel Irina": "p1",
+		"Năfureanu Nicoleta": "p2",
+		"Turcu Daniela": "p3",
+		"Turcu Adrian": "p4",
+	};
+	const rooms = seed.floors.flatMap((f) =>
+		f.rooms.map(
+			(r): Column => ({
+				id: r.id,
+				kind: "room",
+				name: r.name,
+				colour: r.category === "neuro" ? 4 : 5,
+				capacity: r.id === "sala-terapie-grup" || r.id === "cabinet-psihoterapie" ? 12 : 3,
+				category: r.category,
+				floor: f.id,
+				purpose: r.purpose,
+				...(r.homePractitioner === null || homes[r.homePractitioner] === undefined
+					? {}
+					: { homeOf: homes[r.homePractitioner] }),
+			}),
+		),
+	);
 	return [
 		person("p1", "Terapeut Alfa", 1),
 		person("p2", "Terapeut Beta", 2),
 		person("p3", "Terapeut Gamma", 3),
+		person("p4", "Terapeut Delta", 1),
 		{ id: "d1", kind: "device", name: "Aparat NFB 1", colour: 4 },
-		{ id: "r1", kind: "room", name: "Cabinet Terapie", colour: 5, capacity: 3 },
-		{ id: "g1", kind: "group", name: "Sală Grup", colour: 6, capacity: 12 },
+		{ id: "d2", kind: "device", name: "Aparat NFB 2", colour: 4 },
+		...rooms,
+		{ id: "g1", kind: "group", name: "Grup Race Me Up", colour: 6, capacity: 12 },
 	];
 }
 
@@ -87,7 +115,8 @@ const SERVICES: Record<AppSlug, Service[]> = {
 			priceBani: 15000,
 		},
 		{ id: "s2", name: "Evaluare", durationMin: 90, priceBani: 40000 },
-		{ id: "s3", name: "Neurofeedback", durationMin: 45, priceBani: 12000 },
+		{ id: "s3", name: "Neurofeedback", durationMin: 45, priceBani: 12000, roomCategory: "neuro" },
+		{ id: "s5", name: "Evaluare QEEG", durationMin: 60, priceBani: 30000, roomCategory: "neuro" },
 		{ id: "s4", name: "Ședință de grup", durationMin: 60, priceBani: 8000 },
 	],
 	hemisync: [
@@ -215,10 +244,17 @@ export function seedApp(app: AppSlug, today: string): AppData {
 			let start = 9 * 60 + Math.floor(rand() * 3) * 30;
 			const slots = col.kind === "group" ? 1 : 3 + Math.floor(rand() * 3);
 			for (let k = 0; k < slots; k++) {
+				const fits = services
+					.slice(0, -1)
+					.filter(
+						(x) =>
+							col.category === undefined ||
+							x.roomCategory === (col.category === "neuro" ? "neuro" : undefined),
+					);
 				const svc =
 					col.kind === "group"
 						? services[services.length - 1]
-						: services[Math.floor(rand() * (services.length - 1))];
+						: fits[Math.floor(rand() * fits.length)];
 				if (!svc) continue;
 				const client = live[Math.floor(rand() * live.length)];
 				const past = d < 0;

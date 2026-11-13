@@ -26,7 +26,7 @@ describe("calendar states", () => {
 	it("many: a card per appointment of the day, a column per calendar, status in words", async () => {
 		c = await startConsole(MEMBER, { today: "2026-11-16" });
 		await c.signIn();
-		const html = await (await c.get("/calendar?date=2026-11-16")).text();
+		const html = await (await c.get("/calendar?date=2026-11-16&cat=all")).text();
 		const data = await c.port.calendar("psizone", "2026-11-16", "2026-11-16");
 		expect(html.match(/class="cal__appt cal__appt--wash[^"]*"/g)?.length).toBe(
 			data.appointments.length,

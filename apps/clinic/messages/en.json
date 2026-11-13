@@ -320,5 +320,10 @@
 	"tab_plan": "Floor plan",
 	"floor_empty_title": "The floor plan is not drawn yet",
 	"floor_empty_text": "Draw the rooms in Settings and you will see here, live, which room is free and which is busy.",
-	"floor_draw": "Draw the plan"
+	"floor_draw": "Draw the plan",
+	"cal_cols_label": "Columns",
+	"cal_cat_team": "Team",
+	"cal_cat_therapy": "Therapy rooms",
+	"cal_cat_neuro": "Neuro rooms",
+	"cal_cat_all": "All"
 }

@@ -81,7 +81,7 @@ describe("creating", () => {
 			dur: 80,
 			status: "requested",
 			note: "Notă ăîâșț 🙂",
-			room: "r1",
+			room: "cabinet-1",
 			device: "d1",
 			remind: false,
 		});
@@ -90,7 +90,7 @@ describe("creating", () => {
 			durationMin: 80,
 			status: "requested",
 			note: "Notă ăîâșț 🙂",
-			resourceIds: ["r1", "d1"],
+			resourceIds: ["cabinet-1", "d1"],
 			remind: false,
 		});
 	});

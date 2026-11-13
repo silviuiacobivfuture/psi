@@ -29,8 +29,8 @@ describe("the live plan (Plan cabinete)", () => {
 		const html = await (await get("/floor")).text();
 		expect(html).toContain('href="/floor"');
 		expect(html).toContain("pz-fp");
-		expect(html).toContain("Cabinet Terapie");
-		expect(html).toContain("Sală Grup");
+		expect(html).toContain("Cabinet 1");
+		expect(html).toContain("Sală terapie grup");
 	});
 	it("answers a scrub with the plan's pieces patched in", async () => {
 		const r = await sse("/floor/api/live/render", {
@@ -42,7 +42,7 @@ describe("the live plan (Plan cabinete)", () => {
 		expect(r.status).toBe(200);
 		const body = await r.text();
 		expect(body).toContain("datastar-patch-elements");
-		expect(body).toContain("Cabinet Terapie");
+		expect(body).toContain("Cabinet 1");
 	});
 	it("a bad scrub is refused with 400 and nothing is patched", async () => {
 		const r = await sse("/floor/api/live/render", { nope: true });

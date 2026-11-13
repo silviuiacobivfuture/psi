@@ -320,5 +320,10 @@
 	"tab_plan": "Plan cabinete",
 	"floor_empty_title": "Planul cabinetelor nu e desenat încă",
 	"floor_empty_text": "Desenează încăperile din Setări și vei vedea aici, în timp real, ce cabinet e liber și ce cabinet e ocupat.",
-	"floor_draw": "Desenează planul"
+	"floor_draw": "Desenează planul",
+	"cal_cols_label": "Coloane",
+	"cal_cat_team": "Echipă",
+	"cal_cat_therapy": "Cabinete terapie",
+	"cal_cat_neuro": "Cabinete neuro",
+	"cal_cat_all": "Toate"
 }

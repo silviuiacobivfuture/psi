@@ -148,7 +148,7 @@ describe("desktop, 1280px", () => {
 		await done();
 	});
 
-	it("shows all six calendar columns without cropping, with a sticky gutter and headers", async () => {
+	it("shows all seven team columns without cropping, with a sticky gutter and headers", async () => {
 		const { page, done } = await open(1280, "/calendar?date=2026-11-16");
 		const m = await page.evaluate(() => {
 			const box = document.querySelector(".cal__scroll")?.getBoundingClientRect();
@@ -157,7 +157,7 @@ describe("desktop, 1280px", () => {
 			);
 			return { right: box?.right ?? 0, heads: heads.map((h) => h.right <= (box?.right ?? 0) + 1) };
 		});
-		expect(m.heads).toHaveLength(6);
+		expect(m.heads).toHaveLength(7);
 		expect(m.heads.every(Boolean)).toBe(true);
 		expect(
 			await page

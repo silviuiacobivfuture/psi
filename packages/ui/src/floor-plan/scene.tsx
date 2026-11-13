@@ -228,6 +228,7 @@ function AreaView(p: SceneProps & { shape: AreaShape }): JSX.Element {
 				class={classes}
 				data-shape-id={shape.id}
 				data-room-id={shape.roomId}
+				data-category={shape.category}
 				data-state={state}
 				role="button"
 				tabindex={0}
@@ -239,7 +240,12 @@ function AreaView(p: SceneProps & { shape: AreaShape }): JSX.Element {
 		);
 	}
 	return (
-		<g id={`fp-s-${shape.id}`} class={classes} data-shape-id={shape.id}>
+		<g
+			id={`fp-s-${shape.id}`}
+			class={classes}
+			data-shape-id={shape.id}
+			data-category={shape.kind === "room" ? shape.category : undefined}
+		>
 			{body}
 		</g>
 	);
