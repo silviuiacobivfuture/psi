@@ -90,11 +90,15 @@ data:
   MESH_BASE_DOMAIN: psizone.ro
   TAILNET_DOMAIN: psizone.ro
   GLITCHTIP_HOST_PREFIX: errors
+  BOOKSTACK_HOST_PREFIX: wiki
+  BOOKSTACK_NAME: BookStack
   KUTT_HOST_PREFIX: go
   KUTT_NAME: Kutt
   MAIL_ADMIN_HOST_PREFIX: mail-admin
   MAILBOX_DOMAIN: post.psizone.ro
   KENER_HOST_PREFIX: status
+  SEMAPHORE_HOST_PREFIX: ops
+  SEMAPHORE_NAME: Semaphore
   HUB_HOST: sso.psizone.ro
   BUSINESS_APP_PREFIX: psi
   INVOICING_SVC: psi-invoice-svc
