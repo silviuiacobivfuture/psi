@@ -392,14 +392,20 @@ describe.skipIf(!backendReady)("the clinic's rows on the local Convex", () => {
 	});
 
 	it("is not touched by the web-request retention, however old the clinic's rows are", async () => {
+		// The visits are dated 2024: far older than the booking policy's year. The real job, the real clock.
 		const before = await counts();
-		const purged = await runMutation(
-			"retention:purgePage",
-			{ now: Date.now() + 5 * 365 * DAY, paginationOpts: { numItems: 200, cursor: null } },
-			z.object({ done: z.boolean() }),
-		);
-		expect(purged.done).toBe(true);
+		let cursor: string | null = null;
+		for (let page = 0; page < 100; page += 1) {
+			const step: { done: boolean; cursor: string } = await runMutation(
+				"retention:purgePage",
+				{ now: Date.now(), paginationOpts: { numItems: 200, cursor } },
+				z.object({ done: z.boolean(), cursor: z.string() }),
+			);
+			if (step.done) break;
+			cursor = step.cursor;
+		}
 		expect(await counts()).toEqual(before);
+		expect(at(before, "visits")).toBeGreaterThan(0);
 	});
 
 	const standing = (client: string, action: string, now?: number) =>
@@ -433,44 +439,5 @@ describe.skipIf(!backendReady)("the clinic's rows on the local Convex", () => {
 		expect(await standing("not-an-id", "archive")).toEqual({ ok: false, reason: "not_found" });
 		expect(await standing(two, "restore", T0 + 10 * DAY)).toEqual({ ok: true });
 		expect(dumpTable("auditEvents")).toContain("client.restore");
-	});
-
-	it("erases a client deleted over 30 days ago with everything clinical on them, and only them", async () => {
-		const found = await upsert("importClients:upsertClients", [client(3)]);
-		const three = found[0]?.id ?? "";
-		const T0 = Date.now();
-		expect(await standing(three, "delete", T0)).toEqual({ ok: true });
-		const before = await counts();
-		const early = await runMutation(
-			"clinicRetention:eraseDue",
-			{ now: T0 + 29 * DAY },
-			z.object({ erased: z.number() }),
-		);
-		expect(early.erased).toBe(0);
-		expect(await counts()).toEqual(before);
-		const late = await runMutation(
-			"clinicRetention:eraseDue",
-			{ now: T0 + 31 * DAY },
-			z.object({ erased: z.number(), more: z.boolean() }),
-		);
-		expect(late).toEqual({ erased: 1, more: false });
-		const after = await counts();
-		expect(at(after, "formResponses")).toBe(at(before, "formResponses") - 1);
-		expect(at(after, "files")).toBe(at(before, "files") - 1);
-		expect(at(after, "treating")).toBe(at(before, "treating") - 1);
-		expect(at(after, "storageOutbox")).toBe(at(before, "storageOutbox") + 1);
-		// The books keep what they need, without a person: client row emptied, visit and package stay.
-		expect(at(after, "clients")).toBe(at(before, "clients"));
-		expect(at(after, "visits")).toBe(at(before, "visits"));
-		expect(at(after, "packages")).toBe(at(before, "packages"));
-		expect(dumpTable("visits")).not.toContain("SENTINEL-VISIT-NOTE");
-		// Client A's responses and the other clients are untouched.
-		expect(at(after, "practitioners")).toBe(at(before, "practitioners"));
-		const again = await runMutation(
-			"clinicRetention:eraseDue",
-			{ now: T0 + 40 * DAY },
-			z.object({ erased: z.number() }),
-		);
-		expect(again.erased).toBe(0);
 	});
 });

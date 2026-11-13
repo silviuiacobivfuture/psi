@@ -233,6 +233,15 @@ export const eraseClient = mutation({
 			unlinked += 1;
 		}
 		const erased = await eraseClinicData(ctx, args.tenant, client._id, Date.now());
+		await ctx.db.insert("auditEvents", {
+			tenant: args.tenant,
+			at: Date.now(),
+			actor: args.actor.subject,
+			action: "client.erase",
+			entity: "client",
+			entityId: client._id,
+			summary: "client.erase",
+		});
 		return { ok: true as const, unlinked, storageKeys: erased.storageKeys };
 	},
 });

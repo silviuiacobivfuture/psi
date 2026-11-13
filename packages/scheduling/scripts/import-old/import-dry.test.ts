@@ -69,8 +69,7 @@ describe("the dry run", () => {
 		report = await runImport({
 			...base(),
 			exported: syntheticExport(),
-			enc: dry,
-			target: undefined,
+			connect: undefined,
 		});
 	});
 

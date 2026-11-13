@@ -80,7 +80,13 @@ export interface ImportSink {
 		rows: ReadonlyArray<RowsByKind[K]>,
 	): Promise<UpsertResult[]>;
 	knownFiles(tenant: string, legacyIds: ReadonlyArray<string>): Promise<Map<string, string>>;
+	/** The slugs already in the app's practitioners, rooms, devices and group activities. */
+	slugs(
+		tenant: string,
+	): Promise<Array<{ kind: SlugKind; slug: string; legacyId: string | undefined }>>;
 }
+
+export type SlugKind = "practitioners" | "rooms" | "devices" | "groups";
 
 const FUNCTION: Record<Kind, string> = {
 	practitioners: getFunctionName(internal.importPeople.upsertPractitioners),
@@ -141,6 +147,20 @@ export function createConvexSink(admin: AdminClient): ImportSink {
 				);
 			}
 			return out;
+		},
+		async slugs(tenant) {
+			const found = await admin.query(
+				getFunctionName(internal.clinicInspect.slugs),
+				{ tenant },
+				z.array(
+					z.object({
+						kind: z.enum(["practitioners", "rooms", "devices", "groups"]),
+						slug: z.string(),
+						legacyId: z.string().optional(),
+					}),
+				),
+			);
+			return found.map((f) => ({ kind: f.kind, slug: f.slug, legacyId: f.legacyId }));
 		},
 		async knownFiles(tenant, legacyIds) {
 			const known = new Map<string, string>();

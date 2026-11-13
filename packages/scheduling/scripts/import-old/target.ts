@@ -10,7 +10,8 @@ import {
 } from "../../src/crypto";
 import type { ObjectStorage } from "../../src/storage";
 import type { Mapping } from "./mapping";
-import { createConvexSink, type ImportSink } from "./sink";
+import type { Target } from "./run";
+import { createConvexSink } from "./sink";
 import type { Encryptor } from "./support";
 
 /**
@@ -24,7 +25,7 @@ export async function connect(config: {
 	masterKey: string | undefined;
 	mapping: Mapping;
 	storage: ObjectStorage;
-}): Promise<{ sink: ImportSink; enc: Encryptor; storage: ObjectStorage }> {
+}): Promise<Target> {
 	const { mapping } = config;
 	const master = await parseMasterKey(config.masterKey);
 	const sink = createConvexSink(createAdminClient({ url: config.url, adminKey: config.adminKey }));

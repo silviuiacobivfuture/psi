@@ -7,7 +7,6 @@ import { createDirSource } from "./files";
 import { mappingSchema } from "./mapping";
 import { formatReport } from "./report";
 import { runImport } from "./run";
-import type { Encryptor } from "./support";
 import { connect } from "./target";
 
 /**
@@ -21,12 +20,6 @@ import { connect } from "./target";
  * local secrets), CLINIC_MASTER_KEY, and for files S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY_ID/
  * S3_SECRET_ACCESS_KEY. Nothing is ever deleted; a re-run changes nothing that did not change.
  */
-
-const dryEncryptor: Encryptor = {
-	encrypt: async () => ({ keyVersion: 1, iv: "dry", data: "dry" }),
-	fingerprint: async () => "dry",
-	encryptBytes: async (bytes) => ({ keyVersion: 1, iv: "dry", bytes }),
-};
 
 const envSchema = z.object({
 	CONVEX_SELF_HOSTED_URL: z.string().url(),
@@ -83,7 +76,7 @@ async function main(): Promise<number> {
 
 	let report: Awaited<ReturnType<typeof runImport>>;
 	if (values["dry-run"]) {
-		report = await runImport({ ...common, enc: dryEncryptor, target: undefined });
+		report = await runImport({ ...common, connect: undefined });
 	} else {
 		const env = envSchema.safeParse(process.env);
 		if (!env.success) {
@@ -95,14 +88,17 @@ async function main(): Promise<number> {
 			console.error(`set ${storageEnv.invalid.join(", ")} to upload files`);
 			return 2;
 		}
-		const { sink, enc, storage } = await connect({
-			url: env.data.CONVEX_SELF_HOSTED_URL,
-			adminKey: env.data.CONVEX_SELF_HOSTED_ADMIN_KEY,
-			masterKey: process.env[MASTER_KEY_ENV],
-			mapping,
-			storage: storageEnv.ok ? createS3Storage(storageEnv.config) : new MemoryStorage(),
+		report = await runImport({
+			...common,
+			connect: () =>
+				connect({
+					url: env.data.CONVEX_SELF_HOSTED_URL,
+					adminKey: env.data.CONVEX_SELF_HOSTED_ADMIN_KEY,
+					masterKey: process.env[MASTER_KEY_ENV],
+					mapping,
+					storage: storageEnv.ok ? createS3Storage(storageEnv.config) : new MemoryStorage(),
+				}),
 		});
-		report = await runImport({ ...common, enc, target: { sink, storage } });
 	}
 	console.log(formatReport(report));
 	if (values.report !== undefined)

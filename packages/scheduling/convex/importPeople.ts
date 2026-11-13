@@ -6,6 +6,7 @@ import {
 	groupByLegacy,
 	MAX_BATCH,
 	practitionerByLegacy,
+	refused,
 	resultValidator,
 	roomByLegacy,
 	staffByLegacy,
@@ -49,6 +50,14 @@ export const upsertPractitioners = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
+			const taken = await ctx.db
+				.query("practitioners")
+				.withIndex("by_tenant_slug", (q) => q.eq("tenant", tenant).eq("slug", r.slug))
+				.first();
+			if (taken !== null && taken.legacyId !== r.legacyId) {
+				out.push(refused(r.legacyId, "slug_taken"));
+				continue;
+			}
 			const owned = {
 				displayName: r.displayName,
 				active: r.active,
@@ -113,6 +122,14 @@ export const upsertDevices = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
+			const taken = await ctx.db
+				.query("devices")
+				.withIndex("by_tenant_slug", (q) => q.eq("tenant", tenant).eq("slug", r.slug))
+				.first();
+			if (taken !== null && taken.legacyId !== r.legacyId) {
+				out.push(refused(r.legacyId, "slug_taken"));
+				continue;
+			}
 			const owned = {
 				name: r.name,
 				kind: r.kind,
@@ -174,6 +191,14 @@ export const upsertRooms = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
+			const taken = await ctx.db
+				.query("rooms")
+				.withIndex("by_tenant_slug", (q) => q.eq("tenant", tenant).eq("slug", r.slug))
+				.first();
+			if (taken !== null && taken.legacyId !== r.legacyId) {
+				out.push(refused(r.legacyId, "slug_taken"));
+				continue;
+			}
 			const owned = {
 				name: r.name,
 				kind: r.kind,
@@ -237,6 +262,14 @@ export const upsertGroups = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
+			const taken = await ctx.db
+				.query("groupActivities")
+				.withIndex("by_tenant_slug", (q) => q.eq("tenant", tenant).eq("slug", r.slug))
+				.first();
+			if (taken !== null && taken.legacyId !== r.legacyId) {
+				out.push(refused(r.legacyId, "slug_taken"));
+				continue;
+			}
 			const owned = {
 				name: r.name,
 				shortName: r.shortName,

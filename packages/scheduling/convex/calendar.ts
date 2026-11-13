@@ -111,7 +111,39 @@ export async function appointmentsAround(
 		.collect();
 }
 
-/** What blocks [from, to) at `now`, excluding one appointment (the one being rescheduled). */
+/**
+ * The staff-made visits that could overlap [from, to) on a column of the calendar (`practitioner:<id>`,
+ * `room:<id>`, `device:<id>`), as busy spans. Live visits only: a cancelled one frees its time.
+ */
+export async function visitBusyOnColumn(
+	ctx: QueryCtx,
+	tenant: string,
+	columnKey: string,
+	from: number,
+	to: number,
+	now: number,
+): Promise<ReadonlyArray<Busy>> {
+	const rows = await ctx.db
+		.query("visits")
+		.withIndex("by_tenant_column_start", (q) =>
+			q
+				.eq("tenant", tenant)
+				.eq("columnKey", columnKey)
+				.gte("start", from - MAX_BLOCK_MS)
+				.lt("start", to),
+		)
+		.collect();
+	return busyFrom(
+		rows.map((v) => ({ status: v.status, start: v.start, blockedUntil: v.end })),
+		now,
+	);
+}
+
+/**
+ * What blocks [from, to) at `now`: the practitioner's web appointments (excluding one, the one being
+ * rescheduled) AND their staff-made visits, so the public flow can never take a time the team has
+ * already given away. Read in the same transaction as the hold, so the two cannot race.
+ */
 export async function busyAround(
 	ctx: QueryCtx,
 	practitioner: Id<"practitioners">,
@@ -121,17 +153,25 @@ export async function busyAround(
 	except?: Id<"appointments">,
 ): Promise<ReadonlyArray<Busy>> {
 	const rows = await appointmentsAround(ctx, practitioner, from, to);
-	return busyFrom(
-		rows
-			.filter((row) => row._id !== except)
-			.map((row) => ({
-				status: row.status,
-				start: row.start,
-				blockedUntil: row.blockedUntil,
-				...(row.holdExpiresAt === undefined ? {} : { holdExpiresAt: row.holdExpiresAt }),
-			})),
-		now,
-	);
+	const person = await ctx.db.get(practitioner);
+	const visits =
+		person === null
+			? []
+			: await visitBusyOnColumn(ctx, person.tenant, `practitioner:${practitioner}`, from, to, now);
+	return [
+		...busyFrom(
+			rows
+				.filter((row) => row._id !== except)
+				.map((row) => ({
+					status: row.status,
+					start: row.start,
+					blockedUntil: row.blockedUntil,
+					...(row.holdExpiresAt === undefined ? {} : { holdExpiresAt: row.holdExpiresAt }),
+				})),
+			now,
+		),
+		...visits,
+	];
 }
 
 export async function appointmentByReference(

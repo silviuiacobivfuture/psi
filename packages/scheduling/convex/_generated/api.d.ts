@@ -20,6 +20,7 @@ import type * as clinicKeys from "../clinicKeys.js";
 import type * as clinicRetention from "../clinicRetention.js";
 import type * as clinicStanding from "../clinicStanding.js";
 import type * as clinicTables from "../clinicTables.js";
+import type * as clinicVisits from "../clinicVisits.js";
 import type * as crons from "../crons.js";
 import type * as expiry from "../expiry.js";
 import type * as guard from "../guard.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   clinicRetention: typeof clinicRetention;
   clinicStanding: typeof clinicStanding;
   clinicTables: typeof clinicTables;
+  clinicVisits: typeof clinicVisits;
   crons: typeof crons;
   expiry: typeof expiry;
   guard: typeof guard;

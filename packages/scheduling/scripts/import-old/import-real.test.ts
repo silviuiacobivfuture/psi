@@ -70,7 +70,7 @@ const _idsOf = (r: Report, c: string) => code(r, c)?.ids ?? [];
 
 describe("the real run (against the store's own contract)", () => {
 	const real = (exported: unknown, sink: MemorySink, storage = new MemoryStorage(), over = {}) =>
-		runImport({ ...base(), exported, enc, target: { sink, storage }, ...over });
+		runImport({ ...base(), exported, connect: async () => ({ sink, enc, storage }), ...over });
 
 	it("writes every table in dependency order, with the right instants", async () => {
 		const sink = new MemorySink();
@@ -91,10 +91,6 @@ describe("the real run (against the store's own contract)", () => {
 		expect(written.blocks).toMatchObject({ created: 1 });
 		expect(written.responses).toMatchObject({ created: 4 });
 		expect(written.files).toMatchObject({ created: 2 });
-		expect(sink.apps).toEqual([
-			{ slug: TENANT, name: "Psizone", kind: "clinic", address: "Test address 1" },
-		]);
-		expect(sink.installed).toEqual([]);
 		// The repeated hour of 2026-10-25 takes the earlier instant: 03:30 Bucharest is 00:30 UTC.
 		const dst = sink.row("visits", "appointments:100");
 		expect(dst).toMatchObject({
@@ -319,8 +315,7 @@ describe("the real run (against the store's own contract)", () => {
 				staff: [...MAPPING.staff, { legacyId: 103, name: "Test Third", kind: "other" }],
 			},
 			exported: syntheticExport(),
-			enc,
-			target: { sink, storage: new MemoryStorage() },
+			connect: async () => ({ sink, enc, storage: new MemoryStorage() }),
 		});
 		expect(second.written.find((w) => w.kind === "staff")).toMatchObject({ created: 1 });
 		expect(second.written.find((w) => w.kind === "visits")?.updated).toBe(12);

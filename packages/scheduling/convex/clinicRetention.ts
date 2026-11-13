@@ -14,11 +14,12 @@ const BATCH = 20;
 const DAY_MS = 86_400_000;
 
 export const eraseDue = internalMutation({
-	args: { now: v.number() },
+	args: { now: v.number(), tenant: v.optional(v.string()) },
 	returns: v.object({ erased: v.number(), more: v.boolean() }),
-	handler: async (ctx, { now }) => {
+	handler: async (ctx, { now, tenant: only }) => {
 		const cutoff = now - RECOVERY_DAYS * DAY_MS;
-		const tenants = await ctx.db.query("tenants").collect();
+		const all = await ctx.db.query("tenants").collect();
+		const tenants = only === undefined ? all : all.filter((t) => t.slug === only);
 		let erased = 0;
 		for (const tenant of tenants) {
 			if (erased >= BATCH) return { erased, more: true };

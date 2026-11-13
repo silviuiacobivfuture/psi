@@ -8,7 +8,8 @@ import type { MutationCtx } from "./_generated/server";
  * relations, the duplicate keys, and the free text of their visits. What the books need stays,
  * without a person in it: visits (time, column, price, amount paid), packages and payments hang
  * on a client row that is kept as an emptied tombstone. A client with none of those is deleted
- * outright. The caller records the audit event (no content in it).
+ * outright, unless it was imported: that one keeps its old id on the tombstone so a re-import cannot
+ * bring it back (`importSupport.clientRef`). The caller records the audit event (no content in it).
  */
 export async function eraseClinicData(
 	ctx: MutationCtx,
@@ -45,6 +46,12 @@ export async function eraseClinicData(
 		await ctx.db.delete(row._id);
 	}
 
+	const keys = await ctx.db
+		.query("clientKeys")
+		.withIndex("by_client", (q) => q.eq("client", client))
+		.collect();
+	for (const row of keys) await ctx.db.delete(row._id);
+
 	const relations = await ctx.db
 		.query("treating")
 		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
@@ -71,11 +78,13 @@ export async function eraseClinicData(
 		.query("payments")
 		.withIndex("by_tenant_client", (q) => q.eq("tenant", tenant).eq("client", client))
 		.first();
-	if (visits.length === 0 && packages === null && payment === null) {
+	const row = await ctx.db.get(client);
+	// An imported client always leaves a tombstone: without its old id on record, the next run of the
+	// import would bring the client back.
+	if (visits.length === 0 && packages === null && payment === null && row?.legacyId === undefined) {
 		await ctx.db.delete(client);
 		return { storageKeys, tombstoned: false };
 	}
-	const row = await ctx.db.get(client);
 	await ctx.db.replace(client, {
 		tenant,
 		name: "erased",
@@ -87,6 +96,8 @@ export async function eraseClinicData(
 		updatedAt: now,
 		deletedAt: row?.deletedAt ?? now,
 		erasedAt: now,
+		// The old app's id stays on the tombstone, so a re-run of the import finds it and never brings the client back.
+		...(row?.legacyId === undefined ? {} : { legacyId: row.legacyId }),
 		version: (row?.version ?? 0) + 1,
 	});
 	return { storageKeys, tombstoned: true };

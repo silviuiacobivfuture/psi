@@ -66,6 +66,11 @@ export function orphan(legacyId: string, missing: string): UpsertResult {
 	return { legacyId, outcome: "orphan", flag: `missing:${missing}` };
 }
 
+/** A row not written, for a reason the importer reports by code (`erased:client`, `slug_taken`). */
+export function refused(legacyId: string, flag: string): UpsertResult {
+	return { legacyId, outcome: "orphan", flag };
+}
+
 // Lookups by legacy id, one per table: the index is `by_tenant_legacy` on each.
 
 export async function practitionerByLegacy(
@@ -112,6 +117,22 @@ export async function clientByLegacy(ctx: QueryCtx, tenant: string, legacyId: st
 		.query("clients")
 		.withIndex("by_tenant_legacy", (q) => q.eq("tenant", tenant).eq("legacyId", legacyId))
 		.unique();
+}
+
+/**
+ * A client a row refers to, by legacy id: found, absent, or ERASED. An erased client (a tombstone
+ * that keeps its old id) is never written to again, so a re-import cannot bring back what was erased.
+ */
+export async function clientRef(
+	ctx: QueryCtx,
+	tenant: string,
+	legacyId: string | undefined,
+): Promise<{ ok: true; client: Doc<"clients"> | undefined } | { ok: false; flag: string }> {
+	if (legacyId === undefined) return { ok: true, client: undefined };
+	const client = await clientByLegacy(ctx, tenant, legacyId);
+	if (client === null) return { ok: false, flag: "missing:client" };
+	if (client.erasedAt !== undefined) return { ok: false, flag: "erased:client" };
+	return { ok: true, client };
 }
 
 export async function visitByLegacy(ctx: QueryCtx, tenant: string, legacyId: string) {

@@ -56,8 +56,7 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 			ignoreTables: [],
 			allowSkips: true,
 			files: createDirSource(dir),
-			enc: target.enc,
-			target: { sink: target.sink, storage },
+			connect: async () => target,
 		};
 
 		const first = await runImport(options);
@@ -119,4 +118,35 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 		const audit = dumpTable("auditEvents");
 		expect(audit).toContain("import.batch");
 	}, 120_000);
+
+	it("a refused run makes nothing: no app, no key, no file in the store", async () => {
+		const adminKey = readFileSync(join(CONVEX_DATA, "secrets/admin-key"), "utf8").trim();
+		const refusedApp = `${APP}-refused`;
+		const storage = new MemoryStorage();
+		const exported = syntheticExport();
+		exported.tables.nfb_feedback = [{ id: 1 }];
+		const report = await runImport({
+			exported,
+			mapping: { ...mapping, app: refusedApp },
+			ignoreTables: [],
+			allowSkips: true,
+			files: createDirSource(dir),
+			connect: () =>
+				connect({
+					url: CONVEX_URL,
+					adminKey,
+					masterKey: generateMasterKeyText(),
+					mapping: { ...mapping, app: refusedApp },
+					storage,
+				}),
+		});
+		expect(report.refusal).toBe("blocking");
+		const empty = await runQuery(
+			"clinicInspect:counts",
+			{ tenant: refusedApp },
+			z.record(z.string(), z.number()),
+		);
+		expect(Object.values(empty).every((n) => n === 0)).toBe(true);
+		expect(storage.objects.size).toBe(0);
+	});
 });

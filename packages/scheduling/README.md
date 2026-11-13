@@ -25,7 +25,7 @@ The engine's Mastra tools (`findAvailability`, `requestAppointment`, `cancelRequ
 - **Apps.** A tenant is an app (`psizone`, `hemisync`). Every clinic row carries it and every clinic
   index starts with it. Practitioners, devices, rooms and group activities are different tables: only
   practitioners are ever offered by the public picker.
-- **Staff-made appointments are `visits`**, not `appointments`. The web-request retention
+- **Staff-made appointments are `visits`**, not `appointments`; the public flow reads them as busy time of the practitioner (`calendar.busyAround`) and of the room (`roomPlan.ts`), so the two cannot take the same time or room, and `clinicVisits.create` refuses a visit over time the public flow holds. The web-request retention
   (`retention.ts`, 30 days for a booking contact) only reads `appointments`, so it can never reach a
   clinic row (`clinic-backend.test.ts` runs the real `retention:purgePage` over aged clinic rows).
   The clinic's own job (`clinicRetention.eraseDue`, daily) erases one thing: a client soft-deleted

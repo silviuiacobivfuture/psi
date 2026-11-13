@@ -2,10 +2,11 @@ import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import {
 	auditBatch,
-	clientByLegacy,
+	clientRef,
 	MAX_BATCH,
 	orphan,
 	packageByLegacy,
+	refused,
 	resultValidator,
 	type UpsertResult,
 	upsertRow,
@@ -37,11 +38,12 @@ export const upsertPackages = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
-			const client = await clientByLegacy(ctx, tenant, r.clientLegacy);
-			if (client === null) {
-				out.push(orphan(r.legacyId, "client"));
+			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
+			if (!clientOf.ok || clientOf.client === undefined) {
+				out.push(refused(r.legacyId, clientOf.ok ? "missing:client" : clientOf.flag));
 				continue;
 			}
+			const client = clientOf.client;
 			const owned = {
 				client: client._id,
 				sessionType: r.sessionType,
@@ -103,13 +105,18 @@ export const upsertPayments = internalMutation({
 		if (rows.length > MAX_BATCH) throw new Error("batch too large");
 		const out: UpsertResult[] = [];
 		for (const r of rows) {
-			const client = await clientByLegacy(ctx, tenant, r.clientLegacy);
+			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
+			if (!clientOf.ok || clientOf.client === undefined) {
+				out.push(refused(r.legacyId, clientOf.ok ? "missing:client" : clientOf.flag));
+				continue;
+			}
+			const client = clientOf.client;
 			const pack =
 				r.packageLegacy === undefined
 					? undefined
 					: await packageByLegacy(ctx, tenant, r.packageLegacy);
-			if (client === null || pack === null) {
-				out.push(orphan(r.legacyId, client === null ? "client" : "package"));
+			if (pack === null) {
+				out.push(orphan(r.legacyId, "package"));
 				continue;
 			}
 			const owned = {

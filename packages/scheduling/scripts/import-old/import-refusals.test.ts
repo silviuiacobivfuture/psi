@@ -74,8 +74,7 @@ describe("refusals: nothing is written", () => {
 		const report = await runImport({
 			...base(),
 			exported,
-			enc,
-			target: { sink, storage: new MemoryStorage() },
+			connect: async () => ({ sink, enc, storage: new MemoryStorage() }),
 			...over,
 		});
 		return { sink, report };
@@ -169,8 +168,7 @@ describe("refusals: nothing is written", () => {
 		const bad = await runImport({
 			...base(),
 			exported: { nope: 1 },
-			enc,
-			target: { sink, storage: new MemoryStorage() },
+			connect: async () => ({ sink, enc, storage: new MemoryStorage() }),
 		});
 		expect(bad.fatal).toBe("the export is not { exported_at, tables }");
 		const { report } = await attempt((e) => {
@@ -181,8 +179,7 @@ describe("refusals: nothing is written", () => {
 		const dated = await runImport({
 			...base(),
 			exported: { exported_at: "never", tables: {} },
-			enc,
-			target: undefined,
+			connect: undefined,
 		});
 		expect(dated.fatal).toBe("exported_at is not a date");
 	});
@@ -235,11 +232,10 @@ describe("refusals: nothing is written", () => {
 		const report = await runImport({
 			...base(),
 			exported: syntheticExport(),
-			enc,
-			target: { sink: new OrphaningSink(sink), storage: new MemoryStorage() },
+			connect: async () => ({ sink: new OrphaningSink(sink), enc, storage: new MemoryStorage() }),
 		});
 		expect(report.written.find((w) => w.kind === "visits")?.orphan).toBe(12);
-		expect(idsOf(report, "orphan_in_store:missing:client")).toContain("appointments:100");
+		expect(idsOf(report, "not_written:missing:client")).toContain("appointments:100");
 	});
 });
 
@@ -263,6 +259,76 @@ class OrphaningSink extends MemorySink {
 		return this.inner.upsert(tenant, kind, rows);
 	}
 }
+
+describe("a refused run touches nothing", () => {
+	it("never connects, never makes the app or a key, never uploads a file", async () => {
+		const exported = cloneExport();
+		exported.tables.nfb_feedback = [{ id: 1 }];
+		const sink = new MemorySink();
+		const storage = new MemoryStorage();
+		let connected = 0;
+		const report = await runImport({
+			...base(),
+			exported,
+			connect: async () => {
+				connected += 1;
+				return { sink, enc, storage };
+			},
+		});
+		expect(report.refusal).toBe("blocking");
+		expect(connected).toBe(0);
+		expect(sink.apps).toEqual([]);
+		expect(sink.installed).toEqual([]);
+		expect(sink.changes).toBe(0);
+		expect(storage.objects.size).toBe(0);
+	});
+
+	it("a skipped row refuses before connecting too", async () => {
+		let connected = 0;
+		const storage = new MemoryStorage();
+		const report = await runImport({
+			...base(),
+			allowSkips: false,
+			exported: syntheticExport(),
+			connect: async () => {
+				connected += 1;
+				return { sink: new MemorySink(), enc, storage };
+			},
+		});
+		expect(report.refusal).toBe("skipped");
+		expect(connected).toBe(0);
+		expect(storage.objects.size).toBe(0);
+	});
+
+	it("a slug the store already uses for another row blocks the run before any row is written", async () => {
+		const sink = new MemorySink();
+		await sink.upsert(TENANT, "practitioners", [
+			{ legacyId: "web:1", fingerprint: "x", slug: "t1", displayName: "Existing", active: true },
+		]);
+		const storage = new MemoryStorage();
+		const report = await runImport({
+			...base(),
+			exported: syntheticExport(),
+			connect: async () => ({ sink, enc, storage }),
+		});
+		expect(report.refusal).toBe("blocking");
+		expect(idsOf(report, "slug_taken:practitioners")).toEqual(["therapists:1"]);
+		expect(sink.count("clients")).toBe(0);
+		expect(sink.count("practitioners")).toBe(1);
+		expect(storage.objects.size).toBe(0);
+	});
+
+	it("a time of day that does not exist on the roster is an anomaly, not a crash", async () => {
+		const exported = cloneExport();
+		const row = exported.tables.staff_schedule?.[0];
+		if (row !== undefined) Reflect.set(row as object, "start_time", "24:30");
+		const report = await runImport({ ...base(), exported, connect: undefined });
+		expect(idsOf(report, "roster_works_without_valid_hours")).toEqual([
+			"staff_schedule:1",
+			"staff_schedule:7",
+		]);
+	});
+});
 
 describe("the command line", () => {
 	it("a dry run needs no key and no network, prints aggregates and old ids only, and exits 0", async () => {

@@ -102,8 +102,9 @@ export function findOverlaps(
 }
 
 /**
- * The busy spans of a practitioner's live visits: the public booking flow subtracts these from
- * the practitioner's slots, so a staff-made visit and a web booking can never take the same time.
+ * The busy spans of a practitioner's live visits, as a pure projection. The store applies the same
+ * rule where the public flow reads a calendar (`convex/calendar.ts` `busyAround`, `roomPlan.ts`),
+ * so a staff-made visit and a web booking can never take the same time or room.
  */
 export function busyOfVisits(
 	visits: ReadonlyArray<VisitSpan>,

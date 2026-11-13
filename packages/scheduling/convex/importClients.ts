@@ -65,6 +65,12 @@ export const upsertClients = internalMutation({
 		const out: UpsertResult[] = [];
 		const now = Date.now();
 		for (const r of rows) {
+			const present = await clientByLegacy(ctx, tenant, r.legacyId);
+			if (present?.erasedAt !== undefined) {
+				// Erased on purpose: the import never brings a client back.
+				out.push({ legacyId: r.legacyId, id: present._id, outcome: "unchanged", flag: "erased" });
+				continue;
+			}
 			const practitioner =
 				r.treatingLegacy === undefined
 					? null
@@ -79,7 +85,6 @@ export const upsertClients = internalMutation({
 				phone: r.phone,
 				email: r.email,
 				guardian: r.guardian,
-				consent: r.consent,
 				status: r.status,
 				archivedAt: r.archivedAt,
 				gender: r.gender,
@@ -126,6 +131,8 @@ export const upsertClients = internalMutation({
 						source: "import",
 						createdBy: "system:import",
 						createdAt: r.createdAt,
+						// Consent is the team's to change once the client exists: an update never rewrites it.
+						consent: r.consent,
 						...owned,
 					});
 					await writeKeys(id);

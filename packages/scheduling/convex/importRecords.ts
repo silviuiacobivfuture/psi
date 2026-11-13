@@ -2,11 +2,12 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import {
 	auditBatch,
-	clientByLegacy,
+	clientRef,
 	definitionOf,
 	MAX_BATCH,
 	orphan,
 	practitionerByLegacy,
+	refused,
 	resultValidator,
 	type UpsertResult,
 	upsertRow,
@@ -39,7 +40,12 @@ export const upsertResponses = internalMutation({
 		const out: UpsertResult[] = [];
 		for (const r of rows) {
 			const definition = await definitionOf(ctx, tenant, r.definitionKey, r.definitionVersion);
-			const client = await clientByLegacy(ctx, tenant, r.clientLegacy);
+			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
+			if (!clientOf.ok || clientOf.client === undefined) {
+				out.push(refused(r.legacyId, clientOf.ok ? "missing:client" : clientOf.flag));
+				continue;
+			}
+			const client = clientOf.client;
 			const visit =
 				r.visitLegacy === undefined ? undefined : await visitByLegacy(ctx, tenant, r.visitLegacy);
 			const practitioner =
@@ -131,14 +137,12 @@ export const upsertFiles = internalMutation({
 		if (rows.length > MAX_BATCH) throw new Error("batch too large");
 		const out: UpsertResult[] = [];
 		for (const r of rows) {
-			const client =
-				r.clientLegacy === undefined
-					? undefined
-					: await clientByLegacy(ctx, tenant, r.clientLegacy);
-			if (client === null) {
-				out.push(orphan(r.legacyId, "client"));
+			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
+			if (!clientOf.ok) {
+				out.push(refused(r.legacyId, clientOf.flag));
 				continue;
 			}
+			const client = clientOf.client;
 			const owned = {
 				kind: r.kind,
 				client: client?._id,

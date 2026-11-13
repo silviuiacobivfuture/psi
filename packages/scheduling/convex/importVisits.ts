@@ -3,13 +3,14 @@ import { columnKey } from "../src/clinic/visits";
 import { internalMutation } from "./_generated/server";
 import {
 	auditBatch,
-	clientByLegacy,
+	clientRef,
 	deviceByLegacy,
 	groupByLegacy,
 	MAX_BATCH,
 	orphan,
 	packageByLegacy,
 	practitionerByLegacy,
+	refused,
 	resultValidator,
 	roomByLegacy,
 	type UpsertResult,
@@ -96,14 +97,12 @@ export const upsertVisits = internalMutation({
 				out.push(orphan(r.legacyId, `column.${col.kind}`));
 				continue;
 			}
-			const client =
-				r.clientLegacy === undefined
-					? undefined
-					: await clientByLegacy(ctx, tenant, r.clientLegacy);
-			if (client === null) {
-				out.push(orphan(r.legacyId, "client"));
+			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
+			if (!clientOf.ok) {
+				out.push(refused(r.legacyId, clientOf.flag));
 				continue;
 			}
+			const client = clientOf.client;
 			const room =
 				r.roomLegacy === undefined ? undefined : await roomByLegacy(ctx, tenant, r.roomLegacy);
 			if (room === null) {

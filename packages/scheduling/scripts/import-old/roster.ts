@@ -65,6 +65,17 @@ function personOf(
 	return undefined;
 }
 
+/** Minutes after midnight of an `HH:MM` text, or undefined when it is not a time of day. */
+function minutes(value: string | null | undefined): number | undefined {
+	const text = clock(value);
+	if (text === undefined) return undefined;
+	try {
+		return parseClock(text);
+	} catch {
+		return undefined;
+	}
+}
+
 /** `lucreaza`, `concediu`, `liber`, `(CM)` (any case, with or without diacritics or brackets). */
 export function rosterStatus(
 	raw: string | null | undefined,
@@ -98,12 +109,8 @@ export async function planRoster(
 		let startMinutes: number | undefined;
 		let endMinutes: number | undefined;
 		if (status === "works") {
-			const s = clock(r.start_time);
-			const e = clock(r.end_time);
-			if (s !== undefined && e !== undefined) {
-				startMinutes = parseClock(s);
-				endMinutes = parseClock(e);
-			}
+			startMinutes = minutes(r.start_time);
+			endMinutes = minutes(r.end_time);
 			const entry = {
 				status: "works" as const,
 				startMinutes: startMinutes ?? Number.NaN,

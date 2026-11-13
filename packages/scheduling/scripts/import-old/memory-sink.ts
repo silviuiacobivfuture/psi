@@ -1,5 +1,5 @@
 import type { WrappedKey } from "../../src/crypto";
-import type { AppSpec, ImportSink, Kind, RowsByKind, UpsertResult } from "./sink";
+import type { AppSpec, ImportSink, Kind, RowsByKind, SlugKind, UpsertResult } from "./sink";
 
 /**
  * A stand-in for the store in tests: it follows the same contract as the Convex functions (keyed on
@@ -100,6 +100,16 @@ export class MemorySink implements ImportSink {
 			known.set(id, String(Reflect.get(stored.row, "fingerprint")));
 		}
 		return known;
+	}
+
+	async slugs(): Promise<Array<{ kind: SlugKind; slug: string; legacyId: string | undefined }>> {
+		const out: Array<{ kind: SlugKind; slug: string; legacyId: string | undefined }> = [];
+		for (const kind of ["practitioners", "rooms", "devices", "groups"] as const) {
+			for (const [legacyId, stored] of this.table(kind)) {
+				out.push({ kind, slug: String(Reflect.get(stored.row, "slug")), legacyId });
+			}
+		}
+		return out;
 	}
 
 	count(kind: Kind): number {

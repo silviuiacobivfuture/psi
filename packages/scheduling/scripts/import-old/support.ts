@@ -15,6 +15,13 @@ export interface Encryptor {
 	): Promise<{ keyVersion: number; iv: string; bytes: Uint8Array<ArrayBuffer> }>;
 }
 
+/** The stand-in for a run that has no key and writes nothing: constant values, no cryptography. */
+export const dryEncryptor: Encryptor = {
+	encrypt: async () => ({ keyVersion: 1, iv: "dry", data: "dry" }),
+	fingerprint: async () => "dry",
+	encryptBytes: async (bytes) => ({ keyVersion: 1, iv: "dry", bytes }),
+};
+
 export interface Ctx {
 	tenant: string;
 	zone: string;
