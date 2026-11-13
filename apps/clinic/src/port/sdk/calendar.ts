@@ -37,7 +37,9 @@ export function calendarGroup(sdk: SdkContext) {
 		]);
 		return [
 			...people.filter((p) => p.active).map((p, i) => column("person", p.id, p.displayName, i)),
-			...rooms.filter((r) => r.active).map((r, i) => column("room", r.id, r.name, i + 4)),
+			...rooms
+				.filter((r) => r.active)
+				.map((r, i) => column("room", r.id, r.name, i + 4, r.capacity)),
 			...devices.filter((d) => d.active).map((d, i) => column("device", d.id, d.name, i + 3)),
 			...groups.filter((g) => g.active).map((g, i) => column("group", g.id, g.name, i + 5)),
 		];

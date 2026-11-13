@@ -8,6 +8,7 @@ import { registerAssets } from "./assets";
 import { mountAssistant } from "./assistant/mount";
 import type { Auth } from "./auth";
 import { Page } from "./chrome";
+import { registerFloor } from "./floor/mount";
 import { canOf } from "./lib/can";
 import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
@@ -179,6 +180,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerPrint(app);
 	registerDetail(app);
 	if (deps.assistant !== undefined) mountAssistant(app, deps.assistant);
+	registerFloor(app);
 	registerSearch(app);
 	registerClients(app);
 	registerRequests(app);

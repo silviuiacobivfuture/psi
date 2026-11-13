@@ -32,6 +32,12 @@ const GATES: ReadonlyArray<Gate> = [
 	g("POST", "/appointments/[^/]+/(attended|no-show)", ["appointments_edit"], true),
 	g("POST", "/appointments/[^/]+/cancel", ["appointments_cancel"], true),
 	g("POST", "/appointments/[^/]+/pay", ["payments_create"], true),
+	g("GET", "/floor", ["calendar_view"]),
+	g("GET", "/floor/api/live/(stream)", ["calendar_view"]),
+	g("POST", "/floor/api/live/render", ["calendar_view"]),
+	g("POST", "/floor/api/draw/render", ["app_settings_edit"]),
+	g("POST", "/floor/api/draw/save", ["app_settings_edit"], true),
+	g("GET", "/settings/plan", ["app_settings_edit"]),
 	g("GET", "/search(/live)?", ["clients_view"]),
 	g("GET", "/clients", ["clients_view"]),
 	g("GET", "/clients/[^/]+", ["clients_view"]),
@@ -76,7 +82,11 @@ export const SETTINGS_TAB_KEYS = {
 	devices: "devices_view",
 	services: "services_view",
 	roles: "roles_view",
+	plan: "app_settings_edit",
 } as const;
+
+/** Whether any settings tab is open to this person. */
+export const settingsOpen = (can: Can): boolean => can.any(...Object.values(SETTINGS_TAB_KEYS));
 
 /** Packages and records tabs of a client, with the permission each needs. */
 export const CLIENT_TAB_KEYS = {

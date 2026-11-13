@@ -1,6 +1,7 @@
 import { type AdminIcon, Icon } from "@psi/ui/admin";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
+import { settingsOpen } from "../lib/gates";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -9,6 +10,12 @@ export async function MorePage(ctx: Ctx) {
 	const o = at(ctx.locale);
 	const { can } = ctx;
 	const all: ReadonlyArray<{ href: string; label: string; icon: AdminIcon; open: boolean }> = [
+		{
+			href: "/floor",
+			label: m.nav_floor({}, o),
+			icon: "sidebar",
+			open: can.has("calendar_view"),
+		},
 		{
 			href: "/roster",
 			label: m.nav_roster({}, o),
@@ -25,7 +32,7 @@ export async function MorePage(ctx: Ctx) {
 			href: "/settings",
 			label: m.nav_settings({}, o),
 			icon: "settings",
-			open: can.any("people_view", "rooms_view", "devices_view", "services_view", "roles_view"),
+			open: settingsOpen(can),
 		},
 		{ href: "/audit", label: m.nav_audit({}, o), icon: "list", open: can.has("audit_view") },
 	];

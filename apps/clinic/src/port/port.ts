@@ -1,4 +1,5 @@
 import type { AppMe } from "@psi/scheduling-sdk/contract";
+import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
 import type {
@@ -169,6 +170,13 @@ export interface ClinicPort {
 	 * badge change. Reconnects with backoff by itself; ends only when `signal` aborts.
 	 */
 	live(app: AppSlug, signal: AbortSignal): AsyncIterable<LiveSignal>;
+	/**
+	 * The clinic's floor plan, and whether this port can keep a drawn one. A service that stores none answers an empty
+	 * plan with `writable: false`: the live view still works, drawing says "în curând".
+	 */
+	floorPlan(app: AppSlug): Promise<{ doc: FloorPlanDoc; writable: boolean }>;
+	/** Saves a plan edited from `doc.revision`; `stale` when the stored one moved on, `not-available-yet` when it cannot be kept. */
+	saveFloorPlan(app: AppSlug, doc: FloorPlanDoc): Promise<SaveResult>;
 	pushPrefs(subject: string): Promise<PushPrefs>;
 	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;
 }

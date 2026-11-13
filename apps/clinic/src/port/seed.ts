@@ -65,16 +65,16 @@ function columnsFor(app: AppSlug): Column[] {
 		return [
 			person("h1", "Ghid Sesiuni Alfa", 1),
 			person("h2", "Ghid Sesiuni Beta", 2),
-			{ id: "hr1", kind: "room", name: "Sala Hemi-Sync", colour: 5 },
-			{ id: "hg1", kind: "group", name: "Club Hemi-Sync", colour: 6 },
+			{ id: "hr1", kind: "room", name: "Sala Hemi-Sync", colour: 5, capacity: 8 },
+			{ id: "hg1", kind: "group", name: "Club Hemi-Sync", colour: 6, capacity: 12 },
 		];
 	return [
 		person("p1", "Terapeut Alfa", 1),
 		person("p2", "Terapeut Beta", 2),
 		person("p3", "Terapeut Gamma", 3),
 		{ id: "d1", kind: "device", name: "Aparat NFB 1", colour: 4 },
-		{ id: "r1", kind: "room", name: "Cabinet Terapie", colour: 5 },
-		{ id: "g1", kind: "group", name: "Sală Grup", colour: 6 },
+		{ id: "r1", kind: "room", name: "Cabinet Terapie", colour: 5, capacity: 3 },
+		{ id: "g1", kind: "group", name: "Sală Grup", colour: 6, capacity: 12 },
 	];
 }
 

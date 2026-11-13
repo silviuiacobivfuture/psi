@@ -12,6 +12,7 @@ import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
+import { settingsOpen } from "./lib/gates";
 import { at, type Locale } from "./lib/i18n";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
@@ -19,6 +20,7 @@ import type { AppSlug } from "./port/schema";
 
 export type NavKey =
 	| "calendar"
+	| "floor"
 	| "clients"
 	| "requests"
 	| "more"
@@ -134,24 +136,19 @@ export async function Page({
 		...(badge === undefined ? {} : { badge }),
 	});
 	// Only what this person may open: a menu entry for a screen the service would refuse is never offered.
-	const settingsOpen = can.any(
-		"people_view",
-		"rooms_view",
-		"devices_view",
-		"services_view",
-		"roles_view",
-	);
+	const settingsAllowed = settingsOpen(can);
 	const offered: ReadonlyArray<NavItem | null> = [
 		can.has("calendar_view") ? item("calendar", m.nav_calendar({}, o), "calendar") : null,
+		can.has("calendar_view") ? item("floor", m.nav_floor({}, o), "sidebar") : null,
 		can.has("clients_view") ? item("clients", m.nav_clients({}, o), "users") : null,
 		can.has("requests_view") ? item("requests", m.nav_requests({}, o), "inbox", open) : null,
 		can.has("roster_view") ? item("roster", m.nav_roster({}, o), "briefcase") : null,
 		can.has("reminders_view") ? item("reminders", m.nav_reminders({}, o), "chat") : null,
-		settingsOpen ? item("settings", m.nav_settings({}, o), "settings") : null,
+		settingsAllowed ? item("settings", m.nav_settings({}, o), "settings") : null,
 		can.has("audit_view") ? item("audit", m.nav_audit({}, o), "list") : null,
 	];
 	const nav = offered.filter((n): n is NavItem => n !== null);
-	const moreKeys: NavKey[] = ["roster", "reminders", "settings", "audit"];
+	const moreKeys: NavKey[] = ["floor", "roster", "reminders", "settings", "audit"];
 	const hasMore = nav.some((n) => moreKeys.includes(n.key as NavKey));
 	const tabs: NavItem[] = [
 		...nav.filter((n) => ["calendar", "clients", "requests"].includes(n.key)),

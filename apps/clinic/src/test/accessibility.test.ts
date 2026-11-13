@@ -10,6 +10,8 @@ const SCREENS = [
 	"/clients",
 	"/clients/c1",
 	"/clients/c1/packages",
+	"/floor",
+	"/settings/plan",
 	"/requests",
 	"/reminders?date=2026-11-16",
 	"/roster",

@@ -19,6 +19,8 @@ export const ColumnSchema = z.object({
 	name: z.string(),
 	/** 1..6: the calendar column colour role. */
 	colour: z.number().int().min(1).max(6),
+	/** How many people a room or group holds, when the service says. */
+	capacity: z.number().int().positive().optional(),
 });
 export type Column = z.infer<typeof ColumnSchema>;
 

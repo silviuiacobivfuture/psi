@@ -34,11 +34,18 @@ export type ApiAudit = z.output<typeof ApiAuditSchema>;
 /** The console's colours are six roles; a column takes the next one in its list. */
 export const colourOf = (index: number): number => (index % 6) + 1;
 
-export const column = (kind: Column["kind"], id: string, name: string, index: number): Column => ({
+export const column = (
+	kind: Column["kind"],
+	id: string,
+	name: string,
+	index: number,
+	capacity?: number,
+): Column => ({
 	id,
 	kind,
 	name,
 	colour: colourOf(index),
+	...(capacity === undefined ? {} : { capacity }),
 });
 
 export function appointmentOf(a: ApiAppointment, tz: string): Appointment {

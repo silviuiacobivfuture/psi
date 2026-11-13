@@ -1,3 +1,4 @@
+import { emptyPlan, type FloorPlanDoc, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { PortError, type TeamMember } from "../port";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
@@ -138,6 +139,16 @@ export function adminGroup(sdk: SdkContext) {
 			_app: AppSlug,
 			_entry: { actor: string; action: string; target: string },
 		): Promise<void> => {},
+
+		/** The service keeps no floor plan: an empty one, and drawing is "în curând" until it has somewhere to store it. */
+		floorPlan: async (): Promise<{ doc: FloorPlanDoc; writable: boolean }> => ({
+			doc: emptyPlan(),
+			writable: false,
+		}),
+
+		saveFloorPlan: async (): Promise<SaveResult> => {
+			throw new PortError("not-available-yet", "the scheduling service keeps no floor plan");
+		},
 
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),

@@ -1,3 +1,4 @@
+import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
@@ -24,6 +25,7 @@ import type {
 import { AppointmentPatchSchema, NewAppointmentSchema, NewClientSchema } from "./schema";
 import type { AppData } from "./seed";
 import { seedApp } from "./seed";
+import { seedPlan } from "./seed-plan";
 
 export interface FakeOptions {
 	today?: string;
@@ -62,6 +64,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		return d;
 	};
 	const prefs = new Map<string, PushPrefs>();
+	const plans = new Map<AppSlug, FloorPlanDoc>();
 	let seq = 1000;
 	const guard = (method: keyof ClinicPort): void => {
 		if (opts.failing?.has(method) === true)
@@ -528,6 +531,21 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
+		},
+		async floorPlan(app) {
+			guard("floorPlan");
+			return { doc: plans.get(app) ?? seedPlan(app), writable: true };
+		},
+		async saveFloorPlan(app, raw) {
+			guard("saveFloorPlan");
+			const parsed = FloorPlanDocSchema.safeParse(raw);
+			if (!parsed.success) return { ok: false, reason: "invalid" };
+			const held = plans.get(app) ?? seedPlan(app);
+			if (parsed.data.revision !== held.revision) return { ok: false, reason: "stale" };
+			const doc = { ...parsed.data, revision: held.revision + 1 };
+			plans.set(app, doc);
+			log(data(app), "console", "floor-plan.save", `revision ${doc.revision}`);
+			return { ok: true, doc };
 		},
 		async pushPrefs(subject) {
 			guard("pushPrefs");

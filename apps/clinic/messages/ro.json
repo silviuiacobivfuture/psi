@@ -312,5 +312,10 @@
 	"role_therapist": "Terapeut",
 	"role_coordinator": "Coordonator",
 	"role_volunteer": "Voluntar",
-	"role_accountant": "Contabil"
+	"role_accountant": "Contabil",
+	"nav_floor": "Plan cabinete",
+	"tab_plan": "Plan cabinete",
+	"floor_empty_title": "Planul cabinetelor nu e desenat încă",
+	"floor_empty_text": "Desenează încăperile din Setări și vei vedea aici, în timp real, ce cabinet e liber și ce cabinet e ocupat.",
+	"floor_draw": "Desenează planul"
 }

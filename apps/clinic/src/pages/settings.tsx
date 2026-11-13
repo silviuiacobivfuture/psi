@@ -14,6 +14,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { formatMoney } from "../domain/money";
+import { drawBody } from "../floor/mount";
 import type { Ctx } from "../lib/context";
 import { SETTINGS_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
@@ -30,6 +31,7 @@ export const SETTINGS_TABS = [
 	"devices",
 	"services",
 	"roles",
+	"plan",
 	"notifications",
 ] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -47,6 +49,8 @@ const tabLabel = (t: SettingsTab, locale: Locale): string => {
 			return m.tab_services({}, o);
 		case "roles":
 			return m.tab_roles({}, o);
+		case "plan":
+			return m.tab_plan({}, o);
 		case "notifications":
 			return m.tab_notifications({}, o);
 		default: {
@@ -227,6 +231,8 @@ export async function renderSettings(
 					showPrice={ctx.can.group("money")}
 				/>
 			);
+		} else if (tab === "plan") {
+			body = await drawBody(ctx);
 		} else if (tab === "roles") {
 			const roles = await ctx.port.roles(ctx.app);
 			const role = roles.find((r) => r.id === roleId) ?? roles[0];

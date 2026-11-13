@@ -312,5 +312,10 @@
 	"role_therapist": "Therapist",
 	"role_coordinator": "Coordinator",
 	"role_volunteer": "Volunteer",
-	"role_accountant": "Accountant"
+	"role_accountant": "Accountant",
+	"nav_floor": "Floor plan",
+	"tab_plan": "Floor plan",
+	"floor_empty_title": "The floor plan is not drawn yet",
+	"floor_empty_text": "Draw the rooms in Settings and you will see here, live, which room is free and which is busy.",
+	"floor_draw": "Draw the plan"
 }
