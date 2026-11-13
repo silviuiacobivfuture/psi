@@ -33,6 +33,23 @@ export const ColumnSchema = z.object({
 	purpose: z.string().optional(),
 	/** Rooms that are one practitioner's own: the practitioner's column id ("cabinetul Irinei"). */
 	homeOf: z.string().optional(),
+	/** Off the calendar and the pickers, kept for history. Absent: active. */
+	active: z.boolean().optional(),
+	/** People: where to reach them, what they are known for, their hours per weekday (Monday first), what they use and offer. */
+	email: z.string().optional(),
+	specialty: z.string().optional(),
+	hours: z
+		.array(z.object({ from: MinuteSchema, to: MinuteSchema }).nullable())
+		.length(7)
+		.optional(),
+	roles: z.array(z.string()).optional(),
+	roomIds: z.array(z.string()).optional(),
+	serviceIds: z.array(z.string()).optional(),
+	/** Rooms and devices: may a booking use it. Absent: yes. */
+	bookable: z.boolean().optional(),
+	/** Devices: what kind (NFB, QEEG, other) and the room it stands in. */
+	deviceType: z.string().optional(),
+	deviceRoom: z.string().optional(),
 });
 export type Column = z.infer<typeof ColumnSchema>;
 
@@ -44,6 +61,17 @@ export const ServiceSchema = z.object({
 	priceBani: z.number().int().nonnegative().nullable(),
 	/** Booked only in a room of this category (neurofeedback and QEEG need a neuro room). */
 	roomCategory: RoomCategorySchema.optional(),
+	active: z.boolean().optional(),
+	/** Minutes kept free after it. */
+	bufferMin: z.number().int().min(0).max(240).optional(),
+	/** Offered for online booking. Absent: yes. */
+	online: z.boolean().optional(),
+	/** What the service is filed under in the clinic's own words. */
+	category: z.string().optional(),
+	/** Who may give it, where, and with what; empty: anyone, anywhere. */
+	practitionerIds: z.array(z.string()).optional(),
+	roomIds: z.array(z.string()).optional(),
+	deviceIds: z.array(z.string()).optional(),
 });
 export type Service = z.infer<typeof ServiceSchema>;
 

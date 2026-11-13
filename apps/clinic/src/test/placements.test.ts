@@ -48,6 +48,10 @@ async function screens(): Promise<string[]> {
 		"/reminders?date=2026-11-16",
 		"/me/settings",
 		"/settings/roles",
+		"/settings/people",
+		"/settings/rooms",
+		"/settings/devices",
+		"/settings/services",
 		"/platform",
 	];
 }

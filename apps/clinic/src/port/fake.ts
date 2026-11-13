@@ -2,6 +2,7 @@ import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/confl
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { createFakeAccess } from "./fake-caps";
+import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import {
@@ -101,11 +102,13 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	});
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
+	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
 	return {
 		...access,
 		...clinical,
+		...catalog,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;
@@ -139,8 +142,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("calendar");
 			const d = data(app);
 			return {
-				columns: d.columns,
-				services: d.services,
+				columns: calendarColumns(d.columns),
+				services: activeServices(d.services),
 				clients: d.clients,
 				appointments: d.appointments.filter((a) => a.date >= from && a.date <= to),
 			};
@@ -408,7 +411,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			const d = data(app);
 			const end = addDays(weekStart, 6);
 			return {
-				people: d.columns.filter((c) => c.kind === "person"),
+				people: calendarColumns(d.columns).filter((c) => c.kind === "person"),
 				entries: d.roster.filter((r) => r.date >= weekStart && r.date <= end),
 			};
 		},
@@ -455,11 +458,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		},
 		async columns(app) {
 			guard("columns");
-			return data(app).columns;
+			return calendarColumns(data(app).columns);
 		},
 		async services(app) {
 			guard("services");
-			return data(app).services;
+			return activeServices(data(app).services);
 		},
 		async roles(app) {
 			guard("roles");

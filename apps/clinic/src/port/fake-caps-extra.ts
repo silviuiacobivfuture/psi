@@ -31,6 +31,18 @@ export function extraCapabilities(role: Pick<Role, "grants">): Record<string, Sc
 			"feedback_view",
 			"reports_view",
 			"imports_exports_imports_view",
+			"people_create",
+			"people_edit",
+			"people_archive",
+			"rooms_create",
+			"rooms_edit",
+			"rooms_delete",
+			"devices_create",
+			"devices_edit",
+			"devices_delete",
+			"services_create",
+			"services_edit",
+			"services_delete",
 		])
 			out[key] = ["all"];
 	if (role.grants.roster?.edit !== undefined) out.roster_edit = [role.grants.roster.edit];

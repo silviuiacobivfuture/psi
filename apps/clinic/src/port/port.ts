@@ -25,6 +25,14 @@ import type {
 	WebRequest,
 } from "./schema";
 import type {
+	CatalogKind,
+	DeviceInput,
+	NewRole,
+	PersonInput,
+	RoomInput,
+	ServiceInput,
+} from "./schema-catalog";
+import type {
 	Actor,
 	BlacklistEntry,
 	ClientFile,
@@ -171,6 +179,22 @@ export interface ClinicPort {
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;
 	columns(app: AppSlug): Promise<ReadonlyArray<Column>>;
+	/** Every person, room and device the team set up, the inactive ones too (the calendar's `columns` has only the active). */
+	catalogColumns(app: AppSlug): Promise<ReadonlyArray<Column>>;
+	/** Adds (`id` null) or changes a team member; a practitioner gets a calendar column. Refuses (`invalid`) a bad value, (`conflict`) an e-mail already on the team. */
+	savePerson(app: AppSlug, id: string | null, input: PersonInput): Promise<Column>;
+	saveRoom(app: AppSlug, id: string | null, input: RoomInput): Promise<Column>;
+	saveDevice(app: AppSlug, id: string | null, input: DeviceInput): Promise<Column>;
+	saveService(app: AppSlug, id: string | null, input: ServiceInput): Promise<Service>;
+	/** Removes it, or switches it off when it has history (appointments): `deactivated`. Never loses a booking. */
+	removeCatalog(
+		app: AppSlug,
+		kind: CatalogKind,
+		id: string,
+	): Promise<{ outcome: "deleted" | "deactivated" }>;
+	createRole(app: AppSlug, input: NewRole): Promise<Role>;
+	/** Refuses (`conflict`) a role still held by someone, and a system role. */
+	deleteRole(app: AppSlug, id: string): Promise<void>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
