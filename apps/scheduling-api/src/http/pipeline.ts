@@ -1,4 +1,9 @@
-import { type ErrorCode, ROUTES, type RouteSpec } from "@psi/scheduling-sdk/contract";
+import {
+	type ErrorCode,
+	ROUTES,
+	type RouteSpec,
+	VIEW_AS_HEADER,
+} from "@psi/scheduling-sdk/contract";
 import type { Context } from "hono";
 import { type Principal, subjectOf, visitorSubject } from "../auth/principal";
 import { verifyServiceKey } from "../auth/service-keys";
@@ -98,6 +103,14 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	// Order matters: who is calling, then the path, then membership and permission, and only then the rest of the
 	// input. A caller who may not do this learns nothing about what a valid request looks like.
 	const principal = await authenticate(deps, c);
+	// A console that is looking at the app as someone else is read-only: a write that says so is refused outright, so a
+	// console that forgot to disable a button still cannot change anything. Only ending the view is allowed.
+	if (
+		c.req.header(VIEW_AS_HEADER) !== undefined &&
+		spec.method !== "GET" &&
+		spec.id !== "viewAs.stop"
+	)
+		throw forbidden("viewing as someone else is read-only", { reason: "view_as_readonly" });
 	const parsed: Parsed = { params: parseParams(spec, c), query: {}, body: {} };
 	const subject = subjectOf(principal);
 	const app = typeof parsed.params.app === "string" ? parsed.params.app : "";

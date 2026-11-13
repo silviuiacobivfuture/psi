@@ -122,6 +122,8 @@ const HAPPY: Record<
 	},
 	"me.get": (w) => w.call("rita", "GET", "/v1/me"),
 	"me.app": (w) => olga(w, "GET", "/me"),
+	"viewAs.start": (w) => olga(w, "POST", "/view-as", { as: "role:psizone-reception" }),
+	"viewAs.stop": (w) => olga(w, "DELETE", "/view-as"),
 	"apps.create": (w) =>
 		w.call("root", "POST", "/v1/apps", {
 			id: "newapp",

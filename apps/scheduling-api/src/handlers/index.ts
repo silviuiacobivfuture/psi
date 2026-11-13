@@ -9,6 +9,7 @@ import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
 import { rosterHandlers } from "./roster";
+import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
 /** Every route of the contract has a handler here: the type is a mapped type over the table, so a missing one does not compile. */
@@ -22,6 +23,7 @@ const complete: Handlers = {
 	...reminderHandlers,
 	...recordHandlers,
 	...adminHandlers,
+	...viewAsHandlers,
 	...visitorHandlers,
 };
 

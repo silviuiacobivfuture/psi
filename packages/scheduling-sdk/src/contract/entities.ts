@@ -56,6 +56,12 @@ export const AppMe = z.object({
 	platformAdmin: z.boolean(),
 });
 
+/** `role:<id>` or `member:<subject>`: who a roles administrator looks at the app as. */
+export const ViewAsTarget = z.string().regex(/^(role|member):[^\s:][^\s]{0,199}$/);
+export const ViewAsBody = z.object({ as: ViewAsTarget });
+/** The header every call sends while viewing as someone else; the service refuses a write that carries it. */
+export const VIEW_AS_HEADER = "x-psi-view-as";
+
 export const Member = z.object({
 	subject: Subject,
 	displayName: Name,

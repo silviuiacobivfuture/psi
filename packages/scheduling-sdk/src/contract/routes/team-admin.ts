@@ -29,6 +29,8 @@ import {
 	ServiceCreate,
 	ServicePatch,
 	ServicePrice,
+	ViewAsBody,
+	ViewAsTarget,
 } from "../entities";
 import { AppId, AppParam, Id, IdParam, Ok, PageQuery, page, Subject } from "../primitives";
 
@@ -55,7 +57,32 @@ export const ME_ROUTES = [
 		summary:
 			"The caller in this app: their roles and every permission they hold, for a console to decide what to offer",
 		params: AppParam,
+		query: z.object({ as: ViewAsTarget.optional() }),
 		response: AppMe,
+	}),
+	route({
+		id: "viewAs.start",
+		method: "POST",
+		path: "/v1/apps/:app/view-as",
+		side: "team",
+		summary:
+			"Start seeing the app as a role or a member (roles administrators only); answers what that role or member holds. Read-only: the console then sends x-psi-view-as and the service refuses every write carrying it",
+		params: AppParam,
+		body: ViewAsBody,
+		response: AppMe,
+		permission: { key: "roles_edit", target: { kind: "app" } },
+		audit: "view_as.start",
+	}),
+	route({
+		id: "viewAs.stop",
+		method: "DELETE",
+		path: "/v1/apps/:app/view-as",
+		side: "team",
+		summary: "Stop seeing the app as someone else",
+		params: AppParam,
+		response: Ok,
+		permission: { key: "roles_edit", target: { kind: "app" } },
+		audit: "view_as.stop",
 	}),
 	route({
 		id: "apps.create",

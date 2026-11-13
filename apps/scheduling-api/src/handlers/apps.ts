@@ -1,4 +1,3 @@
-import { FIELD_GROUPS, type FieldGroupName, type ScopeName } from "@psi/scheduling-sdk/contract";
 import { allAppRelations, CATALOGUE, parseRelation, permissionOf } from "../authz/catalogue";
 import { ACTION_LABEL, RESOURCE_LABEL } from "../authz/labels";
 import {
@@ -14,6 +13,7 @@ import { seedRoles } from "../authz/roles-seed";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
+import { ownCapabilities, viewAsCapabilities } from "./capabilities";
 import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
 
 const GUARDED = [
@@ -113,32 +113,12 @@ export const appHandlers: HandlersOf<
 	},
 
 	async "me.app"(ctx) {
-		const row = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
-		const member = await ctx.deps.store.c.members.get(ctx.app, ctx.subject);
-		const held = await Promise.all(
-			CATALOGUE.map(async (def) => ({
-				def,
-				scopes: await ctx.deps.access.held(ctx.subject, ctx.app, def.key),
-			})),
-		);
-		const permissions: Record<string, ScopeName[]> = {};
-		const groups = new Set<FieldGroupName>();
-		for (const { def, scopes } of held) {
-			if (scopes === null) continue;
-			permissions[def.key] = [...scopes];
-			if (def.fieldGroup !== undefined && def.effect === "read") groups.add(def.fieldGroup);
-		}
-		return {
-			app: row.id,
-			appName: row.name,
-			timeZone: row.timeZone,
-			subject: ctx.subject,
-			...(member === undefined ? {} : { displayName: member.displayName }),
-			roles: member?.roles ?? [],
-			permissions,
-			fieldGroups: FIELD_GROUPS.filter((g) => groups.has(g)),
-			platformAdmin: await ctx.deps.access.isPlatformAdmin(ctx.subject),
-		};
+		const target = ctx.query.as;
+		if (target === undefined) return ownCapabilities(ctx);
+		// Seeing the app as someone else is for roles administrators only.
+		if (!(await ctx.canAll("roles_edit")))
+			throw forbidden("the role does not allow this", { permission: "roles_edit" });
+		return viewAsCapabilities(ctx, target);
 	},
 
 	async "apps.create"(ctx) {
