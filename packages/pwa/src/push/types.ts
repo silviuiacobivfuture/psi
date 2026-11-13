@@ -13,11 +13,26 @@ export type ArticleBrand = (typeof ARTICLE_BRANDS)[number];
  */
 export const TopicSchema = z.enum([
 	"booking",
+	"requests",
+	"appointments",
+	"reminders",
 	"articles:psizone",
 	"articles:eqsync",
 	"articles:hemisync",
 ]);
 export type Topic = z.infer<typeof TopicSchema>;
+
+/**
+ * Topics only a signed-in account may hold. `booking` is a client's own appointments; `requests`,
+ * `appointments` and `reminders` are a team member's (new web requests, their appointments, the
+ * day-before reminders), sent through Novu (`@psi/notify`).
+ */
+export const ACCOUNT_TOPICS: ReadonlyArray<Topic> = [
+	"booking",
+	"requests",
+	"appointments",
+	"reminders",
+];
 
 export const SiteSchema = z.enum(PWA_BRANDS);
 export const LocaleSchema = z.enum(["ro", "en"]);
@@ -109,6 +124,10 @@ export const PUSH_KINDS = [
 	"booking.confirmed",
 	"booking.cancelled",
 	"booking.reminder",
+	"booking.moved",
+	"clinic.request",
+	"clinic.appointment",
+	"clinic.reminder",
 	"article.published",
 	"test",
 ] as const;
@@ -143,4 +162,12 @@ export interface PushText {
 export type PushTexts = Readonly<
 	{ [K in Exclude<PushKind, BookingKind>]: PushText } & { [K in BookingKind]?: PushText }
 >;
-export type BookingKind = "booking.confirmed" | "booking.cancelled" | "booking.reminder";
+/** Kinds only sites that take bookings (or run the console) have words for. */
+export type BookingKind =
+	| "booking.confirmed"
+	| "booking.cancelled"
+	| "booking.reminder"
+	| "booking.moved"
+	| "clinic.request"
+	| "clinic.appointment"
+	| "clinic.reminder";

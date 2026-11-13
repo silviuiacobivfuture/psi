@@ -3,6 +3,7 @@ import postgres from "postgres";
 import { z } from "zod";
 import type { NewSubscription, PlannedReminder, PushStore } from "./store";
 import {
+	ACCOUNT_TOPICS,
 	FAILURE_LIMIT,
 	LocaleSchema,
 	SiteSchema,
@@ -135,8 +136,12 @@ export async function postgresPushStore(url: string): Promise<PushStore> {
 			const [row] = await sql`SELECT * FROM pwa_subscription WHERE endpoint = ${endpoint}`;
 			return row === undefined ? null : record(row);
 		},
+		async byId(id) {
+			const [row] = await sql`SELECT * FROM pwa_subscription WHERE id = ${id}`;
+			return row === undefined ? null : record(row);
+		},
 		async forTopic(topic, subject) {
-			if (topic === "booking") {
+			if (ACCOUNT_TOPICS.includes(topic)) {
 				if (subject === undefined) return [];
 				return rows(
 					await sql`SELECT * FROM pwa_subscription WHERE ${topic} = ANY(topics) AND subject = ${subject}`,

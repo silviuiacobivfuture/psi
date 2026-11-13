@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 import type { JSX } from "hono/jsx/jsx-runtime";
-import type { Topic } from "../push/types";
+import { ACCOUNT_TOPICS, type Topic } from "../push/types";
 import { PWA_INIT, PWA_LISTEN, PWA_SIGNALS } from "./tools";
 
 export interface NotifyPurpose {
@@ -63,7 +63,7 @@ export function NotifyPanel({
 		>
 			<ul class="flex flex-col gap-3">
 				{purposes.map((p) => {
-					const account = p.topic === "booking" && !signedIn;
+					const account = ACCOUNT_TOPICS.includes(p.topic) && !signedIn;
 					return (
 						<li class="pz-edge flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface-1 p-5">
 							<div class="min-w-0 flex-1 basis-64">
