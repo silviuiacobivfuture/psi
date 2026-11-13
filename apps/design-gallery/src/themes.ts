@@ -10,7 +10,7 @@ const Tokens = z.object({
 
 const parsed = Tokens.parse(tokens);
 
-/** The eight themes, in tokens.json order, with their display names (proper nouns, untranslated). */
+/** The ten themes, in tokens.json order, with their display names (proper nouns, untranslated). */
 export const THEMES: ReadonlyArray<{ id: string; name: string }> = parsed.color.themes;
 
 /** The colour roles worth showing as swatches. */

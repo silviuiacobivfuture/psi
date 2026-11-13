@@ -10,9 +10,9 @@ describe("design gallery", () => {
 		expect(await res.text()).toBe("ok");
 	});
 
-	it("lists the eight themes", () => {
-		expect(THEMES).toHaveLength(8);
-		expect(new Set(THEMES.map((t) => t.id)).size).toBe(8);
+	it("lists the ten themes (the eight of the sites and the two admin themes)", () => {
+		expect(THEMES).toHaveLength(10);
+		expect(new Set(THEMES.map((t) => t.id)).size).toBe(10);
 	});
 
 	for (const [path, lang] of [
