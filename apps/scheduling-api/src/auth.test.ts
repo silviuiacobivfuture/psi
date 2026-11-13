@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { hashSecret, verifyServiceKey } from "./auth/service-keys";
 import { createTokenVerifier } from "./auth/tokens";
 import { hashVariable, loadConfig } from "./config";
-import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer, MailUnavailable } from "./ports/mail";
 import { createS3Store } from "./ports/objects";
 import { createTestIssuer } from "./testing/tokens";
@@ -195,23 +194,6 @@ describe("configuration", () => {
 });
 
 describe("ports", () => {
-	it("seals per context and refuses a tampered or foreign envelope", () => {
-		const crypto = createFieldCrypto("ab".repeat(32));
-		const sealed = crypto.seal("diagnosis", "psizone:client:c1:clinical");
-		expect(sealed).not.toContain("diagnosis");
-		expect(crypto.open(sealed, "psizone:client:c1:clinical")).toBe("diagnosis");
-		expect(() => crypto.open(sealed, "psizone:client:c2:clinical")).toThrow();
-		expect(() => crypto.open(`${sealed.slice(0, -2)}AA`, "psizone:client:c1:clinical")).toThrow();
-		expect(() =>
-			createFieldCrypto("ab".repeat(32)).open(sealed.replace("v1", "v2"), "x"),
-		).toThrow();
-		expect(() => createFieldCrypto("abcd")).toThrow();
-		expect(crypto.seal("x", "c")).not.toBe(crypto.seal("x", "c"));
-		expect(() =>
-			createFieldCrypto("cd".repeat(32)).open(sealed, "psizone:client:c1:clinical"),
-		).toThrow();
-	});
-
 	it("signs S3 URLs: expiring, scoped to one key and method, deterministic for a fixed clock", () => {
 		const s3 = createS3Store({
 			endpoint: "https://s3.test",

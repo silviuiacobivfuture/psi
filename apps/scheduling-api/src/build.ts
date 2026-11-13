@@ -77,7 +77,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		authz,
 		access: createAccess(authz, denials),
 		verifier: createTokenVerifier({ issuers: config.issuers }),
-		crypto: createFieldCrypto(config.masterKey),
+		crypto: createFieldCrypto(config.masterKey, (overrides.store ?? store).keys),
 		mailer: config.mail === undefined ? undefined : createHttpMailer(config.mail),
 		objects: config.objects === undefined ? undefined : createS3Store(config.objects),
 		notifier: wiring.notifier,

@@ -1,13 +1,11 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden, notFound } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { FeedbackGroups, FeedbackRow } from "../store/ports";
 import { StoreRefused } from "../store/types";
 
 type C = Ctx<RouteSpec>;
-
-/** Feedback text is sealed per app: a sealed value moved to another app does not open. */
-export const feedbackContext = (app: string): string => `feedback:${app}`;
 
 /** The field groups the caller holds on feedback: `core` (rating, text, replies) and `contact` (who wrote it). */
 async function groupsOf(ctx: C): Promise<FeedbackGroups> {
@@ -17,13 +15,13 @@ async function groupsOf(ctx: C): Promise<FeedbackGroups> {
 	return held;
 }
 
-function shown(ctx: C, row: FeedbackRow) {
+async function shown(ctx: C, row: FeedbackRow) {
 	const { textSealed, ...rest } = row;
 	return {
 		...rest,
 		...(textSealed === undefined
 			? {}
-			: { text: ctx.deps.crypto.open(textSealed, feedbackContext(ctx.app)) }),
+			: { text: await ctx.deps.crypto.open(ctx.app, FIELDS.feedback, textSealed) }),
 	};
 }
 
@@ -67,12 +65,12 @@ export const feedbackHandlers: HandlersOf<
 
 	async "feedback.linkSubmit"(ctx) {
 		const { token, text, ...rest } = ctx.body;
+		const textSealed =
+			text === undefined ? undefined : await ctx.deps.crypto.seal(ctx.app, FIELDS.feedback, text);
 		const { id } = await viaLink(() =>
 			ctx.deps.store.feedback.redeem(ctx.app, token, {
 				...rest,
-				...(text === undefined
-					? {}
-					: { textSealed: ctx.deps.crypto.seal(text, feedbackContext(ctx.app)) }),
+				...(textSealed === undefined ? {} : { textSealed }),
 			}),
 		);
 		return { id };
@@ -91,7 +89,7 @@ export const feedbackHandlers: HandlersOf<
 			limit,
 			statuses: status === undefined ? undefined : Array.isArray(status) ? status : [status],
 		});
-		return { items: out.items.map((row) => shown(ctx, row)), more: out.more };
+		return { items: await Promise.all(out.items.map((row) => shown(ctx, row))), more: out.more };
 	},
 
 	async "feedback.get"(ctx) {
@@ -102,13 +100,15 @@ export const feedbackHandlers: HandlersOf<
 		);
 		if (out === undefined) throw notFound("feedback");
 		return {
-			item: shown(ctx, out.item),
-			replies: out.replies.map((r) => ({
-				id: r.id,
-				by: r.by,
-				at: r.at,
-				text: ctx.deps.crypto.open(r.textSealed, feedbackContext(ctx.app)),
-			})),
+			item: await shown(ctx, out.item),
+			replies: await Promise.all(
+				out.replies.map(async (r) => ({
+					id: r.id,
+					by: r.by,
+					at: r.at,
+					text: await ctx.deps.crypto.open(ctx.app, FIELDS.feedback, r.textSealed),
+				})),
+			),
 		};
 	},
 
@@ -119,7 +119,7 @@ export const feedbackHandlers: HandlersOf<
 		const done = await ctx.deps.store.feedback.reply(
 			ctx.app,
 			String(ctx.params.id),
-			ctx.deps.crypto.seal(ctx.body.text, feedbackContext(ctx.app)),
+			await ctx.deps.crypto.seal(ctx.app, FIELDS.feedback, ctx.body.text),
 		);
 		ctx.note({ status: done.status });
 		return {
