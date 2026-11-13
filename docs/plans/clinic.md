@@ -274,3 +274,50 @@ and rates need `reports_view_all_core`; **revenue alone** needs `reports_view_al
 7. Seeded blacklist entries are created once; a re-run never revives what staff switched off.
 8. The feedback-link key is derived from the deployment's server key, so no new secret is deployed.
 
+## 11. Online accounts and notifications (2026-11-13)
+
+Owner: "transform a customer into a registered user from the panel" and "Novu integrated for notifications via e-mail and
+push for customers and operators of all kinds, with notifications specific to what they need."
+
+**Customer to registered user.** `clients_invite` (reception, admin, owner) on the client page: pick the client's or the
+guardian's e-mail (the person must be allowed to read that contact), preview the e-mail as it will go, send. The service
+finds the address in Authentik or creates the user in the customers group (never resets an existing account), links the
+account to the client, and Novu sends the branded RO/EN e-mail. Its button leads to `/v1/public/invites/<token>`: a page
+with one button (a mail scanner opening it changes nothing) that sends the person to set a password, or, for an account that
+existed, to the site's sign-in. The link works a week, stops when withdrawn or replaced by a resend, and is not single use.
+Status on the client: invitat, activ (the first time the account signs in on a site's account page), expirat (derived from
+the date, no job), retras. Withdrawing never touches the sign-in account. "Programările mele" (`visitor.mine`) now also
+lists the clinic's own appointments of every client the account was invited for (a guardian's account covers each child) and
+lets the person cancel an upcoming one. Until the sites move to the SDK (slice 6) the sites' own account page still reads
+Convex directly and does not show them.
+
+**Catalogue.** Every event is for one audience and has RO/EN templates; routing is by permission (`needs` in the entry),
+resolved to people at send time, never a Novu topic, the person who did it left out. A person's choices (channel by kind,
+quiet hours, language) are `GET/PUT /v1/apps/:app/me/notifications` (and `/me/account/notifications` for a registered
+customer); the preferences page lists what each kind offers and which channels are locked (an invitation or a booking's
+e-mail, the owners' security notice). Scheduled ones run in the API (`engagement/scheduler.ts`, every minute, each thing
+claimed once across replicas): reminders 24 h and 2 h, the desk's list 07:30, the therapists' tomorrow 19:00, the owners'
+day 20:00 and week on Monday 08:00 (the clinic's own wall clock, so summer time moves nothing), the report waiting, the
+feedback request, conflicts (two sessions at once, or a session on a day the therapist does not work). Every step of a
+delivery is logged (`GET /v1/apps/:app/notifications/deliveries`): Novu's open-source server reports no delivery webhooks,
+so the ladder ends at "Novu accepted it". A message given up on tells the owners once; that notice cannot loop.
+
+**No clinical content.** A payload is a closed list of fields (`catalogue/payloads.ts`); a field not named there is dropped
+before anything is queued. A service name is treated as a booking label, not clinical (an appointment e-mail to its own
+client already prints it); diagnoses, notes, reports, files, questionnaires and the staff-only blacklist reason never are
+fields. Push says only "you have a new notification".
+
+**Deploy.** Novu: the estate's one bridge serves `@psi/notify`'s workflows; after a release that changes the catalogue the
+estate runs `novu-bootstrap.sh <env>` (SEB) to sync, and `pnpm --filter @psi/notify workflows:check` (env `NOVU_API_URL`,
+`NOVU_SECRET_KEY`) says what is missing. Plunk: the integration `plunk-<app>` per sender (`psizone`, `hemisync`), declared in
+`gitops/services/plunk/senders/`. Push: VAPID pair at `secret/apps/pwa/vapid`, the push webhook secret at
+`secret/apps/pwa/notify`, the sites' `/__pwa/novu` hook. The sign-in: `secret/apps/scheduling-api/sso` (`AUTHENTIK_URL`,
+`AUTHENTIK_API_TOKEN`), optional. The permission catalogue gained `clients_invite`: the OpenFGA model must be re-released and
+`OPENFGA_MODEL_ID` re-pinned; roles that already exist gain the new key only when an owner adds it in the console.
+
+**Decisions taken for you (change any):** a client with no e-mail is not mailed (reception is told, to reach them another
+way); the day-before reminder is skipped for a booking made less than 26 h ahead; the 2-hour nudge is a push by default and
+its e-mail is off until chosen; request, appointment and conflict notices to reception default to the bell (and push for
+requests and conflicts); the feedback e-mail is switched off for an app until its site has the page that opens the link
+(`off` in the app's notification settings); revoking an invitation leaves the sign-in account as it was.
+
