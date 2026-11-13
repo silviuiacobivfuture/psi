@@ -72,6 +72,15 @@ spec:
             matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
       ports:
         - { protocol: TCP, port: 9000 }
+    # The issuer's public URL (auth.psizone.ro, its JWKS) is hairpinned to Traefik's pod inside the cluster.
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+      ports:
+        - { protocol: TCP, port: 8443 }
+        - { protocol: TCP, port: 8000 }
     - to:
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: novu }

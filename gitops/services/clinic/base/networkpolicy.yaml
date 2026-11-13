@@ -33,3 +33,9 @@ spec:
     - to:
         - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
       ports: [{ port: 443 }]
+    # The estate's own public hosts (auth.psizone.ro for sign-in) resolve to the node and are hairpinned to Traefik's
+    # pod, which the ipBlock above excludes as a private address: the sign-in issuer is unreachable without this.
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+          podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
+      ports: [{ port: 8443 }, { port: 8000 }]
