@@ -65,23 +65,14 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 			const user = userOf(subject);
 			if (def.scopes.length === 0)
 				return (await authz.check(user, key, objectOf("sched_app", app))) ? ALL : NONE;
-			if (
-				def.scopes.includes("all") &&
-				(await authz.check(user, `${key}_all`, objectOf("sched_app", app)))
-			)
-				return ALL;
-			if (!def.scopes.includes("own") && !def.scopes.includes("assigned")) return NONE;
-			const ids = new Set((await authz.listObjects(user, key, type)).map(idOf));
-			if (ids.size > 0) return { kind: "ids", ids };
-			// Holding the permission over no object yet is an empty list; not holding it is a refusal.
-			for (const scope of ["own", "assigned"] as const) {
-				if (
-					def.scopes.includes(scope) &&
-					(await authz.check(user, `${key}_${scope}`, objectOf("sched_app", app)))
-				)
-					return { kind: "ids", ids };
-			}
-			return NONE;
+			// What the person holds IN THIS APP decides first: an object list is only asked for a scope they hold here.
+			const held = new Set<string>();
+			for (const scope of def.scopes)
+				if (await authz.check(user, `${key}_${scope}`, objectOf("sched_app", app))) held.add(scope);
+			if (held.has("all")) return ALL;
+			if (!held.has("own") && !held.has("assigned")) return NONE;
+			// Holding the permission over no object yet is an empty list, not a refusal.
+			return { kind: "ids", ids: new Set((await authz.listObjects(user, key, type)).map(idOf)) };
 		},
 	};
 }
