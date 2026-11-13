@@ -120,16 +120,19 @@ describe("the client's overflow menu", () => {
 		await page.waitForSelector(".adm-overflow [role=menuitem] >> visible=true");
 		await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "menuitem");
 		const labels = await page.locator(".adm-overflow [role=menuitem]").allInnerTexts();
-		expect(labels.map((l) => l.trim())).toEqual(["Arhivează", "Șterge"]);
-		expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe(
-			"Arhivează",
-		);
+		const names = labels.map((l) => l.trim());
+		// The menu is the registry's: what this person may do to a client, the destructive one last.
+		for (const wanted of ["Editează datele", "Arhivează", "Adaugă în lista neagră", "Șterge"])
+			expect(names).toContain(wanted);
+		expect(names.at(-1)).toBe("Șterge");
+		const active = () => page.evaluate(() => document.activeElement?.textContent?.trim());
+		expect(await active()).toBe(names[0]);
 		await page.keyboard.press("ArrowDown");
-		expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe("Șterge");
+		expect(await active()).toBe(names[1]);
+		await page.keyboard.press("End");
+		expect(await active()).toBe("Șterge");
 		await page.keyboard.press("ArrowDown");
-		expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe(
-			"Arhivează",
-		);
+		expect(await active()).toBe(names[0]);
 		await page.keyboard.press("Escape");
 		await page.waitForSelector(".adm-overflow [role=menuitem]", { state: "hidden" });
 		expect(await page.evaluate(() => document.activeElement?.getAttribute("aria-label"))).toBe(
@@ -165,7 +168,8 @@ describe("axe, WCAG 2.2 AA, the new states in both admin themes at 375 and 1280"
 				await page.waitForSelector(".adm-overflow [role=menuitem] >> visible=true");
 				failures.push(...(await axe(page)).map((f) => `menu: ${f}`));
 				await page.keyboard.press("Escape");
-				await page.click("text=Abonament nou");
+				// The same action is also in the client's menu (closed here): the button on the tab is the one pressed.
+				await page.click('button.adm-btn--primary:has-text("Abonament nou")');
 				await page.waitForSelector(".adm-sheet__panel >> visible=true");
 				failures.push(...(await axe(page)).map((f) => `sheet: ${f}`));
 				await done();

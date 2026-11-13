@@ -43,9 +43,7 @@ describe("the action registry", () => {
 describe("listActions follows capability", () => {
 	it("the owner may add notes, records and files and blacklist a client", async () => {
 		const ctx = await ctxFor(["owner"]);
-		const got = ids(
-			listActions(ctx, { screen: "client", placement: "menu", entity: { clientId: "c1" } }),
-		);
+		const got = ids(listActions(ctx, { screen: "client", entity: { clientId: "c1" } }));
 		for (const id of ["note.add", "record.new", "file.upload", "blacklist.add", "client.edit"])
 			expect(got, id).toContain(id);
 	});

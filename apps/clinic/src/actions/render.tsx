@@ -96,7 +96,10 @@ export function menuItems(
 	screen: Screen,
 	entity: EntityState = {},
 ): ReadonlyArray<OverflowItem> {
-	return actionsFor(ctx, screen, "menu", entity)
+	// What destroys something comes last in a menu, in the registry's own order otherwise.
+	const destructive = (a: ActionDef): number => (a.icon === "trash" ? 1 : 0);
+	return [...actionsFor(ctx, screen, "menu", entity)]
+		.sort((a, b) => destructive(a) - destructive(b))
 		.filter((a) => a.opens !== undefined || a.to !== undefined)
 		.map((a) => ({
 			key: a.id,

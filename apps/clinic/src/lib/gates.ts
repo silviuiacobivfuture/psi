@@ -101,6 +101,7 @@ export function judge(method: string, path: string, can: Can): Verdict {
 /** Packages and records tabs of a client, with the permission each needs. */
 export const CLIENT_TAB_KEYS = {
 	overview: "clients_view",
+	notes: "clients_view",
 	appointments: "appointments_view",
 	packages: "packages_view",
 	records: "clients_view_clinical",

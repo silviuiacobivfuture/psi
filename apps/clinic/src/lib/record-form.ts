@@ -65,7 +65,11 @@ function fieldValue(field: FormField, body: Body): unknown {
 		case "yesno":
 			return text(body, `${name}`) === "" ? undefined : text(body, name) === "yes";
 		case "multichoice": {
-			const v = texts(body, name).filter((x) => x.trim() !== "");
+			// A field without listed options is a textarea, one choice per line.
+			const v = texts(body, name)
+				.flatMap((t) => t.split("\n"))
+				.map((t) => t.trim())
+				.filter((t) => t !== "");
 			return v.length === 0 ? undefined : v;
 		}
 		case "table": {

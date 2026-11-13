@@ -132,7 +132,6 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		placements: {
 			primary: ["client.notes"],
 			empty: ["client.notes", "client.overview"],
-			menu: ["client"],
 			palette: ["client"],
 		},
 		mobile: "bar",
@@ -282,7 +281,6 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		placements: {
 			primary: ["client.records"],
 			empty: ["client.records", "client.overview"],
-			menu: ["client"],
 			palette: ["client"],
 		},
 		mobile: "bar",
@@ -360,7 +358,6 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		placements: {
 			primary: ["client.files"],
 			empty: ["client.files", "client.overview"],
-			menu: ["client"],
 			palette: ["client"],
 		},
 		mobile: "bar",

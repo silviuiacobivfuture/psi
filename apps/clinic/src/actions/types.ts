@@ -112,7 +112,7 @@ export interface ActionDef {
 	/** Whether it makes sense for what is shown (an archived client is not archived again). */
 	when?: (ctx: ActionCtx, e: EntityState) => boolean;
 	/** Does it; absent for an action that only navigates. */
-	run?: (ctx: ActionCtx, params: Record<string, unknown>) => Promise<ActionResult>;
+	run?: (ctx: ActionCtx, raw: unknown) => Promise<ActionResult>;
 }
 
 export interface ListQuery {

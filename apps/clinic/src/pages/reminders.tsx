@@ -68,7 +68,10 @@ function Row({
 	const wa = canSend ? whatsappHref(item, app, locale) : null;
 	const mail = canSend ? emailHref(item, app, locale) : null;
 	const id = item.appointment.id;
-	const mark = { "data-on:click": `@post('/reminders/${id}/sent')` };
+	const mark = {
+		"data-on:click": `@post('/reminders/${id}/sent')`,
+		"data-action": "reminder.sent",
+	};
 	return (
 		<li class="adm-card reminder" id={`rem-${id}`} data-sent={item.sent ? "true" : "false"}>
 			<div class="reminder__when">

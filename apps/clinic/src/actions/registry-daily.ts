@@ -116,7 +116,6 @@ export const DAILY_ACTIONS: ReadonlyArray<ActionDef> = [
 		placements: {
 			primary: ["calendar", "client.appointments"],
 			empty: ["client.appointments", "client.overview"],
-			menu: ["client"],
 			palette: ["global", "client"],
 		},
 		mobile: "fab",
@@ -201,7 +200,7 @@ export const DAILY_ACTIONS: ReadonlyArray<ActionDef> = [
 		entity: "package",
 		label: label((o) => m.pkg_new({}, o)),
 		icon: "plus",
-		placements: { primary: ["client.packages"], empty: ["client.packages"], menu: ["client"] },
+		placements: { primary: ["client.packages"], empty: ["client.packages"] },
 		mobile: "bar",
 		needs: { write: ["packages_create"] },
 		route: { method: "POST", path: "/clients/:id/packages" },
@@ -253,6 +252,36 @@ export const DAILY_ACTIONS: ReadonlyArray<ActionDef> = [
 			await ctx.port.markReminderSent(ctx.app, p.id);
 			return { status: "ok", to: "/reminders" };
 		},
+	}),
+	define({
+		id: "role.save",
+		tier: "org",
+		entity: "none",
+		label: label((o) => m.roles_save({}, o)),
+		icon: "shield",
+		placements: { screen: ["settings"] },
+		mobile: "bar",
+		needs: { write: ["roles_edit"] },
+		route: { method: "POST", path: "/settings/roles/:id" },
+		confirm: "none",
+		params: z.object({ id }),
+	}),
+	define({
+		id: "me.prefs",
+		tier: "me",
+		entity: "none",
+		label: label((o) => m.theme_label({}, o)),
+		icon: "settings",
+		placements: { screen: ["settings"] },
+		mobile: "sheet",
+		needs: {},
+		route: { method: "POST", path: "/prefs" },
+		confirm: "none",
+		params: z.object({
+			theme: z.string().optional(),
+			lang: z.string().optional(),
+			deco: z.string().optional(),
+		}),
 	}),
 	define({
 		id: "me.notifications",

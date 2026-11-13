@@ -131,7 +131,12 @@ function RolesTab({
 				{role.description}
 			</p>
 			<p class="adm-muted">{m.roles_hint({}, o)}</p>
-			<form method="post" action={`/settings/roles/${role.id}`} class="adm-stack">
+			<form
+				method="post"
+				action={`/settings/roles/${role.id}`}
+				class="adm-stack"
+				data-action="role.save"
+			>
 				<fieldset disabled={!canEdit} style="border:0;padding:0;margin:0;min-width:0">
 					<PermissionMatrix
 						rows={rows}

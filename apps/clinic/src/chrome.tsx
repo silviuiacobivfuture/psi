@@ -1,13 +1,19 @@
 import {
 	AdminShell,
 	Banner,
+	CommandPalette,
 	Icon,
 	type NavItem,
+	type PaletteItem,
+	paletteShortcut,
+	railPreferenceFrom,
 	type ShellApp,
 	type ShellLabels,
 } from "@psi/ui/admin";
+import { getCookie } from "hono/cookie";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { paletteItems } from "./actions/render";
 import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import { orgSettingsOpen, PLATFORM_KEY } from "./lib/areas";
@@ -96,6 +102,8 @@ export interface PageProps {
 	title: string;
 	children?: Child;
 	overlays?: Child;
+	/** What the command palette offers besides where to go: what can be done to what is open. */
+	palette?: ReadonlyArray<PaletteItem>;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
 }
@@ -107,6 +115,7 @@ export async function Page({
 	title,
 	children,
 	overlays,
+	palette,
 	wide,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
@@ -183,7 +192,7 @@ export async function Page({
 				user={{ name: ctx.person.name, email: ctx.person.email }}
 				labels={labels(locale)}
 				newAppointmentHref={can.write("appointments_create") ? "/calendar?new=1" : undefined}
-				rail={wide === true}
+				rail={railPreferenceFrom(getCookie(ctx.c, "adm-rail")) ?? wide === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
 				extras={
@@ -192,6 +201,15 @@ export async function Page({
 							{ctx.caps.roles.map((r) => roleName(r, locale)).join(", ")} ·{" "}
 							{appName(ctx.app, locale)}
 						</div>
+						<button
+							type="button"
+							class="adm-menu__item"
+							data-palette-menu
+							data-on:click="$palette = true; setTimeout(() => document.getElementById('adm-palette-q')?.focus(), 0)"
+						>
+							<Icon name="search" />
+							{m.pal_open({}, o)}
+						</button>
 						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
 							<Icon name="settings" />
 							{m.me_mine_menu({}, o)}
@@ -207,6 +225,15 @@ export async function Page({
 				}
 				topStatus={
 					<>
+						<button
+							type="button"
+							class="adm-iconbtn"
+							data-palette-open
+							aria-label={m.pal_open({}, o)}
+							data-on:click="$palette = true; setTimeout(() => document.getElementById('adm-palette-q')?.focus(), 0)"
+						>
+							<Icon name="search" />
+						</button>
 						<AssistantTrigger ctx={ctx} />
 						<RoleSwitcher
 							ctx={ctx}
@@ -222,6 +249,15 @@ export async function Page({
 				overlays={
 					<>
 						{overlays}
+						<div data-signals='{"palette":false}' data-on:keydown__window={paletteShortcut()}>
+							<CommandPalette
+								title={m.pal_title({}, o)}
+								placeholder={m.pal_placeholder({}, o)}
+								closeLabel={m.close({}, o)}
+								empty={m.pal_empty({}, o)}
+								items={[...paletteItems(ctx, ["global"]), ...(palette ?? [])]}
+							/>
+						</div>
 						<AssistantPanel ctx={ctx} />
 					</>
 				}

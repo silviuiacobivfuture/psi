@@ -138,11 +138,21 @@ export function DetailBody({
 				) : null}
 				{open && rights.edit ? (
 					<>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "attended")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.attended"
+							data-on:click={act(a.id, "attended")}
+						>
 							<Icon name="check" />
 							{m.ap_mark_attended({}, o)}
 						</button>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "no-show")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.no_show"
+							data-on:click={act(a.id, "no-show")}
+						>
 							<Icon name="alert" />
 							{m.ap_mark_absent({}, o)}
 						</button>
@@ -159,7 +169,12 @@ export function DetailBody({
 							<option value="card">{m.method_card({}, o)}</option>
 							<option value="transfer">{m.method_transfer({}, o)}</option>
 						</select>
-						<button type="button" class="adm-btn" data-on:click={act(a.id, "pay")}>
+						<button
+							type="button"
+							class="adm-btn"
+							data-action="appointment.pay"
+							data-on:click={act(a.id, "pay")}
+						>
 							{m.ap_collect({}, o)}
 						</button>
 					</div>
@@ -198,6 +213,7 @@ export function DetailBody({
 					<form
 						class="adm-stack"
 						style="display:none"
+						data-action="appointment.cancel"
 						data-show="$dtAsk"
 						data-on:submit__prevent={act(a.id, "cancel")}
 					>
