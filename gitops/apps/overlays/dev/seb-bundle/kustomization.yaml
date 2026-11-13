@@ -42,3 +42,4 @@ resources:
   - seb-otel-logging.yaml
   - seb-health-digest.yaml
   - seb-openfga.yaml
+  - seb-novu.yaml

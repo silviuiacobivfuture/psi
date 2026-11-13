@@ -5,7 +5,6 @@ resources:
   - autorizare.yaml
   - homepage.yaml
   - netdata.yaml
-  - novu.yaml
   - plane.yaml
   - plunk.yaml
   - public-doors.yaml
