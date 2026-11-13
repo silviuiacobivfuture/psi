@@ -2,6 +2,7 @@
 @import "@psi/design/theme.css";
 @import "@psi/ui/components.css";
 @import "@psi/ui/effects.css";
+@import "@psi/ui/floor-plan.css";
 @source "../../../packages/ui/src";
 
 .pz-display {

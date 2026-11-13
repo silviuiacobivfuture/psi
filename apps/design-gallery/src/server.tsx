@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Doctype } from "@psi/ui";
 import { Hono } from "hono";
+import { floorPlanDemo } from "./floor-plan-demo";
 import type { Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { ThemePanel } from "./theme-panel";
@@ -26,6 +27,9 @@ app.get("/assets/datastar.js", (c) =>
 );
 app.use("/assets/*", serveStatic({ root: "./public" }));
 app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
+
+// The floor plan demo writes to an in-memory plan, so it is a switch, never on by default.
+if (process.env.FLOOR_PLAN_DEMO === "1") app.route("/", floorPlanDemo());
 
 for (const [locale, path] of [
 	["ro", "/"],

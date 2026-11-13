@@ -2,21 +2,15 @@ import {
 	boundsOfShape,
 	type Handle,
 	isArea,
+	MIN_SIDE,
 	nextRotation,
 	resizeRect,
 	rotateGeometry90,
 	translateGeometry,
 	unionBounds,
 } from "./geometry";
-import {
-	type Floor,
-	type FloorPlanDoc,
-	MAX_FLOORS,
-	MAX_POLYGON_POINTS,
-	MAX_SHAPES_PER_FLOOR,
-	type Point,
-	type Shape,
-} from "./schema";
+import { MAX_FLOORS, MAX_POLYGON_POINTS, MAX_SHAPES_PER_FLOOR } from "./limits";
+import type { Floor, FloorPlanDoc, Point, Shape } from "./schema";
 
 /** Every pure edit of a plan. Each returns a new document, or the same one (by reference) when nothing changed. */
 
@@ -50,9 +44,16 @@ function mapShapes(
 ): FloorPlanDoc {
 	let changed = false;
 	const floors = doc.floors.map((f) => {
-		if (!f.shapes.some((s) => ids.has(s.id))) return f;
+		let touched = false;
+		const shapes = f.shapes.map((s) => {
+			if (!ids.has(s.id)) return s;
+			const next = fn(s);
+			if (next !== s) touched = true;
+			return next;
+		});
+		if (!touched) return f;
 		changed = true;
-		return { ...f, shapes: f.shapes.map((s) => (ids.has(s.id) ? fn(s) : s)) };
+		return { ...f, shapes };
 	});
 	return changed ? { ...doc, floors } : doc;
 }
@@ -223,4 +224,43 @@ export function renameFloor(doc: FloorPlanDoc, floorId: string, name: string): F
 export function removeFloor(doc: FloorPlanDoc, floorId: string): FloorPlanDoc {
 	if (doc.floors.length <= 1 || !doc.floors.some((f) => f.id === floorId)) return doc;
 	return { ...doc, floors: doc.floors.filter((f) => f.id !== floorId) };
+}
+
+/** What the inspector's number fields may set, in units. Areas take x, y (and w, h for rectangles); points take x, y. */
+export type BoxPatch = Partial<{ x: number; y: number; w: number; h: number }>;
+
+/** Sets a shape's position and size from typed numbers; refused (same document) outside the drawing area or under the minimum side. */
+export function setBox(doc: FloorPlanDoc, id: string, patch: BoxPatch): FloorPlanDoc {
+	const current = findShape(doc, id);
+	if (current === undefined) return doc;
+	const b = isArea(current)
+		? boundsOfShape(current)
+		: { x: current.at.x, y: current.at.y, w: 0, h: 0 };
+	const x = patch.x ?? b.x;
+	const y = patch.y ?? b.y;
+	if (!isArea(current)) {
+		if (x < 0 || y < 0 || x > doc.width || y > doc.height) return doc;
+		return mapShapes(doc, new Set([id]), (s) => (isArea(s) ? s : { ...s, at: { x, y } }));
+	}
+	if (current.geometry.type === "polygon") {
+		return x === b.x && y === b.y ? doc : moveShapes(doc, new Set([id]), x - b.x, y - b.y);
+	}
+	const w = patch.w ?? current.geometry.w;
+	const h = patch.h ?? current.geometry.h;
+	if (w < MIN_SIDE || h < MIN_SIDE || x < 0 || y < 0 || x + w > doc.width || y + h > doc.height)
+		return doc;
+	if (x === b.x && y === b.y && w === current.geometry.w && h === current.geometry.h) return doc;
+	return mapShapes(doc, new Set([id]), (s) =>
+		isArea(s) ? { ...s, geometry: { type: "rect", x, y, w, h } } : s,
+	);
+}
+
+/** Turns a bookable room into a non-bookable space and back; the geometry and the label stay. */
+export function convertKind(doc: FloorPlanDoc, id: string, kind: "room" | "space"): FloorPlanDoc {
+	return mapShapes(doc, new Set([id]), (s) => {
+		if (!isArea(s) || s.kind === kind) return s;
+		return kind === "space"
+			? { id: s.id, kind: "space", label: s.label, geometry: s.geometry, spaceType: "other" }
+			: { id: s.id, kind: "room", label: s.label, geometry: s.geometry };
+	});
 }
