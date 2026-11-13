@@ -462,6 +462,9 @@ importers:
       '@openrouter/ai-sdk-provider':
         specifier: ^3.1.0
         version: 3.1.0(ai@7.0.170(zod@3.25.76))(zod@3.25.76)
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -675,6 +678,9 @@ importers:
       '@psi/design':
         specifier: workspace:*
         version: link:../design
+      '@psi/engine':
+        specifier: workspace:*
+        version: link:../engine
       '@psi/guide':
         specifier: workspace:*
         version: link:../guide

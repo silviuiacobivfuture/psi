@@ -1,0 +1,155 @@
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+import type { StaffCopy, ToolKey } from "./copy";
+import type { StaffCard, StaffPage } from "./events";
+import type { Principal } from "./model";
+import type { AuditEntry, PortRefusal, StaffPort } from "./port";
+import type { ProposalStore } from "./proposals";
+import { STAFF_TOOLS } from "./tool-ids";
+
+/** The request-context key a turn holds its session under. */
+export const SESSION_KEY = "staff.session";
+
+/** Where the console's pages live, so a card can link to a record (none: no links). */
+export interface StaffLinks {
+	client(id: string): string;
+	appointment(id: string, date: string): string;
+}
+
+/**
+ * Everything one staff turn runs on: the person's own port (already behind the boundary), who they
+ * are, and the sinks the turn drains. A session exists only for a verified principal; it is made
+ * per turn and never shared.
+ */
+export interface StaffSession {
+	readonly port: StaffPort;
+	readonly principal: Principal;
+	readonly copy: StaffCopy;
+	readonly timeZone: string;
+	readonly now: () => number;
+	readonly proposals: ProposalStore;
+	readonly links: StaffLinks | undefined;
+	readonly page: StaffPage | undefined;
+	readonly threadId: string | undefined;
+	/** Cards the tools produced, drained by the turn after each tool result. */
+	readonly cards: Array<StaffCard>;
+	/** Tools a port refused for permission this turn: they are not called again. */
+	readonly blocked: Set<string>;
+	/** What this turn has read that strangers wrote (website requests): while set, no change is prepared but marking those requests handled. */
+	readonly taint: { stranger: boolean };
+}
+
+export const RefusedOutputSchema = z.object({
+	status: z.literal("refused"),
+	reason: z.enum([
+		"forbidden",
+		"not_found",
+		"conflict",
+		"invalid",
+		"unavailable",
+		"not_allowed",
+		"repeat",
+		"tainted",
+	]),
+	explanation: z.string(),
+});
+export type RefusedOutput = z.infer<typeof RefusedOutputSchema>;
+
+/** What a tool's work came to: its output and what to record, or a refusal. */
+export type ToolRun<O> =
+	| {
+			ok: true;
+			output: O;
+			subjects: ReadonlyArray<string>;
+			cards?: ReadonlyArray<StaffCard>;
+			proposalId?: string;
+	  }
+	| {
+			ok: false;
+			reason: PortRefusal | "not_allowed" | "tainted";
+			subjects?: ReadonlyArray<string>;
+	  };
+
+/** A refusal that stops this tool for the rest of the turn: asking again cannot change the answer. */
+const FINAL: ReadonlySet<string> = new Set(["forbidden", "not_allowed"]);
+
+interface Spec<I, O> {
+	key: ToolKey;
+	description: string;
+	phase: "read" | "propose";
+	inputSchema: z.ZodType<I, z.ZodTypeDef, unknown>;
+	outputSchema: z.ZodType<O, z.ZodTypeDef, unknown>;
+	run(input: I, session: StaffSession): Promise<ToolRun<O>>;
+}
+
+async function record(session: StaffSession, entry: AuditEntry): Promise<void> {
+	// A read or a proposal changes nothing, so a failing log does not stop it; an execution does (see execute.ts).
+	await session.port.audit(entry);
+}
+
+/**
+ * One Mastra tool bound to a session. Every call goes through here: it is audited exactly once
+ * (ids and counts only), a refusal for permission blocks the tool for the rest of the turn so
+ * the model cannot retry around it, cards reach the turn's sink, and a failure inside is a
+ * refusal, never a throw to the model.
+ */
+export function staffTool<I, O>(session: StaffSession, spec: Spec<I, O>) {
+	const id = STAFF_TOOLS[spec.key];
+	return createTool({
+		id,
+		description: spec.description,
+		inputSchema: spec.inputSchema,
+		outputSchema: z.union([spec.outputSchema, RefusedOutputSchema]),
+		execute: async (input: I): Promise<O | RefusedOutput> => {
+			const refuse = (
+				reason: PortRefusal | "not_allowed" | "repeat" | "tainted",
+			): RefusedOutput => ({
+				status: "refused",
+				reason,
+				explanation: session.copy.refusal[reason],
+			});
+			if (session.blocked.has(id)) {
+				await record(session, {
+					tool: id,
+					phase: "refused",
+					outcome: "refused",
+					subjects: [],
+					reason: "repeat",
+				});
+				return refuse("repeat");
+			}
+			let run: ToolRun<O>;
+			try {
+				run = await spec.run(input, session);
+			} catch {
+				await record(session, {
+					tool: id,
+					phase: spec.phase,
+					outcome: "error",
+					subjects: [],
+				});
+				return refuse("unavailable");
+			}
+			if (!run.ok) {
+				if (FINAL.has(run.reason)) session.blocked.add(id);
+				await record(session, {
+					tool: id,
+					phase: "refused",
+					outcome: "refused",
+					subjects: [...(run.subjects ?? [])],
+					reason: run.reason,
+				});
+				return refuse(run.reason);
+			}
+			session.cards.push(...(run.cards ?? []));
+			await record(session, {
+				tool: id,
+				phase: spec.phase,
+				outcome: "ok",
+				subjects: [...run.subjects],
+				...(run.proposalId === undefined ? {} : { proposalId: run.proposalId }),
+			});
+			return run.output;
+		},
+	});
+}
