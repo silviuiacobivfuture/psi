@@ -70,6 +70,11 @@ const OpenFga = z.object({
 		.min(1)
 		.refine((v) => v !== "latest", "pinned, never latest"),
 	OPENFGA_TOKEN: z.string().min(1),
+	/** Scopes this instance's `sched_app` objects in a shared store (`prod-` -> `sched_app:prod-psizone`). */
+	OPENFGA_APP_PREFIX: z
+		.string()
+		.regex(/^[a-z0-9-]*$/, "lowercase letters, digits and dashes")
+		.default(""),
 });
 const Mail = z.object({
 	MAIL_API_URL: Url,
@@ -110,6 +115,7 @@ export interface Config {
 				storeId: string;
 				modelId: string;
 				token: string;
+				appPrefix: string;
 		  };
 	mail: { url: string; key: string; from: string; fromName: string } | undefined;
 	objects:
@@ -170,6 +176,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 			storeId: fga.data.OPENFGA_STORE_ID,
 			modelId: fga.data.OPENFGA_MODEL_ID,
 			token: fga.data.OPENFGA_TOKEN,
+			appPrefix: fga.data.OPENFGA_APP_PREFIX,
 		};
 	}
 	const mail = Mail.safeParse(env);
