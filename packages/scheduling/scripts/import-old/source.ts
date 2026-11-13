@@ -16,7 +16,30 @@ const numeric = z.union([
 		.transform(Number),
 ]);
 const integer = numeric.pipe(z.number().int());
+/** An optional column: an empty string is the same as no value. */
+const blankIsNull = (v: unknown): unknown => (typeof v === "string" && v.trim() === "" ? null : v);
 const text = z.string().nullish();
+const optInteger = z.preprocess(blankIsNull, integer.nullish());
+const optNumeric = z.preprocess(blankIsNull, numeric.nullish());
+/** Working hours: "HH:MM" text or an hour number; read as minutes after midnight. */
+const workTime = z.preprocess(
+	blankIsNull,
+	z
+		.union([
+			numeric,
+			z
+				.string()
+				.trim()
+				.regex(/^([01]?\d|2[0-4]):([0-5]\d)(:\d{2})?$/),
+		])
+		.nullish()
+		.transform((value): number | null => {
+			if (value === null || value === undefined) return null;
+			if (typeof value === "number") return value * 60;
+			const [h, m] = value.split(":");
+			return Number(h) * 60 + Number(m);
+		}),
+);
 const flag = z
 	.union([z.boolean(), z.number(), z.string()])
 	.nullish()
@@ -58,10 +81,10 @@ export const therapistRow = z
 		color: text,
 		bg: text,
 		days: numberList,
-		start_hour: numeric.nullish(),
-		end_hour: numeric.nullish(),
+		start_hour: workTime,
+		end_hour: workTime,
 		is_active: flag,
-		sort_order: numeric.nullish(),
+		sort_order: optNumeric,
 		created_at: text,
 	})
 	.passthrough();
@@ -73,7 +96,7 @@ export const groupActivityRow = z
 		short_name: text,
 		color: text,
 		bg: text,
-		sort_order: numeric.nullish(),
+		sort_order: optNumeric,
 		created_at: text,
 	})
 	.passthrough();
@@ -84,7 +107,7 @@ export const clientRow = z
 		name: text,
 		phone: text,
 		email: text,
-		therapist_id: integer.nullish(),
+		therapist_id: optInteger,
 		notes: text,
 		created_at: text,
 		birth_date: text,
@@ -93,7 +116,7 @@ export const clientRow = z
 		status: text,
 		gender: text,
 		main_reason: text,
-		first_therapy: text,
+		first_therapy: flag,
 		location: text,
 		child_diagnosis: text,
 		tutor_name: text,
@@ -109,13 +132,13 @@ export const clientRow = z
 export const appointmentRow = z
 	.object({
 		id: integer,
-		client_id: integer.nullish(),
-		therapist_id: integer.nullish(),
-		room_id: integer.nullish(),
+		client_id: optInteger,
+		therapist_id: optInteger,
+		room_id: optInteger,
 		date: text,
 		start_time: text,
 		end_time: text,
-		duration: numeric.nullish(),
+		duration: optNumeric,
 		session_type: text,
 		notes: text,
 		status: text,
@@ -126,11 +149,11 @@ export const appointmentRow = z
 		price: z.union([z.number(), z.string()]).nullish(),
 		paid: z.union([z.boolean(), z.number(), z.string()]).nullish(),
 		payment_method: text,
-		subscription_id: integer.nullish(),
+		subscription_id: optInteger,
 		therapist_notes: text,
 		amount_paid: z.union([z.number(), z.string()]).nullish(),
 		session_credit_type: text,
-		nfb_device_id: integer.nullish(),
+		nfb_device_id: optInteger,
 		attended: z.union([z.boolean(), z.number(), z.string()]).nullish(),
 	})
 	.passthrough();
@@ -138,7 +161,7 @@ export const appointmentRow = z
 export const staffScheduleRow = z
 	.object({
 		id: integer,
-		therapist_id: integer.nullish(),
+		therapist_id: optInteger,
 		date: text,
 		status: text,
 		start_time: text,
@@ -152,7 +175,7 @@ export const staffScheduleRow = z
 export const staffBlockRow = z
 	.object({
 		id: integer,
-		therapist_id: integer.nullish(),
+		therapist_id: optInteger,
 		date_start: text,
 		date_end: text,
 		reason: text,
@@ -164,12 +187,12 @@ export const staffBlockRow = z
 export const subscriptionRow = z
 	.object({
 		id: integer,
-		client_id: integer.nullish(),
+		client_id: optInteger,
 		session_type: text,
-		total_sessions: numeric.nullish(),
-		bonus_sessions: numeric.nullish(),
-		sessions_used: numeric.nullish(),
-		bonus_used: numeric.nullish(),
+		total_sessions: optNumeric,
+		bonus_sessions: optNumeric,
+		sessions_used: optNumeric,
+		bonus_used: optNumeric,
 		price: z.union([z.number(), z.string()]).nullish(),
 		start_date: text,
 		notes: text,
@@ -182,9 +205,9 @@ export const subscriptionRow = z
 export const feedbackRow = z
 	.object({
 		id: integer,
-		appointment_id: integer.nullish(),
-		client_id: integer.nullish(),
-		therapist_id: integer.nullish(),
+		appointment_id: optInteger,
+		client_id: optInteger,
+		therapist_id: optInteger,
 		created_at: text,
 		updated_at: text,
 	})
@@ -193,10 +216,10 @@ export const feedbackRow = z
 export const clientFileRow = z
 	.object({
 		id: integer,
-		client_id: integer.nullish(),
+		client_id: optInteger,
 		file_name: text,
 		file_path: text,
-		file_size: numeric.nullish(),
+		file_size: optNumeric,
 		file_type: text,
 		uploaded_by: text,
 		created_at: text,
@@ -209,7 +232,7 @@ export const avizRow = z
 		title: text,
 		file_name: text,
 		file_path: text,
-		file_size: numeric.nullish(),
+		file_size: optNumeric,
 		file_type: text,
 		uploaded_by: text,
 		created_at: text,

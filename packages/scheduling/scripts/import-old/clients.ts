@@ -141,7 +141,7 @@ export async function planClients(
 			occupation: clean(c.occupation),
 			referralSource: clean(c.referral_source),
 			location: clean(c.location),
-			firstTherapy: clean(c.first_therapy),
+			firstTherapy: c.first_therapy ?? undefined,
 			mainReasonEnc: await enc(c.main_reason, "mainReasonEnc"),
 			diagnosisEnc: await enc(c.child_diagnosis, "diagnosisEnc"),
 			healthNotesEnc: await enc(c.notes, "healthNotesEnc"),

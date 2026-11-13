@@ -76,7 +76,7 @@ describe("the real run (against the store's own contract)", () => {
 		expect(sink.count("visits")).toBe(12);
 		expect(written.roster).toMatchObject({ created: 4 });
 		expect(written.blocks).toMatchObject({ created: 1 });
-		expect(written.responses).toMatchObject({ created: 4 });
+		expect(written.responses).toMatchObject({ created: 7 });
 		expect(written.files).toMatchObject({ created: 2 });
 		// The repeated hour of 2026-10-25 takes the earlier instant: 03:30 Bucharest is 00:30 UTC.
 		const dst = sink.row("visits", "appointments:100");
@@ -207,9 +207,19 @@ describe("the real run (against the store's own contract)", () => {
 			),
 		);
 		expect(payload).toEqual({
-			programs: ["Test program A", "Test program B"],
+			programs: [
+				{
+					name: "Test program A",
+					notes: "Test note A",
+					prompt: "full",
+					sd: "Test SD",
+					status: "active",
+					success: "80",
+				},
+				{ name: "Test program B", status: "mastered", success: "3/5" },
+			],
 			reward_quality: "good",
-			intervention_efficiency: 4,
+			intervention_efficiency: "Eficient",
 			parent_feedback: SENTINELS.feedback,
 			behaviours: ["Test behaviour"],
 		});
@@ -222,7 +232,10 @@ describe("the real run (against the store's own contract)", () => {
 					`${TENANT}|formResponses.payload`,
 				),
 			),
-		).toEqual({ posts: ["p1", "p2"] });
+		).toEqual({
+			posts: [{ key: "p1", notes: "Test post note", success: "2" }, { key: "p2" }],
+			intervention_efficiency: "Parțial",
+		});
 		const psy = sink.row("responses", "psychotherapy_feedback:1");
 		expect(Reflect.get(psy ?? {}, "visitLegacy")).toBeUndefined();
 		expect(
@@ -233,7 +246,12 @@ describe("the real run (against the store's own contract)", () => {
 					`${TENANT}|formResponses.payload`,
 				),
 			),
-		).toEqual({ session_number: 5, duration_min: 50, next_session_date: "2026-11-01" });
+		).toEqual({
+			session_number: 5,
+			duration_min: 50,
+			nfb_duration: 30,
+			next_session_date: "2026-11-01",
+		});
 		const parent = sink.row("responses", "parent_feedback:1");
 		expect(
 			JSON.parse(
@@ -244,6 +262,62 @@ describe("the real run (against the store's own contract)", () => {
 				),
 			),
 		).toEqual({ reception_rating: 5, would_recommend: "yes" });
+	});
+
+	it("reads the shapes the real export has: times as text, a yes/no first therapy, tables, learned options, numbers as text, blanks as absent", async () => {
+		const sink = new MemorySink();
+		const report = await real(syntheticExport(), sink);
+		// Working hours given as "HH:MM" text, as a number, as blank and as null.
+		expect(sink.row("practitioners", "therapists:1")).toMatchObject({
+			workStartMinutes: 540,
+			workEndMinutes: 1050,
+		});
+		expect(sink.row("practitioners", "therapists:2")).toMatchObject({
+			workStartMinutes: 540,
+			workEndMinutes: 1020,
+		});
+		expect(
+			Reflect.get(sink.row("practitioners", "therapists:3") ?? {}, "workStartMinutes"),
+		).toBeUndefined();
+		// Nothing orphaned by an unreadable therapist: every appointment of therapist 1 found its column.
+		expect(
+			report.anomalies.filter((a) => a.code === "orphan_appointment_column").length,
+		).toBeLessThanOrEqual(1);
+		// first_therapy is a yes/no.
+		expect(sink.row("clients", "clients:1")).toMatchObject({ firstTherapy: true });
+		expect(sink.row("clients", "clients:2")).toMatchObject({ firstTherapy: false });
+		expect(Reflect.get(sink.row("clients", "clients:3") ?? {}, "firstTherapy")).toBeUndefined();
+		// Options learned from the data, distinct and sorted, added to the template; '' is not an option.
+		expect(sink.learned).toEqual([
+			{
+				definitionKey: "aba-session-report",
+				field: "intervention_efficiency",
+				values: ["Eficient"],
+			},
+			{ definitionKey: "race-me-up-report", field: "intervention_efficiency", values: ["Parțial"] },
+		]);
+		const open = async (id: string) =>
+			JSON.parse(
+				await decryptField(
+					ring,
+					Reflect.get(sink.row("responses", id) ?? {}, "payload"),
+					`${TENANT}|formResponses.payload`,
+				),
+			);
+		// '' is absent: the second ABA report has nothing but a blank efficiency, feedback and no programs.
+		expect(await open("session_feedback:2")).toEqual({});
+		// "30 min" gives 30; "" is absent; text with no leading number is a note, not a refusal.
+		expect(await open("psychotherapy_feedback:2")).toEqual({ nfb_duration: 30 });
+		expect(await open("psychotherapy_feedback:3")).toEqual({});
+		expect(
+			report.anomalies.find(
+				(a) => a.code === "unreadable_number:psychotherapy_feedback.duration_min",
+			),
+		).toMatchObject({
+			severity: "note",
+			ids: ["psychotherapy_feedback:3"],
+		});
+		expect(report.refusal).toBeUndefined();
 	});
 
 	it("is idempotent: a second run creates, updates and writes nothing", async () => {
@@ -316,7 +390,7 @@ describe("the real run (against the store's own contract)", () => {
 		smaller.tables.session_feedback = [];
 		await real(smaller, sink);
 		expect(sink.count("visits")).toBe(12);
-		expect(sink.count("responses")).toBe(4);
+		expect(sink.count("responses")).toBe(7);
 	});
 
 	it("uploads files encrypted: the store sees no plaintext, the row keeps the original's hash and size", async () => {

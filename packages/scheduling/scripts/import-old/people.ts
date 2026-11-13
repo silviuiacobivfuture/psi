@@ -43,8 +43,8 @@ const GROUP_COLUMNS = new Set([
 ]);
 const VOLUNTEER_COLUMNS = new Set(["id", "name", "active", "created_at"]);
 
-function hour(value: number | null | undefined): number | undefined {
-	return value === null || value === undefined || value < 0 || value > 24 ? undefined : value;
+function minutesOf(value: number | null | undefined): number | undefined {
+	return value === null || value === undefined || value < 0 || value > 1440 ? undefined : value;
 }
 
 export async function planPeople(
@@ -85,8 +85,8 @@ export async function planPeople(
 		used.add(slug);
 		const days =
 			t.days === null ? undefined : t.days.filter((d) => Number.isInteger(d) && d >= 1 && d <= 7);
-		const start = hour(t.start_hour);
-		const end = hour(t.end_hour);
+		const start = minutesOf(t.start_hour);
+		const end = minutesOf(t.end_hour);
 		const row = {
 			legacyId: practitionerLegacy(t.id),
 			slug,
@@ -98,8 +98,8 @@ export async function planPeople(
 			background: clean(t.bg),
 			sortOrder: t.sort_order ?? undefined,
 			workDays: days,
-			workStartHour: start,
-			workEndHour: end,
+			workStartMinutes: start,
+			workEndMinutes: end,
 		};
 		out.practitioners.push({ ...row, fingerprint: await fingerprintOf(ctx, "therapists", t) });
 		out.practitionerIds.add(t.id);

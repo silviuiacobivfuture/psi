@@ -31,6 +31,51 @@ export function columnCandidates(key: string): string[] {
  * its field's type, one a template does not accept, and a column nothing maps are BLOCKING: the
  * import refuses rather than drop a clinical word.
  */
+/** Options an import learned from the data, to be added to a stored template version. */
+export interface LearnedOptions {
+	definitionKey: string;
+	definitionVersion: number;
+	field: string;
+	values: string[];
+}
+
+export interface ResponsesOut {
+	rows: ResponseRow[];
+	learned: LearnedOptions[];
+}
+
+/**
+ * A number the old app typed as text: "50 min", "30", "12,5". The whole number if it is one, else
+ * the leading integer; empty is absent; anything else is unreadable (a note, never blocking).
+ */
+export function numberFromText(
+	raw: unknown,
+): { ok: true; value: number | undefined } | { ok: false } {
+	if (typeof raw === "number")
+		return Number.isFinite(raw) ? { ok: true, value: raw } : { ok: false };
+	if (typeof raw !== "string") return { ok: false };
+	const t = raw.trim();
+	if (t === "") return { ok: true, value: undefined };
+	if (/^-?\d+([.,]\d+)?$/.test(t)) return { ok: true, value: Number(t.replace(",", ".")) };
+	const lead = /^(\d+)/.exec(t);
+	return lead === null ? { ok: false } : { ok: true, value: Number(lead[1]) };
+}
+
+/** The distinct texts a choice field holds across the rows, in order of first sight. */
+function distinct(
+	rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+	names: string[],
+): string[] {
+	const seen = new Set<string>();
+	for (const row of rows) {
+		const name = names.find((n) => row[n] !== undefined && row[n] !== null);
+		if (name === undefined) continue;
+		const answer = coerceAnswer("choice", row[name]);
+		if (answer.ok && typeof answer.value === "string") seen.add(answer.value.trim());
+	}
+	return [...seen].sort((a, b) => a.localeCompare(b));
+}
+
 export async function planResponses(
 	ctx: Ctx,
 	source: { [T in (typeof FEEDBACK_TABLES)[number][0]]: ReadonlyArray<Row<T>> },
@@ -39,9 +84,32 @@ export async function planResponses(
 		appointmentIds: ReadonlySet<number>;
 		practitionerIds: ReadonlySet<number>;
 	},
-): Promise<ResponseRow[]> {
+): Promise<ResponsesOut> {
 	const out: ResponseRow[] = [];
-	for (const [table, def] of FEEDBACK_TABLES) {
+	const learned: LearnedOptions[] = [];
+	for (const [table, template] of FEEDBACK_TABLES) {
+		// Fields flagged `learnOptions` take the distinct values the data holds as their options.
+		const fields = template.fields.map((field) => {
+			if (field.learnOptions !== true) return field;
+			const values = distinct(source[table], columnCandidates(field.key)).filter((v) => {
+				const fits = v.length > 0 && v.length <= 100;
+				if (!fits && v.length > 0)
+					ctx.log.add(`option_too_long:${table}.${field.key}`, "note", `${table}:*`);
+				return fits;
+			});
+			if (values.length === 0) return field;
+			learned.push({
+				definitionKey: template.key,
+				definitionVersion: template.version,
+				field: field.key,
+				values,
+			});
+			return {
+				...field,
+				options: values.map((value) => ({ value, label: { ro: value, en: value } })),
+			};
+		});
+		const def = { ...template, fields };
 		const mapped = new Set<string>(META);
 		for (const field of def.fields)
 			for (const name of columnCandidates(field.key)) mapped.add(name);
@@ -63,7 +131,13 @@ export async function planResponses(
 					(n) => row[n] !== undefined && row[n] !== null,
 				);
 				if (name === undefined) continue;
-				const answer = coerceAnswer(field.type, row[name]);
+				if (field.type === "number") {
+					const num = numberFromText(row[name]);
+					if (!num.ok) ctx.log.add(`unreadable_number:${table}.${field.key}`, "note", ref);
+					else if (num.value !== undefined) values[field.key] = num.value;
+					continue;
+				}
+				const answer = coerceAnswer(field.type, row[name], field.columns ?? []);
 				if (!answer.ok) {
 					ctx.log.add(`uncoercible_value:${table}.${field.key}`, "blocking", ref);
 					readable = false;
@@ -106,5 +180,5 @@ export async function planResponses(
 			});
 		}
 	}
-	return out;
+	return { rows: out, learned };
 }

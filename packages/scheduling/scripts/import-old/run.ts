@@ -113,7 +113,7 @@ function tableCounts(options: RunOptions, parsed: ParsedExport, p: Plan): TableC
 		planned,
 	});
 	const responsesOf = (table: string): number =>
-		p.responses.filter((x) => x.legacyId.startsWith(`${table}:`)).length;
+		p.responses.rows.filter((x) => x.legacyId.startsWith(`${table}:`)).length;
 	const m = options.mapping;
 	return [
 		count(
@@ -273,11 +273,13 @@ export async function runImport(options: RunOptions): Promise<Report> {
 		payments: second.packages.payments,
 		roster: second.roster.roster,
 		blocks: second.roster.blocks,
-		responses: second.responses,
+		responses: second.responses.rows,
 		files: second.files.rows,
 	};
 	const written: Written[] = [];
 	for (const kind of WRITE_ORDER) {
+		if (kind === "responses")
+			await sink.learnOptions(options.mapping.app, second.responses.learned);
 		const results = await sink.upsert(options.mapping.app, kind, batches[kind]);
 		const w: Written = { kind, created: 0, updated: 0, unchanged: 0, orphan: 0 };
 		for (const result of results) {

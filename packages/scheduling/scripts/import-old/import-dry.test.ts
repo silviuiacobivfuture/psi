@@ -48,9 +48,9 @@ describe("the dry run", () => {
 		expect(get("client_subscriptions")).toMatchObject({ source: 3, planned: 2 });
 		expect(get("staff_schedule")).toMatchObject({ source: 8, planned: 4 });
 		expect(get("staff_blocks")).toMatchObject({ source: 2, planned: 1 });
-		expect(get("session_feedback")).toMatchObject({ source: 1, planned: 1 });
+		expect(get("session_feedback")).toMatchObject({ source: 2, planned: 2 });
 		expect(get("racemeup_feedback")).toMatchObject({ source: 1, planned: 1 });
-		expect(get("psychotherapy_feedback")).toMatchObject({ source: 1, planned: 1 });
+		expect(get("psychotherapy_feedback")).toMatchObject({ source: 3, planned: 3 });
 		expect(get("parent_feedback")).toMatchObject({ source: 1, planned: 1 });
 		expect(get("client_files")).toMatchObject({ source: 1, planned: 1 });
 		expect(get("avize")).toMatchObject({ source: 1, planned: 1 });

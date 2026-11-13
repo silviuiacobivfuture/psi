@@ -49,6 +49,7 @@ export {
 } from "./clients";
 export { FILE_KINDS, type FileKind, type FileMeta, fileMetaSchema, storageKeyFor } from "./files";
 export {
+	COLUMN_TYPES,
 	coerceAnswer,
 	FIELD_TYPES,
 	type FieldType,
@@ -59,6 +60,7 @@ export {
 	formFieldSchema,
 	type ResponseCheck,
 	type ResponseProblem,
+	type TableColumn,
 	validateResponse,
 	valueSchemaFor,
 } from "./forms";

@@ -83,10 +83,10 @@ export default defineSchema({
 		color: v.optional(v.string()),
 		background: v.optional(v.string()),
 		sortOrder: v.optional(v.number()),
-		/** ISO weekdays (Monday 1) and hours the person usually works. */
+		/** ISO weekdays (Monday 1) and the minutes after midnight the person usually starts and ends. */
 		workDays: v.optional(v.array(v.number())),
-		workStartHour: v.optional(v.number()),
-		workEndHour: v.optional(v.number()),
+		workStartMinutes: v.optional(v.number()),
+		workEndMinutes: v.optional(v.number()),
 		/** The sign-in subject, for the `self` scope. */
 		staffSubject: v.optional(v.string()),
 		legacyId: v.optional(v.string()),
@@ -220,7 +220,8 @@ export default defineSchema({
 		occupation: v.optional(v.string()),
 		referralSource: v.optional(v.string()),
 		location: v.optional(v.string()),
-		firstTherapy: v.optional(v.string()),
+		/** Whether this is the client's first therapy at all (the old app kept a yes/no). */
+		firstTherapy: v.optional(v.boolean()),
 		/** Clinical, encrypted: the reason for coming, the diagnosis, health notes. */
 		mainReasonEnc: v.optional(encryptedValidator),
 		diagnosisEnc: v.optional(encryptedValidator),

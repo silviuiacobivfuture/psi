@@ -121,28 +121,65 @@ describe("refusals: nothing is written", () => {
 		expect(report.refusal).toBeUndefined();
 	});
 
+	it("an empty string is an absent value in every optional column, numbers and text alike", async () => {
+		const { report } = await attempt((e) => {
+			const c = e.tables.clients?.[2];
+			if (c !== undefined) {
+				Reflect.set(c as object, "therapist_id", "");
+				Reflect.set(c as object, "phone", "");
+				Reflect.set(c as object, "first_therapy", "");
+			}
+			const a = e.tables.appointments?.[0];
+			if (a !== undefined) {
+				Reflect.set(a as object, "room_id", "");
+				Reflect.set(a as object, "nfb_device_id", "");
+				Reflect.set(a as object, "subscription_id", "");
+			}
+		});
+		expect(report.refusal).toBeUndefined();
+		expect(report.anomalies.filter((a) => a.code.startsWith("parse_error"))).toEqual([]);
+	});
+
 	it("a value that cannot be read as its field's type is blocking, naming the field", async () => {
 		const { sink, report } = await attempt((e) => {
 			const row = e.tables.psychotherapy_feedback?.[0];
-			if (row !== undefined) Reflect.set(row as object, "duration_min", "SENTINEL-NOT-A-NUMBER");
+			if (row !== undefined) Reflect.set(row as object, "next_session_date", "SENTINEL-NOT-A-DATE");
 		});
 		expect(report.refusal).toBe("blocking");
-		expect(idsOf(report, "uncoercible_value:psychotherapy_feedback.duration_min")).toEqual([
+		expect(idsOf(report, "uncoercible_value:psychotherapy_feedback.next_session_date")).toEqual([
 			"psychotherapy_feedback:1",
 		]);
-		expect(JSON.stringify(report)).not.toContain("SENTINEL-NOT-A-NUMBER");
+		expect(JSON.stringify(report)).not.toContain("SENTINEL-NOT-A-DATE");
 		expect(sink.changes).toBe(0);
 	});
 
 	it("a value outside its field's bounds is blocking", async () => {
 		const { report } = await attempt((e) => {
-			const row = e.tables.session_feedback?.[0];
-			if (row !== undefined) Reflect.set(row as object, "intervention_efficiency", 99);
+			const row = e.tables.parent_feedback?.[0];
+			if (row !== undefined) Reflect.set(row as object, "reception_rating", 99);
 		});
 		expect(report.refusal).toBe("blocking");
-		expect(idsOf(report, "invalid_value:session_feedback.intervention_efficiency:invalid")).toEqual(
-			["session_feedback:1"],
-		);
+		expect(idsOf(report, "invalid_value:parent_feedback.reception_rating:invalid")).toEqual([
+			"parent_feedback:1",
+		]);
+	});
+
+	it("a table cell that is not a plain value, or a row that is not a row, is blocking", async () => {
+		const { report } = await attempt((e) => {
+			const row = e.tables.session_feedback?.[0];
+			if (row !== undefined)
+				Reflect.set(row as object, "programs", [{ name: { nested: "SENTINEL-CELL" } }]);
+			const rmu = e.tables.racemeup_feedback?.[0];
+			if (rmu !== undefined) Reflect.set(rmu as object, "posts", ["not a row"]);
+		});
+		expect(report.refusal).toBe("blocking");
+		expect(idsOf(report, "uncoercible_value:session_feedback.programs")).toEqual([
+			"session_feedback:1",
+		]);
+		expect(idsOf(report, "uncoercible_value:racemeup_feedback.posts")).toEqual([
+			"racemeup_feedback:1",
+		]);
+		expect(JSON.stringify(report)).not.toContain("SENTINEL-CELL");
 	});
 
 	it("a row that does not parse is blocking and reported without its value", async () => {

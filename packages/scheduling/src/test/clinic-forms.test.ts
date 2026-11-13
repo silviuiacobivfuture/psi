@@ -130,6 +130,7 @@ describe("the four seeded templates", () => {
 			"multichoice",
 			"number",
 			"rating",
+			"table",
 			"text",
 		]);
 	});
@@ -140,8 +141,8 @@ describe("validating a response against the version it was written with", () => 
 
 	it("accepts a partial response (every seeded field is optional)", () => {
 		const check = validateResponse(aba, {
-			programs: ["Test program 1"],
-			intervention_efficiency: 4,
+			programs: [{ name: "Test program 1", success: "3/5" }],
+			intervention_efficiency: "Eficient",
 			parent_feedback: "Test feedback",
 		});
 		expect(check).toMatchObject({ ok: true });
@@ -410,5 +411,75 @@ describe("reading loose source values", () => {
 		["text", ["a"]],
 	] as const)("refuses %s from %j", (type, raw) => {
 		expect(coerceAnswer(type, raw)).toEqual({ ok: false });
+	});
+});
+
+describe("the table field", () => {
+	const base = { key: "form-t", version: 1, kind: "report", title: { ro: "a", en: "a" } };
+	const label = { ro: "a", en: "a" };
+	const table = (extra: Record<string, unknown> = {}) => ({
+		key: "rows",
+		label,
+		type: "table",
+		options: [],
+		required: false,
+		group: "clinical",
+		columns: [
+			{ key: "name", label, type: "text" },
+			{ key: "score", label, type: "number" },
+		],
+		...extra,
+	});
+
+	it("needs distinct columns, and only a table has them; learned options only on a choice", () => {
+		expect(formDefinitionSchema.safeParse({ ...base, fields: [table()] }).success).toBe(true);
+		for (const bad of [
+			table({ columns: [] }),
+			table({ columns: undefined }),
+			table({
+				columns: [
+					{ key: "a", label, type: "text" },
+					{ key: "a", label, type: "text" },
+				],
+			}),
+			{ ...table(), type: "text" },
+			{ ...table({ columns: undefined }), type: "text", learnOptions: true },
+		]) {
+			expect(formDefinitionSchema.safeParse({ ...base, fields: [bad] }).success).toBe(false);
+		}
+	});
+
+	it("validates a list of rows against its columns, naming the field and never the value", () => {
+		const def = formDefinitionSchema.parse({ ...base, fields: [table()] });
+		expect(validateResponse(def, { rows: [{ name: "a", score: 3 }, { name: "b" }] }).ok).toBe(true);
+		expect(validateResponse(def, { rows: [] }).ok).toBe(true);
+		for (const bad of [[{ name: 1 }], [{ other: "x" }], ["x"], "x", [{ score: "3" }]]) {
+			expect(validateResponse(def, { rows: bad })).toEqual({
+				ok: false,
+				problems: [{ field: "rows", code: "invalid" }],
+			});
+		}
+	});
+
+	it("reads rows from a list or JSON text, drops empty cells and rows, refuses an unknown filled cell", () => {
+		const columns = [
+			{ key: "name", label, type: "text" as const },
+			{ key: "score", label, type: "number" as const },
+		];
+		expect(
+			coerceAnswer("table", [{ name: "a", score: "3" }, { name: "", score: null }, {}], columns),
+		).toEqual({
+			ok: true,
+			value: [{ name: "a", score: 3 }],
+		});
+		expect(coerceAnswer("table", '[{"name":"a"}]', columns)).toEqual({
+			ok: true,
+			value: [{ name: "a" }],
+		});
+		expect(coerceAnswer("table", [], columns)).toEqual({ ok: true, value: undefined });
+		expect(coerceAnswer("table", "", columns)).toEqual({ ok: true, value: undefined });
+		expect(coerceAnswer("table", [{ stray: "x" }], columns)).toEqual({ ok: false });
+		expect(coerceAnswer("table", [{ stray: "" }], columns)).toEqual({ ok: true, value: undefined });
+		expect(coerceAnswer("table", "{bad", columns)).toEqual({ ok: false });
 	});
 });

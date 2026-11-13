@@ -180,10 +180,11 @@ describe.skipIf(!backendReady)("erasing a client on the local Convex", () => {
 
 	it("a re-run of the import does not bring the erased client back, or anything of theirs", async () => {
 		const before = await counts();
+		// The CLI dumps every app's rows and other tests write meanwhile: count this app's only.
 		const lines = () =>
 			dumpTable("clients")
 				.split("\n")
-				.filter((l) => l !== "").length;
+				.filter((l) => l.includes(`"tenant":"${TENANT}"`)).length;
 		const clientsBefore = lines();
 		const again = await upsert("importClients:upsertClients", [client(3)]);
 		expect(again[0]).toMatchObject({ outcome: "unchanged", flag: "erased" });
