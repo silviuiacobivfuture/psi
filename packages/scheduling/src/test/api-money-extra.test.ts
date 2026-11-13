@@ -93,6 +93,13 @@ describe.skipIf(!backendReady)("visit facts, package offers and the payments led
 		expect(await by({ practitioner: "other" })).toBe(0);
 		expect(await by({ service: "svc-1", client: ids.c1 })).toBe(1);
 		expect(await by({ client: ids.c2 })).toBe(0);
+		// Read through an index of their own (client, package), the window and the other filters still apply.
+		expect(await by({ client: ids.c1, from: base, to: base + HOUR })).toBe(1);
+		expect(await by({ client: ids.c1, from: base + HOUR })).toBe(0);
+		expect(await by({ client: ids.c1, to: base })).toBe(0);
+		expect(await by({ package: ids.pkg })).toBe(0);
+		expect(await by({ package: "not-an-id" })).toBe(0);
+		expect(await by({ client: "not-an-id" })).toBe(0);
 		expect(await by({ from: base + DAY * 400 })).toBe(0);
 		expect(await by({ reminded: true })).toBe(0);
 		await mut("apiVisits:update", { visit: ids.v1, patch: { reminderSent: true } });
