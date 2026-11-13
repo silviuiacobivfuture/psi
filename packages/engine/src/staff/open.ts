@@ -1,7 +1,8 @@
 import { guardPort } from "./boundary";
 import { staffCopy } from "./copy";
 import type { StaffPage } from "./events";
-import type { StaffPort } from "./port";
+import type { RouteLike } from "./parity/routes";
+import type { IssuesPort, StaffPort } from "./port";
 import type { ProposalStore } from "./proposals";
 import type { StaffLinks, StaffSession } from "./session";
 import { vouch } from "./tools";
@@ -11,6 +12,8 @@ export interface SessionDeps {
 	now: () => number;
 	proposals: ProposalStore;
 	links: StaffLinks | undefined;
+	routes: ReadonlyArray<RouteLike>;
+	issues: IssuesPort | undefined;
 }
 
 /**
@@ -33,10 +36,13 @@ export async function openSession(
 		now: deps.now,
 		proposals: deps.proposals,
 		links: deps.links,
+		routes: deps.routes,
+		issues: deps.issues,
 		page: input.page,
 		threadId: input.threadId,
 		cards: [],
 		blocked: new Set(),
 		taint: { stranger: false },
+		caps: undefined,
 	});
 }

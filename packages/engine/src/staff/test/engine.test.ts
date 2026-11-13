@@ -14,7 +14,7 @@ import {
 } from "../../testing";
 import { createStaffEngine, type StaffEngine } from "../engine";
 import type { StaffEvent } from "../events";
-import { FAKE_NOW, FakeStaffPort } from "../testing";
+import { FAKE_NOW, FakeStaffPort, OWNER_PERMISSIONS } from "../testing";
 import { STAFF_TOOL_IDS } from "../tool-ids";
 
 let fake: FakeOpenRouter | undefined;
@@ -65,6 +65,12 @@ const shape = (events: ReadonlyArray<StaffEvent>): Array<string> => {
 	return out;
 };
 
+function ownerPort(): FakeStaffPort {
+	const port = new FakeStaffPort();
+	port.permissions = OWNER_PERMISSIONS;
+	return port;
+}
+
 describe("a staff turn", () => {
 	it("streams chips, the card the tool produced, then the answer", async () => {
 		const engine = await engineWith([
@@ -96,14 +102,17 @@ describe("a staff turn", () => {
 	it("the model is told the staff tools, the rules, the date, the person and the open screen", async () => {
 		const engine = await engineWith([{ kind: "text", chunks: ["Hi."] }]);
 		await collect(
-			engine.chat(new FakeStaffPort(), {
+			engine.chat(ownerPort(), {
 				message: "hello",
 				page: { screen: "client", clientId: "c1", resourceId: "r1" },
 			}),
 		);
 		const request = fake?.requests[0];
 		const names = chatBody(request).tools?.map((t) => t.function.name) ?? [];
-		expect(names.sort()).toEqual([...STAFF_TOOL_IDS].sort());
+		// Without a log store there is no site-issues tool; every other curated tool is offered to an owner.
+		expect(names.sort()).toEqual(
+			STAFF_TOOL_IDS.filter((id) => id !== "staffSiteIssues" && id !== "staffApi").sort(),
+		);
 		const system = systemText(request);
 		expect(system).toContain("Today is Friday, 2026-11-13");
 		expect(system).toContain("Ana Pop");

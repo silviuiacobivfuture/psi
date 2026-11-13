@@ -71,6 +71,12 @@ const StepSchema = z.discriminatedUnion("kind", [
 		leaveKind: z.enum(LEAVE_KINDS),
 	}),
 	z.object({ kind: z.literal("handle_request"), id: IdSchema, expectedVersion: VersionSchema }),
+	/** Any other route of the scheduling service (the generated parity tools): run as the person, as given. */
+	z.object({
+		kind: z.literal("route_call"),
+		routeId: z.string().min(3).max(80),
+		input: z.record(z.string(), z.unknown()),
+	}),
 	z.object({
 		kind: z.literal("send_reminders"),
 		items: z
@@ -99,7 +105,7 @@ export const ChangeSchema = z.union([
 ]);
 export type Change = z.infer<typeof ChangeSchema>;
 
-function actionOfStep(step: Step): StaffAction {
+function actionOfStep(step: Step): StaffAction | undefined {
 	switch (step.kind) {
 		case "create_appointment":
 			return "appointments.create";
@@ -117,6 +123,8 @@ function actionOfStep(step: Step): StaffAction {
 			return "requests.handle";
 		case "send_reminders":
 			return "reminders.send";
+		case "route_call":
+			return undefined;
 		default: {
 			const never: never = step;
 			return never;
@@ -127,7 +135,7 @@ function actionOfStep(step: Step): StaffAction {
 /** The permissions a change needs, each asked before a proposal exists. */
 export function actionsOf(change: Change): ReadonlyArray<StaffAction> {
 	const steps = change.kind === "batch" ? change.steps : [change];
-	return [...new Set(steps.map(actionOfStep))];
+	return [...new Set(steps.flatMap((step) => actionOfStep(step) ?? []))];
 }
 
 function subjectsOfStep(step: Step): ReadonlyArray<string> {
@@ -145,6 +153,10 @@ function subjectsOfStep(step: Step): ReadonlyArray<string> {
 			return [step.personId];
 		case "send_reminders":
 			return step.items.map((item) => item.appointmentId ?? item.clientId ?? "");
+		case "route_call":
+			return Object.entries(step.input).flatMap(([key, value]) =>
+				typeof value === "string" && /(^id$|Id$|^subject$)/.test(key) ? [value.slice(0, 120)] : [],
+			);
 		default: {
 			const never: never = step;
 			return never;

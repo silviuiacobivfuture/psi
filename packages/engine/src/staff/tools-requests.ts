@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { remindersCard, requestsCard, statsCard } from "./cards";
-import { fence } from "./fence";
+import { fence, fenceOrNull } from "./fence";
 import { addDays, clock, weekStart } from "./format";
 import { DateSchema } from "./model";
 import { type StaffSession, staffTool, type ToolRun } from "./session";
@@ -18,6 +18,9 @@ export function webRequestsTool(session: StaffSession) {
 				service: z.string(),
 				message: z.string(),
 				handled: z.boolean(),
+				channel: z.enum(["form", "chat"]),
+				summary: z.string().nullable(),
+				excerpt: z.string().nullable(),
 			}),
 		),
 	});
@@ -49,6 +52,9 @@ export function webRequestsTool(session: StaffSession) {
 						service: fence(r.service),
 						message: fence(r.message),
 						handled: r.handled,
+						channel: r.channel,
+						summary: fenceOrNull(r.summary),
+						excerpt: fenceOrNull(r.excerpt),
 					})),
 				},
 			};

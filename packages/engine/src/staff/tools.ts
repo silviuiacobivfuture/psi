@@ -1,6 +1,9 @@
 import type { ToolsInput } from "@mastra/core/agent";
 import type { RequestContext } from "@mastra/core/request-context";
+import { parityTools } from "./parity/generate";
+import { NEEDS, offered } from "./parity/needs";
 import { SESSION_KEY, type StaffSession } from "./session";
+import { toolKeyOf } from "./tool-ids";
 import {
 	cancelAppointmentTool,
 	createAppointmentTool,
@@ -8,6 +11,7 @@ import {
 	moveAppointmentTool,
 } from "./tools-appointments";
 import { agendaTool, clientSummaryTool, findClientTool, freeSlotsTool } from "./tools-calendar";
+import { activityTool, newBookingsTool, requestReplyTool, siteIssuesTool } from "./tools-insight";
 import {
 	markRequestHandledTool,
 	recordPaymentTool,
@@ -44,7 +48,7 @@ export function staffTools({
 	if (!isVerified(session)) {
 		return Promise.reject(new Error("the staff assistant needs a verified staff principal"));
 	}
-	return Promise.resolve({
+	const curated: ToolsInput = {
 		staffFindClient: findClientTool(session),
 		staffClientSummary: clientSummaryTool(session),
 		staffAgenda: agendaTool(session),
@@ -70,5 +74,21 @@ export function staffTools({
 		staffPaymentReminders: paymentRemindersTool(session),
 		staffCopyWeek: copyWeekTool(session),
 		staffAbsence: absenceTool(session),
-	});
+		staffActivity: activityTool(session),
+		staffNewBookings: newBookingsTool(session),
+		staffSiteIssues: siteIssuesTool(session),
+		staffRequestReply: requestReplyTool(session),
+	};
+	// A tool the person cannot use is not offered at all (the service refuses it anyway).
+	const offeredTools = Object.fromEntries(
+		Object.entries(curated).filter(([id]) => {
+			const key = toolKeyOf(id);
+			if (key === undefined) return false;
+			if (key === "siteIssues" && session.issues === undefined) return false;
+			return offered(NEEDS[key], session.caps);
+		}),
+	);
+	const generated =
+		session.caps === undefined ? {} : parityTools(session, session.routes, session.caps);
+	return Promise.resolve({ ...offeredTools, ...generated });
 }

@@ -57,6 +57,10 @@ export function guardPort(port: StaffPort): StaffPort {
 		searchNotes: (q) => guarded(p.notes, "searchNotes", () => port.searchNotes(q)),
 		stats: (q) => guarded(p.stats, "stats", () => port.stats(q)),
 		roomsAt: (q) => guarded(p.roomsAt, "roomsAt", () => port.roomsAt(q)),
+		activity: (q) => guarded(p.activity, "activity", () => port.activity(q)),
+		bookings: (q) => guarded(p.bookings, "bookings", () => port.bookings(q)),
+		capabilities: () => guarded(p.capabilities, "capabilities", () => port.capabilities()),
+		callRoute: (c) => guarded(p.route, "callRoute", () => port.callRoute(c)),
 		attention: (q) => guarded(p.attention, "attention", () => port.attention(q)),
 	};
 }

@@ -1,5 +1,11 @@
 import type { StaffScreen, Tone } from "../events";
-import type { AppointmentStatus, PackageBalance, StaffLocale } from "../model";
+import type {
+	ActivityKind,
+	AppointmentStatus,
+	IssueKind,
+	PackageBalance,
+	StaffLocale,
+} from "../model";
 import type { PortRefusal } from "../port";
 
 /** The tool keys a chip or a card title is written for. */
@@ -29,6 +35,11 @@ export const TOOL_KEYS = [
 	"paymentReminders",
 	"copyWeek",
 	"absence",
+	"activity",
+	"newBookings",
+	"siteIssues",
+	"requestReply",
+	"api",
 ] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
 
@@ -196,6 +207,18 @@ export interface StaffCopy {
 		choose(what: string): string;
 		conflictBusy: string;
 		conflictLeave: string;
+		activity(range: string): string;
+		noActivity: string;
+		activityKind: Readonly<Record<ActivityKind, string>>;
+		verb(verb: string): string;
+		bookings(range: string): string;
+		noBookings: string;
+		source: Readonly<Record<"form" | "chat" | "staff", string>>;
+		issues(range: string): string;
+		noIssues: string;
+		issueKind: Readonly<Record<IssueKind, string>>;
+		issueLine(args: { count: number; first: string; last: string }): string;
+		channel: Readonly<Record<"form" | "chat", string>>;
 	};
 	proposal: {
 		create: string;
@@ -226,6 +249,7 @@ export interface StaffCopy {
 		appName: string;
 		channel: "email" | "whatsapp";
 	}): string;
+	requestReply(args: { appName: string }): string;
 	paymentText(args: { name: string; due: string; appName: string }): string;
 	absenceText(args: { name: string; when: string; appName: string; newWhere?: string }): string;
 	briefing: {

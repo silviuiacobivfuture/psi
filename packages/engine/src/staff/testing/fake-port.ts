@@ -1,7 +1,9 @@
 import { foldName } from "../format";
 import type {
+	ActivityEvent,
 	Appointment,
 	Attention,
+	Booking,
 	ClientSummary,
 	NoteHit,
 	PackageBalance,
@@ -22,6 +24,7 @@ import type {
 	StaffAction,
 	StaffPort,
 } from "../port";
+import { RECEPTION_PERMISSIONS } from "./permissions";
 
 /** 2026-11-13, a Friday, 09:00 in Bucharest. */
 export const FAKE_NOW = Date.parse("2026-11-13T07:00:00Z");
@@ -58,6 +61,8 @@ export interface FakeData {
 	leaves: Array<{ personId: string; from: string; to: string; kind: string }>;
 	payments: Array<{ packageId: string; amountBani: number; method: string }>;
 	sent: Array<{ appointmentId: string; channel: string; text: string }>;
+	activity: Array<ActivityEvent>;
+	bookings: Array<Booking>;
 }
 
 function seed(): FakeData {
@@ -175,6 +180,7 @@ function seed(): FakeData {
 				phone: "0712 000 003",
 				service: "Evaluare",
 				message: "Hello, I would like an appointment.",
+				channel: "form",
 				handled: false,
 			},
 		],
@@ -202,6 +208,72 @@ function seed(): FakeData {
 		leaves: [],
 		payments: [],
 		sent: [],
+		activity: [
+			{
+				at: "2026-11-13T07:10:00Z",
+				kind: "appointment",
+				verb: "create",
+				actor: "Ana Pop",
+				label: "Maria Test",
+				subjectId: "a1",
+			},
+			{
+				at: "2026-11-13T07:20:00Z",
+				kind: "appointment",
+				verb: "move",
+				actor: "Ana Pop",
+				label: "Ion Exemplu",
+				subjectId: "a2",
+			},
+			{
+				at: "2026-11-13T07:30:00Z",
+				kind: "payment",
+				verb: "pay",
+				actor: "Dan Ionescu",
+				label: "10 sessions",
+				subjectId: "k1",
+			},
+			{
+				at: "2026-11-12T09:00:00Z",
+				kind: "client",
+				verb: "create",
+				actor: "Ana Pop",
+				label: "Ion Exemplu",
+				subjectId: "c2",
+			},
+		],
+		bookings: [
+			{
+				id: "a1",
+				createdAt: "2026-11-13T07:10:00Z",
+				date: "2026-11-13",
+				startMin: 600,
+				clientName: "Maria Test",
+				serviceName: "Evaluare",
+				source: "staff",
+				status: "confirmed",
+			},
+			{
+				id: "b2",
+				createdAt: "2026-11-13T05:00:00Z",
+				date: "2026-11-16",
+				startMin: 540,
+				clientName: "Visitor One",
+				serviceName: "Evaluare",
+				source: "form",
+				status: "requested",
+			},
+			{
+				id: "b3",
+				createdAt: "2026-11-13T06:00:00Z",
+				date: "2026-11-17",
+				startMin: 600,
+				clientName: "Visitor Chat",
+				serviceName: "Neurofeedback",
+				source: "chat",
+				status: "requested",
+			},
+		],
 	};
 }
 
@@ -216,6 +288,10 @@ export class FakeStaffPort implements StaffPort {
 	readonly audits: Array<AuditEntry> = [];
 	principal: Principal | null = FAKE_PRINCIPAL;
 	failAudit = false;
+	/** What the person may do; null makes the capabilities call fail. */
+	permissions: ReadonlyArray<string> | null = RECEPTION_PERMISSIONS;
+	/** What each route answers (by id); a route not listed answers an empty object. */
+	readonly routeAnswers = new Map<string, unknown>();
 	/** Methods or actions answered `forbidden`. */
 	readonly denied = new Set<string>();
 	/** Methods that answer `unavailable`. */
@@ -630,6 +706,40 @@ export class FakeStaffPort implements StaffPort {
 				)
 				.slice(0, q.limit),
 		);
+	}
+
+	async activity(q: { from: string; to: string; limit: number }) {
+		const denied = this.gate("activity", q);
+		if (denied) return denied;
+		return ok(
+			this.data.activity
+				.filter((e) => e.at.slice(0, 10) >= q.from && e.at.slice(0, 10) <= q.to)
+				.slice(0, q.limit),
+		);
+	}
+
+	async bookings(q: { from: string; to: string; limit: number }) {
+		const denied = this.gate("bookings", q);
+		if (denied) return denied;
+		return ok(
+			this.data.bookings
+				.filter((b) => b.createdAt.slice(0, 10) >= q.from && b.createdAt.slice(0, 10) <= q.to)
+				.slice(0, q.limit),
+		);
+	}
+
+	async capabilities() {
+		this.calls.push({ method: "capabilities", args: [] });
+		return this.permissions === null || this.down.has("capabilities")
+			? no("unavailable")
+			: ok({ permissions: [...this.permissions] });
+	}
+
+	async callRoute(call: { routeId: string; input: Record<string, unknown> }) {
+		const denied = this.gate("callRoute", call);
+		if (denied) return denied;
+		if (this.denied.has(`route:${call.routeId}`)) return no("forbidden");
+		return ok(this.routeAnswers.get(call.routeId) ?? { ok: true });
 	}
 
 	async stats(q: { from: string; to: string }) {

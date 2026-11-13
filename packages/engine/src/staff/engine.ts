@@ -20,7 +20,9 @@ import {
 import { type ConfirmOutcome, confirmProposal, dismissProposal, unconfirmed } from "./execute";
 import type { StaffLocale } from "./model";
 import { openSession, type SessionDeps } from "./open";
-import type { StaffPort } from "./port";
+import { baseKeys } from "./parity/needs";
+import type { RouteLike } from "./parity/routes";
+import type { IssuesPort, StaffPort } from "./port";
 import { staffInstructions } from "./prompt";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
 import type { StaffLinks } from "./session";
@@ -55,6 +57,13 @@ export interface StaffEngineOptions {
 	/** Counts turns per person; defaults to 30 a minute in memory. */
 	rateLimiter?: RateLimiter;
 	links?: StaffLinks;
+	/**
+	 * The scheduling service's route table (`ROUTES` of `@psi/scheduling-sdk/contract`): each route the
+	 * signed-in person may use becomes a tool, made fresh every turn. None without it.
+	 */
+	routes?: ReadonlyArray<RouteLike>;
+	/** Visitor-facing site trouble, from the estate's log store; the `siteIssues` tool exists only with it. */
+	issues?: IssuesPort;
 	timeouts?: Partial<TurnTimeouts>;
 	now?: () => number;
 	/** Called when a stage fails: the stage and the error's text, never a message or a record. */
@@ -137,7 +146,14 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		}
 	};
 
-	const deps: SessionDeps = { timeZone, now, proposals, links: options.links };
+	const deps: SessionDeps = {
+		timeZone,
+		now,
+		proposals,
+		links: options.links,
+		routes: options.routes ?? [],
+		issues: options.issues,
+	};
 	const open = (port: StaffPort, input: { page?: StaffPage; threadId?: string }) =>
 		openSession(port, deps, input);
 
@@ -161,6 +177,8 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			yield { type: "done" };
 			return;
 		}
+		const caps = await session.port.capabilities();
+		session.caps = caps.ok ? baseKeys(caps.value.permissions) : undefined;
 		if (!(await limiter.take(`staff:${session.principal.sub}`))) {
 			yield { type: "refusal", reason: "rate_limited" };
 			yield { type: "done" };

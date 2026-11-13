@@ -157,6 +157,12 @@ export const WebRequestSchema = z.object({
 	/** Written by a stranger on the website: the likeliest place for an injected instruction. */
 	message: z.string().max(5000),
 	handled: z.boolean(),
+	/** How it reached the team: the website's form, or filed by the visitor-facing AI after a chat. */
+	channel: z.enum(["form", "chat"]),
+	/** When filed by the AI: its Romanian summary of the conversation. */
+	summary: z.string().max(3000).optional(),
+	/** When filed by the AI: the part of the conversation the visitor agreed to share. */
+	excerpt: z.string().max(6000).optional(),
 });
 export type WebRequest = z.infer<typeof WebRequestSchema>;
 
@@ -226,3 +232,70 @@ export const AttentionSchema = z.object({
 	canWhatsapp: z.boolean(),
 });
 export type Attention = z.infer<typeof AttentionSchema>;
+
+export const ACTIVITY_KINDS = [
+	"appointment",
+	"client",
+	"payment",
+	"leave",
+	"request",
+	"package",
+	"record",
+	"settings",
+	"other",
+] as const;
+
+export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
+
+/** One thing that happened, from the audit log and the change feed. */
+export const ActivityEventSchema = z.object({
+	at: z.string().max(40),
+	kind: z.enum(ACTIVITY_KINDS),
+	/** `create`, `move`, `cancel`, `attend`, `pay`, `decide`, … : the service's own verb. */
+	verb: z.string().max(60),
+	actor: z.string().max(200),
+	/** What it touched, in words (a client's name is free text). */
+	label: z.string().max(300).nullable(),
+	subjectId: IdSchema.nullable(),
+});
+export type ActivityEvent = z.infer<typeof ActivityEventSchema>;
+
+/** A booking, and where it came from: the website form, the visitor-facing AI chat, or the team. */
+export const BookingSchema = z.object({
+	id: IdSchema,
+	createdAt: z.string().max(40),
+	date: DateSchema,
+	startMin: MinuteSchema,
+	clientName: z.string().max(300),
+	serviceName: z.string().max(300),
+	source: z.enum(["form", "chat", "staff"]),
+	status: AppointmentStatusSchema,
+});
+export type Booking = z.infer<typeof BookingSchema>;
+
+/** What the person's token may do in this app: catalogue permission keys, scoped ones with their suffix. */
+export const CapabilitiesSchema = z.object({ permissions: z.array(z.string().max(100)).max(500) });
+export type Capabilities = z.infer<typeof CapabilitiesSchema>;
+
+export const ISSUE_KINDS = [
+	"http_5xx",
+	"booking_failed",
+	"error_page",
+	"chat_failure",
+	"scheduling_unavailable",
+	"visitor_reported",
+] as const;
+
+export type IssueKind = (typeof ISSUE_KINDS)[number];
+
+/** Visitor-facing trouble on the sites, aggregated: kind, site, counts and times. No visitor data. */
+export const IssueSchema = z.object({
+	kind: z.enum(ISSUE_KINDS),
+	site: z.string().max(80),
+	count: z.number().int().nonnegative(),
+	firstSeen: z.string().max(40),
+	lastSeen: z.string().max(40),
+	/** A scrubbed example line (a route, an error name), never a visitor's words. */
+	sample: z.string().max(300).optional(),
+});
+export type Issue = z.infer<typeof IssueSchema>;

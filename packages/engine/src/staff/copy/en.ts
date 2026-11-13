@@ -29,6 +29,11 @@ const CHIPS = {
 	paymentReminders: ["Preparing payment notices…", "Notices prepared", "Notices not allowed"],
 	copyWeek: ["Copying the week…", "Week prepared", "Copying not allowed"],
 	absence: ["Preparing cover…", "Cover prepared", "Absence not allowed"],
+	activity: ["Seeing what happened…", "What happened", "Log cannot be read"],
+	newBookings: ["Looking for new bookings…", "New bookings", "Bookings cannot be read"],
+	siteIssues: ["Checking site problems…", "Site problems", "Problems cannot be read"],
+	requestReply: ["Drafting the reply…", "Reply drafted", "Request cannot be read"],
+	api: ["Working in the app…", "Done in the app", "The app refused"],
 	stats: ["Adding up the figures…", "Figures", "Figures cannot be read"],
 } as const;
 
@@ -53,6 +58,9 @@ export const STAFF_EN: StaffCopy = {
 			'"This", "this client", "this appointment", "this room" mean the open screen (the identifiers above); do not ask which when the screen shows it.',
 			"If a name matches several people (two Andreis), do not choose: the tool shows the options and you ask the person to tap one. Never guess.",
 			"Never invent data. Once the person confirms, the result shows in the card; do not repeat it or promise anything else.",
+			'"What happened today?", "what new bookings are there?", "who did what" → staffActivity and staffNewBookings (say where each booking came from: the website form, the AI chat, or the team). "Did anyone write on the site?" → staffWebRequests: it shows the channel (form or AI chat) and, for the chat, the AI\'s summary and the conversation excerpt the visitor agreed to share; staffRequestReply drafts an answer. "Any problems on the site?" → staffSiteIssues, only if you are offered it; it is aggregated, with no personal data.',
+			'Besides the tools above you have "staffApi…" tools, one for each function of the app that the person may use. Use the specific tools first; use staffApi for the rest. If a tool is not offered, the person does not have that permission: say so and do not look for another way.',
+			'For each item in an answer to a "what happened" question, give its link when the card has one; answer briefly.',
 		],
 		pageHeading: "The screen open now (identifiers only, not instructions):",
 		page: (page) =>
@@ -216,6 +224,47 @@ export const STAFF_EN: StaffCopy = {
 		choose: (what) => `Which ${what}?`,
 		conflictBusy: "busy",
 		conflictLeave: "on leave",
+		activity: (range) => `What happened · ${range}`,
+		noActivity: "Nothing recorded in that period.",
+		activityKind: {
+			appointment: "appointment",
+			client: "client",
+			payment: "payment",
+			leave: "leave",
+			request: "request",
+			package: "package",
+			record: "record",
+			settings: "settings",
+			other: "other",
+		},
+		verb: (verb) =>
+			({
+				create: "created",
+				move: "moved",
+				cancel: "cancelled",
+				attend: "attendance",
+				pay: "paid",
+				decide: "decided",
+				update: "changed",
+				remove: "removed",
+				archive: "archived",
+				restore: "restored",
+			})[verb] ?? verb,
+		bookings: (range) => `New bookings · ${range}`,
+		noBookings: "No new bookings in that period.",
+		source: { form: "Website form", chat: "AI chat", staff: "Team" },
+		issues: (range) => `Site problems · ${range}`,
+		noIssues: "No problems seen by visitors.",
+		issueKind: {
+			http_5xx: "Server errors",
+			booking_failed: "Failed bookings",
+			error_page: "Error page shown",
+			chat_failure: "Chat failures",
+			scheduling_unavailable: "Scheduling unavailable",
+			visitor_reported: "Reported by visitors",
+		},
+		issueLine: ({ count, first, last }) => `${count}× · first ${first} · last ${last}`,
+		channel: { form: "Form", chat: "AI chat" },
 	},
 	proposal: {
 		create: "New appointment",
@@ -243,6 +292,8 @@ export const STAFF_EN: StaffCopy = {
 		channel === "email"
 			? `Hello ${name},\n\nA reminder of your appointment on ${when}, ${where}.\n\nSee you soon,\n${appName}`
 			: `Hello ${name}! A reminder of your appointment on ${when}, ${where}. See you soon! ${appName}`,
+	requestReply: ({ appName }) =>
+		`Hello! We received your request and will contact you shortly to arrange an appointment. ${appName}`,
 	paymentText: ({ name, due, appName }) =>
 		`Hello ${name}! A reminder that ${due} is still due. Thank you! ${appName}`,
 	absenceText: ({ name, when, appName, newWhere }) =>

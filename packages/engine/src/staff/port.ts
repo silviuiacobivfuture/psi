@@ -1,14 +1,22 @@
 import { z } from "zod";
 import {
+	type ActivityEvent,
+	ActivityEventSchema,
 	type Appointment,
 	AppointmentSchema,
 	type AppointmentStatus,
 	type Attention,
 	AttentionSchema,
+	type Booking,
+	BookingSchema,
+	type Capabilities,
+	CapabilitiesSchema,
 	type ClientHit,
 	ClientHitSchema,
 	type ClientSummary,
 	ClientSummarySchema,
+	type Issue,
+	IssueSchema,
 	type LEAVE_KINDS,
 	type NoteHit,
 	NoteHitSchema,
@@ -219,6 +227,28 @@ export interface StaffPort {
 		startMin: number;
 		durationMin: number;
 	}): Promise<PortResult<ReadonlyArray<ResourceState>>>;
+	/** What happened in a period, from the audit log and the change feed. */
+	activity(query: {
+		from: string;
+		to: string;
+		limit: number;
+	}): Promise<PortResult<ReadonlyArray<ActivityEvent>>>;
+	/** Bookings made in a period, with their source. */
+	bookings(query: {
+		from: string;
+		to: string;
+		limit: number;
+	}): Promise<PortResult<ReadonlyArray<Booking>>>;
+	/** What the person may do here (the service's `/v1/apps/:app/me`): tools beyond it are not offered at all. */
+	capabilities(): Promise<PortResult<Capabilities>>;
+	/**
+	 * Any route of the scheduling service by its id (`clients.archive`), with the person's own
+	 * token: the generated parity tools call this. The service's authorization answers.
+	 */
+	callRoute(call: {
+		routeId: string;
+		input: Record<string, unknown>;
+	}): Promise<PortResult<unknown>>;
 	/** Clients with a balance due or a package running out, with how many sessions they have booked in the period. */
 	attention(query: {
 		from: string;
@@ -252,4 +282,18 @@ export const PORT_VALUES = {
 	stats: StatsSchema,
 	roomsAt: z.array(ResourceStateSchema).readonly(),
 	attention: z.array(AttentionSchema).readonly(),
+	activity: z.array(ActivityEventSchema).readonly(),
+	bookings: z.array(BookingSchema).readonly(),
+	capabilities: CapabilitiesSchema,
+	route: z.unknown(),
 } as const;
+
+/**
+ * Visitor-facing trouble on the sites, from the estate's log store. The console server holds the
+ * read token behind this port; the browser never sees it. Aggregates only.
+ */
+export interface IssuesPort {
+	issues(query: { from: string; to: string }): Promise<PortResult<ReadonlyArray<Issue>>>;
+}
+
+export const ISSUES_VALUE = z.array(IssueSchema).readonly();

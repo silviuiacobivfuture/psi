@@ -20,7 +20,9 @@ describe("the evaluation set", () => {
 	it("only names tools that exist, and every tool is exercised by at least one scenario", () => {
 		const used = new Set(SCENARIOS.flatMap((s) => [...s.script.map((m) => m.tool), ...s.mustCall]));
 		for (const key of used) expect(Object.keys(STAFF_TOOLS)).toContain(key);
-		const unused = Object.keys(STAFF_TOOLS).filter((k) => !used.has(k as keyof typeof STAFF_TOOLS));
+		const unused = Object.keys(STAFF_TOOLS).filter(
+			(k) => k !== "api" && !used.has(k as keyof typeof STAFF_TOOLS),
+		);
 		expect(unused).toEqual([]);
 	});
 

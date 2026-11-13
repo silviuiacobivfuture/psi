@@ -31,11 +31,17 @@ export const STAFF_TOOLS = {
 	paymentReminders: "staffPaymentReminders",
 	copyWeek: "staffCopyWeek",
 	absence: "staffAbsence",
+	activity: "staffActivity",
+	newBookings: "staffNewBookings",
+	siteIssues: "staffSiteIssues",
+	requestReply: "staffRequestReply",
+	api: "staffApi",
 } as const satisfies Readonly<Record<ToolKey, string>>;
 
 export const STAFF_TOOL_IDS: ReadonlyArray<string> = Object.values(STAFF_TOOLS);
 
 /** The tool key behind a tool id, for the chip's words. */
 export function toolKeyOf(id: string): ToolKey | undefined {
+	if (id.startsWith(`${STAFF_TOOLS.api}`) && id.length > STAFF_TOOLS.api.length) return "api";
 	return (Object.keys(STAFF_TOOLS) as ToolKey[]).find((key) => STAFF_TOOLS[key] === id);
 }

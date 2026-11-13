@@ -1,5 +1,6 @@
 import { openSession } from "../open";
-import type { StaffPort } from "../port";
+import type { RouteLike } from "../parity/routes";
+import type { IssuesPort, StaffPort } from "../port";
 import { createMemoryProposalStore, type ProposalStore } from "../proposals";
 import type { StaffSession } from "../session";
 import { FAKE_NOW } from "./fake-port";
@@ -11,6 +12,8 @@ export function openTestSession(
 		proposals?: ProposalStore;
 		page?: StaffSession["page"];
 		now?: () => number;
+		routes?: ReadonlyArray<RouteLike>;
+		issues?: IssuesPort;
 	} = {},
 ): Promise<StaffSession | undefined> {
 	return openSession(
@@ -20,6 +23,8 @@ export function openTestSession(
 			now: options.now ?? (() => FAKE_NOW),
 			proposals: options.proposals ?? createMemoryProposalStore(),
 			links: undefined,
+			routes: options.routes ?? [],
+			issues: options.issues,
 		},
 		{ page: options.page },
 	);

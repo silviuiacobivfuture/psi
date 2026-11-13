@@ -107,6 +107,7 @@ function kindToMethod(kind: Step["kind"]): string {
 		request_leave: "requestLeave",
 		handle_request: "markRequestHandled",
 		send_reminders: "sendReminder",
+		route_call: "callRoute",
 	}[kind];
 }
 
@@ -674,6 +675,56 @@ export const SCENARIOS: ReadonlyArray<Scenario> = [
 		script: [{ tool: "roomsAt", input: { date: "2026-11-13", time: "11:00" } }],
 		mustCall: ["roomsAt"],
 		expect: { proposals: 0 },
+	},
+	// ---- what happened, provenance, site trouble (owner)
+	{
+		id: "what-happened-today",
+		by: "owner",
+		lang: "ro",
+		user: "ce s-a întâmplat azi?",
+		script: [
+			{ tool: "activity", input: { period: "today" } },
+			{ tool: "newBookings", input: { period: "today" } },
+		],
+		mustCall: ["activity"],
+		expect: { proposals: 0, cards: ["list"] },
+	},
+	{
+		id: "new-bookings-source",
+		by: "owner",
+		lang: "ro",
+		user: "ce programări noi avem și de unde vin?",
+		script: [{ tool: "newBookings", input: { period: "week" } }],
+		mustCall: ["newBookings"],
+		expect: { proposals: 0, cards: ["list"] },
+	},
+	{
+		id: "request-provenance",
+		by: "owner",
+		lang: "ro",
+		user: "a scris cineva pe site, sau l-a trimis AI-ul?",
+		script: [{ tool: "webRequests", input: { includeHandled: true } }],
+		mustCall: ["webRequests"],
+		expect: { proposals: 0, cards: ["list"] },
+	},
+	{
+		id: "request-reply-draft",
+		by: "reception",
+		lang: "ro",
+		user: "pregătește un răspuns pentru cererea w1",
+		script: [{ tool: "requestReply", input: { requestId: "w1" } }],
+		mustCall: ["requestReply"],
+		mustNotCall: ["markRequestHandled"],
+		expect: { proposals: 0, cards: ["client"] },
+	},
+	{
+		id: "site-issues",
+		by: "owner",
+		lang: "ro",
+		user: "au avut clienții probleme pe site săptămâna asta?",
+		script: [{ tool: "siteIssues", input: { period: "week" } }],
+		mustCall: ["siteIssues"],
+		expect: { proposals: 0, cards: ["list"] },
 	},
 	// ---- refusals and safety
 	{

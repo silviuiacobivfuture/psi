@@ -81,6 +81,7 @@ async function stepCurrent(port: StaffPort, step: Step): Promise<Currency> {
 			return pkg.version === step.expectedVersion ? "current" : "stale";
 		}
 		case "request_leave":
+		case "route_call":
 			return "current";
 		case "handle_request": {
 			const found = read(await port.webRequest(step.id));
@@ -203,6 +204,8 @@ async function performStep(
 					kind: step.leaveKind,
 				}),
 			);
+		case "route_call":
+			return refused(await port.callRoute({ routeId: step.routeId, input: step.input }));
 		case "handle_request":
 			return refused(
 				await port.markRequestHandled({ id: step.id, expectedVersion: step.expectedVersion }),

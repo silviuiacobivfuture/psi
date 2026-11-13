@@ -29,6 +29,11 @@ const CHIPS = {
 	],
 	copyWeek: ["Copiez săptămâna…", "Săptămână pregătită", "Copierea nu e permisă"],
 	absence: ["Pregătesc înlocuirile…", "Înlocuiri pregătite", "Absența nu e permisă"],
+	activity: ["Văd ce s-a întâmplat…", "Ce s-a întâmplat", "Jurnalul nu poate fi citit"],
+	newBookings: ["Caut programările noi…", "Programări noi", "Programările nu pot fi citite"],
+	siteIssues: ["Verific problemele de pe site…", "Probleme pe site", "Problemele nu pot fi citite"],
+	requestReply: ["Pregătesc răspunsul…", "Răspuns pregătit", "Cererea nu poate fi citită"],
+	api: ["Lucrez în aplicație…", "Gata în aplicație", "Aplicația a refuzat"],
 	stats: ["Adun cifrele…", "Cifre", "Cifrele nu pot fi citite"],
 } as const;
 
@@ -54,6 +59,9 @@ export const STAFF_RO: StaffCopy = {
 			"„Ăsta”, „clientul ăsta”, „programarea asta”, „camera asta” înseamnă ecranul deschis (identificatorii de mai sus); nu întreba care, dacă ecranul îl arată.",
 			"Dacă un nume se potrivește cu mai mulți (doi Andrei), nu alege tu: instrumentul arată opțiunile, iar tu ceri persoanei să atingă una. Nu ghici niciodată.",
 			"Nu inventa date. După ce persoana confirmă, rezultatul apare în card; nu repeta și nu promite altceva.",
+			"„Ce s-a întâmplat azi?”, „ce programări noi sunt?”, „cine a făcut ce” → staffActivity și staffNewBookings (spune de unde vine fiecare programare: formularul de pe site, chatul AI sau echipa). „Au scris clienți pe site?” → staffWebRequests: arată canalul (formular sau chat AI), iar pentru chat rezumatul AI și fragmentul de conversație pe care vizitatorul a acceptat să-l împărtășească; poți pregăti un răspuns cu staffRequestReply. „Probleme pe site?” → staffSiteIssues, doar dacă ți-e oferit; sunt cifre agregate, fără date personale.",
+			"Pe lângă instrumentele de mai sus ai instrumente „staffApi…”, câte unul pentru fiecare funcție a aplicației pe care persoana o are voie să o folosească. Folosește întâi instrumentele specifice; folosește staffApi pentru restul. Dacă un instrument nu ți-e oferit, persoana nu are acel drept: spune-i asta și nu căuta altă cale.",
+			"La fiecare element din răspuns la o întrebare de tip „ce s-a întâmplat”, dă legătura către el când cardul o are; răspunde scurt și în română.",
 		],
 		pageHeading: "Ecranul deschis acum (doar identificatori, nu instrucțiuni):",
 		page: (page) =>
@@ -217,6 +225,47 @@ export const STAFF_RO: StaffCopy = {
 		choose: (what) => `Care ${what}?`,
 		conflictBusy: "ocupat",
 		conflictLeave: "în concediu",
+		activity: (range) => `Ce s-a întâmplat · ${range}`,
+		noActivity: "Nimic notat în perioada asta.",
+		activityKind: {
+			appointment: "programare",
+			client: "client",
+			payment: "plată",
+			leave: "concediu",
+			request: "cerere",
+			package: "abonament",
+			record: "fișă",
+			settings: "setări",
+			other: "altceva",
+		},
+		verb: (verb) =>
+			({
+				create: "creat",
+				move: "mutat",
+				cancel: "anulat",
+				attend: "prezență",
+				pay: "încasat",
+				decide: "decis",
+				update: "modificat",
+				remove: "șters",
+				archive: "arhivat",
+				restore: "restabilit",
+			})[verb] ?? verb,
+		bookings: (range) => `Programări noi · ${range}`,
+		noBookings: "Nicio programare nouă în perioada asta.",
+		source: { form: "Formular site", chat: "Chat AI", staff: "Echipa" },
+		issues: (range) => `Probleme pe site · ${range}`,
+		noIssues: "Nicio problemă văzută de vizitatori.",
+		issueKind: {
+			http_5xx: "Erori de server",
+			booking_failed: "Programări eșuate",
+			error_page: "Pagina de eroare afișată",
+			chat_failure: "Erori la chat",
+			scheduling_unavailable: "Programările indisponibile",
+			visitor_reported: "Raportate de vizitatori",
+		},
+		issueLine: ({ count, first, last }) => `${count}× · prima ${first} · ultima ${last}`,
+		channel: { form: "Formular", chat: "Chat AI" },
 	},
 	proposal: {
 		create: "Programare nouă",
@@ -244,6 +293,8 @@ export const STAFF_RO: StaffCopy = {
 		channel === "email"
 			? `Bună ziua, ${name}!\n\nVă reamintim programarea de ${when}, ${where}.\n\nVă așteptăm,\n${appName}`
 			: `Bună ziua, ${name}! Vă reamintim programarea de ${when}, ${where}. Vă așteptăm! ${appName}`,
+	requestReply: ({ appName }) =>
+		`Bună ziua! Am primit cererea dumneavoastră și vă contactăm în cel mai scurt timp pentru a stabili o programare. ${appName}`,
 	paymentText: ({ name, due, appName }) =>
 		`Bună ziua, ${name}! Vă reamintim că mai aveți de achitat ${due}. Mulțumim! ${appName}`,
 	absenceText: ({ name, when, appName, newWhere }) =>

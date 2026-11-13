@@ -2,7 +2,7 @@ import { startFakeOpenRouter } from "../../testing";
 import type { ToolKey } from "../copy";
 import { createStaffEngine } from "../engine";
 import type { StaffCard, StaffEvent } from "../events";
-import { FAKE_NOW, FakeStaffPort } from "../testing";
+import { FAKE_NOW, FakeIssuesPort, FakeStaffPort, OWNER_PERMISSIONS } from "../testing";
 import { STAFF_TOOLS, toolKeyOf } from "../tool-ids";
 import type { Scenario } from "./scenarios";
 
@@ -58,10 +58,12 @@ export async function runScenario(sc: Scenario, mode: EvalMode): Promise<Outcome
 							}
 						: { id: "fake/model" },
 			now: () => FAKE_NOW,
+			issues: new FakeIssuesPort(),
 			timeouts: { idleMs: 60_000, totalMs: 180_000 },
 		});
 		const port = new FakeStaffPort();
 		port.signIn({ locale: sc.lang });
+		if (sc.by !== "reception") port.permissions = OWNER_PERMISSIONS;
 		sc.setup?.(port);
 		const events: Array<StaffEvent> = [];
 		for await (const e of engine.chat(port, {

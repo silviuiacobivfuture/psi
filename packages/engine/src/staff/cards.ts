@@ -190,8 +190,8 @@ export function requestsCard(copy: StaffCopy, requests: ReadonlyArray<WebRequest
 		empty: copy.card.noRequests,
 		rows: requests.map((r) => ({
 			title: `${r.name} · ${r.phone}`,
-			subtitle: `${r.service} — ${r.message}`,
-			badge: r.handled ? copy.card.handled : undefined,
+			subtitle: `${r.service} — ${r.summary ?? r.message}`,
+			badge: r.handled ? copy.card.handled : copy.card.channel[r.channel],
 			tone: r.handled ? "good" : "warn",
 		})),
 	};
