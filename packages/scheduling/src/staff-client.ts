@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { api } from "../convex/_generated/api";
 import type { SchedulingConfig } from "./config";
-import type { Audience, Mode } from "./domain/catalog";
+import type { Mode } from "./domain/catalog";
 import type { ClientInput } from "./domain/clients";
 import type { AppointmentStatus } from "./domain/conflicts";
 import type { DecisionReason } from "./domain/lifecycle";
@@ -41,7 +41,6 @@ import type {
 	NewService,
 	PeriodDay,
 	RoomRequirement,
-	ServiceName,
 	ServicePatch,
 } from "./staff-types";
 import { createTransport, type Transport } from "./transport";

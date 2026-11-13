@@ -41,7 +41,7 @@ describe.skipIf(!backendReady)("erasing a client on the local Convex", () => {
 	const client = (n: number) => ({
 		legacyId: `clients:${n}`,
 		fingerprint: `fp-client-${n}`,
-		name: `Test Client ${String.fromCharCode(64 + n)}`,
+		name: `Erase Client ${String.fromCharCode(64 + n)}`,
 		kind: "adult",
 		phone: `0700 000 00${n}`,
 		consent: { contact: true, reminders: false },
@@ -112,7 +112,7 @@ describe.skipIf(!backendReady)("erasing a client on the local Convex", () => {
 				createdAt: 1,
 				start: Date.UTC(2024, 2, 6, 8),
 				end: Date.UTC(2024, 2, 6, 9),
-				notes: "SENTINEL-VISIT-NOTE",
+				notes: "SENTINEL-ERASE-NOTE",
 			},
 		]);
 		const payload = await encryptField(
@@ -173,8 +173,8 @@ describe.skipIf(!backendReady)("erasing a client on the local Convex", () => {
 		for (const kept of ["clients", "visits", "packages", "practitioners"]) {
 			expect(at(after, kept)).toBe(at(before, kept));
 		}
-		expect(dumpTable("visits")).not.toContain("SENTINEL-VISIT-NOTE");
-		expect(dumpTable("clients")).not.toContain("Test Client C");
+		expect(dumpTable("visits")).not.toContain("SENTINEL-ERASE-NOTE");
+		expect(dumpTable("clients")).not.toContain("Erase Client C");
 		expect(await job()).toEqual({ erased: 0, more: false });
 	});
 

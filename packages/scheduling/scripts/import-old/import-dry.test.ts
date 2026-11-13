@@ -1,49 +1,15 @@
-import { execFile } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-	buildKeyRing,
-	encryptBytes,
-	encryptField,
-	fingerprint,
-	generateDataKeyBytes,
-	generateMasterKeyText,
-	type KeyRing,
-	parseMasterKey,
-	wrapDataKey,
-} from "../../src/crypto";
 import { createDirSource } from "./files";
 import { MAPPING, SENTINELS, syntheticExport } from "./fixture";
 import { formatReport, type Report } from "./report";
 import { runImport } from "./run";
-import type { Encryptor } from "./support";
-
-const _run = promisify(execFile);
-const TENANT = MAPPING.app;
-
-let ring: KeyRing;
-let _enc: Encryptor;
-const dry: Encryptor = {
-	encrypt: async () => ({ keyVersion: 1, iv: "dry", data: "dry" }),
-	fingerprint: async () => "dry",
-	encryptBytes: async (bytes) => ({ keyVersion: 1, iv: "dry", bytes }),
-};
 
 let filesDir = "";
 
-beforeAll(async () => {
-	const master = await parseMasterKey(generateMasterKeyText());
-	ring = await buildKeyRing(master, TENANT, [
-		await wrapDataKey(master, generateDataKeyBytes(), TENANT, 1),
-	]);
-	_enc = {
-		encrypt: (plain, field) => encryptField(ring, plain, `${TENANT}|${field}`),
-		fingerprint: (message) => fingerprint(ring, message),
-		encryptBytes: (bytes, context) => encryptBytes(ring, bytes, `${TENANT}|${context}`),
-	};
+beforeAll(() => {
 	filesDir = mkdtempSync(join(tmpdir(), "import-old-files-"));
 	mkdirSync(join(filesDir, "client-files", "1"), { recursive: true });
 	mkdirSync(join(filesDir, "avize"), { recursive: true });

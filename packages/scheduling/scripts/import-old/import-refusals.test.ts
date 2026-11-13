@@ -29,12 +29,6 @@ const TENANT = MAPPING.app;
 
 let ring: KeyRing;
 let enc: Encryptor;
-const _dry: Encryptor = {
-	encrypt: async () => ({ keyVersion: 1, iv: "dry", data: "dry" }),
-	fingerprint: async () => "dry",
-	encryptBytes: async (bytes) => ({ keyVersion: 1, iv: "dry", bytes }),
-};
-
 let filesDir = "";
 
 beforeAll(async () => {

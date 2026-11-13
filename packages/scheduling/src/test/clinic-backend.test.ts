@@ -372,10 +372,10 @@ describe.skipIf(!backendReady)("the clinic's rows on the local Convex", () => {
 			.filter((line) => line !== "")
 			.map((line) =>
 				z
-					.object({ legacyId: z.string().optional(), practitioner: z.string() })
+					.object({ tenant: z.string(), legacyId: z.string().optional(), practitioner: z.string() })
 					.parse(JSON.parse(line)),
 			)
-			.find((row) => row.legacyId === "clients:1");
+			.find((row) => row.tenant === TENANT && row.legacyId === "clients:1");
 		expect(relation?.practitioner).toBe(practitionerIds["therapists:1"]);
 	});
 
