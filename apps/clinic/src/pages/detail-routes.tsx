@@ -27,8 +27,24 @@ async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
 			? Promise.resolve([])
 			: ctx.port.clientAppointments(ctx.app, appointment.clientId),
 	]);
+	const flag =
+		appointment.clientId === null || !ctx.can.any("blacklist_view", "clients_view")
+			? undefined
+			: await ctx.port
+					.clientFlags(ctx.app, [appointment.clientId])
+					.then((all) => {
+						const f = all[appointment.clientId ?? ""];
+						if (f === undefined) return undefined;
+						return {
+							blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
+							pinned:
+								f.pinned?.category === "clinical" && !ctx.can.group("clinical") ? null : f.pinned,
+						};
+					})
+					.catch(() => undefined);
 	return {
 		appointment,
+		flag,
 		client,
 		columns,
 		service: services.find((s) => s.id === appointment.serviceId),

@@ -108,6 +108,8 @@ export const visitMetaValidator = v.object({
 	group: v.optional(v.string()),
 	service: v.optional(v.string()),
 	cancelReason: v.optional(v.string()),
+	/** The day-before reminder is sent for this visit; absent is yes. */
+	remind: v.optional(v.boolean()),
 });
 
 /** A staff override of a blacklist hit: why, and the authority the API vouches the person has. */

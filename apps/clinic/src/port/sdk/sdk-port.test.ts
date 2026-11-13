@@ -231,19 +231,43 @@ describe("packages", () => {
 		});
 		expect(made).toMatchObject({ name: "Pachet nou", sessions: 5, bonus: 1, totalBani: 90_000 });
 	});
-	it("createPackage: a note is 'în curând' (the service has none), and nothing is written", async () => {
+	it("createPackage: a note is kept and read back", async () => {
+		const port = await as("olga");
+		const made = await port.createPackage("psizone", api.world.ids.c1, {
+			name: "Cu notă",
+			sessions: 5,
+			bonus: 0,
+			totalBani: 90_000,
+			note: "plătește în două rate",
+		});
+		expect(made.note).toBe("plătește în două rate");
+		const [again] = (await port.packages("psizone", api.world.ids.c1)).filter(
+			(p) => p.id === made.id,
+		);
+		expect(again?.note).toBe("plătește în două rate");
+	});
+	it("updatePackage: a note is changed and emptied", async () => {
+		const port = await as("olga");
+		const [pkg] = await port.packages("psizone", api.world.ids.c1);
+		if (!pkg) throw new Error("fixture");
+		const noted = await port.updatePackage("psizone", api.world.ids.c1, pkg.id, { note: "o notă" });
+		expect(noted.note).toBe("o notă");
+		const cleared = await port.updatePackage("psizone", api.world.ids.c1, pkg.id, { note: "" });
+		expect(cleared.note).toBe("");
+	});
+	it("createPackage: a note too long is invalid, and nothing is written", async () => {
 		const port = await as("olga");
 		const before = await api.world.fingerprint();
 		const e = await refusal(() =>
 			port.createPackage("psizone", api.world.ids.c1, {
-				name: "Cu notă",
+				name: "Prea lung",
 				sessions: 5,
 				bonus: 0,
 				totalBani: 90_000,
-				note: "ceva",
+				note: "x".repeat(1001),
 			}),
 		);
-		expect(e.code).toBe("not-available-yet");
+		expect(e.code).toBe("invalid");
 		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("updatePackage: a new total keeps the discount the package already has", async () => {
@@ -304,10 +328,58 @@ describe("packages", () => {
 			api.world.ids.c1,
 			pkg.id,
 			{ date: "2026-11-13", amountBani: 20_000, method: "card" },
-			"Olga",
+			"Someone else",
 		);
 		expect(after.payments).toHaveLength(had + 1);
 		expect(after.payments.map((p) => [p.amountBani, p.method])).toContainEqual([20_000, "card"]);
+		// Who took it is the signed-in person, whatever name the caller passes.
+		const team = (await owner("GET", "/members?limit=500")).json.items as {
+			subject: string;
+			displayName: string;
+		}[];
+		const mine = after.payments.find((p) => p.amountBani === 20_000);
+		expect(mine?.recordedBy).toBe(team.find((m) => m.subject === "olga")?.displayName);
+	});
+});
+
+describe("the floor plan", () => {
+	it("an app with no plan reads an empty one; the owner may draw, reception may not", async () => {
+		const owner = await (await as("olga")).floorPlan("psizone");
+		expect(owner.doc.revision).toBe(0);
+		expect(owner.doc.floors).toHaveLength(1);
+		expect(owner.writable).toBe(true);
+		const reception = await (await as("rita")).floorPlan("psizone");
+		expect(reception.writable).toBe(false);
+		expect(reception.doc.revision).toBe(0);
+	});
+	it("a plan is saved at the next revision and read back; a save from an old revision is stale", async () => {
+		const port = await as("olga");
+		const { doc } = await port.floorPlan("psizone");
+		const saved = await port.saveFloorPlan("psizone", { ...doc, northDeg: 30 });
+		expect(saved).toMatchObject({ ok: true, doc: { revision: doc.revision + 1, northDeg: 30 } });
+		expect((await port.floorPlan("psizone")).doc.northDeg).toBe(30);
+		expect(await port.saveFloorPlan("psizone", { ...doc, northDeg: 99 })).toEqual({
+			ok: false,
+			reason: "stale",
+		});
+		expect((await port.floorPlan("psizone")).doc.northDeg).toBe(30);
+	});
+	it("a plan the service refuses is invalid, and nothing is written", async () => {
+		const port = await as("olga");
+		const { doc } = await port.floorPlan("psizone");
+		const before = await api.world.fingerprint();
+		expect(await port.saveFloorPlan("psizone", { ...doc, width: 10 })).toEqual({
+			ok: false,
+			reason: "invalid",
+		});
+		expect(await api.world.fingerprint()).toBe(before);
+	});
+	it("someone who may not draw is refused, and nothing is written", async () => {
+		const port = await as("rita");
+		const { doc } = await port.floorPlan("psizone");
+		const before = await api.world.fingerprint();
+		expect((await refusal(() => port.saveFloorPlan("psizone", doc))).code).toBe("forbidden");
+		expect(await api.world.fingerprint()).toBe(before);
 	});
 });
 
@@ -336,14 +408,103 @@ describe("what the service cannot do yet is 'în curând', never a crash", () =>
 		expect(e.code).toBe("not-available-yet");
 		expect(await api.world.fingerprint()).toBe(before);
 	});
-	it("changing the client of an appointment is not available, and nothing is written", async () => {
+});
+
+describe("the edits of an appointment, through the adapter", () => {
+	let n = 0;
+	/** A new appointment of its own on a day of its own, made through the port. */
+	const fresh = async (
+		port: Awaited<ReturnType<typeof as>>,
+		extra: Record<string, unknown> = {},
+	) => {
+		const date = `2026-12-${String(1 + ++n).padStart(2, "0")}`;
+		const calendar = await port.calendar("psizone", date, date);
+		const dora = calendar.columns.find((c) => c.name === "Dora Test");
+		const service = calendar.services[0];
+		const clients = calendar.clients;
+		if (!dora || !service || clients.length < 2) throw new Error("fixture");
+		const [made] = await port.createAppointments("psizone", {
+			date,
+			startMin: 600,
+			columnId: dora.id,
+			clientId: api.world.ids.c1,
+			serviceId: service.id,
+			...extra,
+		});
+		if (made === undefined) throw new Error("fixture");
+		return { made, date, service, other: clients.find((c) => c.id !== api.world.ids.c1) };
+	};
+
+	it("moves the appointment to another client", async () => {
 		const port = await as("olga");
+		const { made } = await fresh(port);
+		const moved = await port.updateAppointment("psizone", made.id, { clientId: api.world.ids.c2 });
+		expect(moved.clientId).toBe(api.world.ids.c2);
+		expect((await port.appointment("psizone", made.id))?.clientId).toBe(api.world.ids.c2);
+	});
+
+	it("changes the price and switches the reminder off and on", async () => {
+		const port = await as("olga");
+		const { made } = await fresh(port, { priceBani: 10_000 });
+		expect(made).toMatchObject({ priceBani: 10_000, remind: true });
+		const edited = await port.updateAppointment("psizone", made.id, {
+			priceBani: 7_000,
+			remind: false,
+		});
+		expect(edited).toMatchObject({ priceBani: 7_000, remind: false });
+		expect((await port.updateAppointment("psizone", made.id, { remind: true })).remind).toBe(true);
+	});
+
+	it("is made without its reminder, or requested, then confirmed; a requested one shows as requested", async () => {
+		const port = await as("olga");
+		const { made } = await fresh(port, { status: "requested", remind: false });
+		expect(made).toMatchObject({ status: "requested", remind: false });
+		const confirmed = await port.updateAppointment("psizone", made.id, { status: "confirmed" });
+		expect(confirmed.status).toBe("confirmed");
+		expect((await port.appointment("psizone", made.id))?.status).toBe("confirmed");
+	});
+
+	it("changes the service, and takes an appointment out of its package", async () => {
+		const port = await as("olga");
+		const { made, service } = await fresh(port, { packageId: api.world.ids.pkg });
+		expect(made.packageId).toBe(api.world.ids.pkg);
+		const out = await port.updateAppointment("psizone", made.id, { packageId: null });
+		expect(out.packageId).toBeNull();
+		const same = await port.updateAppointment("psizone", made.id, { serviceId: service.id });
+		expect(same.serviceId).toBe(service.id);
+	});
+
+	it("a confirmed appointment cannot go back to waiting, and nothing is written", async () => {
+		const port = await as("olga");
+		const { made } = await fresh(port);
 		const before = await api.world.fingerprint();
-		const e = await refusal(() =>
-			port.updateAppointment("psizone", api.world.ids.a1, { clientId: api.world.ids.c2 }),
-		);
-		expect(e.code).toBe("not-available-yet");
+		expect(
+			(await refusal(() => port.updateAppointment("psizone", made.id, { status: "requested" })))
+				.code,
+		).toBe("invalid");
 		expect(await api.world.fingerprint()).toBe(before);
+	});
+
+	it("a client that is not there, and another client's package, are refused and nothing is written", async () => {
+		const port = await as("olga");
+		const { made } = await fresh(port, { packageId: api.world.ids.pkg });
+		const before = await api.world.fingerprint();
+		expect(
+			(
+				await refusal(() =>
+					port.updateAppointment("psizone", made.id, { clientId: "nosuchone000" }),
+				)
+			).code,
+		).toBe("invalid");
+		expect(
+			(
+				await refusal(() =>
+					port.updateAppointment("psizone", made.id, { clientId: api.world.ids.c2 }),
+				)
+			).code,
+		).toBe("invalid");
+		expect(await api.world.fingerprint()).toBe(before);
+		expect((await port.appointment("psizone", made.id))?.clientId).toBe(api.world.ids.c1);
 	});
 });
 

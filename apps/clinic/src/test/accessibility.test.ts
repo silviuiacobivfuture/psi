@@ -16,8 +16,12 @@ const SCREENS = [
 	"/reminders?date=2026-11-16",
 	"/roster",
 	"/settings/roles?role=reception",
-	"/settings/notifications",
-	"/audit",
+	"/me/settings",
+	"/settings",
+	"/settings/profile",
+	"/settings/blacklist",
+	"/settings/builder",
+	"/settings/audit",
 	"/more",
 ] as const;
 

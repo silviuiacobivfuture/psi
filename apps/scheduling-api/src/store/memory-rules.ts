@@ -1,3 +1,5 @@
+import { currentActor, currentOverride } from "./actor";
+import type { MemoryBlacklist } from "./memory-blacklist";
 import {
 	type AppointmentRow,
 	type Collection,
@@ -11,11 +13,15 @@ import {
 
 type Collections = { [K in CollectionName]: Collection<Rows[K]> };
 
+/** The blacklist's answer for a staff booking (see memory-blacklist.ts): a stop, or nothing. */
+export type StaffGate = MemoryBlacklist["staff"];
+
 /**
  * The rules the Convex wrappers enforce INSIDE the store, applied to the in-memory collections so the two adapters answer
  * the same (the contract suite runs on both): what refers to what, what may not overlap, what is never edited, and the
  * rules about money that make an appointment's amount paid the sum of its payments:
- * - an appointment's money is derived (price from the appointment, paid from its payments): `replace` cannot write it;
+ * - an appointment's money is derived (price from the appointment, paid from its payments): `replace` may change the
+ *   price and never the amount paid;
  * - an appointment is soft-deleted by `remove` (the erasure job is what removes it for good), and a deleted one changes
  *   only by being restored;
  * - a cancelled appointment does not come back, does not move, and a person, room or device is never in two live
@@ -49,7 +55,7 @@ const placeChanged = (a: AppointmentRow, b: AppointmentRow): boolean =>
 	a.groupId !== b.groupId ||
 	a.kind !== b.kind;
 
-export function applyVisitRules(c: Collections): void {
+export function applyVisitRules(c: Collections, gate: StaffGate): void {
 	const exists = async <R extends { id: string; app: string }>(
 		col: Collection<R>,
 		app: string,
@@ -85,43 +91,87 @@ export function applyVisitRules(c: Collections): void {
 		}
 	}
 
+	/** The blacklist's gate for a staff booking or move: the override in force (if any) is the request's. */
+	async function stopOnBlacklist(app: string, clientId: string | undefined): Promise<void> {
+		const held = currentOverride();
+		const stop = await gate(
+			app,
+			clientId,
+			held === undefined ? undefined : { ...held, actor: currentActor() },
+			undefined,
+		);
+		if (stop !== undefined) throw new StoreRefused(stop.reason, stop.detail);
+	}
+	/** After the booking is made: an override that let it through is recorded for the visit. */
+	async function noteOverride(
+		app: string,
+		clientId: string | undefined,
+		visit: string,
+	): Promise<void> {
+		const held = currentOverride();
+		if (held !== undefined) await gate(app, clientId, { ...held, actor: currentActor() }, visit);
+	}
+
 	const appointments = c.appointments;
 	const insertAppointment = appointments.insert.bind(appointments);
 	const replaceAppointment = appointments.replace.bind(appointments);
 	appointments.insert = async (row) => {
 		await checkRefs(row);
+		await stopOnBlacklist(row.app, row.clientId);
 		if (row.status !== "cancelled" && row.deletedAt === undefined) await checkFree(row);
 		const { money: given, ...rest } = row;
-		return insertAppointment({
+		const saved = await insertAppointment({
 			...rest,
 			...(given === undefined ? {} : { money: money(given.priceCents, given.paidCents) }),
 			...(row.deletedAt === undefined ? {} : { purgeAt: row.deletedAt + RECOVERY_MS }),
 		});
+		await noteOverride(row.app, row.clientId, row.id);
+		return saved;
 	};
 	appointments.replace = async (row) => {
 		const cur = await appointments.get(row.app, row.id);
 		if (cur === undefined) return false;
 		if (cur.deletedAt !== undefined && row.deletedAt !== undefined)
 			throw new StoreRefused("not_found");
-		if (row.clientId !== cur.clientId) throw new StoreRefused("invalid");
-		for (const field of ["note", "packageId", "roomId", "deviceId"] as const)
+		// A client is moved to another, never added to a block or taken off a session.
+		if ((row.clientId === undefined) !== (cur.clientId === undefined))
+			throw new StoreRefused("invalid");
+		for (const field of ["note", "roomId", "deviceId"] as const)
 			if (cur[field] !== undefined && row[field] === undefined) throw new StoreRefused("invalid");
 		if (cur.status === "cancelled" && row.status !== "cancelled")
 			throw new StoreRefused("not_allowed");
+		// What the client confirmed does not go back to waiting for them.
+		if (row.status === "requested" && cur.status !== "requested")
+			throw new StoreRefused("not_allowed");
+		const price = row.money?.priceCents;
+		if (price !== undefined && (!Number.isInteger(price) || price < 0))
+			throw new StoreRefused("negative_money");
+		const clientMoved = row.clientId !== cur.clientId;
 		const moved = placeChanged(cur, row);
-		if (moved) {
-			if (cur.status === "cancelled") throw new StoreRefused("not_allowed");
+		if (moved && cur.status === "cancelled") throw new StoreRefused("not_allowed");
+		if (moved || clientMoved || row.note !== cur.note || row.packageId !== cur.packageId)
 			await checkRefs(row);
-			await checkFree(row);
-		} else if (row.note !== cur.note || row.packageId !== cur.packageId) {
-			await checkRefs(row);
+		if (row.packageId !== undefined && (clientMoved || row.packageId !== cur.packageId)) {
+			const pack = await c.packages.get(row.app, row.packageId);
+			if (pack !== undefined && pack.clientId !== row.clientId)
+				throw new StoreRefused("package_not_clients");
 		}
-		const { deletedAt, purgeAt: _purge, money: _money, ...rest } = row;
-		return replaceAppointment({
+		if (moved || clientMoved) await stopOnBlacklist(row.app, row.clientId);
+		if (moved) await checkFree(row);
+		// The paid amount is the sum of the payments; the price is the appointment's own and an edit may change it.
+		const { deletedAt, purgeAt: _purge, money: given, ...rest } = row;
+		const held = cur.money;
+		const priced =
+			given === undefined || given.priceCents === held?.priceCents
+				? held
+				: money(given.priceCents, held?.paidCents ?? 0);
+		const saved = await replaceAppointment({
 			...rest,
-			...(cur.money === undefined ? {} : { money: cur.money }),
+			...(priced === undefined ? {} : { money: priced }),
 			...(deletedAt === undefined ? {} : { deletedAt, purgeAt: deletedAt + RECOVERY_MS }),
 		});
+		if (moved || clientMoved) await noteOverride(row.app, row.clientId, row.id);
+		return saved;
 	};
 	appointments.remove = async (app, id) => {
 		const cur = await appointments.get(app, id);

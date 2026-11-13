@@ -153,6 +153,7 @@ export function DayGrid({ data, date, locale, today, nowMin }: GridProps): JSX.E
 										key={a.id}
 										appt={a}
 										client={data.clients.find((x) => x.id === a.clientId)}
+										flag={a.clientId === null ? undefined : data.flags?.[a.clientId]}
 										serviceName={svc(a.serviceId)}
 										colour={c.colour}
 										locale={locale}
@@ -226,6 +227,7 @@ export function WeekGrid({
 										key={a.id}
 										appt={a}
 										client={data.clients.find((x) => x.id === a.clientId)}
+										flag={a.clientId === null ? undefined : data.flags?.[a.clientId]}
 										serviceName={svc(a.serviceId)}
 										colour={column.colour}
 										locale={locale}

@@ -24,8 +24,10 @@ export {
 	blacklistInputSchema,
 	blacklistMatch,
 	blacklistPatchSchema,
+	CLEARABLE_FIELDS,
 	type GateOutcome,
 	MAX_ACTIVE_ENTRIES,
+	OVERRIDE_AUTHORITIES,
 	type Override,
 	type OverrideAuthority,
 	overrideSchema,
@@ -81,6 +83,7 @@ export {
 	type FeedbackInput,
 	type FeedbackKind,
 	type FeedbackStatus,
+	feedbackContactSchema,
 	feedbackInputSchema,
 	feedbackProblems,
 	nextStatus,
@@ -139,6 +142,15 @@ export {
 } from "./packages";
 export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
+export { PLAN_HEIGHT, PLAN_WIDTH, roomsPlanDocument } from "./rooms-plan";
+export {
+	parseRoomsSeed,
+	ROOM_CATEGORIES,
+	type RoomCategory,
+	type RoomsSeed,
+	roomCategorySchema,
+	roomsSeedSchema,
+} from "./rooms-seed";
 export {
 	type BlockProblem,
 	blockProblem,

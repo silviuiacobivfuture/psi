@@ -20,6 +20,12 @@ export {
 	type OverflowMenuProps,
 } from "./overflow-menu";
 export {
+	CommandPalette,
+	type PaletteItem,
+	type PaletteProps,
+	paletteShortcut,
+} from "./palette";
+export {
 	Banner,
 	type BannerProps,
 	EmptyState,
@@ -68,8 +74,15 @@ export {
 	type ShellUser,
 } from "./shell";
 export {
+	SubNav,
+	type SubNavGroup,
+	type SubNavItem,
+	type SubNavProps,
+} from "./subnav";
+export {
 	ADMIN_THEMES,
 	type AdminTheme,
+	railPreferenceFrom,
 	THEME_BOOT,
 	type ThemePreference,
 	themeFor,

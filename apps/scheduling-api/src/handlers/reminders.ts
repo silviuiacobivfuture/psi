@@ -20,6 +20,13 @@ function localDate(instant: number, timeZone: string): string {
 	}).format(instant);
 }
 
+/**
+ * A client is reminded of an appointment that is live, that they have confirmed (a requested one waits for them), and
+ * whose reminder was not switched off.
+ */
+const remindable = (a: AppointmentRow): boolean =>
+	a.deletedAt === undefined && a.status !== "cancelled" && a.status !== "requested" && a.remind;
+
 async function target(ctx: C): Promise<{
 	appointment: AppointmentRow;
 	client: ClientRow;
@@ -32,7 +39,7 @@ async function target(ctx: C): Promise<{
 		String(ctx.params.appointmentId),
 		"appointment",
 	);
-	if (appointment.clientId === undefined || appointment.status === "cancelled")
+	if (appointment.clientId === undefined || !remindable(appointment))
 		throw fail("conflict", "only a live appointment with a client is reminded");
 	const client = await must(ctx.deps.store.c.clients, ctx.app, appointment.clientId, "client");
 	const app = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
@@ -87,13 +94,7 @@ export async function pendingReminderCount(deps: Deps, app: string, now: number)
 				lt: startOfLocalDay(addDaysKey(date, 1), row.timeZone),
 			},
 		})
-	).filter(
-		(a) =>
-			a.deletedAt === undefined &&
-			a.status !== "cancelled" &&
-			a.clientId !== undefined &&
-			a.kind === "session",
-	);
+	).filter((a) => remindable(a) && a.clientId !== undefined && a.kind === "session");
 	const states = new Map((await deps.store.c.reminders.list(app)).map((r) => [r.id, r.state]));
 	return due.filter((a) => (states.get(a.id) ?? "pending") === "pending").length;
 }
@@ -116,13 +117,7 @@ export const reminderHandlers: HandlersOf<
 				range: { field: "start", gte: from, lt: to },
 			})
 		)
-			.filter(
-				(a) =>
-					a.deletedAt === undefined &&
-					a.status !== "cancelled" &&
-					a.clientId !== undefined &&
-					a.kind === "session",
-			)
+			.filter((a) => remindable(a) && a.clientId !== undefined && a.kind === "session")
 			.sort((a, b) => a.start - b.start);
 		const states = new Map(
 			(await ctx.deps.store.c.reminders.list(ctx.app)).map((r) => [r.id, r.state]),

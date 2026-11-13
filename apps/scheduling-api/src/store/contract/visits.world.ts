@@ -9,6 +9,8 @@ import type { ContractEnv } from "./env";
  * it was.
  */
 export const HOUR = 3_600_000;
+/** Who takes the money in the contract: the store stamps the acting person, so cases run as this one. */
+export const ACTOR = "rita";
 export const BASE = Date.UTC(2030, 5, 3, 8);
 
 export interface World {
@@ -92,6 +94,7 @@ export const draft = (
 	practitionerId: w.dora,
 	clientId: w.c1,
 	end: over.start + HOUR,
+	remind: true,
 	createdAt: Date.now(),
 	updatedAt: Date.now(),
 	...over,
@@ -133,6 +136,7 @@ export const pay = (world: World, over: Partial<PaymentRow>): PaymentRow => ({
 	amountCents: 1_000,
 	method: "cash",
 	paidAt: Date.now(),
+	recordedBy: ACTOR,
 	createdAt: Date.now(),
 	updatedAt: Date.now(),
 	...over,
