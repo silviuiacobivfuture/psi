@@ -1,4 +1,11 @@
-import { encodeSlot, type Mode, type SchedulingClient, type ServiceInfo } from "@psi/scheduling";
+import {
+	type CallbackInput,
+	encodeSlot,
+	type Mode,
+	type SchedulingClient,
+	SchedulingUnavailable,
+	type ServiceInfo,
+} from "@psi/scheduling";
 
 /** A scheduling store double for tests: it answers like the real one, from a list of free times. */
 export const ZONE = "Europe/Bucharest";
@@ -32,8 +39,22 @@ export interface Free {
 	mode: Mode;
 }
 
-export function store(free: Free[], options: { down?: boolean; empty?: boolean } = {}) {
+export interface StoreOptions {
+	down?: boolean;
+	empty?: boolean;
+	/** What the callback table does: stores ("ok", the default), is unreachable, or refuses. */
+	callbacks?: "ok" | "down" | "refused";
+	/** What a hold does: the time is taken (the default), is held, or the store is unreachable. */
+	hold?: "taken" | "ok" | "down";
+	/** What submitting a held time does: refuses (the default) or the store is unreachable. */
+	submit?: "refused" | "down";
+}
+
+export function store(free: Free[], options: StoreOptions = {}) {
 	const searches: unknown[] = [];
+	/** Every callback request that reached the table, as the store would hold it. */
+	const callbacks: CallbackInput[] = [];
+	const released: string[] = [];
 	const client: SchedulingClient = {
 		async services() {
 			if (options.down) throw new Error("unreachable");
@@ -69,10 +90,38 @@ export function store(free: Free[], options: { down?: boolean; empty?: boolean }
 				slots,
 			};
 		},
-		hold: async () => ({ ok: false, reason: "slot_taken" }),
-		submit: async () => ({ ok: false, reason: "not_found" }),
-		release: async () => ({ ok: false, reason: "not_found" }),
+		async hold(input) {
+			if (options.hold === "down") throw new SchedulingUnavailable("the scheduling store failed");
+			if (options.hold !== "ok") return { ok: false, reason: "slot_taken" };
+			return {
+				ok: true,
+				reference: "ABCD2345",
+				holdToken: "h".repeat(24),
+				start: input.start,
+				end: input.start + 3_600_000,
+				mode: input.mode,
+				expiresAt: input.start,
+				practitionerName: "Ana",
+				timeZone: ZONE,
+			};
+		},
+		async submit() {
+			if (options.submit === "down") throw new SchedulingUnavailable("the scheduling store failed");
+			return { ok: false, reason: "not_found" };
+		},
+		async release(input) {
+			released.push(input.reference);
+			return { ok: false, reason: "not_found" };
+		},
+		async requestCallback(input) {
+			if (options.callbacks === "down") {
+				throw new SchedulingUnavailable("Convex at http://store is unreachable: check CONVEX_URL");
+			}
+			if (options.callbacks === "refused") return { ok: false, reason: "unknown_tenant" };
+			callbacks.push(input);
+			return { ok: true, id: `cb${callbacks.length}` };
+		},
 		cancel: async () => ({ ok: false, reason: "not_found" }),
 	};
-	return { client, searches };
+	return { client, searches, callbacks, released };
 }

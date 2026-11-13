@@ -16,6 +16,7 @@ function stub(read: () => Found): SchedulingClient {
 		submit: never,
 		release: never,
 		cancel: never,
+		requestCallback: never,
 	};
 }
 

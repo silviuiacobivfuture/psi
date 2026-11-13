@@ -12,6 +12,8 @@ import type * as account from "../account.js";
 import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
 import type * as calendar from "../calendar.js";
+import type * as callbackSchema from "../callbackSchema.js";
+import type * as callbacks from "../callbacks.js";
 import type * as catalog from "../catalog.js";
 import type * as crons from "../crons.js";
 import type * as expiry from "../expiry.js";
@@ -41,6 +43,8 @@ declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   availability: typeof availability;
   calendar: typeof calendar;
+  callbackSchema: typeof callbackSchema;
+  callbacks: typeof callbacks;
   catalog: typeof catalog;
   crons: typeof crons;
   expiry: typeof expiry;

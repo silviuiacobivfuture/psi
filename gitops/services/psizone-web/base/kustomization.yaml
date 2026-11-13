@@ -6,6 +6,7 @@ resources:
   - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
   - scheduling-externalsecret.yaml
+  - mail-externalsecret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

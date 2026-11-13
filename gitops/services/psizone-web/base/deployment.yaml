@@ -54,6 +54,10 @@ spec:
             # app finds scheduling off (CONVEX_URL set, no key) and keeps its callback form; this
             # never blocks a deploy. After the key first appears, roll the pod (envFrom is read at start).
             - secretRef: { name: psizone-web-scheduling, optional: true }
+            # OPTIONAL by design: the outgoing mail that tells the team of a callback request
+            # (secret/apps/psizone-web/mail). Absent, requests are still stored and the site logs
+            # that nobody was e-mailed; this never blocks a deploy. Roll the pod after it first appears.
+            - secretRef: { name: psizone-web-mail, optional: true }
           env:
             - { name: PORT, value: "3000" }
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth

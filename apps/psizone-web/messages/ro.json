@@ -128,8 +128,6 @@
 	"form_err_for": "Eroare: alege pentru cine e evaluarea.",
 	"form_err_consent": "Eroare: avem nevoie de acordul tău ca să te contactăm.",
 	"form_ok_title": "Mulțumim, {name}.",
-	"form_ok_text": "Cererea ta e completă.",
-	"form_not_connected": "Trimiterea către echipă se activează la lansare; până atunci cererea nu pleacă nicăieri și nu e salvată.",
 	"form_err_slot": "Eroare: ora aleasă tocmai s-a ocupat. Alege alta.",
 	"form_err_hold": "Eroare: ora nu a mai fost păstrată. Alege din nou.",
 	"confirm_title": "Confirmă cererea",

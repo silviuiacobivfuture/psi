@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { callbackRequests } from "./callbackSchema";
 import {
 	audienceValidator,
 	channelValidator,
@@ -193,4 +194,7 @@ export default defineSchema({
 		.index("by_tenant_start", ["tenant", "start"])
 		.index("by_account_start", ["accountHash", "start"])
 		.index("by_updated", ["updatedAt"]),
+
+	// --- Web callback requests (docs/plans/clinic.md slice 0): its own block, convex/callbackSchema.ts.
+	callbackRequests,
 });

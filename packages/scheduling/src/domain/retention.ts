@@ -46,3 +46,27 @@ export function retentionAction(
 	}
 	return "keep";
 }
+
+export type CallbackStatus = "new" | "handled";
+
+/**
+ * What retention does to one callback request at `now`. A callback is a web request like any other
+ * (same `contactDays` and `recordDays`), with one difference: it has no appointment to end, so the
+ * clock starts when the team handled it. An unhandled request keeps its contact: erasing it would
+ * lose the very person the team has not yet called, and the team is told about it until it is.
+ */
+export function callbackRetentionAction(
+	callback: {
+		status: CallbackStatus;
+		createdAt: number;
+		handledAt: number | undefined;
+		hasContact: boolean;
+	},
+	now: number,
+	policy: RetentionPolicy = DEFAULT_RETENTION,
+): RetentionAction {
+	if (now >= callback.createdAt + policy.recordDays * DAY_MS) return "delete";
+	if (callback.status !== "handled" || !callback.hasContact) return "keep";
+	const handledAt = callback.handledAt ?? callback.createdAt;
+	return now >= handledAt + policy.contactDays * DAY_MS ? "erase_contact" : "keep";
+}

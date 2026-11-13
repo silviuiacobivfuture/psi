@@ -33,6 +33,11 @@ if (env.ok) {
 - Business outcomes are results (`{ ok: false, reason: "slot_taken" }`); a transport failure
   (unreachable, too slow, a refused key, a wrong shape) throws `SchedulingUnavailable`, whose
   message names the cause and never a value.
+- **Callback requests** (any app on the store, by `tenant`): `client.requestCallback({ tenant, contact,
+  audience, when, locale, channel, page, consent })` stores one (`{ ok: false, reason: "no_consent" |
+  "invalid" | "unknown_tenant" }` writes nothing); the staff client lists them (`callbacks`) and marks them
+  handled (`markCallbackHandled`). Retention erases the contact 30 days after it was handled and deletes
+  the record after a year (`callbackRetentionAction`).
 - Every public Convex function demands `PSI_SCHEDULING_KEY` and fails closed without it. The
   seed and the crons are internal (admin key only).
 - `CONVEX_URL` unset means scheduling is off; the apps keep their callback forms.

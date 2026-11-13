@@ -30,19 +30,21 @@ export const purgePage = internalMutation({
 	},
 });
 
-/** The daily retention run: erases contacts and deletes records past the policy's limits. */
+/** The daily retention run: erases contacts and deletes records (appointments, then callback requests) past the policy's limits. */
 export const purge = internalAction({
 	args: {},
 	handler: async (ctx): Promise<void> => {
 		const now = Date.now();
-		let cursor: string | null = null;
-		for (let i = 0; i < MAX_PAGES; i += 1) {
-			const result: { done: boolean; cursor: string } = await ctx.runMutation(
-				internal.retention.purgePage,
-				{ now, paginationOpts: { numItems: PAGE, cursor } },
-			);
-			if (result.done) return;
-			cursor = result.cursor;
+		for (const page of [internal.retention.purgePage, internal.callbacks.purgePage]) {
+			let cursor: string | null = null;
+			for (let i = 0; i < MAX_PAGES; i += 1) {
+				const result: { done: boolean; cursor: string } = await ctx.runMutation(page, {
+					now,
+					paginationOpts: { numItems: PAGE, cursor },
+				});
+				if (result.done) break;
+				cursor = result.cursor;
+			}
 		}
 	},
 });
