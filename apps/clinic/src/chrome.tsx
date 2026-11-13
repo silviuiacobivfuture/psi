@@ -114,6 +114,8 @@ export interface PageProps {
 	title: string;
 	children?: Child;
 	overlays?: Child;
+	/** A full-bleed page (the floor plan): no gutter, no page width, the content fills the viewport under the top bar. */
+	canvas?: boolean;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
 }
@@ -126,6 +128,7 @@ export async function Page({
 	children,
 	overlays,
 	wide,
+	canvas,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
 	const o = at(locale);
@@ -207,6 +210,7 @@ export async function Page({
 				labels={labels(locale)}
 				newAppointmentHref={can.write("appointments_create") ? "/calendar?new=1" : undefined}
 				rail={wide === true}
+				canvas={canvas === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
 				choices={

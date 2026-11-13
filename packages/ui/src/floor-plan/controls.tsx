@@ -41,6 +41,9 @@ const ICONS: Readonly<Record<string, string>> = {
 	minus: "M5 12 H19",
 	fit: "M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15",
 	save: "M5 4 H16 L19 7 V20 H5 Z M8 4 V9 H15 V4 M8 20 V14 H16 V20",
+	fullscreen: "M14 4 H20 V10 M20 4 L13 11 M10 20 H4 V14 M4 20 L11 13",
+	panel: "M4 5 H20 V19 H4 Z M14 5 V19",
+	close: "M6 6 L18 18 M18 6 L6 18",
 };
 
 export function Icon({ name }: { name: string }): JSX.Element {

@@ -82,6 +82,8 @@ export interface ShellProps {
 	/** Start with the navigation as an icon rail (the calendar wants the width). */
 	rail?: boolean;
 	prefsAction: string;
+	/** A canvas page: the content is a full-bleed surface under the top bar (see admin-canvas.css). */
+	canvas?: boolean;
 	signOutAction: string;
 	locale: "ro" | "en";
 	themePref: "light" | "dark" | "system";
@@ -322,7 +324,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 	const { labels: l } = p;
 	return (
 		<div
-			class={cx("adm", p.rail === true && "is-collapsed")}
+			class={cx("adm", p.rail === true && "is-collapsed", p.canvas === true && "is-canvas")}
 			data-app={p.app}
 			data-deco={p.deco ? "on" : "off"}
 			data-signals={`{navCollapsed:${p.rail === true},searchOpen:false,q:'',offline:false,fabSmall:false}`}

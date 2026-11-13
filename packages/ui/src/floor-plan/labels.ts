@@ -111,6 +111,9 @@ export const LABEL_KEYS = [
 	"nonBookable",
 	"people",
 	"legend",
+	"fullscreen",
+	"exitFullscreen",
+	"closePanel",
 ] as const;
 export type LabelKey = (typeof LABEL_KEYS)[number];
 export type FloorPlanLabels = Readonly<Record<LabelKey, string>>;
