@@ -164,7 +164,20 @@ describe("a member is bootstrapped through the store, and their tuples follow", 
 	});
 
 	it("refuses what is not <subject>=<role name>", () => {
-		for (const bad of ["", "owner", "=Owner", "owner=", "Owner=Owner", "a=b"])
+		for (const bad of [
+			"",
+			"owner",
+			"=Owner",
+			"owner=",
+			"-owner=Owner",
+			"a=b",
+			`${"x".repeat(201)}=Owner`,
+		])
 			expect(() => parseMemberSpec(bad), bad).toThrow("--member");
+	});
+
+	it("takes a real sign-in subject: Authentik's 64-character hashed id, digits first", () => {
+		const sub = `9${"a1".repeat(31)}f`;
+		expect(() => parseMemberSpec(`${sub}=Owner`)).not.toThrow();
 	});
 });

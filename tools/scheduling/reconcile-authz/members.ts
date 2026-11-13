@@ -9,7 +9,9 @@ export interface MemberSpec {
 	roleName: string;
 }
 
-const SUBJECT = /^[a-z][a-z0-9-]{1,40}$/;
+// The service takes the token's `sub` as the subject (auth/tokens.ts: 1–200 characters). Authentik's hashed user
+// id is 64 hex characters and may start with a digit, so the short-id pattern refused real people.
+const SUBJECT = /^[A-Za-z0-9][A-Za-z0-9._@-]{1,199}$/;
 
 /** `<subject>=<role name>`, e.g. `owner=Owner`. */
 export function parseMemberSpec(text: string): MemberSpec {
