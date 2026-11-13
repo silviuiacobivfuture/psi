@@ -13,6 +13,7 @@ import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
 import type * as calendar from "../calendar.js";
 import type * as catalog from "../catalog.js";
+import type * as clinicErase from "../clinicErase.js";
 import type * as crons from "../crons.js";
 import type * as expiry from "../expiry.js";
 import type * as guard from "../guard.js";
@@ -28,6 +29,10 @@ import type * as staffRequests from "../staffRequests.js";
 import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
+import type * as tables_clinicAccess from "../tables/clinicAccess.js";
+import type * as tables_clinicRecords from "../tables/clinicRecords.js";
+import type * as tables_clinicResources from "../tables/clinicResources.js";
+import type * as tables_clinicVisits from "../tables/clinicVisits.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -42,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   availability: typeof availability;
   calendar: typeof calendar;
   catalog: typeof catalog;
+  clinicErase: typeof clinicErase;
   crons: typeof crons;
   expiry: typeof expiry;
   guard: typeof guard;
@@ -57,6 +63,10 @@ declare const fullApi: ApiFromModules<{
   staffRooms: typeof staffRooms;
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
+  "tables/clinicAccess": typeof tables_clinicAccess;
+  "tables/clinicRecords": typeof tables_clinicRecords;
+  "tables/clinicResources": typeof tables_clinicResources;
+  "tables/clinicVisits": typeof tables_clinicVisits;
   validators: typeof validators;
 }>;
 

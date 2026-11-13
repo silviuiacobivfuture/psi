@@ -1,10 +1,31 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
+	coordinatorAssignments,
+	permissionOverrides,
+	roleMembers,
+	roles,
+	treating,
+} from "./tables/clinicAccess";
+import {
+	appKeys,
+	auditEvents,
+	builderDefs,
+	customFieldDefs,
+	customValues,
+	files,
+	formDefinitions,
+	formResponses,
+} from "./tables/clinicRecords";
+import { devices, groupActivities, staffMembers } from "./tables/clinicResources";
+import { packages, payments, rosterDays, staffBlocks, visits } from "./tables/clinicVisits";
+import {
 	audienceValidator,
 	channelValidator,
+	clientStatusValidator,
 	contactValidator,
 	decisionReasonValidator,
+	encryptedValidator,
 	localeValidator,
 	modeValidator,
 	statusValidator,
@@ -13,8 +34,14 @@ import {
 /**
  * The scheduling store. Every row belongs to one tenant (a brand: psizone, eqsync, hemisync), and
  * every function filters by it. Times are UTC milliseconds; rules and exceptions are wall time
- * (minutes after midnight) in the tenant's zone. No row holds a reason for a visit: an appointment
- * names the service chosen, never why.
+ * (minutes after midnight) in the tenant's zone. No row of the public booking flow holds a reason
+ * for a visit: an appointment names the service chosen, never why.
+ *
+ * A tenant is an APP (docs/plans/clinic.md section 4): `psizone`, `hemisync`. The clinic's tables
+ * (`tables/clinic*.ts`) all carry it and every index starts with it; nothing crosses apps. The
+ * older tables below gained only optional fields, so deployed rows stay valid; their indexes and
+ * the app-less `rules`, `exceptions` and `roomClosures` (reached through a practitioner or room,
+ * which carry the tenant) are unchanged.
  */
 export default defineSchema({
 	tenants: defineTable({
@@ -22,6 +49,16 @@ export default defineSchema({
 		/** IANA zone the tenant's rules are written in: Europe/Bucharest. */
 		timeZone: v.string(),
 		active: v.boolean(),
+		/** The app's name and kind (a clinic, or a club like Hemi-Sync); absent on older rows. */
+		name: v.optional(v.string()),
+		kind: v.optional(v.union(v.literal("clinic"), v.literal("club"))),
+		settings: v.optional(
+			v.object({
+				defaultLocale: localeValidator,
+				currency: v.string(),
+				address: v.optional(v.string()),
+			}),
+		),
 	}).index("by_slug", ["slug"]),
 
 	practitioners: defineTable({
@@ -39,7 +76,25 @@ export default defineSchema({
 		rooms: v.optional(v.array(v.id("rooms"))),
 		/** A Monday: the week holding it is week A for this person's alternating rules. */
 		abAnchor: v.optional(v.string()),
-	}).index("by_tenant_slug", ["tenant", "slug"]),
+		// Clinic fields (all optional): the calendar column's look and the usual working week.
+		shortName: v.optional(v.string()),
+		specialty: v.optional(v.string()),
+		color: v.optional(v.string()),
+		background: v.optional(v.string()),
+		sortOrder: v.optional(v.number()),
+		/** ISO weekdays (Monday 1) and hours the person usually works. */
+		workDays: v.optional(v.array(v.number())),
+		workStartHour: v.optional(v.number()),
+		workEndHour: v.optional(v.number()),
+		/** The sign-in subject, for the `self` scope. */
+		staffSubject: v.optional(v.string()),
+		legacyId: v.optional(v.string()),
+		fingerprint: v.optional(v.string()),
+		version: v.optional(v.number()),
+	})
+		.index("by_tenant_slug", ["tenant", "slug"])
+		.index("by_tenant_legacy", ["tenant", "legacyId"])
+		.index("by_tenant_subject", ["tenant", "staffSubject"]),
 
 	rooms: defineTable({
 		tenant: v.string(),
@@ -55,7 +110,15 @@ export default defineSchema({
 		active: v.boolean(),
 		updatedBy: v.optional(v.string()),
 		updatedAt: v.optional(v.number()),
-	}).index("by_tenant_slug", ["tenant", "slug"]),
+		color: v.optional(v.string()),
+		background: v.optional(v.string()),
+		sortOrder: v.optional(v.number()),
+		legacyId: v.optional(v.string()),
+		fingerprint: v.optional(v.string()),
+		version: v.optional(v.number()),
+	})
+		.index("by_tenant_slug", ["tenant", "slug"])
+		.index("by_tenant_legacy", ["tenant", "legacyId"]),
 
 	/** A room out of use: maintenance, a private event. Whole date, or part of it in wall time. */
 	roomClosures: defineTable({
@@ -129,7 +192,13 @@ export default defineSchema({
 		phone: v.optional(v.string()),
 		email: v.optional(v.string()),
 		guardian: v.optional(
-			v.object({ name: v.string(), phone: v.optional(v.string()), email: v.optional(v.string()) }),
+			v.object({
+				name: v.string(),
+				phone: v.optional(v.string()),
+				email: v.optional(v.string()),
+				relationship: v.optional(v.string()),
+				occupation: v.optional(v.string()),
+			}),
 		),
 		staffNotes: v.optional(v.string()),
 		consent: v.object({ contact: v.boolean(), reminders: v.boolean() }),
@@ -137,7 +206,31 @@ export default defineSchema({
 		createdBy: v.string(),
 		createdAt: v.number(),
 		updatedAt: v.number(),
-	}).index("by_tenant_name", ["tenant", "name"]),
+		// Clinic fields (all optional). Who treats the client is the `treating` relation, never a
+		// field here, so nothing can move a client by saving it.
+		status: v.optional(clientStatusValidator),
+		/** Archive hides; delete is soft for 30 days. Different things, different fields. */
+		archivedAt: v.optional(v.number()),
+		deletedAt: v.optional(v.number()),
+		/** Set when the client was erased: the row stays only as a content-free tombstone for the ledger. */
+		erasedAt: v.optional(v.number()),
+		gender: v.optional(v.string()),
+		birthDate: v.optional(v.string()),
+		occupation: v.optional(v.string()),
+		referralSource: v.optional(v.string()),
+		location: v.optional(v.string()),
+		firstTherapy: v.optional(v.string()),
+		/** Clinical, encrypted: the reason for coming, the diagnosis, health notes. */
+		mainReasonEnc: v.optional(encryptedValidator),
+		diagnosisEnc: v.optional(encryptedValidator),
+		healthNotesEnc: v.optional(encryptedValidator),
+		legacyId: v.optional(v.string()),
+		fingerprint: v.optional(v.string()),
+		version: v.optional(v.number()),
+	})
+		.index("by_tenant_name", ["tenant", "name"])
+		.index("by_tenant_legacy", ["tenant", "legacyId"])
+		.index("by_tenant_deleted", ["tenant", "deletedAt"]),
 
 	/** What finds a client's duplicates: `p:` phone, `e:` e-mail, `g:` guardian's contact + the child's name. */
 	clientKeys: defineTable({ tenant: v.string(), key: v.string(), client: v.id("clients") })
@@ -193,4 +286,27 @@ export default defineSchema({
 		.index("by_tenant_start", ["tenant", "start"])
 		.index("by_account_start", ["accountHash", "start"])
 		.index("by_updated", ["updatedAt"]),
+
+	// The clinic: every table below carries the app and starts every index with it.
+	devices,
+	groupActivities,
+	staffMembers,
+	visits,
+	packages,
+	payments,
+	rosterDays,
+	staffBlocks,
+	appKeys,
+	formDefinitions,
+	formResponses,
+	customFieldDefs,
+	customValues,
+	builderDefs,
+	files,
+	auditEvents,
+	roles,
+	roleMembers,
+	permissionOverrides,
+	treating,
+	coordinatorAssignments,
 });

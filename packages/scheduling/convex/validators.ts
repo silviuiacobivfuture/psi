@@ -44,3 +44,55 @@ export const serverKeyValidator = v.string();
 
 /** A service's name in both languages, as the team wrote it. */
 export const serviceNameValidator = v.object({ ro: v.string(), en: v.string() });
+
+// The clinic (docs/plans/clinic.md): shared by the clinic tables and the import functions.
+
+/** A stored ciphertext (`src/crypto`): key version, IV and ciphertext, base64. Convex never decrypts. */
+export const encryptedValidator = v.object({
+	keyVersion: v.number(),
+	iv: v.string(),
+	data: v.string(),
+});
+
+export const clientStatusValidator = v.union(
+	v.literal("active"),
+	v.literal("paused"),
+	v.literal("finished"),
+);
+
+export const paymentMethodValidator = v.union(
+	v.literal("cash"),
+	v.literal("card"),
+	v.literal("transfer"),
+);
+
+export const attendanceValidator = v.union(
+	v.literal("pending"),
+	v.literal("attended"),
+	v.literal("absent"),
+);
+
+export const creditTypeValidator = v.union(v.literal("base"), v.literal("bonus"));
+
+export const rosterStatusValidator = v.union(
+	v.literal("works"),
+	v.literal("annual_leave"),
+	v.literal("medical_leave"),
+	v.literal("free"),
+);
+
+/** The column of the calendar a visit sits on: four distinct kinds, never mixed up. */
+export const columnValidator = v.union(
+	v.object({ kind: v.literal("practitioner"), id: v.id("practitioners") }),
+	v.object({ kind: v.literal("device"), id: v.id("devices") }),
+	v.object({ kind: v.literal("room"), id: v.id("rooms") }),
+	v.object({ kind: v.literal("group"), id: v.id("groupActivities") }),
+);
+
+/** A person on the roster: a practitioner or another member of staff (reception, volunteer). */
+export const personValidator = v.union(
+	v.object({ kind: v.literal("practitioner"), id: v.id("practitioners") }),
+	v.object({ kind: v.literal("staff"), id: v.id("staffMembers") }),
+);
+
+export const fileKindValidator = v.union(v.literal("client_file"), v.literal("notice"));

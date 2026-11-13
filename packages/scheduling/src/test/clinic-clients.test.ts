@@ -5,7 +5,7 @@ import {
 	erasureDue,
 	makeAuditEvent,
 	planChange,
-	planClientChange,
+	planTreatingChange,
 	RECOVERY_DAYS,
 	restore,
 	softDelete,
@@ -77,7 +77,6 @@ describe("versioned changes and who may move a client", () => {
 	const before = {
 		version: 3,
 		name: "Test Client A",
-		treatingPractitioner: "p1",
 		phone: "0700 000 001",
 	};
 
@@ -92,14 +91,17 @@ describe("versioned changes and who may move a client", () => {
 	});
 
 	it("a person may reassign the treating practitioner", () => {
-		const result = planClientChange(
-			before,
-			{ treatingPractitioner: "p2" },
-			{ kind: "staff", actor: "sub-1" },
-		);
-		expect(result).toEqual({
+		expect(planTreatingChange(["p1"], ["p2"], { kind: "staff", actor: "sub-1" })).toEqual({
 			ok: true,
-			change: { changed: true, fields: ["treatingPractitioner"], nextVersion: 4 },
+			added: ["p2"],
+			removed: ["p1"],
+		});
+		expect(
+			planTreatingChange(["p1"], ["p1", "p2"], { kind: "staff", actor: "sub-1" }),
+		).toMatchObject({
+			ok: true,
+			added: ["p2"],
+			removed: [],
 		});
 	});
 
@@ -110,19 +112,27 @@ describe("versioned changes and who may move a client", () => {
 		"retention",
 		"reminder",
 	] as const)("%s never moves a client by itself", (process) => {
-		expect(
-			planClientChange(before, { treatingPractitioner: "p2" }, { kind: "system", process }),
-		).toEqual({ ok: false, reason: "implicit_practitioner_change" });
+		expect(planTreatingChange(["p1"], ["p2"], { kind: "system", process })).toEqual({
+			ok: false,
+			reason: "implicit_practitioner_change",
+		});
+		expect(planTreatingChange(["p1"], [], { kind: "system", process })).toMatchObject({
+			ok: false,
+		});
 	});
 
-	it("a system process may still change other fields, and re-state the same practitioner", () => {
-		expect(
-			planClientChange(
-				before,
-				{ treatingPractitioner: "p1", phone: "0700 000 002" },
-				{ kind: "system", process: "import" },
-			),
-		).toEqual({ ok: true, change: { changed: true, fields: ["phone"], nextVersion: 4 } });
+	it("only the import may seed a client that has nobody yet, and re-stating the same is no change", () => {
+		expect(planTreatingChange([], ["p1"], { kind: "system", process: "import" })).toMatchObject({
+			ok: true,
+		});
+		expect(planTreatingChange([], ["p1"], { kind: "system", process: "visit" })).toMatchObject({
+			ok: false,
+		});
+		expect(planTreatingChange(["p1"], ["p1"], { kind: "system", process: "import" })).toEqual({
+			ok: true,
+			added: [],
+			removed: [],
+		});
 	});
 });
 

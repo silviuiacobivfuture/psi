@@ -27,29 +27,32 @@ export type Origin =
 	| { kind: "staff"; actor: string }
 	| { kind: "system"; process: "visit" | "import" | "series" | "retention" | "reminder" };
 
-export type ClientChangeRefusal = "implicit_practitioner_change";
+export type TreatingRefusal = "implicit_practitioner_change";
 
-export type ClientChange =
-	| { ok: true; change: Change }
-	| { ok: false; reason: ClientChangeRefusal };
+export type TreatingChange =
+	| { ok: true; added: ReadonlyArray<string>; removed: ReadonlyArray<string> }
+	| { ok: false; reason: TreatingRefusal };
 
 /**
- * The reception's #1 complaint: the old app moved clients to other therapists by itself. A
- * client's `treatingPractitioner` changes only when a person asks for exactly that; any system
- * process (saving a visit, a series, an import, a reminder) that would alter it is refused.
+ * The reception's #1 complaint: the old app moved clients to other therapists by itself. Who
+ * treats a client is the `treating` relation, and it changes only when a person asks for exactly
+ * that. Any system process (saving a visit, a series, a reminder, retention) that would alter it
+ * is refused; the one exception is the import seeding a client that has no practitioner yet.
  */
-export function planClientChange(
-	before: Row & { version: number },
-	patch: Row,
+export function planTreatingChange(
+	current: ReadonlyArray<string>,
+	requested: ReadonlyArray<string>,
 	origin: Origin,
-): ClientChange {
-	const change = planChange(before, patch);
+): TreatingChange {
+	const added = requested.filter((id) => !current.includes(id)).sort();
+	const removed = current.filter((id) => !requested.includes(id)).sort();
+	const changes = added.length > 0 || removed.length > 0;
 	if (
 		origin.kind === "system" &&
-		change.changed &&
-		change.fields.includes("treatingPractitioner")
+		changes &&
+		!(origin.process === "import" && current.length === 0)
 	) {
 		return { ok: false, reason: "implicit_practitioner_change" };
 	}
-	return { ok: true, change };
+	return { ok: true, added, removed };
 }

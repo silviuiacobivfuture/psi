@@ -263,7 +263,7 @@ export interface StaffSchedulingClient {
 		client: string;
 		actor: StaffActor;
 	}): Promise<ChangedResult>;
-	/** Erases a client and unlinks their appointments. */
+	/** Erases a client and unlinks their appointments; returns the storage keys of their files to delete. */
 	eraseClient(input: {
 		tenant: string;
 		client: string;

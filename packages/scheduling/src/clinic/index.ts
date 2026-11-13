@@ -25,11 +25,12 @@ export {
 } from "./builder";
 export {
 	type Change,
-	type ClientChange,
 	type Origin,
 	planChange,
-	planClientChange,
+	planTreatingChange,
 	type Row,
+	type TreatingChange,
+	type TreatingRefusal,
 } from "./change";
 export {
 	archive,
