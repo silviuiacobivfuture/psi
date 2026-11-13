@@ -144,6 +144,22 @@ describe("someone signed in who belongs to no app", () => {
 	});
 });
 
+describe("signing out", () => {
+	it("ends the server-side session: the cookie that was valid no longer opens a page", async () => {
+		const c = await startConsole(MEMBER);
+		await c.signIn();
+		const html = await (await c.get("/calendar")).text();
+		expect(html).toContain('action="/auth/sign-out"');
+		const cookie = [...c.browser.cookies(c.origin)].map(([k, v]) => `${k}=${v}`).join("; ");
+		expect((await c.raw("/calendar", { headers: { cookie } })).status).toBe(200);
+		await c.post("/auth/sign-out");
+		const after = await c.raw("/calendar", { headers: { cookie } });
+		expect(after.status).toBe(302);
+		expect(after.headers.get("location")).toContain("/auth/sign-in");
+		await c.close();
+	});
+});
+
 describe("writes from another origin", () => {
 	let member: Console;
 	beforeAll(async () => {

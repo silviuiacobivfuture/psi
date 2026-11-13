@@ -21,6 +21,8 @@ export interface Ctx {
 	memberships: ReadonlyArray<Membership>;
 	port: ClinicPort;
 	pwa: Pwa;
+	/** Where the sign-out form posts (the estate's sign-out, or the development no-op). */
+	signOut: string;
 }
 
 export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): AppSlug | null {

@@ -114,4 +114,32 @@ describe("saving a package", () => {
 		await post("save", signals({ total: "1", paid: "1" }));
 		expect(await c.port.packages("psizone", "c2")).toEqual(other);
 	});
+
+	it("never changes who owns a package: another client's package id is refused and nothing changes", async () => {
+		const before = await c.port.packages("psizone", "c2");
+		const res = await c.post(
+			"/clients/c1/packages/k2/save",
+			signals({ total: "1", paid: "1" }).replace("k1", "k2"),
+			{ "content-type": "application/json", "datastar-request": "true" },
+		);
+		expect(res.status).toBe(404);
+		expect(await c.port.packages("psizone", "c2")).toEqual(before);
+		expect((await c.port.packages("psizone", "c1")).map((p) => p.id)).toEqual(["k1"]);
+	});
+
+	it("does not create a package from an id that does not exist", async () => {
+		const res = await c.post("/clients/c1/packages/zz/save", signals({}).replace("k1", "zz"), {
+			"content-type": "application/json",
+			"datastar-request": "true",
+		});
+		expect(res.status).toBe(404);
+		expect((await c.port.packages("psizone", "c1")).map((p) => p.id)).toEqual(["k1"]);
+		expect(
+			(
+				await c.post("/clients/c1/packages/zz/calc", signals({}).replace("k1", "zz"), {
+					"content-type": "application/json",
+				})
+			).status,
+		).toBe(404);
+	});
 });

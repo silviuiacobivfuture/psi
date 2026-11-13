@@ -105,6 +105,9 @@ export function registerClients(app: Hono<Env>): void {
 	});
 
 	const readPackage = async (c: import("hono").Context<Env>) => {
+		// A package is only ever reached through the client who owns it.
+		const own = await c.var.ctx.port.packages(c.var.ctx.app, c.req.param("id") ?? "");
+		if (!own.some((p) => p.id === c.req.param("pid"))) return "not-found" as const;
 		const sig = await signalsOf(c, PackageSignalsSchema);
 		const row = sig?.pk[c.req.param("pid") ?? ""];
 		if (row === undefined) return null;
@@ -115,6 +118,7 @@ export function registerClients(app: Hono<Env>): void {
 	app.post("/clients/:id/packages/:pid/calc", async (c) => {
 		const ctx = c.var.ctx;
 		const got = await readPackage(c);
+		if (got === "not-found") return c.notFound();
 		const pid = c.req.param("pid");
 		return sse(async (stream) => {
 			if (got === null || got.total === null || got.paid === null) return;
@@ -135,6 +139,7 @@ export function registerClients(app: Hono<Env>): void {
 		const ctx = c.var.ctx;
 		const o = at(ctx.locale);
 		const got = await readPackage(c);
+		if (got === "not-found") return c.notFound();
 		const id = c.req.param("id");
 		const pid = c.req.param("pid");
 		return sse(async (stream) => {

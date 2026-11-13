@@ -93,9 +93,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			memberships,
 			port: deps.port,
 			pwa: deps.pwa,
+			signOut: deps.auth.signOutAction,
 		});
 		await next();
 	});
+
+	if (deps.auth.signOutAction === "/dev-signout")
+		app.post("/dev-signout", (c) => c.redirect("/", 303));
 
 	app.get("/switch/:slug", (c) => {
 		const slug = AppSlugSchema.safeParse(c.req.param("slug"));
@@ -104,9 +108,6 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			setCookie(c, "app", slug.data, { path: "/", maxAge: 31536000, sameSite: "Lax" });
 		return c.redirect("/calendar", 302);
 	});
-	app.post("/sign-out", (c) =>
-		c.redirect(deps.auth.signOutAction === "/dev-signout" ? "/" : "/", 303),
-	);
 
 	app.get("/", (c) => c.redirect("/calendar", 302));
 	app.get("/calendar", async (c) =>

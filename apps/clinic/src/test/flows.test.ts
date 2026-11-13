@@ -48,6 +48,37 @@ describe("reminders", () => {
 	});
 });
 
+describe("ids from the path are looked up before anything is written or echoed", () => {
+	it("a request that does not exist is a 404, not a stream error", async () => {
+		const before = await c.port.audit("psizone");
+		expect((await c.post("/requests/nope/handled", "{}", datastar)).status).toBe(404);
+		expect(await c.port.audit("psizone")).toEqual(before);
+	});
+	it("a reminder for an appointment that does not exist is a 404 and is never echoed into a script", async () => {
+		const evil = encodeURIComponent("x');alert(1);('");
+		const res = await c.post(`/reminders/${evil}/sent`, "{}", datastar);
+		expect(res.status).toBe(404);
+		expect(await res.text()).not.toContain("alert");
+		expect((await c.port.audit("psizone"))[0]?.action).not.toBe("reminder.send");
+	});
+	it("marking a real reminder patches an escaped pill, with no script at all", async () => {
+		const first = (await c.port.reminders("psizone", "2026-11-16"))[0];
+		if (first === undefined) throw new Error("seed has no appointments on 2026-11-16");
+		const body = await (
+			await c.post(`/reminders/${first.appointment.id}/sent`, "{}", datastar)
+		).text();
+		expect(body).toContain(`rem-state-${first.appointment.id}`);
+		expect(body).not.toContain("<script");
+		expect(body).not.toContain("execute");
+	});
+});
+
+describe("the install prompt", () => {
+	it("is in the user menu, in the console's own words", async () => {
+		expect(await (await c.get("/calendar")).text()).toContain("Instalează aplicația");
+	});
+});
+
 describe("new appointment (tap to create)", () => {
 	const create = (over: Record<string, string>) =>
 		c.post(

@@ -7,6 +7,7 @@ import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
+import { PortError } from "../port/port";
 import type { WebRequest } from "../port/schema";
 
 function Request({ r, locale }: { r: WebRequest; locale: Locale }): JSX.Element {
@@ -118,8 +119,13 @@ export function registerRequests(app: Hono<Env>): void {
 		const ctx = c.var.ctx;
 		const o = at(ctx.locale);
 		const id = c.req.param("id");
-		return sse(async (stream) => {
+		try {
 			await ctx.port.markRequestHandled(ctx.app, id);
+		} catch (err) {
+			if (err instanceof PortError && err.code === "not-found") return c.notFound();
+			throw err;
+		}
+		return sse((stream) => {
 			stream.removeElements(`#req-${id}`);
 			stream.patchElements(toastElement(m.toast_request_done({}, o), m.dismiss({}, o)));
 		});

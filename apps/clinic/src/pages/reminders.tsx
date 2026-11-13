@@ -1,4 +1,4 @@
-import { Banner, EmptyState, Icon, toastElement } from "@psi/ui/admin";
+import { Banner, EmptyState, escapeHtml, Icon, toastElement } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Env } from "../app";
@@ -8,7 +8,7 @@ import { addDays, dayLong, hhmm, IsoDay, todayIso } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
-import type { ReminderItem } from "../port/port";
+import { PortError, type ReminderItem } from "../port/port";
 import type { AppSlug } from "../port/schema";
 
 /** `0700 000 001` → `40700000001` (wa.me wants the international number, digits only). */
@@ -78,7 +78,13 @@ function Row({
 					{item.column.name} · {item.client.phone ?? m.reminder_no_contact({}, o)}
 				</span>
 			</div>
-			{item.sent ? <span class="adm-pill adm-pill--attended">{m.reminder_sent({}, o)}</span> : null}
+			{item.sent ? (
+				<span id={`rem-state-${id}`} class="adm-pill adm-pill--attended">
+					{m.reminder_sent({}, o)}
+				</span>
+			) : (
+				<span id={`rem-state-${id}`} />
+			)}
 			<div class="adm-row">
 				{wa === null ? null : (
 					<a
@@ -178,14 +184,18 @@ export function registerReminders(app: Hono<Env>): void {
 	app.post("/reminders/:id/sent", async (c) => {
 		const ctx = c.var.ctx;
 		const id = c.req.param("id");
-		return sse(async (stream) => {
+		try {
 			await ctx.port.markReminderSent(ctx.app, id);
+		} catch (err) {
+			if (err instanceof PortError && err.code === "not-found") return c.notFound();
+			throw err;
+		}
+		return sse((stream) => {
+			const o = at(ctx.locale);
 			stream.patchElements(
-				toastElement(m.reminder_sent({}, at(ctx.locale)), m.dismiss({}, at(ctx.locale))),
+				`<span id="rem-state-${escapeHtml(id)}" class="adm-pill adm-pill--attended">${escapeHtml(m.reminder_sent({}, o))}</span>`,
 			);
-			stream.executeScript(
-				`document.querySelector('#rem-${id}')?.setAttribute('data-sent','true')`,
-			);
+			stream.patchElements(toastElement(m.reminder_sent({}, o), m.dismiss({}, o)));
 		});
 	});
 }

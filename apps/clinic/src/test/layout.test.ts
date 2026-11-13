@@ -227,7 +227,7 @@ describe("motion", () => {
 		const motion = await page.evaluate(() =>
 			[
 				...document.querySelectorAll<HTMLElement>(
-					".adm, .adm-sheet__panel, .adm-btn, .adm-fab, .adm-nav__link, .adm-toast, .adm-skel",
+					".adm, .adm-sheet__panel, .adm-btn, .adm-fab, .adm-nav__link, .adm-toast, .adm-skel, .cal__appt",
 				),
 			].map((e) => {
 				const s = getComputedStyle(e);
@@ -340,6 +340,19 @@ describe("the navigation rail", () => {
 		);
 		expect(await width()).toBeGreaterThan(rail);
 		await done();
+	});
+
+	it("saves the choice only when the toggle is pressed: visiting the calendar never collapses Clients", async () => {
+		const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+		const page = await context.newPage();
+		await page.goto(`${live.url}/calendar?date=2026-11-16`);
+		expect(await page.evaluate(() => localStorage.getItem("adm-rail"))).toBeNull();
+		await page.goto(`${live.url}/clients`);
+		const wide = await page
+			.locator("aside.adm-nav")
+			.evaluate((e) => e.getBoundingClientRect().width);
+		expect(wide).toBeGreaterThan(200);
+		await context.close();
 	});
 
 	it("expanded and collapsed, light and dark, never scrolls sideways", async () => {

@@ -75,6 +75,8 @@ export interface ShellProps {
 	searchAction: string;
 	/** Cross-site-request guard value is not needed: the server checks Origin. */
 	children?: Child;
+	/** Extra entries in the user menu (the install prompt). */
+	extras?: Child;
 	/** Overlays rendered beside the page: sheets. */
 	overlays?: Child;
 }
@@ -187,7 +189,7 @@ function PrefButton({
 function UserMenu(
 	p: Pick<
 		ShellProps,
-		"user" | "labels" | "prefsAction" | "signOutAction" | "locale" | "themePref" | "deco"
+		"user" | "labels" | "prefsAction" | "signOutAction" | "locale" | "themePref" | "deco" | "extras"
 	>,
 ): JSX.Element {
 	const { user, labels: l } = p;
@@ -257,6 +259,7 @@ function UserMenu(
 					</fieldset>
 				</form>
 				<div class="adm-menu__sep" />
+				{p.extras === undefined ? null : <div class="adm-menu__extras">{p.extras}</div>}
 				<form method="post" action={p.signOutAction}>
 					<button class="adm-menu__item" type="submit">
 						<Icon name="logout" />
@@ -280,7 +283,6 @@ export function AdminShell(p: ShellProps): JSX.Element {
 			{...{ "data-on:scroll__window__throttle.100ms": "$fabSmall = window.scrollY > 24" }}
 			data-class:is-collapsed="$navCollapsed"
 			data-init="try { const r = localStorage.getItem('adm-rail'); if (r !== null) $navCollapsed = r === 'true' } catch (e) {}"
-			data-effect="try { localStorage.setItem('adm-rail', String($navCollapsed)) } catch (e) {}"
 			data-class:is-offline="$offline"
 			data-on:online__window="$offline = false"
 			data-on:offline__window="$offline = true"
@@ -308,7 +310,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						class="adm-rail-toggle"
 						aria-label={l.collapse}
 						data-attr:aria-pressed="$navCollapsed"
-						data-on:click="$navCollapsed = !$navCollapsed"
+						data-on:click="$navCollapsed = !$navCollapsed; try { localStorage.setItem('adm-rail', String($navCollapsed)) } catch (e) {}"
 					>
 						<span data-show="!$navCollapsed">
 							<Icon name="chevron-left" />
@@ -365,6 +367,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						locale={p.locale}
 						themePref={p.themePref}
 						deco={p.deco}
+						extras={p.extras}
 					/>
 				</header>
 				<div class="adm-banner adm-banner--offline adm-offline-flag adm-noprint" role="status">

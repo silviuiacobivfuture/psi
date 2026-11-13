@@ -182,9 +182,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async savePackage(app, pkg: Package) {
 			guard("savePackage");
 			const d = data(app);
-			const i = d.packages.findIndex((p) => p.id === pkg.id);
-			if (i >= 0) d.packages[i] = pkg;
-			else d.packages.push(pkg);
+			const i = d.packages.findIndex((p) => p.id === pkg.id && p.clientId === pkg.clientId);
+			if (i < 0) throw new PortError("not-found", pkg.id);
+			d.packages[i] = pkg;
 			log(d, "console", "package.save", pkg.id);
 			return pkg;
 		},
@@ -226,6 +226,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async markReminderSent(app, appointmentId) {
 			guard("markReminderSent");
 			const d = data(app);
+			if (!d.appointments.some((a) => a.id === appointmentId))
+				throw new PortError("not-found", appointmentId);
 			d.sentReminders.add(appointmentId);
 			log(d, "console", "reminder.send", appointmentId);
 		},

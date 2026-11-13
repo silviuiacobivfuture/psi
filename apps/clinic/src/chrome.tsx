@@ -121,7 +121,8 @@ export async function Page({
 				newAppointmentHref="/calendar?new=1"
 				rail={wide === true}
 				prefsAction="/prefs"
-				signOutAction="/sign-out"
+				signOutAction={ctx.signOut}
+				extras={ctx.pwa.tools(locale)}
 				locale={locale}
 				themePref={ctx.pref}
 				deco={ctx.deco}
