@@ -58,7 +58,6 @@ export interface TriggerBody {
 export interface NovuHttp {
 	trigger(body: TriggerBody, idempotencyKey: string): Promise<{ status: string }>;
 	upsertSubscriber(fields: SubscriberFields): Promise<void>;
-	ensureTopic(key: string, name: string): Promise<void>;
 	addToTopic(key: string, subscriberIds: ReadonlyArray<string>): Promise<void>;
 	removeFromTopic(key: string, subscriberIds: ReadonlyArray<string>): Promise<void>;
 	/** Replaces the push device tokens of a subscriber for one Push Webhook integration. */
@@ -69,7 +68,7 @@ export interface NovuHttp {
 	): Promise<void>;
 }
 
-/** The slice of Novu's REST API (/v1) the estate's apps use, with a deadline on every call. */
+/** The slice of Novu's REST API (v1 trigger, v2 subscribers and topics, as @seb/notificari uses them) the estate's apps use, with a deadline on every call. */
 export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 	const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 	const base = options.apiUrl.replace(/\/+$/, "").replace(/\/v1$/, "");
@@ -82,7 +81,7 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 	): Promise<Response> {
 		let res: Response;
 		try {
-			res = await doFetch(`${base}/v1${path}`, {
+			res = await doFetch(`${base}${path}`, {
 				method,
 				headers: {
 					"content-type": "application/json",
@@ -115,7 +114,7 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 					: { subscriberId: body.to.subscriberId, ...body.to.fields };
 			const res = await call(
 				"POST",
-				"/events/trigger",
+				"/v1/events/trigger",
 				{
 					name: body.workflow,
 					to,
@@ -132,22 +131,19 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 			return { status: parsed.data.data.status };
 		},
 		async upsertSubscriber(fields) {
-			check(await call("POST", "/subscribers", fields));
-		},
-		async ensureTopic(key, name) {
-			check(await call("POST", "/topics", { key, name }), [409]);
+			check(await call("POST", "/v2/subscribers", fields));
 		},
 		async addToTopic(key, ids) {
 			if (ids.length > 0)
 				check(
-					await call("POST", `/topics/${encodeURIComponent(key)}/subscribers`, {
-						subscribers: ids,
+					await call("POST", `/v2/topics/${encodeURIComponent(key)}/subscriptions`, {
+						subscriberIds: ids,
 					}),
 				);
 		},
 		async setPushTokens(subscriberId, integrationIdentifier, tokens) {
 			check(
-				await call("PUT", `/subscribers/${encodeURIComponent(subscriberId)}/credentials`, {
+				await call("PUT", `/v1/subscribers/${encodeURIComponent(subscriberId)}/credentials`, {
 					providerId: "push-webhook",
 					integrationIdentifier,
 					credentials: { deviceTokens: [...tokens] },
@@ -157,8 +153,8 @@ export function createNovuHttp(options: NovuHttpOptions): NovuHttp {
 		async removeFromTopic(key, ids) {
 			if (ids.length > 0)
 				check(
-					await call("POST", `/topics/${encodeURIComponent(key)}/subscribers/removal`, {
-						subscribers: ids,
+					await call("DELETE", `/v2/topics/${encodeURIComponent(key)}/subscriptions`, {
+						subscriberIds: ids,
 					}),
 				);
 		},

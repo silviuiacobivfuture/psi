@@ -384,7 +384,7 @@ describe("subscribers and topics", () => {
 	it("upserts a client with email, phone and locale under its app-scoped id", async () => {
 		await build().upsertSubscriber("psizone", client);
 		const r = novu.requests[0];
-		expect(r?.path).toBe("/v1/subscribers");
+		expect(r?.path).toBe("/v2/subscribers");
 		expect(r?.body).toEqual({
 			subscriberId: "psizone:client:cli_1",
 			email: "ana.popescu@example.test",
@@ -393,15 +393,20 @@ describe("subscribers and topics", () => {
 			locale: "ro",
 		});
 	});
-	it("creates a team topic (a 409 means it exists) and moves members in and out", async () => {
-		novu.script = (r) => (r.path === "/v1/topics" ? { status: 409 } : undefined);
+	it("moves members in and out of an app team's v2 topic subscriptions, skipping empty lists", async () => {
 		await build().setTeam("psizone", "reception", ["u1", "u2"], ["u3"]);
-		expect(novu.requests.map((r) => r.path)).toEqual([
-			"/v1/topics",
-			"/v1/topics/psizone%3Areception/subscribers",
-			"/v1/topics/psizone%3Areception/subscribers/removal",
+		expect(novu.requests.map((r) => `${r.method} ${r.path}`)).toEqual([
+			"POST /v2/topics/psizone%3Areception/subscriptions",
+			"DELETE /v2/topics/psizone%3Areception/subscriptions",
 		]);
-		expect((novu.requests[1]?.body as { subscribers: string[] }).subscribers).toEqual(["u1", "u2"]);
+		expect((novu.requests[0]?.body as { subscriberIds: string[] }).subscriberIds).toEqual([
+			"u1",
+			"u2",
+		]);
+		expect((novu.requests[1]?.body as { subscriberIds: string[] }).subscriberIds).toEqual(["u3"]);
+		novu.requests.length = 0;
+		await build().setTeam("psizone", "owners", [], []);
+		expect(novu.requests).toHaveLength(0);
 	});
 	it("a refused upsert reports to its caller", async () => {
 		novu.script = () => ({ status: 401 });
