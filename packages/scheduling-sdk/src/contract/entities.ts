@@ -260,6 +260,7 @@ export const AppointmentCreate = z.object({
 	priceCents: Money.optional(),
 });
 export const AppointmentPatch = z.object({
+	packageId: Id.optional(),
 	practitionerId: Id.optional(),
 	roomId: Id.optional(),
 	deviceId: Id.optional(),
