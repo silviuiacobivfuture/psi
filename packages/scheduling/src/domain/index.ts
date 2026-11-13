@@ -45,6 +45,16 @@ export {
 	contactProblem,
 } from "./contact";
 export {
+	AgeSchema,
+	DetailsSchema,
+	EmailSchema,
+	emailSuggestion,
+	FIELD_LIMITS,
+	NameSchema,
+	normalisePhone,
+	PhoneSchema,
+} from "./fields";
+export {
 	type AppointmentEvent,
 	DECISION_REASONS,
 	type DecisionReason,

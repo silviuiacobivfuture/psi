@@ -37,6 +37,7 @@ export function guideLabels(
 	return {
 		booking: chatBookingLabels({
 			env: bookingEnv(locale),
+			envOf: bookingEnv,
 			picker: opts.picker ?? sitePicker,
 			inChat,
 			...(opts.prefill === undefined ? {} : { prefill: opts.prefill }),

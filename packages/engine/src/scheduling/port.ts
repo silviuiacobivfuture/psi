@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 /**
- * What the engine needs from a scheduling store, and nothing more. There is deliberately no
- * method that holds a slot or books one: the tools can find times and propose one, and cancel
- * with the code a person holds. Creating a request is the app's, from a form the person submits
- * (see `tools.ts`). `@psi/scheduling`'s client satisfies this port.
+ * What the engine needs from a scheduling store. The tools find times, check one is still free and
+ * cancel with the code a person holds. Booking itself is `hold` then `submit`, and they are the
+ * engine's own steps, never a model's: they run only after the visitor confirmed a summary of
+ * everything the form asks (see `booking-submit.ts`). A port without them cannot book in the chat;
+ * the visitor then finishes in the booking form. `@psi/scheduling`'s client satisfies this port.
  */
 
 export const SchedulingModeSchema = z.enum(["onsite", "online"]);
@@ -47,6 +48,44 @@ export const SchedulingCancelSchema = z.discriminatedUnion("ok", [
 ]);
 export type SchedulingCancel = z.infer<typeof SchedulingCancelSchema>;
 
+/** The contact of a request, as the store takes it. Every value has been through the form's rules. */
+export const SchedulingContactSchema = z
+	.object({
+		name: z.string(),
+		email: z.string(),
+		phone: z.string(),
+		age: z.number().int(),
+		details: z.string(),
+	})
+	.strict();
+export type SchedulingContact = z.infer<typeof SchedulingContactSchema>;
+
+export const SchedulingHoldSchema = z.discriminatedUnion("ok", [
+	z.object({
+		ok: z.literal(true),
+		reference: z.string().min(1),
+		holdToken: z.string().min(1),
+		start: z.number().int().nonnegative(),
+		practitionerName: z.string(),
+		timeZone: z.string(),
+	}),
+	z.object({ ok: z.literal(false), reason: z.string() }),
+]);
+export type SchedulingHold = z.infer<typeof SchedulingHoldSchema>;
+
+export const SchedulingSubmitSchema = z.discriminatedUnion("ok", [
+	z.object({
+		ok: z.literal(true),
+		reference: z.string().min(1),
+		cancelCode: z.string().min(1),
+		start: z.number().int().nonnegative(),
+		timeZone: z.string(),
+		mode: SchedulingModeSchema,
+	}),
+	z.object({ ok: z.literal(false), reason: z.string() }),
+]);
+export type SchedulingSubmit = z.infer<typeof SchedulingSubmitSchema>;
+
 /** A service the store offers a tenant today: its key, and its name in both languages when it has one. */
 export interface ServiceEntry {
 	slug: string;
@@ -61,10 +100,29 @@ export interface SchedulingPort {
 	 */
 	catalogue?(tenant: string): Promise<ReadonlyArray<ServiceEntry>>;
 	findSlots(search: SchedulingSearch): Promise<SchedulingSlots>;
+	/**
+	 * Keeps a free time (named by the `id` `findSlots` gave) for a few minutes, with no personal
+	 * data. Called right before `submit`, never earlier.
+	 */
+	hold?(input: {
+		tenant: string;
+		service: string;
+		slotId: string;
+		locale: "ro" | "en";
+	}): Promise<SchedulingHold>;
+	/** Turns a hold into a request with the contact; the cancel code comes back once. */
+	submit?(input: {
+		reference: string;
+		holdToken: string;
+		contact: SchedulingContact;
+		audience?: "child" | "teen" | "adult";
+	}): Promise<SchedulingSubmit>;
+	/** Gives a hold back (a submit that failed after its hold). */
+	release?(input: { reference: string; holdToken: string }): Promise<unknown>;
 	cancel(input: { reference: string; cancelCode: string }): Promise<SchedulingCancel>;
 }
 
-/** The port, checked at `createEngine`: two functions, no booking method required or used. */
+/** The port, checked at `createEngine`: the two functions every store has; hold, submit and release are optional. */
 export const SchedulingPortSchema: z.ZodType<SchedulingPort> = z.custom<SchedulingPort>(
 	(value) =>
 		typeof value === "object" &&
@@ -83,10 +141,23 @@ export interface ProfileScheduling {
 	services: ReadonlyArray<string>;
 	/** Names per service slug, in both languages, when the live catalogue gave them. */
 	names?: Readonly<Record<string, { ro: string; en: string }>>;
+	/**
+	 * Who the site books for (the site's own audiences). The age tells which one a booking is; a
+	 * single-audience site always books that one. Absent: the age decides alone.
+	 */
+	audiences?: ReadonlyArray<"child" | "teen" | "adult">;
 }
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
 
 export const ProfileSchedulingSchema: z.ZodType<ProfileScheduling> = z
-	.object({ tenant: Slug, services: z.array(Slug).readonly() })
+	.object({
+		tenant: Slug,
+		services: z.array(Slug).readonly(),
+		audiences: z
+			.array(z.enum(["child", "teen", "adult"]))
+			.min(1)
+			.readonly()
+			.optional(),
+	})
 	.strict();

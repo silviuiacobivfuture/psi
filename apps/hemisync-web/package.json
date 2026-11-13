@@ -1,6 +1,6 @@
 {
 	"name": "@psi/hemisync-web",
-	"version": "0.10.0",
+	"version": "0.11.0",
 	"private": true,
 	"type": "module",
 	"description": "hemi-sync.ro — the Hemi-Sync România landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",

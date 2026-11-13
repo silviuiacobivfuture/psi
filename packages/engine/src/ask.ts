@@ -137,6 +137,7 @@ async function* turn(
 			{
 				question: input.question,
 				typed,
+				locale: input.locale,
 				...(input.booking === undefined ? {} : { state: input.booking }),
 			},
 			[...ctx.packs.values()],
@@ -266,7 +267,10 @@ async function* turn(
 					yield* refusal("unavailable");
 					return;
 				}
-				yield { type: "booking", offer: await reshow(ctx.booking, input.booking, input.question) };
+				yield {
+					type: "booking",
+					offer: await reshow(ctx.booking, input.booking, input.question, input.locale),
+				};
 				yield { type: "done" };
 				return;
 			}
