@@ -58,6 +58,10 @@ export interface CompassChatLabels {
 	retry: string;
 	/** Under a question a newer one replaced before any answer arrived. */
 	unanswered: string;
+	/** The head's toggle: its name entering and leaving full screen, and what is said on the automatic entry. */
+	fullscreen: string;
+	exitFullscreen: string;
+	fullscreenOn: string;
 }
 
 export interface CompassChat {
@@ -204,7 +208,7 @@ function Destinations({
  *
  * The conversation is the page's: it survives collapsing the sheet, clicking outside, another page
  * of the site and a reload (kept per brand in the browser, restored through the guide route), and
- * only "New conversation" clears it. Escape, the close button and the scrim only collapse.
+ * only "New conversation" clears it. Escape, the close button and the scrim only collapse; in full screen Escape first leaves it.
  */
 export function Compass({
 	label,
@@ -296,6 +300,43 @@ export function Compass({
 					</button>
 					<button
 						type="button"
+						class="pz-compass__fs"
+						aria-pressed="false"
+						aria-label={labels.fullscreen}
+						data-enter={labels.fullscreen}
+						data-exit={labels.exitFullscreen}
+					>
+						<svg
+							class="pz-compass__fs-in"
+							viewBox="0 0 20 20"
+							width="18"
+							height="18"
+							aria-hidden="true"
+						>
+							<path
+								d="M12 4h4v4M8 16H4v-4M16 4l-5 5M4 16l5-5"
+								stroke="currentColor"
+								stroke-width="1.8"
+								fill="none"
+							/>
+						</svg>
+						<svg
+							class="pz-compass__fs-out"
+							viewBox="0 0 20 20"
+							width="18"
+							height="18"
+							aria-hidden="true"
+						>
+							<path
+								d="M16 8h-4V4M4 12h4v4M12 8l5-5M8 12l-5 5"
+								stroke="currentColor"
+								stroke-width="1.8"
+								fill="none"
+							/>
+						</svg>
+					</button>
+					<button
+						type="button"
 						class="pz-compass__close"
 						aria-label={labels.close}
 						data-on:click="$compassOpen = false"
@@ -342,6 +383,13 @@ export function Compass({
 					</div>
 				) : null}
 			</div>
+			{/* Said once, politely, when the chat goes full screen by itself. */}
+			<p
+				class="sr-only pz-compass__fs-live"
+				role="status"
+				aria-live="polite"
+				data-on={labels.fullscreenOn}
+			/>
 			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
 			<form
 				class="pz-compass__bar pz-edge"
