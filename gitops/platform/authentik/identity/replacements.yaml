@@ -736,7 +736,7 @@
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L104h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L104h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 388}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 432
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 430
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L105]}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX}
@@ -744,8 +744,8 @@
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L105}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L105h], options: {delimiter: "      external_host: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L105h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 432}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 442
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 430}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 440
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L106], options: {delimiter: "/account", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX}
@@ -753,818 +753,791 @@
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L106}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L106h], options: {delimiter: "      meta_launch_url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L106h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 442}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 466
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 440}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 464
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L107], options: {delimiter: "-mail-scope", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L107}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L107h], options: {delimiter: "      name: ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L107h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 466}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 493
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 464}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 491
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L108], options: {delimiter: "-mail-scope]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L108}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L108h], options: {delimiter: "        - !Find [authentik_providers_oauth2.scopemapping, [name, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L108h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 493}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 496
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 491}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 494
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L109], options: {delimiter: "/index.php/login/oauth", index: -1}}]
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.WEBMAIL_HOST_PREFIX}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L109], options: {delimiter: "/account/oauth/callback", index: -1}}]
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L109], options: {delimiter: ".", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L109}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L109h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L109h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 496}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 498
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 494}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 496
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L110], options: {delimiter: "/account/oauth/callback", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L110], options: {delimiter: "/admin/oauth/callback", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L110], options: {delimiter: ".", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L110}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L110h], options: {delimiter: "          url: https://", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L110h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 498}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 500
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 496}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 502
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L111], options: {delimiter: "/admin/oauth/callback", index: -1}}]
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L111], options: {delimiter: ".", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L111], options: {delimiter: "/(ar|ca|cs|da|de|el|en|es|et|fa|fr|he|hu|it|ja|ko|lv|mn|nb|nl|nn|pl|pt|ro|ru|sk|th|tr|uk|vi|zh|zh-TW)/auth/callback$", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L111}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L111h], options: {delimiter: "          url: https://", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L111h], options: {delimiter: "          url: ^https://inbox\\.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L111h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 500}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 506
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L112], options: {delimiter: "/(ar|ca|cs|da|de|el|en|es|et|fa|fr|he|hu|it|ja|ko|lv|mn|nb|nl|nn|pl|pt|ro|ru|sk|th|tr|uk|vi|zh|zh-TW)/auth/callback$", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 502}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 551
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L112]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L112}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L112h], options: {delimiter: "          url: ^https://inbox\\.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L112h], options: {delimiter: "      external_host: https://netdata.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L112h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 506}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 534
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L113]}]
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.WEBMAIL_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L113], options: {delimiter: ".", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L113}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L113h], options: {delimiter: "      external_host: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L113h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 534}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 544
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L114], options: {delimiter: "/", index: -1}}]
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.WEBMAIL_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L114], options: {delimiter: ".", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L114}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L114h], options: {delimiter: "      meta_launch_url: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L114h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 544}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 587
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L115]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L115}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L115h], options: {delimiter: "      external_host: https://netdata.", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L115h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 587}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 597
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 551}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 561
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L116], options: {delimiter: "/app-netdata.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L116}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L116h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L116h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 597}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 603
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L113], options: {delimiter: "/app-netdata.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L113}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L113h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L113h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 561}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 567
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L114]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L114}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L114h], options: {delimiter: "      external_host: https://hub.", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L114h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 567}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 578
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L115], options: {delimiter: "/app-hub.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L115}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L115h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L115h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 578}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 588
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L116], options: {delimiter: " =", index: -1}}]
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MESH_BASE_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L116], options: {delimiter: " = ", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L116}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L116h], options: {delimiter: "  # Netdata and the hub claimed the SAME host as the public ones (", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L116h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 588}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 660
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L117]}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L117}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L117h], options: {delimiter: "      external_host: https://hub.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L117h], options: {delimiter: "      external_host: https://n8n.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L117h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 603}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 614
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L118], options: {delimiter: "/app-hub.svg", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 660}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 675
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L118], options: {delimiter: "/sso/setup", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L118}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L118h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L118h], options: {delimiter: "      meta_launch_url: https://n8n.", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L118h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 614}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 624
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.TAILNET_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L119], options: {delimiter: " =", index: -1}}]
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.MESH_BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L119], options: {delimiter: " = ", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 675}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 677
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L119], options: {delimiter: "/app-n8n.svg", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L119}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L119h], options: {delimiter: "  # Netdata and the hub claimed the SAME host as the public ones (", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L119h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L119h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 624}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 696
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L120]}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 677}}]
+# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 692
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L120], options: {delimiter: "-forward-auth]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L120}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L120h], options: {delimiter: "      external_host: https://n8n.", index: 1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L120h], options: {delimiter: "        - !Find [authentik_providers_proxy.proxyprovider, [name, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L120h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 696}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 711
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L121], options: {delimiter: "/sso/setup", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L121}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L121h], options: {delimiter: "      meta_launch_url: https://n8n.", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L121h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 711}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 713
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L122], options: {delimiter: "/app-n8n.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L122}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L122h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L122h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 713}}]
-# blueprints-providers.yaml · authentik-blueprints-providers · proxy-forwardauth.yaml · line 728
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L123], options: {delimiter: "-forward-auth]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L123}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L123h], options: {delimiter: "        - !Find [authentik_providers_proxy.proxyprovider, [name, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L123h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 728}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-providers}, fieldPaths: [data.proxy-forwardauth\.yaml], options: {delimiter: "\n", index: 692}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L124], options: {delimiter: "-internal-admins", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L124}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L124h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L124h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L121], options: {delimiter: "-internal-admins", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L121}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L121h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L121h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-admins}, fieldPaths: [data.admins\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 11
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L125], options: {delimiter: "-groups", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L125}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L125h], options: {delimiter: "        name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L125h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L122], options: {delimiter: "-groups", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L122}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L122h], options: {delimiter: "        name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L122h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-admins}, fieldPaths: [data.admins\.yaml], options: {delimiter: "\n", index: 11}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 15
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_EMAIL}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L126]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L126}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L126h], options: {delimiter: "      email: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L126h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L123]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L123}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L123h], options: {delimiter: "      email: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L123h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-admins}, fieldPaths: [data.admins\.yaml], options: {delimiter: "\n", index: 15}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 17
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L127]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L127}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L127h], options: {delimiter: "      username: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L127h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L124]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L124}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L124h], options: {delimiter: "      username: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L124h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-admins}, fieldPaths: [data.admins\.yaml], options: {delimiter: "\n", index: 17}}]
 # blueprints-admins.yaml · authentik-blueprints-admins · admins.yaml · line 18
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_NAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L128]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L128}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L128h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L128h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L125]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L125}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L125h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L125h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-admins}, fieldPaths: [data.admins\.yaml], options: {delimiter: "\n", index: 18}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L129], options: {delimiter: "-self-enrollment", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L129}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L129h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L129h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L126], options: {delimiter: "-self-enrollment", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L126}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L126h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L126h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 12
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L130], options: {delimiter: "-enrol-team", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L130}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L130h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L130h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L127], options: {delimiter: "-enrol-team", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L127}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L127h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L127h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 12}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 30
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L131], options: {delimiter: "-enrol-reason", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L131}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L131h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L131h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L128], options: {delimiter: "-enrol-reason", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L128}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L128h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L128h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 30}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 47
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L132], options: {delimiter: "-enrol-username", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L132}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L132h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L132h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L129], options: {delimiter: "-enrol-username", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L129}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L129h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L129h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 47}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 56
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L133], options: {delimiter: "-enrollment-prompt", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L133}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L133h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L133h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L130], options: {delimiter: "-enrollment-prompt", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L130}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L130h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L130h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 56}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 88
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L134], options: {delimiter: "-enrollment-whitelist", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L134}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L134h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L134h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L131], options: {delimiter: "-enrollment-whitelist", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L131}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L131h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L131h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 88}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 118
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_EMAIL}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L135], options: {delimiter: "\": \"onboard-admin\",", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L135}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L135h], options: {delimiter: "            \"", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L135h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L132], options: {delimiter: "\": \"onboard-admin\",", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L132}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L132h], options: {delimiter: "            \"", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L132h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 118}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 230
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L136], options: {delimiter: "-enrollment-write", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L136}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L136h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L136h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L133], options: {delimiter: "-enrollment-write", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L133}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L133h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L133h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 230}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 240
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L137], options: {delimiter: "-enrollment-login", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L137}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L137h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L137h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L134], options: {delimiter: "-enrollment-login", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L134}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L134h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L134h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 240}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 252
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L138], options: {delimiter: "-self-enrollment) ────────", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L138}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L138h], options: {delimiter: "  # ── The enrolment flow itself (own slug ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L138h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L135], options: {delimiter: "-self-enrollment) ────────", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L135}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L135h], options: {delimiter: "  # ── The enrolment flow itself (own slug ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L135h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 252}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 255
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L139], options: {delimiter: "-self-enrollment", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L139}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L139h], options: {delimiter: "      slug: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L139h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L136], options: {delimiter: "-self-enrollment", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L136}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L136h], options: {delimiter: "      slug: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L136h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 255}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 257
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L140], options: {delimiter: " Self-Enrolment", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L140}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L140h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L140h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L137], options: {delimiter: " Self-Enrolment", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L137}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L137h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L137h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 257}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 266
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L141], options: {delimiter: "-self-enrollment]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L141}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L141h], options: {delimiter: "      target: !Find [authentik_flows.flow, [slug, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L141h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L138], options: {delimiter: "-self-enrollment]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L138}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L138h], options: {delimiter: "      target: !Find [authentik_flows.flow, [slug, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L138h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 266}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 267
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L142], options: {delimiter: "-enrollment-prompt]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L142}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L142h], options: {delimiter: "      stage: !Find [authentik_stages_prompt.promptstage, [name, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L142h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L139], options: {delimiter: "-enrollment-prompt]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L139}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L139h], options: {delimiter: "      stage: !Find [authentik_stages_prompt.promptstage, [name, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L139h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 267}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 275
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L140], options: {delimiter: "-self-enrollment]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L140}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L140h], options: {delimiter: "      target: !Find [authentik_flows.flow, [slug, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L140h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 275}}]
+# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 276
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L141], options: {delimiter: "-enrollment-write]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L141}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L141h], options: {delimiter: "      stage: !Find [authentik_stages_user_write.userwritestage, [name, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L141h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 276}}]
+# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 300
+- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L142], options: {delimiter: "-enrollment-whitelist]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L142}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L142h], options: {delimiter: "      policy: !Find [authentik_policies_expression.expressionpolicy, [name, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L142h}
+  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 300}}]
+# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 308
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L143], options: {delimiter: "-self-enrollment]]", index: -1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L143}
   targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L143h], options: {delimiter: "      target: !Find [authentik_flows.flow, [slug, ", index: 1}}]
 - source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L143h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 275}}]
-# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 276
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L144], options: {delimiter: "-enrollment-write]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L144}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L144h], options: {delimiter: "      stage: !Find [authentik_stages_user_write.userwritestage, [name, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L144h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 276}}]
-# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 300
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L145], options: {delimiter: "-enrollment-whitelist]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L145}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L145h], options: {delimiter: "      policy: !Find [authentik_policies_expression.expressionpolicy, [name, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L145h}
-  targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 300}}]
-# blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 308
-- source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L146], options: {delimiter: "-self-enrollment]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L146}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L146h], options: {delimiter: "      target: !Find [authentik_flows.flow, [slug, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L146h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 308}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 309
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L147], options: {delimiter: "-enrollment-login]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L147}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L147h], options: {delimiter: "      stage: !Find [authentik_stages_user_login.userloginstage, [name, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L147h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L144], options: {delimiter: "-enrollment-login]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L144}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L144h], options: {delimiter: "      stage: !Find [authentik_stages_user_login.userloginstage, [name, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L144h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 309}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 314
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L148], options: {delimiter: "-self-enrollment]]", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L148}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L148h], options: {delimiter: "#   enrollment_flow: !Find [authentik_flows.flow, [slug, ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L148h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L145], options: {delimiter: "-self-enrollment]]", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L145}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L145h], options: {delimiter: "#   enrollment_flow: !Find [authentik_flows.flow, [slug, ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L145h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 314}}]
 # blueprints-enrollment.yaml · authentik-blueprints-enrollment · enrollment.yaml · line 316
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L149], options: {delimiter: " enrolment flow with no edit to blueprints-sources.yaml. We do NOT", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L149}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L149h], options: {delimiter: "# ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L149h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L146], options: {delimiter: " enrolment flow with no edit to blueprints-sources.yaml. We do NOT", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L146}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L146h], options: {delimiter: "# ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L146h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-enrollment}, fieldPaths: [data.enrollment\.yaml], options: {delimiter: "\n", index: 316}}]
 # blueprints-mfa.yaml · authentik-blueprints-mfa · mfa.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L150], options: {delimiter: "-enforced-mfa", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L150}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L150h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L150h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L147], options: {delimiter: "-enforced-mfa", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L147}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L147h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L147h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-mfa}, fieldPaths: [data.mfa\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-mfa.yaml · authentik-blueprints-mfa · mfa.yaml · line 79
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L151], options: {delimiter: "-mfa-confirm-after-enrolment", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L151}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L151h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L151h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L148], options: {delimiter: "-mfa-confirm-after-enrolment", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L148}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L148h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L148h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-mfa}, fieldPaths: [data.mfa\.yaml], options: {delimiter: "\n", index: 79}}]
 # blueprints-mfa.yaml · authentik-blueprints-mfa · mfa.yaml · line 93
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L152], options: {delimiter: "-mfa-not-yet-validated", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L152}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L152h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L152h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L149], options: {delimiter: "-mfa-not-yet-validated", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L149}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L149h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L149h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-mfa}, fieldPaths: [data.mfa\.yaml], options: {delimiter: "\n", index: 93}}]
 # blueprints-mfa.yaml · authentik-blueprints-mfa · mfa.yaml · line 120
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L153], options: {delimiter: "-totp-only-deny", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L153}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L153h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L153h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L150], options: {delimiter: "-totp-only-deny", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L150}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L150h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L150h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-mfa}, fieldPaths: [data.mfa\.yaml], options: {delimiter: "\n", index: 120}}]
 # blueprints-outpost.yaml · authentik-blueprints-outpost · embedded-outpost.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L154], options: {delimiter: "-embedded-outpost-host", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L154}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L154h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L154h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L151], options: {delimiter: "-embedded-outpost-host", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L151}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L151h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L151h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-outpost}, fieldPaths: [data.embedded-outpost\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-outpost.yaml · authentik-blueprints-outpost · embedded-outpost.yaml · line 12
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L155]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L155}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L155h], options: {delimiter: "        authentik_host: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L155h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L152]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L152}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L152h], options: {delimiter: "        authentik_host: https://", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L152h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-outpost}, fieldPaths: [data.embedded-outpost\.yaml], options: {delimiter: "\n", index: 12}}]
 # blueprints-outpost.yaml · authentik-blueprints-outpost · embedded-outpost.yaml · line 13
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L156]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L156}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L156h], options: {delimiter: "        authentik_host_browser: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L156h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L153]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L153}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L153h], options: {delimiter: "        authentik_host_browser: https://", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L153h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-outpost}, fieldPaths: [data.embedded-outpost\.yaml], options: {delimiter: "\n", index: 13}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L157], options: {delimiter: "-recovery", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L157}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L157h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L157h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L154], options: {delimiter: "-recovery", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L154}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L154h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L154h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 9
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L158], options: {delimiter: "-password-policy", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L158}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L158h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L158h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L155], options: {delimiter: "-password-policy", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L155}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L155h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L155h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 9}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 29
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L159], options: {delimiter: "-set-password", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L159}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L159h], options: {delimiter: "      slug: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L159h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L156], options: {delimiter: "-set-password", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L156}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L156h], options: {delimiter: "      slug: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L156h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 29}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 31
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L160], options: {delimiter: " — setare parolă", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L160}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L160h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L160h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L157], options: {delimiter: " — setare parolă", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L157}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L157h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L157h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 31}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 39
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L161], options: {delimiter: "-set-password-field", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L161}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L161h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L161h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L158], options: {delimiter: "-set-password-field", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L158}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L158h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L158h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 39}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 51
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L162], options: {delimiter: "-set-password-field-repeat", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L162}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L162h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L162h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L159], options: {delimiter: "-set-password-field-repeat", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L159}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L159h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L159h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 51}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 71
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L163], options: {delimiter: "-set-password-needs-identification", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L163}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L163h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L163h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L160], options: {delimiter: "-set-password-needs-identification", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L160}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L160h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L160h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 71}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 79
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L164], options: {delimiter: "-set-password-identification", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L164}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L164h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L164h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L161], options: {delimiter: "-set-password-identification", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L161}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L161h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L161h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 79}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 87
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L165], options: {delimiter: "-set-password-email", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L165}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L165h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L165h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L162], options: {delimiter: "-set-password-email", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L162}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L162h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L162h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 87}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 91
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166], options: {delimiter: " — setează parola contului\"", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166h], options: {delimiter: "      subject: \"", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L163], options: {delimiter: " — setează parola contului\"", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L163}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L163h], options: {delimiter: "      subject: \"", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L163h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 91}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 93
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167], options: {delimiter: "/setare-parola.html", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167h], options: {delimiter: "      template: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L164], options: {delimiter: "/setare-parola.html", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L164}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L164h], options: {delimiter: "      template: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L164h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 93}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 100
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L168], options: {delimiter: "-set-password-prompt", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L168}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L168h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L168h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L165], options: {delimiter: "-set-password-prompt", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L165}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L165h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L165h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 100}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 110
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169], options: {delimiter: "-set-password-write", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166], options: {delimiter: "-set-password-write", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L166h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L166h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 110}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 123
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L170], options: {delimiter: "-set-password-login", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L170}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L170h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L170h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167], options: {delimiter: "-set-password-login", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L167h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L167h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 123}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 135
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L171], options: {delimiter: "-set-password-sandbox-notice", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L171}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L171h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L171h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L168], options: {delimiter: "-set-password-sandbox-notice", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L168}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L168h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L168h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 135}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 139
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L172], options: {delimiter: "-set-password-sandbox-notice", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L172}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L172h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L172h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169], options: {delimiter: "-set-password-sandbox-notice", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L169h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L169h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 139}}]
 # blueprints-recovery.yaml · authentik-blueprints-recovery · recovery.yaml · line 191
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L173]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L173}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L173h], options: {delimiter: "      domain: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L173h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L170]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L170}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L170h], options: {delimiter: "      domain: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L170h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-recovery}, fieldPaths: [data.recovery\.yaml], options: {delimiter: "\n", index: 191}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L174], options: {delimiter: "-people", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L174}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L174h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L174h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L171], options: {delimiter: "-people", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L171}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L171h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L171h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 7
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L175], options: {delimiter: "-groups — which applies this blueprint first — finds the account on a fresh", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L175}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L175h], options: {delimiter: "  # ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L175h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L172], options: {delimiter: "-groups — which applies this blueprint first — finds the account on a fresh", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L172}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L172h], options: {delimiter: "  # ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L172h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 7}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 8
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L176], options: {delimiter: "-internal-admins (blueprints-admins.yaml) then keeps its", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L176}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L176h], options: {delimiter: "  # install. Created only: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L176h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L173], options: {delimiter: "-internal-admins (blueprints-admins.yaml) then keeps its", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L173}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L173h], options: {delimiter: "  # install. Created only: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L173h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 8}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 15
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L177]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L177}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L177h], options: {delimiter: "      username: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L177h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L174]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L174}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L174h], options: {delimiter: "      username: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L174h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 15}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 17
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_NAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L178]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L178}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L178h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L178h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L175]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L175}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L175h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L175h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 17}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 18
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_EMAIL}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L179]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L179}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L179h], options: {delimiter: "      email: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L179h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L176]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L176}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L176h], options: {delimiter: "      email: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L176h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 18}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 31
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L180], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L180}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L180h], options: {delimiter: "      email: e2e-hub@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L180h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L177], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L177}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L177h], options: {delimiter: "      email: e2e-hub@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L177h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 31}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 49
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L181], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L181}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L181h], options: {delimiter: "      email: e2e-tools@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L181h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L178], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L178}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L178h], options: {delimiter: "      email: e2e-tools@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L178h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 49}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 66
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L182], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L182}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L182h], options: {delimiter: "      email: e2e-cititor@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L182h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L179], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L179}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L179h], options: {delimiter: "      email: e2e-cititor@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L179h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 66}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 83
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L183], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L183}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L183h], options: {delimiter: "      email: e2e-coleg@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L183h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L180], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L180}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L180h], options: {delimiter: "      email: e2e-coleg@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L180h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 83}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 98
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L184]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L184}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L184h], options: {delimiter: "      email: playwright@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L184h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L181]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L181}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L181h], options: {delimiter: "      email: playwright@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L181h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 98}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 115
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L185], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L185}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L185h], options: {delimiter: "      email: e2e-auditor@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L185h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L182], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L182}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L182h], options: {delimiter: "      email: e2e-auditor@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L182h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 115}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 130
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L186], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L186}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L186h], options: {delimiter: "      email: e2e-signin@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L186h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L183], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L183}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L183h], options: {delimiter: "      email: e2e-signin@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L183h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 130}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 140
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L187], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L187}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L187h], options: {delimiter: "      email: e2e-revocabil@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L187h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L184], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L184}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L184h], options: {delimiter: "      email: e2e-revocabil@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L184h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 140}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 150
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L188], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L188}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L188h], options: {delimiter: "      email: e2e-strain@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L188h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L185], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L185}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L185h], options: {delimiter: "      email: e2e-strain@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L185h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 150}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 165
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L189], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L189}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L189h], options: {delimiter: "      email: e2e-o-firma@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L189h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L186], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L186}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L186h], options: {delimiter: "      email: e2e-o-firma@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L186h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 165}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 175
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L190], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L190}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L190h], options: {delimiter: "      email: e2e-admin-org@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L190h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L187], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L187}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L187h], options: {delimiter: "      email: e2e-admin-org@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L187h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 175}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 188
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L191], options: {delimiter: ".invalid", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L191}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L191h], options: {delimiter: "      email: e2e-inregistrare@", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L191h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L188], options: {delimiter: ".invalid", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L188}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L188h], options: {delimiter: "      email: e2e-inregistrare@", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L188h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 188}}]
 # blueprints-people.yaml · authentik-blueprints-people · people.yaml · line 254
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.OPERATOR_USERNAME}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L192]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L192}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L192h], options: {delimiter: "      username: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L192h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L189]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L189}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L189h], options: {delimiter: "      username: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L189h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-people}, fieldPaths: [data.people\.yaml], options: {delimiter: "\n", index: 254}}]
 # email-templates.yaml · authentik-email-templates · base.html · line 7
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L193], options: {delimiter: "</title>", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L193}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L193h], options: {delimiter: "    <title>", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L193h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L190], options: {delimiter: "</title>", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L190}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L190h], options: {delimiter: "    <title>", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L190h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.base\.html], options: {delimiter: "\n", index: 7}}]
 # email-templates.yaml · authentik-email-templates · base.html · line 16
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L194], options: {delimiter: "\" width=\"252\" height=\"40\" style=\"display: block; width: 252px; height: 40px; border: 0;\">", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L194}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L194h], options: {delimiter: "                <img src=\"cid:logo\" alt=\"", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L194h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L191], options: {delimiter: "\" width=\"252\" height=\"40\" style=\"display: block; width: 252px; height: 40px; border: 0;\">", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L191}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L191h], options: {delimiter: "                <img src=\"cid:logo\" alt=\"", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L191h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.base\.html], options: {delimiter: "\n", index: 16}}]
 # email-templates.yaml · authentik-email-templates · base.html · line 27
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L195], options: {delimiter: " — mesaj trimis automat. Nu răspunde la acest e-mail.</p>", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L195}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L195h], options: {delimiter: "                <p style=\"margin: 12px 0 0 0;\">", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L195h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L192], options: {delimiter: " — mesaj trimis automat. Nu răspunde la acest e-mail.</p>", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L192}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L192h], options: {delimiter: "                <p style=\"margin: 12px 0 0 0;\">", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L192h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.base\.html], options: {delimiter: "\n", index: 27}}]
 # email-templates.yaml · authentik-email-templates · setare-parola.html · line 0
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L196], options: {delimiter: "/base.html\" %}", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L196}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L196h], options: {delimiter: "{% extends \"", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L196h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L193], options: {delimiter: "/base.html\" %}", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L193}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L193h], options: {delimiter: "{% extends \"", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L193h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.setare-parola\.html], options: {delimiter: "\n", index: 0}}]
 # email-templates.yaml · authentik-email-templates · setare-parola.html · line 5
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L197], options: {delimiter: " ({{ user.email }}) a fost cerută setarea parolei.", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L197}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L197h], options: {delimiter: "  Pentru contul tău ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L197h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L194], options: {delimiter: " ({{ user.email }}) a fost cerută setarea parolei.", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L194}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L194h], options: {delimiter: "  Pentru contul tău ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L194h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.setare-parola\.html], options: {delimiter: "\n", index: 5}}]
 # email-templates.yaml · authentik-email-templates · setare-parola.txt · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L198], options: {delimiter: " ({{ user.email }}) a fost cerută setarea parolei.", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L198}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L198h], options: {delimiter: "Pentru contul tău ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L198h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L195], options: {delimiter: " ({{ user.email }}) a fost cerută setarea parolei.", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L195}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L195h], options: {delimiter: "Pentru contul tău ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L195h}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.setare-parola\.txt], options: {delimiter: "\n", index: 2}}]
 # email-templates.yaml · authentik-email-templates · setare-parola.txt · line 18
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L199], options: {delimiter: " — mesaj trimis automat. Nu răspunde la acest e-mail.", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L199}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L196], options: {delimiter: " — mesaj trimis automat. Nu răspunde la acest e-mail.", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L196}
   targets: [{select: {kind: ConfigMap, name: authentik-email-templates}, fieldPaths: [data.setare-parola\.txt], options: {delimiter: "\n", index: 18}}]
 # blueprints-n8n-sso.yaml · authentik-blueprints-n8n-sso · n8n-sso.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L200], options: {delimiter: "-n8n-sso", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L200}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L200h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L200h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L197], options: {delimiter: "-n8n-sso", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L197}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L197h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L197h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-n8n-sso}, fieldPaths: [data.n8n-sso\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-n8n-instances.generated.yaml · authentik-blueprints-n8n-instances · n8n-instances.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L201], options: {delimiter: "-n8n-instances", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L201}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L201h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L201h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L198], options: {delimiter: "-n8n-instances", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L198}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L198h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L198h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-n8n-instances}, fieldPaths: [data.n8n-instances\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-machine-credentials.yaml · authentik-blueprints-machine-credentials · machine-credentials.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L202], options: {delimiter: "-machine-credentials", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L202}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L202h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L202h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L199], options: {delimiter: "-machine-credentials", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L199}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L199h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L199h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-machine-credentials}, fieldPaths: [data.machine-credentials\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-machine-credentials.yaml · authentik-blueprints-machine-credentials · machine-credentials.yaml · line 8
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L203], options: {delimiter: "-business-machine-credential-only", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L203}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L203h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L203h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L200], options: {delimiter: "-business-machine-credential-only", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L200}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L200h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L200h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-machine-credentials}, fieldPaths: [data.machine-credentials\.yaml], options: {delimiter: "\n", index: 8}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L204], options: {delimiter: "-broker-autorizare-hub", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L204}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L204h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L204h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L201], options: {delimiter: "-broker-autorizare-hub", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L201}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L201h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L201h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 42
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L205], options: {delimiter: "/hub/callback", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L202], options: {delimiter: "/hub/callback", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L205], options: {delimiter: ".", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L205}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L205h], options: {delimiter: "          url: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L205h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L202], options: {delimiter: ".", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L202}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L202h], options: {delimiter: "          url: https://", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L202h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 42}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 46
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L206], options: {delimiter: "/hub/signed-out", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L203], options: {delimiter: "/hub/signed-out", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L206], options: {delimiter: ".", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L206}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L206h], options: {delimiter: "          url: https://", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L206h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L203], options: {delimiter: ".", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L203}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L203h], options: {delimiter: "          url: https://", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L203h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 46}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 52
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L207], options: {delimiter: "-enrollment-login declares its own in blueprints-enrollment.yaml.", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L207}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L207h], options: {delimiter: "  # stage in use; ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L207h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L204], options: {delimiter: "-enrollment-login declares its own in blueprints-enrollment.yaml.", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L204}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L204h], options: {delimiter: "  # stage in use; ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L204h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 52}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 75
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L208]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L208}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L208h], options: {delimiter: "      name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L208h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L205]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L205}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L205h], options: {delimiter: "      name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L205h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 75}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 76
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.HUB_HOST_PREFIX}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L209], options: {delimiter: ") has no page of its", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L209}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L209h], options: {delimiter: "      # psi: the broker's client, NOT a tile. Its host (", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L209h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L206], options: {delimiter: ") has no page of its", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L206}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L206h], options: {delimiter: "      # psi: the broker's client, NOT a tile. Its host (", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L206h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 76}}]
 # blueprints-broker-autorizare-hub.yaml · authentik-blueprints-broker-autorizare-hub · broker-autorizare-hub.yaml · line 80
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L210], options: {delimiter: "/app-autorizare-hub.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L210}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L210h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L210h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L207], options: {delimiter: "/app-autorizare-hub.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L207}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L207h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L207h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-broker-autorizare-hub}, fieldPaths: [data.broker-autorizare-hub\.yaml], options: {delimiter: "\n", index: 80}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L211], options: {delimiter: "-theme", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L211}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L211h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L211h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L208], options: {delimiter: "-theme", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L208}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L208h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L208h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 14
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.AUTHENTIK_HOST}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L212]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L212}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L212h], options: {delimiter: "      domain: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L212h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L209]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L209}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L209h], options: {delimiter: "      domain: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L209h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 14}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 15
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.BRAND_TITLE}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L213]}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L213}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L213h], options: {delimiter: "      branding_title: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L213h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L210]}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L210}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L210h], options: {delimiter: "      branding_title: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L210h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 15}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 16
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L214], options: {delimiter: "/logo-%(theme)s.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L214}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L214h], options: {delimiter: "      branding_logo: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L214h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L211], options: {delimiter: "/logo-%(theme)s.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L211}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L211h], options: {delimiter: "      branding_logo: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L211h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 16}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 17
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L215], options: {delimiter: "/favicon.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L215}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L215h], options: {delimiter: "      branding_favicon: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L215h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L212], options: {delimiter: "/favicon.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L212}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L212h], options: {delimiter: "      branding_favicon: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L212h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 17}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 18
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L216], options: {delimiter: "/fundal.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L216}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L216h], options: {delimiter: "      branding_default_flow_background: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L216h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L213], options: {delimiter: "/fundal.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L213}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L213h], options: {delimiter: "      branding_default_flow_background: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L213h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 18}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 19
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L217], options: {delimiter: ".css", index: -1}}]
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L214], options: {delimiter: ".css", index: -1}}]
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L217], options: {delimiter: "/", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L217}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L217h], options: {delimiter: "      branding_custom_css: !File /web/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L217h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L214], options: {delimiter: "/", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L214}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L214h], options: {delimiter: "      branding_custom_css: !File /web/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L214h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 19}}]
 # blueprints-theme.yaml · authentik-blueprints-theme · theme.yaml · line 74
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L218], options: {delimiter: "-enrol-username` — so that file owns the", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L218}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L218h], options: {delimiter: "  # field and renamed it `", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L218h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L215], options: {delimiter: "-enrol-username` — so that file owns the", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L215}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L215h], options: {delimiter: "  # field and renamed it `", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L215h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-theme}, fieldPaths: [data.theme\.yaml], options: {delimiter: "\n", index: 74}}]
 # blueprints-estate-tiles.yaml · authentik-blueprints-estate-tiles · estate-tiles.yaml · line 2
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L219], options: {delimiter: "-estate-tiles", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L219}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L219h], options: {delimiter: "  name: ", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L219h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L216], options: {delimiter: "-estate-tiles", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L216}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L216h], options: {delimiter: "  name: ", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L216h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-estate-tiles}, fieldPaths: [data.estate-tiles\.yaml], options: {delimiter: "\n", index: 2}}]
 # blueprints-estate-tiles.yaml · authentik-blueprints-estate-tiles · estate-tiles.yaml · line 131
 - source: {kind: ConfigMap, name: whitelabel, fieldPath: data.ESTATE_SLUG}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L220], options: {delimiter: "/app-polaris.svg", index: -1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L220}
-  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L220h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
-- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L220h}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L217], options: {delimiter: "/app-polaris.svg", index: -1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L217}
+  targets: [{select: {kind: ConfigMap, name: authentik-identity-lines}, fieldPaths: [data.L217h], options: {delimiter: "      meta_icon: /static/dist/assets/", index: 1}}]
+- source: {kind: ConfigMap, name: authentik-identity-lines, fieldPath: data.L217h}
   targets: [{select: {kind: ConfigMap, name: authentik-blueprints-estate-tiles}, fieldPaths: [data.estate-tiles\.yaml], options: {delimiter: "\n", index: 131}}]

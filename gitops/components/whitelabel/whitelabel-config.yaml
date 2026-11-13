@@ -62,7 +62,6 @@ data:
   PDFCRAFT_HOST_PREFIX: pdf
   AFFINE_HOST_PREFIX: docs
   MAIL_HOST_PREFIX: post
-  WEBMAIL_HOST_PREFIX: webmail
   BULWARK_HOST_PREFIX: inbox
   # identity
   OPERATOR_USERNAME: silviu
