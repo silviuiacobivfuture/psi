@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import {
 	auditBatch,
 	clientByLegacy,
@@ -183,6 +183,24 @@ export const upsertFiles = internalMutation({
 			);
 		}
 		await auditBatch(ctx, tenant, "files", out);
+		return out;
+	},
+});
+
+/** The fingerprints of file rows already imported, so an unchanged file is not encrypted and uploaded again. */
+export const knownFiles = internalQuery({
+	args: { tenant: v.string(), legacyIds: v.array(v.string()) },
+	returns: v.array(v.object({ legacyId: v.string(), fingerprint: v.string() })),
+	handler: async (ctx, { tenant, legacyIds }) => {
+		if (legacyIds.length > MAX_BATCH) throw new Error("batch too large");
+		const out: Array<{ legacyId: string; fingerprint: string }> = [];
+		for (const legacyId of legacyIds) {
+			const found = await ctx.db
+				.query("files")
+				.withIndex("by_tenant_legacy", (q) => q.eq("tenant", tenant).eq("legacyId", legacyId))
+				.unique();
+			if (found?.fingerprint !== undefined) out.push({ legacyId, fingerprint: found.fingerprint });
+		}
 		return out;
 	},
 });
