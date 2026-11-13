@@ -1,0 +1,371 @@
+/*
+ * The admin console's look: psi's language (type, radii, motion) in the admin themes' calmer, denser
+ * character. Colours only from token roles; every motion is guarded by prefers-reduced-motion.
+ * The active app tints the console: [data-app="psizone"|"hemisync"] sets --app / --on-app.
+ */
+[data-app="psizone"] {
+	--app: var(--app-psizone);
+	--on-app: var(--on-app-psizone);
+}
+[data-app="hemisync"] {
+	--app: var(--app-hemisync);
+	--on-app: var(--on-app-hemisync);
+}
+
+.adm {
+	--app: var(--accent);
+	--on-app: var(--on-accent);
+	min-height: 100dvh;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--font-sans);
+	font-size: 14px;
+	line-height: 1.45;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	-webkit-text-size-adjust: 100%;
+}
+.adm *,
+.adm *::before,
+.adm *::after {
+	box-sizing: border-box;
+}
+.adm a {
+	color: inherit;
+}
+.adm :focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+.adm-skip {
+	position: absolute;
+	left: var(--space-3);
+	top: -100px;
+	z-index: 100;
+	padding: var(--space-2) var(--space-3);
+	background: var(--surface-1);
+	border: 2px solid var(--focus);
+	border-radius: var(--radius-sm);
+}
+.adm-skip:focus {
+	top: var(--space-3);
+}
+
+/* ── Side navigation (tablet and desktop) ───────────────────────────── */
+.adm-nav {
+	display: none;
+	position: sticky;
+	top: 0;
+	height: 100dvh;
+	width: var(--adm-nav-w);
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--space-4) var(--space-3);
+	background: var(--surface-1);
+	border-right: 1px solid var(--line-strong);
+	overflow-y: auto;
+}
+.adm-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: var(--adm-touch);
+	font: 600 16px / 1.2 var(--font-display);
+	font-variation-settings: "SOFT" 100;
+	text-decoration: none;
+}
+.adm-brand__mark {
+	flex: none;
+	width: 36px;
+	aspect-ratio: 640 / 488;
+	background: var(--app);
+	-webkit-mask: url("/assets/brand/psizone-emblem-320.webp") center / contain no-repeat;
+	mask: url("/assets/brand/psizone-emblem-320.webp") center / contain no-repeat;
+}
+.adm-nav__list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.adm-nav__link {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-3);
+	border-radius: var(--radius-sm);
+	text-decoration: none;
+	color: var(--ink-muted);
+	font-weight: 600;
+}
+.adm-nav__link:hover {
+	background: var(--surface-2);
+	color: var(--ink);
+}
+.adm-nav__link[aria-current="page"] {
+	background: var(--accent-soft);
+	color: var(--ink);
+	box-shadow: inset 3px 0 0 var(--app);
+}
+.adm-nav__foot {
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+.adm-icon {
+	flex: none;
+	width: 20px;
+	height: 20px;
+}
+.adm.is-collapsed .adm-nav {
+	width: var(--adm-nav-w-collapsed);
+	align-items: center;
+}
+.adm.is-collapsed .adm-nav .adm-label,
+.adm.is-collapsed .adm-nav .adm-brand__name {
+	display: none;
+}
+.adm.is-collapsed .adm-nav__link {
+	justify-content: center;
+	padding: 0;
+	width: var(--adm-touch);
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+.adm-main {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 100dvh;
+}
+.adm-top {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: calc(var(--adm-bar-h) + env(safe-area-inset-top));
+	padding: env(safe-area-inset-top) max(var(--space-3), env(safe-area-inset-right)) 0
+		max(var(--space-3), env(safe-area-inset-left));
+	background: var(--surface-1);
+	border-bottom: 1px solid var(--line-strong);
+}
+.adm-top__title {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	font: 600 17px / 1.2 var(--font-display);
+	font-variation-settings: "SOFT" 100;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.adm-search {
+	position: relative;
+	flex: 1;
+	max-width: 420px;
+	display: none;
+}
+.adm-search input {
+	width: 100%;
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-3) 0 40px;
+	border: 1px solid var(--line-control);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--ink);
+	font: inherit;
+}
+.adm-search .adm-icon {
+	position: absolute;
+	left: 12px;
+	top: 12px;
+	color: var(--ink-muted);
+	pointer-events: none;
+}
+.adm-search__results {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(100% + 6px);
+	z-index: 30;
+	max-height: 60vh;
+	overflow: auto;
+	padding: var(--space-2);
+	background: var(--surface-1);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-float);
+}
+.adm-search__results:empty {
+	display: none;
+}
+.adm-search--open {
+	display: block;
+	position: fixed;
+	inset: 0 0 auto 0;
+	z-index: 40;
+	max-width: none;
+	padding: calc(env(safe-area-inset-top) + var(--space-2)) var(--space-3) var(--space-2);
+	background: var(--surface-1);
+}
+.adm-iconbtn {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
+	min-width: var(--adm-touch);
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	cursor: pointer;
+}
+.adm-iconbtn:hover {
+	background: var(--surface-2);
+}
+
+/* ── Content ─────────────────────────────────────────────────────────── */
+.adm-content {
+	flex: 1;
+	min-width: 0;
+	padding: var(--space-3) max(var(--space-3), env(safe-area-inset-right))
+		calc(var(--adm-tab-h) + env(safe-area-inset-bottom) + 88px)
+		max(var(--space-3), env(safe-area-inset-left));
+}
+.adm-content:focus {
+	outline: none;
+}
+.adm-page {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	max-width: 1280px;
+	margin-inline: auto;
+}
+.adm-pagehead {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3);
+	justify-content: space-between;
+}
+.adm-h1 {
+	margin: 0;
+	font: 600 24px / 1.15 var(--font-display);
+	font-variation-settings: "SOFT" 100;
+}
+.adm-h2 {
+	margin: 0 0 var(--space-2);
+	font: 700 14px / 1.3 var(--font-sans);
+	letter-spacing: 0.02em;
+}
+.adm-muted {
+	color: var(--ink-muted);
+}
+.adm-card {
+	padding: var(--adm-pad);
+	background: var(--surface-1);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+}
+.adm-grid {
+	display: grid;
+	gap: var(--space-3);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+.adm-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--adm-gap);
+}
+.adm-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+/* ── Buttons and fields ──────────────────────────────────────────────── */
+.adm-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-4);
+	border: 1px solid var(--line-control);
+	border-radius: var(--radius-pill);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 14px / 1 var(--font-sans);
+	text-decoration: none;
+	cursor: pointer;
+}
+.adm-btn:hover {
+	background: var(--surface-2);
+}
+.adm-btn--primary {
+	background: var(--app);
+	color: var(--on-app);
+	border-color: var(--app);
+}
+.adm-btn--primary:hover {
+	background: var(--app);
+	filter: brightness(1.08);
+}
+.adm-btn--danger {
+	color: var(--danger);
+	border-color: var(--danger);
+}
+.adm-btn--ghost {
+	border-color: transparent;
+	background: transparent;
+}
+.adm-btn[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.adm-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+.adm-field > span {
+	font-weight: 600;
+	color: var(--ink-muted);
+}
+.adm-input {
+	width: 100%;
+	min-height: var(--adm-touch);
+	padding: 0 var(--space-3);
+	border: 1px solid var(--line-control);
+	border-radius: var(--radius-sm);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: inherit;
+}
+textarea.adm-input {
+	padding: var(--space-2) var(--space-3);
+	min-height: 88px;
+}
+
+.adm-sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}

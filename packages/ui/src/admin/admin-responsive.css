@@ -1,0 +1,130 @@
+/* ── Wider screens ───────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+	.adm {
+		grid-template-columns: var(--adm-nav-w) minmax(0, 1fr);
+	}
+	.adm.is-collapsed {
+		grid-template-columns: var(--adm-nav-w-collapsed) minmax(0, 1fr);
+	}
+	.adm-nav {
+		display: flex;
+	}
+	.adm-tabs,
+	.adm-fab,
+	.adm-top__phone {
+		display: none;
+	}
+	.adm-search {
+		display: block;
+	}
+	.adm-search-toggle {
+		display: none;
+	}
+	.adm-content {
+		padding: var(--space-5) var(--space-5) var(--space-6);
+	}
+	.adm-toasts {
+		bottom: var(--space-5);
+	}
+	.adm-sheet {
+		align-items: stretch;
+		justify-content: flex-end;
+	}
+	.adm-sheet__panel {
+		width: min(480px, 100%);
+		max-height: none;
+		border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+	}
+	.adm-sheet__grip {
+		display: none;
+	}
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+	.adm,
+	.adm.is-collapsed {
+		grid-template-columns: var(--adm-nav-w-collapsed) minmax(0, 1fr);
+	}
+	.adm .adm-nav {
+		width: var(--adm-nav-w-collapsed);
+		align-items: center;
+	}
+	.adm .adm-nav .adm-label,
+	.adm .adm-nav .adm-brand__name {
+		display: none;
+	}
+	.adm .adm-nav__link {
+		justify-content: center;
+		padding: 0;
+		width: var(--adm-touch);
+	}
+}
+@media (min-width: 1024px) {
+	.adm-top__desktop-collapse {
+		display: inline-grid;
+	}
+}
+@media (max-width: 1023px) {
+	.adm-top__desktop-collapse {
+		display: none;
+	}
+}
+
+/* ── Motion: only without a reduced-motion preference ────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+	.adm-nav,
+	.adm {
+		transition: grid-template-columns 0.2s ease;
+	}
+	.adm-sheet__panel {
+		animation: adm-rise 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+	}
+	.adm-toast {
+		animation: adm-rise 0.2s ease both;
+	}
+	.adm-skel {
+		animation: adm-pulse 1.4s ease-in-out infinite;
+	}
+	.adm .adm-btn,
+	.adm .adm-nav__link,
+	.adm .adm-fab {
+		transition:
+			background-color 0.15s ease,
+			filter 0.15s ease;
+	}
+}
+@keyframes adm-rise {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+}
+@keyframes adm-pulse {
+	50% {
+		opacity: 0.5;
+	}
+}
+
+/* ── Print: the calendar alone, on paper ─────────────────────────────── */
+@media print {
+	.adm .adm-nav,
+	.adm .adm-top,
+	.adm .adm-tabs,
+	.adm .adm-fab,
+	.adm .adm-toasts,
+	.adm .adm-noprint {
+		display: none;
+	}
+	.adm {
+		display: block;
+		background: transparent;
+		color: var(--ink);
+	}
+	.adm-content {
+		padding: 0;
+	}
+	.adm-card,
+	.adm-scroll {
+		border-color: var(--ink);
+		break-inside: avoid;
+	}
+}
