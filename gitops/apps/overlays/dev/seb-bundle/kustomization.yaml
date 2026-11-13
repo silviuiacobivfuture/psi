@@ -38,3 +38,4 @@ resources:
   - seb-harbor.yaml
   - seb-arc-runners.yaml
   - seb-n8n.yaml
+  - seb-nx-cache.yaml

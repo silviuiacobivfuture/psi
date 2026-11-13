@@ -7,7 +7,6 @@ resources:
   - homepage.yaml
   - netdata.yaml
   - novu.yaml
-  - nx-cache.yaml
   - openfga.yaml
   - otel-logging.yaml
   - plane.yaml
