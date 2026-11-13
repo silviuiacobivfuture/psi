@@ -43,3 +43,4 @@ resources:
   - seb-health-digest.yaml
   - seb-openfga.yaml
   - seb-novu.yaml
+  - seb-openbao-store.yaml

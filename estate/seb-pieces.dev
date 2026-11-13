@@ -42,3 +42,4 @@ otel-logging
 health-digest
 openfga
 novu
+openbao-store
