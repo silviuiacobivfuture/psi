@@ -4,11 +4,11 @@ import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
 	type AppSlug,
 	AppSlugSchema,
+	type AssistantMode,
 	type AuditEvent,
 	type Membership,
 	type PushPrefs,
 	type Role,
-	type ScopeName,
 	type WebRequest,
 } from "../schema";
 import type { SdkContext } from "./context";
@@ -149,5 +149,11 @@ export function adminGroup(sdk: SdkContext) {
 			Promise.reject(new PortError("not-available-yet", "push preferences")),
 		savePushPrefs: (_subject: string, _prefs: PushPrefs): Promise<void> =>
 			Promise.reject(new PortError("not-available-yet", "push preferences")),
+
+		// Nor one for how a person's assistant shows: the console keeps the choice on the device meanwhile.
+		assistantMode: (_subject: string): Promise<AssistantMode | null> =>
+			Promise.reject(new PortError("not-available-yet", "assistant mode")),
+		saveAssistantMode: (_subject: string, _mode: AssistantMode): Promise<void> =>
+			Promise.reject(new PortError("not-available-yet", "assistant mode")),
 	};
 }

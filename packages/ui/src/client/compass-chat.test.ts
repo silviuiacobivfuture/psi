@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CLIENT_SOURCES, compileClients, generatedModule } from "./build";
-import { COMPASS_CHAT_JS } from "./compass-chat.generated";
+import { CAPSULE_SOURCES, CLIENT_SOURCES, compileClients, generatedModule } from "./build";
+import { CAPSULE_FULLSCREEN_JS, COMPASS_CHAT_JS } from "./compass-chat.generated";
 
 interface Chat {
 	load(key: string): unknown;
@@ -281,7 +281,17 @@ describe("the inlined bundle", () => {
 			fileURLToPath(new URL("./compass-chat.generated.ts", import.meta.url)),
 			"utf8",
 		);
-		expect(generated).toBe(generatedModule(compileClients(sources)));
+		const capsule = CAPSULE_SOURCES.map((f) =>
+			readFileSync(fileURLToPath(new URL(`./${f}`, import.meta.url)), "utf8"),
+		);
+		expect(generated).toBe(generatedModule(compileClients(sources), compileClients(capsule)));
 		expect(COMPASS_CHAT_JS).not.toContain("</script");
+		expect(CAPSULE_FULLSCREEN_JS).not.toContain("</script");
+	});
+
+	it("gives the admin's capsule the full screen without the guide's conversation store", () => {
+		expect(CAPSULE_FULLSCREEN_JS).toContain("pz-compass__fs");
+		expect(CAPSULE_FULLSCREEN_JS).not.toContain("psiChat");
+		expect(COMPASS_CHAT_JS).toContain("psiChat");
 	});
 });

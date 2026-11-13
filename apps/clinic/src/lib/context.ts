@@ -6,7 +6,7 @@ import { getCookie } from "hono/cookie";
 import type { Person } from "../auth";
 import type { Notifications } from "../notifications/mount";
 import type { Capabilities, ClinicPort } from "../port/port";
-import { type AppSlug, AppSlugSchema, type Membership } from "../port/schema";
+import { type AppSlug, AppSlugSchema, type AssistantMode, type Membership } from "../port/schema";
 import type { Can } from "./can";
 import { type Locale, localeFrom } from "./i18n";
 import type { Theme } from "./theme";
@@ -34,6 +34,8 @@ export interface Ctx {
 	pwa: Pwa;
 	/** The staff assistant, when it is switched on. */
 	assistant?: StaffEngine;
+	/** How this person's assistant shows: the conversation bar or the side panel. */
+	assistantMode: AssistantMode;
 	/** The bell, when there is a feed behind it. */
 	notifications?: Notifications;
 	/** Where the sign-out form posts (the estate's sign-out, or the development no-op). */

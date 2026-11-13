@@ -5,6 +5,13 @@
  * tools. The console builds a `StaffPort` per request from the signed-in person's own token.
  */
 export {
+	type ActionInfo,
+	ActionInfoSchema,
+	type ActionOutcome,
+	ActionOutcomeSchema,
+	type ActionParam,
+} from "./actions";
+export {
 	type PanelCopy,
 	STAFF_EN,
 	STAFF_RO,

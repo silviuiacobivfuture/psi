@@ -2,6 +2,7 @@ import type { StaffAction } from "@psi/engine/staff";
 
 /** The permission each assistant action needs, in the console's own keys (what the service's capabilities name). */
 const ACTION_KEY: Readonly<Record<StaffAction, string>> = {
+	"clients.create": "clients_create",
 	"appointments.create": "appointments_create",
 	"appointments.move": "appointments_edit",
 	"appointments.cancel": "appointments_cancel",

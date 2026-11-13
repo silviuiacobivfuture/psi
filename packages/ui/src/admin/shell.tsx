@@ -51,6 +51,18 @@ export interface ShellLabels {
 	offline: string;
 }
 
+/** A choice that belongs to the signed-in person (it is saved for them, so its form posts to a route behind the sign-in). */
+export interface ShellChoice {
+	/** Names the group for assistive tech. */
+	id: string;
+	label: string;
+	action: string;
+	/** The form field the chosen option is posted as. */
+	name: string;
+	value: string;
+	options: ReadonlyArray<{ value: string; label: string }>;
+}
+
 export interface ShellProps {
 	/** The active app tints the console. */
 	app: ShellApp["slug"];
@@ -80,6 +92,8 @@ export interface ShellProps {
 	children?: Child;
 	/** Extra entries in the user menu (the install prompt). */
 	extras?: Child;
+	/** The person's own saved choices, one segmented control each, under the theme and language. */
+	choices?: ReadonlyArray<ShellChoice>;
 	/** A compact status beside the user menu in the top bar (e.g. "viewing as…"). */
 	topStatus?: Child;
 	/** Overlays rendered beside the page: sheets. */
@@ -194,7 +208,15 @@ function PrefButton({
 function UserMenu(
 	p: Pick<
 		ShellProps,
-		"user" | "labels" | "prefsAction" | "signOutAction" | "locale" | "themePref" | "deco" | "extras"
+		| "user"
+		| "labels"
+		| "prefsAction"
+		| "signOutAction"
+		| "locale"
+		| "themePref"
+		| "deco"
+		| "extras"
+		| "choices"
 	>,
 ): JSX.Element {
 	const { user, labels: l } = p;
@@ -263,6 +285,25 @@ function UserMenu(
 						</PrefButton>
 					</fieldset>
 				</form>
+				{(p.choices ?? []).map((choice) => (
+					<form
+						method="post"
+						action={choice.action}
+						class="adm-stack"
+						style="padding:var(--space-2) var(--space-2) 0"
+					>
+						<span class="adm-muted" id={`adm-choice-${choice.id}`}>
+							{choice.label}
+						</span>
+						<fieldset class="adm-seg" aria-labelledby={`adm-choice-${choice.id}`}>
+							{choice.options.map((o) => (
+								<PrefButton name={choice.name} value={o.value} active={o.value === choice.value}>
+									{o.label}
+								</PrefButton>
+							))}
+						</fieldset>
+					</form>
+				))}
 				<div class="adm-menu__sep" />
 				{p.extras === undefined ? null : <div class="adm-menu__extras">{p.extras}</div>}
 				<form method="post" action={p.signOutAction}>
@@ -374,6 +415,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						themePref={p.themePref}
 						deco={p.deco}
 						extras={p.extras}
+						choices={p.choices}
 					/>
 				</header>
 				<div class="adm-banner adm-banner--offline adm-offline-flag adm-noprint" role="status">

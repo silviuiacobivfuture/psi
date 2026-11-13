@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { createAccount, memoryStores } from "@psi/account";
 import { type MockIssuer, type MockPerson, startMockIssuer } from "@psi/account/dev/mock-issuer";
 import { type Browser, createBrowser } from "@psi/account/dev/test-browser";
+import { createStaffEngine, type StaffEngine } from "@psi/engine/staff";
 import { createApp } from "../app";
 import { accountAuth, DEV_SUBJECT, devAuth } from "../auth";
 import { createFakeNotifications } from "../notifications/fake";
@@ -24,6 +25,18 @@ export const OUTSIDER: MockPerson = {
 	name: "Bogdan Test",
 };
 
+export interface ConsoleOptions {
+	/** The staff assistant is switched on (without a model: it renders, and answers "unavailable"). */
+	assistant?: boolean;
+}
+
+/** A staff engine whose model cannot be reached (nothing listens there), for pages that only render the assistant. */
+function idleAssistant(): StaffEngine {
+	return createStaffEngine({
+		model: { id: "fake/model", apiKey: "test", baseURL: "http://127.0.0.1:9/v1" },
+	});
+}
+
 export interface Console {
 	origin: string;
 	browser: Browser;
@@ -45,6 +58,7 @@ export async function startConsole(
 	person: MockPerson,
 	fake: Partial<FakeOptions> = {},
 	members?: Record<string, ReadonlyArray<Membership>>,
+	options: ConsoleOptions = {},
 ): Promise<Console> {
 	let app: ReturnType<typeof createApp> | undefined;
 	const mock: MockIssuer = await startMockIssuer({
@@ -89,6 +103,7 @@ export async function startConsole(
 		ports: fixedPort(port),
 		notifications: createFakeNotifications(),
 		viewAsSecret: SECRET,
+		...(options.assistant === true ? { assistant: idleAssistant() } : {}),
 		auth: accountAuth(account),
 		origin: ORIGIN,
 		pwa,
@@ -126,7 +141,10 @@ export interface LiveConsole {
 }
 
 /** A listening console for a real browser: development sign-in (the demo person), the fake clinic. */
-export async function serveConsole(fake: Partial<FakeOptions> = {}): Promise<LiveConsole> {
+export async function serveConsole(
+	fake: Partial<FakeOptions> = {},
+	options: ConsoleOptions = {},
+): Promise<LiveConsole> {
 	const port = createFakePort({
 		members: {
 			[DEV_SUBJECT]: [
@@ -159,6 +177,7 @@ export async function serveConsole(fake: Partial<FakeOptions> = {}): Promise<Liv
 		ports: fixedPort(port),
 		notifications: createFakeNotifications(),
 		viewAsSecret: "v".repeat(40),
+		...(options.assistant === true ? { assistant: idleAssistant() } : {}),
 		auth: devAuth(),
 		origin,
 		pwa,

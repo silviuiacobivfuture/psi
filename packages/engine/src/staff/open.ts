@@ -42,6 +42,7 @@ export async function openSession(
 		threadId: input.threadId,
 		cards: [],
 		blocked: new Set(),
+		calls: new Map(),
 		taint: { stranger: false },
 		caps: undefined,
 	});

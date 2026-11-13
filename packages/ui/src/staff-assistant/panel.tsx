@@ -30,19 +30,32 @@ export interface StaffTriggerProps {
 	base: string;
 	/** `bar`: a glowing pill for a top bar; `fab`: a floating button. */
 	variant?: "bar" | "fab";
+	/** What it opens: the side panel, or the capsule's sheet (`StaffCapsule`). */
+	presentation?: "panel" | "capsule";
 }
 
+const CAPSULE_TOGGLE =
+	"$compassOpen = !$compassOpen; if ($compassOpen) document.querySelector('.pz-compass--admin .pz-compass__input')?.focus()";
+
 /** The button that opens the assistant (also reachable with Ctrl/Cmd+K). */
-export function StaffTrigger({ labels, base, variant = "fab" }: StaffTriggerProps): JSX.Element {
+export function StaffTrigger({
+	labels,
+	base,
+	variant = "fab",
+	presentation = "panel",
+}: StaffTriggerProps): JSX.Element {
+	const capsule = presentation === "capsule";
 	return (
 		<button
 			type="button"
 			class={`sa-trigger sa-trigger--${variant}`}
-			data-staff-trigger
+			{...(capsule ? {} : { "data-staff-trigger": true })}
 			title={`${labels.title} (${labels.shortcut})`}
-			aria-controls="staff-assistant"
-			data-attr:aria-expanded="$staff.open ? 'true' : 'false'"
-			data-on:click={toggleExpression(base)}
+			aria-controls={capsule ? "pz-staff-sheet" : "staff-assistant"}
+			data-attr:aria-expanded={
+				capsule ? "$compassOpen ? 'true' : 'false'" : "$staff.open ? 'true' : 'false'"
+			}
+			data-on:click={capsule ? CAPSULE_TOGGLE : toggleExpression(base)}
 		>
 			<SaIcon name="spark" />
 			<span class="sa-trigger__label">{labels.title}</span>
