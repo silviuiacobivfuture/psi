@@ -319,7 +319,6 @@ export function createNotifier(options: NotifyOptions): Notifier {
 
 		async setTeam(app, team, add, remove) {
 			const key = topicKey(app, team);
-			await http.ensureTopic(key, key);
 			await http.addToTopic(key, add);
 			await http.removeFromTopic(key, remove);
 		},
