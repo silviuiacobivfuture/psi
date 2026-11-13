@@ -23,7 +23,7 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import type { BlacklistPort, DocumentsPort, FeedbackPort, SeriesPort } from "./ports";
+import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -346,6 +346,8 @@ export interface StorePort {
 	feedback: FeedbackPort;
 	/** Weekly series of appointments, changed all or nothing. */
 	series: SeriesPort;
+	/** The reports: read-only counts and rates over the app's rows. */
+	reports: ReportsPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

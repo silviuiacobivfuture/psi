@@ -74,6 +74,8 @@ const spare = async (w: Populated): Promise<string> =>
 			})
 		).json.id,
 	);
+/** A week of the populated clinic, for the reports. */
+const REPORT_RANGE = `?from=${NOW}&to=${NOW + 7 * 24 * HOUR}`;
 let spareSeriesAt = 0;
 /** A series of two appointments, a day further on each time so that no two meet. */
 const spareSeries = async (w: Populated): Promise<string> =>
@@ -265,6 +267,16 @@ const OWN: Record<
 		});
 		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
 	},
+	"reports.appointments": (w) => olga(w, "GET", `/reports/appointments${REPORT_RANGE}`),
+	"reports.utilisation": (w) => olga(w, "GET", `/reports/utilisation${REPORT_RANGE}`),
+	"reports.rates": (w) => olga(w, "GET", `/reports/rates${REPORT_RANGE}&byClient=true`),
+	"reports.clients": (w) => olga(w, "GET", `/reports/clients${REPORT_RANGE}`),
+	"reports.packages": (w) => olga(w, "GET", `/reports/packages${REPORT_RANGE}`),
+	"reports.funnel": (w) => olga(w, "GET", `/reports/funnel${REPORT_RANGE}`),
+	"reports.ratings": (w) => olga(w, "GET", `/reports/ratings${REPORT_RANGE}`),
+	"reports.blacklistHits": (w) => olga(w, "GET", `/reports/blacklist-hits${REPORT_RANGE}`),
+	"reports.revenue": (w) => olga(w, "GET", `/reports/revenue${REPORT_RANGE}`),
+	"reports.csv": (w) => olga(w, "GET", `/reports/rates/csv${REPORT_RANGE}`),
 	"series.create": (w) =>
 		olga(w, "POST", "/series", {
 			practitionerId: w.ids.dora,

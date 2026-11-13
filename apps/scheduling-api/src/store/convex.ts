@@ -10,6 +10,7 @@ import { createChangeFeed } from "./convex/feed";
 import { feedbackPort } from "./convex/feedback";
 import { appsOfSubject } from "./convex/members";
 import { recordCollections } from "./convex/records";
+import { reportsPort } from "./convex/reports";
 import { requestsPort, visitorExtras } from "./convex/requests";
 import type { Rpc } from "./convex/rpc";
 import { seriesPort } from "./convex/series";
@@ -133,6 +134,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		blacklist: blacklistPort(clients.rpc),
 		feedback: feedbackPort(clients.rpc),
 		series: seriesPort(clients.rpc),
+		reports: reportsPort(clients.rpc),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

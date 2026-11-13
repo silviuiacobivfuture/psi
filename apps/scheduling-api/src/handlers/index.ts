@@ -13,6 +13,7 @@ import { floorPlanHandlers } from "./floorplan";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
+import { reportHandlers } from "./reports";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
 import { viewAsHandlers } from "./viewas";
@@ -26,6 +27,7 @@ const complete: Handlers = {
 	...appointmentHandlers,
 	...appointmentEditHandlers,
 	...seriesHandlers,
+	...reportHandlers,
 	...packageHandlers,
 	...rosterHandlers,
 	...reminderHandlers,

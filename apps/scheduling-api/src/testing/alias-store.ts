@@ -96,6 +96,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		docs: forApp(inner.docs, to),
 		blacklist: forApp(inner.blacklist, to),
 		feedback: forApp(inner.feedback, to),
+		reports: forApp(inner.reports, to),
 		series: {
 			create: async (app, rows) =>
 				(await inner.series.create(to(app), rows.map(rowIn))).map(rowOut),
