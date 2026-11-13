@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/blog-web
-    newTag: "6a29cc9"
+    newTag: "054cd63"
