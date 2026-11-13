@@ -1,4 +1,3 @@
-import { StatusPill } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import {
 	dayShort,
@@ -56,45 +55,7 @@ function Hours({
 	);
 }
 
-export interface CardProps {
-	appt: Appointment;
-	client: Client | undefined;
-	serviceName: string;
-	colour: number;
-	locale: Locale;
-	dayStart: number;
-}
-
-export function AppointmentCard({
-	appt,
-	client,
-	serviceName,
-	colour,
-	locale,
-	dayStart,
-}: CardProps): JSX.Element {
-	const short = appt.durationMin < 60;
-	const name = appt.title ?? client?.name ?? m.unnamed_group({}, at(locale));
-	return (
-		<a
-			class="cal__appt"
-			data-status={appt.status}
-			href={appt.clientId === null ? "#" : `/clients/${appt.clientId}`}
-			style={`--c:var(--cal-${colour});--status-bg:var(--status-${appt.status}-soft);--start:${appt.startMin};--dur:${appt.durationMin};--day-start:${dayStart}`}
-		>
-			<span class="cal__appt-head">
-				<strong>{name}</strong>
-				{short ? (
-					<StatusPill status={appt.status} label={statusLabel(appt.status, locale)} compact />
-				) : null}
-			</span>
-			<time>
-				{hhmm(appt.startMin)}–{hhmm(appt.startMin + appt.durationMin)} · {serviceName}
-			</time>
-			{short ? null : <StatusPill status={appt.status} label={statusLabel(appt.status, locale)} />}
-		</a>
-	);
-}
+import { AppointmentTile as AppointmentCard } from "./appt-tile";
 
 function Slots({
 	date,
@@ -102,15 +63,20 @@ function Slots({
 	dayStart,
 	hours,
 	locale,
+	busy,
 }: {
 	date: string;
 	columnId: string;
 	dayStart: number;
 	hours: number;
 	locale: Locale;
-}): JSX.Element[] {
+	busy: ReadonlyArray<Appointment>;
+}): Array<JSX.Element | null> {
 	return Array.from({ length: hours * 2 }, (_, i) => {
 		const startMin = dayStart + i * 30;
+		// Only a slot wholly in a free gap is a target: one an appointment half covers would be a sliver.
+		if (busy.some((a) => a.startMin < startMin + 30 && a.startMin + a.durationMin > startMin))
+			return null;
 		return (
 			<button
 				key={i}
@@ -179,6 +145,7 @@ export function DayGrid({ data, date, locale, today, nowMin }: GridProps): JSX.E
 								dayStart={dayStart}
 								hours={hours}
 								locale={locale}
+								busy={appts.filter((a) => a.columnId === c.id)}
 							/>
 							{appts
 								.filter((a) => a.columnId === c.id)
@@ -251,6 +218,7 @@ export function WeekGrid({
 								dayStart={dayStart}
 								hours={hours}
 								locale={locale}
+								busy={appts.filter((a) => a.date === d)}
 							/>
 							{appts
 								.filter((a) => a.date === d)

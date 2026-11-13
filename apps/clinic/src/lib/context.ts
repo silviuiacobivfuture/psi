@@ -1,3 +1,4 @@
+import type { Pwa } from "@psi/pwa";
 import { type ThemePreference, themeFor, themePreferenceFrom } from "@psi/ui/admin";
 import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
@@ -17,6 +18,7 @@ export interface Ctx {
 	app: AppSlug;
 	memberships: ReadonlyArray<Membership>;
 	port: ClinicPort;
+	pwa: Pwa;
 }
 
 export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): AppSlug | null {

@@ -174,16 +174,18 @@ export async function renderClient(
 		),
 		overlays: (
 			<div data-signals="{askArchive:false,askDelete:false}">
-				<Confirm
-					signal="askArchive"
-					title={m.archive_confirm_title({}, o)}
-					text={m.archive_confirm_text({ name: client.name }, o)}
-					go={m.archive_confirm_go({}, o)}
-					danger={false}
-					action={`/clients/${client.id}/archive`}
-					closeLabel={m.close({}, o)}
-					cancelLabel={m.cancel({}, o)}
-				/>
+				{client.status === "archived" ? null : (
+					<Confirm
+						signal="askArchive"
+						title={m.archive_confirm_title({}, o)}
+						text={m.archive_confirm_text({ name: client.name }, o)}
+						go={m.archive_confirm_go({}, o)}
+						danger={false}
+						action={`/clients/${client.id}/archive`}
+						closeLabel={m.close({}, o)}
+						cancelLabel={m.cancel({}, o)}
+					/>
+				)}
 				<Confirm
 					signal="askDelete"
 					title={m.delete_confirm_title({}, o)}

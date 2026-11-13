@@ -24,6 +24,8 @@ export interface FakeOptions {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
+	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
+	empty?: boolean;
 }
 
 /** The in-memory clinic: synthetic data, real behaviour for every call, until the scheduling SDK replaces it. */
@@ -34,6 +36,16 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		let d = apps.get(app);
 		if (d === undefined) {
 			d = seedApp(app, today);
+			if (opts.empty === true)
+				d = {
+					...d,
+					clients: [],
+					appointments: [],
+					packages: [],
+					requests: [],
+					audit: [],
+					roster: [],
+				};
 			apps.set(app, d);
 		}
 		return d;

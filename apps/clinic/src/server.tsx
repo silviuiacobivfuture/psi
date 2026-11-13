@@ -4,7 +4,7 @@ import { createApp } from "./app";
 import { accountAuth, DEV_SUBJECT, devAuth } from "./auth";
 import { ENV, ORIGIN } from "./config";
 import { createFakePort } from "./port/fake";
-import { pwa } from "./pwa";
+import { createConsolePwa } from "./pwa";
 
 // Production never boots without a working sign-in: no local passwords, no open door.
 if (ENV.production && !account.enabled)
@@ -27,9 +27,12 @@ const port = createFakePort({
 	},
 });
 
+const pwa = createConsolePwa(ORIGIN, account);
+
 const app = createApp({
 	port,
 	auth,
+	pwa,
 	origin: ORIGIN,
 	mount: (hono) => {
 		if (!ENV.devSignIn) account.mount(hono);

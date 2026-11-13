@@ -85,12 +85,22 @@ export function registerClients(app: Hono<Env>): void {
 	// Archive hides; Delete erases. Each is ONE confirmation (the sheet) and ONE write.
 	app.post("/clients/:id/archive", async (c) => {
 		const ctx = c.var.ctx;
-		await ctx.port.archiveClient(ctx.app, c.req.param("id"));
+		try {
+			await ctx.port.archiveClient(ctx.app, c.req.param("id"));
+		} catch (err) {
+			if (err instanceof PortError && err.code === "not-found") return c.notFound();
+			throw err;
+		}
 		return c.redirect(`/clients/${c.req.param("id")}?done=archived`, 303);
 	});
 	app.post("/clients/:id/delete", async (c) => {
 		const ctx = c.var.ctx;
-		await ctx.port.deleteClient(ctx.app, c.req.param("id"));
+		try {
+			await ctx.port.deleteClient(ctx.app, c.req.param("id"));
+		} catch (err) {
+			if (err instanceof PortError && err.code === "not-found") return c.notFound();
+			throw err;
+		}
 		return c.redirect("/clients?deleted=1", 303);
 	});
 

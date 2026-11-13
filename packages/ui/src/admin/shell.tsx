@@ -61,6 +61,8 @@ export interface ShellProps {
 	labels: ShellLabels;
 	newAppointmentHref: string;
 	/** Where the preference form posts (theme, language) and the sign-out form. */
+	/** Start with the navigation as an icon rail (the calendar wants the width). */
+	rail?: boolean;
 	prefsAction: string;
 	signOutAction: string;
 	locale: "ro" | "en";
@@ -248,9 +250,9 @@ export function AdminShell(p: ShellProps): JSX.Element {
 	const { labels: l } = p;
 	return (
 		<div
-			class="adm"
+			class={cx("adm", p.rail === true && "is-collapsed")}
 			data-app={p.app}
-			data-signals="{navCollapsed:false,searchOpen:false,q:'',offline:false,fabSmall:false}"
+			data-signals={`{navCollapsed:${p.rail === true},searchOpen:false,q:'',offline:false,fabSmall:false}`}
 			{...{ "data-on:scroll__window__throttle.100ms": "$fabSmall = window.scrollY > 24" }}
 			data-class:is-collapsed="$navCollapsed"
 			data-class:is-offline="$offline"
@@ -261,7 +263,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 				{l.skip}
 			</a>
 			<aside class="adm-nav adm-noprint" aria-label={l.mainNav}>
-				<a class="adm-brand" href="/">
+				<a class="adm-brand" href="/" aria-label={l.brand}>
 					<span class="adm-brand__mark" aria-hidden="true" />
 					<span class="adm-brand__name">{l.brand}</span>
 				</a>

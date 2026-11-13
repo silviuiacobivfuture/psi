@@ -6,7 +6,6 @@ import type { Ctx } from "./lib/context";
 import { at, type Locale } from "./lib/i18n";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
-import { pwa } from "./pwa";
 
 export type NavKey =
 	| "calendar"
@@ -52,6 +51,8 @@ export interface PageProps {
 	title: string;
 	children?: Child;
 	overlays?: Child;
+	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
+	wide?: boolean;
 }
 
 /** One signed-in page: the document and the responsive shell around the screen. */
@@ -61,6 +62,7 @@ export async function Page({
 	title,
 	children,
 	overlays,
+	wide,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
 	const o = at(locale);
@@ -101,7 +103,7 @@ export async function Page({
 			locale={locale}
 			theme={ctx.theme}
 			title={`${title} · ${m.brand({}, o)}`}
-			head={pwa.head(locale)}
+			head={ctx.pwa.head(locale)}
 		>
 			<AdminShell
 				app={ctx.app}
@@ -114,6 +116,7 @@ export async function Page({
 				user={{ name: ctx.person.name, email: ctx.person.email }}
 				labels={labels(locale)}
 				newAppointmentHref="/calendar?new=1"
+				rail={wide === true}
 				prefsAction="/prefs"
 				signOutAction="/sign-out"
 				locale={locale}

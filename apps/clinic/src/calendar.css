@@ -102,59 +102,165 @@
 	background: var(--accent-soft);
 }
 .cal__appt {
+	--tint: color-mix(in oklab, var(--c) 13%, var(--surface-1));
+	--tint-2: color-mix(in oklab, var(--c) 4%, var(--surface-1));
 	position: absolute;
-	left: 4px;
-	right: 4px;
+	left: 5px;
+	right: 5px;
 	z-index: 2;
-	top: calc((var(--start) - var(--day-start)) / 60 * var(--hour-h));
-	height: calc(var(--dur) / 60 * var(--hour-h) - 2px);
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 5px 8px 5px 10px;
+	top: calc((var(--start) - var(--day-start)) / 60 * var(--hour-h) + 1px);
+	height: calc(var(--dur) / 60 * var(--hour-h) - 3px);
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
+	gap: 8px;
+	padding: 7px 8px;
 	overflow: hidden;
 	border-radius: var(--radius-sm);
-	border-left: 4px solid var(--c);
-	background: var(--status-bg);
+	border: 1px solid color-mix(in oklab, var(--c) 32%, var(--line-strong));
+	background: linear-gradient(150deg, var(--tint) 0%, var(--tint-2) 85%);
 	color: var(--ink);
 	font-size: 12px;
 	line-height: 1.25;
 	text-decoration: none;
-	box-shadow: 0 1px 0 var(--line-strong);
+	box-shadow: 0 1px 2px color-mix(in oklab, var(--c) 18%, transparent);
 }
-.cal__appt:hover {
-	box-shadow: var(--shadow-float);
+.cal__appt--flow {
+	position: relative;
+	inset: auto;
+	height: auto;
+	min-height: 64px;
+	max-width: 320px;
+}
+.cal__appt:hover,
+.cal__appt:focus-visible {
 	z-index: 3;
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-float);
 }
-.cal__appt-head {
+.cal__mono {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	border: 1.5px solid var(--c);
+	background: color-mix(in oklab, var(--c) 20%, var(--surface-1));
+	color: var(--ink);
+	font: 700 10.5px / 1 var(--font-sans);
+	letter-spacing: 0.02em;
+}
+.cal__stack {
+	display: inline-flex;
+}
+.cal__stack .cal__mono + .cal__mono {
+	margin-left: -12px;
+}
+.cal__stack .cal__mono:nth-child(2) {
+	background: color-mix(in oklab, var(--c) 36%, var(--surface-1));
+}
+.cal__stack .cal__mono:nth-child(3) {
+	background: color-mix(in oklab, var(--c) 52%, var(--surface-1));
+}
+.cal__body {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 6px;
+	flex-direction: column;
 	min-width: 0;
 }
-.cal__appt strong {
-	flex: 1 1 auto;
-	min-width: 0;
+.cal__body strong {
 	font-weight: 700;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.cal__appt time {
+.cal__body time {
 	color: var(--ink-muted);
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 }
+.cal__svc {
+	color: var(--ink-muted);
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.cal__meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+.cal__meta .adm-pill {
+	padding: 1px 5px;
+}
+.cal__appt--short .cal__mono {
+	width: 24px;
+	height: 24px;
+	font-size: 9.5px;
+}
+.cal__appt--short {
+	padding: 5px 7px;
+	align-items: center;
+}
+.cal__appt[data-status="cancelled"] {
+	background:
+		repeating-linear-gradient(
+			135deg,
+			transparent 0 6px,
+			color-mix(in oklab, var(--ink-muted) 22%, transparent) 6px 7px
+		),
+		var(--surface-2);
+	border-color: var(--line-strong);
+	box-shadow: none;
+}
 .cal__appt[data-status="cancelled"] strong {
 	text-decoration: line-through;
 }
-.cal__appt .adm-pill {
-	align-self: flex-start;
-	flex: none;
-	padding: 0 8px 0 6px;
-	font-size: 11px;
-	line-height: 18px;
+.cal__appt[data-status="cancelled"] .cal__mono {
+	border-color: var(--line-control);
+	background: var(--surface-2);
+}
+.cal__appt[data-status="requested"] {
+	border: 1.5px dashed var(--status-requested);
+}
+.cal__appt[data-status="no-show"] {
+	border-color: var(--status-no-show);
+}
+
+/* Variant B: frosted glass with a coloured hairline on top. */
+.cal__appt--glass {
+	background: var(--surface-glass);
+	backdrop-filter: blur(var(--blur-glass));
+	border-top: 3px solid var(--c);
+	border-radius: var(--radius-sm);
+}
+/* Variant C: a solid ink band of the column colour for the monogram side. */
+.cal__appt--ink {
+	background: var(--surface-1);
+	border-color: var(--line-strong);
+}
+.cal__appt--ink .cal__mono {
+	background: var(--c);
+	color: var(--surface-1);
+	border-color: var(--c);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.cal__appt {
+		transition:
+			transform 0.15s ease,
+			box-shadow 0.15s ease;
+	}
+	.cal__appt[data-status="requested"] {
+		animation: cal-breathe 3.2s ease-in-out infinite;
+	}
+}
+@keyframes cal-breathe {
+	50% {
+		box-shadow: 0 0 0 4px color-mix(in oklab, var(--status-requested) 18%, transparent);
+	}
 }
 .cal__now {
 	position: absolute;
@@ -274,6 +380,9 @@
 	margin: 0;
 	font: 600 18px / 1.2 var(--font-display);
 	font-variation-settings: "SOFT" 100;
+}
+.adm-page--wide {
+	max-width: none;
 }
 .cal-chips {
 	display: flex;

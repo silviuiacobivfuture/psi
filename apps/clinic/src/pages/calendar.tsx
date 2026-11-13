@@ -188,7 +188,7 @@ function NewSheet({
 				<form class="adm-stack" data-on:submit__prevent="@post('/calendar/new')">
 					<label class="adm-field">
 						<span>{m.field_client({}, o)}</span>
-						<select class="adm-input" required data-bind:ap-client>
+						<select class="adm-input" required data-bind="apClient">
 							<option value="" />
 							{data.clients
 								.filter((c) => c.status === "current")
@@ -201,7 +201,7 @@ function NewSheet({
 					</label>
 					<label class="adm-field">
 						<span>{m.field_service({}, o)}</span>
-						<select class="adm-input" data-bind:ap-service>
+						<select class="adm-input" data-bind="apService">
 							{data.services.map((s) => (
 								<option key={s.id} value={s.id}>
 									{s.name} · {s.durationMin} min
@@ -211,7 +211,7 @@ function NewSheet({
 					</label>
 					<label class="adm-field">
 						<span>{m.field_column({}, o)}</span>
-						<select class="adm-input" data-bind:ap-col>
+						<select class="adm-input" data-bind="apCol">
 							{data.columns.map((c) => (
 								<option key={c.id} value={c.id}>
 									{c.name}
@@ -222,11 +222,11 @@ function NewSheet({
 					<div class="adm-row">
 						<label class="adm-field" style="flex:1">
 							<span>{m.field_date({}, o)}</span>
-							<input class="adm-input" type="date" data-bind:ap-date />
+							<input class="adm-input" type="date" data-bind="apDate" />
 						</label>
 						<label class="adm-field" style="flex:1">
 							<span>{m.field_time({}, o)}</span>
-							<input class="adm-input" type="time" step="900" data-bind:ap-time />
+							<input class="adm-input" type="time" step="900" data-bind="apTime" />
 						</label>
 					</div>
 					<div class="adm-row">
@@ -265,7 +265,7 @@ export function CalendarBody({
 	const mins = nowMinutes();
 	const { data } = view;
 	return (
-		<div class="adm-page">
+		<div class="adm-page adm-page--wide">
 			<Toolbar view={query.view} date={date} locale={locale} col={query.col} />
 			{view.failed || data === null ? (
 				<Banner tone="error" icon="alert">
@@ -365,6 +365,7 @@ export async function renderCalendar(
 	return Page({
 		ctx,
 		current: "calendar",
+		wide: true,
 		title: m.calendar_title({}, o),
 		children: <CalendarBody ctx={ctx} query={query} view={view} />,
 		overlays: (

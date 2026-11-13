@@ -19,7 +19,6 @@ import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { Column, Role, Service } from "../port/schema";
 import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../port/schema";
-import { pwa } from "../pwa";
 import { roleFromForm } from "./role-form";
 import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
 
@@ -235,11 +234,11 @@ export async function renderSettings(
 						</div>
 					</form>
 					<div class="adm-card">
-						{pwa.notifications({
+						{ctx.pwa.notifications({
 							locale: ctx.locale,
 							signedIn: true,
 							signInHref: "/",
-							devices: await pwa.devices(ctx.person.subject),
+							devices: await ctx.pwa.devices(ctx.person.subject),
 						})}
 					</div>
 				</div>

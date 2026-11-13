@@ -1,4 +1,5 @@
 import { sameOrigin } from "@psi/account";
+import type { Pwa } from "@psi/pwa";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
@@ -10,6 +11,7 @@ import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerCalendarWrites } from "./pages/calendar-routes";
 import { registerClients } from "./pages/clients-routes";
+import { registerDesign } from "./pages/design";
 import { NoAccessPage } from "./pages/gate";
 import { MorePage } from "./pages/more";
 import { registerReminders } from "./pages/reminders";
@@ -24,6 +26,7 @@ import { AppSlugSchema } from "./port/schema";
 export interface AppDeps {
 	port: ClinicPort;
 	auth: Auth;
+	pwa: Pwa;
 	origin: string;
 	/** Extra mounts that need the app first (account routes, the PWA). */
 	mount?: (app: Hono) => void;
@@ -78,7 +81,17 @@ export function createApp(deps: AppDeps): Hono<Env> {
 				{ "cache-control": "private, no-store" },
 			);
 		}
-		c.set("ctx", { c, locale, pref, theme, person, app: active, memberships, port: deps.port });
+		c.set("ctx", {
+			c,
+			locale,
+			pref,
+			theme,
+			person,
+			app: active,
+			memberships,
+			port: deps.port,
+			pwa: deps.pwa,
+		});
 		await next();
 	});
 
@@ -103,6 +116,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerSearch(app);
 	registerClients(app);
 	registerRequests(app);
+	registerDesign(app);
 	registerSettings(app);
 	app.get("/audit", async (c) =>
 		c.html(await renderAudit(c.var.ctx), 200, { "cache-control": "private, no-store" }),
