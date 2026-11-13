@@ -2,13 +2,16 @@
 .cal-new {
 	display: none;
 }
+.cal-bar > .adm-menu:last-child {
+	margin-left: auto;
+}
 @media (min-width: 768px) {
 	.cal-new {
 		display: inline-flex;
 		margin-left: auto;
 	}
-	.cal-new + .adm-menu {
-		margin-left: 0 !important;
+	.cal-bar > .cal-new + .adm-menu:last-child {
+		margin-left: 0;
 	}
 }
 .ed {

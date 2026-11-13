@@ -1,0 +1,126 @@
+/* The print page: black on white, full names and times, a row per appointment, a page per column. */
+@page land {
+	size: A4 landscape;
+	margin: 12mm;
+}
+@page port {
+	size: A4 portrait;
+	margin: 12mm;
+}
+.prt {
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: 24px;
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 14px / 1.4 var(--font-sans);
+	page: port;
+}
+.prt[data-orient="landscape"] {
+	page: land;
+}
+.prt__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px 24px;
+	padding-bottom: 8px;
+	margin-bottom: 16px;
+	border-bottom: 2px solid var(--ink);
+}
+.prt__head h1 {
+	margin: 0;
+	font: 700 20px / 1.2 var(--font-sans);
+}
+.prt__head p {
+	margin: 2px 0 0;
+}
+.prt__by {
+	color: var(--ink);
+	font-size: 12px;
+}
+.prt__col {
+	margin-bottom: 24px;
+}
+.prt__col h2 {
+	margin: 0 0 8px;
+	font: 700 16px / 1.2 var(--font-sans);
+}
+.prt__col h2 small {
+	font-weight: 500;
+}
+.prt {
+	box-sizing: border-box;
+}
+.prt table {
+	width: calc(100% - 1px);
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+.prt th,
+.prt td {
+	padding: 5px 8px;
+	border: 1px solid var(--ink);
+	text-align: left;
+	vertical-align: top;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	font-weight: 400;
+}
+.prt thead th {
+	font-weight: 700;
+	background: transparent;
+	border-bottom-width: 2px;
+}
+.prt td.prt__time,
+.prt th.prt__time {
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+}
+.prt__day th {
+	font-weight: 700;
+	border-width: 2px 1px 1px;
+}
+.prt__grid td p {
+	margin: 0 0 6px;
+}
+.prt__grid td p:last-child {
+	margin-bottom: 0;
+}
+@media print {
+	/* Paper is white whatever theme the screen is in: these outrank the page's own background. */
+	:root,
+	:root body,
+	:root .prt {
+		background: transparent;
+		color: var(--ink);
+	}
+	.prt {
+		max-width: none;
+		padding: 0;
+	}
+	.prt__go {
+		display: none;
+	}
+	/* A day flows, each calendar's table kept whole; a week gives each calendar its own page. */
+	.prt__col {
+		break-inside: avoid;
+		margin-bottom: 14mm;
+	}
+	.prt[data-view="week"] .prt__col {
+		break-inside: auto;
+		break-after: page;
+		margin-bottom: 0;
+	}
+	.prt[data-view="week"] .prt__col:last-child {
+		break-after: auto;
+	}
+	.prt thead {
+		display: table-header-group;
+	}
+	.prt tr {
+		break-inside: avoid;
+	}
+}

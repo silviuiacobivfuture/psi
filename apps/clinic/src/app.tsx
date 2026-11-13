@@ -15,6 +15,7 @@ import { registerDetail } from "./pages/detail-routes";
 import { registerEditor } from "./pages/editor-routes";
 import { NoAccessPage } from "./pages/gate";
 import { MorePage } from "./pages/more";
+import { registerPrint } from "./pages/print-routes";
 import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
 import { renderRoster } from "./pages/roster";
@@ -117,6 +118,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		}),
 	);
 	registerEditor(app);
+	registerPrint(app);
 	registerDetail(app);
 	registerSearch(app);
 	registerClients(app);

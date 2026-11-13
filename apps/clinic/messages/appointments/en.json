@@ -51,5 +51,18 @@
 	"ap_marked_attended": "Marked as attended.",
 	"ap_marked_absent": "Marked as absent.",
 	"ap_collected": "Payment recorded.",
-	"ap_cancelled": "The appointment was cancelled."
+	"ap_cancelled": "The appointment was cancelled.",
+	"print_title": "Appointments",
+	"print_none": "No appointments in this period.",
+	"print_by": "Printed by {name}, {when}",
+	"print_options": "Print the schedule",
+	"print_period": "Period",
+	"print_day": "One day",
+	"print_week": "One week",
+	"print_scope": "For",
+	"print_all": "All calendars",
+	"print_orient": "Page",
+	"print_portrait": "A4 portrait",
+	"print_landscape": "A4 landscape",
+	"print_open": "Open the print page"
 }

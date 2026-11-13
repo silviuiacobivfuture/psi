@@ -51,5 +51,18 @@
 	"ap_marked_attended": "Marcat ca prezent.",
 	"ap_marked_absent": "Marcat ca absent.",
 	"ap_collected": "Plata a fost înregistrată.",
-	"ap_cancelled": "Programarea a fost anulată."
+	"ap_cancelled": "Programarea a fost anulată.",
+	"print_title": "Programări",
+	"print_none": "Nicio programare în această perioadă.",
+	"print_by": "Tipărit de {name}, {when}",
+	"print_options": "Tipărește programul",
+	"print_period": "Perioada",
+	"print_day": "O zi",
+	"print_week": "O săptămână",
+	"print_scope": "Pentru",
+	"print_all": "Toate calendarele",
+	"print_orient": "Foaia",
+	"print_portrait": "A4 portret",
+	"print_landscape": "A4 peisaj",
+	"print_open": "Deschide pagina de tipărit"
 }

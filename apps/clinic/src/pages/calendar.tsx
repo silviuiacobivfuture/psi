@@ -7,7 +7,6 @@ import {
 	addDays,
 	addMonths,
 	dayLong,
-	hhmm,
 	monthLong,
 	monthStart,
 	nowMinutes,
@@ -60,11 +59,13 @@ function Toolbar({
 	date,
 	locale,
 	col,
+	columns,
 }: {
 	view: View;
 	date: string;
 	locale: Locale;
 	col: string | undefined;
+	columns: ReadonlyArray<{ id: string; name: string }>;
 }): JSX.Element {
 	const o = at(locale);
 	const today = todayIso();
@@ -75,7 +76,10 @@ function Toolbar({
 				? `${dayLong(locale, weekStart(date))} – ${dayLong(locale, addDays(weekStart(date), 6))}`
 				: dayLong(locale, date);
 	return (
-		<div class="adm-stack adm-noprint" data-signals="{datePick:false,calMenu:false}">
+		<div
+			class="adm-stack adm-noprint"
+			data-signals="{datePick:false,calMenu:false,printOpen:false}"
+		>
 			<div class="cal-bar">
 				<a
 					class="adm-iconbtn"
@@ -123,11 +127,7 @@ function Toolbar({
 					<Icon name="plus" />
 					{m.ap_new_button({}, o)}
 				</button>
-				<div
-					class="adm-menu"
-					style="margin-left:auto"
-					data-on:keydown="evt.key === 'Escape' && ($calMenu = false)"
-				>
+				<div class="adm-menu" data-on:keydown="evt.key === 'Escape' && ($calMenu = false)">
 					<button
 						type="button"
 						class="adm-iconbtn"
@@ -142,7 +142,7 @@ function Toolbar({
 						<button
 							type="button"
 							class="adm-menu__item"
-							data-on:click="$calMenu = false; window.print()"
+							data-on:click="$calMenu = false; $printOpen = true"
 						>
 							<Icon name="download" />
 							{m.print({}, o)}
@@ -150,6 +150,54 @@ function Toolbar({
 					</div>
 				</div>
 			</div>
+			<Sheet signal="printOpen" title={m.print_options({}, o)} closeLabel={m.close({}, o)}>
+				<form
+					method="get"
+					action="/calendar/print"
+					target="_blank"
+					class="adm-stack"
+					rel="noopener"
+				>
+					<label class="adm-field">
+						<span>{m.print_period({}, o)}</span>
+						<select class="adm-input" name="view">
+							<option value="day" selected={view !== "week"}>
+								{m.print_day({}, o)}
+							</option>
+							<option value="week" selected={view === "week"}>
+								{m.print_week({}, o)}
+							</option>
+						</select>
+					</label>
+					<label class="adm-field">
+						<span>{m.field_date({}, o)}</span>
+						<input class="adm-input" type="date" name="date" value={date} required />
+					</label>
+					<label class="adm-field">
+						<span>{m.print_scope({}, o)}</span>
+						<select class="adm-input" name="scope">
+							<option value="all">{m.print_all({}, o)}</option>
+							{columns.map((c) => (
+								<option key={c.id} value={c.id} selected={c.id === col}>
+									{c.name}
+								</option>
+							))}
+						</select>
+					</label>
+					<label class="adm-field">
+						<span>{m.print_orient({}, o)}</span>
+						<select class="adm-input" name="orient">
+							<option value="portrait">{m.print_portrait({}, o)}</option>
+							<option value="landscape">{m.print_landscape({}, o)}</option>
+						</select>
+					</label>
+					<input type="hidden" name="auto" value="1" />
+					<button class="adm-btn adm-btn--primary" type="submit" data-on:click="$printOpen = false">
+						<Icon name="download" />
+						{m.print_open({}, o)}
+					</button>
+				</form>
+			</Sheet>
 			<Sheet signal="datePick" title={m.pick_day({}, o)} closeLabel={m.close({}, o)}>
 				<form method="get" action="/calendar" class="adm-stack">
 					<input type="hidden" name="view" value={view} />
@@ -193,7 +241,13 @@ export function CalendarBody({
 			class="adm-page adm-page--wide"
 			data-on:keydown__window={`(evt.key === 'n' || evt.key === 'N') && !evt.ctrlKey && !evt.metaKey && !evt.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') && !$editor && (evt.preventDefault(), @get('/calendar/editor?date=${date}&time=09:00'))`}
 		>
-			<Toolbar view={query.view} date={date} locale={locale} col={query.col} />
+			<Toolbar
+				view={query.view}
+				date={date}
+				locale={locale}
+				col={query.col}
+				columns={data?.columns ?? []}
+			/>
 			{view.failed || data === null ? (
 				<Banner tone="error" icon="alert">
 					<strong>{m.error_title({}, o)}</strong>

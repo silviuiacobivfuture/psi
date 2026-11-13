@@ -4,6 +4,7 @@
 @import "./calendar.css";
 @import "./screens.css";
 @import "./appointment.css";
+@import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";
 
