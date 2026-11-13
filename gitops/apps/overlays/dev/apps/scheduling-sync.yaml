@@ -1,0 +1,19 @@
+# The standing part of the dev one-shot old-app sync: its NetworkPolicy and secrets (gitops/services/scheduling-sync/
+# overlays/dev). The Job is created by hand (tools/scheduling/sync-dev-once.sh).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scheduling-sync
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/scheduling-sync/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scheduling
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

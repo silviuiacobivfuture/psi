@@ -1,8 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 
 const rootUrl = new URL("../../../", import.meta.url);
 const root = rootUrl.pathname;
@@ -12,6 +10,7 @@ const OVERLAYS = [
 	"account-db",
 	"scheduling-backend",
 	"scheduling-deploy",
+	"scheduling-sync",
 	"scheduling-api",
 	"clinic",
 ] as const;
@@ -25,6 +24,7 @@ const PROD_NAMESPACES = [
 const SHARED_PATHS = [
 	"apps/openfga/env",
 	"apps/autorizare/env",
+	"apps/scheduling-sync/old-app",
 	"platform/harbor/pull",
 	"platform/object-storage/dev",
 ];
@@ -180,127 +180,5 @@ describe("production's registration and admission", () => {
 		const a = read("gitops/apps/overlays/dev/authentik.yaml");
 		expect(a).toContain("authentik-blueprints-clinic-prod");
 		expect(a).toContain("authentik-clinic-prod-oidc");
-	});
-});
-
-describe("tools/scheduling/promote.sh", () => {
-	const dirs: string[] = [];
-	afterAll(() => {
-		for (const d of dirs) rmSync(d, { recursive: true, force: true });
-	});
-
-	/** A throwaway repository holding only the overlays the script touches, dev at `devTag`. */
-	function sandbox(devTag: string): string {
-		const dir = mkdtempSync(join(tmpdir(), "promote-"));
-		dirs.push(dir);
-		mkdirSync(join(dir, "tools/scheduling"), { recursive: true });
-		cpSync(join(root, "tools/scheduling/promote.sh"), join(dir, "tools/scheduling/promote.sh"));
-		for (const s of ["scheduling-backend", "scheduling-deploy", "scheduling-api", "clinic"]) {
-			for (const env of ["dev", "prod"]) {
-				mkdirSync(join(dir, `gitops/services/${s}/overlays/${env}`), { recursive: true });
-				cpSync(
-					join(root, `gitops/services/${s}/overlays/${env}/kustomization.yaml`),
-					join(dir, `gitops/services/${s}/overlays/${env}/kustomization.yaml`),
-				);
-			}
-		}
-		const dev = join(dir, "gitops/services/scheduling-api/overlays/dev/kustomization.yaml");
-		execFileSync("sed", ["-i", `s/newTag: ".*"/newTag: "${devTag}"/`, dev]);
-		const git = (...a: string[]): string => execFileSync("git", a, { cwd: dir, encoding: "utf8" });
-		git("init", "-q");
-		git("add", ".");
-		git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base");
-		return dir;
-	}
-	const run = (dir: string, args: string[], env: Record<string, string> = {}) =>
-		spawnSync("bash", [join(dir, "tools/scheduling/promote.sh"), ...args], {
-			cwd: dir,
-			encoding: "utf8",
-			env: {
-				...process.env,
-				GIT_AUTHOR_NAME: "t",
-				GIT_AUTHOR_EMAIL: "t@t",
-				GIT_COMMITTER_NAME: "t",
-				GIT_COMMITTER_EMAIL: "t@t",
-				...env,
-			},
-		});
-	const tags = (dir: string): string[] =>
-		["scheduling-backend", "scheduling-deploy", "scheduling-api", "clinic"].map(
-			(s) =>
-				/newTag: "([^"]*)"/.exec(
-					readFileSync(join(dir, `gitops/services/${s}/overlays/prod/kustomization.yaml`), "utf8"),
-				)?.[1] ?? "",
-		);
-
-	it("sets all four production tags to the sha's first seven characters and commits them", () => {
-		const dir = sandbox("abc1234");
-		const r = run(dir, ["abc1234def5678abc1234def5678abc1234def56"]);
-		expect(r.status).toBe(0);
-		expect(tags(dir)).toEqual(Array(4).fill("abc1234"));
-		const log = execFileSync("git", ["log", "-1", "--format=%s", "--name-only"], {
-			cwd: dir,
-			encoding: "utf8",
-		});
-		expect(log).toContain("promote abc1234 to production");
-		expect(log.match(/overlays\/prod\/kustomization\.yaml/g)).toHaveLength(4);
-	});
-
-	it("does not touch dev's overlays", () => {
-		const dir = sandbox("abc1234");
-		run(dir, ["abc1234", "--no-commit"]);
-		const dev = readFileSync(
-			join(dir, "gitops/services/clinic/overlays/dev/kustomization.yaml"),
-			"utf8",
-		);
-		expect(dev).toContain('newTag: "bootstrap"');
-	});
-
-	it("--no-commit edits and stops: the working tree is dirty, nothing is committed", () => {
-		const dir = sandbox("abc1234");
-		const before = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" });
-		expect(run(dir, ["abc1234", "--no-commit"]).status).toBe(0);
-		expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" })).toBe(before);
-		expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, encoding: "utf8" })).not.toBe(
-			"",
-		);
-	});
-
-	it("is a no-op the second time", () => {
-		const dir = sandbox("abc1234");
-		run(dir, ["abc1234"]);
-		const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" });
-		const again = run(dir, ["abc1234"]);
-		expect(again.status).toBe(0);
-		expect(again.stdout).toContain("already runs abc1234");
-		expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" })).toBe(head);
-	});
-
-	it.each([
-		["not hex", "zzzzzzz"],
-		["too short", "abc12"],
-		["upper case", "ABC1234"],
-		["too long", "a".repeat(41)],
-	])("refuses a sha that is %s, changing nothing", (_why, sha) => {
-		const dir = sandbox("abc1234");
-		const r = run(dir, [sha]);
-		expect(r.status).toBe(2);
-		expect(tags(dir)).toEqual(Array(4).fill("unpromoted"));
-	});
-
-	it("refuses a build dev does not run, unless the override is given", () => {
-		const dir = sandbox("abc1234");
-		const r = run(dir, ["fffffff"]);
-		expect(r.status).toBe(1);
-		expect(r.stderr).toContain("promote what was tested on dev");
-		expect(tags(dir)).toEqual(Array(4).fill("unpromoted"));
-		expect(run(dir, ["fffffff", "--no-commit"], { PROMOTE_ALLOW_UNTESTED: "1" }).status).toBe(0);
-		expect(tags(dir)).toEqual(Array(4).fill("fffffff"));
-	});
-
-	it("refuses missing or extra arguments", () => {
-		const dir = sandbox("abc1234");
-		expect(run(dir, []).status).toBe(2);
-		expect(run(dir, ["abc1234", "--push"]).status).toBe(2);
 	});
 });

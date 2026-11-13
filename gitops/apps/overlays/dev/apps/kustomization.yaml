@@ -11,11 +11,13 @@ resources:
   - scheduling-backend.yaml
   - scheduling-deploy.yaml
   - scheduling-api.yaml
+  - scheduling-sync.yaml
   - clinic.yaml
   - openfga-access.yaml
   # PRODUCTION of the appointments system, on this same cluster (docs/plans/clinic.md section 9).
   - account-db-prod.yaml
   - scheduling-backend-prod.yaml
   - scheduling-deploy-prod.yaml
+  - scheduling-sync-prod.yaml
   - scheduling-api-prod.yaml
   - clinic-prod.yaml

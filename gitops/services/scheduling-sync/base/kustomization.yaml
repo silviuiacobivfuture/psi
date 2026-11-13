@@ -1,0 +1,7 @@
+# The old-app sync's shared part (docs/plans/clinic.md section 9; packages/scheduling/scripts/sync-old). The workload and
+# its secrets are per environment: overlays/prod (a suspended CronJob) and overlays/dev-once (a one-shot Job that is NOT
+# registered with Argo: it is created by hand, see tools/scheduling/sync-dev-once.sh).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - networkpolicy.yaml
