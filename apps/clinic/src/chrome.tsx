@@ -8,6 +8,7 @@ import {
 } from "@psi/ui/admin";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { ASSISTANT_BASE } from "./assistant/mount";
 import { AssistantPanel, AssistantTrigger } from "./assistant/slot";
 import { Layout } from "./layout";
 import type { Ctx } from "./lib/context";
@@ -185,6 +186,23 @@ export async function Page({
 				rail={wide === true}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
+				choices={
+					ctx.assistant === undefined
+						? undefined
+						: [
+								{
+									id: "assistant",
+									label: m.assistant_mode_label({}, o),
+									action: `${ASSISTANT_BASE}/mode`,
+									name: "mode",
+									value: ctx.assistantMode,
+									options: [
+										{ value: "bar", label: m.assistant_mode_bar({}, o) },
+										{ value: "panel", label: m.assistant_mode_panel({}, o) },
+									],
+								},
+							]
+				}
 				extras={
 					<>
 						<div class="adm-menu__item adm-muted" data-who>

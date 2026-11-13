@@ -316,6 +316,11 @@ export const SearchHitSchema = z.discriminatedUnion("kind", [
 ]);
 export type SearchHit = z.infer<typeof SearchHitSchema>;
 
+/** How the assistant shows: the glowing conversation bar at the foot of the screen (the default), or the side panel. */
+export const ASSISTANT_MODES = ["bar", "panel"] as const;
+export const AssistantModeSchema = z.enum(ASSISTANT_MODES);
+export type AssistantMode = z.infer<typeof AssistantModeSchema>;
+
 export const PushPrefsSchema = z.object({
 	requests: z.boolean(),
 	reminders: z.boolean(),

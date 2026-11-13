@@ -91,6 +91,12 @@ export interface PanelCopy {
 	>;
 	sheetLabel: string;
 	undo: string;
+	/** The capsule's full-screen toggle (its names entering and leaving it) and the polite line said when it enters by itself. */
+	fullscreen: string;
+	exitFullscreen: string;
+	fullscreenOn: string;
+	/** What the capsule's field invites on each screen. */
+	placeholders: Readonly<Record<StaffScreen, string>>;
 }
 
 export interface StaffCopy {

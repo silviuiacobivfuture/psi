@@ -408,6 +408,21 @@ export const STAFF_RO: StaffCopy = {
 			language: "Nu am putut răspunde în limba ta. Încearcă din nou.",
 		},
 		sheetLabel: "Asistentul echipei",
+		fullscreen: "Ecran complet",
+		exitFullscreen: "Ieși din ecran complet",
+		fullscreenOn: "Conversația s-a deschis pe tot ecranul. Apasă Esc ca să ieși.",
+		placeholders: {
+			calendar: "Întreabă despre agendă sau programează pe cineva…",
+			clients: "Caută un client sau întreabă despre restanțe…",
+			client: "Întreabă despre acest client sau programează-l…",
+			appointment: "Mută, anulează sau marchează această programare…",
+			packages: "Întreabă despre abonamente sau înregistrează o plată…",
+			roster: "Întreabă cine lucrează sau cere concediu…",
+			requests: "Întreabă despre cererile de pe site…",
+			reminders: "Pregătește mementourile pentru mâine…",
+			settings: "Întreabă ce poți face cu rolul tău…",
+			other: "Întreabă sau cere ceva…",
+		},
 	},
 	suggestions: {
 		calendar: [

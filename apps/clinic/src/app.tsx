@@ -5,10 +5,12 @@ import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
+import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
 import type { Auth } from "./auth";
 import { Page } from "./chrome";
 import { registerFloor } from "./floor/mount";
+import { backPath } from "./lib/back";
 import { canOf } from "./lib/can";
 import { activeApp, type Ctx, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
@@ -131,8 +133,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			}
 		}
 		const can = canOf(caps, viewAs !== null);
+		const assistantMode = await assistantModeOf(c, own, person.subject);
 		c.set("ctx", {
 			c,
+			assistantMode,
 			locale,
 			pref,
 			theme,
@@ -259,13 +263,4 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		);
 	});
 	return app;
-}
-
-function backPath(referer: string | undefined, here: string): string {
-	try {
-		const r = new URL(referer ?? "", here);
-		return r.origin === new URL(here).origin ? `${r.pathname}${r.search}` : "/";
-	} catch {
-		return "/";
-	}
 }

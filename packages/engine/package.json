@@ -1,6 +1,6 @@
 {
 	"name": "@psi/engine",
-	"version": "0.13.0",
+	"version": "0.14.0",
 	"private": true,
 	"type": "module",
 	"description": "A reusable grounded-answer engine on Mastra: profiles (personas as data), screening, retrieval, the per-sentence gate and the faithfulness scorer, on OpenRouter models",

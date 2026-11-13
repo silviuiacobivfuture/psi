@@ -407,6 +407,21 @@ export const STAFF_EN: StaffCopy = {
 			language: "I could not answer in your language. Try again.",
 		},
 		sheetLabel: "The team's assistant",
+		fullscreen: "Full screen",
+		exitFullscreen: "Leave full screen",
+		fullscreenOn: "The conversation opened full screen. Press Esc to leave.",
+		placeholders: {
+			calendar: "Ask about the agenda or book someone…",
+			clients: "Find a client or ask about balances…",
+			client: "Ask about this client or book them…",
+			appointment: "Move, cancel or mark this appointment…",
+			packages: "Ask about packages or record a payment…",
+			roster: "Ask who is working or request leave…",
+			requests: "Ask about the website requests…",
+			reminders: "Prepare tomorrow's reminders…",
+			settings: "Ask what you can do with your role…",
+			other: "Ask or request something…",
+		},
 	},
 	suggestions: {
 		calendar: [

@@ -15,6 +15,7 @@ import { capabilityMap } from "./role-map";
 import type {
 	Appointment,
 	AppSlug,
+	AssistantMode,
 	AuditEvent,
 	Client,
 	Membership,
@@ -66,6 +67,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		return d;
 	};
 	const prefs = new Map<string, PushPrefs>();
+	const modes = new Map<string, AssistantMode>();
 	const plans = new Map<AppSlug, FloorPlanDoc>();
 	let seq = 1000;
 	const guard = (method: keyof ClinicPort): void => {
@@ -578,6 +580,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async savePushPrefs(subject, p) {
 			guard("savePushPrefs");
 			prefs.set(subject, p);
+		},
+		async assistantMode(subject) {
+			guard("assistantMode");
+			return modes.get(subject) ?? null;
+		},
+		async saveAssistantMode(subject, mode) {
+			guard("saveAssistantMode");
+			modes.set(subject, mode);
 		},
 	};
 }

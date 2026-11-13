@@ -3,6 +3,7 @@ import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { COMPASS_CHAT_JS } from "../client/compass-chat.generated";
 import { cx } from "../cx";
+import { CapsuleBar, CapsuleLive, CapsuleSheet } from "./capsule";
 import {
 	askEvent,
 	KEYS,
@@ -21,7 +22,6 @@ import { type CompassInvite, InviteLabel, Nudge } from "./compass-invite";
 import { type CompassGroup, matches, STAFF_KEYWORDS, staffFilter } from "./compass-match";
 import { jsString } from "./guide-exchange";
 import { GuideMessage } from "./guide-message";
-import { ArrowIcon } from "./icons";
 
 export type { CompassInvite, CompassNudge } from "./compass-invite";
 export {
@@ -251,20 +251,13 @@ export function Compass({
 			data-class:is-chat="$compassChat"
 			data-on:keydown__window={KEYS}
 		>
-			<div
-				class="pz-compass__scrim"
-				style={{ display: "none" }}
-				data-show="$compassOpen"
-				data-on:click="$compassOpen = false"
-			/>
-			<div
+			<CapsuleSheet
 				id="pz-compass-sheet"
-				class="pz-compass__sheet"
-				style={{ display: "none" }}
-				data-show="$compassOpen"
-			>
-				<div class="pz-compass__head">
-					<span class="pz-compass__handle" aria-hidden="true" />
+				labels={labels}
+				newShow="$compassTurns.length > 0 || $compassPending !== ''"
+				onNew={reset(guideAction, chat.storageKey, answerId)}
+				bodyEffect={restoreOnOpen(guideAction)}
+				start={
 					<fieldset class="pz-compass__views">
 						<legend class="sr-only">{labels.views}</legend>
 						<button
@@ -286,158 +279,67 @@ export function Compass({
 							{labels.pagesTab}
 						</button>
 					</fieldset>
-					<button
-						type="button"
-						class="pz-compass__new"
-						style={{ display: "none" }}
-						data-show="$compassTurns.length > 0 || $compassPending !== ''"
-						data-on:click={reset(guideAction, chat.storageKey, answerId)}
-					>
-						<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
-							<path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" fill="none" />
-						</svg>
-						<span>{labels.newChat}</span>
-					</button>
-					<button
-						type="button"
-						class="pz-compass__fs"
-						aria-pressed="false"
-						aria-label={labels.fullscreen}
-						data-enter={labels.fullscreen}
-						data-exit={labels.exitFullscreen}
-					>
-						<svg
-							class="pz-compass__fs-in"
-							viewBox="0 0 20 20"
-							width="18"
-							height="18"
-							aria-hidden="true"
-						>
-							<path
-								d="M12 4h4v4M8 16H4v-4M16 4l-5 5M4 16l5-5"
-								stroke="currentColor"
-								stroke-width="1.8"
-								fill="none"
-							/>
-						</svg>
-						<svg
-							class="pz-compass__fs-out"
-							viewBox="0 0 20 20"
-							width="18"
-							height="18"
-							aria-hidden="true"
-						>
-							<path
-								d="M16 8h-4V4M4 12h4v4M12 8l5-5M8 12l-5 5"
-								stroke="currentColor"
-								stroke-width="1.8"
-								fill="none"
-							/>
-						</svg>
-					</button>
-					<button
-						type="button"
-						class="pz-compass__close"
-						aria-label={labels.close}
-						data-on:click="$compassOpen = false"
-					>
-						<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-							<path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" fill="none" />
-						</svg>
-					</button>
-				</div>
-				<div class="pz-compass__body" data-effect={restoreOnOpen(guideAction)}>
-					<Destinations
-						askHint={askHint}
-						groups={groups}
-						chat={chat}
-						{...(staffLink === undefined ? {} : { staffLink })}
-						staffKeywords={staffKeywords}
-					/>
-					<div class="pz-compass__chat" style={{ display: "none" }} data-show="$compassChat">
-						<p class="pz-compass__disclaimer">{labels.disclaimer}</p>
-						<div
-							class="pz-compass__empty"
-							data-show="$compassTurns.length === 0 && $compassPending === ''"
-						>
-							<GuideMessage>{labels.greeting}</GuideMessage>
-							<Suggestions chat={chat} />
+				}
+				foot={
+					tools ? (
+						<div class="pz-compass__tools" data-show="!$compassChat">
+							{tools}
 						</div>
-						<div id={answerId} class="pz-compass__answer" role="log" aria-live="polite" />
-					</div>
-					<button type="button" class="pz-compass__pill" hidden>
-						<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
-							<path
-								d="M10 4v11M5 10l5 5 5-5"
-								stroke="currentColor"
-								stroke-width="1.8"
-								fill="none"
-							/>
-						</svg>
-						{labels.newMessage}
-					</button>
-				</div>
-				{tools ? (
-					<div class="pz-compass__tools" data-show="!$compassChat">
-						{tools}
-					</div>
-				) : null}
-			</div>
-			{/* Said once, politely, when the chat goes full screen by itself. */}
-			<p
-				class="sr-only pz-compass__fs-live"
-				role="status"
-				aria-live="polite"
-				data-on={labels.fullscreenOn}
-			/>
-			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
-			<form
-				class="pz-compass__bar pz-edge"
-				aria-controls={answerId}
-				data-on:submit__prevent={submit(guideAction)}
-				data-on:psi-guide-ask={askEvent(guideAction)}
+					) : null
+				}
 			>
-				{invite ? <InviteLabel label={invite.label} /> : null}
-				<button
-					type="button"
-					class="pz-compass__orb"
-					aria-label={toggleLabel}
-					aria-expanded="false"
-					aria-controls="pz-compass-sheet"
-					data-attr:aria-expanded="$compassOpen ? 'true' : 'false'"
-					data-on:click="$compassOpen = !$compassOpen"
+				<Destinations
+					askHint={askHint}
+					groups={groups}
+					chat={chat}
+					{...(staffLink === undefined ? {} : { staffLink })}
+					staffKeywords={staffKeywords}
 				/>
-				<textarea
-					class="pz-compass__input"
-					name="compass"
-					rows={1}
-					maxlength={500}
-					data-bind="compassQuery"
-					placeholder={shown}
-					{...(invite !== undefined && invite.placeholders.length > 1
-						? { "data-cycle": JSON.stringify(invite.placeholders) }
-						: {})}
-					data-attr:placeholder={placeholders}
-					aria-label={placeholder}
-					autocomplete="off"
-					enterkeyhint="send"
-					data-on:focus="$compassOpen = true"
-					data-on:keydown={PICK}
-					data-on:input={UNPICK}
-				/>
-				<span class="pz-compass__kbd" aria-hidden="true">
-					/
-				</span>
-				<button
-					type="submit"
-					class="pz-compass__go"
-					aria-label={askHint}
-					data-attr:disabled="$compassQuery.trim() === ''"
-				>
-					<ArrowIcon size={18} />
+				<div class="pz-compass__chat" style={{ display: "none" }} data-show="$compassChat">
+					<p class="pz-compass__disclaimer">{labels.disclaimer}</p>
+					<div
+						class="pz-compass__empty"
+						data-show="$compassTurns.length === 0 && $compassPending === ''"
+					>
+						<GuideMessage>{labels.greeting}</GuideMessage>
+						<Suggestions chat={chat} />
+					</div>
+					<div id={answerId} class="pz-compass__answer" role="log" aria-live="polite" />
+				</div>
+				<button type="button" class="pz-compass__pill" hidden>
+					<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+						<path d="M10 4v11M5 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" fill="none" />
+					</svg>
+					{labels.newMessage}
 				</button>
-				{action ? <span class="pz-compass__action">{action}</span> : null}
-			</form>
+			</CapsuleSheet>
+			<CapsuleLive text={labels.fullscreenOn} />
+			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
+			<CapsuleBar
+				answerId={answerId}
+				sheetId="pz-compass-sheet"
+				toggleLabel={toggleLabel}
+				sendLabel={askHint}
+				kbd="/"
+				onSubmit={submit(guideAction)}
+				onAsk={askEvent(guideAction)}
+				lead={invite ? <InviteLabel label={invite.label} /> : undefined}
+				action={action}
+				field={{
+					label: placeholder,
+					placeholder: shown,
+					placeholderExpression: placeholders,
+					bind: "compassQuery",
+					maxLength: 500,
+					attributes: {
+						"data-on:keydown": PICK,
+						"data-on:input": UNPICK,
+						...(invite !== undefined && invite.placeholders.length > 1
+							? { "data-cycle": JSON.stringify(invite.placeholders) }
+							: {}),
+					},
+				}}
+			/>
 			{/* What the page shows itself when a question never reached the guide (no exchange came back). */}
 			<template class="pz-compass__unsent">
 				<div class="pz-exchange" aria-busy="false">

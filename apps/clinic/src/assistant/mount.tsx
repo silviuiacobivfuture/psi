@@ -11,9 +11,12 @@ import { staffViews } from "@psi/ui/staff-assistant";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { Env } from "../app";
+import { backPath } from "../lib/back";
 import { at, localeFrom } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
+import { AssistantModeSchema } from "../port/schema";
 import { staffMemoryFrom } from "./memory";
+import { chooseAssistantMode } from "./mode";
 import { createStaffPort } from "./staff-port";
 
 /** The assistant's address inside the console. */
@@ -92,6 +95,16 @@ export function mountAssistant(app: Hono<Env>, engine: StaffEngine): void {
 			}),
 		);
 		await next();
+	});
+	// How the person's assistant shows (a plain form post from the account menu).
+	sub.post("/mode", async (c) => {
+		const body = await c.req.parseBody();
+		const mode = AssistantModeSchema.safeParse(body.mode);
+		if (mode.success) {
+			const ctx = c.var.ctx;
+			await chooseAssistantMode(c, ctx.port, ctx.person.subject, mode.data);
+		}
+		return c.redirect(backPath(c.req.header("referer"), c.req.url), 303);
 	});
 	sub.route(
 		"/",
