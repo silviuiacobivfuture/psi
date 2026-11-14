@@ -1,0 +1,49 @@
+/*
+ * A paged list's search and filters (the client list's today): the standing switch, then one row of fields that wraps,
+ * the search taking the room left. At phone width every field takes the whole row and the buttons share one.
+ */
+.cl-filters {
+	display: grid;
+	gap: var(--space-3);
+	margin-bottom: var(--space-3);
+}
+.cl-filters__form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-2) var(--space-3);
+}
+.cl-filter {
+	flex: 0 1 12rem;
+	min-width: 0;
+}
+.cl-filter--q {
+	flex: 1 1 16rem;
+}
+.cl-filters__go {
+	display: flex;
+	gap: var(--space-2);
+}
+.cl-results {
+	display: grid;
+	gap: var(--adm-gap);
+}
+.cl-results:focus {
+	outline: none;
+}
+.cl-results:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 4px;
+}
+@media (max-width: 599px) {
+	.cl-filter,
+	.cl-filter--q {
+		flex: 1 1 100%;
+	}
+	.cl-filters__go {
+		flex: 1 1 100%;
+	}
+	.cl-filters__go > * {
+		flex: 1 1 0;
+	}
+}

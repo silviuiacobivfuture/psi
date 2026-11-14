@@ -6,7 +6,11 @@ import { actorValidator, serverKeyValidator } from "./validators";
 
 /** The most one document holds (the serialized plan): the service checks it too, this is the store's own bound. */
 export const MAX_DOCUMENT_CHARS = 512_000;
-const kindValidator = v.union(v.literal("floor_plan"), v.literal("assistant_config"));
+const kindValidator = v.union(
+	v.literal("floor_plan"),
+	v.literal("assistant_config"),
+	v.literal("org_profile"),
+);
 
 export const get = query({
 	args: { key: serverKeyValidator, tenant: v.string(), kind: kindValidator },

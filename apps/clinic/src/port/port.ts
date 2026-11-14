@@ -12,6 +12,8 @@ import type {
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { ClientFilter, ClientListAsk, ClientPage } from "./client-list";
+import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
 import type {
@@ -81,7 +83,14 @@ import type {
 	MySettingsView,
 } from "./schema-settings";
 
-export type ClientFilter = "current" | "archived";
+export type {
+	ClientFilter,
+	ClientFlagFilter,
+	ClientListAsk,
+	ClientPackageFilter,
+	ClientPage,
+} from "./client-list";
+export { DEFAULT_PAGE_SIZE } from "./client-list";
 
 export interface CalendarData {
 	columns: ReadonlyArray<Column>;
@@ -127,15 +136,6 @@ export interface ListedClient {
 	entry: BlacklistEntry;
 	clientId: string;
 	clientName: string;
-}
-
-/** How many clients one page of the list shows. */
-export const CLIENT_PAGE_SIZE = 50;
-
-export interface ClientPage {
-	clients: ReadonlyArray<Client>;
-	summaries: ReadonlyArray<ClientSummary>;
-	nextCursor: string | null;
 }
 
 export interface ReminderItem {
@@ -205,7 +205,7 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort extends ProfilePort {
+export interface ClinicPort extends ProfilePort, OrgPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	/** The person is the estate administrator: the platform zone is theirs, and every app, member of it or not. */
 	platformAdmin(subject: string): Promise<boolean>;
@@ -418,15 +418,10 @@ export interface ClinicPort extends ProfilePort {
 		query: string,
 	): Promise<ReadonlyArray<ClientSummary>>;
 	/**
-	 * ONE page of the client list (`cursor` null: the first) with the rich rows of those clients only: what the list
-	 * screen shows, a page at a time, however many clients the clinic has. `nextCursor` null: the last page.
+	 * ONE numbered page of the client list with the rich rows of those clients only, and how many match in all: what the
+	 * list screen shows, however many clients the clinic has. The search, filters and order run in the service.
 	 */
-	clientPage(
-		app: AppSlug,
-		filter: ClientFilter,
-		query: string,
-		cursor: string | null,
-	): Promise<ClientPage>;
+	clientPage(app: AppSlug, ask: ClientListAsk): Promise<ClientPage>;
 	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
 	clientFlags(
 		app: AppSlug,

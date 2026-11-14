@@ -1,4 +1,4 @@
-import { Banner, EmptyState, PageHeader, Segmented, Sheet, StatCard, Toolbar } from "@psi/ui/admin";
+import { Banner, EmptyState, PageHeader, Sheet, StatCard } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ActionBar, EmptyActions } from "../actions/render";
 import { Page } from "../chrome";
@@ -6,15 +6,20 @@ import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
-import { moreHref, ShowMore } from "../lib/show-more";
+import { ListPager } from "../lib/paging";
 import { m } from "../paraglide/messages.js";
-import type { ClientFilter } from "../port/port";
-import type { Client } from "../port/schema";
+import type { ClientListAsk, ClientPage } from "../port/port";
+import type { Client, Column } from "../port/schema";
 import type { ClientSummary } from "../port/schema-clinical";
 import { BlacklistBadge } from "./client-flags";
 import { SheetButtons } from "./client-sheets";
+import { ClientFilters } from "./clients-filters";
+import { addressParams, clientsHref, narrowed } from "./clients-query";
 
-/** One client as a row: monogram, name, who to call, next appointment, balance, and the flags. */
+/** The region a page change replaces (and focuses): the count, the rows and the pager. */
+export const RESULTS_ID = "client-results";
+
+/** One client as a row: monogram, name, who to call, next or last visit, balance, and the flags. */
 export function ClientRow({
 	client,
 	summary,
@@ -29,6 +34,7 @@ export function ClientRow({
 	const listed = ctx.can.has("blacklist_view") ? (summary?.blacklist ?? null) : null;
 	const owes = ctx.can.group("money") ? (summary?.owedBani ?? 0) : 0;
 	const next = summary?.next ?? null;
+	const last = summary?.lastVisit ?? null;
 	return (
 		<a class="client-row" href={`/clients/${client.id}`} data-client={client.id}>
 			<span class="adm-avatar client-row__avatar" aria-hidden="true">
@@ -43,6 +49,7 @@ export function ClientRow({
 					{next === null
 						? m.cl_list_no_next({}, o)
 						: m.cl_list_next({ date: dayLong(locale, next.date), time: hhmm(next.startMin) }, o)}
+					{last === null ? null : ` · ${m.cl_list_last({ date: dayLong(locale, last) }, o)}`}
 				</span>
 			</span>
 			<span class="client-row__flags">
@@ -90,44 +97,115 @@ function NewClientSheet({ ctx }: { ctx: Ctx }): JSX.Element {
 	);
 }
 
-/** How many clients the list shows, and whether more follow (announced to screen readers as it grows). */
-export function ShownCount({
-	ctx,
-	shown,
-	more,
-}: {
-	ctx: Ctx;
-	shown: number;
-	more: boolean;
-}): JSX.Element {
-	const o = at(ctx.locale);
-	return (
-		<p class="adm-muted" aria-live="polite" id="client-count">
-			{more ? m.cl_list_shown({ n: String(shown) }, o) : m.clients_count({ n: shown }, o)}
-		</p>
-	);
+/** The page's result, or the failure to read it. */
+export type ClientsResult = { ok: true; page: ClientPage } | { ok: false };
+
+/** Reads one page of the list; a failure is the region's error banner, never a broken page. */
+export async function readClients(ctx: Ctx, ask: ClientListAsk): Promise<ClientsResult> {
+	try {
+		return { ok: true, page: await ctx.port.clientPage(ctx.app, ask) };
+	} catch {
+		return { ok: false };
+	}
 }
 
-/** The next page of the list, fetched into the open page (a Datastar patch), or nothing on the last page. */
-export function MoreClients({
+/** The count, the rows and the pager: what a page change, a search or a filter replaces in place. */
+export function ClientResults({
 	ctx,
-	filter,
-	q,
-	cursor,
-	shown,
+	ask,
+	result,
 }: {
 	ctx: Ctx;
-	filter: ClientFilter;
-	q: string;
-	cursor: string | null;
-	shown: number;
+	ask: ClientListAsk;
+	result: ClientsResult;
 }): JSX.Element {
+	const o = at(ctx.locale);
+	const here = clientsHref(ask, ask.page, ask.size);
+	let body: JSX.Element;
+	if (!result.ok)
+		body = (
+			<Banner tone="error" icon="alert">
+				<strong>{m.error_title({}, o)}</strong>
+				<p>{m.error_text({}, o)}</p>
+				<a class="adm-btn" href={here}>
+					{m.retry({}, o)}
+				</a>
+			</Banner>
+		);
+	else if (result.page.total === 0)
+		body = narrowed(ask) ? (
+			<EmptyState icon="search" title={m.cl_f_none_title({}, o)} text={m.cl_f_none_text({}, o)}>
+				<a
+					class="adm-btn"
+					href={clientsHref(
+						{
+							filter: ask.filter,
+							q: "",
+							sort: "name",
+							practitioner: null,
+							flag: null,
+							pkg: null,
+						},
+						1,
+						ask.size,
+					)}
+				>
+					{m.cl_f_clear({}, o)}
+				</a>
+			</EmptyState>
+		) : (
+			<EmptyState
+				icon="users"
+				title={m.clients_empty_title({}, o)}
+				text={
+					ctx.viewAs?.as.startsWith("role:") && ctx.can.narrowed("clients_view")
+						? m.view_as_role_empty({}, o)
+						: m.clients_empty_text({}, o)
+				}
+			>
+				<EmptyActions ctx={ctx} screen="clients" />
+			</EmptyState>
+		);
+	else {
+		const { page } = result;
+		const by = new Map(page.summaries.map((s) => [s.clientId, s]));
+		const params = Object.fromEntries(
+			addressParams(ask).flatMap(([k, v]) => (v === null || v === "" ? [] : [[k, v]])),
+		);
+		body = (
+			<>
+				<div class="cl-summary" data-summary>
+					<StatCard label={m.cl_list_total({}, o)} value={String(page.total)} />
+				</div>
+				<div class="adm-card client-list" id="client-list">
+					{page.clients.map((c) => (
+						<ClientRow key={c.id} client={c} summary={by.get(c.id)} ctx={ctx} />
+					))}
+				</div>
+				<ListPager
+					ctx={ctx}
+					id="client-pager"
+					nav={m.cl_pager_nav({}, o)}
+					page={page.page}
+					size={ask.size}
+					total={page.total}
+					href={(p, s) => clientsHref(ask, p, s)}
+					action="/clients"
+					params={params}
+				/>
+			</>
+		);
+	}
 	return (
-		<ShowMore
-			id="client-more"
-			href={moreHref("/clients/more", cursor, shown, q === "" ? { filter } : { filter, q })}
-			label={m.cl_list_more({}, at(ctx.locale))}
-		/>
+		<section
+			id={RESULTS_ID}
+			class="cl-results"
+			tabindex={-1}
+			aria-label={m.clients_title({}, o)}
+			data-results
+		>
+			{body}
+		</section>
 	);
 }
 
@@ -141,36 +219,25 @@ async function waitingLinks(ctx: Ctx): Promise<number> {
 	}
 }
 
+/** The practitioners the list may be filtered by; none when the team cannot be read (the filter then is not offered). */
+export async function practitionersOf(ctx: Ctx): Promise<ReadonlyArray<Column>> {
+	try {
+		return (await ctx.port.columns(ctx.app)).filter((c) => c.kind === "person");
+	} catch {
+		return [];
+	}
+}
+
 export async function renderClients(
 	ctx: Ctx,
-	filter: ClientFilter,
-	q: string,
+	ask: ClientListAsk,
+	result: ClientsResult,
 	openNew = false,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	let rows: ReadonlyArray<ClientSummary> = [];
-	let clients: ReadonlyArray<Client> = [];
-	let next: string | null = null;
-	let failed = false;
-	try {
-		// One page: the list never asks for (nor renders) every client at once.
-		const page = await ctx.port.clientPage(ctx.app, filter, q, null);
-		clients = page.clients;
-		rows = page.summaries;
-		next = page.nextCursor;
-	} catch {
-		failed = true;
-	}
-	const qs = (f: ClientFilter): string =>
-		`/clients?filter=${f}${q === "" ? "" : `&q=${encodeURIComponent(q)}`}`;
-	const by = new Map(rows.map((r) => [r.clientId, r]));
-	// With more pages to come, a count is "at least": n+.
-	const count = (n: number): string =>
-		next === null ? String(n) : m.cl_list_count_more({ n: String(n) }, o);
-	const listedCount = rows.filter((r) => r.blacklist !== null).length;
-	const owing = rows.filter((r) => (r.owedBani ?? 0) > 0).length;
-	const upcoming = rows.filter((r) => r.next !== null).length;
-	const waiting = await waitingLinks(ctx);
+	const [waiting, practitioners] = await Promise.all([waitingLinks(ctx), practitionersOf(ctx)]);
+	// The page really shown (past the end: the last) is the address the person lands on.
+	const shown = result.ok ? { ...ask, page: result.page.page } : ask;
 	return Page({
 		ctx,
 		current: "clients",
@@ -188,79 +255,17 @@ export async function renderClients(
 						</a>
 					</Banner>
 				)}
-				{failed || clients.length === 0 ? null : (
-					<div class="cl-summary" data-summary>
-						<StatCard label={m.cl_list_total({}, o)} value={count(clients.length)} />
-						<StatCard label={m.cl_list_upcoming({}, o)} value={count(upcoming)} />
-						{ctx.can.group("money") ? (
-							<StatCard label={m.cl_list_owing({}, o)} value={count(owing)} />
-						) : null}
-						{ctx.can.has("blacklist_view") ? (
-							<StatCard label={m.cl_list_listed({}, o)} value={count(listedCount)} />
-						) : null}
-					</div>
-				)}
-				<Toolbar
-					search={
-						<form method="get" action="/clients">
-							<input type="hidden" name="filter" value={filter} />
-							<label class="adm-sr" for="clients-q">
-								{m.clients_search_label({}, o)}
-							</label>
-							<input
-								id="clients-q"
-								class="adm-input"
-								type="search"
-								name="q"
-								value={q}
-								placeholder={m.clients_search_label({}, o)}
-							/>
-							<button class="adm-btn" type="submit">
-								{m.clients_search_go({}, o)}
-							</button>
-						</form>
-					}
-				>
-					<Segmented
-						label={m.filter_label({}, o)}
-						current={filter}
-						items={[
-							{ key: "current", label: m.filter_current({}, o), href: qs("current") },
-							{ key: "archived", label: m.filter_archived({}, o), href: qs("archived") },
-						]}
-					/>
-				</Toolbar>
-				{failed ? (
-					<Banner tone="error" icon="alert">
-						<strong>{m.error_title({}, o)}</strong>
-						<p>{m.error_text({}, o)}</p>
-						<a class="adm-btn" href={qs(filter)}>
-							{m.retry({}, o)}
-						</a>
-					</Banner>
-				) : clients.length === 0 ? (
-					<EmptyState
-						icon="users"
-						title={m.clients_empty_title({}, o)}
-						text={
-							ctx.viewAs?.as.startsWith("role:") && ctx.can.narrowed("clients_view")
-								? m.view_as_role_empty({}, o)
-								: m.clients_empty_text({}, o)
-						}
-					>
-						<EmptyActions ctx={ctx} screen="clients" />
-					</EmptyState>
-				) : (
-					<>
-						<ShownCount ctx={ctx} shown={clients.length} more={next !== null} />
-						<div class="adm-card client-list" id="client-list">
-							{clients.map((c) => (
-								<ClientRow key={c.id} client={c} summary={by.get(c.id)} ctx={ctx} />
-							))}
-						</div>
-						<MoreClients ctx={ctx} filter={filter} q={q} cursor={next} shown={clients.length} />
-					</>
-				)}
+				{/*
+				 * Back and Forward land on an address the list pushed: the list follows it in place. The address the page
+				 * opened at is made the canonical one first, so following it in place never pushes over the forward history.
+				 */}
+				<div
+					hidden
+					data-init={`history.replaceState(null, "", ${JSON.stringify(clientsHref(shown, shown.page, shown.size))})`}
+					data-on:popstate__window="@get(location.pathname + location.search)"
+				/>
+				<ClientFilters ctx={ctx} ask={shown} practitioners={practitioners} />
+				<ClientResults ctx={ctx} ask={shown} result={result} />
 			</div>
 		),
 		overlays: (

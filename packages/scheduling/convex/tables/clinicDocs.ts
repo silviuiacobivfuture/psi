@@ -2,8 +2,9 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * Documents an app keeps beside its data, one per kind (the floor plan, the assistants' configuration); the estate's own
- * (the assistants' platform tier) are kept under the reserved tenant `*`, which no app slug can be. `revision` counts the saves and is the
+ * Documents an app keeps beside its data, one per kind (the floor plan, the assistants' configuration, the
+ * organisation's contact profile); the estate's own (the assistants' platform tier) are kept under the reserved tenant
+ * `*`, which no app slug can be. `revision` counts the saves and is the
  * optimistic-concurrency token: a write names the revision it was edited from and is refused when the row has moved on.
  * The body is JSON text the service validated; Convex keeps it whole.
  */
@@ -13,6 +14,7 @@ export const appDocuments = defineTable({
 		v.literal("floor_plan"),
 		v.literal("assistant_config"),
 		v.literal("assistant_platform"),
+		v.literal("org_profile"),
 	),
 	revision: v.number(),
 	body: v.string(),

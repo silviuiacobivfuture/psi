@@ -2,10 +2,9 @@ import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
-import { appendPage, MoreQuery } from "../lib/show-more";
+import { inPlace, type PageSize, patchList, rememberSize } from "../lib/paging";
 import { m } from "../paraglide/messages.js";
-import { type ClientFilter, PortError } from "../port/port";
-import { ClientFilterSchema } from "../port/schema";
+import { PortError } from "../port/port";
 import { CLEARABLE_FIELDS } from "../port/schema-clinical";
 import { registerClientActions } from "./client-action-routes";
 import {
@@ -16,7 +15,15 @@ import {
 	type Soon,
 } from "./client-page";
 import { registerClientTabMore } from "./client-tab-more";
-import { ClientRow, MoreClients, renderClients, ShownCount } from "./clients-list";
+import { ClientFilters } from "./clients-filters";
+import {
+	ClientResults,
+	practitionersOf,
+	RESULTS_ID,
+	readClients,
+	renderClients,
+} from "./clients-list";
+import { askOf, clientsHref, parseClients } from "./clients-query";
 import { inviteErrorFrom, inviteFlash, registerInviteRoutes } from "./invite-routes";
 import { registerPackageRoutes } from "./package-routes";
 
@@ -55,44 +62,39 @@ function openOf(c: Context<Env>, tab: ClientTab): ClientOpen {
 }
 
 export function registerClients(app: Hono<Env>): void {
+	// One address for the whole list: a page load answers the page, Datastar's in-place fetch of the same address the
+	// patches (the results, and the filters unless they asked), so back, refresh and a shared link land on that page.
 	app.get("/clients", async (c) => {
-		const f = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
-		return c.html(
-			await renderClients(
-				c.var.ctx,
-				f satisfies ClientFilter,
-				(c.req.query("q") ?? "").slice(0, 120),
-				c.req.query("new") === "1",
-			),
-			200,
-			{ "cache-control": "private, no-store" },
-		);
-	});
-
-	// The next page of the list, appended to the open page: the list grows a page at a time, never all at once.
-	app.get("/clients/more", async (c) => {
 		const ctx = c.var.ctx;
-		const filter = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
-		const q = (c.req.query("q") ?? "").slice(0, 120);
-		const asked = MoreQuery.parse(c.req.query());
-		const page = await ctx.port.clientPage(
-			ctx.app,
-			filter,
-			q,
-			asked.cursor === "" ? null : asked.cursor,
-		);
-		const by = new Map(page.summaries.map((s) => [s.clientId, s]));
-		const shown = asked.shown + page.clients.length;
-		return appendPage({
-			list: "#client-list",
-			rows: page.clients.map((client) => (
-				<ClientRow key={client.id} client={client} summary={by.get(client.id)} ctx={ctx} />
-			)),
-			more: <MoreClients ctx={ctx} filter={filter} q={q} cursor={page.nextCursor} shown={shown} />,
-			count: <ShownCount ctx={ctx} shown={shown} more={page.nextCursor !== null} />,
+		const asked = parseClients(c.req.query());
+		const ask = await askOf(ctx, asked);
+		await rememberSize(ctx, asked.paging, ask.size as PageSize);
+		const result = await readClients(ctx, ask);
+		if (!inPlace(c))
+			return c.html(await renderClients(ctx, ask, result, c.req.query("new") === "1"), 200, {
+				"cache-control": "private, no-store",
+			});
+		const shown = result.ok ? { ...ask, page: result.page.page } : ask;
+		const results = <ClientResults ctx={ctx} ask={shown} result={result} />;
+		return patchList({
+			c,
+			elements:
+				asked.paging.via === "filters"
+					? [results]
+					: [
+							<ClientFilters
+								key="filters"
+								ctx={ctx}
+								ask={shown}
+								practitioners={await practitionersOf(ctx)}
+							/>,
+							results,
+						],
+			regionId: RESULTS_ID,
+			url: clientsHref(shown, shown.page, shown.size),
+			asked: asked.paging,
 		});
 	});
-
 	const show = async (c: Context<Env>, tab: ClientTab, flash?: string): Promise<Response> => {
 		const ctx = c.var.ctx;
 		const id = c.req.param("id") ?? "";

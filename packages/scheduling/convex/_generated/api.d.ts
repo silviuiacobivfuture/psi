@@ -17,6 +17,7 @@ import type * as apiBlacklist from "../apiBlacklist.js";
 import type * as apiBuilder from "../apiBuilder.js";
 import type * as apiCalendar from "../apiCalendar.js";
 import type * as apiCatalogExtra from "../apiCatalogExtra.js";
+import type * as apiClientPage from "../apiClientPage.js";
 import type * as apiClients from "../apiClients.js";
 import type * as apiDefinitionsExtra from "../apiDefinitionsExtra.js";
 import type * as apiDocuments from "../apiDocuments.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   apiBuilder: typeof apiBuilder;
   apiCalendar: typeof apiCalendar;
   apiCatalogExtra: typeof apiCatalogExtra;
+  apiClientPage: typeof apiClientPage;
   apiClients: typeof apiClients;
   apiDefinitionsExtra: typeof apiDefinitionsExtra;
   apiDocuments: typeof apiDocuments;
