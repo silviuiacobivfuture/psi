@@ -39,6 +39,7 @@ const area = <I extends string>(
  */
 export const ORG_AREAS = [
 	area("profile", "team", ["app_settings_view"], "settings", true),
+	area("members", "team", ["members_view"], "users", true),
 	area("people", "team", ["people_view"], "users", true),
 	area("roles", "team", ["roles_view"], "shield", true),
 	area("services", "services", ["services_view"], "list", true),

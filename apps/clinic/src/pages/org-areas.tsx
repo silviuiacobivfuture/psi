@@ -7,6 +7,7 @@ import { ORG_AREAS } from "../lib/areas";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
+import { registerMembers } from "./members-routes";
 import { OrgFrame, renderSoonArea } from "./org-settings";
 
 const NOCACHE = { "cache-control": "private, no-store" } as const;
@@ -80,6 +81,7 @@ async function renderBlacklist(ctx: Ctx): Promise<JSX.Element> {
 
 export function registerOrgAreas(app: Hono<Env>): void {
 	app.get("/settings/profile", async (c) => c.html(await renderProfile(c.var.ctx), 200, NOCACHE));
+	registerMembers(app);
 	app.get("/settings/blacklist", async (c) =>
 		c.html(await renderBlacklist(c.var.ctx), 200, NOCACHE),
 	);
