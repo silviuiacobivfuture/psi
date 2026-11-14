@@ -19,6 +19,7 @@ import type { ProfileLocale } from "./profile";
 import { instructionsFor, languageNote, styledLocale } from "./prompt";
 import { screenWithModel } from "./screening/model";
 import { createSmallTalk } from "./small-talk";
+import { foldConversation } from "./visitor-compaction";
 import { modelKeyOf, pausedEvents, turnLimitsOf } from "./visitor-turn";
 
 export { ANSWER_TEMPERATURE } from "./converse";
@@ -279,8 +280,14 @@ async function* turn(
 		}
 
 		const note = languageNote(pack, ctx.languages.detect(input.question));
+		const folded =
+			governance === undefined
+				? {}
+				: await foldConversation(ctx, input, governance.settings, controller.signal);
+		if (folded.usage !== undefined) meter.usages.push(Promise.resolve(folded.usage));
 		const notes = [
 			...(note === "" ? [] : [note]),
+			...(folded.note === undefined ? [] : [folded.note]),
 			...(outOfScope && pack.prompt.outOfScope !== undefined ? [pack.prompt.outOfScope] : []),
 			...(ctx.booking !== undefined && pack.prompt.scheduling !== undefined
 				? [pack.prompt.scheduling]

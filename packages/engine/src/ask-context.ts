@@ -2,6 +2,7 @@ import type { Agent } from "@mastra/core/agent";
 import type { Memory } from "@mastra/memory";
 import type { z } from "zod";
 import type { BookingScope } from "./booking";
+import type { Summariser } from "./compaction";
 import type { EngineKnowledge } from "./contract";
 import type { AskInput } from "./events";
 import type { EngineScore, Faithfulness } from "./grounding/faithfulness";
@@ -54,7 +55,9 @@ export type FailureStage =
 	/** The conversation memory's retention sweep failed; it runs again later. */
 	| "memory"
 	/** The organisation's meters did not take a turn's use. */
-	| "usage";
+	| "usage"
+	/** A long conversation could not be folded into its summary; the turn went on with it whole. */
+	| "compaction";
 
 /**
  * Why a stage failed, for the app's logs. It names the profile, the stage and the error, never
@@ -145,6 +148,11 @@ export interface AskContext {
 	governance?: GovernanceSource;
 	/** Refusals per conversation, for the organisation's hand-over to a person. */
 	refusals: RefusalCounter;
+	/**
+	 * Folds a long kept conversation's older part into a summary with the organisation's `model.summary`
+	 * (`memory.compactAfter`); on a governed site with a key and conversation memory only.
+	 */
+	summarise?: Summariser;
 	/**
 	 * What the app's log may hold, as the organisation's `logging.*` last said (the built-in on a governed site before any
 	 * read; neither on a site not governed). Set at the start of each governed turn.

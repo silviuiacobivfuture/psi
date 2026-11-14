@@ -26,7 +26,7 @@ const FIRST_CHUNK_MS = 15_000;
 export const CACHE_BREAKPOINT = { openrouter: { cacheControl: { type: "ephemeral" as const } } };
 
 /** What a finished stream used, as the staff meters take it. */
-export async function usageOf(output: UsageSource, signal: AbortSignal): Promise<StaffUsage> {
+async function usageOf(output: UsageSource, signal: AbortSignal): Promise<StaffUsage> {
 	return { ...(await modelUsageOf(output, signal)), limitHit: false };
 }
 

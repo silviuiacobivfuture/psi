@@ -76,6 +76,9 @@ export async function compactThread(args: {
 	signal?: AbortSignal;
 }): Promise<CompactionOutcome> {
 	const { memory, key, settings } = args;
+	// A conversation's first turn: no thread is kept yet, so there is nothing to fold.
+	if ((await memory.getThreadById({ threadId: key.threadId })) === null)
+		return { kind: "kept", messages: 0 };
 	const { messages } = await memory.recall({ ...key, perPage: false });
 	const held = [...messages].reverse().find((m) => m.id.startsWith(SUMMARY_ID_PREFIX));
 	const kept: CompactionOutcome = {

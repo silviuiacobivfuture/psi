@@ -18,6 +18,7 @@ import {
 	type FailureStage,
 	type ThreadAgent,
 } from "./ask-context";
+import type { Summariser } from "./compaction";
 import type { EngineKnowledge } from "./contract";
 import { EngineOptionsSchema } from "./engine-options";
 import { type AskInput, askInputSchema, type EngineEvent } from "./events";
@@ -40,6 +41,7 @@ import type { RateLimiter } from "./screening/rate-limit";
 import { createMemoryRateLimiter } from "./screening/rate-limit";
 import { createSettingsSource, type SettingsProvider } from "./settings";
 import { createKnowledgeTool } from "./studio-tool";
+import { agentSummariser } from "./summariser";
 import type { EngineTiming } from "./timing";
 import {
 	createGovernance,
@@ -143,6 +145,11 @@ export interface EngineOptions {
 	visitorAssistant?: VisitorAssistantPort;
 	/** Each finished turn's question and answer, only on a governed profile whose organisation keeps transcripts. */
 	onTranscript?: (transcript: EngineTranscript) => void;
+	/**
+	 * What folds a governed profile's long kept conversation (`memory.compactAfter`, by `model.summary`); the summary
+	 * model through OpenRouter by default. For tests: a summariser that answers without a provider.
+	 */
+	summariser?: Summariser;
 }
 
 /** How often the visitor memory is swept against the organisation's retention. */
@@ -247,6 +254,8 @@ export function createEngine(options: EngineOptions): Engine {
 		bySlug.set(slug, built);
 		return built;
 	};
+	// One summary agent for every governed profile: it folds a long kept conversation (`memory.compactAfter`).
+	const summariser = agentSummariser(modelFor);
 	const screeningId = opts.model.screeningId ?? opts.model.id;
 	const screeningModel =
 		apiKey === undefined || opts.screening?.model === false
@@ -395,6 +404,9 @@ export function createEngine(options: EngineOptions): Engine {
 				: { booking: { port: opts.scheduling, scope: profile.scheduling } }),
 			...(governance === undefined ? {} : { governance }),
 			refusals,
+			...(governance === undefined || threadAgent === undefined
+				? {}
+				: { summarise: opts.summariser ?? summariser }),
 			logging,
 			redact,
 			onTranscript: opts.onTranscript,

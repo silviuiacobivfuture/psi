@@ -11,6 +11,7 @@ import { sweepByRetention } from "../memory-retention";
 import { type ChatModel, openRouterModel, type ProviderSort, readOpenRouterKey } from "../model";
 import { createMemoryRateLimiter, type RateLimiter } from "../screening/rate-limit";
 import { redactIdentifiers } from "../screening/redact-text";
+import { agentSummariser } from "../summariser";
 import { createStaffAgent, STAFF_AGENT_ID } from "./agent";
 import { modelsOfKey } from "./assistant-config";
 import { buildBriefing } from "./briefing";
@@ -26,7 +27,6 @@ import type { IssuesPort, StaffPort } from "./port";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
 import { createReadCache, personOf } from "./read-cache";
 import type { StaffLinks } from "./session";
-import { agentSummariser } from "./summariser";
 import type { TurnTimeouts } from "./turn";
 
 /** The staff engine was set up wrongly: raised at startup, never during a turn. */

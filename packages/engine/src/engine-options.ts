@@ -5,6 +5,7 @@ import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { MastraVector } from "@mastra/core/vector";
 import { z } from "zod";
 import type { EngineFailure, EngineTranscript } from "./ask-context";
+import type { Summariser } from "./compaction";
 import { EngineKnowledgeSchema } from "./contract";
 import type { EngineArticles } from "./grounding/article-tool";
 import type { EngineScore } from "./grounding/faithfulness";
@@ -116,4 +117,6 @@ export const EngineOptionsSchema = z.object({
 	scheduling: SchedulingPortSchema.optional(),
 	visitorAssistant: VisitorAssistantPortSchema.optional(),
 	onTranscript: fn<(transcript: EngineTranscript) => void>("onTranscript").optional(),
+	/** What folds a long kept conversation on a governed site; the summary model through OpenRouter by default. */
+	summariser: fn<Summariser>("summariser").optional(),
 });
