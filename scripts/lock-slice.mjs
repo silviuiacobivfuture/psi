@@ -117,6 +117,15 @@ export function slice(lock, importerPaths) {
 }
 
 /**
+ * The slice of a lockfile's text these importers install, or null when it cannot be read.
+ * @param {string} text @param {string[]} importerPaths @returns {string | null}
+ */
+export function sliceOf(text, importerPaths) {
+	const lock = parseLock(text);
+	return lock === null ? null : slice(lock, importerPaths);
+}
+
+/**
  * Whether the two lockfiles install anything different for these importers. True (affected) when
  * either cannot be read.
  * @param {string} before @param {string} after @param {string[]} importerPaths @returns {boolean}

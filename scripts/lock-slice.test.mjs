@@ -221,4 +221,53 @@ describe("--since-deployed over a lockfile change", () => {
 			.filter(Boolean);
 		assert.deepEqual(out, ["api", "convex", "site", "whole"]);
 	});
+
+	// A SEB bundle bump (estate/platform.lock) under --since-deployed.
+	const bump = (n) => {
+		put("estate/platform.lock", `[bundle]\nversion = "0.1.${n}"\n`);
+		commit(`seb 0.1.${n}`);
+	};
+	/** api installs a library from the bundle: an importer dependency resolving to file:.seb-bundle/… */
+	const fromBundle = () =>
+		lock()
+			.replace(
+				"  apps/site:",
+				"      seb-x:\n        specifier: file:.seb-bundle/libs/npm/seb-x.tgz\n        version: file:.seb-bundle/libs/npm/seb-x.tgz\n\n  apps/site:",
+			)
+			.replace(
+				"\nsnapshots:\n",
+				"\n  seb-x@file:.seb-bundle/libs/npm/seb-x.tgz:\n    resolution: {tarball: file:.seb-bundle/libs/npm/seb-x.tgz}\n\nsnapshots:\n\n  seb-x@file:.seb-bundle/libs/npm/seb-x.tgz: {}\n",
+			);
+
+	test("a bundle bump rebuilds nothing when no image takes from the bundle", () => {
+		put("pnpm-lock.yaml", lock());
+		commit("readable again");
+		deployAll(git("rev-parse", "--short=7", "HEAD"));
+		bump(1);
+		assert.deepEqual(stale(), []);
+	});
+	test("a bundle bump rebuilds an image whose Dockerfile names the bundle", () => {
+		put("apps/convex/Dockerfile", "FROM convex\nCOPY .seb-bundle/libs /libs\n");
+		commit("convex copies the bundle");
+		deployAll(git("rev-parse", "--short=7", "HEAD"));
+		bump(2);
+		assert.deepEqual(stale(), ["convex"]);
+		put("apps/convex/Dockerfile", "FROM convex\nCOPY apps/convex /c\n");
+		commit("convex no longer does");
+	});
+	test("a bundle bump rebuilds an image whose installed slice resolves into the bundle", () => {
+		put("pnpm-lock.yaml", fromBundle());
+		commit("api takes seb-x");
+		deployAll(git("rev-parse", "--short=7", "HEAD"));
+		bump(3);
+		// whole installs without --filter, and the lockfile it installs names the bundle.
+		assert.deepEqual(stale(), ["api", "whole"]);
+	});
+	test("a bundle bump with an unreadable lockfile rebuilds every image that installs", () => {
+		put("pnpm-lock.yaml", lock({ version: "6.0" }));
+		commit("old format");
+		deployAll(git("rev-parse", "--short=7", "HEAD"));
+		bump(4);
+		assert.deepEqual(stale(), ["api", "site", "whole"]);
+	});
 });

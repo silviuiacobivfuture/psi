@@ -9,9 +9,10 @@
 // packages/<x> folder its Dockerfile names (an app without a package.json, e.g. the Convex deploy
 // image copying packages/scheduling). A change to a file every image installs from
 // (pnpm-lock.yaml, pnpm-workspace.yaml, the root package.json, .npmrc, estate/platform.lock,
-// deploy/, .pnpmfile.cjs) affects every app — except pnpm-lock.yaml under --since-deployed, where
-// both sides are at hand: there an app is affected only when the slice of the lockfile its image
-// installs changed (scripts/lock-slice.mjs). Prints one app per line; nothing when none.
+// deploy/, .pnpmfile.cjs) affects every app — except, under --since-deployed where both lockfiles
+// are at hand, pnpm-lock.yaml (an app is affected only when the slice of the lockfile its image
+// installs changed, scripts/lock-slice.mjs) and estate/platform.lock (only an app whose image takes
+// from the SEB bundle). Prints one app per line; nothing when none.
 //
 //   node scripts/affected-apps.mjs --since-deployed <env>
 //
@@ -19,7 +20,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { sliceChanged } from "./lock-slice.mjs";
+import { parseLock, sliceChanged, sliceOf } from "./lock-slice.mjs";
 
 const ROOT = process.cwd();
 const EVERYTHING = [
@@ -55,8 +56,9 @@ function workspace() {
 /**
  * @param {string[]} changed
  * @param {{ before: string, after: string }} [lock] both sides' pnpm-lock.yaml: with them, a lockfile
- * change affects only the apps whose installed slice of it changed (scripts/lock-slice.mjs); without
- * them, every app
+ * change affects only the apps whose installed slice of it changed (scripts/lock-slice.mjs), and a SEB
+ * bundle bump (estate/platform.lock) only the apps that install from the bundle; without them, either
+ * affects every app
  * @returns {string[]}
  */
 export function affectedApps(changed, lock) {
@@ -64,8 +66,11 @@ export function affectedApps(changed, lock) {
 		.filter((d) => d.isDirectory() && existsSync(join(ROOT, "apps", d.name, "Dockerfile")))
 		.map((d) => d.name);
 	const lockChanged = changed.includes("pnpm-lock.yaml");
+	const bundleChanged = changed.includes("estate/platform.lock");
 	const everything =
-		lock === undefined ? EVERYTHING : EVERYTHING.filter((re) => !re.test("pnpm-lock.yaml"));
+		lock === undefined
+			? EVERYTHING
+			: EVERYTHING.filter((re) => !re.test("pnpm-lock.yaml") && !re.test("estate/platform.lock"));
 	if (changed.some((f) => everything.some((re) => re.test(f)))) return apps.sort();
 	const ws = workspace();
 	const nameAt = new Map([...ws].map(([name, p]) => [p.dir, name]));
@@ -102,8 +107,30 @@ export function affectedApps(changed, lock) {
 		}
 		if (changed.some((f) => [...dirs].some((d) => f.startsWith(d)))) hit.push(app);
 		else if (lockChanged && lock !== undefined && installsFrom(docker, lock, dirs)) hit.push(app);
+		else if (bundleChanged && lock !== undefined && usesBundle(docker, lock.after, dirs))
+			hit.push(app);
 	}
 	return hit.sort();
+}
+
+/**
+ * Whether the image takes anything from the SEB bundle (.seb-bundle/, which estate/platform.lock
+ * pins): its Dockerfile names it, or what it installs resolves into it (`file:.seb-bundle/…`). On
+ * 2026-11-14 no image did, and 18 of 41 plan windows were full rebuilds for a bundle bump alone.
+ * Fail-closed: a lockfile it cannot read counts as using it.
+ * @param {string} docker @param {string} after @param {Set<string>} dirs @returns {boolean}
+ */
+function usesBundle(docker, after, dirs) {
+	if (docker.includes("seb-bundle")) return true;
+	const installs = docker.split("\n").filter((l) => /\bpnpm\s+(install|i|fetch)\b/.test(l));
+	if (installs.length === 0) return false;
+	if (installs.some((l) => !l.includes("--filter")))
+		return parseLock(after) === null || after.includes(".seb-bundle");
+	const s = sliceOf(
+		after,
+		[...dirs].map((d) => d.replace(/\/$/, "")),
+	);
+	return s === null || s.includes(".seb-bundle");
 }
 
 /**
@@ -170,9 +197,10 @@ export function staleApps(env) {
 			stale.push(app);
 			continue;
 		}
-		const lock = changed.includes("pnpm-lock.yaml")
-			? { before: lockAt(tag), after: lockAt("HEAD") }
-			: undefined;
+		const lock =
+			changed.includes("pnpm-lock.yaml") || changed.includes("estate/platform.lock")
+				? { before: lockAt(tag), after: lockAt("HEAD") }
+				: undefined;
 		if (affectedApps(changed, lock).includes(app)) stale.push(app);
 	}
 	return stale.sort();
