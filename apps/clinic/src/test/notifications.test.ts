@@ -2,12 +2,14 @@ import { createHmac } from "node:crypto";
 import { memoryPushStore } from "@psi/pwa";
 import { Hono } from "hono";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DEV_SUBJECT } from "../auth";
 import { mountNovuPush, NOVU_PUSH_PATH } from "../novu-push";
 import { type LiveConsole, serveConsole } from "./harness";
 
 let c: LiveConsole;
 beforeAll(async () => {
-	c = await serveConsole();
+	// the estate administrator: "Vezi ca…" (used below) is theirs alone
+	c = await serveConsole({ platformAdmins: new Set([DEV_SUBJECT]) });
 });
 afterAll(async () => {
 	await c.close();

@@ -31,7 +31,7 @@ export interface Ctx {
 	viewAs: ViewAsState | null;
 	/** The person themselves (not the role they may be viewing as) is the estate's platform administrator. */
 	platformAdmin: boolean;
-	/** The person themselves (not the role they may be viewing as) administers roles, so "Vezi ca…" is theirs to use. */
+	/** The person themselves (not the role they may be viewing as) is the estate administrator, so "Vezi ca…" is theirs to use. */
 	mayViewAs: boolean;
 	pwa: Pwa;
 	/** The staff assistant, when it is switched on. */
