@@ -33,7 +33,7 @@ describe("a person sees every role they hold", () => {
 	it("the pill names the system's administrator, then every organisation role, highest first", async () => {
 		await open(["owner", "admin"], true);
 		const html = await (await c.get("/calendar")).text();
-		expect(html).toContain("Rol: Administrator sistem · Administrator + Proprietar");
+		expect(html).toContain("Rol: Administrator sistem · Proprietar + Administrator");
 		expect(html).not.toContain("Administrator clinică");
 	});
 
@@ -43,7 +43,7 @@ describe("a person sees every role they hold", () => {
 		await c.close();
 		await open(["owner", "admin"], true);
 		const b = await (await c.get("/calendar")).text();
-		for (const html of [a, b]) expect(html).toContain("Administrator + Proprietar");
+		for (const html of [a, b]) expect(html).toContain("Proprietar + Administrator");
 	});
 
 	it("Rolurile mele lists the platform role and each organisation's roles, each with what it allows", async () => {
@@ -56,9 +56,9 @@ describe("a person sees every role they hold", () => {
 		expect(text).toContain("Organizație: Psizone");
 		expect(text).toContain("Organizație: Hemi-Sync");
 		// Highest first, each with its sentence.
-		expect(text.indexOf("Administrator Rolul cel mai înalt")).toBeGreaterThan(-1);
-		expect(text.indexOf("Administrator Rolul cel mai înalt")).toBeLessThan(
-			text.indexOf("Proprietar Totul în organizație"),
+		expect(text.indexOf("Proprietar Rolul cel mai înalt")).toBeGreaterThan(-1);
+		expect(text.indexOf("Proprietar Rolul cel mai înalt")).toBeLessThan(
+			text.indexOf("Administrator Totul în afară de roluri"),
 		);
 		expect(text).toContain("Recepție Calendarul, clienții");
 	});
@@ -68,7 +68,7 @@ describe("a person sees every role they hold", () => {
 		const text = await myRoles();
 		expect(text).not.toContain("Platformă");
 		expect(text).not.toContain("Administrator sistem");
-		expect(text).toContain("Proprietar Totul în organizație");
+		expect(text).toContain("Proprietar Rolul cel mai înalt");
 	});
 
 	it("a role that cannot read the roles list still sees its own role and what it allows", async () => {

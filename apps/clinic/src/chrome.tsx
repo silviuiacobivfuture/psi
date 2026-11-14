@@ -73,6 +73,25 @@ export function labels(locale: Locale): ShellLabels {
 const SEED_ROLE =
 	/^[a-z][a-z0-9-]*?-(?=owner$|admin$|reception$|therapist$|coordinator$|volunteer$|accountant$)/;
 
+/** Which seed role an id is (`psizone-owner`, or an opaque id named `Owner`), or its own name lower-cased. */
+function seedKey(id: string, names: Readonly<Record<string, string>> | undefined): string {
+	const key = id.replace(SEED_ROLE, "");
+	return /^(owner|admin|reception|therapist|coordinator|volunteer|accountant)$/.test(key)
+		? key
+		: (names?.[id] ?? "").toLowerCase();
+}
+
+/** The organisation's top roles first: the Owner, then the Administrator, then the rest as held. */
+const RANK: Readonly<Record<string, number>> = { owner: 0, admin: 1 };
+export const highestFirst = (
+	ids: ReadonlyArray<string>,
+	names: Readonly<Record<string, string>> | undefined = undefined,
+): string[] =>
+	ids
+		.map((id, i) => ({ id, i, rank: RANK[seedKey(id, names)] ?? 2 }))
+		.sort((a, b) => a.rank - b.rank || a.i - b.i)
+		.map((x) => x.id);
+
 /**
  * A role's name for people: the seed roles are translated, a custom role shows its own name (`names`, by id, from the
  * service: a role's id is opaque in some stores) and only then its id. A seed role is told by its id (`psizone-owner`)
@@ -113,8 +132,7 @@ export function roleName(
 ): string {
 	const o = at(locale);
 	const given = names?.[id];
-	const seed = seedKeyOf(id, names);
-	switch (seed) {
+	switch (seedKey(id, names)) {
 		case "owner":
 			return m.role_owner({}, o);
 		case "admin":
@@ -129,34 +147,17 @@ export function roleName(
 			return m.role_volunteer({}, o);
 		case "accountant":
 			return m.role_accountant({}, o);
-		case null:
+		default:
 			return given ?? id;
-		default: {
-			const never: never = seed;
-			return never;
-		}
 	}
 }
 
-/** A person's roles in the order they are told: the administrator, then the owner, then the rest as held. */
-export function sortRoles(
-	ids: ReadonlyArray<string>,
-	names: Readonly<Record<string, string>> | undefined = undefined,
-): ReadonlyArray<string> {
-	// The two highest first (the administrator, then the owner); every other role keeps the order it is held in.
-	const rank = (id: string): number => {
-		const seed = seedKeyOf(id, names);
-		return seed === "admin" ? 0 : seed === "owner" ? 1 : 2;
-	};
-	return [...ids].sort((x, y) => rank(x) - rank(y));
-}
-
-/** Every role a person holds, highest first, as people read them together: "Administrator + Proprietar" (none: empty). */
+/** Every role a person holds, highest first, as people read them together: "Proprietar + Administrator" (none: empty). */
 export const rolesText = (
 	ids: ReadonlyArray<string>,
 	locale: Locale,
 	names: Readonly<Record<string, string>> | undefined = undefined,
-): string => joinRoles(sortRoles(ids, names).map((r) => roleName(r, locale, names)));
+): string => joinRoles(highestFirst(ids, names).map((r) => roleName(r, locale, names)));
 
 /** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
 export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>

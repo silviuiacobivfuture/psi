@@ -12,7 +12,12 @@ export const RoleSummaryItem = z.object({
 	description: z.string().max(500).optional(),
 	/** A seed role of the app (Owner, Reception…); a custom role is false. */
 	system: z.boolean(),
+	/** Its own permissions; with the inherited ones, everything it holds in the end. */
 	permissions: z.array(Relation),
+	/** The roles it includes. */
+	includes: z.array(Id),
+	/** Each permission held through an included role, and the nearest role that holds it as its own. */
+	inherited: z.record(Relation, Id),
 });
 
 /**

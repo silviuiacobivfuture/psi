@@ -15,6 +15,7 @@ import { actionCtx } from "../actions/context";
 import { runAction } from "../actions/engine";
 import { ActionBar, EmptyActions, menuItems } from "../actions/render";
 import type { Env } from "../app";
+import { roleLabel } from "../chrome";
 import { drawBody } from "../floor/mount";
 import { areaText } from "../lib/area-labels";
 import { deviceFrom, personFrom, roleFrom, roomFrom, serviceFrom } from "../lib/catalog-form";
@@ -26,6 +27,7 @@ import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../p
 import { ROLES_MATRIX_PATH } from "../roles-matrix/path";
 import { CatalogSheets, CatalogTab } from "./catalog";
 import { SheetButtons } from "./client-sheets";
+import { Check } from "./form-choices";
 import { OrgFrame } from "./org-settings";
 import { roleFromForm } from "./role-form";
 import { actionLabel, fieldGroupLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
@@ -54,6 +56,23 @@ function RolesTab({
 		group: groupLabel(r.group, locale),
 	}));
 	const columns: MatrixColumn[] = ACTIONS.map((a) => ({ key: a, label: actionLabel(a, locale) }));
+	const nameOf = (id: string): string => {
+		const r = roles.find((x) => x.id === id);
+		return r === undefined ? id : roleLabel(r, locale);
+	};
+	// What each cell holds through an included role, in words: "din Recepție: toate".
+	const inherited = Object.fromEntries(
+		Object.entries(role.inherited ?? {}).map(([resource, actions]) => [
+			resource,
+			Object.fromEntries(
+				Object.entries(actions).map(([action, held]) => [
+					action,
+					m.roles_from({ role: nameOf(held.from), scope: scopeLabel(held.scope, locale) }, o),
+				]),
+			),
+		]),
+	);
+	const includable = roles.filter((r) => r.id !== role.id);
 	const fieldGroups: FieldGroupToggle[] = FIELD_GROUPS.map((f) => ({
 		key: f,
 		label: fieldGroupLabel(f, locale),
@@ -97,7 +116,24 @@ function RolesTab({
 				data-action="role.save"
 			>
 				<fieldset disabled={!canEdit} style="border:0;padding:0;margin:0;min-width:0">
+					<fieldset class="cl-choices" data-role-includes>
+						<legend>{m.roles_includes({}, o)}</legend>
+						<p class="adm-muted">{m.roles_includes_hint({}, o)}</p>
+						{includable.map((r) => (
+							<Check
+								key={r.id}
+								name="include"
+								value={r.id}
+								label={roleLabel(r, locale)}
+								on={(role.includes ?? []).includes(r.id)}
+							/>
+						))}
+						{(role.includes ?? []).length === 0 ? (
+							<p class="adm-muted">{m.roles_includes_none({}, o)}</p>
+						) : null}
+					</fieldset>
 					<PermissionMatrix
+						inherited={inherited}
 						rows={rows}
 						columns={columns}
 						scopes={SCOPES.map((s) => ({ key: s, label: scopeLabel(s, locale) }))}
@@ -367,7 +403,7 @@ export function registerSettings(app: Hono<Env>): void {
 		const roles = await ctx.port.roles(ctx.app);
 		const current = roles.find((r) => r.id === c.req.param("id"));
 		if (current === undefined) return c.notFound();
-		const form = await c.req.parseBody();
+		const form = await c.req.parseBody({ all: true });
 		await ctx.port.saveRole(ctx.app, roleFromForm(current, form));
 		return c.redirect(`/settings/roles?role=${current.id}&saved=1`, 303);
 	});

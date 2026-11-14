@@ -69,6 +69,8 @@ describe("roles.summary: the roles every member may compare", () => {
 			name: "Stagiar",
 			system: false,
 			permissions: ["clients_view_own"],
+			includes: [],
+			inherited: {},
 		});
 		// No member list, no counts, no stamps: only names and keys leave.
 		const text = JSON.stringify(raw);
@@ -82,7 +84,10 @@ describe("roles.summary: the roles every member may compare", () => {
 		expect(platform.permissions).toContain("roles_edit_all");
 		expect(platform.permissions).toContain("members_view_all");
 		expect(platform.permissions).toContain("app_settings_edit_all");
-		for (const p of platform.permissions) expect(p, p).toMatch(/^(app_settings|members|roles)_/);
+		// and the organisation itself, so one whose last Owner left can be handed over; never billing or the budget
+		expect(platform.permissions).toContain("organisation_transfer_all");
+		for (const p of platform.permissions)
+			expect(p, p).toMatch(/^(app_settings|members|roles|organisation)_/);
 	});
 
 	it("is refused, and writes nothing, to a member of another app and to a stranger", async () => {

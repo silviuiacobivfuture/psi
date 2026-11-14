@@ -3,6 +3,7 @@ import {
 	allPermissionKeys,
 	type BaseFieldGroup,
 	CATALOGUE,
+	OWNER_ONLY_KEYS,
 	permissionKey,
 	type Resource,
 	type Scope,
@@ -10,6 +11,16 @@ import {
 
 /** A role as seeded for a new app: editable by the app's owners afterwards. */
 export interface SeedRole {
+	readonly name: string;
+	readonly description: string;
+	/** Its own keys: what it adds to the roles it includes. */
+	readonly permissions: ReadonlyArray<string>;
+	/** The names of the seed roles it includes (their keys are held through them). */
+	readonly includes: ReadonlyArray<string>;
+}
+
+/** What a seed role holds in the end, before it is split into its own keys and the roles it includes. */
+interface FlatRole {
 	readonly name: string;
 	readonly description: string;
 	readonly permissions: ReadonlyArray<string>;
@@ -97,19 +108,26 @@ export const COORDINATOR = "Coordinator";
 export const VOLUNTEER = "Volunteer";
 export const ACCOUNTANT = "Accountant";
 
-/** The roles every app starts with (docs/plans/clinic.md section 4), editable afterwards. */
-export const SEED_ROLES: ReadonlyArray<SeedRole> = [
+/** What each seed role holds in the end (docs/plans/clinic.md section 4). */
+const FLAT_ROLES: ReadonlyArray<FlatRole> = [
 	{
 		name: OWNER,
-		description: "Everything, including roles and the audit log.",
+		description:
+			"Everything an Administrator does, and the Owner's own: roles, the audit log, the people who manage the team, billing, the assistants' budget, deleting and handing over the organisation.",
 		permissions: [...allPermissionKeys()].sort(),
 	},
 	{
 		name: ADMIN,
-		// The organisation's highest role: never less than the owner's (clinical data, money, members, roles, settings,
-		// the builder, the journal), so an administrator is never stopped where an owner would pass.
-		description: "The organisation's highest role: everything the owner can do.",
-		permissions: [...allPermissionKeys()].sort(),
+		description:
+			"Everything but roles, the audit log and the Owner's own powers; manages every member except Administrators and Owners.",
+		permissions: allPermissionKeys()
+			.filter(
+				(key) =>
+					!key.startsWith("roles_") &&
+					!key.startsWith("audit_log_") &&
+					!OWNER_ONLY_KEYS.includes(key),
+			)
+			.sort(),
 	},
 	{
 		name: RECEPTION,
@@ -206,3 +224,35 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 		]),
 	},
 ];
+
+/**
+ * Which seed roles include which: chosen so that each role holds exactly what its flat definition gives it (every
+ * included role's keys are a subset of the includer's; the test asserts it). Owner includes Administrator; Administrator
+ * the four desk and clinical roles; Terapeut includes Voluntar. Coordonator does NOT include Terapeut: a coordinator reaches
+ * the calendars they are assigned, a therapist their own, and neither set contains the other.
+ */
+const INCLUDES: Readonly<Record<string, ReadonlyArray<string>>> = {
+	[OWNER]: [ADMIN],
+	[ADMIN]: [RECEPTION, THERAPIST, COORDINATOR, ACCOUNTANT],
+	[THERAPIST]: [VOLUNTEER],
+};
+
+const flatOf = (name: string): ReadonlyArray<string> =>
+	FLAT_ROLES.find((r) => r.name === name)?.permissions ?? [];
+
+/** The roles every app starts with, editable afterwards: each one's own keys and the roles it includes. */
+export const SEED_ROLES: ReadonlyArray<SeedRole> = FLAT_ROLES.map((role) => {
+	const includes = INCLUDES[role.name] ?? [];
+	const inherited = new Set(includes.flatMap((name) => flatOf(name)));
+	return {
+		name: role.name,
+		description: role.description,
+		permissions: role.permissions.filter((k) => !inherited.has(k)),
+		includes,
+	};
+});
+
+/** What a seed role holds in the end (its own keys and every included role's): the flat definition. */
+export function seedEffective(name: string): ReadonlyArray<string> {
+	return flatOf(name);
+}

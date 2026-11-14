@@ -136,7 +136,8 @@ export function buildModel(): Model {
 		for (const relation of appRelations(def)) app[relation] = appClauses(def);
 	const model: Model = {
 		sched_app: app,
-		sched_role: { app: [direct("sched_app")], member: [direct("user")] },
+		// A role's members: people who hold it, and the members of every role that includes it.
+		sched_role: { app: [direct("sched_app")], member: [direct("user", "sched_role#member")] },
 		// A client is treated by calendars (people); a person's account is bound once, as the calendar's owner.
 		sched_client: {
 			app: [direct("sched_app")],

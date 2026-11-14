@@ -1,5 +1,5 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { appName, roleName, type SeedKey, seedKeyOf, sortRoles } from "../chrome";
+import { appName, highestFirst, roleName, type SeedKey, seedKeyOf } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
@@ -65,7 +65,7 @@ export function MyRoles({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Role> }
 			) : null}
 			{ctx.memberships.map((mb) => {
 				const names = mb.app === ctx.app ? ctx.caps.roleNames : undefined;
-				const ordered = sortRoles(mb.roles, names);
+				const ordered = highestFirst(mb.roles, names);
 				return (
 					<div key={mb.app} class="pf-level" data-role-level="org" data-app={mb.app}>
 						<h3 class="adm-h3">{m.pf_level_org({ app: appName(mb.app, ctx.locale) }, o)}</h3>

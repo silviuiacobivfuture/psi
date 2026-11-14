@@ -1,4 +1,6 @@
+import { redundantRoles, withoutRedundant } from "@psi/scheduling/permissions";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
+import { rolesById } from "../authz/composition";
 import { memberTuples } from "../authz/tuples";
 import type { Ctx } from "../http/context";
 import { fail } from "../http/errors";
@@ -62,13 +64,16 @@ export async function writeMember(
 	held: MemberRow | undefined,
 	input: MemberInput,
 ): Promise<{ next: MemberRow; detail: Record<string, unknown> }> {
+	// A role every one of whose permissions another picked role holds adds nothing: it is not kept ("inclus în …").
+	const byId = rolesById(await ctx.deps.store.c.roles.list(ctx.app));
+	const dropped = redundantRoles(input.roles, byId);
 	const next: MemberRow = {
 		id: subject,
 		app: ctx.app,
 		subject,
 		displayName: input.displayName,
 		...(input.email === undefined ? {} : { email: input.email }),
-		roles: [...new Set(input.roles)],
+		roles: withoutRedundant(input.roles, byId),
 		coordinates: [...new Set(input.coordinates)],
 		grants: held?.grants ?? [],
 		denies: held?.denies ?? [],
@@ -93,6 +98,7 @@ export async function writeMember(
 		detail: {
 			roles: next.roles,
 			created: held === undefined,
+			...(dropped.size === 0 ? {} : { included: Object.fromEntries(dropped) }),
 			changes: changesOf({
 				displayName: { from: held?.displayName ?? "", to: next.displayName },
 				roles: { from: listed(held?.roles ?? []), to: listed(next.roles) },

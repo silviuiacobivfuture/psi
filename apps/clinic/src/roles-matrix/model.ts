@@ -56,6 +56,10 @@ const AREA_OF: Readonly<Record<Resource, Area>> = {
 	people: "members",
 	roles: "roles",
 	app_settings: "settings",
+	// The Owner's own: billing, the organisation itself (delete, hand over), the assistants' budget.
+	billing: "settings",
+	organisation: "settings",
+	assistant_budget: "settings",
 	services: "settings",
 	rooms: "settings",
 	devices: "settings",
@@ -92,8 +96,10 @@ export interface Column {
 	kind: "platform" | "role";
 	name: string;
 	system: boolean;
-	/** Row id → the scopes held. */
+	/** Row id → the scopes held, its own and through the roles it includes. */
 	held: ReadonlyMap<string, ReadonlySet<Scope>>;
+	/** Row id → the role (id, name) it holds that row from, when it holds it only through an included role. */
+	from: ReadonlyMap<string, { id: string; name: string }>;
 }
 
 export const PLATFORM_COLUMN = "platform";
@@ -114,6 +120,23 @@ function heldOf(relations: ReadonlyArray<string>): Map<string, Set<Scope>> {
 		held.set(id, scopes);
 	}
 	return held;
+}
+
+/** The rows a role holds only through an included role, and from which (its own rows are never "din X"). */
+function fromOf(
+	role: RoleSummary["roles"][number],
+	names: ReadonlyMap<string, string>,
+): Map<string, { id: string; name: string }> {
+	const own = heldOf(role.permissions);
+	const out = new Map<string, { id: string; name: string }>();
+	for (const [relation, source] of Object.entries(role.inherited)) {
+		const p = parsePermissionKey(relation);
+		if (p === undefined) continue;
+		const id = rowId(p.resource, p.action, p.fieldGroup);
+		if (own.has(id) || out.has(id)) continue;
+		out.set(id, { id: source, name: names.get(source) ?? source });
+	}
+	return out;
 }
 
 /** The seed roles in the order a clinic reads them, from the widest to the narrowest. */
@@ -138,6 +161,7 @@ export function columnsOf(summary: RoleSummary, platformName: string): Column[] 
 	const roles = [...summary.roles].sort(
 		(a, b) => seedRank(a) - seedRank(b) || a.name.localeCompare(b.name),
 	);
+	const names = new Map(summary.roles.map((r) => [r.id, r.name]));
 	return [
 		{
 			id: PLATFORM_COLUMN,
@@ -145,6 +169,7 @@ export function columnsOf(summary: RoleSummary, platformName: string): Column[] 
 			name: platformName,
 			system: true,
 			held: heldOf(summary.platform.permissions),
+			from: new Map(),
 		},
 		...roles.map(
 			(r): Column => ({
@@ -152,7 +177,9 @@ export function columnsOf(summary: RoleSummary, platformName: string): Column[] 
 				kind: "role",
 				name: r.name,
 				system: r.system,
-				held: heldOf(r.permissions),
+				// What it holds in the end: its own keys and those of the roles it includes.
+				held: heldOf([...r.permissions, ...Object.keys(r.inherited)]),
+				from: fromOf(r, names),
 			}),
 		),
 	];

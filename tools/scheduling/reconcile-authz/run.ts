@@ -17,6 +17,8 @@ export interface ReconcileOptions {
 	prune: boolean;
 	/** Give an app with no roles the seed roles first (see seed.ts). */
 	seedRoles?: boolean;
+	/** Each `members` entry holds exactly its role afterwards (others taken away); see bootstrapMember. */
+	exact?: boolean;
 	log?: (line: string) => void;
 }
 
@@ -57,7 +59,14 @@ export async function reconcile(options: ReconcileOptions): Promise<ReconcileRep
 		for (const spec of options.members)
 			members.push({
 				subject: spec.subject,
-				outcome: await bootstrapMember(options.store, app, spec, !options.dryRun),
+				outcome: await bootstrapMember(
+					options.store,
+					app,
+					spec,
+					!options.dryRun,
+					Date.now,
+					options.exact === true,
+				),
 			});
 		// A dry run writes no member row: the report says what would be made, the counts are of what the store holds.
 		const plan = await planApp(options.store, app, options.prefix);

@@ -96,6 +96,11 @@ export const EXTRA_HAPPY = {
 		w.staff.seed("happy.search@example.test", "Happy Search");
 		return olga(w, "GET", "/staff-accounts?q=happy");
 	},
+	// Handed over and handed back: the world's Owner stays its Owner for the cases that follow.
+	"ownership.transfer": async (w) => {
+		await olga(w, "POST", "/ownership", { to: "nina" });
+		return w.call("nina", "POST", `${A}/ownership`, { to: "olga" });
+	},
 	"staff.link": async (w) => {
 		const made = await olga(w, "POST", "/staff-accounts", {
 			email: "happy.link@example.test",

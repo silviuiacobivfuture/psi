@@ -144,6 +144,62 @@ describe("a member is bootstrapped through the store, and their tuples follow", 
 		expect(await w.store.c.members.get("psizone", "rita")).toEqual(held);
 	});
 
+	it("exact: the member holds the named role alone afterwards, their other roles taken away; a repeat changes nothing", async () => {
+		await run(createMemoryAuthz(), { members: [parseMemberSpec("rita=Accountant")] });
+		const before = await w.store.c.members.get("psizone", "rita");
+		expect(before?.roles.length).toBeGreaterThan(1);
+		const accountant = (await w.store.c.roles.list("psizone")).find((r) => r.name === "Accountant");
+		const set = await run(createMemoryAuthz(), {
+			exact: true,
+			members: [parseMemberSpec("rita=Accountant")],
+		});
+		expect(set.apps[0]?.members[0]?.outcome).toBe("roles_set");
+		const after = await w.store.c.members.get("psizone", "rita");
+		expect(after?.roles).toEqual([accountant?.id]);
+		// Nothing else about the member changes.
+		expect({ ...after, roles: [], updatedAt: 0 }).toEqual({ ...before, roles: [], updatedAt: 0 });
+		const again = await run(createMemoryAuthz(), {
+			exact: true,
+			members: [parseMemberSpec("rita=Accountant")],
+		});
+		expect(again.apps[0]?.members[0]?.outcome).toBe("unchanged");
+		expect(await w.store.c.members.get("psizone", "rita")).toEqual(after);
+	});
+
+	it("exact on a dry run says roles_set and changes nothing; on a newcomer it is created, as without it", async () => {
+		await run(createMemoryAuthz(), { members: [parseMemberSpec("rita=Accountant")] });
+		const before = await w.store.c.members.get("psizone", "rita");
+		const dry = await run(createMemoryAuthz(), {
+			exact: true,
+			dryRun: true,
+			members: [parseMemberSpec("rita=Accountant")],
+		});
+		expect(dry.apps[0]?.members[0]?.outcome).toBe("roles_set");
+		expect(await w.store.c.members.get("psizone", "rita")).toEqual(before);
+		const made = await run(createMemoryAuthz(), {
+			exact: true,
+			members: [parseMemberSpec("new-one=Owner")],
+		});
+		expect(made.apps[0]?.members[0]?.outcome).toBe("created");
+		expect((await w.store.c.members.get("psizone", "new-one"))?.roles.length).toBe(1);
+	});
+
+	it("exact then --prune: the taken role's tuples go from OpenFGA, the kept role's stay", async () => {
+		const authz = createMemoryAuthz();
+		await run(authz, { members: [parseMemberSpec("rita=Accountant")] });
+		const roles = await w.store.c.roles.list("psizone");
+		const accountant = roles.find((r) => r.name === "Accountant")?.id ?? "";
+		const others = ((await w.store.c.members.get("psizone", "rita"))?.roles ?? []).filter(
+			(r) => r !== accountant,
+		);
+		expect(others.length).toBeGreaterThan(0);
+		await run(authz, { exact: true, members: [parseMemberSpec("rita=Accountant")] });
+		await run(authz, { prune: true, reader: readerOf(authz) });
+		const held = authz.tuples().filter((t) => t.user === "user:rita" && t.relation === "member");
+		expect(held.map((t) => t.object)).toContain(`sched_role:${accountant}`);
+		for (const r of others) expect(held.map((t) => t.object)).not.toContain(`sched_role:${r}`);
+	});
+
 	it("an unknown role is refused with the names there are, and nothing is written", async () => {
 		const fresh = createMemoryAuthz();
 		await expect(run(fresh, { members: [parseMemberSpec("x-person=Wizard")] })).rejects.toThrow(

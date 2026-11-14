@@ -6,12 +6,14 @@ import { createFgaReader } from "./fga";
 import { type MemberSpec, parseMemberSpec } from "./members";
 import { reconcile } from "./run";
 
-const USAGE = `usage: reconcile-authz [--app <slug>]... [--seed-roles] [--member <subject>=<role name>]... [--dry-run] [--prune]
+const USAGE = `usage: reconcile-authz [--app <slug>]... [--seed-roles] [--member <subject>=<role name>]... [--exact] [--dry-run] [--prune]
 
   Writes every authorization tuple the scheduling store implies and OpenFGA lacks (idempotent; 100 per request).
   --app       an app to reconcile (repeatable; default psizone and hemisync)
   --seed-roles  give an app that holds no role the service's seed roles first (an app the deployment or an import made)
   --member    make <subject> a member of the ONE app given, holding that role, then write its tuples
+  --exact     with --member: the member holds that role ALONE afterwards (their other roles are taken away; run
+              --prune after to delete the tuples those roles gave). One --member per subject.
   --dry-run   write nothing: print what the store implies, and with --prune what would go
   --prune     also delete tuples of the service's object types that the store no longer implies
               (every estate app must be reconciled: it is refused with --app)
@@ -27,6 +29,7 @@ async function main(): Promise<number> {
 			"dry-run": { type: "boolean", default: false },
 			prune: { type: "boolean", default: false },
 			"seed-roles": { type: "boolean", default: false },
+			exact: { type: "boolean", default: false },
 			help: { type: "boolean", default: false },
 		},
 		strict: true,
@@ -39,6 +42,14 @@ async function main(): Promise<number> {
 	const members: MemberSpec[] = values.member.map(parseMemberSpec);
 	if (members.length > 0 && apps.length !== 1) {
 		console.error("--member needs exactly one --app");
+		return 2;
+	}
+	if (values.exact && members.length === 0) {
+		console.error("--exact needs --member");
+		return 2;
+	}
+	if (values.exact && new Set(members.map((m) => m.subject)).size !== members.length) {
+		console.error("--exact takes one --member per subject");
 		return 2;
 	}
 	if (values.prune && values.app.length > 0) {
@@ -70,6 +81,7 @@ async function main(): Promise<number> {
 			dryRun: values["dry-run"],
 			prune: values.prune,
 			seedRoles: values["seed-roles"],
+			exact: values.exact,
 			log: (line) => console.log(line),
 		});
 		for (const app of report.apps)

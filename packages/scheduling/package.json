@@ -12,6 +12,7 @@
 		"./clinic": "./src/clinic/index.ts",
 		"./testing": "./src/testing.ts",
 		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json",
+		"./seed/roles-before-inclusion.json": "./seed/roles-before-inclusion.json",
 		"./functions-hash": "./src/functions-hash.generated.ts"
 	},
 	"scripts": {

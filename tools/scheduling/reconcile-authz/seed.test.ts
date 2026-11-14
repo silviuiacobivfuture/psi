@@ -38,9 +38,20 @@ const run = (over: Partial<Parameters<typeof reconcile>[0]> = {}) => {
 	};
 };
 
-const strip = (r: { id: string; app: string; createdAt: number; updatedAt: number }) => {
-	const { id, app, createdAt: _c, updatedAt: _u, ...rest } = r;
-	return { slug: id.slice(app.length + 1), ...rest };
+/** A role row without what names its app: the slug, and the roles it includes by their slugs too. */
+const strip = (r: {
+	id: string;
+	app: string;
+	createdAt: number;
+	updatedAt: number;
+	includes?: readonly string[];
+}) => {
+	const { id, app, createdAt: _c, updatedAt: _u, includes, ...rest } = r;
+	return {
+		slug: id.slice(app.length + 1),
+		...rest,
+		includes: (includes ?? []).map((i) => i.slice(app.length + 1)),
+	};
 };
 
 describe("--seed-roles: an app the deployment made, with no role, gets the service's seed roles", () => {
