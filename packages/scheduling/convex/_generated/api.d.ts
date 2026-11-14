@@ -67,6 +67,7 @@ import type * as importRecords from "../importRecords.js";
 import type * as importRoster from "../importRoster.js";
 import type * as importSupport from "../importSupport.js";
 import type * as importVisits from "../importVisits.js";
+import type * as move from "../move.js";
 import type * as notifyStore from "../notifyStore.js";
 import type * as reportRows from "../reportRows.js";
 import type * as retention from "../retention.js";
@@ -166,6 +167,7 @@ declare const fullApi: ApiFromModules<{
   importRoster: typeof importRoster;
   importSupport: typeof importSupport;
   importVisits: typeof importVisits;
+  move: typeof move;
   notifyStore: typeof notifyStore;
   reportRows: typeof reportRows;
   retention: typeof retention;

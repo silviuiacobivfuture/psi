@@ -113,6 +113,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"clinical.read": own("record.read", "client"),
 	"callback.create": own("visit.create", "visit"),
 	"visitor.cancel": own("visit.cancel", "visit"),
+	"visitor.reschedule": own("visit.update", "visit"),
 };
 
 /**

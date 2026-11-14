@@ -53,8 +53,22 @@ export const OwnAppointment = z.object({
 	end: Ms,
 	mode: Mode.optional(),
 	serviceSlug: z.string().optional(),
+	practitionerName: z.string().optional(),
+	/**
+	 * The clinic's rule: a booking is cancelled or moved online until the service's notice before it starts (the same
+	 * notice a booking needs); `changeUntil` is that instant, and `canChange` says whether it is still ahead (and the
+	 * booking still requested or confirmed). Later, the visitor calls the clinic.
+	 */
+	changeUntil: Ms,
+	canChange: z.boolean(),
 });
 export const CallbackRequest = z.object({ reference: z.string() });
+export const MovedAppointment = z.object({
+	id: z.string(),
+	reference: z.string(),
+	start: Ms,
+	end: Ms,
+});
 
 /** The visitor side: a site's server (service key) or a signed-in visitor (SSO) books, holds, cancels. */
 export const VISITOR_ROUTES = [
@@ -177,9 +191,22 @@ export const VISITOR_ROUTES = [
 		method: "POST",
 		path: "/v1/apps/:app/me/appointments/:id/cancel",
 		side: "visitor",
-		summary: "Cancel one of the visitor's own appointments",
+		summary:
+			"Cancel one of the visitor's own appointments, while the clinic's rule allows it online (403 `not_allowed`, detail `reason: \"too_late\"`, after `changeUntil`)",
 		params: AppParam.extend({ id: Id }),
 		response: Ok,
 		audit: "visitor.cancel",
+	}),
+	route({
+		id: "visitor.mineReschedule",
+		method: "POST",
+		path: "/v1/apps/:app/me/appointments/:id/reschedule",
+		side: "visitor",
+		summary:
+			"Move one of the visitor's own appointments to another free time of the same person and service (a slot of `visitor.slots`), under the same rule as a cancel; a new reference, the old one cancelled. 409 `slot_taken` when the time is not free",
+		params: AppParam.extend({ id: Id }),
+		body: z.object({ start: Ms, mode: Mode }),
+		response: MovedAppointment,
+		audit: "visitor.reschedule",
 	}),
 ] as const;

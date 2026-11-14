@@ -34,7 +34,10 @@ describe("the route table", () => {
 					r.permission !== undefined ||
 						r.platform === true ||
 						r.id === "me.get" ||
-						r.id === "me.capabilities",
+						r.id === "me.capabilities" ||
+						// A member's own settings: their own only, the subject is the caller's.
+						r.id === "me.settings" ||
+						r.id === "me.saveSettings",
 					r.id,
 				).toBe(true);
 			else expect(r.permission, r.id).toBeUndefined();

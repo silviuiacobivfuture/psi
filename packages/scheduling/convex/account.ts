@@ -1,9 +1,12 @@
 import { v } from "convex/values";
 import { transition } from "../src/domain/lifecycle";
-import { mutation, query } from "./_generated/server";
+import { MINUTE_MS } from "../src/domain/time";
+import type { Doc } from "./_generated/dataModel";
+import { type MutationCtx, mutation, query } from "./_generated/server";
 import { appointmentByReference } from "./calendar";
 import { requireServer, sameSecret } from "./guard";
-import { serverKeyValidator } from "./validators";
+import { moveAppointment } from "./move";
+import { modeValidator, serverKeyValidator } from "./validators";
 
 /**
  * A signed-in person's own requests (docs/plans/accounts.md, "Previous reservations"). The app decides
@@ -43,6 +46,7 @@ export const forAccount = query({
 				tenant: row.tenant,
 				service: service?.slug ?? "",
 				practitionerName: practitioner?.displayName ?? "",
+				minNoticeMinutes: service?.minNoticeMinutes ?? 0,
 				status: row.status,
 				mode: row.mode,
 				start: row.start,
@@ -55,6 +59,26 @@ export const forAccount = query({
 	},
 });
 
+/** The account's own row, or undefined: the hash is checked inside the transaction, never trusted from outside. */
+async function ownRow(ctx: MutationCtx, reference: string, accountHash: string) {
+	const row = await appointmentByReference(ctx, reference);
+	return row === undefined ||
+		row.accountHash === undefined ||
+		!SHA256_HEX.test(accountHash) ||
+		!sameSecret(row.accountHash, accountHash)
+		? undefined
+		: row;
+}
+
+/**
+ * The clinic's rule for changing a booking online: until the service's notice before it starts (the same notice a
+ * booking needs). Later, the visitor calls the clinic.
+ */
+async function tooLate(ctx: MutationCtx, row: Doc<"appointments">, now: number): Promise<boolean> {
+	const service = await ctx.db.get(row.service);
+	return now >= row.start - (service?.minNoticeMinutes ?? 0) * MINUTE_MS;
+}
+
 /** Cancels an upcoming request of this account (the app has already asked OpenFGA). */
 export const cancelForAccount = mutation({
 	args: {
@@ -64,21 +88,44 @@ export const cancelForAccount = mutation({
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		const row = await appointmentByReference(ctx, args.reference);
-		if (
-			row === undefined ||
-			row.accountHash === undefined ||
-			!SHA256_HEX.test(args.accountHash) ||
-			!sameSecret(row.accountHash, args.accountHash)
-		) {
-			return { ok: false as const, reason: "not_found" as const };
-		}
+		const row = await ownRow(ctx, args.reference, args.accountHash);
+		if (row === undefined) return { ok: false as const, reason: "not_found" as const };
 		const now = Date.now();
-		if (row.end <= now) return { ok: false as const, reason: "not_allowed" as const };
+		if (row.end <= now || (await tooLate(ctx, row, now)))
+			return { ok: false as const, reason: "not_allowed" as const };
 		const next = transition(row, { type: "cancel" }, now);
 		if (!next.ok) return { ok: false as const, reason: next.reason };
 		await ctx.db.patch(row._id, { status: next.next, updatedAt: now });
 		return { ok: true as const, status: next.next, start: row.start };
+	},
+});
+
+/**
+ * Moves an upcoming request of this account to another free time of the same person and service (the clinic's rule
+ * as for a cancel): a new request with a new reference, the old one cancelled and linked to it, in one transaction.
+ */
+export const rescheduleForAccount = mutation({
+	args: {
+		key: serverKeyValidator,
+		reference: v.string(),
+		accountHash: v.string(),
+		start: v.number(),
+		mode: modeValidator,
+		newReference: v.string(),
+	},
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const row = await ownRow(ctx, args.reference, args.accountHash);
+		if (row === undefined) return { ok: false as const, reason: "not_found" as const };
+		if (await tooLate(ctx, row, Date.now()))
+			return { ok: false as const, reason: "not_allowed" as const };
+		return moveAppointment(ctx, row, {
+			tenant: row.tenant,
+			start: args.start,
+			mode: args.mode,
+			newReference: args.newReference,
+			actor: `account:${args.accountHash.slice(0, 12)}`,
+		});
 	},
 });
 

@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
+import { asSite, bookAs, freeSlots, mineOf } from "./testing/booking";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 
@@ -65,6 +66,20 @@ const rated = async (w: Populated): Promise<string> => {
 
 export const EXTRA_HAPPY = {
 	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
+	"visitor.mineReschedule": async (w) => {
+		await bookAs(w, "visitor-move");
+		const [row] = await mineOf(w, "visitor-move");
+		const target = (await freeSlots(w, NOW + 4 * 24 * HOUR)).find(
+			(s) => s.start !== row?.start && s.modes.includes("onsite"),
+		);
+		return asSite(
+			w,
+			"POST",
+			`/me/appointments/${row?.id}/reschedule`,
+			{ start: target?.start, mode: "onsite" },
+			"visitor-move",
+		);
+	},
 	"me.settings": (w) => olga(w, "GET", "/me/settings"),
 	"me.saveSettings": (w) => olga(w, "PUT", "/me/settings", { ...DEFAULT_SETTINGS, theme: "dark" }),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),

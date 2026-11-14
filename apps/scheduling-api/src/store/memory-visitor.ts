@@ -9,9 +9,10 @@ import {
 } from "@psi/scheduling/domain";
 import { newId } from "./ids";
 import type { Rateable } from "./memory-feedback";
+import { ownRequests } from "./memory-visitor-own";
 import type { Collection, Failed, OfferedSlot, RequestsPort, Rows, VisitorPort } from "./types";
 
-type Status =
+export type Status =
 	| "held"
 	| "requested"
 	| "confirmed"
@@ -19,7 +20,7 @@ type Status =
 	| "cancelled"
 	| "callback"
 	| "handled";
-interface Req {
+export interface Req {
 	id: string;
 	app: string;
 	reference: string;
@@ -56,6 +57,8 @@ export interface WebBooking {
 
 const MINUTE = 60_000;
 const HOLD_MINUTES = 10;
+/** Memory mode only: how long before its start a booking stops being offered, and stops being changed online. */
+const NOTICE_MINUTES = 60;
 /** Memory mode only: every practitioner works Monday to Friday, 09:00-17:00 (the Convex store holds the real rules). */
 const WEEK: WeeklyRule[] = [1, 2, 3, 4, 5].map((weekday) => ({
 	weekday,
@@ -122,7 +125,7 @@ export function createMemoryVisitor(
 				durationMinutes: service.durationMinutes,
 				bufferMinutes: service.bufferMinutes,
 				stepMinutes: 30,
-				minNoticeMinutes: 60,
+				minNoticeMinutes: NOTICE_MINUTES,
 				horizonDays: 90,
 				holdMinutes: HOLD_MINUTES,
 				modes: service.modes,
@@ -134,9 +137,11 @@ export function createMemoryVisitor(
 		app: string,
 		personId: string,
 		buffer: number,
+		/** A request whose own time does not count (the one being moved). */
+		except?: string,
 	): Promise<{ start: number; until: number }[]> {
 		const taken = [...reqs.values()]
-			.filter((r) => r.app === app && r.personId === personId && live(r))
+			.filter((r) => r.app === app && r.personId === personId && live(r) && r.id !== except)
 			.map((r) => ({ start: r.start, until: r.end + buffer * MINUTE }));
 		const booked = (await c.appointments.list(app, { eq: { practitionerId: personId } }))
 			.filter((a) => a.status !== "cancelled")
@@ -151,6 +156,7 @@ export function createMemoryVisitor(
 		to: number,
 		mode?: "onsite" | "online",
 		only?: string,
+		except?: string,
 	): Promise<
 		| {
 				ok: true;
@@ -166,7 +172,7 @@ export function createMemoryVisitor(
 			return { ok: false, reason: "unknown_service" };
 		const slots: OfferedSlot[] = [];
 		for (const person of found.people.filter((p) => only === undefined || p.id === only)) {
-			const busy = await busyOf(app, person.id, found.spec.bufferMinutes);
+			const busy = await busyOf(app, person.id, found.spec.bufferMinutes, except);
 			for (const slot of generateSlots({
 				timeZone,
 				service: found.spec,
@@ -353,32 +359,29 @@ export function createMemoryVisitor(
 			reqs.set(r.id, r);
 			return { reference: r.reference };
 		},
-		async mine(app, subject) {
-			const hash = accountHashOf(subject);
-			return [...reqs.values()]
-				.filter((r) => r.app === app && r.accountHash === hash && r.status !== "held")
-				.map((r) => ({
-					id: r.id,
-					reference: r.reference,
-					status: r.status,
-					start: r.start,
-					end: r.end,
-					mode: r.mode,
-					...(r.serviceSlug === undefined ? {} : { serviceSlug: r.serviceSlug }),
-				}));
-		},
-		async cancelMine(app, subject, id) {
-			const r = reqs.get(id);
-			if (
-				r === undefined ||
-				r.app !== app ||
-				r.accountHash !== accountHashOf(subject) ||
-				(r.status !== "requested" && r.status !== "confirmed")
-			)
-				return { ok: false, reason: "not_found" };
-			r.status = "cancelled";
-			return { ok: true };
-		},
+		...ownRequests({
+			reqs,
+			people: c.people,
+			clock,
+			noticeOf: async (app, slug) =>
+				(await spec(app, slug))?.spec.minNoticeMinutes ?? NOTICE_MINUTES,
+			async slotAt(app, input, except) {
+				const out = await offered(
+					app,
+					input.service,
+					input.start,
+					input.start + 1,
+					input.mode,
+					input.practitioner,
+					except,
+				);
+				if (!out.ok) return out;
+				const slot = out.slots.find((s) => s.start === input.start && s.modes.includes(input.mode));
+				return slot === undefined
+					? { ok: false, reason: "slot_taken" }
+					: { ok: true, start: slot.start, end: slot.end };
+			},
+		}),
 	};
 
 	const requests: RequestsPort = {
@@ -446,10 +449,10 @@ export function createMemoryVisitor(
 						updatedAt: now,
 					});
 				}
-				return { ok: true };
+				return { ok: true, ...(r.accountHash === undefined ? {} : { accountHash: r.accountHash }) };
 			}
 			r.status = decision === "decline" ? "declined" : "cancelled";
-			return { ok: true };
+			return { ok: true, ...(r.accountHash === undefined ? {} : { accountHash: r.accountHash }) };
 		},
 	};
 

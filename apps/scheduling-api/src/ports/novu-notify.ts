@@ -2,6 +2,7 @@ import {
 	APP_DEFAULTS,
 	APP_KEYS,
 	type AppKey,
+	accountClientId,
 	type EventId,
 	type Notifier,
 	type Recipient,
@@ -186,6 +187,7 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 				}
 				// A visitor's request, named by its reference: the visitor's own contact is who is told.
 				const reference = str(refs, "reference") ?? str(refs, "requestId") ?? "";
+				const account = str(refs, "account");
 				const found = (
 					await store.requests.list(n.app, 0, options.clock() + 365 * 86_400_000)
 				).find((r) => r.reference === reference);
@@ -206,7 +208,9 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 					[
 						{
 							audience: "client",
-							clientId: reference,
+							// A signed-in visitor is their account (every request of it, the devices they allowed);
+							// anyone else is this request only.
+							clientId: account === undefined ? reference : accountClientId(account),
 							name: found.contact.name,
 							locale: "ro",
 							...(found.contact.email === undefined ? {} : { email: found.contact.email }),

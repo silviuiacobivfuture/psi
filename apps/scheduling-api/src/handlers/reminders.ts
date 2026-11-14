@@ -232,15 +232,23 @@ export const reminderHandlers: HandlersOf<
 				: fail("not_found", "request not found");
 		await ctx.changed("request", "updated", String(ctx.params.reference));
 		const to = { kind: "request", reference: String(ctx.params.reference) } as const;
+		// A request made signed in is told to the account (its hash), so it reaches the devices the person allowed.
+		const account: Record<string, string> =
+			out.accountHash === undefined ? {} : { account: out.accountHash };
 		// Calling a callback back tells the visitor nothing: they were on the phone.
 		if (ctx.body.decision === "handle") ctx.note({ decision: "handle" });
 		else if (ctx.body.decision === "confirm")
-			await ctx.notify("appointment.confirmed", to, { reference: to.reference }, to.reference);
+			await ctx.notify(
+				"appointment.confirmed",
+				to,
+				{ reference: to.reference, ...account },
+				to.reference,
+			);
 		else
 			await ctx.notify(
 				"appointment.cancelled",
 				to,
-				{ reference: to.reference, by: "team" },
+				{ reference: to.reference, by: "team", ...account },
 				to.reference,
 			);
 		ctx.note({ decision: ctx.body.decision });

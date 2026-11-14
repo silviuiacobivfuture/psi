@@ -1,7 +1,8 @@
+import { accountHashOf } from "@psi/scheduling";
 import { visitorSubject } from "../auth/principal";
 import type { HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
-import type { Reason } from "../store/types";
+import type { Reason, StorePort } from "../store/types";
 
 const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
@@ -32,6 +33,7 @@ export const visitorHandlers: HandlersOf<
 	| "visitor.callback"
 	| "visitor.mine"
 	| "visitor.mineCancel"
+	| "visitor.mineReschedule"
 > = {
 	async "visitor.services"(ctx) {
 		const out = await ctx.deps.store.visitor.services(ctx.app);
@@ -110,21 +112,79 @@ export const visitorHandlers: HandlersOf<
 		return out;
 	},
 	async "visitor.mine"(ctx) {
-		const subject = visitorSubject(ctx.principal);
-		if (subject === undefined) throw fail("invalid", "name the visitor");
-		return { items: await ctx.deps.store.visitor.mine(ctx.app, subject) };
+		const subject = ownSubject(ctx.principal);
+		const rows = await ctx.deps.store.visitor.mine(ctx.app, subject);
+		return { items: rows.map((r) => ownView(r, ctx.now)) };
 	},
 	async "visitor.mineCancel"(ctx) {
-		const subject = visitorSubject(ctx.principal);
-		if (subject === undefined) throw fail("invalid", "name the visitor");
-		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, String(ctx.params.id)));
-		await ctx.changed("request", "updated", String(ctx.params.id));
+		const subject = ownSubject(ctx.principal);
+		const id = String(ctx.params.id);
+		const held = await changeable(ctx.deps.store, ctx.app, subject, id, ctx.now);
+		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, id));
+		await ctx.changed("request", "updated", id);
 		await ctx.notify(
 			"appointment.cancelled",
 			TEAM_REQUESTS,
-			{ requestId: String(ctx.params.id), by: "visitor" },
-			String(ctx.params.id),
+			{ reference: held.reference, by: "visitor", account: accountHashOf(subject) },
+			id,
 		);
 		return { ok: true as const };
 	},
+	async "visitor.mineReschedule"(ctx) {
+		const subject = ownSubject(ctx.principal);
+		const id = String(ctx.params.id);
+		const held = await changeable(ctx.deps.store, ctx.app, subject, id, ctx.now);
+		const { ok: _ok, ...moved } = ok(
+			await ctx.deps.store.visitor.rescheduleMine(ctx.app, subject, id, ctx.body),
+		);
+		await ctx.changed("request", "updated", id);
+		await ctx.changed("request", "created", moved.reference);
+		await ctx.notify(
+			"appointment.moved",
+			TEAM_REQUESTS,
+			{ reference: moved.reference, previousStart: held.start, account: accountHashOf(subject) },
+			moved.reference,
+		);
+		ctx.auditTarget(moved.reference);
+		ctx.note({ from: held.reference });
+		return moved;
+	},
 };
+
+/** Whose own data a `/me` route touches: the signed-in visitor, or the one a site's key names. */
+function ownSubject(principal: Parameters<typeof visitorSubject>[0]): string {
+	const subject = visitorSubject(principal);
+	if (subject === undefined) throw fail("invalid", "name the visitor");
+	return subject;
+}
+
+type OwnRow = Awaited<ReturnType<StorePort["visitor"]["mine"]>>[number];
+
+/** A row as the visitor sees it, with the clinic's rule for changing it online applied at `now`. */
+function ownView(r: OwnRow, now: number) {
+	const { noticeMinutes, ...row } = r;
+	const changeUntil = r.start - noticeMinutes * 60_000;
+	return {
+		...row,
+		changeUntil,
+		canChange: (r.status === "requested" || r.status === "confirmed") && now < changeUntil,
+	};
+}
+
+/**
+ * The visitor's own row, when it may still change online; otherwise the refusal, before anything is written: not theirs
+ * (or not there) is 404, past the clinic's notice or no longer open is 403 `not_allowed` with `too_late`.
+ */
+async function changeable(
+	store: StorePort,
+	app: string,
+	subject: string,
+	id: string,
+	now: number,
+): Promise<OwnRow> {
+	const row = (await store.visitor.mine(app, subject)).find((r) => r.id === id);
+	if (row === undefined) throw fail("not_found", "not found");
+	if (!ownView(row, now).canChange)
+		throw fail("not_allowed", "this can no longer be changed online", { reason: "too_late" });
+	return row;
+}

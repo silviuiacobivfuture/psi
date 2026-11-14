@@ -199,7 +199,8 @@ describe("the visitor flow", () => {
 	});
 
 	it("a visitor cancels only their own, and a request of someone else is not found", async () => {
-		const h = (await hold(await slot())).json;
+		// A slot well ahead: one at the very edge of the notice can no longer be changed online.
+		const h = (await hold(await slot(6))).json;
 		await w.call("visitor-9", "POST", `${A}/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
 			contact: { name: "V", phone: "0733 000 111" },
