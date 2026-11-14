@@ -46,6 +46,8 @@ export interface BookingAccount {
 	prefill: Pick<BookingValues, "name" | "email" | "phone">;
 	/** The account's subject: the scheduling service makes the request theirs (their bookings page lists it); undefined when anonymous or when the site lists no requests. */
 	subject?: string;
+	/** The e-mail the account's sign-in vouches for (`email_verified`), sent with `subject` so the service may link a client. */
+	verifiedEmail?: string;
 	/** The person's bookings page, when signed in and the site has one. */
 	bookingsHref?: string;
 }

@@ -49,14 +49,15 @@ export function accountSay(locale: Locale): Say {
 /**
  * The estate account in the booking and the guide: the pre-fill, the sign-in line, and the guide
  * remembering only for a signed-in person who consented (see /cont/conversatii). Both survive the
- * account's database being down. Requests are not listed in this site's account (its reservations
- * live on Psizone, where the scheduling account page is), so the request carries no account hash.
+ * account's database being down. A signed-in person's request is theirs: it shows in this site's "Programările mele"
+ * (through the scheduling service), and the e-mail their sign-in vouches for goes with it, so the service can link
+ * them to their clinic record.
  */
 export const { bookingAccount, guideForRequest } = createBookingAccounts({
 	account,
 	site: "hemisync",
 	base,
-	listsRequests: false,
+	listsRequests: true,
 });
 
 /**

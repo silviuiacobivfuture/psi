@@ -190,6 +190,58 @@ describe("the visitor side, against the service", () => {
 		});
 	});
 
+	it("the e-mail the visitor's sign-in vouches for goes with their request: one client of that e-mail is linked, otherwise the team is asked", async () => {
+		let n = 0;
+		const client = async (): Promise<{ id: string; email: string }> => {
+			n += 1;
+			const email = `vouched-${n}-${Date.now()}@example.test`;
+			const made = await api.world.call("olga", "POST", "/v1/apps/psizone/clients", {
+				name: `Vouched Client ${n}`,
+				contact: { email },
+			});
+			return { id: String(made.json.id), email };
+		};
+		const book = async (input: { subject?: string; verifiedEmail?: string; email: string }) => {
+			const held = await hold();
+			const sub = await s.submit({
+				reference: held.reference,
+				holdToken: held.holdToken,
+				// A phone no client has: the e-mail alone decides (the populated clinic has a client with VISITOR's phone).
+				contact: { ...VISITOR, email: input.email, phone: "+40799000777" },
+				...(input.subject === undefined ? {} : { subject: input.subject }),
+				...(input.verifiedEmail === undefined ? {} : { verifiedEmail: input.verifiedEmail }),
+			});
+			if (!sub.ok) throw new Error(sub.reason);
+		};
+		const linkOf = (id: string) => api.world.store.keyed.get("psizone", "link", `c/${id}`);
+		const waiting = async () =>
+			(
+				(await api.world.call("olga", "GET", "/v1/apps/psizone/account-links")).json.items as {
+					candidates: { clientId: string }[];
+				}[]
+			).flatMap((x) => x.candidates.map((c) => c.clientId));
+
+		const vouched = await client();
+		await book({
+			subject: "visitor-vouched-1",
+			verifiedEmail: vouched.email,
+			email: vouched.email,
+		});
+		expect(await linkOf(vouched.id)).toBeDefined();
+		expect(await waiting()).not.toContain(vouched.id);
+
+		const unvouched = await client();
+		await book({ subject: "visitor-vouched-2", email: unvouched.email });
+		expect(await linkOf(unvouched.id)).toBeUndefined();
+		expect(await waiting()).toContain(unvouched.id);
+
+		// Without a signed-in visitor there is nobody to vouch for: the e-mail is not sent, nothing is linked or asked.
+		const anonymous = await client();
+		await book({ verifiedEmail: anonymous.email, email: anonymous.email });
+		expect(await linkOf(anonymous.id)).toBeUndefined();
+		expect(await waiting()).not.toContain(anonymous.id);
+	});
+
 	it("a callback request is stored with the time and service; without consent nothing is sent", async () => {
 		const request = {
 			tenant: "psizone",
