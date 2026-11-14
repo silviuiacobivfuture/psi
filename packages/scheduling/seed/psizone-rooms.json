@@ -16,6 +16,7 @@
 			}
 		}
 	],
+	"legacy": ["Cabinet Terapie", "Sală Kinetoterapie"],
 	"floors": [
 		{
 			"id": "parter",
@@ -61,6 +62,7 @@
 					"purpose": "Consiliere și psihoterapie",
 					"category": "therapy",
 					"homePractitioner": "Turcu Adrian",
+					"formerly": ["Cabinet Psihoterapie 1"],
 					"geometry": {
 						"x": 10,
 						"y": 20,
@@ -133,6 +135,7 @@
 					"purpose": "Psihoterapie",
 					"category": "therapy",
 					"homePractitioner": "Turcu Daniela",
+					"formerly": ["Cabinet Psihoterapie 2"],
 					"geometry": {
 						"x": 150,
 						"y": 10,
@@ -146,6 +149,7 @@
 					"purpose": "Activități de grup copii",
 					"category": "therapy",
 					"homePractitioner": null,
+					"formerly": ["Cabinet Grup"],
 					"geometry": {
 						"x": 10,
 						"y": 56,
@@ -159,6 +163,7 @@
 					"purpose": "Race Me Up",
 					"category": "therapy",
 					"homePractitioner": null,
+					"formerly": ["Sală Grup / Hemi-Sync"],
 					"geometry": {
 						"x": 80,
 						"y": 56,

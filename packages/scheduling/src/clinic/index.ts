@@ -152,6 +152,7 @@ export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
 export { PLAN_HEIGHT, PLAN_WIDTH, roomsPlanDocument } from "./rooms-plan";
 export {
+	nameKey,
 	parseRoomsSeed,
 	ROOM_CATEGORIES,
 	type RoomCategory,

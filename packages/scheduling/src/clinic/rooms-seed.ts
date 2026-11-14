@@ -10,6 +10,18 @@ export const roomCategorySchema = z.enum(ROOM_CATEGORIES);
 export type RoomCategory = z.infer<typeof roomCategorySchema>;
 
 const slug = z.string().regex(/^[a-z][a-z0-9-]{1,39}$/);
+
+/**
+ * How two names of a room, a person or a group are told to be the same: case, diacritics, spacing and punctuation
+ * ignored ("Năfureanu Nicoleta" is "Nafureanu Nicoleta", "Race Me Up" is "RaceMeUp").
+ */
+export function nameKey(name: string): string {
+	return name
+		.normalize("NFD")
+		.replace(/\p{M}/gu, "")
+		.toLocaleLowerCase("ro")
+		.replace(/[^\p{L}\p{N}]+/gu, "");
+}
 const label = z.object({ ro: z.string().min(1).max(120), en: z.string().min(1).max(120) });
 
 const seedRoomSchema = z.object({
@@ -26,6 +38,11 @@ const seedRoomSchema = z.object({
 		w: z.number().int().min(10),
 		h: z.number().int().min(10),
 	}),
+	/**
+	 * The names this same physical room had in the clinic's old system, so a room that came in through the import is the
+	 * one renamed (its id, and the appointments booked in it, kept) instead of a second room beside it.
+	 */
+	formerly: z.array(z.string().min(1).max(80)).max(5).default([]),
 });
 
 export const roomsSeedSchema = z
@@ -42,11 +59,26 @@ export const roomsSeedSchema = z
 				}),
 			)
 			.min(1),
+		/**
+		 * Rooms of the old system that are none of the owner's rooms: kept for the appointments booked in them, but taken
+		 * off the plan and out of booking (inactive, not bookable) until the owner says which room each one was.
+		 */
+		legacy: z.array(z.string().min(1).max(80)).max(20).default([]),
 	})
 	.superRefine((seed, ctx) => {
 		const ids = seed.floors.flatMap((f) => f.rooms.map((r) => r.id));
 		if (new Set(ids).size !== ids.length)
 			ctx.addIssue({ code: "custom", message: "duplicate room id", path: ["floors"] });
+		const names = [
+			...seed.floors.flatMap((f) => f.rooms.flatMap((r) => [r.name, ...r.formerly])),
+			...seed.legacy,
+		].map(nameKey);
+		if (new Set(names).size !== names.length)
+			ctx.addIssue({
+				code: "custom",
+				message: "a name is given to two rooms (a room's, a former or a legacy one)",
+				path: ["floors"],
+			});
 		const known = new Set(seed.categories.map((c) => c.id));
 		for (const f of seed.floors)
 			for (const r of f.rooms)

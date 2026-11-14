@@ -29,6 +29,37 @@ describe("the Psizone rooms seed", () => {
 		none.floors = [];
 		expect(() => parseRoomsSeed(none)).toThrow();
 	});
+	it("names the old system's rooms: four are the owner's rooms, two are legacy", () => {
+		const seed = parseRoomsSeed(file);
+		const former = Object.fromEntries(
+			seed.floors.flatMap((f) =>
+				f.rooms.filter((r) => r.formerly.length > 0).map((r) => [r.name, r.formerly]),
+			),
+		);
+		expect(former).toEqual({
+			"Turcu Adrian": ["Cabinet Psihoterapie 1"],
+			"Turcu Daniela": ["Cabinet Psihoterapie 2"],
+			"Cabinet psihoterapie": ["Cabinet Grup"],
+			"Sală terapie grup": ["Sală Grup / Hemi-Sync"],
+		});
+		expect(seed.legacy).toEqual(["Cabinet Terapie", "Sală Kinetoterapie"]);
+	});
+	it("refuses a name given to two rooms, diacritics and case aside", () => {
+		const twice = structuredClone(file);
+		twice.legacy = ["SALA terapie grup"];
+		expect(() => parseRoomsSeed(twice)).toThrow(/given to two rooms/);
+		const former = structuredClone(file);
+		former.floors[0].rooms[0].formerly = ["cabinet 2"];
+		expect(() => parseRoomsSeed(former)).toThrow(/given to two rooms/);
+	});
+	it("a seed without former or legacy names is still valid", () => {
+		const bare = structuredClone(file);
+		delete bare.legacy;
+		for (const f of bare.floors) for (const r of f.rooms) delete r.formerly;
+		const seed = parseRoomsSeed(bare);
+		expect(seed.legacy).toEqual([]);
+		expect(seed.floors.flatMap((f) => f.rooms).every((r) => r.formerly.length === 0)).toBe(true);
+	});
 	it("keeps every room inside a 220 by 140 plan and off its neighbours", () => {
 		const seed = parseRoomsSeed(file);
 		for (const f of seed.floors)

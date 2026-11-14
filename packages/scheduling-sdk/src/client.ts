@@ -17,7 +17,13 @@ export type Auth =
 	 * A server-to-server service key; `subject` names the visitor on `visitor.mine*` calls (and owns a submitted
 	 * request); `clientIp` is the visitor's address, which the service rate-limits by (`x-psi-client-ip`).
 	 */
-	| { serviceKey: string; subject?: string; clientIp?: string };
+	| {
+			serviceKey: string;
+			subject?: string;
+			clientIp?: string;
+			/** The e-mail the site's sign-in vouches for, for the visitor it names (sent only with `subject`). */
+			verifiedEmail?: string;
+	  };
 
 export interface ClientOptions {
 	/** The service's origin, e.g. `https://api-programari.psizone.ro`. */
@@ -69,6 +75,8 @@ export function createSchedulingClient(options: ClientOptions): SchedulingClient
 			out["x-service-key"] = auth.serviceKey;
 			if (auth.subject !== undefined) out["x-psi-subject"] = auth.subject;
 			if (auth.clientIp !== undefined) out["x-psi-client-ip"] = auth.clientIp;
+			if (auth.subject !== undefined && auth.verifiedEmail !== undefined)
+				out["x-psi-verified-email"] = auth.verifiedEmail;
 		}
 		return out;
 	}

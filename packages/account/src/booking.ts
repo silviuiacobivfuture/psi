@@ -77,6 +77,7 @@ export function createBookingAccounts(options: BookingAccountOptions): BookingAc
 				: { prefill: {} };
 		}
 		const filled = await prefillFor(source, c);
+		const vouched = await source.verifiedEmail(c);
 		return {
 			form: { signedIn: true },
 			prefill: {
@@ -87,6 +88,7 @@ export function createBookingAccounts(options: BookingAccountOptions): BookingAc
 			...(options.listsRequests
 				? {
 						subject: person.subject,
+						...(vouched === null ? {} : { verifiedEmail: vouched }),
 						bookingsHref: `${options.base(locale)}${JOURNEY_PAGES.bookings}`,
 					}
 				: {}),
