@@ -182,6 +182,7 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	if (Object.keys(parsed.body).length === 0) parsed.body = await parseBody(spec, c);
 	const audit: Prepared["audit"] = { id: undefined, detail: {} };
 	const dynamic = { required: spec.permission?.target.kind === "dynamic", asked: false };
+	const scopes = new Map<string, Promise<("all" | "assigned" | "own")[]>>();
 	const now = deps.clock();
 	const ctx: Ctx<RouteSpec> = {
 		deps,
@@ -199,7 +200,10 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		reachOf: (key, type) => deps.access.reach(subject, app, key, type),
 		async scopesOf(key) {
 			dynamic.asked = true;
-			return deps.access.scopesHeld(subject, app, key);
+			// Asked once per key and request: a list of notes asks it for every note, and each ask is OpenFGA checks.
+			const held = scopes.get(key) ?? deps.access.scopesHeld(subject, app, key);
+			scopes.set(key, held);
+			return held;
 		},
 		async authorizeAny(keys, type, id) {
 			dynamic.asked = true;

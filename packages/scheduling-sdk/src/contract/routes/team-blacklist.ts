@@ -10,7 +10,7 @@ import {
 	BlacklistHit,
 	BlacklistPatch,
 } from "../entities-blacklist";
-import { AppParam, IdParam, Ok } from "../primitives";
+import { AppParam, IdParam, Ok, PageQuery, page } from "../primitives";
 
 /**
  * Who may not book, with the reason. `check` and `events` are declared before `:id` so their paths are never read as an
@@ -48,8 +48,10 @@ export const BLACKLIST_ROUTES = [
 		side: "team",
 		summary: "The app's blacklist; entries switched off or expired only with includeInactive",
 		params: AppParam,
-		query: z.object({ includeInactive: z.enum(["true", "false"]).default("false") }),
-		response: z.object({ items: z.array(BlacklistEntry) }),
+		query: z
+			.object({ includeInactive: z.enum(["true", "false"]).default("false") })
+			.extend(PageQuery.shape),
+		response: page(BlacklistEntry),
 		permission: { key: "blacklist_view", target: { kind: "app" } },
 	}),
 	route({

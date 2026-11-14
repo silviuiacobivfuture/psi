@@ -5,7 +5,7 @@ import type { Ctx, HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
 import { FIELDS } from "../ports/crypto";
 import type { RecordRow } from "../store/types";
-import { must, newId, stamps, writeTuples } from "./shared";
+import { must, newId, paginate, stamps, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
 const MAX_RECORD_BYTES = 100_000;
@@ -77,7 +77,12 @@ export const recordHandlers: HandlersOf<
 		const shown: RecordRow[] = [];
 		for (const r of rows)
 			if (held.includes(`${await resourceOfForm(ctx, r.formId)}_view`)) shown.push(r);
-		return { items: await Promise.all(shown.map((r) => full(ctx, r, "records.list"))) };
+		// Only the page is opened (decrypted and audited), never every record the client has.
+		const page = paginate(shown, ctx.query.limit, ctx.query.cursor);
+		return {
+			...page,
+			items: await Promise.all(page.items.map((r) => full(ctx, r, "records.list"))),
+		};
 	},
 
 	async "records.create"(ctx) {

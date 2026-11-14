@@ -16,6 +16,8 @@ const GROUPS = [
 	"clinical",
 ] as const satisfies readonly FieldGroupName[];
 const PURGE_DAYS = 30;
+/** The list's order, as `localeCompare` sorts, built once (a collator per comparison is what makes a sort slow). */
+const BY_NAME = new Intl.Collator();
 
 export const clientHandlers: HandlersOf<
 	| "clients.list"
@@ -28,15 +30,23 @@ export const clientHandlers: HandlersOf<
 	| "clients.remove"
 > = {
 	async "clients.list"(ctx) {
-		const rows = (
-			await ctx.deps.store.c.clients.list(ctx.app, { eq: { status: ctx.query.status } })
-		)
+		const { ids, q, status } = ctx.query;
+		// Named clients are read one by one (each an indexed read), never the whole list to find a few.
+		const loaded =
+			ids === undefined
+				? await ctx.deps.store.c.clients.list(ctx.app, { eq: { status } })
+				: (
+						await Promise.all(
+							ids
+								.filter((id) => reaches(ctx.reach, id))
+								.map((id) => ctx.deps.store.c.clients.get(ctx.app, id)),
+						)
+					).filter((r): r is ClientRow => r !== undefined);
+		const needle = ids === undefined ? q?.toLowerCase() : undefined;
+		const rows = loaded
 			.filter((r) => reaches(ctx.reach, r.id))
-			.filter(
-				(r) =>
-					ctx.query.q === undefined || r.name.toLowerCase().includes(ctx.query.q.toLowerCase()),
-			)
-			.sort((a, b) => a.name.localeCompare(b.name));
+			.filter((r) => needle === undefined || r.name.toLowerCase().includes(needle))
+			.sort((a, b) => BY_NAME.compare(a.name, b.name));
 		// A list never decrypts or audits clinical data: that is one client at a time.
 		const groups = ctx.query.fields === "groups";
 		const include = { contact: groups, guardian: groups, money: groups, clinical: false };

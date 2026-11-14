@@ -3,7 +3,7 @@ import { tellScheduleChanged } from "../engagement/schedule-alert";
 import type { HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
 import type { LeaveRow, RosterRow } from "../store/types";
-import { addDaysKey, must, newId, stamps } from "./shared";
+import { addDaysKey, must, newId, paginate, stamps } from "./shared";
 
 const MAX_LEAVE_DAYS = 62;
 const leaveOut = (l: LeaveRow) => ({
@@ -73,12 +73,11 @@ export const rosterHandlers: HandlersOf<
 	},
 
 	async "leave.list"(ctx) {
-		return {
-			items: (await ctx.deps.store.c.leave.list(ctx.app))
-				.filter((l) => reaches(ctx.reach, l.personId))
-				.sort((a, b) => b.from.localeCompare(a.from))
-				.map(leaveOut),
-		};
+		const rows = (await ctx.deps.store.c.leave.list(ctx.app))
+			.filter((l) => reaches(ctx.reach, l.personId))
+			.sort((a, b) => b.from.localeCompare(a.from));
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		return { ...page, items: page.items.map(leaveOut) };
 	},
 
 	async "leave.create"(ctx) {

@@ -5,7 +5,7 @@ import type { Ctx, Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import { m } from "../paraglide/messages.js";
 import type { AppointmentRow, ClientRow } from "../store/types";
-import { addDaysKey, must } from "./shared";
+import { addDaysKey, must, paginate } from "./shared";
 
 type C = Ctx<RouteSpec>;
 type Locale = "ro" | "en";
@@ -215,7 +215,10 @@ export const reminderHandlers: HandlersOf<
 	},
 
 	async "requests.list"(ctx) {
-		return { items: await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to) };
+		const rows = (await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to)).sort(
+			(a, b) => b.createdAt - a.createdAt,
+		);
+		return paginate(rows, ctx.query.limit, ctx.query.cursor);
 	},
 
 	async "requests.decide"(ctx) {

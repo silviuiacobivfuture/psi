@@ -17,12 +17,44 @@ export function createMemoryAuthz(
 	model: Model = { ...buildModel(), ...platformModel() },
 ): MemoryAuthz {
 	const held = new Map<string, Tuple>();
-	for (const t of seed) held.set(keyOf(t), t);
+	/** The tuples by object and relation: a Check reads its few tuples, never every tuple (a grown clinic holds 100k+). */
+	const byTarget = new Map<string, Map<string, Tuple>>();
+	/** Every object of a type a tuple names (as its object, or as a plain user): what ListObjects considers. */
+	const byType = new Map<string, Map<string, number>>();
+	const targetKey = (object: string, relation: string): string => `${object}\u0000${relation}`;
+	const count = (object: string, delta: number): void => {
+		const of = byType.get(typeOf(object)) ?? new Map<string, number>();
+		const next = (of.get(object) ?? 0) + delta;
+		if (next <= 0) of.delete(object);
+		else of.set(object, next);
+		byType.set(typeOf(object), of);
+	};
+	const add = (t: Tuple): void => {
+		const key = keyOf(t);
+		if (held.has(key)) return;
+		held.set(key, t);
+		const tk = targetKey(t.object, t.relation);
+		const list = byTarget.get(tk) ?? new Map<string, Tuple>();
+		list.set(key, t);
+		byTarget.set(tk, list);
+		count(t.object, 1);
+		if (!t.user.includes("#")) count(t.user, 1);
+	};
+	const remove = (t: Tuple): void => {
+		const key = keyOf(t);
+		if (!held.delete(key)) return;
+		byTarget.get(targetKey(t.object, t.relation))?.delete(key);
+		count(t.object, -1);
+		if (!t.user.includes("#")) count(t.user, -1);
+	};
+	for (const t of seed) add(t);
 
-	function targetsOf(object: string, relation: string): Tuple[] {
-		const out: Tuple[] = [];
-		for (const t of held.values()) if (t.object === object && t.relation === relation) out.push(t);
-		return out;
+	const NONE: ReadonlyMap<string, Tuple> = new Map();
+	/** Whether a tuple on (object, relation) passes `test`: walks that pair's few tuples, copying nothing. */
+	function anyTarget(object: string, relation: string, test: (t: Tuple) => boolean): boolean {
+		for (const t of (byTarget.get(targetKey(object, relation)) ?? NONE).values())
+			if (test(t)) return true;
+		return false;
 	}
 
 	function holds(user: string, relation: string, object: string, depth: number): boolean {
@@ -41,7 +73,7 @@ export function createMemoryAuthz(
 	): boolean {
 		switch (clause.kind) {
 			case "direct":
-				return targetsOf(object, relation).some((t) => {
+				return anyTarget(object, relation, (t) => {
 					if (t.user === user) return clause.types.includes("user") && user.startsWith("user:");
 					const hash = t.user.indexOf("#");
 					if (hash < 0) return false;
@@ -54,7 +86,9 @@ export function createMemoryAuthz(
 			case "computed":
 				return holds(user, clause.relation, object, depth + 1);
 			case "from":
-				return targetsOf(object, clause.via).some(
+				return anyTarget(
+					object,
+					clause.via,
 					(t) => !t.user.includes("#") && holds(user, clause.relation, t.user, depth + 1),
 				);
 			case "and":
@@ -69,18 +103,14 @@ export function createMemoryAuthz(
 		checkMany: (checks) =>
 			Promise.resolve(checks.map((q) => holds(q.user, q.relation, q.object, 0))),
 		listObjects(user, relation, type) {
-			const candidates = new Set<string>();
-			for (const t of held.values()) {
-				if (typeOf(t.object) === type) candidates.add(t.object);
-				if (!t.user.includes("#") && typeOf(t.user) === type) candidates.add(t.user);
-			}
+			const candidates = [...(byType.get(type)?.keys() ?? [])];
 			return Promise.resolve(
-				[...candidates].filter((object) => holds(user, relation, object, 0)).sort(),
+				candidates.filter((object) => holds(user, relation, object, 0)).sort(),
 			);
 		},
 		write(change: TupleChange) {
-			for (const t of change.deletes) held.delete(keyOf(t));
-			for (const t of change.writes) held.set(keyOf(t), t);
+			for (const t of change.deletes) remove(t);
+			for (const t of change.writes) add(t);
 			return Promise.resolve();
 		},
 		tuples: () => [...held.values()],

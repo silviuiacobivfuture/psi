@@ -101,9 +101,9 @@ export function auditCollection(call: Caller): Collection<AuditRow> {
 	 * Newest first, whole pages until the log or the bound ends. The next page starts AT the last instant seen (events
 	 * can share a millisecond), so events are de-duplicated by id and a page with nothing new ends the read.
 	 */
-	async function* events(app: string): AsyncGenerator<Event> {
+	async function* events(app: string, from?: number): AsyncGenerator<Event> {
 		const seen = new Set<string>();
-		let before: number | undefined;
+		let before: number | undefined = from;
 		for (;;) {
 			const { events: batch } = await page(app, before);
 			const fresh = batch.filter((e) => !seen.has(e.id));
@@ -128,10 +128,17 @@ export function auditCollection(call: Caller): Collection<AuditRow> {
 			return undefined;
 		},
 		async list(app, query) {
+			// The log is read newest first on its (tenant, at) index: a range starts AT its end, and a page ends the read
+			// once it holds its rows or has gone below the range's start; only a list with no page reads the whole log.
+			const range = query?.range?.field === "at" ? query.range : undefined;
+			const page =
+				query?.order?.field === "at" && query.order.dir === "desc" ? query.order : undefined;
 			const out: AuditRow[] = [];
-			for await (const e of events(app)) {
+			for await (const e of events(app, range?.lt)) {
+				if (range?.gte !== undefined && e.at < range.gte) break;
 				const row = toRow(app, e);
 				if (matches(row, query)) out.push(row);
+				if (page !== undefined && out.length >= page.limit) break;
 			}
 			return out;
 		},

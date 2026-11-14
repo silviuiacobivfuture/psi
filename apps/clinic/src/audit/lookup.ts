@@ -61,37 +61,45 @@ export async function loadLookup(
 	events: ReadonlyArray<AuditEvent>,
 ): Promise<AuditLookup> {
 	const { port, app } = ctx;
-	const [current, archived, columns, services, requests, roles, members] = await Promise.all([
-		settled(port.clients(app, "current", "")),
-		settled(port.clients(app, "archived", "")),
+	const idsOf = (type: ObjectType): string[] => [
+		...new Set(
+			events
+				.map(objectOf)
+				.filter((o) => o.type === type)
+				.map((o) => o.id),
+		),
+	];
+	const wanted = idsOf("appointment").slice(0, APPOINTMENT_LOOKUPS);
+	const [columns, services, requests, roles, members, found] = await Promise.all([
 		settled(port.columns(app)),
 		settled(port.services(app)),
 		ctx.can.has("web_requests_view") ? settled(port.requests(app)) : Promise.resolve([]),
 		settled(port.roles(app)),
 		settled(port.members(app)),
+		Promise.all(wanted.map((id) => port.appointment(app, id).catch(() => null))),
 	]);
-	const wanted = [
-		...new Set(
-			events
-				.map(objectOf)
-				.filter((o) => o.type === "appointment")
-				.map((o) => o.id),
-		),
-	].slice(0, APPOINTMENT_LOOKUPS);
-	const found = await Promise.all(wanted.map((id) => port.appointment(app, id).catch(() => null)));
+	const appointments = found.filter((a): a is Appointment => a !== null);
+	// Only the clients the page names (the events' own and their appointments'), never the whole client list.
+	const named = [
+		...new Set([
+			...idsOf("client"),
+			...appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId])),
+		]),
+	];
+	const clients = await settled(port.clientsByIds(app, named));
 	// A package belongs to a client and has no lookup of its own: only asked when an event is about one.
 	const aboutPackages = events.some((e) => objectOf(e).type === "package");
 	const packages = aboutPackages
 		? (
 				await Promise.all(
-					current.slice(0, PACKAGE_CLIENTS).map((c) => port.packages(app, c.id).catch(() => [])),
+					clients.slice(0, PACKAGE_CLIENTS).map((c) => port.packages(app, c.id).catch(() => [])),
 				)
 			).flat()
 		: [];
 	const roleNames = new Map(roles.map((r) => [r.id, roleLabel(r, ctx.locale)]));
 	return {
-		clients: byId([...current, ...archived]),
-		appointments: byId(found.filter((a): a is Appointment => a !== null)),
+		clients: byId(clients),
+		appointments: byId(appointments),
 		packages: byId(packages),
 		columns: byId(columns),
 		services: byId(services),
