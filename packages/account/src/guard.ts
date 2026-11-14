@@ -1,10 +1,27 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
+import { z } from "zod";
 import { type AuthzClient, checkKey } from "./authz/client";
 import { AuthzError } from "./authz/errors";
 import { recordTuples } from "./authz/tuples";
 import { hashSessionId } from "./seal";
 import type { SessionStore } from "./stores/types";
+
+const Vouched = z.object({ email: z.string().email().max(254), email_verified: z.literal(true) });
+
+/** The `email` of an ID token whose `email_verified` is exactly true; null for anything else (absent, false, malformed). */
+export function verifiedEmailOf(idToken: string | undefined): string | null {
+	const payload = idToken?.split(".")[1];
+	if (payload === undefined) return null;
+	try {
+		const parsed = Vouched.safeParse(
+			JSON.parse(Buffer.from(payload, "base64url").toString("utf8")),
+		);
+		return parsed.success ? parsed.data.email : null;
+	} catch {
+		return null;
+	}
+}
 
 /** The signed-in person, as a request sees them. Nothing here is a permission. */
 export interface SignedIn {
@@ -104,6 +121,11 @@ export interface Guard {
 	 * through sign-in again, which is silent while the provider still has their session.
 	 */
 	idToken(c: Context): Promise<string | null>;
+	/**
+	 * The e-mail the provider vouched for when this person signed in: the session's ID token says `email_verified: true`
+	 * (the token came from the provider in the code exchange, checked there). Null otherwise, or when signed out.
+	 */
+	verifiedEmail(c: Context): Promise<string | null>;
 	/** To sign-in and back: a GET to itself, a write to the same-origin page it came from (or home). */
 	requireSignIn(): MiddlewareHandler;
 	decide(c: Context, relation: string, record: RecordRef): Promise<Decision>;
@@ -183,6 +205,11 @@ export function createGuard(deps: GuardDeps): Guard {
 
 		async idToken(c) {
 			return (await load(c)) === null ? null : (tokens.get(c.req.raw) ?? null);
+		},
+
+		async verifiedEmail(c) {
+			if ((await load(c)) === null) return null;
+			return verifiedEmailOf(tokens.get(c.req.raw));
 		},
 
 		requireSignIn() {

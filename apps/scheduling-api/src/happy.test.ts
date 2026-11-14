@@ -274,14 +274,19 @@ const OWN: Record<
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>
 		olga(w, "PATCH", `/appointments/${w.ids.a1}`, { note: "bring the book" }),
+	// At 22:00 in Bucharest, four days on, like the create above: at 10:00 (where it was) a visitor case before it could
+	// take Dora's first free slot on a backend whose clock is the real one, the create then clashed (409), and the
+	// confirm of an appointment that was never made answered 404.
 	"appointments.confirm": async (w) => {
 		const a = await olga(w, "POST", "/appointments", {
 			practitionerId: w.ids.dora,
 			clientId: w.ids.c1,
-			start: NOW + 96 * HOUR,
-			end: NOW + 97 * HOUR,
+			start: NOW + 108 * HOUR,
+			end: NOW + 109 * HOUR,
 			status: "requested",
 		});
+		if (a.status !== 200)
+			throw new Error(`the appointment to confirm: ${a.status} ${JSON.stringify(a.json)}`);
 		return olga(w, "POST", `/appointments/${a.json.id}/confirm`);
 	},
 	"reports.appointments": (w) => olga(w, "GET", `/reports/appointments${REPORT_RANGE}`),

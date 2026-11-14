@@ -158,6 +158,9 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 				contact: { name, email, phone, age, details },
 				audience: forWhom,
 				...(who.subject === undefined ? {} : { subject: who.subject }),
+				...(who.subject === undefined || who.verifiedEmail === undefined
+					? {}
+					: { verifiedEmail: who.verifiedEmail }),
 			});
 			if (!sent.ok) {
 				return again(
