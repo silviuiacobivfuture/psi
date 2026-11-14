@@ -1,13 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { schedulingPort } from "@psi/guide";
+import type { RunningApi } from "@psi/scheduling-api/testing";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FormIdSchema } from "./booking";
+import { decode, post, siteOnService } from "./test-flow";
 
 /**
- * The whole booking conversation through the app's own routes, against the real scheduling
- * backend (the local Convex with its demo calendar). It runs only when `CONVEX_URL` and
- * `PSI_SCHEDULING_KEY` are set (`set -a; . ./.env; set +a` first); the unit tests of every piece
- * run without it.
+ * Booking in the chat against the real scheduling service (apps/scheduling-api in-process, psizone-web's own service
+ * key): the guide's tools (the services, the free times, a cancel with the code) and the chat's booking form go
+ * through the service's visitor routes like the contact page's. The whole conversation also needs the guide's model
+ * (`OPENROUTER_API_KEY`); without it that one case is skipped and every step it drives is still covered here.
  */
-const LIVE = Boolean(process.env.CONVEX_URL && process.env.PSI_SCHEDULING_KEY);
+const MODEL = Boolean(process.env.OPENROUTER_API_KEY);
+const DAY = 86_400_000;
+
+let api: RunningApi;
+beforeAll(async () => {
+	api = await siteOnService();
+});
+afterAll(() => api.close());
 
 describe("the booking form ids", () => {
 	it("accepts the page's form and a chat form with a short suffix, and nothing else", () => {
@@ -26,11 +36,6 @@ describe("the booking form ids", () => {
 	});
 });
 
-interface Chat {
-	turns: unknown;
-	html: string;
-}
-
 function fields(html: string): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const tag of html.match(/<input[^>]*>/g) ?? []) {
@@ -44,96 +49,131 @@ function fields(html: string): Record<string, string> {
 	return out;
 }
 
-const decode = (s: string): string => s.replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+/** The guide's port over the site's own client: what the chat's tools call. */
+async function port() {
+	const { scheduling } = await import("./booking-store");
+	if (scheduling === undefined) throw new Error("scheduling is off");
+	return schedulingPort(scheduling);
+}
 
-describe.skipIf(!LIVE)("a full booking and a cancel in the chat, against the real backend", () => {
-	async function say(
-		app: { request: (u: string, i: RequestInit) => Response | Promise<Response> },
-		text: string,
-		turns: unknown,
-	): Promise<Chat> {
-		const res = await app.request("/ghid?target=compass-answer", {
-			method: "POST",
-			headers: { "content-type": "application/json", "datastar-request": "true" },
-			body: JSON.stringify({ question: text, compassQuery: text, compassTurns: turns }),
+describe("the chat's booking against the scheduling service", () => {
+	it("the tools: the live services, free times the form can hold, and a cancel only with the right code", async () => {
+		const tools = await port();
+		expect((await tools.catalogue?.("psizone"))?.map((s) => s.slug)).toContain("evaluation");
+		const found = await tools.findSlots({
+			tenant: "psizone",
+			service: "evaluation",
+			from: Date.now(),
+			to: Date.now() + 14 * DAY,
+			limit: 5,
 		});
-		const raw = await res.text();
-		const patches = raw.split("\n\n").filter((b) => b.includes("datastar-patch-elements"));
-		const signals = raw.split("\n").find((l) => l.startsWith('data: signals {"compassTurns"'));
-		return {
-			html: decode(patches.at(-1) ?? ""),
-			turns:
-				signals === undefined
-					? turns
-					: JSON.parse(signals.slice("data: signals ".length)).compassTurns,
-		};
-	}
+		if (!found.ok) throw new Error(found.reason);
+		const slot = found.slots.find((s) => s.id.endsWith(".onsite"));
+		expect(slot).toBeDefined();
 
-	async function submit(
-		app: { request: (u: string, i: RequestInit) => Response | Promise<Response> },
-		path: string,
-		body: Record<string, string>,
-	): Promise<string> {
-		const res = await app.request(path, {
-			method: "POST",
-			headers: { "content-type": "application/x-www-form-urlencoded", "datastar-request": "true" },
-			body: new URLSearchParams(body).toString(),
-		});
-		return decode(await res.text());
-	}
-
-	it("asks, refines, picks by text, confirms in the form, gets the reference and code, and cancels", async () => {
+		// The chat's form: the contact goes to the app's routes, never through the guide.
 		const { app } = await import("./server");
-		const one = await say(
-			app,
-			"Bună, aș vrea să fac o programare pentru o evaluare pentru copilul meu",
-			[],
-		);
-		expect(one.html).toContain('name="slot"');
-		const two = await say(app, "săptămâna viitoare, dimineața", one.turns);
-		expect(two.html).toMatch(/Am căutat după|cele mai apropiate/);
-		const three = await say(app, "a doua", two.turns);
-		expect(three.html).toContain("e liberă");
-		const form = fields(three.html);
-		expect(form.slot).toMatch(/\.onsite$/);
-		const formId = form.form ?? "";
-		expect(formId).toMatch(/^chat-booking-[a-z0-9]+$/);
-
-		// Step 1 of the form: the contact goes to the app, not through the guide.
-		const held = await submit(app, "/programare", {
+		const formId = "chat-booking-a1b2c3";
+		const held = await post(app, "/programare", {
 			form: formId,
 			name: "Test Vizitator",
 			phone: "0712 345 678",
 			email: "",
 			forWhom: "child",
 			when: "any",
-			slot: form.slot ?? "",
+			slot: slot?.id ?? "",
 			consent: "yes",
 		});
 		const carried = fields(held);
 		expect(carried.reference).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
-		expect(carried.holdToken).toBeTruthy();
-
-		// Step 2: confirm. The reference and the one-time cancel code appear in the chat.
-		const done = await submit(app, "/programare/confirma", carried);
+		const told = api.world.notifier.sent.length;
+		const done = await post(app, "/programare/confirma", carried);
 		expect(done).toContain(carried.reference ?? "?");
-		const code = /([0-9A-Z]{4}(?:-[0-9A-Z]{4}){3})/.exec(done)?.[1];
-		expect(code).toBeDefined();
+		const code = /([0-9A-Z]{4}(?:-[0-9A-Z]{4}){3})/.exec(done)?.[1] ?? "";
+		expect(code).not.toBe("");
 		expect(done).toContain("scrie-mi în chat");
+		expect(api.world.notifier.sent.slice(told).map((n) => n.event)).toContain("request.created");
 
-		// Cancel in chat: first without details, then with the reference and the code.
-		const ask = await say(app, "vreau să anulez programarea", three.turns);
-		expect(ask.html).toContain("referința");
-		expect(ask.html).not.toContain("<form");
-		const wrong = await say(app, `${carried.reference} AAAA-AAAA-AAAA-AAAA`, ask.turns);
-		expect(wrong.html).toContain("Nu găsesc");
-		const cancelled = await say(app, `${carried.reference} ${code}`, ask.turns);
-		expect(cancelled.html).toContain("a fost anulată");
-		const again = await say(
-			app,
-			`anulează programarea ${carried.reference} ${code}`,
-			cancelled.turns,
+		// The guide cancels with the reference and the code, once.
+		const reference = carried.reference ?? "";
+		expect(await tools.cancel({ reference, cancelCode: "AAAA-AAAA-AAAA-AAAA" })).toEqual({
+			ok: false,
+			reason: "not_found",
+		});
+		expect((await tools.cancel({ reference, cancelCode: code })).ok).toBe(true);
+		expect((await tools.cancel({ reference, cancelCode: code })).ok).toBe(false);
+		const journal = await api.world.call(
+			"olga",
+			"GET",
+			"/v1/apps/psizone/audit?action=visitor.cancel",
 		);
-		expect(again.html).toContain("nu mai poate fi anulată");
+		expect((journal.json.items as { target: { id: string } }[]).map((e) => e.target.id)).toContain(
+			reference,
+		);
 	}, 60_000);
+
+	it.skipIf(!MODEL)(
+		"the whole conversation: asks, refines, picks by text, confirms in the form, and cancels",
+		async () => {
+			const { app } = await import("./server");
+			const say = async (text: string, turns: unknown) => {
+				const res = await app.request("/ghid?target=compass-answer", {
+					method: "POST",
+					headers: { "content-type": "application/json", "datastar-request": "true" },
+					body: JSON.stringify({ question: text, compassQuery: text, compassTurns: turns }),
+				});
+				const raw = await res.text();
+				const patches = raw.split("\n\n").filter((b) => b.includes("datastar-patch-elements"));
+				const signals = raw.split("\n").find((l) => l.startsWith('data: signals {"compassTurns"'));
+				return {
+					html: decode(patches.at(-1) ?? ""),
+					turns:
+						signals === undefined
+							? turns
+							: JSON.parse(signals.slice("data: signals ".length)).compassTurns,
+				};
+			};
+			const one = await say(
+				"Bună, aș vrea să fac o programare pentru o evaluare pentru copilul meu",
+				[],
+			);
+			expect(one.html).toContain('name="slot"');
+			const two = await say("săptămâna viitoare, dimineața", one.turns);
+			expect(two.html).toMatch(/Am căutat după|cele mai apropiate/);
+			const three = await say("a doua", two.turns);
+			expect(three.html).toContain("e liberă");
+			const form = fields(three.html);
+			expect(form.slot).toMatch(/\.onsite$/);
+			expect(form.form ?? "").toMatch(/^chat-booking-[a-z0-9]+$/);
+			const held = fields(
+				await post(app, "/programare", {
+					form: form.form ?? "",
+					name: "Test Vizitator",
+					phone: "0712 345 678",
+					email: "",
+					forWhom: "child",
+					when: "any",
+					slot: form.slot ?? "",
+					consent: "yes",
+				}),
+			);
+			expect(held.reference).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+			expect(held.holdToken).toBeTruthy();
+			const done = await post(app, "/programare/confirma", held);
+			expect(done).toContain(held.reference ?? "?");
+			const code = /([0-9A-Z]{4}(?:-[0-9A-Z]{4}){3})/.exec(done)?.[1];
+			expect(code).toBeDefined();
+			expect(done).toContain("scrie-mi în chat");
+			const ask = await say("vreau să anulez programarea", three.turns);
+			expect(ask.html).toContain("referința");
+			expect(ask.html).not.toContain("<form");
+			const wrong = await say(`${held.reference} AAAA-AAAA-AAAA-AAAA`, ask.turns);
+			expect(wrong.html).toContain("Nu găsesc");
+			const cancelled = await say(`${held.reference} ${code}`, ask.turns);
+			expect(cancelled.html).toContain("a fost anulată");
+			const again = await say(`anulează programarea ${held.reference} ${code}`, cancelled.turns);
+			expect(again.html).toContain("nu mai poate fi anulată");
+		},
+		120_000,
+	);
 });

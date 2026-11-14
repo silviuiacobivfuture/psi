@@ -1,78 +1,27 @@
 import { encodeSlot } from "@psi/scheduling";
-import { describe, expect, it } from "vitest";
+import type { RunningApi } from "@psi/scheduling-api/testing";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { checked, decode, inputs, post, siteOnService, value } from "./test-flow";
 
 /**
- * The booking page and the picker's route through the app's own routes. The first block runs with
- * no store at all (scheduling off: the callback form, and no input ever breaks the route). The
- * second runs against the real scheduling backend (the local Convex with its demo calendar) when
- * `CONVEX_URL` and `PSI_SCHEDULING_KEY` are set (`set -a; . ./.env; set +a` first).
+ * The booking page and the picker's route through the app's own routes, against the real scheduling service
+ * (apps/scheduling-api in-process, its synthetic clinic, psizone-web's own service key): the site books through the
+ * service's visitor routes, so the team is notified and the journal records the request. With no service at all, see
+ * booking-page-off.test.ts.
  */
-const LIVE = Boolean(process.env.CONVEX_URL && process.env.PSI_SCHEDULING_KEY);
-
-type App = { request: (u: string, i?: RequestInit) => Response | Promise<Response> };
-
-const decode = (s: string): string =>
-	s
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.replace(/&amp;/g, "&");
-
-async function post(app: App, path: string, body: Record<string, string>): Promise<string> {
-	const res = await app.request(path, {
-		method: "POST",
-		headers: { "content-type": "application/x-www-form-urlencoded", "datastar-request": "true" },
-		body: new URLSearchParams(body).toString(),
-	});
-	expect(res.status).toBe(200);
-	return decode(await res.text());
-}
-
-function inputs(html: string, name: string): ReadonlyArray<string> {
-	return (html.match(/<input[^>]*>/g) ?? []).filter((tag) => tag.includes(`name="${name}"`));
-}
-
-const value = (tag: string | undefined): string => /value="([^"]*)"/.exec(tag ?? "")?.[1] ?? "";
-const checked = (tag: string): boolean => /\bchecked\b/.test(tag);
-
-describe("the picker's route and the booking page, scheduling off", () => {
-	it("the booking page renders the callback form, never an error, and never the picker", async () => {
-		if (LIVE) return;
-		const { app } = await import("./server");
-		for (const path of [
-			"/programare",
-			"/en/programare",
-			"/programare?serviciu=nope",
-			"/programare?serviciu=%3Cscript%3E",
-		]) {
-			const res = await app.request(path);
-			expect(res.status).toBe(200);
-			const html = await res.text();
-			expect(html).toContain('name="consent"');
-			expect(html).not.toContain("pz-slots");
-			expect(res.headers.get("cache-control")).toBe("private, no-store");
-		}
-	}, 30_000);
-
-	it("the route answers any input with a form and writes nothing", async () => {
-		if (LIVE) return;
-		const { app } = await import("./server");
-		const html = await post(app, "/programare/ore", {
-			form: 'chat-booking-"><script>',
-			service: "../../x",
-			week: "2026-13-99",
-			day: "x",
-			mode: "teleport",
-			who: "<b>",
-			slot: "z".repeat(500),
-			name: "Ana",
-		});
-		expect(html).toContain('<form id="booking"');
-		expect(html).toContain('value="Ana"');
-		expect(html).not.toContain('"><script>');
-	}, 30_000);
+/** A working Monday morning in Bucharest: the week the page opens on has free times whatever day the test runs. */
+const MONDAY = Date.UTC(2027, 0, 11, 6, 0, 0);
+let api: RunningApi;
+beforeAll(async () => {
+	vi.useFakeTimers({ toFake: ["Date"], now: MONDAY });
+	api = await siteOnService(MONDAY);
+});
+afterAll(async () => {
+	await api.close();
+	vi.useRealTimers();
 });
 
-describe.skipIf(!LIVE)("the booking page against the real backend", () => {
+describe("the booking page against the scheduling service", () => {
 	it("deep link, week navigation, forged and real slots, the taken notice, and a full booking", async () => {
 		const { app } = await import("./server");
 
@@ -175,8 +124,44 @@ describe.skipIf(!LIVE)("the booking page against the real backend", () => {
 		expect(inputs(second, "slot").some(checked)).toBe(false);
 
 		// Confirming sends the request: the reference and cancel code, as before.
+		const told = api.world.notifier.sent.length;
 		const done = await post(app, "/programare/confirma", carried);
 		expect(done).toContain(carried.reference ?? "?");
 		expect(done).toMatch(/[0-9A-Z]{4}(?:-[0-9A-Z]{4}){3}/);
+
+		// The team is told, and the journal has the request, as the site's service.
+		expect(api.world.notifier.sent.slice(told).map((n) => n.event)).toEqual([
+			"request.created",
+			"appointment.requested",
+		]);
+		const journal = await api.world.call(
+			"olga",
+			"GET",
+			"/v1/apps/psizone/audit?action=request.create",
+		);
+		expect(journal.json.items).toEqual([
+			expect.objectContaining({
+				actor: expect.objectContaining({ subject: "service:psizone-web", kind: "service" }),
+				target: expect.objectContaining({ id: carried.reference }),
+			}),
+		]);
 	}, 60_000);
+
+	it("a callback request (no time chosen) is stored by the service and the team is told", async () => {
+		const { app } = await import("./server");
+		const told = api.world.notifier.sent.length;
+		const thanked = await post(app, "/programare", {
+			form: "booking",
+			name: "Test Apel",
+			phone: "0712 345 670",
+			email: "",
+			forWhom: "adult",
+			when: "morning",
+			slot: "",
+			consent: "yes",
+		});
+		expect(thanked).toContain("Test Apel");
+		expect(api.world.notifier.sent.slice(told).map((n) => n.event)).toEqual(["request.created"]);
+		expect(await api.world.dump()).toContain("0712 345 670");
+	}, 30_000);
 });

@@ -1,3 +1,4 @@
+import { guideFieldProblems } from "@psi/scheduling-sdk/contract";
 import { visitorSubject } from "../auth/principal";
 import type { HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
@@ -58,6 +59,18 @@ export const visitorHandlers: HandlersOf<
 		return { ok: true as const };
 	},
 	async "visitor.submit"(ctx) {
+		// The assistant's five fields, before anything is written (the hold stays as it was, to be submitted again).
+		if (ctx.body.channel === "guide") {
+			const problems = guideFieldProblems(ctx.body);
+			const first = problems[0];
+			if (first !== undefined)
+				throw fail("invalid", "the assistant's booking misses a required field", {
+					reason: first.reason,
+					field: first.field,
+					fields: problems.map((p) => p.field),
+				});
+		} else if (ctx.body.contact.name === "")
+			throw fail("invalid", "invalid body", { fields: ["contact.name"] });
 		const subject =
 			ctx.principal.kind === "person" ? ctx.principal.subject : visitorSubject(ctx.principal);
 		const { ok: _ok, ...rest } = ok(

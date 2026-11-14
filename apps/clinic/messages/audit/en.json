@@ -127,6 +127,7 @@
 	"jr_act_roster_put": "Roster changed",
 	"jr_act_blacklist_edit": "Blacklist changed",
 	"jr_act_callback_create": "Callback requested",
+	"jr_act_request_create": "Booking requested on the site",
 	"jr_act_app_edit": "App settings changed",
 	"jr_act_builder_edit": "Definition changed",
 	"jr_act_visitor_cancel": "Visitor cancelled",

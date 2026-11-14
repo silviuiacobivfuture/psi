@@ -16,6 +16,7 @@ export * from "./entities-plan";
 export * from "./entities-reports";
 export * from "./entities-series";
 export { ERROR_CODES, ERROR_STATUS, ErrorBody, type ErrorBodyType, type ErrorCode } from "./errors";
+export * from "./guide-fields";
 export { buildOpenApi } from "./openapi";
 export * from "./primitives";
 export { ROUTES, type Route, type RouteId, type Routes } from "./routes/index";
