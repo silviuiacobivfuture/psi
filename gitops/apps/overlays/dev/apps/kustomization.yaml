@@ -14,6 +14,8 @@ resources:
   - scheduling-sync.yaml
   - clinic.yaml
   - openfga-access.yaml
+  # Off-site backups of the appointments system, both environments (docs/backup.md).
+  - backup.yaml
   # PRODUCTION of the appointments system, on this same cluster (docs/plans/clinic.md section 9).
   - account-db-prod.yaml
   - scheduling-backend-prod.yaml
