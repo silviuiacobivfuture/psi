@@ -32,6 +32,15 @@ const BOUNDED: Readonly<Record<string, string>> = {
 		"a member's preferences: one row per notification kind, fixed by the catalogue",
 	"notifications.deliveries": "one UTC day of the delivery log, read at most 1000 entries",
 	"staff.search": "people of the staff group matching a query: at most 20 (the schema's max)",
+	"availability.get":
+		"one practitioner's weekly rules (at most MAX_AVAILABILITY_RULES) and their one-off days (the store keeps at most 1000)",
+	"availability.preview":
+		"one practitioner's free times of one service in at most MAX_PREVIEW_DAYS days, at most 200",
+	"rooms.closures": "one room's closed days from a date on: one row per date the team closed it",
+	"bookingPause.list":
+		"the app's pauses of online booking: at most MAX_PAUSES (50), and its sites (a handful)",
+	"me.assistant":
+		"the organisation's skills for the staff assistant: at most 20 (the document's max)",
 };
 
 const arraysOf = (schema: z.ZodType): string[] => {

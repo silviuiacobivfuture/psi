@@ -27,6 +27,9 @@ export function toPortError(error: unknown): PortError {
 			case "hold_expired":
 			case "unavailable_online":
 				return new PortError("conflict", quote, [], reason);
+			// A pause that blocks staff too: the screen says booking is stopped, by its own reason.
+			case "booking_paused":
+				return new PortError("conflict", quote, [], "booking_paused");
 			case "rate_limited":
 				return new PortError("rate-limited", quote);
 			case "internal":

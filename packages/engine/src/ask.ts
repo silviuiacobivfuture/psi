@@ -1,7 +1,15 @@
 import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
+import {
+	handover,
+	LIMITS,
+	rawLocale,
+	recordTurn,
+	type TurnMeter,
+	transcribe,
+} from "./ask-governed";
 import { exchangeLimit, screen } from "./ask-screen";
 import { CREATIVITY_TEMPERATURE, DEFAULT_BEHAVIOUR, type TurnBehaviour } from "./behaviour";
-import { bookingTurn, reshow } from "./booking";
+import { bookingPauseOf, bookingTurn, reshow } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
 import { scopeSearch } from "./grounding/knowledge-tool";
@@ -9,8 +17,11 @@ import { handoffEvents } from "./handoff";
 import type { LanguagePack } from "./language/pack";
 import type { ProfileLocale } from "./profile";
 import { instructionsFor, languageNote, styledLocale } from "./prompt";
+import type { PauseNotice } from "./scheduling/port";
 import { screenWithModel } from "./screening/model";
 import { createSmallTalk } from "./small-talk";
+import { foldConversation } from "./visitor-compaction";
+import { modelKeyOf, pausedEvents, turnLimitsOf } from "./visitor-turn";
 
 export { ANSWER_TEMPERATURE } from "./converse";
 
@@ -48,6 +59,7 @@ function localeOf(
 	ctx: AskContext,
 	locale: string,
 	behaviour: TurnBehaviour,
+	pause?: PauseNotice,
 ): { pack: LanguagePack; own: ProfileLocale; instructions: string } {
 	const pack = ctx.packs.get(locale);
 	const own = ctx.profile.locales[locale];
@@ -57,7 +69,17 @@ function localeOf(
 	return {
 		pack,
 		own: styledLocale(own, behaviour),
-		instructions: instructionsFor(pack, own, behaviour),
+		instructions: instructionsFor(
+			pack,
+			own,
+			behaviour,
+			pause === undefined
+				? undefined
+				: {
+						message: locale === "en" ? pause.message.en : pause.message.ro,
+						callbacksOpen: pause.callbacksOpen,
+					},
+		),
 	};
 }
 
@@ -83,14 +105,31 @@ export async function* runAsk(
 		screenMs: 0,
 		canned: false,
 	};
+	const meter: TurnMeter = { usages: [], limitHit: false, governance: undefined };
 	let outcome = "reply";
+	let answer = "";
+	let handedOver = false;
 	try {
-		for await (const event of turn(ctx, raw, control, clock)) {
-			if (event.type === "refusal") outcome = `refusal:${event.reason}`;
-			else if (event.type === "booking") outcome = "booking";
+		for await (const event of turn(ctx, raw, control, clock, meter)) {
+			if (handedOver) continue;
+			if (event.type === "refusal") {
+				// The conversation's refusals reached the organisation's number: a person is offered instead.
+				const person = handover(ctx, raw, control, meter.governance, event.reason);
+				if (person !== undefined) {
+					handedOver = true;
+					outcome = "handoff";
+					yield* person;
+					continue;
+				}
+				outcome = `refusal:${event.reason}`;
+			} else if (event.type === "booking") outcome = "booking";
+			else if (event.type === "text") answer += event.delta;
+			else if (event.type === "replace") answer = event.text;
 			yield event;
 		}
 	} finally {
+		if (ctx.governance !== undefined) await recordTurn(ctx, meter);
+		if (outcome === "reply" && answer.trim() !== "") transcribe(ctx, raw, answer);
 		if (clock.canned) outcome = "canned";
 		if (control?.signal?.aborted === true) outcome = "aborted";
 		try {
@@ -114,26 +153,44 @@ async function* turn(
 	raw: unknown,
 	control: AskControl | undefined,
 	clock: TurnClock & { screenMs: number; canned: boolean },
+	meter: TurnMeter,
 ): AsyncGenerator<EngineEvent, void, undefined> {
 	const signal = control?.signal;
 	// A function, not a narrowed property: the signal can abort while the turn awaits.
 	const aborted = (): boolean => signal?.aborted === true;
 	const screened = await screen(ctx, raw, control);
 	clock.screenMs = Date.now() - clock.start;
+	meter.governance = screened.governance;
 	if (aborted()) {
 		yield { type: "done" };
 		return;
 	}
+	if ("stop" in screened) {
+		// The organisation's own limit (switched off, the budget, the tokens): no model is asked.
+		meter.limitHit = true;
+		clock.canned = true;
+		yield* pausedEvents(ctx.profile.locales[rawLocale(ctx, raw)]?.fallback);
+		return;
+	}
 	if ("reason" in screened) {
+		if (LIMITS.has(screened.reason) && screened.governance !== undefined) meter.limitHit = true;
 		yield* refusal(screened.reason);
 		return;
 	}
-	const { input, settings, outOfScope, typed, exchangeDeferred } = screened;
+	const { input, settings, outOfScope, typed, exchangeDeferred, governance } = screened;
 	const behaviour = settings.behaviour ?? DEFAULT_BEHAVIOUR;
 	const copy = behaviour.copy[input.locale] ?? {};
 	if (ctx.booking !== undefined) {
 		const offer = await bookingTurn(
-			ctx.booking,
+			governance === undefined
+				? ctx.booking
+				: {
+						...ctx.booking,
+						limits: {
+							horizonDays: governance.settings.booking.horizonDays,
+							offerCallback: governance.settings.booking.offerCallback,
+						},
+					},
 			{
 				question: input.question,
 				typed,
@@ -149,8 +206,9 @@ async function* turn(
 		}
 	}
 	if (exchangeDeferred) {
-		const limited = await exchangeLimit(ctx, control, settings);
+		const limited = await exchangeLimit(ctx, control, settings, governance);
 		if (limited !== undefined) {
+			if (LIMITS.has(limited) && governance !== undefined) meter.limitHit = true;
 			yield* refusal(limited);
 			return;
 		}
@@ -188,9 +246,16 @@ async function* turn(
 	const abort = (): void => controller.abort();
 	signal?.addEventListener("abort", abort, { once: true });
 	if (aborted()) controller.abort();
-	const deadline = setTimeout(abort, ctx.timeouts.totalMs);
+	const deadline = setTimeout(
+		abort,
+		governance === undefined
+			? ctx.timeouts.totalMs
+			: Math.min(ctx.timeouts.totalMs, governance.settings.timeouts.totalMs),
+	);
 	try {
-		const { pack, own, instructions } = localeOf(ctx, input.locale, behaviour);
+		// While booking is paused the model is told so, whatever the question (a reply that offers times would mislead).
+		const pause = ctx.booking === undefined ? undefined : await bookingPauseOf(ctx.booking);
+		const { pack, own, instructions } = localeOf(ctx, input.locale, behaviour, pause);
 		const search = scopeSearch({
 			knowledge: ctx.knowledge,
 			scope: ctx.profile.knowledgeScope,
@@ -229,8 +294,14 @@ async function* turn(
 		}
 
 		const note = languageNote(pack, ctx.languages.detect(input.question));
+		const folded =
+			governance === undefined
+				? {}
+				: await foldConversation(ctx, input, governance.settings, controller.signal);
+		if (folded.usage !== undefined) meter.usages.push(Promise.resolve(folded.usage));
 		const notes = [
 			...(note === "" ? [] : [note]),
+			...(folded.note === undefined ? [] : [folded.note]),
 			...(outOfScope && pack.prompt.outOfScope !== undefined ? [pack.prompt.outOfScope] : []),
 			...(ctx.booking !== undefined && pack.prompt.scheduling !== undefined
 				? [pack.prompt.scheduling]
@@ -254,8 +325,18 @@ async function* turn(
 					...(copy.unknown === undefined ? [] : [copy.unknown]),
 					...(copy.outOfScope === undefined || !outOfScope ? [] : [copy.outOfScope]),
 				],
-				temperature: CREATIVITY_TEMPERATURE[behaviour.creativity],
-				...(behaviour.model === undefined ? {} : { model: behaviour.model }),
+				// On a governed site the organisation's model and temperature supersede the CMS's.
+				...(governance === undefined
+					? {
+							temperature: CREATIVITY_TEMPERATURE[behaviour.creativity],
+							...(behaviour.model === undefined ? {} : { model: behaviour.model }),
+						}
+					: {
+							temperature: governance.settings.temperature,
+							model: modelKeyOf(governance.settings),
+							limits: turnLimitsOf(governance.settings),
+							usages: meter.usages,
+						}),
 			},
 			display,
 		);

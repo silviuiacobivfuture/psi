@@ -1,4 +1,6 @@
 import { currentActor } from "./actor";
+import { createMemoryAssistant } from "./memory-assistant";
+import { createMemoryAvailability } from "./memory-availability";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { memoryClientPage } from "./memory-client-page";
 import { MemoryCollection } from "./memory-collection";
@@ -63,8 +65,18 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		since: (app, seq) => Promise.resolve((events.get(app) ?? []).filter((e) => e.seq > seq)),
 		head: (app) => Promise.resolve(events.get(app)?.at(-1)?.seq ?? 0),
 	};
-	const { visitor, requests, bookings, state } = createMemoryVisitor(c, clock, blacklist.online);
+	const availability = createMemoryAvailability(c);
+	const { visitor, requests, bookings, state } = createMemoryVisitor(
+		c,
+		clock,
+		blacklist.online,
+		availability.of,
+	);
 	const feedback = createMemoryFeedback(c, clock, bookings.byReference, bookings.byId);
+	const assistant = createMemoryAssistant(
+		clock,
+		async (app) => (await c.apps.get(app, app)) !== undefined,
+	);
 	const keyed = createMemoryKeyed(c.apps, clock);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
@@ -105,12 +117,15 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		visitor,
 		requests,
 		docs,
+		platform: assistant.platform,
+		usage: assistant.usage,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
 		keys: memoryKeys(),
 		series: createMemorySeries(c.appointments),
 		reports: createMemoryReports(c, bookings.web, feedback.port, blacklist.port),
 		keyed: keyed.port,
+		availability: availability.port,
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([
@@ -121,7 +136,9 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...kept.entries()],
 				blacklist.state(),
 				feedback.state(),
+				assistant.state(),
 				keyed.state(),
+				availability.state(),
 			]),
 	};
 }

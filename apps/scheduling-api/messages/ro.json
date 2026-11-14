@@ -2,5 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"reminder_subject": "Memento: programarea de {date}, ora {time}",
 	"reminder_body": "Bună ziua, {name}! Vă reamintim programarea de mâine, {date}, la ora {time}, la {place}. Dacă nu puteți ajunge, vă rugăm să ne anunțați cât mai curând.",
-	"reminder_whatsapp": "Bună ziua, {name}! Vă reamintim programarea de mâine, {date}, la ora {time}, la {place}. Vă rugăm să confirmați prezența."
+	"reminder_whatsapp": "Bună ziua, {name}! Vă reamintim programarea de mâine, {date}, la ora {time}, la {place}. Vă rugăm să confirmați prezența.",
+	"pause_message_callbacks": "Programările online sunt oprite temporar. Ne puteți suna sau lăsa o cerere de revenire și vă contactăm noi.",
+	"pause_message_call": "Programările online sunt oprite temporar. Pentru o programare, vă rugăm să ne sunați."
 }

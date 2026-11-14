@@ -27,6 +27,11 @@ export interface PackPrompt {
 	/** The rule naming the way to the team the owner chose; without it the choice is not stated. */
 	contactRoute?(route: ContactRoute): string;
 	/**
+	 * The rule while the clinic has paused online booking: say its message (`message`, in this language) instead of
+	 * proposing times, and offer the callback request only when `callbacksOpen`. Without it the pause is not stated.
+	 */
+	bookingPaused?(message: string, callbacksOpen: boolean): string;
+	/**
 	 * The team's notes, in the pack's language: placed after the rules between `heading` and
 	 * `end`, with `priority` added as the last rule. Without it a profile's notes are not sent.
 	 */
@@ -221,6 +226,9 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 		page: z.custom<PagePrompt>((value) => typeof value === "object" && value !== null).optional(),
 		contactRoute: z
 			.custom<NonNullable<PackPrompt["contactRoute"]>>((value) => typeof value === "function")
+			.optional(),
+		bookingPaused: z
+			.custom<NonNullable<PackPrompt["bookingPaused"]>>((value) => typeof value === "function")
 			.optional(),
 		teamNotes: z
 			.object({

@@ -30,7 +30,8 @@ function pageOf(screen: Screen): { page: StaffPage; entity: EntityState } {
 		return { page: { screen: "client", clientId: "c1" }, entity: { clientId: "c1" } };
 	if (screen === "client")
 		return { page: { screen: "client", clientId: "c1" }, entity: { clientId: "c1" } };
-	if (screen.startsWith("settings")) return { page: { screen: "settings" }, entity: {} };
+	if (screen.startsWith("settings") || screen === "platform")
+		return { page: { screen: "settings" }, entity: {} };
 	if (screen === "global") return { page: { screen: "other" }, entity: {} };
 	if (screen === "appointment")
 		return { page: { screen: "appointment", appointmentId: "a1" }, entity: {} };
@@ -148,5 +149,40 @@ describe("running an action goes through the registry's one path", () => {
 		).rejects.toMatchObject({
 			code: "forbidden",
 		});
+	});
+
+	it("offers the hours and the pauses on the settings to who may change them, and runs them as the page does", async () => {
+		const owner = await ctxFor(["owner"]);
+		const ids = (await createActionsSource(owner).listActions({ screen: "settings" })).map(
+			(a) => a.id,
+		);
+		for (const id of [
+			"availability.rules",
+			"availability.one_off_add",
+			"rooms.closure_add",
+			"booking_pause.create",
+		])
+			expect(ids, id).toContain(id);
+		const reception = await ctxFor(["reception"]);
+		const theirs = (await createActionsSource(reception).listActions({ screen: "settings" })).map(
+			(a) => a.id,
+		);
+		expect(theirs).not.toContain("availability.rules");
+		expect(theirs).not.toContain("booking_pause.create");
+		await createActionsSource(owner).runAction("availability.one_off_add", {
+			person: "p2",
+			from: "2026-12-24",
+			kind: "closed-day",
+		});
+		expect((await owner.port.availability("psizone", "p2", "2026-12-01")).exceptions).toHaveLength(
+			1,
+		);
+		await expect(
+			createActionsSource(reception).runAction("availability.one_off_add", {
+				person: "p2",
+				from: "2026-12-25",
+				kind: "closed-day",
+			}),
+		).rejects.toMatchObject({ code: "forbidden" });
 	});
 });

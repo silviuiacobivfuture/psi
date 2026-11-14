@@ -1,10 +1,11 @@
 import {
 	type CallbackResult,
 	type HoldResult,
-	type SchedulingClient,
+	type PausedResult,
 	SchedulingUnavailable,
 	type SubmitInput,
 	type SubmitResult,
+	type VisitorSchedulingClient,
 } from "@psi/scheduling";
 import {
 	createSchedulingClient as createSdkClient,
@@ -12,6 +13,7 @@ import {
 	SchedulingApiError,
 	type SchedulingClient as SdkClient,
 } from "@psi/scheduling-sdk";
+import { BookingPausedDetail } from "@psi/scheduling-sdk/contract";
 import { getContext } from "hono/context-storage";
 import type { SchedulingApiConfig } from "./service-env";
 
@@ -27,8 +29,25 @@ export interface VisitorSubmit extends Omit<SubmitInput, "accountHash"> {
  * the scheduling service (apps/scheduling-api) over its visitor routes with this site's service key, so a public
  * booking goes through the service's own rules, journal and team notifications like every other one.
  */
-export interface VisitorScheduling extends Omit<SchedulingClient, "submit"> {
-	submit(input: VisitorSubmit): Promise<SubmitResult>;
+export interface VisitorScheduling extends Omit<VisitorSchedulingClient, "submit"> {
+	submit(input: VisitorSubmit): Promise<SubmitResult | PausedResult>;
+}
+
+/**
+ * The service's `booking_paused` refusal as the forms and the guide branch on it: the clinic's message and whether a
+ * callback stays open. A detail that does not parse is the service misbehaving, so it is unavailable.
+ */
+function pausedOf(error: unknown): PausedResult | undefined {
+	if (!(error instanceof SchedulingApiError) || error.code !== "booking_paused") return undefined;
+	const detail = BookingPausedDetail.safeParse(error.detail);
+	if (!detail.success)
+		throw new SchedulingUnavailable("the scheduling service paused without saying how");
+	const { until, ...rest } = detail.data;
+	return {
+		ok: false,
+		reason: "paused",
+		pause: { ...rest, ...(until === undefined ? {} : { until }) },
+	};
 }
 
 /**
@@ -108,6 +127,8 @@ export function createVisitorScheduling(
 				});
 				return { ok: true, ...out };
 			} catch (error) {
+				const paused = pausedOf(error);
+				if (paused !== undefined) return paused;
 				refusal(error, ["not_found"], "the free times");
 				return { ok: false, reason: "unknown_service" };
 			}
@@ -117,6 +138,8 @@ export function createVisitorScheduling(
 				const { tenant, ...rest } = input;
 				return { ok: true, ...(await sdk().visitor.hold({ app: tenant, ...rest })) };
 			} catch (error) {
+				const paused = pausedOf(error);
+				if (paused !== undefined) return paused;
 				const code = refusal(error, ["slot_taken", "conflict", "not_found", "invalid"], "a hold");
 				return { ok: false, reason: HOLD_REASON[code] };
 			}
@@ -132,6 +155,8 @@ export function createVisitorScheduling(
 				});
 				return { ok: true, ...out };
 			} catch (error) {
+				const paused = pausedOf(error);
+				if (paused !== undefined) return paused;
 				const reason = refusal(
 					error,
 					["invalid", "not_found", "hold_expired", "not_allowed", "unavailable_online"],
@@ -165,7 +190,7 @@ export function createVisitorScheduling(
 				return { ok: false, reason: code === "invalid" ? "not_found" : code };
 			}
 		},
-		async requestCallback(input): Promise<CallbackResult> {
+		async requestCallback(input): Promise<CallbackResult | PausedResult> {
 			// Nothing leaves the site without the visitor's consent, as before.
 			if (!input.consent) return { ok: false, reason: "no_consent" };
 			try {
@@ -182,6 +207,8 @@ export function createVisitorScheduling(
 				});
 				return { ok: true, id: out.reference };
 			} catch (error) {
+				const paused = pausedOf(error);
+				if (paused !== undefined) return paused;
 				const code = refusal(error, ["invalid", "not_found", "unavailable_online"], "a callback");
 				return { ok: false, reason: code === "not_found" ? "unknown_tenant" : "invalid" };
 			}

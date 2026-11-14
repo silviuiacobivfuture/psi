@@ -6,6 +6,7 @@ export {
 	DEFAULT_TIMEOUTS,
 	type EngineFailure,
 	type EngineTimeouts,
+	type EngineTranscript,
 	type FailureStage,
 } from "./ask-context";
 export {
@@ -29,6 +30,7 @@ export {
 	type BookingDetailsReport,
 	type BookingKind,
 	type BookingLang,
+	type BookingLimits,
 	type BookingNotice,
 	type BookingOffer,
 	type BookingScope,
@@ -47,6 +49,14 @@ export {
 	catalogItems,
 	type EngineCatalog,
 } from "./catalog";
+export {
+	type CompactionOutcome,
+	type CompactionSettings,
+	type CompactionUsage,
+	compactThread,
+	type Summariser,
+	type Summary,
+} from "./compaction";
 export {
 	type EngineKnowledge,
 	EngineKnowledgeSchema,
@@ -159,12 +169,14 @@ export {
 } from "./language/pack";
 export { ROMANIAN } from "./language/ro";
 export { fileDirectory, openMemory, THREAD_WINDOW } from "./memory";
+export { retentionOf, stampRetention, sweepByRetention } from "./memory-retention";
 export { ModelIdSchema, ProviderError, readOpenRouterKey } from "./model";
 export { earlierPages, pageEvidence, pagePassage, renderPage } from "./page-context";
 export {
 	CRISIS_SCAN_LIMIT,
 	type CrossReferenceRule,
 	type Profile,
+	type ProfileFallback,
 	type ProfileHandoff,
 	type ProfileLocale,
 	ProfileSchema,
@@ -180,6 +192,8 @@ export {
 	schedulingRules,
 } from "./scheduling/agent";
 export {
+	type PauseNotice,
+	PauseNoticeSchema,
 	type ProfileScheduling,
 	ProfileSchedulingSchema,
 	type SchedulingCancel,
@@ -228,6 +242,7 @@ export {
 	type RateLimiter,
 	type RatePolicy,
 } from "./screening/rate-limit";
+export { redactIdentifiers } from "./screening/redact-text";
 export { isAbusive, isInjection } from "./screening/rules";
 export { cleanText } from "./screening/unicode";
 export {
@@ -248,4 +263,14 @@ export {
 	EngineTimingSchema,
 	type ToolTiming,
 } from "./timing";
+export {
+	createGovernance,
+	type Governance,
+	type GovernanceSource,
+	type VisitorAssistantPort,
+	VisitorAssistantPortSchema,
+	type VisitorStoreRead,
+	VisitorStoreReadSchema,
+	type VisitorUsageRecord,
+} from "./visitor-governance";
 export { GROUNDED_ANSWER_WORKFLOW, type GroundedAnswer } from "./workflow";

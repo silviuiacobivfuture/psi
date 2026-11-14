@@ -92,3 +92,35 @@ describe("the platform administrator", () => {
 		expect(html).toContain('class="adm-menu__item"');
 	});
 });
+
+describe("the platform administrator who belongs to no organisation", () => {
+	const alone = async (platformAdmin: boolean): Promise<Console> => {
+		c = await startConsole(
+			MEMBER,
+			platformAdmin ? { platformAdmins: new Set([MEMBER.sub]) } : {},
+			{},
+		);
+		await c.signIn();
+		return c;
+	};
+	it("opens Administrare and the platform's assistant, and is offered every organisation", async () => {
+		await alone(true);
+		const res = await c.get("/platform");
+		expect(res.status).toBe(200);
+		const html = await res.text();
+		expect(html).toContain('data-org="psizone"');
+		expect(html).toContain('href="/switch/hemisync"');
+		expect(html).toContain("Rol: Administrator sistem");
+		expect((await c.get("/platform/assistant")).status).toBe(200);
+	});
+	it("opens an organisation through the platform, by no role of it", async () => {
+		await alone(true);
+		expect((await c.get("/switch/hemisync")).status).toBe(200);
+		expect((await c.get("/settings/assistant")).status).toBe(200);
+	});
+	it("someone who is neither still gets the no-access page everywhere", async () => {
+		await alone(false);
+		expect((await c.get("/platform")).status).toBe(403);
+		expect((await c.get("/calendar")).status).toBe(403);
+	});
+});

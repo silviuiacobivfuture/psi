@@ -17,7 +17,10 @@ export interface AccessDeps {
 /** Who may do what in the fake: the capabilities of a person, a role or a member, the team, and "Vezi ca…". */
 export function createFakeAccess(
 	deps: AccessDeps,
-): Pick<ClinicPort, "capabilities" | "members" | "memberPage" | "startViewAs" | "stopViewAs"> {
+): Pick<
+	ClinicPort,
+	"capabilities" | "members" | "memberPage" | "platformAdmin" | "startViewAs" | "stopViewAs"
+> {
 	const { data, guard, log, team } = deps;
 	const LOOKUPS = [
 		"people_view",
@@ -27,9 +30,27 @@ export function createFakeAccess(
 		"group_activities_view",
 	];
 	return {
+		async platformAdmin(subject) {
+			guard("platformAdmin");
+			return deps.platformAdmins?.has(subject) === true;
+		},
 		async capabilities(subject, app, as) {
 			guard("capabilities");
-			const mine = team.get(app)?.get(subject);
+			// As at the service: the estate administrator holds every app through the platform, a member of it or not
+			// (here: what the app's owner role holds, with no role of their own named).
+			const admin = deps.platformAdmins?.has(subject) === true;
+			const mine: TeamEntry | undefined =
+				team.get(app)?.get(subject) ??
+				(admin
+					? {
+							displayName: subject,
+							roles: ["owner"],
+							coordinates: [],
+							grants: [],
+							denies: [],
+							calendars: [],
+						}
+					: undefined);
 			if (mine === undefined) throw new PortError("not-found", app);
 			const d = data(app);
 			const holds = (ids: ReadonlyArray<string>) => d.roles.filter((r) => ids.includes(r.id));
@@ -77,7 +98,11 @@ export function createFakeAccess(
 						: as.startsWith("role:")
 							? (roles[0]?.name ?? as)
 							: (overrides?.displayName ?? as),
-				roles: roles.map((r) => r.id),
+				// The administrator who is no member holds the app through the platform, by no role of it.
+				roles:
+					as === undefined && team.get(app)?.get(subject) === undefined
+						? []
+						: roles.map((r) => r.id),
 				permissions,
 				denied: [...(overrides?.denies ?? [])],
 				...(as === undefined

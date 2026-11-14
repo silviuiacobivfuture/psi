@@ -14,7 +14,7 @@ import { Page } from "./chrome";
 import { registerFloor } from "./floor/mount";
 import { backPath } from "./lib/back";
 import { canOf } from "./lib/can";
-import { activeApp, type Ctx, storedPrefs, viewerPrefs } from "./lib/context";
+import { activeApp, type Ctx, reachableApps, storedPrefs, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { judge, landingFor } from "./lib/gates";
 import { at, localeFrom } from "./lib/i18n";
@@ -25,6 +25,9 @@ import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
 import type { NotificationsPort } from "./notifications/port";
 import { registerAccountLinks } from "./pages/account-links";
+import { registerAssistantPeople } from "./pages/assistant-people";
+import { registerAssistantPlatform } from "./pages/assistant-platform";
+import { registerAssistantSettings } from "./pages/assistant-settings";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
 import { registerDesign } from "./pages/design";
@@ -32,9 +35,11 @@ import { registerDetail } from "./pages/detail-routes";
 import { registerEditor } from "./pages/editor-routes";
 import { FailureState } from "./pages/failure";
 import { NoAccessPage } from "./pages/gate";
+import { registerHours } from "./pages/hours-routes";
 import { registerLive } from "./pages/live";
 import { MorePage } from "./pages/more";
 import { registerMySettings } from "./pages/my-settings";
+import { registerOnline } from "./pages/online";
 import { registerOrgAreas } from "./pages/org-areas";
 import { registerOrgSettings } from "./pages/org-settings";
 import { OutagePage } from "./pages/outage";
@@ -117,7 +122,12 @@ export function createApp(deps: AppDeps): Hono<Env> {
 				302,
 			);
 		const own = await deps.ports.forPerson(c);
-		const memberships = await own.memberships(person.subject);
+		const [mine, estateAdmin] = await Promise.all([
+			own.memberships(person.subject),
+			own.platformAdmin(person.subject),
+		]);
+		// The estate administrator's zone and every app are theirs whether or not they are a member anywhere.
+		const memberships = reachableApps(mine, estateAdmin);
 		const active = activeApp(c, memberships);
 		if (active === null) {
 			return c.html(
@@ -238,9 +248,14 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerOrgSettings(app);
 	registerSettings(app);
 	registerAudit(app);
+	registerHours(app);
+	registerOnline(app);
 	registerOrgAreas(app);
+	registerAssistantSettings(app);
+	registerAssistantPeople(app);
 	registerMySettings(app);
 	registerPlatform(app);
+	registerAssistantPlatform(app);
 	registerStats(app);
 	registerRecordsWithoutClient(app);
 	registerProfile(app, deps);

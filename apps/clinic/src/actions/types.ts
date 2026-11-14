@@ -2,6 +2,7 @@ import type { AdminIcon } from "@psi/ui/admin";
 import type { z } from "zod";
 import type { Can } from "../lib/can";
 import type { Locale } from "../lib/i18n";
+import type { SaveProblems } from "../port/availability-port";
 import type { ClinicPort } from "../port/port";
 import type { AppSlug, FieldGroupName } from "../port/schema";
 import type { Actor } from "../port/schema-clinical";
@@ -32,6 +33,11 @@ export const SCREENS = [
 	"settings.services",
 	"settings.roles",
 	"settings.members",
+	"settings.hours",
+	"settings.online",
+	"settings.assistant",
+	"settings.assistant.people",
+	"platform",
 ] as const;
 export type Screen = (typeof SCREENS)[number];
 
@@ -55,6 +61,8 @@ export const ENTITIES = [
 	"service",
 	"role",
 	"member",
+	"availability",
+	"pause",
 ] as const;
 export type EntityKind = (typeof ENTITIES)[number];
 
@@ -93,6 +101,8 @@ export interface ActionCtx {
 	actor: Actor;
 	locale: Locale;
 	today: string;
+	/** The calendars that are the person's own (their `own` reach): what a narrowed permission may touch. */
+	ownCalendars?: ReadonlyArray<string>;
 }
 
 export type ActionResult =
@@ -101,6 +111,10 @@ export type ActionResult =
 	| {
 			status: "refused";
 			code: "forbidden" | "invalid" | "not-found" | "conflict" | "unknown" | "unavailable";
+			/** The service's own reason inside the code (`booking_paused`, `until_past`): a screen words each one. */
+			reason?: string;
+			/** A save refused with its problems (nothing written): the screen shows each beside what it is about. */
+			problems?: SaveProblems;
 	  };
 
 export interface ActionDef {

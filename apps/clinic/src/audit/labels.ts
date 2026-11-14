@@ -48,6 +48,8 @@ const ACTION_KEY: Readonly<Record<string, string>> = {
 	"member.link": "member_link",
 	"service.price": "service_price",
 	"floorplan.put": "plan_save",
+	"assistant.config.put": "assistant_save",
+	"assistant.platform.put": "assistant_save",
 	"floor-plan.save": "plan_save",
 	"view_as.start": "view_as_start",
 	"view_as.stop": "view_as_stop",
@@ -79,6 +81,15 @@ const ACTION_KEY: Readonly<Record<string, string>> = {
 	"settings.update": "settings_update",
 	"client.account_link": "account_link",
 	"client.account_link_dismiss": "account_link_dismiss",
+	"availability.rules": "availability_rules",
+	"availability.copy": "availability_copy",
+	"availability.one_off_add": "availability_one_off_add",
+	"availability.one_off_remove": "availability_one_off_remove",
+	"rooms.closure_add": "room_closure_add",
+	"rooms.closure_remove": "room_closure_remove",
+	"booking_pause.create": "booking_pause_create",
+	"booking_pause.update": "booking_pause_update",
+	"booking_pause.remove": "booking_pause_remove",
 };
 
 const ACTION_SAY: Readonly<Record<string, Say>> = {
@@ -111,6 +122,7 @@ const ACTION_SAY: Readonly<Record<string, Say>> = {
 	member_link: (l) => m.jr_act_member_link({}, at(l)),
 	service_price: (l) => m.jr_act_service_price({}, at(l)),
 	plan_save: (l) => m.jr_act_plan_save({}, at(l)),
+	assistant_save: (l) => m.jr_act_assistant_save({}, at(l)),
 	view_as_start: (l) => m.jr_act_view_as_start({}, at(l)),
 	view_as_stop: (l) => m.jr_act_view_as_stop({}, at(l)),
 	feedback_link: (l) => m.jr_act_feedback_link({}, at(l)),
@@ -136,6 +148,15 @@ const ACTION_SAY: Readonly<Record<string, Say>> = {
 	settings_update: (l) => m.jr_act_settings_update({}, at(l)),
 	account_link: (l) => m.jr_act_account_link({}, at(l)),
 	account_link_dismiss: (l) => m.jr_act_account_link_dismiss({}, at(l)),
+	availability_rules: (l) => m.jr_act_availability_rules({}, at(l)),
+	availability_copy: (l) => m.jr_act_availability_copy({}, at(l)),
+	availability_one_off_add: (l) => m.jr_act_availability_one_off_add({}, at(l)),
+	availability_one_off_remove: (l) => m.jr_act_availability_one_off_remove({}, at(l)),
+	room_closure_add: (l) => m.jr_act_room_closure_add({}, at(l)),
+	room_closure_remove: (l) => m.jr_act_room_closure_remove({}, at(l)),
+	booking_pause_create: (l) => m.jr_act_booking_pause_create({}, at(l)),
+	booking_pause_update: (l) => m.jr_act_booking_pause_update({}, at(l)),
+	booking_pause_remove: (l) => m.jr_act_booking_pause_remove({}, at(l)),
 };
 
 const ASSISTANT = /^assistant\./;

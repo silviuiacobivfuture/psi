@@ -1,4 +1,6 @@
 import { CATALOG_ROUTES, ME_ROUTES } from "./team-admin";
+import { ASSISTANT_ROUTES } from "./team-assistant";
+import { AVAILABILITY_ROUTES } from "./team-availability";
 import { BLACKLIST_ROUTES } from "./team-blacklist";
 import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
@@ -29,10 +31,12 @@ export const ROUTES = [
 	...PLAN_ROUTES,
 	...BLACKLIST_ROUTES,
 	...FEEDBACK_ROUTES,
+	...ASSISTANT_ROUTES,
 	...INVITE_ROUTES,
 	...LINK_ROUTES,
 	...STAFF_ROUTES,
 	...OWNERSHIP_ROUTES,
+	...AVAILABILITY_ROUTES,
 ] as const;
 export type Routes = typeof ROUTES;
 export type Route = Routes[number];

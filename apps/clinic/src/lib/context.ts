@@ -45,6 +45,22 @@ export interface Ctx {
 	signOut: string;
 }
 
+/**
+ * The apps a person reaches: their memberships, and for the estate administrator every app besides (they hold each
+ * through the platform, as the service's authorizer says), with no role where they are no member.
+ */
+export function reachableApps(
+	memberships: ReadonlyArray<Membership>,
+	platformAdmin: boolean,
+): ReadonlyArray<Membership> {
+	if (!platformAdmin) return memberships;
+	const held = new Set(memberships.map((m) => m.app));
+	return [
+		...memberships,
+		...AppSlugSchema.options.filter((app) => !held.has(app)).map((app) => ({ app, roles: [] })),
+	];
+}
+
 export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): AppSlug | null {
 	const wanted = AppSlugSchema.safeParse(getCookie(c, "app"));
 	const mine = memberships.map((m) => m.app);

@@ -55,7 +55,9 @@ export function bookingSummary(offer: BookingOffer, env: BookingEnv): string {
 	const { summary } = env.copy.chat;
 	switch (offer.kind) {
 		case "times":
-			return summary.times;
+			return offer.status === "paused" && offer.pause !== undefined
+				? summary.paused(env.locale === "en" ? offer.pause.message.en : offer.pause.message.ro)
+				: summary.times;
 		case "confirm":
 			return summary.confirm;
 		case "summary":
@@ -86,6 +88,9 @@ function startingChoices(offer: BookingOffer): Record<string, string> {
 		week: date,
 		day: date,
 		slot: offer.chosen?.slotId ?? "",
+		// The organisation's terms for booking in the chat, when its settings govern the guide.
+		horizon: offer.limits === undefined ? "" : String(offer.limits.horizonDays),
+		nocall: offer.limits?.offerCallback === false ? "1" : "",
 	};
 }
 
@@ -189,7 +194,13 @@ export async function ChatBooking({
 					: chat.notices[offer.notice];
 	return (
 		<div class="space-y-4">
-			<p>{offer.status === "ok" || offer.kind === "confirm" ? lead : chat.none}</p>
+			<p>
+				{offer.status === "paused"
+					? chat.paused
+					: offer.status === "ok" || offer.kind === "confirm"
+						? lead
+						: chat.none}
+			</p>
 			<BookingForm
 				id={formId}
 				env={env}

@@ -630,6 +630,9 @@ importers:
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../scheduling
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../scheduling-sdk
       hono:
         specifier: ^4.13.18
         version: 4.13.18

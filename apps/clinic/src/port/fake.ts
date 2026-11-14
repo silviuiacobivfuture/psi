@@ -2,7 +2,9 @@ import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/confl
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { countedDays } from "./day-counts";
+import { createFakeAssistant } from "./fake-assistant";
 import { appointmentChanges } from "./fake-audit";
+import { createFakeAvailability } from "./fake-availability";
 import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
@@ -153,9 +155,17 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	});
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
+	const assistant = createFakeAssistant(() => me);
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
+	const availability = createFakeAvailability({
+		data,
+		guard,
+		log,
+		nextId: (p) => `${p}${++seq}`,
+		now: Date.now,
+	});
 	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
 		...profile,
@@ -168,6 +178,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...createFakeRoleSummary({ data, guard }),
 		...invites,
 		...links,
+		...availability.port,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;
@@ -232,6 +243,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("createAppointments");
 			const d = data(app);
 			const input = NewAppointmentSchema.parse(raw);
+			availability.refuseStaff(app, input.columnId, input.serviceId);
 			const svc = d.services.find((s) => s.id === input.serviceId);
 			const ids = [input.columnId, ...input.resourceIds];
 			const pkg =
@@ -294,6 +306,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			const a = d.appointments.find((x) => x.id === id);
 			if (a === undefined) throw new PortError("not-found", id);
 			const next: Appointment = { ...a, ...stripUndefined(patch) };
+			if (patch.date !== undefined || patch.startMin !== undefined || patch.columnId !== undefined)
+				availability.refuseStaff(app, next.columnId, next.serviceId);
 			if (
 				!d.columns.some((c) => c.id === next.columnId) ||
 				!next.resourceIds.every((r) => d.columns.some((c) => c.id === r)) ||
@@ -640,5 +654,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			return pagedAudit(this)(app, window, cursor, limit);
 		},
 		...floorAndPrefs,
+		...assistant,
 	};
 }

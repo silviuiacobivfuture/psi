@@ -11,5 +11,6 @@ export function actionCtx(ctx: Ctx): ActionCtx {
 		actor: { subject: ctx.caps.subject, name: ctx.person.name },
 		locale: ctx.locale,
 		today: todayIso(),
+		ownCalendars: ctx.caps.reach.own,
 	};
 }

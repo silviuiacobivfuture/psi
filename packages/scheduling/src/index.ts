@@ -6,6 +6,14 @@ export {
 	OwnRequestSchema,
 } from "./account-client";
 export {
+	createVisitorAssistantStore,
+	type VisitorAssistantRead,
+	type VisitorAssistantStore,
+	type VisitorMeter,
+	VisitorMeterSchema,
+	visitorAssistantOn,
+} from "./assistant-client";
+export {
 	type CallbackHandledResult,
 	type CallbackInput,
 	CallbackInputSchema,
@@ -25,6 +33,8 @@ export {
 	HoldInputSchema,
 	type HoldResult,
 	type OfferedSlot,
+	type PausedResult,
+	type PauseNotice,
 	type ReleaseResult,
 	type SchedulingClient,
 	type ServiceInfo,
@@ -33,6 +43,7 @@ export {
 	type SlotsResult,
 	type SubmitInput,
 	type SubmitResult,
+	type VisitorSchedulingClient,
 } from "./client";
 export {
 	DEFAULT_TIMEOUT_MS,

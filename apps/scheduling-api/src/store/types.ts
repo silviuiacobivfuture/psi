@@ -26,6 +26,7 @@ import type {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { KeyStore } from "../ports/crypto";
+import type { AvailabilityPort } from "./availability-port";
 import type {
 	BlacklistPort,
 	DocumentsPort,
@@ -35,6 +36,7 @@ import type {
 	SeriesPort,
 	SettingsPort,
 } from "./ports";
+import type { AssistantUsagePort, PlatformDocumentsPort } from "./ports-assistant";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -183,8 +185,33 @@ export class StoreRefused extends Error {
 	}
 }
 /** The store could not be reached or answered something it should not (the service answers 503). */
+/**
+ * What the log may say of a store failure, so a blip can be traced to its function: the function, how it failed, the
+ * HTTP status, and for a function's own error a short class read from Convex's message (never the message: it echoes
+ * the offending value).
+ */
+export interface StoreFailure {
+	fn?: string;
+	kind?: "no_answer" | "refused" | "function_error" | "shape";
+	status?: number;
+	code?:
+		| "read_limit"
+		| "write_limit"
+		| "timeout"
+		| "transient"
+		| "function_not_found"
+		| "invalid_args"
+		| "uncaught"
+		| "other";
+}
 export class StoreUnavailable extends Error {
 	override readonly name = "StoreUnavailable";
+	constructor(
+		message: string,
+		readonly failure: StoreFailure = {},
+	) {
+		super(message);
+	}
 }
 export interface Collection<R extends { id: string; app: string }> {
 	get(app: string, id: string): Promise<R | undefined>;
@@ -298,6 +325,11 @@ export interface ContactInput {
 
 /** The visitor flow: services, slots, holds, requests. In Convex this is the existing visitor client. */
 export interface VisitorPort {
+	/**
+	 * How the visitor flow names a team member (`people` id): the id `slots` and `hold` carry, or undefined for a person who
+	 * is not a practitioner. A practitioner's pause and the availability preview are said in people ids.
+	 */
+	practitionerKey(personId: string): string | undefined;
 	services(app: string): Promise<
 		| {
 				timeZone: string;
@@ -319,6 +351,8 @@ export interface VisitorPort {
 			to: number;
 			mode?: "onsite" | "online" | undefined;
 			limit?: number | undefined;
+			/** Only this practitioner's slots (a `practitionerKey`), cut by `limit` after the filter. */
+			practitioner?: string | undefined;
 		},
 	): Promise<
 		| {
@@ -440,9 +474,13 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** The estate's own documents (the assistants' platform tier). */
+	platform: PlatformDocumentsPort;
+	/** The assistants' meters. */
+	usage: AssistantUsagePort;
 	/** Each person's own settings per app. */
 	settings: SettingsPort;
-	/** Documents with a revision (the floor plan). */
+	/** Documents with a revision (the floor plan, the assistants' configuration). */
 	docs: DocumentsPort;
 	/** Who may not book. */
 	blacklist: BlacklistPort;
@@ -454,8 +492,10 @@ export interface StorePort {
 	series: SeriesPort;
 	/** The reports: read-only counts and rates over the app's rows. */
 	reports: ReportsPort;
-	/** Online-account invitations, account links, notification preferences and the delivery log. */
+	/** Online-account invitations, account links, notification preferences, the delivery log, the booking pauses. */
 	keyed: KeyedPort;
+	/** The practitioners' weekly rules and one-off days, the rooms' closed days. */
+	availability: AvailabilityPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

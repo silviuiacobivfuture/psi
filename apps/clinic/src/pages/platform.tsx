@@ -31,6 +31,10 @@ export async function renderPlatform(ctx: Ctx): Promise<JSX.Element> {
 						))}
 					</div>
 				</section>
+				<a class="adm-card adm-row" href="/platform/assistant" data-platform-area="assistant">
+					<Icon name="chat" />
+					<strong>{m.as_pl_open({}, o)}</strong>
+				</a>
 				<section class="adm-card">
 					<h2 class="adm-h2">{m.pl_integrations({}, o)}</h2>
 					<EmptyState icon="clock" title={m.pl_soon({}, o)} text={m.pl_integrations_soon({}, o)} />

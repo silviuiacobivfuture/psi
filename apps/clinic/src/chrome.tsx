@@ -23,6 +23,7 @@ import { worstFailure } from "./lib/failures";
 import { at, type Locale } from "./lib/i18n";
 import { joinRoles } from "./lib/roles-joined";
 import { FailureState } from "./pages/failure";
+import { PauseBanner } from "./pages/pause-banner";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
@@ -188,6 +189,9 @@ export async function Page({
 		) : (
 			children
 		);
+	// While online booking is stopped, every screen says so. Read after the screen's own refusals are judged, so a pause
+	// list that cannot be read never turns the page into a failure.
+	const paused = await PauseBanner({ ctx });
 	const item = (
 		key: NavKey,
 		label: string,
@@ -365,6 +369,7 @@ export async function Page({
 						</Banner>
 					</form>
 				)}
+				{paused}
 				{shown}
 			</AdminShell>
 		</Layout>

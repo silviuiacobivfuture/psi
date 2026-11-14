@@ -3,6 +3,7 @@ import { z } from "zod";
 import { within } from "../deadline";
 import { addLocalDays, wallTime } from "./local-time";
 import {
+	PauseNoticeSchema,
 	type ProfileScheduling,
 	SchedulingCancelSchema,
 	SchedulingModeSchema,
@@ -52,9 +53,11 @@ export const ProposedSlotSchema = z.object({
 export type ProposedSlot = z.infer<typeof ProposedSlotSchema>;
 
 export const FindAvailabilityOutputSchema = z.object({
-	status: z.enum(["ok", "none", "unknown_service", "unavailable"]),
+	status: z.enum(["ok", "none", "unknown_service", "unavailable", "paused"]),
 	timeZone: z.string().optional(),
 	slots: z.array(ProposedSlotSchema).readonly(),
+	/** `paused`: the clinic's message, to say instead of proposing times. */
+	pause: PauseNoticeSchema.optional(),
 });
 export type FindAvailabilityOutput = z.infer<typeof FindAvailabilityOutputSchema>;
 
@@ -189,7 +192,10 @@ export async function runFindAvailability(
 			to: Date.parse(`${lastDay}T00:00:00Z`) + DAY_MS,
 			...(input.mode === undefined ? {} : { mode: input.mode }),
 		});
-		if (!found.ok) return { status: "unknown_service", slots: [] };
+		if (!found.ok)
+			return found.reason === "paused" && found.pause !== undefined
+				? { status: "paused", slots: [], pause: found.pause }
+				: { status: "unknown_service", slots: [] };
 		const [low, high] = PART_OF_DAY[input.partOfDay];
 		const slots = found.slots
 			.flatMap((slot) => propose(slot, found.timeZone))

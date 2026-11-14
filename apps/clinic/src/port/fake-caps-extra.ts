@@ -13,8 +13,10 @@ const TEMPLATE_RECORDS = [
  * the clinical row grants every template's records, the blacklist's `create_warn`, and the elevated override belongs
  * to whoever administers roles. A service answers these itself.
  */
-export function extraCapabilities(role: Pick<Role, "grants">): Record<string, ScopeName[]> {
+export function extraCapabilities(role: Pick<Role, "grants" | "id">): Record<string, ScopeName[]> {
 	const out: Record<string, ScopeName[]> = {};
+	// As at the service: the assistants' budget and limits are the Owner's alone (an Administrator never holds it).
+	if (role.id === "owner") out.assistant_budget_edit = ["all"];
 	const clinical = role.grants.clinical ?? {};
 	for (const [action, scope] of Object.entries(clinical)) {
 		const verb = action === "cancel" ? "delete" : action;
@@ -45,5 +47,16 @@ export function extraCapabilities(role: Pick<Role, "grants">): Record<string, Sc
 		])
 			out[key] = ["all"];
 	if (role.grants.roster?.edit !== undefined) out.roster_edit = [role.grants.roster.edit];
+	// The hours follow the roster row; a practitioner who files their own leave keeps their own hours (the service's
+	// seed roles: the Owner every calendar, reception reads them, a therapist edits their own). Stopping online booking
+	// follows the settings row.
+	const roster = role.grants.roster ?? {};
+	const leave = role.grants.leave?.create;
+	const view = roster.view ?? leave;
+	const edit = roster.edit ?? leave;
+	const scope = (s: ScopeName): ScopeName => (s === "all" ? "all" : "own");
+	if (view !== undefined) out.availability_view = [scope(view)];
+	if (edit !== undefined) out.availability_edit = [scope(edit)];
+	if (role.grants.settings?.edit !== undefined) out.booking_pause_edit = ["all"];
 	return out;
 }
