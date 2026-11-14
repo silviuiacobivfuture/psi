@@ -44,7 +44,7 @@ export function auditCsv(
 		return [
 			e.at,
 			r.who,
-			r.roles.join(", "),
+			r.roles.join(" + "),
 			e.asWhom ?? "",
 			r.action,
 			r.sentence,

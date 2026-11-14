@@ -1,12 +1,5 @@
-import {
-	allAppRelations,
-	appRelation,
-	CATALOGUE,
-	parseRelation,
-	permissionOf,
-} from "../authz/catalogue";
-import { personalGrant, roleGrant } from "../authz/links";
-import { labelOf } from "../authz/manifest";
+import { allAppRelations, appRelation, permissionOf } from "../authz/catalogue";
+import { roleGrant } from "../authz/links";
 import { seedRoles } from "../authz/roles-seed";
 import { memberTuples, objectLinks, platformLink, roleTuples } from "../authz/tuples";
 import type { Deps, HandlersOf } from "../http/context";
@@ -14,6 +7,7 @@ import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
 import { capabilitiesOf } from "./capabilities";
 import { syncMember } from "./directory";
+import { catalogueMatrix } from "./matrix";
 import {
 	diff,
 	must,
@@ -129,10 +123,6 @@ export const appHandlers: HandlersOf<
 	| "apps.create"
 	| "apps.get"
 	| "apps.update"
-	| "members.list"
-	| "members.put"
-	| "members.remove"
-	| "members.overrides"
 	| "roles.list"
 	| "roles.create"
 	| "roles.get"
@@ -204,121 +194,6 @@ export const appHandlers: HandlersOf<
 		};
 	},
 
-	async "members.list"(ctx) {
-		const rows = (await ctx.deps.store.c.members.list(ctx.app)).sort((a, b) =>
-			a.displayName.localeCompare(b.displayName),
-		);
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
-		return {
-			...page,
-			items: page.items.map((m) => ({
-				subject: m.subject,
-				displayName: m.displayName,
-				...(m.email === undefined ? {} : { email: m.email }),
-				roles: m.roles,
-				coordinates: m.coordinates,
-				createdAt: m.createdAt,
-				updatedAt: m.updatedAt,
-			})),
-		};
-	},
-
-	async "members.put"(ctx) {
-		const subject = String(ctx.params.subject);
-		if (subject === ctx.subject)
-			throw forbidden("nobody changes their own roles", { reason: "self" });
-		const roles = await ctx.deps.store.c.roles.list(ctx.app);
-		for (const r of ctx.body.roles)
-			if (!roles.some((x) => x.id === r)) throw fail("invalid", "unknown role", { role: r });
-		const people = await ctx.deps.store.c.people.list(ctx.app);
-		for (const p of ctx.body.coordinates)
-			if (!people.some((x) => x.id === p)) throw fail("invalid", "unknown person", { person: p });
-		const held = await ctx.deps.store.c.members.get(ctx.app, subject);
-		if (held === undefined && !(await ctx.canAll("members_create")))
-			throw forbidden("the role does not allow this", { permission: "members_create" });
-		const next: MemberRow = {
-			id: subject,
-			app: ctx.app,
-			subject,
-			displayName: ctx.body.displayName,
-			...(ctx.body.email === undefined ? {} : { email: ctx.body.email }),
-			roles: [...new Set(ctx.body.roles)],
-			coordinates: [...new Set(ctx.body.coordinates)],
-			grants: held?.grants ?? [],
-			denies: held?.denies ?? [],
-			createdAt: held?.createdAt ?? ctx.now,
-			updatedAt: ctx.now,
-		};
-		const change = diff(held === undefined ? [] : memberTuples(held), memberTuples(next));
-		await writeRowThenTuples(ctx, {
-			write: async () =>
-				held === undefined
-					? ctx.deps.store.c.members.insert(next)
-					: replaced(ctx.deps.store.c.members, next),
-			undo: async () => {
-				if (held === undefined) await ctx.deps.store.c.members.remove(ctx.app, subject);
-				else await ctx.deps.store.c.members.replace(held);
-			},
-			tuples: () => change,
-		});
-		await syncMember(ctx, ctx.app, subject, held, next);
-		ctx.note({ roles: next.roles, created: held === undefined });
-		return {
-			subject,
-			displayName: next.displayName,
-			...(next.email === undefined ? {} : { email: next.email }),
-			roles: next.roles,
-			coordinates: next.coordinates,
-			createdAt: next.createdAt,
-			updatedAt: next.updatedAt,
-		};
-	},
-
-	async "members.remove"(ctx) {
-		const subject = String(ctx.params.subject);
-		if (subject === ctx.subject) throw forbidden("nobody removes themselves", { reason: "self" });
-		const held = await must(ctx.deps.store.c.members, ctx.app, subject, "member");
-		await removeTuplesThenRow(ctx, {
-			tuples: memberTuples(held),
-			remove: async () => {
-				await ctx.deps.store.c.members.remove(ctx.app, subject);
-			},
-		});
-		await syncMember(ctx, ctx.app, subject, held, undefined);
-		return { ok: true as const };
-	},
-
-	async "members.overrides"(ctx) {
-		const subject = String(ctx.params.subject);
-		if (subject === ctx.subject)
-			throw forbidden("nobody changes their own grants", { reason: "self" });
-		const held = await must(ctx.deps.store.c.members, ctx.app, subject, "member");
-		for (const g of ctx.body.grant)
-			if (parseRelation(g) === undefined)
-				throw fail("invalid", "not a permission relation", { relation: g });
-		for (const d of ctx.body.deny)
-			if (parseRelation(d) === undefined) throw fail("invalid", "not a permission key", { key: d });
-		const next: MemberRow = {
-			...held,
-			grants: [...new Set(ctx.body.grant)].sort(),
-			denies: [...new Set(ctx.body.deny)].sort(),
-			updatedAt: ctx.now,
-		};
-		const change = diff(
-			held.grants.map((g) => personalGrant(ctx.app, subject, g)),
-			next.grants.map((g) => personalGrant(ctx.app, subject, g)),
-		);
-		await writeRowThenTuples(ctx, {
-			write: async () => replaced(ctx.deps.store.c.members, next),
-			undo: async () => {
-				await ctx.deps.store.c.members.replace(held);
-			},
-			tuples: () => change,
-		});
-		ctx.note({ grants: next.grants.length, denies: next.denies.length });
-		return { grant: next.grants, deny: next.denies };
-	},
-
 	async "roles.list"(ctx) {
 		const rows = (await ctx.deps.store.c.roles.list(ctx.app)).sort((a, b) =>
 			a.name.localeCompare(b.name),
@@ -355,17 +230,9 @@ export const appHandlers: HandlersOf<
 		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
 		return {
 			role: roleOut(role),
-			matrix: CATALOGUE.map((def) => ({
-				key: def.key,
-				resource: def.resource,
-				action: def.action,
-				effect: def.effect,
-				...(def.group === undefined ? {} : { fieldGroup: def.group }),
-				name: labelOf(def),
-				scoped: def.scopes.length > 1,
-				scopes: [...def.scopes],
-				held: def.scopes.filter((s) => role.permissions.includes(appRelation(def, s))),
-			})),
+			matrix: catalogueMatrix((def) =>
+				def.scopes.filter((s) => role.permissions.includes(appRelation(def, s))),
+			),
 		};
 	},
 

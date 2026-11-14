@@ -171,6 +171,7 @@ const OWN: Record<
 	"apps.get": (w) => olga(w, "GET", ""),
 	"apps.update": (w) => olga(w, "PATCH", "", { name: "Psizone Galați" }),
 	"members.list": (w) => olga(w, "GET", "/members"),
+	"members.get": (w) => olga(w, "GET", "/members/rita"),
 	"members.put": (w) =>
 		olga(w, "PUT", "/members/newcomer", {
 			displayName: "Newcomer",

@@ -62,7 +62,12 @@ export function adminGroup(sdk: SdkContext) {
 				const all = await drain((cursor) =>
 					api.members.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 				);
-				return all.map((m) => ({ subject: m.subject, displayName: m.displayName, roles: m.roles }));
+				return all.map((m) => ({
+					subject: m.subject,
+					displayName: m.displayName,
+					roles: m.roles,
+					...(m.email === undefined ? {} : { email: m.email }),
+				}));
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>

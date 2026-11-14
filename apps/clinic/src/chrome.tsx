@@ -107,6 +107,13 @@ export function roleName(
 	}
 }
 
+/** Every role a person holds, as people read them together: "Recepție + Coordonator" (none: an empty text). */
+export const rolesText = (
+	ids: ReadonlyArray<string>,
+	locale: Locale,
+	names: Readonly<Record<string, string>> | undefined = undefined,
+): string => ids.map((r) => roleName(r, locale, names)).join(" + ");
+
 /** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
 export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>
 	roleName(role.id, locale, { [role.id]: role.name });
@@ -211,7 +218,7 @@ export async function Page({
 	const mine =
 		ctx.platformAdmin && ctx.viewAs === null
 			? m.role_platform_admin({}, o)
-			: ctx.caps.roles.map((r) => roleName(r, locale, ctx.caps.roleNames)).join(", ");
+			: rolesText(ctx.caps.roles, locale, ctx.caps.roleNames);
 	return (
 		<Layout
 			locale={locale}

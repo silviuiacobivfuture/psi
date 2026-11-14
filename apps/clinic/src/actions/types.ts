@@ -31,6 +31,7 @@ export const SCREENS = [
 	"settings.devices",
 	"settings.services",
 	"settings.roles",
+	"settings.members",
 ] as const;
 export type Screen = (typeof SCREENS)[number];
 
@@ -53,6 +54,7 @@ export const ENTITIES = [
 	"device",
 	"service",
 	"role",
+	"member",
 ] as const;
 export type EntityKind = (typeof ENTITIES)[number];
 
