@@ -2,6 +2,7 @@ import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { type Capabilities, FIELD_GROUPS, type ScopeName } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { CATALOGUE, parseRelation } from "../authz/catalogue";
+import { roleKeys, rolesById } from "../authz/composition";
 import type { Ctx } from "../http/context";
 import { fail } from "../http/errors";
 import { must } from "./shared";
@@ -86,14 +87,15 @@ async function ofMember(ctx: C, subject: string, viewAs: Out["viewAs"]): Promise
 }
 
 /**
- * What a role would hold: computed from its stored relations, never asked of the authorizer (a role is no one's
- * tuples). A role has no person, so it reaches no one's rows.
+ * What a role would hold: computed from its stored relations and those of every role it includes, never asked of the
+ * authorizer (a role is no one's tuples). A role has no person, so it reaches no one's rows.
  */
 async function ofRole(ctx: C, roleId: string): Promise<Out> {
 	const app = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
 	const role = await must(ctx.deps.store.c.roles, ctx.app, roleId, "role");
+	const keys = roleKeys(role.id, rolesById(await ctx.deps.store.c.roles.list(ctx.app)));
 	const held = new Map<string, ScopeName[]>();
-	for (const relation of role.permissions) {
+	for (const relation of [...keys].sort()) {
 		const parsed = parseRelation(relation);
 		if (parsed === undefined) continue;
 		held.set(parsed.def.key, [...(held.get(parsed.def.key) ?? []), parsed.scope]);

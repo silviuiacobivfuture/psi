@@ -7,6 +7,7 @@ import type { MemberRow } from "../store/types";
 import { syncMember } from "./directory";
 import { catalogueMatrix } from "./matrix";
 import { changesOf, checkRefs, listed, memberOut, writeMember } from "./member-write";
+import { guardMemberChange } from "./owner-guard";
 import { diff, must, paginate, removeTuplesThenRow, replaced, writeRowThenTuples } from "./shared";
 
 export const memberHandlers: HandlersOf<
@@ -51,6 +52,12 @@ export const memberHandlers: HandlersOf<
 		const held = await ctx.deps.store.c.members.get(ctx.app, subject);
 		if (held === undefined && !(await ctx.canAll("members_create")))
 			throw forbidden("the role does not allow this", { permission: "members_create" });
+		await guardMemberChange(ctx, held, {
+			subject,
+			roles: ctx.body.roles,
+			grants: held?.grants ?? [],
+			denies: held?.denies ?? [],
+		});
 		const { next, detail } = await writeMember(ctx, subject, held, ctx.body);
 		ctx.note(detail);
 		return memberOut(next);
@@ -60,6 +67,7 @@ export const memberHandlers: HandlersOf<
 		const subject = String(ctx.params.subject);
 		if (subject === ctx.subject) throw forbidden("nobody removes themselves", { reason: "self" });
 		const held = await must(ctx.deps.store.c.members, ctx.app, subject, "member");
+		await guardMemberChange(ctx, held, undefined);
 		await removeTuplesThenRow(ctx, {
 			tuples: memberTuples(held),
 			remove: async () => {
@@ -93,6 +101,7 @@ export const memberHandlers: HandlersOf<
 			denies: [...new Set(ctx.body.deny)].sort(),
 			updatedAt: ctx.now,
 		};
+		await guardMemberChange(ctx, held, next);
 		const change = diff(
 			held.grants.map((g) => personalGrant(ctx.app, subject, g)),
 			next.grants.map((g) => personalGrant(ctx.app, subject, g)),

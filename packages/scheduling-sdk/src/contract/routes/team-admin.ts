@@ -11,6 +11,7 @@ import {
 	Group,
 	GroupCreate,
 	GroupPatch,
+	Inherited,
 	MatrixRow,
 	Member,
 	MemberDetail,
@@ -21,6 +22,7 @@ import {
 	PersonPatch,
 	Role,
 	RoleCreate,
+	RoleIncludes,
 	RolePatch,
 	RolePermissions,
 	Room,
@@ -227,7 +229,7 @@ export const ME_ROUTES = [
 		summary:
 			"One role with the permission matrix (every catalogue row and the scopes the role holds)",
 		params: IdParam,
-		response: z.object({ role: Role, matrix: z.array(MatrixRow) }),
+		response: z.object({ role: Role, matrix: z.array(MatrixRow), inherited: Inherited }),
 		permission: { key: "roles_view", target: { kind: "app" } },
 	}),
 	route({
@@ -253,6 +255,19 @@ export const ME_ROUTES = [
 		response: Role,
 		permission: { key: "roles_edit", target: { kind: "app" } },
 		audit: "role.permissions",
+	}),
+	route({
+		id: "roles.setIncludes",
+		method: "PUT",
+		path: "/v1/apps/:app/roles/:id/includes",
+		side: "team",
+		summary:
+			"Replace the roles this role includes (their permissions are held through it): no cycle, at most 6 deep; writes and deletes the OpenFGA tuples",
+		params: IdParam,
+		body: RoleIncludes,
+		response: Role,
+		permission: { key: "roles_edit", target: { kind: "app" } },
+		audit: "role.includes",
 	}),
 	route({
 		id: "roles.remove",

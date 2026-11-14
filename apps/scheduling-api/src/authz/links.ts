@@ -49,6 +49,15 @@ export const roleGrant = (roleId: string, app: string, relation: string): Tuple 
 	relation,
 	object: objectOf("sched_app", app),
 });
+/**
+ * A role included in another: the includer's members are members of the included role, so they hold its permissions,
+ * and whatever it includes, through OpenFGA's own userset expansion.
+ */
+export const roleInclusion = (includer: string, included: string): Tuple => ({
+	user: `${objectOf("sched_role", includer)}#member`,
+	relation: "member",
+	object: objectOf("sched_role", included),
+});
 export const personalGrant = (app: string, subject: string, relation: string): Tuple => ({
 	user: userOf(subject),
 	relation,

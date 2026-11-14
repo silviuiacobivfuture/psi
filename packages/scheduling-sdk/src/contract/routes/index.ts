@@ -5,6 +5,7 @@ import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
 import { INVITE_ROUTES } from "./team-invite";
 import { NOTE_ROUTES } from "./team-notes";
+import { OWNERSHIP_ROUTES } from "./team-ownership";
 import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
 import { REPORT_ROUTES } from "./team-reports";
@@ -29,6 +30,7 @@ export const ROUTES = [
 	...ASSISTANT_ROUTES,
 	...INVITE_ROUTES,
 	...STAFF_ROUTES,
+	...OWNERSHIP_ROUTES,
 ] as const;
 export type Routes = typeof ROUTES;
 export type Route = Routes[number];

@@ -36,6 +36,11 @@ export interface PermissionMatrixProps {
 	resourceLabel: string;
 	readOnly?: boolean;
 	tableLabel: string;
+	/**
+	 * `inherited[row][column]` = what the cell holds through another role, already worded ("din Recepție: toate"):
+	 * shown greyed under the cell's own choice, which it does not change.
+	 */
+	inherited?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
 /** Resource rows by action columns, a scope select in each cell, then the field-group toggles. */
@@ -80,8 +85,13 @@ export function PermissionMatrix(p: PermissionMatrixProps): JSX.Element {
 													</td>
 												);
 											const name = `perm.${r.key}.${c.key}`;
+											const from = p.inherited?.[r.key]?.[c.key];
 											return (
-												<td key={c.key} class="adm-matrix__cell">
+												<td
+													key={c.key}
+													class="adm-matrix__cell"
+													data-inherited={from === undefined ? undefined : ""}
+												>
 													<select
 														class="adm-matrix__scope"
 														name={name}
@@ -97,6 +107,9 @@ export function PermissionMatrix(p: PermissionMatrixProps): JSX.Element {
 															</option>
 														))}
 													</select>
+													{from === undefined ? null : (
+														<small class="adm-muted adm-matrix__from">{from}</small>
+													)}
 												</td>
 											);
 										})}

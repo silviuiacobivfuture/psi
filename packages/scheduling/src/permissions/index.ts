@@ -10,6 +10,7 @@ export {
 	hasFieldGroups,
 	isFieldGroup,
 	isPermissionKey,
+	OWNER_ONLY_KEYS,
 	type Permission,
 	parsePermissionKey,
 	permissionKey,
@@ -21,6 +22,17 @@ export {
 	SCOPES,
 	type Scope,
 } from "./catalogue";
+export {
+	type ComposedRole,
+	type Effective,
+	effectiveOf,
+	effectiveOfMany,
+	type InclusionProblem,
+	inclusionProblem,
+	MAX_INCLUDE_DEPTH,
+	redundantRoles,
+	withoutRedundant,
+} from "./composed";
 export {
 	can,
 	type Decision,
@@ -40,6 +52,7 @@ export {
 	RECEPTION,
 	SEED_ROLES,
 	type SeedRole,
+	seedEffective,
 	THERAPIST,
 	VOLUNTEER,
 } from "./roles";

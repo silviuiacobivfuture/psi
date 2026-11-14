@@ -1,4 +1,5 @@
 import { appRelations, CATALOGUE } from "../authz/catalogue";
+import { inheritedOf, rolesById } from "../authz/composition";
 import type { HandlersOf } from "../http/context";
 
 /**
@@ -18,6 +19,7 @@ export const roleSummaryHandlers: HandlersOf<"roles.summary"> = {
 		const rows = (await ctx.deps.store.c.roles.list(ctx.app)).sort((a, b) =>
 			a.name.localeCompare(b.name),
 		);
+		const byId = rolesById(rows);
 		return {
 			roles: rows.map((r) => ({
 				id: r.id,
@@ -25,6 +27,9 @@ export const roleSummaryHandlers: HandlersOf<"roles.summary"> = {
 				...(r.description === undefined ? {} : { description: r.description }),
 				system: r.system,
 				permissions: [...new Set(r.permissions)].sort(),
+				includes: [...r.includes].sort(),
+				// What it holds through the roles it includes, and from which: the comparison marks those "din X".
+				inherited: inheritedOf(r.id, byId),
 			})),
 			platform: { permissions: [...PLATFORM_RELATIONS].sort() },
 		};
