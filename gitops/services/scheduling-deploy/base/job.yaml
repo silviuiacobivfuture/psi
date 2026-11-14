@@ -1,6 +1,9 @@
-# Argo PostSync hook: runs after every sync of this Application has gone healthy (so after a new
-# image tag from CI), replaces the previous run (BeforeHookCreation) and leaves its pod for the logs.
-# Idempotent: `convex env set --force` and `convex deploy` converge on the same state.
+# A tracked Job, not a hook: Argo leaves hooks out of its diff, so a new image tag that changed only a
+# hook kept the Application Synced and auto-sync never ran it. As a tracked resource, a new tag from CI
+# makes the Application OutOfSync; auto-sync then replaces the Job (Force + Replace: a Job's template is
+# immutable) and it runs once per tag, leaving its pod for the logs (no TTL: a deleted Job would be
+# recreated and run again). scheduling-api's readiness waits for what it deploys (its /ready asks
+# deployment:functionsHash). Idempotent: `convex env set --force` and `convex deploy` converge.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -8,8 +11,9 @@ metadata:
   labels: { app: scheduling-deploy }
   annotations:
     alerts.psizone.ro/owner: ops@psizone.ro
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+    # After the ExternalSecret and the NetworkPolicy (wave 0) are healthy: the key is there when it starts.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   backoffLimit: 2
   # Long enough to wait for the admin key on a first install (see externalsecret.yaml).

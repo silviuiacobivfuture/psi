@@ -97,7 +97,8 @@ describe("the scheduling functions are deployed before the service that calls th
 	it("a new pod takes traffic only once ready, and ready means the backend serves its functions", () => {
 		expect(deployment).toMatch(/readinessProbe:\s+httpGet: \{ path: \/ready, port: http \}/);
 		const store = readFileSync(new URL("./store/convex.ts", import.meta.url), "utf8");
-		expect(store).toMatch(/ping: async \(\) => \{[^}]*requireFunctions\(clients\.rpc\)/s);
+		expect(store).toMatch(/const gate = functionsGate\(clients\.rpc\)/);
+		expect(store).toMatch(/ping: async \(\) => \{[^}]*await gate\.check\(\)/s);
 	});
 
 	it("the rollout waits long enough for scheduling-deploy (ten minutes for the backend, then the deploy)", () => {
@@ -108,7 +109,18 @@ describe("the scheduling functions are deployed before the service that calls th
 	it("the deploy job deploys the functions the readiness asks about", () => {
 		expect(read("apps/scheduling-deploy/deploy.sh")).toContain('"$convex" deploy --yes');
 		expect(read("packages/scheduling/convex/deployment.ts")).toMatch(
-			/export const functionsVersion = query/,
+			/export const functionsHash = query/,
+		);
+	});
+
+	it("the deploy job runs on every new image tag: a tracked Job Argo replaces, never a hook it leaves out of its diff", () => {
+		const job = read("gitops/services/scheduling-deploy/base/job.yaml");
+		expect(job).not.toMatch(/argocd\.argoproj\.io\/hook:/);
+		expect(job).toMatch(/argocd\.argoproj\.io\/sync-options: Force=true,Replace=true/);
+		expect(job).toMatch(/argocd\.argoproj\.io\/sync-wave: "1"/);
+		expect(job).not.toMatch(/ttlSecondsAfterFinished/);
+		expect(read("gitops/services/scheduling-deploy/base/kustomization.yaml")).toMatch(
+			/- job\.yaml/,
 		);
 	});
 });
