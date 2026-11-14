@@ -292,7 +292,9 @@ describe("a request that is not valid reaches nobody", () => {
 		expect(html).toContain("<form");
 		expect(html).toContain(shown);
 		expect(html).not.toContain("Mulțumim");
-		expect(html).not.toContain(FAILED_TITLE);
+		// The form keeps its "did not go through" line hidden for a lost connection: it is not shown here.
+		const visible = html.replace(/<(\w+)[^>]*style="display: none"[^>]*>[\s\S]*?<\/\1>/g, "");
+		expect(visible).not.toContain(FAILED_TITLE);
 		expect(fake.callbacks).toEqual([]);
 		expect(sent).toEqual([]);
 		expect(log).toEqual([]);
