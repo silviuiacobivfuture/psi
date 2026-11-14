@@ -140,14 +140,25 @@ export function blacklistPort(rpc: Rpc): BlacklistPort {
 			if (!out.ok) throw new StoreRefused(out.reason);
 		},
 		async check(app, who) {
-			const out = await rpc.query("apiBlacklist:check", { tenant: app, ...defined(who) }, Check);
+			// Only who is asked about: a booking's contact passed here also carries the visitor's age and details.
+			const { client, name, phone, email } = who;
+			const out = await rpc.query(
+				"apiBlacklist:check",
+				{ tenant: app, ...defined({ client, name, phone, email }) },
+				Check,
+			);
 			if (!out.ok) throw new StoreRefused(out.reason);
 			return out.hit;
 		},
 		async screen(app, channel, contact) {
 			const out = await rpc.mutation(
 				"apiBlacklist:screen",
-				{ tenant: app, channel, contact: defined(contact) },
+				// Who the visitor is, and nothing else they wrote (a booking's contact also carries their age and details).
+				{
+					tenant: app,
+					channel,
+					contact: defined({ name: contact.name, phone: contact.phone, email: contact.email }),
+				},
 				Done,
 			);
 			if (out.ok) return false;

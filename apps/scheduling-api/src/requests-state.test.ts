@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createWorld, type Populated } from "./testing/populate";
-import { HOUR, NOW } from "./testing/world";
+import { bookingContact, HOUR, NOW } from "./testing/world";
 
 /** requests.list with `state`: the open requests only, or the decided ones only; without it, all of them. */
 const A = "/v1/apps/psizone";
@@ -32,10 +32,11 @@ async function three(): Promise<{ references: string[]; declined: string }> {
 				channel: "form",
 			})
 		).json;
-		await key("POST", `/book/holds/${h.reference}/submit`, {
+		const sent = await key("POST", `/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
-			contact: { name: "V", phone: "0733 000 111" },
+			contact: bookingContact({ phone: "0733 000 111" }),
 		});
+		expect(sent.status, JSON.stringify(sent.json)).toBe(200);
 		if (typeof h.reference !== "string") throw new Error(JSON.stringify(h));
 		references.push(h.reference);
 	}
