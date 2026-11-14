@@ -12,6 +12,12 @@ export interface Schedule {
 	callback: boolean;
 	/** The service cards (the booking page); the chat and the contact page keep one service. */
 	cards: boolean;
+	/**
+	 * The guide's offer, on the organisation's terms: the picker shows no time past `horizon` days from now, and with
+	 * `noCallback` the way to a call instead is not offered. Both travel with the form (empty: the page's own).
+	 */
+	horizon: string;
+	noCallback: boolean;
 }
 
 /** The service's name in the visitor's language: the team's, else the site's readable fallback. */
@@ -119,6 +125,8 @@ export function ScheduleSection({
 			<input type="hidden" name="shown" value={data.service.slug} />
 			<input type="hidden" name="cards" value={schedule.cards ? "1" : ""} />
 			<input type="hidden" name="callback" value={schedule.callback ? "1" : ""} />
+			<input type="hidden" name="horizon" value={schedule.horizon} />
+			<input type="hidden" name="nocall" value={schedule.noCallback ? "1" : ""} />
 			{schedule.cards && data.services.length > 1 ? (
 				<ServiceCards
 					id={id}
@@ -137,15 +145,17 @@ export function ScheduleSection({
 				<input type="hidden" name="service" value={data.service.slug} />
 			)}
 			{schedule.callback ? null : <Picker env={env} id={id} data={data} compact={compact} />}
-			<button
-				type="button"
-				class="pz-slots__switch"
-				data-on:click__prevent={postPicker(env, {
-					callback: schedule.callback ? "0" : "1",
-				})}
-			>
-				{schedule.callback ? env.copy.picker.back : env.copy.picker.callback}
-			</button>
+			{schedule.noCallback ? null : (
+				<button
+					type="button"
+					class="pz-slots__switch"
+					data-on:click__prevent={postPicker(env, {
+						callback: schedule.callback ? "0" : "1",
+					})}
+				>
+					{schedule.callback ? env.copy.picker.back : env.copy.picker.callback}
+				</button>
+			)}
 		</div>
 	);
 }

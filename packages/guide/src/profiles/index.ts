@@ -10,6 +10,7 @@ import { bookingHandoffUrl, CENTRE_PHONES, hemisyncBookingUrl } from "../service
 import { bookingWordIn } from "../services/services";
 import { CONTACT_FACTS, conciergeRules } from "./concierge";
 import { CRISIS } from "./crisis";
+import { fallbackOf } from "./fallback";
 import { FOLLOW_UP_TOPICS, NEXT_STEP_PHRASES, NEXT_STEPS, policyOf } from "./policy";
 import { CLINICAL, HEMISYNC_ONLY, isClinical, OUT_OF_SCOPE, SISTER_BRANDS } from "./scope";
 import { SCREENING } from "./screening";
@@ -144,6 +145,7 @@ function wording(brand: Brand, locale: Locale): ProfileLocale {
 		unknown: UNKNOWN[brand][locale],
 		facts: CONTACT_FACTS[brand][locale],
 		...handoffOf(brand, locale),
+		...fallbackOf(brand, locale),
 	};
 }
 

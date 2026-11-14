@@ -25,6 +25,11 @@ export const guide: Guide & GuideCounters = countingGuide(
 			url: process.env.PSI_KNOWLEDGE_DB_URL ?? `file:${resolve(".data/knowledge.db")}`,
 		}),
 		...(SCHEDULING.ok ? { scheduling: SCHEDULING.scheduling.port } : {}),
+		// The team's settings for the site's assistant (Setări → Asistent): its limits, budget and model, over the CMS's.
+		...(SCHEDULING.ok ? { visitorAssistant: SCHEDULING.scheduling.assistant } : {}),
+		// Only when the team keeps transcripts: one line per finished turn, already redacted as they set it.
+		onTranscript: (transcript) =>
+			console.info(JSON.stringify({ event: "transcript", ...transcript })),
 		// The admin's AI settings from the CMS; without a CMS key, PSI_GUIDE_SETTINGS or the defaults.
 		...(aiSettings === null ? {} : { settings: aiSettings.get }),
 		onFailure: (failure) => {

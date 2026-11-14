@@ -22,6 +22,7 @@ export const HORIZON_WEEKS = 12;
 /** The widest offset a time zone has from UTC, so a query covers the whole local week. */
 const ZONE_SLACK_MS = 14 * 3_600_000;
 const SLOT_LIMIT = 200;
+const DAY_MS = 86_400_000;
 
 const SERVICE = /^[a-z0-9][a-z0-9-]{1,40}$/;
 
@@ -39,6 +40,8 @@ export const PickerChoices = z.object({
 	mode: optional(z.enum(["onsite", "online"])),
 	who: optional(z.string().regex(/^[a-z0-9]{10,64}$/)),
 	slot: optional(z.string().max(120)),
+	/** The guide's offer: no time later than this many days from now (the organisation's `booking.horizonDays`). */
+	horizon: optional(z.string().regex(/^(?:[1-9]|[1-8]\d|90)$/)),
 });
 export type PickerChoices = z.infer<typeof PickerChoices>;
 
@@ -129,7 +132,13 @@ export function createPicker(
 			const instant = now();
 			const today = localDate(instant, timeZone);
 			const thisWeek = mondayOf(today);
-			const lastWeek = addDays(thisWeek, HORIZON_WEEKS * 7);
+			const horizon = kept.horizon === "" ? undefined : Number(kept.horizon);
+			// The guide's offer may hold the picker to the organisation's horizon (days from now); the page's own is 12 weeks.
+			const until = horizon === undefined ? Number.POSITIVE_INFINITY : instant + horizon * DAY_MS;
+			const lastWeek =
+				horizon === undefined
+					? addDays(thisWeek, HORIZON_WEEKS * 7)
+					: mondayOf(localDate(until, timeZone));
 			const asked = kept.week === "" ? thisWeek : mondayOf(kept.week);
 			const week = asked < thisWeek ? thisWeek : asked > lastWeek ? lastWeek : asked;
 			const mode = pickMode(service, kept.mode);
@@ -152,7 +161,8 @@ export function createPicker(
 					if (ref === undefined || ref.mode !== mode) continue;
 					if (who !== "" && ref.practitioner !== who) continue;
 					const date = localDate(slot.start, timeZone);
-					if (date < week || date >= weekEnd || slot.start < instant) continue;
+					if (date < week || date >= weekEnd || slot.start < instant || slot.start > until)
+						continue;
 					slots.push({
 						id: slot.id,
 						start: slot.start,
@@ -192,7 +202,8 @@ export function createPicker(
 						limit: 1,
 						now: instant,
 					});
-					const first = later.ok ? later.slots[0] : undefined;
+					const found = later.ok ? later.slots[0] : undefined;
+					const first = found === undefined || found.start > until ? undefined : found;
 					nextWithTimes =
 						first === undefined ? undefined : mondayOf(localDate(first.start, timeZone));
 				}

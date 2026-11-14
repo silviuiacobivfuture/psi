@@ -22,7 +22,7 @@ import type { LanguagePack } from "./language/pack";
 import { type ProposedSlot, runCancelRequest, SCHEDULING_TIMEOUT_MS } from "./scheduling/tools";
 import { fold } from "./text/normalize";
 
-export type { BookingOffer, BookingScope } from "./booking-offers";
+export type { BookingLimits, BookingOffer, BookingScope } from "./booking-offers";
 export type {
 	BookedRequest,
 	BookingCancel,
@@ -160,7 +160,7 @@ async function live(booking: BookingScope): Promise<BookingScope> {
 		const names = Object.fromEntries(
 			entries.flatMap((e) => (e.name === undefined ? [] : [[e.slug, e.name]])),
 		);
-		return { port, scope: { ...scope, services: entries.map((e) => e.slug), names } };
+		return { ...booking, scope: { ...scope, services: entries.map((e) => e.slug), names } };
 	} catch {
 		return booking;
 	}
@@ -228,6 +228,21 @@ export async function bookingTurn(
 	packs: ReadonlyArray<LanguagePack>,
 	now: number = Date.now(),
 ): Promise<BookingOffer | undefined> {
+	const offer = await bookingStep(offered, input, packs, now);
+	return offer === undefined ? undefined : withLimits(offered, offer);
+}
+
+/** The offer with the organisation's limits on it, on a site its settings govern, for the app's form to hold to. */
+function withLimits(offered: BookingScope, offer: BookingOffer): BookingOffer {
+	return offered.limits === undefined ? offer : { ...offer, limits: offered.limits };
+}
+
+async function bookingStep(
+	offered: BookingScope,
+	input: { question: string; typed?: string; state?: BookingState; locale?: string },
+	packs: ReadonlyArray<LanguagePack>,
+	now: number,
+): Promise<BookingOffer | undefined> {
 	const { question, state } = input;
 	// What the visitor typed, before the screening hid any phone or e-mail in it: read only for the
 	// details of a booking that has a time chosen.
@@ -283,16 +298,19 @@ export async function reshow(
 ): Promise<BookingOffer> {
 	if (state?.stage === "details" && state.chosen !== undefined) {
 		const booking = await live(offered);
-		return confirmOffer(
-			booking,
-			state.criteria,
-			state.chosen,
-			state.shown,
-			now,
-			talkOf(state, state.lang ?? (locale === "en" ? "en" : "ro")),
+		return withLimits(
+			offered,
+			await confirmOffer(
+				booking,
+				state.criteria,
+				state.chosen,
+				state.shown,
+				now,
+				talkOf(state, state.lang ?? (locale === "en" ? "en" : "ro")),
+			),
 		);
 	}
-	return offerTimes(offered, question, now);
+	return withLimits(offered, await offerTimes(offered, question, now));
 }
 
 /** Looks up the next free times for the profile's first service. Never throws. */

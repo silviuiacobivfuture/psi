@@ -12,6 +12,21 @@ export interface ProfileHandoff {
 	href: (question: string) => string;
 }
 
+/**
+ * See `ProfileLocale.fallback`. Said as written (no model), on a site whose organisation's settings govern the guide
+ * (`visitor-governance.ts`).
+ */
+export interface ProfileFallback {
+	/** When the organisation's limits stop the guide (switched off, the month's budget or tokens spent): a warm line. */
+	paused: string;
+	/** After the conversation's refusals reach the organisation's number: the offer of a person, with how to reach one. */
+	person: (contact: string) => string;
+	/** How to reach a person when the organisation's settings name no contact (the site's own phone). */
+	contact: string;
+	/** The one button both lines carry: the booking form on a site that books, else the way to one. */
+	action: { label: string; href: string };
+}
+
 /** What a profile says in one locale: its voice, its policy rules and its allowed next steps. */
 export interface ProfileLocale {
 	/** Who the persona is and how it speaks, in this locale (from the brand book, say). */
@@ -60,6 +75,11 @@ export interface ProfileLocale {
 		question: string;
 		page: PageContext | undefined;
 	}) => ProfileHandoff | undefined;
+	/**
+	 * What the guide says when the organisation's own limits stop it, and its offer of a person after refusals. Without
+	 * it a stopped turn is the `unavailable` refusal and no person is offered.
+	 */
+	fallback?: ProfileFallback;
 	/**
 	 * The voice and policy rewritten for the owner's conversation style (warmth, length, address,
 	 * follow-ups), when the profile's own text states any of these. Called only for a style other
@@ -149,6 +169,20 @@ const ProfileLocaleSchema: z.ZodType<ProfileLocale> = z
 			.optional(),
 		handoffFor: z
 			.custom<NonNullable<ProfileLocale["handoffFor"]>>((value) => typeof value === "function")
+			.optional(),
+		fallback: z
+			.object({
+				paused: z.string().trim().min(1).max(600),
+				person: z.custom<ProfileFallback["person"]>((value) => typeof value === "function"),
+				contact: z.string().trim().min(1).max(200),
+				action: z
+					.object({
+						label: z.string().trim().min(1).max(60),
+						href: z.string().trim().min(1).max(300),
+					})
+					.strict(),
+			})
+			.strict()
 			.optional(),
 		restyle: z
 			.custom<NonNullable<ProfileLocale["restyle"]>>((value) => typeof value === "function")
