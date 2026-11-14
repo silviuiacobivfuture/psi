@@ -44,6 +44,14 @@ export {
 	type EngineCatalog,
 } from "./catalog";
 export {
+	type CompactionOutcome,
+	type CompactionSettings,
+	type CompactionUsage,
+	compactThread,
+	type Summariser,
+	type Summary,
+} from "./compaction";
+export {
 	type EngineKnowledge,
 	EngineKnowledgeSchema,
 	type KnowledgeQuery,
@@ -155,6 +163,7 @@ export {
 } from "./language/pack";
 export { ROMANIAN } from "./language/ro";
 export { fileDirectory, openMemory, THREAD_WINDOW } from "./memory";
+export { retentionOf, stampRetention, sweepByRetention } from "./memory-retention";
 export { ModelIdSchema, ProviderError, readOpenRouterKey } from "./model";
 export { earlierPages, pageEvidence, pagePassage, renderPage } from "./page-context";
 export {
@@ -221,6 +230,7 @@ export {
 	type RateLimiter,
 	type RatePolicy,
 } from "./screening/rate-limit";
+export { redactIdentifiers } from "./screening/redact-text";
 export { isAbusive, isInjection } from "./screening/rules";
 export { cleanText } from "./screening/unicode";
 export {

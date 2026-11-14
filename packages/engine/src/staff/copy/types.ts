@@ -309,6 +309,13 @@ export interface StaffCopy {
 	cutShort: string;
 	/** Said when the turn ended with a card waiting and no words. */
 	reviewCard: string;
+	/**
+	 * Offered once in a conversation that met the organisation's number of refusals (`handoff`): who to ask instead, the
+	 * organisation's contact when it set one, else its Owner or an Admin.
+	 */
+	handoff(contact: string | undefined): string;
+	/** What introduces the summary a long conversation's older part was folded into (`memory.compactAfter`). */
+	summaryHeading: string;
 	panel: PanelCopy;
 	suggestions: Readonly<Record<StaffScreen, ReadonlyArray<string>>>;
 }

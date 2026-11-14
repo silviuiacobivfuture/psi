@@ -397,6 +397,11 @@ export const STAFF_RO: StaffCopy = {
 		`Se poate: ${labels.join("; ")}. Spune-mi cu ce date să o fac și o pregătesc pentru confirmarea ta.`,
 	cutShort: "(Răspunsul s-a întrerupt aici; scrie „continuă” ca să-l reiau.)",
 	reviewCard: "Verifică și confirmă în card.",
+	handoff: (contact) =>
+		contact === undefined
+			? "Dacă nu te pot ajuta cu asta, te pot ajuta Proprietarul sau un Administrator al organizației: întreabă-i direct."
+			: `Dacă nu te pot ajuta cu asta, te poate ajuta o persoană: ${contact}.`,
+	summaryHeading: "Rezumatul conversației de până acum:",
 	stoppedShort:
 		"Nu am ajuns la un rezultat. Spune-mi mai precis ce vrei să fac sau încearcă din nou.",
 	panel: {

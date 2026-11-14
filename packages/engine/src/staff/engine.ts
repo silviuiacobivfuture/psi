@@ -3,33 +3,31 @@ import { noopLogger } from "@mastra/core/logger";
 import { Mastra } from "@mastra/core/mastra";
 import { z } from "zod";
 import { turnModel } from "../agent";
+import type { Summariser } from "../compaction";
 import { createLanguageDetector } from "../language/detect";
 import { BUNDLED_LANGUAGES } from "../language/index";
 import { openMemory } from "../memory";
+import { sweepByRetention } from "../memory-retention";
 import { type ChatModel, openRouterModel, type ProviderSort, readOpenRouterKey } from "../model";
 import { createMemoryRateLimiter, type RateLimiter } from "../screening/rate-limit";
+import { redactIdentifiers } from "../screening/redact-text";
 import { createStaffAgent, STAFF_AGENT_ID } from "./agent";
-import { modelsOfKey, NO_STAFF_USAGE, refusalOf, standingInstructions } from "./assistant-config";
+import { modelsOfKey } from "./assistant-config";
 import { buildBriefing } from "./briefing";
+import { createChat, type StaffTranscript } from "./chat";
 import { staffCopy } from "./copy";
-import {
-	type StaffCard,
-	type StaffEvent,
-	type StaffPage,
-	type StaffScreen,
-	StaffTurnInputSchema,
-} from "./events";
+import type { StaffCard, StaffEvent, StaffPage, StaffScreen } from "./events";
 import { type ConfirmOutcome, confirmProposal, dismissProposal, unconfirmed } from "./execute";
-import { openStaffMemory } from "./memory-store";
+import { openStaffMemory, STAFF_MEMORY_DAYS } from "./memory-store";
 import type { StaffLocale } from "./model";
 import { openSession, type SessionDeps } from "./open";
-import { baseKeys } from "./parity/needs";
 import type { RouteLike } from "./parity/routes";
 import type { IssuesPort, StaffPort } from "./port";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
 import { createReadCache, personOf } from "./read-cache";
 import type { StaffLinks } from "./session";
-import { runTurn, type TurnTimeouts } from "./turn";
+import { agentSummariser } from "./summariser";
+import type { TurnTimeouts } from "./turn";
 
 /** The staff engine was set up wrongly: raised at startup, never during a turn. */
 export class StaffConfigurationError extends Error {
@@ -49,9 +47,10 @@ export interface StaffEngineOptions {
 	};
 	/**
 	 * Durable conversation memory for staff, on its OWN LibSQL store (`staff:<sub>` resources):
-	 * every message is sealed (AES-256-GCM, a key per person derived from `root`) and deleted
-	 * `days` (30) days after it was written, by a sweep at start and every few hours. Without it
-	 * the memory lives in this process only and is gone on restart. `visitorUrl`, when the app
+	 * every message is sealed (AES-256-GCM, a key per person derived from `root`) and deleted its
+	 * organisation's `memory.retentionDays` after it was written (`days`, 30, for a conversation no
+	 * organisation stamped), by a sweep at start and every few hours. Without it the memory lives
+	 * in this process only (swept the same way) and is gone on restart. `visitorUrl`, when the app
 	 * also runs a visitor memory, must differ from `url`.
 	 */
 	memory?: { url: string; root: Buffer; visitorUrl?: string; days?: number };
@@ -70,14 +69,27 @@ export interface StaffEngineOptions {
 	issues?: IssuesPort;
 	timeouts?: Partial<TurnTimeouts>;
 	now?: () => number;
-	/** Called when a stage fails: the stage and the error's text, never a message or a record. */
+	/**
+	 * Called when a stage fails: the stage and the error's text, never a message or a record. The text has e-mail
+	 * addresses, phone numbers and personal numbers replaced by marks unless the turn's organisation switched
+	 * `logging.redactPii` off (and the platform does not force it).
+	 */
 	onFailure?: (failure: { stage: string; error: string }) => void;
+	/**
+	 * The app's transcript log: called once per finished turn with its question and what the person finally read, and
+	 * only for an organisation with `logging.keepTranscripts` on (redacted as `onFailure` is). Off: no message text
+	 * ever reaches the app's log.
+	 */
+	onTranscript?: (transcript: StaffTranscript) => void;
+	/**
+	 * Writes the summary a long conversation's older part is folded into (`memory.compactAfter`); by default one call
+	 * to the organisation's `model.summary` through OpenRouter.
+	 */
+	summariser?: Summariser;
 }
 
 const DEFAULT_TIMEOUTS: TurnTimeouts = { idleMs: 25_000, totalMs: 90_000 };
 const DEFAULT_ZONE = "Europe/Bucharest";
-/** An identical message in the same conversation inside this window is the person pressing twice. */
-const REPEAT_WINDOW_MS = 5_000;
 const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 const TurnLimit = { limit: 30, windowMs: 60_000 } as const;
 
@@ -105,7 +117,7 @@ export interface StaffEngine {
 	briefing(port: StaffPort | undefined): Promise<StaffCard | undefined>;
 	/** Suggestions per screen, in the person's language. */
 	suggestions(screen: StaffScreen, locale: StaffLocale): ReadonlyArray<string>;
-	/** Deletes conversation older than the retention now (it also runs by itself); how many rows went. */
+	/** Deletes conversation older than its retention now (it also runs by itself); how many rows went. */
 	sweepMemory(): Promise<number>;
 }
 
@@ -162,47 +174,29 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 	const now = options.now ?? Date.now;
 	const detector = createLanguageDetector(BUNDLED_LANGUAGES);
 	const reads = createReadCache(now);
-	const fail = (stage: string, error: unknown): void => {
+	/** Redacted unless the turn's organisation said otherwise: outside a turn (the sweep, the configuration) always. */
+	const fail = (stage: string, error: unknown, redact = true): void => {
 		try {
-			options.onFailure?.({
-				stage,
-				error:
-					error instanceof Error
-						? `${error.name}: ${error.message}`.slice(0, 300)
-						: "unknown error",
-			});
+			const text =
+				error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 300) : "unknown error";
+			options.onFailure?.({ stage, error: redact ? redactIdentifiers(text) : text });
 		} catch {
 			// A failing log hook must not change the answer.
 		}
 	};
 
-	/** Messages a person sent a moment ago, by conversation: the same one again within the window is a double press. */
-	const recent = new Map<string, number>();
-	/** How many turns each conversation has had in this process (its length limit); bounded, the oldest forgotten first. */
-	const lengths = new Map<string, number>();
-	const MAX_TRACKED = 20_000;
-	const isRepeat = (sub: string, threadId: string | undefined, message: string): boolean => {
-		const at = now();
-		for (const [key, when] of recent) if (at - when > REPEAT_WINDOW_MS) recent.delete(key);
-		const key = `${sub}\u0000${threadId ?? "default"}\u0000${message.trim().replace(/\s+/g, " ").toLowerCase()}`;
-		if (recent.has(key)) return true;
-		recent.set(key, at);
-		return false;
-	};
-
 	const sweepMemory = async (): Promise<number> => {
-		if (durable === undefined) return 0;
 		try {
-			return await durable.sweep();
+			return durable === undefined
+				? await sweepByRetention(memory, options.memory?.days ?? STAFF_MEMORY_DAYS, Date.now())
+				: await durable.sweep();
 		} catch (error) {
 			fail("memory-sweep", error);
 			return 0;
 		}
 	};
-	if (durable !== undefined) {
-		void sweepMemory();
-		setInterval(() => void sweepMemory(), SWEEP_EVERY_MS).unref();
-	}
+	if (durable !== undefined) void sweepMemory();
+	setInterval(() => void sweepMemory(), SWEEP_EVERY_MS).unref();
 
 	const deps: SessionDeps = {
 		timeZone,
@@ -216,95 +210,19 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 	const open = (port: StaffPort, input: { page?: StaffPage; threadId?: string }) =>
 		openSession(port, deps, input);
 
-	async function* chat(
-		port: StaffPort,
-		raw: unknown,
-		control?: { signal?: AbortSignal },
-	): AsyncGenerator<StaffEvent, void, undefined> {
-		const parsed = StaffTurnInputSchema.safeParse(raw);
-		if (!parsed.success) {
-			yield { type: "refusal", reason: "invalid" };
-			yield { type: "done" };
-			return;
-		}
-		const session = await open(port, {
-			page: parsed.data.page,
-			threadId: parsed.data.threadId,
-		});
-		if (session === undefined) {
-			yield { type: "refusal", reason: "no_principal" };
-			yield { type: "done" };
-			return;
-		}
-		const caps = await session.port.capabilities();
-		session.caps = caps.ok ? baseKeys(caps.value.permissions) : undefined;
-		// What governs this turn, asked of the service as this person; without it no turn runs (its limits could not hold).
-		const configured = await session.port.assistant();
-		if (!configured.ok) {
-			fail("config", new Error(`the configuration was refused: ${configured.reason}`));
-			yield { type: "refusal", reason: "unavailable" };
-			yield { type: "done" };
-			return;
-		}
-		const config = configured.value;
-		if (config.stop !== undefined) {
-			// Counted, so the meters show how often a limit is met; nothing else is.
-			await session.port.recordUsage({ ...NO_STAFF_USAGE, limitHit: true });
-			yield { type: "refusal", reason: refusalOf(config.stop) };
-			yield { type: "done" };
-			return;
-		}
-		session.config = config;
-		const sub = session.principal.sub;
-		if (
-			!(await limiter.take(`staff:${sub}`, {
-				limit: config.settings.ratePerMinute,
-				windowMs: 60_000,
-			}))
-		) {
-			yield { type: "refusal", reason: "rate_limited" };
-			yield { type: "done" };
-			return;
-		}
-		const thread = `${sub}\u0000${parsed.data.threadId ?? "default"}`;
-		const said = (lengths.get(thread) ?? 0) + 1;
-		if (said > config.settings.messages.perSession) {
-			yield { type: "refusal", reason: "session_limit" };
-			yield { type: "done" };
-			return;
-		}
-		if (lengths.size >= MAX_TRACKED) lengths.delete(lengths.keys().next().value ?? "");
-		lengths.set(thread, said);
-		if (isRepeat(session.principal.sub, parsed.data.threadId, parsed.data.message)) {
-			yield { type: "refusal", reason: "duplicate" };
-			yield { type: "done" };
-			return;
-		}
-		if (apiKey === undefined) {
-			fail("model", new Error("no API key"));
-			yield { type: "refusal", reason: "unavailable" };
-			yield { type: "done" };
-			return;
-		}
-		yield* runTurn({
-			agent,
-			session,
-			input: parsed.data,
-			instructions: standingInstructions(session.copy, config),
-			memory,
-			detector,
-			timeouts: {
-				idleMs: Math.min(timeouts.idleMs, config.settings.timeouts.idleMs),
-				totalMs: Math.min(timeouts.totalMs, config.settings.timeouts.totalMs),
-			},
-			signal: control?.signal,
-			onFailure: fail,
-			onUsage: async (used) => {
-				const recorded = await session.port.recordUsage(used);
-				if (!recorded.ok) fail("usage", new Error(`the meters refused: ${recorded.reason}`));
-			},
-		});
-	}
+	const chat = createChat({
+		agent,
+		memory,
+		detector,
+		limiter,
+		timeouts,
+		hasApiKey: apiKey !== undefined,
+		now,
+		summarise: options.summariser ?? agentSummariser(modelFor),
+		open,
+		fail,
+		...(options.onTranscript === undefined ? {} : { onTranscript: options.onTranscript }),
+	});
 
 	return {
 		mastra,
