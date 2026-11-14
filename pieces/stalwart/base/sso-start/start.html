@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>…</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+           font: 15px/1.5 system-ui, sans-serif; background: Canvas; color: CanvasText; }
+    main { max-width: 26rem; padding: 1.5rem; text-align: center; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <p id="busy" role="status">…</p>
+    <div id="failed" role="alert" hidden>
+      <p id="failed-text"></p>
+      <p><a id="retry" href="">↻</a></p>
+    </div>
+  </main>
+  <script type="module">
+    // Messages: the page shows text only when the start fails (start.mjs).
+    const ro = (navigator.language || "").toLowerCase().startsWith("ro");
+    const t = ro
+      ? { busy: "Se deschide…", failed: "Autentificarea nu a putut porni.", retry: "Încearcă din nou" }
+      : { busy: "Opening…", failed: "Sign-in could not start.", retry: "Try again" };
+    document.documentElement.lang = ro ? "ro" : "en";
+    document.getElementById("busy").textContent = t.busy;
+    document.getElementById("retry").textContent = t.retry;
+    document.getElementById("retry").href = location.pathname + location.search;
+    const base = "/" + location.pathname.split("/")[1];
+    try {
+      const m = await import(base + "/_sso/start.mjs");
+      await m.run(window);
+    } catch (e) {
+      console.error("sso-start", e);
+      document.getElementById("busy").hidden = true;
+      document.getElementById("failed-text").textContent = t.failed + (e && e.reason ? " (" + e.reason + ")" : "");
+      document.getElementById("failed").hidden = false;
+    }
+  </script>
+</body>
+</html>

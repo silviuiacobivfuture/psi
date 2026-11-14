@@ -1,0 +1,89 @@
+# PRODUCTION's account database: a CloudNativePG Cluster, the shape of gitops/services/clinic/base/account-db.yaml (dev).
+# One role, the owner: @psi/account creates its own tables when the console boots (every statement IF NOT EXISTS,
+# serialised on an advisory lock), so no migration Job exists. Own credentials (apps/account-prod/db), own backup prefix
+# (cnpg/account-db-prod), kept 30 days.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: account-db
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  instances: 1
+  smartShutdownTimeout: 10
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  bootstrap:
+    initdb:
+      database: account
+      owner: account
+      secret:
+        name: account-db-app
+  storage:
+    size: 10Gi
+    storageClass: hcloud-volumes
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      # Off-site (fsn1, not the cluster's nbg1) in production's backup bucket: WAL continuously, a base backup daily,
+      # 30 days of point-in-time recovery; a deleted object is kept 7 more days by the bucket's versioning (docs/backup.md).
+      destinationPath: s3://psi-backups-prod/cnpg/account-db-prod
+      endpointURL: https://fsn1.your-objectstorage.com
+      s3Credentials:
+        accessKeyId: { name: account-db-backup-s3, key: AWS_ACCESS_KEY_ID }
+        secretAccessKey: { name: account-db-backup-s3, key: AWS_SECRET_ACCESS_KEY }
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+---
+# CNPG cron has SIX fields (leading seconds). 04:55 daily: grep `schedule:` across gitops/ before taking another slot.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: account-db-base
+spec:
+  schedule: "0 55 4 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: account-db
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: account-db-app
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: account-db-app
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef: { key: apps/account-prod/db, property: username }
+    - secretKey: password
+      remoteRef: { key: apps/account-prod/db, property: password }
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: account-db-backup-s3
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: account-db-backup-s3, creationPolicy: Owner, deletionPolicy: Retain }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }

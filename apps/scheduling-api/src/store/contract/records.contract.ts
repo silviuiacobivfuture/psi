@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createFieldCrypto } from "../../ports/crypto";
+import { createFieldCrypto, FIELDS } from "../../ports/crypto";
 import { withActor } from "../actor";
+import { memoryKeys } from "../memory-keys";
 import { StoreConflict, type StorePort } from "../types";
 import type { ContractEnv, ContractSection } from "./env";
 
@@ -9,7 +10,7 @@ import type { ContractEnv, ContractSection } from "./env";
  * adapter. Who wrote a record or signed a file is the acting subject (`withActor`), as in a request. What the adapters may not share (Convex numbers the definition versions, assigns the ids, refuses an unknown
  * client) is not asserted here; the ids and versions used are the ones the store answered with.
  */
-const crypto = createFieldCrypto("ab".repeat(32));
+const crypto = createFieldCrypto("ab".repeat(32), memoryKeys());
 const NOW = Date.UTC(2026, 10, 13, 8, 0, 0);
 const stamps = { createdAt: NOW, updatedAt: NOW };
 const name = { ro: "Raport", en: "Report" };
@@ -237,8 +238,12 @@ export const recordsContract: ContractSection = (env) => {
 				body: { kind: "session_report", fields: ["summary"] },
 				...stamps,
 			});
-			const context = `${app}:client:${c}:record`;
-			const sealed = crypto.seal(JSON.stringify({ summary: "synthetic" }), context);
+
+			const sealed = await crypto.seal(
+				app,
+				FIELDS.record,
+				JSON.stringify({ summary: "synthetic" }),
+			);
 			const rec = await withActor("dora", () =>
 				store.c.records.insert({
 					id: "x0000000001",
@@ -258,16 +263,22 @@ export const recordsContract: ContractSection = (env) => {
 				authorSubject: "dora",
 			});
 			const read = await store.c.records.get(app, rec.id);
-			expect(crypto.open(read?.sealed ?? "", context)).toBe('{"summary":"synthetic"}');
+			expect(await crypto.open(app, FIELDS.record, read?.sealed ?? "")).toBe(
+				'{"summary":"synthetic"}',
+			);
 			expect(JSON.stringify(read)).not.toContain("synthetic-plain");
 			expect(await store.c.records.list(app, { eq: { clientId: c } })).toHaveLength(1);
 			expect(await store.c.records.list(app, { eq: { formId: f.id } })).toHaveLength(1);
 			expect(await store.c.records.list(app, { eq: { formId: "other-form" } })).toHaveLength(0);
-			const changed = crypto.seal(JSON.stringify({ summary: "changed" }), context);
+			const changed = await crypto.seal(app, FIELDS.record, JSON.stringify({ summary: "changed" }));
 			expect(await store.c.records.replace({ ...rec, sealed: changed })).toBe(true);
-			expect(crypto.open((await store.c.records.get(app, rec.id))?.sealed ?? "", context)).toBe(
-				'{"summary":"changed"}',
-			);
+			expect(
+				await crypto.open(
+					app,
+					FIELDS.record,
+					(await store.c.records.get(app, rec.id))?.sealed ?? "",
+				),
+			).toBe('{"summary":"changed"}');
 			const elsewhere = await e().newApp();
 			expect(await store.c.records.get(elsewhere, rec.id)).toBeUndefined();
 			expect(await store.c.records.list(elsewhere)).toEqual([]);

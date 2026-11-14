@@ -228,7 +228,7 @@ export function articleContext(
 	const title = article.title[locale].slice(0, PAGE_LIMITS.title);
 	if (!isReadable(article)) {
 		// A backlog title is a health topic waiting for its text.
-		return { kind: "article", status: "in-review", title, url, headings: [] };
+		return { kind: "article", status: "in-review", title, url, brand: article.brand, headings: [] };
 	}
 	const clinical = article.kind === "health";
 	const headings = bounded([
@@ -246,7 +246,16 @@ export function articleContext(
 		reviewedAt: article.reviewer?.reviewedAt ?? null,
 	});
 	if (!verdict.retrievable) {
-		return { kind: "article", status: "in-review", title, url, clinical, ...lead, headings };
+		return {
+			kind: "article",
+			status: "in-review",
+			title,
+			url,
+			brand: article.brand,
+			clinical,
+			...lead,
+			headings,
+		};
 	}
 	const excerpt = excerptOf(articleSections(article, locale), question);
 	return {
@@ -254,6 +263,7 @@ export function articleContext(
 		status: "published",
 		title,
 		url,
+		brand: article.brand,
 		clinical,
 		...lead,
 		headings,

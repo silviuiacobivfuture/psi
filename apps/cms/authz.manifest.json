@@ -3,6 +3,7 @@
 	"app": "cms",
 	"module": "cms",
 	"version": 1,
+	"generated_dir": "src/authz",
 	"features": [
 		{
 			"key": "content",

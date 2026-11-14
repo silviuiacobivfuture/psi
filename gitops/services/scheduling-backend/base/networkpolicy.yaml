@@ -1,9 +1,9 @@
 # Only psi's servers may call the store (the server key is the second lock).
 #
-#   INGRESS  :3210 from the pods of psizone-web, the CMS and scheduling-api (each: namespace AND pod label in ONE
-#            `from` element, an AND; two elements would be an OR) and from the scheduling-deploy
-#            Job's pods (same namespace). When EQ-SYNC / Hemi-Sync scheduling goes live (plan S9),
-#            add their namespace/pod pair here, in this file.
+#   INGRESS  :3210 from the pods of psizone-web, hemisync-web, the CMS and scheduling-api (each: namespace AND
+#            pod label in ONE `from` element, an AND; two elements would be an OR) and from the
+#            scheduling-deploy Job's pods (same namespace). When EQ-SYNC scheduling goes live (plan
+#            S9), add its namespace/pod pair here, in this file.
 #            Kubelet probes come from node addresses: the dev overlay adds them.
 #   EGRESS   DNS, and the backend's own Service (its origin is the Service URL). Nothing else:
 #            the beacon is off and no function calls out.
@@ -21,8 +21,18 @@ spec:
             matchLabels: { kubernetes.io/metadata.name: psizone-web }
           podSelector:
             matchLabels: { app: psizone-web }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: hemisync-web }
+          podSelector:
+            matchLabels: { app: hemisync-web }
         - podSelector:
             matchLabels: { app: scheduling-deploy }
+        # The hourly logical backup (gitops/services/scheduling-deploy, CronJob scheduling-backup), same namespace.
+        - podSelector:
+            matchLabels: { app: scheduling-backup }
+        # The one-shot old-app sync (gitops/services/scheduling-sync), same namespace.
+        - podSelector:
+            matchLabels: { app: scheduling-sync }
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: cms }
           podSelector:

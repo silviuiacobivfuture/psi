@@ -184,7 +184,7 @@ describe("a booking conversation across turns", () => {
 			kind: "confirm",
 			status: "ok",
 			chosen: { slotId: "mon9", date: "2026-11-16", time: "09:00" },
-			state: { stage: "confirm" },
+			state: { stage: "details" },
 		});
 		const last = await turn(port, "the last one", first?.state);
 		expect(last?.chosen?.slotId).toBe("wedweb");

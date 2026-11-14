@@ -9,7 +9,7 @@
 # `postgresql.install: false` replaces it with this, which has two independent
 # durability layers:
 #   1. THIS — continuous WAL archive + a weekly base backup → PITR, minutes of RPO.
-#   2. A 6-hourly logical pg_dump (pieces/db-backup/reportportal-db-dump.yaml)
+#   2. A 6-hourly logical pg_dump (pieces/db-backup/reportportal/reportportal-db-dump.yaml)
 #      → a plain .sql.gz that restores without the operator, into anything.
 #
 # EXTENSIONS: NONE DECLARED HERE, and that is a VERIFIED decision, not an omission.

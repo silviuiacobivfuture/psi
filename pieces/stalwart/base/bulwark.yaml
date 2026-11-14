@@ -1,0 +1,277 @@
+# Bulwark (bulwarkmail/webmail, AGPL-3.0-only, upstream's unchanged image): the estate's mail
+# client, at <BULWARK_HOST> (<BULWARK_HOST_PREFIX>.<apex>, `mail` unless the estate names its own).
+#
+# HOW IT REACHES THE MAIL: JMAP, Stalwart's own HTTP API. The browser calls
+# https://<BULWARK_HOST>/jmap and /.well-known/jmap (ingress.yaml routes those two paths on the
+# same host to the mail server, so no CORS and no second origin). Mail, folders, search,
+# attachments, Sieve filters, vacation replies, calendars and contacts are all JMAP on Stalwart.
+#
+# HOW PEOPLE SIGN IN: only through the estate's Authentik (OAUTH_ONLY, AUTO_SSO), with the public
+# PKCE client `mail-oidc`, the one Stalwart's own pages already use. Its access
+# token is the JMAP Bearer the mail server validates itself (the OIDC directory in the plan:
+# audience mail-oidc, the mailbox from `mail_address`; proven on v1.0.3, 2026-11-13). Who gets in
+# is mail-oidc's application bindings: app-mail-user, app-mail-admin, platform-admins — the same
+# three as Stalwart's own pages. No password is ever typed into Bulwark. Signing out ends the Authentik
+# session too (RP-initiated logout through mail-oidc's end-session endpoint).
+#
+# ADMINISTRATION: Stalwart's administrators (admins.yaml keeps them equal to app-mail-admin +
+# platform-admins) open Bulwark's own admin dashboard (/admin) without a second password
+# (STALWART_ADMIN_ACCESS=auto). Stalwart's administration stays at <MAIL_ADMIN_HOST>/admin and is
+# linked from Settings > Account (ACCOUNT_MANAGEMENT_URL: app passwords, 2FA).
+#
+# THE AI ASSISTANT: Bulwark's official plugin (ai-assistant 2.2.1), installed through Bulwark's own
+# admin API by the bulwark-extensions CronJob (bulwark/extensions.mjs) every 15 minutes, OFF until
+# the estate stores an Anthropic key at OpenBao platform/anthropic/api `key`; then ON with
+# AI_MODEL, the key in Bulwark's server-side plugin store only (proxied, never in a browser).
+#
+# THE LOOK: the estate's theme (the `bulwark-theme` slot: estate.css, the marks), made the
+# default for everyone by the seed-config init container (bulwark/seed-config.mjs), which writes
+# it into Bulwark's own theme store on every start. People may still pick another theme.
+#
+# Runs as uid 1001 on 3000 with a read-only root; its own state (admin config, synced settings,
+# plugin secrets) on a small volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bulwark-data
+  labels:
+    app.kubernetes.io/name: bulwark
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: { storage: 1Gi }
+---
+# Bulwark's environment. The hosts are filled by the piece's replacements (kustomization.yaml)
+# from the estate's identity; nothing here names an estate.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bulwark-settings
+  labels:
+    app.kubernetes.io/name: bulwark
+data:
+  BULWARK_HOST: mail.WLDOMAIN
+  APP_NAME: brand-title-from-identity
+  APP_SHORT_NAME: brand-title-from-identity
+  LOGIN_COMPANY_NAME: brand-title-from-identity
+  JMAP_SERVER_URL: https://mail.WLDOMAIN
+  STALWART_FEATURES: "true"
+  OAUTH_ENABLED: "true"
+  OAUTH_ONLY: "true"
+  AUTO_SSO_ENABLED: "true"
+  OAUTH_CLIENT_ID: mail-oidc
+  OAUTH_ISSUER_URL: https://auth.WLDOMAIN/application/o/mail-oidc/
+  OAUTH_SCOPES: openid email profile mail offline_access
+  ACCOUNT_MANAGEMENT_URL: https://mail-admin.WLDOMAIN/account/
+  STALWART_ADMIN_ACCESS: auto
+  SETTINGS_SYNC_ENABLED: "true"
+  ADMIN_CONFIG_DIR: /app/data/admin
+  ADMIN_STATE_DIR: /app/data/admin-state
+  SETTINGS_DATA_DIR: /app/data/settings
+  PLUGIN_SECRETS_DIR: /app/data/plugin-secrets
+  TELEMETRY_DATA_DIR: /app/data/telemetry
+  VERSION_CHECK_DATA_DIR: /app/data/version-check
+  # The estate's marks, served from the bulwark-theme ConfigMap mounted under public/branding/estate
+  # (Bulwark serves public/branding/ as files; any other new public path is routed as a page).
+  # The rail's logo slot is square: the mark (favicon.svg); the wordmarks are for the sign-in page.
+  APP_LOGO_LIGHT_URL: /branding/estate/favicon.svg
+  APP_LOGO_DARK_URL: /branding/estate/favicon.svg
+  LOGIN_LOGO_LIGHT_URL: /branding/estate/logo.svg
+  LOGIN_LOGO_DARK_URL: /branding/estate/logo-dark.svg
+  FAVICON_URL: /branding/estate/favicon.svg
+  PWA_ICON_URL: /branding/estate/favicon.svg
+  # Nothing leaves for bulwarkmail.org on its own: no telemetry, no update check.
+  BULWARK_TELEMETRY: "off"
+  BULWARK_UPDATE_CHECK: "off"
+  TRUSTED_PROXY_DEPTH: "1"
+  LOG_FORMAT: json
+  HOSTNAME: 0.0.0.0
+  PORT: "3000"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bulwark
+  labels:
+    app.kubernetes.io/name: bulwark
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts/owner: WLOPSEMAIL
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bulwark
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bulwark
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: bulwark-app }
+          command: ["sh", "-c"]
+          args:
+            - |
+              for k in SESSION_SECRET ADMIN_PASSWORD; do
+                eval "v=\${$k:-}"
+                [ -n "$v" ] || { echo "MISSING REQUIRED SECRET: $k" >&2; exit 1; }
+              done
+              echo "all required secrets present"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
+        # The estate's theme into Bulwark's own theme store, and made everyone's default.
+        - name: seed-config
+          image: WLREGISTRY/mirror/ghcr.io/bulwarkmail/webmail:1.21.2@sha256:946df2332880f5efe8f5c32f3754a91e0e3656774b3bfdb7b02d6120aba41d1c
+          command: ["node", "/seed/seed-config.mjs"]
+          env:
+            - { name: ADMIN_CONFIG_DIR, value: /app/data/admin }
+            - { name: THEME_DIR, value: /theme }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          volumeMounts:
+            - { name: data, mountPath: /app/data }
+            - { name: seed, mountPath: /seed, readOnly: true }
+            - { name: theme, mountPath: /theme, readOnly: true }
+      containers:
+        - name: bulwark
+          image: WLREGISTRY/mirror/ghcr.io/bulwarkmail/webmail:1.21.2@sha256:946df2332880f5efe8f5c32f3754a91e0e3656774b3bfdb7b02d6120aba41d1c
+          envFrom:
+            - configMapRef: { name: bulwark-settings }
+            - secretRef: { name: bulwark-app }
+          ports:
+            - { name: http, containerPort: 3000 }
+          startupProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /api/ready, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          volumeMounts:
+            - { name: data, mountPath: /app/data }
+            - { name: next-cache, mountPath: /app/.next/cache }
+            - { name: theme, mountPath: /app/public/branding/estate, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: bulwark-data }
+        - name: next-cache
+          emptyDir: { sizeLimit: 256Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 256Mi }
+        - name: seed
+          configMap: { name: bulwark-seed }
+        - name: theme
+          configMap: { name: bulwark-theme }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bulwark
+  labels:
+    app.kubernetes.io/name: bulwark
+spec:
+  selector: { app.kubernetes.io/name: bulwark }
+  ports:
+    - { name: http, port: 3000, targetPort: http }
+---
+# The AI Assistant, as code (bulwark/extensions.mjs): installs the pinned plugin through Bulwark's
+# own admin API and keeps it off without a key, on with one. Talks only to Bulwark's Service.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bulwark-extensions
+  labels:
+    app.kubernetes.io/name: bulwark-extensions
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: bulwark-extensions
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: extensions
+              image: WLREGISTRY/mirror/ghcr.io/bulwarkmail/webmail:1.21.2@sha256:946df2332880f5efe8f5c32f3754a91e0e3656774b3bfdb7b02d6120aba41d1c
+              command: ["node", "/scripts/extensions.mjs"]
+              env:
+                - { name: BULWARK_URL, value: "http://bulwark:3000" }
+                - { name: AI_MODEL, value: claude-sonnet-5-5 }
+                - { name: AI_BASE_URL, value: "https://api.anthropic.com/v1" }
+                - name: BULWARK_HOST
+                  valueFrom: { configMapKeyRef: { name: bulwark-settings, key: BULWARK_HOST } }
+                - name: ADMIN_PASSWORD
+                  valueFrom: { secretKeyRef: { name: bulwark-app, key: ADMIN_PASSWORD } }
+                - name: ANTHROPIC_API_KEY
+                  valueFrom: { secretKeyRef: { name: bulwark-ai, key: ANTHROPIC_API_KEY, optional: true } }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 10m, memory: 48Mi }
+                limits: { cpu: 200m, memory: 128Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+          volumes:
+            - name: scripts
+              configMap: { name: bulwark-seed }

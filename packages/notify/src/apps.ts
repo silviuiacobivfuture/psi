@@ -33,6 +33,25 @@ export const EVENT_IDS = [
 	"leave.declined",
 	"payment.recorded",
 	"assistant.action_done",
+	"reminder.two_hours",
+	"feedback.requested",
+	"account.invite",
+	"account.invite_existing",
+	"account.activated",
+	"team.invite",
+	"blacklist.attempt",
+	"appointment.conflict",
+	"reminder.failed",
+	"digest.reception_daily",
+	"digest.practitioner_evening",
+	"digest.owner_daily",
+	"digest.owner_weekly",
+	"schedule.changed",
+	"record.todo",
+	"client.assigned",
+	"feedback.negative",
+	"delivery.failed",
+	"security.action",
 ] as const;
 export const EventIdSchema = z.enum(EVENT_IDS);
 export type EventId = z.infer<typeof EventIdSchema>;
@@ -81,6 +100,8 @@ export const APP_DEFAULTS: Readonly<Record<AppKey, AppSettings>> = {
 		},
 		timeZone: "Europe/Bucharest",
 		quietHours: { start: "21:00", end: "08:00", timeZone: "Europe/Bucharest" },
+		// The feedback e-mail leads to a page on the site that does not exist yet (slice 6): off until it does.
+		off: ["feedback.requested"],
 	}),
 	hemisync: AppSettingsSchema.parse({
 		senderName: "Hemi-Sync România",
@@ -95,6 +116,8 @@ export const APP_DEFAULTS: Readonly<Record<AppKey, AppSettings>> = {
 		},
 		timeZone: "Europe/Bucharest",
 		quietHours: { start: "21:00", end: "08:00", timeZone: "Europe/Bucharest" },
+		// The feedback e-mail leads to a page on the site that does not exist yet (slice 6): off until it does.
+		off: ["feedback.requested"],
 	}),
 };
 

@@ -2,11 +2,13 @@ import { CATALOG_ROUTES, ME_ROUTES } from "./team-admin";
 import { BLACKLIST_ROUTES } from "./team-blacklist";
 import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
+import { INVITE_ROUTES } from "./team-invite";
 import { NOTE_ROUTES } from "./team-notes";
 import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
 import { REPORT_ROUTES } from "./team-reports";
 import { SERIES_ROUTES } from "./team-series";
+import { STAFF_ROUTES } from "./team-staff";
 import { VISITOR_ROUTES } from "./visitor";
 
 /** THE contract: one row per route. The server mounts it, the SDK and the OpenAPI document derive from it. */
@@ -23,6 +25,8 @@ export const ROUTES = [
 	...PLAN_ROUTES,
 	...BLACKLIST_ROUTES,
 	...FEEDBACK_ROUTES,
+	...INVITE_ROUTES,
+	...STAFF_ROUTES,
 ] as const;
 export type Routes = typeof ROUTES;
 export type Route = Routes[number];

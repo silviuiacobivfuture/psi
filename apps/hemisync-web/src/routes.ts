@@ -1,3 +1,4 @@
+import { HEMISYNC_BOOKING_PATHS } from "@psi/guide";
 import type { Locale } from "./i18n";
 
 /** Every page beyond the home and the programme pages. */
@@ -86,4 +87,18 @@ export function workshopHref(locale: Locale, id: WorkshopId): string {
 export function href(locale: Locale, id: PageId, anchor?: string): string {
 	const path = PAGES[id][locale];
 	return anchor === undefined ? path : `${path}#${anchor}`;
+}
+
+/**
+ * The booking page (docs/plans/scheduling.md): Hemi-Sync's own appointments, in its own tenant of
+ * the scheduling store. Romanian at the root like the live paths, English with a translated
+ * segment like the rest (the paths are written once, in the guide, which links to them from the blog).
+ * Registered by `booking-routes.tsx` (it reads the store), so it is not a
+ * `PageId`; the sitemap still lists it, as it lists every route the app serves.
+ */
+export const BOOKING_PATHS: Readonly<Record<Locale, string>> = HEMISYNC_BOOKING_PATHS;
+
+/** The booking page's path in one locale. */
+export function bookingHref(locale: Locale): string {
+	return BOOKING_PATHS[locale];
 }

@@ -4,7 +4,7 @@ import { prices } from "../cms";
 import { at } from "../i18n";
 import type { SectionPhoto } from "../imagery";
 import { m } from "../paraglide/messages.js";
-import { href, type ProgrammeSlug } from "../routes";
+import { bookingHref, href, type ProgrammeSlug } from "../routes";
 import { FromTheBlog } from "../sections/blog";
 import { programmeHref } from "../sections/programmes";
 import { DocSections, seo } from "./doc";
@@ -70,6 +70,7 @@ export function ProgrammePage(props: PageProps & { slug: ProgrammeSlug }): JSX.E
 			<NextSteps
 				links={[
 					{ label: m.nav_exercises({}, o), href: href(locale, "exercises"), primary: true },
+					{ label: m.bk_nav({}, o), href: bookingHref(locale) },
 					{ label: m.programmes_all({}, o), href: href(locale, "programmes") },
 					{ label: m.nav_faq({}, o), href: href(locale, "faq") },
 				]}

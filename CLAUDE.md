@@ -33,8 +33,10 @@ Applies to main agents AND subagents; restate it in every delegation prompt.
 | `docs/` | how psi works with SEB; `docs/brands/` holds the brands' business context and decisions |
 | `.seb-bundle/` | the installed SEB release (gitignored): its tools, doctor, built libraries, CI kit |
 
-Genesis owns `gitops/` (except an app's own folders), `pieces/`, `components/` and
-`estate/openbao/`. Do not hand-edit what it writes; re-run it.
+Genesis owns `gitops/` (except an app's own folders), `pieces/` and `components/`. Do not
+hand-edit what it writes; re-run it. OpenBao's platform layer (the secret store, the auth
+reconcile) runs from the SEB bundle (piece `openbao-store`); the estate adds to it only through
+`estate/seb-components/openbao-store/`.
 
 ## EQ-SYNC is retired (HARD RULE)
 

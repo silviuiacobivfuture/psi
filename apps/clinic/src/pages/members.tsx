@@ -8,13 +8,16 @@ import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { TeamMember } from "../port/port";
 import type { Column, Role } from "../port/schema";
-import type { MemberDetail } from "../port/schema-members";
+import type { InviteOutcome, MemberDetail } from "../port/schema-members";
 import { SheetButtons } from "./client-sheets";
+import { AddSheet, InvitedSheet, InviteSheet } from "./member-add";
 import { MemberEditor } from "./member-editor";
 import { OrgFrame } from "./org-settings";
 
 export interface MembersQuery {
 	create: boolean;
+	/** The "invite by e-mail" sheet is open. */
+	invite: boolean;
 	edit: string | null;
 	confirm: string | null;
 }
@@ -82,46 +85,6 @@ function MembersList({ ctx, d }: { ctx: Ctx; d: MembersData }): JSX.Element {
 	);
 }
 
-function AddSheet({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Role> }): JSX.Element {
-	const o = at(ctx.locale);
-	return (
-		<Sheet signal="newMember" title={m.ac_member_add({}, o)} closeLabel={m.close({}, o)}>
-			<form
-				method="post"
-				action="/settings/members/save"
-				class="cl-form"
-				data-form="member-new"
-				data-action="member.new"
-			>
-				<label class="adm-field">
-					<span>{m.mb_subject({}, o)}</span>
-					<input class="adm-input" name="subject" required maxlength={200} autocomplete="off" />
-					<span class="adm-muted">{m.mb_subject_hint({}, o)}</span>
-				</label>
-				<label class="adm-field">
-					<span>{m.mb_name({}, o)}</span>
-					<input class="adm-input" name="displayName" required maxlength={200} />
-				</label>
-				<label class="adm-field">
-					<span>{m.mb_email({}, o)}</span>
-					<input class="adm-input" name="email" type="email" inputmode="email" maxlength={200} />
-				</label>
-				<fieldset class="cl-choices">
-					<legend>{m.mb_roles({}, o)}</legend>
-					<span class="adm-muted">{m.mb_roles_hint({}, o)}</span>
-					{roles.map((r) => (
-						<label key={r.id} class="adm-check">
-							<input type="checkbox" name="roles" value={r.id} />
-							{roleLabel(r, ctx.locale)}
-						</label>
-					))}
-				</fieldset>
-				<SheetButtons go={m.ac_member_add({}, o)} signal="newMember" cancel={m.cancel({}, o)} />
-			</form>
-		</Sheet>
-	);
-}
-
 function RemoveSheet({ ctx, member }: { ctx: Ctx; member: TeamMember }): JSX.Element {
 	const o = at(ctx.locale);
 	return (
@@ -151,6 +114,8 @@ export async function renderMembers(
 	query: MembersQuery,
 	flash?: string,
 	problem?: string,
+	/** The invitation just made: shown once, in its own sheet (the one-time link with it). */
+	invited?: InviteOutcome,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	let body: JSX.Element;
@@ -181,11 +146,19 @@ export async function renderMembers(
 			<div
 				data-signals={JSON.stringify({
 					newMember: query.create,
+					inviteMember: query.invite,
+					invitedMember: invited !== undefined,
 					editMember: open !== null,
 					askMemberRemove: doomed !== undefined,
 				})}
 			>
-				{ctx.can.write("members_create") ? <AddSheet ctx={ctx} roles={roles} /> : null}
+				{ctx.can.write("members_create") ? (
+					<>
+						<AddSheet ctx={ctx} roles={roles} />
+						<InviteSheet ctx={ctx} roles={roles} />
+					</>
+				) : null}
+				{invited === undefined ? null : <InvitedSheet ctx={ctx} outcome={invited} />}
 				{open === null ? null : <MemberEditor ctx={ctx} d={d} member={open} />}
 				{doomed === undefined ? null : <RemoveSheet ctx={ctx} member={doomed} />}
 			</div>

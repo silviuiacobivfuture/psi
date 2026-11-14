@@ -1,0 +1,16 @@
+# The estate account's Postgres for PRODUCTION (@psi/account: accounts, identities, sessions, consent, journey), in its own
+# namespace `account-db-prod`, the data side of clinic-prod. Dev's lives in the dev console's namespace
+# (gitops/services/clinic/base/account-db.yaml) and is not touched. Registered as `account-db-prod` in
+# gitops/apps/overlays/dev/apps/. No image: nothing for CI or promote.sh to bump.
+#
+# OpenBao: secret/apps/account-prod/db (username, password: BOTH CNPG's bootstrap owner and the console's login, composed
+# into ACCOUNT_DATABASE_URL by clinic-prod). WAL archiving reads secret/platform/object-storage/dev.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: account-db-prod
+resources:
+  - namespace.yaml
+  - account-db.yaml
+components:
+  # Argo's prune/delete guard on the CNPG Cluster (the data).
+  - ../../../../components/prune-guard

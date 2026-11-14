@@ -1,0 +1,11 @@
+# Error reporting's two DSN ExternalSecrets (Polaris and the hub; the console's), taken by the
+# bundle builder only for an estate whose PLATFORM_APPS lists glitchtip (../identity-components.json).
+# GlitchTip's projects reconcile is what writes their OpenBao slots; an estate without GlitchTip has
+# no writer, and an ExternalSecret with nothing to read stays SecretSyncedError (Argo Degraded).
+# Both Deployments mount their Secrets `optional: true`: without them each process starts clean,
+# telemetry off, said once in its log; with them it reports.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - glitchtip-externalsecret.yaml
+  - glitchtip-console-externalsecret.yaml

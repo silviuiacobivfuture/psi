@@ -58,6 +58,13 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"feedback.reply": "feedback: not offered by the console yet",
 	"feedback.issueLink": "feedback: not offered by the console yet",
 	"feedback.setStatus": "feedback: not offered by the console yet",
+	"visitor.notifications":
+		"the public sites' account page: a client's own notification preferences",
+	"visitor.notificationsSave": "the public sites' account page",
+	"me.notifications":
+		"a member's notification preferences in the service: the console's settings keep their own switches today",
+	"me.notificationsSave": "a member's notification preferences in the service: not wired yet",
+	"notifications.deliveries": "the delivery log: its screen is not offered by the console yet",
 };
 
 const SRC = fileURLToPath(new URL("..", import.meta.url));

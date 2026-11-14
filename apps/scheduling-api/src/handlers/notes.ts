@@ -2,6 +2,7 @@ import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { reaches } from "../authz/access";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden, notFound } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { NoteRow } from "../store/types";
 import { must, newId, paginate, stamps } from "./shared";
 
@@ -12,8 +13,6 @@ interface Held {
 	own: boolean;
 }
 
-/** A note's sealed text is bound to its client, so a copy of it under another client opens to nothing. */
-const noteContext = (app: string, clientId: string): string => `${app}:client:${clientId}:note`;
 const clinical = (n: Pick<NoteRow, "category">): boolean => n.category === "clinic";
 
 async function held(ctx: C, key: string): Promise<Held> {
@@ -36,11 +35,11 @@ async function seen(ctx: C, note: NoteRow): Promise<boolean> {
 }
 
 /** The note as the caller reads it: a clinical text is opened here, and only here. */
-function out(ctx: C, n: NoteRow) {
+async function out(ctx: C, n: NoteRow) {
 	const text =
 		n.sealed === undefined
 			? (n.text ?? "")
-			: ctx.deps.crypto.open(n.sealed, noteContext(n.app, n.clientId));
+			: await ctx.deps.crypto.open(n.app, FIELDS.note, n.sealed);
 	return {
 		id: n.id,
 		clientId: n.clientId,
@@ -83,7 +82,7 @@ export async function readableNotes(
 			{ type: "client", id: clientId },
 			{ via: "notes", count: opened },
 		);
-	return shown.map((n) => out(ctx, n));
+	return Promise.all(shown.map((n) => out(ctx, n)));
 }
 
 /** The note, if it exists and the caller may read it: what they may not read is not there for them. */
@@ -157,7 +156,7 @@ export const noteHandlers: HandlersOf<
 		}
 		const row = await ctx.deps.store.c.notes.insert(
 			category === "clinic"
-				? { ...base, sealed: ctx.deps.crypto.seal(text, noteContext(ctx.app, client.id)) }
+				? { ...base, sealed: await ctx.deps.crypto.seal(ctx.app, FIELDS.note, text) }
 				: { ...base, text },
 		);
 		ctx.note({ category, pinned });
@@ -179,7 +178,7 @@ export const noteHandlers: HandlersOf<
 						sealed:
 							text === undefined
 								? (note.sealed ?? "")
-								: ctx.deps.crypto.seal(text, noteContext(ctx.app, note.clientId)),
+								: await ctx.deps.crypto.seal(ctx.app, FIELDS.note, text),
 					}
 				: { text: text ?? note.text ?? "" }),
 			updatedAt: ctx.now,

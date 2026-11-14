@@ -4,28 +4,84 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
-import { installBrowser, key, mount, tick } from "./fullscreen-harness";
+import { installBrowser, key, type M, mount, tick } from "./fullscreen-harness";
 
 installBrowser();
 
 describe("booking goes full screen at once", () => {
-	it("on the capsule's action", async () => {
+	/** Datastar's `psi-guide-ask` handler: asking opens the sheet on the chat. */
+	function guide(m: M) {
+		const form = m.nav.querySelector<HTMLElement>(".pz-compass__bar");
+		const asked: string[] = [];
+		form?.addEventListener("psi-guide-ask", (e) => {
+			if (e instanceof CustomEvent) asked.push(String(e.detail));
+			m.open();
+		});
+		return asked;
+	}
+	const action = (m: M) => m.nav.querySelector<HTMLElement>(".pz-compass__action a");
+
+	it("on the capsule's action: it opens the chat, asks the booking in it, goes full screen, and does not navigate", async () => {
 		const m = mount();
-		m.open();
+		const asked = guide(m);
+		const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+		action(m)?.dispatchEvent(click);
 		await tick(0);
-		m.nav.querySelector<HTMLElement>(".pz-compass__action a")?.click();
+		expect(click.defaultPrevented).toBe(true);
+		expect(asked).toEqual(["Vreau să programez o evaluare"]);
 		expect(m.full()).toBe(true);
+		expect(m.live.textContent).toBe("");
 	});
 
-	it("on the capsule's action while the sheet is shut: it opens the chat, then goes full screen", async () => {
+	it("on the capsule's action with the chat already open: full screen at once, asked once", async () => {
 		const m = mount();
-		const orb = m.nav.querySelector<HTMLElement>(".pz-compass__orb");
-		const guide = m.nav.querySelector<HTMLElement>(".pz-compass__view");
-		orb?.addEventListener("click", () => m.nav.classList.add("is-open"));
-		guide?.addEventListener("click", () => m.nav.classList.add("is-chat"));
-		m.nav.querySelector<HTMLElement>(".pz-compass__action a")?.click();
+		const asked = guide(m);
+		m.open();
 		await tick(0);
+		action(m)?.click();
 		expect(m.full()).toBe(true);
+		expect(asked).toEqual(["Vreau să programez o evaluare"]);
+	});
+
+	it("keeps the link for a new tab, a modified click and a page without script", async () => {
+		const m = mount();
+		const asked = guide(m);
+		for (const init of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { button: 1 }]) {
+			const click = new MouseEvent("click", { bubbles: true, cancelable: true, ...init });
+			action(m)?.dispatchEvent(click);
+			expect(click.defaultPrevented).toBe(false);
+		}
+		expect(asked).toEqual([]);
+		expect(m.full()).toBe(false);
+		expect(action(m)?.getAttribute("href")).toBe("/contact");
+		expect(m.nav.querySelector(".pz-compass__action")?.getAttribute("data-book")).toBe(
+			"Vreau să programez o evaluare",
+		);
+	});
+
+	it("without a booking message the action is only its link: nothing is asked, it still opens the chat full screen", async () => {
+		const m = mount();
+		const asked = guide(m);
+		m.nav.querySelector(".pz-compass__action")?.removeAttribute("data-book");
+		m.open();
+		await tick(0);
+		const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+		action(m)?.dispatchEvent(click);
+		expect(click.defaultPrevented).toBe(false);
+		expect(asked).toEqual([]);
+	});
+
+	it("after a manual exit it still asks the booking, but stays out of full screen", async () => {
+		const m = mount();
+		const asked = guide(m);
+		m.open();
+		await tick(0);
+		m.fs.click();
+		m.fs.click();
+		action(m)?.click();
+		await tick(0);
+		expect(asked).toEqual(["Vreau să programez o evaluare"]);
+		expect(m.full()).toBe(false);
 	});
 
 	it("on a Programează button in the conversation", async () => {

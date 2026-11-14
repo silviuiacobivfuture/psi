@@ -1,0 +1,16 @@
+# psi's NetworkPolicy admitting clinic and scheduling-api to SEB's OpenFGA (namespace openfga). The namespace belongs
+# to SEB and already exists: no CreateNamespace, and prune only removes this policy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openfga-access
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/openfga-access/overlays/dev
+  destination: { server: https://kubernetes.default.svc, namespace: openfga }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

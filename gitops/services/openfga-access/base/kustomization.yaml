@@ -1,0 +1,8 @@
+# psi's admission to OpenFGA: one NetworkPolicy in SEB's namespace openfga, synced by its own Argo Application
+# (gitops/apps/overlays/dev/apps/openfga-access.yaml). Its own folder because a kustomization's `namespace:` would
+# rewrite the policy's namespace to the app's.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openfga
+resources:
+  - networkpolicy.yaml

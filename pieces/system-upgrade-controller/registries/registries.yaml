@@ -14,3 +14,9 @@ mirrors:
   gcr.io:
     endpoint: ["https://WLREGISTRY"]
     rewrite: { "^(.*)$": "mirror/gcr.io/$1" }
+  code.forgejo.org:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/code.forgejo.org/$1" }
+  cgr.dev:
+    endpoint: ["https://WLREGISTRY"]
+    rewrite: { "^(.*)$": "mirror/cgr.dev/$1" }

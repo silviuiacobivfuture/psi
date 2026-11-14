@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { route } from "../define";
+import { NotificationPrefs, NotificationPrefsView } from "../entities-notify";
 import { AppParam, Id, Locale, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
@@ -182,5 +183,27 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ id: Id }),
 		response: Ok,
 		audit: "visitor.cancel",
+	}),
+	route({
+		id: "visitor.notifications",
+		method: "GET",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"The signed-in visitor's notification preferences (channel by kind) and what each kind offers",
+		params: AppParam,
+		response: NotificationPrefsView,
+	}),
+	route({
+		id: "visitor.notificationsSave",
+		method: "PUT",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"Replace the signed-in visitor's notification preferences; a channel a kind does not offer, or that cannot be switched off, is refused",
+		params: AppParam,
+		body: NotificationPrefs,
+		response: NotificationPrefsView,
+		audit: "visitor.notifications",
 	}),
 ] as const;

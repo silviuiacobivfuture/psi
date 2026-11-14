@@ -7,6 +7,16 @@
   targets:
   - select:
       kind: Deployment
+      name: bulwark
+    fieldPaths:
+    - spec.template.spec.containers.[name=bulwark].image
+    - spec.template.spec.initContainers.[name=assert-secrets].image
+    - spec.template.spec.initContainers.[name=seed-config].image
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: Deployment
       name: stalwart
     fieldPaths:
     - spec.template.spec.containers.[name=stalwart].image
@@ -16,10 +26,25 @@
       index: 0
   - select:
       kind: Deployment
-      name: webmail
+      name: stalwart-sso
     fieldPaths:
-    - spec.template.spec.containers.[name=roundcube].image
-    - spec.template.spec.initContainers.[name=assert-secrets].image
+    - spec.template.spec.containers.[name=page].image
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: CronJob
+      name: bulwark-extensions
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=extensions].image
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: CronJob
+      name: stalwart-admins
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=admins].image
     options:
       delimiter: /
       index: 0
@@ -37,8 +62,11 @@
       kind: CronJob
       name: stalwart-config
     fieldPaths:
-    - spec.jobTemplate.spec.template.spec.containers.[name=apply].image
+    - spec.jobTemplate.spec.template.spec.containers.[name=listeners].image
     - spec.jobTemplate.spec.template.spec.initContainers.[name=render].image
+    - spec.jobTemplate.spec.template.spec.initContainers.[name=unlink].image
+    - spec.jobTemplate.spec.template.spec.initContainers.[name=prune].image
+    - spec.jobTemplate.spec.template.spec.initContainers.[name=apply].image
     options:
       delimiter: /
       index: 0
@@ -46,8 +74,11 @@
       kind: Job
       name: stalwart-config
     fieldPaths:
-    - spec.template.spec.containers.[name=apply].image
+    - spec.template.spec.containers.[name=listeners].image
     - spec.template.spec.initContainers.[name=render].image
+    - spec.template.spec.initContainers.[name=unlink].image
+    - spec.template.spec.initContainers.[name=prune].image
+    - spec.template.spec.initContainers.[name=apply].image
     options:
       delimiter: /
       index: 0

@@ -1,5 +1,25 @@
 existingSecretAdminPassword: harbor-admin
 existingSecretAdminPasswordKey: secret
+# Every value the chart would otherwise MINT at render time (randAlphaNum, genCA, htpasswd) comes
+# from one Secret, harbor-keys (pieces/platform-secrets/harbor-keys.yaml, OpenBao
+# secret/platform/harbor/keys, seeded by seed-secrets.sh). Minted values differ on every Argo
+# render, and the checksum/* annotations on core, jobservice and registry with them, so any change
+# to the Application restarted all three. Gate: .github/scripts/tests/helm-stable-render_test.sh.
+core:
+  existingSecret: harbor-keys
+  # The token-signing key pair (tls.crt, tls.key), mounted by core and the registry.
+  secretName: harbor-keys
+  existingXsrfSecret: harbor-keys
+  existingXsrfSecretKey: CSRF_KEY
+jobservice:
+  existingSecret: harbor-keys # key JOBSERVICE_SECRET
+  existingSecretKey: JOBSERVICE_SECRET
+registry:
+  existingSecret: harbor-keys # key REGISTRY_HTTP_SECRET
+  existingSecretKey: REGISTRY_HTTP_SECRET
+  credentials:
+    # REGISTRY_PASSWD and REGISTRY_HTPASSWD (bcrypt of that password, made once at seeding).
+    existingSecret: harbor-keys # keys REGISTRY_PASSWD, REGISTRY_HTPASSWD
 expose:
   type: ingress
   tls:
