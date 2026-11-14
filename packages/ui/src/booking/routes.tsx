@@ -33,10 +33,13 @@ export async function scheduleOf(
 					data: { ...view.data, taken: true, selected: undefined },
 				}
 			: view;
+	const noCallback = raw.nocall === "1";
 	return {
 		view: shown,
-		callback: raw.callback === "1",
+		callback: raw.callback === "1" && !noCallback,
 		cards: raw.cards === "1",
+		horizon: PickerChoices.parse(raw).horizon,
+		noCallback,
 	};
 }
 

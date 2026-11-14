@@ -100,10 +100,18 @@ export function runActionTool(session: StaffSession) {
 			.strict(),
 		outputSchema: RunOut,
 		async run(input, s): Promise<ToolRun<z.infer<typeof RunOut>>> {
-			const all = await s.port.listActions(s.page);
-			if (!all.ok) return refuse(all.reason);
-			const action = all.value.find((a) => a.id === input.actionId);
-			if (action === undefined)
+			const here = await s.port.listActions(s.page);
+			if (!here.ok) return refuse(here.reason);
+			// What the open screen offers, else anything the person may do anywhere (found with staffApiDiscover).
+			let page = s.page;
+			let action = here.value.find((a) => a.id === input.actionId);
+			if (action === undefined && page !== undefined) {
+				const anywhere = await s.port.listActions(undefined);
+				if (!anywhere.ok) return refuse(anywhere.reason);
+				action = anywhere.value.find((a) => a.id === input.actionId);
+				page = undefined;
+			}
+			if (action === undefined || (s.allow !== undefined && !s.allow.has(action.id)))
 				return { ok: false, reason: "not_allowed", subjects: [input.actionId] };
 			const check = checkParams(action, input.params);
 			if (check.missing.length > 0 || check.unknown.length > 0)
@@ -123,7 +131,7 @@ export function runActionTool(session: StaffSession) {
 						kind: "run_action",
 						actionId: action.id,
 						params: input.params,
-						...(s.page === undefined ? {} : { page: s.page }),
+						...(page === undefined ? {} : { page }),
 					},
 					{
 						title: s.copy.proposal.runAction(action.label),

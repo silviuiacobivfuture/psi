@@ -1,4 +1,5 @@
 import { currentActor } from "./actor";
+import { createMemoryAssistant } from "./memory-assistant";
 import { createMemoryAvailability } from "./memory-availability";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { memoryClientPage } from "./memory-client-page";
@@ -72,6 +73,10 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		availability.of,
 	);
 	const feedback = createMemoryFeedback(c, clock, bookings.byReference, bookings.byId);
+	const assistant = createMemoryAssistant(
+		clock,
+		async (app) => (await c.apps.get(app, app)) !== undefined,
+	);
 	const keyed = createMemoryKeyed(c.apps, clock);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
@@ -112,6 +117,8 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		visitor,
 		requests,
 		docs,
+		platform: assistant.platform,
+		usage: assistant.usage,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
 		keys: memoryKeys(),
@@ -129,6 +136,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...kept.entries()],
 				blacklist.state(),
 				feedback.state(),
+				assistant.state(),
 				keyed.state(),
 				availability.state(),
 			]),

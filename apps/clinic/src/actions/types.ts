@@ -35,6 +35,9 @@ export const SCREENS = [
 	"settings.members",
 	"settings.hours",
 	"settings.online",
+	"settings.assistant",
+	"settings.assistant.people",
+	"platform",
 ] as const;
 export type Screen = (typeof SCREENS)[number];
 

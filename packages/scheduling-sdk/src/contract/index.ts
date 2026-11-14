@@ -1,3 +1,4 @@
+export * from "./assistant-merge";
 export * from "./booking-fields";
 export * from "./capabilities";
 export {
@@ -12,6 +13,7 @@ export {
 	type Target,
 } from "./define";
 export * from "./entities";
+export * from "./entities-assistant";
 export * from "./entities-availability";
 export * from "./entities-calendar";
 export * from "./entities-feedback";

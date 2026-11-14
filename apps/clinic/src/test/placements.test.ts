@@ -83,6 +83,9 @@ async function screens(): Promise<string[]> {
 		"/settings/hours?tab=rooms&room=cabinet-psihoterapie",
 		"/settings/online",
 		"/platform",
+		"/settings/assistant",
+		"/settings/assistant/people",
+		"/platform/assistant",
 	];
 }
 

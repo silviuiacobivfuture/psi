@@ -149,6 +149,16 @@ export const TURN_REFUSALS = [
 	"invalid",
 	"unavailable",
 	"language",
+	/** The organisation (or its role or person settings) switched the assistant off. */
+	"disabled",
+	/** The organisation's monthly budget is spent and its settings stop there. */
+	"budget",
+	/** The organisation's tokens for the day or the month are used up. */
+	"tokens",
+	/** The person's own messages for the day are used up. */
+	"messages_day",
+	/** This conversation reached its length; a new one starts fresh. */
+	"session_limit",
 ] as const;
 export type TurnRefusal = (typeof TURN_REFUSALS)[number];
 

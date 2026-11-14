@@ -73,8 +73,12 @@ export function convexEnv(target: ConvexTarget): ContractEnv {
 	const admin = createRpc({ url: target.url, adminKey: target.adminKey });
 	const made: string[] = [];
 	const live = new ConvexClient(target.url, { skipConvexDeploymentUrlCheck: true, logger: false });
+	// Its own estate, so the estate's document of the backend is never read or written by a test (and is dropped after).
+	const estate =
+		`*test-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}` as const;
 	const store = createConvexStore({
 		rpc,
+		estate,
 		serverKey: target.serverKey,
 		visitor: createSchedulingClient({
 			url: target.url,
@@ -104,7 +108,7 @@ export function convexEnv(target: ConvexTarget): ContractEnv {
 		},
 		async cleanup() {
 			await live.close();
-			for (const tenant of made)
+			for (const tenant of [...made, estate])
 				await admin.mutation("seed:dropFixture", { tenant }, z.unknown()).catch(() => undefined);
 		},
 	};

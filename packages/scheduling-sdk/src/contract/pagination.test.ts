@@ -39,6 +39,8 @@ const BOUNDED: Readonly<Record<string, string>> = {
 	"rooms.closures": "one room's closed days from a date on: one row per date the team closed it",
 	"bookingPause.list":
 		"the app's pauses of online booking: at most MAX_PAUSES (50), and its sites (a handful)",
+	"me.assistant":
+		"the organisation's skills for the staff assistant: at most 20 (the document's max)",
 };
 
 const arraysOf = (schema: z.ZodType): string[] => {

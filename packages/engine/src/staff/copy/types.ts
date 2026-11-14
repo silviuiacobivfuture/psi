@@ -1,4 +1,4 @@
-import type { StaffScreen, Tone } from "../events";
+import type { StaffScreen, Tone, TurnRefusal } from "../events";
 import type {
 	ActivityKind,
 	AppointmentStatus,
@@ -85,10 +85,7 @@ export interface PanelCopy {
 	thinking: string;
 	suggestions: string;
 	newChat: string;
-	refusals: Record<
-		"no_principal" | "rate_limited" | "duplicate" | "invalid" | "unavailable" | "language",
-		string
-	>;
+	refusals: Record<TurnRefusal, string>;
 	sheetLabel: string;
 	undo: string;
 	/** The capsule's full-screen toggle (its names entering and leaving it) and the polite line said when it enters by itself. */
@@ -119,6 +116,14 @@ export interface StaffCopy {
 		today(date: string, weekday: string, timeZone: string): string;
 		person(name: string, appName: string, roles: ReadonlyArray<string>): string;
 		otherLanguage(detected: string): string;
+		/** How the organisation wants the assistant to sound. */
+		tone(tone: "warm" | "neutral" | "formal"): string;
+		/** Which language to answer in: the person's own (`auto`) or a fixed one. */
+		replyLanguage(language: "auto" | "ro" | "en"): string;
+		/** Opens the organisation's own addition to the instructions. */
+		orgHeading: string;
+		/** Opens the organisation's skills. */
+		skillsHeading: string;
 	};
 	chip(tool: ToolKey, phase: "running" | "done" | "refused"): string;
 	/** What a finished chip says when the tool found nothing, or found some: undefined keeps the plain "done" words. */
@@ -304,6 +309,13 @@ export interface StaffCopy {
 	cutShort: string;
 	/** Said when the turn ended with a card waiting and no words. */
 	reviewCard: string;
+	/**
+	 * Offered once in a conversation that met the organisation's number of refusals (`handoff`): who to ask instead, the
+	 * organisation's contact when it set one, else its Owner or an Admin.
+	 */
+	handoff(contact: string | undefined): string;
+	/** What introduces the summary a long conversation's older part was folded into (`memory.compactAfter`). */
+	summaryHeading: string;
 	panel: PanelCopy;
 	suggestions: Readonly<Record<StaffScreen, ReadonlyArray<string>>>;
 }

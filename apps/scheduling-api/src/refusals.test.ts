@@ -117,9 +117,23 @@ describe.each(factories)("on the $name store", (factory) => {
 					refused(() => call("hugo"), 404, "not_found"));
 				it("a stranger is told the app is not there", () =>
 					refused(() => call("mallory"), 404, "not_found"));
-				// The routes about oneself (how I want to be told) and the roles every member may compare need membership
-				// and nothing more: there is no permission to lack.
-				if (spec.permission === undefined) return;
+				// The routes about oneself (what governs my assistant's turn and what it used, how I want to be told) and the
+				// roles every member may compare need membership and nothing more: there is no permission to lack.
+				if (spec.permission === undefined) {
+					it("is the caller's own or every member's, and needs no permission past membership", () =>
+						expect([
+							"me.assistant",
+							"me.assistantUsage",
+							"me.notifications",
+							"me.notificationsSave",
+							"me.settings",
+							"me.saveSettings",
+							"roles.summary",
+							// Whether online booking is paused: every member's console shows the banner.
+							"bookingPause.list",
+						]).toContain(spec.id));
+					return;
+				}
 				it("a role that lacks the permission", () => {
 					// An object the caller cannot reach is "not found" (no leak); a dynamic route first asks for ANY candidate.
 					const target = spec.permission?.target.kind;
@@ -137,7 +151,11 @@ describe.each(factories)("on the $name store", (factory) => {
 		// The estate administrator browses as another member with `x-psi-view-as`: nothing sent that way may write.
 		// Ending the view is the one write allowed while viewing as someone else.
 		for (const spec of TEAM.filter(
-			(r) => r.method !== "GET" && r.platform !== true && r.id !== "viewAs.stop",
+			(r) =>
+				r.method !== "GET" &&
+				r.platform !== true &&
+				r.id !== "viewAs.stop" &&
+				r.id !== "me.assistantUsage",
 		)) {
 			it(`${spec.id}: a write with the view-as header is refused and writes nothing`, () =>
 				refused(

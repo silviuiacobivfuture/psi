@@ -97,7 +97,9 @@ const GATES: ReadonlyArray<Gate> = [
 	...ACTION_GATES,
 	g("GET", "/audit", ["audit_log_view"]),
 	g("GET", "/settings/audit/[^/]+", ["audit_log_view"]),
+	g("GET", "/settings/assistant/people", ["app_settings_view"]),
 	g("GET", "/platform", [PLATFORM_KEY]),
+	g("GET", "/platform/assistant", [PLATFORM_KEY]),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];
 

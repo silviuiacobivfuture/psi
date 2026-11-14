@@ -131,7 +131,9 @@ export async function prepare(
 	if (
 		c.req.header(VIEW_AS_HEADER) !== undefined &&
 		spec.method !== "GET" &&
-		spec.id !== "viewAs.stop"
+		spec.id !== "viewAs.stop" &&
+		// What the real caller's own assistant turn used is metered whoever they are looking as: the budget must hold.
+		spec.id !== "me.assistantUsage"
 	)
 		throw forbidden("viewing as someone else is read-only", { reason: "view_as_readonly" });
 	const parsed: Parsed = { params: parseParams(spec, c), query: {}, body: {} };

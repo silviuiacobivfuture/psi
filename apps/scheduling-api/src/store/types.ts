@@ -36,6 +36,7 @@ import type {
 	SeriesPort,
 	SettingsPort,
 } from "./ports";
+import type { AssistantUsagePort, PlatformDocumentsPort } from "./ports-assistant";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -473,9 +474,13 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** The estate's own documents (the assistants' platform tier). */
+	platform: PlatformDocumentsPort;
+	/** The assistants' meters. */
+	usage: AssistantUsagePort;
 	/** Each person's own settings per app. */
 	settings: SettingsPort;
-	/** Documents with a revision (the floor plan). */
+	/** Documents with a revision (the floor plan, the assistants' configuration). */
 	docs: DocumentsPort;
 	/** Who may not book. */
 	blacklist: BlacklistPort;

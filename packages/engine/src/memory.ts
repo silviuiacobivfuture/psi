@@ -21,10 +21,25 @@ export function fileDirectory(url: string): string | undefined {
  * memory and no title generation (each would store more or call the model again).
  */
 export function openMemory(url: string, id = "engine-memory"): Memory {
+	return openSweptMemory(url, id).memory;
+}
+
+/** A conversation memory and its retention sweep. */
+export interface SweptMemory {
+	readonly memory: Memory;
+	/**
+	 * Deletes every message, thread and resource written more than `days` days ago; how many rows went. The thread and
+	 * resource ids are never changed, so what is kept stays readable.
+	 */
+	sweep(days: number): Promise<number>;
+}
+
+export function openSweptMemory(url: string, id = "engine-memory"): SweptMemory {
 	const directory = fileDirectory(url);
 	if (directory !== undefined) mkdirSync(directory, { recursive: true });
-	return new Memory({
-		storage: new LibSQLStore({ id, url }),
+	const store = new LibSQLStore({ id, url });
+	const memory = new Memory({
+		storage: store,
 		options: {
 			lastMessages: THREAD_WINDOW,
 			semanticRecall: false,
@@ -32,6 +47,17 @@ export function openMemory(url: string, id = "engine-memory"): Memory {
 			generateTitle: false,
 		},
 	});
+	return {
+		memory,
+		async sweep(days) {
+			const maxAge = `${days}d` as const;
+			await store.init();
+			const results = await store.prune({
+				retention: { memory: { messages: { maxAge }, threads: { maxAge }, resources: { maxAge } } },
+			});
+			return results.reduce((n, r) => n + r.deleted, 0);
+		},
+	};
 }
 
 /** How long to wait for a refused run to settle before removing its answer from the thread. */

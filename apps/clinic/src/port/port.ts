@@ -1,4 +1,11 @@
 import type {
+	AssistantEffectiveType,
+	AssistantOrgConfig,
+	AssistantOrgDocumentType,
+	AssistantPlatformConfig,
+	AssistantPlatformDocumentType,
+	AssistantStopName,
+	AssistantUsageRecord,
 	Capabilities as ScheduleCapabilities,
 	RoleSummary as ScheduleRoleSummary,
 } from "@psi/scheduling-sdk/contract";
@@ -201,6 +208,8 @@ export class PortError extends Error {
  */
 export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
+	/** The person is the estate administrator: the platform zone is theirs, and every app, member of it or not. */
+	platformAdmin(subject: string): Promise<boolean>;
 	/**
 	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
 	 * one column it picks (the week draws one calendar: the others' visits are never read, only their names).
@@ -481,7 +490,30 @@ export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
 	assistantMode(subject: string): Promise<AssistantMode | null>;
 	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;
+	/** What governs this person's next assistant turn (the merged tiers for their roles and themselves, and their meters). */
+	assistantEffective(app: AppSlug): Promise<AssistantEffectiveType>;
+	/** Adds one of this person's turns to the meters; answers a limit that now stops the next one. */
+	recordAssistantUsage(
+		app: AppSlug,
+		usage: AssistantUsageRecordType,
+	): Promise<AssistantStopName | undefined>;
+	/** The organisation's assistant tier, its ceilings, what applies now and the meters (Owner and Admin). */
+	assistantConfig(app: AppSlug): Promise<AssistantOrgConfigType>;
+	/** Saves the organisation's tier edited from `doc.revision`: `stale` when it moved on; a value past a ceiling is `invalid`. */
+	saveAssistantConfig(app: AppSlug, doc: AssistantOrgDocumentType): Promise<AssistantOrgConfigType>;
+	/** The estate's assistant tier (the platform administrator's). */
+	assistantPlatform(): Promise<AssistantPlatformConfigType>;
+	saveAssistantPlatform(doc: AssistantPlatformDocumentType): Promise<AssistantPlatformConfigType>;
+	/**
+	 * Any route of the scheduling service by its id, as this person (their token; the read-only header while viewing as
+	 * someone else): the assistant's way to every function of the contract. `not-available-yet` without the service.
+	 */
+	callRoute(routeId: string, input: Readonly<Record<string, unknown>>): Promise<unknown>;
 }
+
+export type AssistantUsageRecordType = z.input<typeof AssistantUsageRecord>;
+export type AssistantOrgConfigType = z.output<typeof AssistantOrgConfig>;
+export type AssistantPlatformConfigType = z.output<typeof AssistantPlatformConfig>;
 
 /**
  * The port acting for one request's person. The scheduling service authorizes with the person's own token, so a port

@@ -40,6 +40,9 @@ const schedule = (
 	},
 	callback: false,
 	cards,
+	// The page's own terms: no horizon of the organisation's chat, the call instead offered.
+	horizon: "",
+	noCallback: false,
 });
 
 describe("the booking form while booking is paused", () => {
@@ -117,6 +120,7 @@ describe("the picker's view of a pause", () => {
 		mode: "",
 		who: "",
 		slot: "",
+		horizon: "",
 	} as const;
 
 	it("is paused when the organisation or the site is", async () => {

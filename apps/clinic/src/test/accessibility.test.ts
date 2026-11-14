@@ -29,6 +29,8 @@ const SCREENS = [
 	"/settings/hours?tab=rooms",
 	"/settings/online",
 	"/settings/online?new=1",
+	"/settings/assistant",
+	"/settings/assistant/people",
 	"/settings/members",
 	"/settings/members?edit=mock-ana-7f3c",
 	"/settings/members?new=1",

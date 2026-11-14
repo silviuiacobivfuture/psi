@@ -41,6 +41,7 @@ export const CLINIC_TABLES = [
 	"feedbackReplies",
 	"feedbackLinks",
 	"appDocuments",
+	"assistantUsage",
 	"clientNotes",
 	"memberSettings",
 ] as const satisfies ReadonlyArray<TableNames>;
@@ -218,6 +219,11 @@ export async function rowsOf(
 			return ctx.db
 				.query("appDocuments")
 				.withIndex("by_tenant_kind", (q) => q.eq("tenant", tenant))
+				.take(LIMIT);
+		case "assistantUsage":
+			return ctx.db
+				.query("assistantUsage")
+				.withIndex("by_key", (q) => q.eq("tenant", tenant))
 				.take(LIMIT);
 		case "clientNotes":
 			return ctx.db

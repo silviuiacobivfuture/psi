@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
+import { ASSISTANT_HAPPY } from "./happy-assistant";
 import { AVAILABILITY_HAPPY } from "./happy-availability";
 import { asSite, bookAs, freeSlots, mineOf } from "./testing/booking";
 import { suggestionFor } from "./testing/links";
@@ -86,6 +87,7 @@ const visitorKey = (w: Populated, method: string, path: string, body?: unknown):
 
 export const EXTRA_HAPPY = {
 	...AVAILABILITY_HAPPY,
+	...ASSISTANT_HAPPY,
 	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
 	"visitor.mineReschedule": async (w) => {
 		await bookAs(w, "visitor-move");

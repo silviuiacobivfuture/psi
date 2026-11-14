@@ -59,6 +59,12 @@ export function adminGroup(sdk: SdkContext) {
 		return counts;
 	}
 
+	/** "Who am I", asked once for this port (a request's): the memberships and the estate administrator come from it. */
+	let me: ReturnType<typeof api.me.get> | undefined;
+	const whoAmI = (): ReturnType<typeof api.me.get> => {
+		me ??= api.me.get({});
+		return me;
+	};
 	/** The roles with what each includes and inherits, from the service's own relations. */
 	async function rolesOf(app: AppSlug): Promise<Role[]> {
 		const [list, counts] = await Promise.all([
@@ -82,12 +88,15 @@ export function adminGroup(sdk: SdkContext) {
 	return {
 		memberships: (_subject: string): Promise<Membership[]> =>
 			run(async () => {
-				const me = await api.me.get({});
-				return me.apps.flatMap((a) => {
+				const mine = await whoAmI();
+				return mine.apps.flatMap((a) => {
 					const slug = AppSlugSchema.safeParse(a.app);
 					return slug.success ? [{ app: slug.data, roles: a.roles }] : [];
 				});
 			}),
+
+		platformAdmin: (_subject: string): Promise<boolean> =>
+			run(async () => (await whoAmI()).platformAdmin),
 
 		// Through the port's one answer: the page's middleware, its zone and its screens share it (and its source keeps it).
 		capabilities: (_subject: string, app: AppSlug, as?: `role:${string}` | `member:${string}`) =>
