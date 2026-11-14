@@ -4,9 +4,12 @@ import { ActionBar, actionsFor, EmptyActions, menuItems } from "../actions/rende
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
+import { offsetPage } from "../port/offset-page";
+import { LIST_PAGE } from "../port/port";
 import { type ClientNote, NOTE_CATEGORIES, NOTE_MAX } from "../port/schema-clinical";
 import { noteCategoryText } from "./client-flags";
 import { SheetButtons } from "./client-sheets";
+import { TabMore, tabListId } from "./client-tab-pager";
 
 export const stampText = (locale: Locale, iso: string): string =>
 	new Intl.DateTimeFormat(locale, {
@@ -27,7 +30,8 @@ export const readableNotes = (
 ): ReadonlyArray<ClientNote> =>
 	notes.filter((n) => n.category !== "clinical" || ctx.can.group("clinical"));
 
-function NoteCard({ ctx, note }: { ctx: Ctx; note: ClientNote }): JSX.Element {
+/** One note: who wrote it and when, its category, pinned or not, and what may be done to it. */
+export function NoteCard({ ctx, note }: { ctx: Ctx; note: ClientNote }): JSX.Element {
 	const o = at(ctx.locale);
 	const entity = {
 		clientId: note.clientId,
@@ -105,6 +109,7 @@ export function NotesTab({
 }): JSX.Element {
 	const o = at(ctx.locale);
 	const shown = readableNotes(ctx, notes);
+	const page = offsetPage(shown, null, LIST_PAGE);
 	return (
 		<div class="cl-tab">
 			<ActionBar ctx={ctx} screen="client.notes" entity={{ clientId }} />
@@ -117,11 +122,20 @@ export function NotesTab({
 					<EmptyActions ctx={ctx} screen="client.notes" entity={{ clientId }} />
 				</EmptyState>
 			) : (
-				<ol class="cl-notes" aria-label={m.cl_tab_notes({}, o)}>
-					{shown.map((n) => (
-						<NoteCard key={n.id} ctx={ctx} note={n} />
-					))}
-				</ol>
+				<>
+					<ol class="cl-notes" id={tabListId("notes")} aria-label={m.cl_tab_notes({}, o)}>
+						{page.items.map((n) => (
+							<NoteCard key={n.id} ctx={ctx} note={n} />
+						))}
+					</ol>
+					<TabMore
+						ctx={ctx}
+						clientId={clientId}
+						tab="notes"
+						cursor={page.nextCursor}
+						shown={page.items.length}
+					/>
+				</>
 			)}
 		</div>
 	);

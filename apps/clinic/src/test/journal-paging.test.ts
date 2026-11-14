@@ -87,10 +87,31 @@ describe("the journal, a page at a time", () => {
 		const drawer = /@get\((?:'|&#39;)(\/settings\/audit\/[^'"]+?)(?:'|&#39;)\); setTimeout/.exec(
 			body.slice(body.indexOf(`data-audit-row="${late}"`)),
 		)?.[1];
-		expect(drawer).toContain(`/settings/audit/${late}?from=`);
+		expect(drawer).toContain(`/settings/audit/${late}?c=`);
 		const res = await c.get((drawer ?? "").replaceAll("&amp;", "&"), datastar);
 		expect(res.status).toBe(200);
 		expect(await res.text()).toContain(`Jurnal Client ${String(2).padStart(3, "0")}`);
+	});
+
+	it("a row of a journal narrowed to past days opens its drawer, though newer events fill the log", async () => {
+		// More new events than one read of the log: the old row is found only within its own days.
+		await withEvents(250);
+		const events = await c.port.audit("psizone");
+		const day = events.at(-1)?.at.slice(0, 10) ?? "";
+		const html = await (await c.get(`/settings/audit?to=${day}`)).text();
+		const id = rowsOf(html)[0] ?? "";
+		expect(id).not.toBe("");
+		const drawer = /@get\((?:'|&#39;)(\/settings\/audit\/[^'"]+?)(?:'|&#39;)\); setTimeout/.exec(
+			html.slice(html.indexOf(`data-audit-row="${id}"`)),
+		)?.[1];
+		expect(drawer).toContain(`to=${day}`);
+		const res = await c.get((drawer ?? "").replaceAll("&amp;", "&"), datastar);
+		expect(res.status).toBe(200);
+	});
+
+	it("a drawer asked with days that are not days is refused", async () => {
+		await withEvents(0);
+		expect((await c.get("/settings/audit/e2?to=not-a-day", datastar)).status).toBe(400);
 	});
 
 	it("the control keeps the filters, and a narrowed page holds only matches", async () => {

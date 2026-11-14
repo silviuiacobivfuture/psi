@@ -13,15 +13,21 @@ import { type AuditQuery, paramsOf, searchOf } from "./query";
 
 export const DRAWER_SIGNAL = "auditOpen";
 
-/** The drawer's address: the event, and the log's page it was read from (so a row of any page opens). */
-const drawerPath = (id: string, from: string | null): string =>
-	`/settings/audit/${encodeURIComponent(id)}${from === null ? "" : `?from=${encodeURIComponent(from)}`}`.replaceAll(
+/** The drawer's address: the event, the log's page it was read from and the days of that read (any row opens). */
+function drawerPath(r: JournalRow): string {
+	const q = new URLSearchParams({
+		...(r.cursor === null ? {} : { c: r.cursor }),
+		...(r.window.from === undefined ? {} : { from: r.window.from }),
+		...(r.window.to === undefined ? {} : { to: r.window.to }),
+	}).toString();
+	return `/settings/audit/${encodeURIComponent(r.row.event.id)}${q === "" ? "" : `?${q}`}`.replaceAll(
 		"'",
 		"%27",
 	);
+}
 
-const rowHandler = (id: string, from: string | null): string =>
-	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('${drawerPath(id, from)}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
+const rowHandler = (r: JournalRow): string =>
+	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('${drawerPath(r)}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
 
 function Filters({
 	ctx,
@@ -110,7 +116,7 @@ export function AuditRow({ ctx, r }: { ctx: Ctx; r: JournalRow }): JSX.Element {
 	const { row } = r;
 	const when = short(row.event.at, ctx.locale, ctx.caps.timeZone);
 	return (
-		<tr data-audit-row={row.event.id} data-on:click={rowHandler(row.event.id, r.from)}>
+		<tr data-audit-row={row.event.id} data-on:click={rowHandler(r)}>
 			<td data-c="when">
 				<button
 					type="button"

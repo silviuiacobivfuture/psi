@@ -8,7 +8,7 @@ import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
 import { auditCsv } from "./csv";
 import { DrawerBody } from "./drawer";
-import { journalEvent, journalExport, journalPage, peopleOf } from "./journal";
+import { journalEvent, journalExport, journalPage, peopleOf, windowOf } from "./journal";
 import { loadLookup } from "./lookup";
 import { AuditCount, AuditMore, AuditRow, renderAuditPage } from "./page";
 import { type AuditQuery, AuditQuerySchema } from "./query";
@@ -73,9 +73,14 @@ export function registerAudit(app: Hono<Env>): void {
 
 	app.get("/settings/audit/:id", async (c) => {
 		const ctx = c.var.ctx;
-		const event = await journalEvent(ctx, c.req.param("id"), cursorOf(c.req.query("from"))).catch(
-			() => undefined,
-		);
+		// The days of the read the row came from: checked at the boundary like the journal's own filters.
+		const days = queryOf(c.req.query());
+		const event = await journalEvent(
+			ctx,
+			c.req.param("id"),
+			cursorOf(c.req.query("c")),
+			windowOf(days),
+		).catch(() => undefined);
 		if (event === undefined) return c.text("not-found", 404);
 		const lookup = await loadLookup(ctx, [event]);
 		const body = (

@@ -14,6 +14,7 @@ import {
 	renderClient,
 	type Soon,
 } from "./client-page";
+import { registerClientTabMore } from "./client-tab-more";
 import { ClientRow, MoreClients, renderClients, ShownCount } from "./clients-list";
 import { registerPackageRoutes } from "./package-routes";
 
@@ -193,4 +194,5 @@ export function registerClients(app: Hono<Env>): void {
 
 	registerClientActions(app);
 	registerPackageRoutes(app);
+	registerClientTabMore(app);
 }
