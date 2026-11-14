@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const rootUrl = new URL("../../../", import.meta.url);
 const root = rootUrl.pathname;
@@ -36,9 +36,15 @@ const render = (service: string): string =>
 		encoding: "utf8",
 	});
 
+// Rendered in beforeAll, not in the describe body: a skipped describe's body still runs at collection, and a machine
+// without kustomize (CI's runner) must skip these, not fail on the missing binary.
 describe.skipIf(!kustomize)("the production overlays, rendered", () => {
-	const rendered = Object.fromEntries(OVERLAYS.map((s) => [s, render(s)]));
-	const all = Object.values(rendered).join("\n---\n");
+	let rendered: Record<string, string> = {};
+	let all = "";
+	beforeAll(() => {
+		rendered = Object.fromEntries(OVERLAYS.map((s) => [s, render(s)]));
+		all = Object.values(rendered).join("\n---\n");
+	});
 
 	it("every namespaced object lands in a production namespace, never dev's", () => {
 		const namespaces = [...all.matchAll(/^ {2}namespace: (\S+)$/gm)].map((m) => m[1]);
