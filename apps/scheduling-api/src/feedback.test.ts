@@ -265,8 +265,22 @@ describe.each(factories)("feedback, on the $name store", (factory) => {
 			expect(actions).toContain("feedback.link");
 		});
 		it("a visit to come, one that is not there, naming both or neither, a lifetime out of bounds: refused whole", async () => {
+			// A visit weeks ahead of the world's clock and of the real one alike (Convex's backend runs on the real clock, so
+			// "tomorrow" in the world passes on the calendar).
+			const start = Math.max(NOW, Date.now()) + 30 * 24 * HOUR;
+			const toCome = String(
+				ok(
+					await as("olga", "POST", "/appointments", {
+						practitionerId: w.ids.elena,
+						clientId: w.ids.c2,
+						start,
+						end: start + HOUR,
+					}),
+					"visit to come",
+				).id,
+			);
 			await refused(
-				() => as("rita", "POST", "/feedback/links", { visit: w.ids.a1 }),
+				() => as("rita", "POST", "/feedback/links", { visit: toCome }),
 				409,
 				"conflict",
 			);
