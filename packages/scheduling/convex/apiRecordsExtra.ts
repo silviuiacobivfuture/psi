@@ -212,6 +212,38 @@ export const completeFile = mutation({
 	},
 });
 
+/** Only a client file's name moves; the same name again writes nothing. The log records the field, never the name. */
+export const renameFile = mutation({
+	args: {
+		key: serverKeyValidator,
+		tenant: v.string(),
+		actor: actorValidator,
+		file: v.string(),
+		fileName: v.string(),
+	},
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const row = await owned(ctx, "files", args.tenant, args.file);
+		if (row === null || row.kind !== "client_file") return REFUSED("not_found");
+		const fileName = args.fileName.trim();
+		if (fileName === "" || fileName.length > 200) return REFUSED("invalid");
+		if (fileName === row.fileName) return { ok: true as const, changed: false as const };
+		const version = row.version + 1;
+		await ctx.db.patch(row._id, { fileName, version });
+		await record(ctx, {
+			tenant: args.tenant,
+			actor: args.actor.subject,
+			action: "file.rename",
+			entity: "file",
+			entityId: row._id,
+			kind: "file",
+			version,
+			fields: ["fileName"],
+		});
+		return { ok: true as const, changed: true as const };
+	},
+});
+
 // Import runs ----------------------------------------------------------------------------------
 
 /** Batches this close together are one run of the import. */

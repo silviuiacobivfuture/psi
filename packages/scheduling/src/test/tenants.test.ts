@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createSchedulingClient, type HoldInput, type OfferedSlot } from "../client";
 import type { SchedulingConfig } from "../config";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * Tenant isolation against the real local backend (README), in two throwaway tenants that each
@@ -14,8 +15,8 @@ import type { SchedulingConfig } from "../config";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((res) => res.ok)
 	.catch(() => false);

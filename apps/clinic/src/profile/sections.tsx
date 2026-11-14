@@ -9,28 +9,18 @@ import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { relative } from "../lib/when";
 import { m } from "../paraglide/messages.js";
-import {
-	defaultOn,
-	type MyFeedback,
-	NOTIFY_CHANNELS,
-	NOTIFY_KINDS,
-	type NotificationPrefs,
-	type NotifyChannel,
-	type NotifyKind,
-	type Profile,
-} from "../port/profile-port";
+import type { MyFeedback, Profile } from "../port/profile-port";
 import type { Column } from "../port/schema";
 import { ROLES_MATRIX_PATH } from "../roles-matrix/path";
 
 export interface ProfileData {
 	profile: Profile | null;
-	prefs: NotificationPrefs | null;
 	feedback: ReadonlyArray<MyFeedback> | null;
 	sessions: ReadonlyArray<SessionInfo>;
 	column: Column | null;
 	hours: string | null;
 	ssoUrl: string | null;
-	flash: "phone" | "notif" | "phone-invalid" | null;
+	flash: "phone" | "phone-invalid" | null;
 }
 
 const initials = (name: string): string =>
@@ -249,72 +239,18 @@ export function Preferences({ ctx }: { ctx: Ctx }): JSX.Element {
 	);
 }
 
-const KIND_LABEL: Readonly<Record<NotifyKind, (l: Ctx["locale"]) => string>> = {
-	requests: (l) => m.pf_k_requests({}, at(l)),
-	appointments: (l) => m.pf_k_appointments({}, at(l)),
-	reminders: (l) => m.pf_k_reminders({}, at(l)),
-	feedback: (l) => m.pf_k_feedback({}, at(l)),
-};
-const CHANNEL_LABEL: Readonly<Record<NotifyChannel, (l: Ctx["locale"]) => string>> = {
-	inbox: (l) => m.pf_c_inbox({}, at(l)),
-	push: (l) => m.pf_c_push({}, at(l)),
-	email: (l) => m.pf_c_email({}, at(l)),
-};
-
-/** Per channel per kind: one checkbox per cell, named `n.<kind>.<channel>`, in a real table. */
-export function Notifications({ ctx, data }: { ctx: Ctx; data: ProfileData }): JSX.Element {
+/** What reaches the person and how is chosen in one place, "Setările mele": the profile leads there. */
+export function Notifications({ ctx }: { ctx: Ctx }): JSX.Element {
 	const o = at(ctx.locale);
-	const on = (kind: NotifyKind, channel: NotifyChannel): boolean =>
-		data.prefs?.prefs.find((p) => p.kind === kind && p.channel === channel)?.on ??
-		defaultOn(channel);
 	return (
 		<Card title={m.pf_notif({}, o)} id="notif">
-			{data.prefs === null ? (
-				<Soon ctx={ctx} />
-			) : (
-				<form method="post" action="/me/profile/notifications" class="adm-stack">
-					<p class="adm-muted">{m.pf_notif_lead({}, o)}</p>
-					<section class="adm-scroll" tabindex={0} aria-label={m.pf_notif({}, o)}>
-						<table class="adm-table pf-matrix">
-							<thead>
-								<tr>
-									<th scope="col">{m.pf_notif_kind({}, o)}</th>
-									{NOTIFY_CHANNELS.map((c) => (
-										<th key={c} scope="col">
-											{CHANNEL_LABEL[c](ctx.locale)}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{NOTIFY_KINDS.map((k) => (
-									<tr key={k}>
-										<th scope="row">{KIND_LABEL[k](ctx.locale)}</th>
-										{NOTIFY_CHANNELS.map((c) => (
-											<td key={c}>
-												<label class="adm-check">
-													<input
-														type="checkbox"
-														name={`n.${k}.${c}`}
-														checked={on(k, c)}
-														aria-label={`${KIND_LABEL[k](ctx.locale)}: ${CHANNEL_LABEL[c](ctx.locale)}`}
-													/>
-												</label>
-											</td>
-										))}
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</section>
-					{data.flash === "notif" ? <p role="status">{m.pf_notif_saved({}, o)}</p> : null}
-					<div>
-						<button class="adm-btn adm-btn--primary" type="submit">
-							{m.pf_notif_save({}, o)}
-						</button>
-					</div>
-				</form>
-			)}
+			<p class="adm-muted">{m.pf_notif_moved({}, o)}</p>
+			<div>
+				<a class="adm-btn" href="/me/settings#notif" data-action="me.notifications">
+					<Icon name="settings" />
+					{m.pf_notif_open({}, o)}
+				</a>
+			</div>
 		</Card>
 	);
 }

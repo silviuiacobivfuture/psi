@@ -4,12 +4,13 @@ import { z } from "zod";
 import { m } from "../paraglide/messages.js";
 import { IsoDateSchema } from "../port/schema";
 import {
+	CLEARABLE_FIELDS,
 	FileNameSchema,
 	type NewFile,
 	NoteCategorySchema,
 	RecordStatusSchema,
 } from "../port/schema-clinical";
-import { define, flag, label, none, orNull } from "./define";
+import { blankIsNull, define, flag, label, none, orNull } from "./define";
 import { recordKeys } from "./keys";
 import type { ActionCtx, ActionDef } from "./types";
 
@@ -76,18 +77,42 @@ export const CLIENT_ACTIONS: ReadonlyArray<ActionDef> = [
 		params: z.object({
 			id,
 			name: z.string().trim().min(1).max(120),
-			phone: orNull(40),
-			guardian: orNull(120),
-			email: orNull(200),
+			// A field the form did not show is not changed; one left empty is emptied.
+			phone: blankIsNull(40),
+			guardian: blankIsNull(120),
+			email: blankIsNull(200),
 			note: z.string().max(20_000).optional(),
 		}),
-		run: async (ctx, { id: clientId, note, ...rest }) => {
+		run: async (ctx, { id: clientId, name, phone, guardian, email, note }) => {
 			// The clinical note is a clinical field: only who may see it may change it.
 			await ctx.port.updateClient(ctx.app, clientId, {
-				...rest,
+				name,
+				...(phone === undefined ? {} : { phone }),
+				...(guardian === undefined ? {} : { guardian }),
+				...(email === undefined ? {} : { email }),
 				...(note === undefined || !ctx.can.group("clinical") ? {} : { note }),
 			});
 			return { status: "ok", to: base(clientId) };
+		},
+	}),
+	define({
+		id: "client.clearContact",
+		tier: "daily",
+		entity: "client",
+		label: label((o) => m.ac_client_clear_contact({}, o)),
+		icon: "trash",
+		placements: { palette: ["client"] },
+		mobile: "sheet",
+		needs: { write: ["clients_edit"], group: "contact" },
+		route: { method: "POST", path: "/clients/:id/contact/clear" },
+		confirm: "confirm",
+		opens: "editClient",
+		to: (e) => `${base(e.clientId ?? "")}?edit=1`,
+		params: z.object({ id, field: z.enum(CLEARABLE_FIELDS) }),
+		run: async (ctx, p) => {
+			// The service refuses (`conflict`) to leave the client with nothing to book with; the sheet says so.
+			await ctx.port.updateClient(ctx.app, p.id, { [p.field]: null });
+			return { status: "ok", to: `${base(p.id)}?edit=1&cleared=${p.field}` };
 		},
 	}),
 	define({

@@ -56,7 +56,14 @@ export {
 	type Say,
 	sayer,
 } from "./journey/labels";
-export type { OwnReservation, ReservationsPort } from "./journey/ports";
+export type {
+	BookingRefusal,
+	FreeTime,
+	OwnBooking,
+	OwnBookingsPort,
+	OwnReservation,
+	ReservationsPort,
+} from "./journey/ports";
 export { guideFor, type Prefill, prefillFor } from "./journey/prefill";
 export { rememberingGuide } from "./journey/remember";
 export { registerJourney } from "./journey/routes";

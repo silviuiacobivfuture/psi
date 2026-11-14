@@ -36,7 +36,7 @@ export type {
 	DeliveryStatus,
 	SuppressedWhy,
 } from "./delivery";
-export { clientSubscriberId, subscriberHash, topicKey } from "./identity";
+export { accountClientId, clientSubscriberId, subscriberHash, topicKey } from "./identity";
 export {
 	createNotifier,
 	idempotencyKey,

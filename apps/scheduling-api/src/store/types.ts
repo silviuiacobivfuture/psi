@@ -32,6 +32,7 @@ import type {
 	KeyedPort,
 	ReportsPort,
 	SeriesPort,
+	SettingsPort,
 } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
@@ -365,9 +366,25 @@ export interface VisitorPort {
 			end: number;
 			mode?: "onsite" | "online";
 			serviceSlug?: string;
+			practitionerName?: string;
+			/** The person, as `visitor.slots` names them: a move stays with them. */
+			practitioner?: string;
+			/** How long before its start the booking stops being changed online: the service's own notice. */
+			noticeMinutes: number;
 		}[]
 	>;
 	cancelMine(app: string, subject: string, id: string): Promise<{ ok: true } | Failed>;
+	/**
+	 * Moves one of the visitor's own requests to another free time of the same person and service, in one step: a new
+	 * request (new reference) with the same contact and status, the old one cancelled. `slot_taken` when the time is not
+	 * offered, `not_allowed` when the request cannot move any more; nothing is written then.
+	 */
+	rescheduleMine(
+		app: string,
+		subject: string,
+		id: string,
+		to: { start: number; mode: "onsite" | "online" },
+	): Promise<{ ok: true; id: string; reference: string; start: number; end: number } | Failed>;
 }
 
 export interface RequestsPort {
@@ -380,7 +397,7 @@ export interface RequestsPort {
 		decision: "confirm" | "decline" | "cancel" | "handle",
 		reason: string | undefined,
 		actor: string,
-	): Promise<{ ok: true } | Failed>;
+	): Promise<{ ok: true; accountHash?: string | undefined } | Failed>;
 }
 
 export interface StorePort {
@@ -390,6 +407,8 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** Each person's own settings per app. */
+	settings: SettingsPort;
 	/** Documents with a revision (the floor plan). */
 	docs: DocumentsPort;
 	/** Who may not book. */

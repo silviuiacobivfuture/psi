@@ -1,12 +1,20 @@
+import { accountHashOf } from "@psi/scheduling";
+import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { bookingFieldProblems } from "@psi/scheduling-sdk/contract";
 import { visitorSubject } from "../auth/principal";
 import { alertBlacklist } from "../engagement/blacklist-alert";
 import { activateOnSignIn } from "../engagement/invite-flow";
-import { cancelClinicAppointment, clinicAppointmentsOf } from "../engagement/own-appointments";
-import type { HandlersOf } from "../http/context";
+import {
+	cancelClinicAppointment,
+	clinicAppointmentsOf,
+	type OwnItem,
+} from "../engagement/own-appointments";
+import type { Ctx, HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
-import type { Reason } from "../store/types";
+import type { Reason, StorePort } from "../store/types";
 import { paginate } from "./shared";
+
+type C = Ctx<RouteSpec>;
 
 const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
@@ -37,6 +45,7 @@ export const visitorHandlers: HandlersOf<
 	| "visitor.callback"
 	| "visitor.mine"
 	| "visitor.mineCancel"
+	| "visitor.mineReschedule"
 > = {
 	async "visitor.services"(ctx) {
 		const out = await ctx.deps.store.visitor.services(ctx.app);
@@ -140,31 +149,108 @@ export const visitorHandlers: HandlersOf<
 		return out;
 	},
 	async "visitor.mine"(ctx) {
-		const subject = visitorSubject(ctx.principal);
-		if (subject === undefined) throw fail("invalid", "name the visitor");
+		const subject = ownSubject(ctx.principal);
 		// A first sign-in of an invited account is the moment its invitation becomes active.
 		await activateOnSignIn(ctx, subject);
-		const requests = await ctx.deps.store.visitor.mine(ctx.app, subject);
-		const clinic = await clinicAppointmentsOf(ctx, subject);
 		return paginate(
-			[...requests, ...clinic].sort((x, y) => y.start - x.start),
+			(await ownRows(ctx, subject)).map((r) => r.view),
 			ctx.query.limit,
 			ctx.query.cursor,
 		);
 	},
 	async "visitor.mineCancel"(ctx) {
-		const subject = visitorSubject(ctx.principal);
-		if (subject === undefined) throw fail("invalid", "name the visitor");
+		const subject = ownSubject(ctx.principal);
 		const id = String(ctx.params.id);
-		if (await cancelClinicAppointment(ctx, subject, id)) return { ok: true as const };
+		const own = await changeable(ctx, subject, id, "cancel");
+		if (own.source === "clinic") {
+			if (!(await cancelClinicAppointment(ctx, subject, id))) throw fail("not_found", "not found");
+			return { ok: true as const };
+		}
+		const held = own.row;
 		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, id));
-		await ctx.changed("request", "updated", String(ctx.params.id));
+		await ctx.changed("request", "updated", id);
 		await ctx.notify(
 			"appointment.cancelled",
 			TEAM_REQUESTS,
-			{ requestId: String(ctx.params.id), by: "visitor" },
-			String(ctx.params.id),
+			{ reference: held.reference, by: "visitor", account: accountHashOf(subject) },
+			id,
 		);
 		return { ok: true as const };
 	},
+	async "visitor.mineReschedule"(ctx) {
+		const subject = ownSubject(ctx.principal);
+		const id = String(ctx.params.id);
+		const own = await changeable(ctx, subject, id, "move");
+		// A session the clinic booked is never offered a move (`canMove`), so `changeable` refused it already.
+		if (own.source === "clinic")
+			throw fail("not_allowed", "moved by the clinic", { reason: "too_late" });
+		const held = own.row;
+		const { ok: _ok, ...moved } = ok(
+			await ctx.deps.store.visitor.rescheduleMine(ctx.app, subject, id, ctx.body),
+		);
+		await ctx.changed("request", "updated", id);
+		await ctx.changed("request", "created", moved.reference);
+		await ctx.notify(
+			"appointment.moved",
+			TEAM_REQUESTS,
+			{ reference: moved.reference, previousStart: held.start, account: accountHashOf(subject) },
+			moved.reference,
+		);
+		ctx.auditTarget(moved.reference);
+		ctx.note({ from: held.reference });
+		return moved;
+	},
 };
+
+/** Whose own data a `/me` route touches: the signed-in visitor, or the one a site's key names. */
+function ownSubject(principal: Parameters<typeof visitorSubject>[0]): string {
+	const subject = visitorSubject(principal);
+	if (subject === undefined) throw fail("invalid", "name the visitor");
+	return subject;
+}
+
+type OwnRow = Awaited<ReturnType<StorePort["visitor"]["mine"]>>[number];
+type View = ReturnType<typeof ownView>;
+type Own =
+	| { source: "request"; row: OwnRow; view: View }
+	| { source: "clinic"; view: OwnItem & View };
+
+/** A row as the visitor sees it, with the clinic's rule for changing it online applied at `now`. */
+function ownView(r: OwnRow, now: number) {
+	const { noticeMinutes, ...row } = r;
+	const changeUntil = r.start - noticeMinutes * 60_000;
+	const canChange = (r.status === "requested" || r.status === "confirmed") && now < changeUntil;
+	return { ...row, changeUntil, canChange, canMove: canChange };
+}
+
+/**
+ * Everything of the visitor's own, newest first: the requests they made online, and the sessions the clinic booked for
+ * the clients their account covers (an invited client, a guardian's children).
+ */
+async function ownRows(ctx: C, subject: string): Promise<Own[]> {
+	const requests = (await ctx.deps.store.visitor.mine(ctx.app, subject)).map(
+		(row): Own => ({ source: "request", row, view: ownView(row, ctx.now) }),
+	);
+	const clinic = (await clinicAppointmentsOf(ctx, subject)).map(
+		(view): Own => ({ source: "clinic", view }),
+	);
+	return [...requests, ...clinic].sort((x, y) => y.view.start - x.view.start);
+}
+
+/**
+ * The visitor's own row, when it may still change online; otherwise the refusal, before anything is written: not theirs
+ * (or not there) is 404, past the clinic's notice, no longer open, or a move the clinic keeps for itself is 403
+ * `not_allowed` with `too_late`.
+ */
+async function changeable(
+	ctx: C,
+	subject: string,
+	id: string,
+	change: "cancel" | "move",
+): Promise<Own> {
+	const own = (await ownRows(ctx, subject)).find((r) => r.view.id === id);
+	if (own === undefined) throw fail("not_found", "not found");
+	if (!(change === "move" ? own.view.canMove : own.view.canChange))
+		throw fail("not_allowed", "this can no longer be changed online", { reason: "too_late" });
+	return own;
+}

@@ -7,6 +7,14 @@ export function clientSubscriberId(app: AppKey, clientId: string): string {
 	return `${app}:client:${clientId}`;
 }
 
+/**
+ * A client who booked while signed in, as the notifier knows them: by their account (its hash, never the sign-in
+ * subject), so every request of that account reaches the same subscriber and the devices they allowed on a site.
+ */
+export function accountClientId(accountHash: string): string {
+	return `account-${accountHash}`;
+}
+
 /** The topics of an app's teams. */
 export type TeamAudience = Extract<Audience, "team" | "reception" | "owners">;
 export function topicKey(app: AppKey, team: TeamAudience): string {

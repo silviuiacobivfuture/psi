@@ -4,6 +4,7 @@ import { z } from "zod";
 import { bookingRef, formOf, PRIVATE, threadRef } from "./context";
 import type { OwnReservation } from "./ports";
 import type { Journey } from "./routes";
+import { registerBookingRoutes } from "./routes-bookings";
 import { BookingsBody, ConversationsBody } from "./views-history";
 
 const Reference = z.string().trim().min(8).max(12);
@@ -42,59 +43,9 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 	const { o, say, path } = j;
 	const now = o.now ?? Date.now;
 
-	app.get(path("bookings"), async (c) => {
-		c.header("cache-control", PRIVATE["cache-control"]);
-		const person = await j.gate(c, "viewer");
-		if (person instanceof Response) return person;
-		const rows = await ownRequests(j, c, person.subject);
-		const ok = c.req.query("ok");
-		return j.page(
-			c,
-			person,
-			"bookings",
-			"account_bookings_title",
-			<BookingsBody
-				say={say}
-				base={o.base}
-				locale={o.locale}
-				enabled={o.reservations !== undefined}
-				rows={rows}
-				now={now()}
-				linkFailed={c.req.query("link") === "failed"}
-			/>,
-			ok === "cancelled"
-				? say("account_status_cancelled")
-				: ok === "linked"
-					? say("account_bookings_linked")
-					: undefined,
-		);
-	});
-
-	app.post(path("bookings", "/anuleaza"), async (c) => {
-		if (j.foreign(c)) return c.body(null, 403);
-		const person = await j.gate(c, "viewer", "bookings");
-		if (person instanceof Response) return person;
-		const reference = Reference.safeParse((await formOf(c)).reference);
-		if (!reference.success || o.reservations === undefined) return c.body(null, 404);
-		// The owner comes from the system of record: the store's rows for this account, never the form.
-		let mine: ReadonlyArray<OwnReservation>;
-		try {
-			mine = await o.reservations.requests(person.subject);
-		} catch {
-			return j.unavailable(c);
-		}
-		const row = mine.find((r) => r.reference === reference.data.toUpperCase());
-		if (row === undefined) return c.body(null, 404);
-		const decision = await o.account.decide(c, "editor", bookingRef(row.reference, person.subject));
-		if (decision === "unavailable") return j.unavailable(c);
-		if (decision !== "allowed") return c.body(null, 404);
-		try {
-			if (!(await o.reservations.cancel(person.subject, row.reference))) return c.body(null, 404);
-		} catch {
-			return j.unavailable(c);
-		}
-		return c.redirect(`${path("bookings")}?ok=cancelled`, 303);
-	});
+	// Through the scheduling service with the person's own token when the site has it; else the store directly.
+	if (o.bookings !== undefined) registerBookingRoutes(app, j, o.bookings);
+	else registerStoreBookings(app, j, now);
 
 	app.post(path("bookings", "/leaga"), async (c) => {
 		if (j.foreign(c)) return c.body(null, 403);
@@ -188,5 +139,63 @@ export function registerHistoryRoutes(app: Hono, j: Journey): void {
 			}
 		}
 		return c.redirect(path("conversations"), 303);
+	});
+}
+
+/** The bookings page and its cancel, straight on the scheduling store (a site without the scheduling service). */
+function registerStoreBookings(app: Hono, j: Journey, now: () => number): void {
+	const { o, say, path } = j;
+	app.get(path("bookings"), async (c) => {
+		c.header("cache-control", PRIVATE["cache-control"]);
+		const person = await j.gate(c, "viewer");
+		if (person instanceof Response) return person;
+		const rows = await ownRequests(j, c, person.subject);
+		const ok = c.req.query("ok");
+		return j.page(
+			c,
+			person,
+			"bookings",
+			"account_bookings_title",
+			<BookingsBody
+				say={say}
+				base={o.base}
+				locale={o.locale}
+				enabled={o.reservations !== undefined}
+				rows={rows}
+				now={now()}
+				linkFailed={c.req.query("link") === "failed"}
+			/>,
+			ok === "cancelled"
+				? say("account_status_cancelled")
+				: ok === "linked"
+					? say("account_bookings_linked")
+					: undefined,
+		);
+	});
+
+	app.post(path("bookings", "/anuleaza"), async (c) => {
+		if (j.foreign(c)) return c.body(null, 403);
+		const person = await j.gate(c, "viewer", "bookings");
+		if (person instanceof Response) return person;
+		const reference = Reference.safeParse((await formOf(c)).reference);
+		if (!reference.success || o.reservations === undefined) return c.body(null, 404);
+		// The owner comes from the system of record: the store's rows for this account, never the form.
+		let mine: ReadonlyArray<OwnReservation>;
+		try {
+			mine = await o.reservations.requests(person.subject);
+		} catch {
+			return j.unavailable(c);
+		}
+		const row = mine.find((r) => r.reference === reference.data.toUpperCase());
+		if (row === undefined) return c.body(null, 404);
+		const decision = await o.account.decide(c, "editor", bookingRef(row.reference, person.subject));
+		if (decision === "unavailable") return j.unavailable(c);
+		if (decision !== "allowed") return c.body(null, 404);
+		try {
+			if (!(await o.reservations.cancel(person.subject, row.reference))) return c.body(null, 404);
+		} catch {
+			return j.unavailable(c);
+		}
+		return c.redirect(`${path("bookings")}?ok=cancelled`, 303);
 	});
 }

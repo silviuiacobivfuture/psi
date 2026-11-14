@@ -187,12 +187,3 @@ describe("roles", () => {
 		expect(html).toContain('name="field.money"');
 	});
 });
-
-describe("notifications", () => {
-	it("keeps the person's choice", async () => {
-		await c.post("/me/settings/notifications", new URLSearchParams({ requests: "on" }), {
-			"content-type": "application/x-www-form-urlencoded",
-		});
-		expect(await c.port.pushPrefs(MEMBER.sub)).toEqual({ requests: true, reminders: false });
-	});
-});

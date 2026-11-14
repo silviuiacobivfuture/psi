@@ -366,6 +366,12 @@ export const RoleSchema = z.object({
 	/** grants[resource][action] = scope. Absent = none. */
 	grants: z.record(z.record(ScopeSchema)),
 	fieldGroups: z.array(z.enum(FIELD_GROUPS)),
+	/** The roles it includes: their permissions are held through it (the port fills this in). */
+	includes: z.array(z.string()).optional(),
+	/** inherited[resource][action]: the widest scope held through an included role, and the nearest role holding it. */
+	inherited: z.record(z.record(z.object({ scope: ScopeSchema, from: z.string() }))).optional(),
+	/** Every relation it holds in the end, its own and inherited: what "inclus în" is computed from. */
+	effective: z.array(z.string()).optional(),
 });
 export type Role = z.infer<typeof RoleSchema>;
 
@@ -396,12 +402,6 @@ export type SearchHit = z.infer<typeof SearchHitSchema>;
 export const ASSISTANT_MODES = ["bar", "panel"] as const;
 export const AssistantModeSchema = z.enum(ASSISTANT_MODES);
 export type AssistantMode = z.infer<typeof AssistantModeSchema>;
-
-export const PushPrefsSchema = z.object({
-	requests: z.boolean(),
-	reminders: z.boolean(),
-});
-export type PushPrefs = z.infer<typeof PushPrefsSchema>;
 
 /** Where a client stands with the online account: the service's words, `expired` being what a lapsed `invited` reads as. */
 export const InviteStatusSchema = z.enum(["invited", "active", "expired", "revoked"]);

@@ -21,9 +21,6 @@ import { toPortError } from "./errors";
 import { clientOf, drain } from "./map";
 import { instantOf, wallOf } from "./time";
 
-const soon = (what: string): Promise<never> =>
-	Promise.reject(new PortError("not-available-yet", what));
-
 const stamp = (ms: number, tz: string): string => {
 	const w = wallOf(ms, tz);
 	const hh = String(Math.floor(w.minutes / 60)).padStart(2, "0");
@@ -67,7 +64,7 @@ const newestPerClient = (entries: ReadonlyArray<BlacklistEntry>): Map<string, Bl
 /**
  * The client page over the service: the blacklist (list, flag, switch off) and files (announce, upload to the signed
  * URL, complete, download, delete), the notes, the records and a client's own fields use its routes (see
- * `clinical-notes.ts`). A file's rename has no route yet and answers "not available yet".
+ * `clinical-notes.ts`). A file is renamed through its own route (only the name changes).
  */
 export function clinicalGroup(
 	sdk: SdkContext,
@@ -317,7 +314,11 @@ export function clinicalGroup(
 			run(async () => {
 				await api.files.remove({ app, id, confirm: "true" });
 			}),
-		renameFile: () => soon("files.rename"),
+		renameFile: (app: AppSlug, id: string, name: string): Promise<ClientFile> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				return fileOf(await api.files.rename({ app, id, name }), tz);
+			}),
 
 		notes: more.notes,
 		addNote: more.addNote,

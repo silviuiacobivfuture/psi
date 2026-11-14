@@ -2,7 +2,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { areaLabel, resourceText, rowText } from "./labels";
-import { ColumnHead, columnName, FoldView, MarkView } from "./marks";
+import { ColumnHead, columnName, FoldView, FromView, MarkView } from "./marks";
 import { type AreaRows, type Column, foldOf, markOf } from "./model";
 
 export interface ListProps {
@@ -61,6 +61,7 @@ export function MatrixList({ areas, columns, yours, locale }: ListProps): JSX.El
 															<span class="adm-sr">{`${columnName(c, locale)}: `}</span>
 														) : null}
 														<MarkView mark={markOf(c, row)} locale={locale} />
+														<FromView column={c} row={row.id} locale={locale} />
 													</span>
 												))}
 											</span>

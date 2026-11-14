@@ -12,6 +12,12 @@ export interface OwnItem {
 	end: number;
 	mode?: "onsite" | "online";
 	serviceSlug?: string;
+	practitioner?: string;
+	practitionerName?: string;
+	/** A session the clinic booked is cancelled online up to its start; it is moved by calling the clinic. */
+	changeUntil: number;
+	canChange: boolean;
+	canMove: boolean;
 }
 
 /**
@@ -27,8 +33,11 @@ export async function clinicAppointmentsOf(ctx: C, subject: string): Promise<Own
 		for (const a of rows) {
 			if (a.deletedAt !== undefined || a.kind !== "session") continue;
 			if (a.status !== "scheduled" && a.status !== "attended" && a.status !== "cancelled") continue;
-			const service =
-				a.serviceId === undefined ? undefined : await store.c.services.get(ctx.app, a.serviceId);
+			const [service, person] = await Promise.all([
+				a.serviceId === undefined ? undefined : store.c.services.get(ctx.app, a.serviceId),
+				store.c.people.get(ctx.app, a.practitionerId),
+			]);
+			const open = a.status === "scheduled" && ctx.now < a.start;
 			out.push({
 				id: a.id,
 				reference: a.id,
@@ -36,6 +45,11 @@ export async function clinicAppointmentsOf(ctx: C, subject: string): Promise<Own
 				start: a.start,
 				end: a.end,
 				...(service === undefined ? {} : { serviceSlug: service.slug }),
+				practitioner: a.practitionerId,
+				...(person === undefined ? {} : { practitionerName: person.displayName }),
+				changeUntil: a.start,
+				canChange: open,
+				canMove: false,
 			});
 		}
 	}
@@ -44,7 +58,7 @@ export async function clinicAppointmentsOf(ctx: C, subject: string): Promise<Own
 
 /**
  * Cancels one of those appointments for the person it belongs to. False when it is not theirs, not a live session, not
- * scheduled, or already over: the caller answers "not found" for all of them, so an id of someone else's says nothing.
+ * scheduled, or already started: the caller answers "not found" for all of them, so an id of someone else's says nothing.
  */
 export async function cancelClinicAppointment(
 	ctx: C,
@@ -54,7 +68,7 @@ export async function cancelClinicAppointment(
 	const own = await clinicAppointmentsOf(ctx, subject);
 	if (!own.some((a) => a.id === id)) return false;
 	const row = await ctx.deps.store.c.appointments.get(ctx.app, id);
-	if (row === undefined || row.status !== "scheduled" || row.end <= ctx.now) return false;
+	if (row === undefined || row.status !== "scheduled" || row.start <= ctx.now) return false;
 	await ctx.deps.store.c.appointments.replace({
 		...row,
 		status: "cancelled",

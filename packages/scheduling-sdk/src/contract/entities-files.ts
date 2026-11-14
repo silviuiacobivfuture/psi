@@ -41,6 +41,11 @@ export const FileInit = z.object({
 	contentType: z.enum(FILE_TYPES),
 	size: z.number().int().min(1).max(FILE_MAX_BYTES),
 });
+/**
+ * A new name for a file: only what people read changes (the stored object, its type and size stay what was signed).
+ * The name is trimmed; blank or longer than 200 characters is refused.
+ */
+export const FileRename = z.object({ name: z.string().trim().min(1).max(200) });
 export const SignedUrl = z.object({
 	url: z.string().url(),
 	expiresAt: Ms,

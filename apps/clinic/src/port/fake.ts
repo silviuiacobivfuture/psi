@@ -13,6 +13,7 @@ import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import { createFakeRoleSummary } from "./fake-role-summary";
+import { createFakeRoles } from "./fake-roles";
 import { createFakeStaff, type FakeAccount } from "./fake-staff";
 import {
 	type CalendarData,
@@ -608,19 +609,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("services");
 			return activeServices(data(app).services);
 		},
-		async roles(app) {
-			guard("roles");
-			return data(app).roles;
-		},
-		async saveRole(app, role) {
-			guard("saveRole");
-			const d = data(app);
-			const i = d.roles.findIndex((r) => r.id === role.id);
-			if (i < 0) throw new PortError("not-found", role.id);
-			d.roles[i] = role;
-			log(d, "console", "role.save", role.id);
-			return role;
-		},
+		...createFakeRoles({ data, guard, log }),
 		async report(app, q) {
 			guard("report");
 			return reportOf(data(app), today, q);

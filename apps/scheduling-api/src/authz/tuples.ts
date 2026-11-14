@@ -6,6 +6,7 @@ import {
 	roleAppLink,
 	roleGrant,
 	roleHolder,
+	roleInclusion,
 } from "./links";
 import type { Tuple } from "./port";
 
@@ -22,10 +23,11 @@ export const platformLink = (app: string): Tuple => ({
 	object: `sched_app:${app}`,
 });
 
-/** A role: its link to the app and each permission it grants. */
+/** A role: its link to the app, each permission it grants itself, and each role it includes. */
 export const roleTuples = (role: RoleRow): Tuple[] => [
 	roleAppLink(role.id, role.app),
 	...role.permissions.map((p) => roleGrant(role.id, role.app, p)),
+	...role.includes.map((inc) => roleInclusion(role.id, inc)),
 ];
 
 /** A member: the app membership, the roles held, the practitioners coordinated and the personal grants. */

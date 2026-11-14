@@ -6,6 +6,7 @@
 	"description": "psi's scheduling operations: derive the Convex admin key, and reconcile the store's authorization tuples into OpenFGA",
 	"scripts": {
 		"reconcile-authz": "tsx reconcile-authz/main.ts",
+		"reseed-roles": "tsx reseed-roles/main.ts",
 		"type-check": "tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"
 	},

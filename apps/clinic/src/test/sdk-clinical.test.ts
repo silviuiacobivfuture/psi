@@ -88,6 +88,48 @@ describe("files over the real service", () => {
 		await olga.post(`/clients/${c}/files/${id}/delete`, form({}), urlencoded);
 		expect(await text(await olga.get(`/clients/${c}/files`))).not.toContain("raport.txt");
 	});
+	it("renames a file through the Fișiere tab: the list shows the new name, the bytes stay, the journal says so", async () => {
+		const c = k.api.world.ids.c1;
+		const data = new FormData();
+		data.append("files", new File(["păstrat"], "vechi.txt", { type: "text/plain" }));
+		await olga.post(`/clients/${c}/files`, data);
+		const list = await text(await olga.get(`/clients/${c}/files`));
+		const id = list.match(/data-file="([^"]+)"(?:(?!data-file)[\s\S])*?vechi\.txt/)?.[1];
+		expect(id).toBeDefined();
+		const sheet = await text(await olga.get(`/clients/${c}/files?rename=${id}`));
+		expect(sheet).toContain('data-form="file-rename"');
+		expect(sheet).toContain('value="vechi.txt"');
+		const done = await olga.post(
+			`/clients/${c}/files/${id}/rename`,
+			form({ name: "Evaluare inițială.txt" }),
+			urlencoded,
+		);
+		expect(done.status).toBeLessThan(400);
+		const after = await text(await olga.get(`/clients/${c}/files`));
+		expect(after).toContain("Evaluare inițială.txt");
+		expect(after).not.toContain("vechi.txt");
+		expect(await (await olga.get(`/clients/${c}/files/${id}/download`)).text()).toBe("păstrat");
+		const journal = await k.api.world.call(
+			"olga",
+			"GET",
+			"/v1/apps/psizone/audit?action=file.rename",
+		);
+		expect(
+			(journal.json.items as { target: { id: string } }[]).some((e) => e.target.id === id),
+		).toBe(true);
+	});
+	it("refuses a blank new name, writing nothing", async () => {
+		const c = k.api.world.ids.c1;
+		const data = new FormData();
+		data.append("files", new File(["x"], "pastrat.txt", { type: "text/plain" }));
+		await olga.post(`/clients/${c}/files`, data);
+		const list = await text(await olga.get(`/clients/${c}/files`));
+		const id = list.match(/data-file="([^"]+)"(?:(?!data-file)[\s\S])*?pastrat\.txt/)?.[1];
+		const before = await k.api.world.fingerprint();
+		await olga.post(`/clients/${c}/files/${id}/rename`, form({ name: "   " }), urlencoded);
+		expect(await k.api.world.fingerprint()).toBe(before);
+		expect(await text(await olga.get(`/clients/${c}/files`))).toContain("pastrat.txt");
+	});
 	it("refuses a type the contract does not list, writing nothing", async () => {
 		const c = k.api.world.ids.c1;
 		const data = new FormData();

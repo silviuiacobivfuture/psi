@@ -477,6 +477,10 @@
 	color: var(--ink);
 	font: inherit;
 }
+.adm-matrix__from {
+	display: block;
+	margin-top: var(--space-1);
+}
 .adm-matrix__cell {
 	min-width: 132px;
 }

@@ -1,3 +1,5 @@
+import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
+import { asSite, bookAs, freeSlots, mineOf } from "./testing/booking";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 
@@ -81,6 +83,26 @@ const visitorKey = (w: Populated, method: string, path: string, body?: unknown):
 	w.callKey("psizone-web", method, `${A}${path}`, body, { "x-psi-subject": "visitor-prefs" });
 
 export const EXTRA_HAPPY = {
+	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
+	"visitor.mineReschedule": async (w) => {
+		await bookAs(w, "visitor-move");
+		const [row] = await mineOf(w, "visitor-move");
+		const target = (await freeSlots(w, NOW + 4 * 24 * HOUR)).find(
+			(s) =>
+				s.start !== row?.start &&
+				s.modes.includes("onsite") &&
+				s.practitioner === row?.practitioner,
+		);
+		return asSite(
+			w,
+			"POST",
+			`/me/appointments/${row?.id}/reschedule`,
+			{ start: target?.start, mode: "onsite" },
+			"visitor-move",
+		);
+	},
+	"me.settings": (w) => olga(w, "GET", "/me/settings"),
+	"me.saveSettings": (w) => olga(w, "PUT", "/me/settings", { ...DEFAULT_SETTINGS, theme: "dark" }),
 	"invites.get": async (w) => olga(w, "GET", `/clients/${await invited(w)}/invite`),
 	"invites.preview": async (w) =>
 		olga(w, "GET", `/clients/${await inviteable(w)}/invite/preview?contact=client`),
@@ -95,6 +117,11 @@ export const EXTRA_HAPPY = {
 	"staff.search": (w) => {
 		w.staff.seed("happy.search@example.test", "Happy Search");
 		return olga(w, "GET", "/staff-accounts?q=happy");
+	},
+	// Handed over and handed back: the world's Owner stays its Owner for the cases that follow.
+	"ownership.transfer": async (w) => {
+		await olga(w, "POST", "/ownership", { to: "nina" });
+		return w.call("nina", "POST", `${A}/ownership`, { to: "olga" });
 	},
 	"staff.link": async (w) => {
 		const made = await olga(w, "POST", "/staff-accounts", {

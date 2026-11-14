@@ -30,6 +30,18 @@ export const orNull = (max: number) =>
 		.optional()
 		.transform((v) => (v === undefined || v === "" ? null : v));
 
+/**
+ * A field of a change: absent stays absent (the form did not show it, so it is not changed), and an empty one is
+ * "empty it" (`null`).
+ */
+export const blankIsNull = (max: number) =>
+	z
+		.string()
+		.trim()
+		.max(max)
+		.optional()
+		.transform((v) => (v === undefined ? undefined : v === "" ? null : v));
+
 export const none = z.object({});
 
 export const label =

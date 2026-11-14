@@ -26,7 +26,6 @@ import type {
 	Package,
 	PackagePatch,
 	PaymentMethod,
-	PushPrefs,
 	Role,
 	RosterEntry,
 	SearchHit,
@@ -67,6 +66,12 @@ import type {
 	SignInLink,
 	StaffMatch,
 } from "./schema-members";
+import type {
+	MyNotifications,
+	MyNotificationsView,
+	MySettings,
+	MySettingsView,
+} from "./schema-settings";
 
 export type ClientFilter = "current" | "archived";
 
@@ -450,8 +455,21 @@ export interface ClinicPort extends ProfilePort {
 	): Promise<{ name: string; contentType: string; bytes: Uint8Array }>;
 	renameFile(app: AppSlug, id: string, name: string): Promise<ClientFile>;
 	deleteFile(app: AppSlug, id: string): Promise<void>;
-	pushPrefs(subject: string): Promise<PushPrefs>;
-	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;
+	/** The person's own settings in this app; the defaults (`stored: false`) while they saved none. */
+	mySettings(app: AppSlug, subject: string): Promise<MySettingsView>;
+	/** Replaces them; the same set again changes nothing. `invalid` for a set the service does not take. */
+	saveMySettings(app: AppSlug, subject: string, settings: MySettings): Promise<MySettingsView>;
+	/** How the person is told things here: their switches per kind and channel, quiet hours, and what each kind offers. */
+	myNotifications(app: AppSlug, subject: string): Promise<MyNotificationsView>;
+	/**
+	 * Replaces those choices whole. `invalid` for a kind or channel that does not exist, or a channel that cannot be
+	 * switched off; nothing is saved then.
+	 */
+	saveMyNotifications(
+		app: AppSlug,
+		subject: string,
+		prefs: MyNotifications,
+	): Promise<MyNotificationsView>;
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
 	assistantMode(subject: string): Promise<AssistantMode | null>;
 	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;

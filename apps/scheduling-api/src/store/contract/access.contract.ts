@@ -81,6 +81,7 @@ export const accessContract: ContractSection = (env: () => ContractEnv) => {
 			name,
 			system: false,
 			permissions: ["clients_view_all", "clients_view_own"],
+			includes: [],
 			...stamp(),
 			...extra,
 		});
@@ -184,6 +185,7 @@ export const accessContract: ContractSection = (env: () => ContractEnv) => {
 					name,
 					system: false,
 					permissions: [],
+					includes: [],
 					...stamp(),
 				})
 			).id;

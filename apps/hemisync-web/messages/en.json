@@ -454,5 +454,16 @@
 	"nudge_q_home": "Which programme should I start with?",
 	"nudge_q_programme": "Which programme suits me for a first step?",
 	"nudge_q_contact": "I would like to join a programme. Can you help me choose?",
-	"nudge_q_page": "Briefly explain this page to me."
+	"nudge_q_page": "Briefly explain this page to me.",
+	"account_bookings_change_until": "Can be cancelled or moved online until",
+	"account_bookings_cancel_until": "Can be cancelled online until",
+	"account_bookings_too_late": "It can no longer be changed online. Call the clinic and we will help.",
+	"account_bookings_move": "Move to another time",
+	"account_bookings_move_title": "Choose another time",
+	"account_bookings_move_lead": "The same person, the same service. The old time is freed when you choose the new one.",
+	"account_bookings_move_none": "There is no free time in the next two weeks. Call the clinic and we will find one together.",
+	"account_bookings_move_button": "Move here",
+	"account_bookings_moved": "The appointment was moved.",
+	"account_bookings_taken": "That time was just taken. Choose another.",
+	"account_bookings_back": "Back to appointments"
 }

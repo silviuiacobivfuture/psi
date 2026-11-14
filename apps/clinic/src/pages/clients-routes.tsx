@@ -6,6 +6,7 @@ import { appendPage, MoreQuery } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
+import { CLEARABLE_FIELDS } from "../port/schema-clinical";
 import { registerClientActions } from "./client-action-routes";
 import {
 	CLIENT_TABS,
@@ -44,6 +45,12 @@ function openOf(c: Context<Env>, tab: ClientTab): ClientOpen {
 				? { action: confirmAction, id: q("id") ?? "" }
 				: null,
 		fileNotice: upload === "invalid" || upload === "too-big" ? upload : null,
+		contact:
+			tab !== "overview"
+				? null
+				: q("problem") === "contact"
+					? "required"
+					: (CLEARABLE_FIELDS.find((f) => f === q("cleared")) ?? null),
 	};
 }
 

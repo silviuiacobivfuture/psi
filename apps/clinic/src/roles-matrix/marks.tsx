@@ -63,6 +63,25 @@ export function FoldView({ fold, locale }: { fold: Fold; locale: Locale }): JSX.
 	);
 }
 
+/** Under a mark held only through an included role: "din Recepție". Nothing for a row the column holds itself. */
+export function FromView({
+	column,
+	row,
+	locale,
+}: {
+	column: Column;
+	row: string;
+	locale: Locale;
+}): JSX.Element | null {
+	const from = column.from.get(row);
+	if (from === undefined) return null;
+	return (
+		<small class="rm-from adm-muted" data-from={from.id}>
+			{m.rm_from({ role: roleLabel(from, locale) }, at(locale))}
+		</small>
+	);
+}
+
 /** A column's name as people read it: the platform role's own words, a seed role translated, a custom role's name. */
 export const columnName = (c: Column, locale: Locale): string =>
 	c.kind === "platform" ? m.rm_platform({}, at(locale)) : roleLabel(c, locale);

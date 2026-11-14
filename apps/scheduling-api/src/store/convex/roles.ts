@@ -16,6 +16,7 @@ const Stored = z.object({
 	name: z.string(),
 	description: z.string(),
 	permissions: z.array(z.string()),
+	includes: z.array(z.string()).optional(),
 	seeded: z.boolean(),
 	updatedAt: z.number(),
 });
@@ -28,6 +29,7 @@ const toRow = (app: string, r: Stored): RoleRow => ({
 	...(r.description === "" ? {} : { description: r.description }),
 	system: r.seeded,
 	permissions: [...r.permissions].sort(),
+	includes: [...(r.includes ?? [])].sort(),
 	createdAt: Math.floor(r._creationTime),
 	updatedAt: r.updatedAt,
 });
@@ -59,6 +61,7 @@ export function rolesCollection(call: Caller): Collection<RoleRow> {
 					name: row.name,
 					description: row.description ?? "",
 					permissions: row.permissions,
+					includes: row.includes,
 				},
 				{ id: z.string() },
 			);
@@ -76,6 +79,7 @@ export function rolesCollection(call: Caller): Collection<RoleRow> {
 						name: row.name,
 						description: row.description ?? "",
 						permissions: row.permissions,
+						includes: row.includes,
 					},
 					{},
 				);
@@ -94,6 +98,8 @@ export function rolesCollection(call: Caller): Collection<RoleRow> {
 				return true;
 			} catch (error) {
 				if (error instanceof StoreRefused && error.reason === "not_found") return false;
+				if (error instanceof StoreRefused && error.reason === "included")
+					throw new StoreConflict("another role includes it");
 				throw error;
 			}
 		},

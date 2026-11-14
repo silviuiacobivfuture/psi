@@ -16,6 +16,17 @@ describe("the token bucket", () => {
 		expect(l.take("a").ok).toBe(false);
 	});
 
+	it("a clock that steps back refills nothing and drains nothing: the bucket is as it was", () => {
+		let now = 1_000_000;
+		const l = createLimiter({ capacity: 2, refillPerSecond: 1 }, () => now);
+		expect(l.take("a").ok).toBe(true);
+		now += 3_600_000;
+		expect(l.take("a").ok).toBe(true);
+		now -= 3_600_000;
+		expect(l.take("a")).toEqual({ ok: true });
+		expect(l.take("a")).toEqual({ ok: false, retryAfterSeconds: 1 });
+	});
+
 	it("keeps keys apart and forgets the least recently used when it is full", () => {
 		const l = createLimiter({ capacity: 1, refillPerSecond: 0.001 }, () => 0);
 		expect(l.take("a").ok).toBe(true);

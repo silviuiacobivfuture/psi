@@ -41,12 +41,17 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"member.invite": own("member.change", "member"),
 	// A new set-password link was made for a member (never the link itself).
 	"member.link": own("member.change", "member"),
+	// The organisation handed over: both members' changes are their wrappers' events; this one says why.
+	"ownership.transfer": own("member.change", "member"),
 	// Looking at the app as someone else changes nothing: the log has no word for it, so it is a settings-level event.
 	"view_as.start": own("builder.change", "builder"),
 	"view_as.stop": own("builder.change", "builder"),
+	// A person's own settings hold no clinic data: the log says that the member changed them.
+	"settings.update": own("member.change", "member"),
 	"role.create": rec("role.change", "role"),
 	"role.update": rec("role.change", "role"),
 	"role.permissions": rec("role.change", "role"),
+	"role.includes": rec("role.change", "role"),
 	"role.delete": rec("role.change", "role"),
 	"people.create": own("member.change", "member"),
 	"people.update": own("member.change", "member"),
@@ -106,6 +111,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"file.complete": own("file.add", "file"),
 	"file.delete": rec("file.remove", "file"),
 	"file.download": own("file.read", "file"),
+	"file.rename": rec("file.rename", "file"),
 	"blacklist.create": rec("blacklist.create", "blacklist"),
 	"blacklist.update": rec("blacklist.update", "blacklist"),
 	"blacklist.delete": rec("blacklist.delete", "blacklist"),
@@ -123,6 +129,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"callback.create": own("visit.create", "visit"),
 	"request.create": own("visit.create", "visit"),
 	"visitor.cancel": own("visit.cancel", "visit"),
+	"visitor.reschedule": own("visit.update", "visit"),
 };
 
 /**
@@ -173,9 +180,11 @@ export function apiActionOf(action: string, entity: string, fields: readonly str
 				? "role.delete"
 				: fields.includes("permissions")
 					? "role.permissions"
-					: fields.length === 0
-						? "role.create"
-						: "role.update";
+					: fields.includes("includes")
+						? "role.includes"
+						: fields.length === 0
+							? "role.create"
+							: "role.update";
 		case "member.change|member":
 			return deleted ? "member.remove" : "member.put";
 		case "package.update|package":
