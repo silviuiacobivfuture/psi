@@ -13,6 +13,8 @@
 	"st_area_devices_hint": "Aparatele rezervate odată cu ședința.",
 	"st_area_plan": "Plan cabinete (desen)",
 	"st_area_plan_hint": "Desenează și editează planul cabinetelor.",
+	"st_area_assistant": "Asistent",
+	"st_area_assistant_hint": "Modelul, limitele, instrucțiunile și abilitățile asistentului; consumul și bugetul.",
 	"st_area_hours": "Program și pontaj",
 	"st_area_hours_hint": "Programul de lucru și regulile de pontaj.",
 	"st_area_online": "Reguli programare online",

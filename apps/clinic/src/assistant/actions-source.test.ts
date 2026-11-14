@@ -30,7 +30,8 @@ function pageOf(screen: Screen): { page: StaffPage; entity: EntityState } {
 		return { page: { screen: "client", clientId: "c1" }, entity: { clientId: "c1" } };
 	if (screen === "client")
 		return { page: { screen: "client", clientId: "c1" }, entity: { clientId: "c1" } };
-	if (screen.startsWith("settings")) return { page: { screen: "settings" }, entity: {} };
+	if (screen.startsWith("settings") || screen === "platform")
+		return { page: { screen: "settings" }, entity: {} };
 	if (screen === "global") return { page: { screen: "other" }, entity: {} };
 	if (screen === "appointment")
 		return { page: { screen: "appointment", appointmentId: "a1" }, entity: {} };

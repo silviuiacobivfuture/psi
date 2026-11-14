@@ -24,6 +24,7 @@ const SCREENS = [
 	"/settings/blacklist",
 	"/settings/builder",
 	"/settings/audit",
+	"/settings/assistant",
 	"/more",
 ] as const;
 

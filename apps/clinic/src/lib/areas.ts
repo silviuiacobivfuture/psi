@@ -45,6 +45,7 @@ export const ORG_AREAS = [
 	area("rooms", "services", ["rooms_view"], "sidebar", true),
 	area("devices", "services", ["devices_view"], "settings", true),
 	area("plan", "services", ["app_settings_edit"], "sidebar", true),
+	area("assistant", "team", ["app_settings_view"], "chat", true),
 	area("hours", "scheduling", ["roster_edit"], "clock", false),
 	area("online", "scheduling", ["app_settings_edit"], "calendar", false),
 	area("templates", "scheduling", ["app_settings_edit"], "chat", false),

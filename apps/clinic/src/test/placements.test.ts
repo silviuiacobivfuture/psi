@@ -53,6 +53,8 @@ async function screens(): Promise<string[]> {
 		"/settings/devices",
 		"/settings/services",
 		"/platform",
+		"/settings/assistant",
+		"/platform/assistant",
 	];
 }
 

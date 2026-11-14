@@ -13,6 +13,8 @@
 	"st_area_devices_hint": "Equipment that is booked with a session.",
 	"st_area_plan": "Room plan (drawing)",
 	"st_area_plan_hint": "Draw and edit the floor plan.",
+	"st_area_assistant": "Assistant",
+	"st_area_assistant_hint": "The assistant's model, limits, instructions and skills; usage and budget.",
 	"st_area_hours": "Hours and roster rules",
 	"st_area_hours_hint": "Working hours and roster rules.",
 	"st_area_online": "Online booking rules",

@@ -31,6 +31,8 @@ export const SCREENS = [
 	"settings.devices",
 	"settings.services",
 	"settings.roles",
+	"settings.assistant",
+	"platform",
 ] as const;
 export type Screen = (typeof SCREENS)[number];
 

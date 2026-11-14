@@ -1,3 +1,4 @@
+import { ASSISTANT_ACTIONS } from "./registry-assistant";
 import { CATALOG_ACTIONS } from "./registry-catalog";
 import { CLIENT_ACTIONS } from "./registry-client";
 import { DAILY_ACTIONS } from "./registry-daily";
@@ -13,6 +14,7 @@ export const ACTIONS: ReadonlyArray<ActionDef> = [
 	...DAILY_ACTIONS,
 	...CLIENT_ACTIONS,
 	...CATALOG_ACTIONS,
+	...ASSISTANT_ACTIONS,
 ];
 
 const ids = ACTIONS.map((a) => a.id);
