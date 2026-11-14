@@ -150,16 +150,18 @@ jobs:
           git config user.email "estate-ci@users.noreply.github.com"
           bump_dir="$RUNNER_TEMP/bump"
           git worktree add -q --detach "$bump_dir" "origin/$ENV_BRANCH"
+          # Every step checked by hand: called inside `if`, the function runs with set -e off.
           bump() {
             local app="$1" overlay="gitops/services/$1/overlays/$ENV_BRANCH/kustomization.yaml"
             for attempt in 1 2 3; do
-              git -C "$bump_dir" fetch -q origin "$ENV_BRANCH"
-              git -C "$bump_dir" reset -q --hard "origin/$ENV_BRANCH"
+              git -C "$bump_dir" fetch -q origin "$ENV_BRANCH" || return 1
+              git -C "$bump_dir" reset -q --hard "origin/$ENV_BRANCH" || return 1
               [ -f "$bump_dir/$overlay" ] || { echo "::error::$app has no overlay for $ENV_BRANCH ($overlay)"; return 1; }
-              sed -i "s/^\(\s*newTag:\s*\).*/\1\"$TAG\"/" "$bump_dir/$overlay"
-              git -C "$bump_dir" add "$overlay"
+              sed -i "s/^\(\s*newTag:\s*\).*/\1\"$TAG\"/" "$bump_dir/$overlay" || return 1
+              grep -q "newTag: \"$TAG\"" "$bump_dir/$overlay" || { echo "::error::$app: no newTag line in $overlay"; return 1; }
+              git -C "$bump_dir" add "$overlay" || return 1
               if git -C "$bump_dir" diff --cached --quiet; then echo "$app already at $TAG"; return 0; fi
-              git -C "$bump_dir" commit -q --no-verify -m "ci($app): deploy $TAG to $ENV_BRANCH [skip ci] [PATCH]"
+              git -C "$bump_dir" commit -q --no-verify -m "ci($app): deploy $TAG to $ENV_BRANCH [skip ci] [PATCH]" || return 1
               if git -C "$bump_dir" push -q --no-verify origin "HEAD:$ENV_BRANCH"; then return 0; fi
               sleep 5
             done

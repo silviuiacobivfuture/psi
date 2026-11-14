@@ -77,8 +77,8 @@ echo "local-release: $SHA ($TAG) on $ENV_BRANCH: ${apps[*]:-nothing to build}"
 # 0.84 MB/s, from Docker Desktop's VM too (0.98); the same 50 MB from the LAN interface at 8.4 MB/s; inside
 # the cluster 178 MB/s. Said, not refused: the push still works, only slower.
 if command -v ip > /dev/null 2>&1 && command -v getent > /dev/null 2>&1; then
-	reg_ip="$(getent ahostsv4 "$REGISTRY_HOST" | awk 'NR == 1 { print $1 }')"
-	via="$(ip route get "$reg_ip" 2> /dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')"
+	reg_ip="$(getent ahostsv4 "$REGISTRY_HOST" | awk 'NR == 1 { print $1 }' || true)"
+	via="$( { [ -n "$reg_ip" ] && ip route get "$reg_ip" 2> /dev/null; } | sed -n 's/.* dev \([^ ]*\).*/\1/p' || true)"
 	case "$via" in
 		tun* | wg* | ppp*)
 			echo "local-release: WARNING: $REGISTRY_HOST ($reg_ip) is routed through the VPN ($via): uploads run ~10x slower."
