@@ -16,13 +16,11 @@ ARG REGISTRY_PROJECT_MIRROR
 FROM ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/node:24-alpine AS build
 ARG APP=design-gallery
 RUN corepack enable
-ENV npm_config_store_dir=/pnpm-store
 WORKDIR /repo
 COPY . .
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store pnpm install --frozen-lockfile --filter "@psi/${APP}..."
+RUN pnpm install --frozen-lockfile --filter "@psi/${APP}..."
 RUN pnpm --filter "@psi/${APP}" build
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
-    pnpm --config.node-linker=hoisted --filter "@psi/${APP}" deploy --prod --legacy /out
+RUN pnpm --config.node-linker=hoisted --filter "@psi/${APP}" deploy --prod --legacy /out
 RUN cp -r "apps/${APP}/dist" /out/ && if [ -d "apps/${APP}/public" ]; then cp -r "apps/${APP}/public" /out/; fi \
  && mkdir -p /layers/deps/app /layers/psi/app/node_modules \
  && mv /out/node_modules/@psi /layers/psi/app/node_modules/@psi \
