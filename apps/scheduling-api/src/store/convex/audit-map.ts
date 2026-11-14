@@ -41,12 +41,15 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"member.invite": own("member.change", "member"),
 	// A new set-password link was made for a member (never the link itself).
 	"member.link": own("member.change", "member"),
+	// The organisation handed over: both members' changes are their wrappers' events; this one says why.
+	"ownership.transfer": own("member.change", "member"),
 	// Looking at the app as someone else changes nothing: the log has no word for it, so it is a settings-level event.
 	"view_as.start": own("builder.change", "builder"),
 	"view_as.stop": own("builder.change", "builder"),
 	"role.create": rec("role.change", "role"),
 	"role.update": rec("role.change", "role"),
 	"role.permissions": rec("role.change", "role"),
+	"role.includes": rec("role.change", "role"),
 	"role.delete": rec("role.change", "role"),
 	"people.create": own("member.change", "member"),
 	"people.update": own("member.change", "member"),
@@ -172,9 +175,11 @@ export function apiActionOf(action: string, entity: string, fields: readonly str
 				? "role.delete"
 				: fields.includes("permissions")
 					? "role.permissions"
-					: fields.length === 0
-						? "role.create"
-						: "role.update";
+					: fields.includes("includes")
+						? "role.includes"
+						: fields.length === 0
+							? "role.create"
+							: "role.update";
 		case "member.change|member":
 			return deleted ? "member.remove" : "member.put";
 		case "package.update|package":

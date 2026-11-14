@@ -15,11 +15,13 @@ import { inviteHandlers } from "./invites";
 import { memberHandlers } from "./members";
 import { noteHandlers } from "./notes";
 import { notificationPrefsHandlers } from "./notification-prefs";
+import { ownershipHandlers } from "./ownership";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
 import { reportHandlers } from "./reports";
 import { roleSummaryHandlers } from "./role-summary";
+import { roleHandlers } from "./roles";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
 import { staffHandlers } from "./staff-accounts";
@@ -31,6 +33,8 @@ const complete: Handlers = {
 	...appHandlers,
 	...roleSummaryHandlers,
 	...memberHandlers,
+	...roleHandlers,
+	...ownershipHandlers,
 	...catalogHandlers,
 	...clientHandlers,
 	...appointmentHandlers,

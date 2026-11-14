@@ -79,6 +79,15 @@
 					},
 					"grants": ["sched_app#members_delete_all"],
 					"effect": "write"
+				},
+				{
+					"key": "members_manage_admins",
+					"name": {
+						"ro": "Echipa: manage_admins",
+						"en": "Team members: manage_admins"
+					},
+					"grants": ["sched_app#members_manage_admins_all"],
+					"effect": "write"
 				}
 			]
 		},
@@ -2670,6 +2679,78 @@
 			]
 		},
 		{
+			"key": "billing",
+			"name": {
+				"ro": "billing",
+				"en": "billing"
+			},
+			"permissions": [
+				{
+					"key": "billing_view",
+					"name": {
+						"ro": "billing: vede",
+						"en": "billing: view"
+					},
+					"grants": ["sched_app#billing_view_all"],
+					"effect": "read"
+				},
+				{
+					"key": "billing_edit",
+					"name": {
+						"ro": "billing: modifică",
+						"en": "billing: edit"
+					},
+					"grants": ["sched_app#billing_edit_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "organisation",
+			"name": {
+				"ro": "organisation",
+				"en": "organisation"
+			},
+			"permissions": [
+				{
+					"key": "organisation_delete",
+					"name": {
+						"ro": "organisation: șterge",
+						"en": "organisation: delete"
+					},
+					"grants": ["sched_app#organisation_delete_all"],
+					"effect": "write"
+				},
+				{
+					"key": "organisation_transfer",
+					"name": {
+						"ro": "organisation: transfer",
+						"en": "organisation: transfer"
+					},
+					"grants": ["sched_app#organisation_transfer_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "assistant_budget",
+			"name": {
+				"ro": "assistant_budget",
+				"en": "assistant_budget"
+			},
+			"permissions": [
+				{
+					"key": "assistant_budget_edit",
+					"name": {
+						"ro": "assistant_budget: modifică",
+						"en": "assistant_budget: edit"
+					},
+					"grants": ["sched_app#assistant_budget_edit_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
 			"key": "register",
 			"name": {
 				"ro": "Registrul organizației",
@@ -2735,6 +2816,10 @@
 				},
 				{
 					"name": "members_delete_all",
+					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "members_manage_admins_all",
 					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
 				},
 				{
@@ -4612,6 +4697,26 @@
 				{
 					"name": "notes_pin_own_clinical",
 					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "billing_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "billing_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "organisation_delete_all",
+					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "organisation_transfer_all",
+					"from": ["[user, sched_role#member]", "administrator from parent_platform"]
+				},
+				{
+					"name": "assistant_budget_edit_all",
+					"from": ["[user, sched_role#member]"]
 				}
 			]
 		},
@@ -4628,7 +4733,7 @@
 				},
 				{
 					"name": "member",
-					"from": ["[user]"]
+					"from": ["[user, sched_role#member]"]
 				}
 			]
 		},
@@ -5953,10 +6058,13 @@
 				"sched_app#members_create_all",
 				"sched_app#members_edit_all",
 				"sched_app#members_delete_all",
+				"sched_app#members_manage_admins_all",
 				"sched_app#roles_view_all",
 				"sched_app#roles_create_all",
 				"sched_app#roles_edit_all",
-				"sched_app#roles_delete_all"
+				"sched_app#roles_delete_all",
+				"sched_app#organisation_delete_all",
+				"sched_app#organisation_transfer_all"
 			],
 			"assignable": true,
 			"max_duration": null

@@ -14,6 +14,7 @@ import {
 	RELATION_NAME_MAX,
 	RESOURCES,
 	SEED_ROLES,
+	seedEffective,
 	THERAPIST,
 	VOLUNTEER,
 } from "../permissions";
@@ -22,7 +23,8 @@ import { scopeFactsFor } from "../permissions/relations";
 const role = (name: string) => {
 	const found = SEED_ROLES.find((r) => r.name === name);
 	if (found === undefined) throw new Error(`no seed role ${name}`);
-	return found;
+	// What the role holds in the end: its own keys and every role it includes.
+	return { ...found, permissions: seedEffective(name) };
 };
 const perms = (name: string) => effectivePermissions([role(name)]);
 const NONE = { own: false, assigned: false } as const;
@@ -43,7 +45,8 @@ describe("the catalogue", () => {
 	});
 
 	it("covers every resource of the plan with at least one action", () => {
-		expect(RESOURCES.length).toBe(32);
+		// 32 of the plan, and the Owner's own three: billing, the organisation, the assistants' budget
+		expect(RESOURCES.length).toBe(35);
 		for (const resource of RESOURCES) expect(CATALOGUE[resource].actions.length).toBeGreaterThan(0);
 	});
 

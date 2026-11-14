@@ -1,6 +1,6 @@
 {
 	"name": "@psi/scheduling",
-	"version": "0.29.1",
+	"version": "0.30.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's scheduling engine: providers, services, availability rules and exceptions, slots, holds with expiry, requests and appointments, DST-safe in Europe/Bucharest; Convex as the database",
@@ -11,7 +11,8 @@
 		"./permissions": "./src/permissions/index.ts",
 		"./clinic": "./src/clinic/index.ts",
 		"./testing": "./src/testing.ts",
-		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json"
+		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json",
+		"./seed/roles-before-inclusion.json": "./seed/roles-before-inclusion.json"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",

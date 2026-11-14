@@ -67,6 +67,9 @@ const WHERE: Readonly<Record<Resource, Where>> = {
 	reports: APP,
 	audit_log: APP,
 	imports_exports: APP,
+	billing: APP,
+	organisation: APP,
+	assistant_budget: APP,
 	people: { create: APP, view: CALENDAR, edit: CALENDAR, archive: CALENDAR },
 	calendars: CALENDAR,
 	roster: CALENDAR,
@@ -116,7 +119,12 @@ function objectsOf(resource: Resource, action: Action): readonly SchedType[] {
 	throw new Error(`no placement for ${resource} ${action}`);
 }
 
-const PLATFORM_ADMIN: readonly Resource[] = ["app_settings", "members", "roles"];
+/**
+ * What the estate's platform administrators hold in every app: its settings, its team (Administrators and Owners
+ * included), its roles, and the organisation itself (so one whose last Owner left can be handed over). Never billing
+ * or the assistants' budget: those are the organisation's own.
+ */
+const PLATFORM_ADMIN: readonly Resource[] = ["app_settings", "members", "roles", "organisation"];
 const READS: readonly Action[] = ["view", "export", "imports_view"];
 
 function base(resource: Resource, action: Action, group?: BaseFieldGroup): string {

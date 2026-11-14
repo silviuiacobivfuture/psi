@@ -64,6 +64,7 @@ export const ensureApp = internalMutation({
 			});
 		}
 		let rolesAdded = 0;
+		const inserted = new Set<string>();
 		for (const role of SEED_ROLES) {
 			const has = await ctx.db
 				.query("roles")
@@ -80,6 +81,20 @@ export const ensureApp = internalMutation({
 				updatedBy: "system:setup",
 			});
 			rolesAdded += 1;
+			inserted.add(role.name);
+		}
+		// The seed roles include one another by name: linked once every one of them exists, for the roles made just now
+		// (an app's existing roles are its owners' data, changed only by them or the re-seed tool).
+		for (const role of SEED_ROLES) {
+			if (role.includes.length === 0 || !inserted.has(role.name)) continue;
+			const rows = await ctx.db
+				.query("roles")
+				.withIndex("by_tenant_name", (q) => q.eq("tenant", args.slug))
+				.collect();
+			const self = rows.find((r) => r.name === role.name && r.seeded);
+			if (self === undefined) continue;
+			const ids = role.includes.flatMap((n) => rows.filter((r) => r.name === n).map((r) => r._id));
+			if (ids.length === role.includes.length) await ctx.db.patch(self._id, { includes: ids });
 		}
 		let formsAdded = 0;
 		for (const form of SEED_FORM_TEMPLATES) {
