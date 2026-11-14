@@ -253,7 +253,7 @@ describe("the journal says it in a sentence", () => {
 		const journal = await html(olga, "/settings/audit");
 		// the service keeps the role ids sorted: the sentence names them in that order
 		const names = [
-			[role("admin"), "Administrator"],
+			[role("admin"), "Administrator clinică"],
 			[role("coordinator"), "Coordonator"],
 		]
 			.sort(([a = ""], [b = ""]) => a.localeCompare(b))
