@@ -15,8 +15,14 @@ const SEARCH_HITS = 6;
 /** The calendar, appointments, search, reminders and the roster. */
 export function calendarGroup(sdk: SdkContext) {
 	const { api, run } = sdk;
+	// The calendar, its sheet, the floor and the reports each ask for these: one page asks the service once.
+	const columnsOnce = sdk.memo<Column[]>();
+	const servicesOnce = sdk.memo<ReturnType<typeof serviceOf>[]>();
 
-	async function columns(app: AppSlug): Promise<Column[]> {
+	const columns = (app: AppSlug): Promise<Column[]> => columnsOnce.get(app, () => listColumns(app));
+	const services = (app: AppSlug) => servicesOnce.get(app, () => listServices(app));
+
+	async function listColumns(app: AppSlug): Promise<Column[]> {
 		const tolerate = async <T>(list: () => Promise<T[]>): Promise<T[]> => {
 			try {
 				return await list();
@@ -50,7 +56,7 @@ export function calendarGroup(sdk: SdkContext) {
 		];
 	}
 
-	async function services(app: AppSlug) {
+	async function listServices(app: AppSlug) {
 		const all = await drain((cursor) =>
 			api.services.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 		);

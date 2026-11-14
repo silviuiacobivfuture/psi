@@ -4,7 +4,7 @@ import type { Pwa } from "@psi/pwa";
 import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
-import { setCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
@@ -17,8 +17,9 @@ import { canOf } from "./lib/can";
 import { activeApp, type Ctx, storedPrefs, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { judge, landingFor } from "./lib/gates";
-import { at } from "./lib/i18n";
+import { at, localeFrom } from "./lib/i18n";
 import { sse } from "./lib/sse";
+import { serverTiming, timed } from "./lib/timings";
 import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
@@ -38,8 +39,10 @@ import { registerMySettings } from "./pages/my-settings";
 import { registerOnline } from "./pages/online";
 import { registerOrgAreas } from "./pages/org-areas";
 import { registerOrgSettings } from "./pages/org-settings";
+import { OutagePage } from "./pages/outage";
 import { registerPlatform } from "./pages/platform";
 import { registerPrint } from "./pages/print-routes";
+import { registerRecordsWithoutClient } from "./pages/records-without-client";
 import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
 import { renderRoster } from "./pages/roster";
@@ -80,6 +83,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAssets(root);
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
+	// Every answer says where its time went (session, the service, its OpenFGA and Convex share, this console's own).
+	app.use("*", serverTiming());
 	// Pages, the stylesheet and Datastar travel gzip-compressed (event streams never are: they must flush as they go).
 	app.use("*", compress());
 	const bell =
@@ -107,7 +112,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
 	app.use("*", async (c, next) => {
 		const { locale, theme, deco } = viewerPrefs(c);
-		const person = await deps.auth.person(c);
+		const person = await timed(c.req.raw, "session", () => deps.auth.person(c));
 		if (person === null)
 			return c.redirect(
 				deps.auth.signInHref(`${new URL(c.req.url).pathname}${new URL(c.req.url).search}`),
@@ -128,7 +133,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 				{ "cache-control": "private, no-store" },
 			);
 		}
-		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next.
+		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next
+		// (the service keeps its dear part, the OpenFGA catalogue, only while the rows it derives from are unchanged).
 		const real = await own.capabilities(person.subject, active);
 		// "Vezi ca…" is the estate administrator's alone: an app's owners and admins never see or start it.
 		const mayViewAs = real.platformAdmin;
@@ -240,6 +246,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerMySettings(app);
 	registerPlatform(app);
 	registerStats(app);
+	registerRecordsWithoutClient(app);
 	registerProfile(app, deps);
 	registerRolesMatrix(app);
 	registerReminders(app);
@@ -268,7 +275,21 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			unavailable: 503,
 		} as const;
 		const ctx = c.var.ctx;
-		if (ctx === undefined) return c.text(err.code, status[err.code]);
+		// The service failed before the request's context existed (who asks, which app, what they may do): a page in
+		// their language with a way back in for a navigation, the code for a fragment or a call that is not one.
+		if (ctx === undefined) {
+			const navigation = c.req.method === "GET" && c.req.header("datastar-request") !== "true";
+			if (!navigation) return c.text(err.code, status[err.code]);
+			const u = new URL(c.req.url);
+			return c.html(
+				await OutagePage({
+					locale: localeFrom(getCookie(c, "lang")),
+					retryHref: `${u.pathname}${u.search}`,
+				}),
+				status[err.code],
+				{ "cache-control": "no-store", "retry-after": "5" },
+			);
+		}
 		if (c.req.header("datastar-request") === "true") return c.text(err.code, status[err.code]);
 		return c.html(
 			await Page({

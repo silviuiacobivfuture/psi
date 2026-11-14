@@ -82,8 +82,16 @@
 	mask:
 		linear-gradient(#000 0 0) content-box exclude,
 		linear-gradient(#000 0 0);
-	animation: pz-aura-spin 9s linear infinite;
+	/* Two turns on arrival, then still: a turning gradient repaints the bar (and re-blurs what is behind it) on every
+	   frame, which a page open all day must not pay. Hovered or focused, it turns again. */
+	animation: pz-aura-spin 9s linear 2;
 	transition: opacity 0.3s;
+}
+.pz-compass__bar:hover::before,
+.pz-compass__bar:focus-within::before,
+.pz-ask__bar:hover::before,
+.pz-ask__bar:focus-within::before {
+	animation-iteration-count: infinite;
 }
 
 /* The aura: a soft light outside the edge (an outer shadow shows only outside the box). */
@@ -97,7 +105,7 @@
 	pointer-events: none;
 	opacity: 0.55;
 	box-shadow: var(--pz-halo);
-	animation: pz-aura-breathe 6s ease-in-out infinite;
+	animation: pz-aura-breathe 6s ease-in-out 3;
 	transition: opacity 0.3s;
 }
 .pz-compass__bar:hover::after,

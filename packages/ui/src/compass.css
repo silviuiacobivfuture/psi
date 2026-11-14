@@ -90,7 +90,8 @@
 	cursor: pointer;
 	background: radial-gradient(circle at 30% 26%, var(--glow-3), var(--glow-2) 48%, var(--glow-1));
 	box-shadow: 0 0 24px -4px var(--glow-2);
-	animation: pz-compass-breathe 7s ease-in-out infinite;
+	/* Three breaths on arrival, then still (a breathing shadow repaints on every frame). */
+	animation: pz-compass-breathe 7s ease-in-out 3;
 }
 .pz-compass.is-open .pz-compass__orb {
 	transform: scale(0.9);

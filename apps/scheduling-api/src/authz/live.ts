@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { timed } from "../timing";
 import { type AuthzPort, AuthzUnavailable, type Tuple, type TupleChange } from "./port";
 
 export interface LiveAuthzOptions {
@@ -30,6 +31,8 @@ const Batch = z.object({
 });
 /** OpenFGA's default ceiling for one BatchCheck. */
 const BATCH_MAX = 50;
+/** How many BatchChecks one call has in flight at once. */
+const BATCH_PARALLEL = 10;
 const List = z.object({ objects: z.array(z.string()) });
 /** OpenFGA's default ListObjects result cap (`OPENFGA_LIST_OBJECTS_MAX_RESULTS`, which the estate leaves unset). */
 const LIST_MAX = 1000;
@@ -49,7 +52,10 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 	const wire = (id: string): string =>
 		prefix !== "" && id.startsWith(appHead) ? `${appHead}${prefix}${id.slice(appHead.length)}` : id;
 
-	async function post(base: string, path: string, body: unknown): Promise<unknown> {
+	const post = (base: string, path: string, body: unknown): Promise<unknown> =>
+		timed("fga", () => send(base, path, body));
+
+	async function send(base: string, path: string, body: unknown): Promise<unknown> {
 		let res: Response;
 		try {
 			res = await doFetch(`${base.replace(/\/+$/, "")}/stores/${options.storeId}${path}`, {
@@ -92,9 +98,10 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 			return Check.parse(raw).allowed === true;
 		},
 		async checkMany(checks) {
-			const answers: boolean[] = [];
-			for (let at = 0; at < checks.length; at += BATCH_MAX) {
-				const chunk = checks.slice(at, at + BATCH_MAX);
+			const chunks: (typeof checks)[] = [];
+			for (let at = 0; at < checks.length; at += BATCH_MAX)
+				chunks.push(checks.slice(at, at + BATCH_MAX));
+			const one = async (chunk: typeof checks): Promise<boolean[]> => {
 				const raw = await post(options.readUrl, "/batch-check", {
 					authorization_model_id: options.modelId,
 					checks: chunk.map((q, i) => ({
@@ -105,15 +112,27 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 					consistency: consistency(),
 				});
 				const result = Batch.parse(raw).result;
-				chunk.forEach((_q, i) => {
+				return chunk.map((_q, i) => {
 					const item = result[String(i)];
 					// A missing item or an item with an error is not an answer: the whole call fails closed.
 					if (item === undefined || item.error !== undefined)
 						throw new AuthzUnavailable("authz: OpenFGA could not answer a batched check");
-					answers.push(item.allowed === true);
+					return item.allowed === true;
 				});
-			}
-			return answers;
+			};
+			// The whole catalogue is ~480 questions, ten BatchChecks: one after another they cost ~1.3 s on the estate's
+			// OpenFGA, four at a time ~0.9 s, all ten at once ~0.6 s (measured in the cluster). Bounded, for a larger ask.
+			const answers: boolean[][] = new Array(chunks.length);
+			let next = 0;
+			const worker = async (): Promise<void> => {
+				while (next < chunks.length) {
+					const at = next++;
+					const chunk = chunks[at];
+					if (chunk !== undefined) answers[at] = await one(chunk);
+				}
+			};
+			await Promise.all(Array.from({ length: Math.min(BATCH_PARALLEL, chunks.length) }, worker));
+			return answers.flat();
 		},
 		async listObjects(user, relation, type) {
 			const raw = await post(options.readUrl, "/list-objects", {

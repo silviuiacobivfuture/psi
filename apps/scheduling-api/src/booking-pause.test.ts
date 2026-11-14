@@ -16,13 +16,8 @@ let w: Populated;
 
 const as = (who: string, method: string, path: string, body?: unknown): Promise<Reply> =>
 	w.call(who, method, `${A}${path}`, body);
-const site = (
-	method: string,
-	path: string,
-	body?: unknown,
-	caller = "psizone-web",
-): Promise<Reply> =>
-	w.callKey(caller, method, `${A}${path}`, body, { "x-psi-client-ip": "203.0.113.9" });
+const site = (method: string, path: string, body?: unknown): Promise<Reply> =>
+	w.callKey("psizone-web", method, `${A}${path}`, body, { "x-psi-client-ip": "203.0.113.9" });
 const code = (r: Reply): string | undefined =>
 	(r.json.error as { code?: string } | undefined)?.code;
 const reason = (r: Reply): unknown =>

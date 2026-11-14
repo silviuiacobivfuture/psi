@@ -18,6 +18,9 @@ export const FEEDBACK_TABLES = [
 	["parent_feedback", PARENT_QUESTIONNAIRE],
 ] as const satisfies ReadonlyArray<readonly [TableName, FormDefinition]>;
 
+/** The note of a feedback row whose client is null or unknown: imported all the same, with no client. */
+export const ORPHAN_KEPT = "orphan_feedback_client:kept_unattached";
+
 const META = ["id", "appointment_id", "client_id", "therapist_id", "created_at", "updated_at"];
 
 /** The column names a template field may have had: its key, and the American spelling of British words. */
@@ -117,14 +120,11 @@ export async function planResponses(
 		for (const row of source[table]) {
 			const ref = `${table}:${row.id}`;
 			reportExtraColumns(ctx, table, row.id, row, mapped);
-			if (
-				row.client_id === null ||
-				row.client_id === undefined ||
-				!known.clientIds.has(row.client_id)
-			) {
-				ctx.log.add("orphan_feedback_client", "skipped", ref);
-				continue;
-			}
+			// A report whose client is gone (deleted in the old app) is clinical history all the same: it is kept with no
+			// client, on its visit when that is known, and only the app-wide clinical scope reaches it.
+			const hasClient =
+				row.client_id !== null && row.client_id !== undefined && known.clientIds.has(row.client_id);
+			if (!hasClient) ctx.log.add(ORPHAN_KEPT, "note", ref);
 			const values: Record<string, unknown> = {};
 			let readable = true;
 			for (const field of def.fields) {
@@ -183,7 +183,7 @@ export async function planResponses(
 				fingerprint: await fingerprintOf(ctx, table, row),
 				definitionKey: def.key,
 				definitionVersion: def.version,
-				clientLegacy: `clients:${row.client_id}`,
+				clientLegacy: hasClient ? `clients:${row.client_id}` : undefined,
 				visitLegacy: hasVisit ? `appointments:${row.appointment_id}` : undefined,
 				practitionerLegacy: hasPractitioner ? practitionerLegacy(row.therapist_id ?? 0) : undefined,
 				payload: await ctx.enc.encrypt(JSON.stringify(checked.values), "formResponses.payload"),

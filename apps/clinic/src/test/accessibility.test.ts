@@ -34,6 +34,8 @@ const SCREENS = [
 	"/settings/members?new=1",
 	"/settings/members?invite=1",
 	"/more",
+	"/records",
+	"/records/r3",
 ] as const;
 
 const VIEWPORTS = [
