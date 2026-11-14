@@ -12,11 +12,13 @@ import { z } from "zod";
  *   OPENFGA_STORE_ID, OPENFGA_TOKEN, OPENFGA_MODEL_ID
  *   OPENFGA_APP_PREFIX                         optional: prefix of the app's id on `sched_app` objects
  */
-const Env = z.object({
+const StoreEnv = z.object({
 	CONVEX_URL: z.string().url().optional(),
 	CONVEX_SELF_HOSTED_URL: z.string().url().optional(),
 	PSI_SCHEDULING_KEY: z.string().min(32).optional(),
 	CONVEX_SELF_HOSTED_ADMIN_KEY: z.string().min(10).optional(),
+});
+const Env = StoreEnv.extend({
 	OPENFGA_API_URL: z.string().url(),
 	OPENFGA_STORE_ID: z.string().min(1),
 	OPENFGA_TOKEN: z.string().min(1),
@@ -37,7 +39,7 @@ export interface ToolConfig {
 const run = promisify(execFile);
 
 /** The service's server key: given, or read from the deployment with the admin key (the Convex CLI, in-process). */
-async function serverKeyOf(env: z.infer<typeof Env>, url: string): Promise<string> {
+async function serverKeyOf(env: z.infer<typeof StoreEnv>, url: string): Promise<string> {
 	if (env.PSI_SCHEDULING_KEY !== undefined) return env.PSI_SCHEDULING_KEY;
 	if (env.CONVEX_SELF_HOSTED_ADMIN_KEY === undefined)
 		throw new Error(
@@ -56,17 +58,38 @@ async function serverKeyOf(env: z.infer<typeof Env>, url: string): Promise<strin
 	return key;
 }
 
-export async function readConfig(
+const parseEnv = <S extends z.ZodTypeAny>(
+	schema: S,
 	raw: Readonly<Record<string, string | undefined>>,
-): Promise<ToolConfig> {
-	const parsed = Env.safeParse(raw);
+): z.infer<S> => {
+	const parsed = schema.safeParse(raw);
 	if (!parsed.success)
 		throw new Error(
 			`configuration: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
 		);
-	const env = parsed.data;
+	return parsed.data;
+};
+
+const urlOf = (env: z.infer<typeof StoreEnv>): string => {
 	const convexUrl = env.CONVEX_SELF_HOSTED_URL ?? env.CONVEX_URL;
 	if (convexUrl === undefined) throw new Error("set CONVEX_SELF_HOSTED_URL (or CONVEX_URL)");
+	return convexUrl;
+};
+
+/** The store alone (no OpenFGA): for the tools that write only the store (apply-rooms, apply-org). */
+export async function readStoreConfig(
+	raw: Readonly<Record<string, string | undefined>>,
+): Promise<Pick<ToolConfig, "convexUrl" | "serverKey">> {
+	const env = parseEnv(StoreEnv, raw);
+	const convexUrl = urlOf(env);
+	return { convexUrl, serverKey: await serverKeyOf(env, convexUrl) };
+}
+
+export async function readConfig(
+	raw: Readonly<Record<string, string | undefined>>,
+): Promise<ToolConfig> {
+	const env = parseEnv(Env, raw);
+	const convexUrl = urlOf(env);
 	return {
 		convexUrl,
 		serverKey: await serverKeyOf(env, convexUrl),

@@ -299,6 +299,20 @@
 .pz-fp__swatch[data-category="neuro"] {
 	background: color-mix(in srgb, var(--success) 20%, var(--fp-paper));
 }
+/*
+ * In the console (the admin themes) the categories wear the clinic's own colours, as the owner's plan draws them:
+ * lavender for psychotherapy, counselling, speech therapy and group; green for neuro-assessment and neurofeedback.
+ */
+[data-theme^="admin-"] .pz-fp__area--room[data-category="therapy"] .pz-fp__fill,
+[data-theme^="admin-"] .pz-fp__swatch[data-category="therapy"] {
+	fill: var(--cal-4-soft);
+	background: var(--cal-4-soft);
+}
+[data-theme^="admin-"] .pz-fp__area--room[data-category="neuro"] .pz-fp__fill,
+[data-theme^="admin-"] .pz-fp__swatch[data-category="neuro"] {
+	fill: var(--cal-3-soft);
+	background: var(--cal-3-soft);
+}
 /* In the live view the fill says free or busy, so the category shows on the wall: the same two colours as the legend. */
 .pz-fp__area--room[data-category="therapy"]:not(.is-selected):not(.is-open):not(.is-conflict)
 .pz-fp__wall {
@@ -309,4 +323,14 @@
 	.pz-fp__wall {
 	stroke: var(--success);
 	stroke-width: 2.5;
+}
+[data-theme^="admin-"]
+	.pz-fp__area--room[data-category="therapy"]:not(.is-selected):not(.is-open):not(.is-conflict)
+	.pz-fp__wall {
+	stroke: var(--cal-4);
+}
+[data-theme^="admin-"]
+	.pz-fp__area--room[data-category="neuro"]:not(.is-selected):not(.is-open):not(.is-conflict)
+	.pz-fp__wall {
+	stroke: var(--cal-3);
 }

@@ -36,7 +36,7 @@ export function planReseed(roles: ReadonlyArray<RoleRow>, now: number): Step[] {
 	const byId = new Map<string, ComposedRole>(
 		roles.map((r) => [r.id, { id: r.id, permissions: r.permissions, includes: r.includes }]),
 	);
-	const held = (id: string): Set<string> => effectiveOf(id, byId).keys;
+	const held = (id: string): ReadonlySet<string> => effectiveOf(id, byId).keys;
 	return SEED_ROLES.map((seed): Step => {
 		const role = seeded.get(seed.name);
 		if (role === undefined) return { kind: "missing", name: seed.name };
