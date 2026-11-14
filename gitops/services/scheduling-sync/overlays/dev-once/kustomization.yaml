@@ -1,0 +1,11 @@
+# The one-shot, anonymized sync into DEV (job.yaml). Not an Argo Application (it would re-run on every sync): render it
+# with tools/scheduling/sync-dev-once.sh, which puts dev's current scheduling-deploy tag in place of the placeholder.
+# Its policy and secrets stand in overlays/dev (the `scheduling-sync` Application).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling
+resources:
+  - job.yaml
+images:
+  - name: registry.psizone.ro/psi/scheduling-deploy
+    newTag: "from-dev-overlay"

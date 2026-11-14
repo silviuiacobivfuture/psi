@@ -65,7 +65,8 @@ describe("only the estate administrator can start it", () => {
 	it("the top bar carries the role pill for the estate administrator, and nothing for an owner or reception", async () => {
 		const bar = await text(await (await k.as("olga")).get("/clients"));
 		expect(bar).toContain("data-role-switch");
-		expect(bar).toContain("Rol: Administrator platformă");
+		expect(bar).toContain("Rol: Administrator sistem");
+		expect(bar).not.toContain("Administrator platformă");
 		for (const who of ["otto", "rita"]) {
 			const html = await text(await (await k.as(who)).get("/clients"));
 			expect(html, who).not.toContain("data-role-switch");

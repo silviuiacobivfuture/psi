@@ -58,7 +58,7 @@ spec:
             limits: { cpu: 100m, memory: 32Mi }
       containers:
         - name: runner
-          image: WLREGISTRY/mirror/docker.io/n8nio/runners:2.46.4@sha256:7ae8720b0c2e1c3504cb4386394183ced00fa227697e4fa47f095b0e368827b6
+          image: WLREGISTRY/mirror/docker.io/n8nio/runners:2.47.6@sha256:ba770aa4c8639f58dccb428e70bf41de64d05b4f13d20f1b1a66eb827a8fe130
           args: ["javascript"]
           envFrom:
             - secretRef: { name: n8n-runner }

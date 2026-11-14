@@ -61,14 +61,19 @@ async function importAes(raw: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
 	return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
-/** The master key from its base64 text; refuses anything but exactly 32 bytes. */
+/**
+ * The master key from its text: 64 hex characters (how the estate's secret store holds it) or base64; refuses anything
+ * but exactly 32 bytes. The two forms cannot be mistaken for each other: 64 hex characters read as base64 are 48 bytes.
+ */
 export async function parseMasterKey(text: string | undefined): Promise<MasterKey> {
 	if (text === undefined || text.trim() === "") {
 		throw new CryptoError("bad_master_key", `${MASTER_KEY_ENV} is not set`);
 	}
 	let raw: Uint8Array<ArrayBuffer>;
 	try {
-		raw = fromBase64(text.trim());
+		raw = /^[0-9a-fA-F]{64}$/.test(text.trim())
+			? Uint8Array.from(text.trim().match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+			: fromBase64(text.trim());
 	} catch {
 		throw new CryptoError("bad_master_key", `${MASTER_KEY_ENV} is not base64`);
 	}

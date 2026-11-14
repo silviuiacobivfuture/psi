@@ -49,6 +49,12 @@ const Common = z.object({
 	OIDC_ISSUERS: Json(z.array(IssuerSchema).min(1)),
 	SERVICE_CALLERS: Callers.default(""),
 	CLINIC_MASTER_KEY: Hex64,
+	/**
+	 * `hold`: nothing leaves the service for a person (no Novu notice, no scheduled pass, no reminder e-mail); every
+	 * notice is logged by id instead. For an instance whose data is real but whose people are still served by another
+	 * system (production before the cut-over), so nobody is told twice.
+	 */
+	NOTIFY_DELIVERY: z.enum(["send", "hold"]).default("send"),
 });
 
 const Memory = z.object({
@@ -70,6 +76,11 @@ const OpenFga = z.object({
 		.min(1)
 		.refine((v) => v !== "latest", "pinned, never latest"),
 	OPENFGA_TOKEN: z.string().min(1),
+	/** Scopes this instance's `sched_app` objects in a shared store (`prod-` -> `sched_app:prod-psizone`). */
+	OPENFGA_APP_PREFIX: z
+		.string()
+		.regex(/^[a-z0-9-]*$/, "lowercase letters, digits and dashes")
+		.default(""),
 });
 const Mail = z.object({
 	MAIL_API_URL: Url,
@@ -84,6 +95,25 @@ const Notify = z.object({
 	REMINDER_LINK_SECRET: z.string().min(32),
 	/** The team console's public origin: where a notification's console links lead (differs per environment). */
 	CONSOLE_URL: Url,
+});
+/**
+ * The estate's sign-in (Authentik) as the invitation flow reaches it: an API token that may create users and read the
+ * customers group. Optional as a set: without it the invitation routes answer 503 and nothing else changes.
+ */
+const Sso = z.object({
+	AUTHENTIK_URL: Url,
+	AUTHENTIK_API_TOKEN: z.string().min(1),
+	/** The group the site accounts live in (customers, never staff). */
+	AUTHENTIK_CUSTOMERS_GROUP: z.string().min(1).default("customers"),
+	/**
+	 * The group whose members reach the console (`app-clinic-member` on dev, `app-clinic-prod-member` in production): the
+	 * one the team's search reads and an invited member's account is made in. Absent: those two routes answer 503.
+	 */
+	AUTHENTIK_STAFF_GROUP: z.string().min(1).optional(),
+	/** The subject a site sees for a user: Authentik's provider setting, `hashed_user_id` by default. */
+	AUTHENTIK_SUB_MODE: z
+		.enum(["hashed_user_id", "user_id", "user_username", "user_email"])
+		.default("hashed_user_id"),
 });
 const Objects = z.object({
 	S3_ENDPOINT: Url,
@@ -100,6 +130,8 @@ export interface Config {
 	issuers: IssuerConfig[];
 	callers: CallerConfig[];
 	masterKey: string;
+	/** `hold`: notices are logged, never delivered, and the scheduled pass does not run. */
+	delivery: "send" | "hold";
 	store: { kind: "memory" } | { kind: "convex"; url: string; serverKey: string };
 	authz:
 		| { kind: "memory" }
@@ -110,6 +142,7 @@ export interface Config {
 				storeId: string;
 				modelId: string;
 				token: string;
+				appPrefix: string;
 		  };
 	mail: { url: string; key: string; from: string; fromName: string } | undefined;
 	objects:
@@ -124,6 +157,17 @@ export interface Config {
 	/** Absent: notifications are logged and none is delivered (development and tests). Production requires it. */
 	notify:
 		| { novuApiUrl: string; novuSecretKey: string; reminderLinkSecret: string; consoleUrl: string }
+		| undefined;
+	/** Absent: the invitation routes answer 503 (the set is optional by design). */
+	sso:
+		| {
+				url: string;
+				token: string;
+				customersGroup: string;
+				/** Absent: the team's search and invitation answer 503 (the client invitation is unaffected). */
+				staffGroup: string | undefined;
+				subMode: "hashed_user_id" | "user_id" | "user_username" | "user_email";
+		  }
 		| undefined;
 	/** The sha-256 hex of each caller's key secret, by caller id. */
 	callerHashes: Map<string, string>;
@@ -170,6 +214,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 			storeId: fga.data.OPENFGA_STORE_ID,
 			modelId: fga.data.OPENFGA_MODEL_ID,
 			token: fga.data.OPENFGA_TOKEN,
+			appPrefix: fga.data.OPENFGA_APP_PREFIX,
 		};
 	}
 	const mail = Mail.safeParse(env);
@@ -184,6 +229,14 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 	);
 	if ((production || anyNotify) && !notify.success) throw new ConfigError(problems(notify.error));
 
+	// Optional as a set: half of it is a mistake in any environment (a token without an address reaches nothing).
+	const sso = Sso.safeParse(env);
+	const anySso = ["AUTHENTIK_URL", "AUTHENTIK_API_TOKEN"].some((name) => (env[name] ?? "") !== "");
+	if (anySso && !sso.success) throw new ConfigError(problems(sso.error));
+	// A client made staff, or staff made a client, by one mistyped group: refused at boot.
+	if (sso.success && sso.data.AUTHENTIK_STAFF_GROUP === sso.data.AUTHENTIK_CUSTOMERS_GROUP)
+		throw new ConfigError("AUTHENTIK_STAFF_GROUP: must not be the customers group");
+
 	const callerHashes = new Map<string, string>();
 	for (const caller of common.data.SERVICE_CALLERS) {
 		const hash = Hex64.safeParse(env[hashVariable(caller.id)]);
@@ -197,6 +250,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 		issuers: common.data.OIDC_ISSUERS,
 		callers: common.data.SERVICE_CALLERS,
 		masterKey: common.data.CLINIC_MASTER_KEY,
+		delivery: common.data.NOTIFY_DELIVERY,
 		store:
 			backing.data.SCHEDULING_STORE === "convex"
 				? {
@@ -231,6 +285,19 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 					consoleUrl: notify.data.CONSOLE_URL,
 				}
 			: undefined,
+		sso: sso.success
+			? {
+					url: sso.data.AUTHENTIK_URL.replace(/\/+$/, ""),
+					token: sso.data.AUTHENTIK_API_TOKEN,
+					customersGroup: sso.data.AUTHENTIK_CUSTOMERS_GROUP,
+					staffGroup: sso.data.AUTHENTIK_STAFF_GROUP,
+					subMode: sso.data.AUTHENTIK_SUB_MODE,
+				}
+			: undefined,
 		callerHashes,
 	};
 }
+
+/** Whether this instance tells people anything: notifications configured, and delivery not held. */
+export const deliversNotices = (config: Config): boolean =>
+	config.notify !== undefined && config.delivery === "send";

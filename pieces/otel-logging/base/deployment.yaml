@@ -24,7 +24,8 @@ spec:
         - name: harbor-pull
       containers:
         - name: otel-collector
-          image: WLREGISTRY/WLAPPS/otel-collector-journald:0.111.0
+          # The same image as the agent's (daemonset.yaml), pinned by the estate's component.
+          image: WLREGISTRY/WLAPPS/otel-collector-journald:REPLACE_ME
           args: ["--config=/conf/cluster-config.yaml"]
           env:
             - name: AXIOM_TOKEN

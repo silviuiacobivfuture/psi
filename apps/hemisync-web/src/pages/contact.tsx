@@ -2,7 +2,7 @@ import { GlassCard } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, base } from "../i18n";
 import { m } from "../paraglide/messages.js";
-import { href } from "../routes";
+import { bookingHref, href } from "../routes";
 import { Band, NextSteps, PageHero, type PageProps, PageShell, Pending } from "./shell";
 
 /**
@@ -45,7 +45,8 @@ export function ContactPage(props: PageProps): JSX.Element {
 			</Band>
 			<NextSteps
 				links={[
-					{ label: m.nav_guide({}, o), href: `${base(locale)}/#ghid`, primary: true },
+					{ label: m.bk_nav({}, o), href: bookingHref(locale), primary: true },
+					{ label: m.nav_guide({}, o), href: `${base(locale)}/#ghid` },
 					{ label: m.nav_faq({}, o), href: href(locale, "faq") },
 				]}
 			/>

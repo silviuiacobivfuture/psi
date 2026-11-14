@@ -1,0 +1,19 @@
+# The off-site backups of the appointments system (gitops/services/backup, docs/backup.md): bucket setup, file
+# replicas, the OpenBao snapshot's off-site copy, the freshness alarm.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backup
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/backup/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backup
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

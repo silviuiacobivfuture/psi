@@ -1,4 +1,5 @@
 import { type AuditAction, type AuditEntity, makeAuditEvent } from "../src/clinic/audit";
+import type { AuditChange } from "../src/clinic/audit-changes";
 import type { ChangeKind } from "../src/clinic/changes";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -56,6 +57,10 @@ export interface Recorded {
 	kind: ChangeKind;
 	version: number;
 	fields?: ReadonlyArray<string>;
+	/** The audit event's id of the thing when the journal knows it otherwise (a member by their subject). */
+	auditId?: string;
+	/** A team change's before and after (src/clinic/audit-changes.ts); refused on any other entity. */
+	changes?: ReadonlyArray<AuditChange>;
 }
 
 /** The audit event and the change-log entry of one write. */
@@ -66,8 +71,9 @@ export async function record(ctx: MutationCtx, r: Recorded): Promise<void> {
 		actor: r.actor,
 		action: r.action,
 		entity: r.entity,
-		entityId: r.entityId,
+		entityId: r.auditId ?? r.entityId,
 		...(r.fields === undefined ? {} : { fields: [...r.fields] }),
+		...(r.changes === undefined || r.changes.length === 0 ? {} : { changes: [...r.changes] }),
 	});
 	if (!made.ok) throw new Error(`audit event refused: ${made.problems.join(",")}`);
 	const e = made.event;
@@ -79,6 +85,7 @@ export async function record(ctx: MutationCtx, r: Recorded): Promise<void> {
 		entity: e.entity,
 		entityId: e.entityId,
 		summary: e.summary,
+		...(e.changes === undefined ? {} : { changes: e.changes }),
 	});
 	await logChange(ctx, r.tenant, r.kind, r.entityId, r.version);
 }

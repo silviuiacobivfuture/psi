@@ -2,6 +2,7 @@ import { parsePermissionKey } from "@psi/scheduling/permissions";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { actionById, listActions, runAction } from "../actions/engine";
 import type { ActionCtx } from "../actions/types";
+import { roleName } from "../chrome";
 import { canOf } from "../lib/can";
 import { createSdkPort } from "../port/sdk/index";
 import { type SdkConsole, type Session, startSdkConsole } from "./sdk-harness";
@@ -75,15 +76,8 @@ const SEEDS = [
 	"accountant",
 	"volunteer",
 ];
-const SEED_NAMES = [
-	"Administrator",
-	"Proprietar",
-	"Coordonator",
-	"Recepție",
-	"Terapeut",
-	"Contabil",
-	"Voluntar",
-];
+/** The seed roles in the console's own Romanian words (the top bar's and the team list's). */
+const SEED_NAMES = SEEDS.map((s) => roleName(s, "ro"));
 
 describe("presence: every member reaches the role matrix", () => {
 	it("the person menu offers it on every screen, to reception as to the owner", async () => {

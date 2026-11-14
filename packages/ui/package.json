@@ -15,9 +15,9 @@
 		"./brand-hemisync.css": "./src/brand-hemisync.css",
 		"./brand-blog.css": "./src/brand-blog.css",
 		"./flat.css": "./src/flat.css",
-		"./inbox.css": "./src/notifications/inbox.css",
 		"./timeline.css": "./src/timeline.css",
 		"./imagery.css": "./src/imagery.css",
+		"./inbox.css": "./src/notifications/inbox.css",
 		"./testing": "./src/testing.ts",
 		"./admin": "./src/admin/index.ts",
 		"./admin.css": "./src/admin/admin.css",
@@ -38,17 +38,18 @@
 		"@psi/design": "workspace:*",
 		"@psi/engine": "workspace:*",
 		"@psi/guide": "workspace:*",
+		"@psi/scheduling": "workspace:*",
 		"zod": "^3.25.76"
 	},
 	"peerDependencies": {
 		"hono": "^4.13.0"
 	},
 	"devDependencies": {
-		"axe-core": "4.10.3",
+		"axe-core": "^4.14.0",
+		"esbuild": "^0.25.0",
 		"happy-dom": "20.14.6",
 		"hono": "^4.13.18",
 		"typescript": "^5.7.3",
-		"vitest": "^2.1.9",
-		"esbuild": "^0.25.0"
+		"vitest": "^2.1.9"
 	}
 }

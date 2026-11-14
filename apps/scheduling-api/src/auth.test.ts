@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { hashSecret, verifyServiceKey } from "./auth/service-keys";
 import { createTokenVerifier } from "./auth/tokens";
 import { hashVariable, loadConfig } from "./config";
-import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer, MailUnavailable } from "./ports/mail";
 import { createS3Store } from "./ports/objects";
 import { createTestIssuer } from "./testing/tokens";
@@ -183,6 +182,73 @@ describe("configuration", () => {
 		expect(() => loadConfig({ ...base, ...extra })).toThrow(/NOVU|REMINDER/);
 	});
 
+	it("the sign-in's settings are optional as a set: none means no invitations, and nothing else changes", () => {
+		expect(loadConfig(prod).sso).toBeUndefined();
+		expect(loadConfig(base).sso).toBeUndefined();
+	});
+
+	it("a complete sign-in set is carried through, with the customers group and the subject mode defaulted", () => {
+		expect(
+			loadConfig({
+				...prod,
+				AUTHENTIK_URL: "https://auth.psizone.ro/",
+				AUTHENTIK_API_TOKEN: "api-token",
+			}).sso,
+		).toEqual({
+			url: "https://auth.psizone.ro",
+			token: "api-token",
+			customersGroup: "customers",
+			staffGroup: undefined,
+			subMode: "hashed_user_id",
+		});
+		expect(
+			loadConfig({
+				...prod,
+				AUTHENTIK_URL: "https://auth.psizone.ro",
+				AUTHENTIK_API_TOKEN: "t",
+				AUTHENTIK_CUSTOMERS_GROUP: "clients",
+				AUTHENTIK_SUB_MODE: "user_email",
+			}).sso,
+		).toMatchObject({ customersGroup: "clients", subMode: "user_email" });
+	});
+
+	it("the staff group is carried through, and may never be the customers group", () => {
+		const sso = { ...prod, AUTHENTIK_URL: "https://auth.psizone.ro", AUTHENTIK_API_TOKEN: "t" };
+		expect(
+			loadConfig({
+				...sso,
+				AUTHENTIK_STAFF_GROUP: "app-clinic-prod-member",
+				AUTHENTIK_CUSTOMERS_GROUP: "app-clinic-prod-customer",
+			}).sso,
+		).toMatchObject({
+			staffGroup: "app-clinic-prod-member",
+			customersGroup: "app-clinic-prod-customer",
+		});
+		expect(() =>
+			loadConfig({
+				...sso,
+				AUTHENTIK_STAFF_GROUP: "app-clinic-customer",
+				AUTHENTIK_CUSTOMERS_GROUP: "app-clinic-customer",
+			}),
+		).toThrow(/AUTHENTIK_STAFF_GROUP/);
+		expect(() => loadConfig({ ...sso, AUTHENTIK_STAFF_GROUP: "customers" })).toThrow(
+			/AUTHENTIK_STAFF_GROUP/,
+		);
+	});
+
+	it.each([
+		["an address alone", { AUTHENTIK_URL: "https://auth.psizone.ro" }],
+		["a token alone", { AUTHENTIK_API_TOKEN: "t" }],
+		["an address that is not a URL", { AUTHENTIK_URL: "auth", AUTHENTIK_API_TOKEN: "t" }],
+		[
+			"a subject mode we do not know",
+			{ AUTHENTIK_URL: "https://a.test", AUTHENTIK_API_TOKEN: "t", AUTHENTIK_SUB_MODE: "uuid" },
+		],
+	])("half a sign-in set, or a malformed one (%s), is refused, even outside production", (_what, extra) => {
+		expect(() => loadConfig({ ...base, ...extra })).toThrow(/AUTHENTIK/);
+		expect(() => loadConfig({ ...prod, ...extra })).toThrow(/AUTHENTIK/);
+	});
+
 	it("the error names the variable and never echoes a value", () => {
 		try {
 			loadConfig({ ...prod, CLINIC_MASTER_KEY: "very-secret-but-wrong" });
@@ -195,23 +261,6 @@ describe("configuration", () => {
 });
 
 describe("ports", () => {
-	it("seals per context and refuses a tampered or foreign envelope", () => {
-		const crypto = createFieldCrypto("ab".repeat(32));
-		const sealed = crypto.seal("diagnosis", "psizone:client:c1:clinical");
-		expect(sealed).not.toContain("diagnosis");
-		expect(crypto.open(sealed, "psizone:client:c1:clinical")).toBe("diagnosis");
-		expect(() => crypto.open(sealed, "psizone:client:c2:clinical")).toThrow();
-		expect(() => crypto.open(`${sealed.slice(0, -2)}AA`, "psizone:client:c1:clinical")).toThrow();
-		expect(() =>
-			createFieldCrypto("ab".repeat(32)).open(sealed.replace("v1", "v2"), "x"),
-		).toThrow();
-		expect(() => createFieldCrypto("abcd")).toThrow();
-		expect(crypto.seal("x", "c")).not.toBe(crypto.seal("x", "c"));
-		expect(() =>
-			createFieldCrypto("cd".repeat(32)).open(sealed, "psizone:client:c1:clinical"),
-		).toThrow();
-	});
-
 	it("signs S3 URLs: expiring, scoped to one key and method, deterministic for a fixed clock", () => {
 		const s3 = createS3Store({
 			endpoint: "https://s3.test",

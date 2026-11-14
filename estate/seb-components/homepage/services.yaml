@@ -127,11 +127,11 @@
         podSelector: app.kubernetes.io/name=affine
     - E-mail:
         icon: mdi-email-outline
-        href: https://webmail.psizone.ro/
-        description: Căsuța ta nume@post.psizone.ro, în browser · Roundcube
+        href: https://inbox.psizone.ro/
+        description: Căsuța ta nume@post.psizone.ro, în browser · Bulwark
         namespace: stalwart
-        app: webmail
-        podSelector: app.kubernetes.io/name=webmail
+        app: bulwark
+        podSelector: app.kubernetes.io/name=bulwark
     - Parole de aplicație (e-mail):
         icon: mdi-cellphone-key
         href: https://post.psizone.ro/account

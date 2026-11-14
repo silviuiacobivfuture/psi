@@ -32,6 +32,51 @@ export interface DocumentsPort {
 	): Promise<{ revision: number; updatedAt: number }>;
 }
 
+/**
+ * What the engagement layer keeps per app, by namespace: online-account invitations (`invite`, by client id), the
+ * links from an account to the clients it covers (`link`, by `<account hash>/<client id>`), notification preferences
+ * (`prefs`, by person or visitor), the delivery log (`delivery`, by `<day>/<job key>/<step>`) and the scheduler's claims
+ * (`tick`, by `<day>/<kind>/<what>`: one scheduled notice is queued once across replicas). The service owns the shape
+ * of each body (a schema parses every read); the store keeps text and a revision.
+ */
+export const KEYED_NAMESPACES = ["invite", "link", "prefs", "delivery", "tick"] as const;
+export type KeyedNamespace = (typeof KEYED_NAMESPACES)[number];
+
+/** The most one body holds, and the key alphabet: the store's own bounds (the Convex wrapper's too). */
+export const KEYED_MAX_BODY = 16_000;
+export const KEYED_KEY = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,199}$/;
+
+export interface KeyedEntry {
+	key: string;
+	body: string;
+	revision: number;
+	updatedAt: number;
+}
+
+export interface KeyedPort {
+	get(app: string, ns: KeyedNamespace, key: string): Promise<KeyedEntry | undefined>;
+	/**
+	 * Saves `body` edited from revision `expected` (0: nothing there yet). One atomic compare-and-set:
+	 * `StoreRefused("stale")` when the stored revision is another, `"invalid"` for a bad key or an oversized body,
+	 * `"not_found"` for an app that is not there.
+	 */
+	put(
+		app: string,
+		ns: KeyedNamespace,
+		key: string,
+		expected: number,
+		body: string,
+	): Promise<{ revision: number; updatedAt: number }>;
+	/** Entries whose key starts with `prefix`, by key, at most `limit` (default 200, at most 1000). */
+	list(
+		app: string,
+		ns: KeyedNamespace,
+		options?: { prefix?: string; limit?: number },
+	): Promise<KeyedEntry[]>;
+	/** False when there was nothing to remove. */
+	remove(app: string, ns: KeyedNamespace, key: string): Promise<boolean>;
+}
+
 export type BlacklistLimit = "any" | "warn_only";
 
 /** An entry as the store keeps it (phone and e-mail already normalised); `client` is the store's client id. */

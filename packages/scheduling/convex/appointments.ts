@@ -64,6 +64,8 @@ export const hold = mutation({
 		if (
 			practitioner === null ||
 			!practitioner.active ||
+			// A person of another tenant is never bookable here, whatever a service lists.
+			practitioner.tenant !== tenant.slug ||
 			!service.practitioners.includes(practitionerId)
 		) {
 			return { ok: false as const, reason: "unknown_service" as const };

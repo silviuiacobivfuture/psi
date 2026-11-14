@@ -86,7 +86,10 @@ export type EngineEvent =
 	 */
 	| { type: "actions"; actions: ReadonlyArray<GuideAction> }
 	| { type: "refusal"; reason: RefusalReason }
-	/** Free times to book, offered in the conversation; the app renders its own confirm step. */
+	/**
+	 * A step of the booking dialogue (free times, a question, the summary, the submitted request,
+	 * a cancellation); the app renders each kind from its own copy.
+	 */
 	| { type: "booking"; offer: BookingOffer }
 	| { type: "done" };
 
@@ -132,6 +135,12 @@ export interface PageContext {
 	lead?: string;
 	headings: ReadonlyArray<string>;
 	excerpt?: string;
+	/**
+	 * The brand that published the page, for a site that carries several brands' pages (the blog):
+	 * a profile may hand a booking to that brand's own site. Set by the app's server, never read
+	 * from the browser.
+	 */
+	brand?: string;
 	/**
 	 * Whether the page's text is health content (a clinician reviews it). Absent means it is: the
 	 * guide then says a clinician is still reviewing a page that is not published; for `false` it
@@ -202,6 +211,10 @@ export const PageContextSchema: z.ZodType<PageContext, z.ZodTypeDef, unknown> = 
 			.max(PAGE_LIMITS.headings)
 			.readonly(),
 		excerpt: z.string().trim().min(1).max(PAGE_LIMITS.excerpt).optional(),
+		brand: z
+			.string()
+			.regex(/^[a-z]{2,20}$/)
+			.optional(),
 		clinical: z.boolean().optional(),
 	})
 	.strict()

@@ -8,6 +8,7 @@ import { catalogGroup } from "./catalog";
 import { clientsGroup } from "./clients";
 import { clinicalGroup } from "./clinical";
 import { createContext } from "./context";
+import { invitesGroup } from "./invites";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 import { membersGroup } from "./members";
 import { profileGroup } from "./profile";
@@ -54,6 +55,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 	const catalog = catalogGroup(sdk);
 	const clients = clientsGroup(sdk, clientsPage);
 	const clinical = clinicalGroup(sdk, clientsPage);
+	const invites = invitesGroup(sdk);
 	const admin = adminGroup(sdk);
 	const appointments = appointmentsGroup(sdk);
 	return {
@@ -62,6 +64,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...clients,
 		...clinical,
 		...catalog,
+		...invites,
 		...admin,
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),

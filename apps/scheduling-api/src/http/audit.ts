@@ -10,7 +10,10 @@ export interface AuditInput {
 }
 
 /** Appends an audit event. Detail holds ids and counts, never values (a diagnosis never lands here). */
-export async function writeAudit(deps: Deps, input: AuditInput): Promise<void> {
+export async function writeAudit(
+	deps: Pick<Deps, "store" | "clock">,
+	input: AuditInput,
+): Promise<void> {
 	await deps.store.c.audit.insert({
 		id: newId("e"),
 		app: input.app,

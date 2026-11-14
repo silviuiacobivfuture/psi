@@ -1,14 +1,14 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 
 import { siteSettingsFor } from "@psi/cms-client";
-import type { BookingOffer } from "@psi/guide";
+import { type BookingOffer, confirmation, PSI_PROFILES, wantsEdit } from "@psi/guide";
 import { encodeSlot } from "@psi/scheduling";
+import { ANA, NOW, store } from "@psi/scheduling/testing";
+import { createPicker } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import { describe, expect, it } from "vitest";
-import { createPicker } from "./booking-picker";
-import { bookingSummary } from "./chat-booking";
+import { bookingEnv } from "./booking-site";
 import { guideLabels } from "./guide";
-import { ANA, NOW, store } from "./test-store";
 
 const START = Date.parse("2026-11-20T08:00:00Z");
 const SLOT = encodeSlot({ practitioner: ANA, start: START, mode: "onsite" });
@@ -163,9 +163,277 @@ describe("booking in the guide's chat", () => {
 	});
 
 	it("the guide's memory of a booking turn never holds a time, a name or a code", () => {
-		for (const kind of ["times", "confirm", "cancel_ask", "cancel_result", "services"] as const) {
-			const text = bookingSummary({ ...confirm, kind }, "ro");
+		for (const kind of [
+			"times",
+			"confirm",
+			"summary",
+			"booked",
+			"submit_failed",
+			"cancel_ask",
+			"cancel_result",
+			"services",
+		] as const) {
+			const text =
+				guideLabels("ro", { settings: siteSettingsFor({}, "psizone"), picker }).booking?.summary({
+					...confirm,
+					kind,
+				}) ?? "";
 			expect(text).not.toMatch(/\d{2}:\d{2}|demo|Ana/i);
 		}
+	});
+});
+
+describe("the details step in the chat", () => {
+	const slot = offer.slots[0];
+	if (slot === undefined) throw new Error("no slot");
+	const FULL = {
+		name: "Ana Pop",
+		age: 34,
+		details: "Mă simt anxioasă de câteva luni și nu dorm bine",
+		phone: "+40722123456",
+		email: "ana@example.ro",
+		forWhom: "adult" as const,
+	};
+	const step = (
+		details: NonNullable<BookingOffer["details"]>,
+		kind: BookingOffer["kind"] = "confirm",
+		extra: Partial<BookingOffer> = {},
+	): BookingOffer => ({ ...offer, kind, slots: [slot], chosen: slot, details, ...extra });
+	const asking = (
+		over: Partial<NonNullable<BookingOffer["details"]>>,
+	): NonNullable<BookingOffer["details"]> => ({
+		values: {},
+		missing: ["name", "age", "details", "phone", "email"],
+		heard: [],
+		ask: "name",
+		nudge: false,
+		edit: false,
+		...over,
+	});
+
+	it("the first question follows the chosen time, in the conversation and without the form", async () => {
+		const out = await render("ro", step(asking({})));
+		expect(out).toContain("vineri, 20 noiembrie, 10:00");
+		expect(out).toContain("Cum te numești?");
+		expect(out).not.toContain("<form");
+		expect(out).toContain("Completez în formular");
+	});
+
+	it.each([
+		["name", "Cum te numești?"],
+		["age", "Câți ani ai?"],
+		["details", "Ce se întâmplă, pe scurt?"],
+		["phone", "La ce număr de telefon"],
+		["email", "la ce adresă de e-mail?"],
+	] as const)("asks %s, and only that", async (ask, line) => {
+		const lines = [
+			"Cum te numești?",
+			"Câți ani ai?",
+			"Ce se întâmplă, pe scurt?",
+			"La ce număr de telefon",
+			"la ce adresă de e-mail?",
+		];
+		const out = await render(
+			"ro",
+			step(asking({ ask, values: { name: "Ana Pop" }, heard: ["name"] })),
+		);
+		expect(out).toContain(line);
+		expect(out).toContain("Mulțumesc, Ana!");
+		for (const other of lines.filter((l) => l !== line)) expect(out).not.toContain(other);
+	});
+
+	it("names the problem instead of asking again as if nothing happened", async () => {
+		const phone = await render(
+			"ro",
+			step(asking({ ask: "phone", problem: { field: "phone", code: "invalid" } })),
+		);
+		expect(phone).toContain("Numărul pare incomplet — îl poți scrie din nou?");
+		const typo = await render(
+			"en",
+			step(
+				asking({
+					ask: "email",
+					problem: { field: "email", code: "typo", suggestion: "gmail.com" },
+				}),
+			),
+		);
+		expect(typo).toContain("Did you mean ...@gmail.com?");
+		const age = await render(
+			"ro",
+			step(asking({ ask: "age", problem: { field: "age", code: "invalid" } })),
+		);
+		expect(age).toContain("între 0 și 120");
+	});
+
+	it("the summary shows every detail, the time, the practitioner, who it is for and the consent, with two buttons", async () => {
+		const out = await render(
+			"ro",
+			step({ ...asking({}), values: FULL, missing: [], ask: undefined }, "summary"),
+		);
+		for (const text of [
+			"vineri, 20 noiembrie, 10:00",
+			"DEMO Ana Exemplu",
+			"Ana Pop",
+			"34",
+			"+40722123456",
+			"ana@example.ro",
+			"anxioasă",
+			"Pentru",
+			"Confirmând, ești de acord",
+			"Confirmă programarea",
+			"Editează",
+		]) {
+			expect(out, text).toContain(text);
+		}
+		expect(out).not.toContain("<form");
+		expect((out.match(/<button/g) ?? []).length).toBe(2);
+		expect(out).toContain("psi-guide-ask");
+	});
+
+	it("a long description is trimmed on the card", async () => {
+		const out = await render(
+			"ro",
+			step(
+				{ ...asking({}), values: { ...FULL, details: "x".repeat(400) }, missing: [] },
+				"summary",
+			),
+		);
+		expect(out).toContain(`${"x".repeat(160)}…`);
+		expect(out).not.toContain("x".repeat(161));
+	});
+
+	it("in English the summary and its buttons are English, whatever the page's language", async () => {
+		const out = await render(
+			"ro",
+			step({ ...asking({}), values: FULL, missing: [] }, "summary", { lang: "en" }),
+		);
+		expect(out).toContain("Confirm booking");
+		expect(out).toContain("Edit details");
+		expect(out).toContain("I have everything I need");
+	});
+
+	it("the buttons send words the guide reads as a yes and as an edit, in both languages", () => {
+		for (const locale of ["ro", "en"] as const) {
+			const labels = guideLabels(locale, { settings: siteSettingsFor({}, "psizone"), picker });
+			expect(labels.booking).toBeDefined();
+		}
+		for (const locale of ["ro", "en"] as const) {
+			const env = bookingEnv(locale);
+			expect(confirmation(env.copy.chat.card.confirm), locale).toBeDefined();
+			expect(wantsEdit(env.copy.chat.card.edit), locale).toBe(true);
+			expect(wantsEdit(env.copy.chat.card.confirm), locale).toBe(false);
+		}
+	});
+
+	it("Edit opens the booking form with every detail typed so far", async () => {
+		const out = await render("ro", step({ ...asking({}), values: FULL, missing: [], edit: true }));
+		expect(out).toContain("<form");
+		expect(out).toMatch(/name="name"[^>]*value="Ana Pop"/);
+		expect(out).toMatch(/name="age"[^>]*value="34"/);
+		expect(out).toMatch(/name="phone"[^>]*value="\+40722123456"/);
+		expect(out).toMatch(/name="email"[^>]*value="ana@example.ro"/);
+		expect(out).toContain("anxioasă");
+	});
+
+	it("the booked card gives the reference and the cancel code, how to cancel, and what happens next", async () => {
+		const out = await render("ro", {
+			...offer,
+			kind: "booked",
+			slots: [],
+			booked: {
+				name: "Ana Pop",
+				reference: "ABCD2345",
+				cancelCode: "WXYZ-2345-ABCD-6789",
+				start: START,
+				timeZone: "Europe/Bucharest",
+				mode: "onsite",
+				practitioner: "DEMO Ana Exemplu",
+			},
+		});
+		expect(out).toContain("ABCD2345");
+		expect(out).toContain("WXYZ-2345-ABCD-6789");
+		expect(out).toContain("Echipa te sună");
+		expect(out).not.toContain("<form");
+	});
+
+	it("when the time went, the lost time is said and the details stay in the form", async () => {
+		const out = await render("ro", {
+			...offer,
+			notice: "taken",
+			details: { ...asking({}), values: FULL, missing: [], ask: undefined },
+		});
+		expect(out).toContain("tocmai s-a ocupat");
+		expect(out).toMatch(/name="name"[^>]*value="Ana Pop"/);
+	});
+
+	it("when the store is down the visitor is told so plainly, with the site's phones", async () => {
+		const out = await render("ro", {
+			...offer,
+			kind: "submit_failed",
+			slots: [],
+			status: "unavailable",
+		});
+		expect(out).toContain('role="alert"');
+		expect(out).toContain("tel:");
+		expect(out).toContain("scrie „da”");
+	});
+
+	it("the booked card and the summary leave nothing in the guide's memory of the turn", () => {
+		const labels = guideLabels("ro", { settings: siteSettingsFor({}, "psizone"), picker });
+		for (const kind of ["summary", "booked", "submit_failed"] as const) {
+			const text = labels.booking?.summary({ ...offer, kind, booked: undefined }) ?? "";
+			expect(text).not.toMatch(/\d{2}:\d{2}|Ana|ABCD|@|\+40/);
+		}
+	});
+});
+
+describe("the site and its guide agree on who the booking is for", () => {
+	it("the profile's audiences are the booking environment's, for both languages", () => {
+		for (const locale of ["ro", "en"] as const) {
+			expect(PSI_PROFILES.psizone.scheduling?.audiences).toEqual(bookingEnv(locale).audiences);
+		}
+	});
+});
+
+describe("the sent, failed and lost-time cards in both languages", () => {
+	const booked = {
+		name: "Ana Pop",
+		reference: "ABCD2345",
+		cancelCode: "WXYZ-2345-ABCD-6789",
+		start: Date.parse("2026-11-20T08:00:00Z"),
+		timeZone: "Europe/Bucharest",
+		mode: "onsite" as const,
+		practitioner: "DEMO",
+	};
+	it.each([
+		["ro", "Echipa te sună", "tocmai s-a ocupat", "scrie „da”"],
+		["en", "The team will call you", "has just been taken", "write “yes”"],
+	] as const)("%s: the request, the lost time and the failure are in that language", async (locale, next, gone, retry) => {
+		const base = offer;
+		const sent = await render(locale, { ...base, kind: "booked", slots: [], booked });
+		expect(sent).toContain(next);
+		expect(sent).toContain("ABCD2345");
+		const lost = await render(locale, {
+			...base,
+			kind: "times",
+			notice: "taken",
+			details: {
+				values: { name: "Ana Pop" },
+				missing: ["age", "details", "phone", "email"],
+				heard: [],
+				ask: "age",
+				nudge: false,
+				edit: false,
+			},
+		});
+		expect(lost).toContain(gone);
+		const failed = await render(locale, {
+			...base,
+			kind: "submit_failed",
+			slots: [],
+			status: "unavailable",
+		});
+		expect(failed).toContain(retry);
+		expect(failed).toContain('role="alert"');
 	});
 });

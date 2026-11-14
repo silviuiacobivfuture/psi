@@ -480,9 +480,9 @@ data:
             - !Find [authentik_core.user, [username, WLOPERATOR]]
       # seb:app-only stalwart
       # ---- Entitlements: Mail (the estate's mail server; pieces/stalwart) ----------
-      # Gate <WEBMAIL_HOST_PREFIX>.<apex> and <MAIL_ADMIN_HOST_PREFIX>.<apex>, with the same three
-      # bindings each time (blueprints-providers.yaml): the `webmail` and `mail` edge providers
-      # and the `mail-oidc` client.
+      # Admit people to <MAIL_ADMIN_HOST_PREFIX>.<apex> and to the mail client, with the same three
+      # bindings each time (blueprints-providers.yaml): the `mail` edge provider and the `mail-oidc`
+      # client (Bulwark and Stalwart's own pages).
       #   app-mail-user   has a mailbox and manages it (app passwords for phones, filters)
       #   app-mail-admin  the same, and runs the server (Stalwart's administration page)
       #   platform-admins break-glass, as everywhere

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://seb.invalid/schema/autorizare/org.schema.json",
+	"tenant": "psi",
+	"version": 2,
+	"secret_sink": "openbao",
+	"applications": [
+		{
+			"slug": "scheduling-api",
+			"name": "Programări",
+			"module": "sched"
+		}
+	],
+	"grants": [],
+	"webhooks": [],
+	"programs": [
+		{
+			"name": "scheduling-api",
+			"org": "o-01a1ce922e3d71f990932be31d8d07fb",
+			"module": "sched",
+			"role": "sched:integration",
+			"reason": "Serviciul de programări își scrie și își retrage drepturile prin Polaris, ca program al aplicației sale.",
+			"secret": {
+				"path": "apps/scheduling-api/autorizare",
+				"client_id_key": "client_id",
+				"client_secret_key": "client_secret"
+			}
+		}
+	]
+}

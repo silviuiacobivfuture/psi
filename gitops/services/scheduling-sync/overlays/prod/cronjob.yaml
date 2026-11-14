@@ -1,0 +1,96 @@
+# Keeps PRODUCTION's store in step with the old app until the cut-over: every 15 minutes, REAL data
+# (SYNC_ALLOW_REAL=1: this is the one place it is set). SUSPENDED until the owner flips `suspend` to false in a commit.
+#
+# What it does (packages/scheduling/scripts/sync-old): reads the old app strictly read-only (GET), runs the importer
+# against production's backend: changed rows update, new rows insert, rows deleted in the old app are reported in the
+# log and never deleted. Idempotent by old id: a pass with nothing new writes nothing. `--allow-skips` writes the rest
+# when a few rows cannot be placed (they are listed in the log by old id); a blocking anomaly (an unknown column or
+# table) still refuses the whole pass.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduling-sync
+  labels: { app: scheduling-sync }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "*/15 * * * *"
+  # THE OWNER'S SWITCH. First run it by hand (the Job from `kubectl create job --from=cronjob/scheduling-sync`) after a
+  # --dry-run, then set this to false.
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      # Shorter than the schedule: a pass that hangs is killed before the next one is due.
+      activeDeadlineSeconds: 840
+      template:
+        metadata:
+          labels: { app: scheduling-sync }
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: harbor-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: assert-secrets
+              image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              envFrom:
+                - secretRef: { name: scheduling-sync-env }
+              command:
+                - sh
+                - -c
+                - >-
+                  m=0;
+                  [ -n "${OLD_APP_SUPABASE_URL:-}" ] || { echo "MISSING REQUIRED SECRET: OLD_APP_SUPABASE_URL" >&2; m=1; };
+                  [ -n "${OLD_APP_SUPABASE_ANON_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OLD_APP_SUPABASE_ANON_KEY" >&2; m=1; };
+                  [ -n "${OLD_APP_EMAIL:-}" ] || { echo "MISSING REQUIRED SECRET: OLD_APP_EMAIL" >&2; m=1; };
+                  [ -n "${OLD_APP_PASSWORD:-}" ] || { echo "MISSING REQUIRED SECRET: OLD_APP_PASSWORD" >&2; m=1; };
+                  [ -n "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CONVEX_SELF_HOSTED_ADMIN_KEY" >&2; m=1; };
+                  [ "${#CLINIC_MASTER_KEY}" = 64 ] || { echo "MISSING REQUIRED SECRET: CLINIC_MASTER_KEY (64 hex)" >&2; m=1; };
+                  [ -n "${S3_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: S3_ACCESS_KEY_ID" >&2; m=1; };
+                  [ -n "${S3_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: S3_SECRET_ACCESS_KEY" >&2; m=1; };
+                  [ "$m" = 0 ] && echo secrets-ok
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+          containers:
+            - name: sync
+              image: registry.psizone.ro/psi/scheduling-deploy
+              command: ["node", "/app/sync-old.mjs", "--mapping", "/app/mapping.json", "--allow-skips"]
+              envFrom:
+                - secretRef: { name: scheduling-sync-env }
+              env:
+                - { name: CONVEX_SELF_HOSTED_URL, value: "http://scheduling-backend.scheduling-backend-prod.svc:3210" }
+                - { name: SYNC_ALLOW_REAL, value: "1" }
+                - { name: S3_ENDPOINT, value: "https://nbg1.your-objectstorage.com" }
+                - { name: S3_REGION, value: nbg1 }
+                - { name: S3_BUCKET, value: psi-scheduling-prod }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 100m, memory: 256Mi }
+                limits: { cpu: "1", memory: 1Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: tmp
+              emptyDir: {}

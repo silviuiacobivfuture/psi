@@ -25,6 +25,12 @@ const BOUNDED: Readonly<Record<string, string>> = {
 	"feedback.list": "keyset page: `before` and a `limit` of at most 200",
 	"feedback.get": "one item and its replies",
 	"notes.pinned": "the pinned notes of at most MAX_IDS named clients",
+	"visitor.notifications":
+		"a visitor's preferences: one row per notification kind, fixed by the catalogue",
+	"me.notifications":
+		"a member's preferences: one row per notification kind, fixed by the catalogue",
+	"notifications.deliveries": "one UTC day of the delivery log, read at most 1000 entries",
+	"staff.search": "people of the staff group matching a query: at most 20 (the schema's max)",
 };
 
 const arraysOf = (schema: z.ZodType): string[] => {

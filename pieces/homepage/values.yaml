@@ -17,6 +17,19 @@ resources:
   requests: { cpu: 25m, memory: 128Mi }
   limits:   { cpu: 500m, memory: 384Mi }
 
+# homepage serves the page PRERENDERED AT IMAGE BUILD (English, no tabs, the skeleton's
+# load widgets) until something calls /api/revalidate; without this, that was the first
+# browser holding an older config hash, which then reloaded — a flash of the build-time
+# page after every restart. postStart revalidates before the pod turns Ready, so no
+# visitor ever gets it. 127.0.0.1:3000 passes the allowed-hosts check.
+lifecycle:
+  postStart:
+    exec:
+      command:
+        - sh
+        - -c
+        - for i in $(seq 1 60); do wget -qO- http://127.0.0.1:3000/api/revalidate >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0
+
 # Kyverno baseline+restricted policies on this cluster require non-root + no
 # privilege escalation. The gethomepage image runs fine as an unprivileged user.
 # This chart maps top-level `podSecurityContext` → pod and `securityContext` →
@@ -45,7 +58,12 @@ ingress:
 # The Next.js host-check must allow both private names (the outpost keeps the Host).
 env:
   - name: HOMEPAGE_ALLOWED_HOSTS
+    # seb:hub-private (the default: the hub's private names; markers leave the render)
     value: hub.${TAILNET_DOMAIN},hub.${MESH_BASE_DOMAIN}
+    # seb:hub-private end
+    # seb:hub-public (SYSTEM_HUB_ACCESS public: its one name, pieces/authentik-platform/hub-public)
+    value: hub.${BASE_DOMAIN}
+    # seb:hub-public end
 
 config:
   # Kubernetes integration in CLUSTER mode → uses the pod's SA token + the RBAC above.
@@ -54,6 +72,10 @@ config:
   # config.kubernetes.mode, and the configmap template prefers the map over the string.
   kubernetes:
     mode: cluster
+    # Discovery of annotated Ingresses: on by default. An estate that declares every tile
+    # itself turns it off here (ingress: false, traefik: false, gateway: false).
+    # seb:estate discovery
+    # seb:end discovery
 
   # No bookmarks: the two that were here (the repo, the Hetzner console) are
   # tiles now, in Delivery and Platform. An empty list REPLACES the chart's
@@ -62,6 +84,9 @@ config:
 
   # The header, one row: the name, the cluster's load, the date, search.
   widgets:
+    # The whole header row is the estate's to replace (slot widgets); the greeting alone
+    # is slot greeting, inside it.
+    # seb:estate widgets
     - greeting:
         text_size: xl
         # seb:estate greeting
@@ -88,6 +113,7 @@ config:
     - search:
         provider: duckduckgo
         target: _blank
+    # seb:end widgets
 
   # STATIC tiles — components with NO ingress of ours, so nothing discovers
   # them. Everything with an annotated Ingress arrives by itself and lands in
@@ -103,6 +129,9 @@ config:
   # NOTE: provided as the `services` LIST (not servicesString) — the chart ships a
   # default config.services that would otherwise win the merge over a string.
   services:
+    # Every tile is the estate's to replace (slot services); short of that, it adds its own
+    # groups first (services-apps) and its backends first in Services (services-services).
+    # seb:estate services
     # The estate's own tiles that no Ingress announces, as whole groups, first.
     # seb:estate services-apps
     # seb:end services-apps
@@ -176,12 +205,14 @@ config:
             namespace: kube-system
             app: kube-system
             podSelector: app.kubernetes.io/name=traefik
+        # seb:tailnet-only (the operator runs only beside a hosted tailnet: no namespace to watch without one)
         - Tailscale:
             icon: si-tailscale
             description: Private-network ingress (the tailnet operator)
             namespace: tailscale
             app: tailscale
             podSelector: app=operator
+        # seb:tailnet-only end
         - Kyverno:
             icon: kyverno.png
             description: Admission policies
@@ -233,9 +264,13 @@ config:
         - Health digest:
             icon: mdi-heart-pulse
             description: The daily cluster health report, sent to Talk
+    # seb:end services
 
   # settingsString = stable layout ordering (Go/Helm toYaml sorts map keys otherwise).
+  # The whole of it is the estate's to replace (slot settings: its sides as tabs, its
+  # layout, language, theme); the title alone is slot title, inside it.
   settingsString: |
+    # seb:estate settings
     # seb:estate title
     title: ${BRAND_TITLE}
     # seb:end title
@@ -275,6 +310,7 @@ config:
       Observability:
         style: row
         columns: 4
+    # seb:end settings
 
 # ── The estate's theme ───────────────────────────────────────────────────
 # SEB ships none (the estate slot custom-css stays empty unless the estate brings one).
@@ -288,6 +324,9 @@ configMaps:
       # seb:estate custom-css
       custom.css: ""
       # seb:end custom-css
+  # The estate's own ConfigMaps (files its tiles open, a script beside custom.css).
+  # seb:estate config-maps
+  # seb:end config-maps
 
 persistence:
   logs:
@@ -306,3 +345,9 @@ persistence:
     subPath:
       - path: custom.css
         mountPath: /app/config/custom.css
+      # Other keys of homepage-custom-css the estate mounts beside it (custom.js).
+      # seb:estate custom-files
+      # seb:end custom-files
+  # The estate's own mounts (its config-maps).
+  # seb:estate persistence
+  # seb:end persistence

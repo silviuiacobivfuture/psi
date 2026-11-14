@@ -62,7 +62,59 @@ const rated = async (w: Populated): Promise<string> => {
 	return String(sent.json.id);
 };
 
+/** A client with an e-mail of their own, so an invitation has somewhere to go and never meets another case's. */
+let reachable = 0;
+const inviteable = async (w: Populated): Promise<string> => {
+	reachable += 1;
+	const made = await olga(w, "POST", "/clients", {
+		name: `Invitee ${reachable}`,
+		contact: { email: `invitee${reachable}@example.test` },
+	});
+	return String(made.json.id);
+};
+const invited = async (w: Populated): Promise<string> => {
+	const id = await inviteable(w);
+	await olga(w, "POST", `/clients/${id}/invite`, { contact: "client", locale: "ro" });
+	return id;
+};
+const visitorKey = (w: Populated, method: string, path: string, body?: unknown): Promise<Reply> =>
+	w.callKey("psizone-web", method, `${A}${path}`, body, { "x-psi-subject": "visitor-prefs" });
+
 export const EXTRA_HAPPY = {
+	"invites.get": async (w) => olga(w, "GET", `/clients/${await invited(w)}/invite`),
+	"invites.preview": async (w) =>
+		olga(w, "GET", `/clients/${await inviteable(w)}/invite/preview?contact=client`),
+	"invites.send": async (w) =>
+		olga(w, "POST", `/clients/${await inviteable(w)}/invite`, { contact: "client", locale: "en" }),
+	"invites.resend": async (w) => {
+		const id = await invited(w);
+		w.clock.now += 61_000;
+		return olga(w, "POST", `/clients/${id}/invite/resend`, {});
+	},
+	"invites.revoke": async (w) => olga(w, "DELETE", `/clients/${await invited(w)}/invite`),
+	"staff.search": (w) => {
+		w.staff.seed("happy.search@example.test", "Happy Search");
+		return olga(w, "GET", "/staff-accounts?q=happy");
+	},
+	"staff.invite": (w) =>
+		olga(w, "POST", "/staff-accounts", {
+			email: "happy.invite@example.test",
+			displayName: "Happy Invite",
+			roles: [],
+		}),
+	"notifications.deliveries": (w) => olga(w, "GET", "/notifications/deliveries"),
+	"me.notifications": (w) => olga(w, "GET", "/me/notifications"),
+	"me.notificationsSave": (w) =>
+		olga(w, "PUT", "/me/notifications", {
+			channels: { requests: { push: false } },
+			quietHours: { start: "21:00", end: "08:00", timeZone: "Europe/Bucharest" },
+		}),
+	"visitor.notifications": (w) => visitorKey(w, "GET", "/me/account/notifications"),
+	"visitor.notificationsSave": (w) =>
+		visitorKey(w, "PUT", "/me/account/notifications", {
+			channels: { reminders: { email: false } },
+			quietHours: null,
+		}),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),

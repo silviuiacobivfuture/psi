@@ -1,0 +1,29 @@
+# The old-app sync talks to three things and nothing else: DNS, the scheduling backend of ITS OWN namespace (the target
+# it writes to), and the internet on 443 (the old app's Supabase, the object store for files). No ingress at all.
+# The backend's own policy admits `app: scheduling-sync` pods of its namespace on :3210.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scheduling-sync
+spec:
+  podSelector:
+    matchLabels: { app: scheduling-sync }
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels: { app: scheduling-backend }
+      ports:
+        - { protocol: TCP, port: 3210 }
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
+      ports:
+        - { protocol: TCP, port: 443 }

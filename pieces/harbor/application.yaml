@@ -21,16 +21,9 @@ spec:
     - kind: PersistentVolumeClaim
       name: harbor-registry
       jqPathExpressions: ['.spec']  # bound PVC spec is immutable → ignore wholesale
-    # The chart mints core.secret / core.xsrfKey / jobservice.secret / registry HTTP
-    # secret with randAlphaNum when not pinned — `helm template` yields NEW values on
-    # every Argo render → the rendered Secret .data and the Deployments' checksum/*
-    # pod-template annotations differ from live on EVERY sync → permanent OutOfSync
-    # that selfHeal can't converge. These are chart-internal HMAC/xsrf keys (not
-    # git-meaningful; admin password is a pinned existingSecret). Ignore the churn.
-    - kind: Secret
-      jqPathExpressions: ['.data']
-    - kind: Deployment
-      jqPathExpressions: ['.spec.template.metadata.annotations']
+    # No Secret or checksum annotation is ignored: every value the chart would mint at render
+    # time comes from the Secret harbor-keys (values.yaml), so two renders are byte-identical and
+    # a sync changes nothing that runs (.github/scripts/tests/helm-stable-render_test.sh).
   source:
     repoURL: https://helm.goharbor.io
     chart: harbor

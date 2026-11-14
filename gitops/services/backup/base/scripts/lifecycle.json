@@ -1,0 +1,56 @@
+{
+	"Rules": [
+		{
+			"ID": "convex-hourly-48",
+			"Filter": { "Prefix": "convex/hourly/" },
+			"Status": "Enabled",
+			"Expiration": { "Days": 2 },
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+		},
+		{
+			"ID": "convex-daily-30",
+			"Filter": { "Prefix": "convex/daily/" },
+			"Status": "Enabled",
+			"Expiration": { "Days": 30 },
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+		},
+		{
+			"ID": "convex-monthly-12",
+			"Filter": { "Prefix": "convex/monthly/" },
+			"Status": "Enabled",
+			"Expiration": { "Days": 365 },
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+		},
+		{
+			"ID": "files-deleted-kept-30",
+			"Filter": { "Prefix": "files/" },
+			"Status": "Enabled",
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+		},
+		{
+			"ID": "openbao-30",
+			"Filter": { "Prefix": "openbao/" },
+			"Status": "Enabled",
+			"Expiration": { "Days": 30 },
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+		},
+		{
+			"ID": "cnpg-deleted-kept-7",
+			"Filter": { "Prefix": "cnpg/" },
+			"Status": "Enabled",
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 7 }
+		},
+		{
+			"ID": "replica-markers",
+			"Filter": { "Prefix": "replica/" },
+			"Status": "Enabled",
+			"NoncurrentVersionExpiration": { "NoncurrentDays": 2 }
+		},
+		{
+			"ID": "abandoned-uploads",
+			"Filter": { "Prefix": "" },
+			"Status": "Enabled",
+			"AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 2 }
+		}
+	]
+}

@@ -1,22 +1,27 @@
 # The piece's estate values, each resolved ONCE here by the piece's replacements and read from
 # here by everything else (the server's env, the configuration plan's render).
-#   MAIL_HOST       <MAIL_HOST_PREFIX>.<BASE_DOMAIN>     SMTP/IMAP name, MX target, certificate
-#   WEBMAIL_HOST    <WEBMAIL_HOST_PREFIX>.<BASE_DOMAIN>  the web account manager, behind the sign-in
+#   MAIL_HOST       <MAIL_HOST_PREFIX>.<BASE_DOMAIN>     SMTP/IMAP name, MX target, certificate:
+#                                                        the mail node, for mail only
+#   MAIL_ADMIN_HOST <MAIL_ADMIN_HOST_PREFIX>.<BASE_DOMAIN>  Stalwart's own pages (administration,
+#                                                        app passwords) and its public URL, on the
+#                                                        web ingress, behind the sign-in
 #   MAILBOX_DOMAIN  the identity's MAILBOX_DOMAIN        <user>@<this>
 #   AUTHENTIK_HOST  the identity's AUTHENTIK_HOST        the OIDC issuer
-#   BRAND_TITLE     the identity's BRAND_TITLE           the webmail's name
+#   BRAND_TITLE     the identity's BRAND_TITLE           the mail client's name (bulwark-settings)
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: stalwart-settings
 data:
   MAIL_HOST: post.WLDOMAIN
-  WEBMAIL_HOST: webmail.WLDOMAIN
+  MAIL_ADMIN_HOST: mail-admin.WLDOMAIN
   MAILBOX_DOMAIN: post.WLDOMAIN
   AUTHENTIK_HOST: auth.WLDOMAIN
   BRAND_TITLE: brand-title-from-identity
-  # Stalwart's own pages (administration, app passwords) answer at the mail host.
-  STALWART_PUBLIC_URL: https://post.WLDOMAIN
+  # Stalwart's own pages (administration, app passwords) answer at their own host, never at the
+  # mail host: that one names the mail node (its hostPorts), where the web ingress does not
+  # answer, so https://<MAIL_HOST>/ fails to connect once DNS points the MX target at the node.
+  STALWART_PUBLIC_URL: https://mail-admin.WLDOMAIN
 ---
 # Stalwart v1 keeps only WHERE its data lives in its config file; everything else is in that
 # data store, written by the configuration plan (config-job.yaml).

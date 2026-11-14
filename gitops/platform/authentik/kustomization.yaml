@@ -71,6 +71,9 @@ resources:
   # psi's clinic console: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
   - blueprints-clinic.yaml
   - clinic-oidc-externalsecret.yaml
+  # The same console in PRODUCTION: its own OIDC client (clinic-prod). Also in blueprints.configMaps.
+  - blueprints-clinic-prod.yaml
+  - clinic-prod-oidc-externalsecret.yaml
   # The working fields the estate's values are built in (never rendered). See below.
   - identity/lines.yaml
   - identity/backup-bucket.yaml

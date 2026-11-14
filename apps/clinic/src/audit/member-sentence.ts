@@ -1,4 +1,5 @@
 import { at, type Locale } from "../lib/i18n";
+import { joinRoles } from "../lib/roles-joined";
 import { relationWords } from "../pages/member-summary";
 import { m } from "../paraglide/messages.js";
 import { splitRelation } from "../port/role-map";
@@ -17,7 +18,7 @@ export function memberValue(
 		case "roles":
 			return ids.length === 0
 				? m.jr_no_role({}, at(locale))
-				: ids.map((id) => lookup.roles.get(id) ?? id).join(" + ");
+				: joinRoles(ids.map((id) => lookup.roles.get(id) ?? id));
 		case "grants":
 		case "denies":
 			return ids.map((r) => relationWords(r, locale)).join("; ");

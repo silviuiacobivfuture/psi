@@ -1,4 +1,22 @@
 controller:
+  # Images from the estate's Harbor mirror, by digest (PLATFORM-11): the chart renders
+  # name:tag, so the tag carries @sha256 and the pull is the row images.list pins.
+  image:
+    csiAttacher:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/csi-attacher
+      tag: v4.11.0@sha256:4f6b1289ffe62dbe3d2317dd938cd9dd3fb0a7c0088d505cde4effa1e0771dc2
+    csiResizer:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/csi-resizer
+      tag: v2.1.0@sha256:69e7bf7d929e5d98a5a74e753b45220e6e7b04f35163e48e8a5958bf1d819b4c
+    csiProvisioner:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/csi-provisioner
+      tag: v6.2.0@sha256:da2f5c41881009b963c121d3605c68ad9127490f2c209a849b4eb26074b0038b
+    livenessProbe:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/livenessprobe
+      tag: v2.18.0@sha256:7fe80915b3cb9fb1d09dbd300a0682cafa8ab93947cd3ddc3e15a8250621bf24
+    hcloudCSIDriver:
+      name: ${REGISTRY_HOST}/mirror/docker.io/hetznercloud/hcloud-csi-driver
+      tag: v2.22.1@sha256:a1dbe59499ef392ffabdc55dcdebefd4b29cabb6d494e07b1c40ee3b938385ec
   # Point the chart at OUR ESO-synced Secret instead of letting it render
   # one from a value. With `hcloudToken.value` empty the chart's own
   # templates/controller/secret.yaml is skipped entirely and the
@@ -28,6 +46,18 @@ controller:
       requests: { cpu: 10m, memory: 32Mi }
       limits: { cpu: 100m, memory: 128Mi }
 node:
+  # Images from the estate's Harbor mirror, by digest (PLATFORM-11): the chart renders
+  # name:tag, so the tag carries @sha256 and the pull is the row images.list pins.
+  image:
+    csiNodeDriverRegistrar:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/csi-node-driver-registrar
+      tag: v2.16.0@sha256:aeecba5b171b50558bab359fdb8e28b9da185f666cef35cd87ac9784e51956c5
+    livenessProbe:
+      name: ${REGISTRY_HOST}/mirror/registry.k8s.io/sig-storage/livenessprobe
+      tag: v2.18.0@sha256:7fe80915b3cb9fb1d09dbd300a0682cafa8ab93947cd3ddc3e15a8250621bf24
+    hcloudCSIDriver:
+      name: ${REGISTRY_HOST}/mirror/docker.io/hetznercloud/hcloud-csi-driver
+      tag: v2.22.1@sha256:a1dbe59499ef392ffabdc55dcdebefd4b29cabb6d494e07b1c40ee3b938385ec
   resources:
     hcloudCSIDriver:
       requests: { cpu: 10m, memory: 32Mi }

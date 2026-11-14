@@ -204,4 +204,32 @@ describe("runAction", () => {
 	});
 });
 
+describe("an action whose result is for the person at the screen alone", () => {
+	const invite = { email: "asist@example.test", displayName: "Prin Asistent", roles: [] };
+	it("an assistant run of the invitation answers where to go and no data: never the one-time link", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true, via: "assistant" });
+		expect(r).toEqual({ status: "ok", to: expect.stringContaining("/settings/members?edit=") });
+		expect(JSON.stringify(r)).not.toContain("recovery");
+		// it did invite: the person is in the team
+		expect((await ctx.port.members("psizone")).some((x) => x.displayName === "Prin Asistent")).toBe(
+			true,
+		);
+	});
+	it("the screen's own run gets the link", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true });
+		expect(r.status === "ok" && JSON.stringify(r.data)).toContain("recovery");
+	});
+	it("someone who may not add members is refused, and nobody is added", async () => {
+		const ctx = await ctxFor(["reception"]);
+		const before = (await ctx.port.members("psizone")).length;
+		expect(await runAction(ctx, "member.invite", invite, { confirmed: true })).toEqual({
+			status: "refused",
+			code: "forbidden",
+		});
+		expect((await ctx.port.members("psizone")).length).toBe(before);
+	});
+});
+
 void members;

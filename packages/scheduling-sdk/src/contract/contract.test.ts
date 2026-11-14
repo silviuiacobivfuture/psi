@@ -28,8 +28,15 @@ describe("the route table", () => {
 	});
 
 	it("authorizes every team route (permission, or platform/me/membership only) and no visitor or meta route has a permission", () => {
-		// Membership alone: who one is, and the roles every member may compare (names and keys, no member list).
-		const MEMBERSHIP_ONLY = new Set(["me.get", "me.capabilities", "roles.summary"]);
+		// Membership alone: who one is, how one wants to be told, and the roles every member may compare (names and keys,
+		// no member list).
+		const MEMBERSHIP_ONLY = new Set([
+			"me.get",
+			"me.capabilities",
+			"me.notifications",
+			"me.notificationsSave",
+			"roles.summary",
+		]);
 		for (const r of ALL) {
 			if (r.side === "team")
 				expect(
