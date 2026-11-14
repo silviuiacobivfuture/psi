@@ -6,6 +6,8 @@
 # START, in order (each init container must finish before the next):
 #   assert-secrets  every key the pod needs is there, by name (fail loud, never a blank key)
 #   config          write-config.mjs: config.json from affine-settings + affine-app
+#   wait-search     the search engine (manticore.yaml) answers: the predeploy creates its
+#                   tables on every start and fails without it
 #   migrate         upstream's predeploy: prisma migrate deploy + AFFiNE's data migrations
 #   affine          the server
 #
@@ -78,7 +80,6 @@ spec:
             - { name: HOME, value: /home/affine }
             - { name: NODE_ENV, value: production }
             - { name: AFFINE_SERVER_HTTPS, value: "true" }
-            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
             - { name: REDIS_SERVER_HOST, value: affine-redis }
             - { name: REDIS_SERVER_PORT, value: "6379" }
             # Inside the limit below, so a big document makes V8 collect instead of the
@@ -97,6 +98,27 @@ spec:
             - { name: home, mountPath: /home/affine }
             - { name: tmp, mountPath: /tmp }
             - { name: scripts, mountPath: /scripts, readOnly: true }
+        - name: wait-search
+          image: WLREGISTRY/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          command: ["sh", "-c"]
+          args:
+            - |
+              i=0
+              until wget -q -T 3 -O /dev/null http://affine-manticore:9308/; do
+                i=$((i + 1))
+                [ "$i" -lt 100 ] || { echo "search engine http://affine-manticore:9308/ not answering after 5 minutes" >&2; exit 1; }
+                sleep 3
+              done
+              echo "search engine answers"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 32Mi }
         - name: migrate
           image: WLREGISTRY/mirror/ghcr.io/toeverything/affine:0.27.4@sha256:c312116a134184947d98749c8a8e29f4e3bc97f4f2a51c9a3497f9baea2eec2b
           command: ["node", "./scripts/self-host-predeploy.js"]
@@ -107,7 +129,6 @@ spec:
             - { name: HOME, value: /home/affine }
             - { name: NODE_ENV, value: production }
             - { name: AFFINE_SERVER_HTTPS, value: "true" }
-            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
             - { name: REDIS_SERVER_HOST, value: affine-redis }
             - { name: REDIS_SERVER_PORT, value: "6379" }
             # Inside the limit below, so a big document makes V8 collect instead of the
@@ -137,7 +158,6 @@ spec:
             - { name: HOME, value: /home/affine }
             - { name: NODE_ENV, value: production }
             - { name: AFFINE_SERVER_HTTPS, value: "true" }
-            - { name: AFFINE_INDEXER_ENABLED, value: "false" }
             - { name: REDIS_SERVER_HOST, value: affine-redis }
             - { name: REDIS_SERVER_PORT, value: "6379" }
             # Inside the limit below, so a big document makes V8 collect instead of the

@@ -30,3 +30,17 @@ export function bookingHandoffUrl(locale: Locale, service?: string): string {
 	const word = service !== undefined && WORD.test(service) ? `&serviciu=${service}` : "";
 	return `${base}?ghid=programare${word}`;
 }
+
+/**
+ * Hemi-Sync's booking page, per locale, as its site serves it. The one place the two paths are
+ * written: the site's route table reads them from here, and the blog's hand-over links to them.
+ */
+export const HEMISYNC_BOOKING_PATHS: Readonly<Record<Locale, string>> = {
+	ro: "/programare",
+	en: "/en/booking",
+};
+
+/** Where a booking started on the blog continues for a Hemi-Sync page: Hemi-Sync's own booking page. */
+export function hemisyncBookingUrl(locale: Locale): string {
+	return `${ORIGINS.hemisync}${HEMISYNC_BOOKING_PATHS[locale]}`;
+}

@@ -43,7 +43,9 @@ describe("the route table", () => {
 						r.id === "me.capabilities" ||
 						// The caller's own assistant: what governs their next turn, and what their turn used (membership only).
 						r.id === "me.assistant" ||
-						r.id === "me.assistantUsage",
+						r.id === "me.assistantUsage" ||
+						r.id === "me.notifications" ||
+						r.id === "me.notificationsSave",
 					r.id,
 				).toBe(true);
 			else expect(r.permission, r.id).toBeUndefined();

@@ -72,6 +72,8 @@ export const ACTIONS = [
 	"close",
 	/** Pin a note to the top of the client's summary. */
 	"pin",
+	/** Turn a client into a registered user of the online account (an e-mail invitation). */
+	"invite",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -118,7 +120,17 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 		fieldGroups: ["core", "money", "clinical"],
 	},
 	clients: {
-		actions: ["view", "create", "edit", "archive", "delete", "restore", "export", "assign"],
+		actions: [
+			"view",
+			"create",
+			"edit",
+			"archive",
+			"delete",
+			"restore",
+			"export",
+			"assign",
+			"invite",
+		],
 		scopes: EVERYWHERE,
 		fieldGroups: ["contact", "guardian", "money", "clinical"],
 	},

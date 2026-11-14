@@ -23,6 +23,7 @@
 		"@mastra/memory": "^1.41.0",
 		"@openrouter/ai-sdk-provider": "^3.1.0",
 		"@psi/scheduling-sdk": "workspace:*",
+		"@psi/scheduling": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76"
 	},

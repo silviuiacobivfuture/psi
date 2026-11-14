@@ -3,6 +3,7 @@ import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
+import { compress } from "hono/compress";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
@@ -78,6 +79,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAssets(root);
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
+	// Pages, the stylesheet and Datastar travel gzip-compressed (event streams never are: they must flush as they go).
+	app.use("*", compress());
 	const bell =
 		deps.notifications === undefined
 			? undefined

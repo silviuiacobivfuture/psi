@@ -1,0 +1,4 @@
+{
+	"$comment": "Dumps this piece takes only when the estate runs the application they back up (tools/bundle/identity-components.mjs): each runs in that application's namespace, which an estate without it does not have.",
+	"reportportal": { "key": "PLATFORM_APPS", "lists": "reportportal" }
+}

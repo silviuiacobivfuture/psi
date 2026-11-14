@@ -41,11 +41,16 @@ const SKIP = new Set([
  * relative path into the folders, a dynamic import or a require. Matched on the raw text, so a
  * string in a comment is flagged too: nothing of the visitor side may even mention them.
  */
-const STAFF_REACH = [
+/** The package paths: the only way code outside the engine and the UI library can reach the staff folders. */
+const STAFF_PACKAGE_REACH = [
 	/@psi\/engine\/staff/,
 	/engine\/src\/staff/,
 	/@psi\/ui\/staff-assistant/,
 	/ui\/src\/staff-assistant/,
+];
+/** Inside the engine and the UI library, a relative path into the folders too. */
+const STAFF_REACH = [
+	...STAFF_PACKAGE_REACH,
 	/["'`](?:\.{1,2}\/)+(?:[\w-]+\/)*staff(?:\/[\w./-]*)?["'`]/,
 	/["'`](?:\.{1,2}\/)+(?:[\w-]+\/)*staff-assistant(?:\/[\w./-]*)?["'`]/,
 ];
@@ -65,15 +70,23 @@ function walk(dir: string, skip: (path: string) => boolean): Array<string> {
 function reaching(
 	roots: ReadonlyArray<string>,
 	skip: (path: string) => boolean = () => false,
+	patterns: ReadonlyArray<RegExp> = STAFF_REACH,
 ): Array<string> {
 	return roots
 		.flatMap((root) => walk(root, skip))
 		.filter((file) => {
 			const text = readFileSync(file, "utf8");
-			return STAFF_REACH.some((pattern) => pattern.test(text));
+			return patterns.some((pattern) => pattern.test(text));
 		})
 		.map((file) => relative(ROOT, file));
 }
+
+/**
+ * An app of its own (not the engine, not the UI library): a relative `./staff` there is its own file (the service's
+ * staff accounts), so only the package paths count.
+ */
+const appReaching = (roots: ReadonlyArray<string>): Array<string> =>
+	reaching(roots, () => false, STAFF_PACKAGE_REACH);
 
 describe("the scan itself (it must be able to fail)", () => {
 	let dir: string;
@@ -107,6 +120,14 @@ describe("the scan itself (it must be able to fail)", () => {
 		mkdirSync(join(dir, "node_modules"));
 		writeFileSync(join(dir, "node_modules", "ignored.ts"), 'import "@psi/engine/staff";');
 		expect(reaching([dir]).map((f) => f.split("/").at(-1))).toEqual(["package.json"]);
+	});
+
+	it("in an app, its own ./staff is not the assistant, a path into the engine's staff folder is", () => {
+		writeFileSync(join(dir, "own.ts"), 'import { staffHandlers } from "./staff";\n');
+		expect(appReaching([dir])).toEqual([]);
+		writeFileSync(join(dir, "leaky.ts"), 'import { x } from "../../packages/engine/src/staff";\n');
+		writeFileSync(join(dir, "pkg.ts"), 'import { x } from "@psi/engine/staff";\n');
+		expect(appReaching([dir]).map((f) => f.split("/").at(-1))).toEqual(["leaky.ts", "pkg.ts"]);
 	});
 });
 
@@ -144,7 +165,7 @@ describe("nothing on the visitor side reaches the staff assistant", () => {
 			(a) => a !== "clinic" && a !== "eqsync-web" && statSync(join(ROOT, "apps", a)).isDirectory(),
 		);
 		const roots = apps.map((a) => join(ROOT, "apps", a));
-		expect(reaching(roots)).toEqual([]);
+		expect(appReaching(roots)).toEqual([]);
 	});
 
 	it("the staff folder never touches the visitor knowledge, grounding, ingest or memory code", () => {

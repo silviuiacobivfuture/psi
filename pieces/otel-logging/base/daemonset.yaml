@@ -30,8 +30,11 @@ spec:
           operator: Exists
       containers:
         - name: otel-collector
-          # Custom image = collector-contrib + journalctl (journald receiver needs it).
-          image: WLREGISTRY/WLAPPS/otel-collector-journald:0.111.0
+          # Custom image = collector-contrib + journalctl (journald receiver needs it). The estate
+          # builds it from the release (pieces/otel-logging/image), tagged seb-<commit:9>, signs it
+          # and pins it in its component (components/estate/otel-logging): REPLACE_ME makes the
+          # bundle ship the piece as a kustomization (estateImages, tools/bundle/estate-images.mjs).
+          image: WLREGISTRY/WLAPPS/otel-collector-journald:REPLACE_ME
           args: ["--config=/conf/agent-config.yaml"]
           env:
             - name: K8S_NODE_NAME

@@ -34,6 +34,8 @@ export const contactValidator = v.object({
 	name: v.string(),
 	email: v.optional(v.string()),
 	phone: v.optional(v.string()),
+	age: v.optional(v.number()),
+	details: v.optional(v.string()),
 });
 
 /** A staff member as the app authorised them: their subject id from the identity provider. */

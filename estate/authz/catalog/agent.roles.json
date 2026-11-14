@@ -1,0 +1,61 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/agent-studio/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "agent",
+	"version": 1,
+	"scope_resolvers": {
+		"agent_studio": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"platform#administrator",
+		"platform#role_agent_studio_operator",
+		"platform#role_agent_studio_viewer"
+	],
+	"features": [
+		{
+			"key": "studio",
+			"name": {
+				"ro": "Studio",
+				"en": "Studio"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "agent:studio_viewer",
+			"name": {
+				"ro": "Observator Studio",
+				"en": "Studio viewer"
+			},
+			"description": {
+				"ro": "Vede agenții, urmele și conversațiile; nu rulează nimic.",
+				"en": "Sees agents, traces and threads; runs nothing."
+			},
+			"scope_type": "platform",
+			"relation": "role_agent_studio_viewer",
+			"grants": ["agent_studio#view"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "agent:studio_operator",
+			"name": {
+				"ro": "Operator Studio",
+				"en": "Studio operator"
+			},
+			"description": {
+				"ro": "Rulează agenți, instrumente și fluxuri când Studio e în modul operate.",
+				"en": "Runs agents, tools and workflows when Studio is in operate mode."
+			},
+			"scope_type": "platform",
+			"relation": "role_agent_studio_operator",
+			"grants": ["agent_studio#view", "agent_studio#operate"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

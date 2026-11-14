@@ -2,6 +2,7 @@ import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
+import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
@@ -13,7 +14,8 @@ import {
 	renderClient,
 	type Soon,
 } from "./client-page";
-import { renderClients } from "./clients-list";
+import { ClientRow, MoreClients, renderClients, ShownCount } from "./clients-list";
+import { inviteErrorFrom, inviteFlash, registerInviteRoutes } from "./invite-routes";
 import { registerPackageRoutes } from "./package-routes";
 
 function noticeOf(
@@ -59,6 +61,38 @@ export function registerClients(app: Hono<Env>): void {
 		);
 	});
 
+	// The next page of the list, appended to the open page: the list grows a page at a time, never all at once.
+	app.get("/clients/more", async (c) => {
+		const ctx = c.var.ctx;
+		const filter = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
+		const q = (c.req.query("q") ?? "").slice(0, 120);
+		const cursor = (c.req.query("cursor") ?? "").slice(0, 200);
+		const before = Number.parseInt(c.req.query("shown") ?? "0", 10);
+		const page = await ctx.port.clientPage(ctx.app, filter, q, cursor === "" ? null : cursor);
+		const by = new Map(page.summaries.map((s) => [s.clientId, s]));
+		const shown = (Number.isInteger(before) && before > 0 ? before : 0) + page.clients.length;
+		const rows = (
+			await Promise.all(
+				page.clients.map((client) =>
+					(
+						<ClientRow key={client.id} client={client} summary={by.get(client.id)} ctx={ctx} />
+					).toString(),
+				),
+			)
+		).join("");
+		const more = await (
+			<MoreClients ctx={ctx} filter={filter} q={q} cursor={page.nextCursor} shown={shown} />
+		).toString();
+		const count = await (
+			<ShownCount ctx={ctx} shown={shown} more={page.nextCursor !== null} />
+		).toString();
+		return sse((stream) => {
+			stream.patchElements(rows, { selector: "#client-list", mode: "append" });
+			stream.patchElements(more);
+			stream.patchElements(count);
+		});
+	});
+
 	const show = async (c: Context<Env>, tab: ClientTab, flash?: string): Promise<Response> => {
 		const ctx = c.var.ctx;
 		const id = c.req.param("id") ?? "";
@@ -84,40 +118,58 @@ export function registerClients(app: Hono<Env>): void {
 					throw error;
 				}
 			};
-			const [appointments, packages, services, notes, blacklist, records, files, templates] =
-				await Promise.all([
-					needs("appointments", "packages") && can.has("appointments_view")
-						? ctx.port.clientAppointments(ctx.app, id)
+			const [
+				appointments,
+				packages,
+				services,
+				notes,
+				blacklist,
+				records,
+				files,
+				templates,
+				invite,
+			] = await Promise.all([
+				needs("appointments", "packages") && can.has("appointments_view")
+					? ctx.port.clientAppointments(ctx.app, id)
+					: [],
+				needs("overview", "packages") && can.has("packages_view")
+					? ctx.port.packages(ctx.app, id)
+					: [],
+				needs("appointments", "packages") && can.has("services_view")
+					? ctx.port.services(ctx.app)
+					: [],
+				soft(
+					"notes",
+					needs("overview", "notes") && can.has("notes_view") ? ctx.port.notes(ctx.app, id) : [],
+				),
+				soft(
+					"blacklist",
+					can.has("blacklist_view") && needs("overview")
+						? ctx.port.blacklistHistory(ctx.app, id)
 						: [],
-					needs("overview", "packages") && can.has("packages_view")
-						? ctx.port.packages(ctx.app, id)
-						: [],
-					needs("appointments", "packages") && can.has("services_view")
-						? ctx.port.services(ctx.app)
-						: [],
-					soft(
-						"notes",
-						needs("overview", "notes") && can.has("notes_view") ? ctx.port.notes(ctx.app, id) : [],
-					),
-					soft(
-						"blacklist",
-						can.has("blacklist_view") && needs("overview")
-							? ctx.port.blacklistHistory(ctx.app, id)
-							: [],
-					),
-					soft(
-						"records",
-						needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
-					),
-					soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
-					needs("records") ? ctx.port.formTemplates(ctx.app) : [],
-				]);
+				),
+				soft(
+					"records",
+					needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
+				),
+				soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
+				needs("records") ? ctx.port.formTemplates(ctx.app) : [],
+				// The invitation is shown only to whoever may act on it, and a service that cannot say leaves the card out.
+				needs("overview") && ctx.can.has("clients_invite")
+					? ctx.port.invite(ctx.app, id).catch((err: unknown) => {
+							if (err instanceof PortError) return undefined;
+							throw err;
+						})
+					: undefined,
+			]);
 			return c.html(
 				await renderClient(
 					ctx,
 					{
 						client,
 						tab,
+						invite,
+						inviteError: inviteErrorFrom(c.req.query("ierr")),
 						appointments,
 						packages,
 						services,
@@ -160,12 +212,15 @@ export function registerClients(app: Hono<Env>): void {
 		show(
 			c,
 			"overview",
-			c.req.query("done") === "archived" ? m.toast_archived({}, at(c.var.ctx.locale)) : undefined,
+			c.req.query("done") === "archived"
+				? m.toast_archived({}, at(c.var.ctx.locale))
+				: inviteFlash(c.req.query("done"), c.var.ctx.locale),
 		),
 	);
 	for (const tab of CLIENT_TABS.filter((t) => t !== "overview"))
 		app.get(`/clients/:id/${tab}`, (c) => show(c, tab));
 
 	registerClientActions(app);
+	registerInviteRoutes(app);
 	registerPackageRoutes(app);
 }

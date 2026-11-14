@@ -3,8 +3,9 @@ import { NONE, reaches } from "../authz/access";
 import { appLink, treatingLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { ClientRow } from "../store/types";
-import { clientGroupReach, clientView, clinicalContext } from "./fields";
+import { clientGroupReach, clientView } from "./fields";
 import { readableNotes } from "./notes";
 import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
 
@@ -15,6 +16,8 @@ const GROUPS = [
 	"clinical",
 ] as const satisfies readonly FieldGroupName[];
 const PURGE_DAYS = 30;
+/** The list's order, as `localeCompare` sorts, built once (a collator per comparison is what makes a sort slow). */
+const BY_NAME = new Intl.Collator();
 
 export const clientHandlers: HandlersOf<
 	| "clients.list"
@@ -27,15 +30,23 @@ export const clientHandlers: HandlersOf<
 	| "clients.remove"
 > = {
 	async "clients.list"(ctx) {
-		const rows = (
-			await ctx.deps.store.c.clients.list(ctx.app, { eq: { status: ctx.query.status } })
-		)
+		const { ids, q, status } = ctx.query;
+		// Named clients are read one by one (each an indexed read), never the whole list to find a few.
+		const loaded =
+			ids === undefined
+				? await ctx.deps.store.c.clients.list(ctx.app, { eq: { status } })
+				: (
+						await Promise.all(
+							ids
+								.filter((id) => reaches(ctx.reach, id))
+								.map((id) => ctx.deps.store.c.clients.get(ctx.app, id)),
+						)
+					).filter((r): r is ClientRow => r !== undefined);
+		const needle = ids === undefined ? q?.toLowerCase() : undefined;
+		const rows = loaded
 			.filter((r) => reaches(ctx.reach, r.id))
-			.filter(
-				(r) =>
-					ctx.query.q === undefined || r.name.toLowerCase().includes(ctx.query.q.toLowerCase()),
-			)
-			.sort((a, b) => a.name.localeCompare(b.name));
+			.filter((r) => needle === undefined || r.name.toLowerCase().includes(needle))
+			.sort((a, b) => BY_NAME.compare(a.name, b.name));
 		// A list never decrypts or audits clinical data: that is one client at a time.
 		const groups = ctx.query.fields === "groups";
 		const include = { contact: groups, guardian: groups, money: groups, clinical: false };
@@ -45,7 +56,9 @@ export const clientHandlers: HandlersOf<
 		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
 		return {
 			...page,
-			items: page.items.map((row) => clientView(ctx, row, reach, include).client),
+			items: (await Promise.all(page.items.map((row) => clientView(ctx, row, reach, include)))).map(
+				(v) => v.client,
+			),
 		};
 	},
 
@@ -74,10 +87,11 @@ export const clientHandlers: HandlersOf<
 		};
 		let saved = await ctx.deps.store.c.clients.insert(row);
 		if (b.clinical !== undefined) {
-			// The envelope is bound to the client's id, which the store assigns on insert: sealed in a second step.
-			const clinicalSealed = ctx.deps.crypto.seal(
+			// Written in a second step: the clinical group is the store's own column, set once the client exists.
+			const clinicalSealed = await ctx.deps.crypto.seal(
+				ctx.app,
+				FIELDS.clinical,
 				JSON.stringify(b.clinical),
-				clinicalContext(ctx.app, saved.id),
 			);
 			saved = { ...saved, clinicalSealed };
 			try {
@@ -92,6 +106,7 @@ export const clientHandlers: HandlersOf<
 			...saved.treating.map((p) => treatingLink(saved.id, p)),
 		]);
 		await ctx.changed("client", "created", saved.id);
+		await tellAssigned(ctx, saved.id, saved.treating);
 		ctx.note({ groups: GROUPS.filter((g) => b[g] !== undefined) });
 		return view(ctx, saved);
 	},
@@ -119,10 +134,11 @@ export const clientHandlers: HandlersOf<
 			const held =
 				clinicalSealed === undefined
 					? {}
-					: JSON.parse(ctx.deps.crypto.open(clinicalSealed, clinicalContext(ctx.app, row.id)));
-			sealed = ctx.deps.crypto.seal(
+					: JSON.parse(await ctx.deps.crypto.open(ctx.app, FIELDS.clinical, clinicalSealed));
+			sealed = await ctx.deps.crypto.seal(
+				ctx.app,
+				FIELDS.clinical,
 				JSON.stringify({ ...held, ...b.clinical }),
-				clinicalContext(ctx.app, row.id),
 			);
 		}
 		const next: ClientRow = {
@@ -164,6 +180,11 @@ export const clientHandlers: HandlersOf<
 		);
 		await writeTuples(ctx, change.writes, change.deletes);
 		await ctx.changed("client", "updated", row.id);
+		await tellAssigned(
+			ctx,
+			row.id,
+			next.treating.filter((p) => !row.treating.includes(p)),
+		);
 		// Every change of who treats a client is explicit and audited: from, to, and the reason the person gave.
 		ctx.note({ from: row.treating, to: next.treating, reason: ctx.body.reason });
 		return view(ctx, next);
@@ -206,11 +227,26 @@ export const clientHandlers: HandlersOf<
 	},
 };
 
+/** A therapist who has just been given a client is told so (and not by their own hand). */
+async function tellAssigned(
+	ctx: Parameters<typeof clientView>[0],
+	clientId: string,
+	added: readonly string[],
+): Promise<void> {
+	for (const personId of added)
+		await ctx.notify(
+			"client.assigned",
+			{ kind: "team", permission: "clients_assign" },
+			{ clientId, personId, actor: ctx.subject },
+			`${clientId}:${personId}:${ctx.requestId}`,
+		);
+}
+
 async function view(
 	ctx: Parameters<typeof clientView>[0],
 	row: ClientRow,
-): Promise<ReturnType<typeof clientView>["client"]> {
-	const { client, clinicalRead } = clientView(ctx, row, await clientGroupReach(ctx));
+): Promise<Awaited<ReturnType<typeof clientView>>["client"]> {
+	const { client, clinicalRead } = await clientView(ctx, row, await clientGroupReach(ctx));
 	if (clinicalRead)
 		await ctx.auditNow("clinical.read", { type: "client", id: row.id }, { via: "clients" });
 	return client;

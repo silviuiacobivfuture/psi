@@ -72,7 +72,11 @@ function readTurn(value: unknown): Turn | null {
 	const turn: Turn = { role, text: text.slice(0, MAX_TEXT) };
 	if (typeof refused === "string") turn.refused = refused;
 	const booking = field(value, "booking");
-	if (typeof booking === "object" && booking !== null) turn.booking = booking;
+	// What the visitor typed as booking details (a name, a phone, what is going on) is not kept on
+	// the device: after a reload the guide asks for it again.
+	if (typeof booking === "object" && booking !== null) {
+		turn.booking = Object.fromEntries(Object.entries(booking).filter(([k]) => k !== "details"));
+	}
 	const page = field(value, "page");
 	if (typeof page === "string" && page !== "") turn.page = page.slice(0, MAX_PAGE);
 	return turn;
@@ -287,9 +291,14 @@ function follow(nav: HTMLElement, body: HTMLElement, pill: HTMLElement): void {
 	}).observe(nav, { attributes: true, attributeFilter: ["class"] });
 }
 
-/** Only the newest in-chat booking form stays a form; an older one becomes its summary line. */
+/**
+ * Only the newest in-chat booking form stays a form; an older one becomes its summary line. A
+ * request that was sent stays as it is: its cancel code is shown nowhere else.
+ */
 function retireBookings(nav: HTMLElement): void {
-	const live = [...nav.querySelectorAll<HTMLElement>("[data-booking-summary]:not([data-retired])")];
+	const live = [
+		...nav.querySelectorAll<HTMLElement>("[data-booking-summary]:not([data-retired])"),
+	].filter((card) => card.querySelector("[data-booked]") === null);
 	for (const old of live.slice(0, -1)) {
 		const bubble = old.querySelector(".pz-msg__bubble");
 		const line = document.createElement("span");

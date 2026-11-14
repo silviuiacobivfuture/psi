@@ -128,6 +128,8 @@ export interface ActionDef {
 	when?: (ctx: ActionCtx, e: EntityState) => boolean;
 	/** Does it; absent for an action that only navigates. */
 	run?: (ctx: ActionCtx, raw: unknown) => Promise<ActionResult>;
+	/** Its result's `data` is for the person at the screen alone (a one-time sign-in link): the assistant never gets it. */
+	privateResult?: true;
 }
 
 export interface ListQuery {

@@ -3,12 +3,15 @@ import { type AuditRow, type Collection, StoreRefused } from "../types";
 import { apiActionOf, mappingOf, typeOfEntity } from "./audit-map";
 import type { Caller } from "./call";
 import { matches } from "./filter";
+import { personApiId } from "./ids";
 
 /**
  * `audit`: append-only. `insert` writes the API's event as a Convex event unless a wrapper already wrote one for the
  * same change (audit-map.ts); `list` reads the log newest first, page by page, and names every event in the API's
  * vocabulary. An event is field names and a count, never values: `detail` keeps its KEYS (as field names) and a numeric
- * `count`; the values, and any free text, are not stored on Convex.
+ * `count`; the values, and any free text, are not stored on Convex. The one exception is a team change: the member
+ * wrappers keep its before and after themselves (names, role ids, calendars, permission keys; packages/scheduling's
+ * src/clinic/audit-changes.ts says which), read back here as the memory store's `detail.changes`.
  */
 const Event = z.object({
 	id: z.string(),
@@ -18,8 +21,31 @@ const Event = z.object({
 	entity: z.string(),
 	entityId: z.string(),
 	summary: z.string(),
+	/** Absent on every event but a team change's, and on a backend whose functions predate it. */
+	changes: z.array(z.object({ field: z.string(), from: z.string(), to: z.string() })).optional(),
 });
 type Event = z.infer<typeof Event>;
+
+/** A kept value in the API's ids: the calendars a member coordinates are practitioners (`p` + the Convex id). */
+function apiValue(field: string, value: string): string {
+	if (field !== "coordinates" || value === "") return value;
+	return value
+		.split(",")
+		.map((id) => personApiId("practitioner", id))
+		.sort()
+		.join(",");
+}
+
+/** The `{ field: { from, to } }` the memory store keeps in `detail.changes`, from what the wrapper kept. */
+const changesOf = (e: Event): Record<string, { from: string; to: string }> | undefined =>
+	e.changes === undefined || e.changes.length === 0
+		? undefined
+		: Object.fromEntries(
+				e.changes.map((c) => [
+					c.field,
+					{ from: apiValue(c.field, c.from), to: apiValue(c.field, c.to) },
+				]),
+			);
 
 const FIELD = /^[A-Za-z][A-Za-z0-9_.]{0,47}$/;
 const MAX_FIELDS = 40;
@@ -44,9 +70,11 @@ function toRow(app: string, e: Event): AuditRow {
 		fields.find((f) => f.startsWith(prefix))?.slice(prefix.length);
 	const action = marked("api.") ?? apiActionOf(e.action, e.entity, fields);
 	const detailKeys = fields.filter((f) => !/^(api|type|by)\./.test(f) && f !== "deleted");
+	const changes = changesOf(e);
 	const detail: Record<string, unknown> = {
 		...Object.fromEntries(detailKeys.map((k) => [k, true])),
 		...(count === undefined ? {} : { count }),
+		...(changes === undefined ? {} : { changes }),
 	};
 	return {
 		id: e.id,
@@ -73,9 +101,9 @@ export function auditCollection(call: Caller): Collection<AuditRow> {
 	 * Newest first, whole pages until the log or the bound ends. The next page starts AT the last instant seen (events
 	 * can share a millisecond), so events are de-duplicated by id and a page with nothing new ends the read.
 	 */
-	async function* events(app: string): AsyncGenerator<Event> {
+	async function* events(app: string, from?: number): AsyncGenerator<Event> {
 		const seen = new Set<string>();
-		let before: number | undefined;
+		let before: number | undefined = from;
 		for (;;) {
 			const { events: batch } = await page(app, before);
 			const fresh = batch.filter((e) => !seen.has(e.id));
@@ -100,10 +128,17 @@ export function auditCollection(call: Caller): Collection<AuditRow> {
 			return undefined;
 		},
 		async list(app, query) {
+			// The log is read newest first on its (tenant, at) index: a range starts AT its end, and a page ends the read
+			// once it holds its rows or has gone below the range's start; only a list with no page reads the whole log.
+			const range = query?.range?.field === "at" ? query.range : undefined;
+			const page =
+				query?.order?.field === "at" && query.order.dir === "desc" ? query.order : undefined;
 			const out: AuditRow[] = [];
-			for await (const e of events(app)) {
+			for await (const e of events(app, range?.lt)) {
+				if (range?.gte !== undefined && e.at < range.gte) break;
 				const row = toRow(app, e);
 				if (matches(row, query)) out.push(row);
+				if (page !== undefined && out.length >= page.limit) break;
 			}
 			return out;
 		},

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createFakePort } from "./fake";
 import { PortError } from "./port";
+import { NOTE_MAX } from "./schema-clinical";
 
 const ME = { subject: "s1", name: "Ana Test" };
 const make = () => createFakePort({ today: "2026-11-16", members: {} });
@@ -29,9 +30,9 @@ describe("notes", () => {
 		const port = make();
 		const before = (await port.notes("psizone", "c3")).length;
 		expect(await refused(port.addNote("psizone", "c3", { body: "   " }, ME))).toBe("invalid");
-		expect(await refused(port.addNote("psizone", "c3", { body: "x".repeat(4001) }, ME))).toBe(
-			"invalid",
-		);
+		expect(
+			await refused(port.addNote("psizone", "c3", { body: "x".repeat(NOTE_MAX + 1) }, ME)),
+		).toBe("invalid");
 		expect(await refused(port.addNote("psizone", "zz", { body: "a" }, ME))).toBe("not-found");
 		expect((await port.notes("psizone", "c3")).length).toBe(before);
 		expect(await refused(port.updateNote("psizone", "nope", { body: "a" }))).toBe("not-found");

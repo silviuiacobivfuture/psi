@@ -23,9 +23,12 @@ export {
 	type TurnBehaviour,
 } from "./behaviour";
 export {
+	type BookedRequest,
 	type BookingCancel,
 	type BookingCriteria,
+	type BookingDetailsReport,
 	type BookingKind,
+	type BookingLang,
 	type BookingNotice,
 	type BookingOffer,
 	type BookingScope,
@@ -35,6 +38,7 @@ export {
 	isBookingIntent,
 	offerTimes,
 } from "./booking";
+export { confirmation, wantsEdit } from "./booking-confirm";
 export {
 	type CatalogItem,
 	CatalogItemsSchema,
@@ -189,6 +193,8 @@ export {
 	ProfileSchedulingSchema,
 	type SchedulingCancel,
 	SchedulingCancelSchema,
+	type SchedulingContact,
+	type SchedulingHold,
 	type SchedulingMode,
 	type SchedulingPort,
 	SchedulingPortSchema,
@@ -197,6 +203,7 @@ export {
 	SchedulingSlotSchema,
 	type SchedulingSlots,
 	SchedulingSlotsSchema,
+	type SchedulingSubmit,
 	type ServiceEntry,
 } from "./scheduling/port";
 export {

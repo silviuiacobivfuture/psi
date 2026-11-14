@@ -7,10 +7,15 @@
 #   stalwart.yaml         the server (mail ports as hostPorts, so senders keep their address),
 #                         its RocksDB volume, its in-cluster web Service
 #   mailboxes.yaml        the estate's mailboxes (empty in SEB; the estate's layer lists them)
-#   config-job.yaml       the configuration plan, applied after every sync and daily
-#   webmail.yaml          the webmail (Roundcube), signed in only through Authentik
-#   ingress.yaml          <WEBMAIL_HOST> (webmail) and <MAIL_HOST> (Stalwart's own pages),
-#                         both behind the Authentik gate
+#   config-job.yaml       the configuration plan, applied after every sync and daily; then every
+#                         listener it declares must answer (listeners.sh)
+#   bulwark.yaml          the mail client (Bulwark) at <BULWARK_HOST>: JMAP on this server,
+#                         signed in only through Authentik, the estate's theme by default
+#   ingress.yaml          <MAIL_ADMIN_HOST> (Stalwart's own pages) behind the Authentik gate;
+#                         <BULWARK_HOST> (Bulwark, and the server's JMAP paths on the same host)
+#
+#   admins.yaml           the server's administrators follow Authentik's groups (app-mail-admin,
+#                         platform-admins), every five minutes (admins.sh)
 #
 #   backup.yaml           the daily CONSISTENT backup: server stopped, data archived, started,
 #                         archive to object storage (restore: scripts/restore-stalwart.sh)
@@ -26,8 +31,10 @@ resources:
   - stalwart.yaml
   - mailboxes.yaml
   - config-job.yaml
-  - webmail.yaml
+  - bulwark.yaml
   - ingress.yaml
+  - sso-start.yaml
+  - admins.yaml
   - backup.yaml
 configMapGenerator:
   # The plan and its renderer. The name hash rolls the CronJob's and the hook Job's pods
@@ -36,19 +43,28 @@ configMapGenerator:
     files:
       - plan.ndjson.tmpl
       - render-plan.sh
-  # The webmail's configuration and Apache's (webmail/), and its look: SEB's empty default,
-  # which an estate's layer replaces (components/estate/stalwart patches webmail-theme).
-  - name: webmail-config
+      - unlink.sh
+      - listeners.sh
+  # The administrators' reconcile (admins.yaml), its own ConfigMap so the plan's hash is not
+  # rolled by it.
+  - name: stalwart-admins
     files:
-      - webmail/estate.php
-  - name: webmail-apache
+      - admins.sh
+  # Bulwark's seed (bulwark/seed-config.mjs) and its look: SEB's neutral default (Bulwark's own
+  # colours, a plain mark), which an estate's layer replaces (the `bulwark-theme` slot).
+  # The panels' sign-in start (sso-start.yaml): its page, the start, its server's routes.
+  - name: stalwart-sso-start
     files:
-      - webmail/apache.conf
-      - webmail/empty.conf
-  - name: webmail-tasks
+      - sso-start/start.html
+      - sso-start/start.mjs
+      - sso-start/nginx.conf
+  - name: bulwark-seed
     files:
-      - webmail/link-theme.sh
-  - name: webmail-theme
+      - bulwark/seed-config.mjs
+      - bulwark/extensions.mjs
+  - name: bulwark-theme
     files:
-      - webmail/estate_theme.php
-      - webmail/estate.css
+      - bulwark/estate.css
+      - bulwark/logo.svg
+      - bulwark/logo-dark.svg
+      - bulwark/favicon.svg

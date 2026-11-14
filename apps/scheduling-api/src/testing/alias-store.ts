@@ -99,6 +99,10 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		docs: forApp(inner.docs, to),
 		blacklist: forApp(inner.blacklist, to),
 		feedback: forApp(inner.feedback, to),
+		keys: {
+			keys: (app) => inner.keys.keys(to(app)),
+			install: (app, version, wrapped) => inner.keys.install(to(app), version, wrapped),
+		},
 		reports: forApp(inner.reports, to),
 		series: {
 			create: async (app, rows) =>
@@ -106,6 +110,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 			replace: (app, rows) => inner.series.replace(to(app), rows.map(rowIn)),
 			list: async (app, seriesId) => (await inner.series.list(to(app), seriesId)).map(rowOut),
 		},
+		keyed: forApp(inner.keyed, to),
 		ping: () => inner.ping(),
 	};
 }

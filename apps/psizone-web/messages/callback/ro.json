@@ -21,5 +21,7 @@
 	"callback_mail_stored_yes": "da",
 	"callback_mail_stored_no": "NU: acest e-mail este singura copie, sună persoana de îndată",
 	"callback_mail_link": "Cererile se văd și se marchează ca rezolvate aici",
-	"callback_mail_consent": "Persoana a acceptat să fie contactată."
+	"callback_mail_consent": "Persoana a acceptat să fie contactată.",
+	"callback_mail_age": "Vârsta",
+	"callback_mail_details": "Detalii"
 }

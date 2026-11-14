@@ -4,7 +4,7 @@ import { ActionBar, actionsFor, EmptyActions, menuItems } from "../actions/rende
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import { type ClientNote, NOTE_CATEGORIES } from "../port/schema-clinical";
+import { type ClientNote, NOTE_CATEGORIES, NOTE_MAX } from "../port/schema-clinical";
 import { noteCategoryText } from "./client-flags";
 import { SheetButtons } from "./client-sheets";
 
@@ -157,7 +157,7 @@ export function NoteSheet({
 				{editing === null ? null : <input type="hidden" name="id" value={editing.id} />}
 				<label class="adm-field">
 					<span>{m.cl_note_text({}, o)}</span>
-					<textarea class="adm-input" name="body" required maxlength={4000} rows={5}>
+					<textarea class="adm-input" name="body" required maxlength={NOTE_MAX} rows={5}>
 						{editing?.body ?? ""}
 					</textarea>
 				</label>

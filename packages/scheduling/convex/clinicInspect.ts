@@ -18,6 +18,45 @@ export const counts = internalQuery({
 });
 
 /**
+ * The old ids of an app's imported rows in one table, with the fingerprint each was written with: what the
+ * old-app sync compares the old app's rows with, to say what would be created, changed or is gone from the
+ * old app. Reads only; ids and fingerprints (a keyed hash), never content. Internal: admin key.
+ */
+export const stored = internalQuery({
+	args: {
+		tenant: v.string(),
+		table: v.union(
+			v.literal("practitioners"),
+			v.literal("devices"),
+			v.literal("rooms"),
+			v.literal("groupActivities"),
+			v.literal("staffMembers"),
+			v.literal("clients"),
+			v.literal("packages"),
+			v.literal("visits"),
+			v.literal("payments"),
+			v.literal("rosterDays"),
+			v.literal("staffBlocks"),
+			v.literal("formResponses"),
+			v.literal("files"),
+		),
+	},
+	returns: v.array(v.object({ legacyId: v.string(), fingerprint: v.optional(v.string()) })),
+	handler: async (ctx, { tenant, table }) =>
+		(await rowsOf(ctx, tenant, table)).flatMap((row) => {
+			if (!("legacyId" in row) || typeof row.legacyId !== "string") return [];
+			return [
+				{
+					legacyId: row.legacyId,
+					...("fingerprint" in row && typeof row.fingerprint === "string"
+						? { fingerprint: row.fingerprint }
+						: {}),
+				},
+			];
+		}),
+});
+
+/**
  * The slugs already taken by an app's practitioners, rooms, devices and group activities, with the
  * old id when the row came from the import: what the import checks before writing, so a row from
  * the old app can never take the place of one the web flow already has.

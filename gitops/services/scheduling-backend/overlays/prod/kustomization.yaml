@@ -1,0 +1,62 @@
+# The scheduling store of PRODUCTION: its own namespace, its own Convex deployment (own INSTANCE_NAME/SECRET), its own
+# Postgres (db.yaml, WAL-archived), its own NetworkPolicy. Never shared with dev. Registered as `scheduling-backend-prod`
+# in gitops/apps/overlays/dev/apps/.
+#
+# THE IMAGE TAG IS PROMOTED, NOT BUMPED: CI never writes this file. `tools/scheduling/promote.sh <sha>` sets it, in a
+# commit, after the dev tag has been tested (docs/plans/clinic.md section 9). "unpromoted" until the first promotion: the
+# pod shows ImagePullBackOff until then.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling-backend-prod
+resources:
+  - ../../base
+  - db.yaml
+images:
+  - name: registry.psizone.ro/psi/scheduling-backend
+    newTag: "unpromoted"
+patches:
+  - target: { kind: ExternalSecret, name: scheduling-backend-env }
+    path: externalsecret.yaml
+  - target: { kind: NetworkPolicy, name: scheduling-backend }
+    path: networkpolicy.yaml
+  # The origins are how callers reach THIS backend: its own namespace's Service. Postgres is the database (the
+  # connection string is in the Secret); the in-cluster link to it needs no TLS.
+  - target: { kind: StatefulSet, name: scheduling-backend }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "http://scheduling-backend.scheduling-backend-prod.svc:3210"
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "http://scheduling-backend.scheduling-backend-prod.svc:3211"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: { name: DO_NOT_REQUIRE_SSL, value: "true" }
+      - op: replace
+        path: /spec/template/spec/initContainers/0/command/2
+        value: '[ -n "${INSTANCE_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_NAME" >&2; exit 1; }; [ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; [ -n "${POSTGRES_URL:-}" ] || { echo "MISSING REQUIRED SECRET: POSTGRES_URL" >&2; exit 1; }; case "$INSTANCE_SECRET" in *[!0-9a-f]*) echo "INVALID SECRET: INSTANCE_SECRET must be lowercase hex" >&2; exit 1;; esac; [ "${#INSTANCE_SECRET}" -ge 32 ] || { echo "INVALID SECRET: INSTANCE_SECRET shorter than 32" >&2; exit 1; }; echo secrets-ok'
+  # Room for the Postgres cluster (20Gi + its pods and backup jobs) beside the backend's volume.
+  - target: { kind: ResourceQuota, name: scheduling }
+    patch: |-
+      - op: replace
+        path: /spec/hard/requests.storage
+        value: 60Gi
+      - op: replace
+        path: /spec/hard/persistentvolumeclaims
+        value: "4"
+      - op: replace
+        path: /spec/hard/pods
+        value: "12"
+  # Kubelet health probes through the NetworkPolicy (the nodes' addresses, as on dev).
+  - target: { kind: NetworkPolicy, name: scheduling-backend }
+    patch: |-
+      - op: add
+        path: /spec/ingress/-
+        value:
+          from:
+            - ipBlock: { cidr: 10.0.1.10/32 }
+            - ipBlock: { cidr: 10.0.1.1/32 }
+            - ipBlock: { cidr: 10.42.0.1/32 }
+            - ipBlock: { cidr: 10.42.1.1/32 }
+          ports:
+            - { protocol: TCP, port: 3210 }

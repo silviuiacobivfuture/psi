@@ -104,6 +104,8 @@ describe("the team and the people are told, by reference and without data", () =
 			"payment.recorded",
 			"payment.recorded",
 			"leave.requested",
+			// Approved leave lands on the roster, and the therapist hears that their schedule changed, then the decision.
+			"schedule.changed",
 			"leave.decided",
 		]);
 		expect(w.notifier.sent.at(-1)?.to).toEqual({ kind: "person", subject: "dora" });

@@ -1,0 +1,27 @@
+# The registry robot Kyverno reads SEB's signatures with (verify-seb-signatures.yaml,
+# imageRegistryCredentials): a dockerconfigjson for the estate's registry, in Kyverno's own
+# namespace, where Kyverno looks for it. From the secret-store path the identity names,
+# REF_SIGNATURE_PULL_PATH (default secret/platform/harbor/verify), fields username and password.
+# The estate provides the robot: read-only, pull on the images' project AND the bundle's (seb).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: seb-signature-pull
+  namespace: kyverno
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: seb-signature-pull
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {"auths":{"WLREGISTRY":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}
+  data:
+    - secretKey: username
+      remoteRef: { key: WLSIGPULLKEY, property: username }
+    - secretKey: password
+      remoteRef: { key: WLSIGPULLKEY, property: password }

@@ -7,9 +7,12 @@ import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
+import { createFakeInvites } from "./fake-invites";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
+import { pagedClients } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
+import { createFakeStaff, type FakeAccount } from "./fake-staff";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -41,6 +44,8 @@ export interface FakeOptions {
 	platformAdmins?: ReadonlySet<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
+	/** The fake sign-in's accounts the add-member search finds and an invitation reuses (none by default). */
+	staff?: ReadonlyArray<FakeAccount>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
 	empty?: boolean;
 }
@@ -78,6 +83,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	};
 	// The fake does not know who asks: what the console does is the first member's, as the service would record the subject.
 	const me = Object.keys(opts.members)[0] ?? "console";
+	const invites = createFakeInvites({
+		guard,
+		client: (app, id) => data(app).clients.find((c) => c.id === id),
+		now: Date.now,
+		log: (app, action, target) => log(data(app), me, action, target),
+	});
 	const log = (
 		d: AppData,
 		actor: string,
@@ -117,6 +128,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const team = teamFrom(opts.members, opts.names);
 	const access = createFakeAccess({ team, platformAdmins: opts.platformAdmins, data, guard, log });
 	const members = createFakeMembers({ team, self: me, data, guard, log });
+	const staff = createFakeStaff({
+		team,
+		self: me,
+		accounts: [...(opts.staff ?? [])],
+		data,
+		guard,
+		log,
+	});
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
 	const assistant = createFakeAssistant(() => me);
@@ -128,8 +147,10 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...profile,
 		...access,
 		...members,
+		...staff,
 		...clinical,
 		...catalog,
+		...invites,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;
@@ -162,11 +183,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async calendar(app, from, to): Promise<CalendarData> {
 			guard("calendar");
 			const d = data(app);
+			const appointments = d.appointments.filter((a) => a.date >= from && a.date <= to);
+			// As the service's port answers: the clients of the visits shown, not every client.
+			const named = new Set(appointments.map((a) => a.clientId));
 			return {
 				columns: calendarColumns(d.columns),
 				services: activeServices(d.services),
-				clients: d.clients,
-				appointments: d.appointments.filter((a) => a.date >= from && a.date <= to),
+				clients: d.clients.filter((c) => named.has(c.id)),
+				appointments,
 			};
 		},
 		async appointment(app, id) {
@@ -427,6 +451,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						c.name.toLocaleLowerCase().includes(q) ||
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
+		},
+		clientPage(app, filter, query, cursor) {
+			return pagedClients(this)(app, filter, query, cursor);
+		},
+		async clientsByIds(app, ids) {
+			guard("clients");
+			const wanted = new Set(ids);
+			return data(app).clients.filter((c) => wanted.has(c.id));
 		},
 		async client(app, id) {
 			guard("client");

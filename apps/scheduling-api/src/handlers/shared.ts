@@ -1,4 +1,4 @@
-import type { RouteSpec, SchedType } from "@psi/scheduling-sdk/contract";
+import { DEFAULT_PAGE, type RouteSpec, type SchedType } from "@psi/scheduling-sdk/contract";
 import type { Tuple } from "../authz/port";
 import type { Ctx } from "../http/context";
 import { fail, notFound } from "../http/errors";
@@ -13,7 +13,7 @@ export function paginate<T>(
 	limit: number | undefined,
 	cursor: string | undefined,
 ): { items: T[]; nextCursor?: string } {
-	const size = limit ?? 100;
+	const size = limit ?? DEFAULT_PAGE;
 	const start =
 		cursor === undefined
 			? 0

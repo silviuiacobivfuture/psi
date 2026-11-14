@@ -3,7 +3,7 @@ import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
 import type { PackageRow, PaymentRow } from "../store/types";
-import { must, newId, stamps, writeTuples } from "./shared";
+import { must, newId, paginate, stamps, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
 
@@ -61,6 +61,17 @@ async function paymentOut(ctx: C, y: PaymentRow, names: Map<string, string | und
 	};
 }
 
+/** The package's ledger, oldest first, or `undefined` (absent, not empty) for a caller who may not see payments. */
+async function paymentsOf(ctx: C, p: PackageRow, names: Map<string, string | undefined>) {
+	if (!(await ctx.canOn("payments_view", "sched_package", p.id))) return undefined;
+	const lines = (await ctx.deps.store.c.payments.list(ctx.app, { eq: { packageId: p.id } })).sort(
+		(a, b) => a.paidAt - b.paidAt,
+	);
+	const payments = [];
+	for (const line of lines) payments.push(await paymentOut(ctx, line, names));
+	return payments;
+}
+
 export const packageHandlers: HandlersOf<
 	| "packages.list"
 	| "packages.create"
@@ -74,7 +85,17 @@ export const packageHandlers: HandlersOf<
 		const rows = (
 			await ctx.deps.store.c.packages.list(ctx.app, { eq: { clientId: String(ctx.params.id) } })
 		).sort((a, b) => a.createdAt - b.createdAt);
-		return { items: await Promise.all(rows.map((p) => balances(ctx, p))) };
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		const names = new Map<string, string | undefined>();
+		return {
+			...page,
+			items: await Promise.all(
+				page.items.map(async (p) => {
+					const [out, payments] = await Promise.all([balances(ctx, p), paymentsOf(ctx, p, names)]);
+					return payments === undefined ? out : { ...out, payments };
+				}),
+			),
+		};
 	},
 
 	async "packages.create"(ctx) {
@@ -106,14 +127,8 @@ export const packageHandlers: HandlersOf<
 	async "packages.get"(ctx) {
 		const row = await must(ctx.deps.store.c.packages, ctx.app, String(ctx.params.id), "package");
 		const base = { package: await balances(ctx, row) };
-		if (!(await ctx.canOn("payments_view", "sched_package", row.id))) return base;
-		const names = new Map<string, string | undefined>();
-		const lines = (
-			await ctx.deps.store.c.payments.list(ctx.app, { eq: { packageId: row.id } })
-		).sort((a, b) => a.paidAt - b.paidAt);
-		const payments = [];
-		for (const line of lines) payments.push(await paymentOut(ctx, line, names));
-		return { ...base, payments };
+		const payments = await paymentsOf(ctx, row, new Map());
+		return payments === undefined ? base : { ...base, payments };
 	},
 
 	async "packages.update"(ctx) {

@@ -27,6 +27,8 @@ const SCREENS = [
 	"/settings/assistant",
 	"/settings/members",
 	"/settings/members?edit=mock-ana-7f3c",
+	"/settings/members?new=1",
+	"/settings/members?invite=1",
 	"/more",
 ] as const;
 

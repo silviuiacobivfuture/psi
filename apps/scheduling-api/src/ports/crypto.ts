@@ -1,53 +1,103 @@
-import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
-
-/** Clinical fields are sealed before they reach the store and opened only for a permitted caller. */
-export interface FieldCrypto {
-	seal(plain: string, context: string): string;
-	/** Throws when the envelope was tampered with or sealed for another context (another app or record). */
-	open(sealed: string, context: string): string;
-}
-
-const VERSION = "v1";
+import {
+	buildKeyRing,
+	CryptoError,
+	decryptField,
+	type Encrypted,
+	encryptField,
+	generateDataKeyBytes,
+	type KeyRing,
+	type MasterKey,
+	parseMasterKey,
+	type WrappedKey,
+	wrapDataKey,
+} from "@psi/scheduling/crypto";
 
 /**
- * AES-256-GCM with a key derived per context (HKDF-SHA256 over CLINIC_MASTER_KEY, from OpenBao), so a sealed value
- * moved to another app, client or record does not open. The context is also the authenticated data.
- * Envelope: `v1.<iv>.<tag>.<ciphertext>` in base64url.
- * model2 owns the final envelope format (packages/scheduling); this stays behind the port until it lands.
+ * Clinical text is sealed with the package's envelope and nothing else (`@psi/scheduling/crypto`, the one the import
+ * writes with): an app's data keys, wrapped by CLINIC_MASTER_KEY, with the app and the field as authenticated data.
+ * A sealed value travels as `<keyVersion>.<iv>.<data>` (base64 parts), the store's `Encrypted` on one line.
  */
-export function createFieldCrypto(masterKeyHex: string): FieldCrypto {
-	const master = Buffer.from(masterKeyHex, "hex");
-	if (master.length !== 32) throw new Error("CLINIC_MASTER_KEY must be 32 bytes of hex");
-	const keyFor = (context: string): Buffer =>
-		Buffer.from(hkdfSync("sha256", master, Buffer.alloc(0), `psi-scheduling:${context}`, 32));
+export interface FieldCrypto {
+	seal(app: string, field: string, plain: string): Promise<string>;
+	/** Throws a CryptoError (`no_keys`, `unknown_key_version`, `decrypt_failed`, ...) rather than return anything wrong. */
+	open(app: string, field: string, sealed: string): Promise<string>;
+}
+
+/** The fields the service seals: their names are the import's (`<table>.<column>`), which is how its rows open here. */
+export const FIELDS = {
+	record: "formResponses.payload",
+	clinical: "clients.clinical",
+	feedback: "feedback.text",
+	note: "clientNotes.textEnc",
+} as const;
+
+/** Where an app's wrapped data keys are kept (the store; Convex returns them and can never unwrap one). */
+export interface KeyStore {
+	keys(app: string): Promise<WrappedKey[]>;
+	/** Stores a key as a version; one that exists is never replaced. */
+	install(app: string, version: number, wrapped: WrappedKey): Promise<void>;
+}
+
+export const sealedOf = (enc: Encrypted): string => [enc.keyVersion, enc.iv, enc.data].join(".");
+
+export function encryptedOf(sealed: string): Encrypted {
+	const [version, iv, data, extra] = sealed.split(".");
+	const keyVersion = Number(version);
+	if (
+		extra !== undefined ||
+		iv === undefined ||
+		data === undefined ||
+		!Number.isInteger(keyVersion) ||
+		keyVersion < 1
+	)
+		throw new CryptoError("bad_envelope", "not a sealed value");
+	return { keyVersion, iv, data };
+}
+
+export function createFieldCrypto(masterKeyText: string, keys: KeyStore): FieldCrypto {
+	let master: Promise<MasterKey> | undefined;
+	const rings = new Map<string, Promise<KeyRing>>();
+	const masterKey = (): Promise<MasterKey> => {
+		master ??= parseMasterKey(masterKeyText);
+		return master;
+	};
+	const load = async (app: string): Promise<KeyRing> =>
+		buildKeyRing(await masterKey(), app, await keys.keys(app));
+	/** The app's ring, loaded once; `fresh` asks the store again (a key installed since, by another replica). */
+	const ringOf = (app: string, fresh = false): Promise<KeyRing> => {
+		const held = fresh ? undefined : rings.get(app);
+		if (held !== undefined) return held;
+		const loading = load(app);
+		rings.set(app, loading);
+		loading.catch(() => rings.delete(app));
+		return loading;
+	};
+	/** The first data key of an app that has none: made here, wrapped by the master key, stored. */
+	async function ensureKey(app: string): Promise<void> {
+		if ((await keys.keys(app)).length > 0) return;
+		await keys.install(
+			app,
+			1,
+			await wrapDataKey(await masterKey(), generateDataKeyBytes(), app, 1),
+		);
+	}
 	return {
-		seal(plain, context) {
-			const iv = randomBytes(12);
-			const cipher = createCipheriv("aes-256-gcm", keyFor(context), iv);
-			cipher.setAAD(Buffer.from(context));
-			const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-			return [
-				VERSION,
-				iv.toString("base64url"),
-				cipher.getAuthTag().toString("base64url"),
-				body.toString("base64url"),
-			].join(".");
+		async seal(app, field, plain) {
+			let ring: KeyRing;
+			try {
+				ring = await ringOf(app);
+			} catch (error) {
+				if (!(error instanceof CryptoError) || error.code !== "no_keys") throw error;
+				await ensureKey(app);
+				ring = await ringOf(app, true);
+			}
+			return sealedOf(await encryptField(ring, plain, `${app}|${field}`));
 		},
-		open(sealed, context) {
-			const [version, iv, tag, body] = sealed.split(".");
-			if (version !== VERSION || iv === undefined || tag === undefined || body === undefined)
-				throw new Error("not a sealed value");
-			const decipher = createDecipheriv(
-				"aes-256-gcm",
-				keyFor(context),
-				Buffer.from(iv, "base64url"),
-			);
-			decipher.setAAD(Buffer.from(context));
-			decipher.setAuthTag(Buffer.from(tag, "base64url"));
-			return Buffer.concat([
-				decipher.update(Buffer.from(body, "base64url")),
-				decipher.final(),
-			]).toString("utf8");
+		async open(app, field, sealed) {
+			const enc = encryptedOf(sealed);
+			let ring = await ringOf(app);
+			if (!ring.byVersion.has(enc.keyVersion)) ring = await ringOf(app, true);
+			return decryptField(ring, enc, `${app}|${field}`);
 		},
 	};
 }

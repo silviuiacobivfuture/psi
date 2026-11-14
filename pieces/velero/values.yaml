@@ -96,6 +96,9 @@ schedules:
       # relied on for globs here, and tests/backup-window.test.sh V2 fails on a
       # drill namespace missing from this list. `restore-drill` itself stays in:
       # it holds the record of every drill, and it is not thrown away.
+      # The estate's own drills (lib-restore-drill-*.sh it holds beside SEB's) throw away
+      # namespaces of their own: the estate slot drill-namespaces lists them, one `- <ns>` a line,
+      # after SEB's (empty by default).
       excludedNamespaces:
         - kube-system
         - kube-node-lease
@@ -106,6 +109,14 @@ schedules:
         - restore-drill-datastore
         - restore-drill-headscale
         - restore-drill-openbao
+        - restore-drill-harbor-db
+        - restore-drill-nextcloud-files
+        - restore-drill-novu
+        - restore-drill-reportportal-index
+        - restore-drill-velero
+        - restore-drill-velero-file
+        # seb:estate drill-namespaces
+        # seb:end drill-namespaces
 
 # emptyDir dies with its pod, so there is nothing to restore, and a CronJob
 # pod that ends mid-backup failed the whole backup: measured on 2026-11-02,

@@ -1,8 +1,10 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
+import { reaches } from "../authz/access";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden, notFound } from "../http/errors";
+import { FIELDS } from "../ports/crypto";
 import type { NoteRow } from "../store/types";
-import { must, newId, stamps } from "./shared";
+import { must, newId, paginate, stamps } from "./shared";
 
 type C = Ctx<RouteSpec>;
 /** What a key is held for: anyone's notes (`all`), or only the ones the person wrote (`own`). */
@@ -11,8 +13,6 @@ interface Held {
 	own: boolean;
 }
 
-/** A note's sealed text is bound to its client, so a copy of it under another client opens to nothing. */
-const noteContext = (app: string, clientId: string): string => `${app}:client:${clientId}:note`;
 const clinical = (n: Pick<NoteRow, "category">): boolean => n.category === "clinic";
 
 async function held(ctx: C, key: string): Promise<Held> {
@@ -35,11 +35,11 @@ async function seen(ctx: C, note: NoteRow): Promise<boolean> {
 }
 
 /** The note as the caller reads it: a clinical text is opened here, and only here. */
-function out(ctx: C, n: NoteRow) {
+async function out(ctx: C, n: NoteRow) {
 	const text =
 		n.sealed === undefined
 			? (n.text ?? "")
-			: ctx.deps.crypto.open(n.sealed, noteContext(n.app, n.clientId));
+			: await ctx.deps.crypto.open(n.app, FIELDS.note, n.sealed);
 	return {
 		id: n.id,
 		clientId: n.clientId,
@@ -61,8 +61,15 @@ const order = (a: NoteRow, b: NoteRow): number =>
  * The notes of a client the caller may read, each as they read it. Reading a clinical note is audited (once, with how
  * many were opened), whether it is a list or the client's summary. A caller who may not see the client gets none.
  */
-export async function readableNotes(ctx: C, clientId: string, onlyPinned = false) {
-	if (!(await ctx.canOn("clients_view", "sched_client", clientId))) return [];
+export async function readableNotes(
+	ctx: C,
+	clientId: string,
+	onlyPinned = false,
+	/** Whether the caller may see the client, when the caller already asked (a batch asks once for all). */
+	seesClient?: boolean,
+) {
+	const sees = seesClient ?? (await ctx.canOn("clients_view", "sched_client", clientId));
+	if (!sees) return [];
 	const rows = (await ctx.deps.store.c.notes.list(ctx.app, { eq: { clientId } }))
 		.filter((n) => !onlyPinned || n.pinned)
 		.sort(order);
@@ -75,7 +82,7 @@ export async function readableNotes(ctx: C, clientId: string, onlyPinned = false
 			{ type: "client", id: clientId },
 			{ via: "notes", count: opened },
 		);
-	return shown.map((n) => out(ctx, n));
+	return Promise.all(shown.map((n) => out(ctx, n)));
 }
 
 /** The note, if it exists and the caller may read it: what they may not read is not there for them. */
@@ -94,13 +101,32 @@ function refuseUnlessAllowed(ok: boolean, action: string): void {
 }
 
 export const noteHandlers: HandlersOf<
-	"notes.list" | "notes.create" | "notes.update" | "notes.pin" | "notes.remove"
+	"notes.list" | "notes.pinned" | "notes.create" | "notes.update" | "notes.pin" | "notes.remove"
 > = {
 	async "notes.list"(ctx) {
 		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		const h = await held(ctx, "notes_view");
 		if (!h.all && !h.own) throw notFound("object");
-		return { items: await readableNotes(ctx, client.id) };
+		return paginate(await readableNotes(ctx, client.id), ctx.query.limit, ctx.query.cursor);
+	},
+
+	async "notes.pinned"(ctx) {
+		const h = await held(ctx, "notes_view");
+		if (!h.all && !h.own) throw notFound("object");
+		// Each client as `notes.list` would answer it, pinned only: one the caller may not see has none. Who the caller
+		// may see is asked ONCE for the batch (one ListObjects), never once per client.
+		const visible = await ctx.reachOf("clients_view", "sched_client");
+		const items = await Promise.all(
+			ctx.query.clients.map(async (clientId) => ({
+				clientId,
+				notes:
+					reaches(visible, clientId) &&
+					(await ctx.deps.store.c.clients.get(ctx.app, clientId)) !== undefined
+						? await readableNotes(ctx, clientId, true, true)
+						: [],
+			})),
+		);
+		return { items };
 	},
 
 	async "notes.create"(ctx) {
@@ -130,7 +156,7 @@ export const noteHandlers: HandlersOf<
 		}
 		const row = await ctx.deps.store.c.notes.insert(
 			category === "clinic"
-				? { ...base, sealed: ctx.deps.crypto.seal(text, noteContext(ctx.app, client.id)) }
+				? { ...base, sealed: await ctx.deps.crypto.seal(ctx.app, FIELDS.note, text) }
 				: { ...base, text },
 		);
 		ctx.note({ category, pinned });
@@ -152,7 +178,7 @@ export const noteHandlers: HandlersOf<
 						sealed:
 							text === undefined
 								? (note.sealed ?? "")
-								: ctx.deps.crypto.seal(text, noteContext(ctx.app, note.clientId)),
+								: await ctx.deps.crypto.seal(ctx.app, FIELDS.note, text),
 					}
 				: { text: text ?? note.text ?? "" }),
 			updatedAt: ctx.now,

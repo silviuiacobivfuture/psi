@@ -12,6 +12,7 @@ import {
 	diff,
 	must,
 	newId,
+	paginate,
 	removeTuplesThenRow,
 	replaced,
 	stamps,
@@ -158,13 +159,7 @@ export const appHandlers: HandlersOf<
 		const { id, name, timeZone, ownerSubject } = ctx.body;
 		if (await ctx.deps.store.c.apps.get(id, id)) throw fail("conflict", "the app exists");
 		const made = await provisionApp(ctx.deps, { id, name, timeZone, ownerSubject });
-		await syncMember(
-			ctx,
-			id,
-			ownerSubject,
-			undefined,
-			await ctx.deps.store.c.members.get(id, ownerSubject),
-		);
+		await syncMember(ctx, id, ownerSubject, await ctx.deps.store.c.members.get(id, ownerSubject));
 		return made;
 	},
 
@@ -199,11 +194,11 @@ export const appHandlers: HandlersOf<
 	},
 
 	async "roles.list"(ctx) {
-		return {
-			items: (await ctx.deps.store.c.roles.list(ctx.app))
-				.sort((a, b) => a.name.localeCompare(b.name))
-				.map(roleOut),
-		};
+		const rows = (await ctx.deps.store.c.roles.list(ctx.app)).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		return { ...page, items: page.items.map(roleOut) };
 	},
 
 	async "roles.create"(ctx) {

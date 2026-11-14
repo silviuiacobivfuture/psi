@@ -24,7 +24,7 @@ describe("the estate administrator without a membership", () => {
 		const html = await res.text();
 		expect(html).toContain('href="/platform/assistant"');
 		expect(html).toContain('data-org="psizone"');
-		expect(html).toContain("Administrator platformă");
+		expect(html).toContain("Administrator sistem");
 		const settings = await root.get("/platform/assistant");
 		expect(settings.status).toBe(200);
 		expect(await settings.text()).toContain('data-action="assistant.platform.save"');

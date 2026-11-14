@@ -8,7 +8,9 @@
  *   Engaged = the sheet is open on the chat, the window is focused and visible, and focus or the
  *   pointer is inside the widget. Anything else (focus moving out, a click outside, the window
  *   blurring, the tab hiding, the sheet closing) starts the count again from zero;
- * - booking goes full screen at once: a click on the capsule's action, on any "Programează…"
+ * - booking goes full screen at once: a click on the capsule's action (which, when the server
+ *   gave it `data-book`, also asks the guide that message for the visitor, so the booking starts
+ *   in the chat; its href stays the no-script fallback), on any "Programează…"
  *   button or link in the conversation, or the guide's answer rendering the slot picker or the
  *   booking form (that last one is announced, being no gesture of the visitor's);
  * - leaving full screen by hand (button or Escape) blocks the automatic entry until a new
@@ -161,6 +163,24 @@ function fullscreen(nav: HTMLElement, sheet: HTMLElement, form: HTMLElement): vo
 			if (full) exit("button");
 			else enter(false);
 		} else if (control !== null && control.closest(".pz-compass__action") !== null) {
+			const book = nav.querySelector<HTMLElement>(".pz-compass__action")?.dataset.book ?? "";
+			const plain =
+				e instanceof MouseEvent &&
+				e.button === 0 &&
+				!e.metaKey &&
+				!e.ctrlKey &&
+				!e.shiftKey &&
+				!e.altKey;
+			if (book !== "" && plain) {
+				// Booking starts inside the chat: the link is only the no-script way to the contact page.
+				e.preventDefault();
+				if (!blocked) {
+					if (open() && chat()) enter(false);
+					else wanted = true;
+				}
+				form.dispatchEvent(new CustomEvent("psi-guide-ask", { detail: book }));
+				return;
+			}
 			if (blocked) return;
 			if (open() && chat()) enter(false);
 			else {

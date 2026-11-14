@@ -65,6 +65,10 @@ spec:
         runAsNonRoot: true
         seccompProfile: { type: RuntimeDefault }
 
+      # The engine's own graceful stop (30 s) plus the ten of the preStop sleeps below, which
+      # come out of it. .github/scripts/hub-drain.sh refuses a shorter one.
+      terminationGracePeriodSeconds: 40
+
       initContainers:
         # ── Fail LOUD, by name, before anything else runs ────────────────────
         #
@@ -148,6 +152,14 @@ spec:
       containers:
         # ── The engine. ADMIN SURFACE. Reachable only by autorizare. ──────────
         - name: openfga
+          # Goes on serving for ten seconds after the pod leaves the endpoints: it would
+          # otherwise close its listener while openfga-admin still sends it connections.
+          # Measured on RMX 2026-11-13: Polaris's change-log reader (MirrorService/GetCursor)
+          # answered Unavailable within 15 s of each engine roll, and at no other time.
+          # `sleep`, not exec: the image is a static base with no shell. hub-drain.sh.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
           image: WLREGISTRY/mirror/docker.io/openfga/openfga:v1.19.0@sha256:b9543c46f1efd110968ef1d4db65194348651b99f11d013c63a5207c95a3b86c
           args: ["run"]
           ports:
@@ -290,6 +302,12 @@ spec:
         # state. Anything more would put it in the Check path, which is the one
         # thing the architecture forbids.
         - name: authzfilter
+          # The same drain as the engine beside it, for the same reason: every application's
+          # reads come through this door, and it must not close before the Service stops
+          # sending it connections. Distroless, so `sleep`. hub-drain.sh.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
           # The autorizare-svc image, running its second entrypoint. The overlay
           # pins the tag; CI bumps it here AND in the autorizare overlay, because
           # one image serves both and a half-bumped pair would run a filter from

@@ -2,6 +2,7 @@ import type { AppointmentCreate, RouteSpec } from "@psi/scheduling-sdk/contract"
 import type { z } from "zod/v4";
 import { reaches } from "../authz/access";
 import { appLink, parentLink } from "../authz/links";
+import { dayOf, tellScheduleChanged } from "../engagement/schedule-alert";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { AppointmentRow } from "../store/types";
@@ -150,6 +151,8 @@ export const appointmentHandlers: HandlersOf<
 	async "appointments.list"(ctx) {
 		const rows = (
 			await ctx.deps.store.c.appointments.list(ctx.app, {
+				// A client's visits are read by the client (an index in Convex), never the window's whole calendar.
+				...(ctx.query.clientId === undefined ? {} : { eq: { clientId: ctx.query.clientId } }),
 				range: { field: "start", gte: ctx.query.from, lt: ctx.query.to },
 			})
 		)
@@ -188,9 +191,11 @@ export const appointmentHandlers: HandlersOf<
 			await ctx.notify(
 				"appointment.confirmed",
 				{ kind: "client", clientId: saved.clientId },
-				{ appointmentId: saved.id, start: saved.start },
+				{ appointmentId: saved.id, start: saved.start, actor: ctx.subject, source: "staff" },
 				saved.id,
 			);
+		if (saved.kind === "block")
+			await tellScheduleChanged(ctx, saved.practitionerId, await dayOf(ctx, saved.start), "block");
 		return appointmentOut(ctx, saved);
 	},
 
@@ -222,7 +227,7 @@ export const appointmentHandlers: HandlersOf<
 			await ctx.notify(
 				"appointment.cancelled",
 				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: row.start },
+				{ appointmentId: row.id, start: row.start, actor: ctx.subject, source: "staff" },
 				row.id,
 			);
 		return appointmentOut(ctx, next);

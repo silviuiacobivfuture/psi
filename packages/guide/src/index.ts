@@ -1,7 +1,10 @@
 export type {
+	BookedRequest,
 	BookingCancel,
 	BookingCriteria,
+	BookingDetailsReport,
 	BookingKind,
+	BookingLang,
 	BookingNotice,
 	BookingOffer,
 	BookingState,
@@ -17,6 +20,7 @@ export type {
 } from "@psi/engine";
 export {
 	type AskControl,
+	confirmation,
 	createMemoryRateLimiter,
 	DEFAULT_RATE_LIMIT,
 	DEFAULT_TIMEOUTS,
@@ -24,6 +28,7 @@ export {
 	PageContextSchema,
 	type RateLimiter,
 	readBehaviour,
+	wantsEdit,
 } from "@psi/engine";
 export { CITE_ONLY_PREFIX, isCiteOnly } from "@psi/knowledge";
 export {
@@ -100,4 +105,5 @@ export {
 	type PsiEngineOptions,
 } from "./psi-engine";
 export { type PsiScheduling, schedulingFromEnv, schedulingPort } from "./scheduling";
+export { HEMISYNC_BOOKING_PATHS, hemisyncBookingUrl } from "./services/contact";
 export { settingsFromEnv } from "./settings";

@@ -5,6 +5,7 @@ import { at, type Locale } from "../i18n";
 import { programmePicture } from "../imagery";
 import { m } from "../paraglide/messages.js";
 import {
+	bookingHref,
 	href,
 	PROGRAMME_SLUGS,
 	type ProgrammeSlug,
@@ -143,6 +144,7 @@ export function ProgrammesPage(props: PageProps): JSX.Element {
 			<NextSteps
 				links={[
 					{ label: m.next_start({}, o), href: href(locale, "start"), primary: true },
+					{ label: m.bk_nav({}, o), href: bookingHref(locale) },
 					{ label: m.gateway_title({}, o), href: programmeHref(locale, "gateway-voyage") },
 					{ label: m.next_workshops({}, o), href: href(locale, "archive") },
 					{ label: m.nav_faq({}, o), href: href(locale, "faq") },

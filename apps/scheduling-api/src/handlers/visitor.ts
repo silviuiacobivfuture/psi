@@ -1,7 +1,11 @@
 import { visitorSubject } from "../auth/principal";
+import { alertBlacklist } from "../engagement/blacklist-alert";
+import { activateOnSignIn } from "../engagement/invite-flow";
+import { cancelClinicAppointment, clinicAppointmentsOf } from "../engagement/own-appointments";
 import type { HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
 import type { Reason } from "../store/types";
+import { paginate } from "./shared";
 
 const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
@@ -59,15 +63,20 @@ export const visitorHandlers: HandlersOf<
 	async "visitor.submit"(ctx) {
 		const subject =
 			ctx.principal.kind === "person" ? ctx.principal.subject : visitorSubject(ctx.principal);
-		const { ok: _ok, ...rest } = ok(
-			await ctx.deps.store.visitor.submit(ctx.app, {
-				reference: String(ctx.params.reference),
-				holdToken: ctx.body.holdToken,
-				contact: ctx.body.contact,
-				audience: ctx.body.audience,
-				subject,
-			}),
-		);
+		const result = await ctx.deps.store.visitor.submit(ctx.app, {
+			reference: String(ctx.params.reference),
+			holdToken: ctx.body.holdToken,
+			contact: ctx.body.contact,
+			audience: ctx.body.audience,
+			subject,
+		});
+		if (!result.ok && result.reason === "unavailable_online")
+			await alertBlacklist(
+				ctx,
+				"web",
+				await ctx.deps.store.blacklist.check(ctx.app, ctx.body.contact),
+			);
+		const { ok: _ok, ...rest } = ok(result);
 		await ctx.changed("request", "created", rest.reference);
 		await ctx.notify(
 			"request.created",
@@ -102,22 +111,43 @@ export const visitorHandlers: HandlersOf<
 	},
 	async "visitor.callback"(ctx) {
 		// The callback form stores a request with no hold: the blacklist is asked first, and a hit is told one neutral word.
-		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact))
+		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact)) {
+			await alertBlacklist(
+				ctx,
+				ctx.body.channel === "guide" ? "assistant" : "callback",
+				await ctx.deps.store.blacklist.check(ctx.app, ctx.body.contact),
+			);
 			throw fail("unavailable_online", "this cannot be booked online");
+		}
 		const out = await ctx.deps.store.visitor.callback(ctx.app, ctx.body);
 		await ctx.changed("request", "created", out.reference);
-		await ctx.notify("request.created", TEAM_REQUESTS, { reference: out.reference }, out.reference);
+		await ctx.notify(
+			"request.created",
+			TEAM_REQUESTS,
+			{ reference: out.reference, via: ctx.body.channel },
+			out.reference,
+		);
 		return out;
 	},
 	async "visitor.mine"(ctx) {
 		const subject = visitorSubject(ctx.principal);
 		if (subject === undefined) throw fail("invalid", "name the visitor");
-		return { items: await ctx.deps.store.visitor.mine(ctx.app, subject) };
+		// A first sign-in of an invited account is the moment its invitation becomes active.
+		await activateOnSignIn(ctx, subject);
+		const requests = await ctx.deps.store.visitor.mine(ctx.app, subject);
+		const clinic = await clinicAppointmentsOf(ctx, subject);
+		return paginate(
+			[...requests, ...clinic].sort((x, y) => y.start - x.start),
+			ctx.query.limit,
+			ctx.query.cursor,
+		);
 	},
 	async "visitor.mineCancel"(ctx) {
 		const subject = visitorSubject(ctx.principal);
 		if (subject === undefined) throw fail("invalid", "name the visitor");
-		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, String(ctx.params.id)));
+		const id = String(ctx.params.id);
+		if (await cancelClinicAppointment(ctx, subject, id)) return { ok: true as const };
+		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, id));
 		await ctx.changed("request", "updated", String(ctx.params.id));
 		await ctx.notify(
 			"appointment.cancelled",

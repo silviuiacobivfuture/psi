@@ -3,6 +3,8 @@ import { createMemoryAssistant } from "./memory-assistant";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
+import { createMemoryKeyed } from "./memory-keyed";
+import { memoryKeys } from "./memory-keys";
 import { createMemoryReports } from "./memory-reports";
 import { applyVisitRules } from "./memory-rules";
 import { createMemorySeries } from "./memory-series";
@@ -64,6 +66,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		clock,
 		async (app) => (await c.apps.get(app, app)) !== undefined,
 	);
+	const keyed = createMemoryKeyed(c.apps, clock);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
 		get: (app, kind) => Promise.resolve(documents.get(`${app}|${kind}`)),
@@ -95,8 +98,10 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		usage: assistant.usage,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
+		keys: memoryKeys(),
 		series: createMemorySeries(c.appointments),
 		reports: createMemoryReports(c, bookings.web, feedback.port, blacklist.port),
+		keyed: keyed.port,
 		ping: () => Promise.resolve(),
 		dump: () =>
 			JSON.stringify([
@@ -107,6 +112,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				blacklist.state(),
 				feedback.state(),
 				assistant.state(),
+				keyed.state(),
 			]),
 	};
 }
