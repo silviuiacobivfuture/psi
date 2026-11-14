@@ -99,10 +99,36 @@ export async function reconcile(options: ReconcileOptions): Promise<ReconcileRep
 	if (options.prune) {
 		if (options.reader === undefined) throw new Error("--prune needs OpenFGA's read access");
 		const keep = new Set(wanted.map(key));
+		// Only what this run's apps own. The store is shared: dev's apps and production's (OPENFGA_APP_PREFIX "prod-",
+		// its own Convex ids) live side by side, and a tuple of the other environment is not implied by THIS store
+		// either. A tuple is this run's when its object, or its user's object, is one the plan names, or one of its
+		// apps; anything else is another environment's and is kept, whatever it holds.
+		// Anchored on the service's own objects only, never on a person: the same user is a member on dev and in production.
+		const objectOf = (subject: string): string => subject.split("#")[0] ?? subject;
+		const mine = new Set<string>(options.apps.map((app) => `sched_app:${options.prefix}${app}`));
+		for (const t of wanted) {
+			mine.add(t.object);
+			if (objectOf(t.user).startsWith("sched_")) mine.add(objectOf(t.user));
+		}
 		const stale: Tuple[] = [];
+		let foreign = 0;
 		for (const type of SCHED_TYPES)
-			for (const t of await options.reader.ofType(type)) if (!keep.has(key(t))) stale.push(t);
-		log(`${stale.length} tuple(s) in OpenFGA are not implied by the store`);
+			for (const t of await options.reader.ofType(type)) {
+				if (keep.has(key(t))) continue;
+				if (mine.has(t.object) || mine.has(objectOf(t.user))) stale.push(t);
+				else foreign += 1;
+			}
+		log(
+			`${stale.length} tuple(s) in OpenFGA are not implied by the store; ${foreign} name no object of this run (another environment's), kept`,
+		);
+		// What they are, by the object's type, the relation and the user's type: a prune is read before it is run.
+		const kinds = new Map<string, number>();
+		for (const t of stale) {
+			const k = `${t.object.split(":")[0]} ${/^(member|app|includes|coordinator|owner|assigned|platform_admin)$/.test(t.relation) ? t.relation : "<permission>"} ← ${objectOf(t.user).split(":")[0]}${t.user.includes("#") ? `#${t.user.split("#")[1]}` : ""}`;
+			kinds.set(k, (kinds.get(k) ?? 0) + 1);
+		}
+		for (const [k, n] of [...kinds].sort((a, b) => b[1] - a[1]).slice(0, 25))
+			log(`  ${String(n).padStart(6)}  ${k}`);
 		if (!options.dryRun && stale.length > 0) {
 			await options.authz.write({ writes: [], deletes: stale });
 			pruned = stale.length;
