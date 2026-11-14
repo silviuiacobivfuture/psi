@@ -54,7 +54,7 @@ describe("the journal over the service", () => {
 		const path = /@get\((?:'|&#39;)(\/settings\/audit\/[^'"]+?)(?:'|&#39;)\); setTimeout/
 			.exec(body.slice(body.indexOf(`data-audit-row="${id}"`)))?.[1]
 			?.replaceAll("&amp;", "&");
-		expect(path).toContain("?from=");
+		expect(path).toContain("?c=");
 		const res = await s.raw(path ?? "", { headers: { "datastar-request": "true" } });
 		expect(res.status).toBe(200);
 	});

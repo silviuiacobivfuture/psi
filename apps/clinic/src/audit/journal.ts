@@ -13,10 +13,20 @@ const SCAN_READS = 5;
 /** The export: at most this many events of the log, filtered as the screen is. */
 const EXPORT_READS = 5;
 
-/** A row and the cursor of the log's page it was read from (null: the newest): how its drawer finds it again. */
+/** The days the log is read for (either open). */
+export interface JournalWindow {
+	from?: string;
+	to?: string;
+}
+
+/**
+ * A row, and where it was read: the cursor of the log's page (null: the first) and the days of the read — how its
+ * drawer finds it again, whatever page and filter it came from.
+ */
 export interface JournalRow {
 	row: Row;
-	from: string | null;
+	cursor: string | null;
+	window: JournalWindow;
 }
 
 export interface JournalPage {
@@ -27,7 +37,7 @@ export interface JournalPage {
 }
 
 /** The days the service narrows the log to; the person, action, type and words are matched here. */
-const windowOf = (q: AuditQuery): { from?: string; to?: string } => ({
+export const windowOf = (q: Pick<AuditQuery, "from" | "to">): JournalWindow => ({
 	...(q.from === undefined ? {} : { from: q.from }),
 	...(q.to === undefined ? {} : { to: q.to }),
 });
@@ -45,12 +55,13 @@ export async function journalPage(
 	cursor: string | null,
 ): Promise<JournalPage> {
 	const limit = narrowed(q) ? SCAN_PAGE : JOURNAL_PAGE;
-	const found: { event: AuditEvent; from: string | null }[] = [];
+	const window = windowOf(q);
+	const found: { event: AuditEvent; cursor: string | null }[] = [];
 	let next = cursor;
 	for (let read = 0; read < SCAN_READS; read++) {
 		const at: string | null = next;
-		const page = await ctx.port.auditPage(ctx.app, windowOf(q), at, limit);
-		for (const event of byFilters(page.events, q)) found.push({ event, from: at });
+		const page = await ctx.port.auditPage(ctx.app, window, at, limit);
+		for (const event of byFilters(page.events, q)) found.push({ event, cursor: at });
 		next = page.nextCursor;
 		if (next === null || found.length >= JOURNAL_PAGE) break;
 	}
@@ -60,7 +71,8 @@ export async function journalPage(
 	);
 	const rows = found.map((f) => ({
 		row: describe(f.event, lookup, ctx.locale, ctx.can),
-		from: f.from,
+		cursor: f.cursor,
+		window,
 	}));
 	const kept = new Set(
 		bySearch(
@@ -94,13 +106,14 @@ export async function journalExport(
 	};
 }
 
-/** One event again, from the log's page its row was read from (the drawer of a row of any page). */
+/** One event again, from the log's page its row was read from, with the same days (the drawer of a row of any page). */
 export async function journalEvent(
 	ctx: Ctx,
 	id: string,
-	from: string | null,
+	cursor: string | null,
+	window: JournalWindow,
 ): Promise<AuditEvent | undefined> {
-	const page = await ctx.port.auditPage(ctx.app, {}, from, SCAN_PAGE);
+	const page = await ctx.port.auditPage(ctx.app, window, cursor, SCAN_PAGE);
 	return page.events.find((e) => e.id === id);
 }
 
