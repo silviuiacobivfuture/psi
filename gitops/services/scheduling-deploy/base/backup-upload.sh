@@ -17,13 +17,14 @@ test -s "$W/manifest.json" || { echo "FAILED: $W/manifest.json missing" >&2; exi
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
 now="$(date -u +%s)"
 
-# The age in hours of the newest object under convex/<tier>/, or a very large number when it has none. A listing that
+# The age in hours of the newest object under convex/<tier>/, or a very large number when it has none (an empty
+# prefix has no Contents: max() of nothing is an error in JMESPath, so the dates are sorted with an empty default). A listing that
 # fails fails the run (checked explicitly below): a tier is never skipped because the bucket could not be read.
 age_hours() {
 	local newest
 	# Explicit, not errexit: a command substitution does not inherit -e in the image's bash (4.2, no inherit_errexit).
 	newest="$(aws s3api list-objects-v2 --bucket "$BACKUP_BUCKET" --prefix "convex/$1/" \
-		--query 'max(Contents[].LastModified)' --output text --endpoint-url "$BACKUP_ENDPOINT")" || return 1
+		--query 'sort(Contents[].LastModified || `[]`)[-1]' --output text --endpoint-url "$BACKUP_ENDPOINT")" || return 1
 	if [ -z "$newest" ] || [ "$newest" = "None" ]; then echo 1000000; return 0; fi
 	echo $(((now - $(date -u -d "$newest" +%s)) / 3600))
 }
