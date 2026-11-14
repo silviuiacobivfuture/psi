@@ -10,7 +10,7 @@
 			"redirect_uris": ["https://access.{base}/v1/auth/oidc/callback"],
 			"post_logout_redirect_uris": ["https://access.{base}/autentificare"],
 			"frontchannel_logout_uris": ["https://access.{base}/v1/auth/oidc/frontchannel-logout"],
-			"delegation": false,
+			"delegation": true,
 			"platform": true,
 			"estate": {
 				"key": "polaris",
