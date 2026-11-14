@@ -43,19 +43,15 @@ jobs:
           # v5 caches the package manager package.json names (pnpm), which this job never installs.
           package-manager-cache: false
       - id: changed
-        env:
-          BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
-          all() { for d in apps/*/; do [ -f "${d}Dockerfile" ] && basename "$d"; done; }
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            list="$(all || true)"
-          else
-            # Only the apps the change reaches through the workspace graph (scripts/affected-apps.mjs):
-            # one runner builds every image in turn, so an image nobody changed is a wait for all.
-            list="$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | node scripts/affected-apps.mjs)"
-          fi
+          # Every app whose image on this branch is behind the checkout (scripts/affected-apps.mjs
+          # --since-deployed): its overlay's tag names the commit it was built from, and anything the
+          # image builds from that changed since then rebuilds it. Not the push's own diff: GitHub drops a
+          # pending run when the next one queues, and a change only the dropped run carried was then never
+          # built (2026-11-14: the API rebuilt, the Convex functions it waited for left behind). A dispatch
+          # plans the same way, so it rebuilds what is behind and nothing else.
+          list="$(node scripts/affected-apps.mjs --since-deployed "$GITHUB_REF_NAME")"
           # An app with a DEPRECATED.md is retired: it is not built or deployed.
           list="$(printf '%s\n' "$list" | while read -r a; do [ -n "$a" ] && [ ! -f "apps/$a/DEPRECATED.md" ] && echo "$a"; done || true)"
           echo "apps=$(printf '%s\n' "$list" | sed '/^$/d' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
