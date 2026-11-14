@@ -52,6 +52,18 @@ export function createAssistantEngine(
 		// Every route of the service's contract the person may use is discoverable, and called with their own token.
 		routes: ROUTES,
 		onFailure: (f) => console.error(`[clinic] assistant ${f.stage}: ${f.error}`),
+		// Only when the organisation keeps transcripts (`logging.keepTranscripts`), already redacted when it hides personal data.
+		onTranscript: (t) =>
+			console.info(
+				JSON.stringify({
+					event: "transcript",
+					surface: "staff",
+					sub: t.sub,
+					threadId: t.threadId,
+					question: t.question,
+					answer: t.answer,
+				}),
+			),
 	});
 }
 
