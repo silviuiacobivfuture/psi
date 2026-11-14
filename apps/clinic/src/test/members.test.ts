@@ -6,7 +6,8 @@ let owner: Console;
 beforeAll(async () => {
 	owner = await startConsole(
 		MEMBER,
-		{ today: "2026-11-16" },
+		// the estate administrator: the only one who may ask what a role or member holds
+		{ today: "2026-11-16", platformAdmins: new Set([MEMBER.sub]) },
 		{
 			[MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }],
 			iuliana: [{ app: "psizone", roles: ["reception"] }],

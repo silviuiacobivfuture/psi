@@ -337,17 +337,21 @@ describe("refusals: nothing is written", () => {
 	});
 
 	it("looking at the app as someone else is read-only here too", async () => {
+		// "Vezi ca…" is the estate administrator's alone
+		await k.api.world.platformAdmin("olga", true);
 		const s = await k.as("olga");
 		const r = await s.raw("/view-as", {
 			method: "POST",
 			body: new URLSearchParams({ as: `role:${role("owner")}` }),
 			headers: form,
 		});
+		expect(r.status).toBe(303);
 		for (const line of r.headers.getSetCookie()) {
 			const [pair] = line.split(";");
 			const [name, ...value] = (pair ?? "").split("=");
 			if (name) s.browser.cookies(ORIGIN).set(name, value.join("="));
 		}
 		await unchanged(() => saveRoles(s, "vera", [role("owner")]), 403);
+		await k.api.world.platformAdmin("olga", false);
 	});
 });
