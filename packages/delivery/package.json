@@ -1,0 +1,28 @@
+{
+	"name": "@psi/delivery",
+	"version": "0.1.2",
+	"private": true,
+	"type": "module",
+	"description": "How a psi site's bytes travel: brotli/gzip compression, content-hashed asset URLs cached a year, ETags and cache policy for pages and static files, and the self-hosted brand fonts with their preloads.",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit",
+		"test": "vitest run --minWorkers=1 --maxWorkers=2"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.19.0",
+		"@psi/design": "workspace:*",
+		"@psi/ui": "workspace:*"
+	},
+	"peerDependencies": {
+		"hono": "^4.13.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"hono": "^4.13.18",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

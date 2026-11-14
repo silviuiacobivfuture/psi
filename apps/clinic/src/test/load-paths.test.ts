@@ -118,4 +118,13 @@ describe("assets and transport", () => {
 	it("personal pages are never cached", async () => {
 		expect((await member.get("/clients")).headers.get("cache-control")).toBe("private, no-store");
 	});
+
+	it("no signed-in screen is kept or revalidated by ETag, whether or not it set a policy", async () => {
+		for (const path of ["/calendar", "/clients", "/roster", "/more"]) {
+			const res = await member.get(path, { headers: { "if-none-match": "*" } });
+			expect(res.status, path).toBe(200);
+			expect(res.headers.get("cache-control"), path).toBe("private, no-store");
+			expect(res.headers.get("etag"), path).toBeNull();
+		}
+	});
 });

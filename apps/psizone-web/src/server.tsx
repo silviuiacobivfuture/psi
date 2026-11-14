@@ -1,7 +1,4 @@
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { guideSignal } from "@psi/site-control";
 import {
 	accountMemory,
@@ -16,6 +13,7 @@ import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { account } from "./account";
 import { registerAccountRoutes } from "./account-routes";
+import { assets } from "./assets";
 import { bookingAccount, guideForRequest } from "./booking-account";
 import { registerBookingRoutes } from "./booking-routes";
 import { bookingDeps } from "./booking-store";
@@ -36,13 +34,12 @@ import { registerPwa } from "./pwa/routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(
-	createRequire(import.meta.url).resolve("@psi/ui/datastar.js"),
-	"utf8",
-);
 const PORT = Number.parseInt(process.env.PORT ?? "4310", 10);
 
 export const app = new Hono({ strict: false });
+// Before every other route and middleware: compression and page caching see each final response (assets.ts).
+// Stylesheet, Datastar, fonts, brand images and the old site's photographs (public/images/old-site) are served here.
+assets.mount(app);
 installDevLog(app);
 applyIndexingPolicy(app, process.env, {
 	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
@@ -64,16 +61,6 @@ app.get("/sitemap.xml", async (c) =>
 app.get("/healthz", (c) => c.text("ok"));
 // The shared CMS's signed webhook: published prices refresh at once (cms.ts).
 registerCmsRevalidate(app);
-app.get("/assets/datastar.js", (c) =>
-	c.body(DATASTAR, 200, {
-		"content-type": "text/javascript; charset=utf-8",
-		"cache-control": "public, max-age=86400",
-	}),
-);
-app.use("/assets/*", serveStatic({ root: "./public" }));
-// Photographs from the old psizone.ro, converted to webp (public/images/old-site).
-app.use("/images/*", serveStatic({ root: "./public" }));
-app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 
 for (const [locale, prefix] of [
 	["ro", ""],

@@ -1,7 +1,4 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { guideSignal } from "@psi/site-control";
 import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { Hono } from "hono";
@@ -9,6 +6,7 @@ import { contextStorage } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { account, bookingAccount, guideForRequest } from "./account";
 import { registerAccountRoutes } from "./account-routes";
+import { assets } from "./assets";
 import { registerBooking } from "./booking-routes";
 import { registerCmsRevalidate } from "./cms";
 import { mountControl } from "./control";
@@ -24,10 +22,12 @@ import { bookingHref } from "./routes";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
 const PORT = Number.parseInt(process.env.PORT ?? "4330", 10);
 
 export const app = new Hono({ strict: false });
+// Before every other route and middleware: compression and page caching see each final response (assets.ts).
+// Stylesheet, Datastar, fonts, images, the demo audio and the old site's workshop posters are served here.
+assets.mount(app);
 installDevLog(app);
 applyIndexingPolicy(app, process.env, {
 	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
@@ -49,16 +49,6 @@ app.get("/sitemap.xml", async (c) =>
 app.get("/healthz", (c) => c.text("ok"));
 // The shared CMS's signed webhook: published prices refresh at once (cms.ts).
 registerCmsRevalidate(app);
-app.get("/assets/datastar.js", (c) =>
-	c.body(DATASTAR, 200, {
-		"content-type": "text/javascript; charset=utf-8",
-		"cache-control": "public, max-age=86400",
-	}),
-);
-app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
-app.use("/assets/*", serveStatic({ root: "./public" }));
-// The old site's workshop posters and archive images (public/images/old-site).
-app.use("/images/*", serveStatic({ root: "./public" }));
 
 for (const [locale, prefix] of [
 	["ro", ""],

@@ -2,12 +2,9 @@ import { Doctype } from "@psi/ui";
 import { THEME_BOOT } from "@psi/ui/admin";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { assetPath } from "./assets";
+import { assets } from "./assets";
 import type { Locale } from "./lib/i18n";
 import type { Theme } from "./lib/theme";
-
-const FONTS =
-	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100&family=Manrope:wght@400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 
 export interface LayoutProps {
 	locale: Locale;
@@ -35,11 +32,7 @@ export function Layout({ locale, theme, title, head, children }: LayoutProps): J
 					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 					<script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
 					{head}
-					<link rel="preconnect" href="https://fonts.googleapis.com" />
-					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-					<link rel="stylesheet" href={FONTS} />
-					<link rel="stylesheet" href={assetPath("app.css")} />
-					<script type="module" src={assetPath("datastar.js")} />
+					<assets.Head />
 				</head>
 				<body>{children}</body>
 			</html>
