@@ -12,7 +12,7 @@ import {
 	VISITOR_CONFIG_TTL_MS,
 	visitorAssistantPort,
 } from "../index";
-import { pageUrl } from "../services/contact";
+import { hemisyncBookingUrl, pageUrl } from "../services/contact";
 
 const ZERO: VisitorMeter = {
 	messages: 0,
@@ -135,7 +135,7 @@ describe("Psizone's guide on the organisation's settings", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
-	it("only the brand that schedules carries the fallback copy, in both languages, to its booking form", () => {
+	it("only the brands that schedule carry the fallback copy, in both languages, to their own booking form", () => {
 		expect(PSI_PROFILES.psizone.locales.ro?.fallback?.action.href).toBe(
 			pageUrl("psizone", "ro", "/programare"),
 		);
@@ -145,7 +145,14 @@ describe("Psizone's guide on the organisation's settings", () => {
 		expect(PSI_PROFILES.psizone.locales.en?.fallback?.person("0700 000 000")).toContain(
 			"0700 000 000",
 		);
-		for (const brand of ["eqsync", "hemisync", "blog"] as const) {
+		// Hemi-Sync's own booking page (/programare, /en/booking), and it is its default way to a person.
+		for (const locale of ["ro", "en"] as const) {
+			const fallback = PSI_PROFILES.hemisync.locales[locale]?.fallback;
+			expect(fallback?.action.href).toBe(hemisyncBookingUrl(locale));
+			expect(fallback?.contact).toBe(hemisyncBookingUrl(locale));
+			expect(fallback?.paused).toContain("Hemi-Sync");
+		}
+		for (const brand of ["eqsync", "blog"] as const) {
 			expect(PSI_PROFILES[brand].locales.ro?.fallback).toBeUndefined();
 		}
 	});
@@ -186,5 +193,43 @@ describe("Psizone's guide on the organisation's settings", () => {
 		expect(events[1]).toMatchObject({ type: "actions" });
 		expect(events.at(-1)).toEqual({ type: "done" });
 		expect(store.recorded).toEqual([{ tenant: "psizone", delta: { ...ZERO, limitHits: 1 } }]);
+	});
+
+	it("Hemi-Sync's guide is governed by its own organisation: its store's switch, its meters, its booking form", async () => {
+		const store = new FakeStore();
+		store.read = {
+			timeZone: "Europe/Bucharest",
+			period: { month: "2026-11", day: "2026-11-14" },
+			platform: undefined,
+			org: {
+				revision: 1,
+				body: JSON.stringify({
+					revision: 1,
+					staff: {},
+					visitor: { enabled: false },
+					skills: [],
+					roles: {},
+					people: {},
+				}),
+			},
+			usage: { month: ZERO, day: ZERO },
+		};
+		const guide = createGuide({
+			brand: "hemisync",
+			knowledge: kb,
+			apiKey: "test-key",
+			baseURL: "http://127.0.0.1:9",
+			modelScreening: false,
+			visitorAssistant: visitorAssistantPort(store),
+		});
+		const events = await collect(guide.ask({ question: "Ce este Hemi-Sync?", locale: "ro" }));
+		expect(events[0]?.type === "text" ? events[0].delta : "").toContain(
+			"Ghidul face o pauză acum.",
+		);
+		expect(events[1]).toMatchObject({
+			type: "actions",
+			actions: [{ href: hemisyncBookingUrl("ro") }],
+		});
+		expect(store.recorded).toEqual([{ tenant: "hemisync", delta: { ...ZERO, limitHits: 1 } }]);
 	});
 });

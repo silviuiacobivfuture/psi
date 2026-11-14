@@ -136,7 +136,7 @@ last 10 messages, nothing semantic; a retried, trimmed or failed reply is remove
 
 ## The team's settings (store) and the CMS's `ai-settings`
 
-A brand with a scheduling tenant (Psizone) is governed by its organisation's visitor-assistant settings in the
+A brand with a scheduling tenant (Psizone, Hemi-Sync) is governed by its organisation's visitor-assistant settings in the
 scheduling store (the clinic's Setări → Asistent, the site's surface, over the estate's defaults and within its
 ceilings), read per turn through `schedulingFromEnv(...).scheduling.assistant` (pass it as `visitorAssistant`; reads
 are kept `VISITOR_CONFIG_TTL_MS`, 10 s, and a turn's own use empties the cache).
@@ -149,16 +149,16 @@ are kept `VISITOR_CONFIG_TTL_MS`, 10 s, and a turn's own use empties the cache).
 | messages per minute (per client), per day (per visitor key, in place of `exchangeLimit`/`exchangeWindowHours`) and per conversation | |
 | the organisation's tokens per day and month and its monthly budget (with the hard stop) | |
 | booking in the chat (`booking.horizonDays`, `booking.offerCallback`), the hand-over to a person (`handoff.*`) | |
-| the history read back, the conversation memory's retention, what is logged (`logging.*`) | |
+| the history read back, the conversation memory's retention and its folding into a summary past `memory.compactAfter` (by `model.summary`, on a kept conversation only), what is logged (`logging.*`) | |
 
 A stop by the organisation's limits (switched off, the budget, the month's or day's tokens) is checked before any model
 call: the guide says the profile's warm `fallback.paused` line with the booking form's button (Romanian and English),
 and the turn counts as a limit met. Each turn's use (tokens, cached tokens, cost; every model call, a retry too) goes to
 the organisation's visitor meters. When the store cannot be read, the last good read holds; before any, the built-in
-visitor settings. The booking form's own details (name, a way to reach the person, for whom, consent, the time or a call
-back) are not settings: no configuration lets the guide hold or book, and a picked time is only the form's confirm
-step. A brand without a scheduling tenant (Hemi-Sync, EQ-SYNC, the blog) runs on the CMS's settings and the engine's
-own limits.
+visitor settings. The booking's details are not settings: the guide asks for the name, the age, what is going on, a
+phone and an e-mail, shows the summary only when all five are in, and holds and submits only on the visitor's explicit
+yes; no configuration skips one (`packages/engine/src/test/booking-limits.test.ts`). A brand without a scheduling
+tenant (EQ-SYNC, the blog) runs on the CMS's settings and the engine's own limits.
 
 ## Privacy
 

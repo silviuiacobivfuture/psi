@@ -71,7 +71,7 @@ export interface PsiEngineOptions {
 	scheduling?: SchedulingPort;
 	/**
 	 * The organisation's visitor assistant settings and meters (`schedulingFromEnv(...).scheduling.assistant`). The
-	 * brands with a scheduling tenant (Psizone) are then governed by them: the store's limits, budget and model take
+	 * brands with a scheduling tenant (Psizone, Hemi-Sync) are then governed by them: the store's limits, budget and model take
 	 * precedence over the CMS's `ai-settings`, which keep the content (see `@psi/engine`'s `visitor-governance.ts`).
 	 */
 	visitorAssistant?: VisitorAssistantPort;
