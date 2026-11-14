@@ -276,6 +276,10 @@ export const PERMISSIONS = {
 		notes_pin: "notes:notes_pin",
 		notes_pin_clinical: "notes:notes_pin_clinical",
 	},
+	register: {
+		register_read: "register:register_read",
+		register_write: "register:register_write",
+	},
 } as const;
 
 /** Every permission key this application declares, sorted. */
@@ -442,6 +446,8 @@ export const ALL_PERMISSIONS = [
 	"questionnaire_parent:questionnaire_parent_delete",
 	"questionnaire_parent:questionnaire_parent_edit",
 	"questionnaire_parent:questionnaire_parent_view",
+	"register:register_read",
+	"register:register_write",
 	"reminders:reminders_send",
 	"reminders:reminders_view",
 	"report_aba:report_aba_create",
@@ -494,6 +500,7 @@ export type Permission = (typeof ALL_PERMISSIONS)[number];
 /** The roles this application declares, with the relations each grants. */
 export const ROLES = {
 	"sched:app_admin": ["sched_app#app_settings_view_all", "sched_app#app_settings_edit_all", "sched_app#members_view_all", "sched_app#members_create_all", "sched_app#members_edit_all", "sched_app#members_delete_all", "sched_app#roles_view_all", "sched_app#roles_create_all", "sched_app#roles_edit_all", "sched_app#roles_delete_all"],
+	"sched:integration": ["sched_register#reader", "sched_register#writer"],
 } as const;
 
 /**
@@ -510,6 +517,7 @@ export const ROLES = {
  */
 export const ROLE_RELATIONS = {
 	"sched:app_admin": { scopeType: "platform", relation: "role_sched_app_admin" },
+	"sched:integration": { scopeType: "org", relation: "role_sched_integration" },
 } as const;
 
 /**
@@ -729,6 +737,8 @@ export const PERMISSION_ROLES: Record<string, readonly string[]> = {
 	"notes:notes_delete_clinical": [],
 	"notes:notes_pin": [],
 	"notes:notes_pin_clinical": [],
+	"register:register_read": ["sched:integration"],
+	"register:register_write": ["sched:integration"],
 };
 
 /**
@@ -949,6 +959,8 @@ export const PERMISSION_CLOSURE = {
 	"notes:notes_delete_clinical": { scopeType: "platform", relations: [], viaSet: [] },
 	"notes:notes_pin": { scopeType: "platform", relations: [], viaSet: [] },
 	"notes:notes_pin_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"register:register_read": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
+	"register:register_write": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
 } as const satisfies Record<Permission, { scopeType: string; relations: readonly string[]; viaSet: readonly string[] }>;
 
 /** The object type of an organisation's own permission sets. */
