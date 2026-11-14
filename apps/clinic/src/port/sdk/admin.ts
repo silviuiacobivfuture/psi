@@ -1,6 +1,7 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
-import { PortError, type TeamMember } from "../port";
+import { addDays } from "../../lib/dates";
+import { type AuditPage, PortError, type TeamMember } from "../port";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
 	type AppSlug,
@@ -15,6 +16,7 @@ import {
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { auditOf, drain, requestOf } from "./map";
+import { instantOf } from "./time";
 
 const DAY = 86_400_000;
 
@@ -197,6 +199,29 @@ export function adminGroup(sdk: SdkContext) {
 
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),
+
+		auditPage: (
+			app: AppSlug,
+			window: { from?: string; to?: string },
+			cursor: string | null,
+			limit: number,
+		): Promise<AuditPage> =>
+			run(async () => {
+				const tz =
+					window.from === undefined && window.to === undefined ? null : await sdk.zone(app);
+				const got = await api.audit.list({
+					app,
+					limit,
+					...(cursor === null ? {} : { cursor }),
+					...(tz === null || window.from === undefined
+						? {}
+						: { from: instantOf(window.from, 0, tz) }),
+					...(tz === null || window.to === undefined
+						? {}
+						: { to: instantOf(addDays(window.to, 1), 0, tz) }),
+				});
+				return { events: got.items.map(auditOf), nextCursor: got.nextCursor ?? null };
+			}),
 
 		// The service has no route for a person's push preferences yet: the screen says "în curând".
 		pushPrefs: (_subject: string): Promise<PushPrefs> =>

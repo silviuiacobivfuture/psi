@@ -8,7 +8,7 @@ import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catal
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
-import { pagedClients } from "./fake-pages";
+import { pagedAudit, pagedClients } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -594,6 +594,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
+		},
+		auditPage(app, window, cursor, limit) {
+			return pagedAudit(this)(app, window, cursor, limit);
 		},
 		...floorAndPrefs,
 	};

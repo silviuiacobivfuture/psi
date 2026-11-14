@@ -74,6 +74,11 @@ export interface DayCount {
 	count: number;
 }
 
+export interface AuditPage {
+	events: ReadonlyArray<AuditEvent>;
+	nextCursor: string | null;
+}
+
 /** How many clients one page of the list shows. */
 export const CLIENT_PAGE_SIZE = 50;
 
@@ -250,6 +255,16 @@ export interface ClinicPort extends ProfilePort {
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
+	/**
+	 * ONE page of the journal, newest first, of the days `from`..`to` (both included, either open), after `cursor` (null:
+	 * the newest), at most `limit` events. `nextCursor` null: nothing older.
+	 */
+	auditPage(
+		app: AppSlug,
+		window: { from?: string; to?: string },
+		cursor: string | null,
+		limit: number,
+	): Promise<AuditPage>;
 	/**
 	 * The statistics of a period (and of the one to compare with, when asked), for the whole clinic or one person's
 	 * column. A service answers each figure only as far as this person's permissions reach (money needs the money group).

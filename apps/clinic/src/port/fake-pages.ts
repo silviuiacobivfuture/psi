@@ -1,4 +1,21 @@
-import { CLIENT_PAGE_SIZE, type ClientPage, type ClinicPort } from "./port";
+import { type AuditPage, CLIENT_PAGE_SIZE, type ClientPage, type ClinicPort } from "./port";
+
+/** The journal a page at a time over a port that answers it whole (newest first), within the days asked. */
+export function pagedAudit(port: Pick<ClinicPort, "audit">): ClinicPort["auditPage"] {
+	return async (app, window, cursor, limit): Promise<AuditPage> => {
+		const start = offsetOf(cursor);
+		const all = (await port.audit(app)).filter((e) => {
+			const day = e.at.slice(0, 10);
+			return (
+				(window.from === undefined || day >= window.from) &&
+				(window.to === undefined || day <= window.to)
+			);
+		});
+		const events = all.slice(start, start + limit);
+		const end = start + events.length;
+		return { events, nextCursor: end < all.length ? String(end) : null };
+	};
+}
 
 /** An offset into the whole answer, as text: the in-memory clinic's cursor (the service hands out its own). */
 const offsetOf = (cursor: string | null): number => {
