@@ -61,8 +61,14 @@ export const InviteOutcomeSchema = z.object({
 	account: z.enum(["created", "existing"]),
 	/** A new account's one-time set-password link, for the inviter to pass on; null otherwise. Shown once, kept nowhere. */
 	signInLink: z.string().url().nullable(),
+	/** The latest instant the link works (UTC ms): the sign-in keeps it 30 minutes. */
+	signInLinkExpiresBy: z.number().int().nullable(),
 });
 export type InviteOutcome = z.infer<typeof InviteOutcomeSchema>;
+
+/** A member's set-password link as the sign-in answers it: the same one for 30 minutes, with when it stops at the latest. */
+export const SignInLinkSchema = z.object({ link: z.string().url(), expiresBy: z.number().int() });
+export type SignInLink = z.infer<typeof SignInLinkSchema>;
 
 /** A stored permission relation (`clients_view_all`), as a grant or a denial names it. */
 const Relation = z
