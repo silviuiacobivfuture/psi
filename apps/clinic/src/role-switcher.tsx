@@ -80,8 +80,9 @@ export function RoleMenuBody({
 }
 
 /**
- * The role switcher in the top bar, always in sight for whoever administers roles: "Rol: Proprietar" opens
- * the view-as picker; while viewing, it turns amber ("Vezi ca Recepție · Ieși") and one press leaves.
+ * The role switcher in the top bar, for the estate administrator alone (an app owner or admin gets nothing here):
+ * "Rol: Administrator sistem · Proprietar" opens the view-as picker; while viewing, it turns amber ("Vezi ca Recepție · Ieși")
+ * and one press leaves.
  */
 export function RoleSwitcher({ ctx, mine }: { ctx: Ctx; mine: string }): JSX.Element | null {
 	const o = at(ctx.locale);

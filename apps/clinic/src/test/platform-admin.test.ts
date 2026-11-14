@@ -37,13 +37,35 @@ describe("the platform administrator", () => {
 		expect(roles).toBeLessThan(people);
 		expect(await (await c.get("/view-as")).text()).toContain("data-view-as-platform");
 	});
-	it("is the only one offered that entry: an owner who is not the platform's administrator sees roles and people only", async () => {
+	it("is the only one offered 'Vezi ca…': an owner who is not the platform's administrator gets no pill, no entry, no picker", async () => {
 		await open(false);
-		const html = await (await c.get("/view-as")).text();
-		expect(html).not.toContain("data-view-as-platform");
-		expect(html).not.toContain("Platformă</h2>");
-		expect(html).toContain("Organizație</h2>");
-		expect(await (await c.get("/calendar")).text()).toContain("Rol: Proprietar");
+		const html = await (await c.get("/calendar")).text();
+		expect(html).not.toContain("data-role-switch");
+		expect(html).not.toContain("Rol: ");
+		expect(html).not.toContain('href="/view-as"');
+		// who they are stays in the person menu, as plain text
+		expect(html).toContain("Proprietar");
+		expect((await c.get("/view-as")).status).toBe(403);
+		expect((await c.get("/view-as/menu")).status).toBe(403);
+	});
+	it("an owner who is not the platform's administrator cannot start it: 403, no cookie, nothing audited", async () => {
+		await open(false);
+		const before = await c.port.audit("psizone");
+		const r = await c.post("/view-as", "as=role%3Areception", {
+			"content-type": "application/x-www-form-urlencoded",
+		});
+		expect(r.status).toBe(403);
+		expect(r.headers.getSetCookie().join(";")).not.toContain("psi-clinic-view-as");
+		expect(await c.port.audit("psizone")).toEqual(before);
+		expect(await (await c.get("/calendar")).text()).not.toContain("data-view-as-banner");
+	});
+	it("the platform's administrator starts it, and it is audited as theirs", async () => {
+		await open(true);
+		const r = await c.post("/view-as", "as=role%3Areception", {
+			"content-type": "application/x-www-form-urlencoded",
+		});
+		expect(r.status).toBeLessThan(400);
+		expect((await c.port.audit("psizone")).map((e) => e.action)).toContain("view_as.start");
 	});
 	it("the install entry is a row of the menu, like its neighbours", async () => {
 		await open(false);

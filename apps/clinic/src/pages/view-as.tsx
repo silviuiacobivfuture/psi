@@ -140,7 +140,7 @@ export async function renderViewAs(
 /** "Vezi ca…": start and stop. Both go to the service as the person themselves (audited as theirs), never as the role. */
 export function registerViewAs(app: Hono<Env>, deps: AppDeps): void {
 	const guardAdmin = (ctx: Ctx): void => {
-		if (!ctx.mayViewAs) throw new PortError("forbidden", "roles administrators only");
+		if (!ctx.mayViewAs) throw new PortError("forbidden", "estate administrators only");
 	};
 	app.get("/view-as", async (c) => {
 		const ctx = c.var.ctx;

@@ -6,6 +6,14 @@ const COOKIE = "psi-clinic-view-as";
 let k: SdkConsole;
 beforeAll(async () => {
 	k = await startSdkConsole();
+	// The viewer is olga, owner of the clinic AND the estate administrator ("Administrator sistem"): "Vezi ca…" is the
+	// estate administrator's alone. otto is a second owner who is not, to show an owner is refused like anyone else.
+	await k.api.world.platformAdmin("olga", true);
+	await api("PUT", "/members/otto", {
+		displayName: "otto test",
+		roles: ["psizone-owner"],
+		coordinates: [],
+	});
 });
 afterAll(async () => {
 	await k.close();
@@ -36,36 +44,58 @@ const startAs = async (subject: string, as: string): Promise<Session> => {
 	return s;
 };
 
-describe("only a roles administrator can start it", () => {
-	it("the picker and the menu entry: the owner has them, reception does not", async () => {
-		const owner = await k.as("olga");
-		const picker = await text(await owner.get("/view-as"));
+describe("only the estate administrator can start it", () => {
+	it("the picker and the menu entry: the estate administrator has them, an owner or reception does not", async () => {
+		const admin = await k.as("olga");
+		const picker = await text(await admin.get("/view-as"));
 		expect(picker).toContain("Vezi ca…");
 		expect(picker).toContain("Recepție");
 		expect(picker).toContain("rita test");
-		const menu = await text(await owner.get("/clients"));
+		const menu = await text(await admin.get("/clients"));
 		expect(has(menu, "/view-as")).toBe(true);
-		// who they are in this app, in the user menu
-		expect(menu).toContain("Proprietar · Psizone");
-		const rita = await k.as("rita");
-		expect(has(await text(await rita.get("/clients")), "/view-as")).toBe(false);
+		for (const who of ["otto", "rita"]) {
+			const html = await text(await (await k.as(who)).get("/clients"));
+			expect(has(html, "/view-as"), who).toBe(false);
+		}
+		// an owner who is not the estate administrator is still told who they are, as plain text in the person menu
+		expect(await text(await (await k.as("otto")).get("/clients"))).toContain(
+			"Proprietar · Psizone",
+		);
 	});
-	it("the top bar carries the role pill and the assistant for the owner, the pill for nobody else", async () => {
-		const owner = await k.as("olga");
-		const bar = await text(await owner.get("/clients"));
+	it("the top bar carries the role pill for the estate administrator, and nothing for an owner or reception", async () => {
+		const bar = await text(await (await k.as("olga")).get("/clients"));
 		expect(bar).toContain("data-role-switch");
-		expect(bar).toContain("Rol: Proprietar");
-		const rita = await k.as("rita");
-		expect(await text(await rita.get("/clients"))).not.toContain("data-role-switch");
+		expect(bar).toContain("Rol: Administrator sistem");
+		expect(bar).not.toContain("Administrator platformă");
+		for (const who of ["otto", "rita"]) {
+			const html = await text(await (await k.as(who)).get("/clients"));
+			expect(html, who).not.toContain("data-role-switch");
+			expect(html, who).not.toContain("Rol: ");
+		}
 	});
-	it("the pill's menu lists roles and people, and is refused to anyone who cannot view as", async () => {
-		const owner = await k.as("olga");
-		const menu = await text(await owner.get("/view-as/menu"));
+	it("the pill's menu lists roles and people, and is refused to an owner or reception", async () => {
+		const menu = await text(await (await k.as("olga")).get("/view-as/menu"));
 		expect(menu).toContain('data-view-as-choice="role:psizone-reception"');
 		expect(menu).toContain('data-view-as-choice="member:');
 		const before = await k.api.world.fingerprint();
+		expect((await (await k.as("otto")).get("/view-as/menu")).status).toBe(403);
 		expect((await (await k.as("rita")).get("/view-as/menu")).status).toBe(403);
 		expect(await k.api.world.fingerprint()).toBe(before);
+	});
+	it.each([
+		"otto",
+		"rita",
+	])("%s: the service itself refuses view-as (not only the console), and nothing is audited", async (who) => {
+		const before = await k.api.world.fingerprint();
+		const started = (await auditActions()).filter((a) => a === "view_as.start").length;
+		const as = encodeURIComponent("role:psizone-reception");
+		const call = (method: string, path: string, body?: unknown) =>
+			k.api.world.call(who, method, `${A}${path}`, body);
+		expect((await call("POST", "/view-as", { as: "role:psizone-reception" })).status).toBe(403);
+		expect((await call("DELETE", "/view-as")).status).toBe(403);
+		expect((await call("GET", `/me?as=${as}`)).status).toBe(403);
+		expect(await k.api.world.fingerprint()).toBe(before);
+		expect((await auditActions()).filter((a) => a === "view_as.start").length).toBe(started);
 	});
 	it("while viewing, the pill turns into the way out", async () => {
 		const s = await startAs("olga", "role:psizone-reception");
@@ -75,6 +105,7 @@ describe("only a roles administrator can start it", () => {
 		expect(bar).not.toContain("data-role-switch");
 	});
 	it.each([
+		"otto",
 		"rita",
 		"nina",
 		"dora",
@@ -274,20 +305,14 @@ describe("starting and stopping are written down, and stopping returns to one's 
 		expect(line).not.toMatch(/max-age|expires/i);
 		expect(r.headers.get("location")).not.toContain("role");
 	});
-	it("a person who stops being a roles administrator while viewing is put back in their own view at once", async () => {
-		await api("POST", "/roles", { name: "Temp Admin", copyFrom: "psizone-owner" });
-		const roles = (await api("GET", "/roles")).json.items as { id: string; name: string }[];
-		const temp = roles.find((r) => r.name === "Temp Admin")?.id ?? "";
-		await api("PUT", "/members/nina", { displayName: "nina test", roles: [temp], coordinates: [] });
+	it("a person who stops being the estate administrator while viewing is put back in their own view at once", async () => {
+		await k.api.world.platformAdmin("nina", true);
 		const s = await startAs("nina", "role:psizone-volunteer");
 		expect(await text(await s.get("/roster"))).toContain("data-view-as-banner");
-		await api("PUT", "/members/nina", {
-			displayName: "nina test",
-			roles: ["psizone-admin"],
-			coordinates: [],
-		});
+		await k.api.world.platformAdmin("nina", false);
 		const html = await text(await s.get("/clients"));
 		expect(html).not.toContain("data-view-as-banner");
+		expect(html).not.toContain("data-role-switch");
 		expect(has(html, "/clients")).toBe(true);
 		expect(await auditActions()).toContain("view_as.start");
 	});

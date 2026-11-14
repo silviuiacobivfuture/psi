@@ -17,7 +17,7 @@ const has = (html: string, href: string): boolean => html.includes(`href="${href
 const c1 = (): string => k.api.world.ids.c1;
 
 describe("what each person's menu offers follows what the service says they may do", () => {
-	it("the owner sees every screen, 'Vezi ca…' and every client tab", async () => {
+	it("the owner sees every screen and every client tab, but not 'Vezi ca…' (the estate administrator's)", async () => {
 		const s = await k.as("olga");
 		const html = await text(await s.get(`/clients/${c1()}`));
 		for (const h of [
@@ -28,9 +28,9 @@ describe("what each person's menu offers follows what the service says they may 
 			"/reminders",
 			"/settings",
 			"/me/settings",
-			"/view-as",
 		])
 			expect(has(html, h), h).toBe(true);
+		expect(has(html, "/view-as"), "/view-as").toBe(false);
 		for (const tab of ["appointments", "packages", "records", "files"])
 			expect(has(html, `/clients/${c1()}/${tab}`), tab).toBe(true);
 	});
