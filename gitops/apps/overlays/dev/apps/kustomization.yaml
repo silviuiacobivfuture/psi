@@ -23,3 +23,4 @@ resources:
   - scheduling-sync-prod.yaml
   - scheduling-api-prod.yaml
   - clinic-prod.yaml
+  - notify-bridge.yaml

@@ -1,0 +1,72 @@
+# psi's Novu bridge (apps/notify-bridge): the code-first workflows of @psi/notify, which Novu calls to render and run
+# them. In-cluster only (no Ingress): Novu's api and worker reach it as http://notify-bridge.notify-bridge.svc:8080/api/novu.
+# Every request is signed by Novu with the environment's secret key, which the bridge checks (strict authentication).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notify-bridge
+  labels: { app: notify-bridge }
+  annotations:
+    reloader.stakater.com/auto: "true"
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: notify-bridge }
+  template:
+    metadata:
+      labels: { app: notify-bridge }
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: assert-secrets
+          image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+          envFrom:
+            - secretRef: { name: notify-bridge-env }
+          command:
+            - sh
+            - -c
+            - >-
+              [ -n "${NOVU_SECRET_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: NOVU_SECRET_KEY" >&2; exit 1; };
+              echo secrets-ok
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true
+      containers:
+        - name: notify-bridge
+          image: registry.psizone.ro/psi/notify-bridge
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - secretRef: { name: notify-bridge-env }
+          env:
+            - { name: NOVU_API_URL, value: "http://novu-api.novu.svc:3000" }
+            - { name: PORT, value: "8080" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 20m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+            readOnlyRootFilesystem: true

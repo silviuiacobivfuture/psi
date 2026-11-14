@@ -1,0 +1,25 @@
+{
+	"name": "@psi/notify-bridge",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/main.js",
+		"type-check": "tsc -p tsconfig.json --noEmit",
+		"test": "vitest run --minWorkers=1 --maxWorkers=2",
+		"start": "node dist/main.js"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.19.0",
+		"@novu/framework": "2.13.2",
+		"@psi/notify": "workspace:*",
+		"hono": "^4.13.18",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/node": "^24.7.2",
+		"esbuild": "^0.25.0",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.9"
+	}
+}

@@ -9,6 +9,9 @@
 		},
 		"clinic": {
 			"none": "not yet live; the team's console ships with its changelog tenant"
+		},
+		"notify-bridge": {
+			"none": "a headless bridge that serves the notification workflows to Novu; what people receive is announced by the apps that send it"
 		}
 	}
 }

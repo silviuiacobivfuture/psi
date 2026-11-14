@@ -1,0 +1,60 @@
+# notify-bridge's declaration to the platform (SEB schema/app.schema.json): psi's Novu bridge, serving @psi/notify's
+# code-first workflows to the estate's Novu. It reads one key, the Novu environment's own (consumed from the novu
+# service, never seeded here).
+schema: seb.app/v1
+key: notify-bridge
+name: notify-bridge
+displayName: notify-bridge
+namespace: notify-bridge
+components:
+  - name: notify-bridge
+    path: apps/notify-bridge
+    namespace: notify-bridge
+    gitops: gitops/services/notify-bridge
+    image: psi/notify-bridge
+    port: 8080
+    overlayImages:
+      - psi/notify-bridge
+    workloads:
+      - name: notify-bridge
+        kind: Deployment
+        images:
+          - psi/notify-bridge
+        restartOnSecretChange: true
+        envFrom: [notify-bridge-env]
+        requiredEnv:
+          - NOVU_SECRET_KEY
+        initContainers: [assert-secrets]
+        probes:
+          readiness: { path: /healthz, port: 8080 }
+          liveness: { path: /healthz, port: 8080 }
+externalSecrets:
+  - name: notify-bridge-env
+    namespace: notify-bridge
+    target: notify-bridge-env
+    manifest: gitops/services/notify-bridge/base/externalsecret.yaml
+    template: [NOVU_SECRET_KEY]
+  - name: harbor-pull
+    namespace: notify-bridge
+    target: harbor-pull
+    manifest: gitops/services/notify-bridge/base/harbor-pull-externalsecret.yaml
+secrets: []
+consumes:
+  - service: novu
+    env: [NOVU_API_URL, NOVU_SECRET_KEY]
+groups: []
+ci:
+  workflows: []
+health:
+  secretChecks:
+    - label: notify-bridge environment
+      externalSecret: notify-bridge/notify-bridge-env
+      secret: notify-bridge-env
+      keys: [NOVU_SECRET_KEY]
+  buildVarChecks: []
+  convexEnvChecks: []
+docs:
+  appSecretsRows: []
+  paths: [apps/novu/estate]
+  keys: []
+findings: []
