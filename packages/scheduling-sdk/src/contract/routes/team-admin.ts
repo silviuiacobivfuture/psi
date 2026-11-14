@@ -75,7 +75,7 @@ export const ME_ROUTES = [
 		path: "/v1/apps/:app/me",
 		side: "team",
 		summary:
-			"Who the caller is in this app and every permission they hold, with its scopes, the field groups they see and whose rows they reach. With `as` (role:<id> or member:<subject>; roles editors only), the same for a role or another member",
+			"Who the caller is in this app and every permission they hold, with its scopes, the field groups they see and whose rows they reach. With `as` (role:<id> or member:<subject>; estate administrators only), the same for a role or another member",
 		params: AppParam,
 		query: z.object({ as: ViewAsTarget.optional() }),
 		response: Capabilities,
@@ -86,11 +86,11 @@ export const ME_ROUTES = [
 		path: "/v1/apps/:app/view-as",
 		side: "team",
 		summary:
-			"Start seeing the app as a role or a member (roles editors only); answers what they hold. Read-only: the console then sends x-psi-view-as and the service refuses every write carrying it. The start is an audited event",
+			"Start seeing the app as a role or a member (estate administrators only, never an app's owners or admins); answers what they hold. Read-only: the console then sends x-psi-view-as and the service refuses every write carrying it. The start is an audited event",
 		params: AppParam,
 		body: ViewAsBody,
 		response: Capabilities,
-		permission: { key: "roles_edit", target: { kind: "app" } },
+		platform: true,
 		audit: "view_as.start",
 	}),
 	route({
@@ -98,10 +98,10 @@ export const ME_ROUTES = [
 		method: "DELETE",
 		path: "/v1/apps/:app/view-as",
 		side: "team",
-		summary: "Stop seeing the app as someone else (an audited event)",
+		summary: "Stop seeing the app as someone else (estate administrators only; an audited event)",
 		params: AppParam,
 		response: Ok,
-		permission: { key: "roles_edit", target: { kind: "app" } },
+		platform: true,
 		audit: "view_as.stop",
 	}),
 	route({

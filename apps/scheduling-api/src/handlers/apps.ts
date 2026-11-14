@@ -143,9 +143,9 @@ export const appHandlers: HandlersOf<
 	async "me.capabilities"(ctx) {
 		if (ctx.principal.kind !== "person")
 			throw forbidden("service keys reach the visitor routes only");
-		// Seeing what a role or ANOTHER member may do is the roles editor's view-as: it needs the right to edit roles.
-		if (ctx.query.as !== undefined && !(await ctx.canAll("roles_edit")))
-			throw forbidden("not allowed to see another member's access", { permission: "roles_edit" });
+		// Seeing what a role or ANOTHER member may do is the view-as: the estate administrator's alone, never an app owner's.
+		if (ctx.query.as !== undefined && !(await ctx.deps.access.isPlatformAdmin(ctx.subject)))
+			throw forbidden("estate administrators only");
 		return capabilitiesOf(ctx, ctx.query.as);
 	},
 

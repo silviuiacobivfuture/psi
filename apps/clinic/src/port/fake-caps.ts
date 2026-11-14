@@ -37,12 +37,9 @@ export function createFakeAccess(
 			// A member is seen with their own grants and denials; a role has none.
 			let overrides: typeof mine | undefined = mine;
 			if (as !== undefined) {
-				const here = holds(mine.roles);
-				if (
-					deps.platformAdmins?.has(subject) !== true &&
-					!here.some((r) => r.grants.roles?.edit !== undefined)
-				)
-					throw new PortError("forbidden", "roles administrators only");
+				// As at the service: the estate administrator alone, never an app's owner or admin.
+				if (deps.platformAdmins?.has(subject) !== true)
+					throw new PortError("forbidden", "estate administrators only");
 				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
 				if (kind === "role") {
 					roles = holds([id]);

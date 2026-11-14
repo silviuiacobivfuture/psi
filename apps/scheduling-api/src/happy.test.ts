@@ -158,8 +158,9 @@ const OWN: Record<
 	},
 	"me.get": (w) => w.call("rita", "GET", "/v1/me"),
 	"me.capabilities": (w) => w.call("rita", "GET", `${A}/me`),
-	"viewAs.start": (w) => olga(w, "POST", "/view-as", { as: `role:${w.ids.roles.reception}` }),
-	"viewAs.stop": (w) => olga(w, "DELETE", "/view-as"),
+	"viewAs.start": (w) =>
+		w.call("root", "POST", `${A}/view-as`, { as: `role:${w.ids.roles.reception}` }),
+	"viewAs.stop": (w) => w.call("root", "DELETE", `${A}/view-as`),
 	"apps.create": (w) =>
 		w.call("root", "POST", "/v1/apps", {
 			id: "newapp",
