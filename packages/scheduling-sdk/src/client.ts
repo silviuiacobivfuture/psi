@@ -53,7 +53,12 @@ export function createSchedulingClient(options: ClientOptions): SchedulingClient
 	const timeoutMs = options.timeoutMs ?? 10_000;
 
 	async function headers(): Promise<Record<string, string>> {
-		const out: Record<string, string> = { accept: "application/json" };
+		// Server to server inside the cluster: compressing every answer costs both sides CPU to save bytes on a pod
+		// network. Browsers and other outside callers still get brotli or gzip.
+		const out: Record<string, string> = {
+			accept: "application/json",
+			"accept-encoding": "identity",
+		};
 		const auth = options.auth;
 		if ("bearer" in auth) {
 			out.authorization = `Bearer ${typeof auth.bearer === "function" ? await auth.bearer() : auth.bearer}`;

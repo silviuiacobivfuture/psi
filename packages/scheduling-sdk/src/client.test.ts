@@ -36,6 +36,8 @@ describe("the derived client", () => {
 		expect(out.items[0]?.name).toBe("Ana");
 		expect(seen?.url).toBe("https://api.test/v1/apps/psizone/clients?status=archived&q=an");
 		expect(seen?.headers.get("authorization")).toBe("Bearer tok");
+		// In-cluster, server to server: the answers come uncompressed (compressing costs more CPU than it saves).
+		expect(seen?.headers.get("accept-encoding")).toBe("identity");
 	});
 
 	it("sends the body of a mutation as JSON and parses the answer", async () => {
