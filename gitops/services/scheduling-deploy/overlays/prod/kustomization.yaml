@@ -29,3 +29,14 @@ patches:
       - op: replace
         path: /spec/data/1/remoteRef/key
         value: apps/scheduling-prod/env
+# The backup's production half: its backend, its bucket, and the production backup key pair's PUBLIC key (the private
+# one is secret/apps/backup-prod/restore-key and the workstation escrow; docs/backup.md).
+configMapGenerator:
+  - name: scheduling-backup
+    behavior: merge
+    literals:
+      - CONVEX_SELF_HOSTED_URL=http://scheduling-backend.scheduling-backend-prod.svc:3210
+      - BACKUP_ENV=prod
+      - BACKUP_BUCKET=psi-backups-prod
+    files:
+      - backup-public-key.pem

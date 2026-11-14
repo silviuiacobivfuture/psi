@@ -1,0 +1,151 @@
+# The store's logical backup (docs/backup.md): `convex export` of this namespace's backend, sealed for the backup public
+# key (the job holds no key that opens it), uploaded to the environment's backup bucket in fsn1 by tier
+# (backup-upload.sh). Hourly here; dev runs it every 6 h (its overlay). Its configuration (backend address, bucket,
+# environment, public key) is the overlay's ConfigMap `scheduling-backup`. A failed run is an alert (estate-watch), and
+# backup-freshness (gitops/services/backup) alerts when the newest export is too old.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduling-backup
+  labels: { app: scheduling-backup }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "7 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels: { app: scheduling-backup }
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: harbor-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: assert-secrets
+              image: registry.psizone.ro/mirror/docker.io/library/busybox:1.37@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+              envFrom:
+                - secretRef: { name: scheduling-deploy-env }
+                - secretRef: { name: scheduling-backup-s3 }
+              command:
+                - sh
+                - -c
+                - '[ -n "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CONVEX_SELF_HOSTED_ADMIN_KEY" >&2; exit 1; }; [ -n "${AWS_ACCESS_KEY_ID:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_ACCESS_KEY_ID" >&2; exit 1; }; [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: AWS_SECRET_ACCESS_KEY" >&2; exit 1; }; echo secrets-ok'
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+            - name: export
+              image: registry.psizone.ro/psi/scheduling-deploy
+              workingDir: /app
+              command: ["node", "/app/backup.mjs", "export"]
+              env:
+                - name: CONVEX_SELF_HOSTED_ADMIN_KEY
+                  valueFrom: { secretKeyRef: { name: scheduling-deploy-env, key: CONVEX_SELF_HOSTED_ADMIN_KEY } }
+                - name: CONVEX_SELF_HOSTED_URL
+                  valueFrom: { configMapKeyRef: { name: scheduling-backup, key: CONVEX_SELF_HOSTED_URL } }
+                - name: BACKUP_ENV
+                  valueFrom: { configMapKeyRef: { name: scheduling-backup, key: BACKUP_ENV } }
+                - { name: BACKUP_PUBLIC_KEY_FILE, value: /config/backup-public-key.pem }
+                - { name: BACKUP_OUT, value: /work }
+              volumeMounts:
+                - { name: config, mountPath: /config, readOnly: true }
+                - { name: work, mountPath: /work }
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 512Mi }
+                limits: { cpu: "1", memory: 1Gi, ephemeral-storage: 8Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+          containers:
+            - name: upload
+              image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              command: ["bash", "/config/backup-upload.sh"]
+              envFrom:
+                - secretRef: { name: scheduling-backup-s3 }
+              env:
+                - { name: HOME, value: /tmp }
+                - { name: AWS_REGION, value: fsn1 }
+                - { name: BACKUP_ENDPOINT, value: "https://fsn1.your-objectstorage.com" }
+                - name: BACKUP_BUCKET
+                  valueFrom: { configMapKeyRef: { name: scheduling-backup, key: BACKUP_BUCKET } }
+              volumeMounts:
+                - { name: config, mountPath: /config, readOnly: true }
+                - { name: work, mountPath: /work, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 20m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsUser: 65534
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: config
+              configMap: { name: scheduling-backup }
+            - name: work
+              emptyDir: { sizeLimit: 8Gi }
+            - name: tmp
+              emptyDir: { sizeLimit: 256Mi }
+---
+# The backup job reaches its backend's API and object storage (HTTPS outside the cluster); nothing reaches it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scheduling-backup
+spec:
+  podSelector:
+    matchLabels: { app: scheduling-backup }
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels: { app: scheduling-backend }
+      ports:
+        - { protocol: TCP, port: 3210 }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports:
+        - { protocol: TCP, port: 443 }
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: scheduling-backup-s3
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target: { name: scheduling-backup-s3, creationPolicy: Owner, deletionPolicy: Retain }
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: platform/object-storage/dev, property: access_key_id }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: platform/object-storage/dev, property: secret_access_key }

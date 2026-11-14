@@ -105,10 +105,10 @@ describe.skipIf(!kustomize)("the production overlays, rendered", () => {
 
 	it("has its own Postgres and backups: own prefixes, prune-guarded, nothing shared with dev", () => {
 		expect(rendered["scheduling-backend"]).toContain(
-			"s3://psi-tfstate-dev/cnpg/scheduling-db-prod",
+			"s3://psi-backups-prod/cnpg/scheduling-db-prod",
 		);
 		expect(rendered["scheduling-backend"]).toContain("POSTGRES_URL");
-		expect(rendered["account-db"]).toContain("s3://psi-tfstate-dev/cnpg/account-db-prod");
+		expect(rendered["account-db"]).toContain("s3://psi-backups-prod/cnpg/account-db-prod");
 		expect(rendered.clinic).not.toMatch(/^kind: Cluster$/m);
 		for (const s of ["scheduling-backend", "account-db"])
 			expect(rendered[s]).toContain("argocd.argoproj.io/sync-options: Prune=false,Delete=false");
