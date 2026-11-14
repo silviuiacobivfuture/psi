@@ -82,6 +82,7 @@ import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
 import type * as tables_apiRecordsExtra from "../tables/apiRecordsExtra.js";
+import type * as tables_assistantUsage from "../tables/assistantUsage.js";
 import type * as tables_clinicAccess from "../tables/clinicAccess.js";
 import type * as tables_clinicBlacklist from "../tables/clinicBlacklist.js";
 import type * as tables_clinicDocs from "../tables/clinicDocs.js";
@@ -180,6 +181,7 @@ declare const fullApi: ApiFromModules<{
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
   "tables/apiRecordsExtra": typeof tables_apiRecordsExtra;
+  "tables/assistantUsage": typeof tables_assistantUsage;
   "tables/clinicAccess": typeof tables_clinicAccess;
   "tables/clinicBlacklist": typeof tables_clinicBlacklist;
   "tables/clinicDocs": typeof tables_clinicDocs;
