@@ -381,3 +381,27 @@ psi cannot do these itself; each stays open until SEB answers.
    `gitops/services/autorizare-permissions`. Ask: release psi.4 so Polaris serves the current model (`clients_invite` and
    the later keys).
 
+## 14. Deploying production: by hand, one click (owner, 2026-11-14)
+
+Production changes only when someone runs it. Merges to dev and the `apps` workflow never reach it.
+
+1. Dev runs the build you want, and its checks have passed.
+2. On GitHub, go to Actions → **promote** → Run workflow, from `dev`. Optional inputs:
+   - `sha`: the dev commit to promote (default: dev's head).
+   - `apps`: some of `scheduling-backend, scheduling-deploy, scheduling-sync, scheduling-api, clinic` (default: all).
+3. The workflow:
+   - merges that commit into the `prod` branch;
+   - pins each production service to the image dev runs at that commit (`tools/scheduling/promote.sh dev`), which
+     rebuilds nothing;
+   - checks every pinned image is in Harbor, then pushes `prod`.
+
+   Argo deploys production from `prod`. The commits name who ran it (`Promoted-by`) and the run (`Promote-run`).
+
+What stops anything else:
+- `prod-guard` (`tools/ci/prod-guard.sh`) fails any commit on `prod` that the workflow did not make, and any dev push
+  that changes a production image pin.
+- `apps` runs only on dev.
+- A setting changed in a production overlay on dev (not a pin) takes effect at the next promotion, never before.
+
+Rolling back: run promote with an older dev `sha`.
+

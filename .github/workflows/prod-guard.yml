@@ -1,0 +1,24 @@
+# Production changes arrive only through the `promote` workflow. This fails any push to `prod` the workflow did not
+# make, and any dev push that changes a production image pin (tools/ci/prod-guard.sh says exactly what it judges).
+name: prod-guard
+
+on:
+  push:
+    branches: [dev, prod]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: k8s
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+      - name: Only the promote workflow changes production
+        env:
+          BRANCH: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: bash tools/ci/prod-guard.sh "$BRANCH" "$BEFORE" "$AFTER"

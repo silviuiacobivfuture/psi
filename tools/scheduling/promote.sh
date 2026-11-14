@@ -3,8 +3,13 @@
 # commit it. CI moves only overlays/dev; production follows this explicit, reviewed commit (docs/plans/clinic.md
 # section 9). Run it after the dev smoke tests and the restore drill have passed.
 #
-#   tools/scheduling/promote.sh <sha>   [--no-commit]   the services dev runs at <sha>
-#   tools/scheduling/promote.sh dev     [--no-commit]   every service, at the tag dev runs now
+#   tools/scheduling/promote.sh <sha>   [--no-commit] [--only <service,…>]   the services dev runs at <sha>
+#   tools/scheduling/promote.sh dev     [--no-commit] [--only <service,…>]   every service, at the tag dev runs now
+#
+# Production is deployed ONLY by the `promote` workflow (.github/workflows/promote.yml, run by hand): it merges the
+# chosen dev commit into the `prod` branch Argo deploys production from, runs this script there and pushes. --only
+# limits it to those services (an unknown name is refused). PROMOTE_TRAILERS (lines `Key: value`) are appended to
+# the commit message: the workflow records who ran it and which run.
 #
 # CI tags an image with the commit that built it, and builds only the apps that commit changed, so dev's services
 # run different tags. <sha> (7 to 40 hex characters; the first 7 are the tag) therefore promotes exactly the services
@@ -27,16 +32,33 @@ SERVICES=(
 )
 
 usage() {
-	echo "usage: tools/scheduling/promote.sh <sha>|dev [--no-commit]" >&2
+	echo "usage: tools/scheduling/promote.sh <sha>|dev [--no-commit] [--only <service,…>]" >&2
 	exit 2
 }
 
-[ "$#" -ge 1 ] && [ "$#" -le 2 ] || usage
+[ "$#" -ge 1 ] || usage
 WHAT="$1"
+shift
 COMMIT=1
-if [ "$#" -eq 2 ]; then
-	[ "$2" = "--no-commit" ] || usage
-	COMMIT=0
+ONLY=""
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+	--no-commit) COMMIT=0; shift ;;
+	--only) [ "$#" -ge 2 ] && [ -n "$2" ] || usage; ONLY="$2"; shift 2 ;;
+	*) usage ;;
+	esac
+done
+if [ -n "$ONLY" ]; then
+	IFS=, read -r -a WANTED <<<"$ONLY"
+	KEPT=()
+	for w in "${WANTED[@]}"; do
+		found=0
+		for pair in "${SERVICES[@]}"; do
+			[ "${pair%%:*}" = "$w" ] && { KEPT+=("$pair"); found=1; }
+		done
+		[ "$found" -eq 1 ] || { echo "promote: --only names no production service: '$w'" >&2; exit 2; }
+	done
+	SERVICES=("${KEPT[@]}")
 fi
 if [ "$WHAT" != "dev" ]; then
 	case "$WHAT" in
@@ -88,7 +110,9 @@ fi
 
 if [ "$COMMIT" -eq 1 ]; then
 	git add -- "${FILES[@]}"
-	git commit -q -m "chore(gitops): promote ${PROMOTED[*]} to production [PATCH]" -- "${FILES[@]}"
+	MSG="chore(gitops): promote ${PROMOTED[*]} to production [PATCH]"
+	[ -z "${PROMOTE_TRAILERS:-}" ] || MSG="$MSG"$'\n\n'"$PROMOTE_TRAILERS"
+	git commit -q -m "$MSG" -- "${FILES[@]}"
 	echo "promote: committed ${PROMOTED[*]}; pushing it deploys production"
 else
 	echo "promote: set ${PROMOTED[*]} (not committed)"

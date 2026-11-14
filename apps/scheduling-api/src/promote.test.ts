@@ -199,6 +199,185 @@ describe("tools/scheduling/promote.sh", () => {
 		const dir = sandbox("abc1234");
 		expect(run(dir, []).status).toBe(2);
 		expect(run(dir, ["abc1234", "--push"]).status).toBe(2);
+		expect(run(dir, ["abc1234", "--only"]).status).toBe(2);
+		expect(run(dir, ["abc1234", "--only", ""]).status).toBe(2);
+		expect(tagsOf(dir)).toEqual(all("unpromoted"));
+	});
+
+	it("--only promotes just the services named, one or several, and leaves the rest as they were", () => {
+		const one = sandbox("abc1234");
+		expect(run(one, ["dev", "--only", "clinic"]).status).toBe(0);
+		expect(tagsOf(one)).toEqual({ ...all("unpromoted"), clinic: "abc1234" });
+		const two = sandbox("abc1234");
+		expect(
+			run(two, ["abc1234", "--no-commit", "--only", "scheduling-api,scheduling-deploy"]).status,
+		).toBe(0);
+		expect(tagsOf(two)).toEqual({
+			...all("unpromoted"),
+			"scheduling-api": "abc1234",
+			"scheduling-deploy": "abc1234",
+		});
+	});
+
+	it("--only refuses a name that is no production service, and changes nothing", () => {
+		const dir = sandbox("abc1234");
+		const before = head(dir);
+		const r = run(dir, ["dev", "--only", "clinic,cms"]);
+		expect(r.status).toBe(2);
+		expect(r.stderr).toContain("--only names no production service: 'cms'");
+		expect(tagsOf(dir)).toEqual(all("unpromoted"));
+		expect(head(dir)).toBe(before);
+	});
+
+	it("PROMOTE_TRAILERS are written into the commit (who promoted, which run); without it the message has none", () => {
+		const dir = sandbox("abc1234");
+		const trailers = "Promoted-by: someone\nPromote-run: https://example.invalid/runs/1";
+		expect(run(dir, ["dev", "--only", "clinic"], { PROMOTE_TRAILERS: trailers }).status).toBe(0);
+		const body = execFileSync("git", ["log", "-1", "--format=%B"], { cwd: dir, encoding: "utf8" });
+		expect(body).toContain("Promoted-by: someone");
+		expect(body).toContain("Promote-run: https://example.invalid/runs/1");
+		expect(run(dir, ["dev", "--only", "scheduling-api"]).status).toBe(0);
+		expect(
+			execFileSync("git", ["log", "-1", "--format=%B"], { cwd: dir, encoding: "utf8" }),
+		).not.toContain("Promote-run:");
+	});
+});
+
+describe("tools/ci/prod-guard.sh: production changes only through the promote workflow", () => {
+	const dirs: string[] = [];
+	afterAll(() => {
+		for (const d of dirs) rmSync(d, { recursive: true, force: true });
+	});
+	const ZERO = "0".repeat(40);
+	const pin = "gitops/services/clinic/overlays/prod/kustomization.yaml";
+
+	/** A repository with `dev` holding one production overlay, and helpers to commit on top of it. */
+	function repo() {
+		const dir = mkdtempSync(join(tmpdir(), "prod-guard-"));
+		dirs.push(dir);
+		const git = (...a: string[]): string =>
+			execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], {
+				cwd: dir,
+				encoding: "utf8",
+			}).trim();
+		mkdirSync(join(dir, "tools/ci"), { recursive: true });
+		cpSync(join(root, "tools/ci/prod-guard.sh"), join(dir, "tools/ci/prod-guard.sh"));
+		mkdirSync(join(dir, "gitops/services/clinic/overlays/prod"), { recursive: true });
+		const write = (body: string) =>
+			execFileSync("bash", ["-c", `printf '%s\\n' "$1" > "$2"`, "_", body, join(dir, pin)]);
+		write('images:\n  - name: r/clinic\n    newTag: "aaaaaaa"\npatches: []');
+		git("init", "-q", "-b", "dev");
+		git("add", ".");
+		git("commit", "-q", "-m", "base");
+		const commit = (message: string, body?: string): string => {
+			if (body !== undefined) write(body);
+			git("commit", "-q", "--allow-empty", "-am", message);
+			return git("rev-parse", "HEAD");
+		};
+		const guard = (branch: string, before: string, after: string) =>
+			spawnSync("bash", [join(dir, "tools/ci/prod-guard.sh"), branch, before, after], {
+				cwd: dir,
+				encoding: "utf8",
+				env: { ...process.env, DEV_REF: "dev" },
+			});
+		return { dir, git, commit, guard };
+	}
+
+	it("dev: a push that changes a production image pin is refused, naming the file", () => {
+		const { git, commit, guard } = repo();
+		const before = git("rev-parse", "HEAD");
+		const after = commit("pin", 'images:\n  - name: r/clinic\n    newTag: "bbbbbbb"\npatches: []');
+		const r = guard("dev", before, after);
+		expect(r.status).toBe(1);
+		expect(r.stderr).toContain(`${pin} changes a production image pin on dev`);
+	});
+
+	it("dev: other edits to a production overlay, and pushes that leave it alone, pass", () => {
+		const { git, commit, guard } = repo();
+		const before = git("rev-parse", "HEAD");
+		const setting = commit(
+			"setting",
+			'images:\n  - name: r/clinic\n    newTag: "aaaaaaa"\npatches: [{ path: x.yaml }]',
+		);
+		expect(guard("dev", before, setting).status).toBe(0);
+		const other = commit("nothing");
+		expect(guard("dev", setting, other).status).toBe(0);
+	});
+
+	it("dev: a push with no previous head is refused as unjudgeable", () => {
+		const { git, guard } = repo();
+		expect(guard("dev", ZERO, git("rev-parse", "HEAD")).status).toBe(2);
+	});
+
+	it("prod: commits the workflow made (Promote-run trailer) pass, also when prod is new; any other commit is refused", () => {
+		const { git, commit, guard } = repo();
+		git("checkout", "-q", "-b", "prod");
+		const promoted = commit(
+			"promote\n\nPromoted-by: someone\nPromote-run: https://example.invalid/runs/1",
+		);
+		expect(guard("prod", ZERO, promoted).status).toBe(0);
+		const hand = commit(
+			"a hand edit",
+			'images:\n  - name: r/clinic\n    newTag: "ccccccc"\npatches: []',
+		);
+		const r = guard("prod", promoted, hand);
+		expect(r.status).toBe(1);
+		expect(r.stderr).toContain(`${hand} reached prod without the promote workflow (a hand edit)`);
+	});
+
+	it("prod: dev's own commits merged in by the workflow are not judged, only the merge (which carries the trailer)", () => {
+		const { git, commit, guard } = repo();
+		git("checkout", "-q", "-b", "prod");
+		const start = commit("promote\n\nPromote-run: https://example.invalid/runs/1");
+		git("checkout", "-q", "dev");
+		commit("dev work");
+		git("checkout", "-q", "prod");
+		git(
+			"merge",
+			"-q",
+			"--no-ff",
+			"-m",
+			"bring dev\n\nPromote-run: https://example.invalid/runs/2",
+			"dev",
+		);
+		expect(guard("prod", start, git("rev-parse", "HEAD")).status).toBe(0);
+	});
+
+	it("other branches are not judged; wrong arguments are a usage error", () => {
+		const { git, guard } = repo();
+		const h = git("rev-parse", "HEAD");
+		expect(guard("feature", ZERO, h).status).toBe(0);
+		expect(
+			spawnSync("bash", [join(root, "tools/ci/prod-guard.sh"), "dev"], { encoding: "utf8" }).status,
+		).toBe(2);
+	});
+});
+
+describe("the deploy workflows: production only by hand", () => {
+	const promote = read(".github/workflows/promote.yml");
+	const apps = read(".github/workflows/apps.yml");
+	const guard = read(".github/workflows/prod-guard.yml");
+
+	it("promote is dispatch-only, from dev, with the sha and the services as inputs, and builds nothing", () => {
+		expect(promote).toMatch(/^on:\n {2}workflow_dispatch:\n/m);
+		expect(promote).not.toMatch(/^ {2}(push|pull_request|schedule):/m);
+		expect(promote).toContain("if: github.ref == 'refs/heads/dev'");
+		expect(promote).toMatch(/inputs:\n\s+sha:[\s\S]+apps:/);
+		expect(promote).not.toMatch(/docker (buildx )?build/);
+		expect(promote).toContain("tools/scheduling/promote.sh");
+		expect(promote).toContain("docker manifest inspect");
+		expect(promote).toContain("git push -q origin HEAD:refs/heads/prod");
+		expect(promote).toContain("Promoted-by: $ACTOR");
+	});
+
+	it("apps never runs outside dev, and writes only the dev overlays", () => {
+		expect(apps).toContain("if: github.ref == 'refs/heads/dev'");
+		expect(apps).toMatch(/branches: \[dev\]/);
+	});
+
+	it("the guard runs on every push to dev and prod", () => {
+		expect(guard).toMatch(/branches: \[dev, prod\]/);
+		expect(guard).toContain("tools/ci/prod-guard.sh");
 	});
 });
 

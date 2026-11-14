@@ -26,6 +26,9 @@ permissions:
 
 jobs:
   plan:
+    # dev only, a dispatch included: this workflow never writes another environment's overlays (production is
+    # deployed by the promote workflow alone).
+    if: github.ref == 'refs/heads/dev'
     runs-on: k8s
     outputs:
       apps: ${{ steps.changed.outputs.apps }}

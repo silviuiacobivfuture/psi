@@ -1,0 +1,117 @@
+# Deploy PRODUCTION, by hand only (Actions → promote → Run workflow, from `dev`). It builds nothing: it merges the
+# chosen dev commit into `prod`, the branch Argo deploys production from, pins each production service to the image
+# dev runs at that commit (tools/scheduling/promote.sh dev), checks every pinned image is in Harbor, and pushes.
+# Who ran it and which run are recorded in the commits (Promoted-by, Promote-run); tools/ci/prod-guard.sh refuses
+# anything else on `prod`. docs/plans/clinic.md section 14.
+name: promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "The dev commit to promote (7-40 hex). Empty: dev's head."
+        required: false
+        default: ""
+      apps:
+        description: "Only these services, comma-separated (scheduling-backend, scheduling-deploy, scheduling-sync, scheduling-api, clinic). Empty: all."
+        required: false
+        default: ""
+
+concurrency:
+  group: promote-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  promote:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: k8s
+    steps:
+      - name: The CI host's settings are all present
+        env:
+          OPENBAO_ADDR: ${{ vars.OPENBAO_ADDR }}
+          OPENBAO_JWT_MOUNT: ${{ vars.OPENBAO_JWT_MOUNT }}
+          OPENBAO_AUDIENCE: ${{ vars.OPENBAO_AUDIENCE }}
+          OPENBAO_ROLE_DEPLOY: ${{ vars.OPENBAO_ROLE_DEPLOY }}
+          REGISTRY_PUSH_SECRET: ${{ vars.REGISTRY_PUSH_SECRET }}
+          GIT_PUSH_SECRET: ${{ vars.GIT_PUSH_SECRET }}
+        run: |
+          miss=0
+          for k in OPENBAO_ADDR OPENBAO_JWT_MOUNT OPENBAO_AUDIENCE OPENBAO_ROLE_DEPLOY REGISTRY_PUSH_SECRET GIT_PUSH_SECRET; do
+            [ -n "${!k}" ] || { echo "::error::MISSING HOST SETTING: $k"; miss=1; }
+          done
+          [ "$miss" = 0 ]
+      - name: OIDC → OpenBao (Harbor robot + git push token)
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ vars.OPENBAO_ADDR }}
+          method: jwt
+          path: ${{ vars.OPENBAO_JWT_MOUNT }}
+          role: ${{ vars.OPENBAO_ROLE_DEPLOY }}
+          jwtGithubAudience: ${{ vars.OPENBAO_AUDIENCE }}
+          secrets: |
+            ${{ vars.REGISTRY_PUSH_SECRET }} username | HARBOR_USERNAME ;
+            ${{ vars.REGISTRY_PUSH_SECRET }} password | HARBOR_PASSWORD ;
+            ${{ vars.GIT_PUSH_SECRET }} token | GIT_PUSH_TOKEN
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ env.GIT_PUSH_TOKEN }}
+      - name: The commit to promote is on dev
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          want="${INPUT_SHA:-$(git rev-parse origin/dev)}"
+          case "$want" in *[!0-9a-f]* | "") echo "::error::sha must be lowercase hex"; exit 1 ;; esac
+          sha="$(git rev-parse --verify "$want^{commit}")" || { echo "::error::no commit $want"; exit 1; }
+          git merge-base --is-ancestor "$sha" origin/dev || { echo "::error::$sha is not on dev"; exit 1; }
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+      - name: Merge it into prod and pin production to dev's images
+        env:
+          APPS: ${{ inputs.apps }}
+          ACTOR: ${{ github.triggering_actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "estate-promote"
+          git config user.email "estate-promote@users.noreply.github.com"
+          TRAILERS="Promoted-by: $ACTOR"$'\n'"Promote-run: $RUN_URL"
+          if git rev-parse --verify -q origin/prod >/dev/null; then
+            git checkout -q -B prod origin/prod
+            git merge --no-ff --no-edit -m "chore(gitops): bring dev ${SHA::7} to production [PATCH]"$'\n\n'"$TRAILERS" "$SHA" \
+              || { git merge --abort; echo "::error::dev ${SHA::7} does not merge into prod cleanly: a production overlay was changed on both"; exit 1; }
+          else
+            git checkout -q -B prod "$SHA"
+          fi
+          args=(dev)
+          [ -z "$APPS" ] || args+=(--only "$APPS")
+          PROMOTE_TRAILERS="$TRAILERS" bash tools/scheduling/promote.sh "${args[@]}"
+          # Nothing new for production at all: no commit of ours, nothing to push.
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse -q --verify origin/prod || true)" ]; then
+            echo "production already runs dev ${SHA::7}"; echo "NOTHING=1" >> "$GITHUB_ENV"
+          fi
+      - name: Every pinned image is in Harbor (built and run on dev, never rebuilt)
+        if: env.NOTHING != '1'
+        run: |
+          set -euo pipefail
+          host="$(sed -n 's/^REGISTRY_HOST:[[:space:]]*\([^[:space:]#]*\).*/\1/p' estate/identity.yaml)"
+          echo "$HARBOR_PASSWORD" | docker login "$host" -u "$HARBOR_USERNAME" --password-stdin
+          for f in gitops/services/*/overlays/prod/kustomization.yaml; do
+            name="$(sed -n 's/^[[:space:]]*- name:[[:space:]]*\(.*\)$/\1/p' "$f" | head -1)"
+            tag="$(sed -n 's/^[[:space:]]*newTag:[[:space:]]*"\([^"]*\)".*/\1/p' "$f" | head -1)"
+            [ -n "$name" ] && [ -n "$tag" ] || continue
+            docker manifest inspect "$name:$tag" >/dev/null || { echo "::error::$name:$tag is not in Harbor ($f)"; exit 1; }
+            echo "ok $name:$tag"
+          done
+      - name: Push prod (→ Argo deploys production)
+        if: env.NOTHING != '1'
+        run: |
+          set -euo pipefail
+          DEV_REF=origin/dev bash tools/ci/prod-guard.sh prod "$(git rev-parse -q --verify origin/prod || echo 0000000000000000000000000000000000000000)" HEAD
+          git push -q origin HEAD:refs/heads/prod
+          git log --format='%h %s' -3
