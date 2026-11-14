@@ -1,14 +1,5 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
-import {
-	dayShort,
-	hhmm,
-	monthLong,
-	monthStart,
-	parseDay,
-	range,
-	weekdayShort,
-	weekStart,
-} from "../lib/dates";
+import { dayShort, hhmm, range, weekdayShort, weekStart } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
@@ -54,7 +45,7 @@ function Hours({
 	);
 }
 
-import { AppointmentTile as AppointmentCard } from "./appt-tile";
+import { AppointmentTile as AppointmentCard, WeekTile } from "./appt-tile";
 
 function Slots({
 	date,
@@ -112,7 +103,9 @@ export interface GridProps {
 export function DayGrid({ data, date, locale, today, nowMin }: GridProps): JSX.Element {
 	const appts = data.appointments.filter((a) => a.date === date);
 	const { dayStart, hours } = hoursFor(appts);
-	const svc = (id: string): string => data.services.find((s) => s.id === id)?.name ?? "";
+	const services = new Map(data.services.map((s) => [s.id, s.name]));
+	const svc = (id: string): string => services.get(id) ?? "";
+	const clients = new Map(data.clients.map((c) => [c.id, c]));
 	return (
 		<div class="cal" id="cal" style={`--cols:${data.columns.length};--hours:${hours}`}>
 			<div class="cal__scroll" {...SCROLL_FAB}>
@@ -152,7 +145,7 @@ export function DayGrid({ data, date, locale, today, nowMin }: GridProps): JSX.E
 									<AppointmentCard
 										key={a.id}
 										appt={a}
-										client={data.clients.find((x) => x.id === a.clientId)}
+										client={a.clientId === null ? undefined : clients.get(a.clientId)}
 										flag={a.clientId === null ? undefined : data.flags?.[a.clientId]}
 										serviceName={svc(a.serviceId)}
 										colour={c.colour}
@@ -183,7 +176,11 @@ export function WeekGrid({
 	const days = range(weekStart(date), 7);
 	const appts = data.appointments.filter((a) => a.columnId === column.id);
 	const { dayStart, hours } = hoursFor(appts);
-	const svc = (id: string): string => data.services.find((s) => s.id === id)?.name ?? "";
+	// Each name and each day's visits looked up once, not once per tile.
+	const names = new Map(data.clients.map((c) => [c.id, c.name]));
+	const byDay = new Map<string, Appointment[]>();
+	for (const a of appts) byDay.set(a.date, [...(byDay.get(a.date) ?? []), a]);
+	const unnamed = m.unnamed_group({}, at(locale));
 	return (
 		<div class="cal cal--week" id="cal" style={`--cols:7;--hours:${hours}`}>
 			<div class="cal__scroll" {...SCROLL_FAB}>
@@ -218,22 +215,21 @@ export function WeekGrid({
 								dayStart={dayStart}
 								hours={hours}
 								locale={locale}
-								busy={appts.filter((a) => a.date === d)}
+								busy={byDay.get(d) ?? []}
 							/>
-							{appts
-								.filter((a) => a.date === d)
-								.map((a) => (
-									<AppointmentCard
-										key={a.id}
-										appt={a}
-										client={data.clients.find((x) => x.id === a.clientId)}
-										flag={a.clientId === null ? undefined : data.flags?.[a.clientId]}
-										serviceName={svc(a.serviceId)}
-										colour={column.colour}
-										locale={locale}
-										dayStart={dayStart}
-									/>
-								))}
+							{(byDay.get(d) ?? []).map((a) => (
+								<WeekTile
+									key={a.id}
+									appt={a}
+									name={
+										a.title ?? (a.clientId === null ? undefined : names.get(a.clientId)) ?? unnamed
+									}
+									flag={a.clientId === null ? undefined : data.flags?.[a.clientId]}
+									colour={column.colour}
+									locale={locale}
+									dayStart={dayStart}
+								/>
+							))}
 							{d === today && nowMin >= dayStart && nowMin <= dayStart + hours * 60 ? (
 								<div class="cal__now" style={`--now:${nowMin};--day-start:${dayStart}`} />
 							) : null}
@@ -242,46 +238,5 @@ export function WeekGrid({
 				</div>
 			</div>
 		</div>
-	);
-}
-
-/** The month: a day per cell, the load as a bar; tapping a day opens it. */
-export function MonthGrid({ data, date, locale, today }: Omit<GridProps, "nowMin">): JSX.Element {
-	const first = monthStart(date);
-	const start = weekStart(first);
-	const days = range(start, 42);
-	const counts = new Map<string, number>();
-	for (const a of data.appointments)
-		if (a.status !== "cancelled") counts.set(a.date, (counts.get(a.date) ?? 0) + 1);
-	const peak = Math.max(1, ...counts.values());
-	const month = parseDay(first).getUTCMonth();
-	return (
-		<section class="cal-month" id="cal" aria-label={monthLong(locale, first)}>
-			{range(start, 7).map((d) => (
-				<div key={d} class="cal-month__dow">
-					{weekdayShort(locale, d)}
-				</div>
-			))}
-			{days.map((d) => {
-				const n = counts.get(d) ?? 0;
-				return (
-					<a
-						key={d}
-						class="cal-month__day"
-						href={`/calendar?view=day&date=${d}`}
-						data-out={parseDay(d).getUTCMonth() === month ? "false" : "true"}
-						aria-current={d === today ? "date" : undefined}
-					>
-						<span class="cal-month__n">{Number(d.slice(8))}</span>
-						{n > 0 ? (
-							<>
-								<span class="cal-month__bar" style={`--load:${n / peak}`} />
-								<span class="cal-month__count">{m.count_appointments({ n }, at(locale))}</span>
-							</>
-						) : null}
-					</a>
-				);
-			})}
-		</section>
 	);
 }

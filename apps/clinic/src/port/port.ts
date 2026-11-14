@@ -65,6 +65,15 @@ export interface CalendarData {
 	flags?: Readonly<Record<string, ClientFlag>>;
 }
 
+/** Which column's visits a calendar read answers, chosen from its columns (none: no visits). */
+export type CalendarFocus = (columns: ReadonlyArray<Column>) => string | undefined;
+
+/** One day of the month grid: its visits, counted. */
+export interface DayCount {
+	date: string;
+	count: number;
+}
+
 /** How many clients one page of the list shows. */
 export const CLIENT_PAGE_SIZE = 50;
 
@@ -138,7 +147,13 @@ export class PortError extends Error {
  */
 export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
-	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
+	/**
+	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
+	 * column it picks from the columns (the week draws one calendar: the others' visits are neither read further nor named).
+	 */
+	calendar(app: AppSlug, from: string, to: string, focus?: CalendarFocus): Promise<CalendarData>;
+	/** How many visits each day of `from`..`to` holds on the calendars this person may see (the month grid); empty days absent. */
+	calendarSummary(app: AppSlug, from: string, to: string): Promise<ReadonlyArray<DayCount>>;
 	appointment(app: AppSlug, id: string): Promise<Appointment | null>;
 	/**
 	 * Creates the appointment, or its whole weekly series, in one step. Refuses with `conflict`

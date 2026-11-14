@@ -204,6 +204,28 @@
 	padding: 5px 7px;
 	align-items: center;
 }
+/* The week's tile: time over name, the status word under when it is not "confirmed". */
+.cal__appt--lite {
+	grid-template-columns: minmax(0, 1fr);
+	align-content: start;
+	gap: 0;
+	padding: 4px 6px;
+}
+.cal__appt--lite time {
+	color: var(--ink-muted);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.cal__appt--lite strong,
+.cal__appt--lite .cal__st {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.cal__appt--lite .cal__st {
+	color: var(--ink-muted);
+	font-size: 11px;
+}
 .cal__appt[data-status="cancelled"] {
 	background:
 		repeating-linear-gradient(

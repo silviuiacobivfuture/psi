@@ -11,7 +11,7 @@ type C = Ctx<RouteSpec>;
 type Locale = "ro" | "en";
 
 /** The local date of an instant in the app's zone, `YYYY-MM-DD`. */
-function localDate(instant: number, timeZone: string): string {
+export function localDate(instant: number, timeZone: string): string {
 	return new Intl.DateTimeFormat("en-CA", {
 		timeZone,
 		year: "numeric",
