@@ -114,6 +114,12 @@ describe.each(factories)("on the $name store", (factory) => {
 					refused(() => call("hugo"), 404, "not_found"));
 				it("a stranger is told the app is not there", () =>
 					refused(() => call("mallory"), 404, "not_found"));
+				// The caller's own assistant (what governs their turn, what it used) needs membership and nothing more.
+				if (spec.permission === undefined) {
+					it("is the caller's own and needs no permission past membership", () =>
+						expect(["me.assistant", "me.assistantUsage"]).toContain(spec.id));
+					return;
+				}
 				it("a role that lacks the permission", () => {
 					// An object the caller cannot reach is "not found" (no leak); a dynamic route first asks for ANY candidate.
 					const target = spec.permission?.target.kind;

@@ -101,6 +101,9 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"feedback.reply": rec("feedback.reply", "feedback"),
 	"feedback.status": rec("feedback.status", "feedback"),
 	"floorplan.put": own("builder.change", "builder"),
+	"assistant.config.put": own("builder.change", "builder"),
+	// The estate's own journal entry is written by `apiAssistant:putPlatform` (no app holds it).
+	"assistant.platform.put": rec("builder.change", "app"),
 	"report.export": own("report.export", "report"),
 	"note.create": rec("note.create", "note"),
 	"note.update": rec("note.update", "note"),

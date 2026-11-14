@@ -1,4 +1,5 @@
 import { currentActor } from "./actor";
+import { createMemoryAssistant } from "./memory-assistant";
 import { createMemoryBlacklist } from "./memory-blacklist";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
@@ -59,6 +60,10 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 	};
 	const { visitor, requests, bookings, state } = createMemoryVisitor(c, clock, blacklist.online);
 	const feedback = createMemoryFeedback(c, clock, bookings.byReference, bookings.byId);
+	const assistant = createMemoryAssistant(
+		clock,
+		async (app) => (await c.apps.get(app, app)) !== undefined,
+	);
 	const documents = new Map<string, StoredDocument>();
 	const docs: StorePort["docs"] = {
 		get: (app, kind) => Promise.resolve(documents.get(`${app}|${kind}`)),
@@ -86,6 +91,8 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		visitor,
 		requests,
 		docs,
+		platform: assistant.platform,
+		usage: assistant.usage,
 		blacklist: blacklist.port,
 		feedback: feedback.port,
 		series: createMemorySeries(c.appointments),
@@ -99,6 +106,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...documents.entries()],
 				blacklist.state(),
 				feedback.state(),
+				assistant.state(),
 			]),
 	};
 }

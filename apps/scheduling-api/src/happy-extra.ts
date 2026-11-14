@@ -1,3 +1,4 @@
+import { ASSISTANT_HAPPY } from "./happy-assistant";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 
@@ -63,6 +64,7 @@ const rated = async (w: Populated): Promise<string> => {
 };
 
 export const EXTRA_HAPPY = {
+	...ASSISTANT_HAPPY,
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),

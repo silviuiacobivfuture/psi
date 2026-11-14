@@ -4,6 +4,7 @@ import { adminHandlers } from "./admin";
 import { appointmentEditHandlers } from "./appointment-edit";
 import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
+import { assistantHandlers } from "./assistant";
 import { blacklistHandlers } from "./blacklist";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
@@ -41,6 +42,7 @@ const complete: Handlers = {
 	...adminHandlers,
 	...viewAsHandlers,
 	...visitorHandlers,
+	...assistantHandlers,
 };
 
 export const handlers: Readonly<Record<string, Handler<RouteSpec> | undefined>> = complete;

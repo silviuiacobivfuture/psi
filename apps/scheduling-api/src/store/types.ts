@@ -25,6 +25,7 @@ import type {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
+import type { AssistantUsagePort, PlatformDocumentsPort } from "./ports-assistant";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -348,7 +349,11 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
-	/** Documents with a revision (the floor plan). */
+	/** The estate's own documents (the assistants' platform tier). */
+	platform: PlatformDocumentsPort;
+	/** The assistants' meters. */
+	usage: AssistantUsagePort;
+	/** Documents with a revision (the floor plan, the assistants' configuration). */
 	docs: DocumentsPort;
 	/** Who may not book. */
 	blacklist: BlacklistPort;

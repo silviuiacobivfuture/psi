@@ -1,3 +1,4 @@
+export * from "./assistant-merge";
 export * from "./capabilities";
 export {
 	type HttpMethod,
@@ -11,6 +12,7 @@ export {
 	type Target,
 } from "./define";
 export * from "./entities";
+export * from "./entities-assistant";
 export * from "./entities-feedback";
 export * from "./entities-plan";
 export * from "./entities-reports";

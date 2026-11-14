@@ -5,7 +5,7 @@
  */
 import type { AppointmentRow } from "./types";
 
-export const DOCUMENT_KINDS = ["floor_plan"] as const;
+export const DOCUMENT_KINDS = ["floor_plan", "assistant_config"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 export interface StoredDocument {

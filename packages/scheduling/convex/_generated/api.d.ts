@@ -11,6 +11,7 @@
 import type * as account from "../account.js";
 import type * as apiAccess from "../apiAccess.js";
 import type * as apiAppsExtra from "../apiAppsExtra.js";
+import type * as apiAssistant from "../apiAssistant.js";
 import type * as apiAudit from "../apiAudit.js";
 import type * as apiBlacklist from "../apiBlacklist.js";
 import type * as apiBuilder from "../apiBuilder.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   apiAccess: typeof apiAccess;
   apiAppsExtra: typeof apiAppsExtra;
+  apiAssistant: typeof apiAssistant;
   apiAudit: typeof apiAudit;
   apiBlacklist: typeof apiBlacklist;
   apiBuilder: typeof apiBuilder;
