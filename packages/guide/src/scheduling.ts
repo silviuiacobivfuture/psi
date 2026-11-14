@@ -1,12 +1,14 @@
-import type { PauseNotice, SchedulingPort, ServiceEntry } from "@psi/engine";
+import type { PauseNotice, SchedulingPort, ServiceEntry, VisitorAssistantPort } from "@psi/engine";
 import {
 	createSchedulingClient,
+	createVisitorAssistantStore,
 	decodeSlot,
 	readSchedulingEnv,
 	type SchedulingClient,
 	type SchedulingEnvProblem,
 	type VisitorSchedulingClient,
 } from "@psi/scheduling";
+import { visitorAssistantPort } from "./visitor-assistant";
 
 /** How long the services list is kept before the store is asked again. */
 export const CATALOGUE_TTL_MS = 60_000;
@@ -17,6 +19,11 @@ export interface PsiScheduling {
 	client: SchedulingClient;
 	/** For the engine: find, cancel and, once the visitor confirmed a summary, hold and submit. */
 	port: SchedulingPort;
+	/**
+	 * The organisation's visitor assistant settings and meters (Setări → Asistent, the site's surface): the engine's
+	 * `visitorAssistant`, so the store's limits, budget and model govern the brands that schedule.
+	 */
+	assistant: VisitorAssistantPort;
 }
 
 /**
@@ -93,5 +100,12 @@ export function schedulingFromEnv(
 	const read = readSchedulingEnv(env);
 	if (!read.ok) return read;
 	const client = createSchedulingClient(read.config);
-	return { ok: true, scheduling: { client, port: schedulingPort(client) } };
+	return {
+		ok: true,
+		scheduling: {
+			client,
+			port: schedulingPort(client),
+			assistant: visitorAssistantPort(createVisitorAssistantStore(read.config)),
+		},
+	};
 }

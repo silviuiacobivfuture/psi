@@ -1,3 +1,4 @@
+import { ASSISTANT_ACTIONS } from "./registry-assistant";
 import { AVAILABILITY_ACTIONS } from "./registry-availability";
 import { CATALOG_ACTIONS } from "./registry-catalog";
 import { CLIENT_ACTIONS } from "./registry-client";
@@ -20,6 +21,7 @@ export const ACTIONS: ReadonlyArray<ActionDef> = [
 	...CLIENT_ACTIONS,
 	...LINK_ACTIONS,
 	...CATALOG_ACTIONS,
+	...ASSISTANT_ACTIONS,
 	...ME_ACTIONS,
 	...ORG_ACTIONS,
 	...MEMBER_ACTIONS,

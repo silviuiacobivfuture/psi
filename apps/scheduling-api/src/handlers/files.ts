@@ -7,7 +7,7 @@ import type { FileRow } from "../store/types";
 import {
 	must,
 	newId,
-	paginate,
+	numbered,
 	removeTuplesThenRow,
 	stamps,
 	writeRowThenTuples,
@@ -64,12 +64,15 @@ export const fileHandlers: HandlersOf<
 > = {
 	async "files.list"(ctx) {
 		const visible = await ctx.reachOf("files_view", "sched_file");
+		// One client's files, read by the client (never the app's whole file table): bounded by what one client holds,
+		// so the page and its total are cut from the same read.
+		const { status } = ctx.query;
 		const rows = (
 			await ctx.deps.store.c.files.list(ctx.app, { eq: { clientId: String(ctx.params.id) } })
 		)
-			.filter((f) => reaches(visible, f.id))
+			.filter((f) => reaches(visible, f.id) && (status === undefined || f.status === status))
 			.sort((a, b) => b.createdAt - a.createdAt);
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		const page = numbered(rows, ctx.query.limit, ctx.query.cursor, ctx.query.offset);
 		return { ...page, items: page.items.map(fileOut) };
 	},
 

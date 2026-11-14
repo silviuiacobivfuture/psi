@@ -134,6 +134,9 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"feedback.reply": rec("feedback.reply", "feedback"),
 	"feedback.status": rec("feedback.status", "feedback"),
 	"floorplan.put": own("builder.change", "builder"),
+	"assistant.config.put": own("builder.change", "builder"),
+	// The estate's own journal entry is written by `apiAssistant:putPlatform` (no app holds it).
+	"assistant.platform.put": rec("builder.change", "app"),
 	// The contact profile is the app's own document: its event names the fields that changed, never their values.
 	"org.profile": own("builder.change", "app"),
 	"report.export": own("report.export", "report"),

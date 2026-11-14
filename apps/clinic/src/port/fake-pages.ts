@@ -1,25 +1,18 @@
 import { nameMatches, orderPage } from "@psi/scheduling/clinic";
 import { narrowedTo } from "./client-list";
-import { offsetOf, offsetPage } from "./offset-page";
-import {
-	type AuditPage,
-	type ClientPage,
-	type ClinicPort,
-	LIST_PAGE,
-	type ListedClient,
-	type Paged,
-} from "./port";
+import { type Numbered, numberedOf } from "./numbered";
+import { offsetOf } from "./offset-page";
+import type { AuditPage, ClientPage, ClinicPort, ListedClient } from "./port";
 import type { AppSlug, WebRequest } from "./schema";
 
 /** The open or the handled requests, newest first, a page at a time. */
 export function pagedRequests(port: Pick<ClinicPort, "requests">): ClinicPort["requestPage"] {
-	return async (app, show, cursor): Promise<Paged<WebRequest>> =>
-		offsetPage(
+	return async (app, show, at): Promise<Numbered<WebRequest>> =>
+		numberedOf(
 			[...(await port.requests(app))]
 				.filter((r) => r.handled === (show === "handled"))
 				.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)),
-			cursor,
-			LIST_PAGE,
+			at,
 		);
 }
 
@@ -27,7 +20,7 @@ export function pagedRequests(port: Pick<ClinicPort, "requests">): ClinicPort["r
 export function pagedBlacklist(
 	port: Pick<ClinicPort, "clientSummaries" | "clients">,
 ): ClinicPort["blacklistPage"] {
-	return async (app, cursor): Promise<Paged<ListedClient>> => {
+	return async (app, at): Promise<Numbered<ListedClient>> => {
 		const [current, archived, summaries] = await Promise.all([
 			port.clients(app, "current", ""),
 			port.clients(app, "archived", ""),
@@ -41,7 +34,7 @@ export function pagedBlacklist(
 					: [{ entry: s.blacklist, clientId: s.clientId, clientName: names.get(s.clientId) ?? "" }],
 			)
 			.sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt));
-		return offsetPage(listed, cursor, LIST_PAGE);
+		return numberedOf(listed, at);
 	};
 }
 

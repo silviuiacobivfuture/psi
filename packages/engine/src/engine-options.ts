@@ -4,7 +4,8 @@ import type { ServerConfig } from "@mastra/core/server";
 import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { MastraVector } from "@mastra/core/vector";
 import { z } from "zod";
-import type { EngineFailure } from "./ask-context";
+import type { EngineFailure, EngineTranscript } from "./ask-context";
+import type { Summariser } from "./compaction";
 import { EngineKnowledgeSchema } from "./contract";
 import type { EngineArticles } from "./grounding/article-tool";
 import type { EngineScore } from "./grounding/faithfulness";
@@ -17,6 +18,7 @@ import { SchedulingPortSchema } from "./scheduling/port";
 import type { RateLimiter } from "./screening/rate-limit";
 import type { SettingsProvider } from "./settings";
 import type { EngineTiming } from "./timing";
+import { VisitorAssistantPortSchema } from "./visitor-governance";
 
 const Millis = z.number().int().positive().max(600_000);
 
@@ -113,4 +115,8 @@ export const EngineOptionsSchema = z.object({
 	onScore: fn<(score: EngineScore) => void>("onScore").optional(),
 	onTiming: fn<(timing: EngineTiming) => void>("onTiming").optional(),
 	scheduling: SchedulingPortSchema.optional(),
+	visitorAssistant: VisitorAssistantPortSchema.optional(),
+	onTranscript: fn<(transcript: EngineTranscript) => void>("onTranscript").optional(),
+	/** What folds a long kept conversation on a governed site; the summary model through OpenRouter by default. */
+	summariser: fn<Summariser>("summariser").optional(),
 });

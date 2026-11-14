@@ -105,6 +105,21 @@ export const STAFF_EN: StaffCopy = {
 			`You are talking to ${name}, of the ${appName} team${roles.length === 0 ? "" : ` (roles: ${roles.join(", ")})`}.`,
 		otherLanguage: (detected) =>
 			`The person wrote in "${detected}"; still answer in English unless they ask otherwise.`,
+		tone: (tone) =>
+			tone === "warm"
+				? "Tone: warm and friendly, and to the point."
+				: tone === "formal"
+					? "Tone: formal and courteous."
+					: "Tone: neutral and concise.",
+		replyLanguage: (language) =>
+			language === "auto"
+				? "Answer in English unless the person asks otherwise."
+				: language === "ro"
+					? "Always answer in Romanian."
+					: "Always answer in English.",
+		orgHeading: "The organisation's guidance (it applies within the rules above):",
+		skillsHeading:
+			"The organisation's skills: follow the fitting one when one of its words appears.",
 	},
 	chip: (tool, phase) => CHIPS[tool][phase === "running" ? 0 : phase === "done" ? 1 : 2],
 	chipFound: (tool, count) => {
@@ -381,6 +396,11 @@ export const STAFF_EN: StaffCopy = {
 		`That can be done: ${labels.join("; ")}. Tell me which details to use and I will prepare it for your confirmation.`,
 	cutShort: '(The answer stopped here; write "continue" and I will pick it up.)',
 	reviewCard: "Check the card and confirm there.",
+	handoff: (contact) =>
+		contact === undefined
+			? "If I cannot help with this, the organisation's Owner or an Admin can: ask them directly."
+			: `If I cannot help with this, a person can: ${contact}.`,
+	summaryHeading: "Summary of the conversation so far:",
 	stoppedShort:
 		"I did not get to a result. Tell me more precisely what you want me to do, or try again.",
 	panel: {
@@ -411,6 +431,16 @@ export const STAFF_EN: StaffCopy = {
 			invalid: "The message could not be read. Write it again.",
 			unavailable: "The assistant is not available right now. Use the app's screens.",
 			language: "I could not answer in your language. Try again.",
+			disabled:
+				"The assistant is switched off for you in the organisation's settings. Every screen of the app still works.",
+			budget:
+				"The assistant's monthly budget is spent. It is back next month, or once an administrator raises it in Settings → Assistant.",
+			tokens:
+				"The assistant reached the use limit set for the organisation. Try later, or ask an administrator to raise it.",
+			messages_day:
+				"You reached today's number of messages to the assistant. You can continue tomorrow; the app's screens still work.",
+			session_limit:
+				"This conversation reached its full length. Start a new one and we carry on from there.",
 		},
 		sheetLabel: "The team's assistant",
 		fullscreen: "Full screen",

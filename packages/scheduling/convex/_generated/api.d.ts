@@ -11,6 +11,7 @@
 import type * as account from "../account.js";
 import type * as apiAccess from "../apiAccess.js";
 import type * as apiAppsExtra from "../apiAppsExtra.js";
+import type * as apiAssistant from "../apiAssistant.js";
 import type * as apiAudit from "../apiAudit.js";
 import type * as apiAvailability from "../apiAvailability.js";
 import type * as apiBlacklist from "../apiBlacklist.js";
@@ -91,6 +92,7 @@ import type * as staffRooms from "../staffRooms.js";
 import type * as staffSchedule from "../staffSchedule.js";
 import type * as staffSetup from "../staffSetup.js";
 import type * as tables_apiRecordsExtra from "../tables/apiRecordsExtra.js";
+import type * as tables_assistantUsage from "../tables/assistantUsage.js";
 import type * as tables_clinicAccess from "../tables/clinicAccess.js";
 import type * as tables_clinicBlacklist from "../tables/clinicBlacklist.js";
 import type * as tables_clinicDocs from "../tables/clinicDocs.js";
@@ -119,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   apiAccess: typeof apiAccess;
   apiAppsExtra: typeof apiAppsExtra;
+  apiAssistant: typeof apiAssistant;
   apiAudit: typeof apiAudit;
   apiAvailability: typeof apiAvailability;
   apiBlacklist: typeof apiBlacklist;
@@ -199,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   staffSchedule: typeof staffSchedule;
   staffSetup: typeof staffSetup;
   "tables/apiRecordsExtra": typeof tables_apiRecordsExtra;
+  "tables/assistantUsage": typeof tables_assistantUsage;
   "tables/clinicAccess": typeof tables_clinicAccess;
   "tables/clinicBlacklist": typeof tables_clinicBlacklist;
   "tables/clinicDocs": typeof tables_clinicDocs;

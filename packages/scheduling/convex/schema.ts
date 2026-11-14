@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { callbackRequests } from "./callbackSchema";
 import { apiDefinitions, leaveRequests } from "./tables/apiRecordsExtra";
+import { assistantUsage } from "./tables/assistantUsage";
 import {
 	coordinatorAssignments,
 	permissionOverrides,
@@ -354,6 +355,7 @@ export default defineSchema({
 	feedbackReplies,
 	feedbackLinks,
 	appDocuments,
+	assistantUsage,
 	clientNotes,
 	memberSettings,
 	appKeyed,

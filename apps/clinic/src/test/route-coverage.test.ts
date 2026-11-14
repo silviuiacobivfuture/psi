@@ -67,6 +67,8 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 		"the public sites' account page: a client's own notification preferences",
 	"visitor.notificationsSave": "the public sites' account page",
 	"notifications.deliveries": "the delivery log: its screen is not offered by the console yet",
+	"assistantUsage.get":
+		"the meters alone, for the assistant's tools; the settings screen reads them inside assistantConfig.get",
 };
 
 const SRC = fileURLToPath(new URL("..", import.meta.url));

@@ -1,7 +1,6 @@
 {
 	"ls_more": "Mai multe",
 	"ls_shown": "{n} afișate; urmează și altele",
-	"ls_count_more": "{n}+",
 	"pg_nav": "Paginare",
 	"pg_first": "Prima pagină",
 	"pg_prev": "Pagina anterioară",
@@ -12,6 +11,7 @@
 	"pg_size": "Pe pagină",
 	"pg_apply": "Aplică",
 	"cl_pager_nav": "Paginare clienți",
+	"cl_tab_pager_nav": "Paginare listă",
 	"cl_f_label": "Filtre",
 	"cl_f_sort": "Ordine",
 	"cl_sort_name": "Nume, A–Z",
@@ -33,5 +33,9 @@
 	"cl_f_clear": "Șterge filtrele",
 	"cl_f_none_title": "Niciun client nu se potrivește",
 	"cl_f_none_text": "Schimbă căutarea sau filtrele, ori șterge-le ca să vezi toată lista.",
-	"cl_list_last": "Ultima vizită: {date}"
+	"cl_list_last": "Ultima vizită: {date}",
+	"rq_pager_nav": "Paginare cereri",
+	"bl_pager_nav": "Paginare listă neagră",
+	"mb_pager_nav": "Paginare echipă",
+	"rm_pager_nav": "Paginare remindere"
 }

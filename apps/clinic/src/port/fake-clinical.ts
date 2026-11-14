@@ -1,8 +1,8 @@
 import { SEED_FORM_TEMPLATES, validateResponse } from "@psi/scheduling/clinic";
 import { ledger } from "../domain/ledger";
 import { paidBani } from "../domain/usage";
-import { offsetPage } from "./offset-page";
-import { type ClinicPort, LIST_PAGE, PortError } from "./port";
+import { numberedOf } from "./numbered";
+import { type ClinicPort, PortError } from "./port";
 import type { AppSlug, Client } from "./schema";
 import {
 	blacklistActive,
@@ -340,9 +340,9 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 					.filter((f) => f.clientId === clientId),
 			);
 		},
-		async filePage(app, clientId, cursor) {
+		async filePage(app, clientId, ask) {
 			guard("filePage");
-			return offsetPage(await this.files(app, clientId), cursor, LIST_PAGE);
+			return numberedOf(await this.files(app, clientId), ask);
 		},
 		async uploadFile(app, clientId, file, by) {
 			guard("uploadFile");

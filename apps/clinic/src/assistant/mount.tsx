@@ -7,6 +7,7 @@ import {
 	type StaffPort,
 	staffCopy,
 } from "@psi/engine/staff";
+import { ROUTES } from "@psi/scheduling-sdk/contract";
 import { staffViews } from "@psi/ui/staff-assistant";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
@@ -28,7 +29,8 @@ export const ASSISTANT_BASE = "/assistant";
  * The staff assistant's engine, made once. The model and its key come from the environment
  * (`OPENROUTER_API_KEY`, optionally `STAFF_ASSISTANT_MODEL`, default `xiaomi/mimo-v2.6-flash`); without a key the panel
  * opens and says the assistant is not available. Conversation memory is durable, sealed per person and
- * deleted after 30 days (see `staffMemoryFrom`).
+ * deleted after the organisation's `memory.retentionDays` (see `staffMemoryFrom`; 30 days for a conversation that
+ * predates the setting).
  */
 export function createAssistantEngine(
 	env: Readonly<Record<string, string | undefined>>,
@@ -48,7 +50,21 @@ export function createAssistantEngine(
 			request: () => "/requests",
 			audit: () => "/audit",
 		},
+		// Every route of the service's contract the person may use is discoverable, and called with their own token.
+		routes: ROUTES,
 		onFailure: (f) => console.error(`[clinic] assistant ${f.stage}: ${f.error}`),
+		// Only when the organisation keeps transcripts (`logging.keepTranscripts`), already redacted when it hides personal data.
+		onTranscript: (t) =>
+			console.info(
+				JSON.stringify({
+					event: "transcript",
+					surface: "staff",
+					sub: t.sub,
+					threadId: t.threadId,
+					question: t.question,
+					answer: t.answer,
+				}),
+			),
 	});
 }
 

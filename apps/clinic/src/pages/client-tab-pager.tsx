@@ -1,35 +1,81 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
-import { moreHref, ShowMore } from "../lib/show-more";
+import { ListPager, listHref } from "../lib/paging";
 import { m } from "../paraglide/messages.js";
+import type { Numbered, PageAt } from "../port/numbered";
+import { numberedOf } from "../port/numbered";
+
+export type { Numbered };
+/** Which page of a tab is asked, and at what size. */
+export type TabPaging = PageAt;
+
+/**
+ * The client page's long lists as numbered pages (the console's shared pager): each tab has its own address,
+ * `/clients/:id/<tab>?page=&size=`, so back, refresh and a shared link land on the same page. A client's lists are
+ * one client's (read by the client's index), so the console holds the whole list and cuts the page; the files come a
+ * page at a time from the service, which counts them.
+ */
 
 /** The client page's tabs that show a long list a page at a time. */
-export const PAGED_TABS = ["appointments", "notes", "records", "files"] as const;
+export const PAGED_TABS = ["appointments", "notes", "records", "files", "packages"] as const;
 export type PagedTab = (typeof PAGED_TABS)[number];
+export const isPagedTab = (tab: string): tab is PagedTab =>
+	(PAGED_TABS as ReadonlyArray<string>).includes(tab);
 
-/** The list element of a paged tab: where its next page is appended. */
-export const tabListId = (tab: PagedTab): string => `cl-list-${tab}`;
+/** The element a page change replaces (and focuses): the tab's whole body. */
+export const tabRegionId = (tab: PagedTab): string => `cl-tab-${tab}`;
 
-/** The tab's "show more": the next page of the client's list appended, nothing once the last is shown. */
-export function TabMore({
+/** The canonical address of a page of a client's tab. */
+export const tabHref = (clientId: string, tab: PagedTab, page: number, size: number): string =>
+	listHref(`/clients/${encodeURIComponent(clientId)}/${tab}`, [
+		["page", page],
+		["size", size],
+	]);
+
+/** The tab's pager; nothing for an empty list (the tab says it is empty). */
+export function TabPager({
 	ctx,
 	clientId,
 	tab,
-	cursor,
 	shown,
+	size,
 }: {
 	ctx: Ctx;
 	clientId: string;
 	tab: PagedTab;
-	cursor: string | null;
-	shown: number;
-}): JSX.Element {
+	shown: Numbered<unknown>;
+	size: number;
+}): JSX.Element | null {
+	if (shown.total === 0) return null;
 	return (
-		<ShowMore
-			id={`cl-more-${tab}`}
-			href={moreHref(`/clients/${encodeURIComponent(clientId)}/more/${tab}`, cursor, shown)}
-			label={m.ls_more({}, at(ctx.locale))}
+		<ListPager
+			ctx={ctx}
+			id={`cl-pager-${tab}`}
+			nav={m.cl_tab_pager_nav({}, at(ctx.locale))}
+			page={shown.page}
+			size={size}
+			total={shown.total}
+			href={(p, s) => tabHref(clientId, tab, p, s)}
+			action={`/clients/${encodeURIComponent(clientId)}/${tab}`}
+			params={{}}
 		/>
 	);
 }
+
+/**
+ * Back and Forward land on an address the tab pushed: the tab follows it in place. The address the page opened at is
+ * made the canonical one first, so following it never pushes over the forward history.
+ */
+export function TabHistory({ href }: { href: string }): JSX.Element {
+	return (
+		<div
+			hidden
+			data-init={`history.replaceState(null, "", ${JSON.stringify(href)})`}
+			data-on:popstate__window="@get(location.pathname + location.search)"
+		/>
+	);
+}
+
+/** One page of a list the console holds whole. */
+export const cutTab = numberedOf;

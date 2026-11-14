@@ -14,8 +14,11 @@ import {
 	DEFAULT_TIMEOUTS,
 	type EngineFailure,
 	type EngineTimeouts,
+	type EngineTranscript,
+	type FailureStage,
 	type ThreadAgent,
 } from "./ask-context";
+import type { Summariser } from "./compaction";
 import type { EngineKnowledge } from "./contract";
 import { EngineOptionsSchema } from "./engine-options";
 import { type AskInput, askInputSchema, type EngineEvent } from "./events";
@@ -27,7 +30,7 @@ import { createIngestWorkflow, type EngineIngest } from "./ingest-workflow";
 import { createLanguageDetector } from "./language/detect";
 import { BUNDLED_LANGUAGES } from "./language/index";
 import type { LanguagePack } from "./language/pack";
-import { openMemory } from "./memory";
+import { openSweptMemory, type SweptMemory } from "./memory";
 import { type ChatModel, openRouterModel, type ProviderSort, readOpenRouterKey } from "./model";
 import type { Profile } from "./profile";
 import { instructionsFor } from "./prompt";
@@ -38,7 +41,14 @@ import type { RateLimiter } from "./screening/rate-limit";
 import { createMemoryRateLimiter } from "./screening/rate-limit";
 import { createSettingsSource, type SettingsProvider } from "./settings";
 import { createKnowledgeTool } from "./studio-tool";
+import { agentSummariser } from "./summariser";
 import type { EngineTiming } from "./timing";
+import {
+	createGovernance,
+	type GovernanceSource,
+	type VisitorAssistantPort,
+} from "./visitor-governance";
+import { createRedactor, createRefusalCounter, modelsOfKey } from "./visitor-turn";
 import { warmProfile } from "./warm";
 import { createGroundedAnswerWorkflow } from "./workflow";
 
@@ -127,7 +137,23 @@ export interface EngineOptions {
 	 * separate scheduling agent and Mastra registers the scheduling tools; without it, none exist.
 	 */
 	scheduling?: SchedulingPort;
+	/**
+	 * The organisation's stored visitor settings and meters (`@psi/guide`'s port over `@psi/scheduling`). A profile with a
+	 * scheduling tenant is then governed by them: see `visitor-governance.ts` for what they decide over the CMS's
+	 * settings. Without it, every profile runs on the CMS's settings and the engine's own limits.
+	 */
+	visitorAssistant?: VisitorAssistantPort;
+	/** Each finished turn's question and answer, only on a governed profile whose organisation keeps transcripts. */
+	onTranscript?: (transcript: EngineTranscript) => void;
+	/**
+	 * What folds a governed profile's long kept conversation (`memory.compactAfter`, by `model.summary`); the summary
+	 * model through OpenRouter by default. For tests: a summariser that answers without a provider.
+	 */
+	summariser?: Summariser;
 }
+
+/** How often the visitor memory is swept against the organisation's retention. */
+const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 
 /** One profile's answers. */
 export interface ProfileGuide {
@@ -155,6 +181,11 @@ export interface Engine {
 	readonly profiles: ReadonlyArray<string>;
 	/** The answers of one profile; throws for an unknown id (a setup error). */
 	guide(profileId: string): ProfileGuide;
+	/**
+	 * Deletes what the visitor memory holds past the governed organisations' retention now (it also runs at first use and
+	 * every six hours); how many rows went. 0 when no profile is governed or no thread was opened.
+	 */
+	sweepMemory(): Promise<number>;
 }
 
 /** The packs each locale resolves to: the bundled ones, replaced or extended by the options. */
@@ -209,13 +240,22 @@ export function createEngine(options: EngineOptions): Engine {
 	const model = openRouterModel({ apiKey: apiKey ?? "", modelId: opts.model.id, ...routing });
 	// One model object per slug the owner chooses (the settings' behaviour), built on first use.
 	const bySlug = new Map<string, ChatModel>([[opts.model.id, model]]);
+	// A governed turn names `primary,fallback…` (the organisation's choice) and its model reports what it used.
 	const modelFor = (slug: string): ChatModel => {
 		const known = bySlug.get(slug);
 		if (known !== undefined) return known;
-		const built = openRouterModel({ apiKey: apiKey ?? "", modelId: slug, ...routing });
+		const { primary, fallbacks } = modelsOfKey(slug);
+		const built = openRouterModel({
+			apiKey: apiKey ?? "",
+			modelId: primary,
+			...routing,
+			...(opts.visitorAssistant === undefined ? {} : { fallbacks, usage: true }),
+		});
 		bySlug.set(slug, built);
 		return built;
 	};
+	// One summary agent for every governed profile: it folds a long kept conversation (`memory.compactAfter`).
+	const summariser = agentSummariser(modelFor);
 	const screeningId = opts.model.screeningId ?? opts.model.id;
 	const screeningModel =
 		apiKey === undefined || opts.screening?.model === false
@@ -233,7 +273,37 @@ export function createEngine(options: EngineOptions): Engine {
 		knownNames: opts.profiles.map((profile) => profile.name),
 	});
 	const memoryUrl = opts.memory?.url;
-	let memory: ReturnType<typeof openMemory> | undefined;
+	let swept: SweptMemory | undefined;
+	const refusals = createRefusalCounter();
+	const governed: Array<GovernanceSource> = [];
+	const failed =
+		(profile: string, stage: FailureStage, redact?: (text: string) => string) =>
+		(error: unknown): void => {
+			const text =
+				error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 300) : "unknown error";
+			try {
+				opts.onFailure?.({ profile, stage, error: redact === undefined ? text : redact(text) });
+			} catch {
+				// A failing log hook must not change the answer.
+			}
+		};
+	/**
+	 * Deletes what the visitor memory holds past the organisations' retention (the shortest of the governed profiles',
+	 * as they share it). Nothing is swept when no profile is governed: the memory then keeps what it always kept.
+	 */
+	const sweepVisitorMemory = async (): Promise<number> => {
+		if (swept === undefined || governed.length === 0) return 0;
+		const days = Math.min(...governed.map((g) => g.retentionDays()));
+		try {
+			return await swept.sweep(days);
+		} catch (error) {
+			failed(governed[0]?.tenant ?? prefix, "memory")(error);
+			return 0;
+		}
+	};
+	if (opts.visitorAssistant !== undefined && memoryUrl !== undefined) {
+		setInterval(() => void sweepVisitorMemory(), SWEEP_EVERY_MS).unref();
+	}
 
 	const guides = new Map<string, ProfileGuide>();
 	for (const profile of opts.profiles) {
@@ -267,7 +337,11 @@ export function createEngine(options: EngineOptions): Engine {
 				? undefined
 				: (): ThreadAgent => {
 						if (threads === undefined) {
-							memory ??= openMemory(memoryUrl, `${prefix}-memory`);
+							if (swept === undefined) {
+								swept = openSweptMemory(memoryUrl, `${prefix}-memory`);
+								void sweepVisitorMemory();
+							}
+							const memory = swept.memory;
 							threads = {
 								agent: createProfileAgent({
 									...agentOptions,
@@ -279,6 +353,23 @@ export function createEngine(options: EngineOptions): Engine {
 						}
 						return threads;
 					};
+		const redact = createRedactor([...packs.values()]);
+		// Before any read, a governed profile redacts its logs (the built-in setting); one not governed logs as before.
+		const logging = {
+			redactPii: opts.visitorAssistant !== undefined && profile.scheduling !== undefined,
+			keepTranscripts: false,
+		};
+		const logged = (text: string): string => (logging.redactPii ? redact(text) : text);
+		const governance =
+			opts.visitorAssistant === undefined || profile.scheduling === undefined
+				? undefined
+				: createGovernance(
+						opts.visitorAssistant,
+						profile.scheduling.tenant,
+						timeouts.screeningMs,
+						(error, stage) => failed(profile.id, stage, logged)(error),
+					);
+		if (governance !== undefined) governed.push(governance);
 		const ctx: AskContext = {
 			profile,
 			packs,
@@ -299,20 +390,7 @@ export function createEngine(options: EngineOptions): Engine {
 			settings: createSettingsSource({
 				...(opts.settings === undefined ? {} : { provider: opts.settings }),
 				timeoutMs: timeouts.screeningMs,
-				onError: (error) => {
-					try {
-						opts.onFailure?.({
-							profile: profile.id,
-							stage: "settings",
-							error:
-								error instanceof Error
-									? `${error.name}: ${error.message}`.slice(0, 300)
-									: "unknown error",
-						});
-					} catch {
-						// A failing log hook must not change the answer.
-					}
-				},
+				onError: failed(profile.id, "settings", logged),
 			}),
 			onFailure: opts.onFailure,
 			onScore: opts.onScore,
@@ -324,6 +402,14 @@ export function createEngine(options: EngineOptions): Engine {
 			...(opts.scheduling === undefined || profile.scheduling === undefined
 				? {}
 				: { booking: { port: opts.scheduling, scope: profile.scheduling } }),
+			...(governance === undefined ? {} : { governance }),
+			refusals,
+			...(governance === undefined || threadAgent === undefined
+				? {}
+				: { summarise: opts.summariser ?? summariser }),
+			logging,
+			redact,
+			onTranscript: opts.onTranscript,
 		};
 		const scheduling =
 			opts.scheduling === undefined || profile.scheduling === undefined
@@ -387,5 +473,6 @@ export function createEngine(options: EngineOptions): Engine {
 		hasApiKey: apiKey !== undefined,
 		profiles: ids,
 		guide,
+		sweepMemory: sweepVisitorMemory,
 	};
 }

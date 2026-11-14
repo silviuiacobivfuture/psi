@@ -37,8 +37,10 @@ import { RoleSummary } from "../entities-roles";
 import {
 	AppId,
 	AppParam,
+	countedPage,
 	Id,
 	IdParam,
+	NumberedQuery,
 	Ok,
 	PageQuery,
 	page,
@@ -54,11 +56,13 @@ export const ME_ROUTES = [
 		method: "GET",
 		path: "/v1/me",
 		side: "team",
-		summary: "Who the caller is and the apps they belong to",
+		summary:
+			"Who the caller is, the apps they are a member of, and whether they are the estate administrator (who reaches every app and the platform's own routes whatever they are a member of)",
 		response: z.object({
 			subject: z.string(),
 			kind: z.enum(["person", "service"]),
 			apps: z.array(z.object({ app: AppId, roles: z.array(Id) })),
+			platformAdmin: z.boolean(),
 		}),
 	}),
 	route({
@@ -136,8 +140,8 @@ export const ME_ROUTES = [
 		side: "team",
 		summary: "The app's team",
 		params: AppParam,
-		query: PageQuery,
-		response: page(Member),
+		query: NumberedQuery,
+		response: countedPage(Member),
 		permission: { key: "members_view", target: { kind: "app" } },
 	}),
 	route({

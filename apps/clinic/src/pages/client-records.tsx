@@ -8,12 +8,10 @@ import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { cellName } from "../lib/record-form";
 import { m } from "../paraglide/messages.js";
-import { offsetPage } from "../port/offset-page";
-import { LIST_PAGE } from "../port/port";
 import type { Appointment, Client } from "../port/schema";
 import type { ClientRecord } from "../port/schema-clinical";
 import { stampText } from "./client-notes";
-import { TabMore, tabListId } from "./client-tab-pager";
+import { cutTab, TabPager, type TabPaging } from "./client-tab-pager";
 
 const titleOf = (def: FormDefinition | undefined, key: string, locale: Locale): string =>
 	def?.title[locale] ?? key;
@@ -65,19 +63,21 @@ export function RecordsTab({
 	clientId,
 	records,
 	templates,
+	paging,
 }: {
 	ctx: Ctx;
 	clientId: string;
 	records: ReadonlyArray<ClientRecord>;
 	templates: ReadonlyArray<FormDefinition>;
+	paging: TabPaging;
 }): JSX.Element {
 	const o = at(ctx.locale);
 	const entity = { clientId };
-	const page = offsetPage(records, null, LIST_PAGE);
+	const page = cutTab(records, paging);
 	return (
 		<div class="cl-tab">
 			<ActionBar ctx={ctx} screen="client.records" entity={entity} />
-			{records.length === 0 ? (
+			{page.total === 0 ? (
 				<EmptyState
 					icon="file"
 					title={m.records_empty_title({}, o)}
@@ -87,18 +87,12 @@ export function RecordsTab({
 				</EmptyState>
 			) : (
 				<>
-					<ul class="cl-rows" id={tabListId("records")} aria-label={m.tab_records({}, o)}>
+					<ul class="cl-rows" aria-label={m.tab_records({}, o)}>
 						{page.items.map((r) => (
 							<RecordRow key={r.id} ctx={ctx} clientId={clientId} r={r} templates={templates} />
 						))}
 					</ul>
-					<TabMore
-						ctx={ctx}
-						clientId={clientId}
-						tab="records"
-						cursor={page.nextCursor}
-						shown={page.items.length}
-					/>
+					<TabPager ctx={ctx} clientId={clientId} tab="records" shown={page} size={paging.size} />
 				</>
 			)}
 		</div>

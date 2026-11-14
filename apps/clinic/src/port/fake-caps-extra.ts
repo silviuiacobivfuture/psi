@@ -13,8 +13,10 @@ const TEMPLATE_RECORDS = [
  * the clinical row grants every template's records, the blacklist's `create_warn`, and the elevated override belongs
  * to whoever administers roles. A service answers these itself.
  */
-export function extraCapabilities(role: Pick<Role, "grants">): Record<string, ScopeName[]> {
+export function extraCapabilities(role: Pick<Role, "grants" | "id">): Record<string, ScopeName[]> {
 	const out: Record<string, ScopeName[]> = {};
+	// As at the service: the assistants' budget and limits are the Owner's alone (an Administrator never holds it).
+	if (role.id === "owner") out.assistant_budget_edit = ["all"];
 	const clinical = role.grants.clinical ?? {};
 	for (const [action, scope] of Object.entries(clinical)) {
 		const verb = action === "cancel" ? "delete" : action;

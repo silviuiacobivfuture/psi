@@ -2,12 +2,15 @@ import {
 	type AskControl,
 	type EngineTimeouts,
 	type EngineTiming,
+	type EngineTranscript,
 	type FailureStage,
 	ModelIdSchema,
 	type RateLimiter,
 	type SchedulingPort,
 	SchedulingPortSchema,
 	type SettingsProvider,
+	type VisitorAssistantPort,
+	VisitorAssistantPortSchema,
 } from "@psi/engine";
 import type { KnowledgeStore } from "@psi/knowledge";
 import { z } from "zod";
@@ -90,6 +93,13 @@ export interface GuideOptions {
 	 */
 	scheduling?: SchedulingPort;
 	/**
+	 * The organisation's visitor assistant settings and meters (`schedulingFromEnv(...).scheduling.assistant`): on a brand
+	 * that schedules, the store's limits, budget and model govern the guide over `settings` (which keep the content).
+	 */
+	visitorAssistant?: VisitorAssistantPort;
+	/** Each finished turn's question and answer, only when the organisation keeps transcripts. */
+	onTranscript?: (transcript: EngineTranscript) => void;
+	/**
 	 * Mastra's model guardrails (`PromptInjectionDetector`, `ModerationProcessor`): two small model
 	 * calls per answered question. On by default.
 	 */
@@ -164,6 +174,10 @@ const GuideOptionsSchema = z.object({
 		.optional(),
 	settings: z.custom<SettingsProvider>((value) => typeof value === "function").optional(),
 	scheduling: SchedulingPortSchema.optional(),
+	visitorAssistant: VisitorAssistantPortSchema.optional(),
+	onTranscript: z
+		.custom<(transcript: EngineTranscript) => void>((value) => typeof value === "function")
+		.optional(),
 	modelScreening: z.boolean().optional(),
 	warmUp: z.boolean().optional(),
 	screeningModel: ModelIdSchema.optional(),

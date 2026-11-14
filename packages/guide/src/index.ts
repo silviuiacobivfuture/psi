@@ -107,3 +107,4 @@ export {
 export { type PsiScheduling, schedulingFromEnv, schedulingPort } from "./scheduling";
 export { HEMISYNC_BOOKING_PATHS, hemisyncBookingUrl } from "./services/contact";
 export { settingsFromEnv } from "./settings";
+export { VISITOR_CONFIG_TTL_MS, visitorAssistantPort } from "./visitor-assistant";

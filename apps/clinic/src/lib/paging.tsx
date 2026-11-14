@@ -5,6 +5,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { z } from "zod";
 import { m } from "../paraglide/messages.js";
+import type { PageAt } from "../port/numbered";
 import { DEFAULT_PAGE_SIZE } from "../port/port";
 import type { Ctx } from "./context";
 import { at, type Locale } from "./i18n";
@@ -19,7 +20,8 @@ import { sse } from "./sse";
 /** The page sizes a person may pick. */
 export const PAGE_SIZES = CLIENT_PAGE_SIZES;
 export type PageSize = (typeof PAGE_SIZES)[number];
-const Size = z.coerce
+/** A page size of the address: one of PAGE_SIZES. */
+export const PageSizeSchema = z.coerce
 	.number()
 	.int()
 	.refine((n): n is PageSize => (PAGE_SIZES as ReadonlyArray<number>).includes(n));
@@ -27,7 +29,7 @@ const Size = z.coerce
 /** The paging part of a list's address. `via` says which control asked (the filters or the size picker; a link: none). */
 export const PageParams = z.object({
 	page: z.coerce.number().int().min(1).max(1_000_000).catch(1),
-	size: Size.optional().catch(undefined),
+	size: PageSizeSchema.optional().catch(undefined),
 	from: z.coerce.number().int().min(0).max(100_000_000).optional().catch(undefined),
 	via: z.enum(["filters", "size"]).optional().catch(undefined),
 });
@@ -188,4 +190,33 @@ export async function patchList(o: {
 	});
 	for (const cookie of o.c.res.headers.getSetCookie()) res.headers.append("set-cookie", cookie);
 	return res;
+}
+
+/**
+ * What keeps a paged list and the address bar together: the address the page opened at is made the canonical `url`
+ * first (so following Back in place never pushes over the forward history), and Back and Forward fetch the address
+ * they land on in place.
+ */
+export function ListHistory({ url }: { url: string }): JSX.Element {
+	return (
+		<div
+			hidden
+			data-init={`history.replaceState(null, "", ${JSON.stringify(url)})`}
+			data-on:popstate__window="@get(location.pathname + location.search)"
+		/>
+	);
+}
+
+/**
+ * The page a list request asks, from its address: the paging parsed, the size resolved (the address's, else the
+ * person's own) and remembered when the size picker asked, the page after a size change. One step for every list.
+ */
+export async function pageRequested(
+	ctx: Ctx,
+	query: Readonly<Record<string, string>>,
+): Promise<{ at: PageAt; paging: PageParams }> {
+	const paging = PageParams.parse(query);
+	const size = await sizeOf(ctx, paging);
+	await rememberSize(ctx, paging, size);
+	return { at: { page: pageAsked(paging, size), size }, paging };
 }

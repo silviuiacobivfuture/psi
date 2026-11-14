@@ -6,11 +6,11 @@ import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { addDays, dayLong, hhmm, IsoDay, todayIso } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
-import { appendPage, MoreQuery, moreHref, ShowMore } from "../lib/show-more";
+import { inPlace, ListHistory, ListPager, listHref, pageRequested, patchList } from "../lib/paging";
 import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
-import { offsetPage } from "../port/offset-page";
-import { LIST_PAGE, PortError, type ReminderItem } from "../port/port";
+import { type Numbered, numberedOf, type PageAt } from "../port/numbered";
+import { PortError, type ReminderItem } from "../port/port";
 import type { AppSlug } from "../port/schema";
 
 /** `0700 000 001` → `40700000001` (wa.me wants the international number, digits only). */
@@ -127,42 +127,97 @@ const reminderRow = (ctx: Ctx, item: ReminderItem): JSX.Element => (
 	/>
 );
 
-/** The day's next reminders, appended to the list; nothing once the day's last is shown. */
-function MoreReminders({
+/** The canonical address of a page of one day's reminders. */
+export const remindersHref = (date: string, pos: PageAt): string =>
+	listHref("/reminders", [
+		["date", date],
+		["page", pos.page],
+		["size", pos.size],
+	]);
+
+const REMINDERS_ID = "reminders-region";
+
+type DayReminders = { ok: true; page: Numbered<ReminderItem> } | { ok: false };
+
+/** One day's reminders, read whole (a day is bounded by its own nature) and cut into numbered pages here. */
+async function readReminders(ctx: Ctx, date: string, pos: PageAt): Promise<DayReminders> {
+	try {
+		return { ok: true, page: numberedOf(await ctx.port.reminders(ctx.app, date), pos) };
+	} catch {
+		return { ok: false };
+	}
+}
+
+const shownOf = (got: DayReminders, pos: PageAt): PageAt =>
+	got.ok ? { page: got.page.page, size: pos.size } : pos;
+
+/** The day's page of reminders and its pager: what a page change replaces in place. */
+function RemindersRegion({
 	ctx,
 	date,
-	cursor,
-	shown,
+	got,
+	pos,
 }: {
 	ctx: Ctx;
 	date: string;
-	cursor: string | null;
-	shown: number;
+	got: DayReminders;
+	pos: PageAt;
 }): JSX.Element {
+	const o = at(ctx.locale);
 	return (
-		<ShowMore
-			id="reminders-more"
-			href={moreHref("/reminders/more", cursor, shown, { date })}
-			label={m.ls_more({}, at(ctx.locale))}
-		/>
+		<section
+			id={REMINDERS_ID}
+			class="adm-stack list-region"
+			tabindex={-1}
+			aria-label={m.reminders_title({}, o)}
+		>
+			{!got.ok ? (
+				<Banner tone="error" icon="alert">
+					<strong>{m.error_title({}, o)}</strong>
+					<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
+					<a class="adm-btn" href={remindersHref(date, pos)}>
+						{m.retry({}, o)}
+					</a>
+				</Banner>
+			) : got.page.total === 0 ? (
+				<EmptyState
+					icon="chat"
+					title={m.reminders_empty_title({}, o)}
+					text={m.reminders_empty_text({}, o)}
+				/>
+			) : (
+				<>
+					<ul
+						class="adm-stack"
+						id="reminders-list"
+						style="gap:var(--space-2);margin:0;padding:0;list-style:none"
+					>
+						{got.page.items.map((i) => reminderRow(ctx, i))}
+					</ul>
+					<ListPager
+						ctx={ctx}
+						id="reminders-pager"
+						nav={m.rm_pager_nav({}, o)}
+						page={got.page.page}
+						size={pos.size}
+						total={got.page.total}
+						href={(page, size) => remindersHref(date, { page, size })}
+						action="/reminders"
+						params={{ date }}
+					/>
+				</>
+			)}
+		</section>
 	);
 }
 
-export async function renderReminders(
-	ctx: Ctx,
-	dateParam: string | undefined,
-): Promise<JSX.Element> {
+const dayOf = (raw: string | undefined): string => IsoDay.catch(addDays(todayIso(), 1)).parse(raw);
+
+export async function renderReminders(ctx: Ctx, date: string, pos: PageAt): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const date = IsoDay.catch(addDays(todayIso(), 1)).parse(dateParam);
-	let items: ReadonlyArray<ReminderItem> = [];
-	let failed = false;
-	try {
-		items = await ctx.port.reminders(ctx.app, date);
-	} catch {
-		failed = true;
-	}
-	// One day's reminders, drawn a page at a time.
-	const page = offsetPage(items, null, LIST_PAGE);
+	const got = await readReminders(ctx, date, pos);
+	const shown = shownOf(got, pos);
+	const day = (d: string): string => remindersHref(d, { page: 1, size: pos.size });
 	return Page({
 		ctx,
 		current: "reminders",
@@ -170,89 +225,42 @@ export async function renderReminders(
 		children: (
 			<div class="adm-page">
 				<PageHeader title={m.nav_reminders({}, o)} />
+				<ListHistory url={remindersHref(date, shown)} />
 				<div class="cal-bar">
-					<a
-						class="adm-iconbtn"
-						href={`/reminders?date=${addDays(date, -1)}`}
-						aria-label={m.prev({}, o)}
-					>
+					<a class="adm-iconbtn" href={day(addDays(date, -1))} aria-label={m.prev({}, o)}>
 						<Icon name="chevron-left" />
 					</a>
 					<h2 class="cal-bar__title" style="justify-content:center">
 						{m.reminders_for({ date: dayLong(ctx.locale, date) }, o)}
 					</h2>
-					<a
-						class="adm-iconbtn"
-						href={`/reminders?date=${addDays(date, 1)}`}
-						aria-label={m.next({}, o)}
-					>
+					<a class="adm-iconbtn" href={day(addDays(date, 1))} aria-label={m.next({}, o)}>
 						<Icon name="chevron-right" />
 					</a>
 				</div>
 				<p class="adm-muted">{m.reminder_hint({}, o)}</p>
-				{failed ? (
-					<Banner tone="error" icon="alert">
-						<strong>{m.error_title({}, o)}</strong>
-						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-						<a class="adm-btn" href={`/reminders?date=${date}`}>
-							{m.retry({}, o)}
-						</a>
-					</Banner>
-				) : items.length === 0 ? (
-					<EmptyState
-						icon="chat"
-						title={m.reminders_empty_title({}, o)}
-						text={m.reminders_empty_text({}, o)}
-					/>
-				) : (
-					<>
-						<ul
-							class="adm-stack"
-							id="reminders-list"
-							style="gap:var(--space-2);margin:0;padding:0;list-style:none"
-						>
-							{page.items.map((i) => reminderRow(ctx, i))}
-						</ul>
-						<MoreReminders
-							ctx={ctx}
-							date={date}
-							cursor={page.nextCursor}
-							shown={page.items.length}
-						/>
-					</>
-				)}
+				<RemindersRegion ctx={ctx} date={date} got={got} pos={shown} />
 			</div>
 		),
 	});
 }
 
 export function registerReminders(app: Hono<Env>): void {
-	app.get("/reminders", async (c) =>
-		c.html(await renderReminders(c.var.ctx, c.req.query("date")), 200, {
-			"cache-control": "private, no-store",
-		}),
-	);
-	// The day's next page of reminders, appended to the open list.
-	app.get("/reminders/more", async (c) => {
+	app.get("/reminders", async (c) => {
 		const ctx = c.var.ctx;
-		const date = IsoDay.catch(addDays(todayIso(), 1)).parse(c.req.query("date"));
-		const asked = MoreQuery.parse(c.req.query());
-		const page = offsetPage(
-			await ctx.port.reminders(ctx.app, date),
-			asked.cursor === "" ? null : asked.cursor,
-			LIST_PAGE,
-		);
-		return appendPage({
-			list: "#reminders-list",
-			rows: page.items.map((i) => reminderRow(ctx, i)),
-			more: (
-				<MoreReminders
-					ctx={ctx}
-					date={date}
-					cursor={page.nextCursor}
-					shown={asked.shown + page.items.length}
-				/>
-			),
+		const date = dayOf(c.req.query("date"));
+		const { at: pos, paging } = await pageRequested(ctx, c.req.query());
+		if (!inPlace(c))
+			return c.html(await renderReminders(ctx, date, pos), 200, {
+				"cache-control": "private, no-store",
+			});
+		const got = await readReminders(ctx, date, pos);
+		const shown = shownOf(got, pos);
+		return patchList({
+			c,
+			elements: [<RemindersRegion key="region" ctx={ctx} date={date} got={got} pos={shown} />],
+			regionId: REMINDERS_ID,
+			url: remindersHref(date, shown),
+			asked: paging,
 		});
 	});
 	// The tap on WhatsApp or e-mail marks the reminder sent; the link itself has already opened.

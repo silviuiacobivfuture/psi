@@ -2,6 +2,7 @@ import type { Agent } from "@mastra/core/agent";
 import type { Memory } from "@mastra/memory";
 import type { z } from "zod";
 import type { BookingScope } from "./booking";
+import type { Summariser } from "./compaction";
 import type { EngineKnowledge } from "./contract";
 import type { AskInput } from "./events";
 import type { EngineScore, Faithfulness } from "./grounding/faithfulness";
@@ -13,6 +14,8 @@ import type { ScreeningRules } from "./screening/chain";
 import type { RateLimiter } from "./screening/rate-limit";
 import type { SettingsSource } from "./settings";
 import type { EngineTiming } from "./timing";
+import type { GovernanceSource } from "./visitor-governance";
+import type { RefusalCounter } from "./visitor-turn";
 
 /** Time budgets for one answer, in milliseconds. */
 export interface EngineTimeouts {
@@ -48,7 +51,13 @@ export type FailureStage =
 	/** The configured embedding model has no index yet: lexical until a re-ingest builds it. */
 	| "index_missing"
 	/** A reply failed a post-check (language, an unsupported fact, grammar, a repeat): counts only. */
-	| "check";
+	| "check"
+	/** The conversation memory's retention sweep failed; it runs again later. */
+	| "memory"
+	/** The organisation's meters did not take a turn's use. */
+	| "usage"
+	/** A long conversation could not be folded into its summary; the turn went on with it whole. */
+	| "compaction";
 
 /**
  * Why a stage failed, for the app's logs. It names the profile, the stage and the error, never
@@ -132,6 +141,35 @@ export interface AskContext {
 	resourceId: string;
 	/** Booking inside the conversation, when the profile schedules and a store was given. */
 	booking?: BookingScope;
+	/**
+	 * The organisation's settings for this profile's visitor turns, when its store governs it (`visitor-governance.ts`);
+	 * undefined: the CMS's settings and the engine's own limits.
+	 */
+	governance?: GovernanceSource;
+	/** Refusals per conversation, for the organisation's hand-over to a person. */
+	refusals: RefusalCounter;
+	/**
+	 * Folds a long kept conversation's older part into a summary with the organisation's `model.summary`
+	 * (`memory.compactAfter`); on a governed site with a key and conversation memory only.
+	 */
+	summarise?: Summariser;
+	/**
+	 * What the app's log may hold, as the organisation's `logging.*` last said (the built-in on a governed site before any
+	 * read; neither on a site not governed). Set at the start of each governed turn.
+	 */
+	logging: { redactPii: boolean; keepTranscripts: boolean };
+	/** Hides addresses, phone numbers and personal numbers (the packs' PII rules). */
+	redact: (text: string) => string;
+	/** Each finished turn's question and answer, only when `logging.keepTranscripts`; redacted when `redactPii`. */
+	onTranscript?: ((transcript: EngineTranscript) => void) | undefined;
+}
+
+/** One finished turn, as the app's log keeps it when the organisation keeps transcripts. */
+export interface EngineTranscript {
+	profile: string;
+	locale: string;
+	question: string;
+	answer: string;
 }
 
 function describe(error: unknown): string {
@@ -139,10 +177,15 @@ function describe(error: unknown): string {
 	return text.slice(0, 300);
 }
 
+/** A text for the app's log: redacted when the organisation says so. */
+export function loggable(ctx: AskContext, text: string): string {
+	return ctx.logging.redactPii ? ctx.redact(text) : text;
+}
+
 /** Reports a failed stage to the app; a failing hook never changes the answer. */
 export function report(ctx: AskContext, stage: FailureStage, error: unknown): void {
 	try {
-		ctx.onFailure?.({ profile: ctx.profile.id, stage, error: describe(error) });
+		ctx.onFailure?.({ profile: ctx.profile.id, stage, error: loggable(ctx, describe(error)) });
 	} catch {
 		// A failing log hook must not change the answer.
 	}

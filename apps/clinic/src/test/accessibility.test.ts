@@ -29,6 +29,8 @@ const SCREENS = [
 	"/settings/hours?tab=rooms",
 	"/settings/online",
 	"/settings/online?new=1",
+	"/settings/assistant",
+	"/settings/assistant/people",
 	"/settings/members",
 	"/settings/members?edit=mock-ana-7f3c",
 	"/settings/members?new=1",
@@ -68,6 +70,10 @@ describe("axe, WCAG 2.2 AA, every main screen in both admin themes and both view
 				for (const path of SCREENS) {
 					await page.goto(`${live.url}${path}`);
 					expect(await page.getAttribute("html", "data-theme"), path).toBe(`admin-${theme}`);
+					// Contrast is judged on what has settled: a sheet the address opens is still sliding in at load.
+					await page.evaluate(() =>
+						Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+					);
 					await page.addScriptTag({ path: AXE_SOURCE });
 					const violations = ViolationsSchema.parse(await page.evaluate(AXE_RUN));
 					for (const v of violations)

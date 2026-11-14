@@ -3,6 +3,7 @@ import { VIEW_AS_HEADER } from "@psi/scheduling-sdk/contract";
 import type { ClinicPort, PortError, ViewAsTarget } from "../port";
 import { adminGroup } from "./admin";
 import { appointmentsGroup } from "./appointments";
+import { assistantGroup } from "./assistant";
 import { availabilityGroup } from "./availability";
 import { calendarGroup } from "./calendar";
 import { catalogGroup } from "./catalog";
@@ -100,6 +101,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
+		...assistantGroup(sdk),
 		...orgGroup(sdk),
 		...roleSummaryGroup(sdk),
 		...availabilityGroup(sdk),

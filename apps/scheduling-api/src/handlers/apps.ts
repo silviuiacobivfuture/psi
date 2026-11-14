@@ -85,7 +85,12 @@ export const appHandlers: HandlersOf<
 		for (const m of mine)
 			if (await ctx.deps.access.isMember(ctx.subject, m.app))
 				apps.push({ app: m.app, roles: m.roles });
-		return { subject: ctx.subject, kind: "person" as const, apps };
+		return {
+			subject: ctx.subject,
+			kind: "person" as const,
+			apps,
+			platformAdmin: await ctx.deps.access.isPlatformAdmin(ctx.subject),
+		};
 	},
 
 	async "me.capabilities"(ctx) {

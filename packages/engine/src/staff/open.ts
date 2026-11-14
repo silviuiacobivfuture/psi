@@ -1,9 +1,11 @@
+import { BUILT_IN_STAFF_CONFIG } from "./assistant-config";
 import { guardPort } from "./boundary";
 import { staffCopy } from "./copy";
 import type { StaffPage } from "./events";
 import type { RouteLike } from "./parity/routes";
 import type { IssuesPort, StaffPort } from "./port";
 import type { ProposalStore } from "./proposals";
+import type { ReadCache } from "./read-cache";
 import type { StaffLinks, StaffSession } from "./session";
 import { vouch } from "./tools";
 
@@ -14,6 +16,7 @@ export interface SessionDeps {
 	links: StaffLinks | undefined;
 	routes: ReadonlyArray<RouteLike>;
 	issues: IssuesPort | undefined;
+	reads: ReadCache;
 }
 
 /**
@@ -46,5 +49,8 @@ export async function openSession(
 		reused: { count: 0 },
 		taint: { stranger: false },
 		caps: undefined,
+		config: BUILT_IN_STAFF_CONFIG,
+		allow: undefined,
+		reads: deps.reads,
 	});
 }

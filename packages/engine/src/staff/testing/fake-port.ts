@@ -1,4 +1,5 @@
 import type { ActionInfo, ActionOutcome } from "../actions";
+import { BUILT_IN_STAFF_CONFIG, type StaffConfig, type StaffUsage } from "../assistant-config";
 import type { StaffPage } from "../events";
 import { foldName } from "../format";
 import type {
@@ -62,6 +63,12 @@ export class FakeStaffPort implements StaffPort {
 	failAudit = false;
 	/** What the person may do; null makes the capabilities call fail. */
 	permissions: ReadonlyArray<string> | null = RECEPTION_PERMISSIONS;
+	/** What governs the person's turn (the service's merged configuration); the built-in one by default. */
+	config: StaffConfig = BUILT_IN_STAFF_CONFIG;
+	/** Every turn's use the engine reported, in order. */
+	readonly usage: Array<StaffUsage> = [];
+	/** A limit the meters answer after a turn's use was recorded. */
+	stopAfterUsage: string | undefined;
 	/** What each route answers (by id); a route not listed answers an empty object. */
 	readonly routeAnswers = new Map<string, unknown>();
 	/** Methods or actions answered `forbidden`. */
@@ -509,6 +516,18 @@ export class FakeStaffPort implements StaffPort {
 			: ok({ permissions: [...this.permissions] });
 	}
 
+	async assistant() {
+		this.calls.push({ method: "assistant", args: [] });
+		return this.down.has("assistant") ? no("unavailable") : ok(this.config);
+	}
+
+	async recordUsage(usage: StaffUsage) {
+		this.calls.push({ method: "recordUsage", args: usage });
+		if (this.down.has("recordUsage")) return no("unavailable");
+		this.usage.push(usage);
+		return ok(this.stopAfterUsage === undefined ? {} : { stop: this.stopAfterUsage });
+	}
+
 	async callRoute(call: { routeId: string; input: Record<string, unknown> }) {
 		const denied = this.gate("callRoute", call);
 		if (denied) return denied;
@@ -540,7 +559,7 @@ export class FakeStaffPort implements StaffPort {
 		return FAKE_ACTIONS.filter(
 			(a) =>
 				held.has(a.needs) &&
-				(a.screens === undefined || (page !== undefined && a.screens.includes(page.screen))),
+				(a.screens === undefined || page === undefined || a.screens.includes(page.screen)),
 		).map(({ needs: _needs, screens: _screens, ro, ...info }) =>
 			this.principal?.locale === "ro" ? { ...info, ...ro } : info,
 		);

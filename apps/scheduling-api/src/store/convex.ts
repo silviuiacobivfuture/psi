@@ -1,6 +1,7 @@
 import { accountHashOf, type SchedulingClient, type StaffSchedulingClient } from "@psi/scheduling";
 import type { ConvexClient } from "convex/browser";
 import { accessCollections } from "./convex/access";
+import { assistantUsagePort, platformDocumentsPort } from "./convex/assistant";
 import { availabilityPort, practitionerConvexId } from "./convex/availability";
 import { blacklistPort } from "./convex/blacklist";
 import { caller } from "./convex/call";
@@ -36,6 +37,11 @@ export interface ConvexClients {
 	/** A WebSocket client of the deployment: live queries (`onUpdate`) feed the streams. */
 	live: ConvexClient;
 	serverKey: string;
+	/**
+	 * The estate the estate's documents are kept under: the estate itself unless a test world names its own
+	 * (`*test-…`), so a run against a real backend never reads or writes the estate's document.
+	 */
+	estate?: `*test-${string}`;
 }
 
 /** A collection an area was meant to provide; one missing is a bug found at start-up, never an answer to a caller. */
@@ -139,6 +145,8 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 			...visitorExtras(clients.rpc),
 		},
 		requests: requestsPort(clients.rpc, clients.staff),
+		platform: platformDocumentsPort(clients.rpc, clients.estate),
+		usage: assistantUsagePort(clients.rpc),
 		docs: documentsPort(clients.rpc),
 		settings: settingsPort(clients.rpc),
 		blacklist: blacklistPort(clients.rpc),
