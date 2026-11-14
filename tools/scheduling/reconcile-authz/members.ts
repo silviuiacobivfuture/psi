@@ -7,22 +7,25 @@ export const RECONCILE_ACTOR = "system:reconcile";
 export interface MemberSpec {
 	subject: string;
 	roleName: string;
+	/** The name people see in the console; without it the subject (a hashed id) is shown. */
+	displayName?: string;
 }
 
 // The service takes the token's `sub` as the subject (auth/tokens.ts: 1–200 characters). Authentik's hashed user
 // id is 64 hex characters and may start with a digit, so the short-id pattern refused real people.
 const SUBJECT = /^[A-Za-z0-9][A-Za-z0-9._@-]{1,199}$/;
 
-/** `<subject>=<role name>`, e.g. `owner=Owner`. */
+/** `<subject>=<role name>[=<display name>]`, e.g. `owner=Owner=Ana Pop`. */
 export function parseMemberSpec(text: string): MemberSpec {
-	const at = text.indexOf("=");
-	const subject = at < 0 ? "" : text.slice(0, at).trim();
-	const roleName = at < 0 ? "" : text.slice(at + 1).trim();
-	if (!SUBJECT.test(subject) || roleName === "")
+	const [rawSubject = "", rawRole = "", ...rest] = text.split("=");
+	const subject = rawSubject.trim();
+	const roleName = rawRole.trim();
+	const displayName = rest.join("=").trim();
+	if (!text.includes("=") || !SUBJECT.test(subject) || roleName === "")
 		throw new Error(
-			`--member is <subject>=<role name> (a subject like ${SUBJECT.source}): got "${text}"`,
+			`--member is <subject>=<role name>[=<display name>] (a subject like ${SUBJECT.source}): got "${text}"`,
 		);
-	return { subject, roleName };
+	return displayName === "" ? { subject, roleName } : { subject, roleName, displayName };
 }
 
 export type MemberOutcome = "created" | "role_added" | "unchanged";
@@ -46,18 +49,22 @@ export async function bootstrapMember(
 			`the app ${app} has no role named "${spec.roleName}" (it has: ${roles.map((r) => r.name).join(", ") || "none"})`,
 		);
 	const held = await store.c.members.get(app, spec.subject);
-	if (held?.roles.includes(role.id) === true) return "unchanged";
+	const renamed =
+		held !== undefined && spec.displayName !== undefined && held.displayName !== spec.displayName;
+	if (held?.roles.includes(role.id) === true && !renamed) return "unchanged";
 	if (!write) return held === undefined ? "created" : "role_added";
 	return withActor(RECONCILE_ACTOR, async () => {
 		if (held !== undefined) {
-			await store.c.members.replace({ ...held, roles: [...held.roles, role.id], updatedAt: now() });
+			const roles = held.roles.includes(role.id) ? held.roles : [...held.roles, role.id];
+			const displayName = spec.displayName ?? held.displayName;
+			await store.c.members.replace({ ...held, roles, displayName, updatedAt: now() });
 			return "role_added" as const;
 		}
 		const row: MemberRow = {
 			id: spec.subject,
 			app,
 			subject: spec.subject,
-			displayName: spec.subject,
+			displayName: spec.displayName ?? spec.subject,
 			roles: [role.id],
 			coordinates: [],
 			grants: [],

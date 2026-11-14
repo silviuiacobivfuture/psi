@@ -176,6 +176,18 @@ describe("a member is bootstrapped through the store, and their tuples follow", 
 			expect(() => parseMemberSpec(bad), bad).toThrow("--member");
 	});
 
+	it("records the display name given, and renames a member who already holds the role", async () => {
+		await run(createMemoryAuthz(), { members: [parseMemberSpec("newowner=Owner")] });
+		expect((await w.store.c.members.get("psizone", "newowner"))?.displayName).toBe("newowner");
+		const again = await run(createMemoryAuthz(), {
+			members: [parseMemberSpec("newowner=Owner=Ana Pop")],
+		});
+		expect(again.apps[0]?.members[0]?.outcome).toBe("role_added");
+		const row = await w.store.c.members.get("psizone", "newowner");
+		expect(row?.displayName).toBe("Ana Pop");
+		expect(row?.roles.length).toBe(1);
+	});
+
 	it("takes a real sign-in subject: Authentik's 64-character hashed id, digits first", () => {
 		const sub = `9${"a1".repeat(31)}f`;
 		expect(() => parseMemberSpec(`${sub}=Owner`)).not.toThrow();
