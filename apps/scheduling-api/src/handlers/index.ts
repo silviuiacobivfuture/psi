@@ -22,7 +22,7 @@ import { reportHandlers } from "./reports";
 import { roleSummaryHandlers } from "./role-summary";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
-import { staffHandlers } from "./staff";
+import { staffHandlers } from "./staff-accounts";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
