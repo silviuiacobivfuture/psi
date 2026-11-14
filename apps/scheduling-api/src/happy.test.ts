@@ -188,6 +188,7 @@ const OWN: Record<
 		return olga(w, "DELETE", "/members/leaver");
 	},
 	"roles.list": (w) => olga(w, "GET", "/roles"),
+	"roles.summary": (w) => w.call("rita", "GET", `${A}/role-summary`),
 	"roles.create": (w) =>
 		olga(w, "POST", "/roles", { name: "Intern", copyFrom: w.ids.roles.volunteer }),
 	"roles.get": (w) => olga(w, "GET", `/roles/${w.ids.roles.reception}`),

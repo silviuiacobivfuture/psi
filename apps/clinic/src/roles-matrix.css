@@ -1,0 +1,249 @@
+/* The role matrix: a table on a desktop (sticky header and first column), one role as a list on a phone. */
+.rm-page {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+}
+.rm-notes {
+	display: grid;
+	gap: var(--space-3);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.rm-note p {
+	margin: var(--space-2) 0 0;
+}
+.rm-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-3);
+}
+.rm-filters .adm-field {
+	flex: 1 1 180px;
+}
+.rm-filters__buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+.rm-legend ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2) var(--space-5);
+	margin: var(--space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+.rm-legend li {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+/* Marks: a symbol or a few words, on a tinted chip; the words are always there for a screen reader. */
+.rm-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 28px;
+	padding: 2px var(--space-2);
+	border-radius: var(--radius-pill);
+	font-weight: 700;
+	white-space: nowrap;
+}
+.rm-mark--all {
+	background: var(--status-attended-soft);
+	color: var(--status-attended);
+}
+.rm-mark--part {
+	background: var(--status-requested-soft);
+	color: var(--status-requested);
+	font-weight: 600;
+}
+.rm-mark--none {
+	color: var(--ink-muted);
+}
+
+/* Column headings: the name, then what kind of role it is, then whether it is the viewer's. */
+.rm-col {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 2px;
+	white-space: normal;
+	min-width: 0;
+}
+.rm-col__name {
+	color: var(--ink);
+	font-weight: 700;
+}
+.rm-col__note {
+	color: var(--ink-muted);
+	font-weight: 500;
+	font-size: 0.85em;
+}
+.rm-you {
+	align-self: flex-start;
+	padding: 0 var(--space-2);
+	border: 1px solid var(--app);
+	border-radius: var(--radius-pill);
+	color: var(--ink);
+	font-size: 0.85em;
+	font-weight: 700;
+}
+
+/* The table: it scrolls inside its own frame, so the header and the first column can stay in place. */
+.rm-scroll {
+	max-height: calc(100vh - 240px);
+	overflow: auto;
+}
+.rm-table th,
+.rm-table td {
+	height: auto;
+	padding-top: var(--space-2);
+	padding-bottom: var(--space-2);
+}
+.rm-table thead th {
+	z-index: 2;
+	vertical-align: bottom;
+	min-width: 120px;
+}
+.rm-table .rm-first {
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	min-width: 220px;
+	background: var(--surface-1);
+	text-align: left;
+}
+.rm-table thead .rm-first {
+	z-index: 3;
+	background: var(--surface-2);
+}
+.rm-table tbody tr:nth-child(even) .rm-first {
+	background: var(--surface-2);
+}
+.rm-table td {
+	text-align: center;
+}
+.rm-table .rm-yours {
+	background: var(--accent-soft);
+}
+.rm-area th {
+	background: var(--surface-2);
+	color: var(--ink);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-size: 0.85em;
+}
+.rm-area__name {
+	position: sticky;
+	left: var(--space-3);
+}
+.rm-resource .rm-first {
+	font-weight: 700;
+}
+.rm-first--action {
+	padding-left: var(--space-6);
+	font-weight: 500;
+	color: var(--ink);
+}
+.rm-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: var(--adm-touch);
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+}
+.rm-toggle__icon {
+	display: inline-block;
+	transition: transform 0.15s ease;
+}
+.rm-toggle[aria-expanded="true"] .rm-toggle__icon {
+	transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+	.rm-toggle__icon {
+		transition: none;
+	}
+}
+
+/* The phone list: one area per card, one action per line. */
+.rm-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+}
+.rm-list__who {
+	display: grid;
+	gap: var(--space-2);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+}
+.rm-list__col.rm-yours {
+	background: var(--accent-soft);
+}
+.rm-list__area summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	min-height: var(--adm-touch);
+	font-weight: 700;
+	cursor: pointer;
+}
+.rm-list__folds,
+.rm-list__marks {
+	display: inline-flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-1);
+}
+.rm-list__res-name {
+	margin: var(--space-3) 0 var(--space-1);
+	font-size: 1em;
+}
+.rm-list ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.rm-list li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	padding: var(--space-1) 0;
+	border-bottom: 1px solid var(--line);
+}
+.rm-list__action {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* A phone shows the list and the role picker; a desktop the table and the view switch. */
+@media (max-width: 767px) {
+	.rm-desktop {
+		display: none;
+	}
+}
+@media (min-width: 768px) {
+	.rm-phone {
+		display: none;
+	}
+}
+
+/* The way from the profile's roles to the matrix. */
+.pf-roles-link {
+	align-self: flex-start;
+	color: var(--ink);
+	font-weight: 600;
+	text-decoration: underline;
+}

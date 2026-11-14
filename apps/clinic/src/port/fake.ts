@@ -10,6 +10,7 @@ import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
 import { pagedClients } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
+import { createFakeRoleSummary } from "./fake-role-summary";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -129,6 +130,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...members,
 		...clinical,
 		...catalog,
+		...createFakeRoleSummary({ data, guard }),
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;

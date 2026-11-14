@@ -25,6 +25,7 @@ import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
+import { ROLES_MATRIX_PATH } from "./roles-matrix/path";
 
 export type NavKey =
 	| "calendar"
@@ -281,6 +282,10 @@ export async function Page({
 						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
 							<Icon name="settings" />
 							{m.me_mine_menu({}, o)}
+						</a>
+						<a class="adm-menu__item" href={ROLES_MATRIX_PATH} data-action="nav.roles-matrix">
+							<Icon name="shield" />
+							{m.rm_menu({}, o)}
 						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">
