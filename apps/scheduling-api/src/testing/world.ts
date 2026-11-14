@@ -6,6 +6,7 @@ import { createAccess } from "../authz/access";
 import { createMemoryAuthz, type MemoryAuthz, platformAdminTuples } from "../authz/memory";
 import { buildDeps } from "../build";
 import type { Config } from "../config";
+import { DEFAULT_LEADS } from "../engagement/scheduler";
 import { createApp } from "../http/app";
 import type { Deps, HttpEnv, LogEvent } from "../http/context";
 import { createInviteActions, mountInviteRoutes } from "../invite-routes";
@@ -141,6 +142,7 @@ export function testConfig(issuer: TestIssuer): Config {
 		],
 		masterKey: MASTER_KEY,
 		delivery: "send",
+		reminders: DEFAULT_LEADS,
 		store: { kind: "memory" },
 		authz: { kind: "memory" },
 		mail: undefined,

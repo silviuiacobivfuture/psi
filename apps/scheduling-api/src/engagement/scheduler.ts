@@ -8,6 +8,8 @@ import { activateInvite } from "./activate";
 import { offDuty, overlaps } from "./conflicts";
 import { purgeDeliveries } from "./deliveries";
 import { localClock, localDate } from "./digest-data";
+import { createPreferenceSource } from "./prefs";
+import { clientQuiet, quietUntil } from "./quiet";
 import { invites } from "./records";
 
 /**
@@ -25,9 +27,16 @@ export const SCHEDULE = {
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-/** A booking made less than this before it starts is its own notice: the confirmation is the reminder. */
-const MIN_LEAD_FOR_DAY_BEFORE = 26 * HOUR;
-const MIN_LEAD_FOR_TWO_HOURS = 3 * HOUR;
+/**
+ * How long before a session its two reminders go: the day before (24 h) and the short nudge (2 h), unless the instance
+ * says otherwise (`REMINDER_DAY_BEFORE_HOURS`, `REMINDER_SOON_HOURS`). A booking made less than a reminder's lead plus
+ * a margin (2 h for the first, 1 h for the nudge) before it starts is its own notice: the confirmation is the reminder.
+ */
+export interface ReminderLeads {
+	dayBeforeHours: number;
+	soonHours: number;
+}
+export const DEFAULT_LEADS: ReminderLeads = { dayBeforeHours: 24, soonHours: 2 };
 /** How long the scheduler's claims are kept, and how long the delivery log is. */
 const MARKER_KEEP_DAYS = 7;
 const DELIVERY_KEEP_DAYS = 35;
@@ -40,6 +49,8 @@ export interface SchedulerOptions {
 	port: NotifyPort;
 	clock: () => number;
 	log: (event: LogEvent) => void;
+	/** The reminders' leads; the defaults when absent. */
+	leads?: ReminderLeads;
 }
 
 export interface Scheduler {
@@ -70,6 +81,10 @@ const within = (clock: string, window: { from: string; until: string }): boolean
 
 export function createScheduler(options: SchedulerOptions): Scheduler {
 	const { store, port, log } = options;
+	const leads = options.leads ?? DEFAULT_LEADS;
+	const dayBefore = leads.dayBeforeHours * HOUR;
+	const soon = leads.soonHours * HOUR;
+	const prefs = createPreferenceSource(store.keyed);
 
 	/**
 	 * Claims one thing to do, once, across replicas: the first writer wins, so two replicas ticking at once queue it once.
@@ -120,7 +135,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 	async function reminders(app: AppKey, tz: string, now: number): Promise<number> {
 		let queued = 0;
 		const ahead = await store.c.appointments.list(app, {
-			range: { field: "start", gte: now, lt: now + 25 * HOUR },
+			range: { field: "start", gte: now, lt: now + dayBefore + HOUR },
 		});
 		for (const a of ahead) {
 			if (!live(a) || a.clientId === undefined || a.status !== "scheduled") continue;
@@ -130,7 +145,14 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 			if (client === undefined || client.status !== "active") continue;
 			const email = client.contact?.email ?? client.guardian?.email;
 			const to = { kind: "client", clientId: client.id } as const;
-			if (a.start - now <= 24 * HOUR && a.start - a.createdAt >= MIN_LEAD_FOR_DAY_BEFORE) {
+			// In the client's quiet hours the day-before reminder waits for them to end, while that still leaves the nudge
+			// its own place; closer than that, it goes now (push is held back by the notifier, the e-mail is not).
+			const wait =
+				a.start - now <= dayBefore
+					? quietUntil(await clientQuiet(prefs, app, client.id), now)
+					: undefined;
+			const held = wait !== undefined && a.start - wait >= soon + HOUR;
+			if (!held && a.start - now <= dayBefore && a.start - a.createdAt >= dayBefore + 2 * HOUR) {
 				queued += await once(app, `${day}/day_before/${a.id}-${a.start}`, async () => {
 					if (email === undefined)
 						return notice(
@@ -151,11 +173,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 					await markSent(app, a.id, now);
 				});
 			}
-			if (
-				email !== undefined &&
-				a.start - now <= 2 * HOUR &&
-				a.start - a.createdAt >= MIN_LEAD_FOR_TWO_HOURS
-			)
+			if (email !== undefined && a.start - now <= soon && a.start - a.createdAt >= soon + HOUR)
 				queued += await once(app, `${day}/two_hours/${a.id}-${a.start}`, () =>
 					notice(app, "reminder.two_hours", { appointmentId: a.id, start: a.start }, base, to),
 				);
