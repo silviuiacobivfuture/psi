@@ -32,6 +32,7 @@ export class MemoryCollection<R extends { id: string; app: string }> implements 
 	readonly #apps = new Map<string, Map<string, R>>();
 	readonly #sorted = new Map<string, Sorted<R>>();
 	readonly #equals = new Map<string, Map<string, R[]>>();
+	readonly #groups = new Map<string, Map<string, Sorted<R>>>();
 
 	#table(app: string): Map<string, R> {
 		const held = this.#apps.get(app);
@@ -46,6 +47,8 @@ export class MemoryCollection<R extends { id: string; app: string }> implements 
 			if (key.startsWith(`${app}\u0000`)) this.#sorted.delete(key);
 		for (const key of this.#equals.keys())
 			if (key.startsWith(`${app}\u0000`)) this.#equals.delete(key);
+		for (const key of this.#groups.keys())
+			if (key.startsWith(`${app}\u0000`)) this.#groups.delete(key);
 	}
 
 	/** The app's rows by the value of `field`, in the order they were written (built on first use, dropped on a write). */
@@ -92,9 +95,48 @@ export class MemoryCollection<R extends { id: string; app: string }> implements 
 		return Promise.resolve(found);
 	}
 
+	/** The app's rows of each value of `field`, each sorted by `by` (built on first use, dropped on a write). */
+	#grouped(app: string, field: string, by: string): Map<string, Sorted<R>> {
+		const key = `${app}\u0000${field}\u0000${by}`;
+		const held = this.#groups.get(key);
+		if (held !== undefined) return held;
+		const built = new Map<string, Sorted<R>>();
+		for (const [value, rows] of this.#equal(app, field)) {
+			const sorted = rows
+				.filter((r) => numberOf(r, by) !== undefined)
+				.sort((a, b) => (numberOf(a, by) ?? 0) - (numberOf(b, by) ?? 0));
+			built.set(value, { rows: sorted, values: sorted.map((r) => numberOf(r, by) ?? 0) });
+		}
+		this.#groups.set(key, built);
+		return built;
+	}
+
+	/** The rows of a few values of one field within a range, value by value, as an index per column reads them. */
+	#oneOf(app: string, query: Query<R>, keep: (row: R) => boolean): R[] | undefined {
+		const oneOf = query.oneOf;
+		const range = query.range;
+		if (oneOf === undefined || range === undefined || query.order !== undefined) return undefined;
+		const groups = this.#grouped(app, oneOf.field, range.field);
+		const out: R[] = [];
+		for (const value of new Set(oneOf.values)) {
+			const held = groups.get(valueKey(value));
+			if (held === undefined) continue;
+			const from = range.gte === undefined ? 0 : lowerBound(held.values, range.gte, false);
+			const to =
+				range.lt === undefined ? held.rows.length : lowerBound(held.values, range.lt, false);
+			for (let i = from; i < to; i++) {
+				const row = held.rows[i];
+				if (row !== undefined && keep(row)) out.push(copyOf(row));
+			}
+		}
+		return out;
+	}
+
 	list(app: string, query?: Query<R>): Promise<R[]> {
 		const eq = Object.entries(query?.eq ?? {}).filter(([, v]) => v !== undefined);
 		const keep = (row: R): boolean => eq.every(([k, v]) => Reflect.get(row, k) === v);
+		const few = query === undefined ? undefined : this.#oneOf(app, query, keep);
+		if (few !== undefined) return Promise.resolve(few);
 		const range = query?.range;
 		const order = query?.order;
 		const field = range?.field ?? order?.field;

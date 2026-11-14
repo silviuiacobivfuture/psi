@@ -91,6 +91,55 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 			);
 	}
 
+	/**
+	 * A window of a few calendar columns (`oneOf` on the person, the room or the device, a range on `start`, nothing
+	 * else): read column by column through Convex's indexes, never the clinic's whole window. Anything else: `undefined`.
+	 */
+	async function columnRead(
+		app: string,
+		query: Query<AppointmentRow>,
+	): Promise<AppointmentRow[] | undefined> {
+		const { oneOf, range } = query;
+		if (
+			oneOf === undefined ||
+			range?.field !== "start" ||
+			range.gte === undefined ||
+			range.lt === undefined ||
+			query.order !== undefined ||
+			Object.values(query.eq ?? {}).some((v) => v !== undefined)
+		)
+			return undefined;
+		const values = [...new Set(oneOf.values)];
+		const of =
+			oneOf.field === "practitionerId"
+				? {
+						kind: "people" as const,
+						practitioners: values.flatMap((id) => {
+							const ref = personRef(id);
+							return ref?.kind === "practitioner" ? [ref.id] : [];
+						}),
+						people: values,
+					}
+				: oneOf.field === "roomId"
+					? { kind: "rooms" as const, ids: values }
+					: oneOf.field === "deviceId"
+						? { kind: "devices" as const, ids: values }
+						: undefined;
+		if (of === undefined) return undefined;
+		const out = await rpc.query(
+			"apiCalendar:columnVisits",
+			{ tenant: app, from: range.gte, to: range.lt, of },
+			Many,
+		);
+		const wanted = new Set(values);
+		return unwrap(out)
+			.visits.flatMap((v) => toAppointment(app, v) ?? [])
+			.filter((row) => {
+				const at = Reflect.get(row, oneOf.field);
+				return typeof at === "string" && wanted.has(at);
+			});
+	}
+
 	const collection: Collection<AppointmentRow> = {
 		async get(app, id) {
 			const view = await load(app, id);
@@ -98,6 +147,8 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 		},
 
 		async list(app, query?: Query<AppointmentRow>) {
+			const columns = query === undefined ? undefined : await columnRead(app, query);
+			if (columns !== undefined) return columns;
 			const eq = query?.eq ?? {};
 			const range = query?.range?.field === "start" ? query.range : undefined;
 			const practitioner = eq.practitionerId;

@@ -302,5 +302,16 @@
 	"nudge_page": "Vrei să-ți explic pe scurt pagina asta?",
 	"nudge_q_home": "Ce articol mi-ai recomanda să citesc?",
 	"nudge_q_article": "Explică-mi pe scurt acest articol.",
-	"nudge_q_page": "Explică-mi pe scurt pagina asta."
+	"nudge_q_page": "Explică-mi pe scurt pagina asta.",
+	"account_bookings_change_until": "Se poate anula sau muta online până la",
+	"account_bookings_cancel_until": "Se poate anula online până la",
+	"account_bookings_too_late": "Nu se mai poate schimba online. Sună la clinică și te ajutăm.",
+	"account_bookings_move": "Mută la altă oră",
+	"account_bookings_move_title": "Alege o altă oră",
+	"account_bookings_move_lead": "Aceeași persoană, același serviciu. Ora veche se eliberează când o alegi pe cea nouă.",
+	"account_bookings_move_none": "Nu e nicio oră liberă în următoarele două săptămâni. Sună la clinică și găsim împreună una.",
+	"account_bookings_move_button": "Mută aici",
+	"account_bookings_moved": "Programarea a fost mutată.",
+	"account_bookings_taken": "Ora aceea tocmai a fost luată. Alege alta.",
+	"account_bookings_back": "Înapoi la programări"
 }

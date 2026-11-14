@@ -61,7 +61,6 @@ const POSTS: Readonly<Record<string, ReadonlyArray<string> | string>> = {
 const RUN_ELSEWHERE: Readonly<Record<string, ReadonlyArray<string> | string>> = {
 	"role.save": ["roles.update", "roles.setPermissions"],
 	"me.prefs": "the person's own display preferences (theme, language) on this device",
-	"me.notifications": "the person's own notification preferences, not a clinic function",
 };
 
 /** A person who holds everything, the estate's administration included: the registry lists every action to them. */

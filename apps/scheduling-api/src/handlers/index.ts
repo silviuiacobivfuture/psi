@@ -6,6 +6,7 @@ import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
 import { assistantHandlers } from "./assistant";
 import { blacklistHandlers } from "./blacklist";
+import { calendarHandlers } from "./calendar-get";
 import { calendarSummaryHandlers } from "./calendar-summary";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
@@ -26,6 +27,7 @@ import { roleSummaryHandlers } from "./role-summary";
 import { roleHandlers } from "./roles";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
+import { settingsHandlers } from "./settings";
 import { staffHandlers } from "./staff-accounts";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
@@ -40,6 +42,7 @@ const complete: Handlers = {
 	...catalogHandlers,
 	...clientHandlers,
 	...appointmentHandlers,
+	...calendarHandlers,
 	...calendarSummaryHandlers,
 	...appointmentEditHandlers,
 	...seriesHandlers,
@@ -59,6 +62,7 @@ const complete: Handlers = {
 	...notificationPrefsHandlers,
 	...adminHandlers,
 	...viewAsHandlers,
+	...settingsHandlers,
 	...visitorHandlers,
 	...assistantHandlers,
 };

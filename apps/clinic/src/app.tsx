@@ -14,7 +14,7 @@ import { Page } from "./chrome";
 import { registerFloor } from "./floor/mount";
 import { backPath } from "./lib/back";
 import { canOf } from "./lib/can";
-import { activeApp, type Ctx, reachableApps, viewerPrefs } from "./lib/context";
+import { activeApp, type Ctx, reachableApps, storedPrefs, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { judge, landingFor } from "./lib/gates";
 import { at } from "./lib/i18n";
@@ -106,7 +106,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	});
 
 	app.use("*", async (c, next) => {
-		const { locale, pref, theme, deco } = viewerPrefs(c);
+		const { locale, theme, deco } = viewerPrefs(c);
 		const person = await deps.auth.person(c);
 		if (person === null)
 			return c.redirect(
@@ -158,13 +158,15 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			}
 		}
 		const can = canOf(caps, viewAs !== null);
+		// A new device shows the person's own language and theme from the start.
+		const shown = await storedPrefs(c, own, active, person.subject);
 		const assistantMode = await assistantModeOf(c, own, person.subject);
 		c.set("ctx", {
 			c,
 			assistantMode,
-			locale,
-			pref,
-			theme,
+			locale: shown.locale,
+			pref: shown.pref,
+			theme: shown.theme,
 			deco,
 			person: self,
 			platformAdmin: real.platformAdmin,
@@ -183,7 +185,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		const verdict = judge(c.req.method, c.req.path, can);
 		if (verdict === "forbidden") throw new PortError("forbidden", c.req.path);
 		if (verdict === "read-only") {
-			const text = m.view_as_readonly({}, at(locale));
+			const text = m.view_as_readonly({}, at(shown.locale));
 			if (c.req.header("datastar-request") === "true")
 				return sse((stream) => {
 					stream.patchElements(toastElement(text, m.dismiss({}, at(locale))));
@@ -211,11 +213,16 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	});
 
 	app.get("/", (c) => c.redirect(landingFor(c.var.ctx.can), 302));
-	app.get("/calendar", async (c) =>
-		c.html(await renderCalendar(c.var.ctx, CalendarQuerySchema.parse(c.req.query())), 200, {
+	app.get("/calendar", async (c) => {
+		const ctx = c.var.ctx;
+		const asked = c.req.query();
+		// No view in the address: the one the person chose to open on.
+		const view =
+			asked.view ?? (await ctx.port.mySettings(ctx.app, ctx.person.subject)).calendarView;
+		return c.html(await renderCalendar(ctx, CalendarQuerySchema.parse({ ...asked, view })), 200, {
 			"cache-control": "private, no-store",
-		}),
-	);
+		});
+	});
 	registerEditor(app);
 	registerPrint(app);
 	registerDetail(app);

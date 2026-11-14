@@ -41,6 +41,8 @@ describe("the route table", () => {
 			"me.capabilities",
 			"me.notifications",
 			"me.notificationsSave",
+			"me.settings",
+			"me.saveSettings",
 			"roles.summary",
 			// The caller's own assistant: what governs their next turn, and what their turn used.
 			"me.assistant",

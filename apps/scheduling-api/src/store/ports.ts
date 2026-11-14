@@ -32,6 +32,21 @@ export interface DocumentsPort {
 	): Promise<{ revision: number; updatedAt: number }>;
 }
 
+/** A person's own settings in an app, as JSON text the service validated, and when they were saved. */
+export interface StoredSettings {
+	body: string;
+	updatedAt: number;
+}
+
+/**
+ * Each person's own settings in each app, one document per (app, subject). `put` replaces it; `"not_found"` for an app
+ * that is not there, `"invalid"` for a body past the store's bound (8 000 characters).
+ */
+export interface SettingsPort {
+	get(app: string, subject: string): Promise<StoredSettings | undefined>;
+	put(app: string, subject: string, body: string): Promise<{ updatedAt: number }>;
+}
+export const MAX_SETTINGS_CHARS = 8_000;
 /**
  * What the engagement layer keeps per app, by namespace: online-account invitations (`invite`, by client id), the
  * links from an account to the clients it covers (`link`, by `<account hash>/<client id>`), notification preferences

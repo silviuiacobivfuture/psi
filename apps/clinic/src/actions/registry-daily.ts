@@ -283,17 +283,4 @@ export const DAILY_ACTIONS: ReadonlyArray<ActionDef> = [
 			deco: z.string().optional(),
 		}),
 	}),
-	define({
-		id: "me.notifications",
-		tier: "me",
-		entity: "none",
-		label: label((o) => m.notif_save({}, o)),
-		icon: "check",
-		placements: { screen: ["settings"] },
-		mobile: "sheet",
-		needs: {},
-		route: { method: "POST", path: "/me/settings/notifications" },
-		confirm: "none",
-		params: z.object({ requests: z.boolean(), reminders: z.boolean() }),
-	}),
 ];

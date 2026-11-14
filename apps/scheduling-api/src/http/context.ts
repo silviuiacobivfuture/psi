@@ -101,6 +101,8 @@ export interface Ctx<S extends RouteSpec> {
 	note(detail: Record<string, unknown>): void;
 	/** Overrides the audited target id (default: the answer's `id`, else the path's id). */
 	auditTarget(id: string): void;
+	/** The call changed nothing (the same value again): its route's audit event is not written. */
+	unchanged(): void;
 	/** Writes an audit event right now (a clinical read is audited whether or not the call mutates). */
 	auditNow(
 		action: string,

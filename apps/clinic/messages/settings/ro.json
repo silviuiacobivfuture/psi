@@ -76,5 +76,17 @@
 	"pl_users": "Utilizatori și organizații",
 	"pl_soon": "În curând",
 	"nav_platform": "Platformă",
-	"nav_me": "Setările mele"
+	"nav_me": "Setările mele",
+	"me_lang": "Limba consolei",
+	"me_lang_ro": "Română",
+	"me_lang_en": "English",
+	"me_view": "Calendarul se deschide pe",
+	"me_settings_save": "Salvează preferințele",
+	"me_invalid": "Nu s-a salvat nimic: o valoare nu e bună. Verifică orele de liniște (început și sfârșit diferite).",
+	"me_locked_hint": "Căsuțele bifate și gri nu se pot opri: sunt veștile pe care echipa trebuie să le primească.",
+	"me_quiet": "Ore de liniște",
+	"me_quiet_on": "Fără push în orele de liniște",
+	"me_quiet_from": "De la",
+	"me_quiet_to": "Până la",
+	"me_quiet_hint": "Orele sunt ale clinicii. E-mailurile și lista din consolă nu se opresc."
 }

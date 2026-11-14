@@ -5,6 +5,7 @@ import type { Ctx } from "../lib/context";
 import { appendPage, MoreQuery } from "../lib/show-more";
 import { offsetPage } from "../port/offset-page";
 import { LIST_PAGE, type Paged } from "../port/port";
+import { FileRow } from "./client-files";
 import { NoteCard, readableNotes } from "./client-notes";
 import { AppointmentRow } from "./client-page";
 import { RecordRow } from "./client-records";
@@ -44,6 +45,14 @@ async function rowsOf(
 			return page(records, (r) => (
 				<RecordRow key={r.id} ctx={ctx} clientId={clientId} r={r} templates={templates} />
 			));
+		}
+		case "files": {
+			// The service's own pages: a page may hold fewer rows than a full one, its cursor says whether more follow.
+			const got = await ctx.port.filePage(ctx.app, clientId, cursor);
+			return {
+				items: got.items.map((f) => <FileRow key={f.id} ctx={ctx} clientId={clientId} file={f} />),
+				nextCursor: got.nextCursor,
+			};
 		}
 		default: {
 			const never: never = tab;

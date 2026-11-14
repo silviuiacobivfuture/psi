@@ -18,6 +18,7 @@ import type { Appointment, Client, Invite, Package, Service } from "../port/sche
 import {
 	type BlacklistEntry,
 	blacklistActive,
+	type ClearableField,
 	type ClientFile,
 	type ClientNote,
 	type ClientRecord,
@@ -77,6 +78,8 @@ export interface ClientOpen {
 	rename: string | null;
 	confirm: { action: string; id: string } | null;
 	fileNotice: "invalid" | "too-big" | null;
+	/** The edit sheet: emptying the last phone or e-mail was refused; or which field was just emptied. */
+	contact: "required" | ClearableField | null;
 }
 
 /** What the service keeps no route for yet: its tab says "în curând". */
@@ -96,7 +99,11 @@ export interface ClientView {
 	notes: ReadonlyArray<ClientNote>;
 	blacklist: ReadonlyArray<BlacklistEntry>;
 	records: ReadonlyArray<ClientRecord>;
+	/** The first page of the files, and where the next starts (null: the last is shown). */
 	files: ReadonlyArray<ClientFile>;
+	filesNext: string | null;
+	/** The file whose rename sheet is open (asked by id: it may be on a page not shown yet). */
+	renaming: ClientFile | null;
 	templates: ReadonlyArray<FormDefinition>;
 	open: ClientOpen;
 	notice?: "invalid" | "made" | null;
@@ -138,8 +145,7 @@ export async function renderClient(
 		view.open.editNote === null
 			? null
 			: (view.notes.find((n) => n.id === view.open.editNote) ?? null);
-	const renaming =
-		view.open.rename === null ? null : (view.files.find((f) => f.id === view.open.rename) ?? null);
+	const renaming = view.renaming;
 	const confirm = view.open.confirm;
 	const signals = {
 		askArchive: false,
@@ -250,6 +256,7 @@ export async function renderClient(
 						ctx={ctx}
 						clientId={client.id}
 						files={view.files}
+						next={view.filesNext}
 						notice={view.open.fileNotice}
 					/>
 				) : null}
@@ -284,7 +291,9 @@ export async function renderClient(
 					action={`/clients/${client.id}/delete`}
 					hidden={{ id: client.id }}
 				/>
-				{ctx.can.write("clients_edit") ? <EditClientSheet ctx={ctx} client={client} /> : null}
+				{ctx.can.write("clients_edit") ? (
+					<EditClientSheet ctx={ctx} client={client} notice={view.open.contact} />
+				) : null}
 				{ctx.can.write("packages_create") ? (
 					<NewPackageSheet client={client} services={view.services} locale={ctx.locale} />
 				) : null}

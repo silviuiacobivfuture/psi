@@ -43,5 +43,7 @@
 	"pwa_push_article_title": "New from {brand}",
 	"pwa_push_article_body": "{headline}",
 	"pwa_push_test_title": "Notifications are working",
-	"pwa_push_test_body": "This is how news from Psizone will reach you."
+	"pwa_push_test_body": "This is how news from Psizone will reach you.",
+	"pwa_push_booking_moved_title": "Your appointment moved to another time",
+	"pwa_push_booking_moved_body": "The new time is in your Psizone account."
 }

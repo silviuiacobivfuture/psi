@@ -1,19 +1,11 @@
 import { v } from "convex/values";
 import { ruleProblem } from "../src/domain/catalog";
 import { keepsReason, transition } from "../src/domain/lifecycle";
-import { isOffered } from "../src/domain/slots";
 import { DAY_MINUTES, isLocalDate, MINUTE_MS } from "../src/domain/time";
 import { mutation, query } from "./_generated/server";
-import {
-	appointmentByReference,
-	busyAround,
-	exceptionsOf,
-	rulesOf,
-	serviceSpec,
-	tenantBySlug,
-} from "./calendar";
+import { appointmentByReference } from "./calendar";
 import { requireServer } from "./guard";
-import { roomFor, roomPlan } from "./roomPlan";
+import { moveAppointment } from "./move";
 import {
 	actorValidator,
 	decisionReasonValidator,
@@ -127,82 +119,14 @@ export const reschedule = mutation({
 	handler: async (ctx, args) => {
 		requireServer(args.key);
 		const row = await appointmentByReference(ctx, args.reference);
-		const tenant = await tenantBySlug(ctx, args.tenant);
-		const service = row === undefined ? null : await ctx.db.get(row.service);
-		if (
-			row === undefined ||
-			tenant === undefined ||
-			service === null ||
-			row.tenant !== tenant.slug
-		) {
-			return { ok: false as const, reason: "not_found" as const };
-		}
-		const now = Date.now();
-		const leave = transition(row, { type: "reschedule" }, now);
-		if (!leave.ok) return { ok: false as const, reason: leave.reason };
-		if ((await appointmentByReference(ctx, args.newReference)) !== undefined) {
-			return { ok: false as const, reason: "retry" as const };
-		}
-		const spec = serviceSpec(service);
-		const end = args.start + spec.durationMinutes * MINUTE_MS;
-		const blockedUntil = end + spec.bufferMinutes * MINUTE_MS;
-		const [rules, exceptions, busy] = await Promise.all([
-			rulesOf(ctx, row.practitioner),
-			exceptionsOf(ctx, row.practitioner, args.start, blockedUntil, tenant.timeZone),
-			busyAround(ctx, row.practitioner, args.start, blockedUntil, now, row._id),
-		]);
-		const person = await ctx.db.get(row.practitioner);
-		const calendar = {
-			timeZone: tenant.timeZone,
-			service: spec,
-			rules,
-			exceptions,
-			busy,
-			now,
-			...(person?.abAnchor === undefined ? {} : { abAnchor: person.abAnchor }),
-		};
-		if (!isOffered(calendar, args.start, args.mode)) {
-			return { ok: false as const, reason: "slot_taken" as const };
-		}
-		const plan =
-			args.mode === "onsite" && person !== null
-				? await roomPlan(ctx, tenant, service, person, {
-						from: args.start,
-						to: blockedUntil,
-						now,
-						except: row._id,
-					})
-				: undefined;
-		const room = plan === undefined ? undefined : roomFor(plan, args.start, blockedUntil);
-		if (plan !== undefined && room === undefined) {
-			return { ok: false as const, reason: "slot_taken" as const };
-		}
-		const { _id, _creationTime, decisionReason: _reason, room: _oldRoom, ...kept } = row;
-		const moved = await ctx.db.insert("appointments", {
-			...kept,
-			...(room === undefined ? {} : { room: ctx.db.normalizeId("rooms", room.id) ?? undefined }),
+		if (row === undefined) return { ok: false as const, reason: "not_found" as const };
+		return moveAppointment(ctx, row, {
+			tenant: args.tenant,
+			start: args.start,
 			mode: args.mode,
-			start: args.start,
-			end,
-			blockedUntil,
-			reference: args.newReference,
-			rescheduledFrom: _id,
-			decidedBy: args.actor.subject,
-			updatedAt: now,
+			newReference: args.newReference,
+			actor: args.actor.subject,
 		});
-		await ctx.db.patch(_id, {
-			status: leave.next,
-			decisionReason: undefined,
-			rescheduledTo: moved,
-			decidedBy: args.actor.subject,
-			updatedAt: now,
-		});
-		return {
-			ok: true as const,
-			reference: args.newReference,
-			start: args.start,
-			end,
-		};
 	},
 });
 

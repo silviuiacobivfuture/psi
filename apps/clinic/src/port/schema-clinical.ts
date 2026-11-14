@@ -165,6 +165,16 @@ export interface NewFile {
 	bytes: Uint8Array;
 }
 
+/**
+ * The `conflict` message of a change that would leave a client with no phone or e-mail to book with (their own, or
+ * their guardian's): the edit sheet says so in words.
+ */
+export const CONTACT_REQUIRED = "contact_required";
+/** The contact fields a person may empty on their own. */
+export const CLEARABLE_FIELDS = ["phone", "email"] as const;
+export type ClearableField = (typeof CLEARABLE_FIELDS)[number];
+
+/** A change of a client; `null` empties a field (a phone or an e-mail; a guardian only while there is none). */
 export const ClientPatchSchema = z
 	.object({
 		name: z.string().trim().min(1).max(120),

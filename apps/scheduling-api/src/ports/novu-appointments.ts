@@ -1,4 +1,4 @@
-import type { AppKey, Recipient } from "@psi/notify";
+import { type AppKey, accountClientId, type Recipient } from "@psi/notify";
 import type { Notification } from "./notify";
 import { iso, type NotifyEnv, num, str, type Translate } from "./novu-env";
 
@@ -97,8 +97,11 @@ export const appointmentChanged: Translate = async (n, app, env) => {
 		clientName: found.contact.name,
 		serviceName: service?.name.ro ?? "Programare",
 		startsAt: iso(found.start),
-		...(event === "appointment.moved" ? { previousStartsAt: iso(found.start) } : {}),
+		...(event === "appointment.moved"
+			? { previousStartsAt: iso(num(n.payload, "previousStart") ?? found.start) }
+			: {}),
 	};
+	const account = str(n.payload, "account");
 	await env.send(
 		app,
 		event,
@@ -106,7 +109,9 @@ export const appointmentChanged: Translate = async (n, app, env) => {
 		[
 			{
 				audience: "client",
-				clientId: reference,
+				// A signed-in visitor is their account (every request of it, the devices they allowed on a site); anyone
+				// else is this request only.
+				clientId: account === undefined ? reference : accountClientId(account),
 				name: found.contact.name,
 				locale: "ro",
 				...(found.contact.email === undefined ? {} : { email: found.contact.email }),

@@ -76,5 +76,17 @@
 	"pl_users": "Users and organisations",
 	"pl_soon": "Coming soon",
 	"nav_platform": "Platform",
-	"nav_me": "My settings"
+	"nav_me": "My settings",
+	"me_lang": "Console language",
+	"me_lang_ro": "Română",
+	"me_lang_en": "English",
+	"me_view": "The calendar opens on",
+	"me_settings_save": "Save preferences",
+	"me_invalid": "Nothing was saved: a value is not right. Check the quiet hours (start and end must differ).",
+	"me_locked_hint": "Ticked grey boxes cannot be switched off: they are news the team must receive.",
+	"me_quiet": "Quiet hours",
+	"me_quiet_on": "No push during quiet hours",
+	"me_quiet_from": "From",
+	"me_quiet_to": "Until",
+	"me_quiet_hint": "The hours are the clinic's. E-mails and the console's list do not stop."
 }

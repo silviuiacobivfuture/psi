@@ -232,13 +232,53 @@ describe("a client's own fields through the adapter", () => {
 		expect((await port.client("psizone", c))?.name).toBe("Client Doi Nou");
 	});
 
-	it("clearing a contact is not something the service knows: refused, nothing written", async () => {
+	it("empties the e-mail (the guardian can still be reached): the read shows none, the phone stays", async () => {
 		const port = await as("olga");
+		const c = api.world.ids.c1;
+		const next = await port.updateClient("psizone", c, { email: null });
+		expect(next.email).toBeNull();
+		expect(next.phone).not.toBeNull();
+		expect((await port.client("psizone", c))?.email).toBeNull();
+	});
+
+	it("an empty field that is already empty changes nothing: no change is journalled", async () => {
+		const port = await as("olga");
+		const c = api.world.ids.c1;
+		await port.updateClient("psizone", c, { email: null });
+		const changes = async () =>
+			(
+				(await api.world.call("olga", "GET", "/v1/apps/psizone/audit?action=client.update")).json
+					.items as { target: { id: string } }[]
+			).filter((e) => e.target.id === c).length;
+		const before = await changes();
+		const held = await port.client("psizone", c);
+		await port.updateClient("psizone", c, { email: null });
+		expect(await changes()).toBe(before);
+		expect(await port.client("psizone", c)).toEqual(held);
+	});
+
+	it("refuses to leave a client with nothing to book with, as a conflict: nothing written", async () => {
+		const port = await as("olga");
+		const made = await port.createClient("psizone", {
+			name: "Doar Telefon",
+			phone: "0733 000 111",
+			guardian: null,
+		});
 		const before = await api.world.fingerprint();
-		expect(
-			(await refusal(() => port.updateClient("psizone", api.world.ids.c2, { phone: null }))).code,
-		).toBe("not-available-yet");
+		const refused = await refusal(() => port.updateClient("psizone", made.id, { phone: null }));
+		expect(refused.code).toBe("conflict");
+		expect(refused.message).toBe("contact_required");
 		expect(await api.world.fingerprint()).toBe(before);
+		expect((await port.client("psizone", made.id))?.phone).toBe("0733 000 111");
+	});
+
+	it("an empty guardian removes the guardian while the client's own phone remains", async () => {
+		const port = await as("olga");
+		const c = api.world.ids.c2;
+		expect((await port.client("psizone", c))?.guardian).not.toBeNull();
+		const next = await port.updateClient("psizone", c, { guardian: null });
+		expect(next.guardian).toBeNull();
+		expect(next.phone).not.toBeNull();
 	});
 });
 

@@ -123,6 +123,8 @@ describe.each(factories)("on the $name store", (factory) => {
 							"me.assistantUsage",
 							"me.notifications",
 							"me.notificationsSave",
+							"me.settings",
+							"me.saveSettings",
 							"roles.summary",
 						]).toContain(spec.id));
 					return;

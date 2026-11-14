@@ -23,7 +23,8 @@ export function createLimiter(limit: RateLimit, clock: () => number): Limiter {
 			const held = buckets.get(key) ?? { tokens: limit.capacity, at: now };
 			const tokens = Math.min(
 				limit.capacity,
-				held.tokens + ((now - held.at) / 1000) * limit.refillPerSecond,
+				// A clock that stepped back (NTP, a test) refills nothing; it must never drain the bucket for hours.
+				held.tokens + (Math.max(0, now - held.at) / 1000) * limit.refillPerSecond,
 			);
 			buckets.delete(key);
 			if (tokens < 1) {

@@ -2,7 +2,7 @@ import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { type ThemePreference, themeFor, themePreferenceFrom } from "@psi/ui/admin";
 import type { Context } from "hono";
-import { getCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import type { Person } from "../auth";
 import type { Notifications } from "../notifications/mount";
 import type { Capabilities, ClinicPort } from "../port/port";
@@ -65,6 +65,32 @@ export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): A
 	const mine = memberships.map((m) => m.app);
 	if (wanted.success && mine.includes(wanted.data)) return wanted.data;
 	return mine[0] ?? null;
+}
+
+/**
+ * The viewer's language and theme on a device that remembers neither: the person's own settings, kept by the service,
+ * and from then on remembered by the device too (so it is asked once per device, not per page). A device that chose
+ * either already keeps its own choice.
+ */
+export async function storedPrefs(
+	c: Context,
+	port: ClinicPort,
+	app: AppSlug,
+	subject: string,
+): Promise<ReturnType<typeof viewerPrefs>> {
+	const device = viewerPrefs(c);
+	if (getCookie(c, "lang") !== undefined || getCookie(c, "theme") !== undefined) return device;
+	// Asked once per device: the answer (saved settings, or the defaults the device would show anyway) is kept here.
+	const own = await port.mySettings(app, subject);
+	const keep = { path: "/", maxAge: 31536000, sameSite: "Lax" as const };
+	setCookie(c, "lang", own.locale, keep);
+	setCookie(c, "theme", own.theme, keep);
+	return {
+		...device,
+		locale: own.locale,
+		pref: own.theme,
+		theme: themeFor(own.theme),
+	};
 }
 
 export function viewerPrefs(c: Context): {

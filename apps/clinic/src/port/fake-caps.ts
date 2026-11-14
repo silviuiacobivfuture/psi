@@ -1,6 +1,7 @@
 import { extraCapabilities } from "./fake-caps-extra";
 import { type FakeTeam, type TeamEntry, withOverrides } from "./fake-members";
-import { type ClinicPort, PortError, type TeamMember } from "./port";
+import { offsetPage } from "./offset-page";
+import { type ClinicPort, LIST_PAGE, PortError, type TeamMember } from "./port";
 import { capabilityMap } from "./role-map";
 import type { AppSlug } from "./schema";
 import type { AppData } from "./seed";
@@ -16,7 +17,10 @@ export interface AccessDeps {
 /** Who may do what in the fake: the capabilities of a person, a role or a member, the team, and "Vezi ca…". */
 export function createFakeAccess(
 	deps: AccessDeps,
-): Pick<ClinicPort, "capabilities" | "members" | "platformAdmin" | "startViewAs" | "stopViewAs"> {
+): Pick<
+	ClinicPort,
+	"capabilities" | "members" | "memberPage" | "platformAdmin" | "startViewAs" | "stopViewAs"
+> {
 	const { data, guard, log, team } = deps;
 	const LOOKUPS = [
 		"people_view",
@@ -135,6 +139,13 @@ export function createFakeAccess(
 				roles: [...e.roles],
 				...(e.email === undefined ? {} : { email: e.email }),
 			}));
+		},
+		async memberPage(app, cursor) {
+			guard("memberPage");
+			const all = [...(await this.members(app))].sort((a, b) =>
+				a.displayName.localeCompare(b.displayName),
+			);
+			return offsetPage(all, cursor, LIST_PAGE);
 		},
 		async startViewAs(subject, app, as) {
 			guard("startViewAs");
