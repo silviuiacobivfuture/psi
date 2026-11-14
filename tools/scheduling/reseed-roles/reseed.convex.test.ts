@@ -79,7 +79,7 @@ describe.skipIf(!ready)("the re-seed on a real Convex store", () => {
 				permissions: [...(baseline[r.name] ?? [])],
 				includes: [],
 			});
-		const [report] = await reseed({ store, apps: [APP], baseline, dryRun: false, now: Date.now() });
+		const [report] = await reseed({ store, apps: [APP], dryRun: false, now: Date.now() });
 		expect(report?.written).toBe(3);
 		const roles = await store.c.roles.list(APP);
 		const byId = new Map<string, ComposedRole>(
@@ -93,7 +93,7 @@ describe.skipIf(!ready)("the re-seed on a real Convex store", () => {
 					: [...(baseline[r.name] ?? [])].sort();
 			expect(keys, r.name).toEqual(expected);
 		}
-		const [again] = await reseed({ store, apps: [APP], baseline, dryRun: false, now: Date.now() });
+		const [again] = await reseed({ store, apps: [APP], dryRun: false, now: Date.now() });
 		expect(again?.written).toBe(0);
 	});
 });

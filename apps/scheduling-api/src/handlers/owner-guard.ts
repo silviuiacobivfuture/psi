@@ -89,10 +89,12 @@ export async function guardRoleChange(
 		ctx.deps.store.c.roles.list(ctx.app),
 		ctx.deps.store.c.members.list(ctx.app),
 	]);
-	const next = roles.flatMap((r) =>
-		r.id !== before.id ? [r] : after === undefined ? [] : [after],
-	);
-	const was = roleKeys(before.id, rolesById(roles));
+	// The roles as they are and as they will be, each with the changed role in place: a role being made is not
+	// stored yet, so it is placed (as `before`, holding nothing) rather than looked up.
+	const others = roles.filter((r) => r.id !== before.id);
+	const now = [...others, before];
+	const next = after === undefined ? others : [...others, after];
+	const was = roleKeys(before.id, rolesById(now));
 	const will = after === undefined ? new Set<string>() : roleKeys(after.id, rolesById(next));
 	const changed = was.size !== will.size || [...will].some((k) => !was.has(k));
 	if (changed && (anyProtected(will) || anyProtected(was))) await requireManageAdmins(ctx);

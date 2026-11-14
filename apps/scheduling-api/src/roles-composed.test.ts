@@ -275,6 +275,87 @@ describe("Administrators and Owners are the Owner's to manage", () => {
 	});
 });
 
+describe("someone who edits roles but does not manage administrators", () => {
+	/** cora holds a custom role that edits roles (and nothing about the team): the Owner gives it. */
+	const roleEditor = async (): Promise<void> => {
+		const editor = await newRole("Roluri", [
+			"roles_view_all",
+			"roles_create_all",
+			"roles_edit_all",
+			"roles_delete_all",
+		]);
+		expect((await put("olga", "cora", [editor])).status).toBe(200);
+	};
+
+	it("still edits a role that grants nothing about the team", async () => {
+		await roleEditor();
+		const id = await newRole("Desk", []);
+		const r = await as("cora", "PUT", `/roles/${id}/permissions`, {
+			permissions: ["rooms_view_all"],
+		});
+		expect(r.status, JSON.stringify(r.json)).toBe(200);
+		expect((await include(id, [role("volunteer")], "cora")).status).toBe(200);
+	});
+
+	it.each([
+		[
+			"give a role a team-managing permission",
+			async () => {
+				const id = await newRole("Plain", []);
+				return () =>
+					as("cora", "PUT", `/roles/${id}/permissions`, { permissions: ["members_edit_all"] });
+			},
+		],
+		[
+			"make a role include the Administrator",
+			async () => {
+				const id = await newRole("Plain", []);
+				return () => include(id, [role("admin")], "cora");
+			},
+		],
+		[
+			"copy the Administrator into a new role",
+			async () => () => as("cora", "POST", "/roles", { name: "Admin 2", copyFrom: role("admin") }),
+		],
+		[
+			"copy the Owner into a new role",
+			async () => () => as("cora", "POST", "/roles", { name: "Owner 2", copyFrom: role("owner") }),
+		],
+		[
+			"delete a role that manages the team",
+			async () => {
+				const id = await newRole("Team", ["members_edit_all"]);
+				return () => as("cora", "DELETE", `/roles/${id}`);
+			},
+		],
+		[
+			"take a permission away from the Administrator",
+			async () => {
+				const held = (await as("olga", "GET", `/roles/${role("admin")}`)).json as {
+					role: { permissions: string[] };
+				};
+				return () =>
+					as("cora", "PUT", `/roles/${role("admin")}/permissions`, {
+						permissions: held.role.permissions.slice(1),
+					});
+			},
+		],
+	] as const)("may not %s: 403, nothing written", async (_what, make) => {
+		await roleEditor();
+		const call = await make();
+		await unchanged(call, 403, "manages_admins");
+	});
+
+	it("copying a role that grants nothing about the team is fine", async () => {
+		await roleEditor();
+		const r = await as("cora", "POST", "/roles", {
+			name: "Volunteer 2",
+			copyFrom: role("volunteer"),
+		});
+		expect(r.status, JSON.stringify(r.json)).toBe(200);
+	});
+});
+
 describe("the organisation keeps an Owner", () => {
 	it("the last Owner cannot be removed, nor lose the ownership by a denial or by their role's edit", async () => {
 		await unchanged(() => as("root", "DELETE", "/members/olga"), 409, "last_owner");

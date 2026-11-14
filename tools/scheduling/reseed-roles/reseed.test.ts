@@ -9,6 +9,7 @@ import type { FgaReader } from "../reconcile-authz/fga";
 import { reconcile } from "../reconcile-authz/run";
 import { reseed } from "./run";
 
+/** What the seed roles held, flat, before roles could include others. */
 const baseline = z
 	.record(z.array(z.string()))
 	.parse(
@@ -22,12 +23,14 @@ const baseline = z
 const APP = "psizone";
 let w: Populated;
 
-/** The app as it was before roles could include others: every seed role holds its flat set and includes nothing. */
-async function asBefore(): Promise<void> {
+/** The app as one provisioned before roles could include others: every seed role flat, `change` applied to its set. */
+async function asBefore(
+	change: (name: string, keys: string[]) => string[] = (_n, k) => k,
+): Promise<void> {
 	for (const r of await w.store.c.roles.list(APP)) {
 		const flat = baseline[r.name];
 		if (r.system && flat !== undefined)
-			await w.store.c.roles.replace({ ...r, permissions: [...flat], includes: [] });
+			await w.store.c.roles.replace({ ...r, permissions: change(r.name, [...flat]), includes: [] });
 	}
 }
 
@@ -49,7 +52,7 @@ async function authzOfStore(): Promise<MemoryAuthz> {
 	});
 	return authz;
 }
-/** What each member of the populated world holds on the app, relation by relation. */
+/** What each member of the populated world holds on the app, relation by relation, through OpenFGA. */
 async function held(authz: MemoryAuthz): Promise<Record<string, string[]>> {
 	const out: Record<string, string[]> = {};
 	for (const subject of Object.keys(PEOPLE)) {
@@ -61,35 +64,48 @@ async function held(authz: MemoryAuthz): Promise<Record<string, string[]>> {
 	return out;
 }
 const run = (dryRun = false) =>
-	reseed({ store: w.store, apps: [APP], baseline, dryRun, now: Date.UTC(2026, 10, 14) });
+	reseed({ store: w.store, apps: [APP], dryRun, now: Date.UTC(2026, 10, 14) });
+
+/** Nobody's permissions change, through OpenFGA, but the Owner's, who gains exactly the Owner-only keys. */
+async function sameButTheOwner(before: Record<string, string[]>): Promise<void> {
+	const after = await held(await authzOfStore());
+	for (const subject of Object.keys(PEOPLE).filter((s) => s !== "olga"))
+		expect(after[subject], subject).toEqual(before[subject]);
+	const gained = (after.olga ?? []).filter((k) => !(before.olga ?? []).includes(k)).sort();
+	expect(gained).toEqual(
+		[...OWNER_ONLY_KEYS].filter((k) => !(before.olga ?? []).includes(k)).sort(),
+	);
+	for (const k of OWNER_ONLY_KEYS) expect(after.olga, k).toContain(k);
+	expect((before.olga ?? []).every((k) => (after.olga ?? []).includes(k))).toBe(true);
+}
+const includesByName = async (): Promise<Record<string, string[]>> => {
+	const roles = await w.store.c.roles.list(APP);
+	const name = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
+	return Object.fromEntries(
+		roles.filter((r) => r.system).map((r) => [r.name, r.includes.map(name).sort()]),
+	);
+};
 
 beforeEach(async () => {
 	w = await createWorld();
-	await asBefore();
 });
 
-describe("re-seeding an app's roles into their composed form", () => {
-	it("nobody's permissions change, through OpenFGA, but the Owner's, who gains exactly the Owner-only keys", async () => {
+describe("re-seeding an app whose roles are the old flat seed", () => {
+	beforeEach(async () => {
+		await asBefore();
+	});
+
+	it("keeps every permission held but the Owner's, who gains the Owner-only keys", async () => {
 		const before = await held(await authzOfStore());
 		const [report] = await run();
 		// Owner, Admin and Therapist take their composed form; the four that include nothing are already current
 		expect(report?.written).toBe(3);
-		const after = await held(await authzOfStore());
-		for (const subject of Object.keys(PEOPLE).filter((s) => s !== "olga"))
-			expect(after[subject], subject).toEqual(before[subject]);
-		const gained = (after.olga ?? []).filter((k) => !(before.olga ?? []).includes(k)).sort();
-		expect(gained).toEqual([...OWNER_ONLY_KEYS].sort());
-		expect((before.olga ?? []).every((k) => (after.olga ?? []).includes(k))).toBe(true);
+		await sameButTheOwner(before);
 	});
 
 	it("writes the composition: Owner includes Admin, Admin the four desk and clinical roles, Therapist the volunteer", async () => {
 		await run();
-		const roles = await w.store.c.roles.list(APP);
-		const name = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
-		const includes = Object.fromEntries(
-			roles.filter((r) => r.system).map((r) => [r.name, r.includes.map(name).sort()]),
-		);
-		expect(includes).toMatchObject({
+		expect(await includesByName()).toMatchObject({
 			Owner: ["Admin"],
 			Admin: ["Accountant", "Coordinator", "Reception", "Therapist"],
 			Therapist: ["Volunteer"],
@@ -107,18 +123,6 @@ describe("re-seeding an app's roles into their composed form", () => {
 		expect(again?.steps.every((s) => s.kind === "current")).toBe(true);
 	});
 
-	it("leaves a seed role its owners changed as it is, and says so", async () => {
-		const reception = (await w.store.c.roles.list(APP)).find((r) => r.name === "Reception");
-		if (reception === undefined) throw new Error("no Reception");
-		const changed = [...reception.permissions, "audit_log_view_all"].sort();
-		await w.store.c.roles.replace({ ...reception, permissions: changed });
-		const [report] = await run();
-		expect(report?.steps.find((s) => s.name === "Reception")?.kind).toBe("customised");
-		expect((await w.store.c.roles.get(APP, reception.id))?.permissions).toEqual(changed);
-		// The Administrator includes Recepție: with Recepție customised, the rest still re-seed by their own sets.
-		expect(report?.steps.find((s) => s.name === "Owner")?.kind).toBe("rewrite");
-	});
-
 	it("a dry run writes nothing", async () => {
 		const before = JSON.stringify(await w.store.c.roles.list(APP));
 		const [report] = await run(true);
@@ -130,5 +134,44 @@ describe("re-seeding an app's roles into their composed form", () => {
 				.sort(),
 		).toEqual(["Admin", "Owner", "Therapist"]);
 		expect(JSON.stringify(await w.store.c.roles.list(APP))).toBe(before);
+	});
+});
+
+describe("re-seeding an app whose roles are older or changed", () => {
+	it("roles seeded before later catalogue keys existed still compose, and keep exactly what they held", async () => {
+		// as provisioned before the notes and the feedback came: none of the roles hold those keys
+		await asBefore((_n, keys) => keys.filter((k) => !/^(notes|feedback)_/.test(k)));
+		const before = await held(await authzOfStore());
+		const [report] = await run();
+		expect(report?.written).toBe(3);
+		expect((await includesByName()).Owner).toEqual(["Admin"]);
+		await sameButTheOwner(before);
+	});
+
+	it("an included role widened by the owners is not included where that would widen the includer", async () => {
+		await asBefore((name, keys) => (name === "Reception" ? [...keys, "audit_log_view_all"] : keys));
+		const before = await held(await authzOfStore());
+		const [report] = await run();
+		const admin = report?.steps.find((s) => s.name === "Admin");
+		expect(admin?.kind).toBe("not_contained");
+		expect(admin?.missing).toEqual(["audit_log_view_all"]);
+		// the Admin stays flat; the Owner, who holds the audit log, still includes it
+		expect((await includesByName()).Admin).toEqual([]);
+		expect((await includesByName()).Owner).toEqual(["Admin"]);
+		await sameButTheOwner(before);
+	});
+
+	it("an Owner that cannot include the Administrator still gains the Owner-only keys, and nothing else", async () => {
+		await asBefore((name, keys) =>
+			name === "Owner" ? keys.filter((k) => k !== "rooms_view_all") : keys,
+		);
+		const before = await held(await authzOfStore());
+		const [report] = await run();
+		const owner = report?.steps.find((s) => s.name === "Owner");
+		expect(owner?.kind).toBe("not_contained");
+		expect((await includesByName()).Owner).toEqual([]);
+		await sameButTheOwner(before);
+		const [again] = await run();
+		expect(again?.written).toBe(0);
 	});
 });
