@@ -200,5 +200,10 @@
 	"al_done_dismissed": "Noted: it is none of them.",
 	"al_conflict": "The client already has another online account. Nothing was changed.",
 	"al_banner": "Online accounts to confirm: {n}",
-	"al_open": "Review"
+	"al_open": "Review",
+	"orphan_records_title": "Reports without a client",
+	"orphan_records_lead": "Reports kept from the old app whose client was deleted there. They stay tied to their session; only people with clinical access to the whole app see them.",
+	"orphan_records_group": "Without a client",
+	"orphan_records_empty": "No report without a client",
+	"orphan_records_empty_text": "Every report belongs to a client."
 }

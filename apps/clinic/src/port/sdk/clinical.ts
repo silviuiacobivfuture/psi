@@ -325,6 +325,7 @@ export function clinicalGroup(
 		updateNote: more.updateNote,
 		deleteNote: more.deleteNote,
 		records: more.records,
+		recordsWithoutClient: more.recordsWithoutClient,
 		record: more.record,
 		createRecord: more.createRecord,
 		updateRecord: more.updateRecord,
