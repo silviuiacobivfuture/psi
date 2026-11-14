@@ -15,7 +15,7 @@ import {
 	type DetailsProblem,
 	MAX_SHOWN,
 } from "./booking-state";
-import type { ProfileScheduling, SchedulingPort } from "./scheduling/port";
+import type { PauseNotice, ProfileScheduling, SchedulingPort } from "./scheduling/port";
 import {
 	type FindAvailabilityOutput,
 	type ProposedSlot,
@@ -28,7 +28,9 @@ export interface BookingOffer {
 	kind: BookingKind;
 	/** The service the times are for. */
 	service: string;
-	status: "ok" | "none" | "unavailable";
+	/** `paused`: the clinic stopped online booking; `pause` is its message, said instead of any time. */
+	status: "ok" | "none" | "unavailable" | "paused";
+	pause?: PauseNotice;
 	timeZone?: string;
 	slots: ReadonlyArray<ProposedSlot>;
 	/** Why the list differs from what was asked, when it does. */
@@ -59,6 +61,20 @@ export interface BookingOffer {
 export interface BookingScope {
 	port: SchedulingPort;
 	scope: ProfileScheduling;
+	/** Online booking is paused for the whole organisation or the site (read with the catalogue each turn). */
+	pause?: PauseNotice;
+}
+
+/** The offer of a paused booking: the clinic's message and nothing to pick. The flow starts over afterwards. */
+export function pausedOffer(service: string, pause: PauseNotice, lang?: BookingLang): BookingOffer {
+	return {
+		kind: "times",
+		service,
+		status: "paused",
+		pause,
+		slots: [],
+		...(lang === undefined ? {} : { lang }),
+	};
 }
 
 /** What the details dialogue carries from one turn to the next, and what the last message told. */
@@ -176,10 +192,12 @@ export interface Keep {
 
 export function timesOffer(
 	criteria: BookingCriteria,
-	found: Pick<FindAvailabilityOutput, "status" | "timeZone" | "slots">,
+	found: Pick<FindAvailabilityOutput, "status" | "timeZone" | "slots" | "pause">,
 	notice: BookingNotice | undefined,
 	keep: Keep = {},
 ): BookingOffer {
+	if (found.status === "paused" && found.pause !== undefined)
+		return pausedOffer(criteria.service, found.pause, keep.lang);
 	const status = found.status === "unknown_service" ? "unavailable" : found.status;
 	const kept = keep.details !== undefined && Object.keys(keep.details).length > 0;
 	return {

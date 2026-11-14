@@ -27,6 +27,7 @@ export function schedulingRules(services: ReadonlyArray<string>): ReadonlyArray<
 		"Never ask for a name, a phone number or an e-mail address: the confirmation form collects them.",
 		`Call ${CANCEL_REQUEST_TOOL} only when the visitor asks to cancel and gives both their booking reference and their cancel code.`,
 		"When a tool answers unavailable, say booking online is not available right now and point to the booking page or the phone.",
+		"When a tool answers paused, the clinic stopped online booking: give its pause message in the visitor's language, in its own words, propose no time, and offer the callback request only when callbacksOpen is true.",
 	];
 }
 

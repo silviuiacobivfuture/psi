@@ -1,4 +1,5 @@
-import type { CallbackRequester } from "../callbacks-client";
+import type { CallbackInput, CallbackResult } from "../callbacks-client";
+import type { PausedResult } from "../client";
 import { SchedulingUnavailable } from "../transport";
 import { type CallbackMailCopy, type CallbackRequest, callbackMail } from "./callback-mail";
 import { type Mailer, MailFailed } from "./mailer";
@@ -14,8 +15,13 @@ export interface Intake {
 export interface IntakeDeps {
 	/** The app (tenant) on the store: `psizone`, `hemisync`. */
 	tenant: string;
-	/** Absent: the store is off for this site. */
-	store: CallbackRequester | undefined;
+	/**
+	 * Absent: the store is off for this site. Over the scheduling service, a pause that closes callbacks too refuses the
+	 * request (`paused`): the clinic asked for none, so it is not e-mailed either.
+	 */
+	store:
+		| { requestCallback(input: CallbackInput): Promise<CallbackResult | PausedResult> }
+		| undefined;
 	/** Absent: mail is not configured for this site. */
 	mailer: Mailer | undefined;
 	notifyTo: ReadonlyArray<string>;
@@ -74,6 +80,7 @@ export function createIntake(deps: IntakeDeps): Intake {
 					});
 					stored = result.ok;
 					if (!result.ok) deps.log(`callbacks: the store refused the request (${result.reason})`);
+					if (!result.ok && result.reason === "paused") return { stored: false, mailed: false };
 				} catch (error) {
 					deps.log(`callbacks: not stored (${causeOf(error)})`);
 				}

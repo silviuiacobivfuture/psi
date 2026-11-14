@@ -179,5 +179,14 @@
 	"jr_act_settings_update": "Setări personale schimbate",
 	"jr_act_visitor_reschedule": "Vizitator a mutat programarea",
 	"jr_act_account_link": "Contul online a fost legat de client",
-	"jr_act_account_link_dismiss": "Contul online nu este al acestor clienți"
+	"jr_act_account_link_dismiss": "Contul online nu este al acestor clienți",
+	"jr_act_availability_rules": "Program săptămânal schimbat",
+	"jr_act_availability_copy": "Program aplicat la alți terapeuți",
+	"jr_act_availability_one_off_add": "Zi specială adăugată",
+	"jr_act_availability_one_off_remove": "Zi specială ștearsă",
+	"jr_act_room_closure_add": "Cabinet închis",
+	"jr_act_room_closure_remove": "Cabinet redeschis",
+	"jr_act_booking_pause_create": "Programări online oprite",
+	"jr_act_booking_pause_update": "Oprirea programărilor online modificată",
+	"jr_act_booking_pause_remove": "Oprirea programărilor online ridicată"
 }

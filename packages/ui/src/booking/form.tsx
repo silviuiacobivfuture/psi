@@ -73,7 +73,10 @@ export function BookingForm({
 	const [onlyAudience] = env.audiences;
 	// A time is being chosen: the contact fields wait for one; a call, or a store that cannot be read, skips it.
 	const picking = view?.kind === "ready" && schedule?.callback !== true;
-	const showDetails = !picking || (view?.kind === "ready" && view.data.selected !== undefined);
+	// A pause that closes callbacks too leaves the phones alone: no form to send.
+	const closed = view?.kind === "paused" && !view.pause.callbacksOpen;
+	const showDetails =
+		!closed && (!picking || (view?.kind === "ready" && view.data.selected !== undefined));
 	return (
 		<form
 			id={id}

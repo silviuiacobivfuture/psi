@@ -179,5 +179,14 @@
 	"jr_act_settings_update": "Personal settings changed",
 	"jr_act_visitor_reschedule": "Visitor moved the appointment",
 	"jr_act_account_link": "Online account linked to the client",
-	"jr_act_account_link_dismiss": "Online account is none of these clients"
+	"jr_act_account_link_dismiss": "Online account is none of these clients",
+	"jr_act_availability_rules": "Weekly hours changed",
+	"jr_act_availability_copy": "Hours applied to other practitioners",
+	"jr_act_availability_one_off_add": "One-off day added",
+	"jr_act_availability_one_off_remove": "One-off day removed",
+	"jr_act_room_closure_add": "Room closed",
+	"jr_act_room_closure_remove": "Room reopened",
+	"jr_act_booking_pause_create": "Online booking paused",
+	"jr_act_booking_pause_update": "Online booking pause changed",
+	"jr_act_booking_pause_remove": "Online booking pause lifted"
 }

@@ -553,5 +553,11 @@
 	"form_age": "Age",
 	"form_age_hint": "Of the person the appointment is for, in years.",
 	"form_details": "What is going on?",
-	"form_details_hint": "A few lines, in your own words. They stay with the team and are erased together with your contact details."
+	"form_details_hint": "A few lines, in your own words. They stay with the team and are erased together with your contact details.",
+	"pick_paused_title": "Online booking is paused for now",
+	"pick_paused_until": "We open it again {when}.",
+	"pick_paused_callback": "Leave your details below and we will call you, or call us directly.",
+	"pick_paused_call": "To book, please call us directly.",
+	"guide_booking_paused": "Online booking is paused right now. Here is what the team asked me to tell you:",
+	"guide_booking_summary_paused": "I told the visitor online booking is paused, with the clinic's message: \"{message}\". I proposed no times."
 }

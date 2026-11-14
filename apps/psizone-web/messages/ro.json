@@ -553,5 +553,11 @@
 	"form_age": "Vârsta",
 	"form_age_hint": "A persoanei pentru care e programarea, în ani.",
 	"form_details": "Ce se întâmplă?",
-	"form_details_hint": "Câteva rânduri, cu cuvintele tale. Rămân la echipă și se șterg odată cu datele de contact."
+	"form_details_hint": "Câteva rânduri, cu cuvintele tale. Rămân la echipă și se șterg odată cu datele de contact.",
+	"pick_paused_title": "Programările online sunt oprite acum",
+	"pick_paused_until": "Le redeschidem {when}.",
+	"pick_paused_callback": "Lasă-ne datele tale mai jos și te sunăm noi, sau sună-ne direct.",
+	"pick_paused_call": "Pentru o programare, sună-ne direct.",
+	"guide_booking_paused": "Programările online sunt oprite acum. Iată ce ne-a rugat echipa să-ți spun:",
+	"guide_booking_summary_paused": "I-am spus vizitatorului că programările online sunt oprite, cu mesajul clinicii: „{message}”. Nu am propus ore."
 }

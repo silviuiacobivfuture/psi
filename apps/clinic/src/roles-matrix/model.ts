@@ -48,6 +48,8 @@ const AREA_OF: Readonly<Record<Resource, Area>> = {
 	prices: "money",
 	roster: "roster",
 	leave: "roster",
+	availability: "roster",
+	booking_pause: "settings",
 	reminders: "reminders",
 	web_requests: "requests",
 	reports: "reports",

@@ -2751,6 +2751,51 @@
 			]
 		},
 		{
+			"key": "booking_pause",
+			"name": {
+				"ro": "booking_pause",
+				"en": "booking_pause"
+			},
+			"permissions": [
+				{
+					"key": "booking_pause_edit",
+					"name": {
+						"ro": "booking_pause: modifică",
+						"en": "booking_pause: edit"
+					},
+					"grants": ["sched_app#booking_pause_edit_all"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "availability",
+			"name": {
+				"ro": "availability",
+				"en": "availability"
+			},
+			"permissions": [
+				{
+					"key": "availability_view",
+					"name": {
+						"ro": "availability: vede",
+						"en": "availability: view"
+					},
+					"grants": ["sched_app#availability_view_all", "sched_app#availability_view_own"],
+					"effect": "read"
+				},
+				{
+					"key": "availability_edit",
+					"name": {
+						"ro": "availability: modifică",
+						"en": "availability: edit"
+					},
+					"grants": ["sched_app#availability_edit_all", "sched_app#availability_edit_own"],
+					"effect": "write"
+				}
+			]
+		},
+		{
 			"key": "register",
 			"name": {
 				"ro": "Registrul organizației",
@@ -4717,6 +4762,26 @@
 				{
 					"name": "assistant_budget_edit_all",
 					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "booking_pause_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "availability_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "availability_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "availability_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "availability_edit_own",
+					"from": ["[user, sched_role#member]"]
 				}
 			]
 		},
@@ -5391,6 +5456,20 @@
 						"leave_approve_all from app",
 						"(leave_approve_assigned from app and reach_assigned)",
 						"(leave_approve_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "availability_view",
+					"from": [
+						"availability_view_all from app",
+						"(availability_view_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "availability_edit",
+					"from": [
+						"availability_edit_all from app",
+						"(availability_edit_own from app and reach_own)"
 					]
 				}
 			]

@@ -14,6 +14,7 @@
 @import "./stats.css";
 @import "./profile.css";
 @import "./roles-matrix.css";
+@import "./availability.css";
 @import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";

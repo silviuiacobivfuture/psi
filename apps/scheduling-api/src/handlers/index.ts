@@ -5,7 +5,9 @@ import { adminHandlers } from "./admin";
 import { appointmentEditHandlers } from "./appointment-edit";
 import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
+import { availabilityHandlers } from "./availability";
 import { blacklistHandlers } from "./blacklist";
+import { bookingPauseHandlers } from "./booking-pause";
 import { calendarHandlers } from "./calendar-get";
 import { calendarSummaryHandlers } from "./calendar-summary";
 import { catalogHandlers } from "./catalog";
@@ -67,6 +69,8 @@ const complete: Handlers = {
 	...viewAsHandlers,
 	...settingsHandlers,
 	...visitorHandlers,
+	...availabilityHandlers,
+	...bookingPauseHandlers,
 };
 
 export const handlers: Readonly<Record<string, Handler<RouteSpec> | undefined>> = complete;

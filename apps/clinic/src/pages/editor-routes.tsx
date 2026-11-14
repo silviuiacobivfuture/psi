@@ -403,7 +403,7 @@ async function refused(
 	toast: (text: string) => void,
 ): Promise<void> {
 	const o = at(ctx.locale);
-	if (err instanceof PortError && err.code === "conflict") {
+	if (err instanceof PortError && err.code === "conflict" && err.reason !== "booking_paused") {
 		const dur = Math.trunc(e.dur);
 		const suggestions = suggest(live.dayAppointments, live.columns, probeOf(e, dur));
 		stream.patchElements(

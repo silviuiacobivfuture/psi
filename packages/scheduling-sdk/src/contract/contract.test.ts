@@ -38,6 +38,8 @@ describe("the route table", () => {
 			"me.settings",
 			"me.saveSettings",
 			"roles.summary",
+			// Whether online booking is paused: every member's console shows the banner.
+			"bookingPause.list",
 		]);
 		for (const r of ALL) {
 			if (r.side === "team")
