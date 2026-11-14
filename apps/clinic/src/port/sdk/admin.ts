@@ -1,6 +1,7 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { PortError, type TeamMember } from "../port";
+import { composed } from "../role-composition";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
 	type AppSlug,
@@ -34,6 +35,26 @@ export function adminGroup(sdk: SdkContext) {
 			if (toPortError(error).code !== "forbidden") throw error;
 		}
 		return counts;
+	}
+
+	/** The roles with what each includes and inherits, from the service's own relations. */
+	async function rolesOf(app: AppSlug): Promise<Role[]> {
+		const [list, counts] = await Promise.all([
+			drain((cursor) =>
+				api.roles.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
+			),
+			memberCounts(app),
+		]);
+		return composed(
+			list.map((r) => ({
+				id: r.id,
+				name: r.name,
+				description: r.description ?? "",
+				members: counts.get(r.id) ?? 0,
+				...grantsFromRelations(r.permissions),
+			})),
+			list.map((r) => ({ id: r.id, relations: r.permissions, includes: r.includes })),
+		);
 	}
 
 	return {
@@ -109,22 +130,7 @@ export function adminGroup(sdk: SdkContext) {
 				});
 			}),
 
-		roles: (app: AppSlug): Promise<Role[]> =>
-			run(async () => {
-				const [list, counts] = await Promise.all([
-					drain((cursor) =>
-						api.roles.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
-					),
-					memberCounts(app),
-				]);
-				return list.map((r) => ({
-					id: r.id,
-					name: r.name,
-					description: r.description ?? "",
-					members: counts.get(r.id) ?? 0,
-					...grantsFromRelations(r.permissions),
-				}));
-			}),
+		roles: (app: AppSlug): Promise<Role[]> => run(() => rolesOf(app)),
 
 		saveRole: (app: AppSlug, role: Role): Promise<Role> =>
 			run(async () => {
@@ -137,15 +143,14 @@ export function adminGroup(sdk: SdkContext) {
 						name: role.name,
 						description: role.description,
 					});
-				const saved = await api.roles.setPermissions({ app, id: role.id, permissions: next });
-				const counts = await memberCounts(app);
-				return {
-					id: saved.id,
-					name: saved.name,
-					description: saved.description ?? "",
-					members: counts.get(saved.id) ?? 0,
-					...grantsFromRelations(saved.permissions),
-				};
+				// The roles it includes first: a permission moved into an included role is never held by nobody in between.
+				const includes = [...new Set(role.includes ?? held.role.includes)].sort();
+				if (includes.join(",") !== [...held.role.includes].sort().join(","))
+					await api.roles.setIncludes({ app, id: role.id, includes });
+				await api.roles.setPermissions({ app, id: role.id, permissions: next });
+				const saved = (await rolesOf(app)).find((r) => r.id === role.id);
+				if (saved === undefined) throw new PortError("not-found", role.id);
+				return saved;
 			}),
 
 		/**

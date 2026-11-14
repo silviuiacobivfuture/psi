@@ -260,6 +260,7 @@ export function createFakeCatalog(deps: CatalogDeps): CatalogMethods {
 				members: 0,
 				grants: from === undefined ? {} : structuredClone(from.grants),
 				fieldGroups: from === undefined ? [] : [...from.fieldGroups],
+				includes: [...(from?.includes ?? [])],
 			};
 			d.roles.push(role);
 			log(d, "console", "role.create", role.id);
@@ -271,6 +272,9 @@ export function createFakeCatalog(deps: CatalogDeps): CatalogMethods {
 			const role = d.roles.find((r) => r.id === id);
 			if (role === undefined) throw new PortError("not-found", id);
 			if (SYSTEM_ROLES.has(id) || role.members > 0) throw new PortError("conflict", "in use");
+			// Another role includes it: deleting it would change what that role holds.
+			if (d.roles.some((r) => (r.includes ?? []).includes(id)))
+				throw new PortError("conflict", "included");
 			d.roles = d.roles.filter((r) => r.id !== id);
 			log(d, "console", "role.delete", id);
 		},

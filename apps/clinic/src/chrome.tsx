@@ -73,6 +73,25 @@ export function labels(locale: Locale): ShellLabels {
 const SEED_ROLE =
 	/^[a-z][a-z0-9-]*?-(?=owner$|admin$|reception$|therapist$|coordinator$|volunteer$|accountant$)/;
 
+/** Which seed role an id is (`psizone-owner`, or an opaque id named `Owner`), or its own name lower-cased. */
+function seedKey(id: string, names: Readonly<Record<string, string>> | undefined): string {
+	const key = id.replace(SEED_ROLE, "");
+	return /^(owner|admin|reception|therapist|coordinator|volunteer|accountant)$/.test(key)
+		? key
+		: (names?.[id] ?? "").toLowerCase();
+}
+
+/** The organisation's top roles first: the Owner, then the Administrator, then the rest as held. */
+const RANK: Readonly<Record<string, number>> = { owner: 0, admin: 1 };
+export const highestFirst = (
+	ids: ReadonlyArray<string>,
+	names: Readonly<Record<string, string>> | undefined = undefined,
+): string[] =>
+	ids
+		.map((id, i) => ({ id, i, rank: RANK[seedKey(id, names)] ?? 2 }))
+		.sort((a, b) => a.rank - b.rank || a.i - b.i)
+		.map((x) => x.id);
+
 /**
  * A role's name for people: the seed roles are translated, a custom role shows its own name (`names`, by id, from the
  * service: a role's id is opaque in some stores) and only then its id. A seed role is told by its id (`psizone-owner`)
@@ -85,11 +104,7 @@ export function roleName(
 ): string {
 	const o = at(locale);
 	const given = names?.[id];
-	const key = id.replace(SEED_ROLE, "");
-	const seed = /^(owner|admin|reception|therapist|coordinator|volunteer|accountant)$/.test(key)
-		? key
-		: (given ?? "").toLowerCase();
-	switch (seed) {
+	switch (seedKey(id, names)) {
 		case "owner":
 			return m.role_owner({}, o);
 		case "admin":
@@ -114,7 +129,7 @@ export const rolesText = (
 	ids: ReadonlyArray<string>,
 	locale: Locale,
 	names: Readonly<Record<string, string>> | undefined = undefined,
-): string => joinRoles(ids.map((r) => roleName(r, locale, names)));
+): string => joinRoles(highestFirst(ids, names).map((r) => roleName(r, locale, names)));
 
 /** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
 export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>
