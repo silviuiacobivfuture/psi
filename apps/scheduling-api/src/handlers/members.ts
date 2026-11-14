@@ -58,6 +58,9 @@ export const memberHandlers: HandlersOf<
 			grant: held.grants,
 			deny: held.denies,
 			calendars: people.filter((p) => p.subject === subject).map((p) => p.id),
+			taken: people
+				.filter((p) => p.subject !== undefined && p.subject !== subject)
+				.map((p) => p.id),
 			matrix: catalogueMatrix((def) => effective.get(def.key) ?? []),
 		};
 	},

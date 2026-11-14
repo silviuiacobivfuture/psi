@@ -1,7 +1,7 @@
 import { OverflowMenu, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { menuItems } from "../actions/render";
-import { roleLabel } from "../chrome";
+import { roleLabel, roleName } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
@@ -10,6 +10,19 @@ import { Pick } from "./form-choices";
 import { type OverrideChoice, overrideChoices, summaryOf } from "./member-summary";
 import type { MembersData } from "./members";
 import { actionLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
+
+/**
+ * The choices of a list, plus what the member already holds that the list could not show (a list this person may not
+ * read, or that failed): a save sends the whole set, so what is held is always sent back, never dropped.
+ */
+const withHeld = (
+	items: ReadonlyArray<{ id: string; name: string }>,
+	held: ReadonlyArray<string>,
+	name: (id: string) => string,
+): ReadonlyArray<{ id: string; name: string }> => [
+	...items,
+	...held.filter((id) => !items.some((i) => i.id === id)).map((id) => ({ id, name: name(id) })),
+];
 
 const path = (member: MemberDetail, tail: string): string =>
 	`/settings/members/${encodeURIComponent(member.subject)}/${tail}`;
@@ -154,7 +167,9 @@ function Calendar({
 }): JSX.Element {
 	const o = at(ctx.locale);
 	const names = member.calendars.map((id) => d.people.find((p) => p.id === id)?.name ?? id);
-	const free = d.people.filter((p) => !member.calendars.includes(p.id));
+	const free = d.people.filter(
+		(p) => !member.calendars.includes(p.id) && !member.taken.includes(p.id),
+	);
 	return (
 		<section class="adm-stack" style="gap:var(--space-2)" data-calendar>
 			<h3 class="adm-h2">{m.mb_calendar({}, o)}</h3>
@@ -245,13 +260,21 @@ export function MemberEditor({
 						<Pick
 							legend={m.mb_roles({}, o)}
 							name="roles"
-							items={d.roles.map((r) => ({ id: r.id, name: roleLabel(r, ctx.locale) }))}
+							items={withHeld(
+								d.roles.map((r) => ({ id: r.id, name: roleLabel(r, ctx.locale) })),
+								member.roles,
+								(id) => roleName(id, ctx.locale),
+							)}
 							on={member.roles}
 						/>
 						<Pick
 							legend={m.mb_coordinates({}, o)}
 							name="coordinates"
-							items={d.people.map((p) => ({ id: p.id, name: p.name }))}
+							items={withHeld(
+								d.people.map((p) => ({ id: p.id, name: p.name })),
+								member.coordinates,
+								(id) => id,
+							)}
 							on={member.coordinates}
 						/>
 						{locked ? null : (

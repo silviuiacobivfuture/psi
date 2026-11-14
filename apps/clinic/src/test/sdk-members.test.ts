@@ -63,7 +63,7 @@ describe("presence: Setări → Membri", () => {
 		await api("PUT", "/members/cora", {
 			displayName: "cora test",
 			roles: [role("coordinator"), role("reception")],
-			coordinates: [],
+			coordinates: [k.api.world.ids.dora, k.api.world.ids.elena],
 		});
 		const page = await html(olga, "/settings/members");
 		const row = page.slice(page.indexOf('data-member="cora"'));
@@ -158,6 +158,9 @@ describe("per-person permissions", () => {
 		expect(d.deny).toContain("audit_log_view_all");
 		expect((await held("ana")).has("audit_log_view_all")).toBe(false);
 		expect((await ana.raw("/settings/audit")).status).toBe(403);
+		const effective =
+			(await html(olga, "/settings/members?edit=ana")).split("data-effective")[1] ?? "";
+		expect(effective.slice(0, effective.indexOf("</section>"))).not.toContain("Jurnal: Vezi");
 		// the editor shows both choices back, and the summary no longer has it
 		const page = await html(olga, "/settings/members?edit=ana");
 		expect(page).toMatch(/value="audit_log_view_all"[^>]*selected/);
@@ -166,6 +169,48 @@ describe("per-person permissions", () => {
 		);
 		await send(olga, "/settings/members/ana/overrides", {});
 		expect((await held("ana")).has("audit_log_view_all")).toBe(before);
+	});
+
+	it("a withdrawal of one scope survives an untouched save, and the journal counts permissions", async () => {
+		await api("PUT", "/members/nina/overrides", { grant: [], deny: ["clients_view_all"] });
+		const page = await html(olga, "/settings/members?edit=nina");
+		expect(page).toMatch(
+			/data-deny="clients_view"[^>]*checked|checked[^>]*data-deny="clients_view"/,
+		);
+		// the form as the browser sends it untouched: the box stays ticked, every "Nu" is empty
+		expect(
+			(
+				await send(olga, "/settings/members/nina/overrides", {
+					grant: [""],
+					deny: ["clients_view"],
+				})
+			).status,
+		).toBe(303);
+		expect((await detail("nina")).deny).toEqual(["clients_view_all"]);
+		const journal = await html(olga, "/settings/audit");
+		expect(journal).toContain(
+			"A schimbat permisiunile individuale ale lui nina test: 0 în plus, 1 retrase",
+		);
+		await api("PUT", "/members/nina/overrides", { grant: [], deny: [] });
+	});
+
+	it("a permission the picker does not offer is refused, not dropped", async () => {
+		const before = await k.api.world.fingerprint();
+		const r = await send(olga, "/settings/members/vera/overrides", { grant: ["people_view_all"] });
+		expect(r.headers.get("location")).toContain("problem=invalid");
+		expect(await k.api.world.fingerprint()).toBe(before);
+	});
+
+	it("a calendar bound to someone else is not offered and cannot be taken", async () => {
+		const dora = k.api.world.ids.dora;
+		const page = await html(olga, "/settings/members?edit=vera");
+		const calendar = page.slice(page.indexOf("data-calendar"));
+		expect(calendar).not.toContain(`value="${dora}"`);
+		const before = await k.api.world.fingerprint();
+		const r = await send(olga, "/settings/members/vera/calendar", { personId: dora });
+		expect(r.headers.get("location")).toContain("problem=conflict");
+		expect(await k.api.world.fingerprint()).toBe(before);
+		expect((await detail("dora")).calendars).toEqual([dora]);
 	});
 
 	it("a calendar column is bound to the member's sign-in", async () => {
@@ -264,11 +309,19 @@ describe("refusals: nothing is written", () => {
 	it("members_edit alone may change roles but neither add nor remove anyone", async () => {
 		const made = await api("POST", "/roles", { name: "Editor echipă" });
 		const id = String(made.json.id);
+		// neither the roles nor the people may be read: the editor still sends back everything held
 		await api("PUT", `/roles/${id}/permissions`, {
-			permissions: ["members_view_all", "members_edit_all", "roles_view_all"],
+			permissions: ["members_view_all", "members_edit_all"],
 		});
 		await api("PUT", "/members/elena", { displayName: "elena test", roles: [id], coordinates: [] });
 		const elena = await k.as("elena");
+		const cora = await detail("cora");
+		expect(cora.coordinates.length).toBeGreaterThan(0);
+		const editor = await html(elena, "/settings/members?edit=cora");
+		const form = editor.slice(editor.indexOf('data-form="member-save"'));
+		const sent = form.slice(0, form.indexOf("</form>"));
+		for (const held of [...cora.roles, ...cora.coordinates])
+			expect(sent, held).toMatch(new RegExp(`value="${held}"[^>]*checked`));
 		await unchanged(
 			() =>
 				send(elena, "/settings/members/save", { subject: "other", displayName: "O", roles: [] }),

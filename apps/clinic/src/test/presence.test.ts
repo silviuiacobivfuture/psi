@@ -23,6 +23,7 @@ const PAGES = [
 	"/settings/devices",
 	"/settings/services",
 	"/settings/roles",
+	"/settings/members",
 	"/me/settings",
 	"/settings",
 	"/settings/profile",
@@ -130,7 +131,8 @@ describe("someone signed in who belongs to no app", () => {
 
 	it.each([
 		"/calendar",
-		"/clients",
+		"/settings/roles",
+		"/settings/members",
 		"/settings/roles",
 		"/audit",
 	])("gets the clear no-access page at %s, not the data", async (path) => {

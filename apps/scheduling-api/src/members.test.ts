@@ -58,6 +58,7 @@ describe("one member, as their editor reads them", () => {
 		expect(d.grant).toEqual([]);
 		expect(d.deny).toEqual([]);
 		expect(d.calendars).toEqual([w.ids.dora]);
+		expect(d.taken).toEqual([w.ids.elena]);
 		expect(d.matrix.length).toBeGreaterThan(100);
 		expect(d.matrix.find((r) => r.key === "clients_view")?.held).toEqual(["own"]);
 		expect((await detail("rita")).calendars).toEqual([]);

@@ -1,6 +1,7 @@
 import { at, type Locale } from "../lib/i18n";
 import { relationWords } from "../pages/member-summary";
 import { m } from "../paraglide/messages.js";
+import { splitRelation } from "../port/role-map";
 import type { AuditEvent } from "../port/schema";
 import type { AuditLookup } from "./lookup";
 
@@ -31,6 +32,17 @@ const change = (e: AuditEvent, field: string) => e.changes?.find((c) => c.field 
 const count = (v: string | null | undefined): number =>
 	v === null || v === undefined || v === "" ? 0 : v.split(",").length;
 
+/** How many permissions a list of relations is about: one withdrawn at every scope is one. */
+const kinds = (v: string | null | undefined): number =>
+	v === null || v === undefined || v === ""
+		? 0
+		: new Set(
+				v.split(",").map((r) => {
+					const { key, group } = splitRelation(r);
+					return group === null ? key : `${key}_${group}`;
+				}),
+			).size;
+
 /** A member's name in the journal: the team's, else the one the service kept when they were removed. */
 export function memberName(e: AuditEvent, lookup: AuditLookup, id: string): string | undefined {
 	const kept = change(e, "displayName");
@@ -59,7 +71,7 @@ export function memberSentence(
 		return grants === undefined && denies === undefined
 			? m.jr_s_member_edit({ object }, l)
 			: m.jr_s_member_overrides(
-					{ object, extra: count(grants?.after), withdrawn: count(denies?.after) },
+					{ object, extra: kinds(grants?.after), withdrawn: kinds(denies?.after) },
 					l,
 				);
 	}

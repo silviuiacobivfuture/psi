@@ -156,6 +156,7 @@ export function createFakeMembers(deps: MembersDeps): Methods {
 				grant: [...e.grants],
 				deny: [...e.denies],
 				calendars: [...e.calendars],
+				taken: [...people(app)].flatMap(([s, x]) => (s === subject ? [] : x.calendars)),
 				matrix: matrixOf(withOverrides(fromRoles(roles), e)),
 			};
 		},
@@ -215,6 +216,9 @@ export function createFakeMembers(deps: MembersDeps): Methods {
 			const e = held(app, subject);
 			if (!data(app).columns.some((c) => c.id === personId && c.kind === "person"))
 				throw new PortError("invalid", "person");
+			// A calendar belongs to one sign-in, as in the service: binding it moves it.
+			for (const other of people(app).values())
+				other.calendars = other.calendars.filter((id) => id !== personId);
 			e.calendars = [...new Set([...e.calendars, personId])];
 		},
 	};

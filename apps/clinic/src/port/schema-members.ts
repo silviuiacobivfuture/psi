@@ -65,6 +65,8 @@ export const MemberDetailSchema = z.object({
 	deny: z.array(z.string()),
 	/** The calendar columns (people) bound to this member's sign-in. */
 	calendars: z.array(z.string()),
+	/** The calendar columns bound to someone else: not offered, binding one would take it from them. */
+	taken: z.array(z.string()),
 	/** What they may do in the end: every role, grant and denial counted. */
 	matrix: z.array(PermissionRowSchema),
 });

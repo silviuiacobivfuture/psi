@@ -91,11 +91,9 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 			if (p.subject === ctx.actor.subject) return SELF;
 			const held = await ctx.port.member(ctx.app, p.subject);
 			if (held === null) return { status: "refused", code: "not-found" };
-			await ctx.port.saveMemberOverrides(
-				ctx.app,
-				p.subject,
-				overridesFromForm(held.matrix, held, { grant: p.grant, deny: p.deny }),
-			);
+			const next = overridesFromForm(held.matrix, held, { grant: p.grant, deny: p.deny });
+			if (next === "invalid") return { status: "refused", code: "invalid" };
+			await ctx.port.saveMemberOverrides(ctx.app, p.subject, next);
 			return { status: "ok", to: at(p.subject, "&saved=1") };
 		},
 	}),
@@ -113,6 +111,10 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 		to: (e) => at(e.id ?? ""),
 		params: z.object({ subject: SubjectSchema, personId: z.string().min(1).max(100) }),
 		run: async (ctx, p) => {
+			const held = await ctx.port.member(ctx.app, p.subject);
+			if (held === null) return { status: "refused", code: "not-found" };
+			// A calendar bound to someone else stays theirs: binding it here would take their own reach away.
+			if (held.taken.includes(p.personId)) return { status: "refused", code: "conflict" };
 			await ctx.port.linkCalendar(ctx.app, p.subject, p.personId);
 			return { status: "ok", to: at(p.subject, "&saved=1") };
 		},

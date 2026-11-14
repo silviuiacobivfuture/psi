@@ -99,6 +99,8 @@ export const MemberDetail = Member.extend({
 	deny: z.array(z.string()),
 	/** The people (calendar columns) whose account is this member's sign-in. */
 	calendars: z.array(Id),
+	/** The people bound to someone else's sign-in: binding one to this member would take it from them. */
+	taken: z.array(Id),
 	matrix: z.array(MatrixRow),
 });
 

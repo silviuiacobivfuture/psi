@@ -92,25 +92,32 @@ export function overrideChoices(
 }
 
 /**
- * The grants and denials to store after the picker was sent: what the picker shows is replaced, what it cannot show
- * (a finer permission granted another way) is kept as it was. A withdrawn permission is withdrawn at every scope.
+ * The grants and denials to store after the picker was sent, permission by permission:
+ * - what the picker cannot show (a finer permission set another way) is kept as it was;
+ * - an extra permission left at the scope it already had keeps every scope it had (the picker shows one);
+ * - a withdrawal left ticked keeps the scopes it had; newly ticked, it withdraws every scope; unticked, none.
+ * `invalid` when the form names a permission the picker does not offer: nothing is dropped silently.
  */
 export function overridesFromForm(
 	matrix: ReadonlyArray<PermissionRow>,
 	current: { grant: ReadonlyArray<string>; deny: ReadonlyArray<string> },
 	form: { grant: ReadonlyArray<string>; deny: ReadonlyArray<string> },
-): { grant: string[]; deny: string[] } {
+): { grant: string[]; deny: string[] } | "invalid" {
 	const choices = overrideChoices(matrix);
-	const shown = new Set(choices.flatMap((c) => c.row.scopes.map((s) => relationOf(c.row, s))));
-	const offered = (relation: string): boolean => shown.has(relation);
-	const denied = new Set(form.deny);
-	const deny = choices
-		.filter((c) => denied.has(c.row.key))
-		.flatMap((c) => c.row.scopes.map((s) => relationOf(c.row, s)));
-	return {
-		grant: [
-			...new Set([...current.grant.filter((g) => !offered(g)), ...form.grant.filter(offered)]),
-		].sort(),
-		deny: [...new Set([...current.deny.filter((d) => !offered(d)), ...deny])].sort(),
-	};
+	const scopesOf = (c: OverrideChoice): string[] => c.row.scopes.map((s) => relationOf(c.row, s));
+	const shown = new Set(choices.flatMap(scopesOf));
+	const keys = new Set(choices.map((c) => c.row.key));
+	if (!form.grant.every((g) => shown.has(g)) || !form.deny.every((d) => keys.has(d)))
+		return "invalid";
+	const grant = current.grant.filter((g) => !shown.has(g));
+	const deny = current.deny.filter((d) => !shown.has(d));
+	for (const c of choices) {
+		const relations = scopesOf(c);
+		const had = current.grant.filter((g) => relations.includes(g));
+		const sent = form.grant.filter((g) => relations.includes(g));
+		grant.push(...(sent.length > 0 && sent.every((g) => had.includes(g)) ? had : sent));
+		const withdrawn = current.deny.filter((d) => relations.includes(d));
+		if (form.deny.includes(c.row.key)) deny.push(...(withdrawn.length > 0 ? withdrawn : relations));
+	}
+	return { grant: [...new Set(grant)].sort(), deny: [...new Set(deny)].sort() };
 }
