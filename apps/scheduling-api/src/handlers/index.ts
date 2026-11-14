@@ -18,6 +18,7 @@ import { inviteHandlers } from "./invites";
 import { memberHandlers } from "./members";
 import { noteHandlers } from "./notes";
 import { notificationPrefsHandlers } from "./notification-prefs";
+import { orgProfileHandlers } from "./org-profile";
 import { ownershipHandlers } from "./ownership";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
@@ -54,6 +55,7 @@ const complete: Handlers = {
 	...recordHandlers,
 	...fileHandlers,
 	...floorPlanHandlers,
+	...orgProfileHandlers,
 	...blacklistHandlers,
 	...feedbackHandlers,
 	...inviteHandlers,

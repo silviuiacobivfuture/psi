@@ -10,6 +10,7 @@ import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeInvites } from "./fake-invites";
 import { createFakeAccountLinks, type FakeLinkSeed } from "./fake-links";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
+import { createFakeOrg } from "./fake-org";
 import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
@@ -158,6 +159,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
 		...profile,
+		...createFakeOrg({ data, guard, log }),
 		...access,
 		...members,
 		...staff,

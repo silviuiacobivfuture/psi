@@ -5,6 +5,7 @@ import type {
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
 import type {
@@ -198,7 +199,7 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort extends ProfilePort {
+export interface ClinicPort extends ProfilePort, OrgPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	/**
 	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the

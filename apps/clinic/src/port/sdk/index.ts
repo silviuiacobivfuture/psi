@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { invitesGroup } from "./invites";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 import { membersGroup } from "./members";
+import { orgGroup } from "./org";
 import { profileGroup } from "./profile";
 import { reportsGroup } from "./reports";
 import { roleSummaryGroup } from "./role-summary";
@@ -69,6 +70,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
+		...orgGroup(sdk),
 		...roleSummaryGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};
