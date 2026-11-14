@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createWorld, type Populated } from "./testing/populate";
-import { HOUR, NOW } from "./testing/world";
+import { bookingContact, HOUR, NOW } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 let w: Populated;
@@ -235,7 +235,7 @@ describe("the requests stream and the inbox badge", () => {
 		const sub = (
 			await w.callKey("psizone-web", "POST", `${A}/book/holds/${hold.reference}/submit`, {
 				holdToken: hold.holdToken,
-				contact: { name: "V", phone: "0733 000 333" },
+				contact: bookingContact({ phone: "0733 000 333" }),
 			})
 		).json;
 		expect(await s.next()).toMatchObject({ op: "created" });

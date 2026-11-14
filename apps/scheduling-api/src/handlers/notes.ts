@@ -116,14 +116,19 @@ export const noteHandlers: HandlersOf<
 		// Each client as `notes.list` would answer it, pinned only: one the caller may not see has none. Who the caller
 		// may see is asked ONCE for the batch (one ListObjects), never once per client.
 		const visible = await ctx.reachOf("clients_view", "sched_client");
+		// The clients that exist are read in one batched read, not one by one.
+		const known = new Set(
+			(
+				await ctx.deps.store.c.clients.getMany(
+					ctx.app,
+					ctx.query.clients.filter((id) => reaches(visible, id)),
+				)
+			).map((c) => c.id),
+		);
 		const items = await Promise.all(
 			ctx.query.clients.map(async (clientId) => ({
 				clientId,
-				notes:
-					reaches(visible, clientId) &&
-					(await ctx.deps.store.c.clients.get(ctx.app, clientId)) !== undefined
-						? await readableNotes(ctx, clientId, true, true)
-						: [],
+				notes: known.has(clientId) ? await readableNotes(ctx, clientId, true, true) : [],
 			})),
 		);
 		return { items };

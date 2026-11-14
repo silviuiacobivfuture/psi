@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { DAY_MINUTES, MINUTE_MS } from "../src/domain/time";
 import type { Doc, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { tenantBySlug } from "./calendar";
 import { requireServer } from "./guard";
 import { serverKeyValidator, statusValidator } from "./validators";
@@ -29,12 +30,15 @@ export const requests = query({
 		const tenant = await tenantBySlug(ctx, args.tenant);
 		if (tenant === undefined) return { ok: false as const, reason: "unknown_tenant" as const };
 		const to = Math.min(args.to, args.from + MAX_REQUESTS_MS);
-		const rows = await ctx.db
-			.query("appointments")
-			.withIndex("by_tenant_start", (q) =>
-				q.eq("tenant", tenant.slug).gte("start", args.from).lt("start", to),
-			)
-			.collect();
+		const rows = await within(
+			ctx.db
+				.query("appointments")
+				.withIndex("by_tenant_start", (q) =>
+					q.eq("tenant", tenant.slug).gte("start", args.from).lt("start", to),
+				),
+			LIST_MAX,
+		);
+		if (rows === undefined) return { ok: false as const, reason: TOO_MANY_ROWS };
 		const wanted = args.statuses === undefined ? undefined : new Set(args.statuses);
 		const shown = rows.filter((row) =>
 			wanted === undefined ? !HIDDEN.has(row.status) : wanted.has(row.status),

@@ -26,6 +26,10 @@ export interface StaffDeps {
 	log: (d: AppData, actor: string, action: string, target: string) => void;
 }
 
+/** The sign-in keeps one set-password link per person for 30 minutes and answers that same one meanwhile. */
+const LINK_MS = 30 * 60_000;
+const linkOf = (subject: string): string => `https://sso.example.test/recovery/${subject}`;
+
 /** The add-member search and the invitation over a fake sign-in, with the service's refusals. */
 export function createFakeStaff(
 	deps: StaffDeps,
@@ -93,8 +97,8 @@ export function createFakeStaff(
 				subject: account.subject,
 				displayName: input.data.displayName,
 				account: found === undefined ? "created" : "existing",
-				signInLink:
-					found === undefined ? `https://sso.example.test/recovery/${account.subject}` : null,
+				signInLink: found === undefined ? linkOf(account.subject) : null,
+				signInLinkExpiresBy: found === undefined ? Date.now() + LINK_MS : null,
 			};
 		},
 		async newSignInLink(app, subject) {
@@ -112,9 +116,9 @@ export function createFakeStaff(
 				throw new PortError("conflict", "disabled", [], "account_disabled");
 			if (account.signedIn === true)
 				throw new PortError("conflict", "signed in", [], "already_signed_in");
-			n += 1;
 			log(data(app), "console", "member.link", `members:${subject}`);
-			return `https://sso.example.test/recovery/${subject}-${n}`;
+			// As the estate's sign-in does: the same link for its 30 minutes.
+			return { link: linkOf(subject), expiresBy: Date.now() + LINK_MS };
 		},
 	};
 }

@@ -27,6 +27,27 @@ export const HOUR = 3_600_000;
 export const MASTER_KEY = "ab".repeat(32);
 /** Signs the reminder links of the test world. */
 export const LINK_SECRET = "reminder-link-secret-for-tests-0123456789";
+/**
+ * A visitor's contact with the five booking fields every submit must carry (name, age, details, phone AND e-mail);
+ * a test names only what it is about (`bookingContact({ email: "flagged@…" })`).
+ */
+export function bookingContact(over: { name?: string; phone?: string; email?: string } = {}): {
+	name: string;
+	phone: string;
+	email: string;
+	age: number;
+	details: string;
+} {
+	return {
+		name: "Visitor Test",
+		phone: "0799 123 456",
+		email: "visitor@example.test",
+		age: 30,
+		details: "A synthetic booking, long enough to be one.",
+		...over,
+	};
+}
+
 export const SECRETS = {
 	"psizone-web": "psizone-web-secret-0001",
 	"hemisync-web": "hemisync-web-secret-0002",

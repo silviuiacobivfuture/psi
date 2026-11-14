@@ -8,14 +8,58 @@ import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { cellName } from "../lib/record-form";
 import { m } from "../paraglide/messages.js";
+import { offsetPage } from "../port/offset-page";
+import { LIST_PAGE } from "../port/port";
 import type { Appointment, Client } from "../port/schema";
 import type { ClientRecord } from "../port/schema-clinical";
 import { stampText } from "./client-notes";
+import { TabMore, tabListId } from "./client-tab-pager";
 
 const titleOf = (def: FormDefinition | undefined, key: string, locale: Locale): string =>
 	def?.title[locale] ?? key;
 
-/** The client's records: a row each, draft or final, who wrote it and when. */
+/** One record: its form, who wrote it and when, draft or final, and what may be done to it. */
+export function RecordRow({
+	ctx,
+	clientId,
+	r,
+	templates,
+}: {
+	ctx: Ctx;
+	clientId: string;
+	r: ClientRecord;
+	templates: ReadonlyArray<FormDefinition>;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<li class="cl-row" data-record={r.id}>
+			<a class="cl-row__main" href={`/clients/${clientId}/records/${r.id}`}>
+				<strong>
+					{titleOf(
+						templates.find((t) => t.key === r.formKey),
+						r.formKey,
+						ctx.locale,
+					)}
+				</strong>
+				<span class="adm-muted">
+					{r.authorName} · {stampText(ctx.locale, r.updatedAt)}
+				</span>
+			</a>
+			<span
+				class={`adm-pill ${r.status === "final" ? "adm-pill--attended" : "adm-pill--requested"}`}
+			>
+				{r.status === "final" ? m.cl_rec_final({}, o) : m.cl_rec_draft({}, o)}
+			</span>
+			<OverflowMenu
+				id={`rec-${r.id}`}
+				label={m.client_more({}, o)}
+				items={menuItems(ctx, "client.records", { clientId, id: r.id })}
+			/>
+		</li>
+	);
+}
+
+/** The client's records: a row each, draft or final, who wrote it and when, a page at a time. */
 export function RecordsTab({
 	ctx,
 	clientId,
@@ -29,6 +73,7 @@ export function RecordsTab({
 }): JSX.Element {
 	const o = at(ctx.locale);
 	const entity = { clientId };
+	const page = offsetPage(records, null, LIST_PAGE);
 	return (
 		<div class="cl-tab">
 			<ActionBar ctx={ctx} screen="client.records" entity={entity} />
@@ -41,34 +86,20 @@ export function RecordsTab({
 					<EmptyActions ctx={ctx} screen="client.records" entity={entity} />
 				</EmptyState>
 			) : (
-				<ul class="cl-rows" aria-label={m.tab_records({}, o)}>
-					{records.map((r) => (
-						<li key={r.id} class="cl-row" data-record={r.id}>
-							<a class="cl-row__main" href={`/clients/${clientId}/records/${r.id}`}>
-								<strong>
-									{titleOf(
-										templates.find((t) => t.key === r.formKey),
-										r.formKey,
-										ctx.locale,
-									)}
-								</strong>
-								<span class="adm-muted">
-									{r.authorName} · {stampText(ctx.locale, r.updatedAt)}
-								</span>
-							</a>
-							<span
-								class={`adm-pill ${r.status === "final" ? "adm-pill--attended" : "adm-pill--requested"}`}
-							>
-								{r.status === "final" ? m.cl_rec_final({}, o) : m.cl_rec_draft({}, o)}
-							</span>
-							<OverflowMenu
-								id={`rec-${r.id}`}
-								label={m.client_more({}, o)}
-								items={menuItems(ctx, "client.records", { clientId, id: r.id })}
-							/>
-						</li>
-					))}
-				</ul>
+				<>
+					<ul class="cl-rows" id={tabListId("records")} aria-label={m.tab_records({}, o)}>
+						{page.items.map((r) => (
+							<RecordRow key={r.id} ctx={ctx} clientId={clientId} r={r} templates={templates} />
+						))}
+					</ul>
+					<TabMore
+						ctx={ctx}
+						clientId={clientId}
+						tab="records"
+						cursor={page.nextCursor}
+						shown={page.items.length}
+					/>
+				</>
 			)}
 		</div>
 	);

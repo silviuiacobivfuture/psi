@@ -26,6 +26,7 @@ import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
+import { ROLES_MATRIX_PATH } from "./roles-matrix/path";
 
 export type NavKey =
 	| "calendar"
@@ -195,10 +196,16 @@ export async function Page({
 	const { locale } = ctx;
 	const o = at(locale);
 	const { can } = ctx;
-	let open = 0;
+	// The badge counts the first page of open requests (never every request): "50+" when more follow; the live inbox
+	// stream then patches the service's exact count.
+	let open: number | string = 0;
 	if (can.has("web_requests_view")) {
 		try {
-			open = (await ctx.port.requests(ctx.app)).filter((r) => !r.handled).length;
+			const first = await ctx.port.requestPage(ctx.app, "open", null);
+			open =
+				first.nextCursor === null
+					? first.items.length
+					: m.ls_count_more({ n: String(first.items.length) }, o);
 		} catch {
 			open = 0;
 		}
@@ -213,7 +220,12 @@ export async function Page({
 		) : (
 			children
 		);
-	const item = (key: NavKey, label: string, icon: NavItem["icon"], badge?: number): NavItem => ({
+	const item = (
+		key: NavKey,
+		label: string,
+		icon: NavItem["icon"],
+		badge?: number | string,
+	): NavItem => ({
 		key,
 		label,
 		href: `/${key === "more" ? "more" : key}`,
@@ -325,6 +337,10 @@ export async function Page({
 						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
 							<Icon name="settings" />
 							{m.me_mine_menu({}, o)}
+						</a>
+						<a class="adm-menu__item" href={ROLES_MATRIX_PATH} data-action="nav.roles-matrix">
+							<Icon name="shield" />
+							{m.rm_menu({}, o)}
 						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">

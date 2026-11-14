@@ -19,6 +19,7 @@
 		"./authz-memory": "./src/authz/memory.ts",
 		"./authz-port": "./src/authz/port.ts",
 		"./testing-populate": "./src/testing/populate.ts",
+		"./ratelimit": "./src/ports/ratelimit.ts",
 		"./testing-scale": "./src/testing/scale.ts",
 		"./store-types": "./src/store/types.ts",
 		"./open-convex": "./src/store/open-convex.ts",

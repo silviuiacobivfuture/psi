@@ -1,4 +1,7 @@
-import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/contract";
+import type {
+	Capabilities as ScheduleCapabilities,
+	RoleSummary as ScheduleRoleSummary,
+} from "@psi/scheduling-sdk/contract";
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
@@ -61,6 +64,7 @@ import type {
 	MemberDetail,
 	MemberInput,
 	OverridesInput,
+	SignInLink,
 	StaffMatch,
 } from "./schema-members";
 
@@ -73,6 +77,36 @@ export interface CalendarData {
 	services: ReadonlyArray<Service>;
 	/** What to flag on a client's tiles, by client id (the console fills it in for the days it shows). */
 	flags?: Readonly<Record<string, ClientFlag>>;
+}
+
+/** Which column's visits a calendar read answers, chosen from its columns (none: no visits). */
+export type CalendarFocus = (columns: ReadonlyArray<Column>) => string | undefined;
+
+/** One day of the month grid: its visits, counted. */
+export interface DayCount {
+	date: string;
+	count: number;
+}
+
+export interface AuditPage {
+	events: ReadonlyArray<AuditEvent>;
+	nextCursor: string | null;
+}
+
+/** How many rows one page of a list shows (requests, the blacklist, reminders, a client's notes…). */
+export const LIST_PAGE = 50;
+
+/** One page of a list; `nextCursor` null: the last page. */
+export interface Paged<T> {
+	items: ReadonlyArray<T>;
+	nextCursor: string | null;
+}
+
+/** A client on the blacklist: the active entry and who it is about. */
+export interface ListedClient {
+	entry: BlacklistEntry;
+	clientId: string;
+	clientName: string;
 }
 
 /** How many clients one page of the list shows. */
@@ -96,6 +130,9 @@ export interface ReminderItem {
  * what to offer, never the authority — the service authorizes every call again.
  */
 export type Capabilities = z.output<typeof ScheduleCapabilities>;
+
+/** Every role of the app with its stored permission keys, and the platform administrator's: what any member may compare. */
+export type RoleSummary = z.output<typeof ScheduleRoleSummary>;
 
 /** Who the console is looking at the app as (read-only), when a roles administrator has chosen "Vezi ca…". */
 export type ViewAsTarget = `role:${string}` | `member:${string}`;
@@ -150,7 +187,13 @@ export class PortError extends Error {
  */
 export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
-	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
+	/**
+	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
+	 * column it picks from the columns (the week draws one calendar: the others' visits are neither read further nor named).
+	 */
+	calendar(app: AppSlug, from: string, to: string, focus?: CalendarFocus): Promise<CalendarData>;
+	/** How many visits each day of `from`..`to` holds on the calendars this person may see (the month grid); empty days absent. */
+	calendarSummary(app: AppSlug, from: string, to: string): Promise<ReadonlyArray<DayCount>>;
 	appointment(app: AppSlug, id: string): Promise<Appointment | null>;
 	/**
 	 * Creates the appointment, or its whole weekly series, in one step. Refuses with `conflict`
@@ -237,6 +280,14 @@ export interface ClinicPort extends ProfilePort {
 		entries: ReadonlyArray<RosterEntry>;
 	}>;
 	requests(app: AppSlug): Promise<ReadonlyArray<WebRequest>>;
+	/** ONE page (LIST_PAGE) of the open or the handled requests, newest first, after `cursor` (null: the first). */
+	requestPage(
+		app: AppSlug,
+		show: "open" | "handled",
+		cursor: string | null,
+	): Promise<Paged<WebRequest>>;
+	/** ONE page (LIST_PAGE) of the clients on the blacklist now, newest entry first, each with the client's name. */
+	blacklistPage(app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>>;
 	markRequestHandled(app: AppSlug, id: string): Promise<void>;
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;
@@ -259,8 +310,20 @@ export interface ClinicPort extends ProfilePort {
 	deleteRole(app: AppSlug, id: string): Promise<void>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
+	/** The roles to compare (names and keys only): readable by every member, unlike `roles` (roles_view). */
+	roleSummary(app: AppSlug): Promise<RoleSummary>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
+	/**
+	 * ONE page of the journal, newest first, of the days `from`..`to` (both included, either open), after `cursor` (null:
+	 * the newest), at most `limit` events. `nextCursor` null: nothing older.
+	 */
+	auditPage(
+		app: AppSlug,
+		window: { from?: string; to?: string },
+		cursor: string | null,
+		limit: number,
+	): Promise<AuditPage>;
 	/**
 	 * The statistics of a period (and of the one to compare with, when asked), for the whole clinic or one person's
 	 * column. A service answers each figure only as far as this person's permissions reach (money needs the money group).
@@ -295,10 +358,10 @@ export interface ClinicPort extends ProfilePort {
 	 */
 	inviteMember(app: AppSlug, input: InviteInput): Promise<InviteOutcome>;
 	/**
-	 * A fresh one-time set-password link for a member who has never signed in. Refuses (`conflict`, with the service's
+	 * The set-password link of a member who has never signed in: the sign-in answers the same one for 30 minutes. Refuses (`conflict`, with the service's
 	 * reason) one who already signed in, has no e-mail or no account of theirs in the staff group.
 	 */
-	newSignInLink(app: AppSlug, subject: string): Promise<string>;
+	newSignInLink(app: AppSlug, subject: string): Promise<SignInLink>;
 	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
 	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */

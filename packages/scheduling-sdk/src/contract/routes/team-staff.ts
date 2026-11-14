@@ -45,7 +45,7 @@ export const STAFF_ROUTES = [
 		path: "/v1/apps/:app/members/:subject/sign-in-link",
 		side: "team",
 		summary:
-			"A fresh one-time set-password link for a member who has never signed in (the invitation's lapsed or never arrived); the journal records that one was made, never the link",
+			"The set-password link of a member who has never signed in, with the latest instant it works (the sign-in keeps one per person for 30 minutes and answers the same one meanwhile); the journal records that it was shown, never the link",
 		params: SubjectParam,
 		response: StaffLinkResult,
 		permission: AddMember,

@@ -14,7 +14,9 @@
 			"./messages/profile/{locale}.json",
 			"./messages/settings/{locale}.json",
 			"./messages/members/{locale}.json",
-			"./messages/client/{locale}.json"
+			"./messages/client/{locale}.json",
+			"./messages/lists/{locale}.json",
+			"./messages/roles/{locale}.json"
 		]
 	}
 }

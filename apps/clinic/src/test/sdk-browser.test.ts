@@ -6,6 +6,7 @@ import { scaleUp } from "@psi/scheduling-api/testing-scale";
 import type { Browser, Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../app";
+import { JOURNAL_PAGE } from "../audit/journal";
 import { devApiSignIn } from "../dev-signin";
 import { createFakeNotifications } from "../notifications/fake";
 import { CLIENT_PAGE_SIZE } from "../port/port";
@@ -98,6 +99,18 @@ describe.each([360, 1280])("at %ipx", (width) => {
 		expect(await rows.count()).toBe(CLIENT_PAGE_SIZE);
 		await page.locator("#client-more button").click();
 		await expect.poll(() => rows.count(), { timeout: 10_000 }).toBe(2 * CLIENT_PAGE_SIZE);
+		expect(await sideways(page)).toBe(false);
+		expect(errors).toEqual([]);
+		await done();
+	});
+
+	it("the journal shows one page, and 'Mai multe' appends the next", async () => {
+		const { page, errors, done } = await as("olga", width);
+		await page.goto(`${url}/settings/audit`);
+		const rows = page.locator("#audit-rows tr");
+		expect(await rows.count()).toBe(JOURNAL_PAGE);
+		await page.locator("#audit-more button").click();
+		await expect.poll(() => rows.count(), { timeout: 10_000 }).toBe(2 * JOURNAL_PAGE);
 		expect(await sideways(page)).toBe(false);
 		expect(errors).toEqual([]);
 		await done();

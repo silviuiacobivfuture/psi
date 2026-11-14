@@ -223,9 +223,15 @@ pnpm --filter @psi/scheduling exec vitest run --maxWorkers=2
 `docs/plans/scheduling.md` §7 and §9 (S2). In the cluster the store is `gitops/services/scheduling-backend`
 (StatefulSet, 10Gi SQLite volume, in-cluster Service `http://scheduling-backend.scheduling.svc:3210`,
 NetworkPolicy, no Ingress, no dashboard) and the functions are deployed by `gitops/services/scheduling-deploy`:
-an Argo PostSync Job running `apps/scheduling-deploy/deploy.sh` from the image CI builds
-(`apps/scheduling-deploy/Dockerfile`). It sets `PSI_SCHEDULING_KEY` inside the deployment, then runs
+a tracked Job (replaced on each new image tag, sync wave 1) running `apps/scheduling-deploy/deploy.sh` from the
+image CI builds (`apps/scheduling-deploy/Dockerfile`). It sets `PSI_SCHEDULING_KEY` inside the deployment, then runs
 `convex deploy`; it never runs a function, so the DEMO seed (`seed:demo`) is never called in the cluster.
+
+**Functions before the service.** `deployment:functionsHash` answers the hash of the sources the functions were built
+from (`src/functions-hash.generated.ts`, written by `pnpm --filter @psi/scheduling functions-hash`; a test fails when
+it is stale). scheduling-api is built with the same constant and its `/ready` is not ready until the deployment
+answers it, so a new service pod takes no traffic before its functions are deployed. Functions only ever gain (a new
+one beside the old, never a renamed or narrowed one) so the running service keeps working with newer functions.
 
 OpenBao (`secret/apps/scheduling/env`: `INSTANCE_NAME`, `INSTANCE_SECRET`, `PSI_SCHEDULING_KEY`;
 `secret/apps/scheduling/admin`: `CONVEX_SELF_HOSTED_ADMIN_KEY`) and the rows in `estate/APP-SECRETS.md`.

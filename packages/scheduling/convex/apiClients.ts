@@ -302,6 +302,61 @@ export const get = query({
 	},
 });
 
+/** At most this many clients or practitioners are named in one batched read. */
+const MANY_MAX = 100;
+/** A practitioner treating more clients than this is refused rather than answered from part of the relation. */
+const TREATING_MAX = 5000;
+
+/**
+ * Many clients by id in ONE round trip, each with its practitioners: the ones found (not erased) in the order asked,
+ * an unknown, erased or other tenant's id silently absent. More than 100 ids is `invalid`.
+ */
+export const getMany = query({
+	args: { key: serverKeyValidator, tenant: v.string(), clients: v.array(v.string()) },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		if (args.clients.length > MANY_MAX) return REFUSED("invalid");
+		const found = [];
+		for (const id of new Set(args.clients)) {
+			const row = await owned(ctx, "clients", args.tenant, id);
+			if (row === null || row.erasedAt !== undefined) continue;
+			const treating = await ctx.db
+				.query("treating")
+				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", row._id))
+				.take(MANY_MAX);
+			found.push({ client: view(row), treating: treating.map((t) => t.practitioner as string) });
+		}
+		return { ok: true as const, clients: found };
+	},
+});
+
+/**
+ * The treating relation of many practitioners in ONE round trip (each read from its index): `{ practitioner, clients }`
+ * per practitioner found, in the order asked. More than 100 practitioners is `invalid`; one treating more than 5000
+ * clients is `too_many_rows` (never a partial answer).
+ */
+export const treatingForMany = query({
+	args: { key: serverKeyValidator, tenant: v.string(), practitioners: v.array(v.string()) },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		if (args.practitioners.length > MANY_MAX) return REFUSED("invalid");
+		const out: { practitioner: string; clients: string[] }[] = [];
+		for (const id of new Set(args.practitioners)) {
+			const p = await practitionerOf(ctx, args.tenant, id);
+			if (p === undefined) continue;
+			const rows = await ctx.db
+				.query("treating")
+				.withIndex("by_tenant_practitioner", (q) =>
+					q.eq("tenant", args.tenant).eq("practitioner", p._id),
+				)
+				.take(TREATING_MAX + 1);
+			if (rows.length > TREATING_MAX) return REFUSED("too_many_rows");
+			out.push({ practitioner: id, clients: rows.map((r) => r.client as string) });
+		}
+		return { ok: true as const, treating: out };
+	},
+});
+
 export const list = query({
 	args: {
 		key: serverKeyValidator,
@@ -317,17 +372,19 @@ export const list = query({
 		const prefix = (args.prefix ?? "").trim();
 		const want = args.visibility ?? "listed";
 		const limit = Math.max(1, Math.min(500, Math.floor(args.limit ?? 200)));
-		const rows = await ctx.db
+		const rows = ctx.db
 			.query("clients")
 			.withIndex("by_tenant_name", (q) =>
 				prefix === ""
 					? q.eq("tenant", args.tenant)
 					: q.eq("tenant", args.tenant).gte("name", prefix).lt("name", `${prefix}￿`),
-			)
-			.collect();
-		const shown = rows
-			.filter((c) => c.erasedAt === undefined && (want === "all" || visibilityOf(c) === want))
-			.slice(0, limit);
+			);
+		// Read in name order and stop at the page: never the whole app to answer its first `limit` clients.
+		const shown: Doc<"clients">[] = [];
+		for await (const c of rows) {
+			if (c.erasedAt === undefined && (want === "all" || visibilityOf(c) === want)) shown.push(c);
+			if (shown.length >= limit) break;
+		}
 		return { ok: true as const, clients: shown.map(view) };
 	},
 });

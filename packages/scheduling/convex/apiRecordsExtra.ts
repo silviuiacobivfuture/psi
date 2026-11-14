@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { LIST_MAX, PER_CLIENT_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { actorValidator, serverKeyValidator } from "./validators";
 
@@ -50,27 +51,31 @@ export const recordsList = query({
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		let rows: Doc<"formResponses">[];
+		const table = ctx.db.query("formResponses");
+		let rows: Doc<"formResponses">[] | undefined;
 		if (args.client !== undefined) {
 			const client = await owned(ctx, "clients", args.tenant, args.client);
 			if (client === null) return { ok: true as const, records: [] };
-			rows = await ctx.db
-				.query("formResponses")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-				.collect();
+			rows = await within(
+				table.withIndex("by_tenant_client", (q) =>
+					q.eq("tenant", args.tenant).eq("client", client._id),
+				),
+				PER_CLIENT_MAX,
+			);
 		} else if (args.definitionKey !== undefined) {
-			rows = await ctx.db
-				.query("formResponses")
-				.withIndex("by_tenant_definition", (q) =>
+			rows = await within(
+				table.withIndex("by_tenant_definition", (q) =>
 					q.eq("tenant", args.tenant).eq("definitionKey", args.definitionKey ?? ""),
-				)
-				.collect();
+				),
+				LIST_MAX,
+			);
 		} else {
-			rows = await ctx.db
-				.query("formResponses")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant))
-				.collect();
+			rows = await within(
+				table.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant)),
+				LIST_MAX,
+			);
 		}
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		return {
 			ok: true as const,
 			records: rows
@@ -112,20 +117,29 @@ export const clientFiles = query({
 	args: { key: serverKeyValidator, tenant: v.string(), client: v.optional(v.string()) },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		let rows: Doc<"files">[];
+		let rows: Doc<"files">[] | undefined;
 		if (args.client !== undefined) {
 			const client = await owned(ctx, "clients", args.tenant, args.client);
 			if (client === null) return { ok: true as const, files: [] };
-			rows = await ctx.db
-				.query("files")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-				.collect();
+			rows = await within(
+				ctx.db
+					.query("files")
+					.withIndex("by_tenant_client", (q) =>
+						q.eq("tenant", args.tenant).eq("client", client._id),
+					),
+				PER_CLIENT_MAX,
+			);
 		} else {
-			rows = await ctx.db
-				.query("files")
-				.withIndex("by_tenant_kind", (q) => q.eq("tenant", args.tenant).eq("kind", "client_file"))
-				.collect();
+			rows = await within(
+				ctx.db
+					.query("files")
+					.withIndex("by_tenant_kind", (q) =>
+						q.eq("tenant", args.tenant).eq("kind", "client_file"),
+					),
+				LIST_MAX,
+			);
 		}
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, files: rows.filter((f) => f.kind === "client_file").map(fileOut) };
 	},
 });
@@ -208,12 +222,15 @@ export const importRuns = query({
 	args: { key: serverKeyValidator, tenant: v.string() },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		const events = (
-			await ctx.db
+		// The import's own events only (entity "import", through their index), never the app's whole journal.
+		const read = await within(
+			ctx.db
 				.query("auditEvents")
-				.withIndex("by_tenant_at", (q) => q.eq("tenant", args.tenant))
-				.collect()
-		).filter((e) => e.action === "import.batch");
+				.withIndex("by_tenant_entity", (q) => q.eq("tenant", args.tenant).eq("entity", "import")),
+			LIST_MAX,
+		);
+		if (read === undefined) return REFUSED(TOO_MANY_ROWS);
+		const events = read.filter((e) => e.action === "import.batch").sort((a, b) => a.at - b.at);
 		const runs: { startedAt: number; finishedAt: number; counts: Record<string, number> }[] = [];
 		for (const e of events) {
 			const last = runs.at(-1);

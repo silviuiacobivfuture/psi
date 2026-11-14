@@ -25,6 +25,17 @@ export {
 export { formFields, isChat, registerBookingSlots, scheduleOf } from "./routes";
 export type { Schedule } from "./schedule";
 export { FormIdSchema } from "./schemas";
+export {
+	createVisitorScheduling,
+	type VisitorScheduling,
+	type VisitorSubmit,
+} from "./service";
+export {
+	readSchedulingApiEnv,
+	SCHEDULING_API_TIMEOUT_MS,
+	type SchedulingApiConfig,
+	type SchedulingApiProblem,
+} from "./service-env";
 export { registerBookingSubmit } from "./submit";
 export {
 	type AccountLine,

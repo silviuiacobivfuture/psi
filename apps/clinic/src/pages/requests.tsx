@@ -5,10 +5,13 @@ import type { Env } from "../app";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
+import { appendPage, MoreQuery, moreHref, ShowMore } from "../lib/show-more";
 import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
-import { PortError } from "../port/port";
+import { type Paged, PortError } from "../port/port";
 import type { WebRequest } from "../port/schema";
+
+type Show = "open" | "handled";
 
 function Request({
 	r,
@@ -62,22 +65,49 @@ function Request({
 	);
 }
 
-export function RequestsBody({
-	all,
+/** The next page of the shown requests, appended to the list; nothing on the last page. */
+function MoreRequests({
+	ctx,
 	show,
-	failed,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	show: Show;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	return (
+		<ShowMore
+			id="requests-more"
+			href={moreHref("/requests/more", cursor, shown, { show })}
+			label={m.ls_more({}, at(ctx.locale))}
+		/>
+	);
+}
+
+const requestRow = (ctx: Ctx, r: WebRequest): JSX.Element => (
+	<Request key={r.id} r={r} locale={ctx.locale} canDecide={ctx.can.write("web_requests_approve")} />
+);
+
+/**
+ * The first page of the open or the handled requests and a "show more"; a live update re-renders it from the first
+ * page again (what was appended folds back into the first page, the newest first).
+ */
+export function RequestsBody({
+	page,
+	show,
 	ctx,
 }: {
-	all: ReadonlyArray<WebRequest>;
-	show: "open" | "handled";
-	failed: boolean;
+	/** null: the requests could not be read. */
+	page: Paged<WebRequest> | null;
+	show: Show;
 	ctx: Ctx;
 }): JSX.Element {
 	const o = at(ctx.locale);
-	const list = all.filter((r) => r.handled === (show === "handled"));
 	return (
 		<div id="requests-live" class="adm-stack" style="display:contents">
-			{failed ? (
+			{page === null ? (
 				<Banner tone="error" icon="alert">
 					<strong>{m.error_title({}, o)}</strong>
 					<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
@@ -85,49 +115,46 @@ export function RequestsBody({
 						{m.retry({}, o)}
 					</a>
 				</Banner>
-			) : list.length === 0 ? (
+			) : page.items.length === 0 ? (
 				<EmptyState
 					icon="inbox"
 					title={m.requests_empty_title({}, o)}
 					text={m.requests_empty_text({}, o)}
 				/>
 			) : (
-				<div class="adm-stack" style="gap:var(--space-3)" id="requests">
-					{list.map((r) => (
-						<Request
-							key={r.id}
-							r={r}
-							locale={ctx.locale}
-							canDecide={ctx.can.write("web_requests_approve")}
-						/>
-					))}
-				</div>
+				<>
+					<div class="adm-stack" style="gap:var(--space-3)" id="requests">
+						{page.items.map((r) => requestRow(ctx, r))}
+					</div>
+					<MoreRequests ctx={ctx} show={show} cursor={page.nextCursor} shown={page.items.length} />
+				</>
 			)}
 		</div>
 	);
 }
 
+const firstPage = (ctx: Ctx, show: Show): Promise<Paged<WebRequest> | null> =>
+	ctx.port.requestPage(ctx.app, show, null).catch(() => null);
+
 /** The requests list again, for a live update. */
-export async function renderRequestsLive(ctx: Ctx, show: "open" | "handled"): Promise<JSX.Element> {
-	let all: ReadonlyArray<WebRequest> = [];
-	let failed = false;
-	try {
-		all = await ctx.port.requests(ctx.app);
-	} catch {
-		failed = true;
-	}
-	return <RequestsBody all={all} show={show} failed={failed} ctx={ctx} />;
+export async function renderRequestsLive(ctx: Ctx, show: Show): Promise<JSX.Element> {
+	return <RequestsBody page={await firstPage(ctx, show)} show={show} ctx={ctx} />;
 }
 
-export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promise<JSX.Element> {
+export async function renderRequests(ctx: Ctx, show: Show): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	let all: ReadonlyArray<WebRequest> = [];
-	let failed = false;
-	try {
-		all = await ctx.port.requests(ctx.app);
-	} catch {
-		failed = true;
-	}
+	const [page, open] = await Promise.all([
+		firstPage(ctx, show),
+		show === "open" ? null : firstPage(ctx, "open"),
+	]);
+	// How many are open: exact on one page, "50+" when more follow.
+	const opened = show === "open" ? page : open;
+	const openCount =
+		opened === null
+			? null
+			: opened.nextCursor === null
+				? String(opened.items.length)
+				: m.ls_count_more({ n: String(opened.items.length) }, o);
 	return Page({
 		ctx,
 		current: "requests",
@@ -141,26 +168,46 @@ export async function renderRequests(ctx: Ctx, show: "open" | "handled"): Promis
 					items={[
 						{
 							key: "open",
-							label: `${m.requests_open({}, o)} (${all.filter((r) => !r.handled).length})`,
+							label:
+								openCount === null
+									? m.requests_open({}, o)
+									: `${m.requests_open({}, o)} (${openCount})`,
 							href: "/requests?show=open",
 						},
 						{ key: "handled", label: m.requests_handled({}, o), href: "/requests?show=handled" },
 					]}
 				/>
-				<RequestsBody all={all} show={show} failed={failed} ctx={ctx} />
+				<RequestsBody page={page} show={show} ctx={ctx} />
 			</div>
 		),
 	});
 }
 
+const showOf = (raw: string | undefined): Show => (raw === "handled" ? "handled" : "open");
+
 export function registerRequests(app: Hono<Env>): void {
 	app.get("/requests", async (c) =>
-		c.html(
-			await renderRequests(c.var.ctx, c.req.query("show") === "handled" ? "handled" : "open"),
-			200,
-			{ "cache-control": "private, no-store" },
-		),
+		c.html(await renderRequests(c.var.ctx, showOf(c.req.query("show"))), 200, {
+			"cache-control": "private, no-store",
+		}),
 	);
+	// The next page of the shown requests, appended to the open list.
+	app.get("/requests/more", async (c) => {
+		const ctx = c.var.ctx;
+		const show = showOf(c.req.query("show"));
+		const asked = MoreQuery.parse(c.req.query());
+		const page = await ctx.port.requestPage(
+			ctx.app,
+			show,
+			asked.cursor === "" ? null : asked.cursor,
+		);
+		const shown = asked.shown + page.items.length;
+		return appendPage({
+			list: "#requests",
+			rows: page.items.map((r) => requestRow(ctx, r)),
+			more: <MoreRequests ctx={ctx} show={show} cursor={page.nextCursor} shown={shown} />,
+		});
+	});
 	app.post("/requests/:id/handled", async (c) => {
 		const ctx = c.var.ctx;
 		const o = at(ctx.locale);

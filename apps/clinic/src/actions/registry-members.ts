@@ -158,8 +158,8 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 		params: z.object({ subject: SubjectSchema }),
 		run: async (ctx, p) => {
 			if (p.subject === ctx.actor.subject) return SELF;
-			const signInLink = await ctx.port.newSignInLink(ctx.app, p.subject);
-			return { status: "ok", to: at(p.subject), data: { subject: p.subject, signInLink } };
+			const made = await ctx.port.newSignInLink(ctx.app, p.subject);
+			return { status: "ok", to: at(p.subject), data: { subject: p.subject, ...made } };
 		},
 	}),
 	define({

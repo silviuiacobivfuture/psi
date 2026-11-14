@@ -123,10 +123,11 @@ describe("the deployment declares every secret in all four places", () => {
 			"readOnlyRootFilesystem: true",
 			'drop: ["ALL"]',
 			"limits:",
-			"replicas: 2",
 			"harbor-pull",
 		])
 			expect(d, needle).toContain(needle);
+		// Two pods at least, held by the HPA (rollout.test.ts), not a fixed count.
+		expect(read("gitops/services/scheduling-api/base/hpa.yaml")).toContain("minReplicas: 2");
 		expect(d).not.toMatch(/name: OPENFGA_MODEL_ID, value/);
 	});
 

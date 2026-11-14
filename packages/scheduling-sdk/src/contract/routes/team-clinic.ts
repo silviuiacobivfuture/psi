@@ -26,6 +26,7 @@ import {
 	RosterPut,
 	RosterQuery,
 } from "../entities";
+import { CalendarSummary, CalendarSummaryQuery } from "../entities-calendar";
 import { AppParam, DateKey, Id, IdList, IdParam, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Deleted = z.object({ id: Id, status: z.literal("deleted"), purgeAt: Ms });
@@ -40,6 +41,18 @@ export const CALENDAR_ROUTES = [
 		params: AppParam,
 		query: CalendarQuery,
 		response: CalendarResult,
+		permission: { key: "calendars_view", target: { kind: "list", type: "sched_calendar" } },
+	}),
+	route({
+		id: "calendar.summary",
+		method: "GET",
+		path: "/v1/apps/:app/calendar/summary",
+		side: "team",
+		summary:
+			"How many visits each day of a window holds, on the calendars the caller may see (the month grid)",
+		params: AppParam,
+		query: CalendarSummaryQuery,
+		response: CalendarSummary,
 		permission: { key: "calendars_view", target: { kind: "list", type: "sched_calendar" } },
 	}),
 	route({

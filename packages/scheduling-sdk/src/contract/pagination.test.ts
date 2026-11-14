@@ -12,9 +12,12 @@ const BOUNDED: Readonly<Record<string, string>> = {
 	"me.get": "the apps the caller is a member of",
 	"me.capabilities": "the permission catalogue: fixed by the contract",
 	"roles.get": "one role's permission matrix: fixed by the catalogue",
+	"roles.summary":
+		"the app's roles (configuration, a handful) and their keys, each bounded by the catalogue",
 	"members.get":
 		"one member: their grants and matrix (the catalogue) and the team's calendars (the people)",
 	"calendar.get": "one window of at most MAX_WINDOW_DAYS days (the month grid)",
+	"calendar.summary": "one count per day of a window of at most MAX_WINDOW_DAYS days",
 	"clients.get": "one client: who treats them (max 20) and their pinned notes",
 	"roster.get": "one window of at most MAX_WINDOW_DAYS days",
 	"series.get": "one weekly series: at most MAX_SERIES_OCCURRENCES appointments",

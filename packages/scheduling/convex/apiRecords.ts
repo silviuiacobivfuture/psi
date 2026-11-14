@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record, stale } from "./apiSupport";
+import { LIST_MAX, PER_CLIENT_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { definitionOf } from "./importSupport";
 import { practitionerOf } from "./setupSupport";
@@ -178,10 +179,13 @@ export const recordsOfClient = mutation({
 		requireServer(args.key);
 		const client = await owned(ctx, "clients", args.tenant, args.client);
 		if (client === null) return REFUSED("not_found");
-		const rows = await ctx.db
-			.query("formResponses")
-			.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-			.collect();
+		const rows = await within(
+			ctx.db
+				.query("formResponses")
+				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id)),
+			PER_CLIENT_MAX,
+		);
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		await record(ctx, {
 			tenant: args.tenant,
 			actor: args.actor.subject,
@@ -286,18 +290,26 @@ export const files = query({
 		if (args.client !== undefined) {
 			const client = await owned(ctx, "clients", args.tenant, args.client);
 			if (client === null) return REFUSED("not_found");
-			const rows = await ctx.db
-				.query("files")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-				.collect();
+			const rows = await within(
+				ctx.db
+					.query("files")
+					.withIndex("by_tenant_client", (q) =>
+						q.eq("tenant", args.tenant).eq("client", client._id),
+					),
+				PER_CLIENT_MAX,
+			);
+			if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 			return { ok: true as const, files: rows.map((f) => ({ ...f, id: f._id })) };
 		}
-		const rows = await ctx.db
-			.query("files")
-			.withIndex("by_tenant_kind", (q) =>
-				q.eq("tenant", args.tenant).eq("kind", args.kind ?? "notice"),
-			)
-			.collect();
+		const rows = await within(
+			ctx.db
+				.query("files")
+				.withIndex("by_tenant_kind", (q) =>
+					q.eq("tenant", args.tenant).eq("kind", args.kind ?? "notice"),
+				),
+			LIST_MAX,
+		);
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, files: rows.map((f) => ({ ...f, id: f._id })) };
 	},
 });
