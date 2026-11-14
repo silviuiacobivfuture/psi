@@ -270,6 +270,8 @@ export const recordsContract: ContractSection = (env) => {
 			expect(await store.c.records.list(app, { eq: { clientId: c } })).toHaveLength(1);
 			expect(await store.c.records.list(app, { eq: { formId: f.id } })).toHaveLength(1);
 			expect(await store.c.records.list(app, { eq: { formId: "other-form" } })).toHaveLength(0);
+			// The records of no client never include a client's record (only the import writes one without a client).
+			expect(await store.c.records.list(app, { absent: "clientId" })).toEqual([]);
 			const changed = await crypto.seal(app, FIELDS.record, JSON.stringify({ summary: "changed" }));
 			expect(await store.c.records.replace({ ...rec, sealed: changed })).toBe(true);
 			expect(

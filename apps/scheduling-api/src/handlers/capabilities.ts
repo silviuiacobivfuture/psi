@@ -1,10 +1,13 @@
+import { createHash } from "node:crypto";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { type Capabilities, FIELD_GROUPS, type ScopeName } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { CATALOGUE, parseRelation } from "../authz/catalogue";
 import { roleKeys, rolesById } from "../authz/composition";
+import { SETTLE_MS } from "../authz/held-kept";
 import type { Ctx } from "../http/context";
 import { fail } from "../http/errors";
+import type { MemberRow, PersonRow, RoleRow } from "../store/types";
 import { must } from "./shared";
 
 type Out = z.output<typeof Capabilities>;
@@ -32,8 +35,7 @@ function summarize(held: Held): Pick<Out, "permissions" | "fieldGroups"> {
 }
 
 /** The people whose rows a narrowed scope reaches for this subject: their own person record, and the ones they coordinate. */
-async function reachOf(ctx: C, subject: string, coordinates: readonly string[]) {
-	const people = await ctx.deps.store.c.people.list(ctx.app);
+function reachOf(people: readonly PersonRow[], subject: string, coordinates: readonly string[]) {
 	return {
 		own: people.filter((p) => p.subject === subject).map((p) => p.id),
 		assigned: [...coordinates],
@@ -41,9 +43,37 @@ async function reachOf(ctx: C, subject: string, coordinates: readonly string[]) 
 }
 
 /** The names of the roles a member holds, by role id. */
-async function namesOf(ctx: C, ids: readonly string[]): Promise<Record<string, string>> {
-	const roles = await ctx.deps.store.c.roles.list(ctx.app);
+function namesOf(roles: readonly RoleRow[], ids: readonly string[]): Record<string, string> {
 	return Object.fromEntries(roles.filter((r) => ids.includes(r.id)).map((r) => [r.id, r.name]));
+}
+
+/**
+ * The rows a member's held scopes derive from, digested: the member's roles, grants, denials and coordinators, every
+ * role's permissions and inclusions, and the platform administrator's standing. Any change is another fingerprint. Kept
+ * only when none of those rows changed in the last moments (their tuples may still be on the way).
+ */
+function basisOf(
+	ctx: C,
+	member: MemberRow | undefined,
+	roles: readonly RoleRow[],
+	platformAdmin: boolean,
+): { fingerprint: string; keep: boolean; now: number } {
+	const now = ctx.deps.clock();
+	const rows = [
+		member === undefined
+			? null
+			: [member.roles, member.grants, member.denies, member.coordinates, member.updatedAt],
+		[...roles]
+			.sort((a, b) => a.id.localeCompare(b.id))
+			.map((r) => [r.id, r.permissions, r.includes, r.updatedAt]),
+		platformAdmin,
+	];
+	const changed = Math.max(member?.updatedAt ?? 0, ...roles.map((r) => r.updatedAt));
+	return {
+		fingerprint: createHash("sha256").update(JSON.stringify(rows)).digest("hex"),
+		keep: now - changed >= SETTLE_MS,
+		now,
+	};
 }
 
 /** `role:<id>`, `member:<subject>`, or a bare subject (a member). */
@@ -62,13 +92,24 @@ export function parseViewAs(raw: string): { kind: "role" | "member"; id: string 
  * relations, denials removed.
  */
 async function ofMember(ctx: C, subject: string, viewAs: Out["viewAs"]): Promise<Out> {
-	const app = await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app");
-	const member = await ctx.deps.store.c.members.get(ctx.app, subject);
+	// The rows are independent: asked side by side, then the catalogue (kept while they are unchanged).
+	const [app, member, roles, people, platformAdmin] = await Promise.all([
+		must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app"),
+		ctx.deps.store.c.members.get(ctx.app, subject),
+		ctx.deps.store.c.roles.list(ctx.app),
+		ctx.deps.store.c.people.list(ctx.app),
+		ctx.deps.access.isPlatformAdmin(subject),
+	]);
 	if (viewAs !== undefined && member === undefined) throw fail("not_found", "member not found");
-	const held = await ctx.deps.access.scopesHeldMany(
-		subject,
-		ctx.app,
-		CATALOGUE.map((def) => def.key),
+	const held = await ctx.deps.held.get(
+		`${ctx.app}\u0000${subject}`,
+		() =>
+			ctx.deps.access.scopesHeldMany(
+				subject,
+				ctx.app,
+				CATALOGUE.map((def) => def.key),
+			),
+		basisOf(ctx, member, roles, platformAdmin),
 	);
 	return {
 		subject,
@@ -77,11 +118,11 @@ async function ofMember(ctx: C, subject: string, viewAs: Out["viewAs"]): Promise
 		timeZone: app.timeZone,
 		...(member === undefined ? {} : { displayName: member.displayName }),
 		roles: member?.roles ?? [],
-		roleNames: await namesOf(ctx, member?.roles ?? []),
+		roleNames: namesOf(roles, member?.roles ?? []),
 		...summarize(held),
 		denied: [...(member?.denies ?? [])].sort(),
-		reach: await reachOf(ctx, subject, member?.coordinates ?? []),
-		platformAdmin: await ctx.deps.access.isPlatformAdmin(subject),
+		reach: reachOf(people, subject, member?.coordinates ?? []),
+		platformAdmin,
 		...(viewAs === undefined ? {} : { viewAs }),
 	};
 }

@@ -1,5 +1,6 @@
 import { createTokenVerifier } from "./auth/tokens";
 import { createAccess } from "./authz/access";
+import { createHeldKept, HELD_KEPT } from "./authz/held-kept";
 import { createLiveAuthz } from "./authz/live";
 import { createMemoryAuthz, type MemoryAuthz } from "./authz/memory";
 import { type Config, deliversNotices } from "./config";
@@ -85,6 +86,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		notifier: wiring.notifier,
 		reminders: wiring.reminders,
 		limiter: createLimiter({ capacity: 30, refillPerSecond: 5 }, Date.now),
+		held: createHeldKept(HELD_KEPT),
 		clock: Date.now,
 		log: stdoutLog,
 		streamHeartbeatMs: 15_000,

@@ -106,7 +106,8 @@ export type RecordStatus = z.infer<typeof RecordStatusSchema>;
 
 export const ClientRecordSchema = z.object({
 	id: z.string(),
-	clientId: z.string(),
+	/** `null`: a record that belongs to no client (kept from the old app with its visit); app-wide scope only. */
+	clientId: z.string().nullable(),
 	formKey: z.string(),
 	formVersion: z.number().int().positive(),
 	appointmentId: z.string().nullable(),

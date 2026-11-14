@@ -127,6 +127,19 @@ export function seedClinical(clients: ReadonlyArray<Client>, today: string): Cli
 						updatedAt: `${today}T13:00:00`,
 						data: {},
 					},
+					// A report whose client is gone (deleted before the move): it belongs to no client.
+					{
+						id: "r3",
+						clientId: null,
+						formKey: "aba-session-report",
+						formVersion: 1,
+						appointmentId: null,
+						status: "final",
+						authorName: "Terapeut Alfa",
+						createdAt: `${today}T08:00:00`,
+						updatedAt: `${today}T08:00:00`,
+						data: { recommendations: "Raport fără client, sintetic." },
+					},
 				];
 	const files =
 		c1 === undefined

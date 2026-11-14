@@ -134,7 +134,10 @@ export class MemoryCollection<R extends { id: string; app: string }> implements 
 
 	list(app: string, query?: Query<R>): Promise<R[]> {
 		const eq = Object.entries(query?.eq ?? {}).filter(([, v]) => v !== undefined);
-		const keep = (row: R): boolean => eq.every(([k, v]) => Reflect.get(row, k) === v);
+		const absent = query?.absent;
+		const keep = (row: R): boolean =>
+			eq.every(([k, v]) => Reflect.get(row, k) === v) &&
+			(absent === undefined || Reflect.get(row, absent) === undefined);
 		const few = query === undefined ? undefined : this.#oneOf(app, query, keep);
 		if (few !== undefined) return Promise.resolve(few);
 		const range = query?.range;

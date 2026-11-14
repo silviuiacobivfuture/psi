@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { handlers } from "../handlers/index";
 import { withActor } from "../store/actor";
+import { serverTiming, timed } from "../timing";
 import { compressAnswers } from "./compress";
 import type { Deps, HttpEnv } from "./context";
 import { fail } from "./errors";
@@ -17,6 +18,7 @@ export function createApp(
 	options: { corsOrigins?: readonly string[]; extend?: (app: Hono<HttpEnv>) => void } = {},
 ): Hono<HttpEnv> {
 	const app = new Hono<HttpEnv>();
+	app.use("*", serverTiming());
 	app.use("*", async (c, next) => {
 		c.set("requestId", crypto.randomUUID());
 		const declared = Number(c.req.header("content-length") ?? "0");
@@ -83,7 +85,9 @@ export function createApp(
 		app.on(spec.method, spec.path, async (c) => {
 			try {
 				const prepared = await prepare(deps, spec, c);
-				const result = await withActor(prepared.ctx.subject, () => handler(prepared.ctx));
+				const result = await timed("handler", () =>
+					withActor(prepared.ctx.subject, () => handler(prepared.ctx)),
+				);
 				return c.json(await finish(deps, prepared, result));
 			} catch (error) {
 				const r = refusal(deps, error, c.get("requestId"));

@@ -85,6 +85,22 @@ export const recordsList = query({
 	},
 });
 
+/** The app's records that belong to no client (kept from the old app with their visit), ciphertext. */
+export const recordsWithoutClient = query({
+	args: { key: serverKeyValidator, tenant: v.string() },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const rows = await within(
+			ctx.db
+				.query("formResponses")
+				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", undefined)),
+			LIST_MAX,
+		);
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
+		return { ok: true as const, records: rows.map(recordOut) };
+	},
+});
+
 const fileOut = (f: Doc<"files">) => ({
 	id: f._id,
 	client: f.client,

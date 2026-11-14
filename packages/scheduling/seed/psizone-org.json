@@ -1,0 +1,62 @@
+{
+	"app": "psizone",
+	"name": "Centrul Psihologic PSIZONE",
+	"devices": [
+		{ "name": "NFB 1", "formerly": [], "room": "neurofeedback-1", "deviceType": "nfb" },
+		{ "name": "NFB 2", "formerly": [], "room": "neurofeedback-2", "deviceType": "nfb" },
+		{ "name": "QEEG", "formerly": [], "room": "mapping-cerebral", "deviceType": "qeeg" }
+	],
+	"groups": [{ "name": "Race Me Up", "formerly": [], "kind": "group" }],
+	"services": [
+		{
+			"slug": "terapie-cognitiv-comportamentala",
+			"name": { "ro": "Terapie cognitiv-comportamentală", "en": "Cognitive behavioural therapy" },
+			"category": "therapy",
+			"rooms": [],
+			"devices": []
+		},
+		{
+			"slug": "psihoterapie-individuala",
+			"name": { "ro": "Psihoterapie individuală", "en": "Individual psychotherapy" },
+			"category": "therapy",
+			"rooms": [],
+			"devices": []
+		},
+		{
+			"slug": "logopedie",
+			"name": { "ro": "Logopedie", "en": "Speech therapy" },
+			"category": "therapy",
+			"rooms": ["cabinet-1", "cabinet-2"],
+			"devices": []
+		},
+		{
+			"slug": "terapie-integrare-senzoriala",
+			"name": { "ro": "Terapie de integrare senzorială", "en": "Sensory integration therapy" },
+			"category": "therapy",
+			"rooms": [],
+			"devices": []
+		},
+		{
+			"slug": "race-me-up",
+			"name": { "ro": "Race Me Up", "en": "Race Me Up" },
+			"category": "therapy",
+			"rooms": ["sala-terapie-grup"],
+			"devices": []
+		},
+		{
+			"slug": "neurofeedback",
+			"name": { "ro": "Neurofeedback", "en": "Neurofeedback" },
+			"category": "neuro",
+			"rooms": ["neurofeedback-1", "neurofeedback-2"],
+			"devices": ["NFB 1", "NFB 2"]
+		},
+		{
+			"slug": "evaluare-qeeg",
+			"name": { "ro": "Evaluare QEEG", "en": "QEEG assessment" },
+			"category": "neuro",
+			"rooms": ["mapping-cerebral"],
+			"devices": ["QEEG"]
+		}
+	],
+	"serviceDraft": { "durationMinutes": 40, "modes": ["onsite"] }
+}

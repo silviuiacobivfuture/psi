@@ -22,6 +22,15 @@ spec:
     kustomize:
       images:
         - registry.psizone.ro/psi/autorizare-svc:seb-b776c20ea
+      # psi 2026-11-14, by hand until psi's next bundle carries it from estate/seb-components/openfga (slot
+      # `resources`): OpenFGA's CPU, throttled 34% at 1 CPU. The next estate/seb-upgrade.sh rewrites this file; the
+      # component keeps the change.
+      patches:
+        - target: { kind: Deployment, name: openfga }
+          patch: |-
+            - { op: test, path: /spec/template/spec/containers/0/name, value: openfga }
+            - { op: replace, path: /spec/template/spec/containers/0/resources/limits/cpu, value: "2" }
+            - { op: replace, path: /spec/template/spec/containers/0/resources/requests/cpu, value: 200m }
   destination:
     server: https://kubernetes.default.svc
     namespace: openfga

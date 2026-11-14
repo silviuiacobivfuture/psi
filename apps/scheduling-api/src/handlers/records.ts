@@ -2,7 +2,7 @@ import { recordResourceFor } from "@psi/scheduling/permissions";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { appLink, parentLink } from "../authz/links";
 import type { Ctx, HandlersOf } from "../http/context";
-import { fail } from "../http/errors";
+import { fail, forbidden } from "../http/errors";
 import { FIELDS } from "../ports/crypto";
 import type { RecordRow } from "../store/types";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
@@ -12,7 +12,7 @@ const MAX_RECORD_BYTES = 100_000;
 
 const summary = (r: RecordRow) => ({
 	id: r.id,
-	clientId: r.clientId,
+	...(r.clientId === undefined ? {} : { clientId: r.clientId }),
 	formId: r.formId,
 	formVersion: r.formVersion,
 	...(r.appointmentId === undefined ? {} : { appointmentId: r.appointmentId }),
@@ -49,9 +49,13 @@ async function full(ctx: C, r: RecordRow, via: string) {
 	};
 }
 
-const links = (type: "sched_record", id: string, app: string, clientId: string) => [
+/**
+ * A record's facts: its app, and its client when it has one. A record of no client has no client fact, so no
+ * own/assigned scope and no client's grant reaches it: only the app-wide scope does (`sched_record` in the model).
+ */
+const links = (type: "sched_record", id: string, app: string, clientId: string | undefined) => [
 	appLink(type, id, app),
-	parentLink(type, id, "client", "sched_client", clientId),
+	...(clientId === undefined ? [] : [parentLink(type, id, "client", "sched_client", clientId)]),
 ];
 
 async function sealed(ctx: C, app: string, data: Record<string, unknown>): Promise<string> {
@@ -62,8 +66,35 @@ async function sealed(ctx: C, app: string, data: Record<string, unknown>): Promi
 }
 
 export const recordHandlers: HandlersOf<
-	"records.list" | "records.create" | "records.get" | "records.update" | "records.remove"
+	| "records.list"
+	| "records.withoutClient"
+	| "records.create"
+	| "records.get"
+	| "records.update"
+	| "records.remove"
 > = {
+	async "records.withoutClient"(ctx) {
+		// A record of no client is reached by the app-wide scope of its form's resource only: there is no client whose
+		// practitioner, coordinator or grant could stand for it. A role with none of them app-wide is refused.
+		const readable = new Set<string>();
+		for (const resource of RECORD_RESOURCES)
+			if ((await ctx.scopesOf(`${resource}_view`)).includes("all"))
+				readable.add(`${resource}_view`);
+		if (readable.size === 0)
+			throw forbidden("the role does not allow this", { permission: "record:dynamic" });
+		const rows = (await ctx.deps.store.c.records.list(ctx.app, { absent: "clientId" }))
+			.filter((r) => r.clientId === undefined)
+			.sort((a, b) => b.createdAt - a.createdAt);
+		const shown: RecordRow[] = [];
+		for (const r of rows)
+			if (readable.has(`${await resourceOfForm(ctx, r.formId)}_view`)) shown.push(r);
+		const page = paginate(shown, ctx.query.limit, ctx.query.cursor);
+		return {
+			...page,
+			items: await Promise.all(page.items.map((r) => full(ctx, r, "records.withoutClient"))),
+		};
+	},
+
 	async "records.list"(ctx) {
 		const client = String(ctx.params.id);
 		const held = await ctx.authorizeAny(

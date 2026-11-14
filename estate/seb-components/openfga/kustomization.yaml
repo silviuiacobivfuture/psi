@@ -8,6 +8,15 @@ patches:
     patch: |-
       - { op: test, path: /spec/template/spec/containers/0/name, value: openfga }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 64Mi }
+  # psi 2026-11-14: OpenFGA was throttled 34% at its 1-CPU limit while the console's checks peaked (BatchCheck bursts);
+  # limit 2 CPU, request 200m (idle ~2m; the node sits near 30% of 16 cores). Slot `resources`. Until psi's next bundle
+  # is built with this component, the generated Application (gitops/apps/overlays/dev/seb-bundle/seb-openfga.yaml)
+  # carries the same patch.
+  - target: { kind: Deployment, name: openfga }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: openfga }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/limits/cpu, value: "2" }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/requests/cpu, value: 200m }
 # Slot `image` (schema/slots/openfga.yaml): the tag of the autorizare-svc image psi built
 # (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:92765e6a… in registry.psizone.ro/psi.
 # The generated Application sets it (estate/seb-image-tags.mjs).
