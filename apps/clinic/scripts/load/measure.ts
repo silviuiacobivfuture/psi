@@ -4,7 +4,8 @@ export interface Target {
 	/** Short, stable: how the row is named in the results. */
 	name: string;
 	kind: "page" | "api";
-	url: string;
+	/** One URL, or one per replica of the same thing (the connections are spread over them, as an ingress would). */
+	urls: readonly string[];
 	headers: Record<string, string>;
 }
 
@@ -29,9 +30,38 @@ export function quantile(sorted: readonly number[], q: number): number {
 	return sorted[rank] ?? Number.NaN;
 }
 
+interface Run {
+	result: autocannon.Result;
+	samples: number[];
+	bytes: number;
+}
+
+/** One autocannon run against one URL, recording every response's own time. */
+function run(
+	url: string,
+	headers: Record<string, string>,
+	connections: number,
+	seconds: number,
+	timeoutSeconds: number,
+): Promise<Run> {
+	const samples: number[] = [];
+	let bytes = 0;
+	return new Promise<Run>((resolve, reject) => {
+		const instance = autocannon(
+			{ url, connections, duration: seconds, headers, timeout: timeoutSeconds },
+			(error: Error | null, done: autocannon.Result) =>
+				error === null ? resolve({ result: done, samples, bytes }) : reject(error),
+		);
+		instance.on("response", (_client, _status, resBytes, responseTime) => {
+			samples.push(responseTime);
+			bytes = resBytes;
+		});
+	});
+}
+
 /**
- * Loads one target with `connections` concurrent connections for `seconds`, recording every response's own time
- * (autocannon's summary has no 95th percentile, so it is computed from the samples).
+ * Loads one target with `connections` concurrent connections for `seconds` (spread evenly over its URLs, all at once),
+ * computing the percentiles from every sample (autocannon's summary has no 95th percentile).
  */
 export async function measure(
 	target: Target,
@@ -39,37 +69,27 @@ export async function measure(
 	seconds: number,
 	timeoutSeconds: number,
 ): Promise<Measured> {
-	const samples: number[] = [];
-	let bytes = 0;
-	const result = await new Promise<autocannon.Result>((resolve, reject) => {
-		const instance = autocannon(
-			{
-				url: target.url,
-				connections,
-				duration: seconds,
-				headers: target.headers,
-				timeout: timeoutSeconds,
-			},
-			(error: Error | null, done: autocannon.Result) =>
-				error === null ? resolve(done) : reject(error),
-		);
-		instance.on("response", (_client, _status, resBytes, responseTime) => {
-			samples.push(responseTime);
-			bytes = resBytes;
-		});
-	});
-	samples.sort((a, b) => a - b);
+	const share = (i: number): number =>
+		Math.floor(connections / target.urls.length) + (i < connections % target.urls.length ? 1 : 0);
+	const runs = await Promise.all(
+		target.urls
+			.map((url, i) => ({ url, connections: share(i) }))
+			.filter((r) => r.connections > 0)
+			.map((r) => run(r.url, target.headers, r.connections, seconds, timeoutSeconds)),
+	);
+	const samples = runs.flatMap((r) => r.samples).sort((a, b) => a - b);
+	const sum = (pick: (r: Run) => number): number => runs.reduce((s, r) => s + pick(r), 0);
 	return {
 		name: target.name,
 		kind: target.kind,
-		requests: result.requests.total,
-		errors: result.errors + result.timeouts,
-		non2xx: result.non2xx,
+		requests: sum((r) => r.result.requests.total),
+		errors: sum((r) => r.result.errors + r.result.timeouts),
+		non2xx: sum((r) => r.result.non2xx),
 		p50: round(quantile(samples, 0.5)),
 		p95: round(quantile(samples, 0.95)),
 		p99: round(quantile(samples, 0.99)),
-		rps: Math.round(result.requests.average),
-		bytes,
+		rps: Math.round(sum((r) => r.result.requests.average)),
+		bytes: runs[0]?.bytes ?? 0,
 	};
 }
 

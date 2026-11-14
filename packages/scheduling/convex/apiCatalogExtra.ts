@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { REFUSED, record } from "./apiSupport";
+import { CATALOG_MAX, TOO_MANY_ROWS } from "./bounded";
 import { requireServer } from "./guard";
 import { actorValidator, serverKeyValidator } from "./validators";
 
@@ -70,7 +71,8 @@ export const practitioners = query({
 		const rows = await ctx.db
 			.query("practitioners")
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, practitioners: rows.map(view) };
 	},
 });
@@ -82,7 +84,8 @@ export const rooms = query({
 		const rows = await ctx.db
 			.query("rooms")
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, rooms: rows.map(view) };
 	},
 });
@@ -94,7 +97,8 @@ export const services = query({
 		const rows = await ctx.db
 			.query("services")
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, services: rows.map(view) };
 	},
 });

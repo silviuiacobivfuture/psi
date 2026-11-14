@@ -25,6 +25,23 @@ export const requestsSection: ContractSection = (env) => {
 			expect(await store.requests.pending(app)).toBe(1);
 		});
 
+		it("a callback with the time the visitor wanted and the service is stored and listed like any callback", async () => {
+			const store = env().store;
+			const app = await env().newApp();
+			const { reference } = await store.visitor.callback(app, {
+				...form,
+				audience: "child",
+				channel: "guide",
+				preferredStart: Date.now() + 86_400_000,
+				service: "evaluation",
+			});
+			const listed = await store.requests.list(app, 0, Date.now() + 60_000);
+			expect(listed).toEqual([
+				expect.objectContaining({ reference, status: "requested", contact }),
+			]);
+			expect(listed[0]?.start).toBeUndefined();
+		});
+
 		it("a callback can only be called back: confirm, decline and cancel are not allowed; unknown is not found", async () => {
 			const store = env().store;
 			const app = await env().newApp();

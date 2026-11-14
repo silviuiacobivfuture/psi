@@ -8,7 +8,11 @@ metadata:
     reloader.stakater.com/auto: "true"
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
-  replicas: 1
+  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count, 2 to 4, so Argo never fights it. Sessions live
+  # in the account database, so any pod answers any person; a rollout never drops below the pods serving.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
   selector: { matchLabels: { app: clinic } }
   template:
     metadata:
@@ -70,9 +74,11 @@ spec:
           startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 30 }
           readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
           livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          # Sized from the load test (apps/clinic/scripts/load): rendering at 20 connections keeps one process near a
+          # core; the HPA scales at 70% of the request.
           resources:
-            requests: { cpu: 50m, memory: 128Mi }
-            limits: { cpu: 500m, memory: 384Mi }
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

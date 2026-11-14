@@ -11,11 +11,13 @@
 		"./permissions": "./src/permissions/index.ts",
 		"./clinic": "./src/clinic/index.ts",
 		"./testing": "./src/testing.ts",
-		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json"
+		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json",
+		"./functions-hash": "./src/functions-hash.generated.ts"
 	},
 	"scripts": {
 		"type-check": "tsc --noEmit",
 		"test": "vitest run",
+		"functions-hash": "tsx scripts/functions-hash.ts",
 		"convex:deploy": "scripts/convex.sh deploy --yes",
 		"convex:seed": "scripts/convex.sh run seed:demo",
 		"import:old": "scripts/import-old.sh",

@@ -17,11 +17,8 @@ export const AuditQuerySchema = z.object({
 	from: optional(IsoDay),
 	to: optional(IsoDay),
 	q: optional(z.string().trim().max(100)),
-	page: z.preprocess(blank, z.coerce.number().int().min(1).max(1000).catch(1).default(1)),
 });
 export type AuditQuery = z.infer<typeof AuditQuerySchema>;
-
-export const PAGE_SIZE = 50;
 
 /** Lower case without accents, so "recepție" is found by "receptie". */
 const fold = (s: string): string => s.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase();
@@ -53,32 +50,15 @@ export function bySearch(rows: ReadonlyArray<Row>, q: AuditQuery): ReadonlyArray
 	return rows.filter((r) => haystack(r).includes(needle));
 }
 
-export interface Paged<T> {
-	items: ReadonlyArray<T>;
-	page: number;
-	pages: number;
-	total: number;
+/** Only what was chosen, as URL parameters (for "show more", the export and a link back). */
+export function paramsOf(q: AuditQuery): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") out[k] = String(v);
+	return out;
 }
 
-export function paged<T>(all: ReadonlyArray<T>, page: number): Paged<T> {
-	const pages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
-	const at = Math.min(page, pages);
-	return {
-		items: all.slice((at - 1) * PAGE_SIZE, at * PAGE_SIZE),
-		page: at,
-		pages,
-		total: all.length,
-	};
-}
-
-/** The query as a URL's search part, only what was chosen (for the pager, the export and a link back). */
-export function searchOf(q: AuditQuery, extra: Partial<AuditQuery> = {}): string {
-	const merged = { ...q, ...extra };
-	const p = new URLSearchParams();
-	for (const [k, v] of Object.entries(merged)) {
-		if (v === undefined || v === "" || (k === "page" && v === 1)) continue;
-		p.set(k, String(v));
-	}
-	const s = p.toString();
+/** The query as a URL's search part. */
+export function searchOf(q: AuditQuery): string {
+	const s = new URLSearchParams(paramsOf(q)).toString();
 	return s === "" ? "" : `?${s}`;
 }

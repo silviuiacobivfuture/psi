@@ -24,13 +24,24 @@ describe("Psizone and the control plane", () => {
 	});
 
 	it("reports scheduling's state without a key", () => {
+		const url = "http://scheduling-api.scheduling-api.svc";
 		expect(schedulingState({})).toEqual({ state: "not_configured" });
-		expect(schedulingState({ CONVEX_URL: "http://127.0.0.1:3210" })).toEqual({
+		// The Convex store alone no longer books: the site books through the scheduling service.
+		expect(
+			schedulingState({ CONVEX_URL: "http://127.0.0.1:3210", PSI_SCHEDULING_KEY: "k".repeat(32) }),
+		).toEqual({ state: "not_configured" });
+		expect(schedulingState({ SCHEDULING_API_URL: url })).toEqual({
 			state: "error",
 			reason: "no_key",
 		});
 		expect(
-			schedulingState({ CONVEX_URL: "http://127.0.0.1:3210", PSI_SCHEDULING_KEY: "k".repeat(32) }),
+			schedulingState({ SCHEDULING_API_URL: url, SCHEDULING_SERVICE_KEY: "psizone-web" }),
+		).toEqual({ state: "error", reason: "invalid" });
+		expect(
+			schedulingState({
+				SCHEDULING_API_URL: url,
+				SCHEDULING_SERVICE_KEY: `psizone-web.${"s".repeat(64)}`,
+			}),
 		).toEqual({ state: "on" });
 	});
 });

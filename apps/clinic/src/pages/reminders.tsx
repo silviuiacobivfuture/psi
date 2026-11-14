@@ -6,9 +6,11 @@ import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { addDays, dayLong, hhmm, IsoDay, todayIso } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
+import { appendPage, MoreQuery, moreHref, ShowMore } from "../lib/show-more";
 import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
-import { PortError, type ReminderItem } from "../port/port";
+import { offsetPage } from "../port/offset-page";
+import { LIST_PAGE, PortError, type ReminderItem } from "../port/port";
 import type { AppSlug } from "../port/schema";
 
 /** `0700 000 001` → `40700000001` (wa.me wants the international number, digits only). */
@@ -115,6 +117,37 @@ function Row({
 	);
 }
 
+const reminderRow = (ctx: Ctx, item: ReminderItem): JSX.Element => (
+	<Row
+		key={item.appointment.id}
+		item={item}
+		app={ctx.app}
+		locale={ctx.locale}
+		canSend={ctx.can.write("reminders_send")}
+	/>
+);
+
+/** The day's next reminders, appended to the list; nothing once the day's last is shown. */
+function MoreReminders({
+	ctx,
+	date,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	date: string;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	return (
+		<ShowMore
+			id="reminders-more"
+			href={moreHref("/reminders/more", cursor, shown, { date })}
+			label={m.ls_more({}, at(ctx.locale))}
+		/>
+	);
+}
+
 export async function renderReminders(
 	ctx: Ctx,
 	dateParam: string | undefined,
@@ -128,6 +161,8 @@ export async function renderReminders(
 	} catch {
 		failed = true;
 	}
+	// One day's reminders, drawn a page at a time.
+	const page = offsetPage(items, null, LIST_PAGE);
 	return Page({
 		ctx,
 		current: "reminders",
@@ -170,17 +205,21 @@ export async function renderReminders(
 						text={m.reminders_empty_text({}, o)}
 					/>
 				) : (
-					<ul class="adm-stack" style="gap:var(--space-2);margin:0;padding:0;list-style:none">
-						{items.map((i) => (
-							<Row
-								key={i.appointment.id}
-								item={i}
-								app={ctx.app}
-								locale={ctx.locale}
-								canSend={ctx.can.write("reminders_send")}
-							/>
-						))}
-					</ul>
+					<>
+						<ul
+							class="adm-stack"
+							id="reminders-list"
+							style="gap:var(--space-2);margin:0;padding:0;list-style:none"
+						>
+							{page.items.map((i) => reminderRow(ctx, i))}
+						</ul>
+						<MoreReminders
+							ctx={ctx}
+							date={date}
+							cursor={page.nextCursor}
+							shown={page.items.length}
+						/>
+					</>
 				)}
 			</div>
 		),
@@ -193,6 +232,29 @@ export function registerReminders(app: Hono<Env>): void {
 			"cache-control": "private, no-store",
 		}),
 	);
+	// The day's next page of reminders, appended to the open list.
+	app.get("/reminders/more", async (c) => {
+		const ctx = c.var.ctx;
+		const date = IsoDay.catch(addDays(todayIso(), 1)).parse(c.req.query("date"));
+		const asked = MoreQuery.parse(c.req.query());
+		const page = offsetPage(
+			await ctx.port.reminders(ctx.app, date),
+			asked.cursor === "" ? null : asked.cursor,
+			LIST_PAGE,
+		);
+		return appendPage({
+			list: "#reminders-list",
+			rows: page.items.map((i) => reminderRow(ctx, i)),
+			more: (
+				<MoreReminders
+					ctx={ctx}
+					date={date}
+					cursor={page.nextCursor}
+					shown={asked.shown + page.items.length}
+				/>
+			),
+		});
+	});
 	// The tap on WhatsApp or e-mail marks the reminder sent; the link itself has already opened.
 	app.post("/reminders/:id/sent", async (c) => {
 		const ctx = c.var.ctx;

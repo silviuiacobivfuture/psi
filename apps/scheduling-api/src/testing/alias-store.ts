@@ -52,7 +52,10 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		devices: collection(inner.c.devices),
 		groups: collection(inner.c.groups),
 		services: collection(inner.c.services),
-		clients: collection(inner.c.clients),
+		clients: {
+			...collection(inner.c.clients),
+			getMany: async (app, ids) => (await inner.c.clients.getMany(to(app), ids)).map(rowOut),
+		},
 		appointments: collection(inner.c.appointments),
 		packages: collection(inner.c.packages),
 		payments: collection(inner.c.payments),

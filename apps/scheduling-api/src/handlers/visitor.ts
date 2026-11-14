@@ -1,3 +1,4 @@
+import { bookingFieldProblems } from "@psi/scheduling-sdk/contract";
 import { visitorSubject } from "../auth/principal";
 import { alertBlacklist } from "../engagement/blacklist-alert";
 import { activateOnSignIn } from "../engagement/invite-flow";
@@ -61,6 +62,15 @@ export const visitorHandlers: HandlersOf<
 		return { ok: true as const };
 	},
 	async "visitor.submit"(ctx) {
+		// The five booking fields, before anything is written (the hold stays as it was, to be submitted again).
+		const problems = bookingFieldProblems(ctx.body);
+		const first = problems[0];
+		if (first !== undefined)
+			throw fail("invalid", "the booking misses a required field", {
+				reason: first.reason,
+				field: first.field,
+				fields: problems.map((p) => p.field),
+			});
 		const subject =
 			ctx.principal.kind === "person" ? ctx.principal.subject : visitorSubject(ctx.principal);
 		const result = await ctx.deps.store.visitor.submit(ctx.app, {

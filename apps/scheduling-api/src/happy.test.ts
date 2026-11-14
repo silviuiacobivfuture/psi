@@ -2,7 +2,7 @@ import { FileInitResult, ROUTES, type RouteId, type RouteSpec } from "@psi/sched
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { EXTRA_HAPPY, type ExtraId } from "./happy-extra";
 import type { Populated } from "./testing/populate";
-import { HOUR, NOW, type Reply } from "./testing/world";
+import { bookingContact, HOUR, NOW, type Reply } from "./testing/world";
 import { worldFactories } from "./testing/worlds";
 
 const A = "/v1/apps/psizone";
@@ -57,7 +57,7 @@ async function submitted(
 		w,
 		"POST",
 		`/book/holds/${h.reference}/submit`,
-		{ holdToken: h.holdToken, contact: { name: "Visitor Test", email: "visitor@example.test" } },
+		{ holdToken: h.holdToken, contact: bookingContact() },
 		subject,
 	);
 	return { reference: String(r.json.reference), cancelCode: String(r.json.cancelCode) };
@@ -128,7 +128,7 @@ const OWN: Record<
 		const h = await hold(w);
 		return key(w, "POST", `/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
-			contact: { name: "Visitor Test", phone: "0733 000 111" },
+			contact: bookingContact({ phone: "0733 000 111" }),
 			audience: "adult",
 		});
 	},
@@ -255,6 +255,8 @@ const OWN: Record<
 		),
 	"calendar.get": (w) =>
 		olga(w, "GET", `/calendar?from=${NOW}&to=${NOW + 3 * 24 * HOUR}&columns=person`),
+	"calendar.summary": (w) =>
+		olga(w, "GET", `/calendar/summary?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
 	"appointments.list": (w) => olga(w, "GET", `/appointments?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
 	// At 22:00 in Bucharest, two days on: an hour no online booking can take, whatever the backend's own clock picks
 	// as the visitors' first free slot in the cases before this one.

@@ -115,12 +115,14 @@ export const OPERATION_ROUTES = [
 		method: "GET",
 		path: "/v1/apps/:app/requests",
 		side: "team",
-		summary: "Web requests (callbacks and held slots) in a window",
+		summary:
+			"Web requests (callbacks and held slots) in a window, newest first; `state` keeps only the open (still requested) or the decided ones",
 		params: AppParam,
 		query: z
 			.object({
 				from: z.coerce.number().int().nonnegative(),
 				to: z.coerce.number().int().nonnegative(),
+				state: z.enum(["open", "handled"]).optional(),
 			})
 			.extend(PageQuery.shape),
 		response: page(WebRequest),

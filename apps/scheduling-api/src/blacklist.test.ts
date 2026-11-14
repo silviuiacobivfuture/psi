@@ -5,7 +5,7 @@ import {
 } from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ok, type Populated } from "./testing/populate";
-import { HOUR, NOW, type Reply } from "./testing/world";
+import { bookingContact, HOUR, NOW, type Reply } from "./testing/world";
 import { worldFactories } from "./testing/worlds";
 
 const A = "/v1/apps/psizone";
@@ -468,13 +468,13 @@ describe.each(factories)("the blacklist, on the $name store", (factory) => {
 			).json as { reference: string; holdToken: string };
 			const r = await key("POST", `/book/holds/${held.reference}/submit`, {
 				holdToken: held.holdToken,
-				contact: { name: "Visitor Test", email: "flagged.visitor@example.test" },
+				contact: bookingContact({ email: "flagged.visitor@example.test", phone: phone() }),
 			});
 			expect(r.status, JSON.stringify(r.json)).toBe(409);
 			expect(err(r).code).toBe("unavailable_online");
 			const again = await key("POST", `/book/holds/${held.reference}/submit`, {
 				holdToken: held.holdToken,
-				contact: { name: "Visitor Test", email: "other@example.test" },
+				contact: bookingContact({ email: "other@example.test", phone: phone() }),
 			});
 			expect(again.status, "the hold was let go").toBeGreaterThanOrEqual(400);
 		});

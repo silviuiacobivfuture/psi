@@ -130,7 +130,7 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 		const raw = withAudience(formFields(await c.req.parseBody()), env);
 		const parsed = BookingConfirmation.safeParse(raw);
 		const id = FormIdSchema.parse(raw.form);
-		// Signed in: the request carries the account's hash, so it appears in the account's bookings.
+		// Signed in: the request carries the account, so it appears in the account's bookings.
 		const who = await account(c);
 		const again = async (errors: BookingErrors) => {
 			const schedule = await scheduleOf(picker, { ...raw, slot: "" });
@@ -157,7 +157,7 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 				holdToken,
 				contact: { name, email, phone, age, details },
 				audience: forWhom,
-				...(who.accountHash === undefined ? {} : { accountHash: who.accountHash }),
+				...(who.subject === undefined ? {} : { subject: who.subject }),
 			});
 			if (!sent.ok) {
 				return again(

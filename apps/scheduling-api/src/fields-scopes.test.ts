@@ -163,6 +163,24 @@ describe("scope: own, assigned, all", () => {
 		expect(names((await as("elena", "GET", "/clients")).json.items)).toEqual(["Client Two"]);
 	});
 
+	it("a therapist's list (read by id, not the whole list) keeps the standing asked, the search and the page", async () => {
+		expect((await as("olga", "POST", `/clients/${w.ids.c1}/archive`)).status).toBe(200);
+		expect(names((await as("dora", "GET", "/clients")).json.items)).toEqual([]);
+		expect(names((await as("dora", "GET", "/clients?status=archived")).json.items)).toEqual([
+			"Client One",
+		]);
+		expect(names((await as("dora", "GET", "/clients?status=archived&q=one")).json.items)).toEqual([
+			"Client One",
+		]);
+		expect(names((await as("dora", "GET", "/clients?status=archived&q=two")).json.items)).toEqual(
+			[],
+		);
+		const page = (await as("dora", "GET", "/clients?status=archived&limit=1")).json;
+		expect(page.items).toHaveLength(1);
+		expect(page.nextCursor).toBeUndefined();
+		expect(names((await as("elena", "GET", "/clients?status=archived")).json.items)).toEqual([]);
+	});
+
 	it("a therapist asking for another therapist's client is told it is not there, and nothing about it", async () => {
 		const r = await as("dora", "GET", `/clients/${w.ids.c2}`);
 		expect(r.status).toBe(404);

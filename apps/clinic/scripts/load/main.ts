@@ -8,8 +8,10 @@ import { startStack } from "./stack";
  * The console's and the service's load test, on the in-memory world grown to `--factor` times the clinic (~220 clients,
  * ~5600 visits at 1): p50/p95/p99 per page and per API list at `--connections` concurrent connections.
  *
- *   pnpm --filter @psi/clinic load -- --factor 10 --connections 20 --seconds 10 --out scripts/load/results/after.json
+ *   pnpm --filter @psi/clinic load --factor 10 --connections 20 --seconds 10 --out $PWD/scripts/load/results/after.json
+ *   pnpm --filter @psi/clinic load --factor 10 --connections 20 --consoles 2   # two console replicas, a thread each
  *
+ * (No `--` before the flags: node's parseArgs stops at it, and every flag would be ignored.)
  * Budgets (local, one process each): a console page p95 under 300 ms, an API list p95 under 150 ms. `--strict` exits 1
  * when one is over. The numbers measure this machine and the in-memory adapters, not Convex or OpenFGA.
  */
@@ -22,6 +24,8 @@ const Args = z.object({
 	out: z.string().optional(),
 	only: z.string().optional(),
 	strict: z.boolean().default(false),
+	/** 0: one console in this thread, beside the load generator (the first measurements); N: N replicas, a thread each. */
+	consoles: z.coerce.number().int().min(0).max(8).default(0),
 });
 
 /** A request slower than this counts as an error (autocannon's own timeout). */
@@ -44,17 +48,22 @@ const DATE = "2026-11-16";
 const WEEK = { from: Date.UTC(2026, 10, 15, 22), to: Date.UTC(2026, 10, 22, 22) };
 const CLIENT = "cs000014";
 
-function targets(consoleUrl: string, apiUrl: string, owner: string, therapist: string): Target[] {
+function targets(
+	consoleUrls: readonly string[],
+	apiUrl: string,
+	owner: string,
+	therapist: string,
+): Target[] {
 	const page = (name: string, path: string, subject = "olga"): Target => ({
 		name,
 		kind: "page",
-		url: `${consoleUrl}${path}`,
+		urls: consoleUrls.map((u) => `${u}${path}`),
 		headers: { cookie: `psi-clinic-dev-subject=${subject}` },
 	});
 	const api = (name: string, path: string, token = owner): Target => ({
 		name,
 		kind: "api",
-		url: `${apiUrl}/v1/apps/psizone${path}`,
+		urls: [`${apiUrl}/v1/apps/psizone${path}`],
 		headers: { authorization: `Bearer ${token}` },
 	});
 	return [
@@ -106,36 +115,42 @@ async function main(): Promise<void> {
 			out: { type: "string" },
 			only: { type: "string" },
 			strict: { type: "boolean" },
+			consoles: { type: "string" },
 		},
 		allowPositionals: true,
 	});
 	const args = Args.parse(values);
 	const started = Date.now();
-	const stack = await startStack(args.factor);
+	const stack = await startStack(args.factor, args.consoles);
 	console.log(
 		`world grown x${args.factor} in ${Date.now() - started} ms: ${JSON.stringify(stack.counts)}`,
 	);
 	try {
 		const owner = await stack.tokenFor("olga");
 		const therapist = await stack.tokenFor("dora");
-		const all = targets(stack.consoleUrl, stack.apiUrl, owner, therapist).filter(
+		const all = targets(stack.consoleUrls, stack.apiUrl, owner, therapist).filter(
 			(t) => args.only === undefined || t.name.startsWith(args.only),
 		);
 		const rows: Measured[] = [];
 		for (const target of all) {
-			// One warm-up request: the first call of a kind fills the token and zone caches. One that takes longer than
+			// One warm-up request per replica: the first call of a kind fills the token and zone caches. One that takes longer than
 			// the timeout is recorded as failing, not measured (it would only time out under load too).
 			const warm = Date.now();
-			const ok = await fetch(target.url, {
-				headers: target.headers,
-				signal: AbortSignal.timeout(TIMEOUT_S * 1000),
-			}).then(
-				async (res) => {
-					await res.arrayBuffer();
-					return res.ok;
-				},
-				() => false,
+			const answers = await Promise.all(
+				target.urls.map((url) =>
+					fetch(url, {
+						headers: target.headers,
+						signal: AbortSignal.timeout(TIMEOUT_S * 1000),
+					}).then(
+						async (res) => {
+							await res.arrayBuffer();
+							return res.ok;
+						},
+						() => false,
+					),
+				),
 			);
+			const ok = answers.every((a) => a);
 			if (!ok) {
 				console.log(`${target.name}: FAILED warm-up after ${Date.now() - warm} ms`);
 				rows.push(failed(target));
