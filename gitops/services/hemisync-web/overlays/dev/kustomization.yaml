@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/hemisync-web
-    newTag: "890935f"
+    newTag: "eb4b570"
