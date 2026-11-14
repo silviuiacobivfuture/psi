@@ -1,7 +1,8 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { addDays } from "../../lib/dates";
-import { type AuditPage, LIST_PAGE, type Paged, PortError, type TeamMember } from "../port";
+import { type Numbered, offsetAt, type PageAt, pageOfOffset } from "../numbered";
+import { type AuditPage, PortError, type TeamMember } from "../port";
 import { composed } from "../role-composition";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
@@ -118,14 +119,14 @@ export function adminGroup(sdk: SdkContext) {
 				return all.map(teamMemberOf);
 			}),
 
-		memberPage: (app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>> =>
+		memberPage: (app: AppSlug, at: PageAt): Promise<Numbered<TeamMember>> =>
 			run(async () => {
-				const got = await api.members.list({
-					app,
-					limit: LIST_PAGE,
-					...(cursor === null ? {} : { cursor }),
-				});
-				return { items: got.items.map(teamMemberOf), nextCursor: got.nextCursor ?? null };
+				const got = await api.members.list({ app, limit: at.size, offset: offsetAt(at) });
+				return {
+					items: got.items.map(teamMemberOf),
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
+				};
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>
@@ -146,8 +147,8 @@ export function adminGroup(sdk: SdkContext) {
 		requestPage: (
 			app: AppSlug,
 			show: "open" | "handled",
-			cursor: string | null,
-		): Promise<Paged<WebRequest>> =>
+			at: PageAt,
+		): Promise<Numbered<WebRequest>> =>
 			run(async () => {
 				const now = Date.now();
 				const got = await api.requests.list({
@@ -155,10 +156,14 @@ export function adminGroup(sdk: SdkContext) {
 					from: now - 90 * DAY,
 					to: now + 365 * DAY,
 					state: show,
-					limit: LIST_PAGE,
-					...(cursor === null ? {} : { cursor }),
+					limit: at.size,
+					offset: offsetAt(at),
 				});
-				return { items: got.items.map(requestOf), nextCursor: got.nextCursor ?? null };
+				return {
+					items: got.items.map(requestOf),
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
+				};
 			}),
 
 		/** The console's "handled": the team answered the request. */

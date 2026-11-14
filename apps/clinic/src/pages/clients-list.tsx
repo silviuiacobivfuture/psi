@@ -6,7 +6,7 @@ import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
-import { ListPager } from "../lib/paging";
+import { ListHistory, ListPager } from "../lib/paging";
 import { m } from "../paraglide/messages.js";
 import type { ClientListAsk, ClientPage } from "../port/port";
 import type { Client, Column } from "../port/schema";
@@ -255,15 +255,7 @@ export async function renderClients(
 						</a>
 					</Banner>
 				)}
-				{/*
-				 * Back and Forward land on an address the list pushed: the list follows it in place. The address the page
-				 * opened at is made the canonical one first, so following it in place never pushes over the forward history.
-				 */}
-				<div
-					hidden
-					data-init={`history.replaceState(null, "", ${JSON.stringify(clientsHref(shown, shown.page, shown.size))})`}
-					data-on:popstate__window="@get(location.pathname + location.search)"
-				/>
+				<ListHistory url={clientsHref(shown, shown.page, shown.size)} />
 				<ClientFilters ctx={ctx} ask={shown} practitioners={practitioners} />
 				<ClientResults ctx={ctx} ask={shown} result={result} />
 			</div>

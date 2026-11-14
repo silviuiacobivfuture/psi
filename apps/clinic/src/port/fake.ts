@@ -590,11 +590,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("requests");
 			return data(app).requests;
 		},
-		requestPage(app, show, cursor) {
-			return pagedRequests(this)(app, show, cursor);
+		requestPage(app, show, at) {
+			return pagedRequests(this)(app, show, at);
 		},
-		blacklistPage(app, cursor) {
-			return pagedBlacklist(this)(app, cursor);
+		blacklistPage(app, at) {
+			return pagedBlacklist(this)(app, at);
 		},
 		async markRequestHandled(app, id) {
 			guard("markRequestHandled");

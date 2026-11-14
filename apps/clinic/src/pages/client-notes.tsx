@@ -4,12 +4,10 @@ import { ActionBar, actionsFor, EmptyActions, menuItems } from "../actions/rende
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
-import { offsetPage } from "../port/offset-page";
-import { LIST_PAGE } from "../port/port";
 import { type ClientNote, NOTE_CATEGORIES, NOTE_MAX } from "../port/schema-clinical";
 import { noteCategoryText } from "./client-flags";
 import { SheetButtons } from "./client-sheets";
-import { TabMore, tabListId } from "./client-tab-pager";
+import { cutTab, TabPager, type TabPaging } from "./client-tab-pager";
 
 export const stampText = (locale: Locale, iso: string): string =>
 	new Intl.DateTimeFormat(locale, {
@@ -102,18 +100,19 @@ export function NotesTab({
 	ctx,
 	notes,
 	clientId,
+	paging,
 }: {
 	ctx: Ctx;
 	notes: ReadonlyArray<ClientNote>;
 	clientId: string;
+	paging: TabPaging;
 }): JSX.Element {
 	const o = at(ctx.locale);
-	const shown = readableNotes(ctx, notes);
-	const page = offsetPage(shown, null, LIST_PAGE);
+	const page = cutTab(readableNotes(ctx, notes), paging);
 	return (
 		<div class="cl-tab">
 			<ActionBar ctx={ctx} screen="client.notes" entity={{ clientId }} />
-			{shown.length === 0 ? (
+			{page.total === 0 ? (
 				<EmptyState
 					icon="file"
 					title={m.cl_notes_empty_title({}, o)}
@@ -123,18 +122,12 @@ export function NotesTab({
 				</EmptyState>
 			) : (
 				<>
-					<ol class="cl-notes" id={tabListId("notes")} aria-label={m.cl_tab_notes({}, o)}>
+					<ol class="cl-notes" aria-label={m.cl_tab_notes({}, o)}>
 						{page.items.map((n) => (
 							<NoteCard key={n.id} ctx={ctx} note={n} />
 						))}
 					</ol>
-					<TabMore
-						ctx={ctx}
-						clientId={clientId}
-						tab="notes"
-						cursor={page.nextCursor}
-						shown={page.items.length}
-					/>
+					<TabPager ctx={ctx} clientId={clientId} tab="notes" shown={page} size={paging.size} />
 				</>
 			)}
 		</div>

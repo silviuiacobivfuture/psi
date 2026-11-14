@@ -14,6 +14,7 @@ import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
 import type { AvailabilityPort } from "./availability-port";
 import type { ClientFilter, ClientListAsk, ClientPage } from "./client-list";
+import type { Numbered, PageAt } from "./numbered";
 import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
@@ -309,14 +310,10 @@ export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 		entries: ReadonlyArray<RosterEntry>;
 	}>;
 	requests(app: AppSlug): Promise<ReadonlyArray<WebRequest>>;
-	/** ONE page (LIST_PAGE) of the open or the handled requests, newest first, after `cursor` (null: the first). */
-	requestPage(
-		app: AppSlug,
-		show: "open" | "handled",
-		cursor: string | null,
-	): Promise<Paged<WebRequest>>;
-	/** ONE page (LIST_PAGE) of the clients on the blacklist now, newest entry first, each with the client's name. */
-	blacklistPage(app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>>;
+	/** ONE numbered page of the open or the handled requests, newest first, and how many there are. */
+	requestPage(app: AppSlug, show: "open" | "handled", at: PageAt): Promise<Numbered<WebRequest>>;
+	/** ONE numbered page of the clients on the blacklist now, newest entry first, each with the client's name. */
+	blacklistPage(app: AppSlug, at: PageAt): Promise<Numbered<ListedClient>>;
 	markRequestHandled(app: AppSlug, id: string): Promise<void>;
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;
@@ -363,8 +360,8 @@ export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
 	/** The app's whole team, for the "Vezi ca…" picker and the journal's names. */
 	members(app: AppSlug): Promise<ReadonlyArray<TeamMember>>;
-	/** ONE page (LIST_PAGE) of the team by name, after `cursor` (null: the first): the members' list. */
-	memberPage(app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>>;
+	/** ONE numbered page of the team by name, and how many members there are: the members' list. */
+	memberPage(app: AppSlug, at: PageAt): Promise<Numbered<TeamMember>>;
 	/** One member for their editor: roles, grants, denials, linked calendars, what they may do in the end. */
 	member(app: AppSlug, subject: string): Promise<MemberDetail | null>;
 	/**
@@ -460,10 +457,10 @@ export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 	deleteRecord(app: AppSlug, id: string): Promise<void>;
 	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
 	/**
-	 * ONE page of a client's files, newest first, after `cursor` (null: the first). A page may hold fewer than LIST_PAGE
-	 * (an upload never finished is not shown): only a null `nextCursor` says it is the last.
+	 * ONE numbered page of a client's finished files, newest first, and how many there are: the service counts and cuts
+	 * them (an upload never finished is never counted).
 	 */
-	filePage(app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>>;
+	filePage(app: AppSlug, clientId: string, at: PageAt): Promise<Numbered<ClientFile>>;
 	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
 	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
 	downloadFile(
