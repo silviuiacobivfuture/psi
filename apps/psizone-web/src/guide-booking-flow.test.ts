@@ -139,8 +139,11 @@ describe("the chat's booking against the scheduling service", () => {
 			);
 			expect(one.html).toContain('name="slot"');
 			const two = await say("săptămâna viitoare, dimineața", one.turns);
+			expect(two.html).toMatch(/Am căutat după|cele mai apropiate/);
 			const three = await say("a doua", two.turns);
+			expect(three.html).toContain("e liberă");
 			const form = fields(three.html);
+			expect(form.slot).toMatch(/\.onsite$/);
 			expect(form.form ?? "").toMatch(/^chat-booking-[a-z0-9]+$/);
 			const held = fields(
 				await post(app, "/programare", {
@@ -154,11 +157,22 @@ describe("the chat's booking against the scheduling service", () => {
 					consent: "yes",
 				}),
 			);
+			expect(held.reference).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+			expect(held.holdToken).toBeTruthy();
 			const done = await post(app, "/programare/confirma", held);
+			expect(done).toContain(held.reference ?? "?");
 			const code = /([0-9A-Z]{4}(?:-[0-9A-Z]{4}){3})/.exec(done)?.[1];
+			expect(code).toBeDefined();
+			expect(done).toContain("scrie-mi în chat");
 			const ask = await say("vreau să anulez programarea", three.turns);
+			expect(ask.html).toContain("referința");
+			expect(ask.html).not.toContain("<form");
+			const wrong = await say(`${held.reference} AAAA-AAAA-AAAA-AAAA`, ask.turns);
+			expect(wrong.html).toContain("Nu găsesc");
 			const cancelled = await say(`${held.reference} ${code}`, ask.turns);
 			expect(cancelled.html).toContain("a fost anulată");
+			const again = await say(`anulează programarea ${held.reference} ${code}`, cancelled.turns);
+			expect(again.html).toContain("nu mai poate fi anulată");
 		},
 		120_000,
 	);

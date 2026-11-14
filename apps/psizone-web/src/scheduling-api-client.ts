@@ -30,8 +30,8 @@ export interface VisitorScheduling extends Omit<SchedulingClient, "submit"> {
 }
 
 /**
- * The visitor's address for the service's rate limit: the proxy's `x-real-ip` (set from the connection, not from the
- * visitor), else the first forwarded address. Outside a request (boot, warm-up) there is no visitor.
+ * The visitor's address for the service's rate limit, read as the rest of the site reads it (the guide's limiter, the
+ * visitor keys): the first forwarded address, else `x-real-ip`. Outside a request (boot, warm-up) there is no visitor.
  */
 function visitorAddress(): string | undefined {
 	let headers: { header(name: string): string | undefined };
@@ -41,7 +41,7 @@ function visitorAddress(): string | undefined {
 		return undefined;
 	}
 	const address =
-		headers.header("x-real-ip")?.trim() || headers.header("x-forwarded-for")?.split(",")[0]?.trim();
+		headers.header("x-forwarded-for")?.split(",")[0]?.trim() || headers.header("x-real-ip")?.trim();
 	return address === undefined || address === "" ? undefined : address.slice(0, 64);
 }
 

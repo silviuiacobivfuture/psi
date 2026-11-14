@@ -37,7 +37,8 @@ interface Req {
 	accountHash?: string;
 	/** Left as a callback (a contact and no slot): listed by when it came, never with a start. */
 	callback?: true;
-	/** A callback's time the visitor chose and could not hold. */
+	/** A callback's time the visitor chose and could not hold, and the service they were looking at (stored, as in Convex; not listed). */
+	callbackService?: string;
 	preferredStart?: number;
 	createdAt: number;
 }
@@ -351,7 +352,7 @@ export function createMemoryVisitor(
 				mode: "onsite",
 				contact: input.contact,
 				channel: input.channel,
-				...(input.service === undefined ? {} : { serviceSlug: input.service }),
+				...(input.service === undefined ? {} : { callbackService: input.service }),
 				...(input.preferredStart === undefined ? {} : { preferredStart: input.preferredStart }),
 				createdAt: clock(),
 			};
