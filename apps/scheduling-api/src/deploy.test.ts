@@ -78,7 +78,13 @@ describe("the deployment declares every secret in all four places", () => {
 		for (const key of keys) expect(sso).toContain(`key: apps/scheduling-api/sso, property: ${key}`);
 		expect(d).toContain("secretRef: { name: scheduling-api-sso, optional: true }");
 		// One half in plain env would stop the boot (the service refuses an address without its token): both come from the secret.
-		expect(d).not.toMatch(/name: AUTHENTIK_/);
+		expect(d).not.toMatch(/name: AUTHENTIK_(URL|API_TOKEN)\b/);
+		// The group the invited clients' accounts are made in is plain configuration: a client group, never the staff's.
+		expect(d).toContain("{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }");
+		expect(d).not.toMatch(/AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic(-prod)?-member/);
+		expect(read("gitops/services/scheduling-api/overlays/prod/kustomization.yaml")).toContain(
+			"{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }",
+		);
 		for (const key of keys) {
 			expect(asserted).not.toContain(key);
 			expect(required).not.toContain(key);

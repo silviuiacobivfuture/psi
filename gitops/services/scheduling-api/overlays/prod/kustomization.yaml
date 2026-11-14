@@ -40,6 +40,7 @@ patches:
                   # Real data, people still served by the old app: nothing is sent to anyone until the cut-over,
                   # when this line is removed (docs/plans/clinic.md, cut-over).
                   - { name: NOTIFY_DELIVERY, value: hold }
+                  - { name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }
   - target: { kind: Ingress, name: scheduling-api }
     patch: |-
       - op: replace

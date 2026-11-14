@@ -85,6 +85,8 @@ spec:
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_BUCKET, value: psi-scheduling-dev }
             - { name: MAIL_FROM_NAME, value: Psizone }
+            # The directory group the invited clients' accounts are made in (never a staff group).
+            - { name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }
             - { name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro" }
           startupProbe:
             httpGet: { path: /health, port: http }
