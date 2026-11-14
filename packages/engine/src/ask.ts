@@ -273,9 +273,17 @@ async function* turn(
 		if (ctx.screeningModel !== undefined && settings.screeningLevel === "strict") {
 			let providerError: unknown;
 			const verdict = await screenWithModel({
-				model: ctx.screeningModel((error) => {
-					providerError ??= error;
-				}),
+				model: ctx.screeningModel(
+					(error) => {
+						providerError ??= error;
+					},
+					// On a governed site the guardrails' calls are the turn's too: they reach the organisation's meters.
+					ctx.governance === undefined
+						? undefined
+						: (used) => {
+								meter.usages.push(Promise.resolve(used));
+							},
+				),
 				question: input.question,
 				timeoutMs: ctx.timeouts.screeningMs,
 				signal: controller.signal,

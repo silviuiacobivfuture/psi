@@ -44,7 +44,7 @@ export interface SettingField {
 	/**
 	 * The one surface it governs, when it is not both. Staff only: paging and the read cache (the visitor's guide reads
 	 * no records), the instructions (the visitor's voice, prompt, tone and language are the site's content, in the
-	 * CMS), and keeping and summarising conversations (the sites keep none). Visitor only: booking in the site's chat.
+	 * CMS), and keeping and summarising conversations (the sites keep none). Visitor only: booking on the site (the chat's horizon, and the call-back of the chat and the booking page).
 	 */
 	readonly only?: AssistantSurfaceName;
 	/** The ceiling it is held to, for the hint beside it. */

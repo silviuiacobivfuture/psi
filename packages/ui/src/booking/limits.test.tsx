@@ -4,6 +4,7 @@ import type { Child } from "hono/jsx";
 import { describe, expect, it } from "vitest";
 import { ChatBooking } from "./chat";
 import { fixtureEnv } from "./fixture";
+import { BookingForm } from "./form";
 import { createPicker, PickerChoices, type PickerView } from "./picker";
 import { scheduleOf } from "./routes";
 
@@ -120,5 +121,45 @@ describe("the chat's form on the organisation's terms", () => {
 		const free = await scheduleOf(picker, { callback: "1" });
 		expect(free?.callback).toBe(true);
 		expect(free?.noCallback).toBe(false);
+	});
+});
+
+describe("the booking page on the organisation's terms", () => {
+	const governed = (offered: boolean) => {
+		let asked = 0;
+		const p = createPicker(
+			store(FREE).client,
+			"psizone",
+			() => NOW,
+			undefined,
+			async () => {
+				asked += 1;
+				return offered;
+			},
+		);
+		return { p, asked: () => asked };
+	};
+
+	it("no call back offered: the page's switch is gone, and a post asking for a call stays on the times", async () => {
+		const { p, asked } = governed(false);
+		const schedule = await scheduleOf(p, { cards: "1" });
+		expect(schedule?.noCallback).toBe(true);
+		expect(asked()).toBe(1);
+		const page = await html(
+			<BookingForm env={fixtureEnv()} {...(schedule === undefined ? {} : { schedule })} />,
+		);
+		expect(page).not.toContain(SWITCH);
+		expect((await scheduleOf(p, { callback: "1" }))?.callback).toBe(false);
+	});
+
+	it("a call back offered: the page keeps its switch, and a post asking for a call gets the call form", async () => {
+		const { p } = governed(true);
+		const schedule = await scheduleOf(p, {});
+		expect(schedule?.noCallback).toBe(false);
+		const page = await html(
+			<BookingForm env={fixtureEnv()} {...(schedule === undefined ? {} : { schedule })} />,
+		);
+		expect(page).toContain(SWITCH);
+		expect((await scheduleOf(p, { callback: "1" }))?.callback).toBe(true);
 	});
 });

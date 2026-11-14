@@ -82,6 +82,45 @@ export async function usageOf(output: UsageSource, signal: AbortSignal): Promise
 	};
 }
 
+/**
+ * The provider's own figures for one model call (a `doGenerate` result or a stream's `finish` part): its counts as
+ * numbers or as `{ total, cacheRead }` (the v4 provider shape), and OpenRouter's cost in its metadata.
+ */
+const ProviderTokens = z.union([
+	z.number(),
+	z.object({ total: z.number().optional(), cacheRead: z.number().optional() }).passthrough(),
+]);
+const ProviderUsageShape = z
+	.object({
+		inputTokens: ProviderTokens.optional(),
+		outputTokens: ProviderTokens.optional(),
+		cachedInputTokens: z.number().optional(),
+	})
+	.passthrough();
+
+/** What one call used, from the provider's usage and metadata as the model answered them; unreadable is nothing. */
+export function providerUsage(usage: unknown, metadata: unknown): ModelUsage {
+	const u = ProviderUsageShape.safeParse(usage);
+	const c = CostShape.safeParse(metadata);
+	const input = u.success ? u.data.inputTokens : undefined;
+	const cached =
+		u.success && u.data.cachedInputTokens !== undefined
+			? u.data.cachedInputTokens
+			: typeof input === "object"
+				? input.cacheRead
+				: undefined;
+	return {
+		inputTokens: whole(tokens(input)),
+		outputTokens: whole(tokens(u.success ? u.data.outputTokens : undefined)),
+		cachedTokens: whole(cached),
+		costMicroUsd: whole(
+			c.success && c.data.openrouter.usage.cost !== undefined
+				? c.data.openrouter.usage.cost * 1_000_000
+				: undefined,
+		),
+	};
+}
+
 const StepUsage = z.object({ usage: UsageShape }).passthrough();
 
 /** The tokens (prompt and answer) the finished steps of one call used so far, read from Mastra's step results. */

@@ -1,44 +1,59 @@
 import type { VisitorAssistantPort, VisitorStoreRead, VisitorUsageRecord } from "@psi/engine";
-import type { VisitorAssistantStore } from "@psi/scheduling";
+import { z } from "zod";
 
 /**
- * How long one read of the organisation's settings and meters is kept before the store is asked again. A turn's own
+ * How long one read of the organisation's settings and meters is kept before the service is asked again. A turn's own
  * use empties it, so the next turn of this instance sees the meters it just moved; another instance's turns show up
  * within it.
  */
 export const VISITOR_CONFIG_TTL_MS = 10_000;
 
 /**
- * The engine's port to the organisation's visitor assistant settings and meters, over `@psi/scheduling`'s store
- * client (the server key's own reads and writes). The documents are handed on as stored; the engine parses and merges
- * them with the contract's own merge.
+ * Where a site reads what governs its visitor assistant and reports what a turn used: the scheduling service's
+ * `visitor.assistant` routes with the site's service key (`@psi/ui`'s `createSiteAssistant`). `read` answers the
+ * settings the service merged and the meters, or undefined when the service has no such app.
  */
+export interface VisitorAssistantSource {
+	read(
+		tenant: string,
+	): Promise<{ settings: unknown; usage: VisitorStoreRead["usage"] } | undefined>;
+	record(tenant: string, usage: VisitorUsageRecord): Promise<void>;
+}
+
+/** The part of the settings the booking page reads; the rest is the engine's to parse. */
+const BookingPart = z.object({ booking: z.object({ offerCallback: z.boolean() }) });
+
+/** The engine's port to the organisation's visitor assistant settings and meters, kept `ttlMs` between reads. */
 export function visitorAssistantPort(
-	store: VisitorAssistantStore,
+	source: VisitorAssistantSource,
 	ttlMs: number = VISITOR_CONFIG_TTL_MS,
 	now: () => number = Date.now,
-): VisitorAssistantPort {
+): VisitorAssistantPort & {
+	/** Whether the organisation lets the site offer a call back (`booking.offerCallback`); yes when it cannot say. */
+	callbackOffered(tenant: string): Promise<boolean>;
+} {
 	const held = new Map<string, { at: number; read: VisitorStoreRead | undefined }>();
+	async function read(tenant: string): Promise<VisitorStoreRead | undefined> {
+		const hit = held.get(tenant);
+		if (hit !== undefined && now() - hit.at < ttlMs) return hit.read;
+		const found = await source.read(tenant);
+		const got = found === undefined ? undefined : { settings: found.settings, usage: found.usage };
+		held.set(tenant, { at: now(), read: got });
+		return got;
+	}
 	return {
-		async read(tenant) {
-			const hit = held.get(tenant);
-			if (hit !== undefined && now() - hit.at < ttlMs) return hit.read;
-			const found = await store.config(tenant);
-			const read: VisitorStoreRead | undefined =
-				found === undefined
-					? undefined
-					: {
-							...(found.platform === undefined ? {} : { platform: found.platform.body }),
-							...(found.org === undefined ? {} : { org: found.org.body }),
-							usage: found.usage,
-						};
-			held.set(tenant, { at: now(), read });
-			return read;
-		},
-		async record(tenant, usage: VisitorUsageRecord) {
+		read,
+		async record(tenant, usage) {
 			held.delete(tenant);
-			const done = await store.record(tenant, usage);
-			if (done !== "ok") throw new Error(`the meters refused the turn: ${done}`);
+			await source.record(tenant, usage);
+		},
+		async callbackOffered(tenant) {
+			try {
+				const part = BookingPart.safeParse((await read(tenant))?.settings);
+				return !part.success || part.data.booking.offerCallback;
+			} catch {
+				return true;
+			}
 		},
 	};
 }
