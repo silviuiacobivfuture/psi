@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -110,4 +110,66 @@ describe("backup-upload.sh fills each tier by age, not by the clock", () => {
 		expect(r.stderr).toContain("convex.zip.enc missing or empty");
 		expect(puts).toEqual([]);
 	});
+
+	it("uses nothing the image's bash lacks: it is bash 4.2 (aws-cli 2.17), so no inherit_errexit and no other 4.4+ shopt", () => {
+		// 2026-11-14: `shopt -s inherit_errexit` stopped every production backup ("invalid shell option name").
+		const text = readFileSync(SCRIPT, "utf8");
+		expect(text).not.toMatch(
+			/shopt\s+-s\s+(inherit_errexit|localvar_inherit|localvar_unset|assoc_expand_once)/,
+		);
+		expect(text).not.toMatch(/\$\{[A-Za-z_]+@[QEPAa]\}/);
+	});
+
+	const IMAGE = "amazon/aws-cli:2.17.0";
+	const docker =
+		spawnSync("docker", ["image", "inspect", IMAGE], { encoding: "utf8" }).status === 0;
+	it.skipIf(!docker)(
+		"runs in the job's own image (its bash 4.2): all tiers on a new bucket, and a failed listing uploads nothing",
+		() => {
+			const dir = mkdtempSync(join(homedir(), ".cache", "backup-upload-image-"));
+			dirs.push(dir);
+			writeFileSync(join(dir, "aws"), FAKE_AWS);
+			chmodSync(join(dir, "aws"), 0o755);
+			writeFileSync(join(dir, "convex.zip.enc"), "sealed");
+			writeFileSync(join(dir, "manifest.json"), "{}");
+			writeFileSync(join(dir, "backup-upload.sh"), readFileSync(SCRIPT, "utf8"));
+			const inImage = (extra: string[]) => {
+				writeFileSync(join(dir, "calls.log"), "");
+				const r = spawnSync(
+					"docker",
+					[
+						"run",
+						"--rm",
+						"--entrypoint",
+						"bash",
+						"-v",
+						`${dir}:/t`,
+						"-e",
+						"PATH=/t:/usr/local/bin:/usr/bin:/bin",
+						"-e",
+						"BACKUP_BUCKET=b",
+						"-e",
+						"BACKUP_ENDPOINT=https://s3.invalid",
+						"-e",
+						"BACKUP_WORK=/t",
+						"-e",
+						"FAKE_LOG=/t/calls.log",
+						...extra,
+						IMAGE,
+						"/t/backup-upload.sh",
+					],
+					{ encoding: "utf8" },
+				);
+				const puts = readFileSync(join(dir, "calls.log"), "utf8")
+					.split("\n")
+					.filter((l) => l.includes("put-object")).length;
+				return { status: r.status, puts };
+			};
+			expect(inImage([])).toEqual({ status: 0, puts: 6 });
+			const failed = inImage(["-e", "FAKE_LIST_FAIL=1"]);
+			expect(failed.status).not.toBe(0);
+			expect(failed.puts).toBe(0);
+		},
+		120_000,
+	);
 });

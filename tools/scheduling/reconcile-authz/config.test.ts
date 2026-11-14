@@ -61,8 +61,26 @@ describe("reading OpenFGA's tuples of a type", () => {
 		});
 		const got = await reader.ofType("sched_client");
 		expect(got.map((t) => t.object)).toEqual(["sched_client:1", "sched_client:2"]);
-		expect(asked[0]).toMatchObject({ tuple_key: { object: "sched_client:" }, page_size: 100 });
-		expect(asked[1]).toMatchObject({ continuation_token: "next" });
+		// OpenFGA refuses a Read naming only an object type without a user (400): the store is read whole, unfiltered.
+		expect(asked[0]).toEqual({ page_size: 100 });
+		expect(asked[1]).toEqual({ page_size: 100, continuation_token: "next" });
+	});
+
+	it("reads the store once and gives each type only its own tuples", async () => {
+		let reads = 0;
+		const reader = createFgaReader({
+			url: "http://openfga.test:8080",
+			storeId: "store-1",
+			token: "synthetic-token",
+			fetch: async () => {
+				reads += 1;
+				return page(["sched_client:1", "sched_app:psizone", "sched_client_x:9", "platform:psi"]);
+			},
+		});
+		expect((await reader.ofType("sched_client")).map((t) => t.object)).toEqual(["sched_client:1"]);
+		expect((await reader.ofType("sched_app")).map((t) => t.object)).toEqual(["sched_app:psizone"]);
+		expect(await reader.ofType("sched_role")).toEqual([]);
+		expect(reads).toBe(1);
 	});
 
 	it("fails, naming the status and not the token, when OpenFGA refuses", async () => {

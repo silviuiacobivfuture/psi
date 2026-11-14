@@ -29,7 +29,10 @@ export interface FgaReader {
 	ofType(type: string): Promise<Tuple[]>;
 }
 
-/** OpenFGA's Read, paged, for the objects of one type. Never prints the token or a response body. */
+/**
+ * OpenFGA's Read, paged. A Read naming only an object TYPE needs a user too, so the store is read whole, once per
+ * reader, and each type's tuples are taken from it. Never prints the token or a response body.
+ */
 export function createFgaReader(options: {
 	url: string;
 	storeId: string;
@@ -37,33 +40,37 @@ export function createFgaReader(options: {
 	fetch?: typeof globalThis.fetch;
 }): FgaReader {
 	const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+	let all: Promise<Tuple[]> | undefined;
+	const readAll = async (): Promise<Tuple[]> => {
+		const out: Tuple[] = [];
+		let token = "";
+		do {
+			const res = await doFetch(
+				`${options.url.replace(/\/+$/, "")}/stores/${options.storeId}/read`,
+				{
+					method: "POST",
+					headers: {
+						"content-type": "application/json",
+						authorization: `Bearer ${options.token}`,
+					},
+					body: JSON.stringify({
+						page_size: 100,
+						...(token === "" ? {} : { continuation_token: token }),
+					}),
+					signal: AbortSignal.timeout(15_000),
+				},
+			);
+			if (!res.ok) throw new Error(`OpenFGA read answered ${res.status}`);
+			const page = Page.parse(await res.json());
+			for (const t of page.tuples) out.push(t.key);
+			token = page.continuation_token;
+		} while (token !== "");
+		return out;
+	};
 	return {
 		async ofType(type) {
-			const out: Tuple[] = [];
-			let token = "";
-			do {
-				const res = await doFetch(
-					`${options.url.replace(/\/+$/, "")}/stores/${options.storeId}/read`,
-					{
-						method: "POST",
-						headers: {
-							"content-type": "application/json",
-							authorization: `Bearer ${options.token}`,
-						},
-						body: JSON.stringify({
-							tuple_key: { object: `${type}:` },
-							page_size: 100,
-							...(token === "" ? {} : { continuation_token: token }),
-						}),
-						signal: AbortSignal.timeout(15_000),
-					},
-				);
-				if (!res.ok) throw new Error(`OpenFGA read of ${type} answered ${res.status}`);
-				const page = Page.parse(await res.json());
-				for (const t of page.tuples) out.push(t.key);
-				token = page.continuation_token;
-			} while (token !== "");
-			return out;
+			all ??= readAll();
+			return (await all).filter((t) => t.object.startsWith(`${type}:`));
 		},
 	};
 }
