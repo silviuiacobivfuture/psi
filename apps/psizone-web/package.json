@@ -1,6 +1,6 @@
 {
 	"name": "@psi/psizone-web",
-	"version": "0.10.0",
+	"version": "0.11.0",
 	"private": true,
 	"type": "module",
 	"description": "psizone.ro — the Psizone landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
@@ -12,7 +12,7 @@
 		"build": "pnpm i18n && pnpm css && esbuild src/server.tsx --bundle --platform=node --format=esm --target=node24 --jsx=automatic --jsx-import-source=hono/jsx --external:hono --external:@hono/node-server --external:zod --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --external:libsql --external:@libsql/* --outfile=dist/server.js",
 		"start": "node --env-file-if-exists=.env dist/server.js",
 		"type-check": "pnpm i18n && tsc --noEmit",
-		"test": "vitest run",
+		"test": "pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && vitest run",
 		"knowledge:seed": "pnpm --filter @psi/knowledge ingest-seed"
 	},
 	"dependencies": {
@@ -23,8 +23,10 @@
 		"@psi/design": "workspace:*",
 		"@psi/guide": "workspace:*",
 		"@psi/knowledge": "workspace:*",
+		"@psi/notify": "workspace:*",
 		"@psi/pwa": "workspace:*",
 		"@psi/scheduling": "workspace:*",
+		"@psi/scheduling-sdk": "workspace:*",
 		"@psi/site-control": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",
@@ -33,6 +35,7 @@
 	},
 	"devDependencies": {
 		"@inlang/paraglide-js": "^3.2.2",
+		"@psi/scheduling-api": "workspace:*",
 		"@tailwindcss/cli": "^4.3.5",
 		"@types/nodemailer": "^8.0.2",
 		"esbuild": "^0.25.0",

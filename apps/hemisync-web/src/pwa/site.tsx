@@ -1,4 +1,6 @@
-import { createPwa } from "@psi/pwa";
+import { readNovuPush, syncClientDevices } from "@psi/notify/push";
+import { createPwa, type Pwa } from "@psi/pwa";
+import { accountHashOf } from "@psi/scheduling";
 import { liveSites, requestPath } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account } from "../account";
@@ -13,10 +15,16 @@ export function notificationsPath(locale: Locale): string {
 }
 
 /**
- * Hemi-Sync as an installable app (docs/plans/pwa.md): Hemi-Sync's new articles for anyone. Bookings
- * join when this site takes them (scheduling S9). Every word is Hemi-Sync's own (messages/pwa/).
+ * The estate's Novu, when this site has its settings: a signed-in client's booking devices are kept under their
+ * account's client subscriber, and Novu's pushes to them arrive at `/__pwa/novu` (registerPwa).
  */
-export const pwa = createPwa({
+export const novu = readNovuPush(process.env);
+
+/**
+ * Hemi-Sync as an installable app (docs/plans/pwa.md): Hemi-Sync's new articles for anyone, and booking updates
+ * (confirmed, moved, cancelled) for a signed-in client. Every word is Hemi-Sync's own (messages/pwa/).
+ */
+export const pwa: Pwa = createPwa({
 	brand: "hemisync",
 	origin: ESTATE[SITE],
 	origins: liveSites().map((s) => ESTATE[s]),
@@ -24,9 +32,15 @@ export const pwa = createPwa({
 	theme: "hemisync-light",
 	messages: m,
 	siteNames,
-	topics: ["articles:hemisync"],
+	topics: ["booking", "articles:hemisync"],
 	identity: account,
 	notificationsPath,
+	...(novu === null
+		? {}
+		: {
+				onDevicesChanged: (subject: string) =>
+					syncClientDevices(novu, pwa, "hemisync", "hemisync", accountHashOf)(subject),
+			}),
 });
 
 /** The layout's PWA head tags for the page being rendered. */

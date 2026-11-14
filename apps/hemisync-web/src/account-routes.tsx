@@ -2,7 +2,7 @@ import { registerJourney, savedArticleIn } from "@psi/account";
 import { articleUrl, INDEX } from "@psi/content";
 import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { account, accountSay } from "./account";
+import { account, accountSay, bookings } from "./account";
 import { ESTATE, siteNames } from "./estate";
 import { base, type Locale } from "./i18n";
 import { AccountFrame } from "./pages/account";
@@ -23,6 +23,7 @@ export function registerAccountRoutes(app: Hono, locale: Locale): void {
 		say: accountSay(locale),
 		siteNames: siteNames(locale),
 		dataHome: `${ESTATE.psizone}${prefix}/cont/date`,
+		...(bookings === undefined ? {} : { bookings }),
 		bookHref: `${ESTATE.psizone}${prefix}/contact`,
 		readingHref: `${ESTATE.blog}${prefix}/`,
 		savedListHref: `${ESTATE.blog}${prefix}/cont#salvate`,

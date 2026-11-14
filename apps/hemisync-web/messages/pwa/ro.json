@@ -35,5 +35,15 @@
 	"pwa_push_article_body": "{headline}",
 	"pwa_push_test_title": "Notificările funcționează",
 	"pwa_push_test_body": "Așa vei afla noutățile de la Hemi-Sync România.",
-	"pwa_topic_articles_hemisync": "Articole noi de la Hemi-Sync România"
+	"pwa_topic_articles_hemisync": "Articole noi de la Hemi-Sync România",
+	"pwa_topic_booking": "Programările tale",
+	"pwa_topic_booking_hint": "Când cererea ta e confirmată, mutată sau anulată.",
+	"pwa_push_booking_confirmed_title": "Cererea ta de programare a fost confirmată",
+	"pwa_push_booking_confirmed_body": "Detaliile sunt în contul tău Hemi-Sync.",
+	"pwa_push_booking_cancelled_title": "Programarea ta a fost anulată",
+	"pwa_push_booking_cancelled_body": "Vezi în cont ce urmează; te ajutăm să găsești altă oră.",
+	"pwa_push_booking_reminder_title": "Un memento pentru mâine",
+	"pwa_push_booking_reminder_body": "Detaliile sunt în contul tău Hemi-Sync.",
+	"pwa_push_booking_moved_title": "Programarea ta s-a mutat la altă oră",
+	"pwa_push_booking_moved_body": "Ora nouă e în contul tău Hemi-Sync."
 }

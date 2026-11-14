@@ -2,6 +2,7 @@ import type { Pwa, SubscriptionRecord } from "@psi/pwa";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { AppKey } from "../apps";
+import { accountClientId, clientSubscriberId } from "../identity";
 import { createDeviceSync } from "./devices";
 import { createPushHook } from "./hook";
 
@@ -66,11 +67,43 @@ export function syncDevices(
 					store,
 					app,
 					site,
+					integration: pushIntegration(app, site),
 					subscriberOf: async (s) => subscriberOf(app, s),
 				})(subject),
 			),
 		);
 	};
+}
+
+/**
+ * A public site's `onDevicesChanged`: a signed-in client's booking devices go under their account's client subscriber
+ * (the one the scheduling service tells about requests made signed in), named by the account's hash, never the subject.
+ */
+export function syncClientDevices(
+	novu: Pick<NovuPush, "apiUrl" | "secretKey">,
+	pwa: Pick<Pwa, "store">,
+	site: SubscriptionRecord["site"],
+	app: AppKey,
+	accountHashOf: (subject: string) => string,
+	fetch?: typeof globalThis.fetch,
+): (subject: string) => Promise<void> {
+	return syncDevices(
+		novu,
+		pwa,
+		site,
+		[app],
+		(a, subject) => clientSubscriberId(a, accountClientId(accountHashOf(subject))),
+		fetch,
+	);
+}
+
+/**
+ * The Novu Push Webhook integration of an app on a site: the console's is `push-webhook-<app>` (it posts to the
+ * console), each public site's `push-webhook-<app>-<site>` (it posts to that site's `/__pwa/novu`). A push step reaches
+ * every integration a subscriber holds tokens for, so each site delivers to its own devices and none to another's.
+ */
+export function pushIntegration(app: AppKey, site: SubscriptionRecord["site"]): string {
+	return site === "clinic" ? `push-webhook-${app}` : `push-webhook-${app}-${site}`;
 }
 
 /** Mounts the push webhook when Novu has a push secret; the site's VAPID transport delivers what Novu decides. */

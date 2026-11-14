@@ -55,6 +55,8 @@ spec:
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
             # sidecar; the token is CHROMA_API_KEY from hemisync-web-env.
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            # "Programările mele": the scheduling service, called with the signed-in person's own token.
+            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }

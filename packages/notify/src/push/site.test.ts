@@ -4,7 +4,14 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { accountClientId, clientSubscriberId } from "../identity";
 import { type FakeNovu, startFakeNovu } from "../testing/fake-novu";
-import { mountPushHook, NOVU_PUSH_PATH, readNovuPush, syncDevices } from "./site";
+import {
+	mountPushHook,
+	NOVU_PUSH_PATH,
+	pushIntegration,
+	readNovuPush,
+	syncClientDevices,
+	syncDevices,
+} from "./site";
 
 const KEYS = { p256dh: `B${"p".repeat(86)}`, auth: "a".repeat(22) };
 const SECRET = "s".repeat(40);
@@ -79,12 +86,12 @@ describe("a client's devices kept in step with Novu", () => {
 			1,
 		);
 		const subscriber = clientSubscriberId("psizone", accountClientId("hash-of-ana"));
-		await syncDevices(
+		await syncClientDevices(
 			{ apiUrl: novu.url, secretKey: "k".repeat(12) },
 			{ store: async () => store },
 			"psizone",
-			["psizone"],
-			() => subscriber,
+			"psizone",
+			(s) => (s === "ana" ? "hash-of-ana" : "other"),
 		)("ana");
 		const put = novu.requests.find((r) => r.method === "PUT");
 		expect(put?.path).toBe(`/v1/subscribers/${encodeURIComponent(subscriber)}/credentials`);
@@ -94,6 +101,11 @@ describe("a client's devices kept in step with Novu", () => {
 			(d) => d.site === "psizone" && d.topics.includes("booking"),
 		);
 		expect(tokens).toEqual(own.map((d) => d.id));
+		// The site's own Push Webhook integration, so this site (not the console) delivers to these devices.
+		expect((put?.body as { integrationIdentifier: string }).integrationIdentifier).toBe(
+			"push-webhook-psizone-psizone",
+		);
+		expect(pushIntegration("hemisync", "clinic")).toBe("push-webhook-hemisync");
 	});
 
 	it("an app the person is not a subscriber of is skipped: nothing is sent to Novu", async () => {

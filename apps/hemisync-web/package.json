@@ -1,6 +1,6 @@
 {
 	"name": "@psi/hemisync-web",
-	"version": "0.8.0",
+	"version": "0.9.0",
 	"private": true,
 	"type": "module",
 	"description": "hemi-sync.ro — the Hemi-Sync România landing: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
@@ -23,7 +23,10 @@
 		"@psi/design": "workspace:*",
 		"@psi/guide": "workspace:*",
 		"@psi/knowledge": "workspace:*",
+		"@psi/notify": "workspace:*",
 		"@psi/pwa": "workspace:*",
+		"@psi/scheduling": "workspace:*",
+		"@psi/scheduling-sdk": "workspace:*",
 		"@psi/site-control": "workspace:*",
 		"@psi/ui": "workspace:*",
 		"hono": "^4.13.18",

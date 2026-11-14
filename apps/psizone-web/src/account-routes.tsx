@@ -2,7 +2,7 @@ import { registerJourney, savedArticleIn } from "@psi/account";
 import { articleUrl, INDEX } from "@psi/content";
 import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { account, accountSay, reservations } from "./account";
+import { account, accountSay, bookings, reservations } from "./account";
 import { ESTATE, siteNames } from "./estate";
 import { base, type Locale } from "./i18n";
 import { AccountFrame } from "./pages/account";
@@ -27,6 +27,7 @@ export function registerAccountRoutes(app: Hono, locale: Locale): void {
 		savedListHref: `${ESTATE.blog}${prefix}/cont#salvate`,
 		savedArticle: savedArticleIn(INDEX, locale, (slug) => articleUrl(locale, slug, ESTATE.blog)),
 		...(reservations === undefined ? {} : { reservations }),
+		...(bookings === undefined ? {} : { bookings }),
 		render: (c, page) => {
 			const here = new URL(c.req.url);
 			return c.html(
