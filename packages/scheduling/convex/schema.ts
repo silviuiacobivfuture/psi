@@ -308,7 +308,9 @@ export default defineSchema({
 		.index("by_account_start", ["accountHash", "start"])
 		.index("by_updated", ["updatedAt"])
 		.index("by_tenant_updated", ["tenant", "updatedAt"])
-		.index("by_tenant_created", ["tenant"]),
+		.index("by_tenant_created", ["tenant"])
+		// The bookings linked to one client record (erasing the client unlinks them, never the whole app read).
+		.index("by_tenant_client", ["tenant", "client"]),
 
 	// The clinic: every table below carries the app and starts every index with it.
 	devices,

@@ -372,17 +372,19 @@ export const list = query({
 		const prefix = (args.prefix ?? "").trim();
 		const want = args.visibility ?? "listed";
 		const limit = Math.max(1, Math.min(500, Math.floor(args.limit ?? 200)));
-		const rows = await ctx.db
+		const rows = ctx.db
 			.query("clients")
 			.withIndex("by_tenant_name", (q) =>
 				prefix === ""
 					? q.eq("tenant", args.tenant)
 					: q.eq("tenant", args.tenant).gte("name", prefix).lt("name", `${prefix}￿`),
-			)
-			.collect();
-		const shown = rows
-			.filter((c) => c.erasedAt === undefined && (want === "all" || visibilityOf(c) === want))
-			.slice(0, limit);
+			);
+		// Read in name order and stop at the page: never the whole app to answer its first `limit` clients.
+		const shown: Doc<"clients">[] = [];
+		for await (const c of rows) {
+			if (c.erasedAt === undefined && (want === "all" || visibilityOf(c) === want)) shown.push(c);
+			if (shown.length >= limit) break;
+		}
 		return { ok: true as const, clients: shown.map(view) };
 	},
 });
