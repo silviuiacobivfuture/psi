@@ -98,10 +98,11 @@ describe.each(factories)("feedback, on the $name store", (factory) => {
 			"feedback_reply_all",
 			"feedback_reply_all_core",
 		);
-	});
+		// A whole world populated through the API, on Convex too: past the default 10 s on a loaded workstation.
+	}, 120_000);
 	afterAll(async () => {
 		await factory.cleanup();
-	});
+	}, 120_000);
 
 	describe("a client's link", () => {
 		it("takes a rating with text and contact, once, and the answer is the stored id", async () => {
