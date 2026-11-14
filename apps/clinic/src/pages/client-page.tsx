@@ -16,6 +16,7 @@ import type { Appointment, Client, Package, Service } from "../port/schema";
 import {
 	type BlacklistEntry,
 	blacklistActive,
+	type ClearableField,
 	type ClientFile,
 	type ClientNote,
 	type ClientRecord,
@@ -73,6 +74,8 @@ export interface ClientOpen {
 	rename: string | null;
 	confirm: { action: string; id: string } | null;
 	fileNotice: "invalid" | "too-big" | null;
+	/** The edit sheet: emptying the last phone or e-mail was refused; or which field was just emptied. */
+	contact: "required" | ClearableField | null;
 }
 
 /** What the service keeps no route for yet: its tab says "în curând". */
@@ -265,7 +268,9 @@ export async function renderClient(
 					action={`/clients/${client.id}/delete`}
 					hidden={{ id: client.id }}
 				/>
-				{ctx.can.write("clients_edit") ? <EditClientSheet ctx={ctx} client={client} /> : null}
+				{ctx.can.write("clients_edit") ? (
+					<EditClientSheet ctx={ctx} client={client} notice={view.open.contact} />
+				) : null}
 				{ctx.can.write("packages_create") ? (
 					<NewPackageSheet client={client} services={view.services} locale={ctx.locale} />
 				) : null}

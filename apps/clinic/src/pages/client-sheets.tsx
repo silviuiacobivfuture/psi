@@ -1,11 +1,11 @@
 import { BLACKLIST_CATEGORIES, BLACKLIST_SEVERITIES } from "@psi/scheduling/clinic";
-import { Sheet } from "@psi/ui/admin";
+import { Banner, Icon, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { Client } from "../port/schema";
-import type { BlacklistEntry } from "../port/schema-clinical";
+import type { BlacklistEntry, ClearableField } from "../port/schema-clinical";
 import { blacklistCategoryText, severityText } from "./client-flags";
 
 /** The buttons every sheet ends with: do it, or close. Full width stacked on a phone. */
@@ -74,8 +74,59 @@ export function ConfirmSheet({
 	);
 }
 
+/**
+ * Empties one contact field on the spot: shown only beside a field that holds something, for who may change the
+ * contact. The button belongs to its own small form (`form=`), so Enter in the edit form still saves the edit.
+ */
+const clearFormId = (clientId: string, field: ClearableField): string =>
+	`clear-${field}-${clientId}`;
+
+function ClearButton({
+	clientId,
+	field,
+	label,
+}: {
+	clientId: string;
+	field: ClearableField;
+	label: string;
+}): JSX.Element {
+	return (
+		<button
+			class="adm-btn adm-btn--ghost cl-clear"
+			type="submit"
+			form={clearFormId(clientId, field)}
+			data-action="client.clearContact"
+		>
+			<Icon name="trash" />
+			{label}
+		</button>
+	);
+}
+
+function ClearForm({ clientId, field }: { clientId: string; field: ClearableField }): JSX.Element {
+	return (
+		<form
+			id={clearFormId(clientId, field)}
+			method="post"
+			action={`/clients/${clientId}/contact/clear`}
+			hidden
+		>
+			<input type="hidden" name="field" value={field} />
+		</form>
+	);
+}
+
 /** "Prezentare": the client's own details; the clinical note only for who may see it. */
-export function EditClientSheet({ ctx, client }: { ctx: Ctx; client: Client }): JSX.Element {
+export function EditClientSheet({
+	ctx,
+	client,
+	notice = null,
+}: {
+	ctx: Ctx;
+	client: Client;
+	/** Emptying the last phone or e-mail was refused, or this field was just emptied. */
+	notice?: "required" | ClearableField | null;
+}): JSX.Element {
 	const o = at(ctx.locale);
 	return (
 		<Sheet signal="editClient" title={m.cl_edit_title({}, o)} closeLabel={m.close({}, o)}>
@@ -85,6 +136,15 @@ export function EditClientSheet({ ctx, client }: { ctx: Ctx; client: Client }): 
 				class="cl-form"
 				data-form="client-edit"
 			>
+				{notice === "required" ? (
+					<Banner tone="error" icon="alert">
+						{m.cl_contact_required({}, o)}
+					</Banner>
+				) : notice === null ? null : (
+					<Banner tone="info" icon="check">
+						{notice === "phone" ? m.cl_phone_cleared({}, o) : m.cl_email_cleared({}, o)}
+					</Banner>
+				)}
 				<input type="hidden" name="id" value={client.id} />
 				<label class="adm-field">
 					<span>{m.ap_c_name({}, o)}</span>
@@ -115,6 +175,9 @@ export function EditClientSheet({ ctx, client }: { ctx: Ctx; client: Client }): 
 								value={client.phone ?? ""}
 							/>
 						</label>
+						{client.phone === null ? null : (
+							<ClearButton clientId={client.id} field="phone" label={m.cl_clear_phone({}, o)} />
+						)}
 						<label class="adm-field">
 							<span>{m.email_label({}, o)}</span>
 							<input
@@ -127,6 +190,10 @@ export function EditClientSheet({ ctx, client }: { ctx: Ctx; client: Client }): 
 								value={client.email ?? ""}
 							/>
 						</label>
+						{client.email === null ? null : (
+							<ClearButton clientId={client.id} field="email" label={m.cl_clear_email({}, o)} />
+						)}
+						<p class="adm-muted">{m.cl_contact_hint({}, o)}</p>
 					</>
 				) : null}
 				{ctx.can.group("clinical") ? (
@@ -139,6 +206,12 @@ export function EditClientSheet({ ctx, client }: { ctx: Ctx; client: Client }): 
 				) : null}
 				<SheetButtons go={m.cl_save({}, o)} signal="editClient" cancel={m.cancel({}, o)} />
 			</form>
+			{ctx.can.group("contact") && client.phone !== null ? (
+				<ClearForm clientId={client.id} field="phone" />
+			) : null}
+			{ctx.can.group("contact") && client.email !== null ? (
+				<ClearForm clientId={client.id} field="email" />
+			) : null}
 		</Sheet>
 	);
 }

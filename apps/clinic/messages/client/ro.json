@@ -176,5 +176,12 @@
 	"cl_gate_reason": "De ce programezi totuși (obligatoriu)",
 	"cl_gate_need_reason": "Scrie de ce programezi clientul în ciuda semnalării. Nu s-a salvat nimic.",
 	"cl_gate_refused": "Clientul este blocat și nu poți trece peste. Nu s-a salvat nimic.",
-	"cl_err_room": "Serviciul cere un cabinet de felul lui (de exemplu un cabinet neuro pentru neurofeedback)."
+	"cl_err_room": "Serviciul cere un cabinet de felul lui (de exemplu un cabinet neuro pentru neurofeedback).",
+	"ac_client_clear_contact": "Golește telefonul sau e-mailul",
+	"cl_clear_phone": "Golește telefonul",
+	"cl_clear_email": "Golește e-mailul",
+	"cl_contact_hint": "Un câmp lăsat gol se golește la salvare. Clientul păstrează un telefon sau un e-mail, al său sau al tutorelui, ca să poată fi programat.",
+	"cl_contact_required": "Nu s-a schimbat nimic: clientul ar rămâne fără telefon și fără e-mail (nici al tutorelui), iar o programare are nevoie de unul dintre ele.",
+	"cl_phone_cleared": "Telefonul a fost golit.",
+	"cl_email_cleared": "E-mailul a fost golit."
 }

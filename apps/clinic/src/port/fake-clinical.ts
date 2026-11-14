@@ -5,11 +5,13 @@ import { type ClinicPort, PortError } from "./port";
 import type { AppSlug, Client } from "./schema";
 import {
 	blacklistActive,
+	CLEARABLE_FIELDS,
 	type ClientFile,
 	type ClientFlag,
 	type ClientNote,
 	type ClientRecord,
 	type ClientSummary,
+	CONTACT_REQUIRED,
 	FILE_MAX_BYTES,
 	FILE_TYPES,
 	FileNameSchema,
@@ -104,6 +106,10 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 				...held,
 				...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
 			};
+			// Like the service: emptying a contact may not leave the client with no phone or e-mail to book with.
+			const emptied = CLEARABLE_FIELDS.some((f) => patch[f] === null && held[f] !== null);
+			if (emptied && next.phone === null && next.email === null)
+				throw new PortError("conflict", CONTACT_REQUIRED);
 			d.clients[i] = next;
 			log(d, "console", "client.edit", id);
 			return next;

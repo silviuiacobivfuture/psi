@@ -1,4 +1,4 @@
-import type { FieldGroupName } from "@psi/scheduling-sdk/contract";
+import type { CLEARABLE_CLIENT, FieldGroupName } from "@psi/scheduling-sdk/contract";
 import { NONE, reaches } from "../authz/access";
 import { appLink, treatingLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
@@ -110,9 +110,17 @@ export const clientHandlers: HandlersOf<
 	async "clients.update"(ctx) {
 		const row = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		const b = ctx.body;
+		const clear = b.clear ?? [];
+		const touched = (g: (typeof GROUPS)[number]): boolean =>
+			b[g] !== undefined || clear.some((f) => CLEAR_GROUP[f] === g);
 		for (const g of GROUPS)
-			if (b[g] !== undefined && !(await ctx.canOn(`clients_edit_${g}`, "sched_client", row.id)))
+			if (touched(g) && !(await ctx.canOn(`clients_edit_${g}`, "sched_client", row.id)))
 				throw forbidden("not allowed to write this field group", { group: g });
+		const both = clear.filter((f) =>
+			f === "guardian" ? b.guardian !== undefined : b.contact?.[f] !== undefined,
+		);
+		if (both.length > 0)
+			throw fail("invalid", "a field is either given or cleared", { fields: both });
 		const { clinicalSealed, ...plain } = row;
 		let sealed = clinicalSealed;
 		if (b.clinical !== undefined) {
@@ -125,23 +133,42 @@ export const clientHandlers: HandlersOf<
 				clinicalContext(ctx.app, row.id),
 			);
 		}
+		const { contact: _contact, guardian: _guardian, ...rest } = plain;
+		const contact = contactAfter(row.contact, b.contact, clear);
+		const guardian = clear.includes("guardian")
+			? undefined
+			: b.guardian === undefined
+				? row.guardian
+				: ({ ...row.guardian, ...b.guardian } as NonNullable<ClientRow["guardian"]>);
+		const cleared = clear.filter((f) =>
+			f === "guardian" ? row.guardian !== undefined : row.contact?.[f] !== undefined,
+		);
 		const next: ClientRow = {
-			...plain,
+			...rest,
+			...(contact === undefined ? {} : { contact }),
+			...(guardian === undefined ? {} : { guardian }),
 			...(b.name === undefined ? {} : { name: b.name }),
 			...(b.birthYear === undefined ? {} : { birthYear: b.birthYear }),
-			...(b.contact === undefined ? {} : { contact: { ...row.contact, ...b.contact } }),
-			...(b.guardian === undefined
-				? {}
-				: { guardian: { ...row.guardian, ...b.guardian } as NonNullable<ClientRow["guardian"]> }),
 			...(b.money === undefined ? {} : { money: { ...row.money, ...b.money } }),
 			...(sealed === undefined ? {} : { clinicalSealed: sealed }),
 			updatedAt: ctx.now,
 		};
+		if (cleared.length > 0 && !reachable(next))
+			throw fail("conflict", "the client would keep no phone or e-mail to book with", {
+				reason: "contact_required",
+			});
+		const only = Object.keys(b).every((k) => k === "clear");
+		if (only && cleared.length === 0) {
+			// Emptying what is already empty: nothing to write, nothing to record.
+			ctx.unchanged();
+			return view(ctx, row);
+		}
 		await ctx.deps.store.c.clients.replace(next);
 		await ctx.changed("client", "updated", row.id);
 		ctx.note({
-			groups: GROUPS.filter((g) => b[g] !== undefined),
+			groups: GROUPS.filter(touched),
 			identity: b.name !== undefined || b.birthYear !== undefined,
+			...(cleared.length === 0 ? {} : { cleared }),
 		});
 		return view(ctx, next);
 	},
@@ -205,6 +232,38 @@ export const clientHandlers: HandlersOf<
 		return { id: row.id, status: "deleted" as const, purgeAt };
 	},
 };
+
+type Contact = NonNullable<ClientRow["contact"]>;
+type Clearable = (typeof CLEARABLE_CLIENT)[number];
+
+/** The field group whose edit permission emptying a field needs. */
+const CLEAR_GROUP: Readonly<Record<Clearable, (typeof GROUPS)[number]>> = {
+	phone: "contact",
+	email: "contact",
+	guardian: "guardian",
+};
+
+/** The contact after a change: what is given merged over what is held, the cleared fields taken away; none when empty. */
+function contactAfter(
+	held: Contact | undefined,
+	given: Contact | undefined,
+	clear: readonly Clearable[],
+): Contact | undefined {
+	const merged: Contact = { ...held, ...given };
+	const kept: Contact = {
+		...(merged.phone === undefined || clear.includes("phone") ? {} : { phone: merged.phone }),
+		...(merged.email === undefined || clear.includes("email") ? {} : { email: merged.email }),
+		...(merged.address === undefined ? {} : { address: merged.address }),
+	};
+	return Object.keys(kept).length === 0 ? undefined : kept;
+}
+
+/** What booking needs to reach a client: their own phone or e-mail, or their guardian's. */
+const reachable = (row: ClientRow): boolean =>
+	row.contact?.phone !== undefined ||
+	row.contact?.email !== undefined ||
+	row.guardian?.phone !== undefined ||
+	row.guardian?.email !== undefined;
 
 async function view(
 	ctx: Parameters<typeof clientView>[0],

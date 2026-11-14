@@ -237,7 +237,24 @@ export const ClientCreate = z.object({
 	money: MoneyData.optional(),
 	clinical: ClinicalData.optional(),
 });
-export const ClientPatch = ClientCreate.omit({ treating: true }).partial();
+/** What a change of a client may empty: their own phone or e-mail (the contact group), or the guardian (its group). */
+export const CLEARABLE_CLIENT = ["phone", "email", "guardian"] as const;
+/**
+ * A change of a client: what is given is merged; `clear` empties the client's own phone or e-mail (it needs the contact
+ * group's edit permission) or removes the guardian (the guardian group's). A field both given and cleared is refused,
+ * and so is a change that would leave the client with no way to be reached for a booking: their own phone or e-mail,
+ * or their guardian's (409 `conflict`, detail `reason: "contact_required"`).
+ */
+export const ClientPatch = ClientCreate.omit({ treating: true })
+	.partial()
+	.extend({
+		clear: z
+			.array(z.enum(CLEARABLE_CLIENT))
+			.min(1)
+			.max(CLEARABLE_CLIENT.length)
+			.refine((l) => new Set(l).size === l.length, "each field once")
+			.optional(),
+	});
 export const ClientTreating = z.object({
 	treating: z.array(Id).max(20),
 	reason: z.string().trim().min(3).max(300),
