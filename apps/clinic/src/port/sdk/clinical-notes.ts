@@ -143,7 +143,7 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 		const { [STATUS_KEY]: status, ...data } = r.data ?? {};
 		return {
 			id: r.id,
-			clientId: r.clientId,
+			clientId: r.clientId ?? null,
 			formKey: r.formId,
 			formVersion: r.formVersion,
 			appointmentId: r.appointmentId ?? null,
@@ -245,6 +245,21 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 						api.records.list({
 							app,
 							id: clientId,
+							limit: 500,
+							...(cursor === undefined ? {} : { cursor }),
+						}),
+					),
+				]);
+				return list.map((r) => recordOf(r, tz, who));
+			}),
+		recordsWithoutClient: (app: AppSlug): Promise<ClientRecord[]> =>
+			run(async () => {
+				const [tz, who, list] = await Promise.all([
+					sdk.zone(app),
+					names(app),
+					drain((cursor) =>
+						api.records.withoutClient({
+							app,
 							limit: 500,
 							...(cursor === undefined ? {} : { cursor }),
 						}),

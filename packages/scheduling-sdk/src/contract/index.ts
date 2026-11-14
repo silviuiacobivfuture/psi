@@ -16,6 +16,7 @@ export * from "./entities-calendar";
 export * from "./entities-feedback";
 export * from "./entities-invite";
 export * from "./entities-notify";
+export * from "./entities-org";
 export * from "./entities-plan";
 export * from "./entities-reports";
 export * from "./entities-roles";

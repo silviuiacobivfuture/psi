@@ -89,8 +89,9 @@ export function adminGroup(sdk: SdkContext) {
 				});
 			}),
 
+		// Through the port's one answer: the page's middleware, its zone and its screens share it (and its source keeps it).
 		capabilities: (_subject: string, app: AppSlug, as?: `role:${string}` | `member:${string}`) =>
-			run(() => api.me.capabilities({ app, ...(as === undefined ? {} : { as }) })),
+			run(() => sdk.me(app, as)),
 
 		startViewAs: (_subject: string, app: AppSlug, as: `role:${string}` | `member:${string}`) =>
 			run(() => api.viewAs.start({ app, as })),

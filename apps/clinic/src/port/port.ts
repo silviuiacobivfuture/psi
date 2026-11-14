@@ -6,6 +6,7 @@ import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
 import type { ClientFilter, ClientListAsk, ClientPage } from "./client-list";
+import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
 import type {
@@ -197,7 +198,7 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort extends ProfilePort {
+export interface ClinicPort extends ProfilePort, OrgPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	/**
 	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
@@ -436,6 +437,11 @@ export interface ClinicPort extends ProfilePort {
 	/** The form definitions a record may be started from (the seeded templates and the owners' own). */
 	formTemplates(app: AppSlug): Promise<ReadonlyArray<FormDefinition>>;
 	records(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientRecord>>;
+	/**
+	 * The records that belong to no client, newest first: only those of the forms the person may read app-wide (the
+	 * service refuses `forbidden` when there is none). No client's page ever lists them.
+	 */
+	recordsWithoutClient(app: AppSlug): Promise<ReadonlyArray<ClientRecord>>;
 	record(app: AppSlug, id: string): Promise<ClientRecord | null>;
 	/** Refuses (`invalid`) a form that is unknown, or a finalised record whose values do not satisfy its form. */
 	createRecord(app: AppSlug, clientId: string, input: NewRecord, by: Actor): Promise<ClientRecord>;

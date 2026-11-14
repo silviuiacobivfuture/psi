@@ -198,6 +198,21 @@ export const OPERATION_ROUTES = [
 		audit: "record.create",
 	}),
 	route({
+		id: "records.withoutClient",
+		method: "GET",
+		path: "/v1/apps/:app/records-without-client",
+		side: "team",
+		summary:
+			"The app's records that belong to no client; only the forms the caller may read app-wide (every one is audited)",
+		params: AppParam,
+		query: PageQuery,
+		response: page(RecordFull),
+		permission: {
+			key: "record:dynamic",
+			target: { kind: "dynamic", type: "sched_record", candidates: recordKeys("view") },
+		},
+	}),
+	route({
 		id: "records.get",
 		method: "GET",
 		path: "/v1/apps/:app/records/:id",

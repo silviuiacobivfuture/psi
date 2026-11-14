@@ -11,6 +11,8 @@ import { createContext } from "./context";
 import { invitesGroup } from "./invites";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 import { membersGroup } from "./members";
+import { createPortMemory, type PortMemory } from "./memory";
+import { orgGroup } from "./org";
 import { profileGroup } from "./profile";
 import { reportsGroup } from "./reports";
 import { roleSummaryGroup } from "./role-summary";
@@ -41,15 +43,43 @@ function withViewAs(
 	};
 }
 
+const READS = new Set(["GET", "HEAD"]);
+
+/** Every call that may change something makes the port forget what it read (once the answer is in). */
+function forgettingOnWrite(
+	base: typeof globalThis.fetch,
+	memory: PortMemory,
+): typeof globalThis.fetch {
+	return async (input, init) => {
+		const method = (
+			init?.method ?? (input instanceof Request ? input.method : "GET")
+		).toUpperCase();
+		if (READS.has(method)) return base(input, init);
+		try {
+			return await base(input, init);
+		} finally {
+			memory.wrote();
+		}
+	};
+}
+
 /** `ClinicPort` over the scheduling service's SDK, acting with the signed-in person's own token. */
 export function createSdkPort(options: SdkPortOptions): ClinicPort {
+	const memory = createPortMemory();
 	const api: SchedulingClient = createSchedulingClient({
 		baseUrl: options.baseUrl,
 		auth: { bearer: options.bearer },
 		...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
-		fetch: withViewAs(options.fetch ?? globalThis.fetch.bind(globalThis), options.viewAs),
+		fetch: forgettingOnWrite(
+			withViewAs(options.fetch ?? globalThis.fetch.bind(globalThis), options.viewAs),
+			memory,
+		),
 	});
-	const sdk = createContext(api, options.onError, options.fetch);
+	const sdk = createContext(api, {
+		onError: options.onError,
+		transfer: options.fetch,
+		memory,
+	});
 	const calendar = calendarGroup(sdk);
 	const { clientsPage, ...cal } = calendar;
 	const catalog = catalogGroup(sdk);
@@ -69,6 +99,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
+		...orgGroup(sdk),
 		...roleSummaryGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};

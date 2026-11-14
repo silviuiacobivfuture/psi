@@ -4,6 +4,7 @@ import { orgSettingsOpen, PLATFORM_KEY } from "../lib/areas";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
+import { wholeAppRecordViews } from "./records-without-client";
 
 /** The phone's fourth tab: everything the bottom bar has no room for. */
 export async function MorePage(ctx: Ctx) {
@@ -46,6 +47,12 @@ export async function MorePage(ctx: Ctx) {
 			label: m.nav_stats({}, o),
 			icon: "chart",
 			open: can.has("reports_view_core"),
+		},
+		{
+			href: "/records",
+			label: m.orphan_records_title({}, o),
+			icon: "file",
+			open: wholeAppRecordViews(can).size > 0,
 		},
 		{ href: "/me/profile", label: m.menu_profile({}, o), icon: "user", open: true },
 	];
