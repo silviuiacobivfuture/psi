@@ -24,7 +24,9 @@ set -euo pipefail
 ORIGIN_REPO="$(git rev-parse --show-toplevel)"
 BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:18200}"
 BAO_ROBOT_PATH="${BAO_ROBOT_PATH:-platform/harbor/ci-robot}"
-JOBS="${LOCAL_RELEASE_JOBS:-4}"
+# Two at once, as CI's max-parallel: each image's pnpm install needs a few GB, and Docker Desktop's VM (not the host)
+# is what they share (8 GB by default; raise it in Docker Desktop → Resources before raising this).
+JOBS="${LOCAL_RELEASE_JOBS:-2}"
 ENV_BRANCH=dev
 
 fail() { echo "local-release: $*" >&2; exit 1; }
@@ -115,16 +117,20 @@ build() {
 	fi
 	local cache_to=(--cache-to "type=registry,ref=$img:buildcache,mode=max")
 	[ "${LOCAL_RELEASE_CACHE_TO:-1}" = 0 ] && cache_to=()
-	if docker buildx build --builder "$BUILDER" -f "apps/$app/Dockerfile" \
-		--build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
-		--cache-from "type=registry,ref=$img:buildcache" "${cache_to[@]}" \
-		-t "$img:$TAG" --push . > "$LOGS/$app.log" 2>&1 \
-		&& docker buildx imagetools inspect "$img:$TAG" > /dev/null 2>&1; then
-		echo "pushed $app $img:$TAG"
-	else
-		echo "FAILED $app (log: $LOGS/$app.log)"
-		return 1
-	fi
+	# Three tries: a push the registry's proxy drops mid-blob (499) succeeds again; the layers built are cached.
+	local try
+	for try in 1 2 3; do
+		if docker buildx build --builder "$BUILDER" -f "apps/$app/Dockerfile" \
+			--build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
+			--cache-from "type=registry,ref=$img:buildcache" "${cache_to[@]}" \
+			-t "$img:$TAG" --push . > "$LOGS/$app.$try.log" 2>&1 \
+			&& docker buildx imagetools inspect "$img:$TAG" > /dev/null 2>&1; then
+			echo "pushed $app $img:$TAG"
+			return 0
+		fi
+	done
+	echo "FAILED $app (logs: $LOGS/$app.*.log)"
+	return 1
 }
 
 # Parallel builds, at most $JOBS at once; every result kept.
