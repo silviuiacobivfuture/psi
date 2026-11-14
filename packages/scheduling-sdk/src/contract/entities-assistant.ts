@@ -56,8 +56,17 @@ export type AssistantSkillType = z.infer<typeof AssistantSkill>;
 /** Every setting of one surface, whole: what the defaults hold and what the merge returns. */
 export const AssistantSettings = z.object({
 	enabled: z.boolean(),
-	model: z.object({ primary: ModelSlug, fallbacks: z.array(ModelSlug).max(3) }),
+	/**
+	 * `primary` answers (then `fallbacks`, in order); `summary` writes the short summary a long conversation's older part
+	 * is folded into (`memory.compactAfter`): a cheap model, held to the same ceiling list.
+	 */
+	model: z.object({
+		primary: ModelSlug,
+		fallbacks: z.array(ModelSlug).max(3),
+		summary: ModelSlug,
+	}),
 	temperature: z.number().min(0).max(1.5),
+	/** The longest answer one model call may write; `tokens.perRequest` caps it too (the lower holds). */
 	maxOutputTokens: int(256, 16_384),
 	/** Tool rounds in one reply; then the reply is written in words. */
 	maxToolCalls: int(0, 24),
@@ -68,7 +77,11 @@ export const AssistantSettings = z.object({
 	ratePerMinute: int(1, 600),
 	/** Messages: per conversation, per day per person / visitor / address. */
 	messages: z.object({ perSession: int(1, 1_000), perDay: int(1, 10_000) }),
-	/** Tokens: one request (prompt + answer), the organisation's day and month. */
+	/**
+	 * Tokens. `perRequest`: one turn, prompt and answer of every model call in it together; once a turn reaches it, it
+	 * calls no more tools and answers, and no call writes more than it (nor more than `maxOutputTokens`). `perDay` and
+	 * `perMonth`: the organisation's, a turn past either is refused.
+	 */
 	tokens: z.object({
 		perRequest: int(1_000, 400_000),
 		perDay: int(10_000, 1_000_000_000),
@@ -91,12 +104,18 @@ export const AssistantSettings = z.object({
 		contact: z.string().trim().max(200).optional(),
 	}),
 	memory: z.object({
+		/** Every message of a conversation is deleted this many days after it was written. */
 		retentionDays: int(1, 365),
 		/** Messages of the conversation the model reads back. */
 		historyMessages: int(2, 50),
-		/** Past this many messages the older part is folded into a short summary. */
+		/** Past this many messages the older part is folded into a short summary (by `model.summary`). */
 		compactAfter: int(6, 400),
 	}),
+	/**
+	 * `redactPii`: the logs never hold an e-mail address, a phone number or a personal number (what the assistant logs
+	 * is a stage and an error, never a message). `keepTranscripts`: each finished turn's question and answer are written
+	 * to the app's log as a `transcript` line (redacted when `redactPii`); off, no message text is ever logged.
+	 */
 	logging: z.object({ redactPii: z.boolean(), keepTranscripts: z.boolean() }),
 	/** Read answers kept per person for this long (0: no cache); a change empties it. */
 	cacheTtlSeconds: int(0, 600),

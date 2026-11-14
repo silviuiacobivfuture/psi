@@ -42,6 +42,19 @@ describe("Setări → Asistent: the organisation's tier", () => {
 		expect(html).toContain('name="staff.maxToolCalls"');
 		expect(html).toContain('placeholder="8"');
 	});
+	it("each surface shows only what governs it: the visitor's content is the CMS's, paging and reads are staff only", async () => {
+		const html = await (await (await as("owner")).get("/settings/assistant")).text();
+		for (const name of ["prompt.override", "prompt.append", "tone", "language", "pageSize"]) {
+			expect(html, name).toContain(`name="staff.${name}"`);
+			expect(html, name).not.toContain(`name="visitor.${name}"`);
+		}
+		expect(html).not.toContain('name="visitor.cacheTtlSeconds"');
+		expect(html).not.toContain('name="staff.booking.horizonDays"');
+		expect(html).toContain('name="visitor.booking.horizonDays"');
+		expect(html).toContain('name="visitor.model.summary"');
+		expect(html).toContain('data-note="visitor-content"');
+		expect(html).toContain("se editează în CMS");
+	});
 	it("saves what is filled in, leaves the rest inherited, and shows it saved", async () => {
 		const owner = await as("owner");
 		const res = await owner.post(
@@ -49,6 +62,8 @@ describe("Setări → Asistent: the organisation's tier", () => {
 			...form({
 				"staff.maxToolCalls": "5",
 				"staff.budget.monthlyMicroUsd": "12.5",
+				"visitor.booking.horizonDays": "10",
+				// The visitor's tone is the site's content (the CMS): a value sent for it is not taken.
 				"visitor.tone": "formal",
 				"skill.0.name": "Primire client nou",
 				"skill.0.instructions": "Întreabă de vârstă.",
@@ -60,7 +75,7 @@ describe("Setări → Asistent: the organisation's tier", () => {
 		const view = await owner.port.assistantConfig("psizone");
 		expect(view.revision).toBe(1);
 		expect(view.doc?.staff).toEqual({ maxToolCalls: 5, budget: { monthlyMicroUsd: 12_500_000 } });
-		expect(view.doc?.visitor).toEqual({ tone: "formal" });
+		expect(view.doc?.visitor).toEqual({ booking: { horizonDays: 10 } });
 		expect(view.doc?.skills.map((s) => s.id)).toEqual(["primire-client-nou"]);
 		expect(view.effective.staff.maxToolCalls).toBe(5);
 		const html = await (await owner.get("/settings/assistant?saved=1")).text();

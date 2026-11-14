@@ -188,6 +188,11 @@ export function SurfaceFields(props: {
 	const fields = fieldsOf(surface);
 	return (
 		<div class="adm-stack">
+			{surface === "visitor" ? (
+				<p class="adm-muted" data-note="visitor-content">
+					{m.as_visitor_content({}, o)}
+				</p>
+			) : null}
 			{FIELD_GROUPS.map((group) => {
 				const inGroup = fields.filter((x) => x.group === group);
 				if (inGroup.length === 0) return null;

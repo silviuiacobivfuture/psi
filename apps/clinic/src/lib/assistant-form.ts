@@ -39,7 +39,12 @@ export interface SettingField {
 	readonly key: LabelKey;
 	readonly kind: FieldKind;
 	readonly group: FieldGroup;
-	readonly visitorOnly?: true;
+	/**
+	 * The one surface it governs, when it is not both. Staff only: paging and the read cache (the visitor's guide reads
+	 * no records) and the instructions (the visitor's voice, prompt, tone and language are the site's content, in the
+	 * CMS). Visitor only: booking on the site.
+	 */
+	readonly only?: AssistantSurfaceName;
 	/** The ceiling it is held to, for the hint beside it. */
 	readonly ceiling?: keyof AssistantCeilingsType;
 }
@@ -49,7 +54,7 @@ const f = (
 	key: LabelKey,
 	kind: FieldKind,
 	group: FieldGroup,
-	more: { visitorOnly?: true; ceiling?: keyof AssistantCeilingsType } = {},
+	more: { only?: AssistantSurfaceName; ceiling?: keyof AssistantCeilingsType } = {},
 ): SettingField => ({ path, key, kind, group, ...more });
 
 /** Every setting of a surface the screens edit, in the order shown. */
@@ -57,10 +62,11 @@ export const SETTING_FIELDS: ReadonlyArray<SettingField> = [
 	f("enabled", "as_f_enabled", "bool", "access"),
 	f("model.primary", "as_f_model_primary", "text", "model"),
 	f("model.fallbacks", "as_f_model_fallbacks", "list", "model"),
+	f("model.summary", "as_f_model_summary", "text", "model"),
 	f("temperature", "as_f_temperature", "num", "model", { ceiling: "temperature" }),
 	f("maxOutputTokens", "as_f_maxOutputTokens", "int", "model", { ceiling: "maxOutputTokens" }),
 	f("maxToolCalls", "as_f_maxToolCalls", "int", "limits", { ceiling: "maxToolCalls" }),
-	f("pageSize", "as_f_pageSize", "int", "limits", { ceiling: "pageSize" }),
+	f("pageSize", "as_f_pageSize", "int", "limits", { ceiling: "pageSize", only: "staff" }),
 	f("timeouts.idleMs", "as_f_timeouts_idleMs", "int", "limits"),
 	f("timeouts.totalMs", "as_f_timeouts_totalMs", "int", "limits", { ceiling: "totalMs" }),
 	f("ratePerMinute", "as_f_ratePerMinute", "int", "limits", { ceiling: "ratePerMinute" }),
@@ -75,13 +81,13 @@ export const SETTING_FIELDS: ReadonlyArray<SettingField> = [
 		ceiling: "budgetMonthlyMicroUsd",
 	}),
 	f("budget.hardStop", "as_f_budget_hardStop", "bool", "limits"),
-	f("prompt.override", "as_f_prompt_override", "long", "prompt"),
-	f("prompt.append", "as_f_prompt_append", "long", "prompt"),
-	f("tone", "as_f_tone", "tone", "prompt"),
-	f("language", "as_f_language", "language", "prompt"),
-	f("booking.horizonDays", "as_f_booking_horizonDays", "int", "booking", { visitorOnly: true }),
+	f("prompt.override", "as_f_prompt_override", "long", "prompt", { only: "staff" }),
+	f("prompt.append", "as_f_prompt_append", "long", "prompt", { only: "staff" }),
+	f("tone", "as_f_tone", "tone", "prompt", { only: "staff" }),
+	f("language", "as_f_language", "language", "prompt", { only: "staff" }),
+	f("booking.horizonDays", "as_f_booking_horizonDays", "int", "booking", { only: "visitor" }),
 	f("booking.offerCallback", "as_f_booking_offerCallback", "bool", "booking", {
-		visitorOnly: true,
+		only: "visitor",
 	}),
 	f("handoff.enabled", "as_f_handoff_enabled", "bool", "handoff"),
 	f("handoff.afterRefusals", "as_f_handoff_afterRefusals", "int", "handoff"),
@@ -93,7 +99,7 @@ export const SETTING_FIELDS: ReadonlyArray<SettingField> = [
 	f("memory.compactAfter", "as_f_memory_compactAfter", "int", "memory"),
 	f("logging.redactPii", "as_f_logging_redactPii", "bool", "logging"),
 	f("logging.keepTranscripts", "as_f_logging_keepTranscripts", "bool", "logging"),
-	f("cacheTtlSeconds", "as_f_cacheTtlSeconds", "int", "memory"),
+	f("cacheTtlSeconds", "as_f_cacheTtlSeconds", "int", "memory", { only: "staff" }),
 ];
 
 export const FIELD_GROUPS: ReadonlyArray<FieldGroup> = [
@@ -108,7 +114,7 @@ export const FIELD_GROUPS: ReadonlyArray<FieldGroup> = [
 ];
 
 export const fieldsOf = (surface: AssistantSurfaceName): ReadonlyArray<SettingField> =>
-	SETTING_FIELDS.filter((x) => surface === "visitor" || x.visitorOnly !== true);
+	SETTING_FIELDS.filter((x) => x.only === undefined || x.only === surface);
 
 type Plain = Record<string, unknown>;
 const isPlain = (v: unknown): v is Plain =>

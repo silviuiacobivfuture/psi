@@ -20,7 +20,7 @@ const COMMON: Omit<
 	"maxOutputTokens" | "maxToolCalls" | "ratePerMinute" | "messages" | "temperature" | "timeouts"
 > = {
 	enabled: true,
-	model: { primary: ASSISTANT_DEFAULT_MODEL, fallbacks: [] },
+	model: { primary: ASSISTANT_DEFAULT_MODEL, fallbacks: [], summary: ASSISTANT_DEFAULT_MODEL },
 	pageSize: 25,
 	tokens: { perRequest: 120_000, perDay: 20_000_000, perMonth: 300_000_000 },
 	// 50 dollars a month, a hard stop: an organisation that needs more raises it, within the platform's ceiling.
@@ -114,7 +114,11 @@ export function clampToCeilings(
 		: (fallbacks[0] ?? c.models[0] ?? s.model.primary);
 	return {
 		...s,
-		model: { primary, fallbacks: fallbacks.filter((m) => m !== primary) },
+		model: {
+			primary,
+			fallbacks: fallbacks.filter((m) => m !== primary),
+			summary: allowed(s.model.summary) ? s.model.summary : primary,
+		},
 		temperature: Math.min(s.temperature, c.temperature),
 		maxOutputTokens: Math.min(s.maxOutputTokens, c.maxOutputTokens),
 		maxToolCalls: Math.min(s.maxToolCalls, c.maxToolCalls),
@@ -187,7 +191,7 @@ function applyOverride(
 	return {
 		...s,
 		...(o.enabled === undefined ? {} : { enabled: s.enabled && o.enabled }),
-		...(o.model === undefined ? {} : { model: { primary: o.model, fallbacks: s.model.fallbacks } }),
+		...(o.model === undefined ? {} : { model: { ...s.model, primary: o.model } }),
 		...(o.maxToolCalls === undefined ? {} : { maxToolCalls: o.maxToolCalls }),
 		...(o.messagesPerDay === undefined
 			? {}
@@ -247,7 +251,7 @@ export function ceilingBreaches(
 		const over = (path: string, value: number | undefined, max: number): void => {
 			if (value !== undefined && value > max) out.push(`${surface}.${path}`);
 		};
-		for (const m of [p.model?.primary, ...(p.model?.fallbacks ?? [])])
+		for (const m of [p.model?.primary, ...(p.model?.fallbacks ?? []), p.model?.summary])
 			if (m !== undefined && !c.models.includes(m)) out.push(`${surface}.model`);
 		over("temperature", p.temperature, c.temperature);
 		over("maxOutputTokens", p.maxOutputTokens, c.maxOutputTokens);

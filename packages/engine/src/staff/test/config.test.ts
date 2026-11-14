@@ -62,7 +62,11 @@ describe("a turn runs on the person's configuration", () => {
 		const engine = await engineWith([{ kind: "text", chunks: ["Bună."] }]);
 		const port = owner();
 		port.config = staffConfigWith({
-			model: { primary: "xiaomi/mimo-v2.6-flash", fallbacks: ["vendor/backup"] },
+			model: {
+				primary: "xiaomi/mimo-v2.6-flash",
+				fallbacks: ["vendor/backup"],
+				summary: "xiaomi/mimo-v2.6-flash",
+			},
 			temperature: 0.7,
 			maxOutputTokens: 1_000,
 		});

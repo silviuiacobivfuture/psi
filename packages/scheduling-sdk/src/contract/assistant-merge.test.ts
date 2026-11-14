@@ -117,12 +117,51 @@ describe("precedence: built-in < platform defaults < organisation < role < perso
 			},
 			"staff",
 		);
-		expect(fallback.model).toEqual({ primary: "openai/gpt-x", fallbacks: [] });
+		expect(fallback.model).toEqual({
+			primary: "openai/gpt-x",
+			fallbacks: [],
+			summary: ASSISTANT_DEFAULT_MODEL,
+		});
 		const first = orgSettings(
 			{ platform: PLATFORM, org: { ...ORG, staff: { model: { primary: "evil/model" } } } },
 			"staff",
 		);
 		expect(first.model.primary).toBe(ASSISTANT_DEFAULT_MODEL);
+	});
+	it("the summary model is held to the same list: an allowed one stays, another becomes the answering model", () => {
+		const allowed = orgSettings(
+			{ platform: PLATFORM, org: { ...ORG, staff: { model: { summary: "openai/gpt-x" } } } },
+			"staff",
+		);
+		expect(allowed.model.summary).toBe("openai/gpt-x");
+		const refused = orgSettings(
+			{
+				platform: PLATFORM,
+				org: {
+					...ORG,
+					staff: { model: { primary: "openai/gpt-x", summary: "evil/model" } },
+				},
+			},
+			"staff",
+		);
+		expect(refused.model.summary).toBe("openai/gpt-x");
+		expect(
+			ceilingBreaches(
+				{ ...ORG, visitor: { model: { summary: "evil/model" } } },
+				{ platform: PLATFORM },
+			),
+		).toEqual(["visitor.model"]);
+	});
+	it("a role's or a person's model changes the answering model only, never the summary one", () => {
+		const s = personSettings(
+			{ platform: PLATFORM, org: { ...ORG, people: { p1: { model: "openai/gpt-x" } } } },
+			{ subject: "p1", roles: [] },
+		);
+		expect(s.model).toEqual({
+			primary: "openai/gpt-x",
+			fallbacks: [],
+			summary: ASSISTANT_DEFAULT_MODEL,
+		});
 	});
 	it("redaction forced by the platform cannot be switched off", () => {
 		expect(
