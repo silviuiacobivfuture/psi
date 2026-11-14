@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Program\u0103ri \u2014 the team's scheduling console: server-rendered TSX on Hono, Datastar, Tailwind, psi's admin theme; a PWA; single sign-on through the estate's Authentik",
+	"description": "Programări — the team's scheduling console: server-rendered TSX on Hono, Datastar, Tailwind, psi's admin theme; a PWA; single sign-on through the estate's Authentik",
 	"scripts": {
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
 		"css": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --minify",
@@ -12,6 +12,7 @@
 		"build": "pnpm i18n && pnpm --filter @psi/notify i18n && pnpm css && esbuild src/server.tsx --bundle --platform=node --format=esm --target=node24 --jsx=automatic --jsx-import-source=hono/jsx --external:hono --external:@hono/node-server --external:zod --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --external:libsql --external:@libsql/* --outfile=dist/server.js",
 		"start": "node --env-file-if-exists=.env dist/server.js",
 		"rooms:apply": "tsx scripts/apply-rooms.ts",
+		"load": "pnpm i18n && pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && pnpm css && NODE_ENV=test tsx scripts/load/main.ts",
 		"type-check": "pnpm i18n && pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && tsc --noEmit",
 		"test": "pnpm i18n && pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && pnpm css && vitest run"
 	},
@@ -33,6 +34,8 @@
 		"@inlang/paraglide-js": "^3.2.2",
 		"@psi/scheduling-api": "workspace:*",
 		"@tailwindcss/cli": "^4.3.5",
+		"@types/autocannon": "7.12.7",
+		"autocannon": "8.0.0",
 		"axe-core": "4.11.0",
 		"esbuild": "^0.25.0",
 		"playwright-core": "1.48.2",
