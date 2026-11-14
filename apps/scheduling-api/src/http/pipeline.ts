@@ -100,8 +100,15 @@ async function authenticate(deps: Deps, c: Context<HttpEnv>): Promise<Principal>
 }
 
 /** Everything before the handler: credential, side, app, membership, permission. Nothing is written here. */
-export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>): Promise<Prepared> {
+export async function prepare(
+	shared: Deps,
+	spec: RouteSpec,
+	c: Context<HttpEnv>,
+): Promise<Prepared> {
 	const requestId: string = c.get("requestId");
+	// One request asks each authorization question once (a list asks it for every row): its own remembering view.
+	const scoped = shared.access.forRequest();
+	const deps: Deps = { ...shared, access: scoped.access, authz: scoped.authz };
 	// Order matters: who is calling, then the path, then membership and permission, and only then the rest of the
 	// input. A caller who may not do this learns nothing about what a valid request looks like.
 	const principal = await authenticate(deps, c);

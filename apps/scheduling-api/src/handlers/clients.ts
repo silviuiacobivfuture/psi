@@ -30,17 +30,18 @@ export const clientHandlers: HandlersOf<
 > = {
 	async "clients.list"(ctx) {
 		const { ids, q, status } = ctx.query;
-		// Named clients are read one by one (each an indexed read), never the whole list to find a few.
+		const clients = ctx.deps.store.c.clients;
+		// Named clients, and the clients of a person who reaches only some (a therapist's own), are read by id in one
+		// batched read, never the whole list to find a few. Named ones answer in any standing; a reach, in the standing asked.
 		const loaded =
-			ids === undefined
-				? await ctx.deps.store.c.clients.list(ctx.app, { eq: { status } })
-				: (
-						await Promise.all(
-							ids
-								.filter((id) => reaches(ctx.reach, id))
-								.map((id) => ctx.deps.store.c.clients.get(ctx.app, id)),
-						)
-					).filter((r): r is ClientRow => r !== undefined);
+			ids !== undefined
+				? await clients.getMany(
+						ctx.app,
+						ids.filter((id) => reaches(ctx.reach, id)),
+					)
+				: ctx.reach.kind === "ids"
+					? (await clients.getMany(ctx.app, [...ctx.reach.ids])).filter((r) => r.status === status)
+					: await clients.list(ctx.app, { eq: { status } });
 		const needle = ids === undefined ? q?.toLowerCase() : undefined;
 		const rows = loaded
 			.filter((r) => reaches(ctx.reach, r.id))

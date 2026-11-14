@@ -255,12 +255,14 @@ const OWN: Record<
 	"calendar.get": (w) =>
 		olga(w, "GET", `/calendar?from=${NOW}&to=${NOW + 3 * 24 * HOUR}&columns=person`),
 	"appointments.list": (w) => olga(w, "GET", `/appointments?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
+	// At 04:00 in Bucharest, outside every opening window: the visitor routes above book the first slot offered from the
+	// real clock, which on the day after NOW is this practitioner's morning and would overlap.
 	"appointments.create": (w) =>
 		olga(w, "POST", "/appointments", {
 			practitionerId: w.ids.dora,
 			clientId: w.ids.c1,
-			start: NOW + 48 * HOUR,
-			end: NOW + 49 * HOUR,
+			start: NOW + 42 * HOUR,
+			end: NOW + 43 * HOUR,
 		}),
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>

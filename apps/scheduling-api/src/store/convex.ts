@@ -15,7 +15,7 @@ import { requestsPort, visitorExtras } from "./convex/requests";
 import type { Rpc } from "./convex/rpc";
 import { seriesPort } from "./convex/series";
 import { visitCollections } from "./convex/visits";
-import type { Collection, CollectionName, Rows, StorePort } from "./types";
+import type { CollectionName, Collections, StorePort } from "./types";
 
 /**
  * The Convex adapter: every collection of the StorePort re-backed on the server-keyed wrappers of
@@ -34,8 +34,8 @@ export interface ConvexClients {
 }
 
 /** A collection an area was meant to provide; one missing is a bug found at start-up, never an answer to a caller. */
-function need<K extends CollectionName>(wired: PartialCollections, name: K): Collection<Rows[K]> {
-	const found = wired[name];
+function need<K extends CollectionName>(wired: PartialCollections, name: K): Collections[K] {
+	const found: Collections[K] | undefined = wired[name];
 	if (found === undefined) throw new Error(`the Convex adapter does not wire ${name}`);
 	return found;
 }
