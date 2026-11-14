@@ -73,6 +73,19 @@ for a in $plan; do
 	apps+=("$a")
 done
 echo "local-release: $SHA ($TAG) on $ENV_BRANCH: ${apps[*]:-nothing to build}"
+# The path to the registry. Measured 2026-11-14: through a full-tunnel VPN (tun0) an upload to Harbor ran at
+# 0.84 MB/s, from Docker Desktop's VM too (0.98); the same 50 MB from the LAN interface at 8.4 MB/s; inside
+# the cluster 178 MB/s. Said, not refused: the push still works, only slower.
+if command -v ip > /dev/null 2>&1 && command -v getent > /dev/null 2>&1; then
+	reg_ip="$(getent ahostsv4 "$REGISTRY_HOST" | awk 'NR == 1 { print $1 }' || true)"
+	via="$( { [ -n "$reg_ip" ] && ip route get "$reg_ip" 2> /dev/null; } | sed -n 's/.* dev \([^ ]*\).*/\1/p' || true)"
+	case "$via" in
+		tun* | wg* | ppp*)
+			echo "local-release: WARNING: $REGISTRY_HOST ($reg_ip) is routed through the VPN ($via): uploads run ~10x slower."
+			echo "  Route it outside the tunnel: sudo ip route add $reg_ip/32 via <LAN gateway> dev <LAN interface>"
+			;;
+	esac
+fi
 [ "${#apps[@]}" -gt 0 ] || exit 0
 [ "${LOCAL_RELEASE_DRY_RUN:-0}" = 1 ] && exit 0
 
@@ -115,17 +128,22 @@ build() {
 		echo "exists $app $img:$TAG"
 		return 0
 	fi
-	local cache_to=(--cache-to "type=registry,ref=$img:buildcache,mode=max")
+	# mode=min: the cache of the image's own layers, whose blobs this push uploads anyway. mode=max also
+	# exported the build stage — a layer of the whole repository and the full node_modules, new at every
+	# commit — hundreds of MB up a link that moves ~1 MB/s, and every blob over ~60 s of upload is cut by
+	# Traefik's entrypoint readTimeout. The images' dependency layers are reproducible (deploy/site.Dockerfile),
+	# so Harbor already holds them and a code change uploads the app layer only.
+	local cache_to=(--cache-to "type=registry,ref=$img:buildcache,mode=min")
 	[ "${LOCAL_RELEASE_CACHE_TO:-1}" = 0 ] && cache_to=()
 	# Three tries: a push the registry's proxy drops mid-blob (499) succeeds again; the layers built are cached.
-	local try
+	local try start=$SECONDS
 	for try in 1 2 3; do
 		if docker buildx build --builder "$BUILDER" -f "apps/$app/Dockerfile" \
 			--build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
 			--cache-from "type=registry,ref=$img:buildcache" "${cache_to[@]}" \
 			-t "$img:$TAG" --push . > "$LOGS/$app.$try.log" 2>&1 \
 			&& docker buildx imagetools inspect "$img:$TAG" > /dev/null 2>&1; then
-			echo "pushed $app $img:$TAG"
+			echo "pushed $app $img:$TAG in $((SECONDS - start)) s"
 			return 0
 		fi
 	done

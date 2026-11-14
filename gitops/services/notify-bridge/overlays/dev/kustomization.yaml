@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/notify-bridge
-    newTag: "34fad55"
+    newTag: "086489c"

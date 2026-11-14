@@ -9,7 +9,9 @@
 // packages/<x> folder its Dockerfile names (an app without a package.json, e.g. the Convex deploy
 // image copying packages/scheduling). A change to a file every image installs from
 // (pnpm-lock.yaml, pnpm-workspace.yaml, the root package.json, .npmrc, estate/platform.lock,
-// deploy/, .pnpmfile.cjs) affects every app. Prints one app per line; nothing when none.
+// deploy/, .pnpmfile.cjs) affects every app — except pnpm-lock.yaml under --since-deployed, where
+// both sides are at hand: there an app is affected only when the slice of the lockfile its image
+// installs changed (scripts/lock-slice.mjs). Prints one app per line; nothing when none.
 //
 //   node scripts/affected-apps.mjs --since-deployed <env>
 //
@@ -17,6 +19,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { sliceChanged } from "./lock-slice.mjs";
 
 const ROOT = process.cwd();
 const EVERYTHING = [
@@ -49,13 +52,23 @@ function workspace() {
 	return out;
 }
 
-/** @param {string[]} changed @returns {string[]} */
-export function affectedApps(changed) {
+/**
+ * @param {string[]} changed
+ * @param {{ before: string, after: string }} [lock] both sides' pnpm-lock.yaml: with them, a lockfile
+ * change affects only the apps whose installed slice of it changed (scripts/lock-slice.mjs); without
+ * them, every app
+ * @returns {string[]}
+ */
+export function affectedApps(changed, lock) {
 	const apps = readdirSync(join(ROOT, "apps"), { withFileTypes: true })
 		.filter((d) => d.isDirectory() && existsSync(join(ROOT, "apps", d.name, "Dockerfile")))
 		.map((d) => d.name);
-	if (changed.some((f) => EVERYTHING.some((re) => re.test(f)))) return apps.sort();
+	const lockChanged = changed.includes("pnpm-lock.yaml");
+	const everything =
+		lock === undefined ? EVERYTHING : EVERYTHING.filter((re) => !re.test("pnpm-lock.yaml"));
+	if (changed.some((f) => everything.some((re) => re.test(f)))) return apps.sort();
 	const ws = workspace();
+	const nameAt = new Map([...ws].map(([name, p]) => [p.dir, name]));
 	const dirOf = new Map([...ws].map(([name, p]) => [name, p.dir]));
 	/** @param {string} name @param {Set<string>} seen @returns {Set<string>} folders it builds from */
 	const closure = (name, seen = new Set()) => {
@@ -76,10 +89,38 @@ export function affectedApps(changed) {
 			}
 		}
 		const docker = readFileSync(join(ROOT, "apps", app, "Dockerfile"), "utf8");
-		for (const m of docker.matchAll(/packages\/([a-z0-9-]+)/g)) dirs.add(`packages/${m[1]}/`);
+		for (const m of docker.matchAll(/packages\/([a-z0-9-]+)/g)) {
+			const dir = `packages/${m[1]}/`;
+			dirs.add(dir);
+			// The package's own workspace dependencies are in the image too (`--filter "<pkg>..."`).
+			const name = nameAt.get(dir);
+			if (name !== undefined)
+				for (const n of closure(name)) {
+					const d = dirOf.get(n);
+					if (d !== undefined) dirs.add(d);
+				}
+		}
 		if (changed.some((f) => [...dirs].some((d) => f.startsWith(d)))) hit.push(app);
+		else if (lockChanged && lock !== undefined && installsFrom(docker, lock, dirs)) hit.push(app);
 	}
 	return hit.sort();
+}
+
+/**
+ * Whether the lockfile change reaches this image: an image that runs no `pnpm install` cannot see
+ * it; one that installs without `--filter` sees all of it; a filtered one sees its slice.
+ * @param {string} docker @param {{ before: string, after: string }} lock @param {Set<string>} dirs
+ * @returns {boolean}
+ */
+function installsFrom(docker, lock, dirs) {
+	const installs = docker.split("\n").filter((l) => /\bpnpm\s+(install|i|fetch)\b/.test(l));
+	if (installs.length === 0) return false;
+	if (installs.some((l) => !l.includes("--filter"))) return true;
+	return sliceChanged(
+		lock.before,
+		lock.after,
+		[...dirs].map((d) => d.replace(/\/$/, "")),
+	);
 }
 
 const TAG = /^\s*newTag:\s*"?([^"\s#]+)"?/m;
@@ -100,6 +141,20 @@ export function staleApps(env) {
 	const git = (...args) =>
 		execFileSync("git", args, { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString();
 	const diffs = new Map();
+	const locks = new Map();
+	/** @param {string} rev @returns {string} */
+	const lockAt = (rev) => {
+		if (!locks.has(rev)) {
+			let text = "";
+			try {
+				text = git("show", `${rev}:pnpm-lock.yaml`);
+			} catch {
+				// No lockfile at that commit: parseLock refuses "", so every installing app counts.
+			}
+			locks.set(rev, text);
+		}
+		return locks.get(rev);
+	};
 	const stale = [];
 	for (const app of apps) {
 		const overlay = join(ROOT, "gitops/services", app, "overlays", env, "kustomization.yaml");
@@ -115,7 +170,10 @@ export function staleApps(env) {
 			stale.push(app);
 			continue;
 		}
-		if (affectedApps(changed).includes(app)) stale.push(app);
+		const lock = changed.includes("pnpm-lock.yaml")
+			? { before: lockAt(tag), after: lockAt("HEAD") }
+			: undefined;
+		if (affectedApps(changed, lock).includes(app)) stale.push(app);
 	}
 	return stale.sort();
 }
