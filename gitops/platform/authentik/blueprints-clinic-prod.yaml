@@ -29,6 +29,14 @@ data:
           name: app-clinic-prod-member
         attrs:
           is_superuser: false
+      # The clients the team invited to the online account (production). The invitation (scheduling-api,
+      # AUTHENTIK_CUSTOMERS_GROUP) creates their accounts here. Bound to NO application: they sign in to the
+      # public sites' "Programările mele" only, never to the console (app-clinic-prod-member).
+      - model: authentik_core.group
+        identifiers:
+          name: app-clinic-prod-customer
+        attrs:
+          is_superuser: false
       - model: authentik_providers_oauth2.oauth2provider
         identifiers:
           name: clinic-prod
