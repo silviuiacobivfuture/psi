@@ -1,5 +1,5 @@
-# The console runs 2 to 4 pods, scaled on CPU (k3s ships metrics-server). The Deployment names no replicas, so the
-# count is this object's alone; the PodDisruptionBudget keeps one pod through a drain.
+# The console runs 2 pods (at most 2 while the cluster is one node), scaled on CPU (k3s ships metrics-server). The Deployment names no replicas, so the
+# count is this object's alone; the PodDisruptionBudget lets a drain take one pod at a time and never blocks it.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -7,7 +7,7 @@ metadata:
 spec:
   scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: clinic }
   minReplicas: 2
-  maxReplicas: 4
+  maxReplicas: 2
   metrics:
     - type: Resource
       resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }

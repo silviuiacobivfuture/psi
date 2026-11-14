@@ -8,7 +8,7 @@ metadata:
     reloader.stakater.com/auto: "true"
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
-  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count, 2 to 4, so Argo never fights it.
+  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count (2, capped at 2 while the cluster is one node), so Argo never fights it.
   # A new pod is Ready only once the backend serves the scheduling functions it was built with (/ready asks
   # deployment:functionsHash, the hash of their sources): the old pods keep serving until scheduling-deploy has
   # deployed them, and the rollout waits up to half an hour for that (the deploy Job waits up to ten minutes for the

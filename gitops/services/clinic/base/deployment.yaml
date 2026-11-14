@@ -8,7 +8,7 @@ metadata:
     reloader.stakater.com/auto: "true"
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
-  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count, 2 to 4, so Argo never fights it. Sessions live
+  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count (2, capped at 2 while the cluster is one node), so Argo never fights it. Sessions live
   # in the account database, so any pod answers any person; a rollout never drops below the pods serving.
   strategy:
     type: RollingUpdate

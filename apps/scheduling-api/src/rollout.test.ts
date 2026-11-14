@@ -41,7 +41,7 @@ const hpa = (path: string) => {
 describe.each([
 	["scheduling-api", "gitops/services/scheduling-api/base"],
 	["clinic", "gitops/services/clinic/base"],
-])("%s scales between two and four pods, and keeps serving through a rollout and a drain", (name, base) => {
+])("%s runs two pods (its HPA capped at two while the cluster is one node), and keeps serving through a rollout and a drain", (name, base) => {
 	const deployment = read(`${base}/deployment.yaml`);
 	const scaler = hpa(`${base}/hpa.yaml`);
 
@@ -50,12 +50,17 @@ describe.each([
 		expect(scaler.text).toContain(`kind: Deployment, name: ${name}`);
 		expect(scaler.min).toBeGreaterThanOrEqual(2);
 		expect(scaler.max).toBeGreaterThanOrEqual(scaler.min);
+		// One node at three quarters of its memory: no more than two pods until the cluster grows.
+		expect(scaler.max).toBeLessThanOrEqual(2);
 		expect(read(`${base}/kustomization.yaml`)).toMatch(/- hpa\.yaml/);
 	});
 
-	it("a rollout never takes a serving pod away first, and a drain leaves one up", () => {
+	it("a rollout never takes a serving pod away first, and a drain is never blocked", () => {
 		expect(deployment).toMatch(/rollingUpdate: \{ maxUnavailable: 0, maxSurge: 1 \}/);
-		expect(read(`${base}/pdb.yaml`)).toMatch(/minAvailable: 1/);
+		// maxUnavailable, not minAvailable: with one pod ready, a minAvailable budget would hold the one node's drain.
+		const pdb = read(`${base}/pdb.yaml`);
+		expect(pdb).toMatch(/maxUnavailable: 1/);
+		expect(pdb).not.toMatch(/minAvailable/);
 	});
 
 	it("the main container states its requests and limits, a limit at least its request", () => {
