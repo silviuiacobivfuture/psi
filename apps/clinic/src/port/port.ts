@@ -65,6 +65,15 @@ export interface CalendarData {
 	flags?: Readonly<Record<string, ClientFlag>>;
 }
 
+/** How many clients one page of the list shows. */
+export const CLIENT_PAGE_SIZE = 50;
+
+export interface ClientPage {
+	clients: ReadonlyArray<Client>;
+	summaries: ReadonlyArray<ClientSummary>;
+	nextCursor: string | null;
+}
+
 export interface ReminderItem {
 	appointment: Appointment;
 	client: Client;
@@ -172,6 +181,8 @@ export interface ClinicPort extends ProfilePort {
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;
+	/** These clients, whatever their standing (the ones not found or not visible are absent), in batched reads. */
+	clientsByIds(app: AppSlug, ids: ReadonlyArray<string>): Promise<ReadonlyArray<Client>>;
 	clientAppointments(app: AppSlug, id: string): Promise<ReadonlyArray<Appointment>>;
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
@@ -274,6 +285,16 @@ export interface ClinicPort extends ProfilePort {
 		filter: ClientFilter,
 		query: string,
 	): Promise<ReadonlyArray<ClientSummary>>;
+	/**
+	 * ONE page of the client list (`cursor` null: the first) with the rich rows of those clients only: what the list
+	 * screen shows, a page at a time, however many clients the clinic has. `nextCursor` null: the last page.
+	 */
+	clientPage(
+		app: AppSlug,
+		filter: ClientFilter,
+		query: string,
+		cursor: string | null,
+	): Promise<ClientPage>;
 	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
 	clientFlags(
 		app: AppSlug,

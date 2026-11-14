@@ -1,8 +1,9 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
+import { reaches } from "../authz/access";
 import type { Ctx, HandlersOf } from "../http/context";
 import { fail, forbidden, notFound } from "../http/errors";
 import type { NoteRow } from "../store/types";
-import { must, newId, stamps } from "./shared";
+import { must, newId, paginate, stamps } from "./shared";
 
 type C = Ctx<RouteSpec>;
 /** What a key is held for: anyone's notes (`all`), or only the ones the person wrote (`own`). */
@@ -61,8 +62,15 @@ const order = (a: NoteRow, b: NoteRow): number =>
  * The notes of a client the caller may read, each as they read it. Reading a clinical note is audited (once, with how
  * many were opened), whether it is a list or the client's summary. A caller who may not see the client gets none.
  */
-export async function readableNotes(ctx: C, clientId: string, onlyPinned = false) {
-	if (!(await ctx.canOn("clients_view", "sched_client", clientId))) return [];
+export async function readableNotes(
+	ctx: C,
+	clientId: string,
+	onlyPinned = false,
+	/** Whether the caller may see the client, when the caller already asked (a batch asks once for all). */
+	seesClient?: boolean,
+) {
+	const sees = seesClient ?? (await ctx.canOn("clients_view", "sched_client", clientId));
+	if (!sees) return [];
 	const rows = (await ctx.deps.store.c.notes.list(ctx.app, { eq: { clientId } }))
 		.filter((n) => !onlyPinned || n.pinned)
 		.sort(order);
@@ -94,13 +102,32 @@ function refuseUnlessAllowed(ok: boolean, action: string): void {
 }
 
 export const noteHandlers: HandlersOf<
-	"notes.list" | "notes.create" | "notes.update" | "notes.pin" | "notes.remove"
+	"notes.list" | "notes.pinned" | "notes.create" | "notes.update" | "notes.pin" | "notes.remove"
 > = {
 	async "notes.list"(ctx) {
 		const client = await must(ctx.deps.store.c.clients, ctx.app, String(ctx.params.id), "client");
 		const h = await held(ctx, "notes_view");
 		if (!h.all && !h.own) throw notFound("object");
-		return { items: await readableNotes(ctx, client.id) };
+		return paginate(await readableNotes(ctx, client.id), ctx.query.limit, ctx.query.cursor);
+	},
+
+	async "notes.pinned"(ctx) {
+		const h = await held(ctx, "notes_view");
+		if (!h.all && !h.own) throw notFound("object");
+		// Each client as `notes.list` would answer it, pinned only: one the caller may not see has none. Who the caller
+		// may see is asked ONCE for the batch (one ListObjects), never once per client.
+		const visible = await ctx.reachOf("clients_view", "sched_client");
+		const items = await Promise.all(
+			ctx.query.clients.map(async (clientId) => ({
+				clientId,
+				notes:
+					reaches(visible, clientId) &&
+					(await ctx.deps.store.c.clients.get(ctx.app, clientId)) !== undefined
+						? await readableNotes(ctx, clientId, true, true)
+						: [],
+			})),
+		);
+		return { items };
 	},
 
 	async "notes.create"(ctx) {

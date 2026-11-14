@@ -190,7 +190,8 @@ export const ME_ROUTES = [
 		side: "team",
 		summary: "The app's roles",
 		params: AppParam,
-		response: z.object({ items: z.array(Role) }),
+		query: PageQuery,
+		response: page(Role),
 		permission: { key: "roles_view", target: { kind: "app" } },
 	}),
 	route({

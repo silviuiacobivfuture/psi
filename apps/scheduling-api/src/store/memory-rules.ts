@@ -84,7 +84,9 @@ export function applyVisitRules(c: Collections, gate: StaffGate): void {
 	async function checkFree(a: AppointmentRow): Promise<void> {
 		const wanted = new Set(exclusives(a));
 		if (wanted.size === 0) return;
-		for (const o of await c.appointments.list(a.app)) {
+		// Only the visits that end after this one starts can overlap it (instants are whole milliseconds).
+		const later = await c.appointments.list(a.app, { range: { field: "end", gte: a.start + 1 } });
+		for (const o of later) {
 			if (o.id === a.id || o.deletedAt !== undefined || o.status === "cancelled") continue;
 			if (o.end <= a.start || o.start >= a.end) continue;
 			const clash = exclusives(o).find((key) => wanted.has(key));

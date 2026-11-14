@@ -89,6 +89,55 @@ function NewClientSheet({ ctx }: { ctx: Ctx }): JSX.Element {
 	);
 }
 
+/** How many clients the list shows, and whether more follow (announced to screen readers as it grows). */
+export function ShownCount({
+	ctx,
+	shown,
+	more,
+}: {
+	ctx: Ctx;
+	shown: number;
+	more: boolean;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<p class="adm-muted" aria-live="polite" id="client-count">
+			{more ? m.cl_list_shown({ n: String(shown) }, o) : m.clients_count({ n: shown }, o)}
+		</p>
+	);
+}
+
+/** The next page of the list, fetched into the open page (a Datastar patch), or nothing on the last page. */
+export function MoreClients({
+	ctx,
+	filter,
+	q,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	filter: ClientFilter;
+	q: string;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	const params = new URLSearchParams({ filter, cursor: cursor ?? "", shown: String(shown) });
+	if (q !== "") params.set("q", q);
+	return (
+		<div id="client-more" class="client-more">
+			{cursor === null ? null : (
+				<button
+					type="button"
+					class="adm-btn"
+					data-on:click={`@get('/clients/more?${params.toString()}')`}
+				>
+					{m.cl_list_more({}, at(ctx.locale))}
+				</button>
+			)}
+		</div>
+	);
+}
+
 export async function renderClients(
 	ctx: Ctx,
 	filter: ClientFilter,
@@ -98,18 +147,23 @@ export async function renderClients(
 	const o = at(ctx.locale);
 	let rows: ReadonlyArray<ClientSummary> = [];
 	let clients: ReadonlyArray<Client> = [];
+	let next: string | null = null;
 	let failed = false;
 	try {
-		[clients, rows] = await Promise.all([
-			ctx.port.clients(ctx.app, filter, q),
-			ctx.port.clientSummaries(ctx.app, filter, q),
-		]);
+		// One page: the list never asks for (nor renders) every client at once.
+		const page = await ctx.port.clientPage(ctx.app, filter, q, null);
+		clients = page.clients;
+		rows = page.summaries;
+		next = page.nextCursor;
 	} catch {
 		failed = true;
 	}
 	const qs = (f: ClientFilter): string =>
 		`/clients?filter=${f}${q === "" ? "" : `&q=${encodeURIComponent(q)}`}`;
 	const by = new Map(rows.map((r) => [r.clientId, r]));
+	// With more pages to come, a count is "at least": n+.
+	const count = (n: number): string =>
+		next === null ? String(n) : m.cl_list_count_more({ n: String(n) }, o);
 	const listedCount = rows.filter((r) => r.blacklist !== null).length;
 	const owing = rows.filter((r) => (r.owedBani ?? 0) > 0).length;
 	const upcoming = rows.filter((r) => r.next !== null).length;
@@ -124,13 +178,13 @@ export async function renderClients(
 				</PageHeader>
 				{failed || clients.length === 0 ? null : (
 					<div class="cl-summary" data-summary>
-						<StatCard label={m.cl_list_total({}, o)} value={String(clients.length)} />
-						<StatCard label={m.cl_list_upcoming({}, o)} value={String(upcoming)} />
+						<StatCard label={m.cl_list_total({}, o)} value={count(clients.length)} />
+						<StatCard label={m.cl_list_upcoming({}, o)} value={count(upcoming)} />
 						{ctx.can.group("money") ? (
-							<StatCard label={m.cl_list_owing({}, o)} value={String(owing)} />
+							<StatCard label={m.cl_list_owing({}, o)} value={count(owing)} />
 						) : null}
 						{ctx.can.has("blacklist_view") ? (
-							<StatCard label={m.cl_list_listed({}, o)} value={String(listedCount)} />
+							<StatCard label={m.cl_list_listed({}, o)} value={count(listedCount)} />
 						) : null}
 					</div>
 				)}
@@ -186,14 +240,13 @@ export async function renderClients(
 					</EmptyState>
 				) : (
 					<>
-						<p class="adm-muted" aria-live="polite">
-							{m.clients_count({ n: clients.length }, o)}
-						</p>
-						<div class="adm-card client-list">
+						<ShownCount ctx={ctx} shown={clients.length} more={next !== null} />
+						<div class="adm-card client-list" id="client-list">
 							{clients.map((c) => (
 								<ClientRow key={c.id} client={c} summary={by.get(c.id)} ctx={ctx} />
 							))}
 						</div>
+						<MoreClients ctx={ctx} filter={filter} q={q} cursor={next} shown={clients.length} />
 					</>
 				)}
 			</div>

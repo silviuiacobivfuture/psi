@@ -7,6 +7,7 @@ import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catal
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
+import { pagedClients } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -160,11 +161,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async calendar(app, from, to): Promise<CalendarData> {
 			guard("calendar");
 			const d = data(app);
+			const appointments = d.appointments.filter((a) => a.date >= from && a.date <= to);
+			// As the service's port answers: the clients of the visits shown, not every client.
+			const named = new Set(appointments.map((a) => a.clientId));
 			return {
 				columns: calendarColumns(d.columns),
 				services: activeServices(d.services),
-				clients: d.clients,
-				appointments: d.appointments.filter((a) => a.date >= from && a.date <= to),
+				clients: d.clients.filter((c) => named.has(c.id)),
+				appointments,
 			};
 		},
 		async appointment(app, id) {
@@ -425,6 +429,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						c.name.toLocaleLowerCase().includes(q) ||
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
+		},
+		clientPage(app, filter, query, cursor) {
+			return pagedClients(this)(app, filter, query, cursor);
+		},
+		async clientsByIds(app, ids) {
+			guard("clients");
+			const wanted = new Set(ids);
+			return data(app).clients.filter((c) => wanted.has(c.id));
 		},
 		async client(app, id) {
 			guard("client");

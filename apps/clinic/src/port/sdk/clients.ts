@@ -2,8 +2,7 @@ import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { PortError } from "../port";
 import type { AppSlug, Client, NewPackage, NewPayment, Package, PackagePatch } from "../schema";
 import type { SdkContext } from "./context";
-import { toPortError } from "./errors";
-import { clientOf, packageOf, paymentOf } from "./map";
+import { clientOf, drain, packageOf, paymentOf } from "./map";
 import { instantOf } from "./time";
 
 /** Clients and their packages. */
@@ -37,22 +36,25 @@ export function clientsGroup(
 				await api.clients.remove({ app, id });
 			}),
 
-		/** The list answer carries no payments: each package is read once more for them (a person who may not see payments sees none). */
+		/** One read: the list carries each package's payments (none for a person who may not see payments). */
 		packages: (app: AppSlug, clientId: string): Promise<Package[]> =>
 			run(async () => {
-				const tz = await sdk.zone(app);
-				const listed = (await api.packages.list({ app, id: clientId })).items;
-				return Promise.all(
-					listed.map(async (p) => {
-						const full = await api.packages.get({ app, id: p.id }).catch((error: unknown) => {
-							if (toPortError(error).code === "forbidden") return null;
-							throw error;
-						});
-						return packageOf(
-							p,
-							(full?.payments ?? []).map((x) => paymentOf(x, tz)),
-						);
-					}),
+				const [tz, listed] = await Promise.all([
+					sdk.zone(app),
+					drain((cursor) =>
+						api.packages.list({
+							app,
+							id: clientId,
+							limit: 500,
+							...(cursor === undefined ? {} : { cursor }),
+						}),
+					),
+				]);
+				return listed.map((p) =>
+					packageOf(
+						p,
+						(p.payments ?? []).map((x) => paymentOf(x, tz)),
+					),
 				);
 			}),
 

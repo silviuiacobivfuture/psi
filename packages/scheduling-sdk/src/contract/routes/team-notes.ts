@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import { route } from "../define";
 import { ClientNote, NoteCreate, NotePatch, NotePin } from "../entities-notes";
-import { IdParam, Ok } from "../primitives";
+import { AppParam, Id, IdList, IdParam, Ok, PageQuery, page } from "../primitives";
 
 /**
  * Notes about a client. Every key is held at `all` (anyone's notes) or `own` (the notes the person wrote), so no route
@@ -17,7 +17,25 @@ export const NOTE_ROUTES = [
 		summary:
 			"A client's notes, pinned first and then newest; the clinical ones only for a caller who holds the clinical group",
 		params: IdParam,
-		response: z.object({ items: z.array(ClientNote) }),
+		query: PageQuery,
+		response: page(ClientNote),
+		permission: {
+			key: "notes_view",
+			target: { kind: "dynamic", type: "sched_role", candidates: ["notes_view"] },
+		},
+	}),
+	route({
+		id: "notes.pinned",
+		method: "GET",
+		path: "/v1/apps/:app/notes/pinned",
+		side: "team",
+		summary:
+			"The pinned notes of many clients in one call (a list's flags), each only as the caller may read it",
+		params: AppParam,
+		query: z.object({ clients: IdList }),
+		response: z.object({
+			items: z.array(z.object({ clientId: Id, notes: z.array(ClientNote) })),
+		}),
 		permission: {
 			key: "notes_view",
 			target: { kind: "dynamic", type: "sched_role", candidates: ["notes_view"] },
