@@ -14,7 +14,7 @@ service on the estate** that offers UI components other services consume ("like 
 | Roles | Dynamic: roles are data, editable by owners; open source, light (OpenFGA through Polaris, already the estate's) |
 | Shape | A separate headless service + a component kit consumed by the team's app, the sites and the CMS |
 | Reminders | Automatic e-mail the day before with Confirm/Cancel links that update the calendar, plus a one-tap WhatsApp per appointment |
-| Cut-over | A parallel week: the old app stays the source, the import re-runs (keyed on old ids), then a final import and the old app goes read-only |
+| Cut-over | A parallel week: the old app stays the source, the import re-runs (keyed on old ids), then a final import and the old app goes read-only. Until then production runs with `NOTIFY_DELIVERY=hold` (no notice reaches anyone); removing that line from `gitops/services/scheduling-api/overlays/prod` is the cut-over's last step |
 
 ## 2. What the team does today (the old app, studied 2026-11-13)
 
