@@ -119,6 +119,49 @@ describe("nothing is deleted unless asked", () => {
 		expect(await real.check("user:olga", "member", "sched_app:psizone")).toBe(true);
 	});
 
+	it("--prune leaves the other environment's tuples alone: dev and production share one OpenFGA store", async () => {
+		// Production's apps carry the prefix "prod-" and its own Convex ids: nothing in this (dev) store implies them.
+		const prod: Tuple[] = [
+			{ user: "user:ana", relation: "member", object: "sched_app:prod-psizone" },
+			{
+				user: "sched_role:prodrole1#member",
+				relation: "clients_view_all",
+				object: "sched_app:prod-psizone",
+			},
+			{ user: "user:ana", relation: "member", object: "sched_role:prodrole1" },
+			{ user: "sched_app:prod-psizone", relation: "app", object: "sched_client:prodclient1" },
+		];
+		const real = createMemoryAuthz([stray, ...prod]);
+		const report = await run(real, { prune: true, reader: readerOf(real) });
+		expect(report.pruned).toBe(1);
+		expect(keysOf(real).has(key(stray))).toBe(false);
+		for (const t of prod) expect(keysOf(real).has(key(t))).toBe(true);
+	});
+
+	it("and a production run (prefix prod-) leaves dev's alone the same way", async () => {
+		// Dev's tuples as dev's own deployment wrote them: no prefix on the app, dev's own Convex ids, the same people.
+		const dev: Tuple[] = [
+			{ user: "user:olga", relation: "member", object: "sched_app:psizone" },
+			{
+				user: "sched_role:devrole1#member",
+				relation: "clients_view_all",
+				object: "sched_app:psizone",
+			},
+			{ user: "user:olga", relation: "member", object: "sched_role:devrole1" },
+			{ user: "sched_app:psizone", relation: "app", object: "sched_client:devclient1" },
+		];
+		const prodStray: Tuple = {
+			user: "sched_app:prod-psizone",
+			relation: "app",
+			object: "sched_client:ghost",
+		};
+		const shared = createMemoryAuthz([...dev, prodStray]);
+		const report = await run(shared, { prefix: "prod-", prune: true, reader: readerOf(shared) });
+		expect(keysOf(shared).has(key(prodStray))).toBe(false);
+		for (const t of dev) expect(keysOf(shared).has(key(t))).toBe(true);
+		expect(report.pruned).toBe(1);
+	});
+
 	it("--prune without a way to read OpenFGA is refused", async () => {
 		await expect(run(createMemoryAuthz(), { prune: true })).rejects.toThrow("read");
 	});
