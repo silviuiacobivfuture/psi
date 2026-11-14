@@ -15,6 +15,7 @@ import { tellOwners } from "../engagement/security";
 import { MailUnavailable } from "../ports/mail";
 import { SsoUnavailable } from "../ports/sso";
 import { StoreConflict, StoreRefused, StoreUnavailable } from "../store/types";
+import { timed } from "../timing";
 import { writeAudit } from "./audit";
 import type { Ctx, Deps, HttpEnv } from "./context";
 import { ApiError, fail, forbidden, notFound } from "./errors";
@@ -75,7 +76,7 @@ async function authenticate(deps: Deps, c: Context<HttpEnv>): Promise<Principal>
 	if (header !== undefined) {
 		const token = /^Bearer (.+)$/i.exec(header)?.[1];
 		if (token === undefined) throw fail("invalid_token", "not a bearer token");
-		const result = await deps.verifier.verify(token);
+		const result = await timed("auth", () => deps.verifier.verify(token));
 		if (!result.ok) {
 			deps.log({
 				level: "warn",

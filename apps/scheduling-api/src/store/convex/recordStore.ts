@@ -16,7 +16,8 @@ const Stored = z.object({
 	id: z.string(),
 	definitionKey: z.string(),
 	definitionVersion: z.number(),
-	client: z.string(),
+	/** Absent: a record that belongs to no client. */
+	client: z.string().optional(),
 	visit: z.string().optional(),
 	payload: Encrypted,
 	createdAt: z.number(),
@@ -32,7 +33,7 @@ const Done = answer({});
 const rowOf = (app: string, r: z.infer<typeof Stored>): RecordRow => ({
 	id: toApiId(r.id),
 	app,
-	clientId: toApiId(r.client),
+	...(r.client === undefined ? {} : { clientId: toApiId(r.client) }),
 	formId: r.definitionKey,
 	formVersion: r.definitionVersion,
 	...(r.visit === undefined ? {} : { appointmentId: toApiId(r.visit) }),
@@ -60,20 +61,26 @@ export function recordCollection(rpc: Rpc): Collection<RecordRow> {
 		get,
 		async list(app, query) {
 			const eq = query?.eq;
-			const out = unwrap(
-				await rpc.query(
-					"apiRecordsExtra:recordsList",
-					{
-						tenant: app,
-						...(eq?.clientId === undefined ? {} : { client: eq.clientId }),
-						...(eq?.formId === undefined ? {} : { definitionKey: eq.formId }),
-					},
-					Many,
-				),
-			);
+			// The records of no client are read through their own index entry, never by reading every record.
+			const out =
+				query?.absent === "clientId"
+					? unwrap(await rpc.query("apiRecordsExtra:recordsWithoutClient", { tenant: app }, Many))
+					: unwrap(
+							await rpc.query(
+								"apiRecordsExtra:recordsList",
+								{
+									tenant: app,
+									...(eq?.clientId === undefined ? {} : { client: eq.clientId }),
+									...(eq?.formId === undefined ? {} : { definitionKey: eq.formId }),
+								},
+								Many,
+							),
+						);
 			return out.records.map((r) => rowOf(app, r)).filter((r) => matches(r, query));
 		},
 		async insert(row) {
+			// A new record always names its client; only the import writes one without.
+			if (row.clientId === undefined) throw new StoreRefused("unknown_client");
 			const made = unwrap(
 				await rpc.mutation(
 					"apiRecords:writeRecord",

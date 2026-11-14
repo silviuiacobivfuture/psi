@@ -450,7 +450,8 @@ export const RequestDecision = z.object({
 
 export const RecordSummary = z.object({
 	id: Id,
-	clientId: Id,
+	/** Absent: a record that belongs to no client (kept from the old app with its visit); app-wide scope only. */
+	clientId: Id.optional(),
 	formId: Id,
 	formVersion: z.number().int().min(1),
 	appointmentId: Id.optional(),

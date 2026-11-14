@@ -145,6 +145,8 @@ export const COLLECTIONS: readonly CollectionName[] = [
 export interface Query<R> {
 	/** Equality on fields. */
 	eq?: Partial<R>;
+	/** Only the rows that do not have this field at all (the records that belong to no client). */
+	absent?: keyof R & string;
 	/** A half-open range `[gte, lt)` on a numeric field. */
 	range?: { field: keyof R & string; gte?: number; lt?: number };
 	/**

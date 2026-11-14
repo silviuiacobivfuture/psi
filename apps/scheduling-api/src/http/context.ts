@@ -2,6 +2,7 @@ import type { ParsedOf, Route, RouteId, RouteSpec } from "@psi/scheduling-sdk/co
 import type { Principal } from "../auth/principal";
 import type { TokenVerifier } from "../auth/tokens";
 import type { Access, Reach } from "../authz/access";
+import type { HeldKept } from "../authz/held-kept";
 import type { AuthzPort } from "../authz/port";
 import type { Config } from "../config";
 import type { FieldCrypto } from "../ports/crypto";
@@ -47,6 +48,8 @@ export interface Deps {
 	reminders?: import("hono").Hono | undefined;
 	/** Per caller and visitor, on the visitor routes. */
 	limiter: Limiter;
+	/** Members' held scopes, kept while the rows they derive from are unchanged (`authz/held-kept.ts`). */
+	held: HeldKept;
 	clock: () => number;
 	log: (event: LogEvent) => void;
 	streamHeartbeatMs: number;

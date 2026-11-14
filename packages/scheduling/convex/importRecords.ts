@@ -25,7 +25,8 @@ export const upsertResponses = internalMutation({
 				fingerprint: v.string(),
 				definitionKey: v.string(),
 				definitionVersion: v.number(),
-				clientLegacy: v.string(),
+				/** Absent: the response belongs to no client (its client was deleted in the old app). */
+				clientLegacy: v.optional(v.string()),
 				visitLegacy: v.optional(v.string()),
 				practitionerLegacy: v.optional(v.string()),
 				payload: encryptedValidator,
@@ -40,9 +41,11 @@ export const upsertResponses = internalMutation({
 		const out: UpsertResult[] = [];
 		for (const r of rows) {
 			const definition = await definitionOf(ctx, tenant, r.definitionKey, r.definitionVersion);
+			// A client that is named must exist and not be erased (an erased client's reports never come back, with or
+			// without a client); only a row that names none is kept unattached.
 			const clientOf = await clientRef(ctx, tenant, r.clientLegacy);
-			if (!clientOf.ok || clientOf.client === undefined) {
-				out.push(refused(r.legacyId, clientOf.ok ? "missing:client" : clientOf.flag));
+			if (!clientOf.ok) {
+				out.push(refused(r.legacyId, clientOf.flag));
 				continue;
 			}
 			const client = clientOf.client;
@@ -52,15 +55,9 @@ export const upsertResponses = internalMutation({
 				r.practitionerLegacy === undefined
 					? undefined
 					: await practitionerByLegacy(ctx, tenant, r.practitionerLegacy);
-			if (definition === null || client === null || visit === null || practitioner === null) {
+			if (definition === null || visit === null || practitioner === null) {
 				const missing =
-					definition === null
-						? "definition"
-						: client === null
-							? "client"
-							: visit === null
-								? "visit"
-								: "practitioner";
+					definition === null ? "definition" : visit === null ? "visit" : "practitioner";
 				out.push(orphan(r.legacyId, missing));
 				continue;
 			}
@@ -68,7 +65,7 @@ export const upsertResponses = internalMutation({
 				definition: definition._id,
 				definitionKey: r.definitionKey,
 				definitionVersion: r.definitionVersion,
-				client: client._id,
+				client: client?._id,
 				visit: visit?._id,
 				practitioner: practitioner?._id,
 				payload: r.payload,

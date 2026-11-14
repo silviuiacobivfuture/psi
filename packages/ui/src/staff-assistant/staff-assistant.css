@@ -608,7 +608,8 @@
 	min-height: 36px;
 	padding: 0 var(--space-3);
 	box-shadow: 0 0 0 1px color-mix(in srgb, var(--app, var(--accent)) 60%, transparent);
-	animation: sa-glow 3.2s ease-in-out infinite;
+	/* Three glows on arrival, then still: a pulsing shadow repaints the top bar on every frame. */
+	animation: sa-glow 3.2s ease-in-out 3;
 }
 .sa-trigger--bar .sa-trigger__key {
 	display: none;

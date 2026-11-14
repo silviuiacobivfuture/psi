@@ -1,3 +1,4 @@
+import { recordKeys } from "../actions/keys";
 import { ACTIONS } from "../actions/registry";
 import { ORG_AREAS, PLATFORM_KEY } from "./areas";
 import type { Can } from "./can";
@@ -85,6 +86,8 @@ const GATES: ReadonlyArray<Gate> = [
 	g("POST", "/reminders/[^/]+/sent", ["reminders_send"], true),
 	g("POST", "/settings/roles/[^/]+", ["roles_edit"], true),
 	g("GET", "/stats", ["reports_view_core"]),
+	// Records of no client: an app-wide record scope is what the page itself demands; any record view key gets this far.
+	g("GET", "/records(/[^/]+)?", recordKeys("view")),
 	g(
 		"GET",
 		"/settings",
