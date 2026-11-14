@@ -8,8 +8,6 @@ import {
 	AppointmentPayment,
 	Attendance,
 	CalendarEvent,
-	CalendarQuery,
-	CalendarResult,
 	Client,
 	ClientCreate,
 	ClientPatch,
@@ -26,7 +24,12 @@ import {
 	RosterPut,
 	RosterQuery,
 } from "../entities";
-import { CalendarSummary, CalendarSummaryQuery } from "../entities-calendar";
+import {
+	CalendarQuery,
+	CalendarResult,
+	CalendarSummary,
+	CalendarSummaryQuery,
+} from "../entities-calendar";
 import { AppParam, DateKey, Id, IdList, IdParam, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Deleted = z.object({ id: Id, status: z.literal("deleted"), purgeAt: Ms });
@@ -37,7 +40,8 @@ export const CALENDAR_ROUTES = [
 		method: "GET",
 		path: "/v1/apps/:app/calendar",
 		side: "team",
-		summary: "The calendar between two instants, one column per person, room or device",
+		summary:
+			"The calendar between two instants, one column per person, room or device (or only the columns `ids` names)",
 		params: AppParam,
 		query: CalendarQuery,
 		response: CalendarResult,

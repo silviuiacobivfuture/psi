@@ -146,7 +146,6 @@ export const appointmentHandlers: HandlersOf<
 	| "appointments.remove"
 	| "appointments.restore"
 	| "appointments.pay"
-	| "calendar.get"
 > = {
 	async "appointments.list"(ctx) {
 		const rows = (
@@ -351,50 +350,5 @@ export const appointmentHandlers: HandlersOf<
 			`${row.id}:${paid}`,
 		);
 		return appointmentOut(ctx, next);
-	},
-
-	async "calendar.get"(ctx) {
-		const s = ctx.deps.store.c;
-		const { columns, from, to } = ctx.query;
-		const inRange = (
-			await s.appointments.list(ctx.app, { range: { field: "start", gte: from, lt: to } })
-		).filter(
-			(a) =>
-				a.deletedAt === undefined &&
-				a.status !== "cancelled" &&
-				reaches(ctx.reach, a.practitionerId),
-		);
-		const groups = await appointmentGroupReach(ctx);
-		const out = (a: AppointmentRow) =>
-			appointmentView(a, { core: reaches(groups.core, a.id), money: reaches(groups.money, a.id) });
-		if (columns === "person") {
-			const people = (await s.people.list(ctx.app))
-				.filter((p) => p.active && reaches(ctx.reach, p.id))
-				.sort((a, b) => a.displayName.localeCompare(b.displayName));
-			return {
-				columns: people.map((p) => ({
-					id: p.id,
-					name: p.displayName,
-					appointments: inRange
-						.filter((a) => a.practitionerId === p.id)
-						.sort((a, b) => a.start - b.start)
-						.map(out),
-				})),
-			};
-		}
-		const things = columns === "room" ? await s.rooms.list(ctx.app) : await s.devices.list(ctx.app);
-		return {
-			columns: things
-				.filter((t) => t.active)
-				.sort((a, b) => a.name.localeCompare(b.name))
-				.map((t) => ({
-					id: t.id,
-					name: t.name,
-					appointments: inRange
-						.filter((a) => (columns === "room" ? a.roomId : a.deviceId) === t.id)
-						.sort((a, b) => a.start - b.start)
-						.map(out),
-				})),
-		};
 	},
 };

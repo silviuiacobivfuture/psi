@@ -1,5 +1,12 @@
-import { createAccount, createBookingAccounts, type Say, sayer } from "@psi/account";
-import type { CompassGroup } from "@psi/ui";
+import {
+	createAccount,
+	createBookingAccounts,
+	type OwnBookingsPort,
+	type Say,
+	sayer,
+} from "@psi/account";
+import { ownBookings } from "@psi/scheduling-sdk";
+import { type CompassGroup, readSchedulingApiEnv } from "@psi/ui";
 import { ESTATE, SITE } from "./estate";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
@@ -59,3 +66,21 @@ export const { bookingAccount, guideForRequest } = createBookingAccounts({
 export function accountGroups(locale: Locale): CompassGroup[] {
 	return account.enabled && accountsSignIn() ? [accountGroup(locale)] : [];
 }
+
+/**
+ * "Programările mele" through the scheduling service, with this site's own service key naming the person it signed in
+ * (`SCHEDULING_API_URL` + `SCHEDULING_SERVICE_KEY`, the same pair the booking forms use): the service decides whose a
+ * booking is, so the port's credential is the person's subject. Undefined while the site has no scheduling service.
+ */
+const SCHEDULING_API = readSchedulingApiEnv(process.env);
+export const bookings: OwnBookingsPort | undefined = SCHEDULING_API.ok
+	? ownBookings({
+			baseUrl: SCHEDULING_API.config.url,
+			app: "hemisync",
+			serviceKey: SCHEDULING_API.config.serviceKey,
+			timeoutMs: SCHEDULING_API.config.timeoutMs,
+		})
+	: undefined;
+/** What the port is called with: the signed-in person's subject (the site's key carries the trust). */
+export const bookingsCredential = (_c: unknown, person: { subject: string }): Promise<string> =>
+	Promise.resolve(person.subject);

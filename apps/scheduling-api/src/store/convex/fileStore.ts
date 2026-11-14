@@ -8,7 +8,7 @@ import { answer, type Rpc, unwrap } from "./rpc";
 /**
  * Client files over apiRecordsExtra (metadata; the bytes are in object storage and never pass here). An upload the API
  * signed is `pending` until it is completed; `updatedAt` is the completion time, or the creation time before it. Only
- * the status moves after a file is made: its name, type and size are what was signed.
+ * the status and the name move after a file is made: its type and size are what was signed.
  */
 const Stored = z.object({
 	id: z.string(),
@@ -107,13 +107,20 @@ export function fileCollection(rpc: Rpc): Collection<FileRow> {
 			if (held === undefined) return false;
 			if (
 				held.clientId !== row.clientId ||
-				held.name !== row.name ||
 				held.contentType !== row.contentType ||
 				held.size !== row.size ||
 				held.objectKey !== row.objectKey ||
 				(held.status === "ready" && row.status === "pending")
 			)
 				throw new StoreRefused("invalid");
+			if (held.name !== row.name)
+				unwrap(
+					await rpc.mutation(
+						"apiRecordsExtra:renameFile",
+						{ tenant: row.app, actor: actor(), file: row.id, fileName: row.name },
+						answer({ changed: z.boolean() }),
+					),
+				);
 			if (held.status === "pending" && row.status === "ready") await complete(row.app, row.id);
 			return true;
 		},

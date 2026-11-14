@@ -18,6 +18,15 @@ spec:
       owner: account
       secret:
         name: account-db-app
+  # The application role's password FOLLOWS account-db-app (OpenBao secret/apps/account-prod/db): initdb reads it once,
+  # at creation, so without this a password rotated in OpenBao would never reach the database.
+  managed:
+    roles:
+      - name: account
+        ensure: present
+        login: true
+        passwordSecret:
+          name: account-db-app
   storage:
     size: 10Gi
     storageClass: hcloud-volumes

@@ -25,6 +25,61 @@ export interface ReservationsPort {
 	unlink(subject: string): Promise<void>;
 }
 
+/** A booking of the person's own, as the scheduling service answers it for their token. */
+export interface OwnBooking {
+	/** What the service names it by in its routes (it may differ from the reference). */
+	id: string;
+	reference: string;
+	status: string;
+	start: number;
+	end: number;
+	mode?: "onsite" | "online" | undefined;
+	serviceSlug?: string | undefined;
+	practitioner?: string | undefined;
+	practitionerName?: string | undefined;
+	/** Until when the clinic lets it be cancelled or moved online, and whether that is still ahead. */
+	changeUntil: number;
+	canChange: boolean;
+	/** Whether it may also be moved online (a session the clinic booked is only cancelled; the clinic moves it). */
+	canMove: boolean;
+}
+
+/** A free time a booking can move to. */
+export interface FreeTime {
+	start: number;
+	end: number;
+	modes: ReadonlyArray<"onsite" | "online">;
+}
+
+/**
+ * Why the service said no: the person's token no longer holds (`expired`: sign in again, silently), it is past the
+ * clinic's rule (`too_late`), the time was just taken (`taken`), it is not theirs or not there (`not_found`), or the
+ * service could not be asked (`unavailable`).
+ */
+export type BookingRefusal = "expired" | "too_late" | "taken" | "not_found" | "unavailable";
+
+/**
+ * The person's own bookings through the scheduling service, called with THEIR token: the service decides whose they
+ * are. Every call answers a value or a refusal; none throws for a refusal.
+ */
+export interface OwnBookingsPort {
+	list(token: string): Promise<ReadonlyArray<OwnBooking> | BookingRefusal>;
+	cancel(token: string, id: string): Promise<"ok" | BookingRefusal>;
+	/** The free times of the same person and service, between two instants. */
+	freeTimes(
+		token: string,
+		booking: OwnBooking,
+		from: number,
+		to: number,
+	): Promise<ReadonlyArray<FreeTime> | BookingRefusal>;
+	reschedule(
+		token: string,
+		id: string,
+		start: number,
+		mode: "onsite" | "online",
+	): Promise<"ok" | BookingRefusal>;
+}
+
 export type TimelineKind =
 	| "booking"
 	| "consent_granted"

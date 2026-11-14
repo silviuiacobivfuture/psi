@@ -17,6 +17,7 @@ import { reportsPort } from "./convex/reports";
 import { requestsPort, visitorExtras } from "./convex/requests";
 import type { Rpc } from "./convex/rpc";
 import { seriesPort } from "./convex/series";
+import { settingsPort } from "./convex/settings";
 import { visitCollections } from "./convex/visits";
 import type { CollectionName, Collections, StorePort } from "./types";
 
@@ -136,6 +137,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		},
 		requests: requestsPort(clients.rpc, clients.staff),
 		docs: documentsPort(clients.rpc),
+		settings: settingsPort(clients.rpc),
 		blacklist: blacklistPort(clients.rpc),
 		feedback: feedbackPort(clients.rpc),
 		keys: keyStore(clients.rpc),

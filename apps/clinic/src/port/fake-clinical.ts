@@ -1,15 +1,18 @@
 import { SEED_FORM_TEMPLATES, validateResponse } from "@psi/scheduling/clinic";
 import { ledger } from "../domain/ledger";
 import { paidBani } from "../domain/usage";
-import { type ClinicPort, PortError } from "./port";
+import { offsetPage } from "./offset-page";
+import { type ClinicPort, LIST_PAGE, PortError } from "./port";
 import type { AppSlug, Client } from "./schema";
 import {
 	blacklistActive,
+	CLEARABLE_FIELDS,
 	type ClientFile,
 	type ClientFlag,
 	type ClientNote,
 	type ClientRecord,
 	type ClientSummary,
+	CONTACT_REQUIRED,
 	FILE_MAX_BYTES,
 	FILE_TYPES,
 	FileNameSchema,
@@ -49,6 +52,7 @@ type ClinicalMethods = Pick<
 	| "updateRecord"
 	| "deleteRecord"
 	| "files"
+	| "filePage"
 	| "uploadFile"
 	| "downloadFile"
 	| "renameFile"
@@ -104,6 +108,10 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 				...held,
 				...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
 			};
+			// Like the service: emptying a contact may not leave the client with no phone or e-mail to book with.
+			const emptied = CLEARABLE_FIELDS.some((f) => patch[f] === null && held[f] !== null);
+			if (emptied && next.phone === null && next.email === null)
+				throw new PortError("conflict", CONTACT_REQUIRED);
 			d.clients[i] = next;
 			log(d, "console", "client.edit", id);
 			return next;
@@ -312,6 +320,10 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 					.files.map((f) => f.meta)
 					.filter((f) => f.clientId === clientId),
 			);
+		},
+		async filePage(app, clientId, cursor) {
+			guard("filePage");
+			return offsetPage(await this.files(app, clientId), cursor, LIST_PAGE);
 		},
 		async uploadFile(app, clientId, file, by) {
 			guard("uploadFile");

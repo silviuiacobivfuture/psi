@@ -35,6 +35,8 @@ describe("the route table", () => {
 			"me.capabilities",
 			"me.notifications",
 			"me.notificationsSave",
+			"me.settings",
+			"me.saveSettings",
 			"roles.summary",
 		]);
 		for (const r of ALL) {

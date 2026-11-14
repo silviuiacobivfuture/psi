@@ -30,7 +30,14 @@ export function scopedPort(port: ClinicPort, caps: Capabilities): ClinicPort {
 				app,
 				from,
 				to,
-				focus === undefined ? undefined : (cols) => focus(cols.filter((c) => calendar.has(c.id))),
+				focus === undefined
+					? undefined
+					: {
+							...focus,
+							among: new Set(
+								[...calendar].filter((id) => focus.among === undefined || focus.among.has(id)),
+							),
+						},
 			);
 			return {
 				...data,

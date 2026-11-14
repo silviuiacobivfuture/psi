@@ -10,16 +10,36 @@ import {
 	type AssistantMode,
 	type AuditEvent,
 	type Membership,
-	type PushPrefs,
 	type Role,
 	type WebRequest,
 } from "../schema";
+import type {
+	MyNotifications,
+	MyNotificationsView,
+	MySettings,
+	MySettingsView,
+} from "../schema-settings";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { auditOf, drain, requestOf } from "./map";
 import { instantOf } from "./time";
 
 const DAY = 86_400_000;
+
+type ApiMember = Awaited<ReturnType<SdkContext["api"]["members"]["list"]>>["items"][number];
+
+const teamMemberOf = (m: ApiMember): TeamMember => ({
+	subject: m.subject,
+	displayName: m.displayName,
+	roles: m.roles,
+	...(m.email === undefined ? {} : { email: m.email }),
+});
+
+/** The service's answer as the console keeps it (when it was saved is the service's own business). */
+const settingsView = ({
+	updatedAt: _at,
+	...s
+}: MySettingsView & { updatedAt?: number }): MySettingsView => s;
 
 /** Requests, roles, audit, the team, capabilities and "Vezi ca…". */
 export function adminGroup(sdk: SdkContext) {
@@ -85,12 +105,17 @@ export function adminGroup(sdk: SdkContext) {
 				const all = await drain((cursor) =>
 					api.members.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 				);
-				return all.map((m) => ({
-					subject: m.subject,
-					displayName: m.displayName,
-					roles: m.roles,
-					...(m.email === undefined ? {} : { email: m.email }),
-				}));
+				return all.map(teamMemberOf);
+			}),
+
+		memberPage: (app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>> =>
+			run(async () => {
+				const got = await api.members.list({
+					app,
+					limit: LIST_PAGE,
+					...(cursor === null ? {} : { cursor }),
+				});
+				return { items: got.items.map(teamMemberOf), nextCursor: got.nextCursor ?? null };
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>
@@ -223,6 +248,18 @@ export function adminGroup(sdk: SdkContext) {
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),
 
+		// The person's own settings: the token says whose, so the subject is never sent.
+		mySettings: (app: AppSlug, _subject: string): Promise<MySettingsView> =>
+			run(async () => settingsView(await api.me.settings({ app }))),
+		saveMySettings: (app: AppSlug, _subject: string, s: MySettings): Promise<MySettingsView> =>
+			run(async () => settingsView(await api.me.saveSettings({ app, ...s }))),
+		myNotifications: (app: AppSlug, _subject: string): Promise<MyNotificationsView> =>
+			run(() => api.me.notifications({ app })),
+		saveMyNotifications: (
+			app: AppSlug,
+			_subject: string,
+			prefs: MyNotifications,
+		): Promise<MyNotificationsView> => run(() => api.me.notificationsSave({ app, ...prefs })),
 		auditPage: (
 			app: AppSlug,
 			window: { from?: string; to?: string },
@@ -246,13 +283,7 @@ export function adminGroup(sdk: SdkContext) {
 				return { events: got.items.map(auditOf), nextCursor: got.nextCursor ?? null };
 			}),
 
-		// The service has no route for a person's push preferences yet: the screen says "în curând".
-		pushPrefs: (_subject: string): Promise<PushPrefs> =>
-			Promise.reject(new PortError("not-available-yet", "push preferences")),
-		savePushPrefs: (_subject: string, _prefs: PushPrefs): Promise<void> =>
-			Promise.reject(new PortError("not-available-yet", "push preferences")),
-
-		// Nor one for how a person's assistant shows: the console keeps the choice on the device meanwhile.
+		// The service has no route for how a person's assistant shows: the console keeps the choice on the device meanwhile.
 		assistantMode: (_subject: string): Promise<AssistantMode | null> =>
 			Promise.reject(new PortError("not-available-yet", "assistant mode")),
 		saveAssistantMode: (_subject: string, _mode: AssistantMode): Promise<void> =>

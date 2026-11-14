@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = [
 	"file.add",
 	"file.remove",
 	"file.read",
+	"file.rename",
 	"role.change",
 	"member.change",
 	"override.change",

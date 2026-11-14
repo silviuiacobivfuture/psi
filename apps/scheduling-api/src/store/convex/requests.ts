@@ -1,4 +1,5 @@
 import { accountHashOf, DecisionReasonSchema, type StaffSchedulingClient } from "@psi/scheduling";
+import { makeReference } from "@psi/scheduling/domain";
 import { z } from "zod";
 import { type RequestsPort, StoreRefused, type VisitorPort } from "../types";
 import { answer, type Rpc, unwrap } from "./rpc";
@@ -104,7 +105,11 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 				...(known.success ? { reason: known.data } : {}),
 				actor: { subject: actor },
 			});
-			if (out.ok) return { ok: true };
+			if (out.ok)
+				return {
+					ok: true,
+					...(out.accountHash === undefined ? {} : { accountHash: out.accountHash }),
+				};
 			if (out.reason !== "not_found") return { ok: false, reason: out.reason };
 			const callback = unwrap(
 				await rpc.query("webRequests:isCallback", { tenant: app, reference }, Found),
@@ -124,13 +129,19 @@ const Mine = answer({
 			mode: z.enum(["onsite", "online"]),
 			start: z.number(),
 			end: z.number(),
+			practitioner: z.string().optional(),
+			practitionerName: z.string(),
+			minNoticeMinutes: z.number().optional(),
 		}),
 	),
 });
 const Cancelled = answer({ start: z.number() });
+const Moved = answer({ reference: z.string(), start: z.number(), end: z.number() });
 
 /** What Convex adds to the visitor flow the existing client already covers: a callback, and a signed-in visitor's own requests. */
-export function visitorExtras(rpc: Rpc): Pick<VisitorPort, "callback" | "mine" | "cancelMine"> {
+export function visitorExtras(
+	rpc: Rpc,
+): Pick<VisitorPort, "callback" | "mine" | "cancelMine" | "rescheduleMine"> {
 	return {
 		async callback(app, input) {
 			// The site's form requires the consent box before it calls; a request that arrives here carries it.
@@ -166,8 +177,43 @@ export function visitorExtras(rpc: Rpc): Pick<VisitorPort, "callback" | "mine" |
 					start: r.start,
 					end: r.end,
 					mode: r.mode,
+					noticeMinutes: r.minNoticeMinutes ?? 0,
 					...(r.service === "" ? {} : { serviceSlug: r.service }),
+					...(r.practitionerName === "" ? {} : { practitionerName: r.practitionerName }),
+					...(r.practitioner === undefined ? {} : { practitioner: r.practitioner }),
 				}));
+		},
+		async rescheduleMine(app, subject, id, to) {
+			const mine = await this.mine(app, subject);
+			if (!mine.some((r) => r.id === id)) return { ok: false, reason: "not_found" };
+			const out = await rpc.mutation(
+				"account:rescheduleForAccount",
+				{
+					reference: id,
+					accountHash: accountHashOf(subject),
+					start: to.start,
+					mode: to.mode,
+					newReference: makeReference(),
+				},
+				Moved,
+			);
+			if (out.ok)
+				return {
+					ok: true,
+					id: out.reference,
+					reference: out.reference,
+					start: out.start,
+					end: out.end,
+				};
+			return {
+				ok: false,
+				reason:
+					out.reason === "slot_taken"
+						? "slot_taken"
+						: out.reason === "not_found"
+							? "not_found"
+							: "not_allowed",
+			};
 		},
 		async cancelMine(app, subject, id) {
 			const mine = await this.mine(app, subject);

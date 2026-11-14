@@ -43,5 +43,7 @@
 	"pwa_push_article_title": "Articol nou de la {brand}",
 	"pwa_push_article_body": "{headline}",
 	"pwa_push_test_title": "Notificările funcționează",
-	"pwa_push_test_body": "Așa vei afla noutățile de la Psizone."
+	"pwa_push_test_body": "Așa vei afla noutățile de la Psizone.",
+	"pwa_push_booking_moved_title": "Programarea ta s-a mutat la altă oră",
+	"pwa_push_booking_moved_body": "Ora nouă e în contul tău Psizone."
 }

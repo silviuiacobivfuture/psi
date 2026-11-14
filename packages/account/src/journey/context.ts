@@ -4,7 +4,7 @@ import type { Account } from "../account";
 import type { RecordRef, SignedIn } from "../guard";
 import type { Purpose } from "../stores/types";
 import type { Say } from "./labels";
-import type { ReservationsPort } from "./ports";
+import type { OwnBookingsPort, ReservationsPort } from "./ports";
 
 /** How a site plugs the journey into its own shell, theme and stores. */
 export interface JourneyOptions {
@@ -25,6 +25,16 @@ export interface JourneyOptions {
 	siteNames: Readonly<Record<string, string>>;
 	/** Previous reservations; absent where the site has no scheduling store. */
 	reservations?: ReservationsPort;
+	/**
+	 * "Programările mele" through the scheduling service, as the person: when present, the bookings page lists, cancels
+	 * and moves through it (the service decides whose a booking is).
+	 */
+	bookings?: OwnBookingsPort;
+	/**
+	 * What the port is called with for this person: default the ID token their session holds (its audience is the site);
+	 * a site that calls with its own service key passes the person's subject instead. Null: sign in again, silently.
+	 */
+	tokenFor?: (c: Context, person: SignedIn) => Promise<string | null>;
 	/**
 	 * Where export and erasure happen when this site has no reservations store: the Psizone account's data
 	 * page (absolute). Required then, so an erasure never leaves bookings tied to the account.

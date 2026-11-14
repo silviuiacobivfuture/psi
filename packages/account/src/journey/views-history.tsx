@@ -114,30 +114,45 @@ export function BookingsBody({
 					</div>
 				) : null}
 			</Section>
-			<Section title={say("account_bookings_link_title")}>
-				<p class="text-body text-ink-muted">{say("account_bookings_link_lead")}</p>
-				{linkFailed ? (
-					<StatusBadge tone="danger">{say("account_bookings_link_failed")}</StatusBadge>
-				) : null}
-				<form
-					method="post"
-					action={`${base}${JOURNEY_PAGES.bookings}/leaga`}
-					class="flex flex-col gap-4"
-				>
-					<TextField
-						id="link-reference"
-						name="reference"
-						label={say("account_bookings_link_reference")}
-					/>
-					<TextField id="link-code" name="code" label={say("account_bookings_link_code")} />
-					<div>
-						<Button type="submit" variant="outline">
-							{say("account_bookings_link_button")}
-						</Button>
-					</div>
-				</form>
-			</Section>
+			<LinkSection say={say} base={base} failed={linkFailed} />
 		</>
+	);
+}
+
+/** Adding an anonymous request to the account, with its proof: the reference and the cancel code. */
+export function LinkSection({
+	say,
+	base,
+	failed,
+}: {
+	say: Say;
+	base: string;
+	failed: boolean;
+}): JSX.Element {
+	return (
+		<Section title={say("account_bookings_link_title")}>
+			<p class="text-body text-ink-muted">{say("account_bookings_link_lead")}</p>
+			{failed ? (
+				<StatusBadge tone="danger">{say("account_bookings_link_failed")}</StatusBadge>
+			) : null}
+			<form
+				method="post"
+				action={`${base}${JOURNEY_PAGES.bookings}/leaga`}
+				class="flex flex-col gap-4"
+			>
+				<TextField
+					id="link-reference"
+					name="reference"
+					label={say("account_bookings_link_reference")}
+				/>
+				<TextField id="link-code" name="code" label={say("account_bookings_link_code")} />
+				<div>
+					<Button type="submit" variant="outline">
+						{say("account_bookings_link_button")}
+					</Button>
+				</div>
+			</form>
+		</Section>
 	);
 }
 

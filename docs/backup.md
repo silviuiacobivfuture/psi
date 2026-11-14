@@ -22,7 +22,7 @@ COMPLIANCE lock set by mistake could not be lifted by anyone for a year.
 
 | Data | How | Schedule | Kept | Lock |
 |------|-----|----------|------|------|
-| Convex store (prod) | `scheduling-backup` CronJob (ns `scheduling-backend-prod`): `convex export`, sealed, uploaded by tier | hourly at :07 | `convex/hourly/` 48 (2 days), `convex/daily/` 30 (00:xx UTC run), `convex/monthly/` 12 (1st of the month) | each object until its tier expires |
+| Convex store (prod) | `scheduling-backup` CronJob (ns `scheduling-backend-prod`): `convex export`, sealed, uploaded by tier | hourly at :07 | `convex/hourly/` 48 (2 days), `convex/daily/` 30 (a run finding no daily copy younger than 23 h), `convex/monthly/` 12 (a run finding none younger than 28 days) | each object until its tier expires |
 | Convex store (dev) | the same CronJob in ns `scheduling` | every 6 h | the same tiers | the same |
 | Prod Postgres (`scheduling-db`: Convex's database; `account-db`) | CNPG `barmanObjectStore` to `psi-backups-prod/cnpg/<name>-prod` | WAL continuously; base daily 03:20 / 04:55 | `retentionPolicy: 30d` (point-in-time recovery to any moment of 30 days); a deleted object 7 days more (versioning) | none (barman prunes) |
 | Dev / platform Postgres | CNPG to `psi-tfstate-dev/cnpg/<name>` (SEB's pieces) | WAL; base weekly | SEB's | none |
