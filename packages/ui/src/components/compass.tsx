@@ -392,7 +392,7 @@ export function Compass({
 				class="sr-only pz-compass__fs-live"
 				role="status"
 				aria-live="polite"
-				data-on={labels.fullscreenOn}
+				data-announce={labels.fullscreenOn}
 			/>
 			{invite?.nudge ? <Nudge nudge={invite.nudge} /> : null}
 			<form
