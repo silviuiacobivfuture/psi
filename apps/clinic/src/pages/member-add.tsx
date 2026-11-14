@@ -61,7 +61,7 @@ export function StaffResults({
 									{...(blocked
 										? {}
 										: {
-												"data-on:click": `$nm.subject = ${quote(p.subject)}; $nm.displayName = ${quote(p.displayName)}; $nm.email = ${quote(p.email)}; $nm.q = ''`,
+												"data-on:click": `$nm.subject = ${quote(p.subject)}; $nm.name = ${quote(p.displayName)}; $nm.email = ${quote(p.email)}; $nm.q = ''`,
 											})}
 								>
 									<span class="ed-client__text">
@@ -96,7 +96,7 @@ export function AddSheet({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Role> 
 				class="cl-form"
 				data-form="member-new"
 				data-action="member.new"
-				data-signals={JSON.stringify({ nm: { q: "", subject: "", displayName: "", email: "" } })}
+				data-signals={JSON.stringify({ nm: { q: "", subject: "", name: "", email: "" } })}
 			>
 				<label class="adm-field">
 					<span>{m.mb_search({}, o)}</span>
@@ -131,7 +131,7 @@ export function AddSheet({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Role> 
 						name="displayName"
 						required
 						maxlength={200}
-						{...{ "data-bind:nm.displayName": "" }}
+						{...{ "data-bind:nm.name": "" }}
 					/>
 				</label>
 				<label class="adm-field">
