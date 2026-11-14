@@ -1,5 +1,6 @@
 # Guard-rails for the scheduling-api namespace: the LimitRange backfills any container that names no resources, the
-# quota caps the namespace (2 replicas + a rollout surge + the init containers).
+# quota caps the namespace (the HPA's 4 replicas + a rollout surge, each 250m/256Mi requested and 1/512Mi limited,
+# + the init containers).
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -17,8 +18,8 @@ metadata:
   name: scheduling-api
 spec:
   hard:
-    requests.cpu: "1"
+    requests.cpu: "2"
     requests.memory: 2Gi
-    limits.cpu: "4"
-    limits.memory: 3Gi
-    pods: "6"
+    limits.cpu: "6"
+    limits.memory: 4Gi
+    pods: "8"

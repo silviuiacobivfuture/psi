@@ -54,6 +54,7 @@ import type * as clinicTables from "../clinicTables.js";
 import type * as clinicValidate from "../clinicValidate.js";
 import type * as clinicVisits from "../clinicVisits.js";
 import type * as crons from "../crons.js";
+import type * as deployment from "../deployment.js";
 import type * as expiry from "../expiry.js";
 import type * as feedbackLinks from "../feedbackLinks.js";
 import type * as feedbackSupport from "../feedbackSupport.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   clinicValidate: typeof clinicValidate;
   clinicVisits: typeof clinicVisits;
   crons: typeof crons;
+  deployment: typeof deployment;
   expiry: typeof expiry;
   feedbackLinks: typeof feedbackLinks;
   feedbackSupport: typeof feedbackSupport;

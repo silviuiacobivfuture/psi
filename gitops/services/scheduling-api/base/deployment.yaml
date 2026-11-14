@@ -8,7 +8,11 @@ metadata:
     reloader.stakater.com/auto: "true"
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
-  replicas: 2
+  # No `replicas`: the HorizontalPodAutoscaler (hpa.yaml) owns the count, 2 to 4, so Argo never fights it.
+  # A new pod is Ready only once the backend serves the scheduling functions it was built against (/ready asks
+  # deployment:functionsVersion): the old pods keep serving until scheduling-deploy has deployed them, and the rollout
+  # waits up to half an hour for that (the deploy Job waits up to ten minutes for the backend, then deploys).
+  progressDeadlineSeconds: 1800
   strategy:
     type: RollingUpdate
     rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
@@ -93,8 +97,10 @@ spec:
             httpGet: { path: /health, port: http }
             periodSeconds: 20
             failureThreshold: 6
+          # Sized from the load test (apps/clinic/scripts/load): one busy process uses about one core; the HPA scales
+          # at 70% of the request.
           resources:
-            requests: { cpu: 100m, memory: 192Mi }
+            requests: { cpu: 250m, memory: 256Mi }
             limits: { cpu: "1", memory: 512Mi }
           securityContext:
             allowPrivilegeEscalation: false

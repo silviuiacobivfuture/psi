@@ -8,6 +8,7 @@ import type { PartialCollections } from "./convex/collections";
 import { documentsPort } from "./convex/documents";
 import { createChangeFeed } from "./convex/feed";
 import { feedbackPort } from "./convex/feedback";
+import { requireFunctions } from "./convex/functions-version";
 import { appsOfSubject } from "./convex/members";
 import { recordCollections } from "./convex/records";
 import { reportsPort } from "./convex/reports";
@@ -136,6 +137,10 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		feedback: feedbackPort(clients.rpc),
 		series: seriesPort(clients.rpc),
 		reports: reportsPort(clients.rpc),
-		ping: () => clients.visitor.services("psizone").then(() => undefined),
+		// Ready when the store answers AND serves the functions this build calls (they are deployed before the service).
+		ping: async () => {
+			await clients.visitor.services("psizone");
+			await requireFunctions(clients.rpc);
+		},
 	};
 }
