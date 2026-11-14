@@ -1,6 +1,7 @@
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { countedDays } from "./day-counts";
 import { createFakeAssistant } from "./fake-assistant";
 import { appointmentChanges } from "./fake-audit";
 import { createFakeAccess } from "./fake-caps";
@@ -9,9 +10,10 @@ import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeInvites } from "./fake-invites";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
-import { pagedClients } from "./fake-pages";
+import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
+import { createFakeRoleSummary } from "./fake-role-summary";
 import { createFakeStaff, type FakeAccount } from "./fake-staff";
 import {
 	type CalendarData,
@@ -150,6 +152,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...staff,
 		...clinical,
 		...catalog,
+		...createFakeRoleSummary({ data, guard }),
 		...invites,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
@@ -180,18 +183,26 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("memberships");
 			return membershipsOf(team, subject);
 		},
-		async calendar(app, from, to): Promise<CalendarData> {
+		async calendar(app, from, to, focus): Promise<CalendarData> {
 			guard("calendar");
 			const d = data(app);
-			const appointments = d.appointments.filter((a) => a.date >= from && a.date <= to);
+			const columns = calendarColumns(d.columns);
+			const only = focus === undefined ? null : (focus(columns) ?? "");
+			const appointments = d.appointments.filter(
+				(a) => a.date >= from && a.date <= to && (only === null || a.columnId === only),
+			);
 			// As the service's port answers: the clients of the visits shown, not every client.
 			const named = new Set(appointments.map((a) => a.clientId));
 			return {
-				columns: calendarColumns(d.columns),
+				columns,
 				services: activeServices(d.services),
 				clients: d.clients.filter((c) => named.has(c.id)),
 				appointments,
 			};
+		},
+		calendarSummary(app, from, to) {
+			guard("calendarSummary");
+			return countedDays(this)(app, from, to);
 		},
 		async appointment(app, id) {
 			guard("appointment");
@@ -542,6 +553,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("requests");
 			return data(app).requests;
 		},
+		requestPage(app, show, cursor) {
+			return pagedRequests(this)(app, show, cursor);
+		},
+		blacklistPage(app, cursor) {
+			return pagedBlacklist(this)(app, cursor);
+		},
 		async markRequestHandled(app, id) {
 			guard("markRequestHandled");
 			const d = data(app);
@@ -607,6 +624,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
+		},
+		auditPage(app, window, cursor, limit) {
+			return pagedAudit(this)(app, window, cursor, limit);
 		},
 		...floorAndPrefs,
 		...assistant,

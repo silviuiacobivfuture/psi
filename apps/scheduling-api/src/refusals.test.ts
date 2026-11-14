@@ -114,15 +114,16 @@ describe.each(factories)("on the $name store", (factory) => {
 					refused(() => call("hugo"), 404, "not_found"));
 				it("a stranger is told the app is not there", () =>
 					refused(() => call("mallory"), 404, "not_found"));
-				// The routes about oneself (what governs my assistant's turn and what it used, how I want to be told) need
-				// membership and nothing more.
+				// The routes about oneself (what governs my assistant's turn and what it used, how I want to be told) and the
+				// roles every member may compare need membership and nothing more: there is no permission to lack.
 				if (spec.permission === undefined) {
-					it("is the caller's own and needs no permission past membership", () =>
+					it("is the caller's own or every member's, and needs no permission past membership", () =>
 						expect([
 							"me.assistant",
 							"me.assistantUsage",
 							"me.notifications",
 							"me.notificationsSave",
+							"roles.summary",
 						]).toContain(spec.id));
 					return;
 				}

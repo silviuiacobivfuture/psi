@@ -31,6 +31,7 @@ import {
 	ServicePatch,
 	ServicePrice,
 } from "../entities";
+import { RoleSummary } from "../entities-roles";
 import {
 	AppId,
 	AppParam,
@@ -195,6 +196,16 @@ export const ME_ROUTES = [
 		query: PageQuery,
 		response: page(Role),
 		permission: { key: "roles_view", target: { kind: "app" } },
+	}),
+	route({
+		id: "roles.summary",
+		method: "GET",
+		path: "/v1/apps/:app/role-summary",
+		side: "team",
+		summary:
+			"Every role's name and permission keys, and the platform administrator's, for the role comparison: any member of the app (no member list, no counts)",
+		params: AppParam,
+		response: RoleSummary,
 	}),
 	route({
 		id: "roles.create",

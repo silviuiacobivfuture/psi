@@ -141,6 +141,28 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 		},
 	}),
 	define({
+		id: "member.link",
+		tier: "org",
+		entity: "member",
+		label: label((o) => m.ac_member_link({}, o)),
+		icon: "mail",
+		placements: { screen: [SCREEN] },
+		mobile: "sheet",
+		needs: { write: ["members_create"] },
+		route: { method: "POST", path: `${BASE}/:subject/link` },
+		confirm: "none",
+		to: (e) => at(e.id ?? ""),
+		when: notSelf,
+		// The link is a credential for the person at the screen: an assistant run never gets it.
+		privateResult: true,
+		params: z.object({ subject: SubjectSchema }),
+		run: async (ctx, p) => {
+			if (p.subject === ctx.actor.subject) return SELF;
+			const made = await ctx.port.newSignInLink(ctx.app, p.subject);
+			return { status: "ok", to: at(p.subject), data: { subject: p.subject, ...made } };
+		},
+	}),
+	define({
 		id: "member.remove",
 		tier: "org",
 		entity: "member",

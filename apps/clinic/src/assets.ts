@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { Hono } from "hono";
+import { etag } from "hono/etag";
 
 const DATASTAR_FILE = createRequire(import.meta.url).resolve("@psi/ui/datastar.js");
 const CSS_FILE = fileURLToPath(new URL("../public/assets/app.css", import.meta.url));
@@ -57,10 +58,19 @@ export function assetPath(name: AssetName): string {
  * briefly cached, so a deploy's new stylesheet arrives with its new pages.
  */
 export function registerAssets(app: Hono): void {
+	// Every asset carries an ETag (the content hash for the stylesheet and Datastar, a digest of the bytes for the rest):
+	// once its few minutes of cache are up, the browser asks again with If-None-Match and an unchanged file is a 304.
+	app.use("/assets/*", etag());
+	app.use("/favicon.svg", etag());
 	for (const [name, file] of Object.entries(FILES))
-		app.get(`/assets/${name}`, (c) =>
-			c.body(file.read().body, 200, { "content-type": file.type, "cache-control": SHORT }),
-		);
+		app.get(`/assets/${name}`, (c) => {
+			const now = file.read();
+			return c.body(now.body, 200, {
+				"content-type": file.type,
+				"cache-control": SHORT,
+				etag: `"${now.hash}"`,
+			});
+		});
 	app.get("/assets/:file{[a-z]+\\.[0-9a-f]{12}\\.(?:css|js)}", async (c, next) => {
 		const [stem, hash, ext] = c.req.param("file").split(".");
 		const file = Object.entries(FILES).find(([name]) => name === `${stem}.${ext}`)?.[1];

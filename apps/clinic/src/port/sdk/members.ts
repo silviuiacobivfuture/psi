@@ -12,6 +12,8 @@ import {
 	MemberInputSchema,
 	type OverridesInput,
 	OverridesInputSchema,
+	type SignInLink,
+	SignInLinkSchema,
 	type StaffMatch,
 	StaffMatchSchema,
 	StaffQuerySchema,
@@ -87,7 +89,14 @@ export function membersGroup(sdk: SdkContext) {
 					displayName: out.member.displayName,
 					account: out.account,
 					signInLink: out.signInLink,
+					signInLinkExpiresBy: out.signInLinkExpiresBy,
 				});
+			}),
+
+		newSignInLink: (app: AppSlug, subject: string): Promise<SignInLink> =>
+			run(async () => {
+				const out = await api.staff.link({ app, subject });
+				return SignInLinkSchema.parse({ link: out.signInLink, expiresBy: out.expiresBy });
 			}),
 
 		linkCalendar: (app: AppSlug, subject: string, personId: string): Promise<void> =>

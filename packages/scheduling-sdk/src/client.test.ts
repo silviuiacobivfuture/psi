@@ -36,6 +36,8 @@ describe("the derived client", () => {
 		expect(out.items[0]?.name).toBe("Ana");
 		expect(seen?.url).toBe("https://api.test/v1/apps/psizone/clients?status=archived&q=an");
 		expect(seen?.headers.get("authorization")).toBe("Bearer tok");
+		// In-cluster, server to server: the answers come uncompressed (compressing costs more CPU than it saves).
+		expect(seen?.headers.get("accept-encoding")).toBe("identity");
 	});
 
 	it("sends the body of a mutation as JSON and parses the answer", async () => {
@@ -76,6 +78,21 @@ describe("the derived client", () => {
 		expect(seen?.headers.get("x-service-key")).toBe("k.s");
 		expect(seen?.headers.get("x-psi-subject")).toBe("u1");
 		expect(seen?.headers.get("authorization")).toBeNull();
+		expect(seen?.headers.get("x-psi-client-ip")).toBeNull();
+	});
+
+	it("forwards the visitor's address for the service's rate limit when given", async () => {
+		let seen: Request | undefined;
+		const c = clientOn(
+			(req) => {
+				seen = req;
+				return json({ timeZone: "Europe/Bucharest", services: [] });
+			},
+			{ serviceKey: "k.s", clientIp: "203.0.113.7" },
+		);
+		await c.visitor.services({ app: "psizone" });
+		expect(seen?.headers.get("x-psi-client-ip")).toBe("203.0.113.7");
+		expect(seen?.headers.get("x-psi-subject")).toBeNull();
 	});
 
 	it("throws a typed error with the code, status and request id on a refusal", async () => {

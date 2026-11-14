@@ -187,6 +187,20 @@ export interface Collection<R extends { id: string; app: string }> {
 	remove(app: string, id: string): Promise<boolean>;
 }
 
+/**
+ * The clients, which lists also read by id: `getMany` answers the clients found of `ids` (any standing, the erased and
+ * unknown ones absent, each once) in as few store round trips as the store allows (Convex: one per 100 ids), in the
+ * order asked.
+ */
+export interface ClientCollection extends Collection<ClientRow> {
+	getMany(app: string, ids: readonly string[]): Promise<ClientRow[]>;
+}
+
+/** Every collection of the store, the clients with their batched read. */
+export type Collections = { [K in Exclude<CollectionName, "clients">]: Collection<Rows[K]> } & {
+	clients: ClientCollection;
+};
+
 type CalendarEventOut = z.output<typeof CalendarEvent>;
 /**
  * Change events live in the store, so every replica streams the same sequence. `subscribe` is PUSH: the store tells
@@ -237,6 +251,10 @@ export interface ContactInput {
 	name: string;
 	email?: string | undefined;
 	phone?: string | undefined;
+	/** Whole years; a submitted booking always has it (the service checks the five fields first). */
+	age?: number | undefined;
+	/** What is going on, in the person's words: personal data, erased with the contact. */
+	details?: string | undefined;
 }
 
 /** The visitor flow: services, slots, holds, requests. In Convex this is the existing visitor client. */
@@ -325,6 +343,9 @@ export interface VisitorPort {
 			when: "morning" | "afternoon" | "any";
 			page: string;
 			channel: "form" | "guide";
+			/** A time the visitor chose that could not be held. */
+			preferredStart?: number | undefined;
+			service?: string | undefined;
 		},
 	): Promise<{ reference: string }>;
 	mine(
@@ -358,7 +379,7 @@ export interface RequestsPort {
 }
 
 export interface StorePort {
-	c: { [K in CollectionName]: Collection<Rows[K]> };
+	c: Collections;
 	changes: ChangeFeed;
 	/** The apps a person is a member of, with their role ids. */
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;

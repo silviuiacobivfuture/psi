@@ -23,7 +23,11 @@ export interface StaffDirectory {
 	create(input: { email: string; name: string }): Promise<StaffAccount>;
 	/** Puts an existing account (neither staff nor customer) into the staff group. */
 	join(userId: string): Promise<void>;
-	/** A one-time link on which the person sets a password (short-lived; the sign-in's own setting). */
+	/** Takes an account out of the staff group again (the undo of `join`). */
+	leave(userId: string): Promise<void>;
+	/** When the account last signed in (UTC ms), or undefined if it never has. */
+	lastLogin(userId: string): Promise<number | undefined>;
+	/** The person's set-password link: one per person for 30 minutes; asked again meanwhile, the sign-in answers the same. */
 	recoveryLink(userId: string): Promise<string>;
 	/** Switches an account off (reversible; nothing is deleted). */
 	deactivate(userId: string): Promise<void>;
@@ -41,11 +45,14 @@ export interface FakeStaffDirectory extends StaffDirectory {
 		name: string,
 		options?: { staff?: boolean; customer?: boolean; active?: boolean; subject?: string },
 	): StaffAccount;
+	/** The account behind this address signed in at `at`. */
+	signIn(email: string, at: number): void;
 }
 
 /** In memory: deterministic ids and subjects (`staff-sub-<n>`), links on `https://sso.test`. */
 export function createFakeStaffDirectory(): FakeStaffDirectory {
 	const accounts = new Map<string, StaffAccount>();
+	const logins = new Map<string, number>();
 	let n = 0;
 	const make = (
 		email: string,
@@ -107,6 +114,21 @@ export function createFakeStaffDirectory(): FakeStaffDirectory {
 			if (self.failing) return Promise.reject(new SsoUnavailable("the sign-in is not reachable"));
 			for (const a of accounts.values()) if (a.userId === userId) a.staff = true;
 			return Promise.resolve();
+		},
+		signIn(email, at) {
+			const account = accounts.get(email.toLowerCase());
+			if (account !== undefined) logins.set(account.userId, at);
+		},
+		leave(userId) {
+			self.calls.push(`leave:${userId}`);
+			if (self.failing) return Promise.reject(new SsoUnavailable("the sign-in is not reachable"));
+			for (const a of accounts.values()) if (a.userId === userId) a.staff = false;
+			return Promise.resolve();
+		},
+		lastLogin(userId) {
+			self.calls.push(`lastLogin:${userId}`);
+			if (self.failing) return Promise.reject(new SsoUnavailable("the sign-in is not reachable"));
+			return Promise.resolve(logins.get(userId));
 		},
 		recoveryLink(userId) {
 			self.calls.push(`recovery:${userId}`);

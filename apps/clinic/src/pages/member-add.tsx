@@ -3,6 +3,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { roleLabel } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at, type Locale } from "../lib/i18n";
+import { short } from "../lib/when";
 import { m } from "../paraglide/messages.js";
 import type { Role } from "../port/schema";
 import type { InviteOutcome, StaffMatch } from "../port/schema-members";
@@ -192,6 +193,89 @@ export function InviteSheet({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Rol
 	);
 }
 
+/** A one-time set-password link to pass on: read-only, selected on focus, one press copies it. Shown once, kept nowhere. */
+function OneTimeLink({
+	ctx,
+	link,
+	expiresBy,
+}: {
+	ctx: Ctx;
+	link: string;
+	expiresBy: number;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	const time = short(new Date(expiresBy).toISOString(), ctx.locale, ctx.caps.timeZone);
+	return (
+		<>
+			<label class="adm-field">
+				<span>{m.mb_invited_link({}, o)}</span>
+				<input
+					id="mb-invite-link"
+					class="adm-input"
+					readonly
+					value={link}
+					data-on:focus="el.select()"
+				/>
+				<span class="adm-muted" data-link-expires={String(expiresBy)}>
+					{m.mb_link_expires({ time }, o)} {m.mb_invited_once({}, o)}
+				</span>
+			</label>
+			<button
+				type="button"
+				class="adm-btn"
+				data-copy-link
+				data-on:click="navigator.clipboard.writeText(document.getElementById('mb-invite-link').value)"
+			>
+				{m.mb_invited_copy({}, o)}
+			</button>
+		</>
+	);
+}
+
+/** In a member's editor, for whoever may add members: a new set-password link (the service refuses one who signed in). */
+export function NewLinkForm({ ctx, subject }: { ctx: Ctx; subject: string }): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<form
+			method="post"
+			action={`/settings/members/${encodeURIComponent(subject)}/link`}
+			class="cl-form"
+			data-form="member-link"
+			data-action="member.link"
+		>
+			<p class="adm-muted">{m.mb_link_hint({}, o)}</p>
+			<div>
+				<button class="adm-btn" type="submit">
+					{m.ac_member_link({}, o)}
+				</button>
+			</div>
+		</form>
+	);
+}
+
+/** The member's set-password link, once, with when it stops working at the latest. */
+export function NewLinkSheet({
+	ctx,
+	name,
+	link,
+	expiresBy,
+}: {
+	ctx: Ctx;
+	name: string;
+	link: string;
+	expiresBy: number;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<Sheet signal="newLink" title={m.mb_link_title({}, o)} closeLabel={m.close({}, o)}>
+			<div class="cl-form" data-new-link>
+				<p>{m.mb_link_text({ name }, o)}</p>
+				<OneTimeLink ctx={ctx} link={link} expiresBy={expiresBy} />
+			</div>
+		</Sheet>
+	);
+}
+
 /** After an invitation: who was added and, for a new account, the one-time link to pass on. Shown once. */
 export function InvitedSheet({ ctx, outcome }: { ctx: Ctx; outcome: InviteOutcome }): JSX.Element {
 	const o = at(ctx.locale);
@@ -206,28 +290,12 @@ export function InvitedSheet({ ctx, outcome }: { ctx: Ctx; outcome: InviteOutcom
 		<Sheet signal="invitedMember" title={m.mb_invited_title({}, o)} closeLabel={m.close({}, o)}>
 			<div class="cl-form" data-invited={outcome.subject}>
 				<p>{text}</p>
-				{outcome.signInLink === null ? null : (
-					<>
-						<label class="adm-field">
-							<span>{m.mb_invited_link({}, o)}</span>
-							<input
-								id="mb-invite-link"
-								class="adm-input"
-								readonly
-								value={outcome.signInLink}
-								data-on:focus="el.select()"
-							/>
-							<span class="adm-muted">{m.mb_invited_once({}, o)}</span>
-						</label>
-						<button
-							type="button"
-							class="adm-btn"
-							data-copy-link
-							data-on:click="navigator.clipboard.writeText(document.getElementById('mb-invite-link').value)"
-						>
-							{m.mb_invited_copy({}, o)}
-						</button>
-					</>
+				{outcome.signInLink === null || outcome.signInLinkExpiresBy === null ? null : (
+					<OneTimeLink
+						ctx={ctx}
+						link={outcome.signInLink}
+						expiresBy={outcome.signInLinkExpiresBy}
+					/>
 				)}
 				<a
 					class="adm-btn adm-btn--primary"

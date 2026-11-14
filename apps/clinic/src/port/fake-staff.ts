@@ -11,6 +11,8 @@ export interface FakeAccount {
 	displayName: string;
 	email: string;
 	active?: boolean;
+	/** Has signed in at least once: no new set-password link is made for them. */
+	signedIn?: boolean;
 	/** A client's account (the customers group), never staff. */
 	customer?: boolean;
 }
@@ -24,8 +26,14 @@ export interface StaffDeps {
 	log: (d: AppData, actor: string, action: string, target: string) => void;
 }
 
+/** The sign-in keeps one set-password link per person for 30 minutes and answers that same one meanwhile. */
+const LINK_MS = 30 * 60_000;
+const linkOf = (subject: string): string => `https://sso.example.test/recovery/${subject}`;
+
 /** The add-member search and the invitation over a fake sign-in, with the service's refusals. */
-export function createFakeStaff(deps: StaffDeps): Pick<ClinicPort, "searchStaff" | "inviteMember"> {
+export function createFakeStaff(
+	deps: StaffDeps,
+): Pick<ClinicPort, "searchStaff" | "inviteMember" | "newSignInLink"> {
 	const { accounts, team, guard, data, log } = deps;
 	let n = 0;
 	const inTeam = (app: AppSlug, subject: string): boolean => team.get(app)?.has(subject) === true;
@@ -89,9 +97,28 @@ export function createFakeStaff(deps: StaffDeps): Pick<ClinicPort, "searchStaff"
 				subject: account.subject,
 				displayName: input.data.displayName,
 				account: found === undefined ? "created" : "existing",
-				signInLink:
-					found === undefined ? `https://sso.example.test/recovery/${account.subject}` : null,
+				signInLink: found === undefined ? linkOf(account.subject) : null,
+				signInLinkExpiresBy: found === undefined ? Date.now() + LINK_MS : null,
 			};
+		},
+		async newSignInLink(app, subject) {
+			guard("newSignInLink");
+			if (subject === deps.self) throw new PortError("forbidden", "self", [], "self");
+			const member = team.get(app)?.get(subject);
+			if (member === undefined) throw new PortError("not-found", subject);
+			if (member.email === undefined) throw new PortError("conflict", "email", [], "no_email");
+			const account = accounts.find(
+				(a) => a.subject === subject && a.email.toLowerCase() === member.email?.toLowerCase(),
+			);
+			if (account === undefined || account.customer === true)
+				throw new PortError("conflict", "account", [], "no_account");
+			if (account.active === false)
+				throw new PortError("conflict", "disabled", [], "account_disabled");
+			if (account.signedIn === true)
+				throw new PortError("conflict", "signed in", [], "already_signed_in");
+			log(data(app), "console", "member.link", `members:${subject}`);
+			// As the estate's sign-in does: the same link for its 30 minutes.
+			return { link: linkOf(subject), expiresBy: Date.now() + LINK_MS };
 		},
 	};
 }

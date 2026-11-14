@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { REFUSED } from "./apiSupport";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { serverKeyValidator } from "./validators";
 
@@ -106,7 +107,9 @@ export const outboxSize = query({
 	args: { key: serverKeyValidator },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		return { ok: true as const, size: (await ctx.db.query("notifyOutbox").collect()).length };
+		// An operator's and a test's view: a count past the bound is refused, never read whole.
+		const rows = await within(ctx.db.query("notifyOutbox"), LIST_MAX);
+		return rows === undefined ? REFUSED(TOO_MANY_ROWS) : { ok: true as const, size: rows.length };
 	},
 });
 
@@ -153,6 +156,7 @@ export const linkCount = query({
 	args: { key: serverKeyValidator },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		return { ok: true as const, count: (await ctx.db.query("usedLinks").collect()).length };
+		const rows = await within(ctx.db.query("usedLinks"), LIST_MAX);
+		return rows === undefined ? REFUSED(TOO_MANY_ROWS) : { ok: true as const, count: rows.length };
 	},
 });

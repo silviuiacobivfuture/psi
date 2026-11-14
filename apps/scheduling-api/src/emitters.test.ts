@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { sensitiveOf } from "./engagement/security";
 import type { Notification } from "./ports/notify";
 import { createWorld, type Populated } from "./testing/populate";
-import { HOUR, NOW } from "./testing/world";
+import { bookingContact, HOUR, NOW } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 const DAY = 24 * HOUR;
@@ -318,7 +318,10 @@ describe("the desk is told when someone on the blacklist tries online", () => {
 				"psizone-web",
 				"POST",
 				`${A}/book/holds/${String(hold.json.reference)}/submit`,
-				{ holdToken: hold.json.holdToken, contact: { name: "Blocked Person", phone: PHONE } },
+				{
+					holdToken: hold.json.holdToken,
+					contact: bookingContact({ name: "Blocked Person", phone: PHONE }),
+				},
 			);
 			expect(r.status).toBe(409);
 		});

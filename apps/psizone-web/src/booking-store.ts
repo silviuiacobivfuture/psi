@@ -1,18 +1,26 @@
-import { schedulingFromEnv } from "@psi/guide";
 import { callbackListUrl, createSmtpMailer, readMailEnv } from "@psi/scheduling";
-import { createBookingDeps } from "@psi/ui";
+import {
+	createBookingDeps,
+	createVisitorScheduling,
+	readSchedulingApiEnv,
+	type VisitorScheduling,
+} from "@psi/ui";
 import { callbackMailCopy, site } from "./booking-site";
 import { ESTATE, SITE } from "./estate";
 
 /**
- * Psizone's evaluation calendar (docs/plans/scheduling.md). Without `CONVEX_URL` it is off and the
- * booking forms are today's callback form, unchanged; so is any lookup that fails or times out.
+ * Psizone's evaluation calendar (docs/plans/scheduling.md), booked through the scheduling service
+ * (`SCHEDULING_API_URL`, this site's `SCHEDULING_SERVICE_KEY`). Without the URL it is off and the
+ * booking forms are the callback form alone; so is any lookup that fails or times out.
  */
-const SCHEDULING = schedulingFromEnv(process.env);
+const SCHEDULING = readSchedulingApiEnv(process.env);
 if (!SCHEDULING.ok && SCHEDULING.problem !== "no_url") {
 	console.error(`scheduling: off (${SCHEDULING.problem})`);
 }
-export const scheduling = SCHEDULING.ok ? SCHEDULING.scheduling.client : undefined;
+/** The one scheduling client of the site: the booking forms, the callback intake and the guide's port share it. */
+export const scheduling: VisitorScheduling | undefined = SCHEDULING.ok
+	? createVisitorScheduling(SCHEDULING.config, site.tenant)
+	: undefined;
 
 /** The team's e-mail (docs/plans/clinic.md slice 0): optional; without it requests are only stored. */
 const MAIL = readMailEnv(process.env);

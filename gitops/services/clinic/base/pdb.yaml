@@ -1,7 +1,8 @@
+# At least one console pod stays up through a node drain (the HPA keeps two or more).
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: clinic
 spec:
-  maxUnavailable: 1
+  minAvailable: 1
   selector: { matchLabels: { app: clinic } }

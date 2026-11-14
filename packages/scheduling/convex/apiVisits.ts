@@ -8,6 +8,7 @@ import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record, stale } from "./apiSupport";
 import { recordOverride, staffGate } from "./blacklistGate";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import {
 	actorValidator,
@@ -402,12 +403,15 @@ export const list = query({
 		requireServer(args.key);
 		if (args.to <= args.from || args.to - args.from > 93 * 86_400_000)
 			return REFUSED("invalid_range");
-		const rows = await ctx.db
-			.query("visits")
-			.withIndex("by_tenant_start", (q) =>
-				q.eq("tenant", args.tenant).gte("start", args.from).lt("start", args.to),
-			)
-			.collect();
+		const rows = await within(
+			ctx.db
+				.query("visits")
+				.withIndex("by_tenant_start", (q) =>
+					q.eq("tenant", args.tenant).gte("start", args.from).lt("start", args.to),
+				),
+			LIST_MAX,
+		);
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		const wantColumn =
 			args.column === undefined ? undefined : `${args.column.kind}:${args.column.id}`;
 		const shown = rows.filter(

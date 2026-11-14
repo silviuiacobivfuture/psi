@@ -6,10 +6,14 @@ import type { StaffAccount, StaffDirectory } from "../ports/staff-directory";
 
 type C = Ctx<RouteSpec>;
 
+/** How long a set-password link works: the estate sign-in's setting (one link per person, the same one while it lasts). */
+export const SIGN_IN_LINK_MS = 30 * 60_000;
+
 /** The most people one search answers: the form shows a short list to pick from, never the directory. */
 const SEARCH_LIMIT = 20;
 
-function need(ctx: C): StaffDirectory {
+/** The staff directory, or 503 `not_configured`: asked before anything else. */
+export function need(ctx: C): StaffDirectory {
 	if (ctx.deps.staff === undefined)
 		throw fail("unavailable", "the team's sign-in group is not configured", {
 			reason: "not_configured",
@@ -70,19 +74,27 @@ export async function inviteStaff(
 	const found = await accountFor(ctx, staff, email);
 	let account: StaffAccount;
 	let made = false;
+	const joined = found !== undefined && !found.staff;
 	if (found === undefined) {
 		account = await staff.create({ email, name: input.displayName });
 		made = true;
 	} else {
 		account = found;
-		if (!found.staff) await staff.join(found.userId);
+		if (joined) await staff.join(found.userId);
 	}
 	let written: Awaited<ReturnType<typeof writeMember>>;
 	try {
 		written = await writeMember(ctx, account.subject, undefined, { ...input, email });
 	} catch (error) {
-		// The account we just made must not outlive a membership nobody can see.
-		if (made) await staff.deactivate(account.userId).catch(() => undefined);
+		// What the sign-in was asked to do is undone: an account we made is switched off, a group we added leaves it.
+		const undo = made
+			? staff.deactivate(account.userId)
+			: joined
+				? staff.leave(account.userId)
+				: undefined;
+		await undo?.catch(() =>
+			ctx.deps.log({ level: "error", event: "staff_rollback_failed", requestId: ctx.requestId }),
+		);
 		throw error;
 	}
 	let signInLink: string | null = null;
@@ -102,10 +114,11 @@ export async function inviteStaff(
 	// The team change itself is journalled as an addition, the same event on every store; this route's own event says how.
 	await ctx.auditNow("member.put", { type: "members", id: account.subject }, written.detail);
 	ctx.auditTarget(account.subject);
-	ctx.note({ account: made ? "created" : "existing", joined: found !== undefined && !found.staff });
+	ctx.note({ account: made ? "created" : "existing", joined });
 	return {
 		member: memberOut(written.next),
 		account: made ? ("created" as const) : ("existing" as const),
 		signInLink,
+		signInLinkExpiresBy: signInLink === null ? null : ctx.now + SIGN_IN_LINK_MS,
 	};
 }

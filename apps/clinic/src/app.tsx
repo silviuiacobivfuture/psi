@@ -50,6 +50,7 @@ import { m } from "./paraglide/messages.js";
 import { PortError, type PortSource } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
 import { registerProfile } from "./profile/routes";
+import { registerRolesMatrix } from "./roles-matrix/page";
 import { registerStats } from "./stats/routes";
 
 export interface AppDeps {
@@ -238,6 +239,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAssistantPlatform(app);
 	registerStats(app);
 	registerProfile(app, deps);
+	registerRolesMatrix(app);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

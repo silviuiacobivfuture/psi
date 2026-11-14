@@ -1,6 +1,6 @@
 import { RECOVERY_DAYS } from "@psi/scheduling/clinic";
 import { z } from "zod";
-import type { ClientRow, Collection, Query } from "../types";
+import type { ClientCollection, ClientRow, Query } from "../types";
 import { StoreRefused } from "../types";
 import { actorArg, type Caller } from "./call";
 import { catalogCollection } from "./catalog-collection";
@@ -33,6 +33,8 @@ import { splitTable } from "./ids";
  */
 const FN = "apiCatalogExtra";
 const PAGE = 500;
+/** The ids one batched read names (`apiClients:getMany`, `treatingForMany`). */
+const MANY = 100;
 
 const Guardian = z.object({
 	name: z.string(),
@@ -174,7 +176,7 @@ function columns(row: ClientRow, kept: ClientDoc | undefined, now: number) {
 	};
 }
 
-export function clientsCollection(call: Caller, clock: () => number): Collection<ClientRow> {
+export function clientsCollection(call: Caller, clock: () => number): ClientCollection {
 	const treatingByClient = async (app: string): Promise<Map<string, string[]>> => {
 		const catalog = await call.query(
 			`${FN}:practitioners`,
@@ -182,20 +184,23 @@ export function clientsCollection(call: Caller, clock: () => number): Collection
 			{ practitioners: z.array(z.object({ id: z.string() })) },
 		);
 		const map = new Map<string, string[]>();
-		const per = await Promise.all(
-			catalog.practitioners.map(async (p) => ({
-				id: p.id,
-				clients: (
-					await call.query(
-						"apiClients:treatingFor",
-						{ tenant: app, practitioner: p.id },
-						{ clients: z.array(z.string()) },
-					)
-				).clients,
-			})),
+		const ids = catalog.practitioners.map((p) => p.id);
+		const chunks: string[][] = [];
+		for (let at = 0; at < ids.length; at += MANY) chunks.push(ids.slice(at, at + MANY));
+		// One read for the whole team (a hundred practitioners at a time), never one per practitioner.
+		const pages = await Promise.all(
+			chunks.map((practitioners) =>
+				call.query(
+					"apiClients:treatingForMany",
+					{ tenant: app, practitioners },
+					{
+						treating: z.array(z.object({ practitioner: z.string(), clients: z.array(z.string()) })),
+					},
+				),
+			),
 		);
-		for (const { id, clients } of per)
-			for (const c of clients) map.set(c, [...(map.get(c) ?? []), `p${id}`]);
+		for (const { practitioner, clients } of pages.flatMap((p) => p.treating))
+			for (const c of clients) map.set(c, [...(map.get(c) ?? []), `p${practitioner}`]);
 		return map;
 	};
 	const read = async (
@@ -379,6 +384,29 @@ export function clientsCollection(call: Caller, clock: () => number): Collection
 
 	return {
 		...base,
+		async getMany(app, ids) {
+			const chunks: string[][] = [];
+			const unique = [...new Set(ids)];
+			for (let at = 0; at < unique.length; at += MANY) chunks.push(unique.slice(at, at + MANY));
+			const pages = await Promise.all(
+				chunks.map((clients) =>
+					call.query(
+						"apiClients:getMany",
+						{ tenant: app, clients },
+						{ clients: z.array(z.object({ client: Doc, treating: z.array(z.string()) })) },
+					),
+				),
+			);
+			return pages.flatMap((page) =>
+				page.clients.map((found) =>
+					toRow(
+						app,
+						found.client,
+						found.treating.map((t) => `p${t}`),
+					),
+				),
+			);
+		},
 		async list(app: string, query?: Query<ClientRow>) {
 			const wanted = query?.eq?.status;
 			const rows = await read(app, wanted ?? "all");

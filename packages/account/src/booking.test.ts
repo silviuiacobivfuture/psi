@@ -101,7 +101,7 @@ describe("the account's store is down", () => {
 });
 
 describe("a site that does not list requests in its account", () => {
-	it("a signed-in person is pre-filled but the request carries no account hash and links no bookings page", async () => {
+	it("a signed-in person is pre-filled but the request carries no account and links no bookings page", async () => {
 		const quiet = createBookingAccounts({
 			account: base,
 			site: "hemisync",
@@ -121,7 +121,7 @@ describe("a site that does not list requests in its account", () => {
 		h.get("/", async (c) => c.json(await quiet.bookingAccount(c, "ro", "/contact", signedIn)));
 		const body = await (await h.request("http://localhost/")).json();
 		expect(body.form).toEqual({ signedIn: true });
-		expect(body).not.toHaveProperty("accountHash");
+		expect(body).not.toHaveProperty("subject");
 		expect(body).not.toHaveProperty("bookingsHref");
 	});
 });

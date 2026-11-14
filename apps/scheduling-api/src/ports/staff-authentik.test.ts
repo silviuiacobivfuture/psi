@@ -123,6 +123,24 @@ describe("the staff group through Authentik", () => {
 		});
 	});
 
+	it("takes an account out of the staff group again", async () => {
+		const { staff, seen } = build([{ body: { results: [STAFF] } }, { status: 204 }]);
+		await staff.leave("12");
+		expect(seen[1]).toMatchObject({
+			method: "POST",
+			url: "https://auth.test/api/v3/core/groups/g-staff/remove_user/",
+			body: { pk: 12 },
+		});
+	});
+
+	it("reads whether the account ever signed in", async () => {
+		const never = build([{ body: { last_login: null } }]);
+		expect(await never.staff.lastLogin("5")).toBeUndefined();
+		expect(never.seen[0]?.url).toBe("https://auth.test/api/v3/core/users/5/");
+		const once = build([{ body: { last_login: "2026-11-14T08:00:00+00:00" } }]);
+		expect(await once.staff.lastLogin("5")).toBe(Date.UTC(2026, 10, 14, 8));
+	});
+
 	it("a staff group that does not exist, a refusal or no answer is SsoUnavailable", async () => {
 		await expect(
 			build([{ body: { results: [] } }]).staff.create({ email: "a@b.c", name: "A" }),

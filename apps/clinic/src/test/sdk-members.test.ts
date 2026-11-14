@@ -96,6 +96,7 @@ describe("presence: Setări → Membri", () => {
 		expect(needs).toEqual({
 			"member.new": ["members_create"],
 			"member.invite": ["members_create"],
+			"member.link": ["members_create"],
 			"member.edit": ["members_edit"],
 			"member.overrides": ["members_edit"],
 			"member.calendar": ["people_edit"],

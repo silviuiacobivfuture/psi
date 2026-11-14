@@ -1,6 +1,14 @@
 import { route } from "../define";
-import { StaffInviteBody, StaffInviteResult, StaffQuery, StaffSearch } from "../entities-staff";
-import { AppParam } from "../primitives";
+import {
+	StaffInviteBody,
+	StaffInviteResult,
+	StaffLinkResult,
+	StaffQuery,
+	StaffSearch,
+} from "../entities-staff";
+import { AppParam, Subject } from "../primitives";
+
+const SubjectParam = AppParam.extend({ subject: Subject });
 
 const AddMember = { key: "members_create", target: { kind: "app" } } as const;
 
@@ -30,5 +38,17 @@ export const STAFF_ROUTES = [
 		response: StaffInviteResult,
 		permission: AddMember,
 		audit: "member.invite",
+	}),
+	route({
+		id: "staff.link",
+		method: "POST",
+		path: "/v1/apps/:app/members/:subject/sign-in-link",
+		side: "team",
+		summary:
+			"The set-password link of a member who has never signed in, with the latest instant it works (the sign-in keeps one per person for 30 minutes and answers the same one meanwhile); the journal records that it was shown, never the link",
+		params: SubjectParam,
+		response: StaffLinkResult,
+		permission: AddMember,
+		audit: "member.link",
 	}),
 ] as const;

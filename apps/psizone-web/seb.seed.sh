@@ -19,7 +19,7 @@ else
   put_kv "$_psizone_web_mail" SMTP_HOST= SMTP_USER= SMTP_PASSWORD= MAIL_FROM= BOOKING_NOTIFY_TO=
   ok "$_psizone_web_mail (empty slot: the site's mail is off until the owner fills it — estate/APP-SECRETS.md)"
 fi
-for _f in OPENROUTER_API_KEY CMS_API_KEY; do
+for _f in OPENROUTER_API_KEY CMS_API_KEY SCHEDULING_SERVICE_KEY; do
   has_field "secret/apps/psizone-web/env" "$_f" \
     || warn "secret/apps/psizone-web/env $_f is absent or empty — the owner supplies it (estate/APP-SECRETS.md); never written here"
 done

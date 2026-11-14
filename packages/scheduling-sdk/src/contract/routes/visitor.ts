@@ -9,6 +9,10 @@ const Contact = z.object({
 	name: z.string().trim().min(1).max(200),
 	email: z.string().max(200).optional(),
 	phone: z.string().max(40).optional(),
+	/** Whole years. */
+	age: z.number().optional(),
+	/** What is going on, in the person's words: personal data, erased with the contact. */
+	details: z.string().max(4000).optional(),
 });
 const Audience = z.enum(["child", "teen", "adult"]);
 const Reference = z.string().min(8).max(12);
@@ -128,10 +132,15 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ reference: Reference }),
 		body: z.object({
 			holdToken: z.string().min(16).max(64),
-			contact: Contact,
+			/**
+			 * The five booking fields (booking-fields.ts) are all required, whether the site's form or its assistant took
+			 * them; the service refuses each missing or invalid one with its own reason. Loose here on purpose.
+			 */
+			contact: Contact.extend({ name: z.string().trim().max(200) }),
 			audience: Audience.optional(),
 		}),
 		response: Submitted,
+		audit: "request.create",
 	}),
 	route({
 		id: "visitor.cancel",
@@ -142,6 +151,7 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ reference: Reference }),
 		body: z.object({ cancelCode: z.string().min(6).max(32) }),
 		response: z.object({ start: Ms }),
+		audit: "visitor.cancel",
 	}),
 	route({
 		id: "visitor.callback",
@@ -159,6 +169,10 @@ export const VISITOR_ROUTES = [
 			/** The page the form was on. */
 			page: z.string().max(120).default("/"),
 			channel: z.enum(["form", "guide"]).default("form"),
+			/** A time the visitor chose that could not be held: the team calls about it. */
+			preferredStart: Ms.optional(),
+			/** The service the visitor was looking at. */
+			service: Slug.optional(),
 		}),
 		response: CallbackRequest,
 		audit: "callback.create",

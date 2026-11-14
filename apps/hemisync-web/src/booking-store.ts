@@ -1,19 +1,28 @@
-import { schedulingFromEnv } from "@psi/guide";
 import { callbackListUrl, createSmtpMailer, readMailEnv } from "@psi/scheduling";
-import { createBookingDeps } from "@psi/ui";
+import {
+	createBookingDeps,
+	createVisitorScheduling,
+	readSchedulingApiEnv,
+	type VisitorScheduling,
+} from "@psi/ui";
 import { callbackMailCopy, site } from "./booking-site";
 import { ESTATE, SITE } from "./estate";
 
 /**
- * Hemi-Sync's calendar (docs/plans/scheduling.md). Without `CONVEX_URL` it is off and the booking
- * forms are the callback form alone; so is any lookup that fails or times out, and a store with
- * no `hemisync` services yet: the page never shows another site's times.
+ * Hemi-Sync's calendar (docs/plans/scheduling.md), booked through the scheduling service
+ * (`SCHEDULING_API_URL`, this site's `SCHEDULING_SERVICE_KEY`, which reaches only the `hemisync`
+ * app). Without the URL it is off and the booking forms are the callback form alone; so is any
+ * lookup that fails or times out, and an app with no services yet: the page never shows another
+ * site's times.
  */
-const SCHEDULING = schedulingFromEnv(process.env);
+const SCHEDULING = readSchedulingApiEnv(process.env);
 if (!SCHEDULING.ok && SCHEDULING.problem !== "no_url") {
 	console.error(`scheduling: off (${SCHEDULING.problem})`);
 }
-export const scheduling = SCHEDULING.ok ? SCHEDULING.scheduling.client : undefined;
+/** The one scheduling client of the site: the booking forms, the callback intake and the guide's port share it. */
+export const scheduling: VisitorScheduling | undefined = SCHEDULING.ok
+	? createVisitorScheduling(SCHEDULING.config, site.tenant)
+	: undefined;
 
 /** The team's e-mail: optional; without it requests are only stored (and listed in the CMS). */
 const MAIL = readMailEnv(process.env);

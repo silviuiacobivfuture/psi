@@ -9,8 +9,8 @@ export interface NavItem {
 	label: string;
 	href: string;
 	icon: AdminIcon;
-	/** A count shown on the tab (open requests). */
-	badge?: number;
+	/** A count shown on the tab (open requests): a number, or "50+" when only a first page was counted. */
+	badge?: number | string;
 	/** `admin`: the administration zone, set apart at the foot of the navigation. */
 	zone?: "admin";
 }

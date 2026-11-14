@@ -3,10 +3,10 @@ import {
 	createIntake,
 	type Intake,
 	type Mailer,
-	type SchedulingClient,
 	SchedulingUnavailable,
 } from "@psi/scheduling";
 import { createPicker, type Picker } from "./picker";
+import type { VisitorScheduling } from "./service";
 import type { BookingSite } from "./types";
 
 /**
@@ -17,7 +17,7 @@ import type { BookingSite } from "./types";
  */
 export interface BookingDeps {
 	site: BookingSite;
-	scheduling: SchedulingClient | undefined;
+	scheduling: VisitorScheduling | undefined;
 	picker: Picker;
 	intake: Intake;
 	/** Says a scheduling failure (never any visitor data). */
@@ -27,7 +27,7 @@ export interface BookingDeps {
 export interface BookingDepsOptions {
 	site: BookingSite;
 	/** Absent: scheduling is off, the forms are the callback form and nothing is stored. */
-	scheduling: SchedulingClient | undefined;
+	scheduling: VisitorScheduling | undefined;
 	/** Absent: mail is not configured, requests are only stored. */
 	mailer: Mailer | undefined;
 	notifyTo: ReadonlyArray<string>;

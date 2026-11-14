@@ -3,6 +3,7 @@ import type { Socket } from "node:net";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { createWorld, type Populated } from "./populate";
+import { SECRETS } from "./world";
 
 export interface RunningApi {
 	/** `http://127.0.0.1:<port>`: a real listening socket, so a client under test makes real HTTP calls. */
@@ -10,6 +11,8 @@ export interface RunningApi {
 	world: Populated;
 	/** A bearer token for a person of the populated world (what the local run's `/dev/token` hands out). */
 	tokenFor(subject: string): Promise<string>;
+	/** The full service key (`<caller>.<secret>`) a caller of the world presents: what a site has in its environment. */
+	serviceKey(caller: keyof typeof SECRETS): string;
 	close(): Promise<void>;
 }
 
@@ -58,6 +61,7 @@ export async function startApi(
 		url: `http://127.0.0.1:${address.port}`,
 		world,
 		tokenFor: (subject) => world.issuer.mint(subject, { expiresIn: 3600 }),
+		serviceKey: (caller) => `${caller}.${SECRETS[caller]}`,
 		close: () =>
 			new Promise((resolve) => {
 				for (const socket of sockets) socket.destroy();
