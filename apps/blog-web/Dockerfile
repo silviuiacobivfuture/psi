@@ -8,8 +8,10 @@
 # `pnpm deploy` output now leaves in three layers, on the estate's mirror of the base image:
 #   1. third-party node_modules;   2. psi's packages (node_modules/@psi);   3. the app (dist/, public/, …).
 # Layers 1 and 2 are REPRODUCIBLE: every mtime pinned to 0 and pnpm's timestamped .modules.yaml left out,
-# laid out from / so no directory this build creates is in them. Unchanged inputs give the same bytes, the
-# same digest, and the registry already has the blob: nothing is uploaded. Layer 3 keeps real mtimes
+# hard links made plain files (CI's builder keeps pnpm's links, Docker Desktop's writes copies: the same
+# files, another tar), laid out from / so no directory this build creates is in them.
+# Unchanged inputs give the same bytes, the same digest, and the registry already has the blob: nothing is
+# uploaded. Layer 3 keeps real mtimes
 # (packages/delivery/src/site-assets.tsx makes ETags from them).
 ARG REGISTRY_HOST
 ARG REGISTRY_PROJECT_MIRROR
@@ -25,6 +27,7 @@ RUN cp -r "apps/${APP}/dist" /out/ && if [ -d "apps/${APP}/public" ]; then cp -r
  && mkdir -p /layers/deps/app /layers/psi/app/node_modules \
  && mv /out/node_modules/@psi /layers/psi/app/node_modules/@psi \
  && rm -f /out/node_modules/.modules.yaml && mv /out/node_modules /layers/deps/app/node_modules \
+ && find /layers -type f -links +1 -exec sh -c 'for f; do cp -p "$f" "$f.1" && mv "$f.1" "$f"; done' _ {} + \
  && find /layers -exec touch -h -d @0 {} +
 
 FROM ${REGISTRY_HOST}/${REGISTRY_PROJECT_MIRROR}/docker.io/library/node:24-alpine
