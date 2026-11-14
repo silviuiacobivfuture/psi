@@ -180,6 +180,8 @@ export {
 	schedulingRules,
 } from "./scheduling/agent";
 export {
+	type PauseNotice,
+	PauseNoticeSchema,
 	type ProfileScheduling,
 	ProfileSchedulingSchema,
 	type SchedulingCancel,

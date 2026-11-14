@@ -1,4 +1,9 @@
-import { decodeSlot, type SchedulingClient, type ServiceInfo } from "@psi/scheduling";
+import {
+	decodeSlot,
+	type PauseNotice,
+	type ServiceInfo,
+	type VisitorSchedulingClient,
+} from "@psi/scheduling";
 import { z } from "zod";
 import {
 	addDays,
@@ -61,8 +66,24 @@ export interface PickerData {
 	nextWithTimes: string | undefined;
 }
 
-/** `unavailable`: the store could not be read or offers nothing: the callback form stands in. */
-export type PickerView = { kind: "ready"; data: PickerData } | { kind: "unavailable" };
+/**
+ * `unavailable`: the store could not be read or offers nothing: the callback form stands in. `paused`: the clinic stopped
+ * online booking (everything, or the service shown): its message stands instead of the times, the service cards stay so
+ * another service can be chosen, and the callback form stands only while the pause keeps callbacks open.
+ */
+export type PickerView =
+	| { kind: "ready"; data: PickerData }
+	| { kind: "unavailable" }
+	| {
+			kind: "paused";
+			pause: PauseNotice;
+			timeZone: string;
+			services: ReadonlyArray<ServiceInfo>;
+			service: ServiceInfo | undefined;
+	  };
+
+/** What the picker reads: the services and their free times (the site's client over the scheduling service). */
+export type PickerClient = Pick<VisitorSchedulingClient, "services" | "findSlots">;
 
 export interface Picker {
 	/** False when scheduling is not configured: the forms are the callback form alone. */
@@ -96,7 +117,7 @@ function pickMode(service: ServiceInfo, wanted: string): SlotMode {
 
 /** The picker for one tenant, over one scheduling client. Without a client, every view is unavailable. */
 export function createPicker(
-	client: SchedulingClient | undefined,
+	client: PickerClient | undefined,
 	tenant: string,
 	now: () => number = Date.now,
 	log: (error: unknown) => void = () => {},
@@ -121,7 +142,16 @@ export function createPicker(
 			const found = await catalogue();
 			if (found === undefined) return { kind: "unavailable" };
 			const service = pickService(found.services, choices.service, preferred);
+			const paused = (pause: PauseNotice): PickerView => ({
+				kind: "paused",
+				pause,
+				timeZone: found.timeZone,
+				services: found.services,
+				service,
+			});
+			if (found.pause !== undefined) return paused(found.pause);
 			if (service === undefined) return { kind: "unavailable" };
+			if (service.pause !== undefined) return paused(service.pause);
 			// Another service than the one on screen: nothing carries over.
 			const same = choices.shown === "" || choices.shown === service.slug;
 			const kept = same ? choices : { ...choices, week: "", day: "", slot: "", who: "", mode: "" };
@@ -145,7 +175,8 @@ export function createPicker(
 					limit: SLOT_LIMIT,
 					now: instant,
 				});
-				if (!offered.ok) return { kind: "unavailable" };
+				if (!offered.ok)
+					return offered.reason === "paused" ? paused(offered.pause) : { kind: "unavailable" };
 				const slots: PickerSlot[] = [];
 				for (const slot of offered.slots) {
 					const ref = decodeSlot(slot.id);

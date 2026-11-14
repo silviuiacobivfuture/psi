@@ -119,6 +119,12 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			},
 			service: m.pick_service({}, o),
 			unavailable: m.pick_unavailable({}, o),
+			paused: {
+				title: m.pick_paused_title({}, o),
+				until: (when) => m.pick_paused_until({ when }, o),
+				callback: m.pick_paused_callback({}, o),
+				call: m.pick_paused_call({}, o),
+			},
 			callback: m.pick_callback({}, o),
 			back: m.pick_back({}, o),
 			modeOnsite: m.pick_mode_onsite({}, o),
@@ -131,6 +137,7 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			intro: m.guide_booking_intro({}, o),
 			confirmPicker: m.guide_booking_confirm_picker({}, o),
 			none: m.guide_booking_none({}, o),
+			paused: m.guide_booking_paused({}, o),
 			elsewhere: m.guide_booking_elsewhere({}, o),
 			elsewhereCta: m.cta_book({}, o),
 			notices: {
@@ -192,6 +199,7 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			slotGone: m.guide_details_slot_gone({}, o),
 			submitRetry: m.guide_details_submit_retry({}, o),
 			summary: {
+				paused: (message) => m.guide_booking_summary_paused({ message }, o),
 				times: m.guide_booking_summary({}, o),
 				confirm: m.guide_booking_summary_confirm({}, o),
 				cancel: m.guide_booking_summary_cancel({}, o),

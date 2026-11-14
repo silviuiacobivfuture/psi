@@ -95,8 +95,13 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 			...(v.service === "" ? {} : { service: v.service }),
 		};
 		const slot = decodeSlot(v.slot);
-		// No slot chosen, or scheduling off: the callback request, stored and e-mailed.
-		if (scheduling === undefined || v.slot === "") return callback(c, id, request, v.name);
+		// No slot chosen, or scheduling off: the callback request, stored and e-mailed. A pause that closes callbacks too
+		// takes none (the page shows the phones alone): the form comes back with the clinic's message, nothing sent.
+		if (scheduling === undefined || v.slot === "") {
+			const shown = scheduling === undefined ? undefined : await scheduleOf(picker, raw);
+			if (shown?.view.kind === "paused" && !shown.view.pause.callbacksOpen) return form({}, raw);
+			return callback(c, id, request, v.name);
+		}
 		// A time the page did not offer for this service is never held: the form is shown again.
 		if (slot === undefined) return form({ slot: copy.errors.slot }, raw);
 		try {
@@ -163,6 +168,8 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 					: { verifiedEmail: who.verifiedEmail }),
 			});
 			if (!sent.ok) {
+				// Paused since the time was held: the form comes back with the clinic's message.
+				if (sent.reason === "paused") return again({});
 				return again(
 					sent.reason === "invalid" ? { email: copy.errors.email } : { slot: copy.errors.hold },
 				);

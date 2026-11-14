@@ -154,5 +154,11 @@
 	"bk_mail_details": "Detalii",
 	"bk_problem": "Ce cauți?",
 	"bk_problem_hint": "Câteva rânduri, cu cuvintele tale: ce te interesează sau ce te aduce la noi. Rămân la echipă și se șterg odată cu datele de contact.",
-	"bk_err_problem": "Eroare: spune-ne pe scurt ce cauți sau ce te aduce la noi (între 10 și 2000 de caractere)."
+	"bk_err_problem": "Eroare: spune-ne pe scurt ce cauți sau ce te aduce la noi (între 10 și 2000 de caractere).",
+	"bk_pick_paused_title": "Înscrierile online sunt oprite acum",
+	"bk_pick_paused_until": "Le redeschidem {when}.",
+	"bk_pick_paused_callback": "Lasă-ne datele tale mai jos și te contactăm noi, sau sună-ne direct.",
+	"bk_pick_paused_call": "Pentru o înscriere, sună-ne direct.",
+	"bk_chat_paused": "Înscrierile online sunt oprite acum. Iată ce ne-a rugat echipa să-ți spun:",
+	"bk_chat_summary_paused": "I-am spus vizitatorului că înscrierile online sunt oprite, cu mesajul echipei: „{message}”. Nu am propus ore."
 }

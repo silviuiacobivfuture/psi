@@ -1,7 +1,7 @@
 import { type AskContext, type AskControl, ConfigurationError, report } from "./ask-context";
 import { exchangeLimit, screen } from "./ask-screen";
 import { CREATIVITY_TEMPERATURE, DEFAULT_BEHAVIOUR, type TurnBehaviour } from "./behaviour";
-import { bookingTurn, reshow } from "./booking";
+import { bookingPauseOf, bookingTurn, reshow } from "./booking";
 import { converse, type Display, type TurnClock } from "./converse";
 import type { AskInput, EngineEvent, RefusalReason } from "./events";
 import { scopeSearch } from "./grounding/knowledge-tool";
@@ -9,6 +9,7 @@ import { handoffEvents } from "./handoff";
 import type { LanguagePack } from "./language/pack";
 import type { ProfileLocale } from "./profile";
 import { instructionsFor, languageNote, styledLocale } from "./prompt";
+import type { PauseNotice } from "./scheduling/port";
 import { screenWithModel } from "./screening/model";
 import { createSmallTalk } from "./small-talk";
 
@@ -48,6 +49,7 @@ function localeOf(
 	ctx: AskContext,
 	locale: string,
 	behaviour: TurnBehaviour,
+	pause?: PauseNotice,
 ): { pack: LanguagePack; own: ProfileLocale; instructions: string } {
 	const pack = ctx.packs.get(locale);
 	const own = ctx.profile.locales[locale];
@@ -57,7 +59,17 @@ function localeOf(
 	return {
 		pack,
 		own: styledLocale(own, behaviour),
-		instructions: instructionsFor(pack, own, behaviour),
+		instructions: instructionsFor(
+			pack,
+			own,
+			behaviour,
+			pause === undefined
+				? undefined
+				: {
+						message: locale === "en" ? pause.message.en : pause.message.ro,
+						callbacksOpen: pause.callbacksOpen,
+					},
+		),
 	};
 }
 
@@ -190,7 +202,9 @@ async function* turn(
 	if (aborted()) controller.abort();
 	const deadline = setTimeout(abort, ctx.timeouts.totalMs);
 	try {
-		const { pack, own, instructions } = localeOf(ctx, input.locale, behaviour);
+		// While booking is paused the model is told so, whatever the question (a reply that offers times would mislead).
+		const pause = ctx.booking === undefined ? undefined : await bookingPauseOf(ctx.booking);
+		const { pack, own, instructions } = localeOf(ctx, input.locale, behaviour, pause);
 		const search = scopeSearch({
 			knowledge: ctx.knowledge,
 			scope: ctx.profile.knowledgeScope,

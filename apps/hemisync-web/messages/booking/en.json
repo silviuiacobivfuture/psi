@@ -154,5 +154,11 @@
 	"bk_mail_details": "Details",
 	"bk_problem": "What are you looking for?",
 	"bk_problem_hint": "A few lines, in your own words: what interests you or what brings you to us. They stay with the team and are erased together with your contact details.",
-	"bk_err_problem": "Error: tell us briefly what you are looking for (10 to 2000 characters)."
+	"bk_err_problem": "Error: tell us briefly what you are looking for (10 to 2000 characters).",
+	"bk_pick_paused_title": "Online sign-up is paused for now",
+	"bk_pick_paused_until": "We open it again {when}.",
+	"bk_pick_paused_callback": "Leave your details below and we will get back to you, or call us directly.",
+	"bk_pick_paused_call": "To sign up, please call us directly.",
+	"bk_chat_paused": "Online sign-up is paused right now. Here is what the team asked me to tell you:",
+	"bk_chat_summary_paused": "I told the visitor online sign-up is paused, with the team's message: \"{message}\". I proposed no times."
 }
