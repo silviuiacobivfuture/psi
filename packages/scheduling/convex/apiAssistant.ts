@@ -140,6 +140,129 @@ export const addUsage = mutation({
 	},
 });
 
+/** The month and the day of `now` in `timeZone` (the meters' periods), as the scheduling service computes them. */
+function periodsOf(now: number, timeZone: string): { month: string; day: string } {
+	const day = new Intl.DateTimeFormat("en-CA", {
+		timeZone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(now);
+	return { month: day.slice(0, 7), day };
+}
+
+const ZERO = {
+	messages: 0,
+	inputTokens: 0,
+	outputTokens: 0,
+	cachedTokens: 0,
+	costMicroUsd: 0,
+	limitHits: 0,
+};
+
+/**
+ * What a public site's assistant needs before a visitor's turn, in one read: the estate's document and the app's
+ * (their bodies as stored; the site merges them), and the app's visitor meters for this month and today in its zone.
+ * An app that is not there, or is switched off, is `not_found`.
+ */
+export const visitorConfig = query({
+	args: { key: serverKeyValidator, tenant: v.string(), now: v.number() },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const tenant = await ctx.db
+			.query("tenants")
+			.withIndex("by_slug", (q) => q.eq("slug", args.tenant))
+			.unique();
+		if (tenant === null || !tenant.active) return REFUSED("not_found");
+		const doc = async (owner: string, kind: "assistant_platform" | "assistant_config") => {
+			const row = await ctx.db
+				.query("appDocuments")
+				.withIndex("by_tenant_kind", (q) => q.eq("tenant", owner).eq("kind", kind))
+				.unique();
+			return row === null ? null : { revision: row.revision, body: row.body };
+		};
+		const { month, day } = periodsOf(args.now, tenant.timeZone);
+		const meter = async (period: string) => {
+			const row = await ctx.db
+				.query("assistantUsage")
+				.withIndex("by_key", (q) =>
+					q
+						.eq("tenant", args.tenant)
+						.eq("surface", "visitor")
+						.eq("period", period)
+						.eq("scope", "org"),
+				)
+				.unique();
+			return row === null
+				? ZERO
+				: {
+						messages: row.messages,
+						inputTokens: row.inputTokens,
+						outputTokens: row.outputTokens,
+						cachedTokens: row.cachedTokens,
+						costMicroUsd: row.costMicroUsd,
+						limitHits: row.limitHits,
+					};
+		};
+		return {
+			ok: true as const,
+			timeZone: tenant.timeZone,
+			period: { month, day },
+			platform: await doc(ESTATE, "assistant_platform"),
+			org: await doc(args.tenant, "assistant_config"),
+			usage: { month: await meter(month), day: await meter(day) },
+		};
+	},
+});
+
+/** Adds one visitor turn's use to the app's visitor meters for the month and the day of `now`, in its zone. */
+export const addVisitorUsage = mutation({
+	args: { key: serverKeyValidator, tenant: v.string(), now: v.number(), delta: counts },
+	handler: async (ctx, args) => {
+		requireServer(args.key);
+		const values = Object.values(args.delta);
+		if (values.some((n) => !Number.isInteger(n) || n < 0 || n > MAX_DELTA))
+			return REFUSED("invalid");
+		const tenant = await ctx.db
+			.query("tenants")
+			.withIndex("by_slug", (q) => q.eq("slug", args.tenant))
+			.unique();
+		if (tenant === null) return REFUSED("not_found");
+		const { month, day } = periodsOf(args.now, tenant.timeZone);
+		const d = args.delta;
+		for (const period of [month, day]) {
+			const row = await ctx.db
+				.query("assistantUsage")
+				.withIndex("by_key", (q) =>
+					q
+						.eq("tenant", args.tenant)
+						.eq("surface", "visitor")
+						.eq("period", period)
+						.eq("scope", "org"),
+				)
+				.unique();
+			if (row === null)
+				await ctx.db.insert("assistantUsage", {
+					tenant: args.tenant,
+					surface: "visitor",
+					period,
+					scope: "org",
+					...d,
+				});
+			else
+				await ctx.db.patch(row._id, {
+					messages: row.messages + d.messages,
+					inputTokens: row.inputTokens + d.inputTokens,
+					outputTokens: row.outputTokens + d.outputTokens,
+					cachedTokens: row.cachedTokens + d.cachedTokens,
+					costMicroUsd: row.costMicroUsd + d.costMicroUsd,
+					limitHits: row.limitHits + d.limitHits,
+				});
+		}
+		return { ok: true as const, period: { month, day } };
+	},
+});
+
 export const readUsage = query({
 	args: { key: serverKeyValidator, tenant: v.string(), keys: v.array(key) },
 	handler: async (ctx, args) => {

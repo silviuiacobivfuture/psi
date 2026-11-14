@@ -6,6 +6,14 @@ export {
 	OwnRequestSchema,
 } from "./account-client";
 export {
+	createVisitorAssistantStore,
+	type VisitorAssistantRead,
+	type VisitorAssistantStore,
+	type VisitorMeter,
+	VisitorMeterSchema,
+	visitorAssistantOn,
+} from "./assistant-client";
+export {
 	type CallbackHandledResult,
 	type CallbackInput,
 	CallbackInputSchema,
