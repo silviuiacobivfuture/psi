@@ -2,40 +2,32 @@ import { Banner, EmptyState, Icon, Sheet, Toolbar } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { moreHref, ShowMore } from "../lib/show-more";
 import { short } from "../lib/when";
 import { OrgFrame } from "../pages/org-settings";
 import { m } from "../paraglide/messages.js";
-import type { AuditEvent } from "../port/schema";
 import { DrawerShell } from "./drawer";
+import type { JournalPage, JournalRow } from "./journal";
 import { actionChoices, OBJECT_TYPES, typeLabel } from "./labels";
-import { type AuditLookup, loadLookup } from "./lookup";
-import { type AuditQuery, byFilters, bySearch, type Paged, paged, searchOf } from "./query";
-import { describe, type Row } from "./rows";
+import { type AuditQuery, paramsOf, searchOf } from "./query";
 
 export const DRAWER_SIGNAL = "auditOpen";
 
-/** The events this query shows, said in words: the filters first, then the search (which needs the words). */
-export async function select(
-	ctx: Ctx,
-	events: ReadonlyArray<AuditEvent>,
-	q: AuditQuery,
-): Promise<{ rows: Paged<Row>; all: ReadonlyArray<Row>; lookup: AuditLookup }> {
-	const structured = byFilters(events, q);
-	const searching = q.q !== undefined && q.q !== "";
-	// Without a search only the page's own events are named (each appointment is a call); with one, every candidate is.
-	const firstPage = structured.slice(0, 1000);
-	const lookup = await loadLookup(
-		ctx,
-		searching ? firstPage : firstPage.slice(0, (q.page ?? 1) * 50),
+/** The drawer's address: the event, the log's page it was read from and the days of that read (any row opens). */
+function drawerPath(r: JournalRow): string {
+	const q = new URLSearchParams({
+		...(r.cursor === null ? {} : { c: r.cursor }),
+		...(r.window.from === undefined ? {} : { from: r.window.from }),
+		...(r.window.to === undefined ? {} : { to: r.window.to }),
+	}).toString();
+	return `/settings/audit/${encodeURIComponent(r.row.event.id)}${q === "" ? "" : `?${q}`}`.replaceAll(
+		"'",
+		"%27",
 	);
-	const words = (list: ReadonlyArray<AuditEvent>): Row[] =>
-		list.map((e) => describe(e, lookup, ctx.locale, ctx.can));
-	const all = bySearch(words(structured), q);
-	return { rows: paged(all, q.page ?? 1), all, lookup };
 }
 
-const rowHandler = (id: string): string =>
-	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('/settings/audit/${encodeURIComponent(id).replaceAll("'", "%27")}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
+const rowHandler = (r: JournalRow): string =>
+	`if (!evt.target.closest('a')) { $${DRAWER_SIGNAL} = true; @get('${drawerPath(r)}'); setTimeout(() => document.querySelector('#adm-sheet-auditOpen-title + .adm-iconbtn')?.focus(), 60) }`;
 
 function Filters({
 	ctx,
@@ -118,29 +110,82 @@ function Filters({
 	);
 }
 
-function Pager({ ctx, q, p }: { ctx: Ctx; q: AuditQuery; p: Paged<Row> }): JSX.Element | null {
-	if (p.pages <= 1) return null;
+/** One event as a table row; a click (outside its link) opens the drawer. */
+export function AuditRow({ ctx, r }: { ctx: Ctx; r: JournalRow }): JSX.Element {
 	const o = at(ctx.locale);
+	const { row } = r;
+	const when = short(row.event.at, ctx.locale, ctx.caps.timeZone);
 	return (
-		<nav class="audit-pager" aria-label={m.jr_page({ p: p.page, t: p.pages }, o)}>
-			{p.page > 1 ? (
-				<a class="adm-btn" href={`/settings/audit${searchOf(q, { page: p.page - 1 })}`} rel="prev">
-					{m.jr_prev({}, o)}
-				</a>
-			) : null}
-			<span class="adm-muted">{m.jr_page({ p: p.page, t: p.pages }, o)}</span>
-			{p.page < p.pages ? (
-				<a class="adm-btn" href={`/settings/audit${searchOf(q, { page: p.page + 1 })}`} rel="next">
-					{m.jr_next({}, o)}
-				</a>
-			) : null}
-		</nav>
+		<tr data-audit-row={row.event.id} data-on:click={rowHandler(r)}>
+			<td data-c="when">
+				<button
+					type="button"
+					class="audit-open"
+					aria-label={m.jr_open_row({ when }, o)}
+					aria-haspopup="dialog"
+				>
+					{when}
+				</button>
+			</td>
+			<td data-c="who">{row.who}</td>
+			<td data-c="what">
+				<span class="audit-what">{row.sentence}</span>
+			</td>
+			<td data-c="object">
+				{row.href === null ? (
+					`${row.typeText} · ${row.objectText}`
+				) : (
+					<a class="audit-link" href={row.href}>
+						{`${row.typeText} · ${row.objectText}`}
+					</a>
+				)}
+			</td>
+			<td data-c="source">{row.source}</td>
+		</tr>
 	);
 }
 
-function Table({ ctx, rows }: { ctx: Ctx; rows: ReadonlyArray<Row> }): JSX.Element {
+/** How many events are shown, and whether older ones follow. */
+export function AuditCount({
+	ctx,
+	shown,
+	more,
+}: {
+	ctx: Ctx;
+	shown: number;
+	more: boolean;
+}): JSX.Element {
 	const o = at(ctx.locale);
-	const tz = ctx.caps.timeZone;
+	return (
+		<p class="adm-muted" role="status" id="audit-count">
+			{more ? m.ls_shown({ n: String(shown) }, o) : m.jr_count({ n: shown }, o)}
+		</p>
+	);
+}
+
+/** The next page of the journal, with the same filters, appended to the table; nothing once the log is all shown. */
+export function AuditMore({
+	ctx,
+	q,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	q: AuditQuery;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	return (
+		<ShowMore
+			id="audit-more"
+			href={moreHref("/settings/audit/more", cursor, shown, paramsOf(q))}
+			label={m.ls_more({}, at(ctx.locale))}
+		/>
+	);
+}
+
+function Table({ ctx, rows }: { ctx: Ctx; rows: ReadonlyArray<JournalRow> }): JSX.Element {
+	const o = at(ctx.locale);
 	return (
 		<section class="adm-scroll" aria-label={m.audit_title({}, o)}>
 			<table class="adm-table audit-table">
@@ -153,42 +198,10 @@ function Table({ ctx, rows }: { ctx: Ctx; rows: ReadonlyArray<Row> }): JSX.Eleme
 						<th scope="col">{m.jr_col_source({}, o)}</th>
 					</tr>
 				</thead>
-				<tbody>
-					{rows.map((r) => {
-						const when = short(r.event.at, ctx.locale, tz);
-						return (
-							<tr
-								key={r.event.id}
-								data-audit-row={r.event.id}
-								data-on:click={rowHandler(r.event.id)}
-							>
-								<td data-c="when">
-									<button
-										type="button"
-										class="audit-open"
-										aria-label={m.jr_open_row({ when }, o)}
-										aria-haspopup="dialog"
-									>
-										{when}
-									</button>
-								</td>
-								<td data-c="who">{r.who}</td>
-								<td data-c="what">
-									<span class="audit-what">{r.sentence}</span>
-								</td>
-								<td data-c="object">
-									{r.href === null ? (
-										`${r.typeText} · ${r.objectText}`
-									) : (
-										<a class="audit-link" href={r.href}>
-											{`${r.typeText} · ${r.objectText}`}
-										</a>
-									)}
-								</td>
-								<td data-c="source">{r.source}</td>
-							</tr>
-						);
-					})}
+				<tbody id="audit-rows">
+					{rows.map((r) => (
+						<AuditRow key={r.row.event.id} ctx={ctx} r={r} />
+					))}
 				</tbody>
 			</table>
 		</section>
@@ -196,16 +209,53 @@ function Table({ ctx, rows }: { ctx: Ctx; rows: ReadonlyArray<Row> }): JSX.Eleme
 }
 
 export interface AuditView {
-	events: ReadonlyArray<AuditEvent> | null;
 	query: AuditQuery;
-	shown: Paged<Row> | null;
+	/** The first page; null when the journal could not be read. */
+	page: JournalPage | null;
 	people: ReadonlyArray<{ value: string; label: string }>;
 }
 
-/** The journal: filters, the table of events said in words, a pager, and the drawer a row opens. */
+const filtered = (q: AuditQuery): boolean => Object.keys(paramsOf(q)).length > 0;
+
+function Body({ ctx, view }: { ctx: Ctx; view: AuditView }): JSX.Element {
+	const o = at(ctx.locale);
+	const { page, query: q } = view;
+	if (page === null)
+		return (
+			<Banner tone="error" icon="alert">
+				<strong>{m.error_title({}, o)}</strong>
+				<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
+				<a class="adm-btn" href={`/settings/audit${searchOf(q)}`}>
+					{m.retry({}, o)}
+				</a>
+			</Banner>
+		);
+	if (page.rows.length === 0 && page.nextCursor === null)
+		return filtered(q) ? (
+			<EmptyState icon="search" title={m.jr_none({}, o)} />
+		) : (
+			<EmptyState icon="list" title={m.audit_empty_title({}, o)} text={m.audit_empty_text({}, o)} />
+		);
+	return (
+		<>
+			{page.rows.length === 0 ? (
+				// Nothing among the newest matches, but older events remain: the search goes on with "show more".
+				<p class="adm-muted" role="status" id="audit-count">
+					{m.jr_none_yet({}, o)}
+				</p>
+			) : (
+				<AuditCount ctx={ctx} shown={page.rows.length} more={page.nextCursor !== null} />
+			)}
+			<Table ctx={ctx} rows={page.rows} />
+			<AuditMore ctx={ctx} q={q} cursor={page.nextCursor} shown={page.rows.length} />
+		</>
+	);
+}
+
+/** The journal: filters, the table of events said in words a page at a time, and the drawer a row opens. */
 export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const { shown, query: q } = view;
+	const { page, query: q } = view;
 	return OrgFrame({
 		ctx,
 		area: "audit",
@@ -222,13 +272,9 @@ export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.El
 				data-signals={`{${DRAWER_SIGNAL}:false}`}
 				{...{ "data-on:keydown__window": `evt.key === 'Escape' && ($${DRAWER_SIGNAL} = false)` }}
 			>
-				{shown === null || shown.total === 0 ? null : (
+				{page === null || page.rows.length === 0 ? null : (
 					<div class="adm-row">
-						<a
-							class="adm-btn"
-							href={`/settings/audit/export.csv${searchOf({ ...q, page: 1 })}`}
-							download
-						>
+						<a class="adm-btn" href={`/settings/audit/export.csv${searchOf(q)}`} download>
 							<Icon name="list" />
 							{m.jr_export({}, o)}
 						</a>
@@ -237,31 +283,7 @@ export async function renderAuditPage(ctx: Ctx, view: AuditView): Promise<JSX.El
 				<Toolbar>
 					<Filters ctx={ctx} q={q} people={view.people} />
 				</Toolbar>
-				{shown === null ? (
-					<Banner tone="error" icon="alert">
-						<strong>{m.error_title({}, o)}</strong>
-						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-						<a class="adm-btn" href={`/settings/audit${searchOf(q)}`}>
-							{m.retry({}, o)}
-						</a>
-					</Banner>
-				) : view.events?.length === 0 ? (
-					<EmptyState
-						icon="list"
-						title={m.audit_empty_title({}, o)}
-						text={m.audit_empty_text({}, o)}
-					/>
-				) : shown.total === 0 ? (
-					<EmptyState icon="search" title={m.jr_none({}, o)} />
-				) : (
-					<>
-						<p class="adm-muted" role="status">
-							{m.jr_count({ n: shown.total }, o)}
-						</p>
-						<Table ctx={ctx} rows={shown.items} />
-						<Pager ctx={ctx} q={q} p={shown} />
-					</>
-				)}
+				<Body ctx={ctx} view={view} />
 			</div>
 		),
 	});

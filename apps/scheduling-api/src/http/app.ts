@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { handlers } from "../handlers/index";
 import { withActor } from "../store/actor";
+import { compressAnswers } from "./compress";
 import type { Deps, HttpEnv } from "./context";
 import { fail } from "./errors";
 import { finish, prepare, refusal } from "./pipeline";
@@ -31,6 +32,8 @@ export function createApp(
 		c.header("x-content-type-options", "nosniff");
 		c.header("x-request-id", c.get("requestId"));
 	});
+	// Answers travel brotli- or gzip-compressed, as the caller accepts; event streams never are.
+	app.use("*", compressAnswers());
 	if (options.corsOrigins !== undefined && options.corsOrigins.length > 0) {
 		app.use(
 			"/v1/*",

@@ -4,6 +4,7 @@ import { SEED_FORM_TEMPLATES } from "../src/clinic/templates";
 import { SEED_ROLES } from "../src/permissions/roles";
 import { internalMutation } from "./_generated/server";
 import { logChange } from "./changeLog";
+import { appRoles } from "./roleIncludes";
 import { localeValidator } from "./validators";
 
 /**
@@ -85,12 +86,9 @@ export const ensureApp = internalMutation({
 		}
 		// The seed roles include one another by name: linked once every one of them exists, for the roles made just now
 		// (an app's existing roles are its owners' data, changed only by them or the re-seed tool).
+		const rows = inserted.size === 0 ? [] : await appRoles(ctx, args.slug);
 		for (const role of SEED_ROLES) {
 			if (role.includes.length === 0 || !inserted.has(role.name)) continue;
-			const rows = await ctx.db
-				.query("roles")
-				.withIndex("by_tenant_name", (q) => q.eq("tenant", args.slug))
-				.collect();
 			const self = rows.find((r) => r.name === role.name && r.seeded);
 			if (self === undefined) continue;
 			const ids = role.includes.flatMap((n) => rows.filter((r) => r.name === n).map((r) => r._id));

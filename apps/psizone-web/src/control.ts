@@ -1,6 +1,6 @@
 import type { PartState } from "@psi/cms-client";
-import { readSchedulingEnv } from "@psi/scheduling";
 import { mountSiteControl, type SiteControl, type StaffLinkWords } from "@psi/site-control";
+import { readSchedulingApiEnv } from "@psi/ui";
 import type { Hono } from "hono";
 import { account, reservations } from "./account";
 import { aiSettings } from "./ai-settings";
@@ -15,7 +15,7 @@ export function schedulingState(env: Readonly<Record<string, string | undefined>
 	state: PartState;
 	reason?: string;
 } {
-	const read = readSchedulingEnv(env);
+	const read = readSchedulingApiEnv(env);
 	if (read.ok) return { state: "on" };
 	return read.problem === "no_url"
 		? { state: "not_configured" }

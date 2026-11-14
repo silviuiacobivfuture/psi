@@ -81,6 +81,17 @@ export class MemoryCollection<R extends { id: string; app: string }> implements 
 		return Promise.resolve(row === undefined ? undefined : copyOf(row));
 	}
 
+	/** The rows found of `ids`, each once, in the order asked. */
+	getMany(app: string, ids: readonly string[]): Promise<R[]> {
+		const table = this.#apps.get(app);
+		const found: R[] = [];
+		for (const id of new Set(ids)) {
+			const row = table?.get(id);
+			if (row !== undefined) found.push(copyOf(row));
+		}
+		return Promise.resolve(found);
+	}
+
 	list(app: string, query?: Query<R>): Promise<R[]> {
 		const eq = Object.entries(query?.eq ?? {}).filter(([, v]) => v !== undefined);
 		const keep = (row: R): boolean => eq.every(([k, v]) => Reflect.get(row, k) === v);

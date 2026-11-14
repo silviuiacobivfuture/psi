@@ -39,6 +39,7 @@
 		"@psi/engine": "workspace:*",
 		"@psi/guide": "workspace:*",
 		"@psi/scheduling": "workspace:*",
+		"@psi/scheduling-sdk": "workspace:*",
 		"zod": "^3.25.76"
 	},
 	"peerDependencies": {

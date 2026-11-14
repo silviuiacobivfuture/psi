@@ -31,6 +31,8 @@ const Batch = z.object({
 /** OpenFGA's default ceiling for one BatchCheck. */
 const BATCH_MAX = 50;
 const List = z.object({ objects: z.array(z.string()) });
+/** OpenFGA's default ListObjects result cap (`OPENFGA_LIST_OBJECTS_MAX_RESULTS`, which the estate leaves unset). */
+const LIST_MAX = 1000;
 const WRITE_CHUNK = 100;
 /** After our own write, read at the stronger consistency for a moment so a role edit applies at once. */
 const STRONG_FOR_MS = 3000;
@@ -123,6 +125,10 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 				consistency: consistency(),
 			});
 			const objects = List.parse(raw).objects;
+			// OpenFGA stops a ListObjects at its result cap without saying so: an answer that reaches the cap may be partial,
+			// and a partial reach would hide clients silently. It fails closed instead.
+			if (objects.length >= LIST_MAX)
+				throw new AuthzUnavailable("authz: ListObjects reached its result cap");
 			if (prefix === "" || type !== "sched_app") return objects;
 			// Only this instance's apps, with the prefix taken off again.
 			const own = `${appHead}${prefix}`;

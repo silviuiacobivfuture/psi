@@ -1,0 +1,17 @@
+# The console runs 2 to 4 pods, scaled on CPU (k3s ships metrics-server). The Deployment names no replicas, so the
+# count is this object's alone; the PodDisruptionBudget keeps one pod through a drain.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: clinic
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: clinic }
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies: [{ type: Pods, value: 1, periodSeconds: 60 }]
