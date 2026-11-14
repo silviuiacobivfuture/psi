@@ -108,6 +108,8 @@
 	"jr_act_role_delete": "Role deleted",
 	"jr_act_member_edit": "Team member changed",
 	"jr_act_member_remove": "Team member removed",
+	"jr_act_member_invite": "Team member invited by e-mail",
+	"jr_act_member_link": "New set-password link",
 	"jr_act_service_price": "Service price changed",
 	"jr_act_plan_save": "Floor plan saved",
 	"jr_act_view_as_start": "Started “View as…”",

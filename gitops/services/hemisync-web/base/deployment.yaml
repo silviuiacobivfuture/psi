@@ -32,7 +32,7 @@ spec:
             - -c
             - >-
               m=0;
-              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; }; [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; };
+              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; }; [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; }; [ -n "${SCHEDULING_SERVICE_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: SCHEDULING_SERVICE_KEY" >&2; m=1; };
               [ "$m" = 0 ] && echo secrets-ok
           resources:
             requests: { cpu: 10m, memory: 16Mi }
@@ -50,11 +50,21 @@ spec:
           ports: [{ name: http, containerPort: 3000 }]
           envFrom:
             - secretRef: { name: hemisync-web-env }
+            # On the SITE's container, as psizone-web's: until 2026-11-13 the mail was on the
+            # assert-secrets initContainer, which does not read it.
+            # OPTIONAL by design: the outgoing mail that tells the team of a callback request
+            # (secret/apps/hemisync-web/mail). Absent, requests are still stored and the site logs
+            # that nobody was e-mailed; this never blocks a deploy. Roll the pod after it first appears.
+            - secretRef: { name: hemisync-web-mail, optional: true }
           env:
             - { name: PORT, value: "3000" }
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
             # sidecar; the token is CHROMA_API_KEY from hemisync-web-env.
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            # The scheduling service (apps/scheduling-api): every booking, hold, callback request and
+            # the guide's times, with SCHEDULING_SERVICE_KEY from hemisync-web-env, a key that reaches
+            # only the "hemisync" app. Its NetworkPolicy admits this namespace's app=hemisync-web pods.
+            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }

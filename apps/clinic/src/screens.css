@@ -40,6 +40,11 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+/* A person the add-member search found who cannot be picked (already in the team, or switched off). */
+.mb-staff:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
 /* Every role a member holds, side by side; on a phone they wrap under the name. */
 .mb-chips {
 	display: flex;

@@ -1,0 +1,6 @@
+# The estate's backup service (cluster-wide: it serves dev and production alike, each by its own bucket). No image of
+# psi's own: nothing for CI to bump.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base

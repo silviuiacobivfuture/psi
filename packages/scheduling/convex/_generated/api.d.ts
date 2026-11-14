@@ -19,6 +19,8 @@ import type * as apiClients from "../apiClients.js";
 import type * as apiDefinitionsExtra from "../apiDefinitionsExtra.js";
 import type * as apiDocuments from "../apiDocuments.js";
 import type * as apiFeedback from "../apiFeedback.js";
+import type * as apiKeyed from "../apiKeyed.js";
+import type * as apiKeys from "../apiKeys.js";
 import type * as apiLeaveExtra from "../apiLeaveExtra.js";
 import type * as apiMembersExtra from "../apiMembersExtra.js";
 import type * as apiMoney from "../apiMoney.js";
@@ -118,6 +120,8 @@ declare const fullApi: ApiFromModules<{
   apiDefinitionsExtra: typeof apiDefinitionsExtra;
   apiDocuments: typeof apiDocuments;
   apiFeedback: typeof apiFeedback;
+  apiKeyed: typeof apiKeyed;
+  apiKeys: typeof apiKeys;
   apiLeaveExtra: typeof apiLeaveExtra;
   apiMembersExtra: typeof apiMembersExtra;
   apiMoney: typeof apiMoney;

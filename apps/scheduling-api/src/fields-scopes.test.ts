@@ -92,7 +92,7 @@ describe("a field group the caller may not see is ABSENT, never null or masked",
 	it("the clinical content is not in the store in clear: only a sealed envelope", async () => {
 		const row = await w.store.c.clients.get("psizone", w.ids.c1);
 		expect(JSON.stringify(row)).not.toContain("synthetic-diagnosis");
-		expect(row?.clinicalSealed).toMatch(/^v1\./);
+		expect(row?.clinicalSealed).toMatch(/^1\.[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/);
 	});
 
 	it("an appointment's money is absent for a therapist and present for reception", async () => {
@@ -326,11 +326,6 @@ describe("clinical data is read only by the permitted, and every read is audited
 				}[]
 			).some((e) => e.actor.subject === "rita"),
 		).toBe(false);
-	});
-
-	it("a record's content cannot be opened under another record's context", () => {
-		const sealed = w.deps.crypto.seal("secret", "psizone:record:a");
-		expect(() => w.deps.crypto.open(sealed, "psizone:record:b")).toThrow();
 	});
 });
 

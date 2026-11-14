@@ -11,8 +11,14 @@ const CANDIDATES = [
 	"/snap/bin/chromium",
 ];
 
-/** A real Chromium: contrast, viewports and motion media queries are only true in one. No fallback: no browser, no pass. */
+/**
+ * A real Chromium: contrast, viewports and motion media queries are only true in one. No fallback: no browser, no pass.
+ * Either one on this machine (CLINIC_CHROME, or a system install), or one served by a Playwright server
+ * (CLINIC_BROWSER_WS): CI runs Chromium in the pinned Playwright image, whose system libraries the runner lacks.
+ */
 export async function launch(): Promise<Browser> {
+	const server = process.env.CLINIC_BROWSER_WS;
+	if (server !== undefined && server !== "") return chromium.connect(server);
 	const executablePath = CANDIDATES.find(
 		(p): p is string => typeof p === "string" && existsSync(p),
 	);

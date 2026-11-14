@@ -56,7 +56,7 @@ export const ALLOWED: Readonly<Record<string, { count: number; why: Why }>> = {
 	"catalog.ts#services": { count: 1, why: "catalogue" },
 	"clinicErase.ts#eraseClinicData": { count: 10, why: "erase" },
 	"clinicInspect.ts#slugs": { count: 4, why: "catalogue" },
-	"clinicKeys.ts#list": { count: 1, why: "catalogue" },
+	"clinicKeys.ts#wrappedKeysOf": { count: 1, why: "catalogue" },
 	"clinicRetention.ts#eraseDue": { count: 1, why: "platform" },
 	"importClients.ts#upsertClients": { count: 1, why: "relation" },
 	"roomPlan.ts#roomPlan": { count: 4, why: "window" },

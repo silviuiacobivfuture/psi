@@ -1,0 +1,9 @@
+# ReportPortal's logical dump, for an estate that runs ReportPortal (PLATFORM_APPS lists
+# `reportportal`, ../identity-components.json). It runs in the `reportportal` namespace, which
+# only the reportportal-platform piece brings: an estate without it renders this piece without
+# the CronJob, never with one aimed at a namespace it does not have. The piece's replacements
+# and the alert-owner transformer fill it as they fill the piece's own dumps.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - reportportal-db-dump.yaml

@@ -7,7 +7,8 @@
 #            OpenFGA (:8081 read, :8080 write); Authentik's server pods (:9000, the issuers' JWKS in-cluster);
 #            Novu's API (novu:3000, in-cluster); HTTPS out to the mail service and object storage.
 #   NOTE     OpenFGA's own NetworkPolicy is rendered by SEB (gitops/seb-pieces/openfga) and admits only Polaris and
-#            Authentik today: it must admit this namespace on 8081 and 8080 before the service can authorize.
+#            Authentik; this namespace (and clinic) is admitted on 8081 and 8080 by psi's own additive policy in
+#            gitops/services/openfga-access.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -71,6 +72,23 @@ spec:
             matchLabels: { app.kubernetes.io/name: authentik, app.kubernetes.io/component: server }
       ports:
         - { protocol: TCP, port: 9000 }
+    # The issuer's public URL (auth.psizone.ro, its JWKS) is hairpinned to Traefik's pod inside the cluster.
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: traefik }
+      ports:
+        - { protocol: TCP, port: 8443 }
+        - { protocol: TCP, port: 8000 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { svccontroller.k3s.cattle.io/svcname: traefik }
+      ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: TCP, port: 80 }
     - to:
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: novu }

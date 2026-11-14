@@ -26,9 +26,9 @@ export interface GuideLabels {
 	/** Under a question a newer one replaced before it was answered. */
 	unanswered: string;
 	/**
-	 * Booking inside the conversation (a brand that schedules): `render` shows the offered times as
-	 * buttons and, on a click, the app's own confirm step (its booking form: name, contact,
-	 * consent), which holds, confirms and gives the reference as the booking page does. `summary`
+	 * Booking inside the conversation (a brand that schedules): `render` shows the offered times,
+	 * then the details asked one at a time, the summary to confirm (the guide submits on the yes and
+	 * gives the reference) or the booking form to finish by hand. `summary`
 	 * is the guide's turn as the conversation remembers it. Without it, an offer shows the contact
 	 * link.
 	 */

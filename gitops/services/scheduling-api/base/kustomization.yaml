@@ -6,6 +6,7 @@ namespace: scheduling-api
 resources:
   - resourcequota.yaml
   - externalsecret.yaml
+  - sso-externalsecret.yaml
   - harbor-pull-externalsecret.yaml
   - deployment.yaml
   - service.yaml

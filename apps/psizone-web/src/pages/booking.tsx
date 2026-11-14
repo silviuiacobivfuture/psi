@@ -1,7 +1,6 @@
-import { AmbientField } from "@psi/ui";
+import { AmbientField, BookingForm, type Schedule } from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { BookingForm } from "../booking";
-import type { Schedule } from "../booking-schedule";
+import { bookingEnv } from "../booking-site";
 import { at, base, type Locale } from "../i18n";
 import { Layout } from "../layout";
 import { m } from "../paraglide/messages.js";
@@ -44,7 +43,7 @@ export function BookingPage({
 						<p class="mt-5 max-w-xl text-body-lg text-ink-muted">{m.book_lead({}, o)}</p>
 						<div class="pz-edge mt-10 rounded-xl p-5 backdrop-blur-2xl sm:p-8">
 							<BookingForm
-								locale={locale}
+								env={bookingEnv(locale)}
 								{...(schedule === undefined ? {} : { schedule })}
 								{...booking}
 							/>

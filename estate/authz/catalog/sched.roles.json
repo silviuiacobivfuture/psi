@@ -1,0 +1,347 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from apps/scheduling-api/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "sched",
+	"version": 1,
+	"scope_resolvers": {
+		"sched_app": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"sched_role": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_client": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_calendar": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_appointment": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_room": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_device": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_package": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_record": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_file": {
+			"scope_type": "sched_app",
+			"relation": "app"
+		},
+		"sched_register": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"sched_program": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"programs": {
+		"subject": "sched_program",
+		"roles": ["sched:integration"],
+		"resource": "sched_register",
+		"org_relation": "program_sched"
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"org#role_sched_integration",
+		"platform#administrator",
+		"platform#role_sched_app_admin"
+	],
+	"features": [
+		{
+			"key": "app_settings",
+			"name": {
+				"ro": "Setările aplicației",
+				"en": "App settings"
+			}
+		},
+		{
+			"key": "members",
+			"name": {
+				"ro": "Echipa",
+				"en": "Team members"
+			}
+		},
+		{
+			"key": "people",
+			"name": {
+				"ro": "Persoane și practicieni",
+				"en": "People and practitioners"
+			}
+		},
+		{
+			"key": "roles",
+			"name": {
+				"ro": "Roluri",
+				"en": "Roles"
+			}
+		},
+		{
+			"key": "builder",
+			"name": {
+				"ro": "Constructor",
+				"en": "Builder"
+			}
+		},
+		{
+			"key": "services",
+			"name": {
+				"ro": "Servicii",
+				"en": "Services"
+			}
+		},
+		{
+			"key": "prices",
+			"name": {
+				"ro": "Prețuri",
+				"en": "Prices"
+			}
+		},
+		{
+			"key": "rooms",
+			"name": {
+				"ro": "Camere",
+				"en": "Rooms"
+			}
+		},
+		{
+			"key": "devices",
+			"name": {
+				"ro": "Aparate",
+				"en": "Devices"
+			}
+		},
+		{
+			"key": "group_activities",
+			"name": {
+				"ro": "Activități de grup",
+				"en": "Group activities"
+			}
+		},
+		{
+			"key": "calendars",
+			"name": {
+				"ro": "Calendare",
+				"en": "Calendars"
+			}
+		},
+		{
+			"key": "appointments",
+			"name": {
+				"ro": "Programări",
+				"en": "Appointments"
+			}
+		},
+		{
+			"key": "clients",
+			"name": {
+				"ro": "Clienți",
+				"en": "Clients"
+			}
+		},
+		{
+			"key": "report_aba",
+			"name": {
+				"ro": "Rapoarte ABA",
+				"en": "ABA reports"
+			}
+		},
+		{
+			"key": "report_racemeup",
+			"name": {
+				"ro": "Rapoarte Race Me Up",
+				"en": "Race Me Up reports"
+			}
+		},
+		{
+			"key": "report_psychotherapy",
+			"name": {
+				"ro": "Rapoarte de psihoterapie",
+				"en": "Psychotherapy reports"
+			}
+		},
+		{
+			"key": "report_custom",
+			"name": {
+				"ro": "Alte rapoarte și formulare",
+				"en": "Other reports and forms"
+			}
+		},
+		{
+			"key": "questionnaire_parent",
+			"name": {
+				"ro": "Chestionare pentru părinți",
+				"en": "Parent questionnaires"
+			}
+		},
+		{
+			"key": "files",
+			"name": {
+				"ro": "Fișiere",
+				"en": "Files"
+			}
+		},
+		{
+			"key": "packages",
+			"name": {
+				"ro": "Abonamente",
+				"en": "Packages"
+			}
+		},
+		{
+			"key": "payments",
+			"name": {
+				"ro": "Plăți",
+				"en": "Payments"
+			}
+		},
+		{
+			"key": "roster",
+			"name": {
+				"ro": "Pontaj",
+				"en": "Roster"
+			}
+		},
+		{
+			"key": "leave",
+			"name": {
+				"ro": "Concedii",
+				"en": "Leave"
+			}
+		},
+		{
+			"key": "notice_board",
+			"name": {
+				"ro": "Panou de anunțuri",
+				"en": "Notice board"
+			}
+		},
+		{
+			"key": "reminders",
+			"name": {
+				"ro": "Mementouri",
+				"en": "Reminders"
+			}
+		},
+		{
+			"key": "web_requests",
+			"name": {
+				"ro": "Cereri web",
+				"en": "Web requests"
+			}
+		},
+		{
+			"key": "reports",
+			"name": {
+				"ro": "Rapoarte",
+				"en": "Reports"
+			}
+		},
+		{
+			"key": "audit_log",
+			"name": {
+				"ro": "Jurnal de audit",
+				"en": "Audit log"
+			}
+		},
+		{
+			"key": "imports_exports",
+			"name": {
+				"ro": "Importuri și exporturi",
+				"en": "Imports and exports"
+			}
+		},
+		{
+			"key": "blacklist",
+			"name": {
+				"ro": "blacklist",
+				"en": "blacklist"
+			}
+		},
+		{
+			"key": "feedback",
+			"name": {
+				"ro": "feedback",
+				"en": "feedback"
+			}
+		},
+		{
+			"key": "notes",
+			"name": {
+				"ro": "Notițe despre clienți",
+				"en": "Notes about clients"
+			}
+		},
+		{
+			"key": "register",
+			"name": {
+				"ro": "Registrul organizației",
+				"en": "The organisation's register"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "sched:app_admin",
+			"name": {
+				"ro": "Administrator programări",
+				"en": "Scheduling administrator"
+			},
+			"description": {
+				"ro": "Creează aplicații, gestionează echipa, rolurile și setările lor; nu citește date clinice.",
+				"en": "Creates apps and manages their team, roles and settings; reads no clinical data."
+			},
+			"scope_type": "platform",
+			"relation": "role_sched_app_admin",
+			"grants": [
+				"sched_app#app_settings_view_all",
+				"sched_app#app_settings_edit_all",
+				"sched_app#members_view_all",
+				"sched_app#members_create_all",
+				"sched_app#members_edit_all",
+				"sched_app#members_delete_all",
+				"sched_app#roles_view_all",
+				"sched_app#roles_create_all",
+				"sched_app#roles_edit_all",
+				"sched_app#roles_delete_all"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "sched:integration",
+			"name": {
+				"ro": "Integrarea serviciului de programări",
+				"en": "Scheduling service integration"
+			},
+			"description": {
+				"ro": "Pentru programul serviciului de programări: îi dă dreptul să lucreze cu registrul organizației.",
+				"en": "For the scheduling service's program: lets it work with the organisation's register."
+			},
+			"scope_type": "org",
+			"relation": "role_sched_integration",
+			"resource_scopes": ["sched_register"],
+			"grants": ["sched_register#reader", "sched_register#writer"],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

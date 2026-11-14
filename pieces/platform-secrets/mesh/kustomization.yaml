@@ -1,0 +1,9 @@
+# The Tailscale operator's credentials, for an estate with a hosted Tailscale tailnet
+# (TAILNET_DOMAIN set, ../identity-components.json). They land in the `tailscale` namespace, which
+# only the tailscale-operator piece brings, and that piece is not deployed with MESH: none or on
+# Headscale alone: such an estate renders this piece without them, never with an ExternalSecret
+# aimed at a namespace it does not have.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - tailscale-operator-oauth.yaml

@@ -64,6 +64,26 @@ describe("the booking state in the page's conversation", () => {
 		expect(bookingStateOf([])).toBeUndefined();
 	});
 
+	it("older turns do not keep what the visitor typed: the state stays on the latest guide turns only", () => {
+		const named: BookingState = { ...STATE, stage: "details", details: { name: "Ana Pop" } };
+		let turns = continueConversation([], "x", { answer: "A", booking: named });
+		turns = continueConversation(turns, "y", { answer: "B", booking: named });
+		turns = continueConversation(turns, "z", { answer: "C", booking: named });
+		expect(turns.filter((t) => t.booking !== undefined)).toHaveLength(2);
+		expect(JSON.stringify(turns.slice(0, 2))).not.toContain("Ana Pop");
+	});
+
+	it("a finished booking leaves no state behind, so a later 'da' resumes nothing", () => {
+		const named: BookingState = { ...STATE, stage: "details", details: { name: "Ana Pop" } };
+		let turns = continueConversation([], "x", { answer: "A", booking: named });
+		turns = continueConversation(turns, "da", {
+			answer: "Cererea a fost trimisă.",
+			endsBooking: true,
+		});
+		expect(bookingStateOf(turns)).toBeUndefined();
+		expect(JSON.stringify(turns)).not.toContain("Ana Pop");
+	});
+
 	it("a tampered state voids the conversation, never steers a question", () => {
 		const bad = [
 			{ role: "user", text: "x" },
@@ -111,5 +131,126 @@ describe("Psizone's guide keeps the booking context across turns", () => {
 		expect(next?.offer.kind).toBe("times");
 		expect(next?.offer.notice === "refined" || next?.offer.notice === "relaxed").toBe(true);
 		expect(second.some((e) => e.type === "text")).toBe(false);
+	});
+});
+
+describe.each([
+	[
+		"psizone",
+		"psizone",
+		"evaluation",
+		"ro",
+		[
+			"Ana Pop",
+			"9",
+			"Fiul meu are anxietate și refuză școala",
+			"0722 123 456",
+			"ana@example.ro",
+			"da",
+		],
+		"child",
+	],
+	[
+		"psizone",
+		"psizone",
+		"evaluation",
+		"en",
+		[
+			"Ana Pop",
+			"34",
+			"I have trouble sleeping and constant worry",
+			"+44 20 7946 0958",
+			"ana@example.com",
+			"yes",
+		],
+		"adult",
+	],
+	[
+		"hemisync",
+		"hemisync",
+		"session",
+		"ro",
+		[
+			"Dan Ionescu",
+			"41",
+			"Caut ajutor pentru somn și neliniște",
+			"0722 123 456",
+			"dan@example.ro",
+			"da",
+		],
+		"adult",
+	],
+	[
+		"hemisync",
+		"hemisync",
+		"session",
+		"en",
+		[
+			"Dan Ionescu",
+			"7",
+			"I am looking for help with sleep and worry",
+			"0722 123 456",
+			"dan@example.com",
+			"confirm",
+		],
+		"adult",
+	],
+] as const)("a whole booking in the chat on %s in %s", (brand, tenant, service, locale, says, audience) => {
+	it("asks one thing at a time, books once on the yes, and ends the flow", async () => {
+		const day = Math.ceil(Date.now() / (24 * H)) * 24 * H;
+		const port = new MemorySchedulingStore().offer(
+			tenant,
+			service,
+			[1, 2, 3].map((d) => ({
+				id: `s${d}`,
+				start: day + d * 24 * H + 7 * H,
+				end: day + d * 24 * H + 8 * H,
+				practitionerName: "DEMO Ana",
+				modes: ["onsite" as const],
+			})),
+		);
+		port.catalogue = async () => [{ slug: service }];
+		const guide = createPsiEngine({ knowledge: kb, scheduling: port }).guide(brand);
+		let turns: ReturnType<typeof continueConversation> = [];
+		const turn = async (question: string): Promise<BookingOffer> => {
+			const state = bookingStateOf(turns);
+			const events = await collect(
+				guide.ask({
+					question,
+					locale,
+					history: historyOf(turns),
+					...(state === undefined ? {} : { booking: state }),
+				}),
+			);
+			const offer = events.find((e) => e.type === "booking")?.offer as BookingOffer | undefined;
+			if (offer === undefined) throw new Error(`"${question}" was not a booking turn`);
+			turns = continueConversation(turns, question, {
+				answer: "turn",
+				...(offer.state === undefined ? { endsBooking: true } : { booking: offer.state }),
+			});
+			return offer;
+		};
+		const times = await turn(
+			locale === "ro" ? "Vreau să programez o evaluare" : "I want to book an appointment",
+		);
+		expect(times.kind).toBe("times");
+		let offer = await turn(locale === "ro" ? "a doua" : "the second one");
+		expect(offer.kind).toBe("confirm");
+		const asked: Array<string | undefined> = [offer.details?.ask];
+		for (const text of says.slice(0, -1)) {
+			offer = await turn(text);
+			asked.push(offer.details?.ask);
+		}
+		expect(asked).toEqual(["name", "age", "details", "phone", "email", undefined]);
+		expect(offer.kind).toBe("summary");
+		expect(port.calls.filter((c) => c.method === "hold")).toEqual([]);
+		offer = await turn(says.at(-1) ?? "");
+		expect(offer.kind).toBe("booked");
+		expect(offer.booked?.cancelCode).toBeDefined();
+		const submit = port.calls.filter((c) => c.method === "submit");
+		expect(submit).toHaveLength(1);
+		expect(submit[0]).toMatchObject({ audience, contact: { name: says[0] } });
+		expect(bookingStateOf(turns)).toBeUndefined();
+		expect(JSON.stringify(turns)).not.toContain(offer.booked?.cancelCode ?? "none");
 	});
 });

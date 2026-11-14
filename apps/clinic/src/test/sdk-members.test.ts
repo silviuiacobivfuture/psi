@@ -95,12 +95,15 @@ describe("presence: Setări → Membri", () => {
 		);
 		expect(needs).toEqual({
 			"member.new": ["members_create"],
+			"member.invite": ["members_create"],
+			"member.link": ["members_create"],
 			"member.edit": ["members_edit"],
 			"member.overrides": ["members_edit"],
 			"member.calendar": ["people_edit"],
 			"member.remove": ["members_delete"],
 		});
 		expect(actionById("member.remove")?.confirm).toBe("confirm");
+		expect(actionById("member.invite")?.privateResult).toBe(true);
 	});
 });
 
@@ -253,7 +256,7 @@ describe("the journal says it in a sentence", () => {
 		const journal = await html(olga, "/settings/audit");
 		// the service keeps the role ids sorted: the sentence names them in that order
 		const names = [
-			[role("admin"), "Administrator"],
+			[role("admin"), "Administrator clinică"],
 			[role("coordinator"), "Coordonator"],
 		]
 			.sort(([a = ""], [b = ""]) => a.localeCompare(b))

@@ -31,7 +31,9 @@ runnerScaleSetName: k8s
 # ca vreun pas să ruleze — cea mai mare întârziere care se putea scoate fără
 # hardware nou. NU costă bani: mașinile sunt plătite oricum. Costă capacitate
 # rezervată, și încape.
+# seb:estate min-runners
 minRunners: 4
+# seb:end min-runners
 # 8, raised from 4 (2026-09-03), on a MEASUREMENT rather than a feeling.
 #
 # The earlier note said queue pressure was mostly superseded runs and
@@ -78,7 +80,9 @@ minRunners: 4
 # patru în total (32Gi din 35). Cinci la 8Gi nu ar încăpea; iar mai puțini
 # și mai mari nu ajută: la 11Gi intră doar UNUL pe nod, adică doi în total.
 # Patru × 8Gi este maximul de memorie per construire fără a pierde paralelism.
+# seb:estate max-runners
 maxRunners: 4
+# seb:end max-runners
 # RESOURCES, declared for the first time — and placed where the chart
 # actually reads them, which is NOT where they look like they belong.
 #
@@ -263,7 +267,9 @@ template:
             # cer 16.8 din 16 și al patrulea stătea Pending „Insufficient
             # cpu". Fără limită de CPU, cererea e doar ponderea programării:
             # un runner tot folosește tot procesorul liber.
+            # seb:estate runner-cpu
             cpu: "4"
+            # seb:end runner-cpu
             # 8Gi, urcat de la 5Gi MĂSURAȚI, fiindcă s-a cerut explicit mai
             # multă memorie per construire în locul unui al cincilea runner.
             # Vârful instalării rămâne 5129Mi pe 230 de eșantioane; cei 3Gi
@@ -283,7 +289,9 @@ template:
             # runneri, 5Gi 1 + 2 = trei, 4Gi 1 + 3 = patru. Plafonul nu se
             # schimbă. O cerere mai mare lasă un runner Pending pentru totdeauna
             # (scripts/tests/kubelet-memory.test.sh).
+            # seb:estate runner-memory
             memory: 4Gi
+            # seb:end runner-memory
           limits:
             # 7Gi — roughly 40% above the observed peak, NOT a multiple of
             # a number sampled at idle. That mistake capped this container

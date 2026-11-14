@@ -13,9 +13,9 @@ export const guideCounts = guideCountsFromEnv(process.env, "psizone");
  * The one guide this site talks to: Psizone's Mastra agent on OpenRouter (OPENROUTER_API_KEY),
  * reading the knowledge base at PSI_KNOWLEDGE_DB_URL (local default: .data/knowledge.db, seeded by
  * `pnpm knowledge:seed`). No memory: nothing a visitor asks is kept. With scheduling on, a booking
- * question is answered with free times from the scheduling service, through the same client and
- * service key as the booking forms (the guide's port finds and cancels; it never holds or books).
- * Wrapped once so the control plane sees today's question counts.
+ * question is answered from the scheduling service, through the same client and service key as
+ * the booking forms (the guide's port finds, holds, submits and cancels, and books only after the
+ * visitor confirmed a summary). Wrapped once so the control plane sees today's question counts.
  */
 export const guide: Guide & GuideCounters = countingGuide(
 	createGuide({

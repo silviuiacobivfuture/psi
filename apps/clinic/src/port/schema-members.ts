@@ -30,6 +30,40 @@ export const MemberInputSchema = z.object({
 });
 export type MemberInput = z.input<typeof MemberInputSchema>;
 
+/** A person of the estate's staff group, found by name or e-mail to fill the add-member form. */
+export const StaffMatchSchema = z.object({
+	subject: z.string().min(1).max(200),
+	displayName: z.string().max(200),
+	email: z.string().max(200),
+	/** Switched off in the sign-in. */
+	active: z.boolean(),
+	/** Already in this team. */
+	member: z.boolean(),
+});
+export type StaffMatch = z.infer<typeof StaffMatchSchema>;
+
+/** At least two characters, as the service asks; anything shorter is no search. */
+export const StaffQuerySchema = z.string().trim().min(2).max(80);
+
+/** Someone invited by e-mail: their account is found or made in the staff group, then they are added with these roles. */
+export const InviteInputSchema = z.object({
+	email: z.string().trim().max(200).pipe(z.string().email()),
+	displayName: z.string().trim().min(1).max(200),
+	roles: z.array(z.string().min(1).max(100)).max(20).default([]),
+	coordinates: ids,
+	locale: z.enum(["ro", "en"]).default("ro"),
+});
+export type InviteInput = z.input<typeof InviteInputSchema>;
+
+export const InviteOutcomeSchema = z.object({
+	subject: z.string(),
+	displayName: z.string(),
+	account: z.enum(["created", "existing"]),
+	/** A new account's one-time set-password link, for the inviter to pass on; null otherwise. Shown once, kept nowhere. */
+	signInLink: z.string().url().nullable(),
+});
+export type InviteOutcome = z.infer<typeof InviteOutcomeSchema>;
+
 /** A stored permission relation (`clients_view_all`), as a grant or a denial names it. */
 const Relation = z
 	.string()

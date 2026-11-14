@@ -154,13 +154,7 @@ export const appHandlers: HandlersOf<
 		const { id, name, timeZone, ownerSubject } = ctx.body;
 		if (await ctx.deps.store.c.apps.get(id, id)) throw fail("conflict", "the app exists");
 		const made = await provisionApp(ctx.deps, { id, name, timeZone, ownerSubject });
-		await syncMember(
-			ctx,
-			id,
-			ownerSubject,
-			undefined,
-			await ctx.deps.store.c.members.get(id, ownerSubject),
-		);
+		await syncMember(ctx, id, ownerSubject, await ctx.deps.store.c.members.get(id, ownerSubject));
 		return made;
 	},
 

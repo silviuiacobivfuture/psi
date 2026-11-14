@@ -34,7 +34,9 @@ describe("the route table", () => {
 					r.permission !== undefined ||
 						r.platform === true ||
 						r.id === "me.get" ||
-						r.id === "me.capabilities",
+						r.id === "me.capabilities" ||
+						r.id === "me.notifications" ||
+						r.id === "me.notificationsSave",
 					r.id,
 				).toBe(true);
 			else expect(r.permission, r.id).toBeUndefined();

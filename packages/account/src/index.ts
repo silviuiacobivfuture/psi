@@ -26,6 +26,11 @@ export {
 	recordTuples,
 } from "./authz/tuples";
 export {
+	type BookingAccountOptions,
+	type BookingAccounts,
+	createBookingAccounts,
+} from "./booking";
+export {
 	type AccountConfig,
 	DEFAULT_AUTHENTIK_URL,
 	defaultIssuer,

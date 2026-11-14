@@ -122,4 +122,71 @@ describe("booking inside the conversation", () => {
 			],
 		});
 	});
+
+	it("what a visitor types as booking details is not kept in the history the model reads", async () => {
+		const state = {
+			stage: "details" as const,
+			criteria: { service: "evaluation", days: 14, partOfDay: "any" as const },
+			shown: [],
+			asked: "phone" as const,
+		};
+		const guide: Guide = {
+			brand: "psizone",
+			model: "test",
+			async *ask() {
+				yield {
+					type: "booking",
+					offer: { kind: "confirm", service: "evaluation", status: "ok", slots: [], state },
+				};
+				yield { type: "done" };
+			},
+		};
+		const app = new Hono();
+		app.post("/", async (c) =>
+			streamGuideAnswer(c, {
+				guide,
+				locale: "ro",
+				question: "0722 123 456",
+				target: "compass-answer",
+				labels: { ...labels, booking: { render: () => <p>OFFER</p>, summary: () => "SUMMARY" } },
+				signals: parseAskSignals(await c.req.json()),
+			}),
+		);
+		const body = JSON.stringify({
+			compassTurns: [{ role: "guide", text: "Q", booking: state }],
+		});
+		const out = await (await app.request("/", { method: "POST", body })).text();
+		const kept = out.split("\n").find((l) => l.startsWith('data: signals {"compassTurns"')) ?? "";
+		const turns = JSON.parse(kept.slice("data: signals ".length)).compassTurns;
+		expect(turns.at(-2)).toEqual({ role: "user", text: "…" });
+		expect(JSON.stringify(turns)).not.toContain("0722");
+	});
+
+	it("a question asked outside the details step is kept as asked", async () => {
+		const guide: Guide = {
+			brand: "psizone",
+			model: "test",
+			async *ask() {
+				yield {
+					type: "booking",
+					offer: { kind: "times", service: "evaluation", status: "none", slots: [] },
+				};
+				yield { type: "done" };
+			},
+		};
+		const app = new Hono();
+		app.post("/", (c) =>
+			streamGuideAnswer(c, {
+				guide,
+				locale: "ro",
+				question: "Vreau o programare",
+				target: "compass-answer",
+				labels: { ...labels, booking: { render: () => <p>OFFER</p>, summary: () => "SUMMARY" } },
+			}),
+		);
+		const out = await (await app.request("/", { method: "POST" })).text();
+		const kept = out.split("\n").find((l) => l.startsWith('data: signals {"compassTurns"')) ?? "";
+		const turns = JSON.parse(kept.slice("data: signals ".length)).compassTurns;
+		expect(turns.at(-2)).toEqual({ role: "user", text: "Vreau o programare" });
+	});
 });

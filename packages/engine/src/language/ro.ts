@@ -357,6 +357,8 @@ export const ROMANIAN: LanguagePack = {
 			"Răspunsul tău anterior nu a fost în română. Scrii NUMAI în română, fiecare cuvânt, oricare ar fi limba vizitatorului.",
 		factsOnly:
 			"Răspunsul tău anterior a dat cifre sau fapte care nu apar în rezultatele uneltelor. Afirmi doar fapte din rezultatele uneltelor, cu citare; dacă nu le ai, apelezi o unealtă sau spui sincer că nu avem asta pe site.",
+		scheduling:
+			"Acest site își programează singur vizitatorii: calendarul cu orele libere este la îndemâna ghidului, prin sistemul de programare din conversație. Nu spui niciodată că nu ai acces la calendar, la orar sau la orele libere, și nu trimiți vizitatorul în altă parte pentru o programare; dacă vrea să programeze sau întreabă de ore, îl îndrumi să ceară o programare aici în conversație.",
 		noRepeat:
 			"Răspunsul tău anterior l-a repetat cuvânt cu cuvânt pe cel de dinainte. Scrii alt răspuns, cu alte cuvinte.",
 		grammar:

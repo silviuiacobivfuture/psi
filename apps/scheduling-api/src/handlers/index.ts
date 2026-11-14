@@ -8,17 +8,21 @@ import { blacklistHandlers } from "./blacklist";
 import { calendarSummaryHandlers } from "./calendar-summary";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
+import { deliveryHandlers } from "./deliveries";
 import { feedbackHandlers } from "./feedback";
 import { fileHandlers } from "./files";
 import { floorPlanHandlers } from "./floorplan";
+import { inviteHandlers } from "./invites";
 import { memberHandlers } from "./members";
 import { noteHandlers } from "./notes";
+import { notificationPrefsHandlers } from "./notification-prefs";
 import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
 import { reportHandlers } from "./reports";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
+import { staffHandlers } from "./staff";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
@@ -42,6 +46,10 @@ const complete: Handlers = {
 	...floorPlanHandlers,
 	...blacklistHandlers,
 	...feedbackHandlers,
+	...inviteHandlers,
+	...staffHandlers,
+	...deliveryHandlers,
+	...notificationPrefsHandlers,
 	...adminHandlers,
 	...viewAsHandlers,
 	...visitorHandlers,

@@ -1,0 +1,28 @@
+# The link shortener's sign-in client in the directory's environment, for an estate whose
+# PLATFORM_APPS lists kutt (../identity-components.json): AUTHENTIK_OIDC__KUTT__ID/__SECRET added to
+# authentik-oidc-clients from OpenBao secret/platform/authentik/kutt-oidc, which Kutt itself reads
+# (pieces/kutt, ExternalSecret kutt-app), so the two ends cannot drift. The providers blueprint
+# reads them into the `kutt` client (authentik-platform, `# seb:app-only kutt`). Fail loud as the
+# rest of that ExternalSecret: a per-key data[] entry, so an unseeded path makes it
+# SecretSyncedError. Not taken, nothing here renders, and the piece is byte for byte what it was.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target: { group: external-secrets.io, kind: ExternalSecret, name: authentik-oidc-clients }
+    patch: |-
+      - op: add
+        path: /spec/target/template/data/AUTHENTIK_OIDC__KUTT__ID
+        value: "{{ .kutt_id }}"
+      - op: add
+        path: /spec/target/template/data/AUTHENTIK_OIDC__KUTT__SECRET
+        value: "{{ .kutt_secret }}"
+      - op: add
+        path: /spec/data/-
+        value:
+          secretKey: kutt_id
+          remoteRef: { key: platform/authentik/kutt-oidc, property: client_id }
+      - op: add
+        path: /spec/data/-
+        value:
+          secretKey: kutt_secret
+          remoteRef: { key: platform/authentik/kutt-oidc, property: client_secret }

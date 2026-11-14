@@ -1,28 +1,17 @@
 import type { SiteSettings } from "@psi/cms-client";
-import type { GuideLabels } from "@psi/ui";
-import type { JSX } from "hono/jsx/jsx-runtime";
-import type { BookingValues } from "./booking";
-import type { Picker } from "./booking-picker";
-import { bookingSummary, ChatBooking } from "./chat-booking";
+import {
+	type AccountLine,
+	type BookingValues,
+	chatBookingLabels,
+	type GuideLabels,
+	type Picker,
+} from "@psi/ui";
+import { bookingEnv } from "./booking-site";
+import { picker as sitePicker } from "./booking-store";
 import { guideCopy } from "./guide-copy";
 import { at, base, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { bookingInChat, phones } from "./site-settings";
-
-/** With in-chat booking switched off in the CMS: the way to the contact page, no free times. */
-function BookingElsewhere({ locale }: { locale: Locale }): JSX.Element {
-	const o = at(locale);
-	return (
-		<div class="space-y-3">
-			<p>{m.guide_booking_elsewhere({}, o)}</p>
-			<p>
-				<a class="font-semibold underline" href={`${base(locale)}/contact`}>
-					{m.cta_book({}, o)}
-				</a>
-			</p>
-		</div>
-	);
-}
 
 /**
  * Psizone's words for the guide's answer region. The crisis copy is fixed and factual, never
@@ -35,7 +24,7 @@ export function guideLabels(
 	opts: {
 		prefill?: Pick<BookingValues, "name" | "email" | "phone">;
 		/** The estate account's line in the in-chat form (signed in, or the way to sign in). */
-		account?: Parameters<typeof ChatBooking>[0]["account"];
+		account?: AccountLine;
 		/** The site settings to read (tests); by default what the CMS said last. */
 		settings?: SiteSettings;
 		/** Where the booking picker reads free times from (tests); by default the site's store. */
@@ -46,22 +35,14 @@ export function guideLabels(
 	const copy = guideCopy(locale);
 	const inChat = bookingInChat(opts.settings);
 	return {
-		booking: {
-			render: (offer) =>
-				inChat ? (
-					<ChatBooking
-						locale={locale}
-						offer={offer}
-						{...(opts.prefill === undefined ? {} : { prefill: opts.prefill })}
-						{...(opts.account === undefined ? {} : { account: opts.account })}
-						{...(opts.picker === undefined ? {} : { source: opts.picker })}
-					/>
-				) : (
-					<BookingElsewhere locale={locale} />
-				),
-			summary: (offer) =>
-				inChat ? bookingSummary(offer, locale) : m.guide_booking_elsewhere({}, o),
-		},
+		booking: chatBookingLabels({
+			env: bookingEnv(locale),
+			envOf: bookingEnv,
+			picker: opts.picker ?? sitePicker,
+			inChat,
+			...(opts.prefill === undefined ? {} : { prefill: opts.prefill }),
+			...(opts.account === undefined ? {} : { account: opts.account }),
+		}),
 		thinking: m.guide_thinking({}, o),
 		stages: {
 			searching: m.guide_stage_searching({}, o),

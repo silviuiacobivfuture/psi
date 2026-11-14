@@ -19,6 +19,9 @@ resources:
 # psi's console brand (declaration, theme, icons), mounted at /estate-brand (brand/kustomization.yaml).
 components:
   - ../../../brand
+  # psi's permissions bundle: its modules, catalogs and composed model, which Polaris releases at
+  # start-up and its module authority reads (gitops/services/autorizare-permissions).
+  - ../../../gitops/services/autorizare-permissions
 
 configMapGenerator:
   - name: estate-hub-registry
@@ -54,20 +57,27 @@ patches:
       - op: replace
         path: /data/ESTATE_ORG_ID
         value: "o-01a1ce922e3d71f990932be31d8d07fb"
+      # The clinic's app object is a grant scope owned through a tuple (sched_role, sched_client …
+      # hang from sched_app), so its changes are told to the platform tenant that operates the
+      # clinic, or Polaris refuses to start once psi's permissions bundle declares it.
+      - op: add
+        path: /data/WEBHOOK_PLATFORM_SCOPE_TYPES
+        value: "sched_app"
   - target: { kind: Deployment, name: autorizare-hub }
     patch: |-
       # The hub reads its ConfigMap at start only; this restarts it when the TOTP setting above changes.
       - op: add
         path: /spec/template/metadata/annotations
         value: { psi.estate/hub-require-mfa: "false" }
+      # Appended, not set: the permissions-bundle component (above) already gave the hub its
+      # volume and mount, and setting the lists here replaced them (the hub then refused to start:
+      # PERMISSIONS_BUNDLE_DIR set, /authz/bundle/bundle.json absent).
       - op: add
-        path: /spec/template/spec/volumes
-        value:
-          - { name: estate-hub-registry, configMap: { name: estate-hub-registry } }
+        path: /spec/template/spec/volumes/-
+        value: { name: estate-hub-registry, configMap: { name: estate-hub-registry } }
       - op: add
-        path: /spec/template/spec/containers/0/volumeMounts
-        value:
-          - { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: estate-hub-registry, mountPath: /estate/hub, readOnly: true }
   - target: { kind: Deployment, name: autorizare-svc }
     patch: |-
       - op: add
@@ -91,3 +101,9 @@ patches:
       - op: add
         path: /spec/maxUnavailable
         value: 1
+# Slot `image` (schema/slots/autorizare.yaml): the tag of the autorizare-svc image psi built
+# (scripts/estate-images.sh from SEB 0.1.88, psi's authorization inputs), sha256:92765e6a… in
+# registry.psizone.ro/psi, signed. The generated Application sets it (estate/seb-image-tags.mjs).
+images:
+  - name: WLREGISTRY/WLAPPS/autorizare-svc
+    newTag: seb-b776c20ea

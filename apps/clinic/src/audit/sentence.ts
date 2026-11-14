@@ -117,6 +117,10 @@ export function sentenceOf(e: AuditEvent, lookup: AuditLookup, locale: Locale): 
 		case "member_edit":
 		case "member_remove":
 			return memberSentence(e, object, lookup, locale);
+		case "member_invite":
+			return m.jr_s_member_invite({ object }, l);
+		case "member_link":
+			return m.jr_s_member_link({ object }, l);
 		case "view_as_start":
 			return m.jr_s_view_as_start({ object }, l);
 		case "view_as_stop":

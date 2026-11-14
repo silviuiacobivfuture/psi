@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { APP_KEYS, EVENT_IDS } from "./apps";
-import { CATALOGUE, entriesFor, messageStem, PAYLOADS, workflowId } from "./catalogue";
+import {
+	CATALOGUE,
+	CHANNELS,
+	DOMAIN_FIELDS,
+	defaultChannels,
+	entriesFor,
+	kindInfo,
+	kindsOf,
+	messageStem,
+	NOTIFY_KINDS,
+	PAYLOADS,
+	workflowId,
+} from "./catalogue";
 import { SAMPLES } from "./testing/samples";
 import { WORDS } from "./words";
 
@@ -24,6 +36,7 @@ describe("catalogue", () => {
 			for (const app of APP_KEYS) ids.add(workflowId(app, entry.event, entry.audience));
 		}
 		expect(ids.size).toBe(CATALOGUE.length * APP_KEYS.length);
+		expect(Object.keys(WORDS).length).toBe(CATALOGUE.length);
 	});
 
 	it("push is declared only with a purpose, and a client never gets in-app", () => {
@@ -33,31 +46,58 @@ describe("catalogue", () => {
 		}
 	});
 
-	const APPOINTMENT = ["appointmentId", "clientName", "serviceName", "startsAt"];
-	const REQUIRED: Readonly<Record<(typeof EVENT_IDS)[number], ReadonlyArray<string>>> = {
-		"request.new": ["requestId", "name", "kind"],
-		"appointment.requested": APPOINTMENT,
-		"appointment.confirmed": APPOINTMENT,
-		"appointment.moved": [...APPOINTMENT, "previousStartsAt"],
-		"appointment.cancelled": APPOINTMENT,
-		"reminder.day_before": [...APPOINTMENT, "confirmUrl", "cancelUrl"],
-		"reminder.confirmed": APPOINTMENT,
-		"reminder.declined": APPOINTMENT,
-		"package.running_low": ["packageId", "clientId", "clientName", "remaining"],
-		"leave.requested": ["leaveId", "personName", "from", "to"],
-		"leave.approved": ["leaveId", "from", "to"],
-		"leave.declined": ["leaveId", "from", "to"],
-		"payment.recorded": ["paymentId", "serviceName", "amount"],
-		"assistant.action_done": ["actionId", "summary"],
-	};
-	for (const [event, fields] of Object.entries(REQUIRED)) {
-		for (const field of fields) {
+	it("defaults and locks are among the offered channels, and every entry is on by default somewhere", () => {
+		for (const entry of CATALOGUE) {
+			for (const c of entry.defaults ?? []) expect(entry.channels, messageStem(entry)).toContain(c);
+			for (const c of entry.locked ?? []) {
+				expect(entry.channels, messageStem(entry)).toContain(c);
+				expect(defaultChannels(entry), messageStem(entry)).toContain(c);
+			}
+			expect(defaultChannels(entry).length, messageStem(entry)).toBeGreaterThan(0);
+		}
+	});
+
+	it("only team audiences name a permission, and every team entry names one", () => {
+		for (const entry of CATALOGUE) {
+			const team =
+				entry.audience === "team" || entry.audience === "reception" || entry.audience === "owners";
+			expect(entry.needs !== undefined, messageStem(entry)).toBe(team);
+		}
+	});
+
+	it("every entry belongs to a known kind, and each side's page offers channels for it", () => {
+		for (const entry of CATALOGUE) expect(NOTIFY_KINDS).toContain(entry.kind);
+		for (const side of ["client", "staff"] as const)
+			for (const kind of kindsOf(side)) {
+				const info = kindInfo(side, kind);
+				expect(info.offered.length, `${side}/${kind}`).toBeGreaterThan(0);
+				for (const c of [...info.defaults, ...info.locked])
+					expect(info.offered, `${side}/${kind}`).toContain(c);
+				for (const c of info.offered) expect(CHANNELS).toContain(c);
+			}
+	});
+
+	it("a client's e-mail for an invitation or an appointment cannot be switched off", () => {
+		expect(kindInfo("client", "account").locked).toContain("email");
+		expect(kindInfo("client", "appointments").locked).toContain("email");
+		expect(kindInfo("client", "reminders").locked).toEqual([]);
+	});
+
+	it("every payload names the object it is about, so two objects never share a key", () => {
+		for (const event of EVENT_IDS) {
+			const shape = Object.keys(PAYLOADS[event].shape);
+			expect(
+				DOMAIN_FIELDS.some((f) => shape.includes(f)),
+				event,
+			).toBe(true);
+		}
+	});
+
+	for (const event of EVENT_IDS) {
+		for (const [field, schema] of Object.entries(PAYLOADS[event].shape)) {
+			if (schema.isOptional()) continue;
 			it(`${event} refuses a payload without ${field}`, () => {
-				expect(
-					PAYLOADS[event as keyof typeof PAYLOADS].safeParse(
-						withoutKey(SAMPLES[event as keyof typeof SAMPLES], field),
-					).success,
-				).toBe(false);
+				expect(PAYLOADS[event].safeParse(withoutKey(SAMPLES[event], field)).success).toBe(false);
 			});
 		}
 	}
@@ -103,5 +143,28 @@ describe("catalogue", () => {
 				openPath: "/clients/1?tab=x",
 			}).success,
 		).toBe(true);
+		expect(
+			PAYLOADS["feedback.negative"].safeParse({ ...SAMPLES["feedback.negative"], rating: 6 })
+				.success,
+		).toBe(false);
+		expect(
+			PAYLOADS["digest.owner_daily"].safeParse({
+				...SAMPLES["digest.owner_daily"],
+				occupancyPercent: 101,
+			}).success,
+		).toBe(false);
+		expect(
+			PAYLOADS["digest.reception_daily"].safeParse({
+				...SAMPLES["digest.reception_daily"],
+				lines: Array.from({ length: 61 }, () => ({
+					at: "2026-12-01T08:00:00.000Z",
+					text: "x",
+				})),
+			}).success,
+		).toBe(false);
+		expect(
+			PAYLOADS["security.action"].safeParse({ ...SAMPLES["security.action"], action: "nuke" })
+				.success,
+		).toBe(false);
 	});
 });

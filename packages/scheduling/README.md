@@ -139,6 +139,29 @@ scripts/import-old.sh           --export <export.json> --mapping <mapping.json> 
   validated whole; a wrong entry blocks a real run, by key. A seeded entry is created once; a re-run
   never rewrites it, so what staff switched off stays off.
 
+## Keeping in step with the old app until the cut-over (`scripts/sync-old`)
+
+One tool feeds local, dev (anonymized) and production (real). It reads the old Supabase app **strictly read
+only**: the data client has one method, `get`, and refuses any other verb, `rpc` paths and anything that is not a
+table read or a stored object, before a request is made (the sign-in, a password grant, is its one POST and
+changes no data). It builds the importer's own export in memory (`{ exported_at, tables }`, every table the
+importer knows), then runs the importer: changed rows update, new rows insert, a re-run with nothing new writes
+nothing, and **rows the old app no longer has are reported by old id and never deleted**.
+
+```bash
+export OLD_APP_SUPABASE_URL=… OLD_APP_SUPABASE_ANON_KEY=… OLD_APP_EMAIL=… OLD_APP_PASSWORD=…   # never logged
+pnpm sync:old --mapping scripts/import-old/mapping.example.json --dry-run     # counts only, writes nothing
+pnpm sync:old --mapping scripts/import-old/mapping.example.json --anonymize   # dummy identities (local, dev)
+SYNC_ALLOW_REAL=1 pnpm sync:old --mapping scripts/import-old/mapping.example.json   # real data: production only
+```
+
+`--dry-run` compares with the target (read only) and prints new / changed / unchanged / gone-from-the-old-app per
+kind, counts only. `--anonymize` (`sync-old/anonymize.ts`, the port of the dev anonymizer) replaces client names,
+phones, e-mails, birth day (the year stays), occupation, location, guardian, every free text and feedback text,
+volunteer names, client file names and bytes, and avize; it keeps ids, dates, services, money and staff, and never
+downloads a real file. Without `--anonymize` a real run refuses unless `SYNC_ALLOW_REAL=1`. Production runs it from
+a suspended CronJob, dev from a one-shot Job (`gitops/services/scheduling-sync`, `tools/scheduling/sync-dev-once.sh`).
+
 ## The blacklist, feedback and reports
 
 - **Blacklist** (`src/clinic/blacklist.ts`, `convex/apiBlacklist.ts`, `convex/blacklistGate.ts`): an entry

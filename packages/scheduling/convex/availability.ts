@@ -93,7 +93,9 @@ export const slots = query({
 		const found: OfferedSlot[] = [];
 		for (const id of service.practitioners) {
 			const practitioner = await ctx.db.get(id);
-			if (practitioner === null || !practitioner.active) continue;
+			// A person of another tenant is never offered here, whatever the service lists.
+			if (practitioner === null || !practitioner.active || practitioner.tenant !== tenant.slug)
+				continue;
 			const range = {
 				from: args.from,
 				to,

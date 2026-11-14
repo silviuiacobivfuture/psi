@@ -64,7 +64,7 @@ components:
   - ../../components/whitelabel
   - ../../components/estate/autorizare
   # (hub-host, for an estate whose hub label is not `id`, is added after these by the bundle
-  # builder: identity-components.json.)
+  # builder: identity-components.json; so is glitchtip, for an estate whose PLATFORM_APPS lists it.)
 
 replacements:
   - path: whitelabel-replacements.yaml

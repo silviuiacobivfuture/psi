@@ -21,7 +21,6 @@ resources:
   - arc-runners-namespace.yaml
   - arc-runner-secret.yaml
   - openbao.yaml
-  - secret-store.yaml
   - previews.yaml
   # Argo CD's own configuration is a SEB piece: the consumer generates its Application
   # (pieces/argocd-config), which keeps the name argocd-config.

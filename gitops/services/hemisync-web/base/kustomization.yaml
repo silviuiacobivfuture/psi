@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - harbor-pull-externalsecret.yaml
   - externalsecret.yaml
+  - mail-externalsecret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

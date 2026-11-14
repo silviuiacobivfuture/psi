@@ -1,6 +1,6 @@
-# Namespace bounds. Requests sum (affine 192Mi, affine-db 64Mi, redis 16Mi) ≈ 272Mi, the
-# init containers and jobs (migrate 192Mi, the dump ~130Mi, first-admin 48Mi) run one at a
-# time beside them. Sized to the workload on a small estate, not to the box: the first one
+# Namespace bounds. Requests sum (affine 192Mi, affine-db 64Mi, redis 16Mi, manticore 512Mi:
+# its dictionaries, manticore.yaml) ≈ 784Mi, the init containers and jobs (migrate 192Mi, the dump ~130Mi, first-admin 48Mi) run
+# one at a time beside them. Sized to the workload on a small estate, not to the box: the first one
 # to run it (one server at ~98% requested memory, 2026-11-12) had ~300Mi left. The LIMITS
 # are what AFFiNE needs under load (a large import, a big whiteboard); requests are what it
 # holds idle.

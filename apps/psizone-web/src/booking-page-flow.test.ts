@@ -97,8 +97,10 @@ describe("the booking page against the scheduling service", () => {
 			...base,
 			slot: real,
 			name: "Test Vizitator",
+			age: "34",
+			details: "Aș vrea o evaluare, de câteva luni nu dorm bine.",
 			phone: "0712 345 678",
-			email: "",
+			email: "test.vizitator@example.ro",
 			forWhom: "adult",
 			when: "any",
 			consent: "yes",
@@ -114,8 +116,10 @@ describe("the booking page against the scheduling service", () => {
 			...base,
 			slot: real,
 			name: "Alt Vizitator",
+			age: "34",
+			details: "Aș vrea o evaluare, de câteva luni nu dorm bine.",
 			phone: "0712 345 679",
-			email: "",
+			email: "alt.vizitator@example.ro",
 			forWhom: "adult",
 			when: "any",
 			consent: "yes",
@@ -153,8 +157,10 @@ describe("the booking page against the scheduling service", () => {
 		const thanked = await post(app, "/programare", {
 			form: "booking",
 			name: "Test Apel",
+			age: "34",
+			details: "Aș vrea o evaluare, de câteva luni nu dorm bine.",
 			phone: "0712 345 670",
-			email: "",
+			email: "test.apel@example.ro",
 			forWhom: "adult",
 			when: "morning",
 			slot: "",
@@ -162,6 +168,6 @@ describe("the booking page against the scheduling service", () => {
 		});
 		expect(thanked).toContain("Test Apel");
 		expect(api.world.notifier.sent.slice(told).map((n) => n.event)).toEqual(["request.created"]);
-		expect(await api.world.dump()).toContain("0712 345 670");
+		expect(await api.world.dump()).toContain("test.apel@example.ro");
 	}, 30_000);
 });

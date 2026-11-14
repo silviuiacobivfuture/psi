@@ -13,5 +13,5 @@ data:
   otel-agent-550: "WLSLUG-dev-containers\n"
   otel-agent-581: "WLSLUG-dev-network\n"
   otel-agent-612: "WLSLUG-dev-node\n\nservice:\n"
-  otel-cluster-11: WLSLUG-dev-node.
-  otel-cluster-112: "WLSLUG-dev-node\n\nservice:\n"
+  otel-cluster-11: WLSLUG-dev-k8s-events.
+  otel-cluster-112: "WLSLUG-dev-k8s-events\n\nservice:\n"

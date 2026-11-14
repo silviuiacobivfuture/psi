@@ -10,6 +10,12 @@ export interface LiveAuthzOptions {
 	/** The pinned model id. Never "latest": the adapter refuses to be built without one. */
 	modelId: string;
 	token: string;
+	/**
+	 * Scopes this instance's app objects in a store another instance shares: `sched_app:psizone` is written and read as
+	 * `sched_app:<prefix>psizone` (`prod-` gives `sched_app:prod-psizone`), so a role held in one instance grants
+	 * nothing in the other. Empty: the ids go out as they are.
+	 */
+	appPrefix?: string;
 	fetch?: typeof globalThis.fetch;
 	now?: () => number;
 	timeoutMs?: number;
@@ -37,6 +43,11 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 	const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 	const now = options.now ?? Date.now;
 	let strongUntil = 0;
+	const prefix = options.appPrefix ?? "";
+	const appHead = "sched_app:";
+	/** `sched_app:x` and `sched_app:x#member` gain the prefix on the wire; every other object is untouched. */
+	const wire = (id: string): string =>
+		prefix !== "" && id.startsWith(appHead) ? `${appHead}${prefix}${id.slice(appHead.length)}` : id;
 
 	async function post(base: string, path: string, body: unknown): Promise<unknown> {
 		let res: Response;
@@ -67,13 +78,13 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 		now() < strongUntil ? "HIGHER_CONSISTENCY" : "MINIMIZE_LATENCY";
 	const context = (): { now: string } => ({ now: new Date(now()).toISOString() });
 	const keys = (tuples: readonly Tuple[]): { user: string; relation: string; object: string }[] =>
-		tuples.map((t) => ({ user: t.user, relation: t.relation, object: t.object }));
+		tuples.map((t) => ({ user: wire(t.user), relation: t.relation, object: wire(t.object) }));
 
 	return {
 		async check(user, relation, object) {
 			const raw = await post(options.readUrl, "/check", {
 				authorization_model_id: options.modelId,
-				tuple_key: { user, relation, object },
+				tuple_key: { user: wire(user), relation, object: wire(object) },
 				context: context(),
 				consistency: consistency(),
 			});
@@ -87,7 +98,7 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 				const raw = await post(options.readUrl, "/batch-check", {
 					authorization_model_id: options.modelId,
 					checks: chunk.map((q, i) => ({
-						tuple_key: { user: q.user, relation: q.relation, object: q.object },
+						tuple_key: { user: wire(q.user), relation: q.relation, object: wire(q.object) },
 						context: context(),
 						correlation_id: String(i),
 					})),
@@ -109,7 +120,7 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 				authorization_model_id: options.modelId,
 				type,
 				relation,
-				user,
+				user: wire(user),
 				context: context(),
 				consistency: consistency(),
 			});
@@ -118,7 +129,12 @@ export function createLiveAuthz(options: LiveAuthzOptions): AuthzPort {
 			// and a partial reach would hide clients silently. It fails closed instead.
 			if (objects.length >= LIST_MAX)
 				throw new AuthzUnavailable("authz: ListObjects reached its result cap");
-			return objects;
+			if (prefix === "" || type !== "sched_app") return objects;
+			// Only this instance's apps, with the prefix taken off again.
+			const own = `${appHead}${prefix}`;
+			return objects
+				.filter((o) => o.startsWith(own))
+				.map((o) => `${appHead}${o.slice(own.length)}`);
 		},
 		async write(change: TupleChange) {
 			// OpenFGA bounds one write request by the writes AND deletes together: 100 tuples in all, deletes first.
