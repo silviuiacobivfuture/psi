@@ -6,4 +6,4 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/clinic
-    newTag: "d0e2529"
+    newTag: "dbdc0a4"
