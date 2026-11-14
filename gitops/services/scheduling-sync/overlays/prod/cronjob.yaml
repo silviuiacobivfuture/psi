@@ -1,5 +1,6 @@
 # Keeps PRODUCTION's store in step with the old app until the cut-over: every 15 minutes, REAL data
-# (SYNC_ALLOW_REAL=1: this is the one place it is set). SUSPENDED until the owner flips `suspend` to false in a commit.
+# (SYNC_ALLOW_REAL=1: this is the one place it is set). Running since 2026-11-14 (owner): the first pass was run by hand
+# after a --dry-run, and a second --dry-run then found every row unchanged.
 #
 # What it does (packages/scheduling/scripts/sync-old): reads the old app strictly read-only (GET), runs the importer
 # against production's backend: changed rows update, new rows insert, rows deleted in the old app are reported in the
@@ -15,9 +16,8 @@ metadata:
     alerts.psizone.ro/owner: ops@psizone.ro
 spec:
   schedule: "*/15 * * * *"
-  # THE OWNER'S SWITCH. First run it by hand (the Job from `kubectl create job --from=cronjob/scheduling-sync`) after a
-  # --dry-run, then set this to false.
-  suspend: true
+  # THE OWNER'S SWITCH: true stops the passes (e.g. after the cut-over, when the old app is retired).
+  suspend: false
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
   successfulJobsHistoryLimit: 3

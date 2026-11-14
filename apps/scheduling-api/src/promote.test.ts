@@ -385,8 +385,8 @@ describe("the old-app sync's manifests", () => {
 	const cron = read("gitops/services/scheduling-sync/overlays/prod/cronjob.yaml");
 	const dev = read("gitops/services/scheduling-sync/overlays/dev-once/job.yaml");
 
-	it("production's CronJob is suspended, every 15 minutes, never overlapping, and holds the real-data switch", () => {
-		expect(cron).toMatch(/^ {2}suspend: true$/m);
+	it("production's CronJob runs (the owner switched it on), every 15 minutes, never overlapping, and holds the real-data switch", () => {
+		expect(cron).toMatch(/^ {2}suspend: false$/m);
 		expect(cron).toMatch(/^ {2}schedule: "\*\/15 \* \* \* \*"$/m);
 		expect(cron).toMatch(/^ {2}concurrencyPolicy: Forbid$/m);
 		expect(cron).toContain('{ name: SYNC_ALLOW_REAL, value: "1" }');
