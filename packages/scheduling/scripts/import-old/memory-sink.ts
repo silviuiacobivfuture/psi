@@ -96,6 +96,13 @@ export class MemorySink implements ImportSink {
 		return out;
 	}
 
+	async stored(_tenant: string, kind: Kind): Promise<Map<string, string | undefined>> {
+		if (kind === "blacklist") return new Map();
+		return new Map(
+			[...this.table(kind)].map(([id, s]) => [id, String(Reflect.get(s.row, "fingerprint"))]),
+		);
+	}
+
 	async knownFiles(): Promise<Map<string, string>> {
 		const known = new Map<string, string>();
 		for (const [id, stored] of this.table("files")) {

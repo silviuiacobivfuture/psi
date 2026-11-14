@@ -34,6 +34,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 					storeId: config.authz.storeId,
 					modelId: config.authz.modelId,
 					token: config.authz.token,
+					appPrefix: config.authz.appPrefix,
 				})
 			: createMemoryAuthz();
 	const denials: Parameters<typeof createAccess>[1] = async (app, subject) =>

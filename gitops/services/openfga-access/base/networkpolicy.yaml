@@ -23,11 +23,24 @@ spec:
             matchLabels: { kubernetes.io/metadata.name: scheduling-api }
           podSelector:
             matchLabels: { app: scheduling-api }
+        # Production: the same pods in their own namespaces (one store, `prod-` scoped app objects).
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: clinic-prod }
+          podSelector:
+            matchLabels: { app: clinic }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling-api-prod }
+          podSelector:
+            matchLabels: { app: scheduling-api }
       ports:
         - { protocol: TCP, port: 8081 }
     - from:
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: scheduling-api }
+          podSelector:
+            matchLabels: { app: scheduling-api }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: scheduling-api-prod }
           podSelector:
             matchLabels: { app: scheduling-api }
       ports:

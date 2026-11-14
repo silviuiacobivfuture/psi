@@ -27,6 +27,9 @@ spec:
             matchLabels: { app: hemisync-web }
         - podSelector:
             matchLabels: { app: scheduling-deploy }
+        # The one-shot old-app sync (gitops/services/scheduling-sync), same namespace.
+        - podSelector:
+            matchLabels: { app: scheduling-sync }
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: cms }
           podSelector:

@@ -1,0 +1,82 @@
+# The team console for PRODUCTION (programari.psizone.ro): its own namespace, its own OIDC client (Authentik's
+# `clinic-prod`, gitops/platform/authentik/blueprints-clinic-prod.yaml), its own session secret, and its own account
+# database (the CNPG Cluster in namespace account-db-prod, gitops/services/account-db). It calls scheduling-api-prod only.
+# Registered as `clinic-prod` in gitops/apps/overlays/dev/apps/.
+#
+# THE IMAGE TAG IS PROMOTED, NOT BUMPED: CI never writes this file; `tools/scheduling/promote.sh <sha>` does.
+# "unpromoted" until the first promotion.
+#
+# OpenBao: secret/apps/clinic-prod/{oidc,env}, secret/apps/account-prod/{db,openfga}; shared and only read:
+# secret/apps/autorizare/env (OPENFGA_STORE_ID: the SAME store as dev; prod's objects are `prod-` scoped by the API).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: clinic-prod
+resources:
+  - ../../base
+images:
+  - name: registry.psizone.ro/psi/clinic
+    newTag: "unpromoted"
+patches:
+  # The dev overlay's database lives in the dev console's namespace; production's is account-db-prod's.
+  - patch: |-
+      $patch: delete
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata: { name: account-db }
+  - patch: |-
+      $patch: delete
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      metadata: { name: account-db-base }
+  - patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata: { name: account-db-app }
+  - patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata: { name: account-db-backup-s3 }
+  - target: { kind: Deployment, name: clinic }
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: clinic
+      spec:
+        template:
+          spec:
+            containers:
+              - name: web
+                env:
+                  - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
+                  - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api-prod.svc" }
+  - target: { kind: Ingress, name: clinic }
+    patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: programari.psizone.ro
+      - op: replace
+        path: /spec/rules/0/host
+        value: programari.psizone.ro
+  - target: { kind: NetworkPolicy, name: clinic }
+    patch: |-
+      - op: replace
+        path: /spec/egress/2/to/0/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: account-db-prod
+      - op: replace
+        path: /spec/egress/3/to/0/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: scheduling-api-prod
+  - target: { kind: ExternalSecret, name: clinic-env }
+    patch: |-
+      - { op: replace, path: /spec/data/0/remoteRef/key, value: apps/clinic-prod/oidc }
+      - { op: replace, path: /spec/data/1/remoteRef/key, value: apps/clinic-prod/oidc }
+      - { op: replace, path: /spec/data/2/remoteRef/key, value: apps/clinic-prod/env }
+      - { op: replace, path: /spec/data/3/remoteRef/key, value: apps/clinic-prod/env }
+      - { op: replace, path: /spec/data/5/remoteRef/key, value: apps/account-prod/openfga }
+      - { op: replace, path: /spec/data/6/remoteRef/key, value: apps/account-prod/db }
+      - { op: replace, path: /spec/data/7/remoteRef/key, value: apps/account-prod/db }
+      - op: replace
+        path: /spec/target/template/data/ACCOUNT_DATABASE_URL
+        value: "postgresql://{{ .db_username }}:{{ .db_password }}@account-db-rw.account-db-prod.svc:5432/account?sslmode=disable"
