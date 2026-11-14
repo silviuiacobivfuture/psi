@@ -23,6 +23,7 @@ import { worstFailure } from "./lib/failures";
 import { at, type Locale } from "./lib/i18n";
 import { joinRoles } from "./lib/roles-joined";
 import { FailureState } from "./pages/failure";
+import { PauseBanner } from "./pages/pause-banner";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
@@ -197,16 +198,11 @@ export async function Page({
 	const { locale } = ctx;
 	const o = at(locale);
 	const { can } = ctx;
-	// The badge counts the first page of open requests (never every request): "50+" when more follow; the live inbox
-	// stream then patches the service's exact count.
+	// The badge is the service's count of open requests (one row asked, never every request).
 	let open: number | string = 0;
 	if (can.has("web_requests_view")) {
 		try {
-			const first = await ctx.port.requestPage(ctx.app, "open", null);
-			open =
-				first.nextCursor === null
-					? first.items.length
-					: m.ls_count_more({ n: String(first.items.length) }, o);
+			open = (await ctx.port.requestPage(ctx.app, "open", { page: 1, size: 1 })).total;
 		} catch {
 			open = 0;
 		}
@@ -221,6 +217,9 @@ export async function Page({
 		) : (
 			children
 		);
+	// While online booking is stopped, every screen says so. Read after the screen's own refusals are judged, so a pause
+	// list that cannot be read never turns the page into a failure.
+	const paused = await PauseBanner({ ctx });
 	const item = (
 		key: NavKey,
 		label: string,
@@ -398,6 +397,7 @@ export async function Page({
 						</Banner>
 					</form>
 				)}
+				{paused}
 				{shown}
 			</AdminShell>
 		</Layout>

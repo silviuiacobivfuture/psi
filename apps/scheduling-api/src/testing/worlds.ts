@@ -20,9 +20,9 @@ export interface WorldFactory {
 const APPS = ["psizone", "hemisync", "newapp"] as const;
 
 /**
- * Weekly opening hours are the booking flow's own data, set by the team's tools and the import, not by a route of this
- * API; the visitor routes offer a slot only where a practitioner has some. The Convex world gives its two practitioners
- * a working week so that the booking happy paths have slots to take.
+ * The visitor routes offer a slot only where a practitioner has weekly hours. A new practitioner in Convex has none (the
+ * memory store seeds Monday to Friday), so the Convex world gives its two practitioners a working week, every day, so
+ * that the booking happy paths have slots to take.
  */
 async function openHours(rpc: Rpc, tenant: string, people: readonly string[]): Promise<void> {
 	for (const person of people) {

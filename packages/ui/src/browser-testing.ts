@@ -36,10 +36,19 @@ export const ViolationsSchema = z.array(
 	z.object({ id: z.string(), impact: z.string().nullable(), nodes: z.array(z.string()) }),
 );
 
-/** axe-core over `context` (a JS expression for a node, or `document`) with the WCAG 2.2 A and AA rule sets. */
+/**
+ * Every animation that ends (a sheet rising in, a toast) finished first, so the page is measured as a person sees it
+ * settled, not half-faded on a slow machine; one that never ends (a loading skeleton's pulse) is not waited for.
+ */
+const SETTLED = `Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined)))`;
+
+/**
+ * axe-core over `context` (a JS expression for a node, or `document`) with the WCAG 2.2 A and AA rule sets, on the
+ * settled page.
+ */
 export function axeRunOn(context: string): string {
-	return `axe.run(${context}, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } }).then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact ?? null, nodes: v.nodes.map((n) => n.target.join(" ")) })))`;
+	return `${SETTLED}.then(() => axe.run(${context}, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } })).then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact ?? null, nodes: v.nodes.map((n) => n.target.join(" ")) })))`;
 }
 
-/** axe-core over the whole document with the WCAG 2.2 A and AA rule sets. */
+/** axe-core over the whole document with the WCAG 2.2 A and AA rule sets, on the settled page. */
 export const AXE_RUN = axeRunOn("document");

@@ -1,6 +1,7 @@
 import { accountHashOf, encodeSlot, sha256 } from "@psi/scheduling";
 import {
 	canonicalCode,
+	type DayException,
 	generateSlots,
 	makeReference,
 	makeToken,
@@ -62,13 +63,11 @@ const MINUTE = 60_000;
 const HOLD_MINUTES = 10;
 /** Memory mode only: how long before its start a booking stops being offered, and stops being changed online. */
 const NOTICE_MINUTES = 60;
-/** Memory mode only: every practitioner works Monday to Friday, 09:00-17:00 (the Convex store holds the real rules). */
-const WEEK: WeeklyRule[] = [1, 2, 3, 4, 5].map((weekday) => ({
-	weekday,
-	start: 540,
-	end: 1020,
-	modes: ["onsite", "online"],
-}));
+/** One practitioner's weekly rules and one-off days, as the availability store keeps them. */
+export type HoursOf = (
+	app: string,
+	personId: string,
+) => { rules: ReadonlyArray<WeeklyRule>; exceptions: ReadonlyArray<DayException> };
 
 type Cs = { [K in keyof Rows]: Collection<Rows[K]> };
 
@@ -82,6 +81,7 @@ export function createMemoryVisitor(
 		channel: "callback" | "form" | "guide",
 		subject?: string,
 	) => Promise<boolean>,
+	hours: HoursOf,
 ): {
 	visitor: VisitorPort;
 	requests: RequestsPort;
@@ -176,11 +176,12 @@ export function createMemoryVisitor(
 		const slots: OfferedSlot[] = [];
 		for (const person of found.people.filter((p) => only === undefined || p.id === only)) {
 			const busy = await busyOf(app, person.id, found.spec.bufferMinutes, except);
+			const { rules, exceptions } = hours(app, person.id);
 			for (const slot of generateSlots({
 				timeZone,
 				service: found.spec,
-				rules: WEEK,
-				exceptions: [],
+				rules,
+				exceptions,
 				busy,
 				from,
 				to,
@@ -210,6 +211,8 @@ export function createMemoryVisitor(
 	};
 
 	const visitor: VisitorPort = {
+		// The visitor flow names a practitioner by their people id here.
+		practitionerKey: (personId) => personId,
 		async services(app) {
 			const timeZone = await zone(app);
 			if (timeZone === undefined) return undefined;
@@ -229,7 +232,7 @@ export function createMemoryVisitor(
 			};
 		},
 		async slots(app, q) {
-			const out = await offered(app, q.service, q.from, q.to, q.mode);
+			const out = await offered(app, q.service, q.from, q.to, q.mode, q.practitioner);
 			if (!out.ok) return out;
 			return {
 				ok: true,

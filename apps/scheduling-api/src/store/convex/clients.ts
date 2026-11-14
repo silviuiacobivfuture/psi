@@ -210,12 +210,19 @@ export function clientsCollection(call: Caller, clock: () => number): ClientColl
 		const docs: ClientDoc[] = [];
 		let cursor: string | null = null;
 		for (;;) {
-			const page: { clients: ClientDoc[]; continueCursor: string; isDone: boolean } =
-				await call.query(
-					`${FN}:clientsPage`,
-					{ tenant: app, standing, cursor, numItems: PAGE },
-					{ clients: z.array(Doc), continueCursor: z.string(), isDone: z.boolean() },
-				);
+			const page: {
+				clients: ClientDoc[];
+				continueCursor: string;
+				isDone: boolean;
+			} = await call.query(
+				`${FN}:clientsPage`,
+				{ tenant: app, standing, cursor, numItems: PAGE },
+				{
+					clients: z.array(Doc),
+					continueCursor: z.string(),
+					isDone: z.boolean(),
+				},
+			);
 			docs.push(...page.clients);
 			if (page.isDone) break;
 			cursor = page.continueCursor;
@@ -407,6 +414,51 @@ export function clientsCollection(call: Caller, clock: () => number): ClientColl
 				),
 			);
 		},
+		async page(app, ask) {
+			const out = await call.query(
+				"apiClientPage:page",
+				{
+					tenant: app,
+					standing: ask.standing,
+					sort: ask.sort,
+					offset: ask.offset,
+					size: ask.size,
+					now: ask.now,
+					...(ask.within === undefined ? {} : { within: [...ask.within] }),
+					...(ask.practitioners === undefined
+						? {}
+						: {
+								practitioners: ask.practitioners.flatMap((p) => practitionerKey(p)),
+							}),
+					...(ask.flag === undefined ? {} : { flag: ask.flag }),
+					...(ask.packages === undefined ? {} : { packages: ask.packages }),
+					...(ask.q === undefined || ask.q === "" ? {} : { q: ask.q }),
+				},
+				{
+					clients: z.array(
+						z.object({
+							client: Doc,
+							treating: z.array(z.string()),
+							lastVisit: z.number().nullable(),
+						}),
+					),
+					total: z.number(),
+					offset: z.number(),
+				},
+			);
+			return {
+				rows: out.clients.map((found) => ({
+					row: toRow(
+						app,
+						found.client,
+						found.treating.map((t) => `p${t}`),
+					),
+					lastVisit: found.lastVisit,
+				})),
+				total: out.total,
+				offset: out.offset,
+			};
+		},
 		async list(app: string, query?: Query<ClientRow>) {
 			const wanted = query?.eq?.status;
 			const rows = await read(app, wanted ?? "all");
@@ -417,6 +469,12 @@ export function clientsCollection(call: Caller, clock: () => number): ClientColl
 
 const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
 	a.length === b.length && a.every((x) => b.includes(x));
+
+/** A practitioner filter's id as Convex keeps it; an id that names no practitioner matches nobody (dropped). */
+function practitionerKey(apiId: string): string[] {
+	const at = splitTable(["p"], apiId);
+	return at === undefined ? [] : [at.id];
+}
 
 function practitionerId(apiId: string): string {
 	const at = splitTable(["p"], apiId);

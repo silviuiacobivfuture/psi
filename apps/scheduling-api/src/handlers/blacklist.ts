@@ -2,7 +2,7 @@ import type { HandlersOf } from "../http/context";
 import { forbidden, notFound } from "../http/errors";
 import type { BlacklistRow } from "../store/ports";
 import { StoreRefused } from "../store/types";
-import { paginate } from "./shared";
+import { numbered } from "./shared";
 
 /** `severity_not_allowed` is the caller's role being too weak for what they asked: a refusal of permission, not of input. */
 async function asked<T>(run: () => Promise<T>): Promise<T> {
@@ -27,11 +27,14 @@ export const blacklistHandlers: HandlersOf<
 	| "blacklist.remove"
 > = {
 	async "blacklist.list"(ctx) {
-		const rows = await ctx.deps.store.blacklist.list(ctx.app, ctx.query.includeInactive === "true");
-		const page = paginate(
+		const all = await ctx.deps.store.blacklist.list(ctx.app, ctx.query.includeInactive === "true");
+		const rows = ctx.query.clientsOnly === "true" ? all.filter((e) => e.client !== undefined) : all;
+		// Bounded by the store: at most MAX_ACTIVE_ENTRIES entries an app (the store refuses more), numbered here.
+		const page = numbered(
 			rows.sort((a, b) => b.createdAt - a.createdAt),
 			ctx.query.limit,
 			ctx.query.cursor,
+			ctx.query.offset,
 		);
 		return { ...page, items: page.items.map(out) };
 	},

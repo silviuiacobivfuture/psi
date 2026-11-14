@@ -112,7 +112,7 @@ export function registerDetail(app: Hono<Env>): void {
 					toast = await run(c, ctx, id);
 				} catch (err) {
 					const text =
-						err instanceof PortError && err.code === "conflict"
+						err instanceof PortError && err.code === "conflict" && err.reason !== "booking_paused"
 							? m.ap_conflict_blocked({}, o)
 							: (refusalText(err, ctx.locale) ?? m.error_title({}, o));
 					stream.patchElements(toastElement(text, m.dismiss({}, o)));

@@ -2,23 +2,33 @@ import type { Agent } from "@mastra/core/agent";
 import { RequestContext } from "@mastra/core/request-context";
 import type { Memory } from "@mastra/memory";
 import { z } from "zod";
-import { CREATIVITY_TEMPERATURE } from "../behaviour";
+import { MODEL_KEY } from "../agent";
 import { within } from "../deadline";
 import type { LanguageDetector } from "../language/detect";
 import { forgetAnswer } from "../memory";
+import { usageOf as modelUsageOf, USAGE_WAIT_MS, type UsageSource } from "../usage";
 import { matchActions } from "./actions";
+import { modelKeyOf, type StaffUsage, skillsFor, toolAllowance } from "./assistant-config";
 import type { StaffCard, StaffEvent, StaffTurnInput } from "./events";
 import { stripTags, withoutFence } from "./fence";
 import { staffNotes } from "./prompt";
 import { finishedShort, isEmptyCard, withoutUnbackedClaims } from "./reply-guards";
 import { SESSION_KEY, type StaffSession } from "./session";
+import { outputCapOf, stepChoice } from "./step-budget";
 import { toolKeyOf } from "./tool-ids";
 
-/** Room for a reasoning model's thinking and then a whole answer: the reply is never cut by this in practice. */
-const MAX_OUTPUT_TOKENS = 6_144;
-/** Tool rounds per reply, then the reply. */
-const MAX_STEPS = 8;
 const FIRST_CHUNK_MS = 15_000;
+
+/**
+ * The provider caches everything up to here: the standing instructions (the organisation's version of them, its skills)
+ * are the same across its turns, so they are marked as the prompt's cache breakpoint; the per-turn notes come after.
+ */
+export const CACHE_BREAKPOINT = { openrouter: { cacheControl: { type: "ephemeral" as const } } };
+
+/** What a finished stream used, as the staff meters take it. */
+async function usageOf(output: UsageSource, signal: AbortSignal): Promise<StaffUsage> {
+	return { ...(await modelUsageOf(output, signal)), limitHit: false };
+}
 
 export interface TurnTimeouts {
 	idleMs: number;
@@ -37,6 +47,10 @@ export interface TurnArgs {
 	onFailure: (stage: string, error: unknown) => void;
 	/** Set on the one automatic retry after a provider failure that came before any output. */
 	retried?: boolean;
+	/** Told what the turn used (tokens, cost) before it ends; awaited, never failing the turn. */
+	onUsage?: (usage: StaffUsage) => Promise<void>;
+	/** The conversation's summary of its folded older part (`memory.compactAfter`), read with the per-turn notes. */
+	summary?: string;
 }
 
 /** The thread a conversation lives in: the person's own namespace, never a visitor's. */
@@ -96,39 +110,64 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 	let proposed = 0;
 	/** Cards with nothing in them wait for the end: shown once, and not at all when the words say it. */
 	const emptyCards: Array<StaffCard> = [];
+	const settings = session.config.settings;
+	/** Tool rounds, then one last step that may only write the reply. */
+	const steps = settings.maxToolCalls + 1;
+	let streamed:
+		| { totalUsage: PromiseLike<unknown>; providerMetadata: PromiseLike<unknown> }
+		| undefined;
 	try {
 		const other = args.detector.isOther(input.message, session.copy.locale)
 			? args.detector.detect(input.message)
 			: undefined;
+		session.allow = toolAllowance(skillsFor(session.config.skills, input.message));
 		const output = await within(
 			agent.stream([{ role: "user", content: input.message }], {
-				instructions: args.instructions,
-				system: staffNotes({
-					copy: session.copy,
-					principal: session.principal,
-					page: input.page ?? session.page,
-					timeZone: session.timeZone,
-					now: session.now(),
-					otherLanguage: other,
-				}),
-				requestContext: new RequestContext<unknown>([[SESSION_KEY, session]]),
-				maxSteps: MAX_STEPS,
-				// The last step has no tools, so the turn ends in words, never in one more call.
-				prepareStep: ({ stepNumber }) =>
-					stepNumber >= MAX_STEPS - 1 ? { toolChoice: "none" as const } : undefined,
+				instructions: {
+					role: "system",
+					content: args.instructions,
+					providerOptions: CACHE_BREAKPOINT,
+				},
+				system: [
+					staffNotes({
+						copy: session.copy,
+						principal: session.principal,
+						page: input.page ?? session.page,
+						timeZone: session.timeZone,
+						now: session.now(),
+						otherLanguage: other,
+					}),
+					...(args.summary === undefined ? [] : [args.summary]),
+				].join("\n\n"),
+				requestContext: new RequestContext<unknown>([
+					[SESSION_KEY, session],
+					[MODEL_KEY, modelKeyOf(settings)],
+				]),
+				maxSteps: steps,
+				// The last step has no tools, nor does one after the turn used its tokens per request: the turn ends in
+				// words, never in one more call.
+				prepareStep: ({ stepNumber, steps: done }) => stepChoice(settings, stepNumber, done),
 				maxProcessorRetries: 0,
 				abortSignal: controller.signal,
 				modelSettings: {
 					maxRetries: 0,
-					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					temperature: CREATIVITY_TEMPERATURE.precise,
+					maxOutputTokens: outputCapOf(settings),
+					temperature: settings.temperature,
 				},
-				memory: { thread: key.threadId, resource: key.resourceId },
+				memory: {
+					thread: key.threadId,
+					resource: key.resourceId,
+					options: { lastMessages: settings.memory.historyMessages },
+				},
 			}),
 			Math.min(timeouts.idleMs, FIRST_CHUNK_MS),
 			"model start",
 			controller.signal,
 		);
+		streamed = output;
+		// The figures are read at the end, or never (a retried attempt): a failed stream must not leave them unhandled.
+		Promise.resolve(output.totalUsage).catch(() => undefined);
+		Promise.resolve(output.providerMetadata).catch(() => undefined);
 		settled.push(output.finishReason.catch(() => undefined));
 		const reader = output.fullStream.getReader();
 		const names = new Map<string, string>();
@@ -261,6 +300,15 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 		clearTimeout(total);
 		args.signal?.removeEventListener("abort", onAbort);
 		if (failed) void forgetAnswer(args.memory, key, started, Promise.all(settled));
+	}
+	// What the attempt used is counted even when it failed: the provider may have charged for it.
+	// A retry before any output is the same turn: it is recorded once, by the attempt that answers.
+	if (streamed !== undefined && args.onUsage !== undefined && !retry) {
+		try {
+			await args.onUsage(await usageOf(streamed, AbortSignal.timeout(USAGE_WAIT_MS * 2)));
+		} catch (error) {
+			args.onFailure("usage", error);
+		}
 	}
 	if (retry) {
 		yield* runTurn({ ...args, retried: true });

@@ -182,6 +182,10 @@ export interface ModelOptions {
 	 * a turn until its fallback.
 	 */
 	sort?: ProviderSort;
+	/** Models OpenRouter tries, in order, when the first fails or refuses (its `models` routing). */
+	fallbacks?: ReadonlyArray<string>;
+	/** Ask OpenRouter for each answer's tokens and cost (its usage accounting), for the meters. */
+	usage?: boolean;
 }
 
 /** How OpenRouter orders the providers it may route to. */
@@ -200,6 +204,11 @@ export function openRouterModel(opts: ModelOptions): ChatModel {
 	return forMastra(
 		provider.chat(opts.modelId, {
 			provider: { data_collection: opts.dataCollection ?? "deny", sort: opts.sort ?? "latency" },
+			...(opts.fallbacks === undefined || opts.fallbacks.length === 0
+				? {}
+				: // As extra body: the provider drops the sampling settings when it is told of `models` itself.
+					{ extraBody: { models: [opts.modelId, ...opts.fallbacks] } }),
+			...(opts.usage === true ? { usage: { include: true } } : {}),
 		}),
 		opts.onError,
 	);

@@ -5,7 +5,7 @@ import type { Ctx, Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import { m } from "../paraglide/messages.js";
 import type { AppointmentRow, ClientRow } from "../store/types";
-import { addDaysKey, must, paginate } from "./shared";
+import { addDaysKey, must, numbered } from "./shared";
 
 type C = Ctx<RouteSpec>;
 type Locale = "ro" | "en";
@@ -220,7 +220,8 @@ export const reminderHandlers: HandlersOf<
 			// Open: still waiting for the team; handled: decided one way or another.
 			.filter((r) => state === undefined || (r.status === "requested") === (state === "open"))
 			.sort((a, b) => b.createdAt - a.createdAt);
-		return paginate(rows, ctx.query.limit, ctx.query.cursor);
+		// Bounded by the window asked (the store reads one time range of web requests, which retention keeps short).
+		return numbered(rows, ctx.query.limit, ctx.query.cursor, ctx.query.offset);
 	},
 
 	async "requests.decide"(ctx) {

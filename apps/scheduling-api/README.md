@@ -121,6 +121,49 @@ what is going on, phone AND e-mail (`@psi/scheduling-sdk/contract` `booking-fiel
 `age_invalid`, …, `email_invalid`), `detail.field` and every refused field in `detail.fields`, before anything is
 written. The age and the details are kept with the contact and erased with it.
 
+## Stopping online booking
+
+`/v1/apps/:app/booking-pauses` (`bookingPause.list` for every member; `create`/`update`/`remove` need
+`booking_pause_edit`, the Owner's and the Administrator's; journaled `booking_pause.*`). A pause covers the whole
+organisation (the app), one public site (the caller a service key names: `psizone-web`, `hemisync-web`), one service
+(slug) or one practitioner (people id); it starts now or at `from` and lasts until `until` or until it is removed. It is
+in force when the service's clock is in that window: nothing stores an "active" flag. While one covers a visitor's
+booking, `visitor.slots`, `visitor.hold`, `visitor.submit` and `visitor.mineReschedule` answer 409 `booking_paused` with
+`detail` = `BookingPausedDetail` (`level`, `message` RO/EN — the pause's own or the default, which follows
+`callbacksOpen` — `callbacksOpen`, `until`), and nothing is written; a practitioner's own pause takes only their times
+out of `visitor.slots` and them out of `visitor.services`. `visitor.services` carries `pause` (organisation or site) and
+each service its own. `visitor.callback` is refused only while a covering pause has `callbacksOpen: false`; a release, a
+cancel and the visitor's own list always work. Staff keep booking from the console unless the pause has `blockStaff`:
+then `appointments.create`, a move (`appointments.update` of the time or the person) and `series.create/update` of what
+it covers answer the same 409.
+
+```bash
+curl -XPOST localhost:4380/v1/apps/psizone/booking-pauses -H "authorization: Bearer $T" -H 'content-type: application/json' \
+  -d '{"scope":{"level":"organisation"},"until":1795000000000,"callbacksOpen":true,"blockStaff":false}'
+```
+
+## Availability
+
+A practitioner's weekly rules and one-off days, and the rooms' closed days (`availability_view`/`availability_edit` at
+`all` or `own` on the practitioner's `sched_calendar`; rooms under `rooms_view`/`rooms_edit`):
+
+| Route | What it does |
+| --- | --- |
+| `GET /people/:id/availability?from=` | the weekly rules (with alternating weeks and period schedules) and the one-off days from a date |
+| `PUT /people/:id/availability/rules` | replaces the whole set, all at once |
+| `POST /availability/copy` | one practitioner's rules to several others, all of them or none |
+| `POST /availability/one-offs` | a date or range, closed (all day or part of it) or extra hours, to one or several practitioners, all or none |
+| `DELETE /people/:id/availability/one-offs/:entry` | one one-off day |
+| `GET /people/:id/availability/preview?service=&from=&to=` | the free times the public site offers of them (the visitor's own slot code, at most 8 days), and whether booking is paused for them |
+| `GET/POST /rooms/:id/closures`, `DELETE /rooms/:id/closures/:closure` | a room's closed days |
+
+Times are minutes after local midnight in the app's zone (Europe/Bucharest), on a five-minute grid. A save with a
+problem is 400 `invalid`, `detail.reason` `plan` (rules) or `entry` (one-off days), and every problem in
+`detail.problems` (`{ reason, index, other }` for a rule, `{ reason, date, personId }` for a date; the codes are
+`PLAN_REASONS` and `ENTRY_REASONS` of `@psi/scheduling/domain`): an overlap, an end before its start, a bad date, a time
+the spring change skips (`dst_gap`), a day already closed. Nothing is written then. Journaled `availability.*`,
+`rooms.closure_*`. Step and buffers are each service's, edited with the service.
+
 ## Rate limits
 
 Visitor routes only: a token bucket in memory per service key and visitor (the site forwards the visitor's address in

@@ -1,7 +1,6 @@
 import type { Agent } from "@mastra/core/agent";
-import type { MastraModelConfig } from "@mastra/core/llm";
 import type { Memory } from "@mastra/memory";
-import { createProfileAgent } from "../agent";
+import { createProfileAgent, type ProfileAgentOptions } from "../agent";
 import { STAFF_RO } from "./copy";
 import { staffInstructions } from "./prompt";
 import { staffTools } from "./tools";
@@ -15,7 +14,10 @@ export const STAFF_AGENT_ID = "staff-assistant";
  * without one, it throws before any model is called. It is never registered with the visitor
  * engine's Mastra instance.
  */
-export function createStaffAgent(opts: { model: MastraModelConfig; memory?: Memory }): Agent {
+export function createStaffAgent(opts: {
+	model: ProfileAgentOptions["model"];
+	memory?: Memory;
+}): Agent {
 	return createProfileAgent({
 		id: STAFF_AGENT_ID,
 		name: "Staff assistant",

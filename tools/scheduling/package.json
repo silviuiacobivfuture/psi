@@ -9,6 +9,7 @@
 		"reseed-roles": "tsx reseed-roles/main.ts",
 		"apply-rooms": "tsx apply-org/main.ts --only rooms",
 		"apply-org": "tsx apply-org/main.ts",
+		"apply-profile": "tsx apply-org/main.ts --only profile",
 		"type-check": "tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"
 	},

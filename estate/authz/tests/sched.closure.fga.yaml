@@ -85777,6 +85777,896 @@ tests:
         object: sched_app:closure
         assertions:
           assistant_budget_edit_all: false
+  - name: sched_app#booking_pause_edit_all is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+  - name: sched_app#availability_view_all is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
+  - name: sched_app#availability_view_own is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+  - name: sched_app#availability_edit_all is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
+  - name: sched_app#availability_edit_own is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
   - name: sched_register#reader is conferred by exactly ['role_sched_integration']
     check:
       - user: user:c_org_administrator

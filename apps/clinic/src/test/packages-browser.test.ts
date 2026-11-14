@@ -51,7 +51,10 @@ describe("inline editing, with the keyboard", () => {
 		await view.focus();
 		await page.keyboard.press("Enter");
 		await page.waitForSelector("#ie-k2_total >> visible=true");
-		expect(await page.evaluate(() => document.activeElement?.id)).toBe("ie-k2_total");
+		// Focus moves once the field is shown (the next frame), as it comes back on Escape below: waited for, not raced.
+		await page.waitForFunction(() => document.activeElement?.id === "ie-k2_total", undefined, {
+			timeout: 5_000,
+		});
 		await page.fill("#ie-k2_total", "999");
 		await page.keyboard.press("Escape");
 		await page.waitForSelector("#ie-k2_total", { state: "hidden" });

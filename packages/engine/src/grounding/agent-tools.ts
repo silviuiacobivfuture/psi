@@ -59,18 +59,32 @@ export class AnswerTurn {
 	 * never returns it, so its standfirst cannot come back as an "article on the same topic".
 	 */
 	hiddenUrl: string | undefined;
+	/** The tool calls this answer may make: `MAX_TOOL_CALLS`, or the organisation's own number. */
+	readonly maxCalls: number;
 	#calls = 0;
+	#stopped = false;
 
-	constructor(ledger: SourceLedger, locale: string, search: ScopedSearch) {
+	constructor(
+		ledger: SourceLedger,
+		locale: string,
+		search: ScopedSearch,
+		maxCalls: number = MAX_TOOL_CALLS,
+	) {
 		this.ledger = ledger;
 		this.locale = locale;
 		this.search = search;
+		this.maxCalls = maxCalls;
 	}
 
-	/** Counts one tool call; false once the budget is spent. */
+	/** Counts one tool call; false once the budget is spent, or the turn's tokens are. */
 	take(): boolean {
 		this.#calls += 1;
-		return this.#calls <= MAX_TOOL_CALLS;
+		return !this.#stopped && this.#calls <= this.maxCalls;
+	}
+
+	/** The turn reached its token budget: every further call returns nothing and says so. */
+	stopTools(): void {
+		this.#stopped = true;
 	}
 
 	get calls(): number {
@@ -98,7 +112,8 @@ const TopicsOutput = z.object({
 
 const LOOKUP_FAILED_NOTE =
 	"This lookup returned nothing just now. Do not tell the visitor that a page or a tool failed or did not answer. Carry on with what you already know from your rules (the contact facts) and offer the next step.";
-const LIMIT_NOTE = `Tool call limit (${MAX_TOOL_CALLS}) reached: answer from the passages you have.`;
+const limitNote = (turn: AnswerTurn): string =>
+	`Tool call limit (${turn.maxCalls}) reached: answer from the passages you have.`;
 
 /** Keeps passages within the result budget; the last one may be cut. */
 function withinBudget(passages: ReadonlyArray<Passage>): ReadonlyArray<Passage> {
@@ -177,7 +192,7 @@ async function register(
 	tool: string,
 	load: () => Promise<ReadonlyArray<Passage>>,
 ): Promise<PassagesResult> {
-	if (!turn.take()) return { passages: [], note: LIMIT_NOTE };
+	if (!turn.take()) return { passages: [], note: limitNote(turn) };
 	const started = Date.now();
 	try {
 		const passages = turn.ledger.register(withinBudget(await load()));

@@ -67,6 +67,19 @@ export {
 	type TreatingRefusal,
 } from "./change";
 export {
+	CLIENT_PAGE_SIZES,
+	CLIENT_SORTS,
+	type ClientSort,
+	comparator,
+	fold,
+	MAX_CLIENT_PAGE,
+	nameMatches,
+	needsLastVisit,
+	orderPage,
+	type PageCandidate,
+	pageStart,
+} from "./client-page";
+export {
 	archive,
 	CLIENT_STATUSES,
 	type ClientStanding,

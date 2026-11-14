@@ -20,9 +20,10 @@ function run(label: string, make: () => ContractEnv, enabled: boolean): void {
 		beforeAll(() => {
 			env = make();
 		});
+		// Dropping every throwaway tenant the sections made, one by one: on a loaded workstation more than the default 10 s.
 		afterAll(async () => {
 			await env.cleanup();
-		});
+		}, 120_000);
 		const get = (): ContractEnv => env;
 		for (const section of SECTIONS as ReadonlyArray<ContractSection>) section(get);
 	});

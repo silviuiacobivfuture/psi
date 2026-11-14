@@ -1,5 +1,6 @@
 import { roleLabel } from "../chrome";
 import type { Ctx } from "../lib/context";
+import { LIST_PAGE } from "../port/port";
 import type {
 	Appointment,
 	AuditEvent,
@@ -77,8 +78,8 @@ export async function loadLookup(
 		ctx.can.has("web_requests_view") && idsOf("request").length > 0
 			? settled(
 					Promise.all([
-						port.requestPage(app, "open", null),
-						port.requestPage(app, "handled", null),
+						port.requestPage(app, "open", { page: 1, size: LIST_PAGE }),
+						port.requestPage(app, "handled", { page: 1, size: LIST_PAGE }),
 					]).then(([a, b]) => [...a.items, ...b.items]),
 				)
 			: Promise.resolve([]),

@@ -79,6 +79,8 @@ export const slots = query({
 		now: v.number(),
 		mode: v.optional(modeValidator),
 		limit: v.optional(v.number()),
+		/** Only this practitioner's (the availability editor's preview), cut by `limit` after the filter. */
+		practitioner: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
@@ -91,7 +93,9 @@ export const slots = query({
 		const to = Math.min(args.to, args.from + MAX_RANGE_MS);
 		const limit = Math.max(1, Math.min(MAX_SLOTS, Math.floor(args.limit ?? MAX_SLOTS)));
 		const found: OfferedSlot[] = [];
+		const only = args.practitioner;
 		for (const id of service.practitioners) {
+			if (only !== undefined && id !== only) continue;
 			const practitioner = await ctx.db.get(id);
 			// A person of another tenant is never offered here, whatever the service lists.
 			if (practitioner === null || !practitioner.active || practitioner.tenant !== tenant.slug)

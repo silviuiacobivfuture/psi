@@ -5,6 +5,7 @@ import {
 	type ActionOutcome,
 	ActionOutcomeSchema,
 } from "./actions";
+import { type StaffConfig, StaffConfigSchema, type StaffUsage } from "./assistant-config";
 import type { StaffPage } from "./events";
 import {
 	type ActivityEvent,
@@ -261,6 +262,10 @@ export interface StaffPort {
 		to: string;
 		limit: number;
 	}): Promise<PortResult<ReadonlyArray<Booking>>>;
+	/** What governs this person's next turn (the service's merged configuration and their meters). */
+	assistant(): Promise<PortResult<StaffConfig>>;
+	/** Adds what one of this person's turns used to the meters; answers a limit that now stops the next one. */
+	recordUsage(usage: StaffUsage): Promise<PortResult<{ stop?: string | undefined }>>;
 	/** What the person may do here (the service's `/v1/apps/:app/me`): tools beyond it are not offered at all. */
 	capabilities(): Promise<PortResult<Capabilities>>;
 	/**
@@ -276,6 +281,7 @@ export interface StaffPort {
 	/**
 	 * What this person can do on this screen or record, from the console's action registry: only
 	 * what they hold the capability for is listed, so an action not listed is one they may not do.
+	 * Without a page: everything they may do on any screen (what discovery lists).
 	 */
 	listActions(page: StaffPage | undefined): Promise<PortResult<ReadonlyArray<ActionInfo>>>;
 	/** Runs a listed action as the person (the registry checks again); a write is only ever run after the person confirmed it. */
@@ -319,6 +325,8 @@ export const PORT_VALUES = {
 	activity: z.array(ActivityEventSchema).readonly(),
 	bookings: z.array(BookingSchema).readonly(),
 	capabilities: CapabilitiesSchema,
+	assistant: StaffConfigSchema,
+	usageRecorded: z.object({ stop: z.string().optional() }),
 	route: z.unknown(),
 	createdClient: CreatedClientSchema,
 	actions: z.array(ActionInfoSchema).readonly(),

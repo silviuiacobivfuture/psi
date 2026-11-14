@@ -49,6 +49,10 @@ export const RESOURCES = [
 	"organisation",
 	/** The assistants' budget and limits (the organisation's tier of their configuration). The Owner's alone. */
 	"assistant_budget",
+	/** Stopping online booking: the whole organisation, a site, a service or a practitioner, now or for a window. */
+	"booking_pause",
+	/** The practitioners' weekly hours and one-off days (closed, part of a day, extra hours); `own` is one's own. */
+	"availability",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -176,6 +180,9 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	billing: { actions: ["view", "edit"], scopes: ALL },
 	organisation: { actions: ["delete", "transfer"], scopes: ALL },
 	assistant_budget: { actions: ["edit"], scopes: ALL },
+	// Every member sees whether booking is paused (the console's banner); changing it is this key's.
+	booking_pause: { actions: ["edit"], scopes: ALL },
+	availability: { actions: ["view", "edit"], scopes: ["all", "own"] },
 };
 
 /**

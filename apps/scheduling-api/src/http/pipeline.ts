@@ -131,7 +131,9 @@ export async function prepare(
 	if (
 		c.req.header(VIEW_AS_HEADER) !== undefined &&
 		spec.method !== "GET" &&
-		spec.id !== "viewAs.stop"
+		spec.id !== "viewAs.stop" &&
+		// What the real caller's own assistant turn used is metered whoever they are looking as: the budget must hold.
+		spec.id !== "me.assistantUsage"
 	)
 		throw forbidden("viewing as someone else is read-only", { reason: "view_as_readonly" });
 	const parsed: Parsed = { params: parseParams(spec, c), query: {}, body: {} };
@@ -405,7 +407,8 @@ export function refusal(
 	}
 	if (error instanceof StoreRefused) return make(refusedByStore(error.reason, error.detail));
 	if (error instanceof StoreUnavailable) {
-		deps.log({ level: "error", event: "store_unavailable", requestId });
+		// Which function and how (never the store's own words): the next blip names its query.
+		deps.log({ level: "error", event: "store_unavailable", requestId, ...error.failure });
 		return make(fail("unavailable", "the store is unavailable"));
 	}
 	if (error instanceof StoreConflict) return make(fail("conflict", "already exists"));

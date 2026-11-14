@@ -1,9 +1,11 @@
 import { Banner, EmptyState, Icon, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import type { Ctx } from "../lib/context";
 import { todayIso } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { Appointment, Client, Package, Service } from "../port/schema";
+import { cutTab, TabPager, type TabPaging } from "./client-tab-pager";
 import { PackageCard } from "./package-card";
 
 export interface PackagesView {
@@ -16,19 +18,23 @@ export interface PackagesView {
 
 /** The client's packages: a card each, and the "new package" action. */
 export function PackagesTab({
+	ctx,
 	view,
-	locale,
+	paging,
 	canCreate = true,
 	canEdit = true,
 	canPay = true,
 }: {
+	ctx: Ctx;
 	view: PackagesView;
-	locale: Locale;
+	paging: TabPaging;
 	canCreate?: boolean;
 	canEdit?: boolean;
 	canPay?: boolean;
 }): JSX.Element {
+	const locale = ctx.locale;
 	const o = at(locale);
+	const shown = cutTab(view.packages, paging);
 	return (
 		<div class="adm-stack pk-list">
 			{view.notice === "invalid" ? (
@@ -55,14 +61,14 @@ export function PackagesTab({
 					</button>
 				) : null}
 			</div>
-			{view.packages.length === 0 ? (
+			{shown.total === 0 ? (
 				<EmptyState
 					icon="package"
 					title={m.packages_none({}, o)}
 					text={m.packages_none_hint({}, o)}
 				/>
 			) : (
-				view.packages.map((p) => (
+				shown.items.map((p) => (
 					<PackageCard
 						key={p.id}
 						clientId={view.client.id}
@@ -76,6 +82,13 @@ export function PackagesTab({
 					/>
 				))
 			)}
+			<TabPager
+				ctx={ctx}
+				clientId={view.client.id}
+				tab="packages"
+				shown={shown}
+				size={paging.size}
+			/>
 		</div>
 	);
 }

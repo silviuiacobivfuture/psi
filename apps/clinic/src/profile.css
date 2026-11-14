@@ -153,6 +153,36 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
+/* Setări → Profil organizație: sections as fieldsets without the browser's frame; the week one day per row. */
+.org-section {
+	margin: 0;
+	min-width: 0;
+}
+.org-hours {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+.org-day {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+	display: grid;
+	gap: var(--space-2);
+	grid-template-columns: minmax(0, 1fr);
+}
+.org-day__span {
+	display: grid;
+	gap: var(--space-2);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+	.org-day {
+		grid-template-columns: 8rem repeat(2, minmax(0, 1fr));
+		align-items: center;
+	}
+}
 .me-actions {
 	grid-column: 1 / -1;
 	display: flex;

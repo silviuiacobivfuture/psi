@@ -7,7 +7,7 @@ import { m } from "../paraglide/messages.js";
 import { type ClientFile, FILE_MAX_BYTES, FILE_TYPES } from "../port/schema-clinical";
 import { stampText } from "./client-notes";
 import { SheetButtons } from "./client-sheets";
-import { TabMore, tabListId } from "./client-tab-pager";
+import { type Numbered, TabPager } from "./client-tab-pager";
 
 export const sizeText = (bytes: number): string =>
 	bytes < 1024
@@ -75,21 +75,19 @@ export function FileRow({
 		</li>
 	);
 }
-
-/** A client's files, a page at a time, newest first. */
+/** A client's files, a numbered page at a time, newest first (the service counts and cuts them). */
 export function FilesTab({
 	ctx,
 	clientId,
-	files,
-	next,
+	shown,
+	size,
 	notice,
 }: {
 	ctx: Ctx;
 	clientId: string;
-	/** The first page. */
-	files: ReadonlyArray<ClientFile>;
-	/** Where the next page starts; null: the last is shown. */
-	next: string | null;
+	/** The page shown, how many files in all, which page it is. */
+	shown: Numbered<ClientFile>;
+	size: number;
 	notice: "invalid" | "too-big" | null;
 }): JSX.Element {
 	const o = at(ctx.locale);
@@ -104,7 +102,7 @@ export function FilesTab({
 				</Banner>
 			)}
 			<ActionBar ctx={ctx} screen="client.files" entity={entity} />
-			{files.length === 0 && next === null ? (
+			{shown.total === 0 ? (
 				<EmptyState
 					icon="archive"
 					title={m.files_empty_title({}, o)}
@@ -114,12 +112,12 @@ export function FilesTab({
 				</EmptyState>
 			) : (
 				<>
-					<ul class="cl-rows" id={tabListId("files")} aria-label={m.tab_files({}, o)}>
-						{files.map((f) => (
+					<ul class="cl-rows" aria-label={m.tab_files({}, o)}>
+						{shown.items.map((f) => (
 							<FileRow key={f.id} ctx={ctx} clientId={clientId} file={f} />
 						))}
 					</ul>
-					<TabMore ctx={ctx} clientId={clientId} tab="files" cursor={next} shown={files.length} />
+					<TabPager ctx={ctx} clientId={clientId} tab="files" shown={shown} size={size} />
 				</>
 			)}
 		</div>

@@ -1,8 +1,8 @@
 import { SEED_FORM_TEMPLATES, validateResponse } from "@psi/scheduling/clinic";
 import { ledger } from "../domain/ledger";
 import { paidBani } from "../domain/usage";
-import { offsetPage } from "./offset-page";
-import { type ClinicPort, LIST_PAGE, PortError } from "./port";
+import { numberedOf } from "./numbered";
+import { type ClinicPort, PortError } from "./port";
 import type { AppSlug, Client } from "./schema";
 import {
 	blacklistActive,
@@ -150,12 +150,22 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 							(sum, p) => sum + Math.max(0, ledger(p.totalBani, paidBani(p)).remainingBani),
 							0,
 						);
+					const last = d.appointments
+						.filter(
+							(a) =>
+								a.clientId === c.id &&
+								a.date < today &&
+								a.status !== "cancelled" &&
+								a.status !== "no-show",
+						)
+						.reduce<string | null>((at, a) => (at === null || a.date > at ? a.date : at), null);
 					return {
 						clientId: c.id,
 						next: next === null ? null : { date: next.date, startMin: next.startMin },
 						owedBani,
 						blacklist: activeEntry(app, c.id),
 						pinnedNotes: s.notes.filter((n) => n.clientId === c.id && n.pinned).length,
+						lastVisit: last,
 					};
 				});
 		},
@@ -330,9 +340,9 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 					.filter((f) => f.clientId === clientId),
 			);
 		},
-		async filePage(app, clientId, cursor) {
+		async filePage(app, clientId, ask) {
 			guard("filePage");
-			return offsetPage(await this.files(app, clientId), cursor, LIST_PAGE);
+			return numberedOf(await this.files(app, clientId), ask);
 		},
 		async uploadFile(app, clientId, file, by) {
 			guard("uploadFile");

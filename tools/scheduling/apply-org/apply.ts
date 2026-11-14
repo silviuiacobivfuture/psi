@@ -12,6 +12,7 @@ import {
 	type Step,
 } from "./plan-org";
 import { type LeftStep, planRooms, type RoomStep } from "./plan-rooms";
+import { applyProfile, type ProfileStep } from "./profile";
 import type { OrgSeed } from "./seed";
 
 /** Who the store records as the one who set the rooms and the organisation up. */
@@ -42,6 +43,8 @@ export interface ApplyReport {
 	appointments: { total: number; withRoom: number; moved: number };
 	catalog?: CatalogPlan;
 	staff?: StaffPlan;
+	/** The contact profile: filled from the seed where the owners left a field unset, or kept. */
+	profile?: ProfileStep;
 }
 
 /** A run that would leave an appointment without its room: nothing after the check is trusted, and it exits non-zero. */
@@ -222,6 +225,15 @@ export async function applyOrg(input: {
 		}
 		report.catalog = catalog;
 		report.staff = staff;
+		if (org.profile !== undefined)
+			report.profile = await applyProfile({
+				store,
+				app,
+				seed: org.profile,
+				actor: ROOMS_ACTOR,
+				dryRun,
+				now,
+			});
 	}
 
 	if (!dryRun) {

@@ -94,6 +94,7 @@ describe("scheduling in psi's guides", () => {
 				"catalogue",
 				"findSlots",
 				"hold",
+				"pause",
 				"release",
 				"submit",
 			]);

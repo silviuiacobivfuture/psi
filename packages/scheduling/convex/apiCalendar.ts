@@ -94,6 +94,11 @@ async function peopleVisits(
 	return [...mine, ...led.filter((r) => r.meta !== undefined && wanted.has(r.meta.practitioner))];
 }
 
+/**
+ * A room's or a device's visits: those that use it (the visit's `room` / `device`) AND those on its own column
+ * (`room:<id>` / `device:<id>`). A visit is never told both ways (the import does not repeat a resource that is its
+ * column), but one that is appears once. Each read is bounded; together they are too.
+ */
 async function resourceVisits(
 	ctx: QueryCtx,
 	tenant: string,
@@ -102,6 +107,15 @@ async function resourceVisits(
 	kind: "rooms" | "devices",
 	ids: ReadonlyArray<string>,
 ): Promise<Doc<"visits">[] | undefined> {
+	const onColumn = (columnKey: string) => (left: number) =>
+		within(
+			ctx.db
+				.query("visits")
+				.withIndex("by_tenant_column_start", (q) =>
+					q.eq("tenant", tenant).eq("columnKey", columnKey).gte("start", from).lt("start", to),
+				),
+			left,
+		);
 	const reads = [...new Set(ids)].flatMap((given) => {
 		if (kind === "rooms") {
 			const room = ctx.db.normalizeId("rooms", given);
@@ -116,6 +130,7 @@ async function resourceVisits(
 							),
 						left,
 					),
+				onColumn(`room:${room}`),
 			];
 		}
 		const device = ctx.db.normalizeId("devices", given);
@@ -130,7 +145,11 @@ async function resourceVisits(
 						),
 					left,
 				),
+			onColumn(`device:${device}`),
 		];
 	});
-	return gather(reads);
+	const read = await gather(reads);
+	if (read === undefined) return undefined;
+	const seen = new Set<string>();
+	return read.filter((r) => (seen.has(r._id) ? false : (seen.add(r._id), true)));
 }

@@ -39,6 +39,8 @@ export function instructionsFor(
 	pack: LanguagePack,
 	locale: ProfileLocale,
 	behaviour: TurnBehaviour = DEFAULT_BEHAVIOUR,
+	/** Online booking is paused right now: the clinic's message in this locale, and whether callbacks stay open. */
+	pause?: { message: string; callbacksOpen: boolean },
 ): string {
 	const own = styledLocale(locale, behaviour);
 	const notes = teamNotes(pack, behaviour);
@@ -46,6 +48,10 @@ export function instructionsFor(
 		behaviour.contactRoute === undefined || pack.prompt.contactRoute === undefined
 			? []
 			: [pack.prompt.contactRoute(behaviour.contactRoute)];
+	const paused =
+		pause === undefined || pack.prompt.bookingPaused === undefined
+			? []
+			: [pack.prompt.bookingPaused(pause.message, pause.callbacksOpen)];
 	const priority =
 		notes.length === 0 || pack.prompt.teamNotes === undefined
 			? []
@@ -58,6 +64,7 @@ export function instructionsFor(
 		}),
 		...own.policy,
 		...route,
+		...paused,
 		...pack.prompt.closing,
 		...priority,
 	].map((rule, i) => `${i + 1}. ${rule}`);

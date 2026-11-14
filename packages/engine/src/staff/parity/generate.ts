@@ -1,11 +1,6 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
 import { z as z4 } from "zod/v4";
 import { fence } from "../fence";
-import { propose } from "../propose";
-import { guardedRun, RefusedOutputSchema, type StaffSession, type ToolRun } from "../session";
-import { baseKeys } from "./needs";
-import { isParityRoute, isWrite, parityToolId, type RouteLike, writtenByStrangers } from "./routes";
+import type { RouteLike } from "./routes";
 
 const MAX_ITEMS = 40;
 const MAX_CHARS = 12_000;
@@ -26,7 +21,7 @@ export function fenceDeep(value: unknown, depth = 0): unknown {
 	return value;
 }
 
-function bounded(value: unknown): { data: unknown; truncated: boolean } {
+export function bounded(value: unknown): { data: unknown; truncated: boolean } {
 	const fenced = fenceDeep(value);
 	const text = JSON.stringify(fenced) ?? "null";
 	const cut = Array.isArray(value) && value.length > MAX_ITEMS;
@@ -44,91 +39,4 @@ export function inputSchemaOf(route: RouteLike): z4.ZodObject {
 			if (key !== "app") shape[key] = schema as z4.ZodType;
 	}
 	return z4.object(shape).strict();
-}
-
-const ReadOut = z.object({ status: z.literal("ok"), data: z.unknown(), truncated: z.boolean() });
-const ProposedOut = z.object({
-	status: z.literal("needs_confirmation"),
-	proposalId: z.string(),
-	summary: z.string(),
-	instruction: z.string(),
-});
-
-type Output = z.infer<typeof ReadOut> | z.infer<typeof ProposedOut>;
-
-function describe(route: RouteLike): string {
-	const kind = isWrite(route)
-		? "Prepares this change: nothing happens until the person confirms in a card."
-		: "Reads.";
-	return `${route.summary}. ${kind} (${route.method} ${route.path.replace("/v1/apps/:app", "")})`;
-}
-
-/**
- * One tool for every route of the table the person may use. The tools are made fresh each turn
- * from the table and the person's capabilities: a route whose permission they do not hold gets no
- * tool, so the model is never shown it; a route with no permission of its own (their identity)
- * is always offered. Reads run directly; any other method prepares a proposal that only the
- * console's Confirm button executes. The service's own check still answers every call.
- */
-export function parityTools(
-	session: StaffSession,
-	routes: ReadonlyArray<RouteLike>,
-	capabilities: ReadonlySet<string>,
-): Record<string, ReturnType<typeof createTool>> {
-	const held = baseKeys(capabilities);
-	const tools: Record<string, ReturnType<typeof createTool>> = {};
-	for (const route of routes) {
-		if (!isParityRoute(route)) continue;
-		if (route.permission !== undefined && !held.has(route.permission.key)) continue;
-		const id = parityToolId(route);
-		const phase = isWrite(route) ? "propose" : "read";
-		tools[id] = createTool({
-			id,
-			description: describe(route),
-			inputSchema: inputSchemaOf(route),
-			outputSchema: z.union([isWrite(route) ? ProposedOut : ReadOut, RefusedOutputSchema]),
-			execute: async (input: Record<string, unknown>) =>
-				guardedRun(session, id, phase, async (): Promise<ToolRun<Output>> => {
-					const parsed = z4.record(z4.string(), z4.unknown()).safeParse(input);
-					if (!parsed.success) return { ok: false, reason: "invalid" };
-					const args = parsed.data;
-					const subjects = Object.entries(args).flatMap(([k, v]) =>
-						typeof v === "string" && /(^id$|Id$|^subject$)/.test(k) ? [v.slice(0, 120)] : [],
-					);
-					if (isWrite(route)) {
-						if (session.taint.stranger) return { ok: false, reason: "tainted", subjects };
-						return propose(
-							session,
-							{
-								kind: "route_call",
-								routeId: route.id,
-								input: { app: session.principal.appId, ...args },
-							},
-							{
-								title: route.summary,
-								destructive:
-									route.method === "DELETE" || /cancel|remove|delete/.test(route.audit ?? route.id),
-								lines: Object.entries(args).map(([label, value]) => ({
-									label,
-									value: typeof value === "string" ? value : JSON.stringify(value),
-									free: true,
-								})),
-							},
-						);
-					}
-					const answer = await session.port.callRoute({
-						routeId: route.id,
-						input: { app: session.principal.appId, ...args },
-					});
-					if (!answer.ok) return { ok: false, reason: answer.reason, subjects };
-					if (writtenByStrangers(route)) session.taint.stranger = true;
-					return {
-						ok: true,
-						subjects,
-						output: { status: "ok" as const, ...bounded(answer.value) },
-					};
-				}),
-		});
-	}
-	return tools;
 }

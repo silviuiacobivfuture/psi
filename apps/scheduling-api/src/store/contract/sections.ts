@@ -1,4 +1,5 @@
 import { accessContract } from "./access.contract";
+import { assistantContract } from "./assistant.contract";
 import { blacklistContract } from "./blacklist.contract";
 import { catalogSection } from "./catalog.contract";
 import { docsContract } from "./docs.contract";
@@ -23,5 +24,6 @@ export const SECTIONS: ReadonlyArray<ContractSection> = [
 	docsContract,
 	blacklistContract,
 	feedbackContract,
+	assistantContract,
 	keyedContract,
 ];

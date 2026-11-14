@@ -54,6 +54,7 @@ const EXPECTED: Record<string, string[]> = {
 		["reminders", "view send", "all"],
 		["web_requests", "view approve", "all"],
 		["roster", "view", "all"],
+		["availability", "view", "all"],
 		["leave", "view", "all"],
 		["notice_board", "create edit", "all"],
 		["blacklist", "view create_warn", "all"],
@@ -78,6 +79,7 @@ const EXPECTED: Record<string, string[]> = {
 		["reminders", "view send", "own"],
 		["roster", "view", "own"],
 		["leave", "view create cancel", "own"],
+		["availability", "view edit", "own"],
 	]),
 	Coordinator: expand([
 		...VIEW_CATALOGUES,

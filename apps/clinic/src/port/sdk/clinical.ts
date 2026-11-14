@@ -5,14 +5,9 @@ import {
 	type FileMeta as ApiFile,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import {
-	CLIENT_PAGE_SIZE,
-	type ClientPage,
-	LIST_PAGE,
-	type ListedClient,
-	type Paged,
-	PortError,
-} from "../port";
+import { NO_CLIENTS, narrowedTo } from "../client-list";
+import { type Numbered, offsetAt, type PageAt, pageOfOffset } from "../numbered";
+import { type ClientListAsk, type ClientPage, type ListedClient, PortError } from "../port";
 import type { AppSlug, Client } from "../schema";
 import type { BlacklistEntry, ClientFile, ClientFlag, ClientSummary } from "../schema-clinical";
 import { clinicalNotesGroup } from "./clinical-notes";
@@ -111,25 +106,28 @@ export function clinicalGroup(
 					owedBani: null,
 					blacklist: listed.get(c.id) ?? null,
 					pinnedNotes: pinned.get(c.id) ?? 0,
+					lastVisit: null,
 				}));
 			}),
-		clientPage: (
-			app: AppSlug,
-			filter: "current" | "archived",
-			q: string,
-			cursor: string | null,
-		): Promise<ClientPage> =>
+		clientPage: (app: AppSlug, ask: ClientListAsk): Promise<ClientPage> =>
 			run(async () => {
-				const query = q.trim();
-				const [page, listed] = await Promise.all([
+				const query = ask.q.trim();
+				const narrowed = narrowedTo(ask);
+				if (narrowed !== null && narrowed.length === 0) return NO_CLIENTS;
+				const [page, listed, tz] = await Promise.all([
 					api.clients.list({
 						app,
-						status: filter === "current" ? "active" : "archived",
+						status: ask.filter === "current" ? "active" : "archived",
 						...(query === "" ? {} : { q: query }),
-						limit: CLIENT_PAGE_SIZE,
-						...(cursor === null ? {} : { cursor }),
+						sort: ask.sort,
+						offset: (ask.page - 1) * ask.size,
+						limit: ask.size,
+						...(narrowed === null ? {} : { practitioner: narrowed.join(",") }),
+						...(ask.flag === null ? {} : { flag: ask.flag }),
+						...(ask.pkg === null ? {} : { package: ask.pkg }),
 					}),
 					activeByClient(app),
+					sdk.zone(app),
 				]);
 				const clients = page.items.map(clientOf);
 				const pinned = await more.pinnedCounts(
@@ -138,14 +136,16 @@ export function clinicalGroup(
 				);
 				return {
 					clients,
-					summaries: clients.map((c) => ({
+					summaries: page.items.map((c) => ({
 						clientId: c.id,
 						next: null,
 						owedBani: null,
 						blacklist: listed.get(c.id) ?? null,
 						pinnedNotes: pinned.get(c.id) ?? 0,
+						lastVisit: c.lastVisitAt === undefined ? null : wallOf(c.lastVisitAt, tz).date,
 					})),
-					nextCursor: page.nextCursor ?? null,
+					total: page.total,
+					page: Math.floor(page.offset / ask.size) + 1,
 				};
 			}),
 		clientFlags: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Record<string, ClientFlag>> =>
@@ -165,11 +165,16 @@ export function clinicalGroup(
 		formTemplates: async () => SEED_FORM_TEMPLATES,
 
 		/** One page of the active entries, newest first, and their clients' names in one batched read. */
-		blacklistPage: (app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>> =>
+		blacklistPage: (app: AppSlug, at: PageAt): Promise<Numbered<ListedClient>> =>
 			run(async () => {
 				const [tz, got] = await Promise.all([
 					sdk.zone(app),
-					api.blacklist.list({ app, limit: LIST_PAGE, ...(cursor === null ? {} : { cursor }) }),
+					api.blacklist.list({
+						app,
+						clientsOnly: "true",
+						limit: at.size,
+						offset: offsetAt(at),
+					}),
 				]);
 				const ids = [
 					...new Set(got.items.flatMap((e) => (e.client === undefined ? [] : [e.client]))),
@@ -191,7 +196,8 @@ export function clinicalGroup(
 									},
 								],
 					),
-					nextCursor: got.nextCursor ?? null,
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
 				};
 			}),
 
@@ -255,20 +261,22 @@ export function clinicalGroup(
 				);
 				return list.filter((f) => f.status === "ready").map((f) => fileOf(f, tz));
 			}),
-		filePage: (app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>> =>
+		filePage: (app: AppSlug, clientId: string, ask: PageAt): Promise<Numbered<ClientFile>> =>
 			run(async () => {
 				const [tz, got] = await Promise.all([
 					sdk.zone(app),
 					api.files.list({
 						app,
 						id: clientId,
-						limit: LIST_PAGE,
-						...(cursor === null ? {} : { cursor }),
+						status: "ready",
+						offset: (ask.page - 1) * ask.size,
+						limit: ask.size,
 					}),
 				]);
 				return {
-					items: got.items.filter((f) => f.status === "ready").map((f) => fileOf(f, tz)),
-					nextCursor: got.nextCursor ?? null,
+					items: got.items.map((f) => fileOf(f, tz)),
+					total: got.total,
+					page: Math.floor(got.offset / ask.size) + 1,
 				};
 			}),
 		uploadFile: (

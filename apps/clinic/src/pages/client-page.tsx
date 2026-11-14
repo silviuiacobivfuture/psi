@@ -1,5 +1,5 @@
 import type { FormDefinition } from "@psi/scheduling/clinic";
-import { Banner, EmptyState, Icon, OverflowMenu, StatusPill, type Tab, Tabs } from "@psi/ui/admin";
+import { Banner, EmptyState, Icon, OverflowMenu, type Tab, Tabs } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ActionBar, EmptyActions, menuItems, paletteItems } from "../actions/render";
 import { Page } from "../chrome";
@@ -7,13 +7,11 @@ import { ledger } from "../domain/ledger";
 import { formatMoney } from "../domain/money";
 import { paidBani } from "../domain/usage";
 import type { Ctx } from "../lib/context";
-import { dayLong, hhmm, todayIso } from "../lib/dates";
+import { dayLong, todayIso } from "../lib/dates";
 import { CLIENT_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
-import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
-import { offsetPage } from "../port/offset-page";
-import { LIST_PAGE, type PortError } from "../port/port";
+import type { PortError } from "../port/port";
 import type { Appointment, Client, Invite, Package, Service } from "../port/schema";
 import {
 	type BlacklistEntry,
@@ -23,19 +21,19 @@ import {
 	type ClientNote,
 	type ClientRecord,
 } from "../port/schema-clinical";
-import { FilesTab, RenameSheet, UploadSheet } from "./client-files";
+import { RenameSheet, UploadSheet } from "./client-files";
 import {
 	BlacklistBadge,
 	blacklistCategoryText,
 	noteCategoryText,
 	severityText,
 } from "./client-flags";
-import { NoteSheet, NotesTab, readableNotes, stampText } from "./client-notes";
-import { RecordsTab } from "./client-records";
+import { NoteSheet, readableNotes, stampText } from "./client-notes";
 import { BlacklistSheet, ConfirmSheet, EditClientSheet, UnlistSheet } from "./client-sheets";
-import { TabMore, tabListId } from "./client-tab-pager";
+import { PagedTabBody, shownPage } from "./client-tab-body";
+import { type Numbered, TabHistory, type TabPaging, tabHref } from "./client-tab-pager";
 import { InviteCard, inviteErrorText, RevokeSheet } from "./invite-page";
-import { NewPackageSheet, PackagesTab } from "./packages-tab";
+import { NewPackageSheet } from "./packages-tab";
 
 export type ClientTab = "overview" | "notes" | "appointments" | "packages" | "records" | "files";
 export const CLIENT_TABS: ReadonlyArray<ClientTab> = [
@@ -99,9 +97,10 @@ export interface ClientView {
 	notes: ReadonlyArray<ClientNote>;
 	blacklist: ReadonlyArray<BlacklistEntry>;
 	records: ReadonlyArray<ClientRecord>;
-	/** The first page of the files, and where the next starts (null: the last is shown). */
-	files: ReadonlyArray<ClientFile>;
-	filesNext: string | null;
+	/** The page of the tab asked, and its size. */
+	paging: TabPaging;
+	/** The page of the files shown (the service counts them). */
+	files: Numbered<ClientFile>;
 	/** The file whose rename sheet is open (asked by id: it may be on a page not shown yet). */
 	renaming: ClientFile | null;
 	templates: ReadonlyArray<FormDefinition>;
@@ -217,48 +216,13 @@ export async function renderClient(
 				{tab === "overview" ? (
 					<Overview ctx={ctx} view={view} entity={entity} listed={listed} />
 				) : null}
-				{(tab === "notes" && view.soon.includes("notes")) ||
-				(tab === "records" && view.soon.includes("records")) ||
-				(tab === "files" && view.soon.includes("files")) ? (
-					<EmptyState icon="clock" title={m.soon_title({}, o)} text={m.soon_text({}, o)} />
-				) : null}
-				{tab === "notes" && open.includes("notes") && !view.soon.includes("notes") ? (
-					<NotesTab ctx={ctx} notes={view.notes} clientId={client.id} />
-				) : null}
-				{tab === "appointments" && open.includes("appointments") ? (
-					<AppointmentsTab ctx={ctx} view={view} />
-				) : null}
-				{tab === "packages" && open.includes("packages") ? (
-					<PackagesTab
-						view={{
-							client,
-							packages: view.packages,
-							appointments: view.appointments,
-							services: view.services,
-							notice: view.notice ?? null,
-						}}
-						locale={ctx.locale}
-						canCreate={ctx.can.write("packages_create")}
-						canEdit={ctx.can.write("packages_edit")}
-						canPay={ctx.can.write("payments_create")}
-					/>
-				) : null}
-				{tab === "records" && open.includes("records") && !view.soon.includes("records") ? (
-					<RecordsTab
-						ctx={ctx}
-						clientId={client.id}
-						records={view.records}
-						templates={view.templates}
-					/>
-				) : null}
-				{tab === "files" && open.includes("files") && !view.soon.includes("files") ? (
-					<FilesTab
-						ctx={ctx}
-						clientId={client.id}
-						files={view.files}
-						next={view.filesNext}
-						notice={view.open.fileNotice}
-					/>
+				{tab !== "overview" && open.includes(tab) ? (
+					<>
+						<TabHistory
+							href={tabHref(client.id, tab, shownPage(ctx, view, tab), view.paging.size)}
+						/>
+						<PagedTabBody ctx={ctx} view={view} tab={tab} />
+					</>
 				) : null}
 			</div>
 		),
@@ -430,67 +394,6 @@ function Overview({
 					locale={ctx.locale}
 					canWrite={ctx.can.write("clients_invite") && client.status === "current"}
 				/>
-			)}
-		</div>
-	);
-}
-
-/** One of the client's appointments: when, what, its status; opens it on the calendar. */
-export function AppointmentRow({
-	ctx,
-	a,
-	serviceName,
-}: {
-	ctx: Ctx;
-	a: Appointment;
-	serviceName: string;
-}): JSX.Element {
-	return (
-		<li class="cl-row" data-appointment={a.id}>
-			<a class="cl-row__main" href={`/calendar?view=day&date=${a.date}&appt=${a.id}`}>
-				<strong>{dayLong(ctx.locale, a.date)}</strong>
-				<span class="adm-muted">
-					{hhmm(a.startMin)}–{hhmm(a.startMin + a.durationMin)} · {serviceName}
-				</span>
-			</a>
-			<StatusPill status={a.status} label={statusLabel(a.status, ctx.locale)} />
-		</li>
-	);
-}
-
-/** The client's appointments, a page at a time. */
-function AppointmentsTab({ ctx, view }: { ctx: Ctx; view: ClientView }): JSX.Element {
-	const o = at(ctx.locale);
-	const entity = { clientId: view.client.id };
-	const services = new Map(view.services.map((s) => [s.id, s.name]));
-	const page = offsetPage(view.appointments, null, LIST_PAGE);
-	return (
-		<div class="cl-tab">
-			<ActionBar ctx={ctx} screen="client.appointments" entity={entity} />
-			{view.appointments.length === 0 ? (
-				<EmptyState icon="calendar" title={m.appointments_none({}, o)}>
-					<EmptyActions ctx={ctx} screen="client.appointments" entity={entity} />
-				</EmptyState>
-			) : (
-				<>
-					<ul class="cl-rows" id={tabListId("appointments")} aria-label={m.tab_appointments({}, o)}>
-						{page.items.map((a) => (
-							<AppointmentRow
-								key={a.id}
-								ctx={ctx}
-								a={a}
-								serviceName={services.get(a.serviceId) ?? ""}
-							/>
-						))}
-					</ul>
-					<TabMore
-						ctx={ctx}
-						clientId={view.client.id}
-						tab="appointments"
-						cursor={page.nextCursor}
-						shown={page.items.length}
-					/>
-				</>
 			)}
 		</div>
 	);

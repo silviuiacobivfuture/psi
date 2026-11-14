@@ -8,6 +8,7 @@ import {
 	AppointmentPayment,
 	Attendance,
 	CalendarEvent,
+	CLIENT_SORTS,
 	Client,
 	ClientCreate,
 	ClientPatch,
@@ -30,7 +31,19 @@ import {
 	CalendarSummary,
 	CalendarSummaryQuery,
 } from "../entities-calendar";
-import { AppParam, DateKey, Id, IdList, IdParam, Ms, Ok, PageQuery, page } from "../primitives";
+import {
+	AppParam,
+	countedPage,
+	DateKey,
+	Id,
+	IdList,
+	IdParam,
+	Ms,
+	Offset,
+	Ok,
+	PageQuery,
+	page,
+} from "../primitives";
 
 const Deleted = z.object({ id: Id, status: z.literal("deleted"), purgeAt: Ms });
 
@@ -241,9 +254,22 @@ export const CALENDAR_ROUTES = [
 				 * MAX_IDS. The calendar names the clients of the visits it shows in ONE call, never one call per client.
 				 */
 				ids: IdList.optional(),
+				/**
+				 * A numbered page: where it starts (an item index; past the end answers the last page). Without it, `cursor`
+				 * pages as before. Either way the answer carries `total` (how many match, within the caller's reach) and `offset`.
+				 */
+				offset: Offset.optional(),
+				/** The order: by name (the default, diacritics folded), by the latest visit, or by creation; `-` descends. */
+				sort: z.enum(CLIENT_SORTS).default("name"),
+				/** Only the clients any of these practitioners treats (comma-separated ids). */
+				practitioner: IdList.optional(),
+				/** `listed`: on the blacklist now (needs `blacklist_view`, else 403); `unassigned`: nobody treats them. */
+				flag: z.enum(["listed", "unassigned"]).optional(),
+				/** `with`: holds at least one package; `without`: none. */
+				package: z.enum(["with", "without"]).optional(),
 			})
 			.extend(PageQuery.shape),
-		response: page(Client),
+		response: countedPage(Client),
 		permission: { key: "clients_view", target: { kind: "list", type: "sched_client" } },
 	}),
 	route({

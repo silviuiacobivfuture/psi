@@ -9,6 +9,7 @@ import {
 	type Keep,
 	localToday,
 	look,
+	pausedOffer,
 	searchOffer,
 	stateOf,
 	type Talk,
@@ -19,10 +20,11 @@ import type { BookingCriteria, BookingLang, BookingState } from "./booking-state
 import { within } from "./deadline";
 import { createLanguageDetector } from "./language/detect";
 import type { LanguagePack } from "./language/pack";
+import type { PauseNotice } from "./scheduling/port";
 import { type ProposedSlot, runCancelRequest, SCHEDULING_TIMEOUT_MS } from "./scheduling/tools";
 import { fold } from "./text/normalize";
 
-export type { BookingOffer, BookingScope } from "./booking-offers";
+export type { BookingLimits, BookingOffer, BookingScope } from "./booking-offers";
 export type {
 	BookedRequest,
 	BookingCancel,
@@ -154,15 +156,34 @@ async function cancelTurn(
  */
 async function live(booking: BookingScope): Promise<BookingScope> {
 	const { port, scope } = booking;
-	if (port.catalogue === undefined) return booking;
+	const pause = await bookingPauseOf(booking);
+	const paused = pause === undefined ? {} : { pause };
+	if (port.catalogue === undefined) return { ...booking, ...paused };
 	try {
 		const entries = await within(port.catalogue(scope.tenant), SCHEDULING_TIMEOUT_MS, "catalogue");
 		const names = Object.fromEntries(
 			entries.flatMap((e) => (e.name === undefined ? [] : [[e.slug, e.name]])),
 		);
-		return { port, scope: { ...scope, services: entries.map((e) => e.slug), names } };
+		return {
+			...booking,
+			scope: { ...scope, services: entries.map((e) => e.slug), names },
+			...paused,
+		};
 	} catch {
-		return booking;
+		return { ...booking, ...paused };
+	}
+}
+
+/**
+ * Whether online booking is paused for the whole organisation or the site right now, as the port says (it caches);
+ * undefined when it is not, when the port cannot say, or when the store does not answer in time.
+ */
+export async function bookingPauseOf(booking: BookingScope): Promise<PauseNotice | undefined> {
+	if (booking.port.pause === undefined) return undefined;
+	try {
+		return await within(booking.port.pause(booking.scope.tenant), SCHEDULING_TIMEOUT_MS, "pause");
+	} catch {
+		return undefined;
 	}
 }
 
@@ -228,6 +249,21 @@ export async function bookingTurn(
 	packs: ReadonlyArray<LanguagePack>,
 	now: number = Date.now(),
 ): Promise<BookingOffer | undefined> {
+	const offer = await bookingStep(offered, input, packs, now);
+	return offer === undefined ? undefined : withLimits(offered, offer);
+}
+
+/** The offer with the organisation's limits on it, on a site its settings govern, for the app's form to hold to. */
+function withLimits(offered: BookingScope, offer: BookingOffer): BookingOffer {
+	return offered.limits === undefined ? offer : { ...offer, limits: offered.limits };
+}
+
+async function bookingStep(
+	offered: BookingScope,
+	input: { question: string; typed?: string; state?: BookingState; locale?: string },
+	packs: ReadonlyArray<LanguagePack>,
+	now: number,
+): Promise<BookingOffer | undefined> {
 	const { question, state } = input;
 	// What the visitor typed, before the screening hid any phone or e-mail in it: read only for the
 	// details of a booking that has a time chosen.
@@ -245,6 +281,13 @@ export async function bookingTurn(
 		state?.stage === "cancel" && (codes.reference !== undefined || codes.cancelCode !== undefined);
 	if (isCancelIntent(question) || both || awaiting) return cancelTurn(booking, question, state);
 	const services = booking.scope.services;
+	// Paused: a request for times, or a booking under way, is answered with the clinic's message; a cancel still works.
+	if (booking.pause !== undefined) {
+		const asked =
+			isBookingIntent(question, packs) || (state !== undefined && state.stage !== "cancel");
+		const service = state?.criteria.service ?? services[0] ?? "";
+		return asked ? pausedOffer(service, booking.pause, lang) : undefined;
+	}
 	if (isBookingIntent(question, packs)) {
 		const wish = readWish(question, localToday(now), services, false, booking.scope.names);
 		// A new request mid-booking starts the search again, and keeps what the visitor already gave.
@@ -283,16 +326,19 @@ export async function reshow(
 ): Promise<BookingOffer> {
 	if (state?.stage === "details" && state.chosen !== undefined) {
 		const booking = await live(offered);
-		return confirmOffer(
-			booking,
-			state.criteria,
-			state.chosen,
-			state.shown,
-			now,
-			talkOf(state, state.lang ?? (locale === "en" ? "en" : "ro")),
+		return withLimits(
+			offered,
+			await confirmOffer(
+				booking,
+				state.criteria,
+				state.chosen,
+				state.shown,
+				now,
+				talkOf(state, state.lang ?? (locale === "en" ? "en" : "ro")),
+			),
 		);
 	}
-	return offerTimes(offered, question, now);
+	return withLimits(offered, await offerTimes(offered, question, now));
 }
 
 /** Looks up the next free times for the profile's first service. Never throws. */

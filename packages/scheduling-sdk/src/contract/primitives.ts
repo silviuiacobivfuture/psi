@@ -58,10 +58,24 @@ export const IdList = z
 export function page<T extends z.ZodType>(item: T) {
 	return z.object({ items: z.array(item), nextCursor: z.string().optional() });
 }
+/**
+ * A numbered page: also how many items match in all and where this page starts (the offset asked, moved back to the
+ * last page's start when it lay past the end). `nextCursor` still leads to the page after, for a caller that drains.
+ */
+export function countedPage<T extends z.ZodType>(item: T) {
+	return page(item).extend({
+		total: z.number().int().min(0),
+		offset: z.number().int().min(0),
+	});
+}
+/** Where a numbered page starts: an item index (a page of `limit` items starts at a multiple of it). */
+export const Offset = z.coerce.number().int().min(0).max(1_000_000);
 export const PageQuery = z.object({
 	limit: z.coerce.number().int().min(1).max(MAX_PAGE).optional(),
 	cursor: z.string().max(200).optional(),
 });
+/** A list that answers numbered pages (`countedPage`): `offset` asks a page by where it starts, else `cursor`. */
+export const NumberedQuery = PageQuery.extend({ offset: Offset.optional() });
 export const AppParam = z.object({ app: AppId });
 export const IdParam = z.object({ app: AppId, id: Id });
 export const Ok = z.object({ ok: z.literal(true) });

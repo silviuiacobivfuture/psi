@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { route } from "../define";
 import { NotificationPrefs, NotificationPrefsView } from "../entities-notify";
+import { PauseNotice } from "../entities-pause";
 import { AppParam, Id, Locale, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
@@ -31,6 +32,8 @@ export const VisitorService = z.object({
 	durationMinutes: z.number().int(),
 	modes: z.array(Mode),
 	practitioners: z.array(z.object({ id: z.string(), name: z.string() })),
+	/** Online booking of this service is paused (a practitioner's own pause leaves them out of `practitioners`). */
+	pause: PauseNotice.optional(),
 });
 export const Hold = z.object({
 	reference: z.string(),
@@ -91,7 +94,12 @@ export const VISITOR_ROUTES = [
 		side: "visitor",
 		summary: "The services a visitor can book, with the people who offer them",
 		params: AppParam,
-		response: z.object({ timeZone: z.string(), services: z.array(VisitorService) }),
+		response: z.object({
+			timeZone: z.string(),
+			services: z.array(VisitorService),
+			/** Online booking is paused for the whole organisation or this site: show the message, not the free times. */
+			pause: PauseNotice.optional(),
+		}),
 	}),
 	route({
 		id: "visitor.slots",

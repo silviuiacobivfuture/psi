@@ -3,6 +3,12 @@ import { buildOpenApi, ERROR_STATUS, ROUTES, type RouteSpec } from "./index";
 
 const ALL: ReadonlyArray<RouteSpec> = ROUTES;
 
+/** Team mutations that write no audit row, each with why. */
+const UNAUDITED: Readonly<Record<string, string>> = {
+	"me.assistantUsage":
+		"metering only: it adds to counters the meters show, changes nothing a person made, and one journal row per assistant turn would drown the journal",
+};
+
 describe("the route table", () => {
 	it("has unique ids and unique method+path pairs", () => {
 		expect(new Set(ALL.map((r) => r.id)).size).toBe(ALL.length);
@@ -38,6 +44,11 @@ describe("the route table", () => {
 			"me.settings",
 			"me.saveSettings",
 			"roles.summary",
+			// Whether online booking is paused: every member's console shows the banner.
+			"bookingPause.list",
+			// The caller's own assistant: what governs their next turn, and what their turn used.
+			"me.assistant",
+			"me.assistantUsage",
 		]);
 		for (const r of ALL) {
 			if (r.side === "team")
@@ -50,8 +61,18 @@ describe("the route table", () => {
 	});
 
 	it("audits every mutation of the team side", () => {
-		for (const r of ALL.filter((x) => x.side === "team" && x.method !== "GET"))
+		for (const r of ALL.filter(
+			(x) => x.side === "team" && x.method !== "GET" && !(x.id in UNAUDITED),
+		))
 			expect(r.audit, r.id).toBeDefined();
+	});
+
+	it("leaves a team mutation unaudited only with its reason, and only one that exists", () => {
+		const ids = new Set<string>(ALL.map((r) => r.id));
+		for (const [id, why] of Object.entries(UNAUDITED)) {
+			expect(ids.has(id), id).toBe(true);
+			expect(why.length, id).toBeGreaterThan(20);
+		}
 	});
 
 	it("keeps every route under /v1 except the meta health probe", () => {

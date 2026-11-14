@@ -10,6 +10,11 @@
 // image copying packages/scheduling). A change to a file every image installs from
 // (pnpm-lock.yaml, pnpm-workspace.yaml, the root package.json, .npmrc, estate/platform.lock,
 // deploy/, .pnpmfile.cjs) affects every app. Prints one app per line; nothing when none.
+//
+//   node scripts/affected-apps.mjs --since-deployed <env>
+//
+// The apps whose image on <env> is behind HEAD (staleApps below): what the plan builds.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -77,7 +82,49 @@ export function affectedApps(changed) {
 	return hit.sort();
 }
 
+const TAG = /^\s*newTag:\s*"?([^"\s#]+)"?/m;
+
+/**
+ * The apps whose deployed image is behind the checkout: for each, the commit its tag in
+ * gitops/services/<app>/overlays/<env>/kustomization.yaml was built from, diffed against HEAD. A push's
+ * own diff is not enough: GitHub keeps one pending run per group and drops the one before it, so a
+ * change that landed in a dropped run is in no later push's diff, and its image is never built (the
+ * Convex functions of 2026-11-14 stayed at 7e052ef while the API that needed them was rebuilt). An app
+ * whose tag is missing or names no commit here counts as behind.
+ * @param {string} env @returns {string[]}
+ */
+export function staleApps(env) {
+	const apps = readdirSync(join(ROOT, "apps"), { withFileTypes: true })
+		.filter((d) => d.isDirectory() && existsSync(join(ROOT, "apps", d.name, "Dockerfile")))
+		.map((d) => d.name);
+	const git = (...args) =>
+		execFileSync("git", args, { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString();
+	const diffs = new Map();
+	const stale = [];
+	for (const app of apps) {
+		const overlay = join(ROOT, "gitops/services", app, "overlays", env, "kustomization.yaml");
+		const tag = existsSync(overlay) ? TAG.exec(readFileSync(overlay, "utf8"))?.[1] : undefined;
+		let changed;
+		try {
+			if (tag === undefined || !/^[0-9a-f]{7,40}$/.test(tag)) throw new Error("no commit");
+			git("cat-file", "-e", `${tag}^{commit}`);
+			if (!diffs.has(tag))
+				diffs.set(tag, git("diff", "--name-only", tag, "HEAD").split("\n").filter(Boolean));
+			changed = diffs.get(tag);
+		} catch {
+			stale.push(app);
+			continue;
+		}
+		if (affectedApps(changed).includes(app)) stale.push(app);
+	}
+	return stale.sort();
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+	if (process.argv[2] === "--since-deployed") {
+		for (const a of staleApps(process.argv[3] ?? "dev")) console.log(a);
+		process.exit(0);
+	}
 	const input = readFileSync(0, "utf8")
 		.split("\n")
 		.map((s) => s.trim())

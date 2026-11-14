@@ -1,7 +1,8 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { addDays } from "../../lib/dates";
-import { type AuditPage, LIST_PAGE, type Paged, PortError, type TeamMember } from "../port";
+import { type Numbered, offsetAt, type PageAt, pageOfOffset } from "../numbered";
+import { type AuditPage, PortError, type TeamMember } from "../port";
 import { composed } from "../role-composition";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
@@ -59,6 +60,12 @@ export function adminGroup(sdk: SdkContext) {
 		return counts;
 	}
 
+	/** "Who am I", asked once for this port (a request's): the memberships and the estate administrator come from it. */
+	let me: ReturnType<typeof api.me.get> | undefined;
+	const whoAmI = (): ReturnType<typeof api.me.get> => {
+		me ??= api.me.get({});
+		return me;
+	};
 	/** The roles with what each includes and inherits, from the service's own relations. */
 	async function rolesOf(app: AppSlug): Promise<Role[]> {
 		const [list, counts] = await Promise.all([
@@ -82,12 +89,15 @@ export function adminGroup(sdk: SdkContext) {
 	return {
 		memberships: (_subject: string): Promise<Membership[]> =>
 			run(async () => {
-				const me = await api.me.get({});
-				return me.apps.flatMap((a) => {
+				const mine = await whoAmI();
+				return mine.apps.flatMap((a) => {
 					const slug = AppSlugSchema.safeParse(a.app);
 					return slug.success ? [{ app: slug.data, roles: a.roles }] : [];
 				});
 			}),
+
+		platformAdmin: (_subject: string): Promise<boolean> =>
+			run(async () => (await whoAmI()).platformAdmin),
 
 		// Through the port's one answer: the page's middleware, its zone and its screens share it (and its source keeps it).
 		capabilities: (_subject: string, app: AppSlug, as?: `role:${string}` | `member:${string}`) =>
@@ -109,14 +119,14 @@ export function adminGroup(sdk: SdkContext) {
 				return all.map(teamMemberOf);
 			}),
 
-		memberPage: (app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>> =>
+		memberPage: (app: AppSlug, at: PageAt): Promise<Numbered<TeamMember>> =>
 			run(async () => {
-				const got = await api.members.list({
-					app,
-					limit: LIST_PAGE,
-					...(cursor === null ? {} : { cursor }),
-				});
-				return { items: got.items.map(teamMemberOf), nextCursor: got.nextCursor ?? null };
+				const got = await api.members.list({ app, limit: at.size, offset: offsetAt(at) });
+				return {
+					items: got.items.map(teamMemberOf),
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
+				};
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>
@@ -137,8 +147,8 @@ export function adminGroup(sdk: SdkContext) {
 		requestPage: (
 			app: AppSlug,
 			show: "open" | "handled",
-			cursor: string | null,
-		): Promise<Paged<WebRequest>> =>
+			at: PageAt,
+		): Promise<Numbered<WebRequest>> =>
 			run(async () => {
 				const now = Date.now();
 				const got = await api.requests.list({
@@ -146,10 +156,14 @@ export function adminGroup(sdk: SdkContext) {
 					from: now - 90 * DAY,
 					to: now + 365 * DAY,
 					state: show,
-					limit: LIST_PAGE,
-					...(cursor === null ? {} : { cursor }),
+					limit: at.size,
+					offset: offsetAt(at),
 				});
-				return { items: got.items.map(requestOf), nextCursor: got.nextCursor ?? null };
+				return {
+					items: got.items.map(requestOf),
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
+				};
 			}),
 
 		/** The console's "handled": the team answered the request. */

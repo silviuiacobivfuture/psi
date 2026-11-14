@@ -74,6 +74,13 @@ describe.skipIf(!backendReady)("the visits of a few calendar columns", () => {
 			}),
 		);
 		ids.group = id(await mut("apiResources:createGroup", { slug: "racemeup", name: "RaceMeUp" }));
+		ids.device2 = id(
+			await mut("apiResources:createDevice", {
+				slug: "nfb-2",
+				name: "NFB 2",
+				kind: "neurofeedback",
+			}),
+		);
 		const p1 = { kind: "practitioner", id: ids.p1 };
 		ids.v1 = await visit(p1, base, { client: ids.c1, room: ids.room });
 		ids.v1late = await visit(p1, base + 8 * DAY, { client: ids.c1 });
@@ -82,6 +89,17 @@ describe.skipIf(!backendReady)("the visits of a few calendar columns", () => {
 		ids.v2 = await visit({ kind: "practitioner", id: ids.p2 }, base, {
 			client: ids.c1,
 			device: ids.device,
+		});
+		// On the resource's OWN column (the import's NFB and room columns): the resource is the column, not a field.
+		ids.onDevice = await visit({ kind: "device", id: ids.device }, base + 4 * DAY, {
+			client: ids.c1,
+		});
+		ids.onRoom = await visit({ kind: "room", id: ids.room }, base + 5 * DAY, { client: ids.c1 });
+		ids.onDevice2 = await visit({ kind: "device", id: ids.device2 }, base + 4 * DAY, {
+			client: ids.c1,
+		});
+		ids.onDeviceLate = await visit({ kind: "device", id: ids.device }, base + 9 * DAY, {
+			client: ids.c1,
 		});
 		ids.g1 = await visit({ kind: "group", id: ids.group }, base + 2 * DAY);
 		await mut("apiMoneyExtra:setVisitMeta", {
@@ -119,9 +137,35 @@ describe.skipIf(!backendReady)("the visits of a few calendar columns", () => {
 		).toEqual([ids.v1, ids.v2, ids.g1, ids.g2].sort());
 	});
 
-	it("a room's and a device's week", async () => {
-		expect(await visitsOf({ kind: "rooms", ids: [ids.room] })).toEqual([ids.v1]);
-		expect(await visitsOf({ kind: "devices", ids: [ids.device] })).toEqual([ids.v2]);
+	it("a room's and a device's week: the visits that use it and the visits on its own column, once each", async () => {
+		expect(await visitsOf({ kind: "rooms", ids: [ids.room] })).toEqual([ids.v1, ids.onRoom].sort());
+		expect(await visitsOf({ kind: "devices", ids: [ids.device] })).toEqual(
+			[ids.v2, ids.onDevice].sort(),
+		);
+		// Named twice, still once each; another device's column visits are not this device's.
+		expect(await visitsOf({ kind: "devices", ids: [ids.device, ids.device] })).toEqual(
+			[ids.v2, ids.onDevice].sort(),
+		);
+		expect(await visitsOf({ kind: "devices", ids: [ids.device2] })).toEqual([ids.onDevice2]);
+		expect(await visitsOf({ kind: "devices", ids: [ids.device, ids.device2] })).toEqual(
+			[ids.v2, ids.onDevice, ids.onDevice2].sort(),
+		);
+	});
+
+	it("a resource-column visit outside the window is not answered, and no person's view takes it", async () => {
+		expect(await visitsOf({ kind: "devices", ids: [ids.device] })).not.toContain(ids.onDeviceLate);
+		expect(
+			await visitsOf(
+				{ kind: "devices", ids: [ids.device] },
+				{ from: base + 9 * DAY, to: base + 10 * DAY },
+			),
+		).toEqual([ids.onDeviceLate]);
+		const everyone = await visitsOf({
+			kind: "people",
+			practitioners: [ids.p1, ids.p2],
+			people: ["pAPI-ONE", "pAPI-TWO"],
+		});
+		for (const v of [ids.onDevice, ids.onRoom, ids.onDevice2]) expect(everyone).not.toContain(v);
 	});
 
 	it("the window is half-open on the start, and soft-deleted visits are left out", async () => {

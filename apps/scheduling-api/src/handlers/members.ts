@@ -8,7 +8,7 @@ import { syncMember } from "./directory";
 import { catalogueMatrix } from "./matrix";
 import { changesOf, checkRefs, listed, memberOut, writeMember } from "./member-write";
 import { guardMemberChange } from "./owner-guard";
-import { diff, must, paginate, removeTuplesThenRow, replaced, writeRowThenTuples } from "./shared";
+import { diff, must, numbered, removeTuplesThenRow, replaced, writeRowThenTuples } from "./shared";
 
 export const memberHandlers: HandlersOf<
 	"members.list" | "members.get" | "members.put" | "members.remove" | "members.overrides"
@@ -17,7 +17,8 @@ export const memberHandlers: HandlersOf<
 		const rows = (await ctx.deps.store.c.members.list(ctx.app)).sort((a, b) =>
 			a.displayName.localeCompare(b.displayName),
 		);
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		// Bounded by its nature: an app's team (a clinic's people), read whole and numbered here.
+		const page = numbered(rows, ctx.query.limit, ctx.query.cursor, ctx.query.offset);
 		return { ...page, items: page.items.map(memberOut) };
 	},
 

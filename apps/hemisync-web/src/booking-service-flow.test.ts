@@ -132,3 +132,25 @@ describe("Hemi-Sync books through the scheduling service", () => {
 		expect((journal.json.items as unknown[]).length).toBe(1);
 	}, 30_000);
 });
+
+describe("Hemi-Sync's booking while its site is paused", () => {
+	it("shows the team's message in Hemi-Sync's words instead of the times, and the times again once lifted", async () => {
+		const made = await api.world.call("hugo", "POST", `${H}/booking-pauses`, {
+			scope: { level: "site", site: "hemisync-web" },
+			message: { ro: "Atelierele se reiau în februarie.", en: "Workshops resume in February." },
+			callbacksOpen: true,
+			blockStaff: false,
+		});
+		expect(made.status, JSON.stringify(made.json)).toBe(200);
+		const paused = decode(await (await app.request("/programare")).text());
+		expect(paused).toContain('data-booking-paused="site"');
+		expect(paused).toContain("Atelierele se reiau în februarie.");
+		expect(paused).toContain("Înscrierile online sunt oprite acum");
+		expect(inputs(paused, "slot")).toHaveLength(0);
+		expect(paused).toContain('name="consent"');
+		await api.world.call("hugo", "DELETE", `${H}/booking-pauses/${String(made.json.id)}`);
+		const open = decode(await (await app.request("/programare")).text());
+		expect(open).not.toContain("data-booking-paused");
+		expect(inputs(open, "slot").length).toBeGreaterThan(0);
+	}, 30_000);
+});

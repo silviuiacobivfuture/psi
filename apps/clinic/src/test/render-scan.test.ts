@@ -29,6 +29,10 @@ const SCREENS = [
 	"/settings/blacklist",
 	"/settings/builder",
 	"/settings/audit",
+	"/settings/hours",
+	"/settings/hours?tab=rooms",
+	"/settings/online",
+	"/settings/online?new=1",
 	"/more",
 ] as const;
 

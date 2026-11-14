@@ -1,4 +1,5 @@
 import type {
+	PauseNotice,
 	SchedulingCancel,
 	SchedulingContact,
 	SchedulingHold,
@@ -31,6 +32,10 @@ export class MemorySchedulingStore implements SchedulingPort {
 	readonly calls: SchedulingCall[] = [];
 	/** Set to make the store answer `catalogue` (the live services list). */
 	catalogue?: SchedulingPort["catalogue"];
+	/** Set to make the store say online booking is paused for the organisation or the site. */
+	pause?: SchedulingPort["pause"];
+	/** Set to make `findSlots` answer as the scheduling service does while a pause covers the service. */
+	slotsPaused: PauseNotice | undefined;
 	failing = false;
 	/** Set to make `submit` throw (the store went down after the hold). */
 	submitFailing = false;
@@ -74,6 +79,8 @@ export class MemorySchedulingStore implements SchedulingPort {
 	async findSlots(search: SchedulingSearch): Promise<SchedulingSlots> {
 		this.calls.push({ method: "findSlots", search });
 		if (this.failing) throw new Error("store down");
+		if (this.slotsPaused !== undefined)
+			return { ok: false, reason: "paused", pause: this.slotsPaused };
 		const slots = this.free.get(`${search.tenant}/${search.service}`);
 		if (slots === undefined) return { ok: false, reason: "unknown_service" };
 		const inRange = slots.filter(

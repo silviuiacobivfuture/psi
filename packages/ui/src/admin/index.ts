@@ -20,6 +20,13 @@ export {
 	type OverflowMenuProps,
 } from "./overflow-menu";
 export {
+	Pager,
+	type PagerLabels,
+	type PagerProps,
+	pageCount,
+	pageWindow,
+} from "./pager";
+export {
 	CommandPalette,
 	type PaletteItem,
 	type PaletteProps,

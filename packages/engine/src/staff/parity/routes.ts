@@ -23,9 +23,20 @@ export interface RouteLike {
 /**
  * Routes the assistant never offers as tools: the service's own and the visitor side, the
  * estate-administrator ones, live streams (no place in a chat), and the browser-only file upload
- * handshake. Everything else the console can do is a tool.
+ * handshake; nor switching who the console looks as (the assistant never changes whose rights it uses), nor its
+ * own metering (counted by the engine, never by the model). Everything else the console can do is a tool.
+ * Each with why: the guard in the console (`parity-guard.test.ts`) reads this list.
  */
-const NEVER = new Set(["files.init", "files.complete"]);
+export const NEVER_REASONS: Readonly<Record<string, string>> = {
+	"files.init":
+		"the browser-only upload handshake: bytes go from the device to storage, never through a chat",
+	"files.complete": "the second half of the browser-only upload handshake",
+	"viewAs.start": "the assistant never changes whose rights it acts with",
+	"viewAs.stop": "the assistant never changes whose rights it acts with",
+	"me.assistantUsage":
+		"the assistant's own metering, recorded by the engine after each turn and never by the model",
+};
+const NEVER = new Set(Object.keys(NEVER_REASONS));
 
 export function isParityRoute(route: RouteLike): boolean {
 	return (
@@ -45,11 +56,4 @@ export function writtenByStrangers(route: RouteLike): boolean {
 
 export function isWrite(route: RouteLike): boolean {
 	return route.method !== "GET";
-}
-
-/** `clients.archive` → `staffApiClientsArchive`. */
-export function parityToolId(route: RouteLike): string {
-	const [group = "", ...rest] = route.id.split(".");
-	const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-	return `staffApi${cap(group)}${rest.map(cap).join("")}`;
 }

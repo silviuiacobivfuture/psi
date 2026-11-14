@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { api } from "../convex/_generated/api";
-import { type CallbackRequester, callbackRequesterOn } from "./callbacks-client";
+import {
+	type CallbackInput,
+	type CallbackRequester,
+	type CallbackResult,
+	callbackRequesterOn,
+} from "./callbacks-client";
 import type { SchedulingConfig } from "./config";
 import type { Audience, Mode } from "./domain/catalog";
 import { type Contact, cleanContact, contactProblem } from "./domain/contact";
@@ -28,6 +33,17 @@ export interface OfferedSlot {
 	modes: ReadonlyArray<Mode>;
 }
 
+/**
+ * Online booking is paused (the scheduling API's 409 `booking_paused`): what the visitor is to read, in both languages,
+ * whether a callback can still be asked, and when booking opens again if known. The store never pauses; the API does.
+ */
+export interface PauseNotice {
+	level: "organisation" | "site" | "service" | "practitioner";
+	message: { ro: string; en: string };
+	callbacksOpen: boolean;
+	until?: number;
+}
+
 export type SlotsResult =
 	| {
 			ok: true;
@@ -47,6 +63,11 @@ export const SlotSearchSchema = z
 		limit: z.number().int().min(1).max(200).optional(),
 		/** Defaults to the server's clock. */
 		now: z.number().int().nonnegative().optional(),
+		/** Only this practitioner's slots (the availability editor's preview). */
+		practitioner: z
+			.string()
+			.regex(/^[a-z0-9]{10,64}$/)
+			.optional(),
 	})
 	.strict();
 export type SlotSearch = z.infer<typeof SlotSearchSchema>;
@@ -121,18 +142,46 @@ export interface ServiceInfo {
 	modes: ReadonlyArray<Mode>;
 	location?: string;
 	practitioners: ReadonlyArray<{ id: string; name: string }>;
+	/** Online booking of this service is paused. */
+	pause?: PauseNotice;
 }
 
 /** What a visitor-facing server does with the scheduling store. */
 export interface SchedulingClient extends CallbackRequester {
-	services(
-		tenant: string,
-	): Promise<{ timeZone: string; services: ReadonlyArray<ServiceInfo> } | undefined>;
+	services(tenant: string): Promise<
+		| {
+				timeZone: string;
+				services: ReadonlyArray<ServiceInfo>;
+				/** Online booking is paused for the whole organisation or this site. */
+				pause?: PauseNotice;
+		  }
+		| undefined
+	>;
 	findSlots(search: SlotSearch): Promise<SlotsResult>;
 	hold(input: HoldInput): Promise<HoldResult>;
 	submit(input: SubmitInput): Promise<SubmitResult>;
 	release(input: { reference: string; holdToken: string }): Promise<ReleaseResult>;
 	cancel(input: { reference: string; cancelCode: string }): Promise<CancelResult>;
+}
+
+/** The scheduling API's refusal of a booking while it is paused (the store itself never answers it). */
+export interface PausedResult {
+	ok: false;
+	reason: "paused";
+	pause: PauseNotice;
+}
+
+/**
+ * What a public site books through: the scheduling API (`@psi/ui`'s `createVisitorScheduling`). The same calls as the
+ * store's client, and while online booking is paused the free times, the hold and the submit answer `PausedResult`.
+ */
+export interface VisitorSchedulingClient
+	extends Omit<SchedulingClient, "findSlots" | "hold" | "submit" | "requestCallback"> {
+	/** Refused with `PausedResult` only while a pause keeps callbacks closed too. */
+	requestCallback(input: CallbackInput): Promise<CallbackResult | PausedResult>;
+	findSlots(search: SlotSearch): Promise<SlotsResult | PausedResult>;
+	hold(input: HoldInput): Promise<HoldResult | PausedResult>;
+	submit(input: SubmitInput): Promise<SubmitResult | PausedResult>;
 }
 
 const ReferenceSchema = z.string().transform((value, ctx) => {
@@ -187,6 +236,7 @@ export function clientOn(transport: Transport): SchedulingClient {
 					now: q.now ?? Date.now(),
 					...(q.mode === undefined ? {} : { mode: q.mode }),
 					...(q.limit === undefined ? {} : { limit: q.limit }),
+					...(q.practitioner === undefined ? {} : { practitioner: q.practitioner }),
 				}),
 			);
 			if (!raw.ok) return raw;

@@ -4,6 +4,7 @@ import { MastraCompositeStore, type MemoryStorage } from "@mastra/core/storage";
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 import { fileDirectory, THREAD_WINDOW } from "../memory";
+import { sweepByRetention } from "../memory-retention";
 import { createSealer, type Sealer } from "./memory-seal";
 
 /** How long a staff conversation is kept: every message is deleted this many days after it was written. */
@@ -112,13 +113,21 @@ export function sealedMemoryDomain(target: MemoryStorage, sealer: Sealer): Memor
 
 export interface StaffMemory {
 	readonly memory: Memory;
-	/** Deletes what is older than the retention; returns how many rows went. Safe to run any time. */
-	sweep(): Promise<number>;
+	/**
+	 * Deletes what is older than its conversation's retention (the organisation's `memory.retentionDays` stamped on the
+	 * thread; `days` for one never stamped), then whatever passed the longest retention any organisation may set; returns
+	 * how many rows went. Safe to run any time.
+	 */
+	sweep(now?: number): Promise<number>;
 }
+
+/** The longest retention the settings allow: nothing outlives it, whatever a thread's stamp says. */
+export const STAFF_MEMORY_BACKSTOP_DAYS = 365;
 
 /**
  * The staff assistant's durable conversation memory: its own LibSQL file, every message sealed per
- * person, every message deleted `STAFF_MEMORY_DAYS` days after it was written.
+ * person, every message deleted its organisation's retention after it was written (`days`,
+ * `STAFF_MEMORY_DAYS` by default, for a conversation no organisation stamped).
  */
 export function openStaffMemory(options: {
 	url: string;
@@ -128,7 +137,8 @@ export function openStaffMemory(options: {
 }): StaffMemory {
 	const directory = fileDirectory(options.url);
 	if (directory !== undefined) mkdirSync(directory, { recursive: true });
-	const maxAge = `${options.days ?? STAFF_MEMORY_DAYS}d` as const;
+	const fallbackDays = options.days ?? STAFF_MEMORY_DAYS;
+	const maxAge = `${STAFF_MEMORY_BACKSTOP_DAYS}d` as const;
 	const store = new LibSQLStore({
 		id: options.id ?? "staff-memory",
 		url: options.url,
@@ -152,10 +162,11 @@ export function openStaffMemory(options: {
 	});
 	return {
 		memory,
-		async sweep() {
+		async sweep(now = Date.now()) {
 			await store.init();
+			const own = await sweepByRetention(memory, fallbackDays, now);
 			const results = await store.prune();
-			return results.reduce((n, r) => n + r.deleted, 0);
+			return own + results.reduce((n, r) => n + r.deleted, 0);
 		},
 	};
 }

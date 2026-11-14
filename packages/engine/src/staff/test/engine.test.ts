@@ -14,7 +14,8 @@ import {
 } from "../../testing";
 import { createStaffEngine, type StaffEngine } from "../engine";
 import type { StaffEvent } from "../events";
-import { FAKE_NOW, FakeStaffPort, OWNER_PERMISSIONS } from "../testing";
+import { DISCOVERY_TOOLS } from "../parity/discovery";
+import { FAKE_NOW, FakeStaffPort, OWNER_PERMISSIONS, staffConfigWith } from "../testing";
 import { STAFF_TOOL_IDS } from "../tool-ids";
 
 const ROOT = Buffer.alloc(32, 7);
@@ -112,7 +113,10 @@ describe("a staff turn", () => {
 		const names = chatBody(request).tools?.map((t) => t.function.name) ?? [];
 		// Without a log store there is no site-issues tool; every other curated tool is offered to an owner.
 		expect(names.sort()).toEqual(
-			STAFF_TOOL_IDS.filter((id) => id !== "staffSiteIssues" && id !== "staffApi").sort(),
+			[
+				...STAFF_TOOL_IDS.filter((id) => id !== "staffSiteIssues" && id !== "staffApi"),
+				...Object.values(DISCOVERY_TOOLS),
+			].sort(),
 		);
 		const system = systemText(request);
 		expect(system).toContain("Today is Friday, 2026-11-13");
@@ -213,12 +217,14 @@ describe("a staff turn", () => {
 		expect(port.calls).toEqual([]);
 	});
 
-	it("rate-limits one person without touching another", async () => {
+	it("rate-limits one person by their configured rate, without touching another", async () => {
 		const engine = await engineWith([{ kind: "text", chunks: ["ok"] }], {
-			rateLimiter: createMemoryRateLimiter({ limit: 1, windowMs: 60_000 }),
+			rateLimiter: createMemoryRateLimiter({ limit: 100, windowMs: 60_000 }),
 		});
 		const ana = new FakeStaffPort();
+		ana.config = staffConfigWith({ ratePerMinute: 1 });
 		const dan = new FakeStaffPort();
+		dan.config = staffConfigWith({ ratePerMinute: 1 });
 		dan.signIn({ sub: "sub-dan" });
 		expect(shape(await collect(engine.chat(ana, { message: "one" })))).toContain("text");
 		expect(shape(await collect(engine.chat(ana, { message: "two" })))).toEqual([

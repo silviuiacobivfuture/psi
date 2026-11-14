@@ -1,4 +1,5 @@
 import { nameKey, type RoomsSeed } from "@psi/scheduling/clinic";
+import { OrgProfile, type OrgProfileType } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
 
 const Name = z.string().min(1).max(80);
@@ -50,6 +51,15 @@ export const orgSeedSchema = z.object({
 		durationMinutes: z.number().int().min(5).max(480),
 		modes: z.array(z.enum(["onsite", "online"])).min(1),
 	}),
+	/**
+	 * The contact profile as the clinic's own site publishes it (only what the site states; the rest is the owners' to
+	 * fill in): checked against the service's contract, so a seed it would refuse is refused here.
+	 */
+	profile: z
+		.custom<OrgProfileType>((v) => OrgProfile.safeParse(v).success, {
+			message: "the profile is not one the service keeps",
+		})
+		.optional(),
 });
 export type OrgSeed = z.infer<typeof orgSeedSchema>;
 

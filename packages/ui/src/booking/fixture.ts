@@ -72,6 +72,12 @@ export const FIXTURE_COPY: BookingCopy = {
 		},
 		service: "p:service",
 		unavailable: "p:unavailable",
+		paused: {
+			title: "p:paused",
+			until: (when) => `p:until ${when}`,
+			callback: "p:paused-callback",
+			call: "p:paused-call",
+		},
 		callback: "p:callback",
 		back: "p:back",
 		modeOnsite: "p:onsite",
@@ -143,7 +149,9 @@ export const FIXTURE_COPY: BookingCopy = {
 		booked: { next: "b:next" },
 		slotGone: "k:gone",
 		submitRetry: "k:retry",
+		paused: "k:paused",
 		summary: {
+			paused: (message) => `s:paused ${message}`,
 			times: "s:times",
 			confirm: "s:confirm",
 			cancel: "s:cancel",

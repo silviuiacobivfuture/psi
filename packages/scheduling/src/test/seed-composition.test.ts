@@ -25,20 +25,41 @@ const BEFORE = z
 		),
 	);
 
+/**
+ * What the seed roles gained after the freeze, on purpose: the availability editor (the practitioners' hours: all of them
+ * for the Administrator and the Owner, their own for a therapist, reading for reception) and stopping online booking (the
+ * Administrator and the Owner).
+ */
+const AVAILABILITY_KEYS = [
+	"availability_view_all",
+	"availability_view_own",
+	"availability_edit_all",
+	"availability_edit_own",
+	"booking_pause_edit_all",
+];
+const ADDED_SINCE: Readonly<Record<string, ReadonlyArray<string>>> = {
+	[ADMIN]: AVAILABILITY_KEYS,
+	[OWNER]: AVAILABILITY_KEYS,
+	Reception: ["availability_view_all"],
+	Therapist: ["availability_view_own", "availability_edit_own"],
+};
+const heldBefore = (name: string): string[] =>
+	[...(BEFORE[name] ?? []), ...(ADDED_SINCE[name] ?? [])].sort();
+
 const byName = new Map<string, ComposedRole>(
 	SEED_ROLES.map((r) => [r.name, { id: r.name, permissions: r.permissions, includes: r.includes }]),
 );
 const effective = (name: string): string[] => [...effectiveOf(name, byName).keys].sort();
 
 describe("the seed roles, composed of one another, hold what they held", () => {
-	it("every seed role but the Owner holds exactly its keys of before", () => {
+	it("every seed role but the Owner holds exactly its keys of before, and what it gained since on purpose", () => {
 		for (const name of Object.keys(BEFORE).filter((n) => n !== OWNER))
-			expect(effective(name), name).toEqual(BEFORE[name]);
+			expect(effective(name), name).toEqual(heldBefore(name));
 	});
 
 	it("the Owner holds what it held plus the Owner's own new powers, and nothing else", () => {
 		const added = OWNER_ONLY_KEYS.filter((k) => !(BEFORE[OWNER] ?? []).includes(k));
-		expect(effective(OWNER)).toEqual([...(BEFORE[OWNER] ?? []), ...added].sort());
+		expect(effective(OWNER)).toEqual([...heldBefore(OWNER), ...added].sort());
 		expect(effective(OWNER)).toEqual([...ALL_PERMISSION_KEYS].sort());
 	});
 

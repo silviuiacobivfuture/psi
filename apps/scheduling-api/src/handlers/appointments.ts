@@ -9,6 +9,7 @@ import type { AppointmentRow } from "../store/types";
 import { booking } from "./booking-gate";
 import { appointmentGroupReach, appointmentView } from "./fields";
 import { balances as packageBalances } from "./packages";
+import { refuseStaffWhilePaused } from "./pause-gate";
 import { must, newId, paginate, stamps, writeTuples } from "./shared";
 
 /** A package with this many sessions or fewer left tells the team. */
@@ -182,6 +183,7 @@ export const appointmentHandlers: HandlersOf<
 		const other = await clash(ctx, row);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
+		await refuseStaffWhilePaused(ctx, row);
 		const saved = await booking(ctx, b.override, () => ctx.deps.store.c.appointments.insert(row));
 		await writeTuples(ctx, links(saved));
 		await ctx.changed("appointment", "created", saved.id);

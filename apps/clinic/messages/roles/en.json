@@ -95,6 +95,8 @@
 	"rm_res_billing": "Billing",
 	"rm_res_organisation": "The organisation",
 	"rm_res_assistant_budget": "Assistants' budget",
+	"rm_res_booking_pause": "Pausing online booking",
+	"rm_res_availability": "Hours and days off",
 	"rm_res_notes": "Notes",
 	"rm_act_cancel": "Cancel",
 	"rm_act_delete": "Delete",

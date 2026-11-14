@@ -2,7 +2,8 @@ import { ServerSentEventGenerator } from "@starfederation/datastar-sdk/web";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../app";
-import type { LiveSignal } from "../port/port";
+import { PageSizeSchema } from "../lib/paging";
+import { DEFAULT_PAGE_SIZE, type LiveSignal } from "../port/port";
 import { IsoDateSchema } from "../port/schema";
 import { CalendarQuerySchema, renderCalendarLive } from "./calendar";
 import { renderRequestsLive } from "./requests";
@@ -12,7 +13,12 @@ const LiveQuery = z.discriminatedUnion("screen", [
 		.object({ screen: z.literal("calendar") })
 		.merge(CalendarQuerySchema.pick({ view: true, col: true, cat: true }))
 		.extend({ date: IsoDateSchema.catch("") }),
-	z.object({ screen: z.literal("requests"), show: z.enum(["open", "handled"]).catch("open") }),
+	z.object({
+		screen: z.literal("requests"),
+		show: z.enum(["open", "handled"]).catch("open"),
+		page: z.coerce.number().int().min(1).max(1_000_000).catch(1),
+		size: PageSizeSchema.catch(DEFAULT_PAGE_SIZE),
+	}),
 ]);
 
 const badge = (n: number): string =>
@@ -44,7 +50,11 @@ export function registerLive(app: Hono<Env>): void {
 					await (await renderCalendarLive(ctx, { ...query, new: undefined })).toString(),
 				);
 			} else if (signal.stream === "requests" && query.screen === "requests") {
-				stream.patchElements(await (await renderRequestsLive(ctx, query.show)).toString());
+				stream.patchElements(
+					await (
+						await renderRequestsLive(ctx, query.show, { page: query.page, size: query.size })
+					).toString(),
+				);
 			}
 		};
 		return ServerSentEventGenerator.stream(

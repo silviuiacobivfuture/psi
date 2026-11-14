@@ -66,10 +66,6 @@ const GATES: ReadonlyArray<Gate> = [
 	g("GET", "/clients/[^/]+/packages", ["packages_view"]),
 	g("GET", "/clients/[^/]+/records", ["clients_view_clinical"]),
 	g("GET", "/clients/[^/]+/files", ["files_view"]),
-	g("GET", "/clients/[^/]+/more/appointments", ["appointments_view"]),
-	g("GET", "/clients/[^/]+/more/notes", ["clients_view"]),
-	g("GET", "/clients/[^/]+/more/records", ["clients_view_clinical"]),
-	g("GET", "/clients/[^/]+/more/files", ["files_view"]),
 	g("POST", "/clients/[^/]+/archive", ["clients_archive"], true),
 	g("POST", "/clients/[^/]+/delete", ["clients_delete"], true),
 	g("GET", "/clients/[^/]+/invite", ["clients_invite"]),
@@ -97,7 +93,9 @@ const GATES: ReadonlyArray<Gate> = [
 	...ACTION_GATES,
 	g("GET", "/audit", ["audit_log_view"]),
 	g("GET", "/settings/audit/[^/]+", ["audit_log_view"]),
+	g("GET", "/settings/assistant/people", ["app_settings_view"]),
 	g("GET", "/platform", [PLATFORM_KEY]),
+	g("GET", "/platform/assistant", [PLATFORM_KEY]),
 	g("GET", "/live", ["calendars_view", "web_requests_view"]),
 ];
 

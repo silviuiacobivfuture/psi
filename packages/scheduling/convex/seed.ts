@@ -386,7 +386,9 @@ export const fixtureForeign = internalMutation({
 export const dropFixture = internalMutation({
 	args: { tenant: v.string() },
 	handler: async (ctx, args): Promise<{ deleted: number }> => {
-		if (!args.tenant.startsWith("test-")) throw new Error("fixture tenants start with test-");
+		// A test world's own estate (`*test-…`: its assistant document and journal) is a fixture too.
+		if (!args.tenant.startsWith("test-") && !args.tenant.startsWith("*test-"))
+			throw new Error("fixture tenants start with test- (or *test- for a test world's estate)");
 		let deleted = 0;
 		const appointments = await ctx.db
 			.query("appointments")

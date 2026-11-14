@@ -5,8 +5,9 @@ import { roleLabel } from "../chrome";
 import { areaText } from "../lib/area-labels";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
-import { moreHref, ShowMore } from "../lib/show-more";
+import { ListHistory, ListPager, listHref } from "../lib/paging";
 import { m } from "../paraglide/messages.js";
+import type { PageAt } from "../port/numbered";
 import type { TeamMember } from "../port/port";
 import type { Column, Role } from "../port/schema";
 import type { InviteOutcome, MemberDetail } from "../port/schema-members";
@@ -21,13 +22,16 @@ export interface MembersQuery {
 	invite: boolean;
 	edit: string | null;
 	confirm: string | null;
+	/** The page of the team asked. */
+	pos: PageAt;
 }
 
 export interface MembersData {
-	/** The first page of the team, by name. */
+	/** One numbered page of the team, by name, and how many members there are. */
 	members: ReadonlyArray<TeamMember>;
-	/** Where the next page starts; null: the last is shown. */
-	next: string | null;
+	total: number;
+	/** The page shown (1-based) and its size. */
+	pos: PageAt;
 	roles: ReadonlyArray<Role>;
 	people: ReadonlyArray<Column>;
 	/** The member whose editor is open, as the service answers them. */
@@ -60,24 +64,15 @@ export function RoleChips({
 	);
 }
 
-/** The members' "show more": the next page of the team appended, nothing once the last is shown. */
-export function MoreMembers({
-	ctx,
-	cursor,
-	shown,
-}: {
-	ctx: Ctx;
-	cursor: string | null;
-	shown: number;
-}): JSX.Element {
-	return (
-		<ShowMore
-			id="member-more"
-			href={moreHref("/settings/members/more", cursor, shown)}
-			label={m.ls_more({}, at(ctx.locale))}
-		/>
-	);
-}
+/** The canonical address of a page of the team. */
+export const membersHref = (pos: PageAt): string =>
+	listHref("/settings/members", [
+		["page", pos.page],
+		["size", pos.size],
+	]);
+
+/** The region a page change replaces (and focuses): the team's page and its pager. */
+export const MEMBERS_ID = "members-region";
 
 /** One member of the list: their name, e-mail and roles, opening their editor. */
 export function MemberRow({
@@ -102,14 +97,41 @@ export function MemberRow({
 	);
 }
 
-function MembersList({ ctx, d }: { ctx: Ctx; d: MembersData }): JSX.Element {
+/** The team's page and its pager: what a page change replaces in place. */
+export function MembersList({
+	ctx,
+	d,
+}: {
+	ctx: Ctx;
+	d: Pick<MembersData, "members" | "total" | "pos" | "roles">;
+}): JSX.Element {
 	const o = at(ctx.locale);
-	if (d.members.length === 0)
-		return (
-			<EmptyState icon="users" title={m.mb_empty({}, o)}>
-				<EmptyActions ctx={ctx} screen="settings.members" />
-			</EmptyState>
-		);
+	return (
+		<section
+			id={MEMBERS_ID}
+			class="adm-stack list-region"
+			tabindex={-1}
+			aria-label={m.mb_list_label({}, o)}
+		>
+			{d.total === 0 ? (
+				<EmptyState icon="users" title={m.mb_empty({}, o)}>
+					<EmptyActions ctx={ctx} screen="settings.members" />
+				</EmptyState>
+			) : (
+				<MemberPage ctx={ctx} d={d} />
+			)}
+		</section>
+	);
+}
+
+function MemberPage({
+	ctx,
+	d,
+}: {
+	ctx: Ctx;
+	d: Pick<MembersData, "members" | "total" | "pos" | "roles">;
+}): JSX.Element {
+	const o = at(ctx.locale);
 	return (
 		<>
 			<ul
@@ -122,7 +144,17 @@ function MembersList({ ctx, d }: { ctx: Ctx; d: MembersData }): JSX.Element {
 					<MemberRow key={p.subject} ctx={ctx} member={p} roles={d.roles} />
 				))}
 			</ul>
-			<MoreMembers ctx={ctx} cursor={d.next} shown={d.members.length} />
+			<ListPager
+				ctx={ctx}
+				id="members-pager"
+				nav={m.mb_pager_nav({}, o)}
+				page={d.pos.page}
+				size={d.pos.size}
+				total={d.total}
+				href={(page, size) => membersHref({ page, size })}
+				action="/settings/members"
+				params={{}}
+			/>
 		</>
 	);
 }
@@ -167,7 +199,7 @@ export async function renderMembers(
 	try {
 		// The member to edit or remove is asked by subject: they may be on a page not shown yet.
 		const [page, roles, columns, open, confirming] = await Promise.all([
-			ctx.port.memberPage(ctx.app, null),
+			ctx.port.memberPage(ctx.app, query.pos),
 			ctx.port.roles(ctx.app).catch(() => []),
 			ctx.port.catalogColumns(ctx.app).catch(() => []),
 			query.edit === null ? Promise.resolve(null) : ctx.port.member(ctx.app, query.edit),
@@ -175,7 +207,8 @@ export async function renderMembers(
 		]);
 		const d: MembersData = {
 			members: page.items,
-			next: page.nextCursor,
+			total: page.total,
+			pos: { page: page.page, size: query.pos.size },
 			roles,
 			people: columns.filter((c) => c.kind === "person"),
 			open,
@@ -185,6 +218,7 @@ export async function renderMembers(
 			<div class="adm-stack" style="gap:var(--space-3)">
 				<ActionBar ctx={ctx} screen="settings.members" />
 				{ctx.can.write("members_edit") ? null : <p class="adm-muted">{m.mb_readonly({}, o)}</p>}
+				<ListHistory url={membersHref(d.pos)} />
 				<MembersList ctx={ctx} d={d} />
 			</div>
 		);

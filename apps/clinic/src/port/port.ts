@@ -1,10 +1,21 @@
 import type {
+	AssistantEffectiveType,
+	AssistantOrgConfig,
+	AssistantOrgDocumentType,
+	AssistantPlatformConfig,
+	AssistantPlatformDocumentType,
+	AssistantStopName,
+	AssistantUsageRecord,
 	Capabilities as ScheduleCapabilities,
 	RoleSummary as ScheduleRoleSummary,
 } from "@psi/scheduling-sdk/contract";
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
+import type { AvailabilityPort } from "./availability-port";
+import type { ClientFilter, ClientListAsk, ClientPage } from "./client-list";
+import type { Numbered, PageAt } from "./numbered";
+import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
 import type {
@@ -74,7 +85,14 @@ import type {
 	MySettingsView,
 } from "./schema-settings";
 
-export type ClientFilter = "current" | "archived";
+export type {
+	ClientFilter,
+	ClientFlagFilter,
+	ClientListAsk,
+	ClientPackageFilter,
+	ClientPage,
+} from "./client-list";
+export { DEFAULT_PAGE_SIZE } from "./client-list";
 
 export interface CalendarData {
 	columns: ReadonlyArray<Column>;
@@ -120,15 +138,6 @@ export interface ListedClient {
 	entry: BlacklistEntry;
 	clientId: string;
 	clientName: string;
-}
-
-/** How many clients one page of the list shows. */
-export const CLIENT_PAGE_SIZE = 50;
-
-export interface ClientPage {
-	clients: ReadonlyArray<Client>;
-	summaries: ReadonlyArray<ClientSummary>;
-	nextCursor: string | null;
 }
 
 export interface ReminderItem {
@@ -198,8 +207,10 @@ export class PortError extends Error {
  * Everything the console reads and writes. The scheduling service's SDK implements it; until then
  * the in-memory fake does. Every call is scoped to one app: nothing crosses apps.
  */
-export interface ClinicPort extends ProfilePort {
+export interface ClinicPort extends ProfilePort, OrgPort, AvailabilityPort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
+	/** The person is the estate administrator: the platform zone is theirs, and every app, member of it or not. */
+	platformAdmin(subject: string): Promise<boolean>;
 	/**
 	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
 	 * one column it picks (the week draws one calendar: the others' visits are never read, only their names).
@@ -299,14 +310,10 @@ export interface ClinicPort extends ProfilePort {
 		entries: ReadonlyArray<RosterEntry>;
 	}>;
 	requests(app: AppSlug): Promise<ReadonlyArray<WebRequest>>;
-	/** ONE page (LIST_PAGE) of the open or the handled requests, newest first, after `cursor` (null: the first). */
-	requestPage(
-		app: AppSlug,
-		show: "open" | "handled",
-		cursor: string | null,
-	): Promise<Paged<WebRequest>>;
-	/** ONE page (LIST_PAGE) of the clients on the blacklist now, newest entry first, each with the client's name. */
-	blacklistPage(app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>>;
+	/** ONE numbered page of the open or the handled requests, newest first, and how many there are. */
+	requestPage(app: AppSlug, show: "open" | "handled", at: PageAt): Promise<Numbered<WebRequest>>;
+	/** ONE numbered page of the clients on the blacklist now, newest entry first, each with the client's name. */
+	blacklistPage(app: AppSlug, at: PageAt): Promise<Numbered<ListedClient>>;
 	markRequestHandled(app: AppSlug, id: string): Promise<void>;
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;
@@ -353,8 +360,8 @@ export interface ClinicPort extends ProfilePort {
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
 	/** The app's whole team, for the "Vezi ca…" picker and the journal's names. */
 	members(app: AppSlug): Promise<ReadonlyArray<TeamMember>>;
-	/** ONE page (LIST_PAGE) of the team by name, after `cursor` (null: the first): the members' list. */
-	memberPage(app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>>;
+	/** ONE numbered page of the team by name, and how many members there are: the members' list. */
+	memberPage(app: AppSlug, at: PageAt): Promise<Numbered<TeamMember>>;
 	/** One member for their editor: roles, grants, denials, linked calendars, what they may do in the end. */
 	member(app: AppSlug, subject: string): Promise<MemberDetail | null>;
 	/**
@@ -409,15 +416,10 @@ export interface ClinicPort extends ProfilePort {
 		query: string,
 	): Promise<ReadonlyArray<ClientSummary>>;
 	/**
-	 * ONE page of the client list (`cursor` null: the first) with the rich rows of those clients only: what the list
-	 * screen shows, a page at a time, however many clients the clinic has. `nextCursor` null: the last page.
+	 * ONE numbered page of the client list with the rich rows of those clients only, and how many match in all: what the
+	 * list screen shows, however many clients the clinic has. The search, filters and order run in the service.
 	 */
-	clientPage(
-		app: AppSlug,
-		filter: ClientFilter,
-		query: string,
-		cursor: string | null,
-	): Promise<ClientPage>;
+	clientPage(app: AppSlug, ask: ClientListAsk): Promise<ClientPage>;
 	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
 	clientFlags(
 		app: AppSlug,
@@ -455,10 +457,10 @@ export interface ClinicPort extends ProfilePort {
 	deleteRecord(app: AppSlug, id: string): Promise<void>;
 	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
 	/**
-	 * ONE page of a client's files, newest first, after `cursor` (null: the first). A page may hold fewer than LIST_PAGE
-	 * (an upload never finished is not shown): only a null `nextCursor` says it is the last.
+	 * ONE numbered page of a client's finished files, newest first, and how many there are: the service counts and cuts
+	 * them (an upload never finished is never counted).
 	 */
-	filePage(app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>>;
+	filePage(app: AppSlug, clientId: string, at: PageAt): Promise<Numbered<ClientFile>>;
 	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
 	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
 	downloadFile(
@@ -485,7 +487,30 @@ export interface ClinicPort extends ProfilePort {
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
 	assistantMode(subject: string): Promise<AssistantMode | null>;
 	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;
+	/** What governs this person's next assistant turn (the merged tiers for their roles and themselves, and their meters). */
+	assistantEffective(app: AppSlug): Promise<AssistantEffectiveType>;
+	/** Adds one of this person's turns to the meters; answers a limit that now stops the next one. */
+	recordAssistantUsage(
+		app: AppSlug,
+		usage: AssistantUsageRecordType,
+	): Promise<AssistantStopName | undefined>;
+	/** The organisation's assistant tier, its ceilings, what applies now and the meters (Owner and Admin). */
+	assistantConfig(app: AppSlug): Promise<AssistantOrgConfigType>;
+	/** Saves the organisation's tier edited from `doc.revision`: `stale` when it moved on; a value past a ceiling is `invalid`. */
+	saveAssistantConfig(app: AppSlug, doc: AssistantOrgDocumentType): Promise<AssistantOrgConfigType>;
+	/** The estate's assistant tier (the platform administrator's). */
+	assistantPlatform(): Promise<AssistantPlatformConfigType>;
+	saveAssistantPlatform(doc: AssistantPlatformDocumentType): Promise<AssistantPlatformConfigType>;
+	/**
+	 * Any route of the scheduling service by its id, as this person (their token; the read-only header while viewing as
+	 * someone else): the assistant's way to every function of the contract. `not-available-yet` without the service.
+	 */
+	callRoute(routeId: string, input: Readonly<Record<string, unknown>>): Promise<unknown>;
 }
+
+export type AssistantUsageRecordType = z.input<typeof AssistantUsageRecord>;
+export type AssistantOrgConfigType = z.output<typeof AssistantOrgConfig>;
+export type AssistantPlatformConfigType = z.output<typeof AssistantPlatformConfig>;
 
 /**
  * The port acting for one request's person. The scheduling service authorizes with the person's own token, so a port

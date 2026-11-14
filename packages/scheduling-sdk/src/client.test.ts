@@ -30,7 +30,7 @@ describe("the derived client", () => {
 		let seen: Request | undefined;
 		const c = clientOn((req) => {
 			seen = req;
-			return json({ items: [client] });
+			return json({ items: [client], total: 1, offset: 0 });
 		});
 		const out = await c.clients.list({ app: "psizone", status: "archived", q: "an" });
 		expect(out.items[0]?.name).toBe("Ana");

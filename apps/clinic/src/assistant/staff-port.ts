@@ -17,6 +17,7 @@ import { addDays, parseDay, todayIso, weekStart } from "../lib/dates";
 import type { ClinicPort } from "../port/port";
 import type { Appointment, AppSlug, Client, Column, Package } from "../port/schema";
 import { mayDo } from "./permissions";
+import { configMethods } from "./staff-port-config";
 import { type ActionsSource, extraMethods } from "./staff-port-extra";
 import { ok, refused, wrap } from "./staff-result";
 
@@ -187,6 +188,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			readOnly: o.readOnly,
 			actions: o.actions,
 		}),
+		...configMethods({ port, app, readOnly: o.readOnly }),
 		whoami: async () => ok(principal),
 		can: async (action) => ok(!o.readOnly && mayDo(permissions, action)),
 		capabilities: async () => ok({ permissions: [...permissions] }),
@@ -198,7 +200,6 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 				);
 				return ok(null);
 			}),
-		callRoute: async () => refused("invalid"),
 		resources: () =>
 			wrap(async () =>
 				ok(

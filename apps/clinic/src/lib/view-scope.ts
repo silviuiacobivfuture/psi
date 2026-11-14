@@ -66,18 +66,11 @@ export function scopedPort(port: ClinicPort, caps: Capabilities): ClinicPort {
 				? all
 				: all.filter((c) => c.practitionerId !== null && clients.has(c.practitionerId));
 		},
-		async clientPage(app, filter, query, cursor) {
-			const page = await port.clientPage(app, filter, query, cursor);
-			if (clients === null) return page;
-			const shown = page.clients.filter(
-				(c) => c.practitionerId !== null && clients.has(c.practitionerId),
-			);
-			const ids = new Set(shown.map((c) => c.id));
-			return {
-				...page,
-				clients: shown,
-				summaries: page.summaries.filter((s) => ids.has(s.clientId)),
-			};
+		/** The narrowed reach goes INTO the query, so the pages are full and the count is the reach's, never the clinic's. */
+		clientPage(app, ask) {
+			if (clients === null) return port.clientPage(app, ask);
+			const among = [...clients].filter((id) => ask.among === null || ask.among.includes(id));
+			return port.clientPage(app, { ...ask, among });
 		},
 		async client(app, id) {
 			const found = await port.client(app, id);

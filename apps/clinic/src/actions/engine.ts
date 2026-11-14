@@ -1,3 +1,4 @@
+import { SaveRefusal } from "../port/availability-port";
 import { PortError } from "../port/port";
 import { ACTIONS } from "./registry";
 import type { ActionCtx, ActionDef, ActionResult, ListQuery } from "./types";
@@ -66,7 +67,12 @@ export async function runAction(
 				error.code === "conflict"
 					? error.code
 					: "unavailable";
-			return { status: "refused", code };
+			return {
+				status: "refused",
+				code,
+				...(error.reason === undefined ? {} : { reason: error.reason }),
+				...(error instanceof SaveRefusal ? { problems: error.detail } : {}),
+			};
 		}
 		throw error;
 	}

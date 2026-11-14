@@ -28,7 +28,8 @@ export const ActionInfoSchema = z.object({
 	group: z.string().max(40).optional(),
 	kind: z.enum(["read", "write"]),
 	destructive: z.boolean(),
-	params: z.array(ActionParamSchema).max(20),
+	/** What it takes; a settings form names each of its fields (the assistant's both surfaces: some sixty). */
+	params: z.array(ActionParamSchema).max(80),
 });
 export type ActionInfo = z.infer<typeof ActionInfoSchema>;
 

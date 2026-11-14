@@ -9,6 +9,7 @@ import type { Capabilities, ClinicPort } from "../port/port";
 import { type AppSlug, AppSlugSchema, type AssistantMode, type Membership } from "../port/schema";
 import type { Can } from "./can";
 import { type Locale, localeFrom } from "./i18n";
+import { keepSizeOnDevice } from "./paging";
 import type { Theme } from "./theme";
 import type { ViewAsState } from "./view-as";
 
@@ -44,6 +45,22 @@ export interface Ctx {
 	signOut: string;
 }
 
+/**
+ * The apps a person reaches: their memberships, and for the estate administrator every app besides (they hold each
+ * through the platform, as the service's authorizer says), with no role where they are no member.
+ */
+export function reachableApps(
+	memberships: ReadonlyArray<Membership>,
+	platformAdmin: boolean,
+): ReadonlyArray<Membership> {
+	if (!platformAdmin) return memberships;
+	const held = new Set(memberships.map((m) => m.app));
+	return [
+		...memberships,
+		...AppSlugSchema.options.filter((app) => !held.has(app)).map((app) => ({ app, roles: [] })),
+	];
+}
+
 export function activeApp(c: Context, memberships: ReadonlyArray<Membership>): AppSlug | null {
 	const wanted = AppSlugSchema.safeParse(getCookie(c, "app"));
 	const mine = memberships.map((m) => m.app);
@@ -69,6 +86,7 @@ export async function storedPrefs(
 	const keep = { path: "/", maxAge: 31536000, sameSite: "Lax" as const };
 	setCookie(c, "lang", own.locale, keep);
 	setCookie(c, "theme", own.theme, keep);
+	keepSizeOnDevice(c, subject, own.pageSize ?? "none");
 	return {
 		...device,
 		locale: own.locale,

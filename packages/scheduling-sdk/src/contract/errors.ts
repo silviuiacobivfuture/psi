@@ -16,6 +16,11 @@ export const ERROR_STATUS = {
 	hold_expired: 410,
 	/** The neutral online refusal: the visitor is told only that this cannot be booked online, never why. */
 	unavailable_online: 409,
+	/**
+	 * Online booking is paused for what was asked (the organisation, the site, the service or the practitioner):
+	 * `detail` is `BookingPausedDetail`, the message the visitor is to read and whether a callback stays open.
+	 */
+	booking_paused: 409,
 	not_allowed: 403,
 	rate_limited: 429,
 	internal: 500,
@@ -30,7 +35,10 @@ export const ErrorBody = z.object({
 		code: z.enum(ERROR_CODES),
 		message: z.string(),
 		requestId: z.string(),
-		/** For a refused field group on a write: which one. Never data. */
+		/**
+		 * What the refusal is about: a refused field group, a reason, the problems of a save (codes and indexes). Never a
+		 * person's data; the one text it carries is `booking_paused`'s message, which the clinic wrote for visitors.
+		 */
 		detail: z.record(z.string(), z.unknown()).optional(),
 	}),
 });

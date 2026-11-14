@@ -262,8 +262,14 @@ export const Client = z.object({
 	 * caller may read (a clinical note needs the clinical group of the notes permission).
 	 */
 	pinnedNotes: z.array(ClientNote).optional(),
+	/** When the client last came (a confirmed visit not marked absent); only on a numbered list page, absent when never. */
+	lastVisitAt: Ms.optional(),
 	...Stamps,
 });
+/** How the client list may be ordered (`-` first: descending; `last` is the latest visit). */
+export const CLIENT_SORTS = ["name", "-name", "last", "-last", "created", "-created"] as const;
+/** The page sizes the client list offers a person (a page itself takes any `limit` up to MAX_PAGE). */
+export const CLIENT_PAGE_SIZES = [25, 50, 100] as const;
 export const ClientCreate = z.object({
 	name: Name,
 	birthYear: z.number().int().min(1900).max(2100).optional(),

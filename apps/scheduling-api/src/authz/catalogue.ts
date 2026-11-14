@@ -70,6 +70,9 @@ const WHERE: Readonly<Record<Resource, Where>> = {
 	billing: APP,
 	organisation: APP,
 	assistant_budget: APP,
+	booking_pause: APP,
+	// A practitioner's hours are their calendar's: `own` reaches one's own, like the roster.
+	availability: CALENDAR,
 	people: { create: APP, view: CALENDAR, edit: CALENDAR, archive: CALENDAR },
 	calendars: CALENDAR,
 	roster: CALENDAR,

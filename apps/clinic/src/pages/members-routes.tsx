@@ -5,12 +5,12 @@ import { runAction } from "../actions/engine";
 import type { Env } from "../app";
 import { all, type Body, one } from "../lib/catalog-form";
 import { at, type Locale } from "../lib/i18n";
-import { appendPage, MoreQuery } from "../lib/show-more";
+import { inPlace, pageRequested, patchList } from "../lib/paging";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { InviteOutcomeSchema, SignInLinkSchema } from "../port/schema-members";
 import { StaffResults } from "./member-add";
-import { MemberRow, MoreMembers, renderMembers } from "./members";
+import { MEMBERS_ID, MembersList, membersHref, renderMembers } from "./members";
 
 const NOCACHE = { "cache-control": "private, no-store" } as const;
 const BASE = "/settings/members";
@@ -76,32 +76,37 @@ export function registerMembers(app: Hono<Env>): void {
 					? m.mb_removed({}, o)
 					: undefined;
 		const problem = problemText(q("problem"), c.var.ctx.locale);
+		const ctx = c.var.ctx;
+		const { at: pos, paging } = await pageRequested(ctx, c.req.query());
+		if (inPlace(c)) {
+			// A page of the team fetched in place: only the list region (the sheets stay as they are).
+			const [page, roles] = await Promise.all([
+				ctx.port.memberPage(ctx.app, pos),
+				ctx.port.roles(ctx.app).catch(() => []),
+			]);
+			const shown = { page: page.page, size: pos.size };
+			return patchList({
+				c,
+				elements: [
+					<MembersList
+						key="list"
+						ctx={ctx}
+						d={{ members: page.items, total: page.total, pos: shown, roles }}
+					/>,
+				],
+				regionId: MEMBERS_ID,
+				url: membersHref(shown),
+				asked: paging,
+			});
+		}
 		const query = {
+			pos,
 			create: q("new") === "1",
 			invite: q("invite") === "1",
 			edit: q("edit") ?? null,
 			confirm: q("confirm") ?? null,
 		};
 		return c.html(await renderMembers(c.var.ctx, query, flash, problem), 200, NOCACHE);
-	});
-
-	// The team's next page, appended to the open list.
-	app.get(`${BASE}/more`, async (c) => {
-		const ctx = c.var.ctx;
-		const asked = MoreQuery.parse(c.req.query());
-		const [page, roles] = await Promise.all([
-			ctx.port.memberPage(ctx.app, asked.cursor === "" ? null : asked.cursor),
-			ctx.port.roles(ctx.app).catch(() => []),
-		]);
-		return appendPage({
-			list: "#member-list",
-			rows: page.items.map((member) => (
-				<MemberRow key={member.subject} ctx={ctx} member={member} roles={roles} />
-			)),
-			more: (
-				<MoreMembers ctx={ctx} cursor={page.nextCursor} shown={asked.shown + page.items.length} />
-			),
-		});
 	});
 
 	const run = async (c: Context<Env>, id: string, params: unknown, back: string) => {
@@ -191,7 +196,13 @@ export function registerMembers(app: Hono<Env>): void {
 				return c.html(
 					await renderMembers(
 						ctx,
-						{ create: false, invite: false, edit: null, confirm: null },
+						{
+							create: false,
+							invite: false,
+							edit: null,
+							confirm: null,
+							pos: (await pageRequested(ctx, {})).at,
+						},
 						undefined,
 						undefined,
 						outcome.data,
@@ -221,7 +232,13 @@ export function registerMembers(app: Hono<Env>): void {
 			return c.html(
 				await renderMembers(
 					ctx,
-					{ create: false, invite: false, edit: null, confirm: null },
+					{
+						create: false,
+						invite: false,
+						edit: null,
+						confirm: null,
+						pos: (await pageRequested(ctx, {})).at,
+					},
 					undefined,
 					undefined,
 					undefined,

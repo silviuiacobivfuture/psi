@@ -153,6 +153,7 @@ const FLAT_ROLES: ReadonlyArray<FlatRole> = [
 			all("reminders", ["view", "send"]),
 			all("web_requests", ["view", "approve"]),
 			all("roster", ["view"]),
+			all("availability", ["view"]),
 			all("leave", ["view"]),
 			all("notice_board", ["create", "edit"]),
 			// View the list and flag someone at warn level; the stronger entries and every
@@ -183,6 +184,8 @@ const FLAT_ROLES: ReadonlyArray<FlatRole> = [
 			own("reminders", ["view", "send"]),
 			own("roster", ["view"]),
 			own("leave", ["view", "create", "cancel"]),
+			// Their own weekly hours and days off, as the public site offers them.
+			own("availability", ["view", "edit"]),
 		]),
 	},
 	{
