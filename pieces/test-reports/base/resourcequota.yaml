@@ -1,7 +1,7 @@
 # Per-namespace guard-rails. The LimitRange MUST exist before the ResourceQuota:
 # once a quota constrains requests.*/limits.*, a pod that omits them is REJECTED —
 # the LimitRange backfills defaults so nothing gets bounced. Same convention as
-# gitops/services/changelog/base/resourcequota.yaml.
+# pieces/changelog/base/resourcequota.yaml.
 # Sized from the live spec (req 10m/64Mi, lim 300m/256Mi, one replica, Recreate so
 # there is no rollout surge) with headroom for the assert-secrets initContainer.
 #

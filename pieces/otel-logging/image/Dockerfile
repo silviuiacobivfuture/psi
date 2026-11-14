@@ -5,11 +5,15 @@
 # This adds systemd's journalctl on a slim Debian base and copies the collector
 # binary in. Built + pushed to Harbor; the otel-agent DaemonSet runs it.
 #
-# Build/push (from repo root). REGISTRY_HOST is the estate's registry (identity
-# REGISTRY_HOST); the base images come from its `mirror` project:
-#   docker build --build-arg REGISTRY_HOST=<registry> \
-#     -t <registry>/<apps project>/otel-collector-journald:0.111.0 seb/pieces/otel-logging/image
-#   docker push  <registry>/<apps project>/otel-collector-journald:0.111.0
+# Built for each estate FROM THE SEB RELEASE, tagged seb-<commit:9> (the SEB commit), pushed to
+# the estate's registry, signed with SEB's key and pinned by digest in the estate's component
+# (components/estate/otel-logging): infrastructure/hetzner/scripts/estate-images.sh does it at
+# genesis, the estate's own image pipeline on every bump. Never under a shared version tag: one
+# was rebuilt over itself unsigned, and nodes kept a cached older build under the same name.
+# REGISTRY_HOST is the estate's registry (identity REGISTRY_HOST); the base images come from
+# its `mirror` project:
+#   podman build --build-arg REGISTRY_HOST=<registry> \
+#     -t <registry>/<apps project>/otel-collector-journald:seb-<commit:9> pieces/otel-logging/image
 ARG REGISTRY_HOST
 FROM ${REGISTRY_HOST}/mirror/docker.io/otel/opentelemetry-collector-contrib:0.111.0@sha256:2b0e2d76d3eb2013a34350ffb18d4863082a47bfa6ca98ca127413a59c35ef01 AS otel
 
@@ -21,4 +25,3 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=otel /otelcol-contrib /otelcol-contrib
 ENTRYPOINT ["/otelcol-contrib"]
-# ci: build trigger — otel-image.yml builds + pushes :0.111.0 to Harbor.

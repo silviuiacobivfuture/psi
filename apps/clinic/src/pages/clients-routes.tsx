@@ -15,6 +15,7 @@ import {
 	type Soon,
 } from "./client-page";
 import { ClientRow, MoreClients, renderClients, ShownCount } from "./clients-list";
+import { inviteErrorFrom, inviteFlash, registerInviteRoutes } from "./invite-routes";
 import { registerPackageRoutes } from "./package-routes";
 
 function noticeOf(
@@ -117,40 +118,58 @@ export function registerClients(app: Hono<Env>): void {
 					throw error;
 				}
 			};
-			const [appointments, packages, services, notes, blacklist, records, files, templates] =
-				await Promise.all([
-					needs("appointments", "packages") && can.has("appointments_view")
-						? ctx.port.clientAppointments(ctx.app, id)
+			const [
+				appointments,
+				packages,
+				services,
+				notes,
+				blacklist,
+				records,
+				files,
+				templates,
+				invite,
+			] = await Promise.all([
+				needs("appointments", "packages") && can.has("appointments_view")
+					? ctx.port.clientAppointments(ctx.app, id)
+					: [],
+				needs("overview", "packages") && can.has("packages_view")
+					? ctx.port.packages(ctx.app, id)
+					: [],
+				needs("appointments", "packages") && can.has("services_view")
+					? ctx.port.services(ctx.app)
+					: [],
+				soft(
+					"notes",
+					needs("overview", "notes") && can.has("notes_view") ? ctx.port.notes(ctx.app, id) : [],
+				),
+				soft(
+					"blacklist",
+					can.has("blacklist_view") && needs("overview")
+						? ctx.port.blacklistHistory(ctx.app, id)
 						: [],
-					needs("overview", "packages") && can.has("packages_view")
-						? ctx.port.packages(ctx.app, id)
-						: [],
-					needs("appointments", "packages") && can.has("services_view")
-						? ctx.port.services(ctx.app)
-						: [],
-					soft(
-						"notes",
-						needs("overview", "notes") && can.has("notes_view") ? ctx.port.notes(ctx.app, id) : [],
-					),
-					soft(
-						"blacklist",
-						can.has("blacklist_view") && needs("overview")
-							? ctx.port.blacklistHistory(ctx.app, id)
-							: [],
-					),
-					soft(
-						"records",
-						needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
-					),
-					soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
-					needs("records") ? ctx.port.formTemplates(ctx.app) : [],
-				]);
+				),
+				soft(
+					"records",
+					needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
+				),
+				soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
+				needs("records") ? ctx.port.formTemplates(ctx.app) : [],
+				// The invitation is shown only to whoever may act on it, and a service that cannot say leaves the card out.
+				needs("overview") && ctx.can.has("clients_invite")
+					? ctx.port.invite(ctx.app, id).catch((err: unknown) => {
+							if (err instanceof PortError) return undefined;
+							throw err;
+						})
+					: undefined,
+			]);
 			return c.html(
 				await renderClient(
 					ctx,
 					{
 						client,
 						tab,
+						invite,
+						inviteError: inviteErrorFrom(c.req.query("ierr")),
 						appointments,
 						packages,
 						services,
@@ -193,12 +212,15 @@ export function registerClients(app: Hono<Env>): void {
 		show(
 			c,
 			"overview",
-			c.req.query("done") === "archived" ? m.toast_archived({}, at(c.var.ctx.locale)) : undefined,
+			c.req.query("done") === "archived"
+				? m.toast_archived({}, at(c.var.ctx.locale))
+				: inviteFlash(c.req.query("done"), c.var.ctx.locale),
 		),
 	);
 	for (const tab of CLIENT_TABS.filter((t) => t !== "overview"))
 		app.get(`/clients/:id/${tab}`, (c) => show(c, tab));
 
 	registerClientActions(app);
+	registerInviteRoutes(app);
 	registerPackageRoutes(app);
 }

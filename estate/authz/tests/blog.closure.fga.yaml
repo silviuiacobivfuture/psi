@@ -79,6 +79,12 @@ tuples:
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
+  - user: user:c_platform_role_agent_studio_operator
+    relation: role_agent_studio_operator
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_viewer
+    relation: role_agent_studio_viewer
+    object: platform:psi
   - user: user:c_platform_role_blog_privacy_officer
     relation: role_blog_privacy_officer
     object: platform:psi
@@ -88,17 +94,35 @@ tuples:
   - user: user:c_platform_role_cms_ai_admin
     relation: role_cms_ai_admin
     object: platform:psi
+  - user: user:c_platform_role_cms_ai_operator
+    relation: role_cms_ai_operator
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_manager
+    relation: role_cms_calendar_manager
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_viewer
+    relation: role_cms_calendar_viewer
+    object: platform:psi
   - user: user:c_platform_role_cms_clinical_reviewer
     relation: role_cms_clinical_reviewer
     object: platform:psi
   - user: user:c_platform_role_cms_editor
     relation: role_cms_editor
     object: platform:psi
+  - user: user:c_platform_role_cms_notifications_admin
+    relation: role_cms_notifications_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_privacy_officer
+    relation: role_cms_privacy_officer
+    object: platform:psi
   - user: user:c_platform_role_cms_publisher
     relation: role_cms_publisher
     object: platform:psi
   - user: user:c_platform_role_cms_reader
     relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_cms_site_manager
+    relation: role_cms_site_manager
     object: platform:psi
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
@@ -111,6 +135,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
+    object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -215,6 +242,14 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_blog_privacy_officer
         object: blog_saved_article:closure
         assertions:
@@ -227,6 +262,18 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: blog_saved_article:closure
         assertions:
@@ -235,11 +282,23 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_publisher
         object: blog_saved_article:closure
         assertions:
           viewer: false
       - user: user:c_platform_role_cms_reader
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_site_manager
         object: blog_saved_article:closure
         assertions:
           viewer: false
@@ -256,6 +315,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_psizone_reception
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_sched_app_admin
         object: blog_saved_article:closure
         assertions:
           viewer: false
@@ -357,6 +420,14 @@ tests:
         object: blog_saved_article:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_blog_privacy_officer
         object: blog_saved_article:closure
         assertions:
@@ -369,6 +440,18 @@ tests:
         object: blog_saved_article:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: blog_saved_article:closure
         assertions:
@@ -377,11 +460,23 @@ tests:
         object: blog_saved_article:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_publisher
         object: blog_saved_article:closure
         assertions:
           editor: false
       - user: user:c_platform_role_cms_reader
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_site_manager
         object: blog_saved_article:closure
         assertions:
           editor: false
@@ -398,6 +493,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_psizone_reception
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_sched_app_admin
         object: blog_saved_article:closure
         assertions:
           editor: false

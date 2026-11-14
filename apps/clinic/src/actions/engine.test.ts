@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canOf } from "../lib/can";
 import { createFakePort } from "../port/fake";
+import { InviteOutcomeSchema } from "../port/schema-members";
 import { listActions, runAction } from "./engine";
 import { ACTIONS } from "./registry";
 import type { ActionCtx } from "./types";
@@ -201,6 +202,48 @@ describe("runAction", () => {
 		expect((await ctx.port.audit("psizone")).some((e) => e.action === "assistant.note.add")).toBe(
 			true,
 		);
+	});
+});
+
+describe("an action whose result is for the person at the screen alone", () => {
+	const invite = { email: "asist@example.test", displayName: "Prin Asistent", roles: [] };
+	it("an assistant run of the invitation answers where to go and no data: never the one-time link", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true, via: "assistant" });
+		expect(r).toEqual({ status: "ok", to: expect.stringContaining("/settings/members?edit=") });
+		expect(JSON.stringify(r)).not.toContain("recovery");
+		// it did invite: the person is in the team
+		expect((await ctx.port.members("psizone")).some((x) => x.displayName === "Prin Asistent")).toBe(
+			true,
+		);
+	});
+	it("the screen's own run gets the link", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true });
+		expect(r.status === "ok" && JSON.stringify(r.data)).toContain("recovery");
+	});
+	it("an assistant run of a new set-password link answers no link either", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true });
+		const subject = r.status === "ok" ? InviteOutcomeSchema.parse(r.data).subject : "";
+		const again = await runAction(
+			ctx,
+			"member.link",
+			{ subject },
+			{ confirmed: true, via: "assistant" },
+		);
+		expect(again).toEqual({ status: "ok", to: expect.stringContaining(subject) });
+		const own = await runAction(ctx, "member.link", { subject }, { confirmed: true });
+		expect(own.status === "ok" && JSON.stringify(own.data)).toContain("recovery");
+	});
+	it("someone who may not add members is refused, and nobody is added", async () => {
+		const ctx = await ctxFor(["reception"]);
+		const before = (await ctx.port.members("psizone")).length;
+		expect(await runAction(ctx, "member.invite", invite, { confirmed: true })).toEqual({
+			status: "refused",
+			code: "forbidden",
+		});
+		expect((await ctx.port.members("psizone")).length).toBe(before);
 	});
 });
 

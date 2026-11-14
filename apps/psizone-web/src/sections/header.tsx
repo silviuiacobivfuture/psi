@@ -1,5 +1,13 @@
 import { currentPath, STAFF_LINK_PATH } from "@psi/site-control";
-import { Button, Compass, type CompassGroup, DayNight, Logo, ThemeToggle } from "@psi/ui";
+import {
+	Button,
+	Compass,
+	type CompassGroup,
+	DayNight,
+	guideStart,
+	Logo,
+	ThemeToggle,
+} from "@psi/ui";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { account, accountGroups } from "../account";
 import { HUBS } from "../content/hubs";
@@ -7,7 +15,6 @@ import { METHODS } from "../content/methods";
 import { RACE_ME_UP } from "../content/race-me-up";
 import { estateGroup } from "../estate";
 import { guideCopy } from "../guide-copy";
-import { guideStart } from "../guide-start";
 import { at, base, type Locale } from "../i18n";
 import { psizoneInvite } from "../invite";
 import { m } from "../paraglide/messages.js";
@@ -127,6 +134,7 @@ export function Header({
 				guideAction={`${b}/ghid?target=compass-answer`}
 				answerId="compass-answer"
 				startWith={guideStart(locale)}
+				bookWith={m.compass_book_with({}, o)}
 				invite={psizoneInvite(locale, currentPath())}
 				chat={{
 					storageKey: "psi.chat.psizone",
@@ -137,7 +145,6 @@ export function Header({
 						newChat: m.compass_new_chat({}, o),
 						close: m.compass_close({}, o),
 						fullscreen: m.compass_fullscreen({}, o),
-						exitFullscreen: m.compass_exit_fullscreen({}, o),
 						fullscreenOn: m.compass_fullscreen_on({}, o),
 						guideTab: m.compass_tab_guide({}, o),
 						pagesTab: m.compass_tab_pages({}, o),

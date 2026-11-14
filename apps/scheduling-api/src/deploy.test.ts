@@ -68,6 +68,48 @@ describe("the deployment declares every secret in all four places", () => {
 		expect(declared.match(/NOVU_SECRET_KEY/g)?.length).toBeGreaterThanOrEqual(3);
 	});
 
+	it("the sign-in's settings are an OPTIONAL set: their own ExternalSecret, an optional envFrom, in no required list, and never half in plain env", () => {
+		const sso = read("gitops/services/scheduling-api/base/sso-externalsecret.yaml");
+		const d = read("gitops/services/scheduling-api/base/deployment.yaml");
+		const keys = sorted([...sso.matchAll(/secretKey: (\w+)/g)].map((m) => m[1] ?? ""));
+		expect(keys).toEqual(["AUTHENTIK_API_TOKEN", "AUTHENTIK_URL"]);
+		expect(sso).toContain("name: scheduling-api-sso");
+		expect(sso).not.toContain("dataFrom:");
+		for (const key of keys) expect(sso).toContain(`key: apps/scheduling-api/sso, property: ${key}`);
+		expect(d).toContain("secretRef: { name: scheduling-api-sso, optional: true }");
+		// One half in plain env would stop the boot (the service refuses an address without its token): both come from the secret.
+		expect(d).not.toMatch(/name: AUTHENTIK_(URL|API_TOKEN)\b/);
+		// The group the invited clients' accounts are made in is plain configuration: a client group, never the staff's.
+		expect(d).toContain("{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }");
+		expect(d).not.toMatch(/AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic(-prod)?-member/);
+		const prod = read("gitops/services/scheduling-api/overlays/prod/kustomization.yaml");
+		expect(prod).toContain("{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }");
+		// The team's search and invitation: the console's member group of each environment, never a customer group.
+		expect(d).toContain("{ name: AUTHENTIK_STAFF_GROUP, value: app-clinic-member }");
+		expect(prod).toContain("{ name: AUTHENTIK_STAFF_GROUP, value: app-clinic-prod-member }");
+		for (const text of [d, prod])
+			expect(text).not.toMatch(/AUTHENTIK_STAFF_GROUP, value: app-clinic(-prod)?-customer/);
+		for (const key of keys) {
+			expect(asserted).not.toContain(key);
+			expect(required).not.toContain(key);
+			expect(external).not.toContain(key);
+		}
+		expect(read("gitops/services/scheduling-api/base/kustomization.yaml")).toContain(
+			"sso-externalsecret.yaml",
+		);
+		const row =
+			read("estate/APP-SECRETS.md")
+				.split("\n")
+				.find((l) => l.startsWith("| `scheduling-api`")) ?? "";
+		for (const needle of [
+			"secret/apps/scheduling-api/sso",
+			"AUTHENTIK_URL",
+			"AUTHENTIK_API_TOKEN",
+			"optional",
+		])
+			expect(row, needle).toContain(needle);
+	});
+
 	it("no ExternalSecret reads everything from a path", () => {
 		expect(read("gitops/services/scheduling-api/base/externalsecret.yaml")).not.toContain(
 			"dataFrom:",
@@ -97,6 +139,39 @@ describe("the deployment declares every secret in all four places", () => {
 		expect(registered).toContain("- clinic.yaml");
 		expect(read("gitops/apps/overlays/dev/apps/scheduling-api.yaml")).toContain(
 			"name: scheduling-api",
+		);
+	});
+
+	it("OpenFGA admits the console and the service through psi's own policy, registered with Argo, on the right ports", () => {
+		const p = read("gitops/services/openfga-access/base/networkpolicy.yaml");
+		// One rule per port: the text of each ingress rule, from its `- from:` to the next.
+		const rules = p.split("    - from:").slice(1);
+		const ruleFor = (port: number): string =>
+			rules.find((r) => r.includes(`port: ${port} }`)) ?? "";
+		expect(rules).toHaveLength(2);
+		expect(p).toMatch(/metadata:\n {2}name: openfga-psi-apps\n {2}namespace: openfga\n/);
+		expect(p).toContain("matchLabels: { app: openfga }");
+		// :8081 admits both, each as namespace AND pod in one element; :8080 (tuple writes) only the service
+		const check = ruleFor(8081);
+		expect(check).toMatch(
+			/metadata\.name: clinic \}\n\s+podSelector:\n\s+matchLabels: \{ app: clinic \}/,
+		);
+		expect(check).toMatch(
+			/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
+		);
+		const write = ruleFor(8080);
+		expect(write).toMatch(
+			/metadata\.name: scheduling-api \}\n\s+podSelector:\n\s+matchLabels: \{ app: scheduling-api \}/,
+		);
+		expect(write).not.toContain("clinic");
+		expect(read("gitops/services/openfga-access/base/kustomization.yaml")).toMatch(
+			/^namespace: openfga$/m,
+		);
+		expect(read("gitops/apps/overlays/dev/apps/kustomization.yaml")).toContain(
+			"- openfga-access.yaml",
+		);
+		expect(read("gitops/apps/overlays/dev/apps/openfga-access.yaml")).toContain(
+			"namespace: openfga }",
 		);
 	});
 

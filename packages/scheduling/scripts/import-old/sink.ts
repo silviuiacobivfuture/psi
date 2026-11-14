@@ -93,6 +93,11 @@ export interface ImportSink {
 			values: string[];
 		}>,
 	): Promise<void>;
+	/**
+	 * Every old id the store holds for a kind, with the fingerprint it was written with (undefined when it has
+	 * none): what a sync compares the old app's rows with. Reads only; the blacklist (a seed) answers empty.
+	 */
+	stored(tenant: string, kind: Kind): Promise<Map<string, string | undefined>>;
 	/** The slugs already in the app's practitioners, rooms, devices and group activities. */
 	slugs(
 		tenant: string,
@@ -116,6 +121,40 @@ const FUNCTION: Record<Kind, string> = {
 	responses: getFunctionName(internal.importRecords.upsertResponses),
 	files: getFunctionName(internal.importRecords.upsertFiles),
 	blacklist: getFunctionName(internal.importBlacklist.upsertEntries),
+};
+
+/** The store table each kind is written to; the blacklist is a seed, not a mirror of the old app. */
+const TABLE_OF: Record<
+	Kind,
+	| "practitioners"
+	| "devices"
+	| "rooms"
+	| "groupActivities"
+	| "staffMembers"
+	| "clients"
+	| "packages"
+	| "visits"
+	| "payments"
+	| "rosterDays"
+	| "staffBlocks"
+	| "formResponses"
+	| "files"
+	| undefined
+> = {
+	practitioners: "practitioners",
+	devices: "devices",
+	rooms: "rooms",
+	groups: "groupActivities",
+	staff: "staffMembers",
+	clients: "clients",
+	packages: "packages",
+	visits: "visits",
+	payments: "payments",
+	roster: "rosterDays",
+	blocks: "staffBlocks",
+	responses: "formResponses",
+	files: "files",
+	blacklist: undefined,
 };
 
 export const BATCH = 200;
@@ -184,6 +223,18 @@ export function createConvexSink(admin: AdminClient): ImportSink {
 				),
 			);
 			return found.map((f) => ({ kind: f.kind, slug: f.slug, legacyId: f.legacyId }));
+		},
+		async stored(tenant, kind) {
+			const out = new Map<string, string | undefined>();
+			const table = TABLE_OF[kind];
+			if (table === undefined) return out;
+			const found = await admin.query(
+				getFunctionName(internal.clinicInspect.stored),
+				{ tenant, table },
+				z.array(z.object({ legacyId: z.string(), fingerprint: z.string().optional() })),
+			);
+			for (const f of found) out.set(f.legacyId, f.fingerprint);
+			return out;
 		},
 		async knownFiles(tenant, legacyIds) {
 			const known = new Map<string, string>();

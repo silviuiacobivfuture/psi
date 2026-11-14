@@ -22,6 +22,20 @@ export const notifyOutbox = defineTable({
 	.index("by_key", ["key"])
 	.index("by_due", ["dueAt"]);
 
+/**
+ * What the engagement layer keeps per app, by namespace (`invite`, `link`, `prefs`, `delivery`, `tick`): text the service
+ * validated, with a revision for compare-and-set. It holds no clinical data and no free text a person typed: invitation
+ * state, preference switches and delivery outcomes by id.
+ */
+export const appKeyed = defineTable({
+	tenant: v.string(),
+	ns: v.string(),
+	key: v.string(),
+	body: v.string(),
+	revision: v.number(),
+	updatedAt: v.number(),
+}).index("by_tenant_ns_key", ["tenant", "ns", "key"]);
+
 /** A one-time link that was used: exactly one claim of a `jti` ever succeeds. Rows go once the link has expired. */
 export const usedLinks = defineTable({
 	jti: v.string(),

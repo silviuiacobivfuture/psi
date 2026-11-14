@@ -36,6 +36,10 @@ resources:
   - oidc-apiserver-plan.yaml
   - etcd-s3-plan.yaml
   - kubelet-memory-plan.yaml
+  # The registries Plans (registries/), wired in only by the estate once registries-mode.sh moves
+  # it off hold (slot registries-wired: the line `  - registries`).
+  # seb:estate registries-wired
+  # seb:end registries-wired
   # Not a Plan: the scheduled copy of the datastore. Its header says why it lives here.
   - k3s-datastore-copy.yaml
 
@@ -147,6 +151,9 @@ patches:
 # Plan's DRIFT TRAP still applies when an identity VALUE changes: bump its spec.version too.)
 components:
   - ../../components/whitelabel
+  # The estate's node settings (schema/slots/system-upgrade-controller.yaml): the kubelet drop-ins,
+  # KM_MODE and RG_MODE, the Plans' versions. SEB's default adds nothing.
+  - ../../components/estate/system-upgrade-controller
 replacements:
   - path: whitelabel-replacements.yaml
   # The registries Plans (registries/, wired only by registries-mode.sh): their image and the

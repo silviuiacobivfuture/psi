@@ -14,9 +14,9 @@ kind: Component
 # Listed in ../kustomization.yaml BEFORE the estate's own component, which therefore sees (and may
 # act on) the pinned images.
 images:
-  - name: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e
+  - name: WLREGISTRY/WLAPPS/plane-backend-sso/892a3ca6f441
     newTag: v1.4.2
-    digest: sha256:139a5e35d91b507f3b3c475347f5bccc20af27d0a6a1f724fec6b11c7a7ab56a
+    digest: sha256:51ccf2b8a1e699369b7fa8371017e9b29db59ff29619aace0a6dda9a7c008025
   - name: WLREGISTRY/mirror/docker.io/makeplane/plane-live
     newTag: v1.4.2
     digest: sha256:1e7c180f16e568db51b8739d9cccee8c450b52dab6335e06ed1c29fc45aecae9

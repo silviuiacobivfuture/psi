@@ -1,87 +1,30 @@
-# Two hosts, BOTH behind the Authentik gate, so every browser entry starts at the estate's
-# sign-in and nobody types a password into a mail page:
-#   <WEBMAIL_HOST>  the webmail (Roundcube, webmail.yaml): reading and writing mail. Behind the
-#                   `webmail` forward_single provider, then Roundcube's own OIDC sign-in, which
-#                   redirects straight to Authentik (oauth_login_redirect).
-#   <MAIL_HOST>     Stalwart's own pages: /account (app passwords for phones, filters) and
-#                   /admin (administration). Behind the `mail` forward_single provider, then
+# <MAIL_ADMIN_HOST>  Stalwart's own pages: /account (app passwords for phones, filters) and
+#                   /admin (administration), behind the Authentik gate, so every browser entry
+#                   starts at the estate's sign-in. Behind the `mail` forward_single provider, then
 #                   Stalwart's sign-in at the same Authentik (the `mail-oidc` public client).
-# Both: app-mail-user, app-mail-admin, platform-admins. Calendars and contacts are NOT published:
-# no CalDAV/CardDAV host is advertised (they stay in the estate's Nextcloud).
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: webmail
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
-    # ---- Homepage hub auto-discovery ----------------------------------------
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/name: "Mail"
-    gethomepage.dev/description: "Webmail"
-    gethomepage.dev/group: "Everyday tools"
-    gethomepage.dev/weight: "25"
-    gethomepage.dev/icon: "mdi-email"
-    gethomepage.dev/href: "https://webmail.WLDOMAIN/"
-    gethomepage.dev/pod-selector: "app.kubernetes.io/name=webmail"
-spec:
-  ingressClassName: traefik
-  tls:
-    - hosts: [webmail.WLDOMAIN]
-      secretName: webmail-tls
-  rules:
-    - host: webmail.WLDOMAIN
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: webmail
-                port: { name: http }
----
-# The outpost's CALLBACK on each host, with the estate's restart in front of the gate
-# (gitops/platform/authentik/sso-restart.yaml; the sso-restart gate refuses a gated host
-# without it). The backend is never reached — the outpost answers the callback.
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: webmail-callback
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: authentik-sso-restart@kubernetescrd,authentik-authentik-forwardauth@kubernetescrd
-spec:
-  ingressClassName: traefik
-  tls:
-    - hosts: [webmail.WLDOMAIN]
-      secretName: webmail-tls
-  rules:
-    - host: webmail.WLDOMAIN
-      http:
-        paths:
-          - path: /outpost.goauthentik.io/callback
-            pathType: Exact
-            backend:
-              service:
-                name: webmail
-                port: { name: http }
----
-# <MAIL_HOST>: Stalwart's pages, on the certificate the mail ports use (certificate.yaml).
+#                   NOT <MAIL_HOST>: that name is the mail node's (SMTP/IMAP hostPorts), where
+#                   the web ingress does not answer. Admits app-mail-user, app-mail-admin,
+#                   platform-admins.
+# <BULWARK_HOST>    the mail client (Bulwark), below.
+# Calendars and contacts are NOT published: no CalDAV/CardDAV host is advertised (they stay in
+# the estate's Nextcloud).
+# Stalwart's pages, on a certificate of their own (cert-manager, from this
+# Ingress), so the mail ports' certificate (certificate.yaml) names the mail host only.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: stalwart-admin
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [post.WLDOMAIN]
-      secretName: stalwart-tls
+    - hosts: [mail-admin.WLDOMAIN]
+      secretName: stalwart-admin-tls
   rules:
-    - host: post.WLDOMAIN
+    - host: mail-admin.WLDOMAIN
       http:
         paths:
           - path: /
@@ -91,6 +34,9 @@ spec:
                 name: stalwart
                 port: { name: http }
 ---
+# The outpost's CALLBACK on the host, with the estate's restart in front of the gate
+# (gitops/platform/authentik/sso-restart.yaml; the sso-restart gate refuses a gated host
+# without it). The backend is never reached — the outpost answers the callback.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -101,13 +47,83 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [post.WLDOMAIN]
-      secretName: stalwart-tls
+    - hosts: [mail-admin.WLDOMAIN]
+      secretName: stalwart-admin-tls
   rules:
-    - host: post.WLDOMAIN
+    - host: mail-admin.WLDOMAIN
       http:
         paths:
           - path: /outpost.goauthentik.io/callback
+            pathType: Exact
+            backend:
+              service:
+                name: stalwart
+                port: { name: http }
+---
+# <BULWARK_HOST>: Bulwark (bulwark.yaml), the estate's mail client. NOT behind the edge gate:
+# Bulwark sends a signed-out browser straight to the same Authentik (AUTO_SSO, OAUTH_ONLY), whose
+# mail-oidc application admits the same three groups the gate does, and the mail server checks
+# every JMAP call's token itself. A gate in front would also stop Bulwark's own server, which
+# checks every sign-in against <BULWARK_HOST>/.well-known/jmap without a browser cookie.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bulwark
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # ---- Homepage hub auto-discovery ----------------------------------------
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Mail"
+    gethomepage.dev/description: "Bulwark"
+    gethomepage.dev/group: "Everyday tools"
+    gethomepage.dev/weight: "24"
+    gethomepage.dev/icon: "mdi-email-fast"
+    gethomepage.dev/href: "https://mail.WLDOMAIN/"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=bulwark"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [mail.WLDOMAIN]
+      secretName: bulwark-tls
+  rules:
+    - host: mail.WLDOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bulwark
+                port: { name: http }
+---
+# The mail server's JMAP on Bulwark's own host, so the browser speaks to one origin (no CORS) and
+# the server's session URLs (mail-admin.<apex>/jmap/...) are moved onto it by Bulwark. Only the
+# JMAP paths: every call carries the person's Authentik token, which Stalwart validates itself
+# (the same credential its IMAP and SMTP ports, already public, take). Stalwart's pages stay
+# behind the gate at <MAIL_ADMIN_HOST>.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bulwark-jmap
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [mail.WLDOMAIN]
+      secretName: bulwark-tls
+  rules:
+    - host: mail.WLDOMAIN
+      http:
+        paths:
+          - path: /jmap
+            pathType: Prefix
+            backend:
+              service:
+                name: stalwart
+                port: { name: http }
+          - path: /.well-known/jmap
             pathType: Exact
             backend:
               service:

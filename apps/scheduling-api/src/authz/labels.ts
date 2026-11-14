@@ -45,6 +45,7 @@ export const ACTION_LABEL: Readonly<Record<string, { ro: string; en: string }>> 
 	assign: { ro: "atribuie", en: "assign" },
 	price: { ro: "stabilește prețul", en: "set the price" },
 	restore: { ro: "restaurează", en: "restore" },
+	invite: { ro: "invită în contul online", en: "invite to the online account" },
 	upload: { ro: "încarcă", en: "upload" },
 	imports_view: { ro: "vede importurile", en: "view imports" },
 	imports_run: { ro: "rulează importuri", en: "run imports" },

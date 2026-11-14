@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { auditChangesSchema, changeProblem } from "./audit-changes";
 
 export const AUDIT_ACTIONS = [
 	"app.create",
@@ -80,18 +81,32 @@ const FIELD_NAME = /^[A-Za-z][A-Za-z0-9_.]{0,47}$/;
  * action, the names of the fields that changed and a count, so a client's name, a diagnosis or a
  * note can never end up in the log.
  */
-export const auditInputSchema = z.object({
-	tenant: z.string().min(1),
-	at: z.number().int().nonnegative(),
-	/** The staff subject (or `system:<process>`). */
-	actor: z.string().min(1).max(200),
-	action: z.enum(AUDIT_ACTIONS),
-	entity: z.enum(AUDIT_ENTITIES),
-	/** The id of the thing (the store's id, or an old id for an import). */
-	entityId: z.string().min(1).max(100),
-	fields: z.array(z.string().regex(FIELD_NAME)).max(40).optional(),
-	count: z.number().int().nonnegative().optional(),
-});
+export const auditInputSchema = z
+	.object({
+		tenant: z.string().min(1),
+		at: z.number().int().nonnegative(),
+		/** The staff subject (or `system:<process>`). */
+		actor: z.string().min(1).max(200),
+		action: z.enum(AUDIT_ACTIONS),
+		entity: z.enum(AUDIT_ENTITIES),
+		/** The id of the thing (the store's id, an old id for an import, or a member's subject). */
+		entityId: z.string().min(1).max(200),
+		fields: z.array(z.string().regex(FIELD_NAME)).max(40).optional(),
+		count: z.number().int().nonnegative().optional(),
+		/** Before and after of a team change, and nothing else (audit-changes.ts). */
+		changes: auditChangesSchema.optional(),
+	})
+	.superRefine((input, issues) => {
+		for (const [i, change] of (input.changes ?? []).entries()) {
+			const problem = changeProblem(input.entity, change);
+			if (problem !== undefined)
+				issues.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["changes", i, problem === "field" ? "field" : "from"],
+					message: problem === "field" ? "this field keeps no values" : "not a value of this field",
+				});
+		}
+	});
 export type AuditInput = z.infer<typeof auditInputSchema>;
 
 export type AuditEvent = AuditInput & { summary: string };

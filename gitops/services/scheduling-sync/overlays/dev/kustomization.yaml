@@ -1,0 +1,9 @@
+# What the dev one-shot sync needs standing in namespace `scheduling` (synced by Argo as `scheduling-sync`): its
+# NetworkPolicy and its secrets. The Job itself is NOT here (overlays/dev-once): it is created by hand when a refresh is
+# wanted. No image: nothing for CI to bump.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling
+resources:
+  - ../../base
+  - externalsecret.yaml

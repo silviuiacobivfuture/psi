@@ -2,7 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { AppKeySchema } from "../apps";
 
-export const LINK_ACTIONS = ["confirm", "cancel", "ics"] as const;
+export const LINK_ACTIONS = ["confirm", "cancel", "ics", "invite"] as const;
 export type LinkAction = (typeof LINK_ACTIONS)[number];
 
 const Claims = z
@@ -41,6 +41,8 @@ export interface SignInput {
 	locale: Claims["l"];
 	/** Epoch milliseconds the link stops working. */
 	expiresAt: number;
+	/** The link's own id (8 to 64 URL-safe characters), when the caller must recognise it later; else random. */
+	tokenId?: string;
 }
 
 /** `<claims>.<signature>`, URL-safe. The secret must be at least 32 characters (OpenBao). */
@@ -53,7 +55,7 @@ export function signToken(input: SignInput): string {
 		i: input.appointmentId,
 		k: input.action,
 		e: Math.floor(input.expiresAt / 1000),
-		j: b64(randomBytes(12)),
+		j: input.tokenId ?? b64(randomBytes(12)),
 		l: input.locale,
 	};
 	const body = b64(Buffer.from(JSON.stringify(claims)));

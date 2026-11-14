@@ -131,7 +131,13 @@ export const appointmentEditHandlers: HandlersOf<"appointments.update" | "appoin
 			await ctx.notify(
 				"appointment.moved",
 				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: next.start, previousStart: row.start },
+				{
+					appointmentId: row.id,
+					start: next.start,
+					previousStart: row.start,
+					actor: ctx.subject,
+					source: "staff",
+				},
 				`${row.id}:${next.start}:${next.practitionerId}`,
 			);
 		}
@@ -141,14 +147,14 @@ export const appointmentEditHandlers: HandlersOf<"appointments.update" | "appoin
 				await ctx.notify(
 					"appointment.cancelled",
 					{ kind: "client", clientId: row.clientId },
-					{ appointmentId: row.id, start: row.start },
+					{ appointmentId: row.id, start: row.start, actor: ctx.subject, source: "staff" },
 					`${row.id}:released:${row.clientId}`,
 				);
 			if (next.clientId !== undefined && next.status !== "requested")
 				await ctx.notify(
 					"appointment.confirmed",
 					{ kind: "client", clientId: next.clientId },
-					{ appointmentId: row.id, start: next.start },
+					{ appointmentId: row.id, start: next.start, actor: ctx.subject, source: "staff" },
 					`${row.id}:taken:${next.clientId}`,
 				);
 		}
@@ -171,7 +177,7 @@ export const appointmentEditHandlers: HandlersOf<"appointments.update" | "appoin
 			await ctx.notify(
 				"appointment.confirmed",
 				{ kind: "client", clientId: next.clientId },
-				{ appointmentId: row.id, start: next.start },
+				{ appointmentId: row.id, start: next.start, actor: ctx.subject, source: "staff" },
 				row.id,
 			);
 		return appointmentOut(ctx, next);

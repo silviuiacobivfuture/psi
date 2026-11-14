@@ -3,6 +3,7 @@ import { RequestContext } from "@mastra/core/request-context";
 import { MODEL_KEY } from "./agent";
 import { type AskContext, report, type ThreadAgent } from "./ask-context";
 import { CREATIVITY_TEMPERATURE } from "./behaviour";
+import { deniesCalendar } from "./booking-guard";
 import type { Source } from "./contract";
 import { within } from "./deadline";
 import type { AskInput, EngineEvent, GuideAction, HistoryTurn } from "./events";
@@ -61,6 +62,8 @@ export type ReplyOutcome =
 	| { kind: "language" }
 	/** Every sentence stated an unsupported fact, twice: the honest "not on our site" line. */
 	| { kind: "unknown" }
+	/** A site that books said it cannot see its calendar: the booking's own offer goes out instead. */
+	| { kind: "calendar" }
 	/** The provider failed twice (network, 5xx, a timeout, an unfinished reply). */
 	| { kind: "failed"; error: unknown }
 	/** The visitor sent another question, or left: nobody is waiting for this reply. */
@@ -441,6 +444,10 @@ async function* decide(
 			fallback = { outcome: { kind: "language" }, text: "" };
 			note = pack.prompt.strictLanguage ?? pack.prompt.language;
 			continue;
+		}
+		if (ctx.booking !== undefined && deniesCalendar(result.text)) {
+			report(ctx, "check", new Error("blocked: the reply denied access to the calendar"));
+			return { kind: "calendar" };
 		}
 		const evidence = {
 			passages: [...Object.values(result.ledger.passageTexts()), ...result.shown],

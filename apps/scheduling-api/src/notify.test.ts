@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createWorld, type Populated } from "./testing/populate";
-import { HOUR, NOW } from "./testing/world";
+import { bookingContact, HOUR, NOW } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 let w: Populated;
@@ -33,7 +33,7 @@ async function request(): Promise<{ reference: string; cancelCode: string }> {
 	const sub = (
 		await w.callKey("psizone-web", "POST", `${A}/book/holds/${hold.reference}/submit`, {
 			holdToken: hold.holdToken,
-			contact: { name: "V", phone: "0733 000 333" },
+			contact: bookingContact({ phone: "0733 000 333" }),
 		})
 	).json;
 	return { reference: String(sub.reference), cancelCode: String(sub.cancelCode) };
@@ -104,6 +104,8 @@ describe("the team and the people are told, by reference and without data", () =
 			"payment.recorded",
 			"payment.recorded",
 			"leave.requested",
+			// Approved leave lands on the roster, and the therapist hears that their schedule changed, then the decision.
+			"schedule.changed",
 			"leave.decided",
 		]);
 		expect(w.notifier.sent.at(-1)?.to).toEqual({ kind: "person", subject: "dora" });

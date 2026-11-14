@@ -6,7 +6,17 @@ import {
 	parseRelation,
 } from "./catalogue";
 import { ACTION_LABEL, GROUP_LABEL, RESOURCE_LABEL } from "./labels";
-import { buildModel, type Clause, PLATFORM_CLAUSE, render } from "./model";
+import {
+	buildModel,
+	type Clause,
+	INTEGRATION_ROLE,
+	PLATFORM_CLAUSE,
+	PROGRAM_SUBJECT,
+	REGISTER,
+	REGISTER_PERMISSIONS,
+	REGISTER_RELATIONS,
+	render,
+} from "./model";
 
 type Label = { ro: string; en: string };
 
@@ -38,12 +48,39 @@ export function buildManifest(): Record<string, unknown> {
 		})),
 	}));
 	const platformRoleClause = render(PLATFORM_CLAUSE);
-	const objects = Object.entries(buildModel()).map(([type, relations]) => ({
+	const register = {
+		key: "register",
+		name: { ro: "Registrul organizației", en: "The organisation's register" },
+		permissions: [
+			{
+				key: "register_read",
+				name: { ro: "Registru: citire", en: "Register: read" },
+				grants: [`${REGISTER}#${REGISTER_PERMISSIONS.register_read}`],
+				effect: "read",
+			},
+			{
+				key: "register_write",
+				name: { ro: "Registru: scriere", en: "Register: write" },
+				grants: [`${REGISTER}#${REGISTER_PERMISSIONS.register_write}`],
+				effect: "write",
+			},
+		],
+	};
+	// The program subject is the generator's own block, never a declared object; the register is declared with
+	// its own relations only, and the generator adds the integration role's clauses to them.
+	const declared = Object.entries(buildModel())
+		.filter(([type]) => type !== PROGRAM_SUBJECT)
+		.map(
+			([type, relations]) => [type, type === REGISTER ? REGISTER_RELATIONS : relations] as const,
+		);
+	const objects = declared.map(([type, relations]) => ({
 		type,
 		scope:
 			type === "sched_app"
 				? { scope_type: "platform", relation: "parent_platform" }
-				: { scope_type: "sched_app", relation: "app" },
+				: type === REGISTER
+					? { scope_type: "org", relation: "parent_org" }
+					: { scope_type: "sched_app", relation: "app" },
 		relations: Object.entries(relations).map(([name, clauses]) => ({
 			name,
 			// The role clause is the generator's to append (a catalogue role grants the relation), so it is not written here.
@@ -57,7 +94,9 @@ export function buildManifest(): Record<string, unknown> {
 		module: "sched",
 		generated_dir: "src/authz",
 		version: 1,
-		features,
+		program_subject: PROGRAM_SUBJECT,
+		programs: { roles: [INTEGRATION_ROLE], resource: REGISTER },
+		features: [...features, register],
 		objects,
 		roles: [
 			{
@@ -69,6 +108,19 @@ export function buildManifest(): Record<string, unknown> {
 				},
 				scope_type: "platform",
 				grants: PLATFORM_ADMIN_GRANTS,
+				assignable: true,
+				max_duration: null,
+			},
+			{
+				key: INTEGRATION_ROLE,
+				name: { ro: "Integrarea serviciului de programări", en: "Scheduling service integration" },
+				description: {
+					ro: "Pentru programul serviciului de programări: îi dă dreptul să lucreze cu registrul organizației.",
+					en: "For the scheduling service's program: lets it work with the organisation's register.",
+				},
+				scope_type: "org",
+				grants: Object.values(REGISTER_PERMISSIONS).map((relation) => `${REGISTER}#${relation}`),
+				resource_scopes: [REGISTER],
 				assignable: true,
 				max_duration: null,
 			},

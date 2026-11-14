@@ -1,0 +1,24 @@
+# The estate's off-site backups of the appointments system (docs/backup.md): one namespace, `backup`, for what copies
+# BETWEEN buckets — the bucket setup, the client-file replicas, the OpenBao snapshot's off-site copy and the freshness
+# alarm. The Convex exports run beside each store (gitops/services/scheduling-deploy, CronJob scheduling-backup) and the
+# Postgres clusters archive themselves (CNPG barmanObjectStore). Every bucket here is in fsn1 (Falkenstein); everything
+# it copies is in nbg1 (Nuremberg), where the cluster runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: backup
+resources:
+  - externalsecret.yaml
+  - networkpolicy.yaml
+  - bucket-setup.yaml
+  - files-replica.yaml
+  - openbao-offsite.yaml
+  - freshness.yaml
+configMapGenerator:
+  - name: backup-scripts
+    files:
+      - scripts/lib.sh
+      - scripts/buckets.sh
+      - scripts/lifecycle.json
+      - scripts/replicate-files.sh
+      - scripts/offsite-openbao.sh
+      - scripts/freshness.sh

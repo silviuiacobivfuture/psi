@@ -7,6 +7,7 @@ import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { type MemberDetail, relationOf } from "../port/schema-members";
 import { Pick } from "./form-choices";
+import { NewLinkForm } from "./member-add";
 import { type OverrideChoice, overrideChoices, summaryOf } from "./member-summary";
 import type { MembersData } from "./members";
 import { actionLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
@@ -289,6 +290,9 @@ export function MemberEditor({
 				<Effective ctx={ctx} member={member} />
 				<Overrides ctx={ctx} member={member} disabled={locked} />
 				<Calendar ctx={ctx} d={d} member={member} />
+				{self || !ctx.can.write("members_create") || member.email === undefined ? null : (
+					<NewLinkForm ctx={ctx} subject={member.subject} />
+				)}
 			</div>
 		</Sheet>
 	);

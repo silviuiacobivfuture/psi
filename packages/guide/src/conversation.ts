@@ -130,11 +130,35 @@ export function bookingStateOf(turns: ReadonlyArray<ConversationTurn>): BookingS
 	return undefined;
 }
 
-/** The conversation after one question: the question and the answer (or the refusal) appended. */
+/**
+ * The conversation with the booking state kept only where it can still be used: on the guide's
+ * latest turns (see `BOOKING_TURNS`), and on none when the booking flow just ended. Older states
+ * carry what the visitor gave (name, phone, what is going on) and are not needed again.
+ */
+function keepBookingOnLatest(
+	turns: ReadonlyArray<ConversationTurn>,
+	ended: boolean,
+): ReadonlyArray<ConversationTurn> {
+	const guideIndexes = turns.flatMap((t, i) => (t.role === "guide" ? [i] : []));
+	const kept = new Set(ended ? [] : guideIndexes.slice(-BOOKING_TURNS));
+	return turns.map((turn, i) => {
+		if (turn.booking === undefined || kept.has(i)) return turn;
+		const { booking: _dropped, ...rest } = turn;
+		return rest;
+	});
+}
+
+/**
+ * The conversation after one question: the question and the answer (or the refusal) appended.
+ * `endsBooking` says the answer finished the booking flow (a request sent, a cancellation done):
+ * no turn then carries a booking state any more.
+ */
 export function continueConversation(
 	turns: ReadonlyArray<ConversationTurn>,
 	question: string,
-	reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
+	reply:
+		| { answer: string; booking?: BookingState; endsBooking?: boolean }
+		| { refused: RefusalReason },
 	page?: string,
 ): ReadonlyArray<ConversationTurn> {
 	const guide: ConversationTurn =
@@ -146,9 +170,9 @@ export function continueConversation(
 					...(reply.booking === undefined ? {} : { booking: reply.booking }),
 				};
 	const at = page === undefined ? {} : { page };
-	return parseConversation([
-		...turns,
-		{ role: "user", text: question, ...at },
-		{ ...guide, ...at },
-	]);
+	const ended = !("refused" in reply) && reply.endsBooking === true;
+	return keepBookingOnLatest(
+		parseConversation([...turns, { role: "user", text: question, ...at }, { ...guide, ...at }]),
+		ended,
+	);
 }

@@ -1,7 +1,7 @@
 import { schedulingPort } from "@psi/guide";
 import type { RunningApi } from "@psi/scheduling-api/testing";
+import { FormIdSchema } from "@psi/ui";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { FormIdSchema } from "./booking";
 import { decode, post, siteOnService } from "./test-flow";
 
 /**
@@ -77,8 +77,10 @@ describe("the chat's booking against the scheduling service", () => {
 		const held = await post(app, "/programare", {
 			form: formId,
 			name: "Test Vizitator",
+			age: "9",
+			details: "Copilul nu se mai concentrează la școală de câteva luni.",
 			phone: "0712 345 678",
-			email: "",
+			email: "test.vizitator@example.ro",
 			forWhom: "child",
 			when: "any",
 			slot: slot?.id ?? "",
@@ -109,6 +111,65 @@ describe("the chat's booking against the scheduling service", () => {
 		);
 		expect((journal.json.items as { target: { id: string } }[]).map((e) => e.target.id)).toContain(
 			reference,
+		);
+	}, 60_000);
+
+	it("the assistant books in the chat itself: a hold as the guide's, then the five fields; one missing is refused", async () => {
+		const tools = await port();
+		const found = await tools.findSlots({
+			tenant: "psizone",
+			service: "evaluation",
+			from: Date.now(),
+			to: Date.now() + 14 * DAY,
+			limit: 20,
+		});
+		if (!found.ok) throw new Error(found.reason);
+		const slot = found.slots.find((s) => s.id.endsWith(".onsite"));
+		if (slot === undefined || tools.hold === undefined || tools.submit === undefined)
+			throw new Error("the port cannot book");
+		const held = await tools.hold({
+			tenant: "psizone",
+			service: "evaluation",
+			slotId: slot.id,
+			locale: "ro",
+		});
+		if (!held.ok) throw new Error(held.reason);
+		const contact = {
+			name: "Test Asistent",
+			email: "test.asistent@example.ro",
+			phone: "+40712345677",
+			age: 9,
+			details: "Copilul nu doarme bine de câteva luni.",
+		};
+		const before = await api.world.fingerprint();
+		expect(
+			await tools.submit({
+				reference: held.reference,
+				holdToken: held.holdToken,
+				contact: { ...contact, details: "" },
+				audience: "child",
+			}),
+		).toEqual({ ok: false, reason: "invalid" });
+		expect(await api.world.fingerprint()).toBe(before);
+		const told = api.world.notifier.sent.length;
+		const sent = await tools.submit({
+			reference: held.reference,
+			holdToken: held.holdToken,
+			contact,
+			audience: "child",
+		});
+		if (!sent.ok) throw new Error(sent.reason);
+		expect(api.world.notifier.sent.slice(told).map((n) => n.event)).toEqual([
+			"request.created",
+			"appointment.requested",
+		]);
+		const journal = await api.world.call(
+			"olga",
+			"GET",
+			"/v1/apps/psizone/audit?action=request.create",
+		);
+		expect((journal.json.items as { target: { id: string } }[]).map((e) => e.target.id)).toContain(
+			sent.reference,
 		);
 	}, 60_000);
 
@@ -150,7 +211,9 @@ describe("the chat's booking against the scheduling service", () => {
 					form: form.form ?? "",
 					name: "Test Vizitator",
 					phone: "0712 345 678",
-					email: "",
+					email: "test.vizitator@example.ro",
+					age: "9",
+					details: "Copilul nu se mai concentrează la școală de câteva luni.",
 					forWhom: "child",
 					when: "any",
 					slot: form.slot ?? "",

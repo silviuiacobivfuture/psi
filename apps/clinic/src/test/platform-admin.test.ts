@@ -11,10 +11,11 @@ const open = async (platformAdmin: boolean): Promise<Console> => {
 };
 
 describe("the platform administrator", () => {
-	it("is told in the pill and the menu, never as a clinic role, and the menu names the person", async () => {
+	it("is told in the pill first as the system's administrator, then by the clinic role, and the menu names the person", async () => {
 		await open(true);
 		const html = await (await c.get("/calendar")).text();
-		expect(html).toContain("Rol: Administrator platformă");
+		expect(html).toMatch(/Rol: Administrator sistem · [^<]+/);
+		expect(html).not.toContain("Administrator platformă");
 		expect(html).toContain("Ana Test");
 		expect(html).not.toContain("Recepție Demo");
 	});
@@ -25,9 +26,34 @@ describe("the platform administrator", () => {
 		const roles = menu.indexOf('data-view-as-choice="role:');
 		const people = menu.indexOf('data-view-as-choice="member:');
 		expect(platform).toBeGreaterThan(-1);
+		// Two levels, each under its own heading: the platform's one role, then the organisation's.
+		const platformHead = menu.indexOf("Platformă");
+		const orgHead = menu.indexOf("Organizație");
+		expect(platformHead).toBeGreaterThan(-1);
+		expect(platformHead).toBeLessThan(platform);
+		expect(orgHead).toBeGreaterThan(platform);
+		expect(orgHead).toBeLessThan(roles);
 		expect(platform).toBeLessThan(roles);
 		expect(roles).toBeLessThan(people);
 		expect(await (await c.get("/view-as")).text()).toContain("data-view-as-platform");
+	});
+	it("reads a person's several roles joined with ' + ' in the picker and on the view-as page", async () => {
+		c = await startConsole(MEMBER, {
+			platformAdmins: new Set([MEMBER.sub]),
+			members: {
+				[MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }],
+				"two-roles": [{ app: "psizone", roles: ["reception", "therapist"] }],
+			},
+			names: { "two-roles": "Dana Două" },
+		});
+		await c.signIn();
+		const menu = await (await c.get("/view-as/menu")).text();
+		const page = await (await c.get("/view-as")).text();
+		for (const html of [menu, page]) {
+			expect(html).toContain("Dana Două");
+			expect(html).toMatch(/(Recepție \+ Terapeut|Terapeut \+ Recepție)/);
+			expect(html).not.toMatch(/(Recepție, Terapeut|Terapeut, Recepție)/);
+		}
 	});
 	it("is the only one offered 'Vezi ca…': an owner who is not the platform's administrator gets no pill, no entry, no picker", async () => {
 		await open(false);

@@ -54,6 +54,8 @@ export async function runAction(
 				action: `assistant.${a.id}`,
 				target: String(parsed.data.clientId ?? parsed.data.id ?? ""),
 			});
+		if (options.via === "assistant" && a.privateResult === true && result.status === "ok")
+			return result.to === undefined ? { status: "ok" } : { status: "ok", to: result.to };
 		return result;
 	} catch (error) {
 		if (error instanceof PortError) {

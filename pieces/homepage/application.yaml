@@ -11,7 +11,17 @@
 #   services-apps         the estate's own tiles that no Ingress announces, as whole groups
 #                         placed first (e.g. an "Apps" group: an application running elsewhere)
 #   services-services     the estate's own backends without an Ingress, first in "Services"
-#   custom-css            the estate's theme (default: none — an estate brings its own)
+#   custom-css            the estate's theme (default: none — an estate brings its own); may
+#                         carry custom.js beside custom.css
+#   discovery             Ingress discovery switches under config.kubernetes (default: on)
+#   widgets               the whole header row (holds greeting)
+#   services              every tile, SEB's groups included (holds services-apps, services-services)
+#   settings              the whole settingsString: sides as tabs, layout, language (holds title)
+#   config-maps           the estate's own ConfigMaps beside homepage-custom-css
+#   custom-files          further keys of homepage-custom-css mounted into /app/config (custom.js)
+#   persistence           the estate's own mounts
+# A slot that holds others is replaced whole when the estate supplies it (helm-piece.mjs). The
+# postStart revalidate is SEB's, for every estate: no visitor gets the build-time page.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

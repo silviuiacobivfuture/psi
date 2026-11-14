@@ -12,6 +12,14 @@ resources:
 components:
   - ../../../components/whitelabel
 replacements:
+  # ---- the tenant (account) the instance belongs to: REQUIRED -----------------------------------
+  # An instance with no TENANT is refused here (the source field is missing), so no instance can
+  # exist without an owner. It is the Polaris account slug; its Authentik group
+  # autorizare-tenant-<TENANT> is who the dashboard admits (tools/convex/tenant-gate.mjs).
+  - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.TENANT }
+    targets:
+      - select: { labelSelector: platform/tenant }
+        fieldPaths: [metadata.labels.platform/tenant]
   # ---- the instance's names: convex-<NAME>, convex-<NAME>-site, convex-<NAME>-dash -------------
   - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.NAME }
     targets:
@@ -27,11 +35,13 @@ replacements:
         fieldPaths: [spec.data.*.remoteRef.key]
         options: { delimiter: "/", index: 2 }
       - select: { kind: Ingress }
+        reject: [{ kind: Ingress, name: convex-dashboard-callback }]
         fieldPaths: ["metadata.annotations.[gethomepage.dev/name]"]
         options: { delimiter: " - ", index: 1 }
   - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.PURPOSE }
     targets:
       - select: { kind: Ingress }
+        reject: [{ kind: Ingress, name: convex-dashboard-callback }]
         fieldPaths: ["metadata.annotations.[gethomepage.dev/description]"]
         options: { delimiter: " - ", index: 0 }
   - source: { kind: ConfigMap, name: convex-instance, fieldPath: data.DATABASE }
@@ -67,12 +77,18 @@ replacements:
       - select: { kind: Ingress, name: convex-dashboard }
         fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
         options: { delimiter: ".", index: 0 }
+      - select: { kind: Ingress, name: convex-dashboard-callback }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+        options: { delimiter: ".", index: 0 }
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
     targets:
       - select: { kind: Ingress, name: convex }
         fieldPaths: [spec.tls.0.hosts.0, spec.tls.0.hosts.1, spec.rules.0.host, spec.rules.1.host]
         options: { delimiter: ".", index: 1 }
       - select: { kind: Ingress, name: convex-dashboard }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+        options: { delimiter: ".", index: 1 }
+      - select: { kind: Ingress, name: convex-dashboard-callback }
         fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
         options: { delimiter: ".", index: 1 }
   # ---- the public origins the backend and the dashboard advertise: https://<host> ---------------
@@ -132,3 +148,4 @@ replacements:
         fieldPaths: [metadata.annotations.alerts/owner]
 transformers:
   - ../../../components/alert-owner
+  - ../../../components/platform-labels

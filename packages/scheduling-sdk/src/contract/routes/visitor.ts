@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { route } from "../define";
+import { NotificationPrefs, NotificationPrefsView } from "../entities-notify";
 import { AppParam, Id, Locale, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
@@ -8,6 +9,10 @@ const Contact = z.object({
 	name: z.string().trim().min(1).max(200),
 	email: z.string().max(200).optional(),
 	phone: z.string().max(40).optional(),
+	/** Whole years. */
+	age: z.number().optional(),
+	/** What is going on, in the person's words: personal data, erased with the contact. */
+	details: z.string().max(4000).optional(),
 });
 const Audience = z.enum(["child", "teen", "adult"]);
 const Reference = z.string().min(8).max(12);
@@ -127,18 +132,12 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ reference: Reference }),
 		body: z.object({
 			holdToken: z.string().min(16).max(64),
-			/** An empty name is refused by the service, with the assistant's own reason on its channel. */
+			/**
+			 * The five booking fields (booking-fields.ts) are all required, whether the site's form or its assistant took
+			 * them; the service refuses each missing or invalid one with its own reason. Loose here on purpose.
+			 */
 			contact: Contact.extend({ name: z.string().trim().max(200) }),
 			audience: Audience.optional(),
-			/**
-			 * Who took the details: the site's form (the default; a name and one way to call back) or the visitor
-			 * assistant, whose five fields (guide-fields.ts) are all required, each refused with its own reason.
-			 */
-			channel: z.enum(["form", "guide"]).default("form"),
-			/** The person's age in years (the assistant's channel). Checked, never stored: a request holds logistics. */
-			age: z.number().optional(),
-			/** What the problem is, in the visitor's words (the assistant's channel). Checked, never stored. */
-			details: z.string().max(4000).optional(),
 		}),
 		response: Submitted,
 		audit: "request.create",
@@ -198,5 +197,27 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ id: Id }),
 		response: Ok,
 		audit: "visitor.cancel",
+	}),
+	route({
+		id: "visitor.notifications",
+		method: "GET",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"The signed-in visitor's notification preferences (channel by kind) and what each kind offers",
+		params: AppParam,
+		response: NotificationPrefsView,
+	}),
+	route({
+		id: "visitor.notificationsSave",
+		method: "PUT",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"Replace the signed-in visitor's notification preferences; a channel a kind does not offer, or that cannot be switched off, is refused",
+		params: AppParam,
+		body: NotificationPrefs,
+		response: NotificationPrefsView,
+		audit: "visitor.notifications",
 	}),
 ] as const;

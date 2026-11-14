@@ -1,0 +1,15 @@
+# The old-app sync for PRODUCTION: a CronJob in production's store namespace, every 15 minutes, SUSPENDED until the owner
+# flips it (cronjob.yaml). Registered as `scheduling-sync-prod` in gitops/apps/overlays/dev/apps/.
+#
+# It runs the scheduling-deploy image (which carries /app/sync-old.mjs), so its tag is the same PROMOTED tag:
+# `tools/scheduling/promote.sh <sha>` sets it with the others; CI never writes this file.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scheduling-backend-prod
+resources:
+  - ../../base
+  - externalsecret.yaml
+  - cronjob.yaml
+images:
+  - name: registry.psizone.ro/psi/scheduling-deploy
+    newTag: "unpromoted"

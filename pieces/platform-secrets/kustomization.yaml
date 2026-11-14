@@ -10,13 +10,18 @@
 # manifests), never here. The estate's additions to this piece (secrets of its own platform
 # tooling, the platform sender's display name, its current engine files) come from its
 # component, ../../components/estate/platform-secrets; SEB's default adds nothing.
+#
+# A secret whose consumer only some estates deploy comes from a component taken only where it is
+# deployed (identity-components.json): ./mesh, the Tailscale operator's, for an estate with a hosted tailnet;
+# ./kutt, the link shortener's sign-in client in authentik-oidc-clients, for an estate running kutt.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - cloudflare-cert-manager.yaml
   - cloudflare-external-dns.yaml
-  - tailscale-operator-oauth.yaml
   - harbor-admin.yaml
+  # The values the harbor chart would otherwise mint on every render (harbor-keys.yaml says which).
+  - harbor-keys.yaml
   - harbor-oidc.yaml
   - harbor-oidc-reconcile.yaml
   # Tag retention on every project + weekly GC (RUNBOOK 2026-10-29).

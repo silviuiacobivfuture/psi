@@ -1,4 +1,9 @@
-import { GUIDE_FIELD_REFUSALS, type GuideFieldRefusal } from "@psi/scheduling-sdk/contract";
+import { CONTACT_LIMITS, FIELD_LIMITS } from "@psi/scheduling/domain";
+import {
+	BOOKING_FIELD_LIMITS,
+	BOOKING_FIELD_REFUSALS,
+	type BookingFieldRefusal,
+} from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from "vitest";
 import { createLimiter } from "./ports/ratelimit";
 import type { Populated } from "./testing/populate";
@@ -7,8 +12,9 @@ import { worldFactories } from "./testing/worlds";
 
 /**
  * A public site's booking through the service (psizone-web's service key, the visitor's address forwarded): the
- * team is notified, the journal records it, the rate limit and the key's app hold, and a booking taken by the visitor
- * assistant carries its five fields, each refused with its own reason and nothing written.
+ * team is notified, the journal records it, the rate limit and the key's app hold, and every booking carries the five
+ * fields the sites ask (in their form and in their assistant alike), each refused with its own reason and nothing
+ * written.
  */
 const A = "/v1/apps/psizone";
 const IP = { "x-psi-client-ip": "203.0.113.7" };
@@ -42,10 +48,12 @@ async function held(channel: "form" | "guide" = "form") {
 	return r.json as { reference: string; holdToken: string };
 }
 
-const COMPLETE = {
-	contact: { name: "Ana Pop", phone: "0733 000 111", email: "ana@example.ro" },
+const CONTACT = {
+	name: "Ana Pop",
+	phone: "0733 000 111",
+	email: "ana@example.ro",
 	age: 9,
-	details: "Nu se concentrează la teme.",
+	details: "Nu se concentrează la teme de câteva luni.",
 };
 
 async function audited(action: string) {
@@ -54,6 +62,20 @@ async function audited(action: string) {
 		target: { id: string };
 	}[];
 }
+
+describe("the five fields' bounds", () => {
+	it("are the sites' and the store's own: the service never accepts what they would refuse, or the reverse", () => {
+		expect(BOOKING_FIELD_LIMITS).toEqual(FIELD_LIMITS);
+		expect(BOOKING_FIELD_LIMITS).toMatchObject({
+			nameMin: CONTACT_LIMITS.nameMin,
+			nameMax: CONTACT_LIMITS.nameMax,
+			ageMax: CONTACT_LIMITS.ageMax,
+			detailsMin: CONTACT_LIMITS.detailsMin,
+			detailsMax: CONTACT_LIMITS.detailsMax,
+			emailMax: CONTACT_LIMITS.emailMax,
+		});
+	});
+});
 
 describe.each(factories)("public bookings, on the $name store", (factory) => {
 	beforeAll(async () => {
@@ -67,7 +89,7 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			const sent = w.notifier.sent.length;
 			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "Vi Test", phone: "0733 000 111" },
+				contact: CONTACT,
 			});
 			expect(r.status).toBe(200);
 			const reference = String(r.json.reference);
@@ -87,7 +109,7 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			const sub = (
 				await site("POST", `/book/holds/${h.reference}/submit`, {
 					holdToken: h.holdToken,
-					contact: { name: "Vi Test", phone: "0733 000 111" },
+					contact: CONTACT,
 				})
 			).json;
 			const sent = w.notifier.sent.length;
@@ -101,8 +123,8 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 
 		it("a callback request with the time the visitor wanted and the service is taken and journaled", async () => {
 			const r = await site("POST", "/book/callback-requests", {
-				contact: { name: "Vi Test", phone: "0733 000 111" },
-				audience: "adult",
+				contact: CONTACT,
+				audience: "child",
 				locale: "ro",
 				preferredStart: NOW + 26 * HOUR,
 				service: "evaluation",
@@ -118,7 +140,7 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			const before = await w.fingerprint();
 			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: "0000-0000-0000-0000",
-				contact: { name: "Vi Test", phone: "0733 000 111" },
+				contact: CONTACT,
 			});
 			expect(r.status).toBe(404);
 			expect(await w.fingerprint()).toBe(before);
@@ -132,7 +154,7 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 				"hemisync-web",
 				"POST",
 				`${A}/book/callback-requests`,
-				{ contact: { name: "Vi Test", phone: "0733 000 111" }, locale: "ro" },
+				{ contact: CONTACT, locale: "ro" },
 				IP,
 			);
 			expect(r.status).toBe(403);
@@ -151,7 +173,7 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			const before = await w.fingerprint();
 			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "Vi Test", phone: "0733 000 111" },
+				contact: CONTACT,
 			});
 			expect(r.status).toBe(429);
 			expect(code(r)).toBe("rate_limited");
@@ -159,58 +181,57 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			const other = await site(
 				"POST",
 				`/book/holds/${h.reference}/submit`,
-				{ holdToken: h.holdToken, contact: { name: "Vi Test", phone: "0733 000 111" } },
+				{ holdToken: h.holdToken, contact: CONTACT },
 				{ "x-psi-client-ip": "198.51.100.4" },
 			);
 			expect(other.status).toBe(200);
 		});
 	});
 
-	describe("the visitor assistant's five fields", () => {
-		const cases: ReadonlyArray<[GuideFieldRefusal, Record<string, unknown>]> = [
-			["name_missing", { ...COMPLETE, contact: { ...COMPLETE.contact, name: "   " } }],
-			["name_invalid", { ...COMPLETE, contact: { ...COMPLETE.contact, name: "A" } }],
-			["age_missing", { contact: COMPLETE.contact, details: COMPLETE.details }],
-			["age_invalid", { ...COMPLETE, age: 9.5 }],
-			["details_missing", { contact: COMPLETE.contact, age: COMPLETE.age }],
-			["details_invalid", { ...COMPLETE, details: "ok" }],
-			["phone_missing", { ...COMPLETE, contact: { name: "Ana Pop", email: "ana@example.ro" } }],
-			["phone_invalid", { ...COMPLETE, contact: { ...COMPLETE.contact, phone: "12" } }],
-			["email_missing", { ...COMPLETE, contact: { name: "Ana Pop", phone: "0733 000 111" } }],
-			["email_invalid", { ...COMPLETE, contact: { ...COMPLETE.contact, email: "ana@" } }],
+	describe("the five booking fields, on the form's booking and the assistant's alike", () => {
+		const cases: ReadonlyArray<[BookingFieldRefusal, Record<string, unknown>]> = [
+			["name_missing", { ...CONTACT, name: "   " }],
+			["name_invalid", { ...CONTACT, name: "A" }],
+			["age_missing", { ...CONTACT, age: undefined }],
+			["age_invalid", { ...CONTACT, age: 9.5 }],
+			["details_missing", { ...CONTACT, details: undefined }],
+			["details_invalid", { ...CONTACT, details: "scurt" }],
+			["phone_missing", { ...CONTACT, phone: undefined }],
+			["phone_invalid", { ...CONTACT, phone: "12" }],
+			["email_missing", { ...CONTACT, email: undefined }],
+			["email_invalid", { ...CONTACT, email: "ana@" }],
 		];
 
 		it("every refusal reason has its case", () => {
-			expect(cases.map(([reason]) => reason).sort()).toEqual([...GUIDE_FIELD_REFUSALS].sort());
+			expect(cases.map(([reason]) => reason).sort()).toEqual([...BOOKING_FIELD_REFUSALS].sort());
 		});
 
-		for (const [reason, body] of cases) {
-			it(`${reason}: 400 with that reason, nothing written, and the hold still submittable`, async () => {
-				const h = await held("guide");
-				const before = await w.fingerprint();
-				const r = await site("POST", `/book/holds/${h.reference}/submit`, {
-					holdToken: h.holdToken,
-					channel: "guide",
-					...body,
+		for (const channel of ["form", "guide"] as const) {
+			for (const [reason, contact] of cases) {
+				it(`${channel}, ${reason}: 400 with that reason, nothing written, and the hold still submittable`, async () => {
+					const h = await held(channel);
+					const before = await w.fingerprint();
+					const r = await site("POST", `/book/holds/${h.reference}/submit`, {
+						holdToken: h.holdToken,
+						contact,
+					});
+					expect(r.status).toBe(400);
+					expect(code(r)).toBe("invalid");
+					expect(detail(r)).toMatchObject({ reason, field: reason.slice(0, reason.indexOf("_")) });
+					expect(await w.fingerprint()).toBe(before);
+					const ok = await site("POST", `/book/holds/${h.reference}/submit`, {
+						holdToken: h.holdToken,
+						contact: CONTACT,
+					});
+					expect(ok.status).toBe(200);
 				});
-				expect(r.status).toBe(400);
-				expect(code(r)).toBe("invalid");
-				expect(detail(r)).toMatchObject({ reason, field: reason.slice(0, reason.indexOf("_")) });
-				expect(await w.fingerprint()).toBe(before);
-				const ok = await site("POST", `/book/holds/${h.reference}/submit`, {
-					holdToken: h.holdToken,
-					channel: "guide",
-					...COMPLETE,
-				});
-				expect(ok.status).toBe(200);
-			});
+			}
 		}
 
 		it("all five missing are named together, the first one as the reason", async () => {
 			const h = await held("guide");
 			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				channel: "guide",
 				contact: { name: "" },
 			});
 			expect(detail(r)).toMatchObject({
@@ -219,46 +240,15 @@ describe.each(factories)("public bookings, on the $name store", (factory) => {
 			});
 		});
 
-		it("the five fields are the assistant's: the form's booking needs a name and one way to call back only", async () => {
-			const h = await held();
-			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
-				holdToken: h.holdToken,
-				contact: { name: "Ana Pop", phone: "0733 000 111" },
-			});
-			expect(r.status).toBe(200);
-		});
-
-		it("the rule follows the channel the submit declares: a hold taken as guide, submitted as the form's, is the form's booking", async () => {
+		it("the age and the details are kept with the contact, and never sent to the team's notifications", async () => {
 			const h = await held("guide");
+			const sent = w.notifier.sent.length;
 			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "Ana Pop", phone: "0733 000 111" },
+				contact: CONTACT,
 			});
 			expect(r.status).toBe(200);
-		});
-
-		it("the form's booking with an empty name is refused as an invalid body, and nothing is written", async () => {
-			const h = await held();
-			const before = await w.fingerprint();
-			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
-				holdToken: h.holdToken,
-				contact: { name: "  ", phone: "0733 000 111" },
-			});
-			expect(r.status).toBe(400);
-			expect(detail(r)).toEqual({ fields: ["contact.name"] });
-			expect(await w.fingerprint()).toBe(before);
-		});
-
-		it("the age and the problem are checked and never stored", async () => {
-			const h = await held("guide");
-			const r = await site("POST", `/book/holds/${h.reference}/submit`, {
-				holdToken: h.holdToken,
-				channel: "guide",
-				...COMPLETE,
-			});
-			expect(r.status).toBe(200);
-			expect(await w.dump()).not.toContain(COMPLETE.details);
-			expect(JSON.stringify(w.notifier.sent)).not.toContain(COMPLETE.details);
+			expect(JSON.stringify(w.notifier.sent.slice(sent))).not.toContain(CONTACT.details);
 		});
 	});
 });

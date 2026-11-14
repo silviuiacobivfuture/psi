@@ -37,9 +37,35 @@ jobs:
           pnpm install --frozen-lockfile --ignore-scripts
       - name: Biome
         run: pnpm lint
+      # apps/clinic's browser suites (contrast, viewports, reduced motion) need a real Chromium and never skip. The
+      # runner image has none of Chrome's system libraries and no root to add them, so Chromium runs in Playwright's
+      # own image (pinned by digest to the playwright-core version in apps/clinic/package.json, 1.48.2; the same
+      # repository is public, as the Dockerfiles' node base images are) on the runner's docker daemon, and the suites
+      # connect to it (CLINIC_BROWSER_WS, apps/clinic/src/test/browser.ts). The host network makes the browser and
+      # the suites' local servers reach each other on 127.0.0.1. The server runs from the very playwright-core the
+      # suites use, copied in, so client and server are the same version by construction.
+      - name: Chromium for the browser suites
+        env:
+          PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.48.2-jammy@sha256:ca6450233e72d43475836930f32bad51cff9258794c6f5f506264dda4276b2cf
+        run: |
+          set -euo pipefail
+          pwcore="$(cd apps/clinic && node -e 'process.stdout.write(require("node:path").dirname(require.resolve("playwright-core/package.json")))')"
+          docker create --name pw-server --network host --init --ipc=host -w /pw "$PLAYWRIGHT_IMAGE" \
+            node cli.js run-server --port 9323 --host 127.0.0.1
+          docker cp "$pwcore/." pw-server:/pw
+          docker start pw-server
+          for _ in $(seq 1 60); do
+            docker logs pw-server 2>&1 | grep -q "Listening on ws://" && break
+            sleep 1
+          done
+          docker logs pw-server 2>&1 | grep -q "Listening on ws://" || { docker logs pw-server; echo "::error::the Playwright server did not start"; exit 1; }
+          echo "CLINIC_BROWSER_WS=ws://127.0.0.1:9323/" >> "$GITHUB_ENV"
       - name: Affected projects
         env:
           NX_DAEMON: "false"
+          # Tests never spend money or reach a provider: no key in the environment (a blank key counts as unset),
+          # and the suites that build a model client only ever talk to the in-process fake.
+          OPENROUTER_API_KEY: ""
           BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
           BEFORE: ${{ github.event.before }}
         run: |
@@ -50,3 +76,6 @@ jobs:
             base="origin/$BASE"
           fi
           pnpm exec nx affected -t lint,type-check,test,build --base="$base" --parallel=1
+      - name: Stop the Playwright server
+        if: always()
+        run: docker rm -f pw-server || true

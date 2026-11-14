@@ -1,6 +1,7 @@
 import type { SchedulingPort, ServiceEntry } from "@psi/engine";
 import {
 	createSchedulingClient,
+	decodeSlot,
 	readSchedulingEnv,
 	type SchedulingClient,
 	type SchedulingEnvProblem,
@@ -13,13 +14,16 @@ export const CATALOGUE_TTL_MS = 60_000;
 export interface PsiScheduling {
 	/** For the app's own routes: slots, holds, requests (the confirm step lives here). */
 	client: SchedulingClient;
-	/** For the engine's tools: find and cancel only (no method books). */
+	/** For the engine: find, cancel and, once the visitor confirmed a summary, hold and submit. */
 	port: SchedulingPort;
 }
 
 /**
- * The engine's port: only finding slots and cancelling with a code. The engine never holds the
- * client itself, so no path from a tool reaches `hold` or `submit` (the app's confirm step).
+ * The engine's port: finding slots, cancelling with a code, and the two steps of booking
+ * (`hold`, `submit`) with `release` for a hold that is not submitted. The engine never holds the
+ * client itself; it reaches those steps only from its booking dialogue, after the visitor's
+ * explicit yes to a summary of everything the form asks (a model has no tool that books).
+ * A slot id is decoded here, so the engine stays free of the store's slot format.
  */
 export function schedulingPort(
 	client: SchedulingClient,
@@ -40,6 +44,31 @@ export function schedulingPort(
 			return entries;
 		},
 		findSlots: (search) => client.findSlots(search),
+		async hold(input) {
+			const slot = decodeSlot(input.slotId);
+			if (slot === undefined) return { ok: false, reason: "not_offered" };
+			const held = await client.hold({
+				tenant: input.tenant,
+				service: input.service,
+				practitioner: slot.practitioner,
+				start: slot.start,
+				mode: slot.mode,
+				locale: input.locale,
+				channel: "guide",
+			});
+			return held.ok
+				? {
+						ok: true,
+						reference: held.reference,
+						holdToken: held.holdToken,
+						start: held.start,
+						practitionerName: held.practitionerName,
+						timeZone: held.timeZone,
+					}
+				: { ok: false, reason: held.reason };
+		},
+		submit: (input) => client.submit(input),
+		release: (input) => client.release(input),
 		cancel: (input) => client.cancel(input),
 	};
 }

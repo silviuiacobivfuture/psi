@@ -24,7 +24,15 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
+import type { KeyStore } from "../ports/crypto";
+import type {
+	BlacklistPort,
+	DocumentsPort,
+	FeedbackPort,
+	KeyedPort,
+	ReportsPort,
+	SeriesPort,
+} from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -228,6 +236,10 @@ export interface ContactInput {
 	name: string;
 	email?: string | undefined;
 	phone?: string | undefined;
+	/** Whole years; a submitted booking always has it (the service checks the five fields first). */
+	age?: number | undefined;
+	/** What is going on, in the person's words: personal data, erased with the contact. */
+	details?: string | undefined;
 }
 
 /** The visitor flow: services, slots, holds, requests. In Convex this is the existing visitor client. */
@@ -364,10 +376,14 @@ export interface StorePort {
 	blacklist: BlacklistPort;
 	/** What clients say, and the staff's answers. */
 	feedback: FeedbackPort;
+	/** The apps' data keys, wrapped by the master key. */
+	keys: KeyStore;
 	/** Weekly series of appointments, changed all or nothing. */
 	series: SeriesPort;
 	/** The reports: read-only counts and rates over the app's rows. */
 	reports: ReportsPort;
+	/** Online-account invitations, account links, notification preferences and the delivery log. */
+	keyed: KeyedPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }
