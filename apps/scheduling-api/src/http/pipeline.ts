@@ -120,10 +120,10 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 
 	if (spec.side === "team") {
 		if (principal.kind === "service") throw forbidden("service keys reach the visitor routes only");
-		if (spec.platform === true) {
-			if (!(await deps.access.isPlatformAdmin(subject)))
-				throw forbidden("estate administrators only");
-		} else if (app !== "") {
+		// An estate-administrator route on an app (view-as) is ALSO held to the app's membership checks below.
+		if (spec.platform === true && !(await deps.access.isPlatformAdmin(subject)))
+			throw forbidden("estate administrators only");
+		if (app !== "") {
 			if (!(await deps.access.isMember(subject, app))) throw notFound("app");
 			const row = await deps.store.c.apps.get(app, app);
 			if (row === undefined) throw notFound("app");

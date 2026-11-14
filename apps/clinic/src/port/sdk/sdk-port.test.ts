@@ -823,29 +823,28 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 });
 
 describe("view as", () => {
-	it("start and stop are audited events of the administrator, and a non-administrator is forbidden", async () => {
-		const port = await as("olga");
-		const seen = await port.startViewAs("olga", "psizone", "role:psizone-reception");
+	it("start and stop are audited events of the estate administrator", async () => {
+		const port = await as("root");
+		const seen = await port.startViewAs("root", "psizone", "role:psizone-reception");
 		expect(seen.fieldGroups).toEqual(expect.arrayContaining(["contact", "guardian", "money"]));
-		await port.stopViewAs("olga", "psizone");
-		const actions = (await port.audit("psizone")).map((e) => e.action);
-		expect(actions).toContain("view_as.start");
-		expect(actions).toContain("view_as.stop");
+		await port.stopViewAs("root", "psizone");
+		const events = await (await as("olga")).audit("psizone");
+		expect(events.some((e) => e.action === "view_as.start" && e.actor === "root")).toBe(true);
+		expect(events.some((e) => e.action === "view_as.stop" && e.actor === "root")).toBe(true);
+	});
+	it.each([
+		"olga",
+		"rita",
+	])("%s (the owner, reception: not the estate administrator) is forbidden, and nothing is written", async (who) => {
+		const port = await as(who);
 		const before = await api.world.fingerprint();
 		expect(
-			(
-				await refusal(async () =>
-					(await as("rita")).startViewAs("rita", "psizone", "role:psizone-owner"),
-				)
-			).code,
+			(await refusal(() => port.startViewAs(who, "psizone", "role:psizone-reception"))).code,
 		).toBe("forbidden");
 		expect(
-			(
-				await refusal(async () =>
-					(await as("rita")).capabilities("rita", "psizone", "role:psizone-owner"),
-				)
-			).code,
+			(await refusal(() => port.capabilities(who, "psizone", "role:psizone-reception"))).code,
 		).toBe("forbidden");
+		expect((await refusal(() => port.stopViewAs(who, "psizone"))).code).toBe("forbidden");
 		expect(await api.world.fingerprint()).toBe(before);
 	});
 	it("a port made for viewing as someone else is read-only at the service: every write is forbidden", async () => {

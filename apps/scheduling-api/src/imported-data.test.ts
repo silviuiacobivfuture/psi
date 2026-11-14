@@ -60,7 +60,8 @@ describe("a clinic that came in through an import", () => {
 		const names = me.roleNames as Record<string, string>;
 		expect(roles.length).toBe(1);
 		expect(names[roles[0] ?? ""]).toBe("Owner");
-		const viewed = ok(await w.call("olga", "GET", `${A}/me?as=role:${roles[0]}`), "as");
+		// seeing it as the role is the estate administrator's view-as
+		const viewed = ok(await w.call("root", "GET", `${A}/me?as=role:${roles[0]}`), "as");
 		expect(viewed.roleNames).toEqual(names);
 	});
 
