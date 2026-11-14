@@ -8,7 +8,10 @@ beforeAll(async () => {
 	owner = await startConsole(
 		MEMBER,
 		{ today: "2026-11-16", platformAdmins: new Set([MEMBER.sub]) },
-		{ [MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }] },
+		{
+			[MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }],
+			colleague: [{ app: "psizone", roles: ["reception"] }],
+		},
 	);
 	await owner.signIn();
 	reception = await startConsole(
@@ -48,6 +51,9 @@ async function screens(): Promise<string[]> {
 		"/reminders?date=2026-11-16",
 		"/me/settings",
 		"/settings/roles",
+		"/settings/members",
+		"/settings/members?edit=colleague",
+		"/settings/members?confirm=colleague",
 		"/settings/people",
 		"/settings/rooms",
 		"/settings/devices",

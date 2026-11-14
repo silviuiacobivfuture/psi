@@ -1,8 +1,8 @@
 {
 	"st_area_profile": "Profil organizație",
 	"st_area_profile_hint": "Numele, fusul orar și identitatea organizației.",
-	"st_area_people": "Membri",
-	"st_area_people_hint": "Cine face parte din echipă.",
+	"st_area_people": "Persoane și calendare",
+	"st_area_people_hint": "Cine apare în calendar: terapeuți, recepție, personal.",
 	"st_area_roles": "Roluri și permisiuni",
 	"st_area_roles_hint": "Ce poate vedea și face fiecare rol.",
 	"st_area_services": "Servicii și prețuri",

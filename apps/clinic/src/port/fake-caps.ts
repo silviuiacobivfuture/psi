@@ -1,12 +1,12 @@
 import { extraCapabilities } from "./fake-caps-extra";
+import { type FakeTeam, type TeamEntry, withOverrides } from "./fake-members";
 import { type ClinicPort, PortError, type TeamMember } from "./port";
 import { capabilityMap } from "./role-map";
-import type { AppSlug, Membership } from "./schema";
+import type { AppSlug } from "./schema";
 import type { AppData } from "./seed";
 
 export interface AccessDeps {
-	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
-	names: Readonly<Record<string, string>> | undefined;
+	team: FakeTeam;
 	platformAdmins: ReadonlySet<string> | undefined;
 	data: (app: AppSlug) => AppData;
 	guard: (method: keyof ClinicPort) => void;
@@ -17,8 +17,7 @@ export interface AccessDeps {
 export function createFakeAccess(
 	deps: AccessDeps,
 ): Pick<ClinicPort, "capabilities" | "members" | "startViewAs" | "stopViewAs"> {
-	const { data, guard, log } = deps;
-	const opts = { members: deps.members, names: deps.names };
+	const { data, guard, log, team } = deps;
 	const LOOKUPS = [
 		"people_view",
 		"rooms_view",
@@ -29,43 +28,43 @@ export function createFakeAccess(
 	return {
 		async capabilities(subject, app, as) {
 			guard("capabilities");
-			const mine = opts.members[subject]?.find((x) => x.app === app);
+			const mine = team.get(app)?.get(subject);
 			if (mine === undefined) throw new PortError("not-found", app);
 			const d = data(app);
 			const holds = (ids: ReadonlyArray<string>) => d.roles.filter((r) => ids.includes(r.id));
 			let roles = holds(mine.roles);
 			let who = subject;
+			// A member is seen with their own grants and denials; a role has none.
+			let overrides: typeof mine | undefined = mine;
 			if (as !== undefined) {
-				const here = holds(mine.roles);
-				if (
-					deps.platformAdmins?.has(subject) !== true &&
-					!here.some((r) => r.grants.roles?.edit !== undefined)
-				)
-					throw new PortError("forbidden", "roles administrators only");
+				// As at the service: the estate administrator alone, never an app's owner or admin.
+				if (deps.platformAdmins?.has(subject) !== true)
+					throw new PortError("forbidden", "estate administrators only");
 				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
 				if (kind === "role") {
 					roles = holds([id]);
+					overrides = undefined;
 					if (roles.length === 0) throw new PortError("not-found", as);
 				} else {
-					const other = Object.entries(opts.members).find(
-						([s, ms]) => s === id && ms.some((x) => x.app === app),
-					);
+					const other = team.get(app)?.get(id);
 					if (other === undefined) throw new PortError("not-found", as);
-					roles = holds(other[1].find((x) => x.app === app)?.roles ?? []);
+					roles = holds(other.roles);
+					overrides = other;
 				}
 				who = as;
 			}
-			const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
+			const fromRoles: Record<string, ("all" | "assigned" | "own")[]> = {};
 			const groups = new Set<string>();
 			for (const r of roles) {
 				for (const [k, v] of Object.entries({ ...capabilityMap(r), ...extraCapabilities(r) })) {
-					const had = permissions[k] ?? [];
-					permissions[k] = [...new Set([...had, ...v])];
+					const had = fromRoles[k] ?? [];
+					fromRoles[k] = [...new Set([...had, ...v])];
 				}
 				for (const g of r.fieldGroups) groups.add(g);
 				if (r.grants.calendars?.view !== undefined || r.grants.settings?.view !== undefined)
-					for (const k of LOOKUPS) permissions[k] = ["all"];
+					for (const k of LOOKUPS) fromRoles[k] = ["all"];
 			}
+			const permissions = withOverrides(fromRoles, overrides);
 			return {
 				app,
 				appName: app === "psizone" ? "Psizone" : "Hemi-Sync",
@@ -73,13 +72,13 @@ export function createFakeAccess(
 				subject: who,
 				displayName:
 					as === undefined
-						? (opts.names?.[subject] ?? subject)
+						? mine.displayName
 						: as.startsWith("role:")
 							? (roles[0]?.name ?? as)
-							: (opts.names?.[as.slice("member:".length)] ?? as),
+							: (overrides?.displayName ?? as),
 				roles: roles.map((r) => r.id),
 				permissions,
-				denied: [],
+				denied: [...(overrides?.denies ?? [])],
 				...(as === undefined
 					? {}
 					: {
@@ -108,11 +107,12 @@ export function createFakeAccess(
 		},
 		async members(app): Promise<ReadonlyArray<TeamMember>> {
 			guard("members");
-			return Object.entries(opts.members).flatMap(([subject, ms]) =>
-				ms
-					.filter((x) => x.app === app)
-					.map((x) => ({ subject, displayName: opts.names?.[subject] ?? subject, roles: x.roles })),
-			);
+			return [...(team.get(app) ?? new Map<string, TeamEntry>())].map(([subject, e]) => ({
+				subject,
+				displayName: e.displayName,
+				roles: [...e.roles],
+				...(e.email === undefined ? {} : { email: e.email }),
+			}));
 		},
 		async startViewAs(subject, app, as) {
 			guard("startViewAs");

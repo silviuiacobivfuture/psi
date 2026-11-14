@@ -134,7 +134,7 @@ describe.each(factories)("on the $name store", (factory) => {
 	});
 
 	describe("view-as is read-only", () => {
-		// The roles editor browses as another member with `x-psi-view-as`: nothing sent that way may write.
+		// The estate administrator browses as another member with `x-psi-view-as`: nothing sent that way may write.
 		// Ending the view is the one write allowed while viewing as someone else.
 		for (const spec of TEAM.filter(
 			(r) =>

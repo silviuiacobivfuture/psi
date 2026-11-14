@@ -13,6 +13,7 @@
 			"./messages/stats/{locale}.json",
 			"./messages/profile/{locale}.json",
 			"./messages/settings/{locale}.json",
+			"./messages/members/{locale}.json",
 			"./messages/client/{locale}.json",
 			"./messages/assistant/{locale}.json"
 		]

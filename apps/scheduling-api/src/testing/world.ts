@@ -70,6 +70,8 @@ export interface World {
 		body?: unknown,
 		headers?: Record<string, string>,
 	): Promise<Reply>;
+	/** Make a person the estate's administrator ("Administrator sistem"), or stop them being one. `root` is from the start. */
+	platformAdmin(subject: string, held: boolean): Promise<void>;
 	/** Everything the store holds, as text (a refusal must leave it alone; secrets must not be in it). */
 	dump(): Promise<string>;
 	/** Everything the service holds that a refusal must leave alone: rows, change feed, audit, tuples, outbox, signed links. */
@@ -219,6 +221,12 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		},
 		callKey: (caller, method, path, body, headers = {}) =>
 			send(method, path, body, { "x-service-key": `${caller}.${SECRETS[caller]}`, ...headers }),
+		platformAdmin: (subject, held) =>
+			authz.write(
+				held
+					? { writes: platformAdminTuples(subject), deletes: [] }
+					: { writes: [], deletes: platformAdminTuples(subject) },
+			),
 		dump: async () =>
 			memory === undefined
 				? dumpThroughPort(store, options.apps ?? ["psizone", "hemisync"])
