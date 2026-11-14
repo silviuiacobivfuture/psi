@@ -5,11 +5,12 @@ import { runAction } from "../actions/engine";
 import type { Env } from "../app";
 import { all, type Body, one } from "../lib/catalog-form";
 import { at, type Locale } from "../lib/i18n";
+import { appendPage, MoreQuery } from "../lib/show-more";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { InviteOutcomeSchema, SignInLinkSchema } from "../port/schema-members";
 import { StaffResults } from "./member-add";
-import { renderMembers } from "./members";
+import { MemberRow, MoreMembers, renderMembers } from "./members";
 
 const NOCACHE = { "cache-control": "private, no-store" } as const;
 const BASE = "/settings/members";
@@ -82,6 +83,25 @@ export function registerMembers(app: Hono<Env>): void {
 			confirm: q("confirm") ?? null,
 		};
 		return c.html(await renderMembers(c.var.ctx, query, flash, problem), 200, NOCACHE);
+	});
+
+	// The team's next page, appended to the open list.
+	app.get(`${BASE}/more`, async (c) => {
+		const ctx = c.var.ctx;
+		const asked = MoreQuery.parse(c.req.query());
+		const [page, roles] = await Promise.all([
+			ctx.port.memberPage(ctx.app, asked.cursor === "" ? null : asked.cursor),
+			ctx.port.roles(ctx.app).catch(() => []),
+		]);
+		return appendPage({
+			list: "#member-list",
+			rows: page.items.map((member) => (
+				<MemberRow key={member.subject} ctx={ctx} member={member} roles={roles} />
+			)),
+			more: (
+				<MoreMembers ctx={ctx} cursor={page.nextCursor} shown={asked.shown + page.items.length} />
+			),
+		});
 	});
 
 	const run = async (c: Context<Env>, id: string, params: unknown, back: string) => {

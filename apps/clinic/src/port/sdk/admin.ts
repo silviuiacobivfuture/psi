@@ -26,6 +26,15 @@ import { instantOf } from "./time";
 
 const DAY = 86_400_000;
 
+type ApiMember = Awaited<ReturnType<SdkContext["api"]["members"]["list"]>>["items"][number];
+
+const teamMemberOf = (m: ApiMember): TeamMember => ({
+	subject: m.subject,
+	displayName: m.displayName,
+	roles: m.roles,
+	...(m.email === undefined ? {} : { email: m.email }),
+});
+
 /** The service's answer as the console keeps it (when it was saved is the service's own business). */
 const settingsView = ({
 	updatedAt: _at,
@@ -96,12 +105,17 @@ export function adminGroup(sdk: SdkContext) {
 				const all = await drain((cursor) =>
 					api.members.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 				);
-				return all.map((m) => ({
-					subject: m.subject,
-					displayName: m.displayName,
-					roles: m.roles,
-					...(m.email === undefined ? {} : { email: m.email }),
-				}));
+				return all.map(teamMemberOf);
+			}),
+
+		memberPage: (app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>> =>
+			run(async () => {
+				const got = await api.members.list({
+					app,
+					limit: LIST_PAGE,
+					...(cursor === null ? {} : { cursor }),
+				});
+				return { items: got.items.map(teamMemberOf), nextCursor: got.nextCursor ?? null };
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>

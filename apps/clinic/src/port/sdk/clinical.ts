@@ -255,6 +255,22 @@ export function clinicalGroup(
 				);
 				return list.filter((f) => f.status === "ready").map((f) => fileOf(f, tz));
 			}),
+		filePage: (app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>> =>
+			run(async () => {
+				const [tz, got] = await Promise.all([
+					sdk.zone(app),
+					api.files.list({
+						app,
+						id: clientId,
+						limit: LIST_PAGE,
+						...(cursor === null ? {} : { cursor }),
+					}),
+				]);
+				return {
+					items: got.items.filter((f) => f.status === "ready").map((f) => fileOf(f, tz)),
+					nextCursor: got.nextCursor ?? null,
+				};
+			}),
 		uploadFile: (
 			app: AppSlug,
 			clientId: string,

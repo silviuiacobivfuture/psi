@@ -99,7 +99,11 @@ export interface ClientView {
 	notes: ReadonlyArray<ClientNote>;
 	blacklist: ReadonlyArray<BlacklistEntry>;
 	records: ReadonlyArray<ClientRecord>;
+	/** The first page of the files, and where the next starts (null: the last is shown). */
 	files: ReadonlyArray<ClientFile>;
+	filesNext: string | null;
+	/** The file whose rename sheet is open (asked by id: it may be on a page not shown yet). */
+	renaming: ClientFile | null;
 	templates: ReadonlyArray<FormDefinition>;
 	open: ClientOpen;
 	notice?: "invalid" | "made" | null;
@@ -141,8 +145,7 @@ export async function renderClient(
 		view.open.editNote === null
 			? null
 			: (view.notes.find((n) => n.id === view.open.editNote) ?? null);
-	const renaming =
-		view.open.rename === null ? null : (view.files.find((f) => f.id === view.open.rename) ?? null);
+	const renaming = view.renaming;
 	const confirm = view.open.confirm;
 	const signals = {
 		askArchive: false,
@@ -253,6 +256,7 @@ export async function renderClient(
 						ctx={ctx}
 						clientId={client.id}
 						files={view.files}
+						next={view.filesNext}
 						notice={view.open.fileNotice}
 					/>
 				) : null}

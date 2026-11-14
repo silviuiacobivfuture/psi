@@ -85,8 +85,15 @@ export interface CalendarData {
 	flags?: Readonly<Record<string, ClientFlag>>;
 }
 
-/** Which column's visits a calendar read answers, chosen from its columns (none: no visits). */
-export type CalendarFocus = (columns: ReadonlyArray<Column>) => string | undefined;
+/**
+ * Which one column's visits a calendar read answers: `column` when it is one of the caller's calendars that fits (in
+ * `among` and shown by `show`, each when given), else the first of them that fits; none fits: no visits.
+ */
+export interface CalendarFocus {
+	column: string | null;
+	among?: ReadonlySet<string>;
+	show?: (column: Column) => boolean;
+}
 
 /** One day of the month grid: its visits, counted. */
 export interface DayCount {
@@ -195,7 +202,7 @@ export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
 	/**
 	 * The calendar of the days `from`..`to`: every column, and their visits — or, with `focus`, only the visits of the
-	 * column it picks from the columns (the week draws one calendar: the others' visits are neither read further nor named).
+	 * one column it picks (the week draws one calendar: the others' visits are never read, only their names).
 	 */
 	calendar(app: AppSlug, from: string, to: string, focus?: CalendarFocus): Promise<CalendarData>;
 	/** How many visits each day of `from`..`to` holds on the calendars this person may see (the month grid); empty days absent. */
@@ -344,8 +351,10 @@ export interface ClinicPort extends ProfilePort {
 	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
-	/** The app's team, for the "Vezi ca…" picker and the members' list. */
+	/** The app's whole team, for the "Vezi ca…" picker and the journal's names. */
 	members(app: AppSlug): Promise<ReadonlyArray<TeamMember>>;
+	/** ONE page (LIST_PAGE) of the team by name, after `cursor` (null: the first): the members' list. */
+	memberPage(app: AppSlug, cursor: string | null): Promise<Paged<TeamMember>>;
 	/** One member for their editor: roles, grants, denials, linked calendars, what they may do in the end. */
 	member(app: AppSlug, subject: string): Promise<MemberDetail | null>;
 	/**
@@ -440,6 +449,11 @@ export interface ClinicPort extends ProfilePort {
 	updateRecord(app: AppSlug, id: string, patch: RecordPatch): Promise<ClientRecord>;
 	deleteRecord(app: AppSlug, id: string): Promise<void>;
 	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
+	/**
+	 * ONE page of a client's files, newest first, after `cursor` (null: the first). A page may hold fewer than LIST_PAGE
+	 * (an upload never finished is not shown): only a null `nextCursor` says it is the last.
+	 */
+	filePage(app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>>;
 	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
 	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
 	downloadFile(

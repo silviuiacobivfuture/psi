@@ -504,18 +504,6 @@ export const ImportRun = z.object({
 	finishedAt: Ms.optional(),
 });
 
-export const CalendarColumn = z.enum(["person", "room", "device"]);
-/** A calendar window: `to` after `from`, at most MAX_WINDOW_DAYS days (a wider one is refused, never answered whole). */
-export const CalendarQuery = z
-	.object({
-		from: z.coerce.number().int().nonnegative(),
-		to: z.coerce.number().int().nonnegative(),
-		columns: CalendarColumn.default("person"),
-	})
-	.refine((q) => q.to > q.from && q.to - q.from <= MAX_WINDOW_DAYS * 86_400_000, {
-		message: `to must be after from, at most ${MAX_WINDOW_DAYS} days later`,
-		path: ["to"],
-	});
 /** A roster window of dates, both included: at most MAX_WINDOW_DAYS days. */
 export const RosterQuery = z
 	.object({ from: DateKey, to: DateKey })
@@ -523,9 +511,6 @@ export const RosterQuery = z
 		(q) => q.from <= q.to && Date.parse(q.to) - Date.parse(q.from) < MAX_WINDOW_DAYS * 86_400_000,
 		{ message: `from must not be after to, at most ${MAX_WINDOW_DAYS} days`, path: ["to"] },
 	);
-export const CalendarResult = z.object({
-	columns: z.array(z.object({ id: Id, name: z.string(), appointments: z.array(Appointment) })),
-});
 export const CalendarEvent = z.object({
 	seq: z.number().int().nonnegative(),
 	at: Ms,

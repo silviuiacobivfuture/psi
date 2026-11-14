@@ -6,6 +6,7 @@ import { appointmentEditHandlers } from "./appointment-edit";
 import { appointmentHandlers } from "./appointments";
 import { appHandlers } from "./apps";
 import { blacklistHandlers } from "./blacklist";
+import { calendarHandlers } from "./calendar-get";
 import { calendarSummaryHandlers } from "./calendar-summary";
 import { catalogHandlers } from "./catalog";
 import { clientHandlers } from "./clients";
@@ -41,6 +42,7 @@ const complete: Handlers = {
 	...catalogHandlers,
 	...clientHandlers,
 	...appointmentHandlers,
+	...calendarHandlers,
 	...calendarSummaryHandlers,
 	...appointmentEditHandlers,
 	...seriesHandlers,
