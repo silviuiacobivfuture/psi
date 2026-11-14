@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PLATFORM_KEY } from "../lib/areas";
 import {
+	fieldsOf,
 	formOfDoc,
 	formOfPeople,
 	orgDocFromForm,
@@ -11,8 +12,39 @@ import { m } from "../paraglide/messages.js";
 import { define, label } from "./define";
 import type { ActionDef } from "./types";
 
-/** The settings form as it was posted: every field by its name (`staff.maxToolCalls`, `skill.0.name`, …). */
-const FormFields = z.record(z.string().max(200), z.string().max(10_000));
+/**
+ * One field's value: text as the screen posts it, or a number or a switch as the assistant may send it (a switch is
+ * the form's "on"/"off"), so both reach the same reading of the form.
+ */
+const Value = z
+	.union([z.string().max(10_000), z.number().finite(), z.boolean()])
+	.transform((v) => (typeof v === "boolean" ? (v ? "on" : "off") : String(v)));
+
+const present = (o: Readonly<Record<string, string | undefined>>): Record<string, string> =>
+	Object.fromEntries(
+		Object.entries(o).flatMap(([k, v]) => (v === undefined ? [] : [[k, v] as const])),
+	);
+
+/**
+ * A settings form as posted, every field by its name. The fields given by name are what the assistant is shown it can
+ * set (`staff.maxToolCalls`, `visitor.booking.horizonDays`, …); any other (`skill.0.name`, `role.<id>.model`,
+ * `person.<subject>.messagesPerDay`) is taken too, as text.
+ */
+function formOf(names: ReadonlyArray<string>) {
+	return z
+		.object({
+			revision: Value.optional(),
+			whole: Value.optional(),
+			...Object.fromEntries(names.map((name) => [name, Value.optional()])),
+		})
+		.catchall(Value)
+		.refine((o) => Object.keys(o).length <= 400 && Object.keys(o).every((k) => k.length <= 200))
+		.transform(present);
+}
+const OrgForm = formOf(
+	(["staff", "visitor"] as const).flatMap((s) => fieldsOf(s).map((f) => `${s}.${f.path}`)),
+);
+const FormFields = formOf([]);
 
 /** The revision a save was edited from, when it says (the form's hidden field); a malformed one is `null`. */
 function editedFrom(form: Readonly<Record<string, string>>): number | undefined | null {
@@ -70,7 +102,7 @@ export const ASSISTANT_ACTIONS: ReadonlyArray<ActionDef> = [
 		needs: { write: ["app_settings_edit"] },
 		route: { method: "POST", path: "/settings/assistant" },
 		confirm: "none",
-		params: FormFields,
+		params: OrgForm,
 		run: async (ctx, form) => {
 			const [held, roles] = await Promise.all([
 				ctx.port.assistantConfig(ctx.app),

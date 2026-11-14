@@ -41,8 +41,8 @@ export interface SettingField {
 	readonly group: FieldGroup;
 	/**
 	 * The one surface it governs, when it is not both. Staff only: paging and the read cache (the visitor's guide reads
-	 * no records) and the instructions (the visitor's voice, prompt, tone and language are the site's content, in the
-	 * CMS). Visitor only: booking on the site.
+	 * no records), the instructions (the visitor's voice, prompt, tone and language are the site's content, in the
+	 * CMS), and keeping and summarising conversations (the sites keep none). Visitor only: booking in the site's chat.
 	 */
 	readonly only?: AssistantSurfaceName;
 	/** The ceiling it is held to, for the hint beside it. */
@@ -62,7 +62,7 @@ export const SETTING_FIELDS: ReadonlyArray<SettingField> = [
 	f("enabled", "as_f_enabled", "bool", "access"),
 	f("model.primary", "as_f_model_primary", "text", "model"),
 	f("model.fallbacks", "as_f_model_fallbacks", "list", "model"),
-	f("model.summary", "as_f_model_summary", "text", "model"),
+	f("model.summary", "as_f_model_summary", "text", "model", { only: "staff" }),
 	f("temperature", "as_f_temperature", "num", "model", { ceiling: "temperature" }),
 	f("maxOutputTokens", "as_f_maxOutputTokens", "int", "model", { ceiling: "maxOutputTokens" }),
 	f("maxToolCalls", "as_f_maxToolCalls", "int", "limits", { ceiling: "maxToolCalls" }),
@@ -94,9 +94,10 @@ export const SETTING_FIELDS: ReadonlyArray<SettingField> = [
 	f("handoff.contact", "as_f_handoff_contact", "text", "handoff"),
 	f("memory.retentionDays", "as_f_memory_retentionDays", "int", "memory", {
 		ceiling: "retentionDays",
+		only: "staff",
 	}),
 	f("memory.historyMessages", "as_f_memory_historyMessages", "int", "memory"),
-	f("memory.compactAfter", "as_f_memory_compactAfter", "int", "memory"),
+	f("memory.compactAfter", "as_f_memory_compactAfter", "int", "memory", { only: "staff" }),
 	f("logging.redactPii", "as_f_logging_redactPii", "bool", "logging"),
 	f("logging.keepTranscripts", "as_f_logging_keepTranscripts", "bool", "logging"),
 	f("cacheTtlSeconds", "as_f_cacheTtlSeconds", "int", "memory", { only: "staff" }),

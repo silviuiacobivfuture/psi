@@ -44,14 +44,24 @@ describe("Setări → Asistent: the organisation's tier", () => {
 	});
 	it("each surface shows only what governs it: the visitor's content is the CMS's, paging and reads are staff only", async () => {
 		const html = await (await (await as("owner")).get("/settings/assistant")).text();
-		for (const name of ["prompt.override", "prompt.append", "tone", "language", "pageSize"]) {
+		for (const name of [
+			"prompt.override",
+			"prompt.append",
+			"tone",
+			"language",
+			"pageSize",
+			// The sites keep no conversation: how long they are kept and their summary are the team's assistant's.
+			"memory.retentionDays",
+			"memory.compactAfter",
+			"model.summary",
+		]) {
 			expect(html, name).toContain(`name="staff.${name}"`);
 			expect(html, name).not.toContain(`name="visitor.${name}"`);
 		}
 		expect(html).not.toContain('name="visitor.cacheTtlSeconds"');
 		expect(html).not.toContain('name="staff.booking.horizonDays"');
 		expect(html).toContain('name="visitor.booking.horizonDays"');
-		expect(html).toContain('name="visitor.model.summary"');
+		expect(html).toContain('name="visitor.memory.historyMessages"');
 		expect(html).toContain('data-note="visitor-content"');
 		expect(html).toContain("se editează în CMS");
 	});

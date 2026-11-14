@@ -29,7 +29,8 @@ export const ASSISTANT_BASE = "/assistant";
  * The staff assistant's engine, made once. The model and its key come from the environment
  * (`OPENROUTER_API_KEY`, optionally `STAFF_ASSISTANT_MODEL`, default `xiaomi/mimo-v2.6-flash`); without a key the panel
  * opens and says the assistant is not available. Conversation memory is durable, sealed per person and
- * deleted after 30 days (see `staffMemoryFrom`).
+ * deleted after the organisation's `memory.retentionDays` (see `staffMemoryFrom`; 30 days for a conversation that
+ * predates the setting).
  */
 export function createAssistantEngine(
 	env: Readonly<Record<string, string | undefined>>,

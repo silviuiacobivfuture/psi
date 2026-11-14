@@ -5,12 +5,12 @@ import { Id, Ms, Subject } from "./primitives";
  * The assistants' configuration, in three tiers. The PLATFORM tier (the estate's administrator) sets the defaults every
  * organisation starts from and the ceilings none may pass; the ORGANISATION tier (an app's Owner or Admin) tunes its own
  * assistants within them, with optional overrides per role and per person for the staff assistant. Nothing has to be
- * configured: the built-in defaults below are a working assistant. `effectiveAssistantConfig` (assistant-merge.ts) is
- * the one merge.
+ * configured: the built-in defaults below are a working assistant. `orgSettings` and `personSettings`
+ * (assistant-merge.ts) are the one merge.
  *
- * Booking by the visitor assistant always asks for the person's name, a way to reach them, for whom the visit is,
- * their consent and the slot (or a call back): those are the booking form's own rules and are not part of this
- * configuration at all, so no tier can switch them off.
+ * Booking by the visitor assistant always asks for the five fields every booking carries (`BOOKING_REQUIRED_FIELDS`:
+ * name, age, what is going on, phone and e-mail) and books only on the visitor's yes to the summary: those are the
+ * booking's own rules and are not part of this configuration at all, so no tier can switch them off.
  */
 export const ASSISTANT_SURFACES = ["staff", "visitor"] as const;
 export const AssistantSurface = z.enum(ASSISTANT_SURFACES);

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { runAction } from "../actions/engine";
 import type { ActionCtx } from "../actions/types";
+import { createActionsSource } from "../assistant/actions-source";
 import { canOf } from "../lib/can";
 import type { ClinicPort } from "../port/port";
 import { type Console, MEMBER, startConsole } from "./harness";
@@ -163,6 +164,35 @@ describe("assistant.save from the assistant", () => {
 			expect((await save(ctx, fields)).status, JSON.stringify(fields)).toBe("refused");
 		const view = await con.port.assistantConfig("psizone");
 		expect([view.revision, view.doc?.staff.maxToolCalls]).toEqual([1, 5]);
+	});
+	it("through the assistant's own source: it is told the settings' names, and its numbers and switches are taken", async () => {
+		const con = await owner();
+		await seeded(con);
+		const source = createActionsSource(await ctxOf(con));
+		const listed = (await source.listActions({ screen: "settings" })).find(
+			(a) => a.id === "assistant.save",
+		);
+		const names = listed?.params.map((p) => p.name) ?? [];
+		for (const name of ["staff.maxToolCalls", "visitor.booking.horizonDays", "staff.enabled"])
+			expect(names, name).toContain(name);
+		expect(names).not.toContain("visitor.tone");
+		await source.runAction("assistant.save", {
+			"staff.maxToolCalls": 4,
+			"staff.budget.hardStop": false,
+			"visitor.booking.offerCallback": true,
+		});
+		const view = await con.port.assistantConfig("psizone");
+		expect(view.revision).toBe(2);
+		expect(view.doc?.staff).toMatchObject({
+			maxToolCalls: 4,
+			budget: { monthlyMicroUsd: 12_500_000, hardStop: false },
+		});
+		expect(view.doc?.visitor).toEqual({ booking: { horizonDays: 10, offerCallback: true } });
+		// A value that is no field's (an object, a list) is refused, nothing written.
+		await expect(
+			source.runAction("assistant.save", { "staff.maxToolCalls": { n: 4 } }),
+		).rejects.toThrow();
+		expect((await con.port.assistantConfig("psizone")).revision).toBe(2);
 	});
 	it("the screen's whole form without its revision is refused, nothing written", async () => {
 		const con = await owner();
