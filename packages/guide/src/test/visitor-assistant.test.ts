@@ -1,20 +1,21 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { VisitorUsageRecord } from "@psi/engine";
 import { collect } from "@psi/engine/testing";
 import { createKnowledge, createLexicalEmbedder, type KnowledgeStore } from "@psi/knowledge";
-import type { VisitorAssistantRead, VisitorAssistantStore, VisitorMeter } from "@psi/scheduling";
+import { BUILT_IN_SETTINGS } from "@psi/scheduling-sdk/contract";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	createGuide,
 	PSI_PROFILES,
-	schedulingFromEnv,
 	VISITOR_CONFIG_TTL_MS,
+	type VisitorAssistantSource,
 	visitorAssistantPort,
 } from "../index";
 import { hemisyncBookingUrl, pageUrl } from "../services/contact";
 
-const ZERO: VisitorMeter = {
+const ZERO: VisitorUsageRecord = {
 	messages: 0,
 	inputTokens: 0,
 	outputTokens: 0,
@@ -23,100 +24,94 @@ const ZERO: VisitorMeter = {
 	limitHits: 0,
 };
 
-/** The store's visitor client, in memory: what it answers, and every call made to it. */
-class FakeStore implements VisitorAssistantStore {
-	read: VisitorAssistantRead | undefined = {
-		timeZone: "Europe/Bucharest",
-		period: { month: "2026-11", day: "2026-11-14" },
-		platform: undefined,
-		org: { revision: 1, body: '{"visitor":{}}' },
-		usage: { month: ZERO, day: ZERO },
-	};
-	answer: "ok" | "not_found" | "invalid" = "ok";
+type Read = Awaited<ReturnType<VisitorAssistantSource["read"]>>;
+
+/** The scheduling service's visitor-assistant routes, in memory: what they answer, and every call made to them. */
+class FakeSource implements VisitorAssistantSource {
+	answer: Read = { settings: BUILT_IN_SETTINGS.visitor, usage: { month: ZERO, day: ZERO } };
+	failing = false;
 	readonly calls: Array<string> = [];
-	readonly recorded: Array<{ tenant: string; delta: VisitorMeter }> = [];
-	async config(tenant: string): Promise<VisitorAssistantRead | undefined> {
-		this.calls.push(`config:${tenant}`);
-		return this.read;
+	readonly recorded: Array<{ tenant: string; delta: VisitorUsageRecord }> = [];
+	/** The organisation's visitor settings changed from the built-in ones. */
+	with(over: Partial<typeof BUILT_IN_SETTINGS.visitor>): this {
+		this.answer = {
+			settings: { ...BUILT_IN_SETTINGS.visitor, ...over },
+			usage: { month: ZERO, day: ZERO },
+		};
+		return this;
 	}
-	async record(tenant: string, delta: VisitorMeter): Promise<"ok" | "not_found" | "invalid"> {
-		this.calls.push(`record:${tenant}`);
-		this.recorded.push({ tenant, delta });
+	async read(tenant: string): Promise<Read> {
+		this.calls.push(`read:${tenant}`);
+		if (this.failing) throw new Error("the scheduling service could not be asked");
 		return this.answer;
+	}
+	async record(tenant: string, delta: VisitorUsageRecord): Promise<void> {
+		this.calls.push(`record:${tenant}`);
+		if (this.failing) throw new Error("the scheduling service could not be asked");
+		this.recorded.push({ tenant, delta });
 	}
 }
 
 describe("the engine's port to the organisation's visitor settings", () => {
-	it("hands on the documents as stored and the meters; an app the store does not have is undefined", async () => {
-		const store = new FakeStore();
-		store.read = {
-			timeZone: "Europe/Bucharest",
-			period: { month: "2026-11", day: "2026-11-14" },
-			platform: { revision: 3, body: '{"p":1}' },
-			org: { revision: 2, body: '{"o":1}' },
+	it("hands on what the service merged and the meters; an app the service does not have is undefined", async () => {
+		const source = new FakeSource();
+		source.answer = {
+			settings: { ...BUILT_IN_SETTINGS.visitor, enabled: false },
 			usage: { month: { ...ZERO, messages: 4 }, day: ZERO },
 		};
-		const port = visitorAssistantPort(store);
-		expect(await port.read("psizone")).toEqual({
-			platform: '{"p":1}',
-			org: '{"o":1}',
+		expect(await visitorAssistantPort(source).read("psizone")).toEqual({
+			settings: { ...BUILT_IN_SETTINGS.visitor, enabled: false },
 			usage: { month: { ...ZERO, messages: 4 }, day: ZERO },
 		});
-		store.read = undefined;
-		expect(await visitorAssistantPort(store).read("psizone")).toBeUndefined();
+		source.answer = undefined;
+		expect(await visitorAssistantPort(source).read("psizone")).toBeUndefined();
 	});
 
-	it("an app with nothing saved hands on no documents", async () => {
-		const store = new FakeStore();
-		store.read = {
-			timeZone: "Europe/Bucharest",
-			period: { month: "2026-11", day: "2026-11-14" },
-			platform: undefined,
-			org: undefined,
-			usage: { month: ZERO, day: ZERO },
-		};
-		expect(await visitorAssistantPort(store).read("psizone")).toEqual({
-			usage: { month: ZERO, day: ZERO },
-		});
-	});
-
-	it("a read is kept for its time, per app; past it, or after a recorded turn, the store is asked again", async () => {
+	it("a read is kept for its time, per app; past it, or after a recorded turn, the service is asked again", async () => {
 		let now = 1_000;
-		const store = new FakeStore();
-		const port = visitorAssistantPort(store, VISITOR_CONFIG_TTL_MS, () => now);
+		const source = new FakeSource();
+		const port = visitorAssistantPort(source, VISITOR_CONFIG_TTL_MS, () => now);
 		await port.read("psizone");
 		await port.read("psizone");
 		await port.read("other");
-		expect(store.calls).toEqual(["config:psizone", "config:other"]);
+		expect(source.calls).toEqual(["read:psizone", "read:other"]);
 		now += VISITOR_CONFIG_TTL_MS - 1;
 		await port.read("psizone");
-		expect(store.calls).toHaveLength(2);
+		expect(source.calls).toHaveLength(2);
 		now += 1;
 		await port.read("psizone");
-		expect(store.calls).toHaveLength(3);
+		expect(source.calls).toHaveLength(3);
 		await port.record("psizone", { ...ZERO, messages: 1 });
 		await port.read("psizone");
-		expect(store.calls.at(-1)).toBe("config:psizone");
-		expect(store.calls.filter((c) => c === "config:psizone")).toHaveLength(3);
-		expect(store.recorded).toEqual([{ tenant: "psizone", delta: { ...ZERO, messages: 1 } }]);
+		expect(source.calls.filter((c) => c === "read:psizone")).toHaveLength(3);
+		expect(source.recorded).toEqual([{ tenant: "psizone", delta: { ...ZERO, messages: 1 } }]);
 	});
 
-	it.each([
-		"not_found",
-		"invalid",
-	] as const)("a turn the store refuses (%s) is a failure the engine reports", async (answer) => {
-		const store = new FakeStore();
-		store.answer = answer;
-		await expect(visitorAssistantPort(store).record("psizone", ZERO)).rejects.toThrow(answer);
+	it("a turn the service cannot take is a failure the engine reports", async () => {
+		const source = new FakeSource();
+		source.failing = true;
+		await expect(visitorAssistantPort(source).record("psizone", ZERO)).rejects.toThrow(
+			"could not be asked",
+		);
 	});
 
-	it("the environment's scheduling carries the port beside the engine's", () => {
-		const on = schedulingFromEnv({
-			CONVEX_URL: "http://127.0.0.1:3210",
-			PSI_SCHEDULING_KEY: "k".repeat(64),
-		});
-		expect(on.ok).toBe(true);
-		if (on.ok) expect(Object.keys(on.scheduling.assistant).sort()).toEqual(["read", "record"]);
+	it("the booking page may offer a call back unless the organisation said no; when it cannot say, it may", async () => {
+		const source = new FakeSource();
+		expect(await visitorAssistantPort(source).callbackOffered("psizone")).toBe(true);
+		source.with({ booking: { horizonDays: 30, offerCallback: false } });
+		expect(await visitorAssistantPort(source).callbackOffered("psizone")).toBe(false);
+		source.answer = undefined;
+		expect(await visitorAssistantPort(source).callbackOffered("psizone")).toBe(true);
+		source.failing = true;
+		expect(await visitorAssistantPort(source).callbackOffered("psizone")).toBe(true);
+	});
+
+	it("the call-back answer shares the guide's read: one call to the service within its time", async () => {
+		const source = new FakeSource().with({ booking: { horizonDays: 30, offerCallback: false } });
+		const port = visitorAssistantPort(source);
+		await port.read("psizone");
+		expect(await port.callbackOffered("psizone")).toBe(false);
+		expect(source.calls).toEqual(["read:psizone"]);
 	});
 });
 
@@ -161,24 +156,7 @@ describe("Psizone's guide on the organisation's settings", () => {
 		["ro", "Ghidul face o pauză acum."],
 		["en", "The guide is taking a break right now."],
 	] as const)("switched off in the store (%s): the warm line and the booking form, and a limit met", async (locale, line) => {
-		const store = new FakeStore();
-		store.read = {
-			timeZone: "Europe/Bucharest",
-			period: { month: "2026-11", day: "2026-11-14" },
-			platform: undefined,
-			org: {
-				revision: 1,
-				body: JSON.stringify({
-					revision: 1,
-					staff: {},
-					visitor: { enabled: false },
-					skills: [],
-					roles: {},
-					people: {},
-				}),
-			},
-			usage: { month: ZERO, day: ZERO },
-		};
+		const store = new FakeSource().with({ enabled: false });
 		const guide = createGuide({
 			brand: "psizone",
 			knowledge: kb,
@@ -196,24 +174,7 @@ describe("Psizone's guide on the organisation's settings", () => {
 	});
 
 	it("Hemi-Sync's guide is governed by its own organisation: its store's switch, its meters, its booking form", async () => {
-		const store = new FakeStore();
-		store.read = {
-			timeZone: "Europe/Bucharest",
-			period: { month: "2026-11", day: "2026-11-14" },
-			platform: undefined,
-			org: {
-				revision: 1,
-				body: JSON.stringify({
-					revision: 1,
-					staff: {},
-					visitor: { enabled: false },
-					skills: [],
-					roles: {},
-					people: {},
-				}),
-			},
-			usage: { month: ZERO, day: ZERO },
-		};
+		const store = new FakeSource().with({ enabled: false });
 		const guide = createGuide({
 			brand: "hemisync",
 			knowledge: kb,

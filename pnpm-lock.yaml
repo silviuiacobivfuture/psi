@@ -760,6 +760,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../scheduling-sdk
       '@types/node':
         specifier: ^24.7.2
         version: 24.19.2

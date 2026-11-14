@@ -37,10 +37,17 @@ export type ScreenKind = "injection" | "moderation";
  * How the fake answers one guardrail: a clean or flagged verdict, a 200 whose text is not a verdict
  * (`garbage`), an HTTP failure, or no answer at all.
  */
+/** What a guardrail call reports it used (OpenRouter's accounting, cost in dollars); 1 and 1 tokens when unsaid. */
+export interface ScreenUsage {
+	prompt: number;
+	completion: number;
+	cost?: number;
+}
+
 export type ScreenReply =
-	| { kind: "clean" }
+	| { kind: "clean"; usage?: ScreenUsage }
 	| { kind: "garbage" }
-	| { kind: "flag" }
+	| { kind: "flag"; usage?: ScreenUsage }
 	| { kind: "status"; status: number }
 	| { kind: "hang" };
 
@@ -223,9 +230,19 @@ function replyScreen(res: ServerResponse, kind: ScreenKind, answer: ScreenReply)
 					finish_reason: "stop",
 				},
 			],
-			usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+			usage: screenUsage("usage" in answer ? answer.usage : undefined),
 		}),
 	);
+}
+
+function screenUsage(used: ScreenUsage | undefined): object {
+	const u = used ?? { prompt: 1, completion: 1 };
+	return {
+		prompt_tokens: u.prompt,
+		completion_tokens: u.completion,
+		total_tokens: u.prompt + u.completion,
+		...(u.cost === undefined ? {} : { cost: u.cost }),
+	};
 }
 
 function readBody(req: IncomingMessage): Promise<unknown> {

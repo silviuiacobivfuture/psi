@@ -20,6 +20,9 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"visitor.submit": "the visitor flow's contract",
 	"visitor.cancel": "the visitor flow's contract",
 	"visitor.callback": "the visitor flow's contract",
+	"visitor.assistant":
+		"the sites' guide and booking page (@psi/ui createSiteAssistant, the site's service key)",
+	"visitor.assistantUsage": "the sites' guide, each turn's use (@psi/ui createSiteAssistant)",
 	"visitor.mine": "the visitor flow's contract (a customer's own appointments)",
 	"visitor.mineCancel": "the visitor flow's contract",
 	"visitor.mineReschedule": "the sites' Programările mele (@psi/scheduling-sdk ownBookings)",

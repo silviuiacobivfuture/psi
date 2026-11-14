@@ -43,6 +43,11 @@ export interface BookingDepsOptions {
 	log?: (line: string) => void;
 	/** Where a scheduling failure is said; by default `log`, as `failureLine`. */
 	failed?: (error: unknown) => void;
+	/**
+	 * Whether the organisation lets the site offer a call back instead of a time (its visitor settings'
+	 * `booking.offerCallback`, e.g. `@psi/guide`'s `visitorAssistantPort(...).callbackOffered`); absent, always.
+	 */
+	callbackOffered?: () => Promise<boolean>;
 }
 
 /** A scheduling failure for the log: the cause, never any visitor data. */
@@ -58,7 +63,13 @@ export function createBookingDeps(options: BookingDepsOptions): BookingDeps {
 	return {
 		site: options.site,
 		scheduling: options.scheduling,
-		picker: createPicker(options.scheduling, options.site.tenant, now, failed),
+		picker: createPicker(
+			options.scheduling,
+			options.site.tenant,
+			now,
+			failed,
+			options.callbackOffered,
+		),
 		intake: createIntake({
 			tenant: options.site.tenant,
 			store: options.scheduling,

@@ -41,6 +41,8 @@ const BOUNDED: Readonly<Record<string, string>> = {
 		"the app's pauses of online booking: at most MAX_PAUSES (50), and its sites (a handful)",
 	"me.assistant":
 		"the organisation's skills for the staff assistant: at most 20 (the document's max)",
+	"visitor.assistant":
+		"the organisation's skills for the visitor assistant: at most 20 (the document's max)",
 };
 
 const arraysOf = (schema: z.ZodType): string[] => {

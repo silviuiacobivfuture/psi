@@ -33,7 +33,9 @@ export async function scheduleOf(
 					data: { ...view.data, taken: true, selected: undefined },
 				}
 			: view;
-	const noCallback = raw.nocall === "1";
+	// The chat's offer may say no call back (`nocall`); so may the organisation, for every form of the site.
+	const offered = source.callbackOffered === undefined ? true : await source.callbackOffered();
+	const noCallback = raw.nocall === "1" || !offered;
 	return {
 		view: shown,
 		callback: raw.callback === "1" && !noCallback,

@@ -26,7 +26,7 @@ import { must } from "./shared";
 
 type C = Ctx<RouteSpec>;
 
-interface Tier<T> {
+export interface Tier<T> {
 	revision: number;
 	doc?: T;
 	updatedAt?: number;
@@ -54,7 +54,7 @@ function readTier<T extends { revision: number }>(
 	};
 }
 
-const platformTier = async (ctx: C): Promise<Tier<AssistantPlatformDocumentType>> =>
+export const platformTier = async (ctx: C): Promise<Tier<AssistantPlatformDocumentType>> =>
 	readTier(
 		ctx,
 		await ctx.deps.store.platform.get("assistant_platform"),
@@ -62,7 +62,7 @@ const platformTier = async (ctx: C): Promise<Tier<AssistantPlatformDocumentType>
 		"assistant_platform",
 	);
 
-const orgTier = async (ctx: C): Promise<Tier<AssistantOrgDocumentType>> =>
+export const orgTier = async (ctx: C): Promise<Tier<AssistantOrgDocumentType>> =>
 	readTier(
 		ctx,
 		await ctx.deps.store.docs.get(ctx.app, "assistant_config"),
@@ -81,12 +81,12 @@ export function periodsOf(now: number, timeZone: string): { month: string; day: 
 	return { month: day.slice(0, 7), day };
 }
 
-async function zoneOf(ctx: C): Promise<string> {
+export async function zoneOf(ctx: C): Promise<string> {
 	return (await must(ctx.deps.store.c.apps, ctx.app, ctx.app, "app")).timeZone;
 }
 
 /** The six meters of the app (each surface's month and day) and, for a person, their own staff day. */
-async function meters(ctx: C, subject: string | undefined) {
+export async function meters(ctx: C, subject: string | undefined) {
 	const { month, day } = periodsOf(ctx.now, await zoneOf(ctx));
 	const keys: UsageKey[] = [
 		{ surface: "staff", period: month, scope: "org" },

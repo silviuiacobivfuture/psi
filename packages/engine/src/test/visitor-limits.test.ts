@@ -356,6 +356,12 @@ describe("when the store cannot be read", () => {
 			},
 		],
 		[
+			"settings from the service that are not the contract's shape",
+			(s: FakeVisitorStore) => {
+				s.raw = { model: 3 };
+			},
+		],
+		[
 			"an app the store does not have",
 			(s: FakeVisitorStore) => {
 				s.missing = true;

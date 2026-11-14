@@ -286,6 +286,21 @@ export const AssistantEffective = z.object({
 });
 export type AssistantEffectiveType = z.infer<typeof AssistantEffective>;
 
+/**
+ * What one turn of a site's visitor assistant used, as its server reports it: one message, or (a turn a limit refused)
+ * one limit met; the tokens and the cost of every model call of the turn, its screening included. The service adds it
+ * to the organisation's visitor meters for the month and the day.
+ */
+export const AssistantVisitorUsageRecord = z.object({
+	messages: int(0, 1),
+	inputTokens: int(0, 2_000_000),
+	outputTokens: int(0, 2_000_000),
+	cachedTokens: int(0, 2_000_000),
+	costMicroUsd: int(0, 5_000_000),
+	limitHits: int(0, 1),
+});
+export type AssistantVisitorUsageRecordType = z.infer<typeof AssistantVisitorUsageRecord>;
+
 /** What one finished turn used; the service adds it to the organisation's meters and to the caller's own. */
 export const AssistantUsageRecord = z.object({
 	surface: z.literal("staff"),
