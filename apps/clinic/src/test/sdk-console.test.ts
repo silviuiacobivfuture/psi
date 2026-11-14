@@ -277,10 +277,40 @@ describe("what the service has not built yet is said, not crashed on", () => {
 		const c = await startSdkConsole({ fetch: fakeSoon(path, status, code) });
 		return { c, s: await c.as("olga") };
 	}
-	it("the notification preferences say 'în curând' and keep the rest of the tab", async () => {
-		const s = await k.as("olga");
+	it("my settings are the service's: saved here, read back from it, journalled, and nobody else's change", async () => {
+		const s = await k.as("dora");
+		await s.post(
+			"/me/settings/notifications",
+			new URLSearchParams({
+				"n.appointments.email": "on",
+				quiet: "on",
+				quietStart: "22:00",
+				quietEnd: "07:00",
+			}),
+			{ "content-type": "application/x-www-form-urlencoded" },
+		);
+		// The one record the notifier reads: the service's own preferences.
+		const stored = await k.api.world.call("dora", "GET", "/v1/apps/psizone/me/notifications");
+		expect(stored.json.prefs).toMatchObject({
+			quietHours: { start: "22:00", end: "07:00", timeZone: "Europe/Bucharest" },
+			channels: {
+				appointments: { in_app: false, push: false },
+				requests: { in_app: false, push: false, email: false },
+			},
+		});
+		expect(
+			(await k.api.world.call("olga", "GET", "/v1/apps/psizone/me/notifications")).json.prefs,
+		).toEqual({ channels: {}, quietHours: null });
 		const html = await text(await s.get("/me/settings"));
-		expect(html).toContain("În curând");
+		expect(html).toContain('value="22:00"');
+		const trail = await k.api.world.call(
+			"olga",
+			"GET",
+			"/v1/apps/psizone/audit?action=notifications.prefs",
+		);
+		expect(
+			(trail.json.items as { actor: { subject: string } }[]).map((e) => e.actor.subject),
+		).toContain("dora");
 	});
 	it("a refusal by the service on a screen the menu offered says there is no access", async () => {
 		const { c, s } = await withService("/requests?", 403, "forbidden");

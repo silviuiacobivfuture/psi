@@ -179,5 +179,12 @@
 	"cl_gate_reason": "Why you book anyway (required)",
 	"cl_gate_need_reason": "Write why you book this client despite the flag. Nothing was saved.",
 	"cl_gate_refused": "This client is blocked and you may not override. Nothing was saved.",
-	"cl_err_room": "This service needs a room of its own kind (for example a neuro room for neurofeedback)."
+	"cl_err_room": "This service needs a room of its own kind (for example a neuro room for neurofeedback).",
+	"ac_client_clear_contact": "Clear the phone or e-mail",
+	"cl_clear_phone": "Clear the phone",
+	"cl_clear_email": "Clear the e-mail",
+	"cl_contact_hint": "A field left empty is cleared on save. The client keeps a phone or an e-mail, their own or their guardian's, so that they can be booked.",
+	"cl_contact_required": "Nothing changed: the client would be left with no phone and no e-mail (nor a guardian's), and a booking needs one of them.",
+	"cl_phone_cleared": "The phone was cleared.",
+	"cl_email_cleared": "The e-mail was cleared."
 }

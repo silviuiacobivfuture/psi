@@ -363,12 +363,18 @@ importers:
       '@psi/knowledge':
         specifier: workspace:*
         version: link:../../packages/knowledge
+      '@psi/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../../packages/scheduling-sdk
       '@psi/site-control':
         specifier: workspace:*
         version: link:../../packages/site-control
@@ -464,12 +470,18 @@ importers:
       '@psi/knowledge':
         specifier: workspace:*
         version: link:../../packages/knowledge
+      '@psi/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../../packages/scheduling-sdk
       '@psi/site-control':
         specifier: workspace:*
         version: link:../../packages/site-control

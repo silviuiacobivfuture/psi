@@ -138,3 +138,64 @@ describe("the week draws one calendar, lightly", () => {
 		expect(html).not.toContain("cal__appt");
 	});
 });
+
+/** The week's tiles (their appointment ids) and its chips (the calendars offered, in order, and the one drawn). */
+const weekOf = (html: string) => ({
+	tiles: [...html.matchAll(/cal__appt--lite[^"]*"[^>]*?appt=([^"&]+)"/g)]
+		.map((x) => x[1] ?? "")
+		.sort(),
+	chips: [...html.matchAll(/class="cal-chip" href="[^"]*?col=([^"&]+)"/g)].map((x) => x[1] ?? ""),
+	drawn: /class="cal-chip" href="[^"]*?col=([^"&]+)" aria-current="true"/.exec(html)?.[1],
+});
+const WEEK = "/calendar?view=week&date=2026-11-18";
+const MONDAY = Date.UTC(2026, 10, 15, 22);
+
+describe("the week reads one calendar, the others by name only", () => {
+	/** What the service's whole calendar shows for one column in the week: the tiles the week must draw. */
+	const column = async (who: string, id: string): Promise<{ ids: string[]; all: string[] }> => {
+		const got = await k.api.world.call(
+			who,
+			"GET",
+			`${A}/calendar?from=${MONDAY}&to=${MONDAY + 7 * 24 * HOUR}&columns=person`,
+		);
+		const cols = got.json.columns as { id: string; appointments: { id: string }[] }[];
+		return {
+			ids: (cols.find((c) => c.id === id)?.appointments ?? []).map((a) => a.id).sort(),
+			all: cols.map((c) => c.id),
+		};
+	};
+
+	it("the calendar chosen: exactly its visits, and a chip for every calendar in the day view's order", async () => {
+		const w = k.api.world;
+		const s = await k.as("olga");
+		for (const id of [w.ids.dora, w.ids.elena]) {
+			const week = weekOf(await (await s.get(`${WEEK}&col=${id}`)).text());
+			const whole = await column("olga", id);
+			expect(week.drawn).toBe(id);
+			expect(week.tiles).toEqual(whole.ids);
+			expect(week.chips).toEqual(whole.all);
+		}
+	});
+
+	it("no calendar chosen, or one that is not the person's: the first calendar, by name", async () => {
+		const s = await k.as("olga");
+		const whole = await column("olga", "");
+		const first = whole.all[0] ?? "";
+		for (const path of [WEEK, `${WEEK}&col=nosuchcolumn00000000000000000`]) {
+			const week = weekOf(await (await s.get(path)).text());
+			expect(week.drawn, path).toBe(first);
+			expect(week.tiles, path).toEqual((await column("olga", first)).ids);
+			expect(week.chips, path).toEqual(whole.all);
+		}
+	});
+
+	it("a therapist asking for a colleague's calendar gets their own, and no chip or visit of the colleague's", async () => {
+		const w = k.api.world;
+		const html = await (await (await k.as("dora")).get(`${WEEK}&col=${w.ids.elena}`)).text();
+		const week = weekOf(html);
+		expect(week.drawn).toBe(w.ids.dora);
+		expect(week.chips).toEqual([w.ids.dora]);
+		expect(week.tiles).toEqual((await column("dora", w.ids.dora)).ids);
+		for (const id of (await column("olga", w.ids.elena)).ids) expect(html).not.toContain(id);
+	});
+});

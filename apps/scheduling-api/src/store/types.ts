@@ -32,6 +32,7 @@ import type {
 	KeyedPort,
 	ReportsPort,
 	SeriesPort,
+	SettingsPort,
 } from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
@@ -145,6 +146,12 @@ export interface Query<R> {
 	eq?: Partial<R>;
 	/** A half-open range `[gte, lt)` on a numeric field. */
 	range?: { field: keyof R & string; gte?: number; lt?: number };
+	/**
+	 * A HINT for a few columns: the caller wants only the rows whose `field` is one of `values` (the calendars a screen
+	 * shows). An adapter that can read only those (an index per value) does; one that cannot may answer more. It never
+	 * answers fewer of the matching rows, so the caller always filters the answer itself.
+	 */
+	oneOf?: { field: keyof R & string; values: ReadonlyArray<string> };
 	/**
 	 * A HINT for a page: the caller wants the first `limit` rows in this order (by a numeric field; rows of one value in the
 	 * order they were written, reversed for `desc`, as an index keeps them). An adapter
@@ -359,9 +366,25 @@ export interface VisitorPort {
 			end: number;
 			mode?: "onsite" | "online";
 			serviceSlug?: string;
+			practitionerName?: string;
+			/** The person, as `visitor.slots` names them: a move stays with them. */
+			practitioner?: string;
+			/** How long before its start the booking stops being changed online: the service's own notice. */
+			noticeMinutes: number;
 		}[]
 	>;
 	cancelMine(app: string, subject: string, id: string): Promise<{ ok: true } | Failed>;
+	/**
+	 * Moves one of the visitor's own requests to another free time of the same person and service, in one step: a new
+	 * request (new reference) with the same contact and status, the old one cancelled. `slot_taken` when the time is not
+	 * offered, `not_allowed` when the request cannot move any more; nothing is written then.
+	 */
+	rescheduleMine(
+		app: string,
+		subject: string,
+		id: string,
+		to: { start: number; mode: "onsite" | "online" },
+	): Promise<{ ok: true; id: string; reference: string; start: number; end: number } | Failed>;
 }
 
 export interface RequestsPort {
@@ -374,7 +397,7 @@ export interface RequestsPort {
 		decision: "confirm" | "decline" | "cancel" | "handle",
 		reason: string | undefined,
 		actor: string,
-	): Promise<{ ok: true } | Failed>;
+	): Promise<{ ok: true; accountHash?: string | undefined } | Failed>;
 }
 
 export interface StorePort {
@@ -384,6 +407,8 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** Each person's own settings per app. */
+	settings: SettingsPort;
 	/** Documents with a revision (the floor plan). */
 	docs: DocumentsPort;
 	/** Who may not book. */

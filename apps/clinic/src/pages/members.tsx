@@ -5,6 +5,7 @@ import { roleLabel } from "../chrome";
 import { areaText } from "../lib/area-labels";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { moreHref, ShowMore } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 import type { TeamMember } from "../port/port";
 import type { Column, Role } from "../port/schema";
@@ -23,7 +24,10 @@ export interface MembersQuery {
 }
 
 export interface MembersData {
+	/** The first page of the team, by name. */
 	members: ReadonlyArray<TeamMember>;
+	/** Where the next page starts; null: the last is shown. */
+	next: string | null;
 	roles: ReadonlyArray<Role>;
 	people: ReadonlyArray<Column>;
 	/** The member whose editor is open, as the service answers them. */
@@ -56,6 +60,48 @@ export function RoleChips({
 	);
 }
 
+/** The members' "show more": the next page of the team appended, nothing once the last is shown. */
+export function MoreMembers({
+	ctx,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	return (
+		<ShowMore
+			id="member-more"
+			href={moreHref("/settings/members/more", cursor, shown)}
+			label={m.ls_more({}, at(ctx.locale))}
+		/>
+	);
+}
+
+/** One member of the list: their name, e-mail and roles, opening their editor. */
+export function MemberRow({
+	ctx,
+	member,
+	roles,
+}: {
+	ctx: Ctx;
+	member: TeamMember;
+	roles: ReadonlyArray<Role>;
+}): JSX.Element {
+	return (
+		<li data-member={member.subject}>
+			<a class="client-row" href={`/settings/members?edit=${encodeURIComponent(member.subject)}`}>
+				<span class="client-row__main">
+					<strong>{member.displayName}</strong>
+					{member.email === undefined ? null : <span class="adm-muted">{member.email}</span>}
+				</span>
+				<RoleChips ctx={ctx} ids={member.roles} roles={roles} />
+			</a>
+		</li>
+	);
+}
+
 function MembersList({ ctx, d }: { ctx: Ctx; d: MembersData }): JSX.Element {
 	const o = at(ctx.locale);
 	if (d.members.length === 0)
@@ -65,23 +111,19 @@ function MembersList({ ctx, d }: { ctx: Ctx; d: MembersData }): JSX.Element {
 			</EmptyState>
 		);
 	return (
-		<ul
-			class="adm-card client-list"
-			aria-label={m.mb_list_label({}, o)}
-			style="list-style:none;margin:0;padding:0"
-		>
-			{d.members.map((p) => (
-				<li key={p.subject} data-member={p.subject}>
-					<a class="client-row" href={`/settings/members?edit=${encodeURIComponent(p.subject)}`}>
-						<span class="client-row__main">
-							<strong>{p.displayName}</strong>
-							{p.email === undefined ? null : <span class="adm-muted">{p.email}</span>}
-						</span>
-						<RoleChips ctx={ctx} ids={p.roles} roles={d.roles} />
-					</a>
-				</li>
-			))}
-		</ul>
+		<>
+			<ul
+				id="member-list"
+				class="adm-card client-list"
+				aria-label={m.mb_list_label({}, o)}
+				style="list-style:none;margin:0;padding:0"
+			>
+				{d.members.map((p) => (
+					<MemberRow key={p.subject} ctx={ctx} member={p} roles={d.roles} />
+				))}
+			</ul>
+			<MoreMembers ctx={ctx} cursor={d.next} shown={d.members.length} />
+		</>
 	);
 }
 
@@ -123,20 +165,22 @@ export async function renderMembers(
 	let body: JSX.Element;
 	let overlays: JSX.Element | undefined;
 	try {
-		const [members, roles, columns, open] = await Promise.all([
-			ctx.port.members(ctx.app),
+		// The member to edit or remove is asked by subject: they may be on a page not shown yet.
+		const [page, roles, columns, open, confirming] = await Promise.all([
+			ctx.port.memberPage(ctx.app, null),
 			ctx.port.roles(ctx.app).catch(() => []),
 			ctx.port.catalogColumns(ctx.app).catch(() => []),
 			query.edit === null ? Promise.resolve(null) : ctx.port.member(ctx.app, query.edit),
+			query.confirm === null ? Promise.resolve(null) : ctx.port.member(ctx.app, query.confirm),
 		]);
 		const d: MembersData = {
-			members: [...members].sort((a, b) => a.displayName.localeCompare(b.displayName)),
+			members: page.items,
+			next: page.nextCursor,
 			roles,
 			people: columns.filter((c) => c.kind === "person"),
 			open,
 		};
-		const doomed =
-			query.confirm === null ? undefined : d.members.find((x) => x.subject === query.confirm);
+		const doomed = confirming ?? undefined;
 		body = (
 			<div class="adm-stack" style="gap:var(--space-3)">
 				<ActionBar ctx={ctx} screen="settings.members" />

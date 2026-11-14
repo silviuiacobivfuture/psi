@@ -90,6 +90,8 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 			callback: (app, input) => inner.visitor.callback(to(app), input),
 			mine: (app, subject) => inner.visitor.mine(to(app), subject),
 			cancelMine: (app, subject, id) => inner.visitor.cancelMine(to(app), subject, id),
+			rescheduleMine: (app, subject, id, at) =>
+				inner.visitor.rescheduleMine(to(app), subject, id, at),
 		},
 		requests: {
 			list: (app, a, b) => inner.requests.list(to(app), a, b),
@@ -98,6 +100,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 				inner.requests.decide(to(app), ref, decision, reason, actor),
 		},
 		docs: forApp(inner.docs, to),
+		settings: forApp(inner.settings, to),
 		blacklist: forApp(inner.blacklist, to),
 		feedback: forApp(inner.feedback, to),
 		keys: {

@@ -830,13 +830,6 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 		const team = await (await as("olga")).members("psizone");
 		expect(team.map((m) => m.subject)).toContain("rita");
 	});
-	it("push preferences: not in the service yet, said as such (no storage invented)", async () => {
-		const port = await as("olga");
-		expect((await refusal(() => port.pushPrefs("olga"))).code).toBe("not-available-yet");
-		expect(
-			(await refusal(() => port.savePushPrefs("olga", { requests: true, reminders: true }))).code,
-		).toBe("not-available-yet");
-	});
 });
 
 describe("view as", () => {

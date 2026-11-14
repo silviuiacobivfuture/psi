@@ -22,6 +22,7 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"visitor.callback": "the visitor flow's contract",
 	"visitor.mine": "the visitor flow's contract (a customer's own appointments)",
 	"visitor.mineCancel": "the visitor flow's contract",
+	"visitor.mineReschedule": "the sites' Programările mele (@psi/scheduling-sdk ownBookings)",
 	"apps.create": "the platform's provisioning (an estate administrator)",
 	"apps.get": "the platform's provisioning",
 	"apps.update": "the platform's provisioning",
@@ -63,9 +64,6 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"visitor.notifications":
 		"the public sites' account page: a client's own notification preferences",
 	"visitor.notificationsSave": "the public sites' account page",
-	"me.notifications":
-		"a member's notification preferences in the service: the console's settings keep their own switches today",
-	"me.notificationsSave": "a member's notification preferences in the service: not wired yet",
 	"notifications.deliveries": "the delivery log: its screen is not offered by the console yet",
 };
 

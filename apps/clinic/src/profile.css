@@ -137,3 +137,55 @@
 	align-items: flex-start;
 	gap: var(--space-1);
 }
+
+/* "Setările mele": one column of fields on a phone, two from a tablet; the save button full width on a phone. */
+.me-card .adm-h2 {
+	margin: 0;
+}
+.me-form {
+	display: grid;
+	gap: var(--space-4);
+	grid-template-columns: minmax(0, 1fr);
+	min-width: 0;
+}
+@media (min-width: 640px) {
+	.me-form:not(.adm-card) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+.me-actions {
+	grid-column: 1 / -1;
+	display: flex;
+}
+.me-actions > .adm-btn {
+	width: 100%;
+}
+@media (min-width: 640px) {
+	.me-actions > .adm-btn {
+		width: auto;
+	}
+}
+.me-cell {
+	justify-content: center;
+	min-height: var(--adm-touch);
+	min-width: var(--adm-touch);
+}
+.me-quiet {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.me-quiet > legend {
+	padding: 0;
+	margin-bottom: var(--space-2);
+	font-weight: 600;
+}
+.me-quiet__times {
+	display: grid;
+	gap: var(--space-3);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}

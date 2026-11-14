@@ -39,8 +39,23 @@ export function registerClientActions(app: Hono<Env>): void {
 	const cid = (c: Context<Env>): string => c.req.param("id") ?? "";
 
 	app.post("/clients", async (c) => execute(c, "client.new", strings(await form(c))));
+	/**
+	 * The client's own details. The one conflict a change of them meets is emptying the last phone or e-mail: the edit
+	 * sheet opens again and says why, nothing having been written.
+	 */
+	const editing = async (c: Context<Env>, id: string, params: Record<string, unknown>) => {
+		const result = await runAction(actionCtx(c.var.ctx), id, params, { confirmed: true });
+		if (result.status === "refused" && result.code === "conflict")
+			return c.redirect(`/clients/${cid(c)}?edit=1&problem=contact`, 303);
+		if (result.status === "ok") return c.redirect(result.to ?? `/clients/${cid(c)}`, 303);
+		if (result.status === "refused") return c.text(result.code, STATUS[result.code]);
+		return c.text("confirmation", 400);
+	};
 	app.post("/clients/:id/edit", async (c) =>
-		execute(c, "client.edit", { ...strings(await form(c)), id: cid(c) }),
+		editing(c, "client.edit", { ...strings(await form(c)), id: cid(c) }),
+	);
+	app.post("/clients/:id/contact/clear", async (c) =>
+		editing(c, "client.clearContact", { ...strings(await form(c)), id: cid(c) }),
 	);
 	app.post("/clients/:id/archive", async (c) => execute(c, "client.archive", { id: cid(c) }));
 	app.post("/clients/:id/delete", async (c) => execute(c, "client.delete", { id: cid(c) }));

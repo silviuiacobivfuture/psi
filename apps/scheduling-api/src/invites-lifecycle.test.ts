@@ -322,12 +322,33 @@ describe("Programările mele: what a linked account sees", () => {
 		);
 		expect(other.status).toBe(404);
 	});
-	it("an appointment already cancelled or already over cannot be cancelled again", async () => {
+	it("an appointment already cancelled or already over cannot be cancelled again: it is theirs, so they are told it is too late", async () => {
 		await invite(w.ids.c1);
 		await visitor("sub-1", "POST", `/me/appointments/${w.ids.a1}/cancel`);
-		expect(
-			(await writesNothing(() => visitor("sub-1", "POST", `/me/appointments/${w.ids.a1}/cancel`)))
-				.status,
-		).toBe(404);
+		const again = await writesNothing(() =>
+			visitor("sub-1", "POST", `/me/appointments/${w.ids.a1}/cancel`),
+		);
+		expect(again.status).toBe(403);
+		expect(again.json.error).toMatchObject({ code: "not_allowed", detail: { reason: "too_late" } });
+	});
+	it("a session the clinic booked is offered a cancel, never a move: the move is refused, nothing written", async () => {
+		await invite(w.ids.c1);
+		const mine = (await visitor("sub-1", "GET", "/me/appointments")).json.items as {
+			id: string;
+			canChange: boolean;
+			canMove: boolean;
+			changeUntil: number;
+			start: number;
+		}[];
+		const row = mine.find((r) => r.id === w.ids.a1);
+		expect(row).toMatchObject({ canChange: true, canMove: false });
+		expect(row?.changeUntil).toBe(row?.start);
+		const moved = await writesNothing(() =>
+			visitor("sub-1", "POST", `/me/appointments/${w.ids.a1}/reschedule`, {
+				start: (row?.start ?? 0) + 86_400_000,
+				mode: "onsite",
+			}),
+		);
+		expect(moved.status).toBe(403);
 	});
 });

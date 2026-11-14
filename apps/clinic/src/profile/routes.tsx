@@ -7,7 +7,6 @@ import { addDays, todayIso, weekStart } from "../lib/dates";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
-import { NOTIFY_CHANNELS, NOTIFY_KINDS, type NotificationPrefs } from "../port/profile-port";
 import { hoursSummary } from "./hours";
 import { MyRoles } from "./my-roles";
 import {
@@ -40,7 +39,7 @@ const Phone = z
 	.max(40)
 	.regex(/^[0-9 +().\-/]*$/);
 
-const Flash = z.enum(["phone", "notif"]).optional().catch(undefined);
+const Flash = z.enum(["phone"]).optional().catch(undefined);
 
 async function calendarOf(
 	ctx: Ctx,
@@ -64,9 +63,8 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 	app.get("/me/profile", async (c) => {
 		const ctx = c.var.ctx;
 		const { subject } = ctx.person;
-		const [profile, prefs, feedback, sessions, calendar, roles] = await Promise.all([
+		const [profile, feedback, sessions, calendar, roles] = await Promise.all([
 			orSoon(ctx.port.profile(ctx.app, subject)),
-			orSoon(ctx.port.notificationPrefs(subject)),
 			orSoon(ctx.port.myFeedback(ctx.app, subject)),
 			deps.auth.sessions(c),
 			calendarOf(ctx),
@@ -76,7 +74,6 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 		const flash = Flash.parse(c.req.query("saved"));
 		const data: ProfileData = {
 			profile,
-			prefs,
 			feedback,
 			sessions,
 			...calendar,
@@ -96,7 +93,7 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 						<div class="pf-grid">
 							<Account ctx={ctx} data={data} />
 							<Preferences ctx={ctx} />
-							<Notifications ctx={ctx} data={data} />
+							<Notifications ctx={ctx} />
 							<Sessions ctx={ctx} data={data} />
 							<MyFeedbackList ctx={ctx} data={data} />
 						</div>
@@ -119,22 +116,5 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 			phone: phone.data === "" ? null : phone.data,
 		});
 		return c.redirect("/me/profile?saved=phone", 303);
-	});
-
-	app.post("/me/profile/notifications", async (c) => {
-		const ctx = c.var.ctx;
-		if (ctx.viewAs !== null) return c.text(m.view_as_readonly({}, at(ctx.locale)), 403);
-		const form = await c.req.parseBody();
-		const prefs: NotificationPrefs = {
-			prefs: NOTIFY_KINDS.flatMap((kind) =>
-				NOTIFY_CHANNELS.map((channel) => ({
-					kind,
-					channel,
-					on: form[`n.${kind}.${channel}`] !== undefined,
-				})),
-			),
-		};
-		await ctx.port.saveNotificationPrefs(ctx.person.subject, prefs);
-		return c.redirect("/me/profile?saved=notif", 303);
 	});
 }

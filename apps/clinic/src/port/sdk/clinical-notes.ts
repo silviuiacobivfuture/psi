@@ -19,6 +19,7 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "../schema-clinical";
+import { CONTACT_REQUIRED } from "../schema-clinical";
 import type { SdkContext } from "./context";
 import { clientOf, drain } from "./map";
 import { wallOf } from "./time";
@@ -302,23 +303,34 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 
 		updateClient: (app: AppSlug, id: string, patch: ClientPatch): Promise<Client> =>
 			run(async () => {
-				// The service merges what it is given and cannot take a contact away: clearing one is not a change it knows.
-				if (patch.phone === null || patch.email === null || patch.guardian === null)
-					throw new PortError("not-available-yet", "clearing a contact");
+				// An empty phone, e-mail or guardian is the service's `clear`: emptying what is already empty changes
+				// nothing there, and emptying the last way to reach the client is refused.
 				const contact = {
-					...(patch.phone === undefined ? {} : { phone: patch.phone }),
-					...(patch.email === undefined ? {} : { email: patch.email }),
+					...(patch.phone == null ? {} : { phone: patch.phone }),
+					...(patch.email == null ? {} : { email: patch.email }),
 				};
-				return clientOf(
-					await api.clients.update({
-						app,
-						id,
-						...(patch.name === undefined ? {} : { name: patch.name }),
-						...(Object.keys(contact).length === 0 ? {} : { contact }),
-						...(patch.guardian === undefined ? {} : { guardian: { name: patch.guardian } }),
-						...(patch.note === undefined ? {} : { clinical: { notes: patch.note } }),
-					}),
-				);
+				const clear = (["phone", "email", "guardian"] as const).filter((f) => patch[f] === null);
+				try {
+					return clientOf(
+						await api.clients.update({
+							app,
+							id,
+							...(patch.name === undefined ? {} : { name: patch.name }),
+							...(Object.keys(contact).length === 0 ? {} : { contact }),
+							...(clear.length === 0 ? {} : { clear }),
+							...(patch.guardian == null ? {} : { guardian: { name: patch.guardian } }),
+							...(patch.note === undefined ? {} : { clinical: { notes: patch.note } }),
+						}),
+					);
+				} catch (error) {
+					if (
+						error instanceof SchedulingApiError &&
+						error.code === "conflict" &&
+						error.detail?.reason === "contact_required"
+					)
+						throw new PortError("conflict", CONTACT_REQUIRED);
+					throw error;
+				}
 			}),
 	};
 }

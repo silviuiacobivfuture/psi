@@ -23,7 +23,7 @@ export interface Prepared {
 	ctx: Ctx<RouteSpec>;
 	principal: Principal;
 	/** What the handler asked to be audited. */
-	audit: { id: string | undefined; detail: Record<string, unknown> };
+	audit: { id: string | undefined; detail: Record<string, unknown>; skip: boolean };
 	/** A dynamic route is answered only once its handler has asked `ctx.authorize`. */
 	dynamic: { required: boolean; asked: boolean };
 }
@@ -187,7 +187,7 @@ export async function prepare(
 
 	parsed.query = parseQuery(spec, c);
 	if (Object.keys(parsed.body).length === 0) parsed.body = await parseBody(spec, c);
-	const audit: Prepared["audit"] = { id: undefined, detail: {} };
+	const audit: Prepared["audit"] = { id: undefined, detail: {}, skip: false };
 	const dynamic = { required: spec.permission?.target.kind === "dynamic", asked: false };
 	const scopes = new Map<string, Promise<("all" | "assigned" | "own")[]>>();
 	const now = deps.clock();
@@ -229,6 +229,9 @@ export async function prepare(
 		},
 		auditTarget(id) {
 			audit.id = id;
+		},
+		unchanged() {
+			audit.skip = true;
 		},
 		auditNow: async (action, target, d) => {
 			await writeAudit(deps, {
@@ -294,7 +297,7 @@ export async function finish(deps: Deps, prepared: Prepared, result: unknown): P
 		});
 		throw fail("internal", "the answer does not match the contract");
 	}
-	if (spec.audit !== undefined) {
+	if (spec.audit !== undefined && !audit.skip) {
 		const out = parsed.data;
 		const own =
 			typeof out === "object" && out !== null

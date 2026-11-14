@@ -173,5 +173,8 @@
 	"jr_csv_source": "Source",
 	"jr_csv_request": "Request id",
 	"jr_csv_ip": "IP address",
-	"jr_csv_device": "Device"
+	"jr_csv_device": "Device",
+	"jr_act_file_rename": "File renamed",
+	"jr_act_settings_update": "Personal settings changed",
+	"jr_act_visitor_reschedule": "Visitor moved the appointment"
 }

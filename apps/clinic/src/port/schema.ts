@@ -403,12 +403,6 @@ export const ASSISTANT_MODES = ["bar", "panel"] as const;
 export const AssistantModeSchema = z.enum(ASSISTANT_MODES);
 export type AssistantMode = z.infer<typeof AssistantModeSchema>;
 
-export const PushPrefsSchema = z.object({
-	requests: z.boolean(),
-	reminders: z.boolean(),
-});
-export type PushPrefs = z.infer<typeof PushPrefsSchema>;
-
 /** Where a client stands with the online account: the service's words, `expired` being what a lapsed `invited` reads as. */
 export const InviteStatusSchema = z.enum(["invited", "active", "expired", "revoked"]);
 export type InviteStatus = z.infer<typeof InviteStatusSchema>;

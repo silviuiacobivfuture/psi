@@ -5,7 +5,7 @@ import { moreHref, ShowMore } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 
 /** The client page's tabs that show a long list a page at a time. */
-export const PAGED_TABS = ["appointments", "notes", "records"] as const;
+export const PAGED_TABS = ["appointments", "notes", "records", "files"] as const;
 export type PagedTab = (typeof PAGED_TABS)[number];
 
 /** The list element of a paged tab: where its next page is appended. */

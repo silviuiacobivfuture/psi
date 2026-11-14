@@ -9,6 +9,11 @@ export interface DeviceSyncOptions {
 	site: SubscriptionRecord["site"];
 	/** The person's Novu subscriber id for a signed-in subject (staff: the subject itself). Undefined: not a notified person. */
 	subscriberOf: (subject: string) => Promise<string | undefined>;
+	/**
+	 * The Push Webhook integration the tokens belong to; default `push-webhook-<app>` (the console's). A public site has its
+	 * own (`push-webhook-<app>-<site>`), whose webhook posts to that site, so each site delivers to its own devices.
+	 */
+	integration?: string;
 	http?: NovuHttp;
 }
 
@@ -24,7 +29,7 @@ export function createDeviceSync(o: DeviceSyncOptions): (subject: string) => Pro
 		await http.upsertSubscriber({ subscriberId });
 		await http.setPushTokens(
 			subscriberId,
-			`push-webhook-${o.app}`,
+			o.integration ?? `push-webhook-${o.app}`,
 			devices.map((d) => d.id),
 		);
 	};
