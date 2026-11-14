@@ -2,9 +2,12 @@ import type {
 	Appointment as ApiAppointmentSchema,
 	AuditEvent as ApiAuditSchema,
 	Client as ApiClientSchema,
+	Device as ApiDeviceSchema,
 	Package as ApiPackageSchema,
 	Payment as ApiPaymentSchema,
+	Person as ApiPersonSchema,
 	WebRequest as ApiRequestSchema,
+	Room as ApiRoomSchema,
 	RosterDay as ApiRosterSchema,
 	Service as ApiServiceSchema,
 } from "@psi/scheduling-sdk/contract";
@@ -20,8 +23,12 @@ import type {
 	Service,
 	WebRequest,
 } from "../schema";
+import { auditExtras } from "./audit-detail";
 import { wallOf } from "./time";
 
+export type ApiPerson = z.output<typeof ApiPersonSchema>;
+export type ApiRoom = z.output<typeof ApiRoomSchema>;
+export type ApiDevice = z.output<typeof ApiDeviceSchema>;
 export type ApiAppointment = z.output<typeof ApiAppointmentSchema>;
 export type ApiClient = z.output<typeof ApiClientSchema>;
 export type ApiPayment = z.output<typeof ApiPaymentSchema>;
@@ -48,6 +55,24 @@ export const column = (
 	...(capacity === undefined ? {} : { capacity }),
 });
 
+/** The console's word for an appointment's status (exhaustive: a status the service adds fails the build here). */
+export function statusOf(status: ApiAppointment["status"]): Appointment["status"] {
+	switch (status) {
+		case "requested":
+			return "requested";
+		case "scheduled":
+			return "confirmed";
+		case "attended":
+			return "attended";
+		case "no_show":
+			return "no-show";
+		case "cancelled":
+			return "cancelled";
+		default:
+			return status satisfies never;
+	}
+}
+
 export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 	const start = wallOf(a.start, tz);
 	return {
@@ -59,16 +84,15 @@ export function appointmentOf(a: ApiAppointment, tz: string): Appointment {
 		clientId: a.clientId ?? null,
 		title: a.kind === "session" ? null : (a.note ?? ""),
 		serviceId: a.serviceId ?? "",
-		status: a.status === "scheduled" ? "confirmed" : a.status === "no_show" ? "no-show" : a.status,
+		status: statusOf(a.status),
 		note: a.note ?? "",
 		packageId: a.packageId ?? null,
 		resourceIds: [a.roomId, a.deviceId].filter((id): id is string => id !== undefined),
 		priceBani: a.money?.priceCents ?? 0,
 		// The service says whether it is paid, not by what means: the console only asks "paid or not" of this field.
 		paidMethod: a.money?.paymentStatus === "paid" ? "cash" : null,
-		// Reminders and series are not facts of the service's appointment.
-		remind: true,
-		seriesId: null,
+		remind: a.remind,
+		seriesId: a.seriesId ?? null,
 		cancelReason: a.cancelReason ?? null,
 	};
 }
@@ -87,11 +111,61 @@ export function clientOf(c: ApiClient): Client {
 	};
 }
 
+const said = <T extends object>(o: T): Partial<T> =>
+	Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
 export const serviceOf = (s: ApiService): Service => ({
 	id: s.id,
 	name: s.name.ro,
 	durationMin: s.durationMinutes,
 	priceBani: s.prices?.priceCents ?? null,
+	active: s.active,
+	bufferMin: s.bufferMinutes,
+	online: s.modes.includes("online"),
+	practitionerIds: s.practitionerIds,
+	...said({
+		category: s.category,
+		roomIds: s.roomIds,
+		deviceIds: s.deviceIds,
+		roomCategory: roomCategoryOf(s.roomCategory),
+	}),
+});
+
+/** The console knows two room categories; any other word the service holds is not one of them. */
+const roomCategoryOf = (c: string | undefined): Service["roomCategory"] =>
+	c === "therapy" || c === "neuro" ? c : undefined;
+
+/** A person as a column, with everything the service keeps about them. */
+export const personColumn = (p: ApiPerson, index: number): Column => ({
+	...column("person", p.id, p.displayName, index),
+	active: p.active,
+	bookable: p.kind === "practitioner",
+	...said({
+		email: p.email,
+		specialty: p.specialty,
+		hours: p.hours,
+		roomIds: p.roomIds,
+		serviceIds: p.serviceIds,
+	}),
+});
+
+export const roomColumn = (r: ApiRoom, index: number): Column => ({
+	...column("room", r.id, r.name, index, r.capacity),
+	active: r.active,
+	bookable: r.bookable ?? true,
+	...said({
+		category: roomCategoryOf(r.kind),
+		floor: r.floor,
+		purpose: r.purpose,
+		homeOf: r.homePractitionerId,
+	}),
+});
+
+export const deviceColumn = (d: ApiDevice, index: number): Column => ({
+	...column("device", d.id, d.name, index),
+	active: d.active,
+	bookable: d.bookable ?? true,
+	...said({ deviceType: d.deviceType, deviceRoom: d.roomId }),
 });
 
 export const paymentOf = (p: ApiPayment, tz: string): Payment => ({
@@ -139,6 +213,9 @@ export const auditOf = (e: ApiAudit): AuditEvent => ({
 	actor: e.actor.subject,
 	action: e.action,
 	target: `${e.target.type}:${e.target.id}`,
+	targetType: e.target.type,
+	targetId: e.target.id,
+	...auditExtras(e.detail),
 });
 
 /** Every page of a list, up to a bound (a console shows what fits a screen, never an unbounded table). */

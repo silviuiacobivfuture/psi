@@ -27,8 +27,24 @@ async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
 			? Promise.resolve([])
 			: ctx.port.clientAppointments(ctx.app, appointment.clientId),
 	]);
+	const flag =
+		appointment.clientId === null || !ctx.can.any("blacklist_view", "clients_view")
+			? undefined
+			: await ctx.port
+					.clientFlags(ctx.app, [appointment.clientId])
+					.then((all) => {
+						const f = all[appointment.clientId ?? ""];
+						if (f === undefined) return undefined;
+						return {
+							blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
+							pinned:
+								f.pinned?.category === "clinical" && !ctx.can.group("clinical") ? null : f.pinned,
+						};
+					})
+					.catch(() => undefined);
 	return {
 		appointment,
+		flag,
 		client,
 		columns,
 		service: services.find((s) => s.id === appointment.serviceId),
@@ -55,7 +71,10 @@ export async function detailBody(ctx: Ctx, id: string): Promise<string | null> {
 			).toString();
 }
 
-const ReasonSignals = z.object({ dtReason: z.string().trim().min(1).max(500) });
+const ReasonSignals = z.object({
+	dtReason: z.string().trim().min(1).max(500),
+	dtScope: z.enum(["this", "following", "all"]).default("this"),
+});
 const PaySignals = z.object({ dtPay: PaymentMethodSchema });
 
 export function registerDetail(app: Hono<Env>): void {
@@ -141,6 +160,12 @@ export function registerDetail(app: Hono<Env>): void {
 		async (c, ctx, id) => {
 			const s = await signalsOf(c, ReasonSignals);
 			if (s === null) return null;
+			const held = await ctx.port.appointment(ctx.app, id);
+			// Many weeks at once, all or nothing; a lone appointment, or "this one", is the plain cancel.
+			if (s.dtScope !== "this" && held?.seriesId != null) {
+				await ctx.port.cancelSeries(ctx.app, id, s.dtReason, s.dtScope);
+				return m.ap_series_cancelled({}, at(ctx.locale));
+			}
 			await ctx.port.cancelAppointment(ctx.app, id, s.dtReason);
 			return m.ap_cancelled({}, at(ctx.locale));
 		},

@@ -20,6 +20,7 @@ import {
 } from "./validators";
 import { busyOfVisitsInfo } from "./visitConflicts";
 import { columnArg, links, resolveColumn } from "./visitLinks";
+import { moveTakenBy, prepareMove } from "./visitMove";
 
 /**
  * Staff-made visits for the staff API: create, edit, move, attendance, payment, cancel, soft
@@ -53,6 +54,8 @@ export const create = mutation({
 		end: v.number(),
 		/** Book a blacklisted client anyway: the reason, and the authority the API vouches for. */
 		override: v.optional(overrideValidator),
+		/** `requested`: booked by the team, waiting for the client to confirm; it holds the time all the same. */
+		status: v.optional(v.union(v.literal("requested"), v.literal("confirmed"))),
 		...body,
 	},
 	handler: async (ctx, args) => {
@@ -104,7 +107,7 @@ export const create = mutation({
 			end: args.end,
 			durationMinutes,
 			sessionType: args.sessionType,
-			status: "confirmed",
+			status: args.status ?? "confirmed",
 			attendance: "pending",
 			notes: args.notes,
 			therapistNotes: args.therapistNotes,
@@ -204,16 +207,9 @@ export const move = mutation({
 		if (row === null || row.deletedAt !== undefined) return REFUSED("not_found");
 		if (stale(row.version, args.expectedVersion)) return REFUSED("stale");
 		if (row.status !== "confirmed") return REFUSED("not_allowed");
-		const column =
-			args.column === undefined ? row.column : await resolveColumn(ctx, args.tenant, args.column);
-		if (column === null) return REFUSED("unknown_column");
-		const linked = await links(ctx, args.tenant, { room: args.room, device: args.device });
-		if (!linked.ok) return REFUSED(linked.reason);
-		const room = args.room === undefined ? row.room : linked.room;
-		const device = args.device === undefined ? row.device : linked.device;
-		const durationMinutes = Math.round((args.end - args.start) / MINUTE_MS);
-		const problems = visitProblems({ column, start: args.start, end: args.end, durationMinutes });
-		if (problems.length > 0) return REFUSED(problems[0] ?? "invalid");
+		const prepared = await prepareMove(ctx, args.tenant, row, args);
+		if (!prepared.ok) return REFUSED(prepared.reason);
+		const { move } = prepared;
 		const gate = await staffGate(
 			ctx,
 			args.tenant,
@@ -222,31 +218,17 @@ export const move = mutation({
 			Date.now(),
 		);
 		if (gate.stop !== undefined) return gate.stop;
-		const taken = await busyOfVisitsInfo(ctx, args.tenant, {
-			column,
-			room,
-			device,
-			start: args.start,
-			end: args.end,
-			except: row._id,
-		});
-		if (taken !== undefined) return REFUSED("overlaps");
-		const fields = [
-			"start",
-			"end",
-			...(args.column === undefined ? [] : ["column"]),
-			...(args.room === undefined ? [] : ["room"]),
-			...(args.device === undefined ? [] : ["device"]),
-		];
+		if ((await moveTakenBy(ctx, args.tenant, row, move, args)) !== undefined)
+			return REFUSED("overlaps");
 		const version = row.version + 1;
 		await ctx.db.patch(row._id, {
 			start: args.start,
 			end: args.end,
-			durationMinutes,
-			column,
-			columnKey: columnKey(column),
-			room,
-			device,
+			durationMinutes: move.durationMinutes,
+			column: move.column,
+			columnKey: columnKey(move.column),
+			room: move.room,
+			device: move.device,
 			updatedAt: Date.now(),
 			version,
 		});
@@ -258,7 +240,7 @@ export const move = mutation({
 			entityId: row._id,
 			kind: "visit",
 			version,
-			fields,
+			fields: move.fields,
 		});
 		if (gate.overridden !== undefined)
 			await recordOverride(ctx, args.tenant, args.actor.subject, gate.overridden, row._id);

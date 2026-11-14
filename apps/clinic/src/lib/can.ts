@@ -1,5 +1,6 @@
 import type { Capabilities } from "../port/port";
 import type { FieldGroupName, ScopeName } from "../port/schema";
+import { PLATFORM_KEY } from "./areas";
 
 /**
  * What the screens ask. It answers from the capabilities the service gave for THIS request; it is a hint for what to
@@ -22,7 +23,8 @@ export interface Can {
 }
 
 export function canOf(caps: Capabilities, readOnly: boolean): Can {
-	const has = (key: string): boolean => Object.hasOwn(caps.permissions, key);
+	const has = (key: string): boolean =>
+		key === PLATFORM_KEY ? caps.platformAdmin : Object.hasOwn(caps.permissions, key);
 	return {
 		readOnly,
 		has,

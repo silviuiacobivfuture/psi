@@ -7,7 +7,8 @@ import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
-import type { Auth } from "./auth";
+import { registerAudit } from "./audit/routes";
+import type { Auth, Person } from "./auth";
 import { Page } from "./chrome";
 import { registerFloor } from "./floor/mount";
 import { backPath } from "./lib/back";
@@ -21,8 +22,6 @@ import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
 import type { NotificationsPort } from "./notifications/port";
-import { registerAdmin } from "./pages/admin";
-import { renderAudit } from "./pages/audit";
 import { CalendarQuerySchema, renderCalendar } from "./pages/calendar";
 import { registerClients } from "./pages/clients-routes";
 import { registerDesign } from "./pages/design";
@@ -32,6 +31,10 @@ import { FailureState } from "./pages/failure";
 import { NoAccessPage } from "./pages/gate";
 import { registerLive } from "./pages/live";
 import { MorePage } from "./pages/more";
+import { registerMySettings } from "./pages/my-settings";
+import { registerOrgAreas } from "./pages/org-areas";
+import { registerOrgSettings } from "./pages/org-settings";
+import { registerPlatform } from "./pages/platform";
 import { registerPrint } from "./pages/print-routes";
 import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
@@ -42,6 +45,8 @@ import { registerViewAs } from "./pages/view-as";
 import { m } from "./paraglide/messages.js";
 import { PortError, type PortSource } from "./port/port";
 import { AppSlugSchema } from "./port/schema";
+import { registerProfile } from "./profile/routes";
+import { registerStats } from "./stats/routes";
 
 export interface AppDeps {
 	/** The port acting for the request's person (the scheduling service takes their own token). */
@@ -51,6 +56,8 @@ export interface AppDeps {
 	auth: Auth;
 	pwa: Pwa;
 	origin: string;
+	/** Where a person changes their name and e-mail: the sign-in's own account page. Absent: no link is offered. */
+	ssoAccountUrl?: string;
 	/** The bell's feed (Novu's inbox, or the development feed); omitted, there is no bell. */
 	notifications?: NotificationsPort;
 	/** The staff assistant; omitted, it does not exist (no button, no routes). */
@@ -116,7 +123,12 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		}
 		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next.
 		const real = await own.capabilities(person.subject, active);
-		const mayViewAs = Object.hasOwn(real.permissions, "roles_edit");
+		const mayViewAs = real.platformAdmin || Object.hasOwn(real.permissions, "roles_edit");
+		// A sign-in that only knows a subject (the development one) is named as the service names it.
+		const self: Person =
+			person.name === person.subject && real.displayName !== undefined
+				? { ...person, name: real.displayName }
+				: person;
 		let port = own;
 		let caps = real;
 		let viewAs: ViewAsState | null = null;
@@ -141,7 +153,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			pref,
 			theme,
 			deco,
-			person,
+			person: self,
+			platformAdmin: real.platformAdmin,
 			app: active,
 			memberships,
 			port,
@@ -202,11 +215,14 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerLive(app);
 	registerViewAs(app, deps);
 	registerDesign(app);
+	registerOrgSettings(app);
 	registerSettings(app);
-	registerAdmin(app);
-	app.get("/audit", async (c) =>
-		c.html(await renderAudit(c.var.ctx), 200, { "cache-control": "private, no-store" }),
-	);
+	registerAudit(app);
+	registerOrgAreas(app);
+	registerMySettings(app);
+	registerPlatform(app);
+	registerStats(app);
+	registerProfile(app, deps);
 	registerReminders(app);
 	app.get("/roster", async (c) =>
 		c.html(await renderRoster(c.var.ctx, c.req.query("date")), 200, {

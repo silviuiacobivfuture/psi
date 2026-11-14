@@ -1,9 +1,3 @@
-import {
-	createSchedulingClient,
-	createStaffSchedulingClient,
-	DEFAULT_TIMEOUT_MS,
-} from "@psi/scheduling";
-import { ConvexClient } from "convex/browser";
 import { createTokenVerifier } from "./auth/tokens";
 import { createAccess } from "./authz/access";
 import { createLiveAuthz } from "./authz/live";
@@ -15,9 +9,8 @@ import { createFieldCrypto } from "./ports/crypto";
 import { createHttpMailer } from "./ports/mail";
 import { createS3Store } from "./ports/objects";
 import { createLimiter } from "./ports/ratelimit";
-import { createConvexStore } from "./store/convex";
-import { createRpc } from "./store/convex/rpc";
 import { createMemoryStore } from "./store/memory";
+import { openConvexStore } from "./store/open-convex";
 import type { StorePort } from "./store/types";
 
 const stdoutLog = (event: LogEvent): void => {
@@ -26,31 +19,12 @@ const stdoutLog = (event: LogEvent): void => {
 
 /** Wires the live adapters (or the in-memory ones the config allows outside production). */
 export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
-	const rpc =
+	const opened =
 		config.store.kind === "convex"
-			? createRpc({ url: config.store.url, serverKey: config.store.serverKey })
+			? openConvexStore({ url: config.store.url, serverKey: config.store.serverKey })
 			: undefined;
-	const store: StorePort =
-		config.store.kind === "convex" && rpc !== undefined
-			? createConvexStore({
-					rpc,
-					live: new ConvexClient(config.store.url, {
-						skipConvexDeploymentUrlCheck: true,
-						logger: false,
-					}),
-					serverKey: config.store.serverKey,
-					visitor: createSchedulingClient({
-						url: config.store.url,
-						serverKey: config.store.serverKey,
-						timeoutMs: DEFAULT_TIMEOUT_MS,
-					}),
-					staff: createStaffSchedulingClient({
-						url: config.store.url,
-						serverKey: config.store.serverKey,
-						timeoutMs: DEFAULT_TIMEOUT_MS,
-					}),
-				})
-			: createMemoryStore();
+	const rpc = opened?.rpc;
+	const store: StorePort = opened?.store ?? createMemoryStore();
 	const authz: Deps["authz"] | MemoryAuthz =
 		config.authz.kind === "openfga"
 			? createLiveAuthz({

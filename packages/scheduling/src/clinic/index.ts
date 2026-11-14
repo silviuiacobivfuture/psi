@@ -27,6 +27,7 @@ export {
 	CLEARABLE_FIELDS,
 	type GateOutcome,
 	MAX_ACTIVE_ENTRIES,
+	OVERRIDE_AUTHORITIES,
 	type Override,
 	type OverrideAuthority,
 	overrideSchema,
@@ -141,6 +142,15 @@ export {
 } from "./packages";
 export * as reports from "./reports";
 export { type ClinicRetentionAction, clinicRetentionAction } from "./retention";
+export { PLAN_HEIGHT, PLAN_WIDTH, roomsPlanDocument } from "./rooms-plan";
+export {
+	parseRoomsSeed,
+	ROOM_CATEGORIES,
+	type RoomCategory,
+	type RoomsSeed,
+	roomCategorySchema,
+	roomsSeedSchema,
+} from "./rooms-seed";
 export {
 	type BlockProblem,
 	blockProblem,
@@ -153,6 +163,15 @@ export {
 	rosterProblem,
 	type StaffBlock,
 } from "./roster";
+export {
+	atWallTime,
+	MAX_SERIES,
+	type Occurrence,
+	type OccurrenceProblem,
+	type Occurrences,
+	type Recurrence,
+	weeklyOccurrences,
+} from "./series";
 export { SEED_FORM_TEMPLATES } from "./templates";
 export {
 	FINDING_CODES,

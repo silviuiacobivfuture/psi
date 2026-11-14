@@ -2499,6 +2499,105 @@
 					"effect": "write"
 				}
 			]
+		},
+		{
+			"key": "notes",
+			"name": {
+				"ro": "Notițe despre clienți",
+				"en": "Notes about clients"
+			},
+			"permissions": [
+				{
+					"key": "notes_view",
+					"name": {
+						"ro": "Notițe despre clienți: vede",
+						"en": "Notes about clients: view"
+					},
+					"grants": ["sched_app#notes_view_all", "sched_app#notes_view_own"],
+					"effect": "read"
+				},
+				{
+					"key": "notes_view_clinical",
+					"name": {
+						"ro": "Notițe despre clienți: vede (clinic)",
+						"en": "Notes about clients: view (clinical)"
+					},
+					"grants": ["sched_app#notes_view_all_clinical", "sched_app#notes_view_own_clinical"],
+					"effect": "read"
+				},
+				{
+					"key": "notes_create",
+					"name": {
+						"ro": "Notițe despre clienți: creează",
+						"en": "Notes about clients: create"
+					},
+					"grants": ["sched_app#notes_create_all", "sched_app#notes_create_own"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_create_clinical",
+					"name": {
+						"ro": "Notițe despre clienți: creează (clinic)",
+						"en": "Notes about clients: create (clinical)"
+					},
+					"grants": ["sched_app#notes_create_all_clinical", "sched_app#notes_create_own_clinical"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_edit",
+					"name": {
+						"ro": "Notițe despre clienți: modifică",
+						"en": "Notes about clients: edit"
+					},
+					"grants": ["sched_app#notes_edit_all", "sched_app#notes_edit_own"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_edit_clinical",
+					"name": {
+						"ro": "Notițe despre clienți: modifică (clinic)",
+						"en": "Notes about clients: edit (clinical)"
+					},
+					"grants": ["sched_app#notes_edit_all_clinical", "sched_app#notes_edit_own_clinical"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_delete",
+					"name": {
+						"ro": "Notițe despre clienți: șterge",
+						"en": "Notes about clients: delete"
+					},
+					"grants": ["sched_app#notes_delete_all", "sched_app#notes_delete_own"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_delete_clinical",
+					"name": {
+						"ro": "Notițe despre clienți: șterge (clinic)",
+						"en": "Notes about clients: delete (clinical)"
+					},
+					"grants": ["sched_app#notes_delete_all_clinical", "sched_app#notes_delete_own_clinical"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_pin",
+					"name": {
+						"ro": "Notițe despre clienți: fixează",
+						"en": "Notes about clients: pin"
+					},
+					"grants": ["sched_app#notes_pin_all", "sched_app#notes_pin_own"],
+					"effect": "write"
+				},
+				{
+					"key": "notes_pin_clinical",
+					"name": {
+						"ro": "Notițe despre clienți: fixează (clinic)",
+						"en": "Notes about clients: pin (clinical)"
+					},
+					"grants": ["sched_app#notes_pin_all_clinical", "sched_app#notes_pin_own_clinical"],
+					"effect": "write"
+				}
+			]
 		}
 	],
 	"objects": [
@@ -4275,6 +4374,86 @@
 				},
 				{
 					"name": "feedback_close_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_view_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_view_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_view_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_view_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_create_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_create_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_create_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_create_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_edit_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_edit_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_edit_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_edit_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_delete_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_delete_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_delete_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_delete_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_pin_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_pin_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_pin_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "notes_pin_own_clinical",
 					"from": ["[user, sched_role#member]"]
 				}
 			]

@@ -16,13 +16,18 @@ import {
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
-import { IsoDateSchema } from "../port/schema";
+import { type Appointment, type Column, IsoDateSchema } from "../port/schema";
+import type { ClientFlag } from "../port/schema-clinical";
 import { DayGrid, MonthGrid, WeekGrid } from "./calendar-grid";
 import { detailBody } from "./detail-routes";
 import { editorBody, openState } from "./editor-routes";
 
 export const ViewSchema = z.enum(["day", "week", "month"]);
 export type View = z.infer<typeof ViewSchema>;
+
+const CATEGORY_FILTERS = ["team", "therapy", "neuro", "all"] as const;
+type CategoryFilter = (typeof CATEGORY_FILTERS)[number];
+const CategoryFilterSchema = z.enum(CATEGORY_FILTERS);
 
 export const CalendarQuerySchema = z.object({
 	view: ViewSchema.catch("day"),
@@ -34,9 +39,20 @@ export const CalendarQuerySchema = z.object({
 		.regex(/^\d{2}:\d{2}$/)
 		.optional(),
 	appt: z.string().max(40).optional(),
+	/** A client to start the new appointment with. */
+	client: z.string().max(40).optional(),
+	/** Which columns: the team (people, devices, groups), the therapy rooms, the neuro rooms, or all of them. */
+	cat: CategoryFilterSchema.catch("team"),
 });
 
-const href = (view: View, date: string, col?: string): string =>
+/** The columns a filter shows: rooms are shown by their category, everything else belongs to the team. */
+export function columnsFor(cat: CategoryFilter, c: Column): boolean {
+	if (cat === "all") return true;
+	if (cat === "team") return c.kind !== "room";
+	return c.kind === "room" && c.category === cat;
+}
+
+const hrefBase = (view: View, date: string, col?: string): string =>
 	`/calendar?view=${view}&date=${date}${col === undefined ? "" : `&col=${col}`}`;
 
 function stepDate(view: View, date: string, dir: 1 | -1): string {
@@ -59,6 +75,7 @@ function Toolbar({
 	date,
 	locale,
 	col,
+	cat,
 	columns,
 	canCreate,
 }: {
@@ -66,10 +83,13 @@ function Toolbar({
 	date: string;
 	locale: Locale;
 	col: string | undefined;
+	cat: CategoryFilter;
 	columns: ReadonlyArray<{ id: string; name: string }>;
 	canCreate: boolean;
 }): JSX.Element {
 	const o = at(locale);
+	const href = (v: View, d: string, c?: string): string =>
+		`${hrefBase(v, d, c)}${cat === "team" ? "" : `&cat=${cat}`}`;
 	const today = todayIso();
 	const title =
 		view === "month"
@@ -117,6 +137,15 @@ function Toolbar({
 						{ key: "week", label: m.view_week({}, o), href: href("week", date, col) },
 						{ key: "month", label: m.view_month({}, o), href: href("month", date) },
 					]}
+				/>
+				<Segmented
+					label={m.cal_cols_label({}, o)}
+					current={cat}
+					items={CATEGORY_FILTERS.map((k) => ({
+						key: k,
+						label: m[`cal_cat_${k}` as const]({}, o),
+						href: `${hrefBase(view, date, col)}&cat=${k}`,
+					}))}
 				/>
 				<a class="adm-btn" href={href(view, today, col)}>
 					{m.today({}, o)}
@@ -250,6 +279,7 @@ export function CalendarBody({
 				date={date}
 				locale={locale}
 				col={query.col}
+				cat={query.cat}
 				columns={data?.columns ?? []}
 				canCreate={ctx.can.write("appointments_create")}
 			/>
@@ -257,7 +287,7 @@ export function CalendarBody({
 				<Banner tone="error" icon="alert">
 					<strong>{m.error_title({}, o)}</strong>
 					<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-					<a class="adm-btn" href={href(query.view, date, query.col)}>
+					<a class="adm-btn" href={hrefBase(query.view, date, query.col)}>
 						{m.retry({}, o)}
 					</a>
 				</Banner>
@@ -316,7 +346,7 @@ function WeekBody({
 					<a
 						key={c.id}
 						class="cal-chip"
-						href={href("week", date, c.id)}
+						href={hrefBase("week", date, c.id)}
 						aria-current={c.id === column.id ? "true" : undefined}
 					>
 						<span class="adm-dot" style={`background:var(--cal-${c.colour})`} />
@@ -336,6 +366,36 @@ function WeekBody({
 	);
 }
 
+/**
+ * The flags of the clients on the tiles: blacklist for who may see it, the newest pinned note for who may read its
+ * category. A refusal or a service that keeps no notes yet leaves the tiles plain, never the calendar broken.
+ */
+async function flagsFor(
+	ctx: Ctx,
+	appointments: ReadonlyArray<Appointment>,
+): Promise<Readonly<Record<string, ClientFlag>>> {
+	if (!ctx.can.any("blacklist_view", "clients_view")) return {};
+	const ids = [...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId])))];
+	if (ids.length === 0) return {};
+	try {
+		const flags = await ctx.port.clientFlags(ctx.app, ids);
+		return Object.fromEntries(
+			Object.entries(flags).map(([id, f]) => [
+				id,
+				{
+					blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
+					pinned:
+						f.pinned === null || (f.pinned.category === "clinical" && !ctx.can.group("clinical"))
+							? null
+							: f.pinned,
+				},
+			]),
+		);
+	} catch {
+		return {};
+	}
+}
+
 /** The calendar's data for a query, as the grid shows it (an error is a state of the grid, not a crash). */
 async function loadCalendar(
 	ctx: Ctx,
@@ -344,7 +404,19 @@ async function loadCalendar(
 	const date = query.date === "" ? todayIso() : query.date;
 	const { from, to } = rangeFor(query.view, date);
 	try {
-		return { data: await ctx.port.calendar(ctx.app, from, to), failed: false };
+		const all = await ctx.port.calendar(ctx.app, from, to);
+		const columns = all.columns.filter((c) => columnsFor(query.cat, c));
+		const shown = new Set(columns.map((c) => c.id));
+		const appointments = all.appointments.filter((a) => shown.has(a.columnId));
+		return {
+			data: {
+				...all,
+				columns,
+				appointments,
+				flags: await flagsFor(ctx, appointments),
+			},
+			failed: false,
+		};
 	} catch {
 		return { data: null, failed: true };
 	}
@@ -372,7 +444,13 @@ export async function renderCalendar(
 	const canCreate = ctx.can.write("appointments_create");
 	const editorState =
 		canCreate && query.new === "1"
-			? await openState(ctx, { date, time: query.time ?? "09:00", col: query.col ?? "", id: "" })
+			? await openState(ctx, {
+					date,
+					time: query.time ?? "09:00",
+					col: query.col ?? "",
+					id: "",
+					client: query.client ?? "",
+				})
 			: null;
 	const detail = query.appt === undefined ? null : await detailBody(ctx, query.appt);
 	const blank =
@@ -380,6 +458,7 @@ export async function renderCalendar(
 		(canCreate ? await openState(ctx, { date, time: "09:00", col: "", id: "" }) : null);
 	const live = new URLSearchParams({ screen: "calendar", view: query.view, date });
 	if (query.col !== undefined) live.set("col", query.col);
+	if (query.cat !== "team") live.set("cat", query.cat);
 	return Page({
 		ctx,
 		current: "calendar",

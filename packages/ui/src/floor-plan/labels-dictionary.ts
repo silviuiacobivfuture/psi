@@ -117,6 +117,9 @@ const ro: FloorPlanLabels = {
 	nonBookable: "nu se programează",
 	people: "{n} pers.",
 	legend: "Legendă",
+	fullscreen: "Ecran complet",
+	exitFullscreen: "Ieși din ecranul complet",
+	closePanel: "Închide panoul",
 };
 
 const en: FloorPlanLabels = {
@@ -232,6 +235,9 @@ const en: FloorPlanLabels = {
 	nonBookable: "not bookable",
 	people: "{n} ppl",
 	legend: "Legend",
+	fullscreen: "Full screen",
+	exitFullscreen: "Exit full screen",
+	closePanel: "Close the panel",
 };
 
 export const FLOOR_PLAN_LABELS: Readonly<Record<PlanLocale, FloorPlanLabels>> = { ro, en };

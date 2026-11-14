@@ -259,6 +259,18 @@ export const PERMISSIONS = {
 		feedback_close_core: "feedback:feedback_close_core",
 		feedback_close_contact: "feedback:feedback_close_contact",
 	},
+	notes: {
+		notes_view: "notes:notes_view",
+		notes_view_clinical: "notes:notes_view_clinical",
+		notes_create: "notes:notes_create",
+		notes_create_clinical: "notes:notes_create_clinical",
+		notes_edit: "notes:notes_edit",
+		notes_edit_clinical: "notes:notes_edit_clinical",
+		notes_delete: "notes:notes_delete",
+		notes_delete_clinical: "notes:notes_delete_clinical",
+		notes_pin: "notes:notes_pin",
+		notes_pin_clinical: "notes:notes_pin_clinical",
+	},
 } as const;
 
 /** Every permission key this application declares, sorted. */
@@ -386,6 +398,16 @@ export const ALL_PERMISSIONS = [
 	"members:members_delete",
 	"members:members_edit",
 	"members:members_view",
+	"notes:notes_create",
+	"notes:notes_create_clinical",
+	"notes:notes_delete",
+	"notes:notes_delete_clinical",
+	"notes:notes_edit",
+	"notes:notes_edit_clinical",
+	"notes:notes_pin",
+	"notes:notes_pin_clinical",
+	"notes:notes_view",
+	"notes:notes_view_clinical",
 	"notice_board:notice_board_create",
 	"notice_board:notice_board_delete",
 	"notice_board:notice_board_edit",
@@ -682,6 +704,16 @@ export const PERMISSION_ROLES: Record<string, readonly string[]> = {
 	"feedback:feedback_close": [],
 	"feedback:feedback_close_core": [],
 	"feedback:feedback_close_contact": [],
+	"notes:notes_view": [],
+	"notes:notes_view_clinical": [],
+	"notes:notes_create": [],
+	"notes:notes_create_clinical": [],
+	"notes:notes_edit": [],
+	"notes:notes_edit_clinical": [],
+	"notes:notes_delete": [],
+	"notes:notes_delete_clinical": [],
+	"notes:notes_pin": [],
+	"notes:notes_pin_clinical": [],
 };
 
 /**
@@ -887,6 +919,16 @@ export const PERMISSION_CLOSURE = {
 	"feedback:feedback_close": { scopeType: "platform", relations: [], viaSet: [] },
 	"feedback:feedback_close_core": { scopeType: "platform", relations: [], viaSet: [] },
 	"feedback:feedback_close_contact": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_view": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_view_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_create": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_create_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_edit": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_edit_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_delete": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_delete_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_pin": { scopeType: "platform", relations: [], viaSet: [] },
+	"notes:notes_pin_clinical": { scopeType: "platform", relations: [], viaSet: [] },
 } as const satisfies Record<Permission, { scopeType: string; relations: readonly string[]; viaSet: readonly string[] }>;
 
 /** The object type of an organisation's own permission sets. */

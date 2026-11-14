@@ -28,6 +28,9 @@ export const EditorSchema = z.object({
 	nName: z.string().max(120),
 	nPhone: z.string().max(40),
 	nGuardian: z.string().max(120),
+	/** The weekly series the appointment being edited belongs to (empty: none), and how many of it a change reaches. */
+	series: z.string().max(40).default(""),
+	scope: z.enum(["this", "following", "all"]).default("this"),
 	/** Override a blacklist warning with a reason (when the blacklist exists). */
 	override: z.string().max(500).default(""),
 });

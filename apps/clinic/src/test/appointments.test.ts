@@ -81,7 +81,7 @@ describe("creating", () => {
 			dur: 80,
 			status: "requested",
 			note: "Notă ăîâșț 🙂",
-			room: "r1",
+			room: "cabinet-1",
 			device: "d1",
 			remind: false,
 		});
@@ -90,7 +90,7 @@ describe("creating", () => {
 			durationMin: 80,
 			status: "requested",
 			note: "Notă ăîâșț 🙂",
-			resourceIds: ["r1", "d1"],
+			resourceIds: ["cabinet-1", "d1"],
 			remind: false,
 		});
 	});
@@ -287,6 +287,20 @@ describe("the details of an appointment", () => {
 			cancelReason: "Clientul s-a îmbolnăvit",
 		});
 		expect((await save({ time: "15:00", client: "c3" })).status).toBe(200);
+	});
+	it("cancels this and the following of a weekly series, and only those", async () => {
+		await save({ time: "15:00", rec: "count", recN: 3 });
+		const first = (await day()).find((a) => a.startMin === 900);
+		expect(first?.seriesId).not.toBeNull();
+		const later = (await c.port.calendar("psizone", "2027-02-09", "2027-02-23")).appointments
+			.filter((a) => a.seriesId === first?.seriesId)
+			.sort((a, b) => a.date.localeCompare(b.date));
+		expect(later).toHaveLength(2);
+		const [second, third] = later;
+		await act(second?.id ?? "", "cancel", { dtReason: "plecat", dtScope: "following" });
+		expect((await c.port.appointment("psizone", first?.id ?? ""))?.status).toBe("confirmed");
+		expect((await c.port.appointment("psizone", second?.id ?? ""))?.status).toBe("cancelled");
+		expect((await c.port.appointment("psizone", third?.id ?? ""))?.status).toBe("cancelled");
 	});
 	it.each(["", "   ", undefined])("refuses to cancel without a reason (%j)", async (reason) => {
 		const id = await open();

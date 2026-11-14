@@ -76,6 +76,12 @@ export interface Ctx<S extends RouteSpec> {
 		type: import("@psi/scheduling-sdk/contract").SchedType,
 		id: string,
 	): Promise<string[]>;
+	/**
+	 * For a route whose scopes mean something the objects cannot say (notes: `own` is the notes one wrote): the scopes at
+	 * which the caller holds the key, denied ones left out. It counts as asking for a dynamic route; the handler decides
+	 * what each scope allows and MUST refuse when it is empty.
+	 */
+	scopesOf(key: string): Promise<readonly ("all" | "assigned" | "own")[]>;
 	/** The reach for a permission other than the route's own (a field group). */
 	reachOf(key: string, type: import("@psi/scheduling-sdk/contract").SchedType): Promise<Reach>;
 	/** Adds to this call's audit event (ids and counts, never values). */

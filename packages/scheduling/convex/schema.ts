@@ -12,6 +12,7 @@ import {
 import { blacklistEntries, blacklistEvents } from "./tables/clinicBlacklist";
 import { appDocuments } from "./tables/clinicDocs";
 import { feedback, feedbackLinks, feedbackReplies } from "./tables/clinicFeedback";
+import { clientNotes } from "./tables/clinicNotes";
 import {
 	appKeys,
 	auditEvents,
@@ -345,4 +346,5 @@ export default defineSchema({
 	feedbackReplies,
 	feedbackLinks,
 	appDocuments,
+	clientNotes,
 });

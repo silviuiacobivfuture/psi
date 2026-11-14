@@ -26,7 +26,7 @@ describe("calendar states", () => {
 	it("many: a card per appointment of the day, a column per calendar, status in words", async () => {
 		c = await startConsole(MEMBER, { today: "2026-11-16" });
 		await c.signIn();
-		const html = await (await c.get("/calendar?date=2026-11-16")).text();
+		const html = await (await c.get("/calendar?date=2026-11-16&cat=all")).text();
 		const data = await c.port.calendar("psizone", "2026-11-16", "2026-11-16");
 		expect(html.match(/class="cal__appt cal__appt--wash[^"]*"/g)?.length).toBe(
 			data.appointments.length,
@@ -103,7 +103,7 @@ describe("other screens' error and empty states", () => {
 	it.each([
 		["/roster", "roster"],
 		["/reminders?date=2026-11-16", "reminders"],
-		["/audit", "audit"],
+		["/settings/audit", "audit"],
 		["/settings/services", "services"],
 		["/settings/roles", "roles"],
 	] as const)("%s shows the error state when the port is down", async (path, method) => {
@@ -111,7 +111,7 @@ describe("other screens' error and empty states", () => {
 		expect(html).toContain("Nu am putut încărca datele");
 	});
 	it("audit and roster are empty states, not blank, with no data", async () => {
-		expect(await open({ empty: true }, "/audit")).toContain("Jurnalul e gol");
+		expect(await open({ empty: true }, "/settings/audit")).toContain("Jurnalul e gol");
 		expect(await open({ empty: true }, "/roster")).toContain("Pontaj");
 	});
 	it("reminders for a day with nothing say so", async () => {

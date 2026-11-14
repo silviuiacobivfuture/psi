@@ -369,6 +369,27 @@ describe("the live adapter", () => {
 		});
 	});
 
+	it("never sends more than 100 tuples in one write, the writes and the deletes counted together", async () => {
+		const tuple = (i: number): Tuple => ({
+			user: "user:a",
+			relation: "member",
+			object: `sched_role:r${i}`,
+		});
+		const live = build(answer(200, {}));
+		calls.length = 0;
+		await live.write({
+			writes: Array.from({ length: 104 }, (_, i) => tuple(i)),
+			deletes: Array.from({ length: 52 }, (_, i) => tuple(1000 + i)),
+		});
+		const counted = (c: (typeof calls)[number]): number =>
+			((c.body.writes as { tuple_keys: unknown[] } | undefined)?.tuple_keys.length ?? 0) +
+			((c.body.deletes as { tuple_keys: unknown[] } | undefined)?.tuple_keys.length ?? 0);
+		expect(calls).toHaveLength(2);
+		for (const c of calls) expect(counted(c)).toBeLessThanOrEqual(100);
+		// Every tuple went out once.
+		expect(calls.reduce((n, c) => n + counted(c), 0)).toBe(156);
+	});
+
 	it("reads at the higher consistency right after its own write, then relaxes", async () => {
 		let clock = 0;
 		calls.length = 0;

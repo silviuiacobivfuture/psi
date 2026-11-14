@@ -61,6 +61,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		reminders: collection(inner.c.reminders),
 		records: collection(inner.c.records),
 		files: collection(inner.c.files),
+		notes: collection(inner.c.notes),
 		audit: collection(inner.c.audit),
 		definitions: collection(inner.c.definitions),
 		imports: collection(inner.c.imports),
@@ -99,6 +100,13 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		keys: {
 			keys: (app) => inner.keys.keys(to(app)),
 			install: (app, version, wrapped) => inner.keys.install(to(app), version, wrapped),
+		},
+		reports: forApp(inner.reports, to),
+		series: {
+			create: async (app, rows) =>
+				(await inner.series.create(to(app), rows.map(rowIn))).map(rowOut),
+			replace: (app, rows) => inner.series.replace(to(app), rows.map(rowIn)),
+			list: async (app, seriesId) => (await inner.series.list(to(app), seriesId)).map(rowOut),
 		},
 		ping: () => inner.ping(),
 	};

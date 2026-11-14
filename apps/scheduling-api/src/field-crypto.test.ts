@@ -10,8 +10,8 @@ import {
 } from "@psi/scheduling/crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createFieldCrypto, encryptedOf, FIELDS, sealedOf } from "./ports/crypto";
-import { ok, type Populated, populate } from "./testing/populate";
-import { createBareWorld, MASTER_KEY } from "./testing/world";
+import { createWorld, ok, type Populated } from "./testing/populate";
+import { MASTER_KEY } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 const WRONG_MASTER = "cd".repeat(32);
@@ -35,7 +35,7 @@ const openedByImport = async (w: Populated, field: string, sealed: string): Prom
 describe("clinical text has one envelope: the package's, for the import and the service alike", () => {
 	let w: Populated;
 	beforeAll(async () => {
-		w = await populate(await createBareWorld());
+		w = await createWorld();
 	});
 
 	it("a record sealed by the import path opens through the service", async () => {

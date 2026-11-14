@@ -28,6 +28,7 @@ export const FIELDS = {
 	record: "formResponses.payload",
 	clinical: "clients.clinical",
 	feedback: "feedback.text",
+	note: "clinicNotes.textEnc",
 } as const;
 
 /** Where an app's wrapped data keys are kept (the store; Convex returns them and can never unwrap one). */

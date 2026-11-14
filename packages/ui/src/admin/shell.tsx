@@ -79,9 +79,14 @@ export interface ShellProps {
 	/** Where the "new appointment" button goes; absent: the person may not create appointments, so there is no button. */
 	newAppointmentHref?: string | undefined;
 	/** Where the preference form posts (theme, language) and the sign-out form. */
-	/** Start with the navigation as an icon rail (the calendar wants the width). */
+	/**
+	 * The navigation as an icon rail. Rendered by the server from the person's saved choice (the `adm-rail` cookie) or
+	 * the screen's default, so the first paint is already right; nothing applies it after load.
+	 */
 	rail?: boolean;
 	prefsAction: string;
+	/** A canvas page: the content is a full-bleed surface under the top bar (see admin-canvas.css). */
+	canvas?: boolean;
 	signOutAction: string;
 	locale: "ro" | "en";
 	themePref: "light" | "dark" | "system";
@@ -116,7 +121,6 @@ function NavLink({ item, current }: { item: NavItem; current: string }): JSX.Ele
 				class="adm-nav__link"
 				href={item.href}
 				aria-current={item.key === current ? "page" : undefined}
-				title={item.label}
 				data-tip={item.label}
 			>
 				<Icon name={item.icon} />
@@ -322,13 +326,12 @@ export function AdminShell(p: ShellProps): JSX.Element {
 	const { labels: l } = p;
 	return (
 		<div
-			class={cx("adm", p.rail === true && "is-collapsed")}
+			class={cx("adm", p.rail === true && "is-collapsed", p.canvas === true && "is-canvas")}
 			data-app={p.app}
 			data-deco={p.deco ? "on" : "off"}
 			data-signals={`{navCollapsed:${p.rail === true},searchOpen:false,q:'',offline:false,fabSmall:false}`}
 			{...{ "data-on:scroll__window__throttle.100ms": "$fabSmall = window.scrollY > 24" }}
 			data-class:is-collapsed="$navCollapsed"
-			data-init="try { const r = localStorage.getItem('adm-rail'); if (r !== null) $navCollapsed = r === 'true' } catch (e) {}"
 			data-class:is-offline="$offline"
 			data-on:online__window="$offline = false"
 			data-on:offline__window="$offline = true"
@@ -356,7 +359,7 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						class="adm-rail-toggle"
 						aria-label={l.collapse}
 						data-attr:aria-pressed="$navCollapsed"
-						data-on:click="$navCollapsed = !$navCollapsed; try { localStorage.setItem('adm-rail', String($navCollapsed)) } catch (e) {}"
+						data-on:click="$navCollapsed = !$navCollapsed; document.cookie = 'adm-rail=' + ($navCollapsed ? '1' : '0') + '; path=/; max-age=31536000; samesite=lax'"
 					>
 						<span data-show="!$navCollapsed">
 							<Icon name="chevron-left" />

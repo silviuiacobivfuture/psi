@@ -30,7 +30,27 @@ const KEYS = {
 		cancel: "clients_delete",
 		export: "clients_export",
 	},
+	clinical: {
+		view: "report_custom_view",
+		create: "report_custom_create",
+		edit: "report_custom_edit",
+		export: "report_custom_export",
+	},
 	files: { view: "files_view", create: "files_upload", cancel: "files_delete" },
+	blacklist: {
+		view: "blacklist_view",
+		create: "blacklist_create",
+		edit: "blacklist_edit",
+		cancel: "blacklist_delete",
+		approve: "blacklist_override",
+	},
+	notes: {
+		view: "notes_view",
+		create: "notes_create",
+		edit: "notes_edit",
+		cancel: "notes_delete",
+		pin: "notes_pin",
+	},
 	packages: {
 		view: "packages_view",
 		create: "packages_create",
@@ -47,6 +67,7 @@ const KEYS = {
 	members: { view: "members_view", edit: "members_edit", cancel: "members_delete" },
 	roles: { view: "roles_view", create: "roles_create", edit: "roles_edit", cancel: "roles_delete" },
 	audit: { view: "audit_log_view" },
+	reports: { view: "reports_view_core" },
 } as const satisfies Record<string, Record<string, string>>;
 
 type Entry = { resource: string; action: string; key: string };

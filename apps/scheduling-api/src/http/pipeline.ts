@@ -195,6 +195,10 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		canAll: (key) => deps.access.canAll(subject, app, key),
 		canOn: (key, type, id) => deps.access.canOn(subject, app, key, type, id),
 		reachOf: (key, type) => deps.access.reach(subject, app, key, type),
+		async scopesOf(key) {
+			dynamic.asked = true;
+			return deps.access.scopesHeld(subject, app, key);
+		},
 		async authorizeAny(keys, type, id) {
 			dynamic.asked = true;
 			const held: string[] = [];
@@ -302,6 +306,8 @@ const CONFLICTS = new Set([
 	"not_deleted",
 	"recovery_expired",
 	"not_allowed",
+	"not_requested",
+	"conflicts",
 	"slot_taken",
 	"warning",
 	"blocked",

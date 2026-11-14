@@ -6,8 +6,12 @@
 @import "@psi/ui/inbox.css";
 @import "./calendar.css";
 @import "./screens.css";
+@import "./client.css";
 @import "./topbar.css";
 @import "./appointment.css";
+@import "./audit.css";
+@import "./stats.css";
+@import "./profile.css";
 @import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";

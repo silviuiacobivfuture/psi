@@ -1,7 +1,13 @@
-import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { appointmentChanges } from "./fake-audit";
+import { createFakeAccess } from "./fake-caps";
+import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
+import { createFakeClinical } from "./fake-clinical";
+import { createFakeFloorAndPrefs } from "./fake-floor";
+import { createFakeProfile } from "./fake-profile";
+import { reportOf } from "./fake-report";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -9,24 +15,19 @@ import {
 	type LiveSignal,
 	PortError,
 	type ReminderItem,
-	type TeamMember,
 } from "./port";
-import { capabilityMap } from "./role-map";
 import type {
 	Appointment,
 	AppSlug,
-	AssistantMode,
 	AuditEvent,
 	Client,
 	Membership,
 	Package,
-	PushPrefs,
 	SearchHit,
 } from "./schema";
 import { AppointmentPatchSchema, NewAppointmentSchema, NewClientSchema } from "./schema";
 import type { AppData } from "./seed";
 import { seedApp } from "./seed";
-import { seedPlan } from "./seed-plan";
 
 export interface FakeOptions {
 	today?: string;
@@ -34,6 +35,8 @@ export interface FakeOptions {
 	members: Readonly<Record<string, ReadonlyArray<Membership>>>;
 	/** subject → the name the team picker shows (the subject itself when absent). */
 	names?: Readonly<Record<string, string>>;
+	/** Subjects who administer the platform (the estate owner), not only an app: they may look at the app as anyone. */
+	platformAdmins?: ReadonlySet<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
@@ -66,21 +69,36 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		}
 		return d;
 	};
-	const prefs = new Map<string, PushPrefs>();
-	const modes = new Map<string, AssistantMode>();
-	const plans = new Map<AppSlug, FloorPlanDoc>();
 	let seq = 1000;
 	const guard = (method: keyof ClinicPort): void => {
 		if (opts.failing?.has(method) === true)
 			throw new PortError("unavailable", `${method} is unavailable`);
 	};
-	const log = (d: AppData, actor: string, action: string, target: string): void => {
+	// The fake does not know who asks: what the console does is the first member's, as the service would record the subject.
+	const me = Object.keys(opts.members)[0] ?? "console";
+	const log = (
+		d: AppData,
+		actor: string,
+		action: string,
+		target: string,
+		extra: Partial<AuditEvent> = {},
+	): void => {
+		const assistant = actor.endsWith(" · assistant");
 		const e: AuditEvent = {
 			id: `e${++seq}`,
 			at: new Date().toISOString().slice(0, 19),
-			actor,
+			actor: actor === "console" ? me : actor,
 			action,
 			target,
+			targetType: target.includes(":")
+				? target.slice(0, target.indexOf(":"))
+				: (action.replace(/^assistant\./, "").split(".")[0] ?? ""),
+			targetId: target.includes(":") ? target.slice(target.indexOf(":") + 1) : target,
+			source: assistant ? "assistant" : "console",
+			requestId: `req-${seq}`,
+			ip: "192.0.2.10",
+			device: "Chrome pe Linux",
+			...extra,
 		};
 		d.audit.unshift(e);
 	};
@@ -93,98 +111,26 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		for (const l of listeners) if (l.app === app) l.push(signal);
 	};
 	const openRequests = (d: AppData): number => d.requests.filter((r) => !r.handled).length;
-	const LOOKUPS = [
-		"people_view",
-		"rooms_view",
-		"devices_view",
-		"services_view",
-		"group_activities_view",
-	];
 
+	const access = createFakeAccess({
+		members: opts.members,
+		names: opts.names,
+		platformAdmins: opts.platformAdmins,
+		data,
+		guard,
+		log,
+	});
+
+	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
+	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
+	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
+
+	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
-		async capabilities(subject, app, as) {
-			guard("capabilities");
-			const mine = opts.members[subject]?.find((x) => x.app === app);
-			if (mine === undefined) throw new PortError("not-found", app);
-			const d = data(app);
-			const holds = (ids: ReadonlyArray<string>) => d.roles.filter((r) => ids.includes(r.id));
-			let roles = holds(mine.roles);
-			let who = subject;
-			if (as !== undefined) {
-				const here = holds(mine.roles);
-				if (!here.some((r) => r.grants.roles?.edit !== undefined))
-					throw new PortError("forbidden", "roles administrators only");
-				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
-				if (kind === "role") {
-					roles = holds([id]);
-					if (roles.length === 0) throw new PortError("not-found", as);
-				} else {
-					const other = Object.entries(opts.members).find(
-						([s, ms]) => s === id && ms.some((x) => x.app === app),
-					);
-					if (other === undefined) throw new PortError("not-found", as);
-					roles = holds(other[1].find((x) => x.app === app)?.roles ?? []);
-				}
-				who = as;
-			}
-			const permissions: Record<string, ("all" | "assigned" | "own")[]> = {};
-			const groups = new Set<string>();
-			for (const r of roles) {
-				for (const [k, v] of Object.entries(capabilityMap(r))) {
-					const had = permissions[k] ?? [];
-					permissions[k] = [...new Set([...had, ...v])];
-				}
-				for (const g of r.fieldGroups) groups.add(g);
-				if (r.grants.calendars?.view !== undefined || r.grants.settings?.view !== undefined)
-					for (const k of LOOKUPS) permissions[k] = ["all"];
-			}
-			return {
-				app,
-				appName: app === "psizone" ? "Psizone" : "Hemi-Sync",
-				timeZone: "Europe/Bucharest",
-				subject: who,
-				displayName:
-					as === undefined
-						? (opts.names?.[subject] ?? subject)
-						: as.startsWith("role:")
-							? (roles[0]?.name ?? as)
-							: (opts.names?.[as.slice("member:".length)] ?? as),
-				roles: roles.map((r) => r.id),
-				permissions,
-				denied: [],
-				...(as === undefined
-					? {}
-					: {
-							viewAs: {
-								kind: as.startsWith("role:") ? ("role" as const) : ("member" as const),
-								id: as.slice(as.indexOf(":") + 1),
-							},
-						}),
-				fieldGroups: (["contact", "guardian", "money", "clinical"] as const).filter((g) =>
-					groups.has(g),
-				),
-				reach: { own: [], assigned: [] },
-				platformAdmin: false,
-			};
-		},
-		async members(app): Promise<ReadonlyArray<TeamMember>> {
-			guard("members");
-			return Object.entries(opts.members).flatMap(([subject, ms]) =>
-				ms
-					.filter((x) => x.app === app)
-					.map((x) => ({ subject, displayName: opts.names?.[subject] ?? subject, roles: x.roles })),
-			);
-		},
-		async startViewAs(subject, app, as) {
-			guard("startViewAs");
-			const caps = await this.capabilities(subject, app, as);
-			log(data(app), subject, "view_as.start", as);
-			return caps;
-		},
-		async stopViewAs(subject, app) {
-			guard("stopViewAs");
-			log(data(app), subject, "view_as.stop", app);
-		},
+		...profile,
+		...access,
+		...clinical,
+		...catalog,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;
@@ -218,8 +164,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("calendar");
 			const d = data(app);
 			return {
-				columns: d.columns,
-				services: d.services,
+				columns: calendarColumns(d.columns),
+				services: activeServices(d.services),
 				clients: d.clients,
 				appointments: d.appointments.filter((a) => a.date >= from && a.date <= to),
 			};
@@ -316,19 +262,88 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 					})
 				: [];
 			if (clashes.length > 0) throw new PortError("conflict", "the time is taken", clashes);
+			const changes = appointmentChanges(a, patch);
 			Object.assign(a, next);
-			log(d, "console", "appointment.edit", id);
+			log(d, "console", "appointment.edit", id, { changes });
 			tell(app, { stream: "calendar" });
 			return a;
+		},
+		async updateSeries(app, id, raw, scope) {
+			guard("updateSeries");
+			const d = data(app);
+			const { date: _day, status: _status, ...patch } = AppointmentPatchSchema.parse(raw);
+			const at = d.appointments.find((x) => x.id === id);
+			if (at === undefined) throw new PortError("not-found", id);
+			if (at.seriesId === null) throw new PortError("invalid", "not part of a series");
+			const targets = d.appointments.filter(
+				(x) =>
+					x.seriesId === at.seriesId &&
+					(x.status === "confirmed" || x.status === "requested") &&
+					(scope === "all" || x.date >= at.date),
+			);
+			const nexts = targets.map((x): Appointment => ({ ...x, ...stripUndefined(patch) }));
+			const first = nexts[0];
+			if (
+				first !== undefined &&
+				(!d.columns.some((c) => c.id === first.columnId) ||
+					!first.resourceIds.every((r) => d.columns.some((c) => c.id === r)) ||
+					(first.clientId !== null && !d.clients.some((c) => c.id === first.clientId)) ||
+					!d.services.some((s) => s.id === first.serviceId))
+			)
+				throw new PortError("invalid", "unknown column, resource, client or service");
+			if (
+				first?.packageId != null &&
+				!d.packages.some((p) => p.id === first.packageId && p.clientId === first.clientId)
+			)
+				throw new PortError("invalid", "the package is not this client's");
+			// All or nothing: every week is checked before one is changed.
+			const clashes = nexts.flatMap((n) =>
+				findConflicts(d.appointments, {
+					date: n.date,
+					startMin: n.startMin,
+					durationMin: n.durationMin,
+					columnIds: columnsOf(n),
+					ignoreSeriesId: at.seriesId,
+				}),
+			);
+			if (clashes.length > 0) throw new PortError("conflict", "a week is taken", clashes);
+			for (const [i, t] of targets.entries()) Object.assign(t, nexts[i]);
+			log(d, "console", "series.edit", id, { reason: scope });
+			tell(app, { stream: "calendar" });
+			return targets;
+		},
+		async cancelSeries(app, id, reason, scope) {
+			guard("cancelSeries");
+			const d = data(app);
+			const at = d.appointments.find((x) => x.id === id);
+			if (at === undefined) throw new PortError("not-found", id);
+			if (at.seriesId === null) throw new PortError("invalid", "not part of a series");
+			const targets = d.appointments.filter(
+				(x) =>
+					x.seriesId === at.seriesId &&
+					(x.status === "confirmed" || x.status === "requested") &&
+					(scope === "all" || x.date >= at.date),
+			);
+			for (const t of targets) {
+				t.status = "cancelled";
+				t.cancelReason = reason.slice(0, 500);
+			}
+			log(d, "console", "series.cancel", id, { reason: `${scope}: ${reason.slice(0, 200)}` });
+			tell(app, { stream: "calendar" });
+			return targets;
 		},
 		async cancelAppointment(app, id, reason) {
 			guard("cancelAppointment");
 			const d = data(app);
 			const a = d.appointments.find((x) => x.id === id);
 			if (a === undefined) throw new PortError("not-found", id);
+			const was = a.status;
 			a.status = "cancelled";
 			a.cancelReason = reason.slice(0, 500);
-			log(d, "console", "appointment.cancel", id);
+			log(d, "console", "appointment.cancel", id, {
+				reason: a.cancelReason,
+				changes: [{ field: "status", before: was, after: "cancelled" }],
+			});
 			tell(app, { stream: "calendar" });
 			return a;
 		},
@@ -488,7 +503,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			const d = data(app);
 			const end = addDays(weekStart, 6);
 			return {
-				people: d.columns.filter((c) => c.kind === "person"),
+				people: calendarColumns(d.columns).filter((c) => c.kind === "person"),
 				entries: d.roster.filter((r) => r.date >= weekStart && r.date <= end),
 			};
 		},
@@ -535,11 +550,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		},
 		async columns(app) {
 			guard("columns");
-			return data(app).columns;
+			return calendarColumns(data(app).columns);
 		},
 		async services(app) {
 			guard("services");
-			return data(app).services;
+			return activeServices(data(app).services);
 		},
 		async roles(app) {
 			guard("roles");
@@ -554,40 +569,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			log(d, "console", "role.save", role.id);
 			return role;
 		},
+		async report(app, q) {
+			guard("report");
+			return reportOf(data(app), today, q);
+		},
 		async audit(app) {
 			guard("audit");
 			return data(app).audit;
 		},
-		async floorPlan(app) {
-			guard("floorPlan");
-			return { doc: plans.get(app) ?? seedPlan(app), writable: true };
-		},
-		async saveFloorPlan(app, raw) {
-			guard("saveFloorPlan");
-			const parsed = FloorPlanDocSchema.safeParse(raw);
-			if (!parsed.success) return { ok: false, reason: "invalid" };
-			const held = plans.get(app) ?? seedPlan(app);
-			if (parsed.data.revision !== held.revision) return { ok: false, reason: "stale" };
-			const doc = { ...parsed.data, revision: held.revision + 1 };
-			plans.set(app, doc);
-			log(data(app), "console", "floor-plan.save", `revision ${doc.revision}`);
-			return { ok: true, doc };
-		},
-		async pushPrefs(subject) {
-			guard("pushPrefs");
-			return prefs.get(subject) ?? { requests: false, reminders: false };
-		},
-		async savePushPrefs(subject, p) {
-			guard("savePushPrefs");
-			prefs.set(subject, p);
-		},
-		async assistantMode(subject) {
-			guard("assistantMode");
-			return modes.get(subject) ?? null;
-		},
-		async saveAssistantMode(subject, mode) {
-			guard("saveAssistantMode");
-			modes.set(subject, mode);
-		},
+		...floorAndPrefs,
 	};
 }

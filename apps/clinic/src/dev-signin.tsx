@@ -51,6 +51,9 @@ export function devApiSignIn(apiUrl: string, origin: string): DevApiSignIn {
 		},
 		signInHref: () => "/dev/signin",
 		signOutAction: "/dev/signout",
+		sessions: async (c) => [
+			{ userAgent: c.req.header("user-agent"), current: true, lastSeen: null },
+		],
 	};
 	return {
 		auth,

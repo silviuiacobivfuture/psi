@@ -1,24 +1,91 @@
-import { Banner, EmptyState, PageHeader, Segmented, Toolbar } from "@psi/ui/admin";
+import { Banner, EmptyState, PageHeader, Segmented, Sheet, StatCard, Toolbar } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { ActionBar, EmptyActions } from "../actions/render";
 import { Page } from "../chrome";
+import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
-import { at } from "../lib/i18n";
+import { dayLong, hhmm } from "../lib/dates";
+import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { ClientFilter } from "../port/port";
 import type { Client } from "../port/schema";
+import type { ClientSummary } from "../port/schema-clinical";
+import { BlacklistBadge } from "./client-flags";
+import { SheetButtons } from "./client-sheets";
 
-export function ClientRow({ c, label }: { c: Client; label: string | null }): JSX.Element {
+/** One client as a row: monogram, name, who to call, next appointment, balance, and the flags. */
+export function ClientRow({
+	client,
+	summary,
+	ctx,
+}: {
+	client: Client;
+	summary: ClientSummary | undefined;
+	ctx: Ctx;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	const locale: Locale = ctx.locale;
+	const listed = ctx.can.has("blacklist_view") ? (summary?.blacklist ?? null) : null;
+	const owes = ctx.can.group("money") ? (summary?.owedBani ?? 0) : 0;
+	const next = summary?.next ?? null;
 	return (
-		<a class="client-row" href={`/clients/${c.id}`}>
+		<a class="client-row" href={`/clients/${client.id}`} data-client={client.id}>
 			<span class="adm-avatar client-row__avatar" aria-hidden="true">
-				{Array.from(c.name)[0]}
+				{Array.from(client.name)[0]}
 			</span>
 			<span class="client-row__main">
-				<strong>{c.name}</strong>
-				<span class="adm-muted">{[c.guardian, c.phone].filter((x) => x !== null).join(" · ")}</span>
+				<strong>{client.name}</strong>
+				<span class="adm-muted">
+					{[client.guardian, client.phone].filter((x) => x !== null && x !== "").join(" · ")}
+				</span>
+				<span class="client-row__next adm-muted">
+					{next === null
+						? m.cl_list_no_next({}, o)
+						: m.cl_list_next({ date: dayLong(locale, next.date), time: hhmm(next.startMin) }, o)}
+				</span>
 			</span>
-			{label !== null ? <span class="adm-pill adm-pill--cancelled">{label}</span> : null}
+			<span class="client-row__flags">
+				{client.status === "archived" ? (
+					<span class="adm-pill adm-pill--cancelled">{m.client_archived_badge({}, o)}</span>
+				) : null}
+				{owes > 0 ? (
+					<span class="adm-pill adm-pill--requested" data-owes>
+						{m.cl_list_owes({ sum: formatMoney(owes, locale) }, o)}
+					</span>
+				) : null}
+				{listed === null ? null : <BlacklistBadge entry={listed} locale={locale} short />}
+			</span>
 		</a>
+	);
+}
+
+function NewClientSheet({ ctx }: { ctx: Ctx }): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<Sheet signal="newClient" title={m.ac_client_new({}, o)} closeLabel={m.close({}, o)}>
+			<form method="post" action="/clients" class="cl-form" data-form="client-new">
+				<label class="adm-field">
+					<span>{m.ap_c_name({}, o)}</span>
+					<input class="adm-input" name="name" required maxlength={120} autocomplete="off" />
+				</label>
+				<label class="adm-field">
+					<span>{m.guardian_label({}, o)}</span>
+					<input class="adm-input" name="guardian" maxlength={120} />
+				</label>
+				<label class="adm-field">
+					<span>{m.phone_label({}, o)}</span>
+					<input
+						class="adm-input"
+						name="phone"
+						type="tel"
+						inputmode="tel"
+						autocomplete="tel"
+						maxlength={40}
+					/>
+				</label>
+				<SheetButtons go={m.cl_save({}, o)} signal="newClient" cancel={m.cancel({}, o)} />
+			</form>
+		</Sheet>
 	);
 }
 
@@ -26,24 +93,47 @@ export async function renderClients(
 	ctx: Ctx,
 	filter: ClientFilter,
 	q: string,
+	openNew = false,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
+	let rows: ReadonlyArray<ClientSummary> = [];
 	let clients: ReadonlyArray<Client> = [];
 	let failed = false;
 	try {
-		clients = await ctx.port.clients(ctx.app, filter, q);
+		[clients, rows] = await Promise.all([
+			ctx.port.clients(ctx.app, filter, q),
+			ctx.port.clientSummaries(ctx.app, filter, q),
+		]);
 	} catch {
 		failed = true;
 	}
 	const qs = (f: ClientFilter): string =>
 		`/clients?filter=${f}${q === "" ? "" : `&q=${encodeURIComponent(q)}`}`;
+	const by = new Map(rows.map((r) => [r.clientId, r]));
+	const listedCount = rows.filter((r) => r.blacklist !== null).length;
+	const owing = rows.filter((r) => (r.owedBani ?? 0) > 0).length;
+	const upcoming = rows.filter((r) => r.next !== null).length;
 	return Page({
 		ctx,
 		current: "clients",
 		title: m.clients_title({}, o),
 		children: (
 			<div class="adm-page">
-				<PageHeader title={m.clients_title({}, o)} />
+				<PageHeader title={m.clients_title({}, o)}>
+					<ActionBar ctx={ctx} screen="clients" />
+				</PageHeader>
+				{failed || clients.length === 0 ? null : (
+					<div class="cl-summary" data-summary>
+						<StatCard label={m.cl_list_total({}, o)} value={String(clients.length)} />
+						<StatCard label={m.cl_list_upcoming({}, o)} value={String(upcoming)} />
+						{ctx.can.group("money") ? (
+							<StatCard label={m.cl_list_owing({}, o)} value={String(owing)} />
+						) : null}
+						{ctx.can.has("blacklist_view") ? (
+							<StatCard label={m.cl_list_listed({}, o)} value={String(listedCount)} />
+						) : null}
+					</div>
+				)}
 				<Toolbar
 					search={
 						<form method="get" action="/clients">
@@ -77,7 +167,7 @@ export async function renderClients(
 				{failed ? (
 					<Banner tone="error" icon="alert">
 						<strong>{m.error_title({}, o)}</strong>
-						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
+						<p>{m.error_text({}, o)}</p>
 						<a class="adm-btn" href={qs(filter)}>
 							{m.retry({}, o)}
 						</a>
@@ -91,7 +181,9 @@ export async function renderClients(
 								? m.view_as_role_empty({}, o)
 								: m.clients_empty_text({}, o)
 						}
-					/>
+					>
+						<EmptyActions ctx={ctx} screen="clients" />
+					</EmptyState>
 				) : (
 					<>
 						<p class="adm-muted" aria-live="polite">
@@ -99,15 +191,16 @@ export async function renderClients(
 						</p>
 						<div class="adm-card client-list">
 							{clients.map((c) => (
-								<ClientRow
-									key={c.id}
-									c={c}
-									label={c.status === "archived" ? m.client_archived_badge({}, o) : null}
-								/>
+								<ClientRow key={c.id} client={c} summary={by.get(c.id)} ctx={ctx} />
 							))}
 						</div>
 					</>
 				)}
+			</div>
+		),
+		overlays: (
+			<div data-signals={JSON.stringify({ newClient: openNew && ctx.can.write("clients_create") })}>
+				{ctx.can.write("clients_create") ? <NewClientSheet ctx={ctx} /> : null}
 			</div>
 		),
 	});

@@ -5,7 +5,8 @@ import type { FakeOptions } from "./port/fake";
  * The development clinic's people: the demo person owns Psizone, and three colleagues hold the other roles, so
  * "Vezi ca…" shows what a receptionist, a therapist and an accountant really see (all synthetic).
  */
-export const DEMO_PEOPLE: Pick<FakeOptions, "members" | "names"> = {
+export const DEMO_PEOPLE: Pick<FakeOptions, "members" | "names" | "platformAdmins"> = {
+	platformAdmins: new Set([DEV_SUBJECT]),
 	members: {
 		[DEV_SUBJECT]: [
 			{ app: "psizone", roles: ["owner"] },

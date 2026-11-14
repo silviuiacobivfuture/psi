@@ -50,6 +50,7 @@ function Request({
 					<button
 						type="button"
 						class="adm-btn adm-btn--primary"
+						data-action="request.handled"
 						data-on:click={`@post('/requests/${r.id}/handled')`}
 					>
 						<Icon name="check" />

@@ -1,0 +1,43 @@
+/*
+ * A canvas page (`canvas` on the shell): the content is a full-bleed surface that fills the viewport under the top bar,
+ * with no gutter, no page width and no title row; on a phone it stops above the bottom tabs. "Full screen" (a class on
+ * the shell, set by the page's own control) also hides the navigation, the bars and the floating action.
+ */
+.adm.is-canvas .adm-main {
+	height: 100dvh;
+	min-height: 0;
+}
+.adm.is-canvas .adm-content {
+	flex: 1 1 0;
+	min-height: 0;
+	padding: 0;
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+.adm.is-canvas .adm-content > .pz-fp--canvas {
+	flex: 1 1 0;
+	min-height: 0;
+}
+.adm.is-canvas .adm-fab {
+	display: none;
+}
+@media (max-width: 767px) {
+	.adm.is-canvas .adm-main {
+		height: calc(100dvh - var(--adm-tab-h) - env(safe-area-inset-bottom));
+	}
+}
+.adm.is-canvas.is-fp-full {
+	grid-template-columns: minmax(0, 1fr);
+}
+.adm.is-fp-full .adm-nav,
+.adm.is-fp-full .adm-top,
+.adm.is-fp-full .adm-tabs,
+.adm.is-fp-full .adm-fab,
+.adm.is-fp-full .adm-banner--offline {
+	display: none;
+}
+.adm.is-canvas.is-fp-full .adm-main {
+	height: 100dvh;
+}

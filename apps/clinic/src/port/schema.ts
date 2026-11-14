@@ -1,3 +1,4 @@
+import { ROOM_CATEGORIES } from "@psi/scheduling/clinic";
 import { STATUSES } from "@psi/ui/admin";
 import { z } from "zod";
 
@@ -12,6 +13,9 @@ export const StatusSchema = z.enum(STATUSES);
 
 export const ClientFilterSchema = z.enum(["current", "archived"]);
 
+export const RoomCategorySchema = z.enum(ROOM_CATEGORIES);
+export type RoomCategoryName = z.infer<typeof RoomCategorySchema>;
+
 export const ColumnKindSchema = z.enum(["person", "device", "room", "group"]);
 export const ColumnSchema = z.object({
 	id: z.string(),
@@ -21,6 +25,31 @@ export const ColumnSchema = z.object({
 	colour: z.number().int().min(1).max(6),
 	/** How many people a room or group holds, when the service says. */
 	capacity: z.number().int().positive().optional(),
+	/** Rooms: the category they belong to (therapy, or neuro-assessment and neurofeedback). */
+	category: RoomCategorySchema.optional(),
+	/** Rooms: the floor they are on, by the plan's floor id. */
+	floor: z.string().optional(),
+	/** Rooms: what the room is for, as the clinic names it ("Psihoterapie", "Cabinet ILF"). */
+	purpose: z.string().optional(),
+	/** Rooms that are one practitioner's own: the practitioner's column id ("cabinetul Irinei"). */
+	homeOf: z.string().optional(),
+	/** Off the calendar and the pickers, kept for history. Absent: active. */
+	active: z.boolean().optional(),
+	/** People: where to reach them, what they are known for, their hours per weekday (Monday first), what they use and offer. */
+	email: z.string().optional(),
+	specialty: z.string().optional(),
+	hours: z
+		.array(z.object({ from: MinuteSchema, to: MinuteSchema }).nullable())
+		.length(7)
+		.optional(),
+	roles: z.array(z.string()).optional(),
+	roomIds: z.array(z.string()).optional(),
+	serviceIds: z.array(z.string()).optional(),
+	/** Rooms and devices: may a booking use it. Absent: yes. */
+	bookable: z.boolean().optional(),
+	/** Devices: what kind (NFB, QEEG, other) and the room it stands in. */
+	deviceType: z.string().optional(),
+	deviceRoom: z.string().optional(),
 });
 export type Column = z.infer<typeof ColumnSchema>;
 
@@ -30,6 +59,19 @@ export const ServiceSchema = z.object({
 	durationMin: z.number().int().positive(),
 	/** Null: the person may not see prices (a field group the service leaves out). */
 	priceBani: z.number().int().nonnegative().nullable(),
+	/** Booked only in a room of this category (neurofeedback and QEEG need a neuro room). */
+	roomCategory: RoomCategorySchema.optional(),
+	active: z.boolean().optional(),
+	/** Minutes kept free after it. */
+	bufferMin: z.number().int().min(0).max(240).optional(),
+	/** Offered for online booking. Absent: yes. */
+	online: z.boolean().optional(),
+	/** What the service is filed under in the clinic's own words. */
+	category: z.string().optional(),
+	/** Who may give it, where, and with what; empty: anyone, anywhere. */
+	practitionerIds: z.array(z.string()).optional(),
+	roomIds: z.array(z.string()).optional(),
+	deviceIds: z.array(z.string()).optional(),
 });
 export type Service = z.infer<typeof ServiceSchema>;
 
@@ -213,12 +255,38 @@ export const WebRequestSchema = z.object({
 });
 export type WebRequest = z.infer<typeof WebRequestSchema>;
 
+/** Where a change came from: the console, the staff assistant, the public site, an import run, a service key. */
+export const AUDIT_SOURCES = ["console", "assistant", "site", "import", "api-key"] as const;
+export const AuditSourceSchema = z.enum(AUDIT_SOURCES);
+export type AuditSource = z.infer<typeof AuditSourceSchema>;
+
+/** One field that changed, as text: what it was and what it became (`null`: it had no value). */
+export const AuditChangeSchema = z.object({
+	field: z.string(),
+	before: z.string().nullable(),
+	after: z.string().nullable(),
+});
+export type AuditChange = z.infer<typeof AuditChangeSchema>;
+
 export const AuditEventSchema = z.object({
 	id: z.string(),
 	at: z.string(),
+	/** The person's subject, or a name where the store only kept one. */
 	actor: z.string(),
 	action: z.string(),
+	/** `type:id`, or a bare id where the store kept no type. */
 	target: z.string(),
+	targetType: z.string().optional(),
+	targetId: z.string().optional(),
+	/** Looking at the app as someone else: who it was (the actor is the administrator). */
+	asWhom: z.string().optional(),
+	/** The reason the person gave (a cancellation). */
+	reason: z.string().optional(),
+	source: AuditSourceSchema.optional(),
+	requestId: z.string().optional(),
+	ip: z.string().optional(),
+	device: z.string().optional(),
+	changes: z.array(AuditChangeSchema).optional(),
 });
 export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
@@ -229,6 +297,8 @@ export const RESOURCES = [
 	{ key: "clients", group: "clients" },
 	{ key: "clinical", group: "clients" },
 	{ key: "files", group: "clients" },
+	{ key: "blacklist", group: "clients" },
+	{ key: "notes", group: "clients" },
 	{ key: "packages", group: "money" },
 	{ key: "payments", group: "money" },
 	{ key: "prices", group: "money" },
@@ -240,6 +310,7 @@ export const RESOURCES = [
 	{ key: "members", group: "administration" },
 	{ key: "roles", group: "administration" },
 	{ key: "audit", group: "administration" },
+	{ key: "reports", group: "administration" },
 ] as const;
 export const ACTIONS = [
 	"view",
@@ -252,6 +323,7 @@ export const ACTIONS = [
 	"approve",
 	"assign",
 	"price",
+	"pin",
 ] as const;
 export const SCOPES = ["all", "assigned", "own"] as const;
 export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
@@ -266,6 +338,8 @@ export const RESOURCE_ACTIONS: Readonly<
 	clients: ["view", "create", "edit", "archive", "cancel", "export"],
 	clinical: ["view", "create", "edit", "export"],
 	files: ["view", "create", "cancel", "export"],
+	blacklist: ["view", "create", "edit", "cancel", "approve"],
+	notes: ["view", "create", "edit", "cancel", "pin"],
 	packages: ["view", "create", "edit", "cancel", "price"],
 	payments: ["view", "create", "edit", "export", "price"],
 	prices: ["view", "edit"],
@@ -277,6 +351,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	members: ["view", "create", "edit", "cancel"],
 	roles: ["view", "create", "edit", "cancel"],
 	audit: ["view", "export"],
+	reports: ["view"],
 };
 
 export const ScopeSchema = z.enum(SCOPES);

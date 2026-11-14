@@ -53,6 +53,7 @@ function init(root: HTMLElement): void {
 	let selection: ReadonlySet<string> = new Set();
 	let view: View = { k: 1, tx: 0, ty: 0 };
 	let needFit = true;
+	const canvasLayout = root.classList.contains("pz-fp--canvas");
 
 	const input = (name: string): HTMLInputElement | null =>
 		q<HTMLInputElement>(root, `[data-fp-in=${name}]`);
@@ -70,6 +71,8 @@ function init(root: HTMLElement): void {
 		writeSignal("floor", floor);
 		root.dispatchEvent(new CustomEvent("fp-sync"));
 		updateButtons();
+		// Choosing a shape opens its details when the panel floats over the plan.
+		if (draw && selection.size > 0 && root.dataset.panel === "closed") setPanel(true);
 	};
 	const stamp = (d: FloorPlanDoc): FloorPlanDoc =>
 		d.revision === revision ? d : { ...d, revision };
@@ -101,7 +104,17 @@ function init(root: HTMLElement): void {
 		const { w, h } = size();
 		if (!layer || w === 0) return;
 		const b = layer.getBBox();
-		view = fitBox({ x: b.x, y: b.y, w: b.width, h: b.height }, w, h, 20);
+		// On a canvas the toolbars float over the top and the assistant's bar over the foot: the plan fits between them.
+		const over = canvasLayout ? q<HTMLElement>(root, ".pz-fp__overlay") : null;
+		const top = over
+			? Math.min(
+					160,
+					over.getBoundingClientRect().bottom - (stage?.getBoundingClientRect().top ?? 0) + 8,
+				)
+			: 0;
+		const foot = canvasLayout ? 96 : 0;
+		const fitted = fitBox({ x: b.x, y: b.y, w: b.width, h: b.height }, w, h - top - foot, 20);
+		view = { ...fitted, ty: fitted.ty + top };
 		applyView();
 	}
 	function fitViewBox(): void {
@@ -249,6 +262,55 @@ function init(root: HTMLElement): void {
 		}
 	});
 
+	// The canvas layout: a side panel that floats over the plan, and "full screen" that also hides the console's chrome.
+
+	const host = root.closest<HTMLElement>(".adm") ?? root;
+	let fallbackFull = false;
+	function setPanel(open: boolean): void {
+		root.dataset.panel = open ? "open" : "closed";
+		for (const b of root.querySelectorAll<HTMLElement>(".pz-fp__btn--panel"))
+			b.setAttribute("aria-pressed", String(open));
+	}
+	function showFull(on: boolean): void {
+		host.classList.toggle("is-fp-full", on);
+		for (const b of root.querySelectorAll<HTMLElement>(".pz-fp__btn--full")) {
+			const label = hintText(on ? "exitFullscreen" : "fullscreen");
+			b.setAttribute("aria-pressed", String(on));
+			b.setAttribute("aria-label", label);
+			b.title = label;
+		}
+	}
+	async function toggleFull(): Promise<void> {
+		if (document.fullscreenElement === host || fallbackFull) {
+			fallbackFull = false;
+			if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+			showFull(false);
+			return;
+		}
+		// Where the browser has no element fullscreen (a phone's Safari), the plan fills the page and the chrome hides instead.
+		const entered =
+			document.fullscreenEnabled === true
+				? await host.requestFullscreen().then(
+						() => true,
+						() => false,
+					)
+				: false;
+		fallbackFull = !entered;
+		showFull(true);
+	}
+	if (canvasLayout) {
+		if (window.matchMedia("(min-width: 1500px)").matches) setPanel(true);
+		document.addEventListener("fullscreenchange", () => {
+			if (document.fullscreenElement !== host && !fallbackFull) showFull(false);
+		});
+		document.addEventListener("keydown", (e) => {
+			if (e.key !== "Escape" || !fallbackFull) return;
+			fallbackFull = false;
+			showFull(false);
+			e.preventDefault();
+		});
+	}
+
 	function pick(id: string): void {
 		if (id !== "") root.dispatchEvent(new CustomEvent("fp-pick", { detail: { id } }));
 	}
@@ -341,6 +403,8 @@ function init(root: HTMLElement): void {
 				undo: { type: "undo" },
 				redo: { type: "redo" },
 			};
+			if (cmd === "fullscreen") return void toggleFull();
+			if (cmd === "panel") return void setPanel(root.dataset.panel !== "open");
 			if (cmd === "removeFloor") tools.dropFloor();
 			else command(map[cmd]);
 			return;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { defaultService } from "./booking-defaults";
 import { clock, clockRange, dateLabel } from "./format";
 import { DateSchema, IdSchema, type Resource } from "./model";
 import { NEW_CLIENT } from "./proposals";
@@ -14,10 +15,17 @@ const TimeSchema = z
 const Candidates = z.array(z.object({ id: z.string(), name: z.string() }));
 const Ambiguous = z.object({
 	status: z.literal("ambiguous"),
+	/** What is being chosen ("Serviciu"): the choices card asks it, instead of "several matches". */
+	what: z.string().optional(),
 	candidates: Candidates,
 });
 const NoMatch = z.object({ status: z.literal("none") });
-const Out = z.union([NeedsConfirmationSchema, Ambiguous, NoMatch]);
+/** What the request still lacks, named, so the assistant asks for exactly that and nothing is prepared half-way. */
+const Missing = z.object({
+	status: z.literal("missing"),
+	missing: z.array(z.string()),
+});
+const Out = z.union([NeedsConfirmationSchema, Ambiguous, NoMatch, Missing]);
 type Out = z.infer<typeof Out>;
 
 const minutesOf = (time: string): number => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
@@ -74,21 +82,86 @@ export function createAppointmentTool(session: StaffSession) {
 					.object({ ...NewClientFields, anotherPerson: z.boolean().optional() })
 					.strict()
 					.optional(),
-				service: z.string().trim().min(1).max(120),
-				date: DateSchema,
-				time: TimeSchema,
-				resources: z.array(z.string().trim().min(1).max(120)).min(1).max(4),
+				service: z.string().trim().min(1).max(120).optional(),
+				date: DateSchema.optional(),
+				time: TimeSchema.optional(),
+				resources: z.array(z.string().trim().min(1).max(120)).min(1).max(4).optional(),
 			})
 			.strict(),
 		outputSchema: Out,
 		async run(input, s): Promise<ToolRun<Out>> {
-			if ((input.clientId === undefined) === (input.newClient === undefined))
-				return refuse("invalid");
-			const existing =
-				input.clientId === undefined ? undefined : await s.port.clientSummary(input.clientId);
-			const service = await resolveService(s, input.service);
+			// What is still missing is named, whole, before anything is prepared: never a bare "invalid".
+			const missing: Array<"client" | "date" | "time" | "resources"> = [];
+			if (input.clientId === undefined && input.newClient === undefined) missing.push("client");
+			if (input.date === undefined) missing.push("date");
+			if (input.time === undefined) missing.push("time");
+			if (input.resources === undefined) missing.push("resources");
+			if (input.clientId !== undefined && input.newClient !== undefined) missing.push("client");
+			if (
+				missing.length > 0 ||
+				input.date === undefined ||
+				input.time === undefined ||
+				input.resources === undefined
+			)
+				return { ok: true, subjects: [], output: { status: "missing", missing } };
+			let clientId = input.clientId;
+			let existing = clientId === undefined ? undefined : await s.port.clientSummary(clientId);
+			if (
+				clientId !== undefined &&
+				existing !== undefined &&
+				!existing.ok &&
+				existing.reason === "not_found"
+			) {
+				// A name where an id belongs: find that client, or say the client does not exist yet.
+				const named = await s.port.findClients({
+					query: clientId,
+					includeArchived: false,
+					limit: 5,
+				});
+				const hits = named.ok ? named.value : [];
+				const [first] = hits;
+				if (hits.length === 1 && first !== undefined) {
+					clientId = first.id;
+					existing = await s.port.clientSummary(first.id);
+				} else if (hits.length > 1)
+					return {
+						ok: true,
+						subjects: hits.map((h) => h.id),
+						output: {
+							status: "ambiguous",
+							candidates: hits.map((h) => ({ id: h.id, name: h.name })),
+						},
+					};
+				else
+					return {
+						ok: true,
+						subjects: [],
+						output: { status: "missing", missing: ["client_not_found"] },
+					};
+			}
 			if (existing !== undefined && !existing.ok)
-				return { ...refuse(existing.reason), subjects: [input.clientId ?? ""] };
+				return { ...refuse(existing.reason), subjects: [clientId ?? ""] };
+			const resolved = await resolveAll(s, input.resources);
+			if (!resolved.ok) return resolved.run;
+			const chosen =
+				input.service === undefined
+					? await defaultService(s, resolved.resources.find((r) => r.kind === "person")?.id)
+					: undefined;
+			if (chosen?.kind === "refused") return refuse(chosen.reason);
+			if (chosen?.kind === "ask")
+				return {
+					ok: true,
+					subjects: [],
+					output: {
+						status: "ambiguous",
+						what: s.copy.label.service,
+						candidates: chosen.candidates.map((c) => ({ id: c.id, name: c.name })),
+					},
+				};
+			const service =
+				chosen?.kind === "one"
+					? ({ ok: true, value: { kind: "one", value: chosen.service } } as const)
+					: await resolveService(s, input.service ?? "");
 			if (input.newClient !== undefined && input.newClient.anotherPerson !== true) {
 				const twins = await sameName(s, input.newClient.name);
 				if (twins.length > 0)
@@ -114,8 +187,6 @@ export function createAppointmentTool(session: StaffSession) {
 					},
 				};
 			}
-			const resolved = await resolveAll(s, input.resources);
-			if (!resolved.ok) return resolved.run;
 			const startMin = minutesOf(input.time);
 			const durationMin = service.value.value.durationMin;
 			const resourceIds = resolved.resources.map((r) => r.id);
@@ -126,15 +197,14 @@ export function createAppointmentTool(session: StaffSession) {
 				resourceIds,
 			});
 			if (!check.ok) return refuse(check.reason);
-			const clientId = input.clientId ?? NEW_CLIENT;
 			if (!check.value.free)
 				return {
 					...refuse("conflict"),
-					subjects: input.clientId === undefined ? [] : [input.clientId],
+					subjects: clientId === undefined ? [] : [clientId],
 				};
 			const book = {
 				kind: "create_appointment" as const,
-				clientId,
+				clientId: clientId ?? NEW_CLIENT,
 				serviceId: service.value.value.id,
 				date: input.date,
 				startMin,
@@ -167,7 +237,13 @@ export function createAppointmentTool(session: StaffSession) {
 					destructive: false,
 					lines: [
 						...whoLines,
-						{ label: s.copy.label.service, value: service.value.value.name },
+						{
+							label: s.copy.label.service,
+							value:
+								chosen?.kind === "one"
+									? `${service.value.value.name} · ${s.copy.card.serviceWhy[chosen.why]}`
+									: service.value.value.name,
+						},
 						{
 							label: s.copy.label.when,
 							value: `${dateLabel(s.copy, input.date)} · ${clockRange(startMin, durationMin)}`,

@@ -222,6 +222,7 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 			args.onFailure("truncated", new Error(`finished with reason ${finish ?? "none"}`));
 			if (shown.trim() !== "") yield* replace(finishedShort(session.copy, shown));
 		}
+		proposed += session.reused.count;
 		if (shown.trim() === "") {
 			if (!produced) throw new Error("empty reply");
 			yield* replace(proposed > 0 ? session.copy.reviewCard : session.copy.stoppedShort);

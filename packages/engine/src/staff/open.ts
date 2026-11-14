@@ -43,6 +43,7 @@ export async function openSession(
 		cards: [],
 		blocked: new Set(),
 		calls: new Map(),
+		reused: { count: 0 },
 		taint: { stranger: false },
 		caps: undefined,
 	});

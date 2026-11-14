@@ -4,6 +4,7 @@ import { type AppointmentRow, type Collection, type Query, StoreRefused } from "
 import { personRef } from "./ids";
 import type { Rpc } from "./rpc";
 import { answer, Refusal, unwrap } from "./rpc";
+import { columnOf, editArgsOf } from "./visit-edit-args";
 import { attendanceOf, metaFor, toAppointment, VisitView, type VisitViewT } from "./visit-rows";
 
 const Id = answer({ id: z.string() });
@@ -19,27 +20,13 @@ const Version = z.union([
 const One = z.union([answer({ visit: VisitView }), Refusal]);
 const Many = z.union([answer({ visits: z.array(VisitView) }), Refusal]);
 
-type Column = { kind: "practitioner" | "group"; id: string };
-
-/** The calendar column an API appointment sits in: its practitioner's, or its group's for a group activity. */
-function columnOf(row: AppointmentRow): Column {
-	if (row.kind === "group") {
-		if (row.groupId === undefined) throw new StoreRefused("invalid");
-		return { kind: "group", id: row.groupId };
-	}
-	const ref = personRef(row.practitionerId);
-	if (ref?.kind !== "practitioner") throw new StoreRefused("unknown_practitioner");
-	return { kind: "practitioner", id: ref.id };
-}
-
-const sameColumn = (a: Column, b: Column): boolean => a.kind === b.kind && a.id === b.id;
-
 /**
- * Appointments over `apiVisits` (+ `apiMoneyExtra` for the API's own facts and the unwindowed search). `replace` DIFFS the
- * stored appointment against the new one and calls the wrapper each change needs, cheapest-to-refuse first (a move can be
- * refused for an overlap; a note cannot), the soft delete last. Money is not written here: it is derived from the visit,
- * and payments change it (see money.ts). The calls are separate transactions: a later one refusing leaves the earlier
- * ones applied, each audited.
+ * Appointments over `apiVisits` and `apiVisitEdit` (+ `apiMoneyExtra` for the unwindowed search). `replace` DIFFS the
+ * stored appointment against the new one. Everything an edit changes (the client, the package, the service, the price,
+ * the note, the API's own facts, the confirmation and a move) goes in ONE mutation that decides every refusal before it
+ * writes, so a refused edit leaves nothing behind. The restore before it, and the attendance, cancel and soft delete
+ * after it, are each a different route's one change. The paid amount is derived from payments (see money.ts); the price
+ * is the visit's and an edit may change it.
  */
 export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 	const actor = (): { subject: string } => ({ subject: currentActor() });
@@ -62,9 +49,8 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 	): Promise<void> {
 		const base = { tenant: app, actor: actor(), visit: current.id };
 		const override = currentOverride();
-		if (next.clientId !== cur.clientId) throw new StoreRefused("invalid");
-		for (const field of ["note", "packageId", "roomId", "deviceId"] as const)
-			if (cur[field] !== undefined && next[field] === undefined) throw new StoreRefused("invalid");
+		// Every refusal that needs no store is decided before the first write.
+		const edits = editArgsOf(current, cur, next, force);
 		if (cur.deletedAt !== undefined && next.deletedAt === undefined)
 			unwrap(
 				await rpc.mutation(
@@ -73,55 +59,25 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 					Version,
 				),
 			);
-		if (cur.status === "cancelled" && next.status !== "cancelled")
-			throw new StoreRefused("not_allowed");
-
-		const curColumn: Column | undefined =
-			current.column.kind === "group" || current.column.kind === "practitioner"
-				? { kind: current.column.kind, id: current.column.id }
-				: undefined;
-		const column = columnOf(next);
-		const moved =
-			next.start !== cur.start ||
-			next.end !== cur.end ||
-			next.roomId !== cur.roomId ||
-			next.deviceId !== cur.deviceId ||
-			curColumn === undefined ||
-			!sameColumn(curColumn, column);
-		if (moved)
+		// Every change of an edit goes in ONE mutation: it decides every refusal before it writes anything, so an edit
+		// that is refused leaves nothing behind (a client moved, then a clash found, would not).
+		if (edits !== undefined)
 			unwrap(
 				await rpc.mutation(
-					"apiVisits:move",
-					{
-						...base,
-						start: next.start,
-						end: next.end,
-						column,
-						...(next.roomId === undefined ? {} : { room: next.roomId }),
-						...(next.deviceId === undefined ? {} : { device: next.deviceId }),
-						...(override === undefined ? {} : { override }),
-					},
+					"apiVisitEdit:edit",
+					{ ...base, ...edits, ...(override === undefined ? {} : { override }) },
 					Version,
 				),
 			);
 
-		const patch = {
-			...(next.note !== cur.note && next.note !== undefined ? { notes: next.note } : {}),
-			...(next.packageId !== cur.packageId && next.packageId !== undefined
-				? { package: next.packageId }
-				: {}),
-		};
-		if (Object.keys(patch).length > 0)
-			unwrap(await rpc.mutation("apiVisits:update", { ...base, patch }, Version));
-
-		const meta = metaFor(next);
-		if (force || JSON.stringify(meta) !== JSON.stringify(metaFor(cur)))
-			unwrap(await rpc.mutation("apiMoneyExtra:setVisitMeta", { ...base, meta }, Version));
-
 		const attendance = attendanceOf(next.status);
 		if (next.status === "cancelled") {
 			if (cur.status !== "cancelled") unwrap(await rpc.mutation("apiVisits:cancel", base, Version));
-		} else if (attendance !== undefined && attendance !== current.attendance) {
+		} else if (
+			attendance !== undefined &&
+			attendance !== current.attendance &&
+			next.status !== "requested"
+		) {
 			unwrap(await rpc.mutation("apiVisits:setAttendance", { ...base, attendance }, Version));
 		}
 
@@ -198,6 +154,7 @@ export function appointmentCollection(rpc: Rpc): Collection<AppointmentRow> {
 						start: row.start,
 						end: row.end,
 						sessionType: row.serviceId ?? row.kind,
+						...(row.status === "requested" ? { status: "requested" as const } : {}),
 						...(held === undefined ? {} : { override: held }),
 						...(row.clientId === undefined ? {} : { client: row.clientId }),
 						...(row.roomId === undefined ? {} : { room: row.roomId }),

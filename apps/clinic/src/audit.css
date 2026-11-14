@@ -1,0 +1,169 @@
+/* The journal: filters, a table whose rows open a drawer, and the drawer's own list of facts. Tokens only. */
+.adm-toolbar > form.audit-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	flex: 1 1 100%;
+	min-width: 0;
+	max-width: none;
+	margin-inline-start: 0;
+}
+.audit-filters .adm-field {
+	flex: 1 1 150px;
+}
+.audit-filters__q {
+	flex: 2 1 260px;
+}
+.audit-filters__go {
+	display: flex;
+	gap: var(--adm-gap);
+}
+.audit-table td {
+	height: auto;
+	padding-block: var(--space-2);
+	white-space: normal;
+	vertical-align: top;
+}
+.audit-table td[data-c="when"] {
+	white-space: nowrap;
+}
+.audit-table td[data-c="what"] {
+	min-width: 240px;
+}
+.audit-open {
+	min-height: var(--adm-touch);
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	text-align: left;
+	cursor: pointer;
+}
+.audit-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--app);
+	font-weight: 600;
+}
+.audit-link svg {
+	width: 14px;
+	height: 14px;
+}
+.audit-pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+}
+.audit-drawer {
+	display: flex;
+	flex-direction: column;
+	gap: var(--adm-gap);
+}
+.audit-drawer__sentence {
+	margin: 0;
+	font: 600 18px / 1.35 var(--font-display);
+}
+.audit-kv {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-md);
+	background: var(--surface-1);
+}
+.audit-kv__row {
+	display: grid;
+	grid-template-columns: minmax(96px, 36%) 1fr;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid var(--line);
+}
+.audit-kv__row:last-child {
+	border-bottom: 0;
+}
+.audit-kv dt {
+	color: var(--ink-muted);
+	font-weight: 600;
+}
+.audit-kv dd {
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.audit-diff__before {
+	color: var(--status-cancelled);
+}
+.audit-diff__after {
+	color: var(--status-attended);
+	font-weight: 600;
+}
+.audit-diff td,
+.audit-diff th {
+	white-space: normal;
+	height: auto;
+	padding-block: var(--space-2);
+}
+@media (max-width: 767px) {
+	.audit-table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+	.audit-table,
+	.audit-table tbody {
+		display: block;
+	}
+	.audit-table tr {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: var(--space-1) var(--space-3);
+		padding: var(--space-3);
+		border-bottom: 1px solid var(--line);
+	}
+	.audit-table td {
+		display: block;
+		min-width: 0;
+		padding: 0;
+		border: 0;
+	}
+	.audit-table td[data-c="when"] {
+		grid-column: 2;
+		grid-row: 1;
+		color: var(--ink-muted);
+		font-size: 13px;
+		text-align: right;
+	}
+	.audit-table td[data-c="who"] {
+		grid-column: 1;
+		grid-row: 1;
+		align-self: center;
+		font-weight: 700;
+	}
+	.audit-table td[data-c="what"],
+	.audit-table td[data-c="object"],
+	.audit-table td[data-c="source"] {
+		grid-column: 1 / -1;
+		min-width: 0;
+	}
+	.audit-table td[data-c="object"],
+	.audit-table td[data-c="source"] {
+		color: var(--ink-muted);
+		font-size: 13px;
+	}
+	.audit-open {
+		font-size: 13px;
+		text-align: right;
+	}
+}
+.audit-table tbody tr {
+	cursor: pointer;
+}
+.audit-table tbody tr:hover {
+	background: var(--accent-soft);
+}

@@ -74,6 +74,8 @@ export interface StaffEngineOptions {
 
 const DEFAULT_TIMEOUTS: TurnTimeouts = { idleMs: 25_000, totalMs: 90_000 };
 const DEFAULT_ZONE = "Europe/Bucharest";
+/** An identical message in the same conversation inside this window is the person pressing twice. */
+const REPEAT_WINDOW_MS = 5_000;
 const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 const TurnLimit = { limit: 30, windowMs: 60_000 } as const;
 
@@ -159,6 +161,17 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		}
 	};
 
+	/** Messages a person sent a moment ago, by conversation: the same one again within the window is a double press. */
+	const recent = new Map<string, number>();
+	const isRepeat = (sub: string, threadId: string | undefined, message: string): boolean => {
+		const at = now();
+		for (const [key, when] of recent) if (at - when > REPEAT_WINDOW_MS) recent.delete(key);
+		const key = `${sub}\u0000${threadId ?? "default"}\u0000${message.trim().replace(/\s+/g, " ").toLowerCase()}`;
+		if (recent.has(key)) return true;
+		recent.set(key, at);
+		return false;
+	};
+
 	const sweepMemory = async (): Promise<number> => {
 		if (durable === undefined) return 0;
 		try {
@@ -208,6 +221,11 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		session.caps = caps.ok ? baseKeys(caps.value.permissions) : undefined;
 		if (!(await limiter.take(`staff:${session.principal.sub}`))) {
 			yield { type: "refusal", reason: "rate_limited" };
+			yield { type: "done" };
+			return;
+		}
+		if (isRepeat(session.principal.sub, parsed.data.threadId, parsed.data.message)) {
+			yield { type: "refusal", reason: "duplicate" };
 			yield { type: "done" };
 			return;
 		}

@@ -9,7 +9,7 @@
 	"directory_prefix": "psi",
 	"platform_id": "psi",
 	"acces_module": "@rmx/acces/convex",
-	"i18n_catalogues": "@seb/i18n=packages/i18n/messages/ro",
+	"i18n_catalogues": "@seb/i18n=packages/i18n/messages/ro,@psi/scheduling-api=apps/scheduling-api/messages",
 	"doc_example_role": "administrator",
 	"platform_dir": ".seb-bundle/authz"
 }

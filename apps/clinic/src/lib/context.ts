@@ -29,6 +29,8 @@ export interface Ctx {
 	can: Can;
 	/** Looking at the app as someone else (read-only), or null. */
 	viewAs: ViewAsState | null;
+	/** The person themselves (not the role they may be viewing as) is the estate's platform administrator. */
+	platformAdmin: boolean;
 	/** The person themselves (not the role they may be viewing as) administers roles, so "Vezi ca…" is theirs to use. */
 	mayViewAs: boolean;
 	pwa: Pwa;

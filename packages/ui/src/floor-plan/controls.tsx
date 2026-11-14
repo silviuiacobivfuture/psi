@@ -1,4 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import type { FloorPlanLabels } from "./labels";
@@ -9,7 +10,7 @@ import { clockOf, dateOf, dayRange } from "./zone";
 
 export function Btn(p: {
 	label: string;
-	children: JSX.Element | string;
+	children: Child;
 	attrs?: Record<string, string | boolean>;
 	class?: string;
 }): JSX.Element {
@@ -41,6 +42,9 @@ const ICONS: Readonly<Record<string, string>> = {
 	minus: "M5 12 H19",
 	fit: "M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15",
 	save: "M5 4 H16 L19 7 V20 H5 Z M8 4 V9 H15 V4 M8 20 V14 H16 V20",
+	fullscreen: "M14 4 H20 V10 M20 4 L13 11 M10 20 H4 V14 M4 20 L11 13",
+	panel: "M4 5 H20 V19 H4 Z M14 5 V19",
+	close: "M6 6 L18 18 M18 6 L6 18",
 };
 
 export function Icon({ name }: { name: string }): JSX.Element {
@@ -122,10 +126,8 @@ export function DrawBar(p: FloorPlanProps): JSX.Element {
 					label={L.save}
 					attrs={{ "data-fp-save": true, "data-on:click": `@post('${p.endpoint}/draw/save')` }}
 				>
-					<>
-						<Icon name="save" />
-						<span class="pz-fp__btn-text">{L.save}</span>
-					</>
+					<Icon name="save" />
+					<span class="pz-fp__btn-text">{L.save}</span>
 				</Btn>
 			</div>
 		</div>
@@ -242,6 +244,24 @@ export function LiveStrip(p: FloorPlanProps & { live: LivePart }): JSX.Element {
 				<span>{L.heatmap}</span>
 			</label>
 		</div>
+	);
+}
+
+/** What the room colours mean: one line per category the plan names, in the person's language. */
+export function CategoryLegend(p: {
+	categories: ReadonlyArray<{ id: string; label: { ro: string; en: string } }>;
+	locale: string;
+}): JSX.Element {
+	const key = p.locale === "en" ? "en" : "ro";
+	return (
+		<ul class="pz-fp__category-legend" data-fp-categories>
+			{p.categories.map((c) => (
+				<li key={c.id}>
+					<span class="pz-fp__swatch" data-category={c.id} aria-hidden="true" />
+					{c.label[key]}
+				</li>
+			))}
+		</ul>
 	);
 }
 

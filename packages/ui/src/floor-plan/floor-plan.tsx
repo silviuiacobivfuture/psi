@@ -2,7 +2,7 @@
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
 import { FLOOR_PLAN_JS } from "./client.generated";
-import { Btn, DrawBar, Floors, Icon, Legend, LiveStrip } from "./controls";
+import { Btn, CategoryLegend, DrawBar, Floors, Icon, Legend, LiveStrip } from "./controls";
 import { type FloorPlanLabels, say } from "./labels";
 import type { RoomLive } from "./live";
 import { type FloorPlanProps, type LivePart, liveSceneOf, sceneProps, snapInstant } from "./model";
@@ -125,6 +125,8 @@ const HINT_KEYS = [
 	"hintDoor",
 	"hintWindow",
 	"hintDevice",
+	"fullscreen",
+	"exitFullscreen",
 ] as const;
 
 /**
@@ -152,12 +154,63 @@ export function FloorPlan(p: FloorPlanProps): JSX.Element {
 	const pieces = p.mode === "live" && live ? LivePieces({ ...p, live }) : undefined;
 	const draw = p.mode === "draw" ? DrawPieces(p) : undefined;
 	const sync = `@post('${p.endpoint}/${p.mode}/render')`;
+	const canvas = p.canvas === true;
+	const head = (
+		<div class="pz-fp__head">
+			<h2 class="pz-fp__title">{L.plan}</h2>
+			{p.modeLinks ? (
+				<nav class="pz-fp__modes" aria-label={L.plan}>
+					<a
+						href={p.modeLinks.draw}
+						aria-current={p.mode === "draw" ? "page" : undefined}
+						class={cx("pz-fp__mode", !p.modeLinks.draw && "is-off")}
+					>
+						{L.drawMode}
+					</a>
+					<a
+						href={p.modeLinks.live}
+						aria-current={p.mode === "live" ? "page" : undefined}
+						class={cx("pz-fp__mode", !p.modeLinks.live && "is-off")}
+					>
+						{L.liveMode}
+					</a>
+				</nav>
+			) : null}
+			{canvas ? (
+				<>
+					{p.extra}
+					<Btn
+						label={L.fullscreen}
+						class="pz-fp__btn--full"
+						attrs={{ "data-fp-cmd": "fullscreen", "aria-pressed": "false" }}
+					>
+						<Icon name="fullscreen" />
+					</Btn>
+					<Btn
+						label={p.mode === "draw" ? L.inspector : L.roomsList}
+						class="pz-fp__btn--panel"
+						attrs={{
+							"data-fp-cmd": "panel",
+							"aria-pressed": "false",
+							"aria-controls": `${p.id}-panel`,
+						}}
+					>
+						<Icon name="panel" />
+					</Btn>
+				</>
+			) : null}
+		</div>
+	);
+	const floors = Floors(p, floor.id);
+	const bar = p.mode === "draw" ? <DrawBar {...p} /> : null;
+	const strip = live ? <LiveStrip {...p} live={live} /> : null;
 	return (
 		<section
 			id={p.id}
-			class={cx("pz-fp", `pz-fp--${p.mode}`)}
+			class={cx("pz-fp", `pz-fp--${p.mode}`, canvas && "pz-fp--canvas")}
 			data-fp-root
 			data-fp-mode={p.mode}
+			{...(canvas ? { "data-panel": "closed" } : {})}
 			data-fp-config={jsonScript({ mode: p.mode, step: 5 })}
 			data-signals={JSON.stringify(sig)}
 			data-on:fp-sync={sync}
@@ -173,35 +226,26 @@ export function FloorPlan(p: FloorPlanProps): JSX.Element {
 			<input type="hidden" data-bind="fpFloor" data-fp-in="floor" />
 			{p.mode === "draw" ? <input type="hidden" data-bind="fpDoc" data-fp-in="doc" /> : null}
 			{p.mode === "draw" ? <input type="hidden" data-bind="fpSel" data-fp-in="sel" /> : null}
-			<div class="pz-fp__head">
-				<h2 class="pz-fp__title">{L.plan}</h2>
-				{p.modeLinks ? (
-					<nav class="pz-fp__modes" aria-label={L.plan}>
-						<a
-							href={p.modeLinks.draw}
-							aria-current={p.mode === "draw" ? "page" : undefined}
-							class={cx("pz-fp__mode", !p.modeLinks.draw && "is-off")}
-						>
-							{L.drawMode}
-						</a>
-						<a
-							href={p.modeLinks.live}
-							aria-current={p.mode === "live" ? "page" : undefined}
-							class={cx("pz-fp__mode", !p.modeLinks.live && "is-off")}
-						>
-							{L.liveMode}
-						</a>
-					</nav>
-				) : null}
-			</div>
-			{p.mode === "draw" ? (
-				<p class="pz-fp__phone-note" role="note">
-					{L.phoneDraw}
-				</p>
-			) : null}
-			{p.mode === "draw" ? <DrawBar {...p} /> : null}
-			{live ? <LiveStrip {...p} live={live} /> : null}
-			{Floors(p, floor.id)}
+			{canvas ? (
+				<div class="pz-fp__overlay">
+					{head}
+					{bar}
+					{strip}
+					{floors}
+				</div>
+			) : (
+				<>
+					{head}
+					{p.mode === "draw" ? (
+						<p class="pz-fp__phone-note" role="note">
+							{L.phoneDraw}
+						</p>
+					) : null}
+					{bar}
+					{strip}
+					{floors}
+				</>
+			)}
 			<div class="pz-fp__main">
 				{/* biome-ignore lint/a11y/useSemanticElements: the stage is a keyboard-focusable pan and zoom surface, not a form group */}
 				<div
@@ -249,10 +293,21 @@ export function FloorPlan(p: FloorPlanProps): JSX.Element {
 					</div>
 					<p class="pz-fp__hint" data-fp-hint aria-live="polite" />
 				</div>
-				<div class="pz-fp__side">
+				<div class="pz-fp__side" id={`${p.id}-panel`} data-fp-panel>
+					{canvas ? (
+						<div class="pz-fp__panel-head">
+							<strong>{p.mode === "draw" ? L.inspector : L.roomsList}</strong>
+							<Btn label={L.closePanel} attrs={{ "data-fp-cmd": "panel" }}>
+								<Icon name="close" />
+							</Btn>
+						</div>
+					) : null}
 					{draw ? draw.inspector : null}
 					{draw ? draw.list : pieces?.list}
 					{live ? <Legend labels={L} heat={live.heat} /> : null}
+					{p.doc.categories === undefined ? null : (
+						<CategoryLegend categories={p.doc.categories} locale={p.locale} />
+					)}
 					{draw ? draw.status : pieces?.status}
 				</div>
 				{pieces?.sheet}

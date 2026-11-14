@@ -11,8 +11,10 @@ import { feedbackPort } from "./convex/feedback";
 import { keyStore } from "./convex/keys";
 import { appsOfSubject } from "./convex/members";
 import { recordCollections } from "./convex/records";
+import { reportsPort } from "./convex/reports";
 import { requestsPort, visitorExtras } from "./convex/requests";
 import type { Rpc } from "./convex/rpc";
+import { seriesPort } from "./convex/series";
 import { visitCollections } from "./convex/visits";
 import type { Collection, CollectionName, Rows, StorePort } from "./types";
 
@@ -64,6 +66,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		reminders: need(wired, "reminders"),
 		records: need(wired, "records"),
 		files: need(wired, "files"),
+		notes: need(wired, "notes"),
 		audit: need(wired, "audit"),
 		definitions: need(wired, "definitions"),
 		imports: need(wired, "imports"),
@@ -133,6 +136,8 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		blacklist: blacklistPort(clients.rpc),
 		feedback: feedbackPort(clients.rpc),
 		keys: keyStore(clients.rpc),
+		series: seriesPort(clients.rpc),
+		reports: reportsPort(clients.rpc),
 		ping: () => clients.visitor.services("psizone").then(() => undefined),
 	};
 }

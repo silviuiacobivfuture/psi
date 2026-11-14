@@ -10,11 +10,13 @@ import {
 import { staffViews } from "@psi/ui/staff-assistant";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import { actionCtx } from "../actions/context";
 import type { Env } from "../app";
 import { backPath } from "../lib/back";
 import { at, localeFrom } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { AssistantModeSchema } from "../port/schema";
+import { createActionsSource } from "./actions-source";
 import { staffMemoryFrom } from "./memory";
 import { chooseAssistantMode } from "./mode";
 import { createStaffPort } from "./staff-port";
@@ -92,6 +94,7 @@ export function mountAssistant(app: Hono<Env>, engine: StaffEngine): void {
 				permissions: Object.keys(ctx.caps.permissions),
 				readOnly: ctx.can.readOnly,
 				locale: ctx.locale,
+				actions: createActionsSource(actionCtx(ctx)),
 			}),
 		);
 		await next();

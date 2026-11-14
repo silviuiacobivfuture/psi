@@ -61,6 +61,8 @@ const WHERE: Readonly<Record<Resource, Where>> = {
 	notice_board: APP,
 	blacklist: APP,
 	feedback: APP,
+	// Asked of the app: `own` here is the notes a person wrote, not the clients they treat (the handler holds the author).
+	notes: APP,
 	web_requests: APP,
 	reports: APP,
 	audit_log: APP,
