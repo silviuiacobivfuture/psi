@@ -9,6 +9,7 @@ import { patchedRow } from "./appointment-edit";
 import { checkNewAppointment, checkRefs, links, newAppointment } from "./appointments";
 import { booking } from "./booking-gate";
 import { appointmentGroupReach, appointmentView } from "./fields";
+import { refuseStaffWhilePaused } from "./pause-gate";
 import { diff, must, writeTuples } from "./shared";
 
 type C = Ctx<RouteSpec>;
@@ -86,6 +87,8 @@ export const seriesHandlers: HandlersOf<
 			);
 		}
 		const drafts = plan.occurrences.map((o) => newAppointment(ctx, b, o));
+		const lead = drafts[0];
+		if (lead !== undefined) await refuseStaffWhilePaused(ctx, lead);
 		const saved = await booking(ctx, b.override, () =>
 			ctx.deps.store.series.create(ctx.app, drafts),
 		);
@@ -200,6 +203,7 @@ export const seriesHandlers: HandlersOf<
 			});
 		const sample = next[0];
 		if (sample !== undefined) await checkRefs(ctx, sample);
+		if (sample !== undefined) await refuseStaffWhilePaused(ctx, sample);
 		await booking(ctx, override, () => ctx.deps.store.series.replace(ctx.app, next));
 		const change = next.map((a, i) => {
 			const was = targets[i];

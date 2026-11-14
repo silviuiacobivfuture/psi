@@ -81,6 +81,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		appsOf: async (subject) =>
 			(await inner.appsOf(subject)).map((m) => ({ ...m, app: from(m.app) })),
 		visitor: {
+			practitionerKey: (personId) => inner.visitor.practitionerKey(personId),
 			services: (app) => inner.visitor.services(to(app)),
 			slots: (app, q) => inner.visitor.slots(to(app), q),
 			hold: (app, input) => inner.visitor.hold(to(app), input),
@@ -115,6 +116,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 			list: async (app, seriesId) => (await inner.series.list(to(app), seriesId)).map(rowOut),
 		},
 		keyed: forApp(inner.keyed, to),
+		availability: forApp(inner.availability, to),
 		ping: () => inner.ping(),
 	};
 }

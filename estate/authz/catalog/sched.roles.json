@@ -312,6 +312,20 @@
 			}
 		},
 		{
+			"key": "booking_pause",
+			"name": {
+				"ro": "booking_pause",
+				"en": "booking_pause"
+			}
+		},
+		{
+			"key": "availability",
+			"name": {
+				"ro": "availability",
+				"en": "availability"
+			}
+		},
+		{
 			"key": "register",
 			"name": {
 				"ro": "Registrul organizației",

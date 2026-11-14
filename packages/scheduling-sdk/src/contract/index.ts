@@ -12,10 +12,12 @@ export {
 	type Target,
 } from "./define";
 export * from "./entities";
+export * from "./entities-availability";
 export * from "./entities-calendar";
 export * from "./entities-feedback";
 export * from "./entities-invite";
 export * from "./entities-notify";
+export * from "./entities-pause";
 export * from "./entities-plan";
 export * from "./entities-reports";
 export * from "./entities-roles";

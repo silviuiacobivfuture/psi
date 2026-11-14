@@ -25,6 +25,8 @@ export {
 	HoldInputSchema,
 	type HoldResult,
 	type OfferedSlot,
+	type PausedResult,
+	type PauseNotice,
 	type ReleaseResult,
 	type SchedulingClient,
 	type ServiceInfo,
@@ -33,6 +35,7 @@ export {
 	type SlotsResult,
 	type SubmitInput,
 	type SubmitResult,
+	type VisitorSchedulingClient,
 } from "./client";
 export {
 	DEFAULT_TIMEOUT_MS,

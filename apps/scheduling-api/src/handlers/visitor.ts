@@ -4,6 +4,7 @@ import { bookingFieldProblems } from "@psi/scheduling-sdk/contract";
 import { verifiedEmailOf, visitorSubject } from "../auth/principal";
 import { matchAccount } from "../engagement/account-links";
 import { alertBlacklist } from "../engagement/blacklist-alert";
+import { noticeOf, pausedPractitioners } from "../engagement/booking-pause";
 import { activateOnSignIn } from "../engagement/invite-flow";
 import {
 	cancelClinicAppointment,
@@ -13,6 +14,12 @@ import {
 import type { Ctx, HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
 import type { Reason, StorePort } from "../store/types";
+import {
+	refuseClosedCallbacks,
+	refuseWhilePaused,
+	visitorPause,
+	visitorPauses,
+} from "./pause-gate";
 import { paginate } from "./shared";
 
 type C = Ctx<RouteSpec>;
@@ -51,13 +58,37 @@ export const visitorHandlers: HandlersOf<
 	async "visitor.services"(ctx) {
 		const out = await ctx.deps.store.visitor.services(ctx.app);
 		if (out === undefined) throw fail("not_found", "app not found");
-		return out;
+		// While a pause is in force the site shows its message: for everything, a service, or without one person.
+		const vp = await visitorPauses(ctx);
+		const whole = visitorPause(vp, ctx.now, {});
+		const off = pausedPractitioners(vp.pauses, ctx.now);
+		return {
+			...out,
+			...(whole === undefined ? {} : { pause: noticeOf(whole) }),
+			services: out.services.map((s) => {
+				const own = visitorPause(vp, ctx.now, { service: s.slug });
+				return {
+					...s,
+					practitioners: s.practitioners.filter((p) => !off.has(vp.personOf(p.id) ?? "")),
+					...(own === undefined ? {} : { pause: noticeOf(own) }),
+				};
+			}),
+		};
 	},
 	async "visitor.slots"(ctx) {
+		const vp = await refuseWhilePaused(ctx, { service: ctx.query.service });
+		const off = pausedPractitioners(vp.pauses, ctx.now);
 		const { ok: _ok, ...rest } = ok(await ctx.deps.store.visitor.slots(ctx.app, ctx.query));
-		return rest;
+		return {
+			...rest,
+			slots: rest.slots.filter((s) => !off.has(vp.personOf(s.practitioner) ?? "")),
+		};
 	},
 	async "visitor.hold"(ctx) {
+		await refuseWhilePaused(ctx, {
+			service: ctx.body.service,
+			practitioner: ctx.body.practitioner,
+		});
 		const { ok: _ok, ...rest } = ok(await ctx.deps.store.visitor.hold(ctx.app, ctx.body));
 		return rest;
 	},
@@ -72,6 +103,8 @@ export const visitorHandlers: HandlersOf<
 		return { ok: true as const };
 	},
 	async "visitor.submit"(ctx) {
+		// A hold made before the organisation or the site paused is not turned into a request.
+		await refuseWhilePaused(ctx, {});
 		// The five booking fields, before anything is written (the hold stays as it was, to be submitted again).
 		const problems = bookingFieldProblems(ctx.body);
 		const first = problems[0];
@@ -131,6 +164,7 @@ export const visitorHandlers: HandlersOf<
 		return { start: out.start };
 	},
 	async "visitor.callback"(ctx) {
+		await refuseClosedCallbacks(ctx, ctx.body.service);
 		// The callback form stores a request with no hold: the blacklist is asked first, and a hit is told one neutral word.
 		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact)) {
 			await alertBlacklist(
@@ -187,6 +221,7 @@ export const visitorHandlers: HandlersOf<
 		if (own.source === "clinic")
 			throw fail("not_allowed", "moved by the clinic", { reason: "too_late" });
 		const held = own.row;
+		await refuseWhilePaused(ctx, { service: held.serviceSlug, practitioner: held.practitioner });
 		const { ok: _ok, ...moved } = ok(
 			await ctx.deps.store.visitor.rescheduleMine(ctx.app, subject, id, ctx.body),
 		);

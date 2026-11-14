@@ -102,6 +102,18 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"payment.create": rec("payment.add", "payment"),
 	"payment.delete": own("payment.refund", "payment"),
 	"roster.put": rec("roster.set", "roster"),
+	// A practitioner's hours: the wrappers write no event of their own; the API action travels as `api.<action>`.
+	"availability.rules": own("roster.set", "roster"),
+	"availability.copy": own("roster.set", "roster"),
+	"availability.one_off_add": own("roster.set", "roster"),
+	"availability.one_off_remove": own("roster.set", "roster"),
+	// A room's closed days: staffRooms records them itself.
+	"rooms.closure_add": rec("builder.change", "builder"),
+	"rooms.closure_remove": rec("builder.change", "builder"),
+	// Stopping online booking is a setting of the app.
+	"booking_pause.create": own("builder.change", "builder"),
+	"booking_pause.update": own("builder.change", "builder"),
+	"booking_pause.remove": own("builder.change", "builder"),
 	"leave.create": own("staff_block.set", "staff_block"),
 	"leave.decide": own("staff_block.set", "staff_block"),
 	"reminder.mark": own("visit.update", "visit"),
