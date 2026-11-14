@@ -29,8 +29,6 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
         value: "http://scheduling-backend.scheduling-backend-prod.svc:3211"
-      # The store's Postgres is CNPG's, which serves TLS under its own CA: the backend verifies it with that CA
-      # (CNPG's `scheduling-db-ca`, as SEB's Convex restore drill does) instead of turning verification off.
       # Production holds the real clinic (5,598 visits and growing): it ran at 814Mi of the base's 1Gi while the console
       # loaded (2026-11-14, owner's call: production's reliability over dev's headroom). Request = that working set
       # ×1.1, limit 1.5Gi; the namespace's quota (2Gi requests / 4Gi limits) has room for both and the jobs beside it.
@@ -40,6 +38,8 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: 1536Mi
+      # The store's Postgres is CNPG's, which serves TLS under its own CA: the backend verifies it with that CA
+      # (CNPG's `scheduling-db-ca`, as SEB's Convex restore drill does) instead of turning verification off.
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value: { name: PG_CA_FILE, value: /etc/convex/pg-ca/ca.crt }
