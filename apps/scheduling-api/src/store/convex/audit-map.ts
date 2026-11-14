@@ -79,6 +79,9 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"client.invite_resend": own("client.update", "client"),
 	"client.invite_revoke": own("client.update", "client"),
 	"client.invite_activated": own("client.update", "client"),
+	// An online account linked to the client (by a vouched e-mail or by the team), or the team saying it is none of them.
+	"client.account_link": own("client.update", "client"),
+	"client.account_link_dismiss": own("client.update", "client"),
 	"notifications.prefs": own("member.change", "member"),
 	"visitor.notifications": own("builder.change", "builder"),
 	"client.delete": rec("client.delete", "client"),

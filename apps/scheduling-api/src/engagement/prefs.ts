@@ -16,6 +16,8 @@ export type Side = "staff" | "client";
 const staffKey = (subject: string): string => `s/${subject}`;
 const accountKey = (hash: string): string => `a/${hash}`;
 const OfClient = z.object({ accountHash: z.string().length(64) });
+/** `accountClientId(hash)`: how the notifier names a client by their account. */
+const ACCOUNT_CLIENT = /^account-([0-9a-f]{64})$/;
 
 async function read(keyed: KeyedPort, app: string, key: string) {
 	const held = await keyed.get(app, "prefs", key);
@@ -29,6 +31,9 @@ export function createPreferenceSource(keyed: KeyedPort): PreferenceSource {
 	return {
 		async resolve(app, owner) {
 			if (owner.side === "staff") return (await read(keyed, app, staffKey(owner.subject)))?.prefs;
+			// A recipient that IS an account (a signed-in visitor, a client linked to one): its own choices.
+			const account = ACCOUNT_CLIENT.exec(owner.clientId)?.[1];
+			if (account !== undefined) return (await read(keyed, app, accountKey(account)))?.prefs;
 			const link = await keyed.get(app, "link", `c/${owner.clientId}`);
 			const of = link === undefined ? undefined : OfClient.safeParse(json(link.body));
 			if (of === undefined || !of.success) return undefined;

@@ -14,7 +14,7 @@ export type TokenRefusal =
 	| "keys_unavailable";
 
 export type TokenResult =
-	| { ok: true; subject: string; name?: string }
+	| { ok: true; subject: string; name?: string; verifiedEmail?: string }
 	| { ok: false; reason: TokenRefusal };
 
 export interface TokenVerifier {
@@ -25,6 +25,8 @@ const Claims = z.object({
 	iss: z.string(),
 	sub: z.string().min(1).max(200).optional(),
 	name: z.string().optional(),
+	email: z.string().max(254).optional(),
+	email_verified: z.boolean().optional(),
 });
 
 export interface VerifierOptions {
@@ -70,6 +72,10 @@ export function createTokenVerifier(options: VerifierOptions): TokenVerifier {
 					ok: true,
 					subject: claims.data.sub,
 					...(claims.data.name === undefined ? {} : { name: claims.data.name }),
+					// Only an address the sign-in itself vouches for: it may link the account to a client of the same one.
+					...(claims.data.email !== undefined && claims.data.email_verified === true
+						? { verifiedEmail: claims.data.email }
+						: {}),
 				};
 			} catch (error) {
 				return { ok: false, reason: refusalOf(error) };

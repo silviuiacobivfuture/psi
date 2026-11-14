@@ -3,6 +3,7 @@ import { BLACKLIST_ROUTES } from "./team-blacklist";
 import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
 import { INVITE_ROUTES } from "./team-invite";
+import { LINK_ROUTES } from "./team-links";
 import { SETTINGS_ROUTES } from "./team-me";
 import { NOTE_ROUTES } from "./team-notes";
 import { OWNERSHIP_ROUTES } from "./team-ownership";
@@ -29,6 +30,7 @@ export const ROUTES = [
 	...BLACKLIST_ROUTES,
 	...FEEDBACK_ROUTES,
 	...INVITE_ROUTES,
+	...LINK_ROUTES,
 	...STAFF_ROUTES,
 	...OWNERSHIP_ROUTES,
 ] as const;

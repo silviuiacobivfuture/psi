@@ -12,14 +12,12 @@ export const asSite = (
 	path: string,
 	body?: unknown,
 	subject?: string,
+	headers: Record<string, string> = {},
 ): Promise<Reply> =>
-	w.callKey(
-		"psizone-web",
-		method,
-		`${A}${path}`,
-		body,
-		subject === undefined ? {} : { "x-psi-subject": subject },
-	);
+	w.callKey("psizone-web", method, `${A}${path}`, body, {
+		...(subject === undefined ? {} : { "x-psi-subject": subject }),
+		...headers,
+	});
 
 export interface Slot {
 	practitioner: string;
@@ -37,11 +35,13 @@ export async function freeSlots(w: Populated, from = NOW, limit = 20): Promise<S
 	return r.json.slots as Slot[];
 }
 
-/** A request booked by a signed-in visitor through the site, at the `nth` free slot. */
+/** A request booked by a signed-in visitor through the site, at the `nth` free slot, with this contact. */
 export async function bookAs(
 	w: Populated,
 	subject: string,
 	at: number | Slot = 0,
+	contact: { email?: string; phone?: string } = {},
+	headers: Record<string, string> = {},
 ): Promise<{ reference: string }> {
 	const slot = typeof at === "number" ? (await freeSlots(w))[at] : at;
 	if (slot === undefined) throw new Error("no free slot to book");
@@ -59,9 +59,10 @@ export async function bookAs(
 		`/book/holds/${String(held.json.reference)}/submit`,
 		{
 			holdToken: String(held.json.holdToken),
-			contact: bookingContact(),
+			contact: bookingContact(contact),
 		},
 		subject,
+		headers,
 	);
 	if (sent.status !== 200) throw new Error(`booking answered ${sent.status}`);
 	return { reference: String(sent.json.reference) };

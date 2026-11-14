@@ -55,6 +55,10 @@ const Common = z.object({
 	 * system (production before the cut-over), so nobody is told twice.
 	 */
 	NOTIFY_DELIVERY: z.enum(["send", "hold"]).default("send"),
+	/** How long before a session the day-before reminder goes, in hours (12 to 72; default 24). */
+	REMINDER_DAY_BEFORE_HOURS: z.coerce.number().int().min(12).max(72).default(24),
+	/** How long before a session the short nudge goes, in hours (1 to 11; default 2). */
+	REMINDER_SOON_HOURS: z.coerce.number().int().min(1).max(11).default(2),
 });
 
 const Memory = z.object({
@@ -132,6 +136,8 @@ export interface Config {
 	masterKey: string;
 	/** `hold`: notices are logged, never delivered, and the scheduled pass does not run. */
 	delivery: "send" | "hold";
+	/** The reminders' leads, in hours before the session. */
+	reminders: { dayBeforeHours: number; soonHours: number };
 	store: { kind: "memory" } | { kind: "convex"; url: string; serverKey: string };
 	authz:
 		| { kind: "memory" }
@@ -251,6 +257,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 		callers: common.data.SERVICE_CALLERS,
 		masterKey: common.data.CLINIC_MASTER_KEY,
 		delivery: common.data.NOTIFY_DELIVERY,
+		reminders: {
+			dayBeforeHours: common.data.REMINDER_DAY_BEFORE_HOURS,
+			soonHours: common.data.REMINDER_SOON_HOURS,
+		},
 		store:
 			backing.data.SCHEDULING_STORE === "convex"
 				? {

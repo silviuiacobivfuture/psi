@@ -8,6 +8,7 @@ import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catal
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeInvites } from "./fake-invites";
+import { createFakeAccountLinks, type FakeLinkSeed } from "./fake-links";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
 import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
@@ -50,6 +51,8 @@ export interface FakeOptions {
 	staff?: ReadonlyArray<FakeAccount>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
 	empty?: boolean;
+	/** Online accounts waiting for the team to say which client they are (none by default). */
+	accountLinks?: ReadonlyArray<FakeLinkSeed>;
 }
 
 function stripUndefined<T extends object>(o: T): Partial<T> {
@@ -91,6 +94,15 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		now: Date.now,
 		log: (app, action, target) => log(data(app), me, action, target),
 	});
+	const links = createFakeAccountLinks(
+		{
+			guard,
+			client: (app, id) => data(app).clients.find((c) => c.id === id),
+			now: Date.now,
+			log: (app, action, target) => log(data(app), me, action, target),
+		},
+		opts.accountLinks ?? [],
+	);
 	const log = (
 		d: AppData,
 		actor: string,
@@ -153,6 +165,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...catalog,
 		...createFakeRoleSummary({ data, guard }),
 		...invites,
+		...links,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;

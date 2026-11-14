@@ -25,6 +25,7 @@ const PAGES = [
 	"/settings/roles",
 	"/settings/members",
 	"/me/settings",
+	"/account-links",
 	"/settings",
 	"/settings/profile",
 	"/settings/blacklist",

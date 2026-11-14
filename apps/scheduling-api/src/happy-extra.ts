@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
 import { asSite, bookAs, freeSlots, mineOf } from "./testing/booking";
+import { suggestionFor } from "./testing/links";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 
@@ -103,6 +104,18 @@ export const EXTRA_HAPPY = {
 	},
 	"me.settings": (w) => olga(w, "GET", "/me/settings"),
 	"me.saveSettings": (w) => olga(w, "PUT", "/me/settings", { ...DEFAULT_SETTINGS, theme: "dark" }),
+	"accountLinks.list": async (w) => {
+		await suggestionFor(w, "happy-link-list");
+		return olga(w, "GET", "/account-links");
+	},
+	"accountLinks.confirm": async (w) => {
+		const s = await suggestionFor(w, "happy-link-confirm");
+		return olga(w, "POST", `/account-links/${s.id}/confirm`, { clientId: s.clientId });
+	},
+	"accountLinks.dismiss": async (w) => {
+		const s = await suggestionFor(w, "happy-link-dismiss");
+		return olga(w, "POST", `/account-links/${s.id}/dismiss`);
+	},
 	"invites.get": async (w) => olga(w, "GET", `/clients/${await invited(w)}/invite`),
 	"invites.preview": async (w) =>
 		olga(w, "GET", `/clients/${await inviteable(w)}/invite/preview?contact=client`),

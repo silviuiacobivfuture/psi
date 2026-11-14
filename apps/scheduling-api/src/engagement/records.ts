@@ -57,7 +57,10 @@ export interface Held<T> {
 	revision: number;
 }
 
-const Linked = z.object({ at: z.number() });
+/** How a link came to be: an invitation, a booking whose vouched e-mail was the client's, or the team's confirmation. */
+export const LINK_VIA = ["invite", "match", "staff"] as const;
+export type LinkVia = (typeof LINK_VIA)[number];
+const Linked = z.object({ at: z.number(), via: z.enum(LINK_VIA).default("invite") });
 const OfClient = z.object({ accountHash: z.string().length(64) });
 
 /** The account side of the link: which clients a signed-in account is allowed to see, and which account a client belongs to. */
@@ -88,7 +91,13 @@ export function invites(keyed: KeyedPort) {
 			await keyed.put(app, "invite", row.clientId, expected, JSON.stringify(InviteRow.parse(row)));
 		},
 		/** Links the account to the client (and the client to the account), replacing a previous account's link. */
-		async link(app: string, hash: string, clientId: string, now: number): Promise<void> {
+		async link(
+			app: string,
+			hash: string,
+			clientId: string,
+			now: number,
+			via: LinkVia = "invite",
+		): Promise<void> {
 			const previous = await keyed.get(app, "link", byClient(clientId));
 			const prior = previous === undefined ? undefined : OfClient.safeParse(json(previous.body));
 			if (prior?.success === true && prior.data.accountHash !== hash)
@@ -102,11 +111,27 @@ export function invites(keyed: KeyedPort) {
 			);
 			const held = await keyed.get(app, "link", byAccount(hash, clientId));
 			if (held === undefined)
-				await keyed.put(app, "link", byAccount(hash, clientId), 0, JSON.stringify({ at: now }));
+				await keyed.put(
+					app,
+					"link",
+					byAccount(hash, clientId),
+					0,
+					JSON.stringify({ at: now, via }),
+				);
 		},
 		async unlink(app: string, hash: string, clientId: string): Promise<void> {
 			await keyed.remove(app, "link", byAccount(hash, clientId));
 			await keyed.remove(app, "link", byClient(clientId));
+		},
+		/** The clients an account is linked to, and how each link came to be. */
+		async linksOf(app: string, hash: string): Promise<{ clientId: string; via: LinkVia }[]> {
+			const entries = await keyed.list(app, "link", { prefix: `a/${hash}/`, limit: 200 });
+			return entries.flatMap((e) => {
+				const parsed = Linked.safeParse(json(e.body));
+				return parsed.success
+					? [{ clientId: e.key.slice(`a/${hash}/`.length), via: parsed.data.via }]
+					: [];
+			});
 		},
 		/** The client ids an account has been linked to; each is checked against its invitation before it shows anything. */
 		async clientsOf(app: string, hash: string): Promise<string[]> {

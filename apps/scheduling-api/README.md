@@ -92,10 +92,18 @@ The links: `GET/POST /v1/public/reminders/:token/(confirm|cancel|ics)` (a GET ch
 link is used up by the first POST, the calendar link can be fetched again). The token names its app, so one host serves
 every app. Members and their roles keep Novu's subscribers and the `team` / `reception` / `owners` topics in step.
 
-Not done, on purpose: `reminder.day_before` needs a daily job that picks tomorrow's appointments (the reminders list and
-the e-mail route keep working meanwhile), so no client is reminded by push yet; `assistant.action_done` belongs to the assistant, which is not in this service;
-a no-show has no message in the catalogue. A person's own notification choices and quiet hours are `me.settings`
-(`/v1/apps/:app/me/settings`): the notifier honours them for the people it names and for every member of a team.
+The scheduled pass (`engagement/scheduler.ts`, a tick a minute, each notice claimed once across replicas, off while
+`NOTIFY_DELIVERY=hold`) sends the two reminders of every live session: `reminder.day_before` (with its confirm and
+cancel links) `REMINDER_DAY_BEFORE_HOURS` before (12 to 72, default 24) and the short nudge `reminder.two_hours`
+`REMINDER_SOON_HOURS` before (1 to 11, default 2; the event keeps its name, the words name no number). A booking made
+closer than a reminder's lead is its own notice. In the client's quiet hours (their account's own, else the clinic's,
+21:00 to 08:00) the day-before reminder waits until they end, while that still leaves room before the nudge; the push
+of anything else is held back by the notifier and its e-mail goes. A visitor's own move or cancel online tells the
+visitor (at their account, when signed in) and reception.
+
+Not done, on purpose: `assistant.action_done` belongs to the assistant, which is not in this service; a no-show has no
+message in the catalogue. How a person is told things (a switch per kind and channel, quiet hours) is
+`me.notifications` / `visitor.notifications`; `me.settings` keeps the console's language, theme and first view.
 
 ## Public sites
 

@@ -1,6 +1,9 @@
+import { accountClientId } from "@psi/notify";
+import { accountHashOf } from "@psi/scheduling";
 import { beforeEach, describe, expect, it } from "vitest";
 import { wireNotify } from "./notify-wiring";
 import { createNovuNotify, notifyApps } from "./ports/novu-notify";
+import { bookAs } from "./testing/booking";
 import { createWorld, type Populated } from "./testing/populate";
 import { HOUR, LINK_SECRET, NOW, testConfig } from "./testing/world";
 
@@ -123,6 +126,45 @@ describe("the catalogue's events, from what the handlers say happened", () => {
 			idempotencyKey: "k",
 		});
 		expect(calls[0]?.payload.previousStartsAt).toBe(new Date(NOW + 24 * HOUR).toISOString());
+	});
+
+	it("a visitor who moves their own request is told at their account, and the desk is told it was the client, with both times", async () => {
+		const { reference } = await bookAs(w, "visitor-mover");
+		const account = accountHashOf("visitor-mover");
+		await adapter().notify({
+			app: "psizone",
+			event: "appointment.moved",
+			payload: { reference, previousStart: NOW + 20 * HOUR, account },
+			to: { kind: "team", permission: "web_requests_view" },
+			idempotencyKey: "k-move",
+		});
+		expect(calls.map((c) => c.event)).toEqual(["appointment.moved", "appointment.moved"]);
+		const [client, desk] = calls;
+		expect(client?.to).toEqual([
+			expect.objectContaining({ audience: "client", clientId: accountClientId(account) }),
+		]);
+		expect(desk?.to).toEqual([{ audience: "reception" }]);
+		expect(desk?.payload).toMatchObject({
+			appointmentId: reference,
+			source: "client",
+			previousStartsAt: new Date(NOW + 20 * HOUR).toISOString(),
+		});
+		expect(desk?.occurrence).toBe("k-move");
+	});
+
+	it("a visitor without an account who moves is told at that request alone", async () => {
+		const { reference } = await bookAs(w, "visitor-anon");
+		await adapter().notify({
+			app: "psizone",
+			event: "appointment.moved",
+			payload: { reference, previousStart: NOW + 20 * HOUR },
+			to: { kind: "team", permission: "web_requests_view" },
+			idempotencyKey: "k-anon",
+		});
+		expect(calls[0]?.to).toEqual([
+			expect.objectContaining({ audience: "client", clientId: reference }),
+		]);
+		expect(calls[1]?.to).toEqual([{ audience: "reception" }]);
 	});
 
 	it("a callback tells the team; a package running low tells reception; a payment tells the client", async () => {

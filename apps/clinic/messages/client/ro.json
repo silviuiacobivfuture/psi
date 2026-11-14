@@ -186,5 +186,19 @@
 	"cl_contact_hint": "Un câmp lăsat gol se golește la salvare. Clientul păstrează un telefon sau un e-mail, al său sau al tutorelui, ca să poată fi programat.",
 	"cl_contact_required": "Nu s-a schimbat nimic: clientul ar rămâne fără telefon și fără e-mail (nici al tutorelui), iar o programare are nevoie de unul dintre ele.",
 	"cl_phone_cleared": "Telefonul a fost golit.",
-	"cl_email_cleared": "E-mailul a fost golit."
+	"cl_email_cleared": "E-mailul a fost golit.",
+	"al_title": "Conturi online de confirmat",
+	"al_lead": "Cineva cu cont online a programat cu datele de contact ale unui client. Spune ce client este, ca să-și vadă programările și să primească notificările, sau că nu e niciunul.",
+	"al_via_email": "Același e-mail ca:",
+	"al_via_phone": "Același telefon ca:",
+	"al_reference": "Rezervarea {reference}",
+	"al_pick": "Alege clientul",
+	"al_confirm": "Este acest client",
+	"al_dismiss": "Nu e niciunul",
+	"al_empty": "Niciun cont nu așteaptă confirmare.",
+	"al_done_linked": "Contul a fost legat de client.",
+	"al_done_dismissed": "Am reținut: nu e niciunul dintre ei.",
+	"al_conflict": "Clientul are deja alt cont online. Nu s-a schimbat nimic.",
+	"al_banner": "Conturi online de confirmat: {n}",
+	"al_open": "Vezi"
 }

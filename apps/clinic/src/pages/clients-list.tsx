@@ -131,6 +131,16 @@ export function MoreClients({
 	);
 }
 
+/** How many online accounts wait for this person to say which client they are; none when they may not, or on a failure. */
+async function waitingLinks(ctx: Ctx): Promise<number> {
+	if (!ctx.can.write("clients_invite")) return 0;
+	try {
+		return (await ctx.port.accountLinks(ctx.app)).length;
+	} catch {
+		return 0;
+	}
+}
+
 export async function renderClients(
 	ctx: Ctx,
 	filter: ClientFilter,
@@ -160,6 +170,7 @@ export async function renderClients(
 	const listedCount = rows.filter((r) => r.blacklist !== null).length;
 	const owing = rows.filter((r) => (r.owedBani ?? 0) > 0).length;
 	const upcoming = rows.filter((r) => r.next !== null).length;
+	const waiting = await waitingLinks(ctx);
 	return Page({
 		ctx,
 		current: "clients",
@@ -169,6 +180,14 @@ export async function renderClients(
 				<PageHeader title={m.clients_title({}, o)}>
 					<ActionBar ctx={ctx} screen="clients" />
 				</PageHeader>
+				{waiting === 0 ? null : (
+					<Banner tone="info" icon="users">
+						<span data-account-links>{m.al_banner({ n: String(waiting) }, o)}</span>
+						<a class="adm-btn" href="/account-links">
+							{m.al_open({}, o)}
+						</a>
+					</Banner>
+				)}
 				{failed || clients.length === 0 ? null : (
 					<div class="cl-summary" data-summary>
 						<StatCard label={m.cl_list_total({}, o)} value={count(clients.length)} />
