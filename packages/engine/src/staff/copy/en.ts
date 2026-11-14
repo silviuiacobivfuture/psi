@@ -396,6 +396,11 @@ export const STAFF_EN: StaffCopy = {
 		`That can be done: ${labels.join("; ")}. Tell me which details to use and I will prepare it for your confirmation.`,
 	cutShort: '(The answer stopped here; write "continue" and I will pick it up.)',
 	reviewCard: "Check the card and confirm there.",
+	handoff: (contact) =>
+		contact === undefined
+			? "If I cannot help with this, the organisation's Owner or an Admin can: ask them directly."
+			: `If I cannot help with this, a person can: ${contact}.`,
+	summaryHeading: "Summary of the conversation so far:",
 	stoppedShort:
 		"I did not get to a result. Tell me more precisely what you want me to do, or try again.",
 	panel: {

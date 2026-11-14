@@ -17,6 +17,7 @@ export {
 	type StaffUsage,
 	StaffUsageSchema,
 } from "./assistant-config";
+export type { StaffTranscript } from "./chat";
 export {
 	type PanelCopy,
 	STAFF_EN,
@@ -49,7 +50,7 @@ export {
 } from "./events";
 export type { ConfirmOutcome } from "./execute";
 export { type SealRoot, sealRootFrom } from "./memory-seal";
-export { STAFF_MEMORY_DAYS } from "./memory-store";
+export { STAFF_MEMORY_BACKSTOP_DAYS, STAFF_MEMORY_DAYS } from "./memory-store";
 export * from "./model";
 export { DISCOVERY_TOOLS } from "./parity/discovery";
 export { isParityRoute, NEVER_REASONS } from "./parity/routes";

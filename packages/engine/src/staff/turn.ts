@@ -13,6 +13,7 @@ import { stripTags, withoutFence } from "./fence";
 import { staffNotes } from "./prompt";
 import { finishedShort, isEmptyCard, withoutUnbackedClaims } from "./reply-guards";
 import { SESSION_KEY, type StaffSession } from "./session";
+import { outputCapOf, stepChoice } from "./step-budget";
 import { toolKeyOf } from "./tool-ids";
 
 const FIRST_CHUNK_MS = 15_000;
@@ -43,7 +44,7 @@ const whole = (n: number | undefined): number =>
 	n === undefined || !Number.isFinite(n) ? 0 : Math.max(0, Math.round(n));
 
 /** What a finished stream used, read from Mastra's totals and OpenRouter's accounting (dollars to micro-dollars). */
-async function usageOf(
+export async function usageOf(
 	output: { totalUsage: PromiseLike<unknown>; providerMetadata: PromiseLike<unknown> },
 	signal: AbortSignal,
 ): Promise<StaffUsage> {
@@ -89,6 +90,8 @@ export interface TurnArgs {
 	retried?: boolean;
 	/** Told what the turn used (tokens, cost) before it ends; awaited, never failing the turn. */
 	onUsage?: (usage: StaffUsage) => Promise<void>;
+	/** The conversation's summary of its folded older part (`memory.compactAfter`), read with the per-turn notes. */
+	summary?: string;
 }
 
 /** The thread a conversation lives in: the person's own namespace, never a visitor's. */
@@ -166,27 +169,30 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 					content: args.instructions,
 					providerOptions: CACHE_BREAKPOINT,
 				},
-				system: staffNotes({
-					copy: session.copy,
-					principal: session.principal,
-					page: input.page ?? session.page,
-					timeZone: session.timeZone,
-					now: session.now(),
-					otherLanguage: other,
-				}),
+				system: [
+					staffNotes({
+						copy: session.copy,
+						principal: session.principal,
+						page: input.page ?? session.page,
+						timeZone: session.timeZone,
+						now: session.now(),
+						otherLanguage: other,
+					}),
+					...(args.summary === undefined ? [] : [args.summary]),
+				].join("\n\n"),
 				requestContext: new RequestContext<unknown>([
 					[SESSION_KEY, session],
 					[MODEL_KEY, modelKeyOf(settings)],
 				]),
 				maxSteps: steps,
-				// The last step has no tools, so the turn ends in words, never in one more call.
-				prepareStep: ({ stepNumber }) =>
-					stepNumber >= steps - 1 ? { toolChoice: "none" as const } : undefined,
+				// The last step has no tools, nor does one after the turn used its tokens per request: the turn ends in
+				// words, never in one more call.
+				prepareStep: ({ stepNumber, steps: done }) => stepChoice(settings, stepNumber, done),
 				maxProcessorRetries: 0,
 				abortSignal: controller.signal,
 				modelSettings: {
 					maxRetries: 0,
-					maxOutputTokens: settings.maxOutputTokens,
+					maxOutputTokens: outputCapOf(settings),
 					temperature: settings.temperature,
 				},
 				memory: {
