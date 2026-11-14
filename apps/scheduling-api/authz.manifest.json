@@ -4,6 +4,11 @@
 	"module": "sched",
 	"generated_dir": "src/authz",
 	"version": 1,
+	"program_subject": "sched_program",
+	"programs": {
+		"roles": ["sched:integration"],
+		"resource": "sched_register"
+	},
 	"features": [
 		{
 			"key": "app_settings",
@@ -2496,6 +2501,33 @@
 						"en": "feedback: close (contact)"
 					},
 					"grants": ["sched_app#feedback_close_all_contact"],
+					"effect": "write"
+				}
+			]
+		},
+		{
+			"key": "register",
+			"name": {
+				"ro": "Registrul organizației",
+				"en": "The organisation's register"
+			},
+			"permissions": [
+				{
+					"key": "register_read",
+					"name": {
+						"ro": "Registru: citire",
+						"en": "Register: read"
+					},
+					"grants": ["sched_register#reader"],
+					"effect": "read"
+				},
+				{
+					"key": "register_write",
+					"name": {
+						"ro": "Registru: scriere",
+						"en": "Register: write"
+					},
+					"grants": ["sched_register#writer"],
 					"effect": "write"
 				}
 			]
@@ -5535,6 +5567,27 @@
 					]
 				}
 			]
+		},
+		{
+			"type": "sched_register",
+			"scope": {
+				"scope_type": "org",
+				"relation": "parent_org"
+			},
+			"relations": [
+				{
+					"name": "parent_org",
+					"from": ["[org]"]
+				},
+				{
+					"name": "reader",
+					"from": ["[user]"]
+				},
+				{
+					"name": "writer",
+					"from": ["[user]"]
+				}
+			]
 		}
 	],
 	"roles": [
@@ -5561,6 +5614,22 @@
 				"sched_app#roles_edit_all",
 				"sched_app#roles_delete_all"
 			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "sched:integration",
+			"name": {
+				"ro": "Integrarea serviciului de programări",
+				"en": "Scheduling service integration"
+			},
+			"description": {
+				"ro": "Pentru programul serviciului de programări: îi dă dreptul să lucreze cu registrul organizației.",
+				"en": "For the scheduling service's program: lets it work with the organisation's register."
+			},
+			"scope_type": "org",
+			"grants": ["sched_register#reader", "sched_register#writer"],
+			"resource_scopes": ["sched_register"],
 			"assignable": true,
 			"max_duration": null
 		}

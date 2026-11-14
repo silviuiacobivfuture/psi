@@ -23,6 +23,50 @@ export const direct = (...types: string[]): Term => ({ kind: "direct", types });
 export const from = (relation: string, via: string): Term => ({ kind: "from", relation, via });
 const computed = (relation: string): Term => ({ kind: "computed", relation });
 
+/**
+ * The service's PROGRAM (SEB authz/manifest.schema.json `programs`): its machine account in the estate's
+ * organisation, issued by Polaris under the sched application, so the service writes and withdraws its grants
+ * through Polaris as that machine. A program holds one role on its organisation's register and nothing in the
+ * organisation itself; the register's id is the organisation's id.
+ */
+export const PROGRAM_SUBJECT = "sched_program";
+export const REGISTER = "sched_register";
+export const INTEGRATION_ROLE = "sched:integration";
+const INTEGRATION_RELATION = "role_sched_integration";
+/** The register's relations as the manifest declares them; the generator adds the role's clauses. */
+export const REGISTER_RELATIONS: TypeModel = {
+	parent_org: [direct("org")],
+	reader: [direct("user")],
+	writer: [direct("user")],
+};
+/** The relations a program's grant on the register confers, by the manifest's permission key. */
+export const REGISTER_PERMISSIONS = { register_read: "reader", register_write: "writer" } as const;
+
+/** The program subject block the generator writes for a module that declares `programs`. */
+function programModel(): TypeModel {
+	return {
+		parent_org: [direct("org")],
+		credential: [direct("autorizare_client")],
+		retiring_credential: [direct("autorizare_client with non_expired_grant")],
+		speaks_for: [computed("credential"), computed("retiring_credential")],
+	};
+}
+
+/** The register as generated: its role, held by a person or a program, and the relations it confers. */
+function registerModel(): TypeModel {
+	const conferred = (relation: "reader" | "writer"): Clause[] => [
+		...(REGISTER_RELATIONS[relation] ?? []),
+		from(INTEGRATION_RELATION, "parent_org"),
+		computed(INTEGRATION_RELATION),
+	];
+	return {
+		parent_org: REGISTER_RELATIONS.parent_org ?? [],
+		[INTEGRATION_RELATION]: [direct("user", "group#member", PROGRAM_SUBJECT)],
+		reader: conferred("reader"),
+		writer: conferred("writer"),
+	};
+}
+
 export function render(clause: Clause): string {
 	switch (clause.kind) {
 		case "direct":
@@ -111,6 +155,8 @@ export function buildModel(): Model {
 		sched_package: { app: [direct("sched_app")], client: [direct("sched_client")] },
 		sched_record: { app: [direct("sched_app")], client: [direct("sched_client")] },
 		sched_file: { app: [direct("sched_app")], client: [direct("sched_client")] },
+		[PROGRAM_SUBJECT]: programModel(),
+		[REGISTER]: registerModel(),
 	};
 	for (const [type, reach] of Object.entries(REACH)) {
 		const target = model[type];

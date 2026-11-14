@@ -10,7 +10,15 @@ import {
 	permissionOf,
 } from "./catalogue";
 import { buildManifest } from "./manifest";
-import { buildModel, PLATFORM_CLAUSE, render } from "./model";
+import {
+	buildModel,
+	INTEGRATION_ROLE,
+	PLATFORM_CLAUSE,
+	PROGRAM_SUBJECT,
+	REGISTER,
+	REGISTER_PERMISSIONS,
+	render,
+} from "./model";
 import { PERMISSIONS } from "./permissions.generated";
 import { seedRoles } from "./roles-seed";
 
@@ -59,11 +67,66 @@ describe("the committed artefacts follow the catalogue and the model", () => {
 		expect(render(PLATFORM_CLAUSE)).toBe("role_sched_app_admin from parent_platform");
 	});
 
-	it("permissions.generated.ts lists exactly the catalogue's keys", () => {
+	it("permissions.generated.ts lists exactly the catalogue's keys and the register's", () => {
 		const generated = Object.values(PERMISSIONS)
 			.flatMap((r) => Object.keys(r))
 			.sort();
-		expect(generated).toEqual(CATALOGUE.map((d) => d.key).sort());
+		expect(generated).toEqual(
+			[...CATALOGUE.map((d) => d.key), ...Object.keys(REGISTER_PERMISSIONS)].sort(),
+		);
+	});
+});
+
+describe("the service's program", () => {
+	type Obj = { type: string; scope: { scope_type: string; relation: string } };
+	type Role = { key: string; scope_type: string; grants: string[]; resource_scopes?: string[] };
+	const manifest = buildManifest() as {
+		program_subject?: string;
+		programs?: { roles: string[]; resource: string };
+		objects: Obj[];
+		roles: Role[];
+	};
+
+	it("is declared: one role, on a register Polaris places in the organisation", () => {
+		expect(manifest.program_subject).toBe(PROGRAM_SUBJECT);
+		expect(manifest.programs).toEqual({ roles: [INTEGRATION_ROLE], resource: REGISTER });
+		expect(manifest.objects.find((o) => o.type === REGISTER)?.scope).toEqual({
+			scope_type: "org",
+			relation: "parent_org",
+		});
+	});
+
+	it("is offered its role on the register only, and the role confers only the register's relations", () => {
+		const role = manifest.roles.find((r) => r.key === INTEGRATION_ROLE);
+		expect(role).toMatchObject({ scope_type: "org", resource_scopes: [REGISTER] });
+		expect(role?.grants.sort()).toEqual(
+			Object.values(REGISTER_PERMISSIONS)
+				.map((relation) => `${REGISTER}#${relation}`)
+				.sort(),
+		);
+	});
+
+	it("is a subject, never a declared object, and no other role reaches the register", () => {
+		expect(manifest.objects.map((o) => o.type)).not.toContain(PROGRAM_SUBJECT);
+		for (const r of manifest.roles.filter((x) => x.key !== INTEGRATION_ROLE)) {
+			expect(
+				r.grants.some((g) => g.startsWith(`${REGISTER}#`)),
+				r.key,
+			).toBe(false);
+			expect(r.resource_scopes ?? [], r.key).not.toContain(REGISTER);
+		}
+	});
+
+	it("leaves every clinical type where it was: scoped to the app, holding no program", () => {
+		const fga = read("estate/authz/modules/sched.fga");
+		for (const o of manifest.objects.filter((x) => x.type !== REGISTER && x.type !== "sched_app"))
+			expect(o.scope, o.type).toEqual({ scope_type: "sched_app", relation: "app" });
+		const lines = fga.split("\n").filter((l) => l.includes(PROGRAM_SUBJECT));
+		expect(lines.map((l) => l.trim())).toEqual([
+			`type ${PROGRAM_SUBJECT}`,
+			`define role_sched_integration: [user, group#member, ${PROGRAM_SUBJECT}]`,
+			`define program_sched: [${PROGRAM_SUBJECT}]`,
+		]);
 	});
 });
 

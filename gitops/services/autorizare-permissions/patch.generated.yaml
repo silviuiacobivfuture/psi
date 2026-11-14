@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "d1527f5456dae6e0"
+        autorizare/permissions-bundle: "1a502a111261ae38"
     spec:
       initContainers:
         - name: assert-secrets
@@ -65,7 +65,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "d1527f5456dae6e0"
+        autorizare/permissions-bundle: "1a502a111261ae38"
     spec:
       containers:
         - name: autorizare-hub

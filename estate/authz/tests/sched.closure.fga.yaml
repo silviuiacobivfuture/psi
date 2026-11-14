@@ -7,6 +7,18 @@ name: sched-closure
 model_file: ../fga.mod
 
 tuples:
+  - user: user:c_org_administrator
+    relation: administrator
+    object: org:closure
+  - user: user:c_org_auditor
+    relation: auditor
+    object: org:closure
+  - user: user:c_org_member
+    relation: member
+    object: org:closure
+  - user: user:c_org_role_sched_integration
+    relation: role_sched_integration
+    object: org:closure
   - user: user:c_platform_administrator
     relation: administrator
     object: platform:psi
@@ -142,6 +154,9 @@ tuples:
   - user: platform:psi
     relation: parent_platform
     object: sched_app:closure
+  - user: org:closure
+    relation: parent_org
+    object: sched_register:closure
 
 tests:
   - name: sched_app#app_settings_view_all is conferred by exactly ['administrator', 'role_sched_app_admin']
@@ -78464,3 +78479,39 @@ tests:
         object: sched_app:closure
         assertions:
           feedback_close_all_contact: false
+  - name: sched_register#reader is conferred by exactly ['role_sched_integration']
+    check:
+      - user: user:c_org_administrator
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_auditor
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_member
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_sched_integration
+        object: sched_register:closure
+        assertions:
+          reader: true
+  - name: sched_register#writer is conferred by exactly ['role_sched_integration']
+    check:
+      - user: user:c_org_administrator
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_auditor
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_member
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_sched_integration
+        object: sched_register:closure
+        assertions:
+          writer: true

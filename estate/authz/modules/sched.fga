@@ -8,6 +8,17 @@ module sched
 # relations, and nothing reports it. `check-manifest.py` enforces the prefix,
 # because JSON Schema cannot compare one field to another.
 
+# An organisation's program: a machine account, by its PROGRAM id (stable
+# across rotations). A SUBJECT: what it holds is given on one resource of
+# its organisation, never in the organisation. Written by Polaris only
+# (docs/autorizare/07 "Programs"); applications read it through the SDK.
+type sched_program
+  relations
+    define parent_org: [org]
+    define credential: [autorizare_client]
+    define retiring_credential: [autorizare_client with non_expired_grant]
+    define speaks_for: credential or retiring_credential
+
 type sched_app
   relations
     define parent_platform: [platform]
@@ -647,6 +658,23 @@ type sched_file
     define files_upload: files_upload_all from app or (files_upload_assigned from app and reach_assigned) or (files_upload_own from app and reach_own)
     define files_delete: files_delete_all from app or (files_delete_assigned from app and reach_assigned) or (files_delete_own from app and reach_own)
     define files_export: files_export_all from app or (files_export_assigned from app and reach_assigned) or (files_export_own from app and reach_own)
+
+type sched_register
+  relations
+    define role_sched_integration: [user, group#member, sched_program]
+    define parent_org: [org]
+    define reader: [user] or role_sched_integration from parent_org or role_sched_integration
+    define writer: [user] or role_sched_integration from parent_org or role_sched_integration
+    # app_sched_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_sched_access: role_sched_integration
+
+# The module's roles, as relations somebody can actually hold.
+extend type org
+  relations
+    define role_sched_integration: [user, group#member]
+    define program_sched: [sched_program]
+    # app_sched_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_sched_access: role_sched_integration
 
 # The module's roles, as relations somebody can actually hold.
 extend type platform

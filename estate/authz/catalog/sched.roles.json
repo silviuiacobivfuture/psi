@@ -43,10 +43,28 @@
 		"sched_file": {
 			"scope_type": "sched_app",
 			"relation": "app"
+		},
+		"sched_register": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"sched_program": {
+			"scope_type": "org",
+			"relation": "parent_org"
 		}
 	},
+	"programs": {
+		"subject": "sched_program",
+		"roles": ["sched:integration"],
+		"resource": "sched_register",
+		"org_relation": "program_sched"
+	},
 	"group_bindings": [],
-	"mirror_relations": ["platform#administrator", "platform#role_sched_app_admin"],
+	"mirror_relations": [
+		"org#role_sched_integration",
+		"platform#administrator",
+		"platform#role_sched_app_admin"
+	],
 	"features": [
 		{
 			"key": "app_settings",
@@ -264,6 +282,13 @@
 				"ro": "feedback",
 				"en": "feedback"
 			}
+		},
+		{
+			"key": "register",
+			"name": {
+				"ro": "Registrul organizației",
+				"en": "The organisation's register"
+			}
 		}
 	],
 	"roles": [
@@ -291,6 +316,23 @@
 				"sched_app#roles_edit_all",
 				"sched_app#roles_delete_all"
 			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "sched:integration",
+			"name": {
+				"ro": "Integrarea serviciului de programări",
+				"en": "Scheduling service integration"
+			},
+			"description": {
+				"ro": "Pentru programul serviciului de programări: îi dă dreptul să lucreze cu registrul organizației.",
+				"en": "For the scheduling service's program: lets it work with the organisation's register."
+			},
+			"scope_type": "org",
+			"relation": "role_sched_integration",
+			"resource_scopes": ["sched_register"],
+			"grants": ["sched_register#reader", "sched_register#writer"],
 			"assignable": true,
 			"max_duration": null
 		}
