@@ -120,8 +120,9 @@ export const appointmentChanged: Translate = async (n, app, env) => {
 		],
 		n.idempotencyKey,
 	);
-	// A visitor who cancels is news for the desk; a request the desk already hears of as `request.new`.
-	if (event === "appointment.cancelled")
+	// A visitor who cancels or moves their own is news for the desk (the old time is free, the new one taken); a new
+	// request the desk already hears of as `request.new`.
+	if (event === "appointment.cancelled" || event === "appointment.moved")
 		await env.send(
 			app,
 			event,
