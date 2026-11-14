@@ -31,11 +31,15 @@ const Counts = z.object({
 });
 const Read = z.union([z.object({ ok: z.literal(true), counts: z.array(Counts) }), Refusal]);
 
-/** The estate's documents over `apiAssistant`: one compare-and-set transaction per save. */
-export function platformDocumentsPort(rpc: Rpc): PlatformDocumentsPort {
+/**
+ * The estate's documents over `apiAssistant`: one compare-and-set transaction per save. `estate` names a test world's
+ * own (`*test-…`); without it, the estate's.
+ */
+export function platformDocumentsPort(rpc: Rpc, estate?: `*test-${string}`): PlatformDocumentsPort {
+	const which = estate === undefined ? {} : { estate };
 	return {
 		async get(kind) {
-			const out = await rpc.query("apiAssistant:getPlatform", { kind }, Got);
+			const out = await rpc.query("apiAssistant:getPlatform", { kind, ...which }, Got);
 			if (!out.ok) throw new StoreRefused(out.reason);
 			return out.found
 				? {
@@ -49,7 +53,7 @@ export function platformDocumentsPort(rpc: Rpc): PlatformDocumentsPort {
 		async put(kind, expected, body) {
 			const out = await rpc.mutation(
 				"apiAssistant:putPlatform",
-				{ actor: actorArg(), kind, expected, body },
+				{ actor: actorArg(), kind, expected, body, ...which },
 				Put,
 			);
 			if (!out.ok) throw new StoreRefused(out.reason);

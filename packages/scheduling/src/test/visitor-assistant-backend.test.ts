@@ -36,6 +36,14 @@ const LATE = Date.parse("2026-11-14T21:30:00Z");
 const NEXT_MONTH = Date.parse("2026-11-30T22:30:00Z");
 
 const Ok = z.object({ ok: z.literal(true) }).passthrough();
+/** A throwaway estate of this run: the backend's own estate document is never written by a test. */
+const ESTATE = `*test-va-${Date.now().toString(36)}`;
+const Read = z
+	.object({
+		ok: z.literal(true),
+		platform: z.object({ revision: z.number(), body: z.string() }).nullable(),
+	})
+	.passthrough();
 
 describe.skipIf(!backendReady)("the visitor assistant's store", () => {
 	const store = createVisitorAssistantStore({ url: CONVEX_URL, serverKey, timeoutMs: 10_000 });
@@ -54,6 +62,7 @@ describe.skipIf(!backendReady)("the visitor assistant's store", () => {
 		if (!backendReady) return;
 		await runMutation("seed:dropFixture", { tenant: APP }, z.unknown());
 		await runMutation("seed:dropFixture", { tenant: OTHER }, z.unknown());
+		await runMutation("seed:dropFixture", { tenant: ESTATE }, z.unknown());
 	});
 
 	it("an app with nothing saved and nothing used reads as no app document and zero meters, in its zone", async () => {
@@ -81,19 +90,48 @@ describe.skipIf(!backendReady)("the visitor assistant's store", () => {
 		expect((await store.config(OTHER, LATE))?.org).toBeUndefined();
 	});
 
-	it("the estate's document is read for every app", async () => {
-		const held = (await store.config(APP, LATE))?.platform?.revision ?? 0;
-		const body = JSON.stringify({ revision: held + 1 });
+	it("the estate's document is read for every app (a throwaway estate's here, the estate's own untouched)", async () => {
+		const before = (await store.config(APP, LATE))?.platform;
+		const body = JSON.stringify({ revision: 1 });
 		Ok.parse(
 			await callMutation("apiAssistant:putPlatform", {
 				actor: { subject: "root" },
 				kind: "assistant_platform",
-				expected: held,
+				expected: 0,
 				body,
+				estate: ESTATE,
 			}),
 		);
-		expect((await store.config(APP, LATE))?.platform).toEqual({ revision: held + 1, body });
-		expect((await store.config(OTHER, LATE))?.platform).toEqual({ revision: held + 1, body });
+		const read = async (tenant: string) =>
+			Read.parse(
+				await callQuery("apiAssistant:visitorConfig", { tenant, now: LATE, estate: ESTATE }),
+			).platform;
+		expect(await read(APP)).toEqual({ revision: 1, body });
+		expect(await read(OTHER)).toEqual({ revision: 1, body });
+		expect((await store.config(APP, LATE))?.platform).toEqual(before);
+	});
+
+	it.each([
+		"*",
+		"estate",
+		"test-x",
+		"*evil",
+		"*test-",
+		"*test-UPPER",
+	])("an estate that is not a throwaway one (%s) is refused, nothing written", async (estate) => {
+		const before = (await store.config(APP, LATE))?.platform;
+		const put = await callMutation("apiAssistant:putPlatform", {
+			actor: { subject: "root" },
+			kind: "assistant_platform",
+			expected: 0,
+			body: "{}",
+			estate,
+		});
+		expect(put).toEqual({ ok: false, reason: "invalid" });
+		expect(
+			await callQuery("apiAssistant:getPlatform", { kind: "assistant_platform", estate }),
+		).toEqual({ ok: false, reason: "invalid" });
+		expect((await store.config(APP, LATE))?.platform).toEqual(before);
 	});
 
 	it("a turn adds to the month and the day of the app's zone, never to the staff's meters or another app's", async () => {

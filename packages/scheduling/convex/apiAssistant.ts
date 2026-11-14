@@ -8,6 +8,17 @@ import { actorValidator, serverKeyValidator } from "./validators";
 
 /** The tenant the estate's own documents are kept under: no app slug can be `*`. */
 const ESTATE = "*";
+/**
+ * Which estate a call reads or writes: the estate (`*`) unless a throwaway one is named, `*test-…` (a test world's own,
+ * so a run against a real backend never touches the estate's document; `seed:dropFixture` removes it). No app slug
+ * starts with `*`, so neither can be an app's.
+ */
+const estateArg = v.optional(v.string());
+const THROWAWAY_ESTATE = /^\*test-[a-z0-9-]{1,60}$/;
+function estateOf(asked: string | undefined): string | undefined {
+	if (asked === undefined) return ESTATE;
+	return THROWAWAY_ESTATE.test(asked) ? asked : undefined;
+}
 const platformKind = v.literal("assistant_platform");
 const surface = v.union(v.literal("staff"), v.literal("visitor"));
 const key = v.object({ surface, period: v.string(), scope: v.string() });
@@ -24,12 +35,14 @@ const MAX_DELTA = 50_000_000;
 const MAX_KEYS = 8;
 
 export const getPlatform = query({
-	args: { key: serverKeyValidator, kind: platformKind },
+	args: { key: serverKeyValidator, kind: platformKind, estate: estateArg },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
+		const estate = estateOf(args.estate);
+		if (estate === undefined) return REFUSED("invalid");
 		const row = await ctx.db
 			.query("appDocuments")
-			.withIndex("by_tenant_kind", (q) => q.eq("tenant", ESTATE).eq("kind", args.kind))
+			.withIndex("by_tenant_kind", (q) => q.eq("tenant", estate).eq("kind", args.kind))
 			.unique();
 		return row === null
 			? { ok: true as const, found: false as const }
@@ -52,10 +65,13 @@ export const putPlatform = mutation({
 		kind: platformKind,
 		expected: v.number(),
 		body: v.string(),
+		estate: estateArg,
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
+		const estate = estateOf(args.estate);
 		if (
+			estate === undefined ||
 			args.body.length > MAX_DOCUMENT_CHARS ||
 			!Number.isInteger(args.expected) ||
 			args.expected < 0
@@ -63,18 +79,18 @@ export const putPlatform = mutation({
 			return REFUSED("invalid");
 		const row = await ctx.db
 			.query("appDocuments")
-			.withIndex("by_tenant_kind", (q) => q.eq("tenant", ESTATE).eq("kind", args.kind))
+			.withIndex("by_tenant_kind", (q) => q.eq("tenant", estate).eq("kind", args.kind))
 			.unique();
 		if ((row?.revision ?? 0) !== args.expected) return REFUSED("stale");
 		const revision = args.expected + 1;
 		const now = Date.now();
 		const fields = { revision, body: args.body, updatedAt: now, updatedBy: args.actor.subject };
 		if (row === null)
-			await ctx.db.insert("appDocuments", { tenant: ESTATE, kind: args.kind, ...fields });
+			await ctx.db.insert("appDocuments", { tenant: estate, kind: args.kind, ...fields });
 		else await ctx.db.patch(row._id, fields);
 		// The estate's own journal entry (no app holds it): the service's `assistant.platform.put`, recorded here.
 		const made = makeAuditEvent({
-			tenant: ESTATE,
+			tenant: estate,
 			at: now,
 			actor: args.actor.subject,
 			action: "builder.change",
@@ -166,9 +182,11 @@ const ZERO = {
  * An app that is not there, or is switched off, is `not_found`.
  */
 export const visitorConfig = query({
-	args: { key: serverKeyValidator, tenant: v.string(), now: v.number() },
+	args: { key: serverKeyValidator, tenant: v.string(), now: v.number(), estate: estateArg },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
+		const estate = estateOf(args.estate);
+		if (estate === undefined) return REFUSED("invalid");
 		const tenant = await ctx.db
 			.query("tenants")
 			.withIndex("by_slug", (q) => q.eq("slug", args.tenant))
@@ -208,7 +226,7 @@ export const visitorConfig = query({
 			ok: true as const,
 			timeZone: tenant.timeZone,
 			period: { month, day },
-			platform: await doc(ESTATE, "assistant_platform"),
+			platform: await doc(estate, "assistant_platform"),
 			org: await doc(args.tenant, "assistant_config"),
 			usage: { month: await meter(month), day: await meter(day) },
 		};
