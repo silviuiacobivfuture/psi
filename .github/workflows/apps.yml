@@ -129,8 +129,12 @@ jobs:
       - if: steps.plan.outputs.apps != ''
         name: Log in to Harbor
         run: echo "$HARBOR_PASSWORD" | docker login "$REGISTRY_HOST" -u "$HARBOR_USERNAME" --password-stdin
+      # cleanup: false — the builder lives in this ephemeral pod's dind and goes with it; removing it at the
+      # end took 91 s of the runner on 2026-11-14 (run 43643835878), after every app had deployed.
       - if: steps.plan.outputs.apps != ''
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        with:
+          cleanup: false
       # Each app: build + push, then its tag bump at once (→ Argo deploys it while the next one builds).
       # No registry build cache: every Dockerfile copies the whole repository before installing, so the
       # exported cache was dead at the next commit, and exporting it (mode=max) took 50-87 s per app —
