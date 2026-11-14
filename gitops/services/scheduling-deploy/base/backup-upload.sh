@@ -2,17 +2,31 @@
 # Uploads the sealed export and its manifest (made by the `export` initContainer: node /app/backup.mjs export) to the
 # environment's backup bucket in fsn1, into its tiers, each object locked (GOVERNANCE) for as long as its tier keeps it;
 # the bucket's lifecycle then removes it (docs/backup.md):
-#   convex/hourly/   every run          kept 2 days   (48 at the hourly schedule)
-#   convex/daily/    the 00:xx UTC run  kept 30 days
-#   convex/monthly/  00:xx UTC on the 1st kept 365 days (12)
+#   convex/hourly/   every run                                          kept 2 days   (48 at the hourly schedule)
+#   convex/daily/    a run that finds no daily copy younger than 23 h   kept 30 days
+#   convex/monthly/  a run that finds no monthly copy younger than 28 d kept 365 days (12)
+# A tier is filled by AGE, not by the clock: the first run of a new environment fills all three, and a missed or
+# failed midnight run is made good by the next run instead of leaving the tier stale for a day (backup-freshness
+# alarms on a daily copy older than 26 h).
 set -euo pipefail
+shopt -s inherit_errexit
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required AWS_PAGER=""
 : "${BACKUP_BUCKET:?}" "${BACKUP_ENDPOINT:?}"
-test -s /work/convex.zip.enc || { echo "FAILED: /work/convex.zip.enc missing or empty (the export failed)" >&2; exit 1; }
-test -s /work/manifest.json || { echo "FAILED: /work/manifest.json missing" >&2; exit 1; }
+W="${BACKUP_WORK:-/work}"
+test -s "$W/convex.zip.enc" || { echo "FAILED: $W/convex.zip.enc missing or empty (the export failed)" >&2; exit 1; }
+test -s "$W/manifest.json" || { echo "FAILED: $W/manifest.json missing" >&2; exit 1; }
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
-hour="$(date -u +%H)"
-day="$(date -u +%d)"
+now="$(date -u +%s)"
+
+# The age in hours of the newest object under convex/<tier>/, or a very large number when it has none. A listing that
+# fails is an error (set -e): a tier is never skipped because the bucket could not be read.
+age_hours() {
+	local newest
+	newest="$(aws s3api list-objects-v2 --bucket "$BACKUP_BUCKET" --prefix "convex/$1/" \
+		--query 'max(Contents[].LastModified)' --output text --endpoint-url "$BACKUP_ENDPOINT")"
+	if [ -z "$newest" ] || [ "$newest" = "None" ]; then echo 1000000; return 0; fi
+	echo $(((now - $(date -u -d "$newest" +%s)) / 3600))
+}
 
 put() {
 	local key="$1" file="$2" days="$3" n=0
@@ -28,12 +42,12 @@ put() {
 }
 
 tier() {
-	put "convex/$1/$ts.zip.enc" /work/convex.zip.enc "$2"
-	put "convex/$1/$ts.manifest.json" /work/manifest.json "$2"
+	put "convex/$1/$ts.zip.enc" "$W/convex.zip.enc" "$2"
+	put "convex/$1/$ts.manifest.json" "$W/manifest.json" "$2"
 }
 
+daily_age="$(age_hours daily)"
+monthly_age="$(age_hours monthly)"
 tier hourly 2
-if [ "$hour" = "00" ]; then
-	tier daily 30
-	if [ "$day" = "01" ]; then tier monthly 365; fi
-fi
+if [ "$daily_age" -ge 23 ]; then tier daily 30; else echo "daily: newest is ${daily_age} h old, kept"; fi
+if [ "$monthly_age" -ge $((28 * 24)) ]; then tier monthly 365; else echo "monthly: newest is ${monthly_age} h old, kept"; fi
