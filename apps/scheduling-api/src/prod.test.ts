@@ -137,13 +137,14 @@ describe.skipIf(!kustomize)("the production overlays, rendered", () => {
 });
 
 describe("production's registration and admission", () => {
-	it("each production Application points at its prod overlay and namespace, on the dev branch", () => {
+	it("each production Application points at its prod overlay and namespace, on the prod branch the promote workflow writes", () => {
 		const apps: Record<string, [string, string]> = {
 			"clinic-prod": ["clinic", "clinic-prod"],
 			"scheduling-api-prod": ["scheduling-api", "scheduling-api-prod"],
 			"scheduling-backend-prod": ["scheduling-backend", "scheduling-backend-prod"],
 			"scheduling-deploy-prod": ["scheduling-deploy", "scheduling-backend-prod"],
 			"account-db-prod": ["account-db", "account-db-prod"],
+			"scheduling-sync-prod": ["scheduling-sync", "scheduling-backend-prod"],
 		};
 		const list = read("gitops/apps/overlays/dev/apps/kustomization.yaml");
 		for (const [name, [service, ns]] of Object.entries(apps)) {
@@ -152,7 +153,9 @@ describe("production's registration and admission", () => {
 			expect(a).toMatch(new RegExp(`^ {2}name: ${name}$`, "m"));
 			expect(a).toContain(`path: gitops/services/${service}/overlays/prod`);
 			expect(a).toMatch(new RegExp(`namespace: ${ns} \\}|namespace: ${ns}$`, "m"));
-			expect(a).toContain("targetRevision: dev");
+			// Production deploys from `prod` alone (docs/plans/clinic.md section 14): never from dev, where merges land.
+			expect(a).toContain("targetRevision: prod");
+			expect(a).not.toContain("targetRevision: dev");
 		}
 	});
 

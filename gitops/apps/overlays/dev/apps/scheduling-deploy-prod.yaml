@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: git@github.com:silviuiacobivfuture/psi.git
-    targetRevision: dev
+    targetRevision: prod
     path: gitops/services/scheduling-deploy/overlays/prod
   destination:
     server: https://kubernetes.default.svc
