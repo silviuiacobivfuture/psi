@@ -105,6 +105,23 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			columns: after.columns,
 		}));
 
+	/** The calendar of the days asked (the port reads a long span window by window), never the clinic's whole history. */
+	const between = (from: string, to: string) =>
+		port
+			.calendar(app, from, to)
+			.then((c) => ({ appts: c.appointments, clients: c.clients, columns: c.columns }));
+	/** One appointment by its id, on any date, with its client: never a calendar searched for it. */
+	const one = async (
+		id: string,
+	): Promise<{ appt: Appointment | undefined; clients: ReadonlyArray<Client> }> => {
+		const appt = (await port.appointment(app, id)) ?? undefined;
+		const clients =
+			appt?.clientId === null || appt?.clientId === undefined
+				? []
+				: await port.clientsByIds(app, [appt.clientId]);
+		return { appt, clients };
+	};
+
 	const nameOf = (clients: ReadonlyArray<Client>, id: string | null): string | null =>
 		clients.find((c) => c.id === id)?.name ?? null;
 
@@ -247,18 +264,13 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			}),
 		appointment: (id) =>
 			wrap(async () => {
-				// One appointment is read by its id, on any date: never a calendar searched for it.
-				const found = (await port.appointment(app, id)) ?? undefined;
-				const clients =
-					found?.clientId === null || found?.clientId === undefined
-						? []
-						: await port.clientsByIds(app, [found.clientId]);
+				const { appt: found, clients } = await one(id);
 				const mapped = found === undefined ? undefined : staffAppt(found, clients);
 				return mapped === undefined ? refused("not_found") : ok(mapped);
 			}),
 		freeSlots: (q) =>
 			wrap(async () => {
-				const { appts, columns } = await everything();
+				const { appts, columns } = await between(q.from, q.to);
 				const services = await port.services(app);
 				const service = services.find((s) => s.id === q.serviceId);
 				if (service === undefined) return refused("not_found");
@@ -286,14 +298,14 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			}),
 		checkSlot: (q) =>
 			wrap(async () => {
-				const { appts } = await everything();
+				const { appts } = await between(q.date, q.date);
 				const taken = busy(appts, q);
 				return ok({ free: taken.length === 0, busyResourceIds: taken });
 			}),
 		createAppointment: (i) =>
 			wrap(async () => {
 				if (o.readOnly) return refused("forbidden");
-				const { clients } = await everything();
+				const clients = i.clientId === undefined ? [] : await port.clientsByIds(app, [i.clientId]);
 				const column = i.resourceIds[0];
 				if (column === undefined) return refused("invalid");
 				const [made] = await port.createAppointments(app, {
@@ -311,8 +323,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		moveAppointment: (i) =>
 			wrap(async () => {
 				if (o.readOnly) return refused("forbidden");
-				const { appts, clients } = await everything();
-				const current = appts.find((a) => a.id === i.id);
+				const { appt: current, clients } = await one(i.id);
 				if (current === undefined) return refused("not_found");
 				if (versionOf(current) !== i.expectedVersion) return refused("conflict");
 				const moved = await port.updateAppointment(app, i.id, {
@@ -326,8 +337,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		cancelAppointment: (i) =>
 			wrap(async () => {
 				if (o.readOnly) return refused("forbidden");
-				const { appts } = await everything();
-				const current = appts.find((a) => a.id === i.id);
+				const { appt: current } = await one(i.id);
 				if (current === undefined) return refused("not_found");
 				if (versionOf(current) !== i.expectedVersion) return refused("conflict");
 				await port.updateAppointment(app, i.id, { status: "cancelled" });
@@ -336,8 +346,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		markAttendance: (i) =>
 			wrap(async () => {
 				if (o.readOnly) return refused("forbidden");
-				const { appts, clients } = await everything();
-				const current = appts.find((a) => a.id === i.id);
+				const { appt: current, clients } = await one(i.id);
 				if (current === undefined) return refused("not_found");
 				if (versionOf(current) !== i.expectedVersion) return refused("conflict");
 				const next = await port.updateAppointment(app, i.id, { status: i.status });
@@ -424,10 +433,8 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 				if (i.about !== "appointment" || i.appointmentId === undefined) return refused("invalid");
 				await port.markReminderSent(app, i.appointmentId);
 				if (i.channel === "email") return ok({ channel: "email" as const });
-				const { appts, clients } = await everything();
-				const phone =
-					clients.find((c) => c.id === appts.find((a) => a.id === i.appointmentId)?.clientId)
-						?.phone ?? "";
+				const { appt, clients } = await one(i.appointmentId);
+				const phone = clients.find((c) => c.id === appt?.clientId)?.phone ?? "";
 				const digits = phone.replace(/\D/g, "");
 				const intl = digits.startsWith("0") ? `40${digits.slice(1)}` : digits;
 				return intl.length >= 8
@@ -479,7 +486,7 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			}),
 		roomsAt: (q) =>
 			wrap(async () => {
-				const { appts, clients, columns } = await everything();
+				const { appts, clients, columns } = await between(q.date, q.date);
 				return ok(
 					columns
 						.filter((c) => c.kind !== "person")

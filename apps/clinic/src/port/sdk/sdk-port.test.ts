@@ -80,6 +80,17 @@ describe("the calendar and appointments", () => {
 		expect(empty.appointments).toHaveLength(0);
 		expect(empty.clients).toHaveLength(0);
 	});
+	it("calendar: a span longer than the service's window is read window by window, nothing lost", async () => {
+		const port = await as("olga");
+		const day = await port.calendar("psizone", "2026-11-14", "2026-11-14");
+		const span = await port.calendar("psizone", "2026-06-01", "2027-01-31");
+		expect(day.appointments.length).toBeGreaterThan(0);
+		expect(span.appointments.map((a) => a.id).sort()).toEqual(
+			expect.arrayContaining(day.appointments.map((a) => a.id)),
+		);
+		expect(new Set(span.appointments.map((a) => a.id)).size).toBe(span.appointments.length);
+		expect(span.columns.map((c) => c.id)).toEqual(day.columns.map((c) => c.id));
+	});
 	it("calendar: a therapist sees their own column only (the service decides)", async () => {
 		const data = await (await as("dora")).calendar("psizone", "2026-11-14", "2026-11-14");
 		expect(data.columns.map((c) => c.name)).toEqual(["Dora Test"]);

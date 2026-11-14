@@ -1,4 +1,4 @@
-import { MAX_IDS } from "@psi/scheduling-sdk/contract";
+import { MAX_IDS, MAX_WINDOW_DAYS } from "@psi/scheduling-sdk/contract";
 import { addDays } from "../../lib/dates";
 import type { CalendarData, ReminderItem } from "../port";
 import type { Appointment, AppSlug, Client, Column, RosterEntry, SearchHit } from "../schema";
@@ -10,6 +10,8 @@ import { instantOf, wallOf } from "./time";
 
 /** How many clients a search shows. */
 const SEARCH_HITS = 6;
+/** Days one calendar call asks for: the service's widest window less a day, so a DST-long day still fits. */
+const WINDOW_DAYS = MAX_WINDOW_DAYS - 1;
 
 /** The calendar, appointments, search, reminders and the roster. */
 export function calendarGroup(sdk: SdkContext) {
@@ -93,12 +95,31 @@ export function calendarGroup(sdk: SdkContext) {
 		calendar: (app: AppSlug, from: string, to: string): Promise<CalendarData> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
-				const result = await api.calendar.get({
-					app,
-					from: instantOf(from, 0, tz),
-					to: instantOf(addDays(to, 1), 0, tz),
-					columns: "person",
-				});
+				// The service answers at most MAX_WINDOW_DAYS a call: a longer span (a quarter's statistics) is read window
+				// by window, the columns once, the visits of every window.
+				const windows: { from: string; to: string }[] = [];
+				for (let day = from; day <= to; day = addDays(day, WINDOW_DAYS)) {
+					const last = addDays(day, WINDOW_DAYS - 1);
+					windows.push({ from: day, to: last < to ? last : to });
+				}
+				const answers = await Promise.all(
+					windows.map((w) =>
+						api.calendar.get({
+							app,
+							from: instantOf(w.from, 0, tz),
+							to: instantOf(addDays(w.to, 1), 0, tz),
+							columns: "person",
+						}),
+					),
+				);
+				const result = {
+					columns: (answers[0]?.columns ?? []).map((c) => ({
+						...c,
+						appointments: answers.flatMap(
+							(a) => a.columns.find((x) => x.id === c.id)?.appointments ?? [],
+						),
+					})),
+				};
 				// The sheet that creates an appointment needs clients and services; the grid does not. A person who may
 				// not list them still sees the calendar.
 				const soft = async <T>(list: Promise<T[]>): Promise<T[]> =>
