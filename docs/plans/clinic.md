@@ -354,11 +354,26 @@ confirmation to the bell only); the lists to the bell and e-mail; the owners' nu
 
 psi cannot do these itself; each stays open until SEB answers.
 
-1. **Novu bridge.** SEB's bridge (`psi/novu-bridge`, pinned by the bundle) is built without psi's catalogue and serves no
-   workflow. psi now runs its own, `apps/notify-bridge` (the `@psi/notify` registry, at
-   `http://notify-bridge.notify-bridge.svc:8080/api/novu`). Ask: build SEB's bridge from the estate's catalogue, or let an
-   estate name its own bridge URL in `novu-bootstrap`. Until then the bridge URL is set and the sync is run against the Novu
-   API by hand, and that is recorded as a one-time act.
+1. **Novu bridge: no workflow is synced on dev, and psi cannot sync one.** Two routes were tried on 2026-11-14:
+   - psi's own bridge, `apps/notify-bridge` (the `@psi/notify` registry: 84 workflows, 150 steps), runs at
+     `http://notify-bridge.notify-bridge.svc:8080/api/novu`. Novu refuses to sync it: "The provided bridge URL is
+     blocked by the outbound SSRF policy". `NOVU_SAFE_OUTBOUND_ALLOW` (the `novu-config` ConfigMap) names only
+     `novu-bridge.novu.svc.cluster.local` and `plunk-smtp.psizone.ro`. It is not a slot of the novu piece, and SEB's
+     doctor fails any other value. The allowed URL itself syncs (201), with the 0 workflows SEB's bridge serves.
+   - SEB's bridge rebuilt from the locked release (v0.1.88, `apps/novu-bridge/build.sh`) with
+     `NOVU_BRIDGE_CATALOGUES=packages/notify`: it bundles the catalogue, but the image dies at start ("psizone is not an
+     estate application: the estate bridge has no address for it"). SEB's bridge only addresses applications declared
+     in `brand/estate.config.json`, at `https://<app>.psizone.ro/`. psi's catalogue is for the product sites
+     (psizone.ro, hemisync.ro, programari.psizone.ro), which are not estate hub applications and do not live at those
+     addresses. Declaring them there would also put them in the estate launcher. It was not pushed and nothing was
+     signed.
+
+   Ask SEB for either of these:
+   - (a) let an estate add its own bridge host to `NOVU_SAFE_OUTBOUND_ALLOW` (a slot), or name its bridge URL in
+     `novu-bootstrap`;
+   - (b) let SEB's bridge serve a catalogue whose applications have their own addresses.
+
+   psi's bridge stays deployed so that (a) needs only the sync. Prod sends nothing until cut-over (`NOTIFY_DELIVERY=hold`).
 2. **The scheduling service's Authentik token.** `secret/apps/scheduling-api/sso` (and `-prod/sso`) hold a token minted by
    hand for the `scheduling-invites` service account. Ask: an OpenBao auth role so a reconcile Job can mint and rotate it
    as code.
