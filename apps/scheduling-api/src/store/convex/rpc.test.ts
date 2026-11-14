@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { StoreUnavailable } from "../types";
-import { createRpc } from "./rpc";
+import { createRpc, functionErrorCode } from "./rpc";
 
 /**
  * The store's transport: a query that meets a blip (no answer, an overloaded or restarting store, Convex saying the
@@ -88,5 +88,61 @@ describe("what is not retried", () => {
 		const { rpc, calls } = rpcWith([ok(3)]);
 		expect(await rpc.query("apiClients:list", {}, N)).toBe(3);
 		expect(calls).toHaveLength(1);
+	});
+});
+
+describe("a store failure says which function and how, never the store's own words", () => {
+	const failureOf = async (first: Answer) => {
+		const { rpc } = rpcWith([first, first]);
+		const error = await rpc.query("apiCalendar:columnVisits", {}, N).then(
+			() => undefined,
+			(e: unknown) => e,
+		);
+		expect(error).toBeInstanceOf(StoreUnavailable);
+		return (error as StoreUnavailable).failure;
+	};
+
+	it("no answer, a refusal, a function's error and a wrong shape each name the function and their kind", async () => {
+		expect(await failureOf("throw")).toEqual({ fn: "apiCalendar:columnVisits", kind: "no_answer" });
+		expect(await failureOf(new Response("", { status: 503 }))).toEqual({
+			fn: "apiCalendar:columnVisits",
+			kind: "refused",
+			status: 503,
+		});
+		expect(
+			await failureOf(
+				fnError("Too many documents read in a single function execution (limit: 16384)"),
+			),
+		).toEqual({
+			fn: "apiCalendar:columnVisits",
+			kind: "function_error",
+			status: 200,
+			code: "read_limit",
+		});
+		expect(await failureOf(ok("not a number"))).toEqual({
+			fn: "apiCalendar:columnVisits",
+			kind: "shape",
+		});
+	});
+
+	it("the class is read from Convex's message, which is never kept", async () => {
+		const secretish = "Uncaught Error: client 'Ana Pop' phone +40700000000";
+		const failure = await failureOf(fnError(secretish));
+		expect(failure.code).toBe("uncaught");
+		expect(JSON.stringify(failure)).not.toContain("Ana");
+		expect(JSON.stringify(failure)).not.toContain("+4070");
+	});
+
+	it.each([
+		["Too many bytes read in a single function execution", "read_limit"],
+		["Too many documents written in a single function execution", "write_limit"],
+		["Function execution timed out", "timeout"],
+		["Transient error while executing function", "transient"],
+		["Could not find public function for 'apiClients:treatingForMany'", "function_not_found"],
+		["ArgumentValidationError: Value does not match validator", "invalid_args"],
+		["Uncaught TypeError: x is undefined", "uncaught"],
+		["something else entirely", "other"],
+	])("%s → %s", (message, code) => {
+		expect(functionErrorCode(message)).toBe(code);
 	});
 });

@@ -182,8 +182,33 @@ export class StoreRefused extends Error {
 	}
 }
 /** The store could not be reached or answered something it should not (the service answers 503). */
+/**
+ * What the log may say of a store failure, so a blip can be traced to its function: the function, how it failed, the
+ * HTTP status, and for a function's own error a short class read from Convex's message (never the message: it echoes
+ * the offending value).
+ */
+export interface StoreFailure {
+	fn?: string;
+	kind?: "no_answer" | "refused" | "function_error" | "shape";
+	status?: number;
+	code?:
+		| "read_limit"
+		| "write_limit"
+		| "timeout"
+		| "transient"
+		| "function_not_found"
+		| "invalid_args"
+		| "uncaught"
+		| "other";
+}
 export class StoreUnavailable extends Error {
 	override readonly name = "StoreUnavailable";
+	constructor(
+		message: string,
+		readonly failure: StoreFailure = {},
+	) {
+		super(message);
+	}
 }
 export interface Collection<R extends { id: string; app: string }> {
 	get(app: string, id: string): Promise<R | undefined>;
