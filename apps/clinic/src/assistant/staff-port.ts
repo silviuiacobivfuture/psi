@@ -20,9 +20,11 @@ import { mayDo } from "./permissions";
 import { type ActionsSource, extraMethods } from "./staff-port-extra";
 import { ok, refused, wrap } from "./staff-result";
 
-/** "Every appointment there is": a window the service accepts (instants are never negative), far on both sides. */
-const EVERYTHING_FROM = "1971-01-01";
-const EVERYTHING_TO = "2100-12-31";
+/**
+ * What the assistant looks through when it is not given dates: the two months before today and the two after, read as two
+ * windows the service accepts (it answers at most 62 days at a time, never the clinic's whole history at once).
+ */
+const AROUND_DAYS = 60;
 
 const LIVE = new Set(["requested", "confirmed", "attended", "no-show", "cancelled"]);
 const isStaffStatus = (s: string): s is StaffAppointment["status"] => LIVE.has(s);
@@ -94,9 +96,14 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 		clients: ReadonlyArray<Client>;
 		columns: ReadonlyArray<Column>;
 	}> =>
-		port
-			.calendar(app, EVERYTHING_FROM, EVERYTHING_TO)
-			.then((c) => ({ appts: c.appointments, clients: c.clients, columns: c.columns }));
+		Promise.all([
+			port.calendar(app, addDays(todayIso(), -AROUND_DAYS), todayIso()),
+			port.calendar(app, addDays(todayIso(), 1), addDays(todayIso(), AROUND_DAYS + 1)),
+		]).then(([before, after]) => ({
+			appts: [...before.appointments, ...after.appointments],
+			clients: [...new Map([...before.clients, ...after.clients].map((c) => [c.id, c])).values()],
+			columns: after.columns,
+		}));
 
 	const nameOf = (clients: ReadonlyArray<Client>, id: string | null): string | null =>
 		clients.find((c) => c.id === id)?.name ?? null;
@@ -240,8 +247,12 @@ export function createStaffPort(o: StaffPortOptions): StaffPort {
 			}),
 		appointment: (id) =>
 			wrap(async () => {
-				const { appts, clients } = await everything();
-				const found = appts.find((a) => a.id === id);
+				// One appointment is read by its id, on any date: never a calendar searched for it.
+				const found = (await port.appointment(app, id)) ?? undefined;
+				const clients =
+					found?.clientId === null || found?.clientId === undefined
+						? []
+						: await port.clientsByIds(app, [found.clientId]);
 				const mapped = found === undefined ? undefined : staffAppt(found, clients);
 				return mapped === undefined ? refused("not_found") : ok(mapped);
 			}),

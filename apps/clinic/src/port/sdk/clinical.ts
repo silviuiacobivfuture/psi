@@ -5,12 +5,13 @@ import {
 	type FileMeta as ApiFile,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import { PortError } from "../port";
+import { CLIENT_PAGE_SIZE, type ClientPage, PortError } from "../port";
 import type { AppSlug, Client } from "../schema";
 import type { BlacklistEntry, ClientFile, ClientFlag, ClientSummary } from "../schema-clinical";
 import { clinicalNotesGroup } from "./clinical-notes";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
+import { clientOf, drain } from "./map";
 import { instantOf, wallOf } from "./time";
 
 const soon = (what: string): Promise<never> =>
@@ -71,8 +72,15 @@ export function clinicalGroup(
 	const activeByClient = async (app: AppSlug): Promise<Map<string, BlacklistEntry>> => {
 		try {
 			const tz = await sdk.zone(app);
-			const list = await api.blacklist.list({ app, includeInactive: "false" });
-			return newestPerClient(list.items.map((e) => entryOf(e, tz)));
+			const list = await drain((cursor) =>
+				api.blacklist.list({
+					app,
+					includeInactive: "false",
+					limit: 500,
+					...(cursor === undefined ? {} : { cursor }),
+				}),
+			);
+			return newestPerClient(list.map((e) => entryOf(e, tz)));
 		} catch (error) {
 			if (toPortError(error).code === "forbidden") return new Map();
 			throw error;
@@ -101,6 +109,41 @@ export function clinicalGroup(
 					pinnedNotes: pinned.get(c.id) ?? 0,
 				}));
 			}),
+		clientPage: (
+			app: AppSlug,
+			filter: "current" | "archived",
+			q: string,
+			cursor: string | null,
+		): Promise<ClientPage> =>
+			run(async () => {
+				const query = q.trim();
+				const [page, listed] = await Promise.all([
+					api.clients.list({
+						app,
+						status: filter === "current" ? "active" : "archived",
+						...(query === "" ? {} : { q: query }),
+						limit: CLIENT_PAGE_SIZE,
+						...(cursor === null ? {} : { cursor }),
+					}),
+					activeByClient(app),
+				]);
+				const clients = page.items.map(clientOf);
+				const pinned = await more.pinnedCounts(
+					app,
+					clients.map((c) => c.id),
+				);
+				return {
+					clients,
+					summaries: clients.map((c) => ({
+						clientId: c.id,
+						next: null,
+						owedBani: null,
+						blacklist: listed.get(c.id) ?? null,
+						pinnedNotes: pinned.get(c.id) ?? 0,
+					})),
+					nextCursor: page.nextCursor ?? null,
+				};
+			}),
 		clientFlags: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Record<string, ClientFlag>> =>
 			run(async () => {
 				const [listed, pinned] = await Promise.all([
@@ -120,8 +163,15 @@ export function clinicalGroup(
 		blacklistHistory: (app: AppSlug, clientId: string): Promise<BlacklistEntry[]> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
-				const all = await api.blacklist.list({ app, includeInactive: "true" });
-				return all.items
+				const all = await drain((cursor) =>
+					api.blacklist.list({
+						app,
+						includeInactive: "true",
+						limit: 500,
+						...(cursor === undefined ? {} : { cursor }),
+					}),
+				);
+				return all
 					.filter((e) => e.client === clientId)
 					.map((e) => entryOf(e, tz))
 					.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -160,8 +210,15 @@ export function clinicalGroup(
 		files: (app: AppSlug, clientId: string): Promise<ClientFile[]> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
-				const list = await api.files.list({ app, id: clientId });
-				return list.items.filter((f) => f.status === "ready").map((f) => fileOf(f, tz));
+				const list = await drain((cursor) =>
+					api.files.list({
+						app,
+						id: clientId,
+						limit: 500,
+						...(cursor === undefined ? {} : { cursor }),
+					}),
+				);
+				return list.filter((f) => f.status === "ready").map((f) => fileOf(f, tz));
 			}),
 		uploadFile: (
 			app: AppSlug,

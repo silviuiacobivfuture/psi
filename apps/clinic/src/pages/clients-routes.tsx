@@ -2,6 +2,7 @@ import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
+import { sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
@@ -13,7 +14,7 @@ import {
 	renderClient,
 	type Soon,
 } from "./client-page";
-import { renderClients } from "./clients-list";
+import { ClientRow, MoreClients, renderClients, ShownCount } from "./clients-list";
 import { registerPackageRoutes } from "./package-routes";
 
 function noticeOf(
@@ -57,6 +58,38 @@ export function registerClients(app: Hono<Env>): void {
 			200,
 			{ "cache-control": "private, no-store" },
 		);
+	});
+
+	// The next page of the list, appended to the open page: the list grows a page at a time, never all at once.
+	app.get("/clients/more", async (c) => {
+		const ctx = c.var.ctx;
+		const filter = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
+		const q = (c.req.query("q") ?? "").slice(0, 120);
+		const cursor = (c.req.query("cursor") ?? "").slice(0, 200);
+		const before = Number.parseInt(c.req.query("shown") ?? "0", 10);
+		const page = await ctx.port.clientPage(ctx.app, filter, q, cursor === "" ? null : cursor);
+		const by = new Map(page.summaries.map((s) => [s.clientId, s]));
+		const shown = (Number.isInteger(before) && before > 0 ? before : 0) + page.clients.length;
+		const rows = (
+			await Promise.all(
+				page.clients.map((client) =>
+					(
+						<ClientRow key={client.id} client={client} summary={by.get(client.id)} ctx={ctx} />
+					).toString(),
+				),
+			)
+		).join("");
+		const more = await (
+			<MoreClients ctx={ctx} filter={filter} q={q} cursor={page.nextCursor} shown={shown} />
+		).toString();
+		const count = await (
+			<ShownCount ctx={ctx} shown={shown} more={page.nextCursor !== null} />
+		).toString();
+		return sse((stream) => {
+			stream.patchElements(rows, { selector: "#client-list", mode: "append" });
+			stream.patchElements(more);
+			stream.patchElements(count);
+		});
 	});
 
 	const show = async (c: Context<Env>, tab: ClientTab, flash?: string): Promise<Response> => {

@@ -2,7 +2,18 @@ import { z } from "zod/v4";
 import { BlacklistOverride } from "./entities-blacklist";
 import { DeviceFacts, PersonFacts, RoomFacts, ServiceFacts } from "./entities-catalog";
 import { ClientNote } from "./entities-notes";
-import { AppId, DateKey, FieldGroup, Id, Label, Locale, Money, Ms, Subject } from "./primitives";
+import {
+	AppId,
+	DateKey,
+	FieldGroup,
+	Id,
+	Label,
+	Locale,
+	MAX_WINDOW_DAYS,
+	Money,
+	Ms,
+	Subject,
+} from "./primitives";
 
 export * from "./entities-blacklist";
 export * from "./entities-catalog";
@@ -452,11 +463,24 @@ export const ImportRun = z.object({
 });
 
 export const CalendarColumn = z.enum(["person", "room", "device"]);
-export const CalendarQuery = z.object({
-	from: z.coerce.number().int().nonnegative(),
-	to: z.coerce.number().int().nonnegative(),
-	columns: CalendarColumn.default("person"),
-});
+/** A calendar window: `to` after `from`, at most MAX_WINDOW_DAYS days (a wider one is refused, never answered whole). */
+export const CalendarQuery = z
+	.object({
+		from: z.coerce.number().int().nonnegative(),
+		to: z.coerce.number().int().nonnegative(),
+		columns: CalendarColumn.default("person"),
+	})
+	.refine((q) => q.to > q.from && q.to - q.from <= MAX_WINDOW_DAYS * 86_400_000, {
+		message: `to must be after from, at most ${MAX_WINDOW_DAYS} days later`,
+		path: ["to"],
+	});
+/** A roster window of dates, both included: at most MAX_WINDOW_DAYS days. */
+export const RosterQuery = z
+	.object({ from: DateKey, to: DateKey })
+	.refine(
+		(q) => q.from <= q.to && Date.parse(q.to) - Date.parse(q.from) < MAX_WINDOW_DAYS * 86_400_000,
+		{ message: `from must not be after to, at most ${MAX_WINDOW_DAYS} days`, path: ["to"] },
+	);
 export const CalendarResult = z.object({
 	columns: z.array(z.object({ id: Id, name: z.string(), appointments: z.array(Appointment) })),
 });

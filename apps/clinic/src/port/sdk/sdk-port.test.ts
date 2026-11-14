@@ -68,6 +68,18 @@ describe("the calendar and appointments", () => {
 		const data = await (await as("olga")).calendar("psizone", "2026-12-20", "2026-12-20");
 		expect(data.appointments).toEqual([]);
 	});
+	it("calendar: names the clients of the visits it shows, and no others", async () => {
+		const port = await as("olga");
+		const busy = await port.calendar("psizone", "2026-11-14", "2026-11-14");
+		const named = new Set(
+			busy.appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId])),
+		);
+		expect(named.size).toBeGreaterThan(0);
+		expect(new Set(busy.clients.map((c) => c.id))).toEqual(named);
+		const empty = await port.calendar("psizone", "2026-11-16", "2026-11-16");
+		expect(empty.appointments).toHaveLength(0);
+		expect(empty.clients).toHaveLength(0);
+	});
 	it("calendar: a therapist sees their own column only (the service decides)", async () => {
 		const data = await (await as("dora")).calendar("psizone", "2026-11-14", "2026-11-14");
 		expect(data.columns.map((c) => c.name)).toEqual(["Dora Test"]);
@@ -77,7 +89,7 @@ describe("the calendar and appointments", () => {
 		const calendar = await port.calendar("psizone", "2026-11-16", "2026-11-16");
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services.find((s) => s.name === "Evaluare");
-		const client = calendar.clients[0];
+		const client = (await port.clients("psizone", "current", ""))[0];
 		if (!dora || !service || !client) throw new Error("fixture");
 		const [made] = await port.createAppointments("psizone", {
 			date: "2026-11-16",
@@ -101,7 +113,7 @@ describe("the calendar and appointments", () => {
 		const calendar = await port.calendar("psizone", "2026-11-17", "2026-11-17");
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
-		const client = calendar.clients[0];
+		const client = (await port.clients("psizone", "current", ""))[0];
 		if (!dora || !service || !client) throw new Error("fixture");
 		const input = {
 			date: "2026-11-17",
@@ -388,7 +400,7 @@ describe("a weekly series, through the adapter", () => {
 		const calendar = await port.calendar("psizone", date, date);
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
-		const client = calendar.clients[0];
+		const client = (await port.clients("psizone", "current", ""))[0];
 		if (!dora || !service || !client) throw new Error("fixture");
 		return { date, startMin: 600, columnId: dora.id, clientId: client.id, serviceId: service.id };
 	};
@@ -436,7 +448,7 @@ describe("the edits of an appointment, through the adapter", () => {
 		const calendar = await port.calendar("psizone", date, date);
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
-		const clients = calendar.clients;
+		const clients = await port.clients("psizone", "current", "");
 		if (!dora || !service || clients.length < 2) throw new Error("fixture");
 		const [made] = await port.createAppointments("psizone", {
 			date,
@@ -538,7 +550,7 @@ describe("changing, cancelling and paying an appointment", () => {
 		const calendar = await port.calendar("psizone", "2026-11-23", "2026-11-23");
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
-		const client = calendar.clients[0];
+		const client = (await port.clients("psizone", "current", ""))[0];
 		if (!dora || !service || !client) throw new Error("fixture");
 		const [made] = await port.createAppointments("psizone", {
 			date: "2026-11-23",
@@ -562,7 +574,7 @@ describe("changing, cancelling and paying an appointment", () => {
 		const calendar = await port.calendar("psizone", "2026-11-24", "2026-11-24");
 		const dora = calendar.columns.find((c) => c.name === "Dora Test");
 		const service = calendar.services[0];
-		const client = calendar.clients[0];
+		const client = (await port.clients("psizone", "current", ""))[0];
 		if (!dora || !service || !client) throw new Error("fixture");
 		const [made] = await port.createAppointments("psizone", {
 			date: "2026-11-24",

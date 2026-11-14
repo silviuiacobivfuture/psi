@@ -1,8 +1,9 @@
-import { FIELD_GROUPS } from "@psi/scheduling-sdk/contract";
+import { DEFAULT_PAGE, FIELD_GROUPS } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
 import type { HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
 import type { AuditRow, DefinitionRow } from "../store/types";
+import { auditPage, readAuditCursor } from "./audit-page";
 import { must, paginate } from "./shared";
 
 const MAX_BODY = 64_000;
@@ -56,26 +57,24 @@ export const adminHandlers: HandlersOf<
 	"audit.list" | "builder.list" | "builder.put" | "builder.remove" | "imports.list"
 > = {
 	async "audit.list"(ctx) {
-		const { action, from, to } = ctx.query;
-		const rows = (await ctx.deps.store.c.audit.list(ctx.app))
-			.filter(
-				(a) =>
-					(action === undefined || a.action === action) &&
-					(from === undefined || a.at >= from) &&
-					(to === undefined || a.at < to),
-			)
-			.sort((a, b) => b.at - a.at);
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		const { action, from, to, limit, cursor } = ctx.query;
+		const page = await auditPage(ctx.deps.store.c.audit, ctx.app, {
+			...(action === undefined ? {} : { action }),
+			...(from === undefined ? {} : { from }),
+			...(to === undefined ? {} : { to }),
+			limit: limit ?? DEFAULT_PAGE,
+			after: cursor === undefined ? undefined : readAuditCursor(cursor),
+		});
 		return { ...page, items: page.items.map(auditOut) };
 	},
 
 	async "builder.list"(ctx) {
 		const kind = ctx.params.kind;
-		return {
-			items: (await ctx.deps.store.c.definitions.list(ctx.app, { eq: { kind } }))
-				.sort((a, b) => a.id.localeCompare(b.id))
-				.map(definitionOut),
-		};
+		const rows = (await ctx.deps.store.c.definitions.list(ctx.app, { eq: { kind } })).sort((a, b) =>
+			a.id.localeCompare(b.id),
+		);
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		return { ...page, items: page.items.map(definitionOut) };
 	},
 
 	async "builder.put"(ctx) {
@@ -129,17 +128,20 @@ export const adminHandlers: HandlersOf<
 	},
 
 	async "imports.list"(ctx) {
+		const rows = (await ctx.deps.store.c.imports.list(ctx.app)).sort(
+			(a, b) => b.startedAt - a.startedAt,
+		);
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
 		return {
-			items: (await ctx.deps.store.c.imports.list(ctx.app))
-				.sort((a, b) => b.startedAt - a.startedAt)
-				.map((i) => ({
-					id: i.id,
-					source: i.source,
-					status: i.status,
-					counts: i.counts,
-					startedAt: i.startedAt,
-					...(i.finishedAt === undefined ? {} : { finishedAt: i.finishedAt }),
-				})),
+			...page,
+			items: page.items.map((i) => ({
+				id: i.id,
+				source: i.source,
+				status: i.status,
+				counts: i.counts,
+				startedAt: i.startedAt,
+				...(i.finishedAt === undefined ? {} : { finishedAt: i.finishedAt }),
+			})),
 		};
 	},
 };

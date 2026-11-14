@@ -284,6 +284,7 @@ const OWN: Record<
 	"reports.revenue": (w) => olga(w, "GET", `/reports/revenue${REPORT_RANGE}`),
 	"reports.csv": (w) => olga(w, "GET", `/reports/rates/csv${REPORT_RANGE}`),
 	"notes.list": (w) => olga(w, "GET", `/clients/${w.ids.c1}/notes`),
+	"notes.pinned": (w) => olga(w, "GET", `/notes/pinned?clients=${w.ids.c1},${w.ids.c2}`),
 	"notes.create": (w) =>
 		olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "plata", text: "pays by card" }),
 	"notes.update": async (w) =>

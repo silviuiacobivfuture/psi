@@ -320,11 +320,11 @@ export const appHandlers: HandlersOf<
 	},
 
 	async "roles.list"(ctx) {
-		return {
-			items: (await ctx.deps.store.c.roles.list(ctx.app))
-				.sort((a, b) => a.name.localeCompare(b.name))
-				.map(roleOut),
-		};
+		const rows = (await ctx.deps.store.c.roles.list(ctx.app)).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		return { ...page, items: page.items.map(roleOut) };
 	},
 
 	async "roles.create"(ctx) {

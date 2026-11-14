@@ -6,6 +6,7 @@ import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
+import { pagedClients } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -428,6 +429,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						c.name.toLocaleLowerCase().includes(q) ||
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
+		},
+		clientPage(app, filter, query, cursor) {
+			return pagedClients(this)(app, filter, query, cursor);
+		},
+		async clientsByIds(app, ids) {
+			guard("clients");
+			const wanted = new Set(ids);
+			return data(app).clients.filter((c) => wanted.has(c.id));
 		},
 		async client(app, id) {
 			guard("client");
