@@ -9,6 +9,7 @@ import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
 import { NOTIFY_CHANNELS, NOTIFY_KINDS, type NotificationPrefs } from "../port/profile-port";
 import { hoursSummary } from "./hours";
+import { MyRoles } from "./my-roles";
 import {
 	Account,
 	Identity,
@@ -63,12 +64,14 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 	app.get("/me/profile", async (c) => {
 		const ctx = c.var.ctx;
 		const { subject } = ctx.person;
-		const [profile, prefs, feedback, sessions, calendar] = await Promise.all([
+		const [profile, prefs, feedback, sessions, calendar, roles] = await Promise.all([
 			orSoon(ctx.port.profile(ctx.app, subject)),
 			orSoon(ctx.port.notificationPrefs(subject)),
 			orSoon(ctx.port.myFeedback(ctx.app, subject)),
 			deps.auth.sessions(c),
 			calendarOf(ctx),
+			// Only for a custom role's description, and only for whoever may read the roles: a seed role needs no lookup.
+			ctx.can.has("roles_view") ? orSoon(ctx.port.roles(ctx.app)) : Promise.resolve(null),
 		]);
 		const flash = Flash.parse(c.req.query("saved"));
 		const data: ProfileData = {
@@ -89,6 +92,7 @@ export function registerProfile(app: Hono<Env>, deps: AppDeps): void {
 				children: (
 					<div class="adm-page pf-page">
 						<Identity ctx={ctx} data={data} />
+						<MyRoles ctx={ctx} roles={roles ?? []} />
 						<div class="pf-grid">
 							<Account ctx={ctx} data={data} />
 							<Preferences ctx={ctx} />

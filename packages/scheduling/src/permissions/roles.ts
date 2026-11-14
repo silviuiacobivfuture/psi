@@ -106,10 +106,10 @@ export const SEED_ROLES: ReadonlyArray<SeedRole> = [
 	},
 	{
 		name: ADMIN,
-		description: "Everything but roles and the audit log.",
-		permissions: allPermissionKeys()
-			.filter((key) => !key.startsWith("roles_") && !key.startsWith("audit_log_"))
-			.sort(),
+		// The organisation's highest role: never less than the owner's (clinical data, money, members, roles, settings,
+		// the builder, the journal), so an administrator is never stopped where an owner would pass.
+		description: "The organisation's highest role: everything the owner can do.",
+		permissions: [...allPermissionKeys()].sort(),
 	},
 	{
 		name: RECEPTION,

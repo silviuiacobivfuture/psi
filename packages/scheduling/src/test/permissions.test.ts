@@ -345,11 +345,12 @@ describe("seed roles", () => {
 		}
 	});
 
-	it("Owner holds everything and Admin everything but roles and the audit log", () => {
+	it("Owner holds everything, and so does the Administrator, the organisation's highest role", () => {
 		expect(new Set(role(OWNER).permissions)).toEqual(new Set(allPermissionKeys()));
+		expect(new Set(role(ADMIN).permissions)).toEqual(new Set(allPermissionKeys()));
 		const admin = perms(ADMIN);
-		expect(can(admin, "roles", "edit", NONE).allowed).toBe(false);
-		expect(can(admin, "audit_log", "view", NONE).allowed).toBe(false);
+		expect(can(admin, "roles", "edit", NONE).allowed).toBe(true);
+		expect(can(admin, "audit_log", "view", NONE).allowed).toBe(true);
 		expect(can(admin, "members", "create", NONE).allowed).toBe(true);
 		expect(can(admin, "clients", "view", { ...NONE, fieldGroup: "clinical" }).allowed).toBe(true);
 	});

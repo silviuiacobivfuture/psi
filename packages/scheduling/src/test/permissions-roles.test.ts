@@ -119,11 +119,23 @@ describe("every seed role's exact grants", () => {
 		expect(grants(name)).toEqual(EXPECTED[name]);
 	});
 
-	it("Owner holds every key; Admin every key but roles and the audit log", () => {
+	it("Owner holds every key, and the Administrator, the organisation's highest role, never less than the Owner", () => {
 		expect(grants("Owner")).toEqual([...ALL_PERMISSION_KEYS].sort());
-		expect(grants("Admin")).toEqual(
-			[...ALL_PERMISSION_KEYS].filter((k) => !/^(roles|audit_log)_/.test(k)).sort(),
-		);
+		expect(grants("Admin")).toEqual([...ALL_PERMISSION_KEYS].sort());
+		for (const key of grants("Owner")) expect(grants("Admin")).toContain(key);
+		// The groups the owner asked for by name are the administrator's too.
+		for (const prefix of [
+			"clients_view_all_clinical",
+			"payments_",
+			"roles_",
+			"audit_log_",
+			"builder_",
+			"people_",
+		])
+			expect(
+				grants("Admin").some((k) => k.startsWith(prefix)),
+				prefix,
+			).toBe(true);
 	});
 
 	it("only the owner and the admin may restore, run imports or delete records", () => {
