@@ -80,6 +80,30 @@ describe("assets and transport", () => {
 		expect((await member.raw("/assets/nope.000000000000.js")).status).not.toBe(200);
 	});
 
+	it("an unhashed asset carries an ETag, and an unchanged one asked again is a 304 with no body", async () => {
+		const html = await (await member.get("/calendar")).text();
+		const hash = /href="\/assets\/app\.([0-9a-f]{12})\.css"/.exec(html)?.[1] ?? "";
+		const plain = await member.raw("/assets/app.css");
+		expect(plain.headers.get("etag")).toBe(`"${hash}"`);
+		const again = await member.raw("/assets/app.css", {
+			headers: { "if-none-match": `"${hash}"` },
+		});
+		expect(again.status).toBe(304);
+		expect(await again.text()).toBe("");
+		expect(again.headers.get("cache-control")).toBe("public, max-age=300, must-revalidate");
+		const changed = await member.raw("/assets/app.css", {
+			headers: { "if-none-match": '"000000000000"' },
+		});
+		expect(changed.status).toBe(200);
+		expect((await changed.text()).length).toBeGreaterThan(0);
+		const icon = await member.raw("/favicon.svg");
+		const tag = icon.headers.get("etag") ?? "";
+		expect(tag).toMatch(/^"[^"]+"$/);
+		expect((await member.raw("/favicon.svg", { headers: { "if-none-match": tag } })).status).toBe(
+			304,
+		);
+	});
+
 	it("compresses what is asked compressed, and never an event stream", async () => {
 		const css = await member.raw("/assets/app.css", { headers: GZIP });
 		expect(css.headers.get("content-encoding")).toBe("gzip");

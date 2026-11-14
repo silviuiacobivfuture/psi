@@ -9,6 +9,7 @@ import {
 import { REACH_ASSIGNED, REACH_OWN } from "./model";
 import type { AuthzPort } from "./port";
 import { idOf, objectOf, userOf } from "./port";
+import { requestAuthz } from "./request";
 
 /** How far a person's permission reaches in a list: everything in the app, the named objects, or nothing. */
 export type Reach = { kind: "all" } | { kind: "ids"; ids: ReadonlySet<string> } | { kind: "none" };
@@ -39,6 +40,12 @@ export interface Access {
 		app: string,
 		keys: readonly string[],
 	): Promise<Map<string, ("all" | "assigned" | "own")[]>>;
+	/**
+	 * This access over one request's port (`requestAuthz`): each identical question (a Check, a ListObjects, a person's
+	 * denials) is asked once while nothing is written, so a list asks OpenFGA once per question, never once per row.
+	 * The port it answers through is returned with it: writes go through that port and drop what it remembered.
+	 */
+	forRequest(): { access: Access; authz: AuthzPort };
 }
 
 /** The catalogue keys (with their scope) a person was individually denied in an app. */
@@ -51,27 +58,29 @@ function definition(key: string): PermissionDef {
 }
 
 const REACH_RELATION = { own: REACH_OWN, assigned: REACH_ASSIGNED } as const;
+type Scope = "all" | "assigned" | "own";
 
 /**
  * Turns the catalogue and the tuples into the questions a route asks. A permission the person was individually denied
  * is refused before OpenFGA is asked when it is the only way in (the closure model has no exclusion); when the denial
- * removes one scope of several, the scopes are evaluated one by one against the object's reach.
+ * removes one scope of several, the scopes are evaluated one by one against the object's reach. The scopes of one
+ * permission are asked in one BatchCheck.
  */
 export function createAccess(authz: AuthzPort, denials: Denials): Access {
-	async function scopesHeld(
-		subject: string,
-		app: string,
-		def: PermissionDef,
-	): Promise<("all" | "assigned" | "own")[]> {
+	async function scopesHeld(subject: string, app: string, def: PermissionDef): Promise<Scope[]> {
 		const denied = await denials(app, subject);
-		const user = userOf(subject);
-		const held: ("all" | "assigned" | "own")[] = [];
-		for (const scope of def.scopes) {
-			const relation = appRelation(def, scope);
-			if (denied.has(relation)) continue;
-			if (await authz.check(user, relation, objectOf("sched_app", app))) held.push(scope);
-		}
-		return held;
+		const asked = def.scopes
+			.map((scope) => ({ scope, relation: appRelation(def, scope) }))
+			.filter((q) => !denied.has(q.relation));
+		if (asked.length === 0) return [];
+		const answers = await authz.checkMany(
+			asked.map((q) => ({
+				user: userOf(subject),
+				relation: q.relation,
+				object: objectOf("sched_app", app),
+			})),
+		);
+		return asked.filter((_q, i) => answers[i] === true).map((q) => q.scope);
 	}
 	const denies = async (app: string, subject: string, def: PermissionDef): Promise<boolean> => {
 		const denied = await denials(app, subject);
@@ -84,7 +93,7 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 		scopesHeld: (subject, app, key) => scopesHeld(subject, app, definition(key)),
 		async scopesHeldMany(subject, app, keys) {
 			const denied = await denials(app, subject);
-			const asked: { key: string; scope: "all" | "assigned" | "own"; relation: string }[] = [];
+			const asked: { key: string; scope: Scope; relation: string }[] = [];
 			for (const key of keys) {
 				const def = definition(key);
 				for (const scope of def.scopes) {
@@ -99,7 +108,7 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 					object: objectOf("sched_app", app),
 				})),
 			);
-			const held = new Map<string, ("all" | "assigned" | "own")[]>(keys.map((k) => [k, []]));
+			const held = new Map<string, Scope[]>(keys.map((k) => [k, []]));
 			asked.forEach((q, i) => {
 				if (answers[i] === true) held.get(q.key)?.push(q.scope);
 			});
@@ -119,11 +128,18 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 			const user = userOf(subject);
 			if (!(await denies(app, subject, def))) return authz.check(user, key, objectOf(type, id));
 			// A denied scope removes that way in only: evaluate each remaining scope against the object's reach.
-			for (const scope of await scopesHeld(subject, app, def)) {
-				if (scope === "all") return true;
-				if (await authz.check(user, REACH_RELATION[scope], objectOf(type, id))) return true;
-			}
-			return false;
+			const held = await scopesHeld(subject, app, def);
+			if (held.includes("all")) return true;
+			const scoped = held.filter((s): s is "own" | "assigned" => s !== "all");
+			if (scoped.length === 0) return false;
+			const answers = await authz.checkMany(
+				scoped.map((scope) => ({
+					user,
+					relation: REACH_RELATION[scope],
+					object: objectOf(type, id),
+				})),
+			);
+			return answers.includes(true);
 		},
 		async reach(subject, app, key, type) {
 			const def = definition(key);
@@ -133,12 +149,23 @@ export function createAccess(authz: AuthzPort, denials: Denials): Access {
 			if (!checkedOn(def, type)) return NONE;
 			// Holding the permission over no object yet is an empty list, not a refusal.
 			const user = userOf(subject);
-			const ids = new Set<string>();
-			for (const scope of held)
-				if (scope !== "all")
-					for (const o of await authz.listObjects(user, REACH_RELATION[scope], type))
-						ids.add(idOf(o));
-			return { kind: "ids", ids };
+			const lists = await Promise.all(
+				held
+					.filter((s): s is "own" | "assigned" => s !== "all")
+					.map((scope) => authz.listObjects(user, REACH_RELATION[scope], type)),
+			);
+			return { kind: "ids", ids: new Set(lists.flat().map(idOf)) };
+		},
+		forRequest() {
+			const port = requestAuthz(authz);
+			const remembered = new Map<string, Promise<ReadonlySet<string>>>();
+			const once: Denials = (app, subject) => {
+				const key = `${port.generation()}\u0000${app}\u0000${subject}`;
+				const held = remembered.get(key) ?? denials(app, subject);
+				remembered.set(key, held);
+				return held;
+			};
+			return { access: createAccess(port, once), authz: port };
 		},
 	};
 }

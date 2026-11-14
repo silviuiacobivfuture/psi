@@ -17,6 +17,7 @@ const BOUNDED: Readonly<Record<string, string>> = {
 	"members.get":
 		"one member: their grants and matrix (the catalogue) and the team's calendars (the people)",
 	"calendar.get": "one window of at most MAX_WINDOW_DAYS days (the month grid)",
+	"calendar.summary": "one count per day of a window of at most MAX_WINDOW_DAYS days",
 	"clients.get": "one client: who treats them (max 20) and their pinned notes",
 	"roster.get": "one window of at most MAX_WINDOW_DAYS days",
 	"series.get": "one weekly series: at most MAX_SERIES_OCCURRENCES appointments",

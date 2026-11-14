@@ -31,6 +31,12 @@ export interface OwnBookingsOptions {
 	baseUrl: string;
 	/** The app the site books for (`psizone`, `hemisync`). */
 	app: string;
+	/**
+	 * The site's own service key: the site then calls for the person it signed in (`x-psi-subject`), and the first
+	 * argument of every method is that person's SUBJECT. Absent, it is the person's own ID token, sent as theirs (the
+	 * service must then list the site's sign-in among its issuers).
+	 */
+	serviceKey?: string;
 	fetch?: typeof globalThis.fetch;
 	timeoutMs?: number;
 }
@@ -63,15 +69,16 @@ async function attempt<T>(run: () => Promise<T>): Promise<T | OwnRefusal> {
 }
 
 /**
- * The visitor's own bookings through the service, each call with THE VISITOR'S token (the service decides whose a
- * booking is; the site never names anyone): list, cancel, the free times of the same person and service, and a move.
- * Matches `@psi/account`'s `OwnBookingsPort`.
+ * The visitor's own bookings through the service, each call as THE VISITOR: their own token, or the site's key naming
+ * the person it signed in (the service decides whose a booking is): list, cancel, the free times of the same person
+ * and service, and a move. Matches `@psi/account`'s `OwnBookingsPort`, whose credential is the token or the subject.
  */
 export function ownBookings(o: OwnBookingsOptions) {
-	const as = (token: string) =>
+	const as = (who: string) =>
 		createSchedulingClient({
 			baseUrl: o.baseUrl,
-			auth: { bearer: token },
+			auth:
+				o.serviceKey === undefined ? { bearer: who } : { serviceKey: o.serviceKey, subject: who },
 			...(o.fetch === undefined ? {} : { fetch: o.fetch }),
 			...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
 		});

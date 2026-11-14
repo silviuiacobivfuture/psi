@@ -227,10 +227,10 @@ export const eraseClient = mutation({
 		for (const k of keys) await ctx.db.delete(k._id);
 		const linked = await ctx.db
 			.query("appointments")
-			.withIndex("by_tenant_start", (q) => q.eq("tenant", args.tenant))
+			.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
 			.collect();
 		let unlinked = 0;
-		for (const a of linked.filter((x) => x.client === client._id)) {
+		for (const a of linked) {
 			await ctx.db.patch(a._id, { client: undefined });
 			unlinked += 1;
 		}

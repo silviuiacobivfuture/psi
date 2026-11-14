@@ -6,6 +6,7 @@ import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { dayLong, hhmm } from "../lib/dates";
 import { at, type Locale } from "../lib/i18n";
+import { moreHref, ShowMore } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 import type { ClientFilter } from "../port/port";
 import type { Client } from "../port/schema";
@@ -121,20 +122,12 @@ export function MoreClients({
 	cursor: string | null;
 	shown: number;
 }): JSX.Element {
-	const params = new URLSearchParams({ filter, cursor: cursor ?? "", shown: String(shown) });
-	if (q !== "") params.set("q", q);
 	return (
-		<div id="client-more" class="client-more">
-			{cursor === null ? null : (
-				<button
-					type="button"
-					class="adm-btn"
-					data-on:click={`@get('/clients/more?${params.toString()}')`}
-				>
-					{m.cl_list_more({}, at(ctx.locale))}
-				</button>
-			)}
-		</div>
+		<ShowMore
+			id="client-more"
+			href={moreHref("/clients/more", cursor, shown, q === "" ? { filter } : { filter, q })}
+			label={m.cl_list_more({}, at(ctx.locale))}
+		/>
 	);
 }
 

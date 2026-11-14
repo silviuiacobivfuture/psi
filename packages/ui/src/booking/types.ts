@@ -37,15 +37,15 @@ export type BookingErrors = Partial<
 
 /**
  * The estate account in a booking: pre-fill for a signed-in person, a sign-in line for anyone
- * else, and the account hash on the request when the site lists requests in its account.
+ * else, and the account (its subject) on the request when the site lists requests in its account.
  */
 export interface BookingAccount {
 	/** What the form says about the account; undefined when sign-in is not configured here. */
 	form?: AccountLine;
 	/** The profile's name, e-mail and phone, editable; empty for an anonymous visitor. */
 	prefill: Pick<BookingValues, "name" | "email" | "phone">;
-	/** `accountHashOf(subject)` for the scheduling store; undefined when anonymous. */
-	accountHash?: string;
+	/** The account's subject: the scheduling service makes the request theirs (their bookings page lists it); undefined when anonymous or when the site lists no requests. */
+	subject?: string;
 	/** The person's bookings page, when signed in and the site has one. */
 	bookingsHref?: string;
 }

@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { REFUSED } from "./apiSupport";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { actorValidator, serverKeyValidator } from "./validators";
 
@@ -77,14 +79,21 @@ export const pending = query({
 	args: { key: serverKeyValidator, tenant: v.string(), from: v.number() },
 	handler: async (ctx, args) => {
 		requireServer(args.key);
-		const booked = await ctx.db
-			.query("appointments")
-			.withIndex("by_tenant_start", (q) => q.eq("tenant", args.tenant).gte("start", args.from))
-			.collect();
-		const waiting = await ctx.db
-			.query("callbackRequests")
-			.withIndex("by_tenant_status_created", (q) => q.eq("tenant", args.tenant).eq("status", "new"))
-			.collect();
+		const booked = await within(
+			ctx.db
+				.query("appointments")
+				.withIndex("by_tenant_start", (q) => q.eq("tenant", args.tenant).gte("start", args.from)),
+			LIST_MAX,
+		);
+		const waiting = await within(
+			ctx.db
+				.query("callbackRequests")
+				.withIndex("by_tenant_status_created", (q) =>
+					q.eq("tenant", args.tenant).eq("status", "new"),
+				),
+			LIST_MAX,
+		);
+		if (booked === undefined || waiting === undefined) return REFUSED(TOO_MANY_ROWS);
 		return {
 			ok: true as const,
 			count: booked.filter((a) => a.status === "requested").length + waiting.length,

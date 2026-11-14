@@ -90,7 +90,14 @@ async function book(nth: number): Promise<string> {
 	});
 	const sent = await site("POST", `/book/holds/${String(held.json.reference)}/submit`, {
 		holdToken: String(held.json.holdToken),
-		contact: { name: "Ana Client", email: "ana@example.test" },
+		// Every booking carries the five fields the service checks.
+		contact: {
+			name: "Ana Client",
+			email: "ana@example.test",
+			phone: "0799 123 456",
+			age: 34,
+			details: "A synthetic booking, long enough to be one.",
+		},
 	});
 	return String(sent.json.reference);
 }
@@ -226,6 +233,24 @@ describe("Programările mele", () => {
 			expect(walk.trail.at(-1)).toBe(`${ORIGIN}/cont/programari`);
 		}
 		token = "own";
+	});
+
+	it("with the site's own key the port is called with the person's subject: theirs are listed, another's are not, and nobody else can cancel them", async () => {
+		const port = ownBookings({
+			baseUrl: api.url,
+			app: "psizone",
+			serviceKey: api.serviceKey("psizone-web"),
+		});
+		const reference = await book(18);
+		const hers = await port.list(ANA.sub);
+		if (typeof hers === "string") throw new Error(hers);
+		const row = hers.find((r) => r.reference === reference);
+		expect(row).toMatchObject({ canChange: true, canMove: true });
+		expect(await port.list("visitor-someone-else")).toEqual([]);
+		expect(await port.cancel("visitor-someone-else", String(row?.id))).toBe("not_found");
+		expect((await mine()).find((r) => r.reference === reference)?.status).toBe("requested");
+		expect(await port.cancel(ANA.sub, String(row?.id))).toBe("ok");
+		expect((await mine()).find((r) => r.reference === reference)?.status).toBe("cancelled");
 	});
 
 	it("a token the service refuses sends the person through a silent sign-in once, then says the service is unavailable", async () => {

@@ -404,6 +404,35 @@ export const catalogSection: ContractSection = (env) => {
 			expect(await two.c.clients.get(two.app, a.id)).toBeUndefined();
 		});
 
+		it("getMany reads the clients asked for, in any standing, in the order asked, each once, with who treats them", async () => {
+			const one = await fresh();
+			const two = await fresh();
+			const dora = await practitioner(one.app);
+			const a = await one.c.clients.insert({ ...fullClient(one.app, [dora.id]), name: "Alpha" });
+			const b = await one.c.clients.insert({ ...fullClient(one.app, []), name: "Ștefan" });
+			await one.c.clients.replace({ ...b, status: "archived", archivedAt: NOW });
+			const foreign = await two.c.clients.insert({ ...fullClient(two.app, []), name: "Gamma" });
+			const many = await one.c.clients.getMany(one.app, [b.id, a.id, b.id, foreign.id, newId("c")]);
+			expect(many.map((x) => [x.id, x.name, x.status])).toEqual([
+				[b.id, "Ștefan", "archived"],
+				[a.id, "Alpha", "active"],
+			]);
+			expect(many[1]?.treating).toEqual([dora.id]);
+			expect(bareClient(many[1] ?? a)).toEqual(
+				bareClient((await one.c.clients.get(one.app, a.id)) ?? b),
+			);
+			expect(await one.c.clients.getMany(one.app, [])).toEqual([]);
+		});
+
+		it("getMany answers past one store batch (more than 100 ids)", async () => {
+			const { app, c } = await fresh();
+			const saved = [];
+			for (let i = 0; i < 3; i++)
+				saved.push(await c.clients.insert({ ...fullClient(app, []), name: `Client ${i}` }));
+			const ids = [...Array.from({ length: 150 }, () => newId("c")), ...saved.map((s) => s.id)];
+			expect((await c.clients.getMany(app, ids)).map((x) => x.id)).toEqual(saved.map((s) => s.id));
+		});
+
 		it("replace of a client that is not there says so", async () => {
 			const { app, c } = await fresh();
 			expect(await c.clients.replace(fullClient(app, []))).toBe(false);

@@ -1,3 +1,4 @@
+import { countedDays } from "../port/day-counts";
 import type { Capabilities, ClinicPort } from "../port/port";
 
 /** The people whose rows a permission reaches, or null when it reaches everyone's. */
@@ -22,14 +23,29 @@ export function scopedPort(port: ClinicPort, caps: Capabilities): ClinicPort {
 	const appointments = reachSet(caps, "appointments_view");
 	return {
 		...port,
-		async calendar(app, from, to) {
-			const data = await port.calendar(app, from, to);
-			if (calendar === null) return data;
+		async calendar(app, from, to, focus) {
+			if (calendar === null) return port.calendar(app, from, to, focus);
+			// The focus picks among the columns this role or member sees, never one outside their reach.
+			const data = await port.calendar(
+				app,
+				from,
+				to,
+				focus === undefined ? undefined : (cols) => focus(cols.filter((c) => calendar.has(c.id))),
+			);
 			return {
 				...data,
 				columns: data.columns.filter((c) => calendar.has(c.id)),
 				appointments: data.appointments.filter((a) => calendar.has(a.columnId)),
 			};
+		},
+		/**
+		 * The service counts within the administrator's own reach: a narrowed view counts the visits of the calendars it
+		 * sees instead (the heavier read, only while looking as someone else).
+		 */
+		async calendarSummary(app, from, to) {
+			return calendar === null
+				? port.calendarSummary(app, from, to)
+				: countedDays(this)(app, from, to);
 		},
 		async clients(app, filter, query) {
 			const all = await port.clients(app, filter, query);

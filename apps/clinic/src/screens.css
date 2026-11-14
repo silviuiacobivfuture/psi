@@ -1,3 +1,13 @@
+/* Every list's "show more": centred under the list, gone with the last page. */
+.list-more {
+	display: flex;
+	justify-content: center;
+	margin-top: var(--space-3);
+}
+.list-more:empty {
+	display: none;
+}
+
 /* Clients, client page, packages. */
 .client-list {
 	padding: 0;

@@ -15,6 +15,7 @@ import { CONVEX_DATA, CONVEX_URL } from "./backend";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
+// The backend every backend test uses (`PSI_CONVEX_PORT`, `PSI_CONVEX_DATA` for a session's own one).
 const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
 const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })

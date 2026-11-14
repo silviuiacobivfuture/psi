@@ -1,7 +1,7 @@
 import { OwnAppointment } from "@psi/scheduling-sdk/contract";
 import { z } from "zod/v4";
 import type { Populated } from "./populate";
-import { HOUR, NOW, type Reply } from "./world";
+import { bookingContact, HOUR, NOW, type Reply } from "./world";
 
 const A = "/v1/apps/psizone";
 
@@ -59,7 +59,7 @@ export async function bookAs(
 		`/book/holds/${String(held.json.reference)}/submit`,
 		{
 			holdToken: String(held.json.holdToken),
-			contact: { name: "Visitor Test", email: "visitor@example.test" },
+			contact: bookingContact(),
 		},
 		subject,
 	);

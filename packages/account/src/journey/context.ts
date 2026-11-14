@@ -26,11 +26,14 @@ export interface JourneyOptions {
 	/** Previous reservations; absent where the site has no scheduling store. */
 	reservations?: ReservationsPort;
 	/**
-	 * "Programările mele" through the scheduling service, with the person's own token: when present, the bookings page
-	 * lists, cancels and moves through it (the service decides whose a booking is).
+	 * "Programările mele" through the scheduling service, as the person: when present, the bookings page lists, cancels
+	 * and moves through it (the service decides whose a booking is).
 	 */
 	bookings?: OwnBookingsPort;
-	/** The person's token for the scheduling service; default the ID token their session holds (its audience is the site). */
+	/**
+	 * What the port is called with for this person: default the ID token their session holds (its audience is the site);
+	 * a site that calls with its own service key passes the person's subject instead. Null: sign in again, silently.
+	 */
 	tokenFor?: (c: Context, person: SignedIn) => Promise<string | null>;
 	/**
 	 * Where export and erasure happen when this site has no reservations store: the Psizone account's data

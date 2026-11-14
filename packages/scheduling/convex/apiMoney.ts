@@ -3,6 +3,7 @@ import { planChange } from "../src/clinic/change";
 import { isLocalDate } from "../src/domain/time";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record, stale } from "./apiSupport";
+import { PER_CLIENT_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { actorValidator, paymentMethodValidator, serverKeyValidator } from "./validators";
 
@@ -206,22 +207,30 @@ export const forClient = query({
 		requireServer(args.key);
 		const client = await owned(ctx, "clients", args.tenant, args.client);
 		if (client === null) return REFUSED("not_found");
-		const packages = await ctx.db
-			.query("packages")
-			.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-			.collect();
-		const payments = await ctx.db
-			.query("payments")
-			.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-			.collect();
+		const packages = await within(
+			ctx.db
+				.query("packages")
+				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id)),
+			PER_CLIENT_MAX,
+		);
+		const payments = await within(
+			ctx.db
+				.query("payments")
+				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id)),
+			PER_CLIENT_MAX,
+		);
+		if (packages === undefined || payments === undefined) return REFUSED(TOO_MANY_ROWS);
 		const out = [];
 		for (const p of packages) {
-			const visits = await ctx.db
-				.query("visits")
-				.withIndex("by_tenant_package_start", (q) =>
-					q.eq("tenant", args.tenant).eq("package", p._id),
-				)
-				.collect();
+			const visits = await within(
+				ctx.db
+					.query("visits")
+					.withIndex("by_tenant_package_start", (q) =>
+						q.eq("tenant", args.tenant).eq("package", p._id),
+					),
+				PER_CLIENT_MAX,
+			);
+			if (visits === undefined) return REFUSED(TOO_MANY_ROWS);
 			out.push({
 				...p,
 				id: p._id,

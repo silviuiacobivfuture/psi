@@ -3,6 +3,7 @@ import { isPermissionKey } from "../src/permissions/catalogue";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { CATALOG_MAX, TOO_MANY_ROWS } from "./bounded";
 import { requireServer } from "./guard";
 import { practitionerOf } from "./setupSupport";
 import { actorValidator, serverKeyValidator } from "./validators";
@@ -343,11 +344,13 @@ export const roles = query({
 		const rows = await ctx.db
 			.query("roles")
 			.withIndex("by_tenant_name", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		const members = await ctx.db
 			.query("roleMembers")
 			.withIndex("by_tenant_role", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (members.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return {
 			ok: true as const,
 			roles: rows.map((r) => ({

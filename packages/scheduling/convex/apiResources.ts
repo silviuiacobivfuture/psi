@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { planChange } from "../src/clinic/change";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { CATALOG_MAX, TOO_MANY_ROWS } from "./bounded";
 import { requireServer } from "./guard";
 import { SLUG } from "./setupSupport";
 import { actorValidator, serverKeyValidator } from "./validators";
@@ -108,7 +109,8 @@ export const devices = query({
 		const rows = await ctx.db
 			.query("devices")
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, devices: rows.map((d) => ({ ...d, id: d._id })) };
 	},
 });
@@ -205,7 +207,8 @@ export const groups = query({
 		const rows = await ctx.db
 			.query("groupActivities")
 			.withIndex("by_tenant_slug", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, groups: rows.map((g) => ({ ...g, id: g._id })) };
 	},
 });
@@ -291,7 +294,8 @@ export const staff = query({
 		const rows = await ctx.db
 			.query("staffMembers")
 			.withIndex("by_tenant_legacy", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, staff: rows.map((s) => ({ ...s, id: s._id })) };
 	},
 });

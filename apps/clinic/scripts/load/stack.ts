@@ -1,13 +1,6 @@
-import type { AddressInfo } from "node:net";
 import { Worker } from "node:worker_threads";
-import { serve } from "@hono/node-server";
-import { createAccount, memoryStores } from "@psi/account";
 import { z } from "zod";
-import { createApp } from "../../src/app";
-import { devApiSignIn } from "../../src/dev-signin";
-import { createFakeNotifications } from "../../src/notifications/fake";
-import { sdkPortSource } from "../../src/port/sdk/source";
-import { createConsolePwa } from "../../src/pwa";
+import { startConsole } from "./console";
 
 const Ready = z.object({
 	url: z.string().url(),
@@ -22,63 +15,56 @@ const Ready = z.object({
 		})
 		.nullable(),
 });
+const ConsoleReady = z.object({ url: z.string().url() });
 const Minted = z.object({ token: z.string().min(1) });
 
 export interface Stack {
 	apiUrl: string;
-	/** The console on a real socket, over the service, signed in through the development flow. */
-	consoleUrl: string;
+	/** The console replicas on real sockets, over the service, signed in through the development flow. */
+	consoleUrls: string[];
 	counts: z.infer<typeof Ready>["counts"];
 	/** A bearer token for a person of the populated world (the service's development route). */
 	tokenFor(subject: string): Promise<string>;
 	close(): Promise<void>;
 }
 
-const ORIGIN = "http://clinic.load";
+/** Starts a worker and waits for the first message it posts (its address). */
+async function started(worker: Worker): Promise<unknown> {
+	return new Promise<unknown>((resolve, reject) => {
+		worker.once("message", resolve);
+		worker.once("error", reject);
+	});
+}
+
+async function stopped(worker: Worker): Promise<void> {
+	worker.postMessage("close");
+	await new Promise<void>((resolve) => worker.once("exit", () => resolve()));
+}
 
 /**
  * The service (in-memory adapters, the populated synthetic clinic grown `factor` times) in a worker thread, and the
- * console over it in this one, both on real sockets: the load generator measures what a browser would (HTTP, the
- * console's calls to the service, the rendering), each side on its own event loop as in service. Never production:
- * everything here is synthetic and the sign-in is the development one.
+ * console over it, both on real sockets: the load generator measures what a browser would (HTTP, the console's calls to
+ * the service, the rendering). `consoles` 0 runs one console in this thread, beside the load generator (as the first
+ * measurements did); 1 or more runs that many replicas, each in a thread of its own, the load spread over them as an
+ * ingress would. Never production: everything here is synthetic and the sign-in is the development one.
  */
-export async function startStack(factor: number): Promise<Stack> {
+export async function startStack(factor: number, consoles = 0): Promise<Stack> {
 	const worker = new Worker(new URL("./api-worker.ts", import.meta.url), {
 		workerData: { factor },
 	});
-	const ready = Ready.parse(
-		await new Promise<unknown>((resolve, reject) => {
-			worker.once("message", resolve);
-			worker.once("error", reject);
+	const ready = Ready.parse(await started(worker));
+	const replicas = await Promise.all(
+		Array.from({ length: consoles }, async () => {
+			const thread = new Worker(new URL("./console-worker.ts", import.meta.url), {
+				workerData: { apiUrl: ready.url },
+			});
+			return { thread, url: ConsoleReady.parse(await started(thread)).url };
 		}),
 	);
-	const dev = devApiSignIn(ready.url, ORIGIN);
-	const idle = createAccount({
-		site: { slug: "clinic", key: "clinic", origin: ORIGIN, home: "/calendar" },
-		stores: memoryStores(),
-		onWarn: () => {},
-		env: {},
-	});
-	const pwa = createConsolePwa(ORIGIN, idle);
-	const app = createApp({
-		ports: sdkPortSource({ baseUrl: ready.url, auth: dev.auth }),
-		notifications: createFakeNotifications({ seeded: false }),
-		viewAsSecret: "v".repeat(40),
-		auth: dev.auth,
-		pwa,
-		origin: ORIGIN,
-		mount: (h) => {
-			dev.mount(h);
-			pwa.mount(h);
-		},
-	});
-	const server = serve({ fetch: app.fetch, port: 0, hostname: "127.0.0.1" });
-	await new Promise<void>((resolve) => server.once("listening", () => resolve()));
-	const address: string | AddressInfo | null = server.address();
-	if (address === null || typeof address === "string") throw new Error("the console has no port");
+	const local = consoles === 0 ? await startConsole(ready.url) : undefined;
 	return {
 		apiUrl: ready.url,
-		consoleUrl: `http://127.0.0.1:${address.port}`,
+		consoleUrls: local === undefined ? replicas.map((r) => r.url) : [local.url],
 		counts: ready.counts,
 		async tokenFor(subject) {
 			const res = await fetch(`${ready.url}/dev/token`, {
@@ -89,9 +75,9 @@ export async function startStack(factor: number): Promise<Stack> {
 			return Minted.parse(await res.json()).token;
 		},
 		close: async () => {
-			await new Promise<void>((resolve) => server.close(() => resolve()));
-			worker.postMessage("close");
-			await new Promise<void>((resolve) => worker.once("exit", () => resolve()));
+			await local?.close();
+			await Promise.all(replicas.map((r) => stopped(r.thread)));
+			await stopped(worker);
 		},
 	};
 }

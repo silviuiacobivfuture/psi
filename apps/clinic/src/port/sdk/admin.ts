@@ -1,6 +1,7 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
-import { PortError, type TeamMember } from "../port";
+import { addDays } from "../../lib/dates";
+import { type AuditPage, LIST_PAGE, type Paged, PortError, type TeamMember } from "../port";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
 	type AppSlug,
@@ -20,6 +21,7 @@ import type {
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { auditOf, drain, requestOf } from "./map";
+import { instantOf } from "./time";
 
 const DAY = 86_400_000;
 
@@ -94,6 +96,24 @@ export function adminGroup(sdk: SdkContext) {
 					}),
 				);
 				return got.map(requestOf).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+			}),
+
+		requestPage: (
+			app: AppSlug,
+			show: "open" | "handled",
+			cursor: string | null,
+		): Promise<Paged<WebRequest>> =>
+			run(async () => {
+				const now = Date.now();
+				const got = await api.requests.list({
+					app,
+					from: now - 90 * DAY,
+					to: now + 365 * DAY,
+					state: show,
+					limit: LIST_PAGE,
+					...(cursor === null ? {} : { cursor }),
+				});
+				return { items: got.items.map(requestOf), nextCursor: got.nextCursor ?? null };
 			}),
 
 		/** The console's "handled": the team answered the request. */
@@ -221,8 +241,30 @@ export function adminGroup(sdk: SdkContext) {
 			_subject: string,
 			prefs: MyNotifications,
 		): Promise<MyNotificationsView> => run(() => api.me.notificationsSave({ app, ...prefs })),
+		auditPage: (
+			app: AppSlug,
+			window: { from?: string; to?: string },
+			cursor: string | null,
+			limit: number,
+		): Promise<AuditPage> =>
+			run(async () => {
+				const tz =
+					window.from === undefined && window.to === undefined ? null : await sdk.zone(app);
+				const got = await api.audit.list({
+					app,
+					limit,
+					...(cursor === null ? {} : { cursor }),
+					...(tz === null || window.from === undefined
+						? {}
+						: { from: instantOf(window.from, 0, tz) }),
+					...(tz === null || window.to === undefined
+						? {}
+						: { to: instantOf(addDays(window.to, 1), 0, tz) }),
+				});
+				return { events: got.items.map(auditOf), nextCursor: got.nextCursor ?? null };
+			}),
 
-		// Nor one for how a person's assistant shows: the console keeps the choice on the device meanwhile.
+		// The service has no route for how a person's assistant shows: the console keeps the choice on the device meanwhile.
 		assistantMode: (_subject: string): Promise<AssistantMode | null> =>
 			Promise.reject(new PortError("not-available-yet", "assistant mode")),
 		saveAssistantMode: (_subject: string, _mode: AssistantMode): Promise<void> =>

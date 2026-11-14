@@ -11,7 +11,7 @@ type C = Ctx<RouteSpec>;
 type Locale = "ro" | "en";
 
 /** The local date of an instant in the app's zone, `YYYY-MM-DD`. */
-function localDate(instant: number, timeZone: string): string {
+export function localDate(instant: number, timeZone: string): string {
 	return new Intl.DateTimeFormat("en-CA", {
 		timeZone,
 		year: "numeric",
@@ -215,9 +215,11 @@ export const reminderHandlers: HandlersOf<
 	},
 
 	async "requests.list"(ctx) {
-		const rows = (await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to)).sort(
-			(a, b) => b.createdAt - a.createdAt,
-		);
+		const { state } = ctx.query;
+		const rows = (await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to))
+			// Open: still waiting for the team; handled: decided one way or another.
+			.filter((r) => state === undefined || (r.status === "requested") === (state === "open"))
+			.sort((a, b) => b.createdAt - a.createdAt);
 		return paginate(rows, ctx.query.limit, ctx.query.cursor);
 	},
 

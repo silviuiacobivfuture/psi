@@ -693,7 +693,13 @@ describe("the roster, requests and reminders", () => {
 		});
 		await key("POST", `/book/holds/${held.json.reference}/submit`, {
 			holdToken: held.json.holdToken,
-			contact: { name: "Slot Visitor", phone: "0733 000 333" },
+			contact: {
+				name: "Slot Visitor",
+				phone: "0733 000 333",
+				email: "slot.visitor@example.test",
+				age: 30,
+				details: "A synthetic booking, long enough to be one.",
+			},
 		});
 		const port = await as("rita");
 		const mine = (await port.requests("psizone")).find((r) => r.name === "Slot Visitor");

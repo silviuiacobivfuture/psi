@@ -1,6 +1,5 @@
 import { Banner, EmptyState, Icon, Segmented, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { z } from "zod";
 import { Page } from "../chrome";
 import type { Ctx } from "../lib/context";
 import {
@@ -8,7 +7,6 @@ import {
 	addMonths,
 	dayLong,
 	monthLong,
-	monthStart,
 	nowMinutes,
 	todayIso,
 	weekStart,
@@ -16,41 +14,20 @@ import {
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { CalendarData } from "../port/port";
-import { type Appointment, type Column, IsoDateSchema } from "../port/schema";
-import type { ClientFlag } from "../port/schema-clinical";
-import { DayGrid, MonthGrid, WeekGrid } from "./calendar-grid";
+import { DayGrid, WeekGrid } from "./calendar-grid";
+import { type CalendarView, loadCalendar } from "./calendar-load";
+import { MonthGrid } from "./calendar-month";
+import {
+	CATEGORY_FILTERS,
+	type CalendarQuery,
+	CalendarQuerySchema,
+	type CategoryFilter,
+	type View,
+} from "./calendar-query";
 import { detailBody } from "./detail-routes";
 import { editorBody, openState } from "./editor-routes";
 
-export const ViewSchema = z.enum(["day", "week", "month"]);
-export type View = z.infer<typeof ViewSchema>;
-
-const CATEGORY_FILTERS = ["team", "therapy", "neuro", "all"] as const;
-type CategoryFilter = (typeof CATEGORY_FILTERS)[number];
-const CategoryFilterSchema = z.enum(CATEGORY_FILTERS);
-
-export const CalendarQuerySchema = z.object({
-	view: ViewSchema.catch("day"),
-	date: IsoDateSchema.catch(""),
-	col: z.string().optional(),
-	new: z.string().optional(),
-	time: z
-		.string()
-		.regex(/^\d{2}:\d{2}$/)
-		.optional(),
-	appt: z.string().max(40).optional(),
-	/** A client to start the new appointment with. */
-	client: z.string().max(40).optional(),
-	/** Which columns: the team (people, devices, groups), the therapy rooms, the neuro rooms, or all of them. */
-	cat: CategoryFilterSchema.catch("team"),
-});
-
-/** The columns a filter shows: rooms are shown by their category, everything else belongs to the team. */
-export function columnsFor(cat: CategoryFilter, c: Column): boolean {
-	if (cat === "all") return true;
-	if (cat === "team") return c.kind !== "room";
-	return c.kind === "room" && c.category === cat;
-}
+export { CalendarQuerySchema };
 
 const hrefBase = (view: View, date: string, col?: string): string =>
 	`/calendar?view=${view}&date=${date}${col === undefined ? "" : `&col=${col}`}`;
@@ -61,13 +38,6 @@ function stepDate(view: View, date: string, dir: 1 | -1): string {
 		: view === "week"
 			? addDays(date, 7 * dir)
 			: addMonths(date, dir);
-}
-
-export function rangeFor(view: View, date: string): { from: string; to: string } {
-	if (view === "day") return { from: date, to: date };
-	if (view === "week") return { from: weekStart(date), to: addDays(weekStart(date), 6) };
-	const start = weekStart(monthStart(date));
-	return { from: start, to: addDays(start, 41) };
 }
 
 function Toolbar({
@@ -138,15 +108,18 @@ function Toolbar({
 						{ key: "month", label: m.view_month({}, o), href: href("month", date) },
 					]}
 				/>
-				<Segmented
-					label={m.cal_cols_label({}, o)}
-					current={cat}
-					items={CATEGORY_FILTERS.map((k) => ({
-						key: k,
-						label: m[`cal_cat_${k}` as const]({}, o),
-						href: `${hrefBase(view, date, col)}&cat=${k}`,
-					}))}
-				/>
+				{/* The month counts every calendar the person may see: it has no columns to filter. */}
+				{view === "month" ? null : (
+					<Segmented
+						label={m.cal_cols_label({}, o)}
+						current={cat}
+						items={CATEGORY_FILTERS.map((k) => ({
+							key: k,
+							label: m[`cal_cat_${k}` as const]({}, o),
+							href: `${hrefBase(view, date, col)}&cat=${k}`,
+						}))}
+					/>
+				)}
 				<a class="adm-btn" href={href(view, today, col)}>
 					{m.today({}, o)}
 				</a>
@@ -248,11 +221,6 @@ function Toolbar({
 	);
 }
 
-export interface CalendarView {
-	data: CalendarData | null;
-	failed: boolean;
-}
-
 /** The calendar screen in all its states: grid, empty, error. */
 export function CalendarBody({
 	ctx,
@@ -260,7 +228,7 @@ export function CalendarBody({
 	view,
 }: {
 	ctx: Ctx;
-	query: z.infer<typeof CalendarQuerySchema>;
+	query: CalendarQuery;
 	view: CalendarView;
 }): JSX.Element {
 	const { locale } = ctx;
@@ -291,7 +259,14 @@ export function CalendarBody({
 						{m.retry({}, o)}
 					</a>
 				</Banner>
-			) : data.appointments.length === 0 ? (
+			) : (
+					query.view === "month"
+						? (view.days?.size ?? 0) === 0
+						: query.view === "week"
+							? // The week reads one calendar: an empty one still shows its grid and the others' chips.
+								data.columns.length === 0
+							: data.appointments.length === 0
+				) ? (
 				<EmptyState
 					icon="calendar"
 					title={m.calendar_empty_title({}, o)}
@@ -316,7 +291,7 @@ export function CalendarBody({
 					col={query.col}
 				/>
 			) : (
-				<MonthGrid data={data} date={date} locale={locale} today={today} />
+				<MonthGrid days={view.days ?? new Map()} date={date} locale={locale} today={today} />
 			)}
 		</div>
 	);
@@ -366,67 +341,8 @@ function WeekBody({
 	);
 }
 
-/**
- * The flags of the clients on the tiles: blacklist for who may see it, the newest pinned note for who may read its
- * category. A refusal or a service that keeps no notes yet leaves the tiles plain, never the calendar broken.
- */
-async function flagsFor(
-	ctx: Ctx,
-	appointments: ReadonlyArray<Appointment>,
-): Promise<Readonly<Record<string, ClientFlag>>> {
-	if (!ctx.can.any("blacklist_view", "clients_view")) return {};
-	const ids = [...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId])))];
-	if (ids.length === 0) return {};
-	try {
-		const flags = await ctx.port.clientFlags(ctx.app, ids);
-		return Object.fromEntries(
-			Object.entries(flags).map(([id, f]) => [
-				id,
-				{
-					blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
-					pinned:
-						f.pinned === null || (f.pinned.category === "clinical" && !ctx.can.group("clinical"))
-							? null
-							: f.pinned,
-				},
-			]),
-		);
-	} catch {
-		return {};
-	}
-}
-
-/** The calendar's data for a query, as the grid shows it (an error is a state of the grid, not a crash). */
-async function loadCalendar(
-	ctx: Ctx,
-	query: z.infer<typeof CalendarQuerySchema>,
-): Promise<CalendarView> {
-	const date = query.date === "" ? todayIso() : query.date;
-	const { from, to } = rangeFor(query.view, date);
-	try {
-		const all = await ctx.port.calendar(ctx.app, from, to);
-		const columns = all.columns.filter((c) => columnsFor(query.cat, c));
-		const shown = new Set(columns.map((c) => c.id));
-		const appointments = all.appointments.filter((a) => shown.has(a.columnId));
-		return {
-			data: {
-				...all,
-				columns,
-				appointments,
-				flags: await flagsFor(ctx, appointments),
-			},
-			failed: false,
-		};
-	} catch {
-		return { data: null, failed: true };
-	}
-}
-
 /** The grid again, for a live update: the same markup the page was first served with, under the same id. */
-export async function renderCalendarLive(
-	ctx: Ctx,
-	query: z.infer<typeof CalendarQuerySchema>,
-): Promise<JSX.Element> {
+export async function renderCalendarLive(ctx: Ctx, query: CalendarQuery): Promise<JSX.Element> {
 	return (
 		<div id="cal-live" style="display:contents">
 			<CalendarBody ctx={ctx} query={query} view={await loadCalendar(ctx, query)} />
@@ -434,10 +350,7 @@ export async function renderCalendarLive(
 	);
 }
 
-export async function renderCalendar(
-	ctx: Ctx,
-	query: z.infer<typeof CalendarQuerySchema>,
-): Promise<JSX.Element> {
+export async function renderCalendar(ctx: Ctx, query: CalendarQuery): Promise<JSX.Element> {
 	const date = query.date === "" ? todayIso() : query.date;
 	const view = await loadCalendar(ctx, query);
 	const o = at(ctx.locale);

@@ -1,6 +1,6 @@
 import { MAX_IDS, MAX_WINDOW_DAYS } from "@psi/scheduling-sdk/contract";
 import { addDays } from "../../lib/dates";
-import type { CalendarData, ReminderItem } from "../port";
+import type { CalendarData, CalendarFocus, DayCount, ReminderItem } from "../port";
 import type { Appointment, AppSlug, Client, Column, RosterEntry, SearchHit } from "../schema";
 import { appointmentDefaults } from "../schema";
 import type { SdkContext } from "./context";
@@ -92,7 +92,23 @@ export function calendarGroup(sdk: SdkContext) {
 		clientsByIds: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Client[]> =>
 			run(() => clientsByIds(app, ids)),
 
-		calendar: (app: AppSlug, from: string, to: string): Promise<CalendarData> =>
+		calendarSummary: (app: AppSlug, from: string, to: string): Promise<DayCount[]> =>
+			run(async () => {
+				const tz = await sdk.zone(app);
+				const got = await api.calendar.summary({
+					app,
+					from: instantOf(from, 0, tz),
+					to: instantOf(addDays(to, 1), 0, tz),
+				});
+				return got.days;
+			}),
+
+		calendar: (
+			app: AppSlug,
+			from: string,
+			to: string,
+			focus?: CalendarFocus,
+		): Promise<CalendarData> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
 				// The service answers at most MAX_WINDOW_DAYS a call: a longer span (a quarter's statistics) is read window
@@ -127,9 +143,12 @@ export function calendarGroup(sdk: SdkContext) {
 						if (toPortError(error).code === "forbidden") return [];
 						throw error;
 					});
-				const appointments = result.columns.flatMap((c) =>
-					c.appointments.map((a) => appointmentOf(a, tz)),
-				);
+				const columns = result.columns.map((c, i) => column("person", c.id, c.name, i));
+				// A focused read (the week's one calendar) converts and names only that column's visits.
+				const only = focus === undefined ? null : (focus(columns) ?? "");
+				const appointments = result.columns
+					.filter((c) => only === null || c.id === only)
+					.flatMap((c) => c.appointments.map((a) => appointmentOf(a, tz)));
 				// The tiles name their clients: only the clients of the visits shown, in batches, never the whole list.
 				const named = [
 					...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId]))),
@@ -139,7 +158,7 @@ export function calendarGroup(sdk: SdkContext) {
 					soft(clientsByIds(app, named)),
 				]);
 				return {
-					columns: result.columns.map((c, i) => column("person", c.id, c.name, i)),
+					columns,
 					appointments,
 					clients,
 					services: svc,

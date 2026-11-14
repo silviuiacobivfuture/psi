@@ -11,8 +11,8 @@
 		"dev": "pnpm i18n && pnpm css && (pnpm css:watch & tsx watch --env-file-if-exists=.env src/server.tsx)",
 		"build": "pnpm i18n && pnpm css && esbuild src/server.tsx --bundle --platform=node --format=esm --target=node24 --jsx=automatic --jsx-import-source=hono/jsx --external:hono --external:@hono/node-server --external:zod --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --external:libsql --external:@libsql/* --outfile=dist/server.js",
 		"start": "node --env-file-if-exists=.env dist/server.js",
-		"type-check": "pnpm i18n && tsc --noEmit",
-		"test": "pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && vitest run",
+		"type-check": "pnpm i18n && pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && tsc --noEmit",
+		"test": "pnpm i18n && pnpm --filter @psi/scheduling-api i18n && pnpm --filter @psi/notify i18n && vitest run",
 		"knowledge:seed": "pnpm --filter @psi/knowledge ingest-seed"
 	},
 	"dependencies": {

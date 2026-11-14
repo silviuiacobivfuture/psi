@@ -6,7 +6,9 @@ import { areaText } from "../lib/area-labels";
 import { ORG_AREAS } from "../lib/areas";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { appendPage, MoreQuery, moreHref, ShowMore } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
+import type { ListedClient } from "../port/port";
 import { registerMembers } from "./members-routes";
 import { OrgFrame, renderSoonArea } from "./org-settings";
 
@@ -37,32 +39,55 @@ async function renderProfile(ctx: Ctx): Promise<JSX.Element> {
 	});
 }
 
+/** One client on the blacklist, linking to their page. */
+function ListedRow({ row }: { row: ListedClient }): JSX.Element {
+	return (
+		<a class="client-row" href={`/clients/${row.clientId}`} data-listed={row.clientId}>
+			<span class="client-row__main">
+				<strong>{row.clientName === "" ? row.clientId : row.clientName}</strong>
+				<span class="adm-muted">{row.entry.reason}</span>
+			</span>
+			<span class="adm-pill adm-pill--cancelled">{row.entry.severity}</span>
+		</a>
+	);
+}
+
+function MoreListed({
+	ctx,
+	cursor,
+	shown,
+}: {
+	ctx: Ctx;
+	cursor: string | null;
+	shown: number;
+}): JSX.Element {
+	return (
+		<ShowMore
+			id="blacklist-more"
+			href={moreHref("/settings/blacklist/more", cursor, shown)}
+			label={m.ls_more({}, at(ctx.locale))}
+		/>
+	);
+}
+
+/** The clients on the blacklist now, a page at a time (the service's page, their names in one batched read). */
 async function renderBlacklist(ctx: Ctx): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	let body: JSX.Element;
 	try {
-		const [rows, clients] = await Promise.all([
-			ctx.port.clientSummaries(ctx.app, "current", ""),
-			ctx.port.clients(ctx.app, "current", ""),
-		]);
-		const listed = rows.flatMap((r) =>
-			r.blacklist === null ? [] : [{ entry: r.blacklist, id: r.clientId }],
-		);
+		const page = await ctx.port.blacklistPage(ctx.app, null);
 		body =
-			listed.length === 0 ? (
+			page.items.length === 0 ? (
 				<EmptyState icon="check" title={m.st_blacklist_empty({}, o)} />
 			) : (
-				<div class="adm-card client-list">
-					{listed.map(({ entry, id }) => (
-						<a key={entry.id} class="client-row" href={`/clients/${id}`}>
-							<span class="client-row__main">
-								<strong>{clients.find((c) => c.id === id)?.name ?? id}</strong>
-								<span class="adm-muted">{entry.reason}</span>
-							</span>
-							<span class="adm-pill adm-pill--cancelled">{entry.severity}</span>
-						</a>
-					))}
-				</div>
+				<>
+					<div class="adm-card client-list" id="blacklist-list">
+						{page.items.map((row) => (
+							<ListedRow key={row.entry.id} row={row} />
+						))}
+					</div>
+					<MoreListed ctx={ctx} cursor={page.nextCursor} shown={page.items.length} />
+				</>
 			);
 	} catch {
 		body = (
@@ -85,6 +110,19 @@ export function registerOrgAreas(app: Hono<Env>): void {
 	app.get("/settings/blacklist", async (c) =>
 		c.html(await renderBlacklist(c.var.ctx), 200, NOCACHE),
 	);
+	// The next page of the blacklist, appended to the open list.
+	app.get("/settings/blacklist/more", async (c) => {
+		const ctx = c.var.ctx;
+		const asked = MoreQuery.parse(c.req.query());
+		const page = await ctx.port.blacklistPage(ctx.app, asked.cursor === "" ? null : asked.cursor);
+		return appendPage({
+			list: "#blacklist-list",
+			rows: page.items.map((row) => <ListedRow key={row.entry.id} row={row} />),
+			more: (
+				<MoreListed ctx={ctx} cursor={page.nextCursor} shown={asked.shown + page.items.length} />
+			),
+		});
+	});
 	for (const area of ORG_AREAS.filter((a) => !a.built))
 		app.get(area.href, async (c) => c.html(await renderSoonArea(c.var.ctx, area), 200, NOCACHE));
 	// The old addresses keep working.

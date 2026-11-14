@@ -12,7 +12,8 @@ import { CLIENT_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
-import type { PortError } from "../port/port";
+import { offsetPage } from "../port/offset-page";
+import { LIST_PAGE, type PortError } from "../port/port";
 import type { Appointment, Client, Invite, Package, Service } from "../port/schema";
 import {
 	type BlacklistEntry,
@@ -32,6 +33,7 @@ import {
 import { NoteSheet, NotesTab, readableNotes, stampText } from "./client-notes";
 import { RecordsTab } from "./client-records";
 import { BlacklistSheet, ConfirmSheet, EditClientSheet, UnlistSheet } from "./client-sheets";
+import { TabMore, tabListId } from "./client-tab-pager";
 import { InviteCard, inviteErrorText, RevokeSheet } from "./invite-page";
 import { NewPackageSheet, PackagesTab } from "./packages-tab";
 
@@ -429,9 +431,35 @@ function Overview({
 	);
 }
 
+/** One of the client's appointments: when, what, its status; opens it on the calendar. */
+export function AppointmentRow({
+	ctx,
+	a,
+	serviceName,
+}: {
+	ctx: Ctx;
+	a: Appointment;
+	serviceName: string;
+}): JSX.Element {
+	return (
+		<li class="cl-row" data-appointment={a.id}>
+			<a class="cl-row__main" href={`/calendar?view=day&date=${a.date}&appt=${a.id}`}>
+				<strong>{dayLong(ctx.locale, a.date)}</strong>
+				<span class="adm-muted">
+					{hhmm(a.startMin)}–{hhmm(a.startMin + a.durationMin)} · {serviceName}
+				</span>
+			</a>
+			<StatusPill status={a.status} label={statusLabel(a.status, ctx.locale)} />
+		</li>
+	);
+}
+
+/** The client's appointments, a page at a time. */
 function AppointmentsTab({ ctx, view }: { ctx: Ctx; view: ClientView }): JSX.Element {
 	const o = at(ctx.locale);
 	const entity = { clientId: view.client.id };
+	const services = new Map(view.services.map((s) => [s.id, s.name]));
+	const page = offsetPage(view.appointments, null, LIST_PAGE);
 	return (
 		<div class="cl-tab">
 			<ActionBar ctx={ctx} screen="client.appointments" entity={entity} />
@@ -440,20 +468,25 @@ function AppointmentsTab({ ctx, view }: { ctx: Ctx; view: ClientView }): JSX.Ele
 					<EmptyActions ctx={ctx} screen="client.appointments" entity={entity} />
 				</EmptyState>
 			) : (
-				<ul class="cl-rows" aria-label={m.tab_appointments({}, o)}>
-					{view.appointments.map((a) => (
-						<li key={a.id} class="cl-row">
-							<a class="cl-row__main" href={`/calendar?view=day&date=${a.date}&appt=${a.id}`}>
-								<strong>{dayLong(ctx.locale, a.date)}</strong>
-								<span class="adm-muted">
-									{hhmm(a.startMin)}–{hhmm(a.startMin + a.durationMin)} ·{" "}
-									{view.services.find((s) => s.id === a.serviceId)?.name ?? ""}
-								</span>
-							</a>
-							<StatusPill status={a.status} label={statusLabel(a.status, ctx.locale)} />
-						</li>
-					))}
-				</ul>
+				<>
+					<ul class="cl-rows" id={tabListId("appointments")} aria-label={m.tab_appointments({}, o)}>
+						{page.items.map((a) => (
+							<AppointmentRow
+								key={a.id}
+								ctx={ctx}
+								a={a}
+								serviceName={services.get(a.serviceId) ?? ""}
+							/>
+						))}
+					</ul>
+					<TabMore
+						ctx={ctx}
+						clientId={view.client.id}
+						tab="appointments"
+						cursor={page.nextCursor}
+						shown={page.items.length}
+					/>
+				</>
 			)}
 		</div>
 	);

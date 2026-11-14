@@ -1,0 +1,91 @@
+{
+	"at": "2026-11-14T04:11:02.593Z",
+	"factor": 10,
+	"connections": 50,
+	"seconds": 5,
+	"out": "scripts/load/results/perf2-console-before-x10-c50.json",
+	"only": ["page calendar", "page journal", "page requests", "page reminders"],
+	"strict": false,
+	"counts": {
+		"clients": 2200,
+		"appointments": 56000,
+		"packages": 1100,
+		"payments": 1100,
+		"notes": 4400,
+		"audit": 56000
+	},
+	"rows": [
+		{
+			"name": "page calendar week",
+			"kind": "page",
+			"requests": 233,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 982.4,
+			"p95": 1491.7,
+			"p99": 1867.1,
+			"rps": 47,
+			"bytes": 133444
+		},
+		{
+			"name": "page calendar month",
+			"kind": "page",
+			"requests": 94,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 2403,
+			"p95": 2790.8,
+			"p99": 2806.9,
+			"rps": 19,
+			"bytes": 56576
+		},
+		{
+			"name": "page calendar day",
+			"kind": "page",
+			"requests": 519,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 454.2,
+			"p95": 553.9,
+			"p99": 561.7,
+			"rps": 104,
+			"bytes": 145943
+		},
+		{
+			"name": "page journal",
+			"kind": "page",
+			"requests": 355,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 634,
+			"p95": 1013.4,
+			"p99": 1491,
+			"rps": 71,
+			"bytes": 85547
+		},
+		{
+			"name": "page requests",
+			"kind": "page",
+			"requests": 1782,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 133.2,
+			"p95": 180,
+			"p99": 334.6,
+			"rps": 356,
+			"bytes": 36252
+		},
+		{
+			"name": "page reminders",
+			"kind": "page",
+			"requests": 290,
+			"errors": 0,
+			"non2xx": 0,
+			"p50": 764.6,
+			"p95": 1422.5,
+			"p99": 2091.3,
+			"rps": 58,
+			"bytes": 194203
+		}
+	]
+}

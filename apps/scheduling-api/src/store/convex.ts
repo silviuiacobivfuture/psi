@@ -8,6 +8,7 @@ import type { PartialCollections } from "./convex/collections";
 import { documentsPort } from "./convex/documents";
 import { createChangeFeed } from "./convex/feed";
 import { feedbackPort } from "./convex/feedback";
+import { functionsGate } from "./convex/functions-hash";
 import { keyedPort } from "./convex/keyed";
 import { keyStore } from "./convex/keys";
 import { appsOfSubject } from "./convex/members";
@@ -18,7 +19,7 @@ import type { Rpc } from "./convex/rpc";
 import { seriesPort } from "./convex/series";
 import { settingsPort } from "./convex/settings";
 import { visitCollections } from "./convex/visits";
-import type { Collection, CollectionName, Rows, StorePort } from "./types";
+import type { CollectionName, Collections, StorePort } from "./types";
 
 /**
  * The Convex adapter: every collection of the StorePort re-backed on the server-keyed wrappers of
@@ -37,13 +38,14 @@ export interface ConvexClients {
 }
 
 /** A collection an area was meant to provide; one missing is a bug found at start-up, never an answer to a caller. */
-function need<K extends CollectionName>(wired: PartialCollections, name: K): Collection<Rows[K]> {
-	const found = wired[name];
+function need<K extends CollectionName>(wired: PartialCollections, name: K): Collections[K] {
+	const found: Collections[K] | undefined = wired[name];
 	if (found === undefined) throw new Error(`the Convex adapter does not wire ${name}`);
 	return found;
 }
 
 export function createConvexStore(clients: ConvexClients): StorePort {
+	const gate = functionsGate(clients.rpc);
 	const wired = {
 		...catalogCollections(clients.rpc),
 		...visitCollections(clients.rpc),
@@ -142,6 +144,10 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		series: seriesPort(clients.rpc),
 		reports: reportsPort(clients.rpc),
 		keyed: keyedPort(clients.rpc),
-		ping: () => clients.visitor.services("psizone").then(() => undefined),
+		// Ready when the store answers AND serves the functions this build calls (they are deployed before the service).
+		ping: async () => {
+			await clients.visitor.services("psizone");
+			await gate.check();
+		},
 	};
 }

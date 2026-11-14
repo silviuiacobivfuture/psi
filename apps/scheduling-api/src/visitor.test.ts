@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createConvexStore } from "./store/convex";
 import { StoreUnavailable } from "./store/types";
 import { createWorld, type Populated } from "./testing/populate";
-import { HOUR, NOW } from "./testing/world";
+import { bookingContact, HOUR, NOW } from "./testing/world";
 
 const A = "/v1/apps/psizone";
 let w: Populated;
@@ -82,7 +82,7 @@ describe("the visitor flow", () => {
 		w.clock.now += 11 * 60_000;
 		const r = await key("POST", `/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
-			contact: { name: "V", phone: "0733 000 111" },
+			contact: bookingContact({ phone: "0733 000 111" }),
 		});
 		expect(r.status).toBe(410);
 		expect(err(r)).toBe("hold_expired");
@@ -95,7 +95,7 @@ describe("the visitor flow", () => {
 			(
 				await key("POST", `/book/holds/${h.reference}/submit`, {
 					holdToken: "0000-0000-0000-0000",
-					contact: { name: "V", phone: "0733 000 111" },
+					contact: bookingContact({ phone: "0733 000 111" }),
 				})
 			).status,
 		).toBe(404);
@@ -110,14 +110,14 @@ describe("the visitor flow", () => {
 		const sub = (
 			await key("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "V", phone: "0733 000 111" },
+				contact: bookingContact({ phone: "0733 000 111" }),
 			})
 		).json;
 		expect(
 			(
 				await key("POST", `/book/holds/${h.reference}/submit`, {
 					holdToken: h.holdToken,
-					contact: { name: "V", phone: "0733 000 111" },
+					contact: bookingContact({ phone: "0733 000 111" }),
 				})
 			).status,
 		).toBe(404);
@@ -143,7 +143,7 @@ describe("the visitor flow", () => {
 		const sub = (
 			await key("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "V", phone: "0733 000 111" },
+				contact: bookingContact({ phone: "0733 000 111" }),
 			})
 		).json;
 		expect(await w.dump()).not.toContain(String(sub.cancelCode));
@@ -174,7 +174,7 @@ describe("the visitor flow", () => {
 		const h = (await hold(await slot())).json;
 		await w.call("visitor-9", "POST", `${A}/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
-			contact: { name: "V", phone: "0733 000 111" },
+			contact: bookingContact({ phone: "0733 000 111" }),
 		});
 		const mine = await w.call("visitor-9", "GET", `${A}/me/appointments`);
 		expect((mine.json.items as unknown[]).length).toBe(1);
@@ -203,7 +203,7 @@ describe("the visitor flow", () => {
 		const h = (await hold(await slot(6))).json;
 		await w.call("visitor-9", "POST", `${A}/book/holds/${h.reference}/submit`, {
 			holdToken: h.holdToken,
-			contact: { name: "V", phone: "0733 000 111" },
+			contact: bookingContact({ phone: "0733 000 111" }),
 		});
 		const id = (
 			(await w.call("visitor-9", "GET", `${A}/me/appointments`)).json.items as { id: string }[]
@@ -221,7 +221,7 @@ describe("the visitor flow", () => {
 		const sub = (
 			await key("POST", `/book/holds/${h.reference}/submit`, {
 				holdToken: h.holdToken,
-				contact: { name: "V", phone: "0733 000 111" },
+				contact: bookingContact({ phone: "0733 000 111" }),
 			})
 		).json;
 		const list = (
