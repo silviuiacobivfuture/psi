@@ -7,6 +7,7 @@ import { m } from "../paraglide/messages.js";
 import { type AuditChange, type AuditEvent, StatusSchema } from "../port/schema";
 import { fieldLabel } from "./labels";
 import { type AuditLookup, objectOf } from "./lookup";
+import { memberValue } from "./member-sentence";
 
 export interface ChangeRow {
 	label: string;
@@ -57,7 +58,7 @@ function valueText(
 		case "remind":
 			return value === "true" ? m.jr_yes({}, l) : m.jr_no({}, l);
 		default:
-			return value;
+			return memberValue(field, value, lookup, locale) ?? value;
 	}
 }
 

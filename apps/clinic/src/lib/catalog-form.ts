@@ -1,13 +1,15 @@
 import { parseMoney } from "../domain/money";
 
-type Body = Readonly<Record<string, string | File | ReadonlyArray<string | File>>>;
+export type Body = Readonly<Record<string, string | File | ReadonlyArray<string | File>>>;
 
-const all = (b: Body, k: string): string[] => {
+/** Every text value a form sent under one name (a checkbox list, a multi-select). */
+export const all = (b: Body, k: string): string[] => {
 	const v = b[k];
 	if (v === undefined) return [];
 	return (Array.isArray(v) ? v : [v]).filter((x): x is string => typeof x === "string");
 };
-const one = (b: Body, k: string): string => all(b, k)[0]?.trim() ?? "";
+/** The first text value under one name, trimmed; empty when absent. */
+export const one = (b: Body, k: string): string => all(b, k)[0]?.trim() ?? "";
 const checked = (b: Body, k: string): boolean => all(b, k).length > 0;
 /** A whole number as typed: empty is absent (the schema's default or its "required"), nonsense is NaN, which the schema refuses. */
 const whole = (b: Body, k: string): number | undefined => {

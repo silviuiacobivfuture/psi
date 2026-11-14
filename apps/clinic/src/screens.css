@@ -30,6 +30,14 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+/* Every role a member holds, side by side; on a phone they wrap under the name. */
+.mb-chips {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-1);
+	max-width: 60%;
+}
 .pk {
 	display: flex;
 	flex-direction: column;

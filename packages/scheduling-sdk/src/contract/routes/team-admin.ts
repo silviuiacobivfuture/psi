@@ -13,6 +13,7 @@ import {
 	GroupPatch,
 	MatrixRow,
 	Member,
+	MemberDetail,
 	MemberPut,
 	Overrides,
 	Person,
@@ -134,6 +135,17 @@ export const ME_ROUTES = [
 		params: AppParam,
 		query: PageQuery,
 		response: page(Member),
+		permission: { key: "members_view", target: { kind: "app" } },
+	}),
+	route({
+		id: "members.get",
+		method: "GET",
+		path: "/v1/apps/:app/members/:subject",
+		side: "team",
+		summary:
+			"One member: their roles, individual grants and denials, linked calendars and what they effectively hold",
+		params: SubjectParam,
+		response: MemberDetail,
 		permission: { key: "members_view", target: { kind: "app" } },
 	}),
 	route({
