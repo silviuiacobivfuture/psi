@@ -18,8 +18,8 @@ patches:
       - { op: replace, path: /spec/template/spec/containers/0/resources/limits/cpu, value: "2" }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/cpu, value: 200m }
 # Slot `image` (schema/slots/openfga.yaml): the tag of the autorizare-svc image psi built
-# (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:92765e6a… in registry.psizone.ro/psi.
+# (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:5447caf0… in registry.psizone.ro/psi (from SEB 0.1.93).
 # The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-b776c20ea
+    newTag: seb-4fb21bf16

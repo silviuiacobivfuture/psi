@@ -102,8 +102,8 @@ patches:
         path: /spec/maxUnavailable
         value: 1
 # Slot `image` (schema/slots/autorizare.yaml): the tag of the autorizare-svc image psi built
-# (scripts/estate-images.sh from SEB 0.1.88, psi's authorization inputs), sha256:92765e6a… in
+# (scripts/estate-images.sh from SEB 0.1.93, psi's authorization inputs), sha256:5447caf0… in
 # registry.psizone.ro/psi, signed. The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-b776c20ea
+    newTag: seb-4fb21bf16
