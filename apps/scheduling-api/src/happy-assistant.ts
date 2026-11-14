@@ -66,4 +66,18 @@ export const ASSISTANT_HAPPY = {
 		w.call("rita", "GET", `${A}/assistant/effective`),
 	"me.assistantUsage": (w: Populated): Promise<Reply> =>
 		w.call("rita", "POST", `${A}/assistant/usage`, turnUse),
+	"visitor.assistant": (w: Populated): Promise<Reply> =>
+		w.callKey("psizone-web", "GET", `${A}/book/assistant`),
+	"visitor.assistantUsage": (w: Populated): Promise<Reply> =>
+		w.callKey("psizone-web", "POST", `${A}/book/assistant/usage`, visitorTurnUse),
+};
+
+/** A visitor turn's use, as the site's server reports it (its screening's model calls included). */
+export const visitorTurnUse = {
+	messages: 1,
+	inputTokens: 900,
+	outputTokens: 200,
+	cachedTokens: 0,
+	costMicroUsd: 300,
+	limitHits: 0,
 };

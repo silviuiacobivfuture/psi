@@ -138,10 +138,12 @@ last 10 messages, nothing semantic; a retried, trimmed or failed reply is remove
 
 A brand with a scheduling tenant (Psizone, Hemi-Sync) is governed by its organisation's visitor-assistant settings in the
 scheduling store (the clinic's Setări → Asistent, the site's surface, over the estate's defaults and within its
-ceilings), read per turn through `schedulingFromEnv(...).scheduling.assistant` (pass it as `visitorAssistant`; reads
-are kept `VISITOR_CONFIG_TTL_MS`, 10 s, and a turn's own use empties the cache). That read needs the store's
-credentials on the site (`CONVEX_URL`, `PSI_SCHEDULING_KEY`): Psizone's deployment declares them (its account pages use
-them too); Hemi-Sync's does not yet, so there its guide runs on the CMS's settings and the engine's own limits.
+ceilings), merged by the scheduling service and read per turn from its `visitor.assistant` route with the site's own
+service key: `visitorAssistantPort(createSiteAssistant(config))` (`@psi/ui`), passed as `visitorAssistant` (reads are kept
+`VISITOR_CONFIG_TTL_MS`, 10 s, and a turn's own use empties the cache). What each turn used, the strict screening's
+guardrail calls included, goes to `visitor.assistantUsage`. No store credentials are needed on the site; both sites
+use the same `SCHEDULING_API_URL` and `SCHEDULING_SERVICE_KEY` as their booking forms. The same port's
+`callbackOffered` governs the booking page's call-back switch (`createBookingDeps({ callbackOffered })`).
 
 | Decided by the **store** (it wins) | Kept by the **CMS** (`ai-settings`) |
 |---|---|

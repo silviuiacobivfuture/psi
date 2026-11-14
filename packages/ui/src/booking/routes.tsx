@@ -7,11 +7,26 @@ import type { Schedule } from "./schedule";
 import { FormIdSchema } from "./schemas";
 import type { BookingLocale } from "./types";
 
-/** A form body as strings; files and repeated fields become empty. */
+/** The fields a form may repeat (the "when" checkboxes): their values travel joined by commas. */
+const REPEATED: ReadonlySet<string> = new Set(["when"]);
+
+/**
+ * A form body (parsed with `all: true`) as strings: a repeatable field's values joined by commas,
+ * files and any other repeated field empty.
+ */
 export function formFields(body: Record<string, unknown>): Record<string, string> {
 	return Object.fromEntries(
-		Object.entries(body).map(([k, v]) => [k, typeof v === "string" ? v : ""]),
+		Object.entries(body).map(([k, v]) => {
+			if (typeof v === "string") return [k, v];
+			const strings = Array.isArray(v) && v.every((x) => typeof x === "string");
+			return [k, REPEATED.has(k) && strings ? v.join(",") : ""];
+		}),
 	);
+}
+
+/** The request's form body, every value of a repeated field kept. */
+export async function readForm(c: Context): Promise<Record<string, string>> {
+	return formFields(await c.req.parseBody({ all: true }));
 }
 
 /**
@@ -33,7 +48,9 @@ export async function scheduleOf(
 					data: { ...view.data, taken: true, selected: undefined },
 				}
 			: view;
-	const noCallback = raw.nocall === "1";
+	// The chat's offer may say no call back (`nocall`); so may the organisation, for every form of the site.
+	const offered = source.callbackOffered === undefined ? true : await source.callbackOffered();
+	const noCallback = raw.nocall === "1" || !offered;
 	return {
 		view: shown,
 		callback: raw.callback === "1" && !noCallback,
@@ -67,7 +84,7 @@ function withQuery(c: Context, raw: Record<string, string>): Record<string, stri
 export function registerBookingSlots(app: Hono, deps: BookingDeps, locale: BookingLocale): void {
 	const env = deps.site.env(locale);
 	app.post(env.routes.slots, async (c) => {
-		const raw = withQuery(c, formFields(await c.req.parseBody()));
+		const raw = withQuery(c, await readForm(c));
 		const id = FormIdSchema.parse(raw.form);
 		const who = await deps.site.account(c, locale, env.routes.contact);
 		const schedule = await scheduleOf(deps.picker, raw);

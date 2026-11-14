@@ -63,6 +63,7 @@ data:
   AFFINE_HOST_PREFIX: docs
   MAIL_HOST_PREFIX: post
   BULWARK_HOST_PREFIX: inbox
+  NOVU_BRIDGE_URL: "http://notify-bridge.notify-bridge.svc.cluster.local:8080/api/novu"
   # identity
   OPERATOR_USERNAME: silviu
   OPERATOR_NAME: "Silviu Iacob"
@@ -118,3 +119,4 @@ data:
   FLOWS_APP: psi-flows
   FLOWS_HOST_PREFIX: flows
   FLOWS_HOST: flows.psizone.ro
+  NOVU_BRIDGE_HOST: notify-bridge.notify-bridge.svc.cluster.local

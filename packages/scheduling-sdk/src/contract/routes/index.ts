@@ -15,11 +15,13 @@ import { REPORT_ROUTES } from "./team-reports";
 import { SERIES_ROUTES } from "./team-series";
 import { STAFF_ROUTES } from "./team-staff";
 import { VISITOR_ROUTES } from "./visitor";
+import { VISITOR_ASSISTANT_ROUTES } from "./visitor-assistant";
 
 /** THE contract: one row per route. The server mounts it, the SDK and the OpenAPI document derive from it. */
 export const ROUTES = [
 	...META_ROUTES,
 	...VISITOR_ROUTES,
+	...VISITOR_ASSISTANT_ROUTES,
 	...ME_ROUTES,
 	...SETTINGS_ROUTES,
 	...CATALOG_ROUTES,

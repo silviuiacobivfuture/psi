@@ -24,6 +24,7 @@ export { AskBar, type AskBarProps } from "./components/ask-bar";
 export { AudioPlayer, type AudioPlayerProps } from "./components/audio-player";
 export { Button, type ButtonProps } from "./components/button";
 export { Chip, type ChipProps } from "./components/chip";
+export { ChoiceGroup, type ChoiceGroupProps, type ChoiceOption } from "./components/choice-group";
 export {
 	Compass,
 	type CompassChat,
@@ -125,6 +126,7 @@ export {
 } from "./components/slot-picker";
 export { SoundWaves, type SoundWavesProps } from "./components/sound-waves";
 export { StatusBadge, type StatusBadgeProps } from "./components/status-badge";
+export { TextArea, type TextAreaProps } from "./components/text-area";
 export {
 	type FieldAutocomplete,
 	TextField,

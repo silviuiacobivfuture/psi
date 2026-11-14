@@ -43,6 +43,7 @@ import { createSettingsSource, type SettingsProvider } from "./settings";
 import { createKnowledgeTool } from "./studio-tool";
 import { agentSummariser } from "./summariser";
 import type { EngineTiming } from "./timing";
+import type { ModelUsage } from "./usage";
 import {
 	createGovernance,
 	type GovernanceSource,
@@ -260,8 +261,14 @@ export function createEngine(options: EngineOptions): Engine {
 	const screeningModel =
 		apiKey === undefined || opts.screening?.model === false
 			? undefined
-			: (onError: (error: Error) => void) =>
-					openRouterModel({ apiKey, modelId: screeningId, ...routing, onError });
+			: (onError: (error: Error) => void, onUsage?: (usage: ModelUsage) => void) =>
+					openRouterModel({
+						apiKey,
+						modelId: screeningId,
+						...routing,
+						onError,
+						...(onUsage === undefined ? {} : { onUsage }),
+					});
 	const rateLimiter = opts.screening?.rateLimiter ?? createMemoryRateLimiter();
 	const exchangeLimiter = opts.screening?.exchangeLimiter ?? createMemoryRateLimiter();
 	const timeouts: EngineTimeouts = { ...DEFAULT_TIMEOUTS, ...opts.timeouts };
