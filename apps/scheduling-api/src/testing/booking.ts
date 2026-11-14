@@ -65,16 +65,17 @@ export async function bookAs(
 	return { reference: String(sent.json.reference) };
 }
 
+/** One of the visitor's own appointments, as the site reads it. */
+export interface OwnRow {
+	id: string;
+	reference: string;
+	status: string;
+	start: number;
+	canChange: boolean;
+	practitioner?: string;
+}
+
 /** The visitor's own appointments, as the site reads them. */
-export async function mineOf(
-	w: Populated,
-	subject: string,
-): Promise<{ id: string; reference: string; status: string; start: number; canChange: boolean }[]> {
-	return (await asSite(w, "GET", "/me/appointments", undefined, subject)).json.items as {
-		id: string;
-		reference: string;
-		status: string;
-		start: number;
-		canChange: boolean;
-	}[];
+export async function mineOf(w: Populated, subject: string): Promise<OwnRow[]> {
+	return (await asSite(w, "GET", "/me/appointments", undefined, subject)).json.items as OwnRow[];
 }

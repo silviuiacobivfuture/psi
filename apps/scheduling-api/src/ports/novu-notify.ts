@@ -203,7 +203,13 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 						clientName: found.contact.name,
 						serviceName: service?.name.ro ?? "Programare",
 						startsAt: iso(found.start),
-						...(n.event === "appointment.moved" ? { previousStartsAt: iso(found.start) } : {}),
+						...(n.event === "appointment.moved"
+							? {
+									previousStartsAt: iso(
+										typeof refs.previousStart === "number" ? refs.previousStart : found.start,
+									),
+								}
+							: {}),
 					},
 					[
 						{

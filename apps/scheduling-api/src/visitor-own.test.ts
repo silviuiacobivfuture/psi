@@ -27,9 +27,10 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 	const move = (subject: string | undefined, id: string, body: unknown) =>
 		asSite(w, "POST", `/me/appointments/${id}/reschedule`, body, subject);
 	/** A free onsite time later than `after` that is not `not`. */
-	const laterSlot = async (not: number) =>
-		(await freeSlots(w, NOW + 3 * 24 * HOUR)).find(
-			(s) => s.start !== not && s.modes.includes("onsite"),
+	/** A free onsite time of the same person, later on, that is not `not`: what the site offers for a move. */
+	const laterSlot = async (not: number, practitioner?: string) =>
+		(await freeSlots(w, NOW + 3 * 24 * HOUR, 60)).find(
+			(s) => s.start !== not && s.modes.includes("onsite") && s.practitioner === practitioner,
 		);
 
 	beforeAll(async () => {
@@ -63,7 +64,7 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 			"not_allowed",
 		);
 		expect(err(r).detail).toEqual({ reason: "too_late" });
-		const target = await laterSlot(row?.start ?? 0);
+		const target = await laterSlot(row?.start ?? 0, row?.practitioner);
 		await refused(
 			() => move(who, row?.id ?? "", { start: target?.start, mode: "onsite" }),
 			403,
@@ -75,7 +76,7 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 		const who = visitor();
 		await bookAs(w, who, 9);
 		const [before] = await mineOf(w, who);
-		const target = await laterSlot(before?.start ?? 0);
+		const target = await laterSlot(before?.start ?? 0, before?.practitioner);
 		if (before === undefined || target === undefined) throw new Error("fixture");
 		const sentBefore = w.notifier.sent.length;
 		const reply = await move(who, before.id, { start: target.start, mode: "onsite" });
@@ -111,7 +112,7 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 		const [row] = await mineOf(w, who);
 		if (row === undefined) throw new Error("fixture");
 		const other = visitor();
-		const taken = await laterSlot(row.start);
+		const taken = await laterSlot(row.start, row.practitioner);
 		if (taken === undefined) throw new Error("fixture");
 		const theirs = await bookAs(w, other, taken);
 		expect(theirs.reference).toBeTruthy();
@@ -129,7 +130,7 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 		await bookAs(w, who, 11);
 		const [row] = await mineOf(w, who);
 		if (row === undefined) throw new Error("fixture");
-		const target = await laterSlot(row.start);
+		const target = await laterSlot(row.start, row.practitioner);
 		await refused(
 			() => move(visitor(), row.id, { start: target?.start, mode: "onsite" }),
 			404,

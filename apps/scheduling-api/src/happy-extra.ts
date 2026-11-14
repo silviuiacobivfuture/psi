@@ -70,7 +70,10 @@ export const EXTRA_HAPPY = {
 		await bookAs(w, "visitor-move");
 		const [row] = await mineOf(w, "visitor-move");
 		const target = (await freeSlots(w, NOW + 4 * 24 * HOUR)).find(
-			(s) => s.start !== row?.start && s.modes.includes("onsite"),
+			(s) =>
+				s.start !== row?.start &&
+				s.modes.includes("onsite") &&
+				s.practitioner === row?.practitioner,
 		);
 		return asSite(
 			w,

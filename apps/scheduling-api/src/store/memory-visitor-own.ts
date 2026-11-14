@@ -51,6 +51,7 @@ export function ownRequests(
 						noticeMinutes: r.serviceSlug === undefined ? 0 : await d.noticeOf(app, r.serviceSlug),
 						...(r.serviceSlug === undefined ? {} : { serviceSlug: r.serviceSlug }),
 						...(person === undefined ? {} : { practitionerName: person.displayName }),
+						...(r.personId === undefined ? {} : { practitioner: r.personId }),
 					};
 				}),
 			);

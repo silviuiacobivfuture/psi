@@ -64,8 +64,8 @@ export async function storedPrefs(
 ): Promise<ReturnType<typeof viewerPrefs>> {
 	const device = viewerPrefs(c);
 	if (getCookie(c, "lang") !== undefined || getCookie(c, "theme") !== undefined) return device;
+	// Asked once per device: the answer (saved settings, or the defaults the device would show anyway) is kept here.
 	const own = await port.mySettings(app, subject);
-	if (!own.stored) return device;
 	const keep = { path: "/", maxAge: 31536000, sameSite: "Lax" as const };
 	setCookie(c, "lang", own.locale, keep);
 	setCookie(c, "theme", own.theme, keep);

@@ -7,7 +7,7 @@ import { createWorld, type Populated } from "./testing/populate";
 import { NOW } from "./testing/world";
 
 let w: Populated;
-let calls: { event: string; to: Record<string, unknown>[] }[];
+let calls: { event: string; payload: Record<string, unknown>; to: Record<string, unknown>[] }[];
 beforeEach(async () => {
 	w = await createWorld();
 	calls = [];
@@ -19,8 +19,8 @@ const adapter = () =>
 		clock: () => NOW,
 		log: () => undefined,
 		notifier: {
-			notify(_app, event, _payload, to) {
-				calls.push({ event, to: to.map((r) => ({ ...r })) });
+			notify(_app, event, payload, to) {
+				calls.push({ event, payload, to: to.map((r) => ({ ...r })) });
 				return Promise.resolve({ status: "queued", jobs: to.length });
 			},
 			drain: () => Promise.resolve(0),
@@ -48,6 +48,33 @@ describe("a signed-in visitor is told as their account", () => {
 				email: "visitor@example.test",
 			}),
 		]);
+	});
+
+	it("a visitor's own move says the new time and the old one, to the account", async () => {
+		const { reference } = await bookAs(w, "visitor-mv", 5);
+		const before = (
+			(
+				await w.callKey("psizone-web", "GET", "/v1/apps/psizone/me/appointments", undefined, {
+					"x-psi-subject": "visitor-mv",
+				})
+			).json.items as { start: number }[]
+		)[0]?.start;
+		await adapter().notify({
+			app: "psizone",
+			event: "appointment.moved",
+			payload: { reference, previousStart: NOW - 3_600_000, account: accountHashOf("visitor-mv") },
+			to: { kind: "team", permission: "web_requests_view" },
+			idempotencyKey: "k-mv",
+		});
+		expect(calls[0]).toMatchObject({
+			event: "appointment.moved",
+			payload: { previousStartsAt: new Date(NOW - 3_600_000).toISOString() },
+		});
+		expect(calls[0]?.payload.startsAt).toBe(new Date(before ?? 0).toISOString());
+		expect(calls[0]?.to).toEqual([
+			expect.objectContaining({ clientId: accountClientId(accountHashOf("visitor-mv")) }),
+		]);
+		expect(before).toBeTypeOf("number");
 	});
 
 	it("an anonymous request is still told by its reference alone", async () => {

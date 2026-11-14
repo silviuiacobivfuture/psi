@@ -53,6 +53,8 @@ export const OwnAppointment = z.object({
 	end: Ms,
 	mode: Mode.optional(),
 	serviceSlug: z.string().optional(),
+	/** The person, as `visitor.slots` names them: a move picks one of their free times. */
+	practitioner: z.string().optional(),
 	practitionerName: z.string().optional(),
 	/**
 	 * The clinic's rule: a booking is cancelled or moved online until the service's notice before it starts (the same

@@ -95,6 +95,25 @@ describe("Setările mele: saving", () => {
 		expect(cookies.get("theme")).toBe("light");
 	});
 
+	it("a device asks the service once: after the first page it keeps what it was told, saved or not", async () => {
+		await open();
+		const cookies = c.browser.cookies(ORIGIN);
+		cookies.delete("lang");
+		cookies.delete("theme");
+		const real = c.port.mySettings;
+		let asked = 0;
+		c.port.mySettings = (app, subject) => {
+			asked += 1;
+			return real(app, subject);
+		};
+		await c.get("/clients");
+		await c.get("/clients");
+		await c.get("/clients");
+		c.port.mySettings = real;
+		expect(asked).toBe(1);
+		expect(cookies.get("lang")).toBe("ro");
+	});
+
 	it("a device that chose its own language keeps it", async () => {
 		await open();
 		await post("/me/settings", { locale: "en", theme: "dark", calendarView: "day" });

@@ -331,6 +331,8 @@ export interface VisitorPort {
 			mode?: "onsite" | "online";
 			serviceSlug?: string;
 			practitionerName?: string;
+			/** The person, as `visitor.slots` names them: a move stays with them. */
+			practitioner?: string;
 			/** How long before its start the booking stops being changed online: the service's own notice. */
 			noticeMinutes: number;
 		}[]

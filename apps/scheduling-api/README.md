@@ -93,9 +93,9 @@ link is used up by the first POST, the calendar link can be fetched again). The 
 every app. Members and their roles keep Novu's subscribers and the `team` / `reception` / `owners` topics in step.
 
 Not done, on purpose: `reminder.day_before` needs a daily job that picks tomorrow's appointments (the reminders list and
-the e-mail route keep working meanwhile); `assistant.action_done` belongs to the assistant, which is not in this service;
-the people's push preferences (`@psi/notify/push`) are the console's account settings, not routes here; a no-show has no
-message in the catalogue.
+the e-mail route keep working meanwhile), so no client is reminded by push yet; `assistant.action_done` belongs to the assistant, which is not in this service;
+a no-show has no message in the catalogue. A person's own notification choices and quiet hours are `me.settings`
+(`/v1/apps/:app/me/settings`): the notifier honours them for the people it names and for every member of a team.
 
 ## Rate limits
 

@@ -45,6 +45,7 @@ export const forAccount = query({
 				reference: row.reference,
 				tenant: row.tenant,
 				service: service?.slug ?? "",
+				practitioner: row.practitioner,
 				practitionerName: practitioner?.displayName ?? "",
 				minNoticeMinutes: service?.minNoticeMinutes ?? 0,
 				status: row.status,

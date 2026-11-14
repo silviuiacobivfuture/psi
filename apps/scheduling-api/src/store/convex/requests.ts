@@ -127,6 +127,7 @@ const Mine = answer({
 			mode: z.enum(["onsite", "online"]),
 			start: z.number(),
 			end: z.number(),
+			practitioner: z.string().optional(),
 			practitionerName: z.string(),
 			minNoticeMinutes: z.number().optional(),
 		}),
@@ -175,6 +176,7 @@ export function visitorExtras(
 					noticeMinutes: r.minNoticeMinutes ?? 0,
 					...(r.service === "" ? {} : { serviceSlug: r.service }),
 					...(r.practitionerName === "" ? {} : { practitionerName: r.practitionerName }),
+					...(r.practitioner === undefined ? {} : { practitioner: r.practitioner }),
 				}));
 		},
 		async rescheduleMine(app, subject, id, to) {
