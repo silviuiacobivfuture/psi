@@ -192,6 +192,76 @@ export function InviteSheet({ ctx, roles }: { ctx: Ctx; roles: ReadonlyArray<Rol
 	);
 }
 
+/** A one-time set-password link to pass on: read-only, selected on focus, one press copies it. Shown once, kept nowhere. */
+function OneTimeLink({ ctx, link }: { ctx: Ctx; link: string }): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<>
+			<label class="adm-field">
+				<span>{m.mb_invited_link({}, o)}</span>
+				<input
+					id="mb-invite-link"
+					class="adm-input"
+					readonly
+					value={link}
+					data-on:focus="el.select()"
+				/>
+				<span class="adm-muted">{m.mb_invited_once({}, o)}</span>
+			</label>
+			<button
+				type="button"
+				class="adm-btn"
+				data-copy-link
+				data-on:click="navigator.clipboard.writeText(document.getElementById('mb-invite-link').value)"
+			>
+				{m.mb_invited_copy({}, o)}
+			</button>
+		</>
+	);
+}
+
+/** In a member's editor, for whoever may add members: a new set-password link (the service refuses one who signed in). */
+export function NewLinkForm({ ctx, subject }: { ctx: Ctx; subject: string }): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<form
+			method="post"
+			action={`/settings/members/${encodeURIComponent(subject)}/link`}
+			class="cl-form"
+			data-form="member-link"
+			data-action="member.link"
+		>
+			<p class="adm-muted">{m.mb_link_hint({}, o)}</p>
+			<div>
+				<button class="adm-btn" type="submit">
+					{m.ac_member_link({}, o)}
+				</button>
+			</div>
+		</form>
+	);
+}
+
+/** The new link, once. */
+export function NewLinkSheet({
+	ctx,
+	name,
+	link,
+}: {
+	ctx: Ctx;
+	name: string;
+	link: string;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	return (
+		<Sheet signal="newLink" title={m.mb_link_title({}, o)} closeLabel={m.close({}, o)}>
+			<div class="cl-form" data-new-link>
+				<p>{m.mb_link_text({ name }, o)}</p>
+				<OneTimeLink ctx={ctx} link={link} />
+			</div>
+		</Sheet>
+	);
+}
+
 /** After an invitation: who was added and, for a new account, the one-time link to pass on. Shown once. */
 export function InvitedSheet({ ctx, outcome }: { ctx: Ctx; outcome: InviteOutcome }): JSX.Element {
 	const o = at(ctx.locale);
@@ -206,29 +276,7 @@ export function InvitedSheet({ ctx, outcome }: { ctx: Ctx; outcome: InviteOutcom
 		<Sheet signal="invitedMember" title={m.mb_invited_title({}, o)} closeLabel={m.close({}, o)}>
 			<div class="cl-form" data-invited={outcome.subject}>
 				<p>{text}</p>
-				{outcome.signInLink === null ? null : (
-					<>
-						<label class="adm-field">
-							<span>{m.mb_invited_link({}, o)}</span>
-							<input
-								id="mb-invite-link"
-								class="adm-input"
-								readonly
-								value={outcome.signInLink}
-								data-on:focus="el.select()"
-							/>
-							<span class="adm-muted">{m.mb_invited_once({}, o)}</span>
-						</label>
-						<button
-							type="button"
-							class="adm-btn"
-							data-copy-link
-							data-on:click="navigator.clipboard.writeText(document.getElementById('mb-invite-link').value)"
-						>
-							{m.mb_invited_copy({}, o)}
-						</button>
-					</>
-				)}
+				{outcome.signInLink === null ? null : <OneTimeLink ctx={ctx} link={outcome.signInLink} />}
 				<a
 					class="adm-btn adm-btn--primary"
 					href={`/settings/members?edit=${encodeURIComponent(outcome.subject)}`}

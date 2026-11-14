@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canOf } from "../lib/can";
 import { createFakePort } from "../port/fake";
+import { InviteOutcomeSchema } from "../port/schema-members";
 import { listActions, runAction } from "./engine";
 import { ACTIONS } from "./registry";
 import type { ActionCtx } from "./types";
@@ -220,6 +221,20 @@ describe("an action whose result is for the person at the screen alone", () => {
 		const ctx = await ctxFor(["owner"]);
 		const r = await runAction(ctx, "member.invite", invite, { confirmed: true });
 		expect(r.status === "ok" && JSON.stringify(r.data)).toContain("recovery");
+	});
+	it("an assistant run of a new set-password link answers no link either", async () => {
+		const ctx = await ctxFor(["owner"]);
+		const r = await runAction(ctx, "member.invite", invite, { confirmed: true });
+		const subject = r.status === "ok" ? InviteOutcomeSchema.parse(r.data).subject : "";
+		const again = await runAction(
+			ctx,
+			"member.link",
+			{ subject },
+			{ confirmed: true, via: "assistant" },
+		);
+		expect(again).toEqual({ status: "ok", to: expect.stringContaining(subject) });
+		const own = await runAction(ctx, "member.link", { subject }, { confirmed: true });
+		expect(own.status === "ok" && JSON.stringify(own.data)).toContain("recovery");
 	});
 	it("someone who may not add members is refused, and nobody is added", async () => {
 		const ctx = await ctxFor(["reception"]);
