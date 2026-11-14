@@ -6,10 +6,11 @@ import { createFgaReader } from "./fga";
 import { type MemberSpec, parseMemberSpec } from "./members";
 import { reconcile } from "./run";
 
-const USAGE = `usage: reconcile-authz [--app <slug>]... [--member <subject>=<role name>]... [--dry-run] [--prune]
+const USAGE = `usage: reconcile-authz [--app <slug>]... [--seed-roles] [--member <subject>=<role name>]... [--dry-run] [--prune]
 
   Writes every authorization tuple the scheduling store implies and OpenFGA lacks (idempotent; 100 per request).
   --app       an app to reconcile (repeatable; default psizone and hemisync)
+  --seed-roles  give an app that holds no role the service's seed roles first (an app the deployment or an import made)
   --member    make <subject> a member of the ONE app given, holding that role, then write its tuples
   --dry-run   write nothing: print what the store implies, and with --prune what would go
   --prune     also delete tuples of the service's object types that the store no longer implies
@@ -25,6 +26,7 @@ async function main(): Promise<number> {
 			member: { type: "string", multiple: true, default: [] },
 			"dry-run": { type: "boolean", default: false },
 			prune: { type: "boolean", default: false },
+			"seed-roles": { type: "boolean", default: false },
 			help: { type: "boolean", default: false },
 		},
 		strict: true,
@@ -67,6 +69,7 @@ async function main(): Promise<number> {
 			prefix: config.prefix,
 			dryRun: values["dry-run"],
 			prune: values.prune,
+			seedRoles: values["seed-roles"],
 			log: (line) => console.log(line),
 		});
 		for (const app of report.apps)

@@ -1,6 +1,6 @@
 import { allAppRelations, appRelation, permissionOf } from "../authz/catalogue";
 import { roleGrant } from "../authz/links";
-import { seedRoles } from "../authz/roles-seed";
+import { seedRoleRows } from "../authz/roles-seed";
 import { memberTuples, objectLinks, platformLink, roleTuples } from "../authz/tuples";
 import type { Deps, HandlersOf } from "../http/context";
 import { fail, forbidden } from "../http/errors";
@@ -63,18 +63,7 @@ export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string
 	try {
 		const held = await s.roles.list(id);
 		if (held.length === 0)
-			for (const r of seedRoles())
-				made.push(
-					await s.roles.insert({
-						id: `${id}-${r.slug}`,
-						app: id,
-						name: r.name,
-						description: r.description,
-						system: true,
-						permissions: [...new Set(r.permissions)].sort(),
-						...stamps(now),
-					}),
-				);
+			for (const r of seedRoleRows(id, now)) made.push(await s.roles.insert(r));
 		const roles = [...held, ...made];
 		if ((await s.members.get(id, ownerSubject)) === undefined) {
 			const ownerRole = roles.find(isOwnerRole);

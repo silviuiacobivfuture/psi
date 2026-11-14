@@ -3,6 +3,7 @@ import type { StorePort } from "@psi/scheduling-api/store-types";
 import { type FgaReader, SCHED_TYPES } from "./fga";
 import { bootstrapMember, type MemberOutcome, type MemberSpec } from "./members";
 import { type AppPlan, planApp, tuplesOf } from "./plan";
+import { type SeedOutcome, seedRolesIfNone } from "./seed";
 
 export interface ReconcileOptions {
 	store: StorePort;
@@ -14,11 +15,15 @@ export interface ReconcileOptions {
 	prefix: string;
 	dryRun: boolean;
 	prune: boolean;
+	/** Give an app with no roles the seed roles first (see seed.ts). */
+	seedRoles?: boolean;
 	log?: (line: string) => void;
 }
 
 export interface AppReport {
 	app: string;
+	/** Absent when seeding was not asked for. */
+	seeded?: SeedOutcome;
 	members: { subject: string; outcome: MemberOutcome }[];
 	counts: { platform: number; roles: number; members: number; links: number; total: number };
 }
@@ -43,6 +48,11 @@ export async function reconcile(options: ReconcileOptions): Promise<ReconcileRep
 	const reports: AppReport[] = [];
 	const plans: AppPlan[] = [];
 	for (const app of options.apps) {
+		const seeded =
+			options.seedRoles === true
+				? await seedRolesIfNone(options.store, app, !options.dryRun)
+				: undefined;
+		if (seeded !== undefined) log(`${app}: seed roles ${seeded}`);
 		const members: AppReport["members"] = [];
 		for (const spec of options.members)
 			members.push({
@@ -55,6 +65,7 @@ export async function reconcile(options: ReconcileOptions): Promise<ReconcileRep
 		const total = tuplesOf(plan).length;
 		reports.push({
 			app,
+			...(seeded === undefined ? {} : { seeded }),
 			members,
 			counts: {
 				platform: plan.platform.length,

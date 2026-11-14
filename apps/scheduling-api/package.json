@@ -22,7 +22,8 @@
 		"./store-types": "./src/store/types.ts",
 		"./open-convex": "./src/store/open-convex.ts",
 		"./store-memory": "./src/store/memory.ts",
-		"./store-actor": "./src/store/actor.ts"
+		"./store-actor": "./src/store/actor.ts",
+		"./roles-seed": "./src/authz/roles-seed.ts"
 	},
 	"description": "psi's headless scheduling service: apps, teams, calendars, clients, packages, records and the visitor booking flow over JSON/HTTP + SSE, every call authorized with OpenFGA",
 	"scripts": {
