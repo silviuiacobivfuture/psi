@@ -9,7 +9,6 @@
 # failed midnight run is made good by the next run instead of leaving the tier stale for a day (backup-freshness
 # alarms on a daily copy older than 26 h).
 set -euo pipefail
-shopt -s inherit_errexit
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required AWS_PAGER=""
 : "${BACKUP_BUCKET:?}" "${BACKUP_ENDPOINT:?}"
 W="${BACKUP_WORK:-/work}"
@@ -19,11 +18,12 @@ ts="$(date -u +%Y%m%dT%H%M%SZ)"
 now="$(date -u +%s)"
 
 # The age in hours of the newest object under convex/<tier>/, or a very large number when it has none. A listing that
-# fails is an error (set -e): a tier is never skipped because the bucket could not be read.
+# fails fails the run (checked explicitly below): a tier is never skipped because the bucket could not be read.
 age_hours() {
 	local newest
+	# Explicit, not errexit: a command substitution does not inherit -e in the image's bash (4.2, no inherit_errexit).
 	newest="$(aws s3api list-objects-v2 --bucket "$BACKUP_BUCKET" --prefix "convex/$1/" \
-		--query 'max(Contents[].LastModified)' --output text --endpoint-url "$BACKUP_ENDPOINT")"
+		--query 'max(Contents[].LastModified)' --output text --endpoint-url "$BACKUP_ENDPOINT")" || return 1
 	if [ -z "$newest" ] || [ "$newest" = "None" ]; then echo 1000000; return 0; fi
 	echo $(((now - $(date -u -d "$newest" +%s)) / 3600))
 }
@@ -46,8 +46,8 @@ tier() {
 	put "convex/$1/$ts.manifest.json" "$W/manifest.json" "$2"
 }
 
-daily_age="$(age_hours daily)"
-monthly_age="$(age_hours monthly)"
+daily_age="$(age_hours daily)" || { echo "FAILED: could not list convex/daily/" >&2; exit 1; }
+monthly_age="$(age_hours monthly)" || { echo "FAILED: could not list convex/monthly/" >&2; exit 1; }
 tier hourly 2
 if [ "$daily_age" -ge 23 ]; then tier daily 30; else echo "daily: newest is ${daily_age} h old, kept"; fi
 if [ "$monthly_age" -ge $((28 * 24)) ]; then tier monthly 365; else echo "monthly: newest is ${monthly_age} h old, kept"; fi
