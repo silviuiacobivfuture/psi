@@ -418,6 +418,7 @@ const OWN: Record<
 			formId: w.ids.form,
 			data: { summary: "second synthetic summary" },
 		}),
+	"records.withoutClient": (w) => olga(w, "GET", "/records-without-client"),
 	"records.get": (w) => olga(w, "GET", `/records/${w.ids.record}`),
 	"records.update": (w) =>
 		olga(w, "PATCH", `/records/${w.ids.record}`, { data: { summary: "edited synthetic summary" } }),
