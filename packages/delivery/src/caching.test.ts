@@ -53,6 +53,20 @@ describe("caching: pages", () => {
 		expect(await changed.text()).toBe("<p>home 2</p>");
 	});
 
+	it("a cookie the page set survives its 304", async () => {
+		const a = new Hono();
+		a.use("*", caching());
+		a.get("/", (c) => {
+			c.header("set-cookie", "vk=1; Path=/", { append: true });
+			c.header("set-cookie", "vk2=2; Path=/", { append: true });
+			return c.html("<p>x</p>");
+		});
+		const tag = (await a.request("/")).headers.get("etag") ?? "";
+		const res = await a.request("/", { headers: { "if-none-match": tag } });
+		expect(res.status).toBe(304);
+		expect(res.headers.getSetCookie()).toEqual(["vk=1; Path=/", "vk2=2; Path=/"]);
+	});
+
 	it("a page that set its own cache policy keeps it", async () => {
 		const res = await app().app.request("/kept");
 		expect(res.headers.get("cache-control")).toBe("public, max-age=60");
@@ -78,6 +92,29 @@ describe("caching: pages", () => {
 			expect(res.headers.get("etag")).toBeNull();
 			expect(res.headers.get("cache-control")).toBeNull();
 		}
+	});
+});
+
+describe("caching: an app whose every page is personal", () => {
+	const a = new Hono();
+	a.use("*", caching({ pages: "personal" }));
+	a.get("/", (c) => c.html("<p>someone's day</p>"));
+	a.get("/kept", (c) => c.html("<p>sign in</p>", 200, { "cache-control": "no-cache" }));
+	a.get("/css", (c) => c.body("x", 200, { "content-type": "text/css", etag: '"v1"' }));
+
+	it("a page that said nothing is private, no-store, with no ETag, never a 304", async () => {
+		const res = await a.request("/", { headers: { "if-none-match": "*" } });
+		expect(res.status).toBe(200);
+		expect(res.headers.get("cache-control")).toBe("private, no-store");
+		expect(res.headers.get("etag")).toBeNull();
+		expect(await res.text()).toBe("<p>someone's day</p>");
+	});
+
+	it("a page that set its own policy keeps it and its ETag; assets still revalidate", async () => {
+		const kept = await a.request("/kept");
+		expect(kept.headers.get("cache-control")).toBe("no-cache");
+		expect(kept.headers.get("etag")).toMatch(/^W\//);
+		expect((await a.request("/css", { headers: { "if-none-match": '"v1"' } })).status).toBe(304);
 	});
 });
 

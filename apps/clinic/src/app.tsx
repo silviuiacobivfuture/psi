@@ -78,9 +78,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
 	// Pages, the stylesheet and Datastar travel brotli- or gzip-compressed (event streams never are: they must flush as
-	// they go); a page that set no cache policy is revalidated by ETag, an unchanged asset asked again is a 304.
+	// they go); every page is someone's, so one that set no cache policy is private, no-store; an unchanged asset asked
+	// again is a 304.
 	app.use("*", compression());
-	app.use("*", caching());
+	app.use("*", caching({ pages: "personal" }));
 	const bell =
 		deps.notifications === undefined
 			? undefined

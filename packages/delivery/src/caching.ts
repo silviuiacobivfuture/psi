@@ -43,16 +43,22 @@ function isPersonal(cacheControl: string | null): boolean {
  * - an HTML page that said nothing about caching is `no-cache` with a weak ETag of its bytes, so a revisit is a 304;
  *   a personal page (`private`/`no-store`) is left exactly as it is, with no ETag;
  * - any GET answered with an ETag that the request's `If-None-Match` names becomes a bodiless 304.
+ *
+ * `pages: "personal"` is for an app whose every page is someone's (a staff console): an HTML page that said nothing
+ * is `private, no-store` instead, with no ETag.
  */
-export function caching(): MiddlewareHandler {
+export function caching(options: { pages?: "public" | "personal" } = {}): MiddlewareHandler {
+	const personalPages = options.pages === "personal";
 	return async function cache(c, next) {
 		await next();
 		if (c.req.method !== "GET" && c.req.method !== "HEAD") return;
 		const res = c.res;
 		if (res.status !== 200) return;
+		const html = (res.headers.get("content-type") ?? "").startsWith("text/html");
+		if (html && personalPages && !res.headers.has("cache-control"))
+			res.headers.set("cache-control", PERSONAL);
 		const cacheControl = res.headers.get("cache-control");
 		let etag = res.headers.get("etag");
-		const html = (res.headers.get("content-type") ?? "").startsWith("text/html");
 		if (html && !isPersonal(cacheControl) && etag === null && res.body !== null) {
 			const body = new Uint8Array(await res.arrayBuffer());
 			etag = `W/"${createHash("sha256").update(body).digest("base64url").slice(0, 22)}"`;
@@ -69,6 +75,8 @@ export function caching(): MiddlewareHandler {
 			const value = c.res.headers.get(name);
 			if (value !== null) kept.set(name, value);
 		}
+		// A cookie the route set (a first visit's visitor key) still reaches the browser.
+		for (const cookie of c.res.headers.getSetCookie()) kept.append("set-cookie", cookie);
 		c.res = undefined;
 		c.res = new Response(null, { status: 304, headers: kept });
 	};
