@@ -104,6 +104,8 @@ export function registerClients(app: Hono<Env>): void {
 			const needs = (...tabs: ClientTab[]): boolean => tabs.includes(tab);
 			// What the service cannot keep yet is a tab that says "în curând", not a broken page.
 			const soon: Soon[] = [];
+			const open = openOf(c, tab);
+			let filesNext: string | null = null;
 			const soft = async <T,>(
 				what: Soon,
 				load: Promise<ReadonlyArray<T>> | never[],
@@ -152,7 +154,15 @@ export function registerClients(app: Hono<Env>): void {
 					"records",
 					needs("records") && can.group("clinical") ? ctx.port.records(ctx.app, id) : [],
 				),
-				soft("files", needs("files") && can.has("files_view") ? ctx.port.files(ctx.app, id) : []),
+				soft(
+					"files",
+					needs("files") && can.has("files_view")
+						? ctx.port.filePage(ctx.app, id, null).then((page) => {
+								filesNext = page.nextCursor;
+								return page.items;
+							})
+						: [],
+				),
 				needs("records") ? ctx.port.formTemplates(ctx.app) : [],
 				// The invitation is shown only to whoever may act on it, and a service that cannot say leaves the card out.
 				needs("overview") && ctx.can.has("clients_invite")
@@ -162,6 +172,13 @@ export function registerClients(app: Hono<Env>): void {
 						})
 					: undefined,
 			]);
+			// The file to rename is found by id: it may be on a page of the files not shown yet.
+			const renaming =
+				open.rename === null
+					? null
+					: (files.find((f) => f.id === open.rename) ??
+						(await ctx.port.files(ctx.app, id)).find((f) => f.id === open.rename) ??
+						null);
 			return c.html(
 				await renderClient(
 					ctx,
@@ -177,9 +194,11 @@ export function registerClients(app: Hono<Env>): void {
 						blacklist,
 						records,
 						files,
+						filesNext,
+						renaming,
 						templates,
 						soon,
-						open: openOf(c, tab),
+						open,
 						notice: noticeOf(c.req.query("new"), c.req.query("made")),
 					},
 					flash,

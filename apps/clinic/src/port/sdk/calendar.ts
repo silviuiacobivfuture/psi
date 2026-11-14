@@ -1,8 +1,9 @@
-import { MAX_IDS, MAX_WINDOW_DAYS } from "@psi/scheduling-sdk/contract";
+import { MAX_IDS } from "@psi/scheduling-sdk/contract";
 import { addDays } from "../../lib/dates";
 import type { CalendarData, CalendarFocus, DayCount, ReminderItem } from "../port";
 import type { Appointment, AppSlug, Client, Column, RosterEntry, SearchHit } from "../schema";
 import { appointmentDefaults } from "../schema";
+import { readCalendar } from "./calendar-read";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { appointmentOf, clientOf, column, drain, rosterOf, serviceOf } from "./map";
@@ -10,8 +11,6 @@ import { instantOf, wallOf } from "./time";
 
 /** How many clients a search shows. */
 const SEARCH_HITS = 6;
-/** Days one calendar call asks for: the service's widest window less a day, so a DST-long day still fits. */
-const WINDOW_DAYS = MAX_WINDOW_DAYS - 1;
 
 /** The calendar, appointments, search, reminders and the roster. */
 export function calendarGroup(sdk: SdkContext) {
@@ -111,31 +110,7 @@ export function calendarGroup(sdk: SdkContext) {
 		): Promise<CalendarData> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
-				// The service answers at most MAX_WINDOW_DAYS a call: a longer span (a quarter's statistics) is read window
-				// by window, the columns once, the visits of every window.
-				const windows: { from: string; to: string }[] = [];
-				for (let day = from; day <= to; day = addDays(day, WINDOW_DAYS)) {
-					const last = addDays(day, WINDOW_DAYS - 1);
-					windows.push({ from: day, to: last < to ? last : to });
-				}
-				const answers = await Promise.all(
-					windows.map((w) =>
-						api.calendar.get({
-							app,
-							from: instantOf(w.from, 0, tz),
-							to: instantOf(addDays(w.to, 1), 0, tz),
-							columns: "person",
-						}),
-					),
-				);
-				const result = {
-					columns: (answers[0]?.columns ?? []).map((c) => ({
-						...c,
-						appointments: answers.flatMap(
-							(a) => a.columns.find((x) => x.id === c.id)?.appointments ?? [],
-						),
-					})),
-				};
+				const read = await readCalendar(api, app, tz, from, to, focus);
 				// The sheet that creates an appointment needs clients and services; the grid does not. A person who may
 				// not list them still sees the calendar.
 				const soft = async <T>(list: Promise<T[]>): Promise<T[]> =>
@@ -143,12 +118,13 @@ export function calendarGroup(sdk: SdkContext) {
 						if (toPortError(error).code === "forbidden") return [];
 						throw error;
 					});
-				const columns = result.columns.map((c, i) => column("person", c.id, c.name, i));
-				// A focused read (the week's one calendar) converts and names only that column's visits.
-				const only = focus === undefined ? null : (focus(columns) ?? "");
-				const appointments = result.columns
-					.filter((c) => only === null || c.id === only)
-					.flatMap((c) => c.appointments.map((a) => appointmentOf(a, tz)));
+				const columns = read.columns.map((c, i) => column("person", c.id, c.name, i));
+				// The service's calendars are people: a filter that does not show the one drawn shows none of them.
+				const drawn = columns.find((c) => c.id === read.only);
+				const hidden = drawn !== undefined && focus?.show !== undefined && !focus.show(drawn);
+				const appointments = hidden
+					? []
+					: [...read.visits.values()].flatMap((list) => list.map((a) => appointmentOf(a, tz)));
 				// The tiles name their clients: only the clients of the visits shown, in batches, never the whole list.
 				const named = [
 					...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId]))),

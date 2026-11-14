@@ -88,6 +88,7 @@ function targets(
 		api("api clients.list (therapist)", "/clients?limit=50", therapist),
 		api("api appointments.list week", `/appointments?from=${WEEK.from}&to=${WEEK.to}&limit=200`),
 		api("api calendar.get week", `/calendar?from=${WEEK.from}&to=${WEEK.to}`),
+		api("api calendar.get week first=1", `/calendar?from=${WEEK.from}&to=${WEEK.to}&first=1`),
 		api("api audit.list", "/audit?limit=50"),
 		api("api notes.list", `/clients/${CLIENT}/notes`),
 		api("api packages.list", `/clients/${CLIENT}/packages`),

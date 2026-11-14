@@ -186,7 +186,13 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("calendar");
 			const d = data(app);
 			const columns = calendarColumns(d.columns);
-			const only = focus === undefined ? null : (focus(columns) ?? "");
+			const fits = columns.filter(
+				(c) => (focus?.among === undefined || focus.among.has(c.id)) && (focus?.show?.(c) ?? true),
+			);
+			const only =
+				focus === undefined
+					? null
+					: ((fits.find((c) => c.id === focus.column) ?? fits[0])?.id ?? "");
 			const appointments = d.appointments.filter(
 				(a) => a.date >= from && a.date <= to && (only === null || a.columnId === only),
 			);

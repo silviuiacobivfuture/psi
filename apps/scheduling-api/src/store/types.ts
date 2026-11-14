@@ -147,6 +147,12 @@ export interface Query<R> {
 	/** A half-open range `[gte, lt)` on a numeric field. */
 	range?: { field: keyof R & string; gte?: number; lt?: number };
 	/**
+	 * A HINT for a few columns: the caller wants only the rows whose `field` is one of `values` (the calendars a screen
+	 * shows). An adapter that can read only those (an index per value) does; one that cannot may answer more. It never
+	 * answers fewer of the matching rows, so the caller always filters the answer itself.
+	 */
+	oneOf?: { field: keyof R & string; values: ReadonlyArray<string> };
+	/**
 	 * A HINT for a page: the caller wants the first `limit` rows in this order (by a numeric field; rows of one value in the
 	 * order they were written, reversed for `desc`, as an index keeps them). An adapter
 	 * that can read only those (an index in that order) does; one that cannot may answer more, in any order. It never

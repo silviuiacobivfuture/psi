@@ -78,6 +78,34 @@ export const visitsContract: ContractSection = (env) => {
 			).toEqual([g.id]);
 		});
 
+		it("lists a window of a few columns: a person's own and the group sessions they lead, a room's, a device's", async () => {
+			const start = next();
+			const window = { field: "start" as const, gte: start, lt: start + HOUR };
+			const own = await c().appointments.insert(draft(w, { start, roomId: w.room2 }));
+			const led = await c().appointments.insert(
+				draft(w, { start: start + 1, kind: "group", groupId: w.group, clientId: undefined }),
+			);
+			const other = await c().appointments.insert(
+				draft(w, { start, practitionerId: w.elena, clientId: w.c2, deviceId: w.device }),
+			);
+			await c().appointments.insert(draft(w, { start: start + HOUR }));
+			const ids = async (field: "practitionerId" | "roomId" | "deviceId", values: string[]) =>
+				(await c().appointments.list(w.app, { range: window, oneOf: { field, values } }))
+					.filter((r) => values.includes(String(Reflect.get(r, field))))
+					.map((r) => r.id)
+					.sort();
+			expect(await ids("practitionerId", [w.dora])).toEqual([own.id, led.id].sort());
+			expect(await ids("practitionerId", [w.elena, w.elena])).toEqual([other.id]);
+			expect(await ids("practitionerId", [w.dora, w.elena])).toEqual(
+				[own.id, led.id, other.id].sort(),
+			);
+			expect(await ids("roomId", [w.room2])).toEqual([own.id]);
+			expect(await ids("deviceId", [w.device])).toEqual([other.id]);
+			expect(await ids("practitionerId", [w.mara])).toEqual([]);
+			expect(await ids("roomId", ["nosuchroom000000000000000000000"])).toEqual([]);
+			expect(await ids("practitionerId", [])).toEqual([]);
+		});
+
 		it("a block of time needs no client", async () => {
 			const b = await c().appointments.insert(
 				draft(w, { start: next(), kind: "block", clientId: undefined }),
