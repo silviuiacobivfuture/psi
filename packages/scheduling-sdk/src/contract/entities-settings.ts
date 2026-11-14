@@ -9,6 +9,8 @@ export const MySettings = z.object({
 	locale: z.enum(["ro", "en"]),
 	theme: z.enum(["light", "dark", "system"]),
 	calendarView: z.enum(["day", "week", "month"]),
+	/** How many rows the console's long lists show a page (the size last picked); absent: the console's default. */
+	pageSize: z.union([z.literal(25), z.literal(50), z.literal(100)]).optional(),
 });
 export type MySettingsType = z.output<typeof MySettings>;
 

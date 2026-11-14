@@ -1,5 +1,6 @@
 import type { ApplyReport } from "./apply";
 import type { Step } from "./plan-org";
+import type { ProfileStep } from "./profile";
 
 const pad = (rows: ReadonlyArray<ReadonlyArray<string>>): string[] => {
 	const widths = rows.reduce<number[]>(
@@ -85,5 +86,20 @@ export function formatReport(r: ApplyReport): string {
 			),
 			`practitioners with no sign-in account: ${r.staff.unlinked.join(", ") || "none"}`,
 		);
+	if (r.profile !== undefined) out.push(profileLine(r.profile, r.dryRun));
 	return out.join("\n");
+}
+
+/** The contact profile's fate in one line: which fields the seed filled (never their values), or that it was kept. */
+export function profileLine(p: ProfileStep, dryRun: boolean): string {
+	switch (p.kind) {
+		case "keep":
+			return `contact profile: kept at revision ${p.revision} (every field the seed has is already set)`;
+		case "save":
+			return `contact profile: ${dryRun ? "would fill" : `filled at revision ${p.revision}:`} ${p.fields.join(", ")}`;
+		default: {
+			const never: never = p;
+			return never;
+		}
+	}
 }

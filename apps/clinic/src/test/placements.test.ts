@@ -56,6 +56,7 @@ async function screens(): Promise<string[]> {
 		"/requests",
 		"/reminders?date=2026-11-16",
 		"/me/settings",
+		"/settings/profile",
 		"/settings/roles",
 		"/settings/members",
 		"/settings/members?edit=colleague",
