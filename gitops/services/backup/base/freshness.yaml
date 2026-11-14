@@ -41,6 +41,12 @@ spec:
                     psi-backups-prod|openbao/|8
                     psi-backups-prod|replica/files-prod.json|2
                     psi-backups-dev|replica/files-dev.json|26
+                    psi-backups-prod|convex/hourly/|2
+                    psi-backups-prod|convex/daily/|26
+                    psi-backups-dev|convex/hourly/|7
+                    psi-backups-prod|cnpg/scheduling-db-prod/scheduling-db/base/|26
+                    psi-backups-prod|cnpg/account-db-prod/account-db/base/|26
+                    psi-backups-prod|cnpg/scheduling-db-prod/scheduling-db/wals/|26
               volumeMounts:
                 - { name: scripts, mountPath: /scripts, readOnly: true }
                 - { name: tmp, mountPath: /tmp }
