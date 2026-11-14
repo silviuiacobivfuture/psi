@@ -95,7 +95,7 @@ spec:
                 limits: { cpu: 500m, memory: 256Mi }
               securityContext:
                 allowPrivilegeEscalation: false
-                runAsUser: 65534
+                # The pod's uid (1000), as the export wrote the sealed file: it is mode 600.
                 capabilities: { drop: ["ALL"] }
                 readOnlyRootFilesystem: true
           volumes:
