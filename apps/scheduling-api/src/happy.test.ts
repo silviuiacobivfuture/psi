@@ -254,6 +254,8 @@ const OWN: Record<
 		),
 	"calendar.get": (w) =>
 		olga(w, "GET", `/calendar?from=${NOW}&to=${NOW + 3 * 24 * HOUR}&columns=person`),
+	"calendar.summary": (w) =>
+		olga(w, "GET", `/calendar/summary?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
 	"appointments.list": (w) => olga(w, "GET", `/appointments?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
 	// At 04:00 in Bucharest, outside every opening window: the visitor routes above book the first slot offered from the
 	// real clock, which on the day after NOW is this practitioner's morning and would overlap.

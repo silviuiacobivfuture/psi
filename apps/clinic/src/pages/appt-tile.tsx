@@ -48,6 +48,56 @@ export function flagText(flag: ClientFlag, locale: Locale): string {
 }
 
 /**
+ * The week's tile: the same place, colour, link and status patterns as the day's, and only what a week can show — the
+ * time, who, a flag mark, and the status in words when it is not the usual "confirmed". No monogram, no service, no
+ * icons: a week holds a hundred of these.
+ */
+export function WeekTile({
+	appt,
+	name,
+	colour,
+	dayStart,
+	flag,
+	locale,
+}: {
+	appt: Appointment;
+	name: string;
+	colour: number;
+	dayStart: number;
+	flag: ClientFlag | undefined;
+	locale: Locale;
+}): JSX.Element {
+	const flagged = flag !== undefined && (flag.blacklist !== null || flag.pinned !== null);
+	return (
+		<a
+			class={`cal__appt cal__appt--wash cal__appt--lite${appt.durationMin < 60 ? " cal__appt--short" : ""}`}
+			data-status={appt.status}
+			href={`/calendar?view=day&date=${appt.date}&appt=${appt.id}`}
+			data-on:click__prevent={`@get('/calendar/appointment/${appt.id}')`}
+			style={`--c:var(--cal-${colour});--start:${appt.startMin};--dur:${appt.durationMin};--day-start:${dayStart}`}
+		>
+			<time>{hhmm(appt.startMin)}</time>
+			<strong>
+				{name}
+				{flagged && flag !== undefined ? (
+					<span
+						class={`cl-tileflag ${flag.blacklist === null ? "cl-tileflag--note" : flag.blacklist.severity === "warn" ? "cl-tileflag--warn" : "cl-tileflag--block"}`}
+						data-tileflag
+						title={flagText(flag, locale)}
+					>
+						<Icon name="alert" />
+						<span class="adm-sr">{flagText(flag, locale)}</span>
+					</span>
+				) : null}
+			</strong>
+			{appt.status === "confirmed" ? null : (
+				<span class="cal__st">{statusLabel(appt.status, locale)}</span>
+			)}
+		</a>
+	);
+}
+
+/**
  * An appointment as psi draws it: a tinted surface washed in its column's colour, a round monogram
  * ringed in that colour (stacked for a group), time in tabular numerals, the service as a quiet label,
  * the status as a glyph-and-word pill in the corner. Cancelled is hatched and muted; requested is dashed

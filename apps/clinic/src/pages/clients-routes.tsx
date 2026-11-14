@@ -2,7 +2,7 @@ import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
-import { sse } from "../lib/sse";
+import { appendPage, MoreQuery } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 import { type ClientFilter, PortError } from "../port/port";
 import { ClientFilterSchema } from "../port/schema";
@@ -65,30 +65,22 @@ export function registerClients(app: Hono<Env>): void {
 		const ctx = c.var.ctx;
 		const filter = ClientFilterSchema.catch("current").parse(c.req.query("filter"));
 		const q = (c.req.query("q") ?? "").slice(0, 120);
-		const cursor = (c.req.query("cursor") ?? "").slice(0, 200);
-		const before = Number.parseInt(c.req.query("shown") ?? "0", 10);
-		const page = await ctx.port.clientPage(ctx.app, filter, q, cursor === "" ? null : cursor);
+		const asked = MoreQuery.parse(c.req.query());
+		const page = await ctx.port.clientPage(
+			ctx.app,
+			filter,
+			q,
+			asked.cursor === "" ? null : asked.cursor,
+		);
 		const by = new Map(page.summaries.map((s) => [s.clientId, s]));
-		const shown = (Number.isInteger(before) && before > 0 ? before : 0) + page.clients.length;
-		const rows = (
-			await Promise.all(
-				page.clients.map((client) =>
-					(
-						<ClientRow key={client.id} client={client} summary={by.get(client.id)} ctx={ctx} />
-					).toString(),
-				),
-			)
-		).join("");
-		const more = await (
-			<MoreClients ctx={ctx} filter={filter} q={q} cursor={page.nextCursor} shown={shown} />
-		).toString();
-		const count = await (
-			<ShownCount ctx={ctx} shown={shown} more={page.nextCursor !== null} />
-		).toString();
-		return sse((stream) => {
-			stream.patchElements(rows, { selector: "#client-list", mode: "append" });
-			stream.patchElements(more);
-			stream.patchElements(count);
+		const shown = asked.shown + page.clients.length;
+		return appendPage({
+			list: "#client-list",
+			rows: page.clients.map((client) => (
+				<ClientRow key={client.id} client={client} summary={by.get(client.id)} ctx={ctx} />
+			)),
+			more: <MoreClients ctx={ctx} filter={filter} q={q} cursor={page.nextCursor} shown={shown} />,
+			count: <ShownCount ctx={ctx} shown={shown} more={page.nextCursor !== null} />,
 		});
 	});
 

@@ -11,6 +11,7 @@ export {
 	type Target,
 } from "./define";
 export * from "./entities";
+export * from "./entities-calendar";
 export * from "./entities-feedback";
 export * from "./entities-plan";
 export * from "./entities-reports";
