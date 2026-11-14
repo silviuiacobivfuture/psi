@@ -142,6 +142,8 @@ export function visitorExtras(rpc: Rpc): Pick<VisitorPort, "callback" | "mine" |
 					locale: input.locale,
 					channel: input.channel,
 					page: input.page,
+					...(input.preferredStart === undefined ? {} : { preferredStart: input.preferredStart }),
+					...(input.service === undefined ? {} : { service: input.service }),
 					consent: true,
 				},
 				Created,

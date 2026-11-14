@@ -127,10 +127,21 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ reference: Reference }),
 		body: z.object({
 			holdToken: z.string().min(16).max(64),
-			contact: Contact,
+			/** An empty name is refused by the service, with the assistant's own reason on its channel. */
+			contact: Contact.extend({ name: z.string().trim().max(200) }),
 			audience: Audience.optional(),
+			/**
+			 * Who took the details: the site's form (the default; a name and one way to call back) or the visitor
+			 * assistant, whose five fields (guide-fields.ts) are all required, each refused with its own reason.
+			 */
+			channel: z.enum(["form", "guide"]).default("form"),
+			/** The person's age in years (the assistant's channel). Checked, never stored: a request holds logistics. */
+			age: z.number().optional(),
+			/** What the problem is, in the visitor's words (the assistant's channel). Checked, never stored. */
+			details: z.string().max(4000).optional(),
 		}),
 		response: Submitted,
+		audit: "request.create",
 	}),
 	route({
 		id: "visitor.cancel",
@@ -141,6 +152,7 @@ export const VISITOR_ROUTES = [
 		params: AppParam.extend({ reference: Reference }),
 		body: z.object({ cancelCode: z.string().min(6).max(32) }),
 		response: z.object({ start: Ms }),
+		audit: "visitor.cancel",
 	}),
 	route({
 		id: "visitor.callback",
@@ -158,6 +170,10 @@ export const VISITOR_ROUTES = [
 			/** The page the form was on. */
 			page: z.string().max(120).default("/"),
 			channel: z.enum(["form", "guide"]).default("form"),
+			/** A time the visitor chose that could not be held: the team calls about it. */
+			preferredStart: Ms.optional(),
+			/** The service the visitor was looking at. */
+			service: Slug.optional(),
 		}),
 		response: CallbackRequest,
 		audit: "callback.create",

@@ -13,8 +13,11 @@ import { sseData } from "./sse";
 export type Auth =
 	/** An estate SSO access token (or a function giving the current one). */
 	| { bearer: string | (() => string | Promise<string>) }
-	/** A server-to-server service key; `subject` names the visitor on `visitor.mine*` calls. */
-	| { serviceKey: string; subject?: string };
+	/**
+	 * A server-to-server service key; `subject` names the visitor on `visitor.mine*` calls (and owns a submitted
+	 * request); `clientIp` is the visitor's address, which the service rate-limits by (`x-psi-client-ip`).
+	 */
+	| { serviceKey: string; subject?: string; clientIp?: string };
 
 export interface ClientOptions {
 	/** The service's origin, e.g. `https://api-programari.psizone.ro`. */
@@ -60,6 +63,7 @@ export function createSchedulingClient(options: ClientOptions): SchedulingClient
 		} else {
 			out["x-service-key"] = auth.serviceKey;
 			if (auth.subject !== undefined) out["x-psi-subject"] = auth.subject;
+			if (auth.clientIp !== undefined) out["x-psi-client-ip"] = auth.clientIp;
 		}
 		return out;
 	}

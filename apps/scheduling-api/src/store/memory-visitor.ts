@@ -37,6 +37,8 @@ interface Req {
 	accountHash?: string;
 	/** Left as a callback (a contact and no slot): listed by when it came, never with a start. */
 	callback?: true;
+	/** A callback's time the visitor chose and could not hold. */
+	preferredStart?: number;
 	createdAt: number;
 }
 
@@ -348,6 +350,9 @@ export function createMemoryVisitor(
 				end: clock(),
 				mode: "onsite",
 				contact: input.contact,
+				channel: input.channel,
+				...(input.service === undefined ? {} : { serviceSlug: input.service }),
+				...(input.preferredStart === undefined ? {} : { preferredStart: input.preferredStart }),
 				createdAt: clock(),
 			};
 			reqs.set(r.id, r);

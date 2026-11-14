@@ -97,6 +97,22 @@ the e-mail route keep working meanwhile); `assistant.action_done` belongs to the
 the people's push preferences (`@psi/notify/push`) are the console's account settings, not routes here; a no-show has no
 message in the catalogue.
 
+## Public sites
+
+psizone-web books only through the visitor routes, with its own service key (`SCHEDULING_API_URL`,
+`SCHEDULING_SERVICE_KEY=psizone-web.<secret>`; locally `http://localhost:4380` and `psizone-web.dev-psizone-web`):
+the booking forms, the callback form and the guide's tools (services, free times, cancel with the code). So a public
+booking is journaled (`request.create`, `visitor.cancel`, `callback.create`, actor `service:psizone-web`) and the team
+is notified like any other. The site forwards each visitor's address in `x-psi-client-ip`. hemisync-web takes no
+bookings (its guide has no scheduling and its account page sends people to Psizone), so it calls nothing here yet.
+
+A submit taken by the visitor assistant says `channel: "guide"` and must carry the assistant's five fields: name,
+age, problem details, phone AND e-mail (`@psi/scheduling-sdk/contract` `guide-fields.ts`). Each missing or invalid one
+is a 400 `invalid` with its own `detail.reason` (`name_missing`, `age_invalid`, …, `email_invalid`), `detail.field`
+and every refused field in `detail.fields`, before anything is written. The age and the details are checked and never
+stored (a request holds logistics only). The site's form (`channel: "form"`, the default) asks for a name and one way
+to call back, and is held to that.
+
 ## Rate limits
 
 Visitor routes only: a token bucket in memory per service key and visitor (the site forwards the visitor's address in

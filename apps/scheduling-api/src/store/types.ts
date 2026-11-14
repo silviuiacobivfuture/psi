@@ -316,6 +316,9 @@ export interface VisitorPort {
 			when: "morning" | "afternoon" | "any";
 			page: string;
 			channel: "form" | "guide";
+			/** A time the visitor chose that could not be held. */
+			preferredStart?: number | undefined;
+			service?: string | undefined;
 		},
 	): Promise<{ reference: string }>;
 	mine(
