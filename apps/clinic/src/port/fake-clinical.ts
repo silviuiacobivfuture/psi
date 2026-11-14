@@ -47,6 +47,7 @@ type ClinicalMethods = Pick<
 	| "endBlacklist"
 	| "formTemplates"
 	| "records"
+	| "recordsWithoutClient"
 	| "record"
 	| "createRecord"
 	| "updateRecord"
@@ -92,7 +93,11 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 			throw new PortError("invalid", res.problems.map((p) => `${p.field}:${p.code}`).join(","));
 		return def.version;
 	};
-	const withClient = <T extends { clientId: string }>(app: AppSlug, rows: T[], id: string): T[] => {
+	const withClient = <T extends { clientId: string | null }>(
+		app: AppSlug,
+		rows: T[],
+		id: string,
+	): T[] => {
 		known(app, id);
 		return rows.filter((r) => r.clientId === id);
 	};
@@ -260,6 +265,10 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 		async records(app, clientId) {
 			guard("records");
 			return newest(withClient(app, state(app).records, clientId));
+		},
+		async recordsWithoutClient(app) {
+			guard("recordsWithoutClient");
+			return newest(state(app).records.filter((r) => r.clientId === null));
 		},
 		async record(app, id) {
 			guard("record");

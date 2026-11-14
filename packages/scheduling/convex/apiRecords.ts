@@ -132,7 +132,7 @@ const out = (r: {
 	_id: string;
 	definitionKey: string;
 	definitionVersion: number;
-	client: string;
+	client?: string;
 	visit?: string;
 	practitioner?: string;
 	payload: { keyVersion: number; iv: string; data: string };
