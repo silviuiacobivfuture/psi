@@ -1,0 +1,58 @@
+# The backups' alarm (scripts/freshness.sh): every 30 minutes, each kind of backup must have a recent enough object
+# off-site, or this CronJob's run fails and estate-watch tells the infra channel. One line per check:
+#   <bucket>|<prefix>|<max age, hours>
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-freshness
+  labels: { app: backup-freshness }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "12,42 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels: { app: backup-freshness }
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: check
+              image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              command: ["bash", "/scripts/freshness.sh"]
+              envFrom:
+                - secretRef: { name: backup-s3 }
+              env:
+                - { name: HOME, value: /tmp }
+                - { name: AWS_REGION, value: fsn1 }
+                - name: CHECKS
+                  value: >-
+                    psi-backups-prod|openbao/|8
+                    psi-backups-prod|replica/files-prod.json|2
+                    psi-backups-dev|replica/files-dev.json|26
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 192Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: scripts
+              configMap: { name: backup-scripts }
+            - name: tmp
+              emptyDir: { sizeLimit: 64Mi }
