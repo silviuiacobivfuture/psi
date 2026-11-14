@@ -27,6 +27,9 @@ spec:
             matchLabels: { app: hemisync-web }
         - podSelector:
             matchLabels: { app: scheduling-deploy }
+        # The hourly logical backup (gitops/services/scheduling-deploy, CronJob scheduling-backup), same namespace.
+        - podSelector:
+            matchLabels: { app: scheduling-backup }
         # The one-shot old-app sync (gitops/services/scheduling-sync), same namespace.
         - podSelector:
             matchLabels: { app: scheduling-sync }

@@ -27,8 +27,10 @@ spec:
   backup:
     retentionPolicy: "30d"
     barmanObjectStore:
-      destinationPath: s3://psi-tfstate-dev/cnpg/account-db-prod
-      endpointURL: https://nbg1.your-objectstorage.com
+      # Off-site (fsn1, not the cluster's nbg1) in production's backup bucket: WAL continuously, a base backup daily,
+      # 30 days of point-in-time recovery; a deleted object is kept 7 more days by the bucket's versioning (docs/backup.md).
+      destinationPath: s3://psi-backups-prod/cnpg/account-db-prod
+      endpointURL: https://fsn1.your-objectstorage.com
       s3Credentials:
         accessKeyId: { name: account-db-backup-s3, key: AWS_ACCESS_KEY_ID }
         secretAccessKey: { name: account-db-backup-s3, key: AWS_SECRET_ACCESS_KEY }

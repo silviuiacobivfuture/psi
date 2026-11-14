@@ -8,3 +8,19 @@ resources:
 images:
   - name: registry.psizone.ro/psi/scheduling-deploy
     newTag: "643e34a"
+configMapGenerator:
+  # The backup's dev half: its backend, its bucket, and the dev backup key pair's PUBLIC key (the private one is
+  # secret/apps/backup-dev/restore-key and the workstation escrow; docs/backup.md).
+  - name: scheduling-backup
+    behavior: merge
+    literals:
+      - CONVEX_SELF_HOSTED_URL=http://scheduling-backend.scheduling.svc:3210
+      - BACKUP_ENV=dev
+      - BACKUP_BUCKET=psi-backups-dev
+    files:
+      - backup-public-key.pem
+patches:
+  # Dev is backed up lighter than production: every 6 hours.
+  - target: { kind: CronJob, name: scheduling-backup }
+    patch: |-
+      - { op: replace, path: /spec/schedule, value: "7 */6 * * *" }

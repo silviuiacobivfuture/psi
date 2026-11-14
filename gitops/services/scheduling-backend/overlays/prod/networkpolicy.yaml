@@ -13,6 +13,9 @@
       - from:
           - podSelector:
               matchLabels: { app: scheduling-deploy }
+          # The hourly logical backup (CronJob scheduling-backup), same namespace.
+          - podSelector:
+              matchLabels: { app: scheduling-backup }
           # The old-app sync CronJob (gitops/services/scheduling-sync/overlays/prod), same namespace.
           - podSelector:
               matchLabels: { app: scheduling-sync }

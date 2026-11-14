@@ -1,6 +1,6 @@
 {
 	"name": "@psi/scheduling",
-	"version": "0.28.1",
+	"version": "0.29.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's scheduling engine: providers, services, availability rules and exceptions, slots, holds with expiry, requests and appointments, DST-safe in Europe/Bucharest; Convex as the database",
@@ -20,7 +20,8 @@
 		"convex:seed": "scripts/convex.sh run seed:demo",
 		"import:old": "scripts/import-old.sh",
 		"sync:old": "scripts/sync-old.sh",
-		"build:sync": "esbuild scripts/sync-old/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/sync-old.mjs"
+		"build:sync": "esbuild scripts/sync-old/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/sync-old.mjs",
+		"build:backup": "esbuild scripts/backup/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/backup.mjs"
 	},
 	"dependencies": {
 		"convex": "1.49.0",

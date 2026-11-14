@@ -11,3 +11,9 @@ resources:
   - externalsecret.yaml
   - networkpolicy.yaml
   - job.yaml
+  # The store's hourly logical backup (docs/backup.md); each overlay adds its address, bucket and public key.
+  - backup-cronjob.yaml
+configMapGenerator:
+  - name: scheduling-backup
+    files:
+      - backup-upload.sh
