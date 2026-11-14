@@ -3,7 +3,7 @@ import { openConvexStore } from "@psi/scheduling-api/open-convex";
 import { readConfig } from "../reconcile-authz/config";
 import { reseed } from "./run";
 
-const USAGE = `usage: reseed-roles [--app <slug>]... [--dry-run]
+const USAGE = `usage: reseed-roles [--app <slug>]... [--add-keys <key,key,...>] [--dry-run]
 
   Rewrites the seed roles into their composed form: the Owner includes the Administrator (and gains the Owner-only
   keys), the Administrator includes Recepție, Terapeut, Coordonator and Contabil, Terapeut includes Voluntar. A role
@@ -11,6 +11,8 @@ const USAGE = `usage: reseed-roles [--app <slug>]... [--dry-run]
   change, but the Owner's. A role that does not ("not_contained") stays flat and lists what it lacks. Writes the store
   only: run reconcile-authz, then reconcile-authz --prune, afterwards.
   --app       an app to re-seed (repeatable; default psizone and hemisync)
+  --add-keys  keys new to the seed (comma-separated): each seed role whose seed holds one and that does not hold it
+              yet gains it. Only the keys named: a key the app's owners took away is never given back.
   --dry-run   write nothing: print what each role would become
 Configuration is the environment only (see ../reconcile-authz/config.ts); nothing secret is printed.`;
 
@@ -19,6 +21,7 @@ async function main(): Promise<number> {
 		options: {
 			app: { type: "string", multiple: true, default: [] },
 			"dry-run": { type: "boolean", default: false },
+			"add-keys": { type: "string", default: "" },
 			help: { type: "boolean", default: false },
 		},
 		strict: true,
@@ -36,12 +39,16 @@ async function main(): Promise<number> {
 			apps,
 			dryRun: values["dry-run"],
 			now: Date.now(),
+			addKeys: values["add-keys"]
+				.split(",")
+				.map((k) => k.trim())
+				.filter(Boolean),
 		});
 		for (const r of reports) {
 			console.log(`${r.app}: ${r.written} rewritten${values["dry-run"] ? " (dry run)" : ""}`);
 			for (const s of r.steps)
 				console.log(
-					`  ${s.kind.padEnd(14)} ${s.name}${s.missing === undefined ? "" : ` lacks ${s.missing.join(", ")}`}`,
+					`  ${s.kind.padEnd(14)} ${s.name}${s.missing === undefined ? "" : ` lacks ${s.missing.join(", ")}`}${s.added === undefined ? "" : ` gains ${s.added.join(", ")}`}`,
 				);
 		}
 		return 0;

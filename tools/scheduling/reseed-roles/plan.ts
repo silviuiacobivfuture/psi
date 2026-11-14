@@ -3,19 +3,26 @@ import {
 	effectiveOf,
 	OWNER_ONLY_KEYS,
 	SEED_ROLES,
+	seedEffective,
 } from "@psi/scheduling/permissions";
 import type { RoleRow } from "@psi/scheduling-api/store-types";
 
 export type Step =
 	/** Rewritten into its composed form: the same permissions in the end (the Owner also gains the Owner-only keys). */
-	| { kind: "rewrite"; role: RoleRow; next: RoleRow }
+	| { kind: "rewrite"; role: RoleRow; next: RoleRow; added: string[] }
 	/** Already composed as the seed says, and the Owner already holds the Owner-only keys: nothing to do. */
 	| { kind: "current"; role: RoleRow }
 	/**
 	 * A role it should include holds something this one does not (the app's owners changed one of them): including it
 	 * would widen this role, so it is left flat. The Owner still gains the Owner-only keys.
 	 */
-	| { kind: "not_contained"; role: RoleRow; next: RoleRow | undefined; missing: string[] }
+	| {
+			kind: "not_contained";
+			role: RoleRow;
+			next: RoleRow | undefined;
+			missing: string[];
+			added: string[];
+	  }
 	/** A seed role the app does not have (an older or partial app): nothing made here. */
 	| { kind: "missing"; name: string };
 
@@ -57,7 +64,18 @@ const same = (a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean =>
  * What every role holds in the end is therefore exactly what it held before, except the Owner, who gains the
  * Owner-only keys. Roles are planned bottom-up, so an included role's composition is known when its includer's is.
  */
-export function planReseed(roles: ReadonlyArray<RoleRow>, now: number): Step[] {
+export function planReseed(
+	stored: ReadonlyArray<RoleRow>,
+	now: number,
+	addKeys: ReadonlyArray<string> = [],
+): Step[] {
+	const additions = keysToAdd(stored, addKeys);
+	// Planned on the rows as they will be with the additions; compared with (and reported as) the rows as stored.
+	const roles = stored.map((r) => {
+		const add = additions.get(r.id);
+		return add === undefined ? r : { ...r, permissions: sorted([...r.permissions, ...add]) };
+	});
+	const storedById = new Map(stored.map((r) => [r.id, r]));
 	const seeded = seedRolesOf(roles);
 	const byId = new Map<string, ComposedRole>(
 		roles.map((r) => [r.id, { id: r.id, permissions: r.permissions, includes: r.includes }]),
@@ -83,10 +101,51 @@ export function planReseed(roles: ReadonlyArray<RoleRow>, now: number): Step[] {
 					updatedAt: now,
 				}
 			: { ...role, permissions: sorted([...role.permissions, ...extra]), updatedAt: now };
+		const was = storedById.get(role.id) ?? role;
+		const added = additions.get(role.id) ?? [];
 		const unchanged =
-			same(target.permissions, role.permissions) && same(target.includes, role.includes);
+			same(target.permissions, was.permissions) && same(target.includes, was.includes);
 		if (composes)
-			return unchanged ? { kind: "current", role } : { kind: "rewrite", role, next: target };
-		return { kind: "not_contained", role, next: unchanged ? undefined : target, missing };
+			return unchanged
+				? { kind: "current", role: was }
+				: { kind: "rewrite", role: was, next: target, added };
+		return {
+			kind: "not_contained",
+			role: was,
+			next: unchanged ? undefined : target,
+			missing,
+			added,
+		};
 	});
+}
+
+/**
+ * Keys new to the seed, given by name (`--add-keys`): each seed role gains those of them its seed holds and it does not
+ * hold yet, itself or through a role it includes. Only keys named here: a key the app's owners took away from a role is
+ * never given back by a re-seed, and a key that did not exist when the roles were stored cannot have been taken away.
+ * A named key no seed role holds is refused (a misspelt key would otherwise do nothing, silently).
+ */
+export function keysToAdd(
+	roles: ReadonlyArray<RoleRow>,
+	addKeys: ReadonlyArray<string>,
+): Map<string, string[]> {
+	const out = new Map<string, string[]>();
+	if (addKeys.length === 0) return out;
+	const unknown = addKeys.filter(
+		(k) => !SEED_ROLES.some((seed) => seedEffective(seed.name).includes(k)),
+	);
+	if (unknown.length > 0) throw new RangeError(`no seed role holds ${unknown.join(", ")}`);
+	const seeded = seedRolesOf(roles);
+	const byId = new Map<string, ComposedRole>(
+		roles.map((r) => [r.id, { id: r.id, permissions: r.permissions, includes: r.includes }]),
+	);
+	for (const seed of SEED_ROLES) {
+		const role = seeded.get(seed.name);
+		if (role === undefined) continue;
+		const flat = new Set(seedEffective(seed.name));
+		const held = effectiveOf(role.id, byId).keys;
+		const add = sorted(addKeys.filter((k) => flat.has(k) && !held.has(k)));
+		if (add.length > 0) out.set(role.id, add);
+	}
+	return out;
 }

@@ -3,7 +3,7 @@ import { planReseed, type Step } from "./plan";
 
 export interface ReseedReport {
 	app: string;
-	steps: Array<{ kind: Step["kind"]; name: string; missing?: string[] }>;
+	steps: Array<{ kind: Step["kind"]; name: string; missing?: string[]; added?: string[] }>;
 	/** How many roles were rewritten (0 on a dry run). */
 	written: number;
 }
@@ -22,10 +22,12 @@ export async function reseed(input: {
 	apps: ReadonlyArray<string>;
 	dryRun: boolean;
 	now: number;
+	/** Keys new to the seed that the seed roles holding them gain (planReseed). */
+	addKeys?: ReadonlyArray<string>;
 }): Promise<ReseedReport[]> {
 	const out: ReseedReport[] = [];
 	for (const app of input.apps) {
-		const steps = planReseed(await input.store.c.roles.list(app), input.now);
+		const steps = planReseed(await input.store.c.roles.list(app), input.now, input.addKeys ?? []);
 		let written = 0;
 		if (!input.dryRun)
 			for (const step of steps) {
@@ -38,6 +40,9 @@ export async function reseed(input: {
 				kind: s.kind,
 				name: s.kind === "missing" ? s.name : s.role.name,
 				...(s.kind === "not_contained" ? { missing: s.missing } : {}),
+				...((s.kind === "rewrite" || s.kind === "not_contained") && s.added.length > 0
+					? { added: s.added }
+					: {}),
 			})),
 			written,
 		});
