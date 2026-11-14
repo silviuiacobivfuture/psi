@@ -17,6 +17,13 @@ patches:
       - { op: test, path: /spec/template/spec/containers/0/name, value: openfga }
       - { op: replace, path: /spec/template/spec/containers/0/resources/limits/cpu, value: "2" }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/cpu, value: 200m }
+  # psi 2026-11-15, slot `rollout` (SEB 0.1.96, pieces/openfga/defaults): a rollout replaces one pod at a time
+  # (maxSurge 0, maxUnavailable 1; 2 replicas, so never below 1). With the 2-CPU limit above, a surge pod (2.5 CPU
+  # with authzfilter) beside the two running ones and the database exceeded the namespace quota (limits.cpu 6:
+  # 1.5+1.5+1 used) and was refused (FailedCreate, 14 Nov 22:03Z). One at a time it fits: 2.5+1.5+1, then 2.5+2.5+1.
+  - target: { kind: Deployment, name: openfga }
+    patch: |-
+      - { op: replace, path: /spec/strategy, value: { type: RollingUpdate, rollingUpdate: { maxSurge: 0, maxUnavailable: 1 } } }
 # Slot `image` (schema/slots/openfga.yaml): the tag of the autorizare-svc image psi built
 # (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:5447caf0… in registry.psizone.ro/psi (from SEB 0.1.93).
 # The generated Application sets it (estate/seb-image-tags.mjs).
