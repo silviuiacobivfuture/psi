@@ -81,7 +81,7 @@
 	"me_view": "The calendar opens on",
 	"me_settings_save": "Save preferences",
 	"me_invalid": "Nothing was saved: a value is not right. Check the quiet hours (start and end must differ).",
-	"me_bell_always": "The console's notification list always shows everything.",
+	"me_locked_hint": "Ticked grey boxes cannot be switched off: they are news the team must receive.",
 	"me_quiet": "Quiet hours",
 	"me_quiet_on": "No push during quiet hours",
 	"me_quiet_from": "From",

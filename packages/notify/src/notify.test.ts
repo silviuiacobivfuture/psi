@@ -344,7 +344,7 @@ describe("notify: refusals send nothing", () => {
 		const n = build();
 		expect(await n.notify("psizone", "request.new", SAMPLES["request.new"], [])).toEqual({
 			status: "off",
-			reason: "no-channel",
+			reason: "no-recipient",
 		});
 	});
 });

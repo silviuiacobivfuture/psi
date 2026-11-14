@@ -21,10 +21,12 @@ import { orgSettingsOpen, PLATFORM_KEY } from "./lib/areas";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { at, type Locale } from "./lib/i18n";
+import { joinRoles } from "./lib/roles-joined";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
+import { ROLES_MATRIX_PATH } from "./roles-matrix/path";
 
 export type NavKey =
 	| "calendar"
@@ -112,7 +114,7 @@ export const rolesText = (
 	ids: ReadonlyArray<string>,
 	locale: Locale,
 	names: Readonly<Record<string, string>> | undefined = undefined,
-): string => ids.map((r) => roleName(r, locale, names)).join(" + ");
+): string => joinRoles(ids.map((r) => roleName(r, locale, names)));
 
 /** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
 export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>
@@ -214,11 +216,12 @@ export async function Page({
 		href: `/switch/${mb.app}`,
 	}));
 	const effective: NavKey = moreKeys.includes(current) ? "more" : current;
-	// What the pill and the menu call this person: the platform's administrator is told as such, never as a clinic role.
+	// What the pill and the menu call this person: the platform's administrator is told as such first, then the clinic role.
+	const clinicRoles = rolesText(ctx.caps.roles, locale, ctx.caps.roleNames);
 	const mine =
 		ctx.platformAdmin && ctx.viewAs === null
-			? m.role_platform_admin({}, o)
-			: rolesText(ctx.caps.roles, locale, ctx.caps.roleNames);
+			? [m.role_platform_admin({}, o), clinicRoles].filter((s) => s !== "").join(" · ")
+			: clinicRoles;
 	return (
 		<Layout
 			locale={locale}
@@ -281,6 +284,10 @@ export async function Page({
 						<a class="adm-menu__item" href="/me/settings" data-action="nav.me">
 							<Icon name="settings" />
 							{m.me_mine_menu({}, o)}
+						</a>
+						<a class="adm-menu__item" href={ROLES_MATRIX_PATH} data-action="nav.roles-matrix">
+							<Icon name="shield" />
+							{m.rm_menu({}, o)}
 						</a>
 						{ctx.mayViewAs || ctx.viewAs !== null ? (
 							<a class="adm-menu__item" href="/view-as">

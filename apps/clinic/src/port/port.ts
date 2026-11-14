@@ -1,4 +1,7 @@
-import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/contract";
+import type {
+	Capabilities as ScheduleCapabilities,
+	RoleSummary as ScheduleRoleSummary,
+} from "@psi/scheduling-sdk/contract";
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
@@ -12,6 +15,9 @@ import type {
 	AuditEvent,
 	Client,
 	Column,
+	Invite,
+	InvitePick,
+	InvitePreview,
 	Membership,
 	NewAppointment,
 	NewClient,
@@ -51,8 +57,21 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
-import type { MemberDetail, MemberInput, OverridesInput } from "./schema-members";
-import type { MySettings, MySettingsView } from "./schema-settings";
+import type {
+	InviteInput,
+	InviteOutcome,
+	MemberDetail,
+	MemberInput,
+	OverridesInput,
+	SignInLink,
+	StaffMatch,
+} from "./schema-members";
+import type {
+	MyNotifications,
+	MyNotificationsView,
+	MySettings,
+	MySettingsView,
+} from "./schema-settings";
 
 export type ClientFilter = "current" | "archived";
 
@@ -86,6 +105,9 @@ export interface ReminderItem {
  * what to offer, never the authority — the service authorizes every call again.
  */
 export type Capabilities = z.output<typeof ScheduleCapabilities>;
+
+/** Every role of the app with its stored permission keys, and the platform administrator's: what any member may compare. */
+export type RoleSummary = z.output<typeof ScheduleRoleSummary>;
 
 /** Who the console is looking at the app as (read-only), when a roles administrator has chosen "Vezi ca…". */
 export type ViewAsTarget = `role:${string}` | `member:${string}`;
@@ -126,6 +148,8 @@ export class PortError extends Error {
 		message: string,
 		/** For `conflict`: what the asked time collides with. */
 		readonly conflicts: ReadonlyArray<Conflict> = [],
+		/** The service's own reason inside a code (`no_email`, `already_active`): a screen words each, never the message. */
+		readonly reason?: string,
 	) {
 		super(message);
 		this.name = "PortError";
@@ -186,6 +210,20 @@ export interface ClinicPort extends ProfilePort {
 	clientAppointments(app: AppSlug, id: string): Promise<ReadonlyArray<Appointment>>;
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
+	/** The client's online-account invitation, or `null` when they were never invited. */
+	invite(app: AppSlug, clientId: string): Promise<Invite | null>;
+	/** The e-mail as it would go; sends and writes nothing. */
+	previewInvite(app: AppSlug, clientId: string, pick: InvitePick): Promise<InvitePreview>;
+	/**
+	 * Turns the client into a registered user: creates (or finds) their sign-in account, links it, e-mails the invitation.
+	 * Refuses with `conflict` (reason `already_invited`, `already_active`, `account_disabled`, `client_not_active`),
+	 * `invalid` (`no_email`), `forbidden`, or `unavailable` (the sign-in is away); nothing is written then.
+	 */
+	sendInvite(app: AppSlug, clientId: string, pick: InvitePick): Promise<Invite>;
+	/** A fresh link (the earlier one stops working); refused within a minute of the last send (`too_soon`). */
+	resendInvite(app: AppSlug, clientId: string): Promise<Invite>;
+	/** Withdraws it: the link stops working and the client is unlinked; the sign-in account itself is never touched. */
+	revokeInvite(app: AppSlug, clientId: string): Promise<Invite>;
 	packages(app: AppSlug, clientId: string): Promise<ReadonlyArray<Package>>;
 	createPackage(app: AppSlug, clientId: string, input: NewPackage): Promise<Package>;
 	/** Refuses (`invalid`) sessions + bonus below the sessions already used. */
@@ -233,6 +271,8 @@ export interface ClinicPort extends ProfilePort {
 	deleteRole(app: AppSlug, id: string): Promise<void>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
+	/** The roles to compare (names and keys only): readable by every member, unlike `roles` (roles_view). */
+	roleSummary(app: AppSlug): Promise<RoleSummary>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
 	/**
@@ -260,6 +300,19 @@ export interface ClinicPort extends ProfilePort {
 	): Promise<{ grant: ReadonlyArray<string>; deny: ReadonlyArray<string> }>;
 	/** Takes the person out of the team: their roles, grants and denials go with them. */
 	removeMember(app: AppSlug, subject: string): Promise<void>;
+	/** People of the staff sign-in group matching a name or an e-mail (never a client's account); at most 20. */
+	searchStaff(app: AppSlug, query: string): Promise<ReadonlyArray<StaffMatch>>;
+	/**
+	 * Invites someone by e-mail: their account is found or made in the staff group, they are added with these roles and
+	 * e-mailed. Refuses (`conflict`, with the service's reason) a client's account, a switched-off one, someone already in
+	 * the team; (`unavailable`) when the sign-in cannot be reached or no staff group is configured.
+	 */
+	inviteMember(app: AppSlug, input: InviteInput): Promise<InviteOutcome>;
+	/**
+	 * The set-password link of a member who has never signed in: the sign-in answers the same one for 30 minutes. Refuses (`conflict`, with the service's
+	 * reason) one who already signed in, has no e-mail or no account of theirs in the staff group.
+	 */
+	newSignInLink(app: AppSlug, subject: string): Promise<SignInLink>;
 	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
 	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */
@@ -338,6 +391,17 @@ export interface ClinicPort extends ProfilePort {
 	mySettings(app: AppSlug, subject: string): Promise<MySettingsView>;
 	/** Replaces them; the same set again changes nothing. `invalid` for a set the service does not take. */
 	saveMySettings(app: AppSlug, subject: string, settings: MySettings): Promise<MySettingsView>;
+	/** How the person is told things here: their switches per kind and channel, quiet hours, and what each kind offers. */
+	myNotifications(app: AppSlug, subject: string): Promise<MyNotificationsView>;
+	/**
+	 * Replaces those choices whole. `invalid` for a kind or channel that does not exist, or a channel that cannot be
+	 * switched off; nothing is saved then.
+	 */
+	saveMyNotifications(
+		app: AppSlug,
+		subject: string,
+		prefs: MyNotifications,
+	): Promise<MyNotificationsView>;
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
 	assistantMode(subject: string): Promise<AssistantMode | null>;
 	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;

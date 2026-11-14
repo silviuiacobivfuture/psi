@@ -71,6 +71,7 @@ export const JOURNEY_KEYS = [
 	"account_bookings_link_failed",
 	"account_bookings_linked",
 	"account_bookings_change_until",
+	"account_bookings_cancel_until",
 	"account_bookings_too_late",
 	"account_bookings_move",
 	"account_bookings_move_title",

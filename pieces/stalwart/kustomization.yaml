@@ -6,10 +6,13 @@
 # The estate's values come from its identity (the whitelabel component), each into ONE place
 # first (stalwart-settings) and carried from there:
 #   MAIL_HOST_PREFIX + BASE_DOMAIN    → MAIL_HOST (post.<apex>): SMTP/IMAP name, MX target,
-#                                       the certificate
-#   WEBMAIL_HOST_PREFIX + BASE_DOMAIN → WEBMAIL_HOST: the webmail (Roundcube), its hub tile
-#   (MAIL_HOST also)                  → Stalwart's own pages (admin, app passwords), its public URL
-#   BRAND_TITLE                       → the webmail's name
+#                                       the certificate — the mail node, for mail only
+#   BULWARK_HOST_PREFIX + BASE_DOMAIN → BULWARK_HOST (mail.<apex>): Bulwark, the server's JMAP
+#                                       paths beside it, its hub tile (into bulwark-settings)
+#   MAIL_ADMIN_HOST_PREFIX + BASE_DOMAIN → MAIL_ADMIN_HOST (mail-admin.<apex>): Stalwart's own
+#                                       pages (admin, app passwords), their certificate, the
+#                                       server's public URL — on the web ingress
+#   BRAND_TITLE                       → the mail client's name
 #   MAILBOX_DOMAIN                    → the mailboxes' domain (<user>@<this>)
 #   AUTHENTIK_HOST                    → the OIDC issuer
 #   REGISTRY_HOST                     → the images (Harbor's mirror)
@@ -29,21 +32,22 @@ components:
 
 replacements:
   - path: whitelabel-replacements.yaml
-  # MAIL_HOST and WEBMAIL_HOST: <prefix>.<BASE_DOMAIN>, resolved ONCE into stalwart-settings.
+  # MAIL_HOST and MAIL_ADMIN_HOST: <prefix>.<BASE_DOMAIN>, resolved ONCE into
+  # stalwart-settings.
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
     targets:
       - select: { kind: ConfigMap, name: stalwart-settings }
-        fieldPaths: [data.MAIL_HOST, data.WEBMAIL_HOST]
+        fieldPaths: [data.MAIL_HOST, data.MAIL_ADMIN_HOST]
         options: { delimiter: ".", index: 1 }
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_HOST_PREFIX }
     targets:
       - select: { kind: ConfigMap, name: stalwart-settings }
         fieldPaths: [data.MAIL_HOST]
         options: { delimiter: ".", index: 0 }
-  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.WEBMAIL_HOST_PREFIX }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_ADMIN_HOST_PREFIX }
     targets:
       - select: { kind: ConfigMap, name: stalwart-settings }
-        fieldPaths: [data.WEBMAIL_HOST]
+        fieldPaths: [data.MAIL_ADMIN_HOST]
         options: { delimiter: ".", index: 0 }
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MAILBOX_DOMAIN }
     targets:
@@ -61,22 +65,56 @@ replacements:
     targets:
       - select: { kind: Certificate, name: stalwart-mail }
         fieldPaths: [spec.dnsNames.0]
+  - source: { kind: ConfigMap, name: stalwart-settings, fieldPath: data.MAIL_ADMIN_HOST }
+    targets:
       - select: { kind: Ingress, name: stalwart-admin }
         fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
       - select: { kind: Ingress, name: stalwart-admin-callback }
         fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
+      - select: { kind: Ingress, name: stalwart-admin-sso }
+        fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
       - select: { kind: ConfigMap, name: stalwart-settings }
         fieldPaths: [data.STALWART_PUBLIC_URL]
         options: { delimiter: "/", index: 2 }
-  - source: { kind: ConfigMap, name: stalwart-settings, fieldPath: data.WEBMAIL_HOST }
+  # Bulwark (base/bulwark.yaml): BULWARK_HOST = <BULWARK_HOST_PREFIX>.<BASE_DOMAIN>, resolved ONCE
+  # into bulwark-settings and carried from there; the issuer, Stalwart's account page and the
+  # brand from stalwart-settings.
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BASE_DOMAIN }
     targets:
-      - select: { kind: Ingress, name: webmail }
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.BULWARK_HOST]
+        options: { delimiter: ".", index: 1 }
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BULWARK_HOST_PREFIX }
+    targets:
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.BULWARK_HOST]
+        options: { delimiter: ".", index: 0 }
+  - source: { kind: ConfigMap, name: bulwark-settings, fieldPath: data.BULWARK_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.JMAP_SERVER_URL]
+        options: { delimiter: "/", index: 2 }
+      - select: { kind: Ingress, name: bulwark }
         fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
-      - select: { kind: Ingress, name: webmail-callback }
+      - select: { kind: Ingress, name: bulwark-jmap }
         fieldPaths: [spec.rules.0.host, spec.tls.0.hosts.0]
-      - select: { kind: Ingress, name: webmail }
+      - select: { kind: Ingress, name: bulwark }
         fieldPaths: ["metadata.annotations.[gethomepage.dev/href]"]
         options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: stalwart-settings, fieldPath: data.AUTHENTIK_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.OAUTH_ISSUER_URL]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: stalwart-settings, fieldPath: data.MAIL_ADMIN_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.ACCOUNT_MANAGEMENT_URL]
+        options: { delimiter: "/", index: 2 }
+  - source: { kind: ConfigMap, name: stalwart-settings, fieldPath: data.BRAND_TITLE }
+    targets:
+      - select: { kind: ConfigMap, name: bulwark-settings }
+        fieldPaths: [data.APP_NAME, data.APP_SHORT_NAME, data.LOGIN_COMPANY_NAME]
   # The daily backup's object storage (backup.yaml): the estate's region, endpoint and bucket.
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OBJECT_STORAGE_REGION }
     targets:

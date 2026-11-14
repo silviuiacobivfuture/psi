@@ -157,7 +157,10 @@ export async function renderMySettings(
 					<h2 class="adm-h2" id="me-notif">
 						{m.me_notifications({}, o)}
 					</h2>
-					<NotificationsForm ctx={ctx} settings={settings} />
+					<NotificationsForm
+						ctx={ctx}
+						view={await ctx.port.myNotifications(ctx.app, ctx.person.subject)}
+					/>
 					<div class="adm-card">
 						{ctx.pwa.notifications({
 							locale: ctx.locale,

@@ -1,9 +1,12 @@
 import { resolve } from "node:path";
-import { createGuide, type Guide } from "@psi/guide";
+import { createGuide, type Guide, schedulingFromEnv } from "@psi/guide";
 import { createKnowledge } from "@psi/knowledge";
 import { countingGuide, type GuideCounters, guideCountsFromEnv } from "@psi/site-control";
 import { devLog } from "@psi/ui";
 import { aiSettings } from "./ai-settings";
+
+/** The scheduling store (Convex) when configured: booking questions then get Hemi-Sync's own times in the chat. */
+const SCHEDULING = schedulingFromEnv(process.env);
 
 /** The CMS's reading counters (CMS_URL, ANALYTICS_INGEST_TOKEN): the day's questions, and how the invitation fares. */
 export const guideCounts = guideCountsFromEnv(process.env, "hemisync");
@@ -11,8 +14,10 @@ export const guideCounts = guideCountsFromEnv(process.env, "hemisync");
 /**
  * The one guide this site talks to: Hemi-Sync România's Mastra agent on OpenRouter (OPENROUTER_API_KEY),
  * reading the knowledge base at PSI_KNOWLEDGE_DB_URL (local default: .data/knowledge.db, seeded by
- * `pnpm knowledge:seed`). No memory: nothing a visitor asks is kept. The admin's AI settings come
- * from the CMS (`aiSettings`); without a CMS key, PSI_GUIDE_SETTINGS or the defaults.
+ * `pnpm knowledge:seed`). No memory: nothing a visitor asks is kept. With scheduling on, a booking
+ * question is answered with Hemi-Sync's own tenant only (the guide's port finds, holds, submits and
+ * cancels, and books only after the visitor confirmed a summary). The admin's AI settings come from the CMS (`aiSettings`); without a CMS
+ * key, PSI_GUIDE_SETTINGS or the defaults.
  * Wrapped once so the control plane sees today's question counts.
  */
 export const guide: Guide & GuideCounters = countingGuide(
@@ -21,6 +26,7 @@ export const guide: Guide & GuideCounters = countingGuide(
 		knowledge: createKnowledge({
 			url: process.env.PSI_KNOWLEDGE_DB_URL ?? `file:${resolve(".data/knowledge.db")}`,
 		}),
+		...(SCHEDULING.ok ? { scheduling: SCHEDULING.scheduling.port } : {}),
 		...(aiSettings === null ? {} : { settings: aiSettings.get }),
 		onFailure: (failure) => {
 			console.error(`guide: ${failure.stage} failed: ${failure.error}`);

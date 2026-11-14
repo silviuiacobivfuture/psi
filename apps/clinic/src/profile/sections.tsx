@@ -11,6 +11,7 @@ import { relative } from "../lib/when";
 import { m } from "../paraglide/messages.js";
 import type { MyFeedback, Profile } from "../port/profile-port";
 import type { Column } from "../port/schema";
+import { ROLES_MATRIX_PATH } from "../roles-matrix/path";
 
 export interface ProfileData {
 	profile: Profile | null;
@@ -88,6 +89,9 @@ export function Identity({ ctx, data }: { ctx: Ctx; data: ProfileData }): JSX.El
 						</li>
 					))}
 				</ul>
+				<a class="pf-roles-link" href={ROLES_MATRIX_PATH} data-roles-matrix-link>
+					{m.rm_profile_link({}, o)}
+				</a>
 				{data.column === null ? null : (
 					<p class="pf-cal" style={`--c:var(--cal-${data.column.colour})`}>
 						<span class="pf-cal__dot" aria-hidden="true" />

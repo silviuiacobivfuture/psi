@@ -1,0 +1,23 @@
+module agent
+
+# GENERATED FROM apps/agent-studio/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+type agent_studio
+  relations
+    define parent_platform: [platform]
+    define view: [user, group#member] or operate or administrator from parent_platform or role_agent_studio_viewer from parent_platform or role_agent_studio_operator from parent_platform
+    define operate: [user, group#member] or administrator from parent_platform or role_agent_studio_operator from parent_platform
+
+# The module's roles, as relations somebody can actually hold.
+extend type platform
+  relations
+    define role_agent_studio_operator: [user, group#member]
+    define role_agent_studio_viewer: [user, group#member]
+    # app_agent_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_agent_access: role_agent_studio_operator or role_agent_studio_viewer or administrator

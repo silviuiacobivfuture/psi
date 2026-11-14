@@ -1,5 +1,5 @@
 import { sha256Hex } from "../../src/crypto";
-import type { ObjectStorage } from "../../src/storage";
+import { MemoryStorage, type ObjectStorage } from "../../src/storage";
 import { planBlacklist } from "./blacklist";
 import { planClients } from "./clients";
 import { detect } from "./detect";
@@ -13,7 +13,7 @@ import type { Report, TableCount, Written } from "./report";
 import { planRoster } from "./roster";
 import type { ImportSink, Kind, RowsByKind, SlugKind } from "./sink";
 import { WRITE_ORDER } from "./sink";
-import { type ParsedExport, parseExport } from "./source";
+import { type ParsedExport, parseExport, TABLES } from "./source";
 import { type Ctx, canonical, dryEncryptor, type Encryptor } from "./support";
 import { validatePlanned } from "./validate";
 import { planVisits } from "./visits";
@@ -44,10 +44,13 @@ export interface RunOptions {
 	connect: (() => Promise<Target>) | undefined;
 }
 
+/** What planning needs from a run: everything but the way into the store. */
+type PlanOptions = Omit<RunOptions, "connect">;
+
 const ZONE = "Europe/Bucharest";
 
 async function plan(
-	options: RunOptions,
+	options: PlanOptions,
 	parsed: ParsedExport,
 	enc: Encryptor,
 	real: { storage: ObjectStorage; known: ReadonlyMap<string, string> } | undefined,
@@ -126,7 +129,7 @@ async function plan(
 
 type Plan = Awaited<ReturnType<typeof plan>>;
 
-function tableCounts(options: RunOptions, parsed: ParsedExport, p: Plan): TableCount[] {
+function tableCounts(options: PlanOptions, parsed: ParsedExport, p: Plan): TableCount[] {
 	const r = parsed.rows;
 	const sourceCount = (name: string): number => parsed.sourceCounts[name] ?? 0;
 	const count = (
@@ -233,6 +236,121 @@ function tableCounts(options: RunOptions, parsed: ParsedExport, p: Plan): TableC
 	];
 }
 
+/** The rows a plan would write, by kind. */
+function batchesOf(p: Plan): { [K in Kind]: ReadonlyArray<RowsByKind[K]> } {
+	return {
+		practitioners: p.people.practitioners,
+		devices: p.people.devices,
+		rooms: p.people.rooms,
+		groups: p.people.groups,
+		staff: p.people.staff,
+		clients: p.clients.rows,
+		packages: p.packages.packages,
+		visits: p.visits.rows,
+		payments: p.packages.payments,
+		roster: p.roster.roster,
+		blocks: p.roster.blocks,
+		responses: p.responses.rows,
+		files: p.files.rows,
+		blacklist: p.blacklist.rows,
+	};
+}
+
+/** What a run WOULD do to one kind of row, from the store's own fingerprints. Old ids only, never content. */
+export interface KindDiff {
+	kind: Kind;
+	created: number;
+	changed: number;
+	unchanged: number;
+	/** Old ids the store holds that the old app no longer has. Reported, never deleted. */
+	absent: string[];
+}
+
+export interface DiffReport {
+	report: Report;
+	kinds: KindDiff[];
+	/** The store holds no app or key yet: every planned row is new, and there is nothing to be absent. */
+	emptyTarget: boolean;
+}
+
+export type DiffOptions = Omit<RunOptions, "connect"> & {
+	/** Opens the store for READING only; `undefined` when the app or its key does not exist yet. */
+	connect: () => Promise<Target | undefined>;
+};
+
+/** Kinds the diff covers: the blacklist is a seed the staff own afterwards, not a mirror of the old app. */
+const DIFFED: ReadonlyArray<Kind> = WRITE_ORDER.filter((k) => k !== "blacklist");
+
+/**
+ * What a sync would change, without changing anything: the whole export is parsed and mapped, the store is
+ * only READ (its fingerprints and old ids), and each planned row is compared with what the store holds.
+ * Files are planned against a throwaway object store, so nothing reaches the real one. `connect` must not
+ * write (no app creation, no key installation): a store with no key yet answers `undefined`.
+ */
+export async function diffImport(options: DiffOptions): Promise<DiffReport | { refusal: Report }> {
+	const parsed = parseExport(options.exported, options.ignoreTables);
+	if ("fatal" in parsed) {
+		return {
+			refusal: {
+				mode: "dry-run",
+				fatal: parsed.fatal,
+				tables: [],
+				anomalies: [],
+				filesChecked: 0,
+				written: [],
+			},
+		};
+	}
+	const first = await plan(options, parsed, dryEncryptor, undefined);
+	const report: Report = {
+		mode: "dry-run",
+		tables: tableCounts(options, parsed, first),
+		anomalies: first.log.list(),
+		stats: first.stats,
+		validation: first.validation,
+		filesChecked: first.files.checked,
+		written: [],
+	};
+	if (first.log.has("blocking")) return { refusal: { ...report, refusal: "blocking" } };
+	const target = await options.connect();
+	if (target === undefined) return { report, kinds: [], emptyTarget: true };
+	const { sink, enc } = target;
+	const known = await sink.knownFiles(options.mapping.app, [
+		...parsed.rows.client_files.map((f) => `client_files:${f.id}`),
+		...parsed.rows.avize.map((f) => `avize:${f.id}`),
+	]);
+	const second = await plan(options, parsed, enc, { storage: new MemoryStorage(), known });
+	const batches = batchesOf(second);
+	const inExport = new Set<string>();
+	for (const [table, rows] of Object.entries(parsed.rows))
+		for (const row of rows) inExport.add(`${table}:${row.id}`);
+	const kinds: KindDiff[] = [];
+	for (const kind of DIFFED) {
+		const stored = await sink.stored(options.mapping.app, kind);
+		const planned = new Set<string>();
+		const diff: KindDiff = { kind, created: 0, changed: 0, unchanged: 0, absent: [] };
+		for (const row of batches[kind]) {
+			const legacyId = String(Reflect.get(row, "legacyId"));
+			planned.add(legacyId);
+			if (!stored.has(legacyId)) diff.created += 1;
+			else if (stored.get(legacyId) === String(Reflect.get(row, "fingerprint")))
+				diff.unchanged += 1;
+			else diff.changed += 1;
+		}
+		// A file whose row is already imported unchanged is not re-planned: it is in `known`, so it counts as unchanged.
+		if (kind === "files") diff.unchanged += second.files.unchanged;
+		for (const legacyId of stored.keys()) {
+			if (planned.has(legacyId)) continue;
+			const [table, id] = legacyId.split(":");
+			if (table === undefined || !(table in TABLES)) continue;
+			if (!inExport.has(`${table}:${id}`)) diff.absent.push(legacyId);
+		}
+		diff.absent.sort();
+		kinds.push(diff);
+	}
+	return { report: { ...report, anomalies: second.log.list() }, kinds, emptyTarget: false };
+}
+
 /** The slugs a plan would give, by kind, with the old id that wants each. */
 function plannedSlugs(p: Plan): Array<{ kind: SlugKind; slug: string; legacyId: string }> {
 	return [
@@ -300,22 +418,7 @@ export async function runImport(options: RunOptions): Promise<Report> {
 		...parsed.rows.avize.map((f) => `avize:${f.id}`),
 	]);
 	const second = await plan(options, parsed, enc, { storage, known });
-	const batches: { [K in Kind]: ReadonlyArray<RowsByKind[K]> } = {
-		practitioners: second.people.practitioners,
-		devices: second.people.devices,
-		rooms: second.people.rooms,
-		groups: second.people.groups,
-		staff: second.people.staff,
-		clients: second.clients.rows,
-		packages: second.packages.packages,
-		visits: second.visits.rows,
-		payments: second.packages.payments,
-		roster: second.roster.roster,
-		blocks: second.roster.blocks,
-		responses: second.responses.rows,
-		files: second.files.rows,
-		blacklist: second.blacklist.rows,
-	};
+	const batches = batchesOf(second);
 	const written: Written[] = [];
 	for (const kind of WRITE_ORDER) {
 		if (kind === "responses")

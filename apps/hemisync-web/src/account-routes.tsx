@@ -6,6 +6,7 @@ import { account, accountSay, bookings } from "./account";
 import { ESTATE, siteNames } from "./estate";
 import { base, type Locale } from "./i18n";
 import { AccountFrame } from "./pages/account";
+import { bookingHref } from "./routes";
 import { themeFrom } from "./theme";
 
 /**
@@ -24,7 +25,7 @@ export function registerAccountRoutes(app: Hono, locale: Locale): void {
 		siteNames: siteNames(locale),
 		dataHome: `${ESTATE.psizone}${prefix}/cont/date`,
 		...(bookings === undefined ? {} : { bookings }),
-		bookHref: `${ESTATE.psizone}${prefix}/contact`,
+		bookHref: bookingHref(locale),
 		readingHref: `${ESTATE.blog}${prefix}/`,
 		savedListHref: `${ESTATE.blog}${prefix}/cont#salvate`,
 		savedArticle: savedArticleIn(INDEX, locale, (slug) => articleUrl(locale, slug, ESTATE.blog)),

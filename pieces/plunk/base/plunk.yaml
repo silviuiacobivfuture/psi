@@ -86,7 +86,7 @@ spec:
         # Only the four keys it needs, by name: it holds no database URL and no JWT
         # secret. Reloader restarts it with the pod when the key changes.
         - name: send-gate
-          image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-a882578@sha256:cec22a0df9954a831a8b846822b87ed2888f92fda8f9940d4790980d92ef3d35
+          image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-6707e4b@sha256:0f60973bceec244e2165124e1a8a2399448ed8fc6702b7155a8a5b0758eca2a5
           command: ["node", "/app/plunk-sso/bin/send-gate.mjs"]
           env:
             - name: AWS_SES_REGION

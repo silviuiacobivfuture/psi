@@ -7,6 +7,7 @@ import type { CallbackInput, CallbacksStaff } from "../callbacks-client";
 import { createSchedulingClient, type SchedulingClient } from "../client";
 import type { SchedulingConfig } from "../config";
 import { createStaffSchedulingClient } from "../staff-client";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * Callback requests against the real local backend (README), in throwaway `test-callbacks-…`
@@ -14,8 +15,8 @@ import { createStaffSchedulingClient } from "../staff-client";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((res) => res.ok)
 	.catch(() => false);
@@ -108,6 +109,15 @@ describe.skipIf(!ready)("callback requests on the local Convex", () => {
 			ok: false,
 			reason: "invalid",
 		});
+		for (const contact of [
+			{ name: "DEMO Callback", phone: "0700 000 000", age: 121 },
+			{ name: "DEMO Callback", phone: "0700 000 000", age: -1 },
+			{ name: "DEMO Callback", phone: "0700 000 000", details: "scurt" },
+			{ name: "DEMO Callback", phone: "0700 000 000", details: "x".repeat(2001) },
+		]) {
+			const refused = await client.requestCallback(visitor({ contact })).catch(() => "refused");
+			expect(refused === "refused" || (typeof refused !== "string" && !refused.ok)).toBe(true);
+		}
 		expect(await client.requestCallback(visitor({ tenant: "test-callbacks-nobody" }))).toEqual({
 			ok: false,
 			reason: "unknown_tenant",
@@ -167,7 +177,9 @@ describe.skipIf(!ready)("callback requests on the local Convex", () => {
 	it("retention erases the contact of an old handled request, keeps an unhandled one, deletes a year-old one", async () => {
 		const mk = async (name: string) => {
 			const made = await client.requestCallback(
-				visitor({ contact: { name, phone: "0700 000 003" } }),
+				visitor({
+					contact: { name, phone: "0700 000 003", age: 30, details: "Detalii personale de test." },
+				}),
 			);
 			if (!made.ok) throw new Error(made.reason);
 			return made.id;
@@ -191,7 +203,11 @@ describe.skipIf(!ready)("callback requests on the local Convex", () => {
 		const byId = new Map(all.callbacks.map((c) => [c.id, c]));
 		expect(byId.get(handledOld)?.contact).toBeUndefined();
 		expect(byId.get(handledOld)?.status).toBe("handled");
-		expect(byId.get(newOld)?.contact?.name).toBe("DEMO New Old");
+		expect(byId.get(newOld)?.contact).toMatchObject({
+			name: "DEMO New Old",
+			age: 30,
+			details: "Detalii personale de test.",
+		});
 		expect(byId.has(ancient)).toBe(false);
 	});
 });

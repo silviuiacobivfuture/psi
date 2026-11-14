@@ -1,10 +1,42 @@
+import { kindInfo, kindsOf } from "@psi/notify";
 import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import type { ClinicPort } from "./port";
 import { PortError } from "./port";
 import type { AppSlug, AssistantMode } from "./schema";
-import { DEFAULT_SETTINGS, type MySettings, MySettingsSchema } from "./schema-settings";
+import {
+	DEFAULT_SETTINGS,
+	type MyNotifications,
+	MyNotificationsSchema,
+	type MyNotificationsView,
+	type MySettings,
+	MySettingsSchema,
+} from "./schema-settings";
 import type { AppData } from "./seed";
 import { seedPlan } from "./seed-plan";
+
+const NO_CHOICES: MyNotifications = { channels: {}, quietHours: null };
+
+/** The team side's kinds as the notifier's catalogue has them: what each offers, starts with and keeps on. */
+const staffView = (p: MyNotifications): MyNotificationsView => ({
+	prefs: p,
+	kinds: kindsOf("staff").map((kind) => ({ kind, ...kindInfo("staff", kind) })),
+});
+
+/** Every switch names an offered channel of a team-side kind, and none turns a locked channel off. */
+function honoured(p: MyNotifications): boolean {
+	const kinds = new Map(staffView(p).kinds.map((k) => [k.kind as string, k]));
+	return Object.entries(p.channels).every(([kind, switches]) => {
+		const info = kinds.get(kind);
+		return (
+			info !== undefined &&
+			Object.entries(switches ?? {}).every(
+				([channel, on]) =>
+					(info.offered as string[]).includes(channel) &&
+					(on !== false || !(info.locked as string[]).includes(channel)),
+			)
+		);
+	});
+}
 
 export interface FloorDeps {
 	data: (app: AppSlug) => AppData;
@@ -21,11 +53,14 @@ export function createFakeFloorAndPrefs(
 	| "saveFloorPlan"
 	| "mySettings"
 	| "saveMySettings"
+	| "myNotifications"
+	| "saveMyNotifications"
 	| "assistantMode"
 	| "saveAssistantMode"
 > {
 	const { data, guard, log } = deps;
 	const settings = new Map<string, MySettings>();
+	const prefs = new Map<string, MyNotifications>();
 	const modes = new Map<string, AssistantMode>();
 	const plans = new Map<AppSlug, FloorPlanDoc>();
 	return {
@@ -62,6 +97,23 @@ export function createFakeFloorAndPrefs(
 				log(data(app), subject, "settings.update", subject);
 			}
 			return { ...parsed.data, stored: true };
+		},
+		async myNotifications(app, subject) {
+			guard("myNotifications");
+			return staffView(prefs.get(`${app}|${subject}`) ?? NO_CHOICES);
+		},
+		async saveMyNotifications(app, subject, raw) {
+			guard("saveMyNotifications");
+			// Like the service: a kind or channel the catalogue does not have, or a locked one switched off, is refused whole.
+			const parsed = MyNotificationsSchema.safeParse(raw);
+			if (!parsed.success || !honoured(parsed.data))
+				throw new PortError("invalid", "notifications");
+			const key = `${app}|${subject}`;
+			if (JSON.stringify(prefs.get(key)) !== JSON.stringify(parsed.data)) {
+				prefs.set(key, parsed.data);
+				log(data(app), subject, "notifications.prefs", subject);
+			}
+			return staffView(parsed.data);
 		},
 		async assistantMode(subject) {
 			guard("assistantMode");

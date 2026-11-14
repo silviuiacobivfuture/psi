@@ -250,6 +250,45 @@ describe("conversation mode", () => {
 		});
 	});
 
+	it("keeps the chosen time in the booking state through a question the guide answers", async () => {
+		const state = {
+			stage: "details",
+			criteria: { service: "evaluation", days: 14, partOfDay: "any" },
+			shown: [],
+			chosen: {
+				slotId: "s1",
+				startsAt: "2026-11-17T08:00:00.000Z",
+				date: "2026-11-17",
+				time: "10:00",
+				weekday: 2,
+				durationMinutes: 60,
+				mode: "onsite",
+				practitioner: "DEMO Ana",
+			},
+			details: { name: "Ana Pop" },
+		};
+		const booked = [...earlier, { role: "guide", text: "Alege ora.", booking: state }];
+		const { seen, lines } = await converse(
+			[{ type: "text", delta: "O evaluare durează o oră [1]." }, { type: "done" }],
+			{ question: "x", guideTurns: booked },
+		);
+		expect(seen[0]?.booking).toEqual(state);
+		const patch = lines.find((l) => l.startsWith('data: signals {"guideTurns"'));
+		const turns = JSON.parse((patch ?? "").slice("data: signals ".length)).guideTurns;
+		expect(turns.at(-1)).toMatchObject({ role: "guide", booking: { stage: "details" } });
+		expect(turns.at(-1).booking.details).toEqual({ name: "Ana Pop" });
+	});
+
+	it("does not invent a booking state for an answer given outside a booking", async () => {
+		const { lines } = await converse([{ type: "text", delta: "Da [1]." }, { type: "done" }], {
+			question: "x",
+			guideTurns: earlier,
+		});
+		const patch = lines.find((l) => l.startsWith('data: signals {"guideTurns"'));
+		const turns = JSON.parse((patch ?? "").slice("data: signals ".length)).guideTurns;
+		expect(turns.at(-1).booking).toBeUndefined();
+	});
+
 	it("keeps the compass's conversation apart", async () => {
 		const { seen, lines } = await converse(
 			[{ type: "text", delta: "Da [1]." }, { type: "done" }],

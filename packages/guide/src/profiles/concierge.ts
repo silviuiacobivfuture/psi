@@ -37,8 +37,8 @@ const BRAND: Readonly<Record<Brand, Readonly<Record<Locale, string>>>> = {
 		en: `Concrete numbers that are true: days, minutes, sessions; never efficacy percentages. EQ-SYNC is a wellness programme, not a treatment; the first step is the free 21-day programme. For a clinical need (a child, symptoms that persist, an evaluation) gently point to an evaluation at Psizone, the neuropsychology centre, not to EQ-SYNC. The Psizone centre's phone: ${PHONES}.`,
 	},
 	hemisync: {
-		ro: "Pentru început recomanzi exercițiile gratuite, apoi programele Monroe Institute®; nu recomanzi nimic pentru o nevoie clinică, ci îndrumi blând spre un specialist.",
-		en: "Recommend the free exercises first, then the Monroe Institute® programmes; recommend nothing for a clinical need, and point gently to a specialist instead.",
+		ro: "Pentru început recomanzi exercițiile gratuite, apoi programele Monroe Institute®; nu recomanzi nimic pentru o nevoie clinică, ci îndrumi blând spre un specialist. O sesiune sau un program se cere în această conversație (orele libere, dacă există, altfel o cerere pe care echipa Hemi-Sync o preia) sau pe pagina de programare. Hemi-Sync nu publică încă un telefon: nu dai niciodată un număr de telefon, nici pe cele ale centrului Psizone, ci trimiți la pagina de contact.",
+		en: "Recommend the free exercises first, then the Monroe Institute® programmes; recommend nothing for a clinical need, and point gently to a specialist instead. A session or programme is requested in this conversation (the free times, if there are any, otherwise a request the Hemi-Sync team takes up) or on the booking page. Hemi-Sync does not publish a phone number yet: never give a phone number, not even the Psizone centre's, and point to the contact page instead.",
 	},
 	blog: {
 		ro: `Ghidul blogului duce omul la brandul potrivit: nevoile clinice (un copil, dezvoltare, terapie, evaluare, atenție, anxietate) la Psizone; liniștea, stresul și somnul de seară tot la Psizone (o evaluare, dacă somnul sau starea îl îngrijorează); meditația și explorarea la Hemi-Sync. Hemi-Sync nu apare niciodată la o întrebare clinică. O programare se începe în conversația Psizone (butonul de sub răspuns), sau la telefon: ${PHONES}.`,
@@ -51,8 +51,21 @@ export function conciergeRules(brand: Brand, locale: Locale): ReadonlyArray<stri
 	return [...SHARED[locale], BRAND[brand][locale]];
 }
 
-/** Facts the guide may say without a tool result: the centre's published numbers. */
-export const CONTACT_FACTS: Readonly<Record<Locale, ReadonlyArray<string>>> = {
+const CENTRE_FACTS: Readonly<Record<Locale, ReadonlyArray<string>>> = {
 	ro: [`Telefoanele centrului Psizone: ${CENTRE_PHONES.join(" și ")}.`],
 	en: [`The Psizone centre's phones: ${CENTRE_PHONES.join(" and ")}.`],
+};
+
+/**
+ * Facts a guide may say without a tool result: the numbers its own site publishes. Psizone's
+ * guides (and the ones that point to its centre) know the centre's phones; Hemi-Sync publishes
+ * none yet, so its guide knows none and never gives the centre's.
+ */
+export const CONTACT_FACTS: Readonly<
+	Record<Brand, Readonly<Record<Locale, ReadonlyArray<string>>>>
+> = {
+	psizone: CENTRE_FACTS,
+	eqsync: CENTRE_FACTS,
+	blog: CENTRE_FACTS,
+	hemisync: { ro: [], en: [] },
 };

@@ -1,0 +1,19 @@
+# The scheduling store of PRODUCTION: its own self-hosted Convex backend on its own Postgres (namespace
+# scheduling-backend-prod). Never shared with dev.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scheduling-backend-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/scheduling-backend/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scheduling-backend-prod
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

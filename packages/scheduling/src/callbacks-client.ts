@@ -26,6 +26,8 @@ export const CallbackInputSchema = z
 			name: z.string().max(200),
 			email: z.string().max(200).optional(),
 			phone: z.string().max(40).optional(),
+			age: z.number().int().min(0).max(120).optional(),
+			details: z.string().max(2000).optional(),
 		}),
 		audience: AudienceSchema,
 		when: CallbackWhenSchema,
@@ -61,7 +63,13 @@ export const CallbackRowSchema = z.object({
 	channel: CallbackChannelSchema,
 	page: z.string(),
 	contact: z
-		.object({ name: z.string(), email: z.string().optional(), phone: z.string().optional() })
+		.object({
+			name: z.string(),
+			email: z.string().optional(),
+			phone: z.string().optional(),
+			age: z.number().optional(),
+			details: z.string().optional(),
+		})
 		.optional(),
 	preferredStart: Instant.optional(),
 	service: z.string().optional(),

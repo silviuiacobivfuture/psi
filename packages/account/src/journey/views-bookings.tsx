@@ -54,12 +54,14 @@ function BookingRow({
 			{upcoming && b.canChange ? (
 				<>
 					<p class="text-body-sm text-ink-muted" data-change-until>
-						{`${say("account_bookings_change_until")} ${when(locale, b.changeUntil)}.`}
+						{`${say(b.canMove ? "account_bookings_change_until" : "account_bookings_cancel_until")} ${when(locale, b.changeUntil)}.`}
 					</p>
 					<div class="flex flex-col gap-2 sm:flex-row">
-						<Button href={bookingPath(base, b.id, "/muta")} size="sm" variant="outline" data-move>
-							{say("account_bookings_move")}
-						</Button>
+						{b.canMove ? (
+							<Button href={bookingPath(base, b.id, "/muta")} size="sm" variant="outline" data-move>
+								{say("account_bookings_move")}
+							</Button>
+						) : null}
 						<form method="post" action={`${base}${JOURNEY_PAGES.bookings}/anuleaza`}>
 							<input type="hidden" name="id" value={b.id} />
 							<Button type="submit" size="sm" variant="ghost">

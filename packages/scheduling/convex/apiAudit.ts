@@ -87,6 +87,7 @@ export const list = query({
 				entity: e.entity,
 				entityId: e.entityId,
 				summary: e.summary,
+				...(e.changes === undefined ? {} : { changes: e.changes }),
 			})),
 		};
 	},

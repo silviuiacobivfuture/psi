@@ -24,10 +24,12 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
+import type { KeyStore } from "../ports/crypto";
 import type {
 	BlacklistPort,
 	DocumentsPort,
 	FeedbackPort,
+	KeyedPort,
 	ReportsPort,
 	SeriesPort,
 	SettingsPort,
@@ -386,10 +388,14 @@ export interface StorePort {
 	blacklist: BlacklistPort;
 	/** What clients say, and the staff's answers. */
 	feedback: FeedbackPort;
+	/** The apps' data keys, wrapped by the master key. */
+	keys: KeyStore;
 	/** Weekly series of appointments, changed all or nothing. */
 	series: SeriesPort;
 	/** The reports: read-only counts and rates over the app's rows. */
 	reports: ReportsPort;
+	/** Online-account invitations, account links, notification preferences and the delivery log. */
+	keyed: KeyedPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

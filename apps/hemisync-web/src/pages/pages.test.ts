@@ -3,18 +3,30 @@ import { ARTICLES } from "@psi/content";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { registerBooking } from "../booking-routes";
 import { editionsOf, isoRange } from "../content/editions";
-import { PAGE_IDS, PAGES, PROGRAMME_SLUGS, WORKSHOP_IDS, workshopHref } from "../routes";
+import {
+	BOOKING_PATHS,
+	PAGE_IDS,
+	PAGES,
+	PROGRAMME_SLUGS,
+	WORKSHOP_IDS,
+	workshopHref,
+} from "../routes";
 import { programmeHref } from "../sections/programmes";
 import { registerPages } from "./register";
 
 const app = new Hono({ strict: false });
 registerPages(app);
+// The booking page reads the store, so it is registered with its routes, not in the table.
+registerBooking(app, "ro");
+registerBooking(app, "en");
 
 const ROUTES: ReadonlyArray<{ locale: "ro" | "en"; path: string }> = (
 	["ro", "en"] as const
 ).flatMap((locale) => [
 	...PAGE_IDS.map((id) => ({ locale, path: PAGES[id][locale] })),
+	{ locale, path: BOOKING_PATHS[locale] },
 	...PROGRAMME_SLUGS.map((slug) => ({ locale, path: programmeHref(locale, slug) })),
 	...WORKSHOP_IDS.map((id) => ({ locale, path: workshopHref(locale, id) })),
 ]);
@@ -36,7 +48,7 @@ describe("hemisync pages", () => {
 	it("answers 200 for every page, programme and workshop type, in both languages", async () => {
 		for (const { path } of ROUTES) await html(path);
 		expect(ROUTES.length).toBe(
-			2 * (PAGE_IDS.length + PROGRAMME_SLUGS.length + WORKSHOP_IDS.length),
+			2 * (PAGE_IDS.length + 1 + PROGRAMME_SLUGS.length + WORKSHOP_IDS.length),
 		);
 	});
 

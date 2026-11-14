@@ -14,6 +14,7 @@ export interface OwnBookingRow {
 	practitionerName?: string | undefined;
 	changeUntil: number;
 	canChange: boolean;
+	canMove: boolean;
 }
 
 export interface OwnFreeTime {

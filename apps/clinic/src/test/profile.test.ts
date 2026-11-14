@@ -52,9 +52,8 @@ describe("Profilul meu", () => {
 		expect(html).not.toContain('action="/me/profile/notifications"');
 		const form = { "content-type": "application/x-www-form-urlencoded" };
 		await c.post("/me/profile/notifications", "n.requests.push=on", form);
-		const saved = await c.port.mySettings("psizone", MEMBER.sub);
-		expect(saved.stored).toBe(true);
-		expect(saved.notifications.requests).toEqual({ email: false, push: true });
+		const saved = await c.port.myNotifications("psizone", MEMBER.sub);
+		expect(saved.prefs.channels.requests).toMatchObject({ email: false, push: true });
 	});
 
 	it("lists the person's own feedback, and the browsers with the way out of all of them", async () => {

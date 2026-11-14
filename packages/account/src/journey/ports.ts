@@ -40,6 +40,8 @@ export interface OwnBooking {
 	/** Until when the clinic lets it be cancelled or moved online, and whether that is still ahead. */
 	changeUntil: number;
 	canChange: boolean;
+	/** Whether it may also be moved online (a session the clinic booked is only cancelled; the clinic moves it). */
+	canMove: boolean;
 }
 
 /** A free time a booking can move to. */

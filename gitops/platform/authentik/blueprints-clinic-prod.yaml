@@ -1,0 +1,85 @@
+# Authentik Blueprint ConfigMap — psi's clinic console in PRODUCTION (apps/clinic, https://programari.psizone.ro): its own
+# OIDC provider and application (`clinic-prod`), its own team group, and who may sign in. The same Authentik as dev: the
+# same person signs in to both, each through its own client with its own redirect URI. Roles are per instance (OpenFGA's
+# `sched_app:prod-psizone` vs dev's `sched_app:psizone`), so the group below only lets a person through the door.
+#
+# Registered as blueprints-clinic.yaml is: listed in kustomization.yaml, named under blueprints.configMaps in
+# gitops/apps/overlays/dev/authentik.yaml, with an OPTIONAL secretRef for authentik-clinic-prod-oidc there (a client not
+# seeded yet never holds the directory down; the provider shows an empty client id meanwhile). The client pair lives in
+# OpenBao secret/apps/clinic-prod/oidc, which clinic-prod reads too, so the two ends cannot drift.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-clinic-prod
+  namespace: authentik
+data:
+  clinic-prod.yaml: |
+    version: 1
+    metadata:
+      name: psi-clinic-prod
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      clinic_prod_client_id:     !Env [AUTHENTIK_OIDC__CLINIC_PROD__ID, ""]
+      clinic_prod_client_secret: !Env [AUTHENTIK_OIDC__CLINIC_PROD__SECRET, ""]
+    entries:
+      # The people who may open the production console. Membership is granted in the directory.
+      - model: authentik_core.group
+        identifiers:
+          name: app-clinic-prod-member
+        attrs:
+          is_superuser: false
+      # The clients the team invited to the online account (production). The invitation (scheduling-api,
+      # AUTHENTIK_CUSTOMERS_GROUP) creates their accounts here. Bound to NO application: they sign in to the
+      # public sites' "Programările mele" only, never to the console (app-clinic-prod-member).
+      - model: authentik_core.group
+        identifiers:
+          name: app-clinic-prod-customer
+        attrs:
+          is_superuser: false
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: clinic-prod
+        attrs:
+          client_type: confidential
+          client_id: !Context clinic_prod_client_id
+          client_secret: !Context clinic_prod_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://programari.psizone.ro/auth/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: clinic-prod
+        attrs:
+          name: Programări (producție)
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, clinic-prod]]
+          meta_launch_url: https://programari.psizone.ro/calendar
+      # Without a binding an application lets ANY authenticated user through. Two bindings, engine mode `any`: the
+      # team's group, and `authentik Admins` as break-glass (a binding must never lock the operator out).
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, clinic-prod]]
+          group: !Find [authentik_core.group, [name, app-clinic-prod-member]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, clinic-prod]]
+          group: !Find [authentik_core.group, [name, authentik Admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1

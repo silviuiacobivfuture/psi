@@ -91,10 +91,11 @@ describe.each(factories)("emptying a client's phone or e-mail, on the $name stor
 		const after = await read(id);
 		expect(after.guardian).toBeUndefined();
 		expect(after.contact).toEqual({ phone: "0711 000 011" });
-		expect((await trail(id))[0]?.detail).toMatchObject({
-			cleared: ["guardian"],
-			groups: ["guardian"],
-		});
+		expect((await trail(id))[0]?.detail).toMatchObject(
+			factory.name === "convex"
+				? { guardian: true }
+				: { cleared: ["guardian"], groups: ["guardian"] },
+		);
 	});
 
 	it("refuses to remove the guardian who is the only way to reach the client, and to empty a phone left alone", async () => {
@@ -119,7 +120,10 @@ describe.each(factories)("emptying a client's phone or e-mail, on the $name stor
 		ok(await patch("olga", id, { clear: ["email"] }), "clear");
 		const events = await trail(id);
 		expect(events).toHaveLength(1);
-		expect(events[0]?.detail).toMatchObject({ cleared: ["email"], groups: ["contact"] });
+		// The production journal is closed: the field's name, never its value.
+		expect(events[0]?.detail).toMatchObject(
+			factory.name === "convex" ? { email: true } : { cleared: ["email"], groups: ["contact"] },
+		);
 		expect(JSON.stringify(events[0])).not.toContain("d@example.test");
 	});
 

@@ -1,3 +1,5 @@
+import { OwnAppointment } from "@psi/scheduling-sdk/contract";
+import { z } from "zod/v4";
 import type { Populated } from "./populate";
 import { HOUR, NOW, type Reply } from "./world";
 
@@ -65,17 +67,12 @@ export async function bookAs(
 	return { reference: String(sent.json.reference) };
 }
 
-/** One of the visitor's own appointments, as the site reads it. */
-export interface OwnRow {
-	id: string;
-	reference: string;
-	status: string;
-	start: number;
-	canChange: boolean;
-	practitioner?: string;
-}
+/** One of the visitor's own appointments, as the site reads it: the contract's own shape. */
+export type OwnRow = z.output<typeof OwnAppointment>;
 
 /** The visitor's own appointments, as the site reads them. */
 export async function mineOf(w: Populated, subject: string): Promise<OwnRow[]> {
-	return (await asSite(w, "GET", "/me/appointments", undefined, subject)).json.items as OwnRow[];
+	return z
+		.array(OwnAppointment)
+		.parse((await asSite(w, "GET", "/me/appointments", undefined, subject)).json.items);
 }

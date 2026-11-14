@@ -30,6 +30,12 @@ const REGISTERED = new Set(ACTIONS.map((a) => a.id));
 
 /** Every screen of the console, with a client that has notes, a record and a file, one on the blacklist, and a payable visit. */
 async function screens(): Promise<string[]> {
+	// A member with an e-mail: their editor offers the new set-password link.
+	await owner.port.saveMember("psizone", "colleague", {
+		displayName: "colleague",
+		email: "colleague@example.test",
+		roles: ["reception"],
+	});
 	const data = await owner.port.calendar("psizone", "2026-11-16", "2026-11-30");
 	const payable = data.appointments.find(
 		(a) =>

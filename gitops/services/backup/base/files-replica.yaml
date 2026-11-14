@@ -1,0 +1,114 @@
+# The client files' versioned off-site copy (scripts/replicate-files.sh): production hourly, dev daily (lighter).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: files-replica-prod
+  labels: { app: files-replica }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "25 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 2400
+      template:
+        metadata:
+          labels: { app: files-replica }
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: replicate
+              image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              command: ["bash", "/scripts/replicate-files.sh"]
+              envFrom:
+                - secretRef: { name: backup-s3 }
+              env:
+                - { name: HOME, value: /tmp }
+                - { name: AWS_REGION, value: nbg1 }
+                - { name: SOURCE_BUCKET, value: psi-scheduling-prod }
+                - { name: BACKUP_BUCKET, value: psi-backups-prod }
+                - { name: BACKUP_ENV, value: prod }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+                - { name: work, mountPath: /work }
+              resources:
+                requests: { cpu: 20m, memory: 128Mi, ephemeral-storage: 1Gi }
+                limits: { cpu: "1", memory: 512Mi, ephemeral-storage: 8Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: scripts
+              configMap: { name: backup-scripts }
+            - name: tmp
+              emptyDir: { sizeLimit: 64Mi }
+            - name: work
+              emptyDir: { sizeLimit: 8Gi }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: files-replica-dev
+  labels: { app: files-replica }
+  annotations:
+    alerts.psizone.ro/owner: ops@psizone.ro
+spec:
+  schedule: "35 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 2400
+      template:
+        metadata:
+          labels: { app: files-replica }
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: replicate
+              image: registry.psizone.ro/mirror/docker.io/amazon/aws-cli:2.17.0@sha256:7b7edf789765c22d75e61ad6f307c06950e15357b79ea1749104641ce3a11fec
+              command: ["bash", "/scripts/replicate-files.sh"]
+              envFrom:
+                - secretRef: { name: backup-s3 }
+              env:
+                - { name: HOME, value: /tmp }
+                - { name: AWS_REGION, value: nbg1 }
+                - { name: SOURCE_BUCKET, value: psi-scheduling-dev }
+                - { name: BACKUP_BUCKET, value: psi-backups-dev }
+                - { name: BACKUP_ENV, value: dev }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+                - { name: work, mountPath: /work }
+              resources:
+                requests: { cpu: 20m, memory: 128Mi, ephemeral-storage: 1Gi }
+                limits: { cpu: "1", memory: 512Mi, ephemeral-storage: 8Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: scripts
+              configMap: { name: backup-scripts }
+            - name: tmp
+              emptyDir: { sizeLimit: 64Mi }
+            - name: work
+              emptyDir: { sizeLimit: 8Gi }

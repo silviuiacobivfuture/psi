@@ -25,6 +25,10 @@ const WRITES = [
 	["POST", "/clients/c1/packages", "packages_create"],
 	["POST", "/clients/c1/packages/p1/field/name", "packages_edit"],
 	["POST", "/clients/c1/packages/p1/payments", "payments_create"],
+	["POST", "/clients/c1/invite/preview", "clients_invite"],
+	["POST", "/clients/c1/invite/send", "clients_invite"],
+	["POST", "/clients/c1/invite/resend", "clients_invite"],
+	["POST", "/clients/c1/invite/revoke", "clients_invite"],
 ] as const;
 
 describe("the gate table covers the appointment and package writes", () => {

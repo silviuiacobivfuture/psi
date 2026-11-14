@@ -1,44 +1,85 @@
+import { APP_DEFAULTS } from "@psi/notify";
 import { z } from "zod";
 import { m } from "../paraglide/messages.js";
-import type { MySettings, NotifyChannel, NotifyKind } from "../port/schema-settings";
+import type {
+	MyNotifications,
+	MyNotificationsView,
+	MySettings,
+	NotifyChannel,
+	NotifyKind,
+} from "../port/schema-settings";
 import { define, flag, label } from "./define";
 import type { ActionCtx, ActionDef } from "./types";
 
 /** The form field of one cell of the notification matrix: `n.<kind>.<channel>`. */
-export const cellName = <K extends NotifyKind, C extends NotifyChannel>(
-	kind: K,
-	channel: C,
-): `n.${K}.${C}` => `n.${kind}.${channel}`;
+export const cellName = (kind: NotifyKind, channel: NotifyChannel): string =>
+	`n.${kind}.${channel}`;
 
 const Clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const Cell = /^n\.[a-z]+\.(in_app|push|email)$/;
 
-/** Each cell a checkbox: ticked is on, absent is off (an unticked box is not sent). */
+/**
+ * The page's matrix: each offered cell a checkbox (ticked is on, absent is off, since an unticked box is not sent), and
+ * quiet hours. The cells are named by the kinds the service offers, so the form takes any `n.<kind>.<channel>`; one the
+ * service does not offer is refused there, with nothing saved.
+ */
 const NotificationsForm = z
 	.object({
-		"n.requests.email": flag,
-		"n.requests.push": flag,
-		"n.appointments.email": flag,
-		"n.appointments.push": flag,
-		"n.reminders.email": flag,
-		"n.reminders.push": flag,
 		quiet: flag,
 		quietStart: Clock.optional(),
 		quietEnd: Clock.optional(),
 	})
+	.catchall(z.union([z.boolean(), z.string()]))
 	.refine((f) => !f.quiet || (f.quietStart !== undefined && f.quietEnd !== undefined), {
 		message: "quiet hours need a start and an end",
+	})
+	.refine((f) => !f.quiet || f.quietStart !== f.quietEnd, {
+		message: "quiet hours start and end at different times",
+	})
+	.refine((f) => Object.keys(f).every((k) => k.startsWith("quiet") || Cell.test(k)), {
+		message: "unknown field",
 	});
+type NotificationsInput = z.output<typeof NotificationsForm>;
+
+const on = (v: unknown): boolean => v === true || v === "on" || v === "true" || v === "1";
+
+/**
+ * The whole set the form describes, over what the service offers: every channel a kind offers is on when its box is
+ * ticked; a channel that cannot be switched off is left to the service (it stays on). Quiet hours keep the zone they
+ * had, or the app's own.
+ */
+export function choicesFrom(
+	view: MyNotificationsView,
+	form: NotificationsInput,
+	timeZone: string,
+): MyNotifications {
+	const channels: MyNotifications["channels"] = {};
+	for (const k of view.kinds) {
+		const switches: Partial<Record<NotifyChannel, boolean>> = {};
+		for (const c of k.offered)
+			if (!k.locked.includes(c)) switches[c] = on(form[cellName(k.kind, c)]);
+		if (Object.keys(switches).length > 0) channels[k.kind] = switches;
+	}
+	const zone = view.prefs.quietHours?.timeZone ?? timeZone;
+	return {
+		channels,
+		quietHours:
+			form.quiet && form.quietStart !== undefined && form.quietEnd !== undefined
+				? { start: form.quietStart, end: form.quietEnd, timeZone: zone }
+				: null,
+		...(view.prefs.locale === undefined ? {} : { locale: view.prefs.locale }),
+	};
+}
 
 /** Saves a change of the person's own settings over what they hold, and answers where the page goes next. */
 async function saveOver(
 	ctx: ActionCtx,
 	change: (held: MySettings) => MySettings,
-	anchor: string,
 ): Promise<{ status: "ok"; to: string; data: MySettings }> {
 	const { stored: _stored, ...held } = await ctx.port.mySettings(ctx.app, ctx.actor.subject);
 	const saved = await ctx.port.saveMySettings(ctx.app, ctx.actor.subject, change(held));
 	const { stored: _s, ...data } = saved;
-	return { status: "ok", to: `/me/settings?saved=${anchor}#${anchor}`, data };
+	return { status: "ok", to: "/me/settings?saved=prefs#prefs", data };
 }
 
 /**
@@ -64,16 +105,12 @@ export const ME_ACTIONS: ReadonlyArray<ActionDef> = [
 			calendarView: z.enum(["day", "week", "month"]).optional(),
 		}),
 		run: (ctx, p) =>
-			saveOver(
-				ctx,
-				(held) => ({
-					...held,
-					...(p.locale === undefined ? {} : { locale: p.locale }),
-					...(p.theme === undefined ? {} : { theme: p.theme }),
-					...(p.calendarView === undefined ? {} : { calendarView: p.calendarView }),
-				}),
-				"prefs",
-			),
+			saveOver(ctx, (held) => ({
+				...held,
+				...(p.locale === undefined ? {} : { locale: p.locale }),
+				...(p.theme === undefined ? {} : { theme: p.theme }),
+				...(p.calendarView === undefined ? {} : { calendarView: p.calendarView }),
+			})),
 	}),
 	define({
 		id: "me.notifications",
@@ -88,31 +125,14 @@ export const ME_ACTIONS: ReadonlyArray<ActionDef> = [
 		confirm: "none",
 		to: () => "/me/settings#notif",
 		params: NotificationsForm,
-		run: (ctx, p) =>
-			saveOver(
-				ctx,
-				(held) => ({
-					...held,
-					quietHours:
-						p.quiet && p.quietStart !== undefined && p.quietEnd !== undefined
-							? { start: p.quietStart, end: p.quietEnd }
-							: null,
-					notifications: {
-						requests: {
-							email: p[cellName("requests", "email")],
-							push: p[cellName("requests", "push")],
-						},
-						appointments: {
-							email: p[cellName("appointments", "email")],
-							push: p[cellName("appointments", "push")],
-						},
-						reminders: {
-							email: p[cellName("reminders", "email")],
-							push: p[cellName("reminders", "push")],
-						},
-					},
-				}),
-				"notif",
-			),
+		run: async (ctx, p) => {
+			const view = await ctx.port.myNotifications(ctx.app, ctx.actor.subject);
+			const data = await ctx.port.saveMyNotifications(
+				ctx.app,
+				ctx.actor.subject,
+				choicesFrom(view, p, APP_DEFAULTS[ctx.app].timeZone),
+			);
+			return { status: "ok", to: "/me/settings?saved=notif#notif", data };
+		},
 	}),
 ];

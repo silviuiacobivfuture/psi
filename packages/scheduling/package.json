@@ -10,6 +10,7 @@
 		"./crypto": "./src/crypto/index.ts",
 		"./permissions": "./src/permissions/index.ts",
 		"./clinic": "./src/clinic/index.ts",
+		"./testing": "./src/testing.ts",
 		"./seed/psizone-rooms.json": "./seed/psizone-rooms.json"
 	},
 	"scripts": {
@@ -17,14 +18,20 @@
 		"test": "vitest run",
 		"convex:deploy": "scripts/convex.sh deploy --yes",
 		"convex:seed": "scripts/convex.sh run seed:demo",
-		"import:old": "scripts/import-old.sh"
+		"import:old": "scripts/import-old.sh",
+		"sync:old": "scripts/sync-old.sh",
+		"build:sync": "esbuild scripts/sync-old/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/sync-old.mjs",
+		"build:backup": "esbuild scripts/backup/main.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=dist/backup.mjs"
 	},
 	"dependencies": {
 		"convex": "1.49.0",
+		"nodemailer": "^10.5.0",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
+		"@types/nodemailer": "^8.0.2",
+		"esbuild": "^0.25.0",
 		"tsx": "^4.23.15",
 		"typescript": "^5.9.3",
 		"vitest": "^2.1.9"

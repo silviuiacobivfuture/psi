@@ -289,24 +289,24 @@ describe("what the service has not built yet is said, not crashed on", () => {
 			}),
 			{ "content-type": "application/x-www-form-urlencoded" },
 		);
-		const stored = await k.api.world.call("dora", "GET", "/v1/apps/psizone/me/settings");
-		expect(stored.json).toMatchObject({
-			stored: true,
-			quietHours: { start: "22:00", end: "07:00" },
-			notifications: {
-				appointments: { email: true, push: false },
-				requests: { email: false, push: false },
+		// The one record the notifier reads: the service's own preferences.
+		const stored = await k.api.world.call("dora", "GET", "/v1/apps/psizone/me/notifications");
+		expect(stored.json.prefs).toMatchObject({
+			quietHours: { start: "22:00", end: "07:00", timeZone: "Europe/Bucharest" },
+			channels: {
+				appointments: { in_app: false, push: false },
+				requests: { in_app: false, push: false, email: false },
 			},
 		});
 		expect(
-			(await k.api.world.call("olga", "GET", "/v1/apps/psizone/me/settings")).json.stored,
-		).toBe(false);
+			(await k.api.world.call("olga", "GET", "/v1/apps/psizone/me/notifications")).json.prefs,
+		).toEqual({ channels: {}, quietHours: null });
 		const html = await text(await s.get("/me/settings"));
 		expect(html).toContain('value="22:00"');
 		const trail = await k.api.world.call(
 			"olga",
 			"GET",
-			"/v1/apps/psizone/audit?action=settings.update",
+			"/v1/apps/psizone/audit?action=notifications.prefs",
 		);
 		expect(
 			(trail.json.items as { actor: { subject: string } }[]).map((e) => e.actor.subject),

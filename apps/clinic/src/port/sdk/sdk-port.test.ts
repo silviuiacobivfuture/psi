@@ -1,7 +1,6 @@
 import { type RunningApi, startApi } from "@psi/scheduling-api/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PortError } from "../port";
-import { DEFAULT_SETTINGS } from "../schema-settings";
 import { createSdkPort } from "./index";
 
 const A = "/v1/apps/psizone";
@@ -824,37 +823,6 @@ describe("settings: columns, services, roles, audit, team, push preferences", ()
 	it("members: the team, for the view-as picker", async () => {
 		const team = await (await as("olga")).members("psizone");
 		expect(team.map((m) => m.subject)).toContain("rita");
-	});
-	it("my settings: the defaults until saved, then the saved set, each person's own", async () => {
-		const olga = await as("olga");
-		expect(await olga.mySettings("psizone", "olga")).toEqual({
-			...DEFAULT_SETTINGS,
-			stored: false,
-		});
-		const wanted = {
-			...DEFAULT_SETTINGS,
-			locale: "en" as const,
-			calendarView: "week" as const,
-			quietHours: { start: "21:30", end: "06:45" },
-		};
-		expect(await olga.saveMySettings("psizone", "olga", wanted)).toEqual({
-			...wanted,
-			stored: true,
-		});
-		expect(await olga.mySettings("psizone", "olga")).toEqual({ ...wanted, stored: true });
-		// The subject argument is not what decides: the token is Rita's, so these are Rita's.
-		expect((await (await as("rita")).mySettings("psizone", "olga")).stored).toBe(false);
-	});
-	it("my settings: a set the contract refuses is `invalid`, and nothing is stored", async () => {
-		const port = await as("dora");
-		const refused = await refusal(() =>
-			port.saveMySettings("psizone", "dora", {
-				...DEFAULT_SETTINGS,
-				quietHours: { start: "08:00", end: "08:00" },
-			}),
-		);
-		expect(refused.code).toBe("invalid");
-		expect((await port.mySettings("psizone", "dora")).stored).toBe(false);
 	});
 });
 

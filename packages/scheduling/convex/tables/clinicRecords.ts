@@ -131,6 +131,8 @@ export const auditEvents = defineTable({
 	entity: v.string(),
 	entityId: v.string(),
 	summary: v.string(),
+	/** A team change's before and after, the one place values are kept (src/clinic/audit-changes.ts). */
+	changes: v.optional(v.array(v.object({ field: v.string(), from: v.string(), to: v.string() }))),
 })
 	.index("by_tenant_at", ["tenant", "at"])
 	.index("by_tenant_entity", ["tenant", "entity", "entityId", "at"]);

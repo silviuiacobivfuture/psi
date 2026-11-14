@@ -1,0 +1,16 @@
+# The account database of PRODUCTION (CNPG, WAL-archived) in its own namespace account-db-prod.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: account-db-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    targetRevision: dev
+    path: gitops/services/account-db/overlays/prod
+  destination: { server: https://kubernetes.default.svc, namespace: account-db-prod }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

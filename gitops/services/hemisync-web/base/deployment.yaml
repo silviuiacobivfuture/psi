@@ -50,11 +50,25 @@ spec:
           ports: [{ name: http, containerPort: 3000 }]
           envFrom:
             - secretRef: { name: hemisync-web-env }
+            # On the SITE's container, as psizone-web's: until 2026-11-13 these two were on the
+            # assert-secrets initContainer, which reads neither, so the site ran with scheduling off
+            # and could never e-mail the team whatever the slot held.
+            # OPTIONAL by design: the scheduling server key (secret/apps/scheduling/env). Absent, the
+            # app finds scheduling off (CONVEX_URL set, no key) and keeps its callback form; this never
+            # blocks a deploy. Roll the pod after the key first appears.
+            - secretRef: { name: hemisync-web-scheduling, optional: true }
+            # OPTIONAL by design: the outgoing mail that tells the team of a callback request
+            # (secret/apps/hemisync-web/mail). Absent, requests are still stored and the site logs
+            # that nobody was e-mailed; this never blocks a deploy. Roll the pod after it first appears.
+            - secretRef: { name: hemisync-web-mail, optional: true }
           env:
             - { name: PORT, value: "3000" }
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
             # sidecar; the token is CHROMA_API_KEY from hemisync-web-env.
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
+            # The scheduling store (packages/scheduling): the Convex backend's in-cluster Service.
+            # Hemi-Sync books in its own tenant ("hemisync") of it, never in Psizone's.
+            - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
             - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }

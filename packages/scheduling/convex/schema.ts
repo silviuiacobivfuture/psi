@@ -29,7 +29,7 @@ import { devices, groupActivities, staffMembers } from "./tables/clinicResources
 import { packages, payments, rosterDays, staffBlocks, visits } from "./tables/clinicVisits";
 import { memberProfiles } from "./tables/memberProfiles";
 import { memberSettings } from "./tables/memberSettings";
-import { notifyOutbox, usedLinks } from "./tables/notify";
+import { appKeyed, notifyOutbox, usedLinks } from "./tables/notify";
 import {
 	audienceValidator,
 	channelValidator,
@@ -349,4 +349,5 @@ export default defineSchema({
 	appDocuments,
 	clientNotes,
 	memberSettings,
+	appKeyed,
 });

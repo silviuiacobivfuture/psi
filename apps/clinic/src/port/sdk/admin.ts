@@ -11,7 +11,12 @@ import {
 	type Role,
 	type WebRequest,
 } from "../schema";
-import type { MySettings, MySettingsView } from "../schema-settings";
+import type {
+	MyNotifications,
+	MyNotificationsView,
+	MySettings,
+	MySettingsView,
+} from "../schema-settings";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { auditOf, drain, requestOf } from "./map";
@@ -209,6 +214,13 @@ export function adminGroup(sdk: SdkContext) {
 			run(async () => settingsView(await api.me.settings({ app }))),
 		saveMySettings: (app: AppSlug, _subject: string, s: MySettings): Promise<MySettingsView> =>
 			run(async () => settingsView(await api.me.saveSettings({ app, ...s }))),
+		myNotifications: (app: AppSlug, _subject: string): Promise<MyNotificationsView> =>
+			run(() => api.me.notifications({ app })),
+		saveMyNotifications: (
+			app: AppSlug,
+			_subject: string,
+			prefs: MyNotifications,
+		): Promise<MyNotificationsView> => run(() => api.me.notificationsSave({ app, ...prefs })),
 
 		// Nor one for how a person's assistant shows: the console keeps the choice on the device meanwhile.
 		assistantMode: (_subject: string): Promise<AssistantMode | null> =>

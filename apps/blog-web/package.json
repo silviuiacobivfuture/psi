@@ -1,11 +1,11 @@
 {
 	"name": "@psi/blog-web",
-	"version": "0.9.0",
+	"version": "0.9.2",
 	"private": true,
 	"type": "module",
 	"description": "The shared blog of Psizone, EQ-SYNC and Hemi-Sync: server-rendered TSX on Hono, Datastar, Tailwind, the psi design language",
 	"scripts": {
-		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide && node ../../scripts/i18n-check.mjs",
 		"css": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --minify",
 		"css:watch": "tailwindcss -i ./src/styles.css -o ./public/assets/app.css --watch",
 		"dev": "pnpm i18n && pnpm css && (pnpm css:watch & tsx watch --env-file-if-exists=.env src/server.tsx)",
@@ -31,6 +31,7 @@
 	},
 	"devDependencies": {
 		"@inlang/paraglide-js": "^3.2.2",
+		"@inlang/plugin-message-format": "4.4.0",
 		"@tailwindcss/cli": "^4.3.5",
 		"esbuild": "^0.25.0",
 		"tailwindcss": "^4.3.5",

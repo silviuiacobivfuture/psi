@@ -56,20 +56,28 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 	it("a booking at the edge of the notice can no longer change online: cancel and move are refused, nothing written", async () => {
 		const who = visitor();
 		await bookAs(w, who, 0);
-		const [row] = await mineOf(w, who);
-		expect(row?.canChange).toBe(false);
-		const r = await refused(
-			() => asSite(w, "POST", `/me/appointments/${row?.id}/cancel`, undefined, who),
-			403,
-			"not_allowed",
-		);
-		expect(err(r).detail).toEqual({ reason: "too_late" });
-		const target = await laterSlot(row?.start ?? 0, row?.practitioner);
-		await refused(
-			() => move(who, row?.id ?? "", { start: target?.start, mode: "onsite" }),
-			403,
-			"not_allowed",
-		);
+		const [held] = await mineOf(w, who);
+		// The service's clock at the notice's edge (each store has its own notice; the edge is what it answered).
+		const was = w.clock.now;
+		w.clock.now = held?.changeUntil ?? was;
+		try {
+			const [row] = await mineOf(w, who);
+			expect(row?.canChange).toBe(false);
+			const r = await refused(
+				() => asSite(w, "POST", `/me/appointments/${row?.id}/cancel`, undefined, who),
+				403,
+				"not_allowed",
+			);
+			expect(err(r).detail).toEqual({ reason: "too_late" });
+			const target = await laterSlot(row?.start ?? 0, row?.practitioner);
+			await refused(
+				() => move(who, row?.id ?? "", { start: target?.start, mode: "onsite" }),
+				403,
+				"not_allowed",
+			);
+		} finally {
+			w.clock.now = was;
+		}
 	});
 
 	it("moves to another free time: a new reference, the old one cancelled, journalled and told to the team and the account", async () => {
@@ -101,8 +109,9 @@ describe.each(factories)("a visitor's own appointments, on the $name store", (fa
 		});
 		const trail = (await w.call("olga", "GET", `${A}/audit?action=visitor.reschedule`)).json
 			.items as { target: { id: string }; detail?: Record<string, unknown> }[];
+		// The production journal is closed (field names, never values): it says the move came from somewhere.
 		expect(trail.find((e) => e.target.id === reply.json.reference)?.detail).toEqual({
-			from: before.reference,
+			from: factory.name === "convex" ? true : before.reference,
 		});
 	});
 

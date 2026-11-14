@@ -12,7 +12,8 @@ import { CLIENT_TAB_KEYS } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
 import { statusLabel } from "../lib/status";
 import { m } from "../paraglide/messages.js";
-import type { Appointment, Client, Package, Service } from "../port/schema";
+import type { PortError } from "../port/port";
+import type { Appointment, Client, Invite, Package, Service } from "../port/schema";
 import {
 	type BlacklistEntry,
 	blacklistActive,
@@ -31,6 +32,7 @@ import {
 import { NoteSheet, NotesTab, readableNotes, stampText } from "./client-notes";
 import { RecordsTab } from "./client-records";
 import { BlacklistSheet, ConfirmSheet, EditClientSheet, UnlistSheet } from "./client-sheets";
+import { InviteCard, inviteErrorText, RevokeSheet } from "./invite-page";
 import { NewPackageSheet, PackagesTab } from "./packages-tab";
 
 export type ClientTab = "overview" | "notes" | "appointments" | "packages" | "records" | "files";
@@ -85,6 +87,10 @@ export interface ClientView {
 	soon: ReadonlyArray<Soon>;
 	client: Client;
 	tab: ClientTab;
+	/** The online-account invitation; `undefined` when this person may not see it (no `clients_invite`). */
+	invite?: Invite | null | undefined;
+	/** A refusal of the last resend or withdrawal, to show above the page. */
+	inviteError?: PortError | null | undefined;
 	appointments: ReadonlyArray<Appointment>;
 	packages: ReadonlyArray<Package>;
 	services: ReadonlyArray<Service>;
@@ -142,6 +148,7 @@ export async function renderClient(
 		askBlacklist: false,
 		askUnlist: false,
 		newPkg: false,
+		askRevoke: false,
 		editClient: view.open.edit,
 		newNote: view.open.newNote,
 		editNote: editingNote !== null,
@@ -156,6 +163,11 @@ export async function renderClient(
 		palette: paletteItems(ctx, ["client"], entity),
 		children: (
 			<div class="adm-page cl-page">
+				{view.inviteError === null || view.inviteError === undefined ? null : (
+					<Banner tone="error" icon="alert">
+						{inviteErrorText(view.inviteError, ctx.locale)}
+					</Banner>
+				)}
 				<a class="adm-btn adm-btn--ghost cl-back" href="/clients">
 					<Icon name="chevron-left" />
 					{m.client_back({}, o)}
@@ -246,6 +258,11 @@ export async function renderClient(
 		),
 		overlays: (
 			<div data-signals={JSON.stringify(signals)}>
+				{view.invite === undefined ||
+				view.invite === null ||
+				!ctx.can.write("clients_invite") ? null : (
+					<RevokeSheet client={client} locale={ctx.locale} />
+				)}
 				{client.status === "archived" ? null : (
 					<ConfirmSheet
 						ctx={ctx}
@@ -399,6 +416,14 @@ function Overview({
 						))}
 					</ul>
 				</section>
+			)}
+			{view.invite === undefined ? null : (
+				<InviteCard
+					client={client}
+					invite={view.invite}
+					locale={ctx.locale}
+					canWrite={ctx.can.write("clients_invite") && client.status === "current"}
+				/>
 			)}
 		</div>
 	);

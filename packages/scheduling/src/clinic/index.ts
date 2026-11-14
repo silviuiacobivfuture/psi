@@ -9,6 +9,14 @@ export {
 	makeAuditEvent,
 } from "./audit";
 export {
+	AUDIT_CHANGE_FIELDS,
+	type AuditChange,
+	auditChangeSchema,
+	journalName,
+	listed,
+	moved,
+} from "./audit-changes";
+export {
 	AUTHORITY_NEEDED,
 	applies,
 	BLACKLIST_CATEGORIES,

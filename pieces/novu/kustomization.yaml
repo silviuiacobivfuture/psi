@@ -7,7 +7,8 @@
 #   WLDOMAIN    the apex (BASE_DOMAIN)          novu.WLDOMAIN     → novu.<apex>
 #   WLMESH      the mesh (MESH_BASE_DOMAIN)     novu-api.WLMESH   → novu-api.<mesh>
 #   WLTAILNET   the tailnet (TAILNET_DOMAIN)    novu.WLTAILNET    → novu.<tailnet>
-#   WLOPSEMAIL  who is paged (OPS_EMAIL)
+#   WLOPSEMAIL  who is paged (OPS_EMAIL); novu-sso's password account
+#   WLSENDERNAME the estate's Novu organisation (MAIL_SENDER_NAME), as novu-bootstrap.sh names it
 # A host inside a longer URL is composed in hosts.yaml first, then put in whole.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -122,6 +123,15 @@ replacements:
     targets:
       - select: { annotationSelector: alerts/owner }
         fieldPaths: [metadata.annotations.alerts/owner]
+      - select: { kind: Deployment, name: novu-sso }
+        fieldPaths:
+          - spec.template.spec.containers.[name=novu-sso].env.[name=NOVU_SSO_SERVICE_ACCOUNT].value
+  # ── the estate's Novu organisation (novu-sso seats people there) ──────────
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.MAIL_SENDER_NAME }
+    targets:
+      - select: { kind: Deployment, name: novu-sso }
+        fieldPaths:
+          - spec.template.spec.containers.[name=novu-sso].env.[name=NOVU_SSO_ORGANIZATION].value
   # ── object storage: <prefix>-novu-<env>, region and endpoint whole ────────
   - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.BUCKET_PREFIX }
     targets:

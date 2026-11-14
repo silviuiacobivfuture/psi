@@ -141,7 +141,7 @@ export function registerBookingRoutes(app: Hono, j: Journey, port: OwnBookingsPo
 		if (c.req.query("fresh") === "1") return c.redirect(moving(id.data), 303);
 		const booking = rows.find((r) => r.id === id.data);
 		if (booking === undefined) return c.body(null, 404);
-		if (!booking.canChange) return refused(c, "too_late", moving(id.data));
+		if (!booking.canMove) return refused(c, "too_late", moving(id.data));
 		const from = now();
 		const times = await port.freeTimes(token, booking, from, from + MOVE_WINDOW_DAYS * DAY);
 		if (typeof times === "string") return refused(c, times, moving(id.data));

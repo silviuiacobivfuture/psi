@@ -1,0 +1,148 @@
+# One sign-in for Stalwart's own pages (<MAIL_ADMIN_HOST>/admin and /account): no account-name box.
+#
+# WHY. Stalwart's web panel (v1.0.3, upstream's unchanged image) always opens on "Sign in · Enter
+# your account name to continue", although the person has just signed in at the Authentik gate in
+# front of the host. The box is the panel's only way to start its sign-in: read from the served
+# bundle (2026-11-13), the account name is component state with no URL parameter, and the server
+# has no setting for it (it gives the page only a client id and scopes). The panel's start keeps
+# its PKCE verifier and state in the TAB's sessionStorage and its callback refuses without them,
+# so a plain redirect to Authentik cannot replace it either.
+#
+# THE ONE CHANGE: a full page load of a panel (/admin..., /account...) is answered by the small
+# page below (sso-start/), which starts the panel's own sign-in exactly as the panel would, with
+# the gate's address for the account and without `prompt=login`, then hands the browser to
+# Authentik. Authentik answers at once (the gate's session), back to the panel's OWN callback,
+# which the server answers: the panel exchanges the code itself and opens where the person was
+# going. Every other path on the host (the panel's assets and callback, /api, /jmap, /auth, the
+# outpost's callback) still reaches Stalwart. Stalwart's code, image and data are untouched; no
+# token or session is made here; who signs in, and with which rights, is still Authentik's and
+# Stalwart's answer (mail-oidc's bindings, the stalwart-admins reconcile).
+#
+# WHAT IT COSTS: every full page load of a panel is a round trip through Authentik (well under a
+# second). Signing out of the panel ends at <base>/login, i.e. here: if the Authentik session is
+# still alive the person is straight back in; to leave, sign out of the estate.
+#
+# The start mirrors the panel of STALWART_WEBUI_VERIFIED (start.mjs); the gate
+# .github/scripts/tests/stalwart-sso-start_test.sh fails when the server image moves off it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stalwart-sso
+  labels:
+    app.kubernetes.io/name: stalwart-sso
+  annotations:
+    alerts/owner: WLOPSEMAIL
+    reloader.stakater.com/auto: "false" # no Secret here; the ConfigMap's name hash rolls the pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stalwart-sso
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stalwart-sso
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: page
+          image: WLREGISTRY/mirror/docker.io/nginxinc/nginx-unprivileged:1.27.4-alpine@sha256:2211200bb46431bb70f044f83cd989901205ce3232e1c431822876f1fd166689
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 5m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          volumeMounts:
+            - { name: page, mountPath: /usr/share/nginx/html, readOnly: true }
+            - { name: conf, mountPath: /etc/nginx/conf.d, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: page
+          configMap:
+            name: stalwart-sso-start
+            items:
+              - { key: start.html, path: start.html }
+              - { key: start.mjs, path: start.mjs }
+        - name: conf
+          configMap:
+            name: stalwart-sso-start
+            items:
+              - { key: nginx.conf, path: default.conf }
+        - name: tmp
+          emptyDir: { sizeLimit: 8Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart-sso
+  labels:
+    app.kubernetes.io/name: stalwart-sso
+spec:
+  selector:
+    app.kubernetes.io/name: stalwart-sso
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+# Only Traefik reaches the page; the page reaches nothing (the browser makes every call).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stalwart-sso
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: stalwart-sso
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 8080 }
+  egress: []
+---
+# The panels' document paths to the page; the paths the panel itself needs from the server stay
+# on the server. Traefik takes the longest matching rule, so these win over stalwart-admin's `/`
+# and the assets and callback win over `/admin` and `/account`. Same host, same certificate
+# (stalwart-admin issues it), same gate.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-admin-sso
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [mail-admin.WLDOMAIN]
+      secretName: stalwart-admin-tls
+  rules:
+    - host: mail-admin.WLDOMAIN
+      http:
+        paths:
+          - { path: /admin, pathType: Prefix, backend: { service: { name: stalwart-sso, port: { name: http } } } }
+          - { path: /account, pathType: Prefix, backend: { service: { name: stalwart-sso, port: { name: http } } } }
+          - { path: /admin/assets, pathType: Prefix, backend: { service: { name: stalwart, port: { name: http } } } }
+          - { path: /account/assets, pathType: Prefix, backend: { service: { name: stalwart, port: { name: http } } } }
+          - { path: /admin/oauth/callback, pathType: Exact, backend: { service: { name: stalwart, port: { name: http } } } }
+          - { path: /account/oauth/callback, pathType: Exact, backend: { service: { name: stalwart, port: { name: http } } } }
+          - { path: /admin/favicon.ico, pathType: Exact, backend: { service: { name: stalwart, port: { name: http } } } }
+          - { path: /account/favicon.ico, pathType: Exact, backend: { service: { name: stalwart, port: { name: http } } } }

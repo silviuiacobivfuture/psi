@@ -81,7 +81,7 @@
 	"me_view": "Calendarul se deschide pe",
 	"me_settings_save": "Salvează preferințele",
 	"me_invalid": "Nu s-a salvat nimic: o valoare nu e bună. Verifică orele de liniște (început și sfârșit diferite).",
-	"me_bell_always": "Lista de notificări din consolă le arată mereu pe toate.",
+	"me_locked_hint": "Căsuțele bifate și gri nu se pot opri: sunt veștile pe care echipa trebuie să le primească.",
 	"me_quiet": "Ore de liniște",
 	"me_quiet_on": "Fără push în orele de liniște",
 	"me_quiet_from": "De la",

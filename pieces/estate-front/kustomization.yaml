@@ -33,6 +33,12 @@ replacements:
     targets:
       - select: { kind: ConfigMap, name: estate-front-config }
         fieldPaths: [data.BASE_DOMAIN]
+  # Where the estate's invoicing API answers, as the about page names it (derived by the
+  # identity loader from INVOICING_HOST_PREFIX and the domain).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.INVOICING_API_HOST }
+    targets:
+      - select: { kind: ConfigMap, name: estate-front-config }
+        fieldPaths: [data.INVOICING_API_HOST]
   # The homepage tile's link: https://<apex>.
   - source: { kind: Ingress, name: estate-front, fieldPath: spec.rules.0.host }
     targets:

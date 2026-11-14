@@ -2,12 +2,21 @@ import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { PortError, type TeamMember } from "../port";
 import type { AppSlug } from "../schema";
 import {
+	type InviteInput,
+	InviteInputSchema,
+	type InviteOutcome,
+	InviteOutcomeSchema,
 	type MemberDetail,
 	MemberDetailSchema,
 	type MemberInput,
 	MemberInputSchema,
 	type OverridesInput,
 	OverridesInputSchema,
+	type SignInLink,
+	SignInLinkSchema,
+	type StaffMatch,
+	StaffMatchSchema,
+	StaffQuerySchema,
 } from "../schema-members";
 import type { SdkContext } from "./context";
 
@@ -60,6 +69,34 @@ export function membersGroup(sdk: SdkContext) {
 		removeMember: (app: AppSlug, subject: string): Promise<void> =>
 			run(async () => {
 				await api.members.remove({ app, subject });
+			}),
+
+		searchStaff: (app: AppSlug, query: string): Promise<ReadonlyArray<StaffMatch>> =>
+			run(async () => {
+				const q = StaffQuerySchema.safeParse(query);
+				if (!q.success) return [];
+				const out = await api.staff.search({ app, q: q.data });
+				return out.items.map((i) => StaffMatchSchema.parse(i));
+			}),
+
+		inviteMember: (app: AppSlug, raw: InviteInput): Promise<InviteOutcome> =>
+			run(async () => {
+				const input = InviteInputSchema.safeParse(raw);
+				if (!input.success) throw new PortError("invalid", "invite");
+				const out = await api.staff.invite({ app, ...input.data });
+				return InviteOutcomeSchema.parse({
+					subject: out.member.subject,
+					displayName: out.member.displayName,
+					account: out.account,
+					signInLink: out.signInLink,
+					signInLinkExpiresBy: out.signInLinkExpiresBy,
+				});
+			}),
+
+		newSignInLink: (app: AppSlug, subject: string): Promise<SignInLink> =>
+			run(async () => {
+				const out = await api.staff.link({ app, subject });
+				return SignInLinkSchema.parse({ link: out.signInLink, expiresBy: out.expiresBy });
 			}),
 
 		linkCalendar: (app: AppSlug, subject: string, personId: string): Promise<void> =>

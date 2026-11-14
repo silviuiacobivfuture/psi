@@ -1,8 +1,12 @@
-import { createAccount, guideFor, type OwnBookingsPort, type Say, sayer } from "@psi/account";
-import type { Guide } from "@psi/guide";
+import {
+	createAccount,
+	createBookingAccounts,
+	type OwnBookingsPort,
+	type Say,
+	sayer,
+} from "@psi/account";
 import { ownBookings } from "@psi/scheduling-sdk";
 import type { CompassGroup } from "@psi/ui";
-import type { Context } from "hono";
 import { z } from "zod";
 import { ESTATE, SITE } from "./estate";
 import { at, base, type Locale } from "./i18n";
@@ -43,10 +47,18 @@ export function accountSay(locale: Locale): Say {
 	return sayer(m, locale);
 }
 
-/** The guide for this request: it remembers only for a signed-in person who consented (see /cont/conversatii). */
-export function guideForRequest(c: Context, guide: Guide): Promise<Guide> {
-	return guideFor(account, c, guide, "hemisync");
-}
+/**
+ * The estate account in the booking and the guide: the pre-fill, the sign-in line, and the guide
+ * remembering only for a signed-in person who consented (see /cont/conversatii). Both survive the
+ * account's database being down. Requests are not listed in this site's account (its reservations
+ * live on Psizone, where the scheduling account page is), so the request carries no account hash.
+ */
+export const { bookingAccount, guideForRequest } = createBookingAccounts({
+	account,
+	site: "hemisync",
+	base,
+	listsRequests: false,
+});
 
 /**
  * The Compass's account group, or none while accounts are off (production without account settings)

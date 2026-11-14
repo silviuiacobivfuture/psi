@@ -1,0 +1,90 @@
+# The mail server's administrators follow Authentik's groups: app-mail-admin, and platform-admins
+# (break-glass, as everywhere). admins.sh says why the server cannot take this from the sign-in
+# itself, and exactly what it reads and writes. Every five minutes, so a person added to the group
+# is an administrator at their next page load, and a person removed loses it within five minutes
+# whether or not they sign in again. Run it now:
+#   kubectl -n stalwart create job --from=cronjob/stalwart-admins stalwart-admins-now
+#
+# stalwart-directory: the READ-ONLY Authentik token (view_user + view_group) minted by
+# authentik-platform's authentik-stalwart-admins-token-reconcile into
+# secret/platform/authentik/stalwart-admins-api-token. Until that has run once, the job stops with
+# `MISSING REQUIRED SECRET: AUTHENTIK_API_TOKEN` — loud, by design.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: stalwart-directory
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: stalwart-directory
+    creationPolicy: Owner
+  data:
+    - secretKey: AUTHENTIK_API_TOKEN
+      remoteRef: { key: platform/authentik/stalwart-admins-api-token, property: token }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stalwart-admins
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: stalwart-admins }
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: script
+              configMap: { name: stalwart-admins }
+            - name: directory
+              secret: { secretName: stalwart-directory }
+            - name: admin
+              secret:
+                secretName: stalwart-admin
+                items:
+                  - { key: STALWART_USER, path: STALWART_USER }
+                  - { key: STALWART_PASSWORD, path: STALWART_PASSWORD }
+          containers:
+            - name: admins
+              image: WLREGISTRY/mirror/docker.io/alpine/k8s:1.30.3@sha256:12d9fc5d5e9467c7d932a18015ddfe48bdf2e02dd5677507f155ac05fdd63b73
+              command: ["sh", "/scripts/admins.sh"]
+              env:
+                - { name: AK_API, value: "http://authentik-server.authentik.svc.cluster.local:80" }
+                - { name: STALWART_API, value: "http://stalwart:8080" }
+                - { name: ADMIN_GROUPS, value: "app-mail-admin platform-admins" }
+                - { name: SECRETS_DIR, value: /secrets }
+                - name: MAILBOX_DOMAIN
+                  valueFrom: { configMapKeyRef: { name: stalwart-settings, key: MAILBOX_DOMAIN } }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+                - { name: script, mountPath: /scripts, readOnly: true }
+                - { name: directory, mountPath: /secrets/ak, readOnly: true }
+                - { name: admin, mountPath: /secrets/stalwart, readOnly: true }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities: { drop: ["ALL"] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { cpu: 200m, memory: 128Mi }

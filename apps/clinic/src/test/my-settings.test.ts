@@ -1,3 +1,4 @@
+import { kindInfo, kindsOf } from "@psi/notify";
 import { afterEach, describe, expect, it } from "vitest";
 import { listActions, runAction } from "../actions/engine";
 import { ACTIONS } from "../actions/registry";
@@ -24,6 +25,16 @@ const form = { "content-type": "application/x-www-form-urlencoded" };
 const post = (path: string, values: Record<string, string>): Promise<Response> =>
 	c.post(path, new URLSearchParams(values), form);
 const mine = () => c.port.mySettings("psizone", MEMBER.sub);
+const told = async () => (await c.port.myNotifications("psizone", MEMBER.sub)).prefs;
+/** Every cell the service offers the team: what the page must draw, and which start ticked. */
+const CELLS = kindsOf("staff").flatMap((kind) => {
+	const info = kindInfo("staff", kind);
+	return info.offered.map((channel) => ({
+		name: `n.${kind}.${channel}`,
+		ticked: info.locked.includes(channel) || info.defaults.includes(channel),
+		locked: info.locked.includes(channel),
+	}));
+});
 
 describe("Setările mele: the page", () => {
 	it("is reachable by every role and shows the preferences, the notification matrix, quiet hours and devices", async () => {
@@ -36,21 +47,25 @@ describe("Setările mele: the page", () => {
 			expect(html).toContain('data-action="me.notifications"');
 			for (const name of ["locale", "theme", "calendarView", "quiet", "quietStart", "quietEnd"])
 				expect(html, name).toContain(`name="${name}"`);
-			for (const kind of ["requests", "appointments", "reminders"])
-				for (const channel of ["email", "push"])
-					expect(html).toContain(`name="n.${kind}.${channel}"`);
+			for (const cell of CELLS) expect(html, cell.name).toContain(`name="${cell.name}"`);
 			expect(html).toContain("Ore de liniște");
 			await c.close();
 		}
 	});
 
-	it("starts from the defaults: Romanian, the device's theme, the day view, every channel ticked, no quiet hours", async () => {
+	it("starts from the defaults: Romanian, the device's theme, the day view, each kind's own channels ticked, no quiet hours", async () => {
 		await open();
 		const html = await (await c.get("/me/settings")).text();
 		expect(html).toMatch(/<option value="ro" selected/);
 		expect(html).toMatch(/<option value="system" selected/);
 		expect(html).toMatch(/<option value="day" selected/);
-		expect(html.match(/name="n\.[a-z]+\.(email|push)" checked/g)).toHaveLength(6);
+		for (const cell of CELLS) {
+			const tag =
+				html.match(new RegExp(`<input[^>]*name="${cell.name.replace(/\./g, "\\.")}"[^>]*>`))?.[0] ??
+				"";
+			expect(tag.includes("checked"), cell.name).toBe(cell.ticked);
+			expect(tag.includes("disabled"), cell.name).toBe(cell.locked);
+		}
 		expect(html).not.toMatch(/name="quiet" checked/);
 	});
 });
@@ -132,14 +147,16 @@ describe("Setările mele: saving", () => {
 			quietEnd: "07:00",
 		});
 		expect(res.status).toBe(200);
-		expect(await mine()).toMatchObject({
-			quietHours: { start: "22:00", end: "07:00" },
-			notifications: {
-				requests: { email: false, push: true },
-				appointments: { email: true, push: true },
-				reminders: { email: false, push: false },
-			},
+		const prefs = await told();
+		expect(prefs.quietHours).toEqual({
+			start: "22:00",
+			end: "07:00",
+			timeZone: "Europe/Bucharest",
 		});
+		expect(prefs.channels.requests).toEqual({ in_app: false, push: true, email: false });
+		expect(prefs.channels.appointments).toMatchObject({ push: true, in_app: false });
+		// What the person did not choose here, the settings of the page, stays as it was.
+		expect((await mine()).stored).toBe(false);
 		const html = await res.text();
 		expect(html).toMatch(/name="quiet" checked/);
 		expect(html).toContain('value="22:00"');
@@ -154,7 +171,8 @@ describe("Setările mele: saving", () => {
 			quietEnd: "06:00",
 		});
 		await post("/me/settings/notifications", { quietStart: "21:00", quietEnd: "06:00" });
-		expect(await mine()).toMatchObject({ quietHours: null, theme: "dark", calendarView: "month" });
+		expect((await told()).quietHours).toBeNull();
+		expect(await mine()).toMatchObject({ theme: "dark", calendarView: "month" });
 	});
 
 	it.each([
@@ -168,7 +186,14 @@ describe("Setările mele: saving", () => {
 		await open();
 		const res = await post("/me/settings/notifications", values);
 		expect(await res.text()).toContain("Nu s-a salvat nimic");
-		expect((await mine()).stored).toBe(false);
+		expect(await told()).toEqual({ channels: {}, quietHours: null });
+	});
+
+	it("refuses a field the matrix does not have, storing nothing", async () => {
+		await open();
+		const res = await post("/me/settings/notifications", { "n.requests.fax": "on" });
+		expect(await res.text()).toContain("Nu s-a salvat nimic");
+		expect(await told()).toEqual({ channels: {}, quietHours: null });
 	});
 
 	it("refuses an unknown language or view, storing nothing", async () => {

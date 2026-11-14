@@ -13,7 +13,7 @@ export const SETTINGS_ROUTES = [
 		path: "/v1/apps/:app/me/settings",
 		side: "team",
 		summary:
-			"The caller's own settings in this app (language, theme, first calendar view, quiet hours, channels per kind); the defaults while none were saved",
+			"The caller's own settings in this app (language, theme, first calendar view; how they are told things is `me.notifications`); the defaults while none were saved",
 		params: AppParam,
 		response: MySettingsOut,
 	}),
@@ -23,7 +23,7 @@ export const SETTINGS_ROUTES = [
 		path: "/v1/apps/:app/me/settings",
 		side: "team",
 		summary:
-			"Replace the caller's own settings in this app (the whole set; the same set again changes nothing). Notifications follow them from then on",
+			"Replace the caller's own settings in this app (the whole set; the same set again changes nothing)",
 		params: AppParam,
 		body: MySettings,
 		response: MySettingsOut,

@@ -45,6 +45,8 @@ export interface PackPrompt {
 	factsOnly?: string;
 	/** The note for the one retry after a reply identical to the previous one. */
 	noRepeat?: string;
+	/** The per-call note when this site books appointments: the calendar is reachable, never denied. */
+	scheduling?: string;
 	/** The per-call note on a question outside the scope (a diagnosis, a medication). */
 	outOfScope?: string;
 	/** The note for the one retry after a grammar slip (`grammarErrors`). */
@@ -213,6 +215,7 @@ export const LanguagePackSchema: z.ZodType<LanguagePack> = z.object({
 		strictLanguage: z.string().min(1).optional(),
 		factsOnly: z.string().min(1).optional(),
 		noRepeat: z.string().min(1).optional(),
+		scheduling: z.string().min(1).optional(),
 		outOfScope: z.string().min(1).optional(),
 		grammar: z.string().min(1).optional(),
 		page: z.custom<PagePrompt>((value) => typeof value === "object" && value !== null).optional(),

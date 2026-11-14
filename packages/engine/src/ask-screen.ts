@@ -19,6 +19,17 @@ function rawQuestion(raw: unknown): string | undefined {
 	return typeof raw.question === "string" ? raw.question : undefined;
 }
 
+/**
+ * True when the raw input says the visitor is answering the booking dialogue (a details-stage
+ * state). Those answers are read without a model, so they are not counted against the exchange
+ * limit unless the booking dialogue lets the turn through to the model (see `turn` in `ask.ts`).
+ */
+function answeringBooking(ctx: AskContext, raw: unknown): boolean {
+	if (ctx.booking === undefined || typeof raw !== "object" || raw === null) return false;
+	if (!("booking" in raw) || typeof raw.booking !== "object" || raw.booking === null) return false;
+	return "stage" in raw.booking && raw.booking.stage === "details";
+}
+
 /** True when the profile's crisis rules match the text, scanned up to the policy's limit. */
 function isCrisis(ctx: AskContext, text: string): boolean {
 	const crisis = ctx.profile.crisis ?? [];
@@ -51,7 +62,7 @@ async function rateLimit(
  * over), with the settings' limit and window. Over on any key refuses; the limiter failing refuses
  * (fails closed).
  */
-async function exchangeLimit(
+export async function exchangeLimit(
 	ctx: AskContext,
 	control: AskControl | undefined,
 	settings: RetrievalSettings,
@@ -95,7 +106,15 @@ export async function screen(
 	raw: unknown,
 	control: AskControl | undefined,
 ): Promise<
-	{ input: AskInput; settings: RetrievalSettings; outOfScope: boolean } | { reason: RefusalReason }
+	| {
+			input: AskInput;
+			settings: RetrievalSettings;
+			outOfScope: boolean;
+			typed: string;
+			/** The exchange limit was not applied yet: the caller applies it before any model call. */
+			exchangeDeferred: boolean;
+	  }
+	| { reason: RefusalReason }
 > {
 	const invalidInput = ctx.profile.refusalPolicy?.invalidInput ?? "out_of_scope";
 	const question = rawQuestion(raw);
@@ -107,7 +126,10 @@ export async function screen(
 		report(ctx, "disabled", new Error("the guide is switched off (guideEnabled: false)"));
 		return { reason: "unavailable" };
 	}
-	const limited = (await rateLimit(ctx, control)) ?? (await exchangeLimit(ctx, control, settings));
+	const deferred = answeringBooking(ctx, raw);
+	const limited =
+		(await rateLimit(ctx, control)) ??
+		(deferred ? undefined : await exchangeLimit(ctx, control, settings));
 	if (limited !== undefined) return { reason: limited };
 	const parsed = ctx.inputSchema.safeParse(raw);
 	if (!parsed.success) return { reason: invalidInput };
@@ -126,5 +148,13 @@ export async function screen(
 	if ("reason" in screened) return screened;
 	// Out of scope (a diagnosis, a medication): no refusal card, a gentle redirect in conversation.
 	const outOfScope = matchesRules(screened.input.question, ctx.profile.outOfScope ?? []);
-	return { input: screened.input, settings, outOfScope };
+	// The question as typed (cleaned of invisible characters), before the redaction of phones and
+	// e-mails: only the booking's details step reads it, to fill the form the visitor sees.
+	return {
+		input: screened.input,
+		settings,
+		outOfScope,
+		typed: cleanText(parsed.data.question),
+		exchangeDeferred: deferred,
+	};
 }

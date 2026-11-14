@@ -79,6 +79,12 @@ tuples:
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
+  - user: user:c_platform_role_agent_studio_operator
+    relation: role_agent_studio_operator
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_viewer
+    relation: role_agent_studio_viewer
+    object: platform:psi
   - user: user:c_platform_role_blog_privacy_officer
     relation: role_blog_privacy_officer
     object: platform:psi
@@ -88,17 +94,35 @@ tuples:
   - user: user:c_platform_role_cms_ai_admin
     relation: role_cms_ai_admin
     object: platform:psi
+  - user: user:c_platform_role_cms_ai_operator
+    relation: role_cms_ai_operator
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_manager
+    relation: role_cms_calendar_manager
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_viewer
+    relation: role_cms_calendar_viewer
+    object: platform:psi
   - user: user:c_platform_role_cms_clinical_reviewer
     relation: role_cms_clinical_reviewer
     object: platform:psi
   - user: user:c_platform_role_cms_editor
     relation: role_cms_editor
     object: platform:psi
+  - user: user:c_platform_role_cms_notifications_admin
+    relation: role_cms_notifications_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_privacy_officer
+    relation: role_cms_privacy_officer
+    object: platform:psi
   - user: user:c_platform_role_cms_publisher
     relation: role_cms_publisher
     object: platform:psi
   - user: user:c_platform_role_cms_reader
     relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_cms_site_manager
+    relation: role_cms_site_manager
     object: platform:psi
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
@@ -111,6 +135,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_psizone_reception
     relation: role_psizone_reception
+    object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -221,6 +248,14 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_account:closure
         assertions:
@@ -233,6 +268,18 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_account:closure
         assertions:
@@ -241,11 +288,23 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_account:closure
         assertions:
           viewer: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_account:closure
         assertions:
           viewer: false
@@ -262,6 +321,10 @@ tests:
         assertions:
           viewer: true
       - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_account:closure
         assertions:
           viewer: false
@@ -363,6 +426,14 @@ tests:
         object: psizone_account:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_account:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_account:closure
         assertions:
@@ -375,6 +446,18 @@ tests:
         object: psizone_account:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_account:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_account:closure
         assertions:
@@ -383,11 +466,23 @@ tests:
         object: psizone_account:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_account:closure
         assertions:
           editor: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_account:closure
         assertions:
           editor: false
@@ -404,6 +499,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_account:closure
         assertions:
           editor: false
@@ -505,6 +604,14 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_account:closure
         assertions:
@@ -517,6 +624,18 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_account:closure
         assertions:
@@ -525,11 +644,23 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_account:closure
         assertions:
           eraser: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_account:closure
         assertions:
           eraser: false
@@ -546,6 +677,10 @@ tests:
         assertions:
           eraser: true
       - user: user:c_platform_role_psizone_reception
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_account:closure
         assertions:
           eraser: false
@@ -647,6 +782,14 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_booking_request:closure
         assertions:
@@ -659,6 +802,18 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_booking_request:closure
         assertions:
@@ -667,11 +822,23 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_booking_request:closure
         assertions:
           viewer: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_booking_request:closure
         assertions:
           viewer: false
@@ -691,6 +858,10 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: true
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
   - name: psizone_booking_request#editor is conferred by exactly ['administrator', 'perm_psizone_bookings_manage', 'role_psizone_reception']
     check:
       - user: user:c_platform_administrator
@@ -789,6 +960,14 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_booking_request:closure
         assertions:
@@ -801,6 +980,18 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_booking_request:closure
         assertions:
@@ -809,11 +1000,23 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_booking_request:closure
         assertions:
           editor: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_booking_request:closure
         assertions:
           editor: false
@@ -833,6 +1036,10 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: true
+      - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
   - name: psizone_guide_thread#viewer is conferred by exactly ['administrator', 'perm_psizone_guide_memory_forget', 'perm_psizone_guide_memory_view']
     check:
       - user: user:c_platform_administrator
@@ -931,6 +1138,14 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_guide_thread:closure
         assertions:
@@ -943,6 +1158,18 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_guide_thread:closure
         assertions:
@@ -951,11 +1178,23 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
@@ -972,6 +1211,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_psizone_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
@@ -1073,6 +1316,14 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
       - user: user:c_platform_role_blog_privacy_officer
         object: psizone_guide_thread:closure
         assertions:
@@ -1085,6 +1336,18 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
       - user: user:c_platform_role_cms_clinical_reviewer
         object: psizone_guide_thread:closure
         assertions:
@@ -1093,11 +1356,23 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
       - user: user:c_platform_role_cms_publisher
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
       - user: user:c_platform_role_cms_reader
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_cms_site_manager
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
@@ -1114,6 +1389,10 @@ tests:
         assertions:
           forgetter: false
       - user: user:c_platform_role_psizone_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_sched_app_admin
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false

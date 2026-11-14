@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { route } from "../define";
+import { NotificationPrefs, NotificationPrefsView } from "../entities-notify";
 import { AppParam, Id, Locale, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
@@ -63,6 +64,11 @@ export const OwnAppointment = z.object({
 	 */
 	changeUntil: Ms,
 	canChange: z.boolean(),
+	/**
+	 * Whether it may also be MOVED online: a booking the visitor made, while it can change. A session the clinic booked
+	 * (the account's client) can be cancelled online up to its start, and is moved by calling the clinic.
+	 */
+	canMove: z.boolean(),
 });
 export const CallbackRequest = z.object({ reference: z.string() });
 export const MovedAppointment = z.object({
@@ -211,5 +217,27 @@ export const VISITOR_ROUTES = [
 		body: z.object({ start: Ms, mode: Mode }),
 		response: MovedAppointment,
 		audit: "visitor.reschedule",
+	}),
+	route({
+		id: "visitor.notifications",
+		method: "GET",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"The signed-in visitor's notification preferences (channel by kind) and what each kind offers",
+		params: AppParam,
+		response: NotificationPrefsView,
+	}),
+	route({
+		id: "visitor.notificationsSave",
+		method: "PUT",
+		path: "/v1/apps/:app/me/account/notifications",
+		side: "visitor",
+		summary:
+			"Replace the signed-in visitor's notification preferences; a channel a kind does not offer, or that cannot be switched off, is refused",
+		params: AppParam,
+		body: NotificationPrefs,
+		response: NotificationPrefsView,
+		audit: "visitor.notifications",
 	}),
 ] as const;

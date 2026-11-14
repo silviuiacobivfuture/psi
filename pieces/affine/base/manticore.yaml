@@ -1,0 +1,144 @@
+# Manticore Search for AFFiNE — the engine its indexer needs (0.27.4: Manticore or
+# Elasticsearch, nothing built in). Without it AFFiNE's search, and the MCP server's
+# doc_search, answer SEARCH_UNAVAILABLE. 10.1.0 is the version upstream's own CI and dev
+# compose run against (.github/workflows/build-test.yml, .docker/dev at v0.27.4).
+#
+# WHAT IT HOLDS: the text of every indexed document, as a copy. AFFiNE's documents stay in
+# its Postgres and bucket; this volume is derived from them, so it is not backed up.
+# A LOST INDEX is not rebuilt by itself: AFFiNE marks each workspace `indexed` in Postgres,
+# its auto-indexer skips those, and only a workspace whose page list changes is compared with
+# the index again. After losing the volume, set workspaces.indexed = false in affine-db and
+# the next sweep (every 30 s) indexes every workspace again.
+#
+# RUN: searchd straight from the image, with OUR config (manticore.conf, the affine-manticore
+# ConfigMap), not upstream's entrypoint: that one chowns as root, then rewrites /etc. Here
+# uid 999 (the image's `manticore` user), read-only root; the only writable places are the
+# index volume, the pid and log directories and /tmp (emptyDirs). Buddy (Manticore's helper,
+# whose plugins include the Elasticsearch emulation AFFiNE's client leans on) is started by
+# searchd itself, with telemetry off.
+#
+# NOT EXPOSED: a ClusterIP Service, no Ingress. Manticore 10 has no authentication, so the
+# NetworkPolicy below is what keeps the index's copy of the documents to AFFiNE: only the
+# server's pods may connect, and Manticore may connect nowhere. Its probes run INSIDE the
+# container (exec), so the policy needs no per-environment node addresses for the kubelet.
+#
+# MEMORY (measured 2026-11-13, on RMX and locally on the same image): searchd alone ~28 MiB,
+# but AFFiNE's two tables (doc, block) each load the language dictionaries their DDL names
+# (jieba Chinese, the English, German and Russian lemmatizers, 22 stemmers), ~220 MiB a
+# table: 470-490 MiB resident from the first start on, with two documents in it. Upstream's
+# DDL, so not ours to trim. Request = that floor; the limit leaves each table's RAM chunk
+# (rt_mem_limit, 128 MiB by default) room to fill before it is flushed to disk.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: affine-manticore
+  labels:
+    app.kubernetes.io/name: affine-manticore
+  annotations:
+    alerts/owner: WLOPSEMAIL
+spec:
+  serviceName: affine-manticore
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: affine-manticore
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: affine-manticore
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: manticore
+          image: WLREGISTRY/mirror/docker.io/manticoresearch/manticore:10.1.0@sha256:8b097750d3f62e48f78b6f5cb3fbe20c301aec08a668d7dcae301aced5780993
+          command: ["searchd", "-c", "/etc/manticore-estate/manticore.conf", "--nodetach"]
+          ports:
+            - { name: http, containerPort: 9308 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 999
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          # GET / on 9308 is answered by Buddy, so ready means BOTH searchd and the helper
+          # that serves AFFiNE's Elasticsearch-style calls are up.
+          readinessProbe:
+            exec:
+              command: ["wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:9308/"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:9308/"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 4
+          resources:
+            requests: { cpu: 25m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/manticore }
+            - { name: config, mountPath: /etc/manticore-estate, readOnly: true }
+            - { name: run, mountPath: /var/run/manticore }
+            - { name: log, mountPath: /var/log/manticore }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: config
+          configMap: { name: affine-manticore }
+        - name: run
+          emptyDir: { sizeLimit: 1Mi }
+        - name: log
+          emptyDir: { sizeLimit: 64Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: affine-manticore
+  labels:
+    app.kubernetes.io/name: affine-manticore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: affine-manticore
+  ports:
+    - { name: http, port: 9308, targetPort: http }
+---
+# Only the AFFiNE server's pods (same namespace: a bare podSelector) reach :9308; Manticore
+# opens no connection (egress: [] — searchd and Buddy talk over the pod's loopback, which no
+# policy filters).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: affine-manticore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: affine-manticore
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: affine
+      ports:
+        - { protocol: TCP, port: 9308 }
+  egress: []

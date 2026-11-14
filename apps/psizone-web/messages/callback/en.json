@@ -21,5 +21,7 @@
 	"callback_mail_stored_yes": "yes",
 	"callback_mail_stored_no": "NO: this e-mail is the only copy, call the person at once",
 	"callback_mail_link": "Requests are listed, and marked handled, here",
-	"callback_mail_consent": "The person agreed to be contacted."
+	"callback_mail_consent": "The person agreed to be contacted.",
+	"callback_mail_age": "Age",
+	"callback_mail_details": "Details"
 }

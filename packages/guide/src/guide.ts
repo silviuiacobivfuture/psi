@@ -72,7 +72,9 @@ export interface GuideOptions {
 	/**
 	 * Counts exchanges per visitor key (`AskControl.visitorKeys`: session cookie, browser cookie,
 	 * fingerprint), with the settings' `exchangeLimit` per `exchangeWindowHours` (default 20 a
-	 * day). In memory by default (one process); pass a shared `RateLimiter` for several instances.
+	 * day). Answers in the booking dialogue are read without a model and are not counted unless
+	 * they are passed on to it. In memory by default (one process); pass a shared `RateLimiter`
+	 * for several instances.
 	 */
 	exchangeLimiter?: RateLimiter;
 	/**

@@ -1,9 +1,19 @@
 import { accountHashOf } from "@psi/scheduling";
+import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { visitorSubject } from "../auth/principal";
-import type { HandlersOf } from "../http/context";
+import { alertBlacklist } from "../engagement/blacklist-alert";
+import { activateOnSignIn } from "../engagement/invite-flow";
+import {
+	cancelClinicAppointment,
+	clinicAppointmentsOf,
+	type OwnItem,
+} from "../engagement/own-appointments";
+import type { Ctx, HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
 import type { Reason, StorePort } from "../store/types";
 import { paginate } from "./shared";
+
+type C = Ctx<RouteSpec>;
 
 const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
@@ -62,15 +72,20 @@ export const visitorHandlers: HandlersOf<
 	async "visitor.submit"(ctx) {
 		const subject =
 			ctx.principal.kind === "person" ? ctx.principal.subject : visitorSubject(ctx.principal);
-		const { ok: _ok, ...rest } = ok(
-			await ctx.deps.store.visitor.submit(ctx.app, {
-				reference: String(ctx.params.reference),
-				holdToken: ctx.body.holdToken,
-				contact: ctx.body.contact,
-				audience: ctx.body.audience,
-				subject,
-			}),
-		);
+		const result = await ctx.deps.store.visitor.submit(ctx.app, {
+			reference: String(ctx.params.reference),
+			holdToken: ctx.body.holdToken,
+			contact: ctx.body.contact,
+			audience: ctx.body.audience,
+			subject,
+		});
+		if (!result.ok && result.reason === "unavailable_online")
+			await alertBlacklist(
+				ctx,
+				"web",
+				await ctx.deps.store.blacklist.check(ctx.app, ctx.body.contact),
+			);
+		const { ok: _ok, ...rest } = ok(result);
 		await ctx.changed("request", "created", rest.reference);
 		await ctx.notify(
 			"request.created",
@@ -105,18 +120,30 @@ export const visitorHandlers: HandlersOf<
 	},
 	async "visitor.callback"(ctx) {
 		// The callback form stores a request with no hold: the blacklist is asked first, and a hit is told one neutral word.
-		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact))
+		if (await ctx.deps.store.blacklist.screen(ctx.app, "callback", ctx.body.contact)) {
+			await alertBlacklist(
+				ctx,
+				ctx.body.channel === "guide" ? "assistant" : "callback",
+				await ctx.deps.store.blacklist.check(ctx.app, ctx.body.contact),
+			);
 			throw fail("unavailable_online", "this cannot be booked online");
+		}
 		const out = await ctx.deps.store.visitor.callback(ctx.app, ctx.body);
 		await ctx.changed("request", "created", out.reference);
-		await ctx.notify("request.created", TEAM_REQUESTS, { reference: out.reference }, out.reference);
+		await ctx.notify(
+			"request.created",
+			TEAM_REQUESTS,
+			{ reference: out.reference, via: ctx.body.channel },
+			out.reference,
+		);
 		return out;
 	},
 	async "visitor.mine"(ctx) {
 		const subject = ownSubject(ctx.principal);
-		const rows = await ctx.deps.store.visitor.mine(ctx.app, subject);
+		// A first sign-in of an invited account is the moment its invitation becomes active.
+		await activateOnSignIn(ctx, subject);
 		return paginate(
-			rows.map((r) => ownView(r, ctx.now)),
+			(await ownRows(ctx, subject)).map((r) => r.view),
 			ctx.query.limit,
 			ctx.query.cursor,
 		);
@@ -124,7 +151,12 @@ export const visitorHandlers: HandlersOf<
 	async "visitor.mineCancel"(ctx) {
 		const subject = ownSubject(ctx.principal);
 		const id = String(ctx.params.id);
-		const held = await changeable(ctx.deps.store, ctx.app, subject, id, ctx.now);
+		const own = await changeable(ctx, subject, id, "cancel");
+		if (own.source === "clinic") {
+			if (!(await cancelClinicAppointment(ctx, subject, id))) throw fail("not_found", "not found");
+			return { ok: true as const };
+		}
+		const held = own.row;
 		ok(await ctx.deps.store.visitor.cancelMine(ctx.app, subject, id));
 		await ctx.changed("request", "updated", id);
 		await ctx.notify(
@@ -138,7 +170,11 @@ export const visitorHandlers: HandlersOf<
 	async "visitor.mineReschedule"(ctx) {
 		const subject = ownSubject(ctx.principal);
 		const id = String(ctx.params.id);
-		const held = await changeable(ctx.deps.store, ctx.app, subject, id, ctx.now);
+		const own = await changeable(ctx, subject, id, "move");
+		// A session the clinic booked is never offered a move (`canMove`), so `changeable` refused it already.
+		if (own.source === "clinic")
+			throw fail("not_allowed", "moved by the clinic", { reason: "too_late" });
+		const held = own.row;
 		const { ok: _ok, ...moved } = ok(
 			await ctx.deps.store.visitor.rescheduleMine(ctx.app, subject, id, ctx.body),
 		);
@@ -164,32 +200,47 @@ function ownSubject(principal: Parameters<typeof visitorSubject>[0]): string {
 }
 
 type OwnRow = Awaited<ReturnType<StorePort["visitor"]["mine"]>>[number];
+type View = ReturnType<typeof ownView>;
+type Own =
+	| { source: "request"; row: OwnRow; view: View }
+	| { source: "clinic"; view: OwnItem & View };
 
 /** A row as the visitor sees it, with the clinic's rule for changing it online applied at `now`. */
 function ownView(r: OwnRow, now: number) {
 	const { noticeMinutes, ...row } = r;
 	const changeUntil = r.start - noticeMinutes * 60_000;
-	return {
-		...row,
-		changeUntil,
-		canChange: (r.status === "requested" || r.status === "confirmed") && now < changeUntil,
-	};
+	const canChange = (r.status === "requested" || r.status === "confirmed") && now < changeUntil;
+	return { ...row, changeUntil, canChange, canMove: canChange };
+}
+
+/**
+ * Everything of the visitor's own, newest first: the requests they made online, and the sessions the clinic booked for
+ * the clients their account covers (an invited client, a guardian's children).
+ */
+async function ownRows(ctx: C, subject: string): Promise<Own[]> {
+	const requests = (await ctx.deps.store.visitor.mine(ctx.app, subject)).map(
+		(row): Own => ({ source: "request", row, view: ownView(row, ctx.now) }),
+	);
+	const clinic = (await clinicAppointmentsOf(ctx, subject)).map(
+		(view): Own => ({ source: "clinic", view }),
+	);
+	return [...requests, ...clinic].sort((x, y) => y.view.start - x.view.start);
 }
 
 /**
  * The visitor's own row, when it may still change online; otherwise the refusal, before anything is written: not theirs
- * (or not there) is 404, past the clinic's notice or no longer open is 403 `not_allowed` with `too_late`.
+ * (or not there) is 404, past the clinic's notice, no longer open, or a move the clinic keeps for itself is 403
+ * `not_allowed` with `too_late`.
  */
 async function changeable(
-	store: StorePort,
-	app: string,
+	ctx: C,
 	subject: string,
 	id: string,
-	now: number,
-): Promise<OwnRow> {
-	const row = (await store.visitor.mine(app, subject)).find((r) => r.id === id);
-	if (row === undefined) throw fail("not_found", "not found");
-	if (!ownView(row, now).canChange)
+	change: "cancel" | "move",
+): Promise<Own> {
+	const own = (await ownRows(ctx, subject)).find((r) => r.view.id === id);
+	if (own === undefined) throw fail("not_found", "not found");
+	if (!(change === "move" ? own.view.canMove : own.view.canChange))
 		throw fail("not_allowed", "this can no longer be changed online", { reason: "too_late" });
-	return row;
+	return own;
 }

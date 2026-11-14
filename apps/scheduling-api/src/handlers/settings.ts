@@ -61,7 +61,8 @@ export const settingsHandlers: HandlersOf<"me.settings" | "me.saveSettings"> = {
 		}
 		const saved = await ctx.deps.store.settings.put(ctx.app, own(ctx), JSON.stringify(next));
 		ctx.auditTarget(own(ctx));
-		ctx.note({ fields });
+		// Named as keys, so the production journal (field names only) keeps which settings moved too.
+		ctx.note(Object.fromEntries(fields.map((f) => [f, true])));
 		return answer({ settings: next, updatedAt: saved.updatedAt });
 	},
 };

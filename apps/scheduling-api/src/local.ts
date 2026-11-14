@@ -39,6 +39,7 @@ const config: Config = {
 		{ id: "hemisync-web", app: "hemisync" },
 	],
 	masterKey: "ab".repeat(32),
+	delivery: "send",
 	store: { kind: "memory" },
 	authz: { kind: "memory" },
 	mail: undefined,
@@ -46,6 +47,7 @@ const config: Config = {
 	objects: undefined,
 	// Unset on purpose: the local run logs notifications and delivers none.
 	notify: undefined,
+	sso: undefined,
 	callerHashes: new Map(Object.entries(secrets).map(([id, s]) => [id, hashSecret(s)])),
 };
 const corsOrigins = (

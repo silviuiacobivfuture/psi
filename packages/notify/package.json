@@ -8,11 +8,13 @@
 		".": "./src/index.ts",
 		"./registry": "./src/gen/registry.generated.ts",
 		"./reminders": "./src/reminders/index.ts",
+		"./invites": "./src/invites/index.ts",
 		"./inbox": "./src/inbox/index.ts",
 		"./push": "./src/push/index.ts"
 	},
 	"scripts": {
 		"build": "pnpm i18n",
+		"workflows:check": "tsx scripts/check-workflows.ts",
 		"i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
 		"type-check": "pnpm i18n && tsc --noEmit",
 		"test": "pnpm i18n && vitest run --maxWorkers=2"

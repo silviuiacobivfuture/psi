@@ -8,7 +8,8 @@ import type { AuditAction, AuditEntity } from "@psi/scheduling/clinic";
  * mapped to the closest action and entity.
  *
  * What the closed log cannot say, on Convex: the values of `detail` (who a client moved from and to, the reason given),
- * and the API's own action name when two API actions share one Convex action. The API action, the target's type and a
+ * and the API's own action name when two API actions share one Convex action. A team change is the exception: its
+ * wrapper keeps the before and after (roles, calendars, grants, denials, who left) and names the member by subject. The API action, the target's type and a
  * service actor travel as FIELD names (`api.<action>`, `type.<type>`, `by.service`), which the service reads back.
  */
 export interface Mapping {
@@ -36,6 +37,10 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"member.put": rec("member.change", "member"),
 	"member.remove": rec("member.change", "member"),
 	"member.overrides": rec("override.change", "override"),
+	// The addition itself is the wrapper's member.change; this event says it came by invitation (and whether an account was made).
+	"member.invite": own("member.change", "member"),
+	// A new set-password link was made for a member (never the link itself).
+	"member.link": own("member.change", "member"),
 	// Looking at the app as someone else changes nothing: the log has no word for it, so it is a settings-level event.
 	"view_as.start": own("builder.change", "builder"),
 	"view_as.stop": own("builder.change", "builder"),
@@ -66,6 +71,13 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"client.assign": rec("client.practitioner_change", "client"),
 	"client.archive": rec("client.archive", "client"),
 	"client.restore": rec("client.unarchive", "client"),
+	// The closed log has no word for an online-account invitation; the API's own action travels as a field name.
+	"client.invite": own("client.update", "client"),
+	"client.invite_resend": own("client.update", "client"),
+	"client.invite_revoke": own("client.update", "client"),
+	"client.invite_activated": own("client.update", "client"),
+	"notifications.prefs": own("member.change", "member"),
+	"visitor.notifications": own("builder.change", "builder"),
 	"client.delete": rec("client.delete", "client"),
 	"appointment.create": rec("visit.create", "visit"),
 	"appointment.update": rec("visit.update", "visit"),

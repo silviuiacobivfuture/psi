@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { overridesFromForm } from "../pages/member-summary";
 import { m } from "../paraglide/messages.js";
-import { MemberInputSchema, SubjectSchema } from "../port/schema-members";
+import { InviteInputSchema, MemberInputSchema, SubjectSchema } from "../port/schema-members";
 import { define, label } from "./define";
 import type { ActionCtx, ActionDef, ActionResult, EntityState } from "./types";
 
@@ -45,6 +45,27 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 			if (p.subject === ctx.actor.subject) return SELF;
 			await ctx.port.saveMember(ctx.app, p.subject, p.input);
 			return { status: "ok", to: at(p.subject, "&saved=1") };
+		},
+	}),
+	define({
+		id: "member.invite",
+		tier: "org",
+		entity: "member",
+		label: label((o) => m.ac_member_invite({}, o)),
+		icon: "mail",
+		placements: { primary: [SCREEN], empty: [SCREEN] },
+		mobile: "sheet",
+		needs: { write: ["members_create"] },
+		route: { method: "POST", path: `${BASE}/invite` },
+		confirm: "none",
+		opens: "inviteMember",
+		to: () => `${BASE}?invite=1`,
+		// A new account's one-time set-password link is for the person at the screen: an assistant run never gets it.
+		privateResult: true,
+		params: InviteInputSchema,
+		run: async (ctx, p) => {
+			const outcome = await ctx.port.inviteMember(ctx.app, p);
+			return { status: "ok", to: at(outcome.subject, "&saved=1"), data: outcome };
 		},
 	}),
 	define({
@@ -117,6 +138,28 @@ export const MEMBER_ACTIONS: ReadonlyArray<ActionDef> = [
 			if (held.taken.includes(p.personId)) return { status: "refused", code: "conflict" };
 			await ctx.port.linkCalendar(ctx.app, p.subject, p.personId);
 			return { status: "ok", to: at(p.subject, "&saved=1") };
+		},
+	}),
+	define({
+		id: "member.link",
+		tier: "org",
+		entity: "member",
+		label: label((o) => m.ac_member_link({}, o)),
+		icon: "mail",
+		placements: { screen: [SCREEN] },
+		mobile: "sheet",
+		needs: { write: ["members_create"] },
+		route: { method: "POST", path: `${BASE}/:subject/link` },
+		confirm: "none",
+		to: (e) => at(e.id ?? ""),
+		when: notSelf,
+		// The link is a credential for the person at the screen: an assistant run never gets it.
+		privateResult: true,
+		params: z.object({ subject: SubjectSchema }),
+		run: async (ctx, p) => {
+			if (p.subject === ctx.actor.subject) return SELF;
+			const made = await ctx.port.newSignInLink(ctx.app, p.subject);
+			return { status: "ok", to: at(p.subject), data: { subject: p.subject, ...made } };
 		},
 	}),
 	define({
