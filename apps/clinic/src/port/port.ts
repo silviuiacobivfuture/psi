@@ -442,6 +442,11 @@ export interface ClinicPort extends ProfilePort {
 	/** The form definitions a record may be started from (the seeded templates and the owners' own). */
 	formTemplates(app: AppSlug): Promise<ReadonlyArray<FormDefinition>>;
 	records(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientRecord>>;
+	/**
+	 * The records that belong to no client, newest first: only those of the forms the person may read app-wide (the
+	 * service refuses `forbidden` when there is none). No client's page ever lists them.
+	 */
+	recordsWithoutClient(app: AppSlug): Promise<ReadonlyArray<ClientRecord>>;
 	record(app: AppSlug, id: string): Promise<ClientRecord | null>;
 	/** Refuses (`invalid`) a form that is unknown, or a finalised record whose values do not satisfy its form. */
 	createRecord(app: AppSlug, clientId: string, input: NewRecord, by: Actor): Promise<ClientRecord>;
