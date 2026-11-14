@@ -215,9 +215,11 @@ export const reminderHandlers: HandlersOf<
 	},
 
 	async "requests.list"(ctx) {
-		const rows = (await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to)).sort(
-			(a, b) => b.createdAt - a.createdAt,
-		);
+		const { state } = ctx.query;
+		const rows = (await ctx.deps.store.requests.list(ctx.app, ctx.query.from, ctx.query.to))
+			// Open: still waiting for the team; handled: decided one way or another.
+			.filter((r) => state === undefined || (r.status === "requested") === (state === "open"))
+			.sort((a, b) => b.createdAt - a.createdAt);
 		return paginate(rows, ctx.query.limit, ctx.query.cursor);
 	},
 

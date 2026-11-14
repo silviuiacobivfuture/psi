@@ -1,7 +1,7 @@
 import { SchedulingApiError } from "@psi/scheduling-sdk";
 import { emptyPlan, type FloorPlanDoc, parsePlan, type SaveResult } from "@psi/ui/admin/floor-plan";
 import { addDays } from "../../lib/dates";
-import { type AuditPage, PortError, type TeamMember } from "../port";
+import { type AuditPage, LIST_PAGE, type Paged, PortError, type TeamMember } from "../port";
 import { grantsFromRelations, relationsFromGrants } from "../role-map";
 import {
 	type AppSlug,
@@ -85,6 +85,24 @@ export function adminGroup(sdk: SdkContext) {
 					}),
 				);
 				return got.map(requestOf).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+			}),
+
+		requestPage: (
+			app: AppSlug,
+			show: "open" | "handled",
+			cursor: string | null,
+		): Promise<Paged<WebRequest>> =>
+			run(async () => {
+				const now = Date.now();
+				const got = await api.requests.list({
+					app,
+					from: now - 90 * DAY,
+					to: now + 365 * DAY,
+					state: show,
+					limit: LIST_PAGE,
+					...(cursor === null ? {} : { cursor }),
+				});
+				return { items: got.items.map(requestOf), nextCursor: got.nextCursor ?? null };
 			}),
 
 		/** The console's "handled": the team answered the request. */

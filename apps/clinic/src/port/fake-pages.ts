@@ -1,4 +1,48 @@
-import { type AuditPage, CLIENT_PAGE_SIZE, type ClientPage, type ClinicPort } from "./port";
+import { offsetOf, offsetPage } from "./offset-page";
+import {
+	type AuditPage,
+	CLIENT_PAGE_SIZE,
+	type ClientPage,
+	type ClinicPort,
+	LIST_PAGE,
+	type ListedClient,
+	type Paged,
+} from "./port";
+import type { WebRequest } from "./schema";
+
+/** The open or the handled requests, newest first, a page at a time. */
+export function pagedRequests(port: Pick<ClinicPort, "requests">): ClinicPort["requestPage"] {
+	return async (app, show, cursor): Promise<Paged<WebRequest>> =>
+		offsetPage(
+			[...(await port.requests(app))]
+				.filter((r) => r.handled === (show === "handled"))
+				.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)),
+			cursor,
+			LIST_PAGE,
+		);
+}
+
+/** The clients on the blacklist now (their active entry), newest entry first, a page at a time. */
+export function pagedBlacklist(
+	port: Pick<ClinicPort, "clientSummaries" | "clients">,
+): ClinicPort["blacklistPage"] {
+	return async (app, cursor): Promise<Paged<ListedClient>> => {
+		const [current, archived, summaries] = await Promise.all([
+			port.clients(app, "current", ""),
+			port.clients(app, "archived", ""),
+			port.clientSummaries(app, "current", ""),
+		]);
+		const names = new Map([...current, ...archived].map((c) => [c.id, c.name]));
+		const listed = summaries
+			.flatMap((s) =>
+				s.blacklist === null
+					? []
+					: [{ entry: s.blacklist, clientId: s.clientId, clientName: names.get(s.clientId) ?? "" }],
+			)
+			.sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt));
+		return offsetPage(listed, cursor, LIST_PAGE);
+	};
+}
 
 /** The journal a page at a time over a port that answers it whole (newest first), within the days asked. */
 export function pagedAudit(port: Pick<ClinicPort, "audit">): ClinicPort["auditPage"] {
@@ -16,12 +60,6 @@ export function pagedAudit(port: Pick<ClinicPort, "audit">): ClinicPort["auditPa
 		return { events, nextCursor: end < all.length ? String(end) : null };
 	};
 }
-
-/** An offset into the whole answer, as text: the in-memory clinic's cursor (the service hands out its own). */
-const offsetOf = (cursor: string | null): number => {
-	const n = cursor === null ? 0 : Number.parseInt(cursor, 10);
-	return Number.isInteger(n) && n >= 0 ? n : 0;
-};
 
 /**
  * The client list a page at a time over a port that answers it whole (the in-memory clinic): the same pages, sizes and

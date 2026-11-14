@@ -8,7 +8,7 @@ import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catal
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
-import { pagedAudit, pagedClients } from "./fake-pages";
+import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -528,6 +528,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		async requests(app) {
 			guard("requests");
 			return data(app).requests;
+		},
+		requestPage(app, show, cursor) {
+			return pagedRequests(this)(app, show, cursor);
+		},
+		blacklistPage(app, cursor) {
+			return pagedBlacklist(this)(app, cursor);
 		},
 		async markRequestHandled(app, id) {
 			guard("markRequestHandled");

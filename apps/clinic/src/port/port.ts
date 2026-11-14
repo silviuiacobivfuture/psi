@@ -79,6 +79,22 @@ export interface AuditPage {
 	nextCursor: string | null;
 }
 
+/** How many rows one page of a list shows (requests, the blacklist, reminders, a client's notes…). */
+export const LIST_PAGE = 50;
+
+/** One page of a list; `nextCursor` null: the last page. */
+export interface Paged<T> {
+	items: ReadonlyArray<T>;
+	nextCursor: string | null;
+}
+
+/** A client on the blacklist: the active entry and who it is about. */
+export interface ListedClient {
+	entry: BlacklistEntry;
+	clientId: string;
+	clientName: string;
+}
+
 /** How many clients one page of the list shows. */
 export const CLIENT_PAGE_SIZE = 50;
 
@@ -231,6 +247,14 @@ export interface ClinicPort extends ProfilePort {
 		entries: ReadonlyArray<RosterEntry>;
 	}>;
 	requests(app: AppSlug): Promise<ReadonlyArray<WebRequest>>;
+	/** ONE page (LIST_PAGE) of the open or the handled requests, newest first, after `cursor` (null: the first). */
+	requestPage(
+		app: AppSlug,
+		show: "open" | "handled",
+		cursor: string | null,
+	): Promise<Paged<WebRequest>>;
+	/** ONE page (LIST_PAGE) of the clients on the blacklist now, newest entry first, each with the client's name. */
+	blacklistPage(app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>>;
 	markRequestHandled(app: AppSlug, id: string): Promise<void>;
 	reminders(app: AppSlug, date: string): Promise<ReadonlyArray<ReminderItem>>;
 	markReminderSent(app: AppSlug, appointmentId: string): Promise<void>;

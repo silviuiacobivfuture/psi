@@ -73,7 +73,15 @@ export async function loadLookup(
 	const [columns, services, requests, roles, members, found] = await Promise.all([
 		settled(port.columns(app)),
 		settled(port.services(app)),
-		ctx.can.has("web_requests_view") ? settled(port.requests(app)) : Promise.resolve([]),
+		// The newest requests, open and handled, name the journal's; an older one is said by its kind.
+		ctx.can.has("web_requests_view") && idsOf("request").length > 0
+			? settled(
+					Promise.all([
+						port.requestPage(app, "open", null),
+						port.requestPage(app, "handled", null),
+					]).then(([a, b]) => [...a.items, ...b.items]),
+				)
+			: Promise.resolve([]),
 		settled(port.roles(app)),
 		settled(port.members(app)),
 		Promise.all(wanted.map((id) => port.appointment(app, id).catch(() => null))),
