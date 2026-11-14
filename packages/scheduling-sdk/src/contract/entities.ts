@@ -89,6 +89,19 @@ export const MatrixRow = z.object({
 	held: z.array(z.enum(["all", "assigned", "own"])),
 });
 
+/**
+ * One member as their editor needs them: every role held, the individual grants and denials, the calendar columns
+ * bound to their sign-in, and the catalogue with the scopes they effectively hold — every role, grant and denial
+ * counted, as the authorizer answers it.
+ */
+export const MemberDetail = Member.extend({
+	grant: z.array(z.string()),
+	deny: z.array(z.string()),
+	/** The people (calendar columns) whose account is this member's sign-in. */
+	calendars: z.array(Id),
+	matrix: z.array(MatrixRow),
+});
+
 export const PersonKind = z.enum(["practitioner", "reception", "volunteer", "staff"]);
 export const Person = z.object({
 	id: Id,
