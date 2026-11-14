@@ -63,6 +63,7 @@ const rated = async (w: Populated): Promise<string> => {
 };
 
 export const EXTRA_HAPPY = {
+	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),

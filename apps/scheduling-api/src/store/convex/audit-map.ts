@@ -94,6 +94,7 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"file.complete": own("file.add", "file"),
 	"file.delete": rec("file.remove", "file"),
 	"file.download": own("file.read", "file"),
+	"file.rename": rec("file.rename", "file"),
 	"blacklist.create": rec("blacklist.create", "blacklist"),
 	"blacklist.update": rec("blacklist.update", "blacklist"),
 	"blacklist.delete": rec("blacklist.delete", "blacklist"),

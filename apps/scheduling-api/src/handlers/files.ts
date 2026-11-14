@@ -54,7 +54,12 @@ async function rejectUpload(
 }
 
 export const fileHandlers: HandlersOf<
-	"files.list" | "files.init" | "files.complete" | "files.download" | "files.remove"
+	| "files.list"
+	| "files.init"
+	| "files.complete"
+	| "files.download"
+	| "files.rename"
+	| "files.remove"
 > = {
 	async "files.list"(ctx) {
 		const visible = await ctx.reachOf("files_view", "sched_file");
@@ -124,6 +129,22 @@ export const fileHandlers: HandlersOf<
 		const link = objects.signDownload(row.objectKey, DOWNLOAD_TTL_S, row.name);
 		await ctx.auditNow("file.download", { type: "file", id: row.id });
 		return { url: link.url, expiresAt: link.expiresAt, method: "GET" as const };
+	},
+
+	/**
+	 * Only the name moves. The same name again writes nothing and records nothing (the audit says what happened, and
+	 * nothing did). The journal keeps that a file was renamed, never the names: they may carry a client's name.
+	 */
+	async "files.rename"(ctx) {
+		const row = await must(ctx.deps.store.c.files, ctx.app, String(ctx.params.id), "file");
+		if (row.name === ctx.body.name) {
+			ctx.unchanged();
+			return fileOut(row);
+		}
+		const next: FileRow = { ...row, name: ctx.body.name, updatedAt: ctx.now };
+		await ctx.deps.store.c.files.replace(next);
+		ctx.note({ client: row.clientId, fields: ["name"] });
+		return fileOut(next);
 	},
 
 	/** The route's query (`confirm=true`) is parsed before this runs: a call without it never gets here. */

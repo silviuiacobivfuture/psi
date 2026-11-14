@@ -11,6 +11,7 @@ import {
 	FileInitResult,
 	FileMeta,
 	FileRemoveQuery,
+	FileRename,
 	ImportRun,
 	InboxCounts,
 	RecordCreate,
@@ -276,6 +277,19 @@ export const OPERATION_ROUTES = [
 		params: IdParam,
 		response: SignedUrl,
 		permission: { key: "files_view", target: { kind: "object", type: "sched_file" } },
+	}),
+	route({
+		id: "files.rename",
+		method: "PATCH",
+		path: "/v1/apps/:app/files/:id",
+		side: "team",
+		summary:
+			"Rename a file: only its name changes (the stored bytes, type and size stay); the same name again changes nothing. Needs the upload permission on the file",
+		params: IdParam,
+		body: FileRename,
+		response: FileMeta,
+		permission: { key: "files_upload", target: { kind: "object", type: "sched_file" } },
+		audit: "file.rename",
 	}),
 	route({
 		id: "files.remove",

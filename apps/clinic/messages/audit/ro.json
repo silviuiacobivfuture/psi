@@ -172,5 +172,6 @@
 	"jr_csv_source": "Sursa",
 	"jr_csv_request": "Cod cerere",
 	"jr_csv_ip": "Adresă IP",
-	"jr_csv_device": "Dispozitiv"
+	"jr_csv_device": "Dispozitiv",
+	"jr_act_file_rename": "Fișier redenumit"
 }

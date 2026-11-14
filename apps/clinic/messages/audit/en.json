@@ -172,5 +172,6 @@
 	"jr_csv_source": "Source",
 	"jr_csv_request": "Request id",
 	"jr_csv_ip": "IP address",
-	"jr_csv_device": "Device"
+	"jr_csv_device": "Device",
+	"jr_act_file_rename": "File renamed"
 }
