@@ -1,4 +1,12 @@
-import { FIELD_GROUPS, type FieldGroupName, type Role, SCOPES, type ScopeName } from "./schema";
+import {
+	ACTIONS,
+	FIELD_GROUPS,
+	type FieldGroupName,
+	RESOURCES,
+	type Role,
+	SCOPES,
+	type ScopeName,
+} from "./schema";
 
 type Resource = keyof typeof KEYS;
 
@@ -65,17 +73,34 @@ const KEYS = {
 	reminders: { view: "reminders_view", send: "reminders_send" },
 	requests: { view: "web_requests_view", approve: "web_requests_approve" },
 	settings: { view: "app_settings_view", edit: "app_settings_edit" },
-	members: { view: "members_view", edit: "members_edit", cancel: "members_delete" },
+	members: {
+		view: "members_view",
+		create: "members_create",
+		edit: "members_edit",
+		cancel: "members_delete",
+	},
 	roles: { view: "roles_view", create: "roles_create", edit: "roles_edit", cancel: "roles_delete" },
 	audit: { view: "audit_log_view" },
 	reports: { view: "reports_view_core" },
 } as const satisfies Record<string, Record<string, string>>;
 
-type Entry = { resource: string; action: string; key: string };
-const ENTRIES: ReadonlyArray<Entry> = Object.entries(KEYS).flatMap(([resource, actions]) =>
-	Object.entries(actions).map(([action, key]) => ({ resource, action, key })),
+/** One permission the console has words for: the role editor's resource and action, and the service's key. */
+export type Entry = {
+	resource: (typeof RESOURCES)[number];
+	action: (typeof ACTIONS)[number];
+	key: string;
+};
+/** Every permission the console has words for, in the role editor's order. */
+export const ENTRIES: ReadonlyArray<Entry> = Object.entries(KEYS).flatMap(([resource, actions]) =>
+	Object.entries(actions).flatMap(([action, key]) => {
+		const r = RESOURCES.find((x) => x.key === resource);
+		const a = ACTIONS.find((x) => x === action);
+		return r === undefined || a === undefined ? [] : [{ resource: r, action: a, key }];
+	}),
 );
 const BY_KEY = new Map(ENTRIES.map((e) => [e.key, e]));
+/** The console's words for a service permission key, when it has them. */
+export const entryOf = (key: string): Entry | undefined => BY_KEY.get(key);
 const WIDTH: Readonly<Record<ScopeName, number>> = { all: 3, assigned: 2, own: 1 };
 
 /** A field group's view key as `/me` names it (`clients_view_clinical`); the stored relation adds the scope before the group. */
@@ -124,7 +149,7 @@ export function grantsFromRelations(relations: ReadonlyArray<string>): {
 	for (const [key, scope] of widest) {
 		const entry = BY_KEY.get(key);
 		if (entry === undefined) continue;
-		grants[entry.resource] = { ...(grants[entry.resource] ?? {}), [entry.action]: scope };
+		grants[entry.resource.key] = { ...(grants[entry.resource.key] ?? {}), [entry.action]: scope };
 	}
 	return { grants, fieldGroups: FIELD_GROUPS.filter((g) => groups.has(g)) };
 }

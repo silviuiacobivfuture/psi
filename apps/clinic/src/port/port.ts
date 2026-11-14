@@ -55,6 +55,7 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
+import type { MemberDetail, MemberInput, OverridesInput } from "./schema-members";
 
 export type ClientFilter = "current" | "archived";
 
@@ -87,6 +88,7 @@ export interface TeamMember {
 	subject: string;
 	displayName: string;
 	roles: ReadonlyArray<string>;
+	email?: string;
 }
 
 /** Something changed in the app: the screen that shows it asks again. Carries no data, only what to refresh. */
@@ -249,8 +251,25 @@ export interface ClinicPort extends ProfilePort {
 	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
-	/** The app's team, for the "Vezi ca…" picker. */
+	/** The app's team, for the "Vezi ca…" picker and the members' list. */
 	members(app: AppSlug): Promise<ReadonlyArray<TeamMember>>;
+	/** One member for their editor: roles, grants, denials, linked calendars, what they may do in the end. */
+	member(app: AppSlug, subject: string): Promise<MemberDetail | null>;
+	/**
+	 * Adds the sign-in account to the team or changes their name, roles and coordinated calendars (the whole set: a role
+	 * left out is taken away). Refuses (`forbidden`) one's own membership, (`invalid`) an unknown role or person.
+	 */
+	saveMember(app: AppSlug, subject: string, input: MemberInput): Promise<TeamMember>;
+	/** Replaces the member's individual grants and denials; a denial wins over every role and grant. */
+	saveMemberOverrides(
+		app: AppSlug,
+		subject: string,
+		input: OverridesInput,
+	): Promise<{ grant: ReadonlyArray<string>; deny: ReadonlyArray<string> }>;
+	/** Takes the person out of the team: their roles, grants and denials go with them. */
+	removeMember(app: AppSlug, subject: string): Promise<void>;
+	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
+	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */
 	startViewAs(subject: string, app: AppSlug, as: ViewAsTarget): Promise<Capabilities>;
 	stopViewAs(subject: string, app: AppSlug): Promise<void>;

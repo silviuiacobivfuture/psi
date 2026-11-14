@@ -51,7 +51,7 @@ export function DrawerBody({
 			<dl class="audit-kv">
 				<Item label={m.jr_d_who({}, o)}>{row.who}</Item>
 				{row.roles.length === 0 ? null : (
-					<Item label={m.jr_d_role({}, o)}>{row.roles.join(", ")}</Item>
+					<Item label={m.jr_d_role({}, o)}>{row.roles.join(" + ")}</Item>
 				)}
 				{e.asWhom === undefined ? null : <Item label={m.jr_d_as({}, o)}>{e.asWhom}</Item>}
 				<Item label={m.jr_d_when({}, o)}>

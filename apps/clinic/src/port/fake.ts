@@ -7,6 +7,7 @@ import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catal
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeInvites } from "./fake-invites";
+import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -119,14 +120,9 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	};
 	const openRequests = (d: AppData): number => d.requests.filter((r) => !r.handled).length;
 
-	const access = createFakeAccess({
-		members: opts.members,
-		names: opts.names,
-		platformAdmins: opts.platformAdmins,
-		data,
-		guard,
-		log,
-	});
+	const team = teamFrom(opts.members, opts.names);
+	const access = createFakeAccess({ team, platformAdmins: opts.platformAdmins, data, guard, log });
+	const members = createFakeMembers({ team, self: me, data, guard, log });
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
@@ -136,6 +132,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	return {
 		...profile,
 		...access,
+		...members,
 		...clinical,
 		...catalog,
 		...invites,
@@ -166,7 +163,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		},
 		async memberships(subject) {
 			guard("memberships");
-			return opts.members[subject] ?? [];
+			return membershipsOf(team, subject);
 		},
 		async calendar(app, from, to): Promise<CalendarData> {
 			guard("calendar");

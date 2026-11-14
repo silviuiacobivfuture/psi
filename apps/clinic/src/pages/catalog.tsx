@@ -2,7 +2,7 @@ import { EmptyState, OverflowMenu, Sheet } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { ActionBar, EmptyActions, menuItems } from "../actions/render";
 import type { Screen } from "../actions/types";
-import { roleName } from "../chrome";
+import { roleLabel, rolesText } from "../chrome";
 import { formatMoney } from "../domain/money";
 import type { Ctx } from "../lib/context";
 import { hhmm } from "../lib/dates";
@@ -11,6 +11,7 @@ import { m } from "../paraglide/messages.js";
 import type { Column, Role, Service } from "../port/schema";
 import { DEVICE_TYPES } from "../port/schema-catalog";
 import { SheetButtons } from "./client-sheets";
+import { Check, Pick } from "./form-choices";
 
 export type CatalogSegment = "people" | "rooms" | "devices" | "services";
 
@@ -45,48 +46,6 @@ const peopleOf = (d: CatalogData): ReadonlyArray<Column> =>
 	d.columns.filter((c) => c.kind === "person");
 const devicesOf = (d: CatalogData): ReadonlyArray<Column> =>
 	d.columns.filter((c) => c.kind === "device");
-
-function Check({
-	name,
-	value,
-	label,
-	on,
-}: {
-	name: string;
-	value?: string;
-	label: string;
-	on: boolean;
-}): JSX.Element {
-	return (
-		<label class="adm-check">
-			<input type="checkbox" name={name} value={value ?? "on"} checked={on} />
-			{label}
-		</label>
-	);
-}
-
-function Pick({
-	legend,
-	name,
-	items,
-	on,
-}: {
-	legend: string;
-	name: string;
-	items: ReadonlyArray<{ id: string; name: string }>;
-	on: ReadonlyArray<string>;
-}): JSX.Element | null {
-	if (items.length === 0) return null;
-	return (
-		<fieldset class="cl-choices">
-			<legend>{legend}</legend>
-			{items.map((i) => (
-				<Check key={i.id} name={name} value={i.id} label={i.name} on={on.includes(i.id)} />
-			))}
-		</fieldset>
-	);
-}
-
 const timeText = (min: number): string => hhmm(min);
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
@@ -123,7 +82,7 @@ function PersonForm({
 			<Pick
 				legend={m.cat_person_roles({}, o)}
 				name="roles"
-				items={d.roles.map((r) => ({ id: r.id, name: roleName(r.id, ctx.locale) }))}
+				items={d.roles.map((r) => ({ id: r.id, name: roleLabel(r, ctx.locale) }))}
 				on={item?.roles ?? []}
 			/>
 			<Check
@@ -403,7 +362,11 @@ function describe(segment: CatalogSegment, c: Column | Service, d: CatalogData, 
 	} else if ("kind" in c) {
 		if (c.kind === "person") {
 			parts.push(
-				(c.roles ?? []).map((id) => d.roles.find((r) => r.id === id)?.name ?? id).join(", "),
+				rolesText(
+					c.roles ?? [],
+					ctx.locale,
+					Object.fromEntries(d.roles.map((r) => [r.id, r.name])),
+				),
 				c.specialty ?? "",
 				c.bookable === false ? m.cat_no_calendar({}, o) : "",
 			);

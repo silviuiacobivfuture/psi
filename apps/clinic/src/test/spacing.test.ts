@@ -32,6 +32,8 @@ const SCREENS = [
 	"/reminders?date=2026-11-16",
 	"/roster",
 	"/settings/roles",
+	"/settings/members",
+	"/settings/members?new=1",
 	"/stats",
 	"/me/profile",
 	"/settings/roles?new=1",

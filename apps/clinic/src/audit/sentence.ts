@@ -4,6 +4,7 @@ import { m } from "../paraglide/messages.js";
 import type { Appointment, AuditEvent } from "../port/schema";
 import { actionKey, actionLabel } from "./labels";
 import { type AuditLookup, type AuditObject, objectOf } from "./lookup";
+import { memberName, memberSentence } from "./member-sentence";
 
 const weekday = (l: Locale, iso: string): string =>
 	new Intl.DateTimeFormat(l, { timeZone: "UTC", weekday: "long" }).format(parseDay(iso));
@@ -46,9 +47,7 @@ export function objectName(
 		case "role":
 			return lookup.roles.get(o.id) ?? m.jr_o_role_unknown({}, l);
 		case "member":
-			return (
-				lookup.people.get(o.id)?.name ?? lookup.roles.get(o.id) ?? m.jr_o_member_unknown({}, l)
-			);
+			return memberName(e, lookup, o.id) ?? lookup.roles.get(o.id) ?? m.jr_o_member_unknown({}, l);
 		case "package":
 			return lookup.packages.get(o.id)?.name ?? m.jr_o_package_unknown({}, l);
 		case "reminder":
@@ -115,6 +114,9 @@ export function sentenceOf(e: AuditEvent, lookup: AuditLookup, locale: Locale): 
 			return say(m.jr_s_request_handled({ object }, l));
 		case "role_edit":
 			return say(m.jr_s_role_edit({ object }, l));
+		case "member_edit":
+		case "member_remove":
+			return memberSentence(e, object, lookup, locale);
 		case "view_as_start":
 			return m.jr_s_view_as_start({ object }, l);
 		case "view_as_stop":
@@ -143,6 +145,10 @@ export function objectHref(
 			return can.has("web_requests_view") ? "/requests" : null;
 		case "role":
 			return can.has("roles_view") ? "/settings/roles" : null;
+		case "member":
+			return lookup.people.has(o.id) && can.has("members_view")
+				? `/settings/members?edit=${encodeURIComponent(o.id)}`
+				: null;
 		default:
 			return null;
 	}
