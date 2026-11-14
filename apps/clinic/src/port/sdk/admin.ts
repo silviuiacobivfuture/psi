@@ -36,15 +36,25 @@ export function adminGroup(sdk: SdkContext) {
 		return counts;
 	}
 
+	/** "Who am I", asked once for this port (a request's): the memberships and the estate administrator come from it. */
+	let me: ReturnType<typeof api.me.get> | undefined;
+	const whoAmI = (): ReturnType<typeof api.me.get> => {
+		me ??= api.me.get({});
+		return me;
+	};
+
 	return {
 		memberships: (_subject: string): Promise<Membership[]> =>
 			run(async () => {
-				const me = await api.me.get({});
-				return me.apps.flatMap((a) => {
+				const mine = await whoAmI();
+				return mine.apps.flatMap((a) => {
 					const slug = AppSlugSchema.safeParse(a.app);
 					return slug.success ? [{ app: slug.data, roles: a.roles }] : [];
 				});
 			}),
+
+		platformAdmin: (_subject: string): Promise<boolean> =>
+			run(async () => (await whoAmI()).platformAdmin),
 
 		capabilities: (_subject: string, app: AppSlug, as?: `role:${string}` | `member:${string}`) =>
 			run(() => api.me.capabilities({ app, ...(as === undefined ? {} : { as }) })),

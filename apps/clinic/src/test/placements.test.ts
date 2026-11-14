@@ -60,6 +60,7 @@ async function screens(): Promise<string[]> {
 		"/settings/services",
 		"/platform",
 		"/settings/assistant",
+		"/settings/assistant/people",
 		"/platform/assistant",
 	];
 }

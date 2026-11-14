@@ -246,19 +246,79 @@ const ROLE_FIELDS = [
 ] as const;
 export const ROLE_FIELD_NAMES = ROLE_FIELDS.map(([name]) => name);
 
-/** Per role: `role.<id>.<field>`, empty fields left to the organisation's settings; a role with none set is absent. */
-function rolesFromForm(form: Form, roleIds: ReadonlyArray<string>): Record<string, Plain> {
+/** Whose overrides a form row holds: a role's (`role.<id>.<field>`) or a person's (`person.<subject>.<field>`). */
+export type OverrideOf = "role" | "person";
+
+/** The overrides of the rows named: empty fields left to the organisation's settings; a row with none set is absent. */
+function overridesFromForm(
+	form: Form,
+	of: OverrideOf,
+	ids: ReadonlyArray<string>,
+): Record<string, Plain> {
 	const out: Record<string, Plain> = {};
-	for (const id of roleIds) {
+	for (const id of ids) {
 		const o: Plain = {};
 		for (const [name, kind] of ROLE_FIELDS) {
-			const value = read(kind, form[`role.${id}.${name}`] ?? "");
+			const value = read(kind, form[`${of}.${id}.${name}`] ?? "");
 			if (value !== undefined) o[name] = value;
 		}
 		if (Object.keys(o).length > 0) out[id] = o;
 	}
 	return out;
 }
+
+/** The overrides held, as the form shows them. */
+function formOfOverrides(
+	of: OverrideOf,
+	held: Readonly<Record<string, Readonly<Record<string, unknown>>>>,
+	ids: ReadonlyArray<string>,
+): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const id of ids)
+		for (const [name, kind] of ROLE_FIELDS) {
+			const value = held[id]?.[name];
+			if (value !== undefined) out[`${of}.${id}.${name}`] = shown(kind, value);
+		}
+	return out;
+}
+
+/**
+ * The organisation's document as the settings form would post it: every value the tier holds under its field name.
+ * A change sent as a few fields (the assistant's) is laid over this, so what it does not name stays as it was.
+ */
+export function formOfDoc(
+	doc: AssistantOrgDocumentType | undefined,
+	roleIds: ReadonlyArray<string>,
+): Record<string, string> {
+	const out: Record<string, string> = {};
+	if (doc === undefined) return out;
+	for (const surface of ["staff", "visitor"] as const)
+		for (const field of fieldsOf(surface)) {
+			const value = valueAt(doc[surface], field.path);
+			if (value !== undefined) out[`${surface}.${field.path}`] = shown(field.kind, value);
+		}
+	doc.skills.forEach((s, n) => {
+		const at = (k: string, v: string): void => {
+			out[`skill.${n}.${k}`] = v;
+		};
+		at("id", s.id);
+		at("name", s.name);
+		at("description", s.description);
+		at("triggers", s.triggers.join(", "));
+		at("instructions", s.instructions);
+		if (s.tools !== undefined) at("tools", s.tools.join(", "));
+		for (const surface of s.surfaces) at(`surface.${surface}`, "on");
+		if (s.enabled) at("enabled", "on");
+	});
+	return { ...out, ...formOfOverrides("role", doc.roles, roleIds) };
+}
+
+/** The per-person overrides held, as the people's form would post them. */
+export const formOfPeople = (
+	doc: AssistantOrgDocumentType | undefined,
+	subjects: ReadonlyArray<string>,
+): Record<string, string> =>
+	doc === undefined ? {} : formOfOverrides("person", doc.people, subjects);
 
 export type Parsed<T> = { ok: true; doc: T } | { ok: false; fields: ReadonlyArray<string> };
 
@@ -277,8 +337,35 @@ export function orgDocFromForm(
 		staff: patchFromForm(form, "staff", "staff"),
 		visitor: patchFromForm(form, "visitor", "visitor"),
 		skills: skillsFromForm(form),
-		roles: rolesFromForm(form, roleIds),
+		roles: overridesFromForm(form, "role", roleIds),
 		people: held?.people ?? {},
+	});
+	return parsed.success
+		? { ok: true, doc: parsed.data }
+		: { ok: false, fields: parsed.error.issues.map((i) => i.path.join(".")) };
+}
+
+/**
+ * The organisation's document with the per-person overrides of the people's form, edited from `revision`: the rows of
+ * `subjects` as the form has them, everyone else's (someone no longer on the team) and every other part kept.
+ */
+export function peopleDocFromForm(
+	form: Form,
+	held: AssistantOrgDocumentType | undefined,
+	revision: number,
+	subjects: ReadonlyArray<string>,
+): Parsed<AssistantOrgDocumentType> {
+	const kept = Object.fromEntries(
+		Object.entries(held?.people ?? {}).filter(([subject]) => !subjects.includes(subject)),
+	);
+	const parsed = AssistantOrgDocument.safeParse({
+		staff: {},
+		visitor: {},
+		skills: [],
+		roles: {},
+		...held,
+		revision,
+		people: { ...kept, ...overridesFromForm(form, "person", subjects) },
 	});
 	return parsed.success
 		? { ok: true, doc: parsed.data }

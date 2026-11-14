@@ -17,8 +17,8 @@ const as = async (role: string, platformAdmin = false): Promise<Console> => {
 	return c;
 };
 const form = (fields: Record<string, string>): [URLSearchParams, Record<string, string>] => [
-	// Edited from revision 0 unless the case says otherwise (the form carries the revision it was edited from).
-	new URLSearchParams({ revision: "0", ...fields }),
+	// The screen's whole form, edited from revision 0 unless the case says otherwise (it carries the revision).
+	new URLSearchParams({ revision: "0", whole: "1", ...fields }),
 	{ "content-type": "application/x-www-form-urlencoded" },
 ];
 

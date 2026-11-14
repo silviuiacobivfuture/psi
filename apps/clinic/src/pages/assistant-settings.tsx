@@ -10,13 +10,13 @@ import { actionCtx } from "../actions/context";
 import { runAction } from "../actions/engine";
 import type { Env } from "../app";
 import { areaText } from "../lib/area-labels";
-import { ROLE_FIELD_NAMES } from "../lib/assistant-form";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { AssistantOrgConfigType } from "../port/port";
 import type { Role } from "../port/schema";
 import { Budget, Meter, SurfaceFields } from "./assistant-fields";
+import { OverrideFields } from "./assistant-overrides";
 import { OrgFrame } from "./org-settings";
 
 type O = ReturnType<typeof at>;
@@ -140,35 +140,6 @@ function Skill({
 	);
 }
 
-const ROLE_LABEL = {
-	enabled: (o: O) => m.as_r_enabled({}, o),
-	model: (o: O) => m.as_r_model({}, o),
-	maxToolCalls: (o: O) => m.as_r_maxToolCalls({}, o),
-	messagesPerDay: (o: O) => m.as_r_messagesPerDay({}, o),
-	tokensPerRequest: (o: O) => m.as_r_tokensPerRequest({}, o),
-} as const;
-
-/** What a role's field inherits: the organisation's staff setting it overrides. */
-function roleInherited(
-	field: Exclude<(typeof ROLE_FIELD_NAMES)[number], "enabled">,
-	s: AssistantOrgConfigType["effective"]["staff"],
-): string {
-	switch (field) {
-		case "model":
-			return s.model.primary;
-		case "maxToolCalls":
-			return String(s.maxToolCalls);
-		case "messagesPerDay":
-			return String(s.messages.perDay);
-		case "tokensPerRequest":
-			return String(s.tokens.perRequest);
-		default: {
-			const never: never = field;
-			return never;
-		}
-	}
-}
-
 function Roles({
 	view,
 	roles,
@@ -184,47 +155,20 @@ function Roles({
 				{m.as_roles({}, o)}
 			</h2>
 			<p class="adm-muted">{m.as_roles_hint({}, o)}</p>
-			{roles.map((role) => {
-				const own = view.doc?.roles[role.id] ?? {};
-				return (
-					<fieldset key={role.id} class="adm-stack" data-role={role.id}>
-						<legend class="adm-h3">{role.name}</legend>
-						<div class="adm-grid">
-							{ROLE_FIELD_NAMES.map((field) => {
-								const name = `role.${role.id}.${field}`;
-								const value = own[field];
-								return field === "enabled" ? (
-									<label key={field} class="adm-field">
-										<span>{ROLE_LABEL[field](o)}</span>
-										<select class="adm-input" name={name}>
-											<option value="" selected={value === undefined}>
-												{m.as_inherit({}, o)}
-											</option>
-											<option value="on" selected={value === true}>
-												{m.as_on({}, o)}
-											</option>
-											<option value="off" selected={value === false}>
-												{m.as_off({}, o)}
-											</option>
-										</select>
-									</label>
-								) : (
-									<label key={field} class="adm-field">
-										<span>{ROLE_LABEL[field](o)}</span>
-										<input
-											class="adm-input"
-											name={name}
-											type={field === "model" ? "text" : "number"}
-											value={value === undefined ? "" : String(value)}
-											placeholder={roleInherited(field, view.effective.staff)}
-										/>
-									</label>
-								);
-							})}
-						</div>
-					</fieldset>
-				);
-			})}
+			{roles.map((role) => (
+				<OverrideFields
+					key={role.id}
+					of="role"
+					id={role.id}
+					legend={role.name}
+					own={view.doc?.roles[role.id] ?? {}}
+					staff={view.effective.staff}
+					o={o}
+				/>
+			))}
+			<a class="adm-btn" href="/settings/assistant/people" data-link="assistant-people">
+				{m.as_people_open({}, o)}
+			</a>
 		</section>
 	);
 }
@@ -260,6 +204,7 @@ export async function renderAssistantSettings(
 				<p class="adm-muted">{writable ? m.as_lead({}, o) : m.as_readonly({}, o)}</p>
 				<form method="post" action="/settings/assistant" class="adm-stack" data-form="assistant">
 					<input type="hidden" name="revision" value={String(view.revision)} />
+					<input type="hidden" name="whole" value="1" />
 					<fieldset class="adm-stack" disabled={!writable}>
 						{SURFACES.map((s) => (
 							<section key={s} class="adm-stack" aria-labelledby={`as-${s}`} data-surface={s}>

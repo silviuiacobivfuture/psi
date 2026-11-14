@@ -199,6 +199,16 @@ describe("apps are closed worlds", () => {
 		).toEqual(["hemisync", "psizone"]);
 	});
 
+	it("who am I says whether the caller is the estate administrator, member of any app or not", async () => {
+		expect((await w.call("rita", "GET", "/v1/me")).json.platformAdmin).toBe(false);
+		const root = (await w.call("root", "GET", "/v1/me")).json;
+		expect([root.platformAdmin, root.apps]).toEqual([true, []]);
+		expect((await w.call("mallory", "GET", "/v1/me")).json).toMatchObject({
+			apps: [],
+			platformAdmin: false,
+		});
+	});
+
 	it("an id from one app is not found in another, even for the owner of both", async () => {
 		await w.call("root", "PUT", "/v1/apps/hemisync/members/olga", {
 			displayName: "Olga",

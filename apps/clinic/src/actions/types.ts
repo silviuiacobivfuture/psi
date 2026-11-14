@@ -33,6 +33,7 @@ export const SCREENS = [
 	"settings.roles",
 	"settings.members",
 	"settings.assistant",
+	"settings.assistant.people",
 	"platform",
 ] as const;
 export type Screen = (typeof SCREENS)[number];

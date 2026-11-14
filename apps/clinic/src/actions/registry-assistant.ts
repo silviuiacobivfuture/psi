@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { PLATFORM_KEY } from "../lib/areas";
-import { orgDocFromForm, platformDocFromForm } from "../lib/assistant-form";
+import {
+	formOfDoc,
+	formOfPeople,
+	orgDocFromForm,
+	peopleDocFromForm,
+	platformDocFromForm,
+} from "../lib/assistant-form";
 import { m } from "../paraglide/messages.js";
 import { define, label } from "./define";
 import type { ActionDef } from "./types";
@@ -8,20 +14,49 @@ import type { ActionDef } from "./types";
 /** The settings form as it was posted: every field by its name (`staff.maxToolCalls`, `skill.0.name`, …). */
 const FormFields = z.record(z.string().max(200), z.string().max(10_000));
 
-/**
- * The revision the form was edited from (its hidden field): without it a save could overwrite someone else's, or
- * (an empty call) erase the tier, so it is refused.
- */
-function editedFrom(form: Readonly<Record<string, string>>): number | undefined {
+/** The revision a save was edited from, when it says (the form's hidden field); a malformed one is `null`. */
+function editedFrom(form: Readonly<Record<string, string>>): number | undefined | null {
 	const raw = form.revision;
-	if (raw === undefined || !/^\d{1,9}$/.test(raw)) return undefined;
-	return Number(raw);
+	if (raw === undefined) return undefined;
+	return /^\d{1,9}$/.test(raw) ? Number(raw) : null;
+}
+
+/** The fields a save names besides how it was sent: what it changes. */
+const changes = (form: Readonly<Record<string, string>>): Record<string, string> =>
+	Object.fromEntries(Object.entries(form).filter(([k]) => k !== "revision" && k !== "whole"));
+
+type Planned =
+	| { ok: true; fields: Readonly<Record<string, string>>; revision: number }
+	| { ok: false; code: "invalid" | "conflict" };
+
+/**
+ * How an organisation's save is read. The screen posts the whole form (`whole=1`, with the revision it was edited
+ * from): what it leaves empty is inherited. Anything else is a change of the fields it names, laid over the tier as it
+ * is now (`current`), so nothing it does not name is lost; its revision, when it gives none, is the one just read, and
+ * a revision it gives must be that one. Either way a save that someone else's overtook is refused as a conflict, with
+ * nothing written (the service compares the revision in the same write), and a change that names nothing is refused.
+ */
+function plan(
+	form: Readonly<Record<string, string>>,
+	heldRevision: number,
+	current: () => Readonly<Record<string, string>>,
+): Planned {
+	const given = editedFrom(form);
+	if (given === null) return { ok: false, code: "invalid" };
+	if (form.whole === "1")
+		return given === undefined
+			? { ok: false, code: "invalid" }
+			: { ok: true, fields: form, revision: given };
+	const changed = changes(form);
+	if (Object.keys(changed).length === 0) return { ok: false, code: "invalid" };
+	if (given !== undefined && given !== heldRevision) return { ok: false, code: "conflict" };
+	return { ok: true, fields: { ...current(), ...changed }, revision: heldRevision };
 }
 
 /**
- * Saving the assistants' configuration: the organisation's tier (Owner and Admin, `app_settings_edit`) and the
- * estate's (the platform administrator). The same `run` serves the screen's Save and the assistant; the service checks
- * the ceilings and the permission again.
+ * Saving the assistants' configuration: the organisation's tier (Owner and Admin, `app_settings_edit`), its per-person
+ * overrides (the same) and the estate's (the platform administrator). The same `run` serves the screen's Save and the
+ * assistant; the service checks the ceilings and the permission again.
  */
 export const ASSISTANT_ACTIONS: ReadonlyArray<ActionDef> = [
 	define({
@@ -41,17 +76,39 @@ export const ASSISTANT_ACTIONS: ReadonlyArray<ActionDef> = [
 				ctx.port.assistantConfig(ctx.app),
 				ctx.port.roles(ctx.app),
 			]);
-			const revision = editedFrom(form);
-			if (revision === undefined) return { status: "refused", code: "invalid" };
-			const doc = orgDocFromForm(
-				form,
-				held.doc,
-				revision,
-				roles.map((r) => r.id),
-			);
+			const roleIds = roles.map((r) => r.id);
+			const planned = plan(form, held.revision, () => formOfDoc(held.doc, roleIds));
+			if (!planned.ok) return { status: "refused", code: planned.code };
+			const doc = orgDocFromForm(planned.fields, held.doc, planned.revision, roleIds);
 			if (!doc.ok) return { status: "refused", code: "invalid" };
 			await ctx.port.saveAssistantConfig(ctx.app, doc.doc);
 			return { status: "ok", to: "/settings/assistant?saved=1" };
+		},
+	}),
+	define({
+		id: "assistant.people.save",
+		tier: "org",
+		entity: "none",
+		label: label((o) => m.as_save({}, o)),
+		icon: "check",
+		placements: { screen: ["settings.assistant.people"] },
+		mobile: "bar",
+		needs: { write: ["app_settings_edit"] },
+		route: { method: "POST", path: "/settings/assistant/people" },
+		confirm: "none",
+		params: FormFields,
+		run: async (ctx, form) => {
+			const [held, members] = await Promise.all([
+				ctx.port.assistantConfig(ctx.app),
+				ctx.port.members(ctx.app),
+			]);
+			const subjects = members.map((p) => p.subject);
+			const planned = plan(form, held.revision, () => formOfPeople(held.doc, subjects));
+			if (!planned.ok) return { status: "refused", code: planned.code };
+			const doc = peopleDocFromForm(planned.fields, held.doc, planned.revision, subjects);
+			if (!doc.ok) return { status: "refused", code: "invalid" };
+			await ctx.port.saveAssistantConfig(ctx.app, doc.doc);
+			return { status: "ok", to: "/settings/assistant/people?saved=1" };
 		},
 	}),
 	define({
@@ -68,7 +125,8 @@ export const ASSISTANT_ACTIONS: ReadonlyArray<ActionDef> = [
 		params: FormFields,
 		run: async (ctx, form) => {
 			const revision = editedFrom(form);
-			if (revision === undefined) return { status: "refused", code: "invalid" };
+			if (revision === undefined || revision === null)
+				return { status: "refused", code: "invalid" };
 			const doc = platformDocFromForm(form, revision);
 			if (!doc.ok) return { status: "refused", code: "invalid" };
 			await ctx.port.saveAssistantPlatform(doc.doc);

@@ -138,6 +138,8 @@ export class PortError extends Error {
  */
 export interface ClinicPort extends ProfilePort {
 	memberships(subject: string): Promise<ReadonlyArray<Membership>>;
+	/** The person is the estate administrator: the platform zone is theirs, and every app, member of it or not. */
+	platformAdmin(subject: string): Promise<boolean>;
 	calendar(app: AppSlug, from: string, to: string): Promise<CalendarData>;
 	appointment(app: AppSlug, id: string): Promise<Appointment | null>;
 	/**
