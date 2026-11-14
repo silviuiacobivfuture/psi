@@ -7,6 +7,7 @@ import { m } from "../paraglide/messages.js";
 import { type ClientFile, FILE_MAX_BYTES, FILE_TYPES } from "../port/schema-clinical";
 import { stampText } from "./client-notes";
 import { SheetButtons } from "./client-sheets";
+import { TabMore, tabListId } from "./client-tab-pager";
 
 export const sizeText = (bytes: number): string =>
 	bytes < 1024
@@ -21,15 +22,74 @@ export const previewable = (contentType: string): boolean =>
 	contentType === "application/pdf" ||
 	contentType === "text/plain";
 
+/** One file of a client: its name, size, who added it and when, and what may be done with it. */
+export function FileRow({
+	ctx,
+	clientId,
+	file: f,
+}: {
+	ctx: Ctx;
+	clientId: string;
+	file: ClientFile;
+}): JSX.Element {
+	const o = at(ctx.locale);
+	const e = { clientId, id: f.id };
+	const download = actionsFor(ctx, "client.files", "menu", e).find((a) => a.id === "file.download");
+	const href = download?.to?.(e);
+	return (
+		<li class="cl-row" data-file={f.id}>
+			<Icon name="file" />
+			<div class="cl-row__main">
+				<strong class="cl-row__name">{f.name}</strong>
+				<span class="adm-muted">
+					{sizeText(f.size)} · {f.uploadedByName} · {stampText(ctx.locale, f.createdAt)}
+				</span>
+			</div>
+			{href !== undefined && previewable(f.contentType) ? (
+				<a
+					class="adm-iconbtn"
+					data-action="file.download"
+					href={`${href}?inline=1`}
+					target="_blank"
+					rel="noopener"
+					aria-label={m.cl_file_preview({}, o)}
+				>
+					<Icon name="file" />
+				</a>
+			) : null}
+			{href === undefined ? null : (
+				<a
+					class="adm-iconbtn"
+					data-action="file.download"
+					href={href}
+					aria-label={m.ac_file_download({}, o)}
+				>
+					<Icon name="download" />
+				</a>
+			)}
+			<OverflowMenu
+				id={`file-${f.id}`}
+				label={m.client_more({}, o)}
+				items={menuItems(ctx, "client.files", e).filter((i) => i.key !== "file.download")}
+			/>
+		</li>
+	);
+}
+
+/** A client's files, a page at a time, newest first. */
 export function FilesTab({
 	ctx,
 	clientId,
 	files,
+	next,
 	notice,
 }: {
 	ctx: Ctx;
 	clientId: string;
+	/** The first page. */
 	files: ReadonlyArray<ClientFile>;
+	/** Where the next page starts; null: the last is shown. */
+	next: string | null;
 	notice: "invalid" | "too-big" | null;
 }): JSX.Element {
 	const o = at(ctx.locale);
@@ -44,7 +104,7 @@ export function FilesTab({
 				</Banner>
 			)}
 			<ActionBar ctx={ctx} screen="client.files" entity={entity} />
-			{files.length === 0 ? (
+			{files.length === 0 && next === null ? (
 				<EmptyState
 					icon="archive"
 					title={m.files_empty_title({}, o)}
@@ -53,53 +113,14 @@ export function FilesTab({
 					<EmptyActions ctx={ctx} screen="client.files" entity={entity} />
 				</EmptyState>
 			) : (
-				<ul class="cl-rows" aria-label={m.tab_files({}, o)}>
-					{files.map((f) => {
-						const e = { clientId, id: f.id };
-						const download = actionsFor(ctx, "client.files", "menu", e).find(
-							(a) => a.id === "file.download",
-						);
-						const href = download?.to?.(e);
-						return (
-							<li key={f.id} class="cl-row" data-file={f.id}>
-								<Icon name="file" />
-								<div class="cl-row__main">
-									<strong class="cl-row__name">{f.name}</strong>
-									<span class="adm-muted">
-										{sizeText(f.size)} · {f.uploadedByName} · {stampText(ctx.locale, f.createdAt)}
-									</span>
-								</div>
-								{href !== undefined && previewable(f.contentType) ? (
-									<a
-										class="adm-iconbtn"
-										data-action="file.download"
-										href={`${href}?inline=1`}
-										target="_blank"
-										rel="noopener"
-										aria-label={m.cl_file_preview({}, o)}
-									>
-										<Icon name="file" />
-									</a>
-								) : null}
-								{href === undefined ? null : (
-									<a
-										class="adm-iconbtn"
-										data-action="file.download"
-										href={href}
-										aria-label={m.ac_file_download({}, o)}
-									>
-										<Icon name="download" />
-									</a>
-								)}
-								<OverflowMenu
-									id={`file-${f.id}`}
-									label={m.client_more({}, o)}
-									items={menuItems(ctx, "client.files", e).filter((i) => i.key !== "file.download")}
-								/>
-							</li>
-						);
-					})}
-				</ul>
+				<>
+					<ul class="cl-rows" id={tabListId("files")} aria-label={m.tab_files({}, o)}>
+						{files.map((f) => (
+							<FileRow key={f.id} ctx={ctx} clientId={clientId} file={f} />
+						))}
+					</ul>
+					<TabMore ctx={ctx} clientId={clientId} tab="files" cursor={next} shown={files.length} />
+				</>
 			)}
 		</div>
 	);

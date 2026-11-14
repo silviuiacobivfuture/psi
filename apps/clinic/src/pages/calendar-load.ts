@@ -61,16 +61,13 @@ export async function loadCalendar(ctx: Ctx, query: CalendarQuery): Promise<Cale
 	const { from, to } = rangeFor(query.view, date);
 	try {
 		if (query.view === "month") return await loadMonth(ctx, from, to);
-		// The week draws one calendar (the chosen one, else the first the filter shows): only its visits are read on.
+		// The week draws one calendar (the chosen one, else the first): only its visits are read, the others named.
 		const all = await ctx.port.calendar(
 			ctx.app,
 			from,
 			to,
 			query.view === "week"
-				? (cols) => {
-						const shown = cols.filter((c) => columnsFor(query.cat, c));
-						return (shown.find((c) => c.id === query.col) ?? shown[0])?.id;
-					}
+				? { column: query.col ?? null, show: (c) => columnsFor(query.cat, c) }
 				: undefined,
 		);
 		const columns = all.columns.filter((c) => columnsFor(query.cat, c));

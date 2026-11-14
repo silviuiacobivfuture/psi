@@ -1,7 +1,8 @@
 import { SEED_FORM_TEMPLATES, validateResponse } from "@psi/scheduling/clinic";
 import { ledger } from "../domain/ledger";
 import { paidBani } from "../domain/usage";
-import { type ClinicPort, PortError } from "./port";
+import { offsetPage } from "./offset-page";
+import { type ClinicPort, LIST_PAGE, PortError } from "./port";
 import type { AppSlug, Client } from "./schema";
 import {
 	blacklistActive,
@@ -49,6 +50,7 @@ type ClinicalMethods = Pick<
 	| "updateRecord"
 	| "deleteRecord"
 	| "files"
+	| "filePage"
 	| "uploadFile"
 	| "downloadFile"
 	| "renameFile"
@@ -312,6 +314,10 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 					.files.map((f) => f.meta)
 					.filter((f) => f.clientId === clientId),
 			);
+		},
+		async filePage(app, clientId, cursor) {
+			guard("filePage");
+			return offsetPage(await this.files(app, clientId), cursor, LIST_PAGE);
 		},
 		async uploadFile(app, clientId, file, by) {
 			guard("uploadFile");
