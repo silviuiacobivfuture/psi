@@ -367,7 +367,6 @@ export function AdminShell(p: ShellProps): JSX.Element {
 						<span data-show="$navCollapsed" style="display:none">
 							<Icon name="chevron-right" />
 						</span>
-						<span class="adm-label">{l.collapse}</span>
 					</button>
 				</div>
 			</aside>
