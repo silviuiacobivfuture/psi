@@ -43,6 +43,12 @@ export const RESOURCES = [
 	"blacklist",
 	"feedback",
 	"notes",
+	/** The organisation's billing and invoicing settings: the Owner's alone. */
+	"billing",
+	/** The organisation itself: deleting it, handing its ownership to someone else. The Owner's alone. */
+	"organisation",
+	/** The assistants' budget and limits (the organisation's tier of their configuration). The Owner's alone. */
+	"assistant_budget",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -74,6 +80,10 @@ export const ACTIONS = [
 	"pin",
 	/** Turn a client into a registered user of the online account (an e-mail invitation). */
 	"invite",
+	/** Add, remove or change the members who manage the team (an Administrator or an Owner), and give those roles. */
+	"manage_admins",
+	/** Hand the organisation's ownership to another member. */
+	"transfer",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -104,7 +114,7 @@ const CRUD: ReadonlyArray<Action> = ["view", "create", "edit", "delete"];
 
 export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 	app_settings: { actions: ["view", "edit"], scopes: ALL },
-	members: { actions: CRUD, scopes: ALL },
+	members: { actions: [...CRUD, "manage_admins"], scopes: ALL },
 	people: { actions: ["view", "create", "edit", "archive"], scopes: ["all", "own"] },
 	roles: { actions: CRUD, scopes: ALL },
 	builder: { actions: CRUD, scopes: ALL },
@@ -163,7 +173,23 @@ export const CATALOGUE: Readonly<Record<Resource, ResourceDef>> = {
 		scopes: ["all", "own"],
 		fieldGroups: ["clinical"],
 	},
+	billing: { actions: ["view", "edit"], scopes: ALL },
+	organisation: { actions: ["delete", "transfer"], scopes: ALL },
+	assistant_budget: { actions: ["edit"], scopes: ALL },
 };
+
+/**
+ * The Owner's own powers, above an Administrator's: managing the people who manage the team, the billing, the
+ * assistants' budget, deleting the organisation and handing it over. No other seed role holds them.
+ */
+export const OWNER_ONLY_KEYS: ReadonlyArray<string> = [
+	"members_manage_admins_all",
+	"billing_view_all",
+	"billing_edit_all",
+	"organisation_delete_all",
+	"organisation_transfer_all",
+	"assistant_budget_edit_all",
+];
 
 /** A permission as structure. */
 export interface Permission {

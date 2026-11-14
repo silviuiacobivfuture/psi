@@ -26,9 +26,15 @@ export function roleFromForm(current: Role, raw: unknown): Role {
 			grants[r.key] = { ...(grants[r.key] ?? {}), [a]: scope.data };
 		}
 	}
+	// The roles it includes: every ticked one, never itself (the service refuses cycles and unknown roles).
+	const ticked = form.include;
+	const include = (Array.isArray(ticked) ? ticked : ticked === undefined ? [] : [ticked]).filter(
+		(v): v is string => typeof v === "string" && v !== current.id,
+	);
 	return {
 		...current,
 		grants,
 		fieldGroups: FIELD_GROUPS.filter((f) => form[`field.${f}`] !== undefined),
+		includes: [...new Set(include)].sort(),
 	};
 }

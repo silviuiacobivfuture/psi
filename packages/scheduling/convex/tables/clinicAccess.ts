@@ -12,6 +12,8 @@ export const roles = defineTable({
 	description: v.string(),
 	/** Keys of the permission catalogue. */
 	permissions: v.array(v.string()),
+	/** The roles of the same app this one includes: their keys are held through it (src/permissions/composed.ts). */
+	includes: v.optional(v.array(v.id("roles"))),
 	/** A role the app started with (still editable). */
 	seeded: v.boolean(),
 	updatedAt: v.number(),

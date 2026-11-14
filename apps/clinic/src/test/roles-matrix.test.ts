@@ -47,8 +47,14 @@ const heads = (page: string): string[] =>
 	[...tableOf(page).matchAll(/<th scope="col" data-col="([^"]+)"/g)].map((x) => x[1] ?? "");
 const rows = (page: string): string[] =>
 	[...tableOf(page).matchAll(/<tr class="rm-action" data-row="([^"]+)"/g)].map((x) => x[1] ?? "");
-const permissionsOf = async (id: string): Promise<string[]> =>
-	((await api("GET", `/roles/${id}`)).json.role as { permissions: string[] }).permissions;
+/** What the role holds in the end, by the service: its own keys and every key it holds through an included role. */
+const permissionsOf = async (id: string): Promise<string[]> => {
+	const got = (await api("GET", `/roles/${id}`)).json as {
+		role: { permissions: string[] };
+		inherited: Record<string, string>;
+	};
+	return [...got.role.permissions, ...Object.keys(got.inherited)];
+};
 
 const WIDTH: Readonly<Record<string, number>> = { own: 1, assigned: 2, all: 3 };
 /** The marks a role's stored keys mean, by row, read straight from the service's role definition. */

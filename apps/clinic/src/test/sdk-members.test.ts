@@ -246,7 +246,8 @@ describe("adding and removing", () => {
 
 describe("the journal says it in a sentence", () => {
 	it("a role change names the roles; a removal names who left", async () => {
-		await saveRoles(olga, "nina", [role("admin"), role("coordinator")], "nina test");
+		// two roles neither of which holds all the other does (an Administrator would make Coordonator redundant)
+		await saveRoles(olga, "nina", [role("reception"), role("coordinator")], "nina test");
 		await send(olga, "/settings/members/save", {
 			subject: "leaver",
 			displayName: "Plecat Test",
@@ -256,7 +257,7 @@ describe("the journal says it in a sentence", () => {
 		const journal = await html(olga, "/settings/audit");
 		// the service keeps the role ids sorted: the sentence names them in that order
 		const names = [
-			[role("admin"), "Administrator clinică"],
+			[role("reception"), "Recepție"],
 			[role("coordinator"), "Coordonator"],
 		]
 			.sort(([a = ""], [b = ""]) => a.localeCompare(b))

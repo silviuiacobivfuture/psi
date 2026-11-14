@@ -1,4 +1,5 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
+import { guardMemberChange } from "../handlers/owner-guard";
 import { must } from "../handlers/shared";
 import type { Ctx } from "../http/context";
 import { fail, forbidden } from "../http/errors";
@@ -24,6 +25,8 @@ export async function newSignInLink(
 	if (subject === ctx.subject)
 		throw forbidden("nobody changes their own membership", { reason: "self" });
 	const member = await must(ctx.deps.store.c.members, ctx.app, subject, "member");
+	// An Administrator's or an Owner's set-password link is the Owner's to show.
+	await guardMemberChange(ctx, member, member);
 	if (member.email === undefined)
 		throw fail("conflict", "the member has no e-mail address", { reason: "no_email" });
 	const account = await staff.find(member.email);

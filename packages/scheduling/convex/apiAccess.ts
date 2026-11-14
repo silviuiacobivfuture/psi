@@ -1,10 +1,12 @@
 import { v } from "convex/values";
 import { isPermissionKey } from "../src/permissions/catalogue";
+import { MAX_INCLUDE_DEPTH } from "../src/permissions/composed";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
 import { CATALOG_MAX, TOO_MANY_ROWS } from "./bounded";
 import { requireServer } from "./guard";
+import { appRoles, composedOf, composedRoles, includesOf } from "./roleIncludes";
 import { practitionerOf } from "./setupSupport";
 import { actorValidator, serverKeyValidator } from "./validators";
 
@@ -24,10 +26,13 @@ export const createRole = mutation({
 		name: v.string(),
 		description: v.string(),
 		permissions: v.array(v.string()),
+		includes: v.optional(v.array(v.string())),
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
 		const name = args.name.trim();
+		const includes = await includesOf(ctx, args.tenant, undefined, args.includes ?? []);
+		if (includes === undefined) return REFUSED("invalid");
 		if (name === "" || name.length > 60 || !keysOk(args.permissions)) return REFUSED("invalid");
 		const same = await ctx.db
 			.query("roles")
@@ -39,6 +44,7 @@ export const createRole = mutation({
 			name,
 			description: args.description,
 			permissions: args.permissions,
+			...(includes.length === 0 ? {} : { includes }),
 			seeded: false,
 			updatedAt: Date.now(),
 			updatedBy: args.actor.subject,
@@ -93,7 +99,7 @@ export const updateRole = mutation({
 	},
 });
 
-/** A role goes only when nobody holds it. */
+/** A role goes only when nobody holds it and no other role includes it. */
 export const deleteRole = mutation({
 	args: { key: serverKeyValidator, tenant: v.string(), actor: actorValidator, role: v.string() },
 	handler: async (ctx, args) => {
@@ -105,6 +111,8 @@ export const deleteRole = mutation({
 			.withIndex("by_tenant_role", (q) => q.eq("tenant", args.tenant).eq("role", row._id))
 			.first();
 		if (held !== null) return REFUSED("in_use");
+		const roles = await composedRoles(ctx, args.tenant);
+		if ([...roles.values()].some((r) => r.includes.includes(row._id))) return REFUSED("included");
 		await ctx.db.delete(row._id);
 		await record(ctx, {
 			tenant: args.tenant,
@@ -373,11 +381,23 @@ export const forSubject = query({
 				q.eq("tenant", args.tenant).eq("subject", args.subject),
 			)
 			.collect();
-		const roles = [];
-		for (const m of members) {
-			const r = await ctx.db.get(m.role);
-			if (r !== null) roles.push({ name: r.name, permissions: r.permissions });
-		}
+		// Every role held, and every role those include (transitively): what the person holds through each.
+		const rows = await appRoles(ctx, args.tenant);
+		const all = composedOf(rows);
+		const names = new Map(rows.map((r) => [r._id as string, r.name]));
+		const reached = new Set<string>();
+		const reach = (id: string, depth: number): void => {
+			if (reached.has(id) || depth > MAX_INCLUDE_DEPTH) return;
+			reached.add(id);
+			for (const inc of all.get(id)?.includes ?? []) reach(inc, depth + 1);
+		};
+		for (const m of members) reach(m.role, 0);
+		const roles = [...reached].flatMap((id) => {
+			const r = all.get(id);
+			return r === undefined
+				? []
+				: [{ name: names.get(id) ?? id, permissions: [...r.permissions] }];
+		});
 		const overrides = await ctx.db
 			.query("permissionOverrides")
 			.withIndex("by_tenant_subject", (q) =>

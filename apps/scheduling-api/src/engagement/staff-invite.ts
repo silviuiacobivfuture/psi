@@ -1,5 +1,6 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { checkRefs, type MemberInput, memberOut, writeMember } from "../handlers/member-write";
+import { guardMemberChange } from "../handlers/owner-guard";
 import type { Ctx } from "../http/context";
 import { fail, forbidden } from "../http/errors";
 import type { StaffAccount, StaffDirectory } from "../ports/staff-directory";
@@ -72,6 +73,13 @@ export async function inviteStaff(
 	await checkRefs(ctx, input.roles, input.coordinates);
 	const email = input.email.trim().toLowerCase();
 	const found = await accountFor(ctx, staff, email);
+	// Inviting someone as an Administrator or an Owner is the Owner's: refused before the sign-in makes anything.
+	await guardMemberChange(ctx, undefined, {
+		subject: found?.subject ?? "(invited)",
+		roles: [...input.roles],
+		grants: [],
+		denies: [],
+	});
 	let account: StaffAccount;
 	let made = false;
 	const joined = found !== undefined && !found.staff;
