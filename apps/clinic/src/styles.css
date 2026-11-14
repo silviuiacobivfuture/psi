@@ -12,6 +12,7 @@
 @import "./audit.css";
 @import "./stats.css";
 @import "./profile.css";
+@import "./roles-matrix.css";
 @import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";

@@ -23,6 +23,7 @@ import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { Role } from "../port/schema";
 import { ACTIONS, FIELD_GROUPS, RESOURCE_ACTIONS, RESOURCES, SCOPES } from "../port/schema";
+import { ROLES_MATRIX_PATH } from "../roles-matrix/path";
 import { CatalogSheets, CatalogTab } from "./catalog";
 import { SheetButtons } from "./client-sheets";
 import { OrgFrame } from "./org-settings";
@@ -84,6 +85,11 @@ function RolesTab({
 				)}
 			</div>
 			<p class="adm-muted">{m.roles_hint({}, o)}</p>
+			<p>
+				<a href={ROLES_MATRIX_PATH} data-roles-matrix-link>
+					{m.rm_settings_link({}, o)}
+				</a>
+			</p>
 			<form
 				method="post"
 				action={`/settings/roles/${role.id}`}

@@ -1,4 +1,7 @@
-import type { Capabilities as ScheduleCapabilities } from "@psi/scheduling-sdk/contract";
+import type {
+	Capabilities as ScheduleCapabilities,
+	RoleSummary as ScheduleRoleSummary,
+} from "@psi/scheduling-sdk/contract";
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
@@ -96,6 +99,9 @@ export interface ReminderItem {
  * what to offer, never the authority — the service authorizes every call again.
  */
 export type Capabilities = z.output<typeof ScheduleCapabilities>;
+
+/** Every role of the app with its stored permission keys, and the platform administrator's: what any member may compare. */
+export type RoleSummary = z.output<typeof ScheduleRoleSummary>;
 
 /** Who the console is looking at the app as (read-only), when a roles administrator has chosen "Vezi ca…". */
 export type ViewAsTarget = `role:${string}` | `member:${string}`;
@@ -259,6 +265,8 @@ export interface ClinicPort extends ProfilePort {
 	deleteRole(app: AppSlug, id: string): Promise<void>;
 	services(app: AppSlug): Promise<ReadonlyArray<Service>>;
 	roles(app: AppSlug): Promise<ReadonlyArray<Role>>;
+	/** The roles to compare (names and keys only): readable by every member, unlike `roles` (roles_view). */
+	roleSummary(app: AppSlug): Promise<RoleSummary>;
 	saveRole(app: AppSlug, role: Role): Promise<Role>;
 	audit(app: AppSlug): Promise<ReadonlyArray<AuditEvent>>;
 	/**
