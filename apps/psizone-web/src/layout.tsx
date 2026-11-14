@@ -1,13 +1,11 @@
 import { Doctype, type JsonLdNode } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { assets } from "./assets";
 import type { Locale } from "./i18n";
 import { PwaHeadTags } from "./pwa/site";
 import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
-
-const FONTS =
-	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Manrope:wght@400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 
 export interface LayoutProps {
 	locale: Locale;
@@ -52,11 +50,7 @@ export function Layout({
 						{...(jsonLd === undefined ? {} : { extraJsonLd: jsonLd })}
 					/>
 					<PwaHeadTags locale={locale} />
-					<link rel="preconnect" href="https://fonts.googleapis.com" />
-					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-					<link rel="stylesheet" href={FONTS} />
-					<link rel="stylesheet" href="/assets/app.css" />
-					<script type="module" src="/assets/datastar.js" />
+					<assets.Head />
 				</head>
 				<body
 					class="pz-grain"

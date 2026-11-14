@@ -1,11 +1,11 @@
 import { sameOrigin } from "@psi/account";
+import { caching, compression } from "@psi/delivery";
 import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
-import { compress } from "hono/compress";
 import { setCookie } from "hono/cookie";
-import { registerAssets } from "./assets";
+import { assets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
 import { registerAudit } from "./audit/routes";
@@ -74,11 +74,13 @@ export type Env = { Variables: { ctx: Ctx } };
 export function createApp(deps: AppDeps): Hono<Env> {
 	const root = new Hono({ strict: false });
 	root.get("/healthz", (c) => c.text("ok"));
-	registerAssets(root);
+	assets.routes(root);
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
-	// Pages, the stylesheet and Datastar travel gzip-compressed (event streams never are: they must flush as they go).
-	app.use("*", compress());
+	// Pages, the stylesheet and Datastar travel brotli- or gzip-compressed (event streams never are: they must flush as
+	// they go); a page that set no cache policy is revalidated by ETag, an unchanged asset asked again is a 304.
+	app.use("*", compression());
+	app.use("*", caching());
 	const bell =
 		deps.notifications === undefined
 			? undefined

@@ -89,6 +89,9 @@ importers:
       '@psi/content':
         specifier: workspace:*
         version: link:../../packages/content
+      '@psi/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -147,6 +150,9 @@ importers:
       '@psi/account':
         specifier: workspace:*
         version: link:../../packages/account
+      '@psi/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -354,6 +360,9 @@ importers:
       '@psi/content':
         specifier: workspace:*
         version: link:../../packages/content
+      '@psi/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -455,6 +464,9 @@ importers:
       '@psi/content':
         specifier: workspace:*
         version: link:../../packages/content
+      '@psi/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@psi/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -625,6 +637,31 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
+
+  packages/delivery:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.0
+        version: 1.19.19(hono@4.13.18)
+      '@psi/design':
+        specifier: workspace:*
+        version: link:../design
+      '@psi/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@24.19.2)(happy-dom@20.14.6)(lightningcss@1.33.0)(sass@1.77.4)
 
   packages/design:
     devDependencies:

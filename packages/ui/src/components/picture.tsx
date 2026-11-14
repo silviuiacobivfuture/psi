@@ -92,8 +92,13 @@ export function Picture({
 		.join(";");
 	return (
 		<picture class={cx("pz-picture", className)}>
-			<source type="image/avif" srcset={srcset(image.avif)} sizes={sizes} />
-			<source type="image/webp" srcset={srcset(image.webp)} sizes={sizes} />
+			{/* A format with no variants (the old site's photographs have no AVIF) gets no empty <source>. */}
+			{image.avif.length > 0 ? (
+				<source type="image/avif" srcset={srcset(image.avif)} sizes={sizes} />
+			) : null}
+			{image.webp.length > 0 ? (
+				<source type="image/webp" srcset={srcset(image.webp)} sizes={sizes} />
+			) : null}
 			<img
 				class={cx("pz-picture__img", imgClass)}
 				src={fallback(image.jpeg)}

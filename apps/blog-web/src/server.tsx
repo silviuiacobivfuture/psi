@@ -1,7 +1,4 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { guideSignal } from "@psi/site-control";
 import { accountMemory, answerGuidePost, applyIndexingPolicy, installDevLog } from "@psi/ui";
 import { type Context, Hono } from "hono";
@@ -10,6 +7,7 @@ import { getCookie } from "hono/cookie";
 import { account, guideForRequest } from "./account";
 import { registerAccountRoutes } from "./account-routes";
 import { countingGuide, guideCounts, trackable } from "./analytics/index";
+import { assets } from "./assets";
 import { brandFrom } from "./brands";
 import { registerCmsRoutes, startCms } from "./cms-routes";
 import { findArticle } from "./content/articles";
@@ -29,10 +27,12 @@ import { rssFeed } from "./rss";
 import { sitemap } from "./seo";
 import { themeFrom } from "./theme";
 
-const DATASTAR = readFileSync(fileURLToPath(import.meta.resolve("@psi/ui/datastar.js")), "utf8");
 const PORT = Number.parseInt(process.env.PORT ?? "4340", 10);
 
 export const app = new Hono({ strict: false });
+// Before every other route and middleware: compression and page caching see each final response (assets.ts).
+// Stylesheet, Datastar, fonts, article images and the favicon are served here.
+assets.mount(app);
 installDevLog(app);
 applyIndexingPolicy(app, process.env, {
 	sitemap: `${ESTATE[SITE]}/sitemap.xml`,
@@ -61,14 +61,6 @@ function notFound(c: Context, locale: Locale): Response | Promise<Response> {
 }
 
 app.get("/healthz", (c) => c.text("ok"));
-app.get("/assets/datastar.js", (c) =>
-	c.body(DATASTAR, 200, {
-		"content-type": "text/javascript; charset=utf-8",
-		"cache-control": "public, max-age=86400",
-	}),
-);
-app.use("/assets/*", serveStatic({ root: "./public" }));
-app.get("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 // The shared CMS: revalidation webhook, live preview, reading beacon (cms-routes.ts).
 registerCmsRoutes(app);
 

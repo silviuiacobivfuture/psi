@@ -2,14 +2,11 @@ import type { JsonLdNode } from "@psi/ui";
 import { Doctype } from "@psi/ui";
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
+import { assets } from "./assets";
 import type { Locale } from "./i18n";
 import { PwaHeadTags } from "./pwa/site";
 import { SiteHead } from "./seo";
 import type { Theme } from "./theme";
-
-/** Fraunces with its italics for headlines, Inter for text and interface (the hemisync theme selects it). */
-const FONTS =
-	"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,100..900,0..100;1,9..144,100..900,0..100&family=Inter:wght@400..700&display=swap";
 
 export interface LayoutProps {
 	locale: Locale;
@@ -53,11 +50,7 @@ export function Layout({
 					/>
 					<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 					<PwaHeadTags locale={locale} />
-					<link rel="preconnect" href="https://fonts.googleapis.com" />
-					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-					<link rel="stylesheet" href={FONTS} />
-					<link rel="stylesheet" href="/assets/app.css" />
-					<script type="module" src="/assets/datastar.js" />
+					<assets.Head />
 				</head>
 				<body
 					class="pz-grain"
