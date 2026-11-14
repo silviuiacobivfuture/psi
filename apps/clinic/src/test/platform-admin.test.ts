@@ -11,10 +11,11 @@ const open = async (platformAdmin: boolean): Promise<Console> => {
 };
 
 describe("the platform administrator", () => {
-	it("is told in the pill and the menu, never as a clinic role, and the menu names the person", async () => {
+	it("is told in the pill first as the system's administrator, then by the clinic role, and the menu names the person", async () => {
 		await open(true);
 		const html = await (await c.get("/calendar")).text();
-		expect(html).toContain("Rol: Administrator platformă");
+		expect(html).toMatch(/Rol: Administrator sistem · [^<]+/);
+		expect(html).not.toContain("Administrator platformă");
 		expect(html).toContain("Ana Test");
 		expect(html).not.toContain("Recepție Demo");
 	});
@@ -25,6 +26,13 @@ describe("the platform administrator", () => {
 		const roles = menu.indexOf('data-view-as-choice="role:');
 		const people = menu.indexOf('data-view-as-choice="member:');
 		expect(platform).toBeGreaterThan(-1);
+		// Two levels, each under its own heading: the platform's one role, then the organisation's.
+		const platformHead = menu.indexOf("Platformă");
+		const orgHead = menu.indexOf("Organizație");
+		expect(platformHead).toBeGreaterThan(-1);
+		expect(platformHead).toBeLessThan(platform);
+		expect(orgHead).toBeGreaterThan(platform);
+		expect(orgHead).toBeLessThan(roles);
 		expect(platform).toBeLessThan(roles);
 		expect(roles).toBeLessThan(people);
 		expect(await (await c.get("/view-as")).text()).toContain("data-view-as-platform");
@@ -33,6 +41,8 @@ describe("the platform administrator", () => {
 		await open(false);
 		const html = await (await c.get("/view-as")).text();
 		expect(html).not.toContain("data-view-as-platform");
+		expect(html).not.toContain("Platformă</h2>");
+		expect(html).toContain("Organizație</h2>");
 		expect(await (await c.get("/calendar")).text()).toContain("Rol: Proprietar");
 	});
 	it("the install entry is a row of the menu, like its neighbours", async () => {

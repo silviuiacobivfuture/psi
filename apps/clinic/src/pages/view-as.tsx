@@ -75,6 +75,7 @@ export async function renderViewAs(
 				<Banner tone="info" icon="shield">
 					{m.view_as_lead({}, o)}
 				</Banner>
+				{ctx.platformAdmin ? <h2 class="adm-h2">{m.view_as_group_platform({}, o)}</h2> : null}
 				{ctx.platformAdmin ? (
 					<form method="post" action="/view-as/stop" class="adm-card adm-row" data-view-as-platform>
 						<div style="flex:1">
@@ -94,7 +95,7 @@ export async function renderViewAs(
 						)}
 					</form>
 				) : null}
-				<h2 class="adm-h2">{m.view_as_roles({}, o)}</h2>
+				<h2 class="adm-h2">{m.view_as_group_org({}, o)}</h2>
 				{roles.length === 0 ? (
 					<EmptyState icon="shield" title={m.view_as_none({}, o)} />
 				) : (

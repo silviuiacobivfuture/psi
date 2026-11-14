@@ -3,7 +3,7 @@
 	"pf_lead": "Who you are in the app, what you can do and how you like to work.",
 	"pf_apps_roles": "Roles",
 	"pf_role_in": "{app}: {roles}",
-	"pf_platform_admin": "Platform administrator",
+	"pf_platform_admin": "System administrator",
 	"pf_calendar": "My calendar",
 	"pf_calendar_none": "You have no calendar column of your own.",
 	"pf_hours": "Hours this week",
