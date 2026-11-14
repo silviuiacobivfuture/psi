@@ -16,7 +16,7 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/scheduling-api
-    newTag: "unpromoted"
+    newTag: "ca082e1"
 patches:
   - target: { kind: Deployment, name: scheduling-api }
     patch: |-

@@ -15,7 +15,7 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/clinic
-    newTag: "unpromoted"
+    newTag: "ca082e1"
 patches:
   # The dev overlay's database lives in the dev console's namespace; production's is account-db-prod's.
   - patch: |-

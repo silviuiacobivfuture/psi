@@ -12,4 +12,4 @@ resources:
   - cronjob.yaml
 images:
   - name: registry.psizone.ro/psi/scheduling-deploy
-    newTag: "unpromoted"
+    newTag: "ca082e1"
