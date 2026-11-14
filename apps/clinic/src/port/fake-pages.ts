@@ -1,14 +1,15 @@
+import { nameMatches, orderPage } from "@psi/scheduling/clinic";
+import { narrowedTo } from "./client-list";
 import { offsetOf, offsetPage } from "./offset-page";
 import {
 	type AuditPage,
-	CLIENT_PAGE_SIZE,
 	type ClientPage,
 	type ClinicPort,
 	LIST_PAGE,
 	type ListedClient,
 	type Paged,
 } from "./port";
-import type { WebRequest } from "./schema";
+import type { AppSlug, WebRequest } from "./schema";
 
 /** The open or the handled requests, newest first, a page at a time. */
 export function pagedRequests(port: Pick<ClinicPort, "requests">): ClinicPort["requestPage"] {
@@ -62,25 +63,55 @@ export function pagedAudit(port: Pick<ClinicPort, "audit">): ClinicPort["auditPa
 }
 
 /**
- * The client list a page at a time over a port that answers it whole (the in-memory clinic): the same pages, sizes and
- * cursors' meaning (absent on the last page) a screen sees from the service.
+ * The numbered client list over a port that answers it whole (the in-memory clinic): the same search, filters, order,
+ * total and clamping as the service (the order and the search are the same code, `@psi/scheduling/clinic`). Creation
+ * order is the clinic's own order of its clients; `holders` names the clients holding a package.
  */
 export function pagedClients(
 	port: Pick<ClinicPort, "clients" | "clientSummaries">,
+	holders: (app: AppSlug) => ReadonlySet<string>,
 ): ClinicPort["clientPage"] {
-	return async (app, filter, query, cursor): Promise<ClientPage> => {
-		const start = offsetOf(cursor);
+	return async (app, ask): Promise<ClientPage> => {
 		const [all, summaries] = await Promise.all([
-			port.clients(app, filter, query),
-			port.clientSummaries(app, filter, query),
+			port.clients(app, ask.filter, ""),
+			port.clientSummaries(app, ask.filter, ""),
 		]);
-		const clients = all.slice(start, start + CLIENT_PAGE_SIZE);
-		const ids = new Set(clients.map((c) => c.id));
-		const end = start + clients.length;
+		const by = new Map(summaries.map((s) => [s.clientId, s]));
+		const holding = holders(app);
+		const order = new Map(all.map((c, i) => [c.id, i]));
+		const narrowed = narrowedTo(ask);
+		const kept = all.filter(
+			(c) =>
+				nameMatches(c.name, ask.q) &&
+				(narrowed === null || (c.practitionerId !== null && narrowed.includes(c.practitionerId))) &&
+				(ask.flag !== "listed" || (by.get(c.id)?.blacklist ?? null) !== null) &&
+				(ask.flag !== "unassigned" || c.practitionerId === null) &&
+				(ask.pkg === null || holding.has(c.id) === (ask.pkg === "with")),
+		);
+		const cut = orderPage(
+			kept.map((client) => {
+				const last = by.get(client.id)?.lastVisit ?? null;
+				return {
+					id: client.id,
+					name: client.name,
+					createdAt: order.get(client.id) ?? 0,
+					lastVisit: last === null ? null : Date.parse(`${last}T00:00:00Z`),
+					client,
+				};
+			}),
+			ask.sort,
+			(ask.page - 1) * ask.size,
+			ask.size,
+		);
+		const clients = cut.rows.map((r) => r.client);
 		return {
 			clients,
-			summaries: summaries.filter((s) => ids.has(s.clientId)),
-			nextCursor: end < all.length ? String(end) : null,
+			summaries: clients.flatMap((c) => {
+				const s = by.get(c.id);
+				return s === undefined ? [] : [s];
+			}),
+			total: cut.total,
+			page: Math.floor(cut.offset / ask.size) + 1,
 		};
 	};
 }

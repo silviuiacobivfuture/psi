@@ -16,7 +16,8 @@
 			"./messages/members/{locale}.json",
 			"./messages/client/{locale}.json",
 			"./messages/lists/{locale}.json",
-			"./messages/roles/{locale}.json"
+			"./messages/roles/{locale}.json",
+			"./messages/availability/{locale}.json"
 		]
 	}
 }

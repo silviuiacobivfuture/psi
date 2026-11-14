@@ -71,6 +71,7 @@ const ACTION_KEY: Readonly<Record<string, string>> = {
 	"request.create": "request_create",
 	"app.create": "app_edit",
 	"app.update": "app_edit",
+	"org.profile": "org_profile",
 	"builder.put": "builder_edit",
 	"builder.delete": "builder_edit",
 	"visitor.cancel": "visitor_cancel",
@@ -78,6 +79,15 @@ const ACTION_KEY: Readonly<Record<string, string>> = {
 	"settings.update": "settings_update",
 	"client.account_link": "account_link",
 	"client.account_link_dismiss": "account_link_dismiss",
+	"availability.rules": "availability_rules",
+	"availability.copy": "availability_copy",
+	"availability.one_off_add": "availability_one_off_add",
+	"availability.one_off_remove": "availability_one_off_remove",
+	"rooms.closure_add": "room_closure_add",
+	"rooms.closure_remove": "room_closure_remove",
+	"booking_pause.create": "booking_pause_create",
+	"booking_pause.update": "booking_pause_update",
+	"booking_pause.remove": "booking_pause_remove",
 };
 
 const ACTION_SAY: Readonly<Record<string, Say>> = {
@@ -128,12 +138,22 @@ const ACTION_SAY: Readonly<Record<string, Say>> = {
 	callback_create: (l) => m.jr_act_callback_create({}, at(l)),
 	request_create: (l) => m.jr_act_request_create({}, at(l)),
 	app_edit: (l) => m.jr_act_app_edit({}, at(l)),
+	org_profile: (l) => m.jr_act_org_profile({}, at(l)),
 	builder_edit: (l) => m.jr_act_builder_edit({}, at(l)),
 	visitor_cancel: (l) => m.jr_act_visitor_cancel({}, at(l)),
 	visitor_reschedule: (l) => m.jr_act_visitor_reschedule({}, at(l)),
 	settings_update: (l) => m.jr_act_settings_update({}, at(l)),
 	account_link: (l) => m.jr_act_account_link({}, at(l)),
 	account_link_dismiss: (l) => m.jr_act_account_link_dismiss({}, at(l)),
+	availability_rules: (l) => m.jr_act_availability_rules({}, at(l)),
+	availability_copy: (l) => m.jr_act_availability_copy({}, at(l)),
+	availability_one_off_add: (l) => m.jr_act_availability_one_off_add({}, at(l)),
+	availability_one_off_remove: (l) => m.jr_act_availability_one_off_remove({}, at(l)),
+	room_closure_add: (l) => m.jr_act_room_closure_add({}, at(l)),
+	room_closure_remove: (l) => m.jr_act_room_closure_remove({}, at(l)),
+	booking_pause_create: (l) => m.jr_act_booking_pause_create({}, at(l)),
+	booking_pause_update: (l) => m.jr_act_booking_pause_update({}, at(l)),
+	booking_pause_remove: (l) => m.jr_act_booking_pause_remove({}, at(l)),
 };
 
 const ASSISTANT = /^assistant\./;

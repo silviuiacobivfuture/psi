@@ -120,6 +120,11 @@ export interface BookingCopy {
 		service: string;
 		/** The calendar cannot be read, or the site has no services yet: the callback form stands. */
 		unavailable: string;
+		/**
+		 * The clinic paused online booking: a heading over its own message, when it opens again (a formatted date and
+		 * time), and the way left: the callback form below, or the phone alone.
+		 */
+		paused: { title: string; until: (when: string) => string; callback: string; call: string };
 		callback: string;
 		back: string;
 		modeOnsite: string;
@@ -190,9 +195,15 @@ export interface BookingCopy {
 		slotGone: string;
 		/** The request could not be sent; saying yes again tries again. */
 		submitRetry: string;
+		/** Online booking is paused: the line over the clinic's message (which the form shows in its own words). */
+		paused: string;
+		/**
+		 * `paused`: the guide's memory of a turn that showed the clinic's pause, with its message (`message` is the clinic's
+		 * own words), so the next reply does not offer times.
+		 */
 		summary: Readonly<
 			Record<"times" | "confirm" | "cancel" | "services" | "card" | "booked" | "failed", string>
-		>;
+		> & { paused: (message: string) => string };
 	};
 }
 

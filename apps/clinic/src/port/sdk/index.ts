@@ -3,6 +3,7 @@ import { VIEW_AS_HEADER } from "@psi/scheduling-sdk/contract";
 import type { ClinicPort, PortError, ViewAsTarget } from "../port";
 import { adminGroup } from "./admin";
 import { appointmentsGroup } from "./appointments";
+import { availabilityGroup } from "./availability";
 import { calendarGroup } from "./calendar";
 import { catalogGroup } from "./catalog";
 import { clientsGroup } from "./clients";
@@ -12,6 +13,7 @@ import { invitesGroup } from "./invites";
 import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 import { membersGroup } from "./members";
 import { createPortMemory, type PortMemory } from "./memory";
+import { orgGroup } from "./org";
 import { profileGroup } from "./profile";
 import { reportsGroup } from "./reports";
 import { roleSummaryGroup } from "./role-summary";
@@ -98,7 +100,9 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
+		...orgGroup(sdk),
 		...roleSummaryGroup(sdk),
+		...availabilityGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};
 }

@@ -38,5 +38,8 @@ export function refusalText(error: unknown, locale: Locale): string | null {
 	if (error.code === "not-available-yet") return m.soon_title({}, o);
 	if (error.code === "forbidden") return m.forbidden_title({}, o);
 	if (error.code === "rate-limited") return m.rate_title({}, o);
+	// A pause of online booking that blocks the staff too: not a taken time, so not the conflict panel's words.
+	if (error.code === "conflict" && error.reason === "booking_paused")
+		return m.av_booking_paused_staff({}, o);
 	return null;
 }

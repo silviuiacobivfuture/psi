@@ -45,5 +45,16 @@ export function extraCapabilities(role: Pick<Role, "grants">): Record<string, Sc
 		])
 			out[key] = ["all"];
 	if (role.grants.roster?.edit !== undefined) out.roster_edit = [role.grants.roster.edit];
+	// The hours follow the roster row; a practitioner who files their own leave keeps their own hours (the service's
+	// seed roles: the Owner every calendar, reception reads them, a therapist edits their own). Stopping online booking
+	// follows the settings row.
+	const roster = role.grants.roster ?? {};
+	const leave = role.grants.leave?.create;
+	const view = roster.view ?? leave;
+	const edit = roster.edit ?? leave;
+	const scope = (s: ScopeName): ScopeName => (s === "all" ? "all" : "own");
+	if (view !== undefined) out.availability_view = [scope(view)];
+	if (edit !== undefined) out.availability_edit = [scope(edit)];
+	if (role.grants.settings?.edit !== undefined) out.booking_pause_edit = ["all"];
 	return out;
 }

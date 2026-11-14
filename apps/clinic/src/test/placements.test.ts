@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ACTIONS } from "../actions/registry";
+import { addDays, todayIso } from "../lib/dates";
 import { type Console, MEMBER, startConsole } from "./harness";
 
 let owner: Console;
@@ -36,6 +37,19 @@ async function screens(): Promise<string[]> {
 		email: "colleague@example.test",
 		roles: ["reception"],
 	});
+	// A one-off day, a room's closure and a pause: their remove and change controls are drawn.
+	const later = addDays(todayIso(), 30);
+	if ((await owner.port.availability("psizone", "p1", todayIso())).exceptions.length === 0)
+		await owner.port.addOneOff("psizone", ["p1"], { from: later, kind: "closed" });
+	if ((await owner.port.roomClosures("psizone", "cabinet-psihoterapie", todayIso())).length === 0)
+		await owner.port.addRoomClosure("psizone", "cabinet-psihoterapie", { from: later });
+	if ((await owner.port.bookingPauses("psizone")).items.length === 0)
+		await owner.port.createPause("psizone", {
+			scope: { level: "organisation" },
+			from: Date.now() + 86_400_000,
+			callbacksOpen: true,
+			blockStaff: false,
+		});
 	const data = await owner.port.calendar("psizone", "2026-11-16", "2026-11-30");
 	const payable = data.appointments.find(
 		(a) =>
@@ -56,6 +70,7 @@ async function screens(): Promise<string[]> {
 		"/requests",
 		"/reminders?date=2026-11-16",
 		"/me/settings",
+		"/settings/profile",
 		"/settings/roles",
 		"/settings/members",
 		"/settings/members?edit=colleague",
@@ -64,6 +79,9 @@ async function screens(): Promise<string[]> {
 		"/settings/rooms",
 		"/settings/devices",
 		"/settings/services",
+		"/settings/hours?person=p1",
+		"/settings/hours?tab=rooms&room=cabinet-psihoterapie",
+		"/settings/online",
 		"/platform",
 	];
 }

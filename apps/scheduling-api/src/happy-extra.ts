@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
+import { AVAILABILITY_HAPPY } from "./happy-availability";
 import { asSite, bookAs, freeSlots, mineOf } from "./testing/booking";
 import { suggestionFor } from "./testing/links";
 import type { Populated } from "./testing/populate";
@@ -84,6 +85,7 @@ const visitorKey = (w: Populated, method: string, path: string, body?: unknown):
 	w.callKey("psizone-web", method, `${A}${path}`, body, { "x-psi-subject": "visitor-prefs" });
 
 export const EXTRA_HAPPY = {
+	...AVAILABILITY_HAPPY,
 	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
 	"visitor.mineReschedule": async (w) => {
 		await bookAs(w, "visitor-move");
@@ -166,6 +168,10 @@ export const EXTRA_HAPPY = {
 		}),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
+	"orgProfile.get": (w) => olga(w, "GET", "/org-profile"),
+	"orgProfile.put": (w) =>
+		olga(w, "PUT", "/org-profile", { revision: 0, profile: { phones: [], hours: [] } }),
+	"visitor.contact": (w) => w.callKey("psizone-web", "GET", `${A}/book/contact`),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),
 	"blacklist.create": (w) =>
 		olga(w, "POST", "/blacklist", {

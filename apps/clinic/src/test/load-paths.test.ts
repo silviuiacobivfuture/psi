@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLIENT_PAGE_SIZE } from "../port/port";
+import { DEFAULT_PAGE_SIZE } from "../port/port";
 import { type Console, MEMBER, startConsole } from "./harness";
 
 /**
- * What keeps the console fast as the clinic grows: the client list is a page with a "show more" that appends the next
- * page into the open screen, the stylesheet and Datastar are linked by content hash and cached a year, and what travels
+ * What keeps the console fast as the clinic grows: the client list is numbered pages fetched in place, the
+ * stylesheet and Datastar are linked by content hash and cached a year, and what travels
  * is compressed (event streams excepted, so they flush as they go).
  */
 let member: Console;
@@ -14,7 +14,7 @@ beforeAll(async () => {
 	member = await startConsole(MEMBER);
 	await member.signIn();
 	// More than a page, whatever the synthetic clinic starts with.
-	for (let i = 0; i < CLIENT_PAGE_SIZE + 7; i++)
+	for (let i = 0; i < DEFAULT_PAGE_SIZE + 7; i++)
 		await member.port.createClient("psizone", {
 			name: `Pagina Client ${String(i).padStart(3, "0")}`,
 			phone: null,
@@ -25,34 +25,32 @@ afterAll(() => member.close());
 
 const rowsIn = (html: string): number => html.split('class="client-row"').length - 1;
 
-describe("the client list, a page at a time", () => {
-	it("shows one page and a button for the next", async () => {
+describe("the client list, a numbered page at a time", () => {
+	it("shows one page of the default size and a pager to the rest", async () => {
 		const html = await (await member.get("/clients")).text();
-		expect(rowsIn(html)).toBe(CLIENT_PAGE_SIZE);
-		expect(html).toContain('id="client-more"');
-		expect(html).toMatch(/\/clients\/more\?filter=current&(amp;)?cursor=50&(amp;)?shown=50/);
+		expect(rowsIn(html)).toBe(DEFAULT_PAGE_SIZE);
+		expect(html).toContain('id="client-pager"');
+		expect(html).toMatch(/\/clients\?page=2&(amp;)?size=50/);
 	});
 
-	it("the next page is appended to the open list, and the button goes with the last page", async () => {
+	it("a page fetched in place patches the results and moves the address, never appending", async () => {
 		const total = (await member.port.clients("psizone", "current", "")).length;
-		const res = await member.get("/clients/more?filter=current&cursor=50&shown=50", {
+		const res = await member.get("/clients?page=2&size=50", {
 			headers: { "datastar-request": "true" },
 		});
 		expect(res.headers.get("content-type")).toContain("text/event-stream");
 		const body = await res.text();
-		expect(body).toContain("selector #client-list");
-		expect(body).toContain("mode append");
-		expect(rowsIn(body)).toBe(total - CLIENT_PAGE_SIZE);
-		// The last page: the "show more" is patched to nothing, the count says how many there are.
-		expect(body).toContain('id="client-more"');
-		expect(body).not.toContain("/clients/more?");
-		expect(body).toContain(`${total}`);
+		expect(body).toContain('id="client-results"');
+		expect(body).not.toContain("selector #client-list");
+		expect(rowsIn(body)).toBe(Math.min(50, total - 50));
+		expect(body).toContain("history.pushState");
+		expect(body).toContain('"/clients?page=2&size=50"');
 	});
 
-	it("a search is paged too, and a page that holds everything has no button", async () => {
+	it("a search is paged too, and a page that holds everything has no page links", async () => {
 		const html = await (await member.get("/clients?q=Pagina%20Client%20001")).text();
 		expect(rowsIn(html)).toBe(1);
-		expect(html).not.toContain("/clients/more?");
+		expect(html).not.toContain('rel="next"');
 	});
 });
 
@@ -108,7 +106,7 @@ describe("assets and transport", () => {
 		const css = await member.raw("/assets/app.css", { headers: GZIP });
 		expect(css.headers.get("content-encoding")).toBe("gzip");
 		expect((await member.raw("/assets/app.css")).headers.get("content-encoding")).toBeNull();
-		const stream = await member.get("/clients/more?filter=current&cursor=50&shown=50", {
+		const stream = await member.get("/clients?page=2&size=50", {
 			headers: { ...GZIP, "datastar-request": "true" },
 		});
 		expect(stream.headers.get("content-type")).toContain("text/event-stream");

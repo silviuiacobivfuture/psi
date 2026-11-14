@@ -1,6 +1,7 @@
 import { accountHashOf, type SchedulingClient, type StaffSchedulingClient } from "@psi/scheduling";
 import type { ConvexClient } from "convex/browser";
 import { accessCollections } from "./convex/access";
+import { availabilityPort, practitionerConvexId } from "./convex/availability";
 import { blacklistPort } from "./convex/blacklist";
 import { caller } from "./convex/call";
 import { catalogCollections } from "./convex/catalog";
@@ -80,6 +81,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		appsOf: (subject) => appsOfSubject(caller(clients.rpc), subject),
 		changes: createChangeFeed(clients.live, clients.rpc, clients.serverKey),
 		visitor: {
+			practitionerKey: practitionerConvexId,
 			async services(app) {
 				const out = await clients.visitor.services(app);
 				return out === undefined
@@ -103,6 +105,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 					to: q.to,
 					...(q.mode ? { mode: q.mode } : {}),
 					...(q.limit ? { limit: q.limit } : {}),
+					...(q.practitioner === undefined ? {} : { practitioner: q.practitioner }),
 				});
 				if (!out.ok) return { ok: false, reason: out.reason };
 				return {
@@ -144,6 +147,7 @@ export function createConvexStore(clients: ConvexClients): StorePort {
 		series: seriesPort(clients.rpc),
 		reports: reportsPort(clients.rpc),
 		keyed: keyedPort(clients.rpc),
+		availability: availabilityPort(clients.rpc),
 		// Ready when the store answers AND serves the functions this build calls (they are deployed before the service).
 		ping: async () => {
 			await clients.visitor.services("psizone");

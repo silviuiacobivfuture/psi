@@ -112,6 +112,12 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			},
 			service: m.bk_pick_service({}, o),
 			unavailable: m.bk_pick_unavailable({}, o),
+			paused: {
+				title: m.bk_pick_paused_title({}, o),
+				until: (when) => m.bk_pick_paused_until({ when }, o),
+				callback: m.bk_pick_paused_callback({}, o),
+				call: m.bk_pick_paused_call({}, o),
+			},
 			callback: m.bk_pick_callback({}, o),
 			back: m.bk_pick_back({}, o),
 			modeOnsite: m.bk_pick_mode_onsite({}, o),
@@ -123,6 +129,7 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			intro: m.bk_chat_intro({}, o),
 			confirmPicker: m.bk_chat_confirm_picker({}, o),
 			none: m.bk_chat_none({}, o),
+			paused: m.bk_chat_paused({}, o),
 			elsewhere: m.bk_chat_elsewhere({}, o),
 			elsewhereCta: m.bk_chat_elsewhere_cta({}, o),
 			notices: {
@@ -184,6 +191,7 @@ export function bookingCopy(locale: BookingLocale): BookingCopy {
 			slotGone: m.bk_chat_slot_gone({}, o),
 			submitRetry: m.bk_chat_submit_retry({}, o),
 			summary: {
+				paused: (message) => m.bk_chat_summary_paused({ message }, o),
 				times: m.bk_chat_summary_times({}, o),
 				confirm: m.bk_chat_summary_confirm({}, o),
 				cancel: m.bk_chat_summary_cancel({}, o),

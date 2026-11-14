@@ -32,13 +32,26 @@ export const SchedulingSlotSchema = z.object({
 });
 export type SchedulingSlot = z.infer<typeof SchedulingSlotSchema>;
 
+/**
+ * The clinic paused online booking (the whole organisation, the site, a service or a practitioner): the message the visitor
+ * is to read, whether they can still ask to be called back, and when it opens again if known.
+ */
+export const PauseNoticeSchema = z.object({
+	level: z.enum(["organisation", "site", "service", "practitioner"]),
+	message: z.object({ ro: z.string(), en: z.string() }),
+	callbacksOpen: z.boolean(),
+	until: z.number().int().nonnegative().optional(),
+});
+export type PauseNotice = z.infer<typeof PauseNoticeSchema>;
+
 export const SchedulingSlotsSchema = z.discriminatedUnion("ok", [
 	z.object({
 		ok: z.literal(true),
 		timeZone: z.string(),
 		slots: z.array(SchedulingSlotSchema).readonly(),
 	}),
-	z.object({ ok: z.literal(false), reason: z.string() }),
+	/** `reason: "paused"` carries the pause. */
+	z.object({ ok: z.literal(false), reason: z.string(), pause: PauseNoticeSchema.optional() }),
 ]);
 export type SchedulingSlots = z.infer<typeof SchedulingSlotsSchema>;
 
@@ -90,6 +103,8 @@ export type SchedulingSubmit = z.infer<typeof SchedulingSubmitSchema>;
 export interface ServiceEntry {
 	slug: string;
 	name?: { ro: string; en: string };
+	/** Online booking of this service is paused. */
+	pause?: PauseNotice;
 }
 
 export interface SchedulingPort {
@@ -99,6 +114,11 @@ export interface SchedulingPort {
 	 * a fallback; without it the profile's list is the truth.
 	 */
 	catalogue?(tenant: string): Promise<ReadonlyArray<ServiceEntry>>;
+	/**
+	 * Whether online booking is paused for the whole organisation or this site right now (cached like the catalogue).
+	 * While it is, the booking dialogue says the clinic's message instead of offering times, and the model is told so.
+	 */
+	pause?(tenant: string): Promise<PauseNotice | undefined>;
 	findSlots(search: SchedulingSearch): Promise<SchedulingSlots>;
 	/**
 	 * Keeps a free time (named by the `id` `findSlots` gave) for a few minutes, with no personal

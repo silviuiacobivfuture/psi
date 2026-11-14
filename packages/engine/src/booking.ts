@@ -9,6 +9,7 @@ import {
 	type Keep,
 	localToday,
 	look,
+	pausedOffer,
 	searchOffer,
 	stateOf,
 	type Talk,
@@ -19,6 +20,7 @@ import type { BookingCriteria, BookingLang, BookingState } from "./booking-state
 import { within } from "./deadline";
 import { createLanguageDetector } from "./language/detect";
 import type { LanguagePack } from "./language/pack";
+import type { PauseNotice } from "./scheduling/port";
 import { type ProposedSlot, runCancelRequest, SCHEDULING_TIMEOUT_MS } from "./scheduling/tools";
 import { fold } from "./text/normalize";
 
@@ -154,15 +156,30 @@ async function cancelTurn(
  */
 async function live(booking: BookingScope): Promise<BookingScope> {
 	const { port, scope } = booking;
-	if (port.catalogue === undefined) return booking;
+	const pause = await bookingPauseOf(booking);
+	const paused = pause === undefined ? {} : { pause };
+	if (port.catalogue === undefined) return { ...booking, ...paused };
 	try {
 		const entries = await within(port.catalogue(scope.tenant), SCHEDULING_TIMEOUT_MS, "catalogue");
 		const names = Object.fromEntries(
 			entries.flatMap((e) => (e.name === undefined ? [] : [[e.slug, e.name]])),
 		);
-		return { port, scope: { ...scope, services: entries.map((e) => e.slug), names } };
+		return { port, scope: { ...scope, services: entries.map((e) => e.slug), names }, ...paused };
 	} catch {
-		return booking;
+		return { ...booking, ...paused };
+	}
+}
+
+/**
+ * Whether online booking is paused for the whole organisation or the site right now, as the port says (it caches);
+ * undefined when it is not, when the port cannot say, or when the store does not answer in time.
+ */
+export async function bookingPauseOf(booking: BookingScope): Promise<PauseNotice | undefined> {
+	if (booking.port.pause === undefined) return undefined;
+	try {
+		return await within(booking.port.pause(booking.scope.tenant), SCHEDULING_TIMEOUT_MS, "pause");
+	} catch {
+		return undefined;
 	}
 }
 
@@ -245,6 +262,13 @@ export async function bookingTurn(
 		state?.stage === "cancel" && (codes.reference !== undefined || codes.cancelCode !== undefined);
 	if (isCancelIntent(question) || both || awaiting) return cancelTurn(booking, question, state);
 	const services = booking.scope.services;
+	// Paused: a request for times, or a booking under way, is answered with the clinic's message; a cancel still works.
+	if (booking.pause !== undefined) {
+		const asked =
+			isBookingIntent(question, packs) || (state !== undefined && state.stage !== "cancel");
+		const service = state?.criteria.service ?? services[0] ?? "";
+		return asked ? pausedOffer(service, booking.pause, lang) : undefined;
+	}
 	if (isBookingIntent(question, packs)) {
 		const wish = readWish(question, localToday(now), services, false, booking.scope.names);
 		// A new request mid-booking starts the search again, and keeps what the visitor already gave.

@@ -7,12 +7,14 @@
 @import "./calendar.css";
 @import "./screens.css";
 @import "./client.css";
+@import "./lists.css";
 @import "./topbar.css";
 @import "./appointment.css";
 @import "./audit.css";
 @import "./stats.css";
 @import "./profile.css";
 @import "./roles-matrix.css";
+@import "./availability.css";
 @import "./print.css";
 @source "../../../packages/ui/src/admin";
 @source "../../../packages/pwa/src";

@@ -6,7 +6,7 @@ import { serverKeyValidator } from "./validators";
 
 /**
  * The engagement layer's small keyed documents (invitations, account links, notification preferences, the delivery
- * log), server-keyed. A mutation is a transaction, so `put` is an atomic compare-and-set on the revision. Nothing here
+ * log, the pauses of online booking), server-keyed. A mutation is a transaction, so `put` is an atomic compare-and-set on the revision. Nothing here
  * is audited: the service writes its own audit events for what a person did, and these rows hold no clinical data.
  */
 export const MAX_BODY_CHARS = 16_000;
@@ -18,6 +18,7 @@ const nsValidator = v.union(
 	v.literal("prefs"),
 	v.literal("delivery"),
 	v.literal("tick"),
+	v.literal("pause"),
 );
 
 export const get = query({

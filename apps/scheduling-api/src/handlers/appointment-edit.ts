@@ -3,6 +3,7 @@ import { fail, forbidden } from "../http/errors";
 import type { AppointmentRow } from "../store/types";
 import { appointmentOut, checkRefs, clash, links } from "./appointments";
 import { booking } from "./booking-gate";
+import { refuseStaffWhilePaused } from "./pause-gate";
 import { must, writeTuples } from "./shared";
 
 /** What the price and what was paid say about an appointment: the same rule the stores apply. */
@@ -109,6 +110,8 @@ export const appointmentEditHandlers: HandlersOf<"appointments.update" | "appoin
 		const other = await clash(ctx, next);
 		if (other !== undefined)
 			throw fail("conflict", "the person, room or device is booked then", { with: other });
+		if (next.start !== row.start || next.practitionerId !== row.practitionerId)
+			await refuseStaffWhilePaused(ctx, next);
 		await booking(ctx, override, () => ctx.deps.store.c.appointments.replace(next));
 		if (next.practitionerId !== row.practitionerId)
 			await writeTuples(ctx, links(next), links(row).slice(1));

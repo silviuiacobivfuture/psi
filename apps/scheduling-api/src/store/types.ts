@@ -1,3 +1,4 @@
+import type { ClientSort } from "@psi/scheduling/clinic";
 import type {
 	App,
 	Appointment,
@@ -25,6 +26,7 @@ import type {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { KeyStore } from "../ports/crypto";
+import type { AvailabilityPort } from "./availability-port";
 import type {
 	BlacklistPort,
 	DocumentsPort,
@@ -227,10 +229,40 @@ export interface Collection<R extends { id: string; app: string }> {
  */
 export interface ClientCollection extends Collection<ClientRow> {
 	getMany(app: string, ids: readonly string[]): Promise<ClientRow[]>;
+	/**
+	 * ONE numbered page of a standing and how many clients match in all, from the store's indexes (never the whole
+	 * table): `within` is the caller's reach when it is only some clients (absent: all). `offset` past the end answers
+	 * the last page; the answer says where the page really starts. `lastVisit` is per row (null: never came).
+	 */
+	page(app: string, ask: ClientPageAsk): Promise<ClientPageRows>;
+}
+
+/** What a numbered client page is asked (the filters every store applies the same way, `@psi/scheduling/clinic`). */
+export interface ClientPageAsk {
+	readonly standing: "active" | "archived" | "deleted";
+	readonly within?: readonly string[];
+	readonly practitioners?: readonly string[];
+	readonly flag?: "listed" | "unassigned";
+	readonly packages?: "with" | "without";
+	readonly q?: string;
+	readonly sort: ClientSort;
+	readonly offset: number;
+	readonly size: number;
+	readonly now: number;
+}
+export interface ClientPageRows {
+	readonly rows: ReadonlyArray<{
+		readonly row: ClientRow;
+		readonly lastVisit: number | null;
+	}>;
+	readonly total: number;
+	readonly offset: number;
 }
 
 /** Every collection of the store, the clients with their batched read. */
-export type Collections = { [K in Exclude<CollectionName, "clients">]: Collection<Rows[K]> } & {
+export type Collections = {
+	[K in Exclude<CollectionName, "clients">]: Collection<Rows[K]>;
+} & {
 	clients: ClientCollection;
 };
 
@@ -292,6 +324,11 @@ export interface ContactInput {
 
 /** The visitor flow: services, slots, holds, requests. In Convex this is the existing visitor client. */
 export interface VisitorPort {
+	/**
+	 * How the visitor flow names a team member (`people` id): the id `slots` and `hold` carry, or undefined for a person who
+	 * is not a practitioner. A practitioner's pause and the availability preview are said in people ids.
+	 */
+	practitionerKey(personId: string): string | undefined;
 	services(app: string): Promise<
 		| {
 				timeZone: string;
@@ -313,6 +350,8 @@ export interface VisitorPort {
 			to: number;
 			mode?: "onsite" | "online" | undefined;
 			limit?: number | undefined;
+			/** Only this practitioner's slots (a `practitionerKey`), cut by `limit` after the filter. */
+			practitioner?: string | undefined;
 		},
 	): Promise<
 		| {
@@ -448,8 +487,10 @@ export interface StorePort {
 	series: SeriesPort;
 	/** The reports: read-only counts and rates over the app's rows. */
 	reports: ReportsPort;
-	/** Online-account invitations, account links, notification preferences and the delivery log. */
+	/** Online-account invitations, account links, notification preferences, the delivery log, the booking pauses. */
 	keyed: KeyedPort;
+	/** The practitioners' weekly rules and one-off days, the rooms' closed days. */
+	availability: AvailabilityPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }

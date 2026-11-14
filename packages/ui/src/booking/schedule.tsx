@@ -32,21 +32,103 @@ export function postPicker(env: BookingEnv, query: Readonly<Record<string, strin
 	return `@post('${env.routes.slots}${qs === "" ? "" : `?${qs}`}', {contentType: 'form'})`;
 }
 
+function Phones({ env }: { env: BookingEnv }): JSX.Element | null {
+	return env.phones.length === 0 ? null : (
+		<ul class="flex flex-wrap gap-x-5 gap-y-1">
+			{env.phones.map((p) => (
+				<li>
+					<a class="font-mono text-title text-ink underline" href={`tel:${p.tel}`}>
+						{p.display}
+					</a>
+				</li>
+			))}
+		</ul>
+	);
+}
+
 function Unavailable({ env }: { env: BookingEnv }): JSX.Element {
 	return (
 		<div class="space-y-3 rounded-lg border border-line p-5">
 			<p class="text-body text-ink">{env.copy.picker.unavailable}</p>
-			{env.phones.length === 0 ? null : (
-				<ul class="flex flex-wrap gap-x-5 gap-y-1">
-					{env.phones.map((p) => (
-						<li>
-							<a class="font-mono text-title text-ink underline" href={`tel:${p.tel}`}>
-								{p.display}
-							</a>
-						</li>
-					))}
-				</ul>
+			<Phones env={env} />
+		</div>
+	);
+}
+
+type PausedView = Extract<PickerView, { kind: "paused" }>;
+
+/** When booking opens again, in the visitor's language and the clinic's zone. */
+function untilText(env: BookingEnv, until: number, timeZone: string): string {
+	return new Intl.DateTimeFormat(env.locale === "ro" ? "ro-RO" : "en-GB", {
+		timeZone,
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(new Date(until));
+}
+
+/**
+ * Online booking is paused: the clinic's own words stand where the times would, with the phones, and the way the visitor
+ * can still reach the team (the callback form below, while the pause keeps it open). The service cards stay when it is
+ * one service that is paused, so another can be chosen.
+ */
+function Paused({
+	env,
+	id,
+	view,
+	schedule,
+}: {
+	env: BookingEnv;
+	id: string;
+	view: PausedView;
+	schedule: Schedule;
+}): JSX.Element {
+	const words = env.copy.picker.paused;
+	const { pause, service } = view;
+	const cards = schedule.cards && view.services.length > 1 && service !== undefined;
+	return (
+		<div class="space-y-6">
+			{service === undefined ? null : <input type="hidden" name="shown" value={service.slug} />}
+			<input type="hidden" name="cards" value={schedule.cards ? "1" : ""} />
+			{cards ? (
+				<ServiceCards
+					id={id}
+					legend={env.copy.picker.service}
+					selected={service.slug}
+					duration={env.copy.picker.slots.duration}
+					change={postPicker(env)}
+					services={view.services.map((s) => ({
+						slug: s.slug,
+						name: serviceTitle(s, env),
+						durationMinutes: s.durationMinutes,
+						modes: modesText(s, env),
+					}))}
+				/>
+			) : service === undefined ? null : (
+				<input type="hidden" name="service" value={service.slug} />
 			)}
+			<section
+				class="space-y-3 rounded-lg border border-line p-5"
+				role="status"
+				aria-labelledby={`${id}-paused`}
+				data-booking-paused={pause.level}
+			>
+				<h3 id={`${id}-paused`} class="text-title text-ink">
+					{words.title}
+				</h3>
+				<p class="text-body text-ink">{pause.message[env.locale]}</p>
+				{pause.until === undefined ? null : (
+					<p class="text-body-sm text-ink-muted">
+						{words.until(untilText(env, pause.until, view.timeZone))}
+					</p>
+				)}
+				<Phones env={env} />
+				<p class="text-body-sm text-ink-muted">
+					{pause.callbacksOpen ? words.callback : words.call}
+				</p>
+			</section>
 		</div>
 	);
 }
@@ -113,6 +195,7 @@ export function ScheduleSection({
 }): JSX.Element {
 	const { view } = schedule;
 	if (view.kind === "unavailable") return <Unavailable env={env} />;
+	if (view.kind === "paused") return <Paused env={env} id={id} view={view} schedule={schedule} />;
 	const { data } = view;
 	return (
 		<div class="space-y-6">

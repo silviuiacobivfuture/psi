@@ -1,64 +1,26 @@
-import type { AddressInfo } from "node:net";
-import { serve } from "@hono/node-server";
-import { createAccount, memoryStores } from "@psi/account";
-import { type RunningApi, startApi } from "@psi/scheduling-api/testing";
 import type { Browser, BrowserContextOptions, Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApp } from "../app";
-import { devApiSignIn } from "../dev-signin";
-import { createFakeNotifications } from "../notifications/fake";
-import { sdkPortSource } from "../port/sdk/source";
-import { createConsolePwa } from "../pwa";
 import { AXE_RUN, AXE_SOURCE, launch, ViolationsSchema } from "./browser";
+import { openAs, type ServedConsole, serveSdkConsole, sideways } from "./sdk-served";
 
 /**
  * The role matrix in a real Chromium, over the real scheduling service, signed in as Reception: a phone gets the
  * role picker and a list that never scrolls sideways, a desktop the table with its sticky header and first column
  * and resources that open; axe finds nothing in either theme.
  */
-let api: RunningApi;
+let served: ServedConsole;
 let url: string;
-let close: () => Promise<void>;
 let browser: Browser;
 
 beforeAll(async () => {
-	api = await startApi();
-	const origin = "http://127.0.0.1";
-	const dev = devApiSignIn(api.url, origin);
-	const pwa = createConsolePwa(
-		origin,
-		createAccount({
-			site: { slug: "clinic", key: "clinic", origin, home: "/calendar" },
-			stores: memoryStores(),
-			onWarn: () => {},
-			env: {},
-		}),
-	);
-	const app = createApp({
-		ports: sdkPortSource({ baseUrl: api.url, auth: dev.auth }),
-		notifications: createFakeNotifications({ seeded: false }),
-		viewAsSecret: "v".repeat(40),
-		auth: dev.auth,
-		pwa,
-		origin,
-		mount: (h) => {
-			dev.mount(h);
-			pwa.mount(h);
-		},
-	});
-	const server = serve({ fetch: app.fetch, port: 0, hostname: "127.0.0.1" });
-	await new Promise<void>((resolve) => server.once("listening", () => resolve()));
-	const address: string | AddressInfo | null = server.address();
-	if (address === null || typeof address === "string") throw new Error("no port");
-	url = `http://127.0.0.1:${address.port}`;
-	close = () => new Promise<void>((resolve) => server.close(() => resolve()));
+	served = await serveSdkConsole();
+	url = served.url;
 	browser = await launch();
 }, 120_000);
 
 afterAll(async () => {
 	await browser.close();
-	await close();
-	await api.close();
+	await served.close();
 });
 
 async function as(
@@ -67,24 +29,14 @@ async function as(
 	extra: BrowserContextOptions = {},
 	theme?: "light" | "dark",
 ): Promise<{ page: Page; errors: string[]; done: () => Promise<void> }> {
-	const context = await browser.newContext({
-		viewport: { width, height: width < 600 ? 780 : 900 },
-		...extra,
-	});
-	await context.addCookies([
-		{ name: "psi-clinic-dev-subject", value: subject, url },
-		...(theme === undefined ? [] : [{ name: "theme", value: theme, url }]),
-	]);
-	const page = await context.newPage();
-	const errors: string[] = [];
-	page.on("pageerror", (e) => errors.push(e.message));
-	return { page, errors, done: () => context.close() };
+	const opened = await openAs(browser, url, subject, width, extra);
+	if (theme !== undefined)
+		await opened.page.context().addCookies([{ name: "theme", value: theme, url }]);
+	return opened;
 }
 
-const sideways = (page: Page): Promise<boolean> =>
-	page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-const reception = (): string => api.world.ids.roles.reception ?? "reception";
-const therapist = (): string => api.world.ids.roles.therapist ?? "therapist";
+const reception = (): string => served.api.world.ids.roles.reception ?? "reception";
+const therapist = (): string => served.api.world.ids.roles.therapist ?? "therapist";
 
 describe("on a phone (360px)", () => {
 	it("shows the role picker and the list, not the wide table, and nothing scrolls sideways", async () => {

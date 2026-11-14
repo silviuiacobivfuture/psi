@@ -20,6 +20,8 @@ const PARAMS: Record<string, string> = {
 	reference: "ABCD-EFGH",
 	date: "2026-11-14",
 	kind: "forms",
+	entry: "x00000000005",
+	closure: "x00000000006",
 };
 const pathOf = (spec: RouteSpec, app = "psizone"): string =>
 	spec.path.replace(/:(\w+)/g, (_m, name: string) =>

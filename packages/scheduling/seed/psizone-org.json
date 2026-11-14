@@ -58,5 +58,15 @@
 			"devices": ["QEEG"]
 		}
 	],
-	"serviceDraft": { "durationMinutes": 40, "modes": ["onsite"] }
+	"serviceDraft": { "durationMinutes": 40, "modes": ["onsite"] },
+	"profile": {
+		"address": {
+			"street": "Str. General Alexandru Cernat nr. 126",
+			"city": "Galați",
+			"county": "Galați"
+		},
+		"phones": [{ "number": "0748 017 752" }, { "number": "0752 466 792" }],
+		"website": "https://psizone.ro",
+		"hours": []
+	}
 }

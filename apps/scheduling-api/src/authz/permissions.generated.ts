@@ -288,6 +288,13 @@ export const PERMISSIONS = {
 	assistant_budget: {
 		assistant_budget_edit: "assistant_budget:assistant_budget_edit",
 	},
+	booking_pause: {
+		booking_pause_edit: "booking_pause:booking_pause_edit",
+	},
+	availability: {
+		availability_view: "availability:availability_view",
+		availability_edit: "availability:availability_edit",
+	},
 	register: {
 		register_read: "register:register_read",
 		register_write: "register:register_write",
@@ -333,6 +340,8 @@ export const ALL_PERMISSIONS = [
 	"assistant_budget:assistant_budget_edit",
 	"audit_log:audit_log_export",
 	"audit_log:audit_log_view",
+	"availability:availability_edit",
+	"availability:availability_view",
 	"billing:billing_edit",
 	"billing:billing_view",
 	"blacklist:blacklist_create",
@@ -342,6 +351,7 @@ export const ALL_PERMISSIONS = [
 	"blacklist:blacklist_override",
 	"blacklist:blacklist_override_admin",
 	"blacklist:blacklist_view",
+	"booking_pause:booking_pause_edit",
 	"builder:builder_create",
 	"builder:builder_delete",
 	"builder:builder_edit",
@@ -761,6 +771,9 @@ export const PERMISSION_ROLES: Record<string, readonly string[]> = {
 	"organisation:organisation_delete": ["sched:app_admin"],
 	"organisation:organisation_transfer": ["sched:app_admin"],
 	"assistant_budget:assistant_budget_edit": [],
+	"booking_pause:booking_pause_edit": [],
+	"availability:availability_view": [],
+	"availability:availability_edit": [],
 	"register:register_read": ["sched:integration"],
 	"register:register_write": ["sched:integration"],
 };
@@ -989,6 +1002,9 @@ export const PERMISSION_CLOSURE = {
 	"organisation:organisation_delete": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
 	"organisation:organisation_transfer": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
 	"assistant_budget:assistant_budget_edit": { scopeType: "platform", relations: [], viaSet: [] },
+	"booking_pause:booking_pause_edit": { scopeType: "platform", relations: [], viaSet: [] },
+	"availability:availability_view": { scopeType: "platform", relations: [], viaSet: [] },
+	"availability:availability_edit": { scopeType: "platform", relations: [], viaSet: [] },
 	"register:register_read": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
 	"register:register_write": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
 } as const satisfies Record<Permission, { scopeType: string; relations: readonly string[]; viaSet: readonly string[] }>;

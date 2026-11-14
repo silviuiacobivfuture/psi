@@ -31,6 +31,8 @@ const SCREENS_OF: Readonly<Record<StaffPage["screen"], ReadonlyArray<Screen>>> =
 		"settings.services",
 		"settings.roles",
 		"settings.members",
+		"settings.hours",
+		"settings.online",
 	],
 	other: [],
 };

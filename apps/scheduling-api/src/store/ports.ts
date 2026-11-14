@@ -5,7 +5,7 @@
  */
 import type { AppointmentRow } from "./types";
 
-export const DOCUMENT_KINDS = ["floor_plan"] as const;
+export const DOCUMENT_KINDS = ["floor_plan", "org_profile"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 export interface StoredDocument {
@@ -51,10 +51,11 @@ export const MAX_SETTINGS_CHARS = 8_000;
  * What the engagement layer keeps per app, by namespace: online-account invitations (`invite`, by client id), the
  * links from an account to the clients it covers (`link`, by `<account hash>/<client id>`), notification preferences
  * (`prefs`, by person or visitor), the delivery log (`delivery`, by `<day>/<job key>/<step>`) and the scheduler's claims
- * (`tick`, by `<day>/<kind>/<what>`: one scheduled notice is queued once across replicas). The service owns the shape
+ * (`tick`, by `<day>/<kind>/<what>`: one scheduled notice is queued once across replicas) and the pauses of online
+ * booking (`pause`, by pause id). The service owns the shape
  * of each body (a schema parses every read); the store keeps text and a revision.
  */
-export const KEYED_NAMESPACES = ["invite", "link", "prefs", "delivery", "tick"] as const;
+export const KEYED_NAMESPACES = ["invite", "link", "prefs", "delivery", "tick", "pause"] as const;
 export type KeyedNamespace = (typeof KEYED_NAMESPACES)[number];
 
 /** The most one body holds, and the key alphabet: the store's own bounds (the Convex wrapper's too). */

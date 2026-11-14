@@ -3,6 +3,7 @@ import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
 import { countedDays } from "./day-counts";
 import { appointmentChanges } from "./fake-audit";
+import { createFakeAvailability } from "./fake-availability";
 import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
@@ -10,6 +11,7 @@ import { createFakeFloorAndPrefs } from "./fake-floor";
 import { createFakeInvites } from "./fake-invites";
 import { createFakeAccountLinks, type FakeLinkSeed } from "./fake-links";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
+import { createFakeOrg } from "./fake-org";
 import { pagedAudit, pagedBlacklist, pagedClients, pagedRequests } from "./fake-pages";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
@@ -155,9 +157,17 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
+	const availability = createFakeAvailability({
+		data,
+		guard,
+		log,
+		nextId: (p) => `${p}${++seq}`,
+		now: Date.now,
+	});
 	const profile = createFakeProfile(Object.keys(opts.members));
 	return {
 		...profile,
+		...createFakeOrg({ data, guard, log }),
 		...access,
 		...members,
 		...staff,
@@ -166,6 +176,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...createFakeRoleSummary({ data, guard }),
 		...invites,
 		...links,
+		...availability.port,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;
@@ -230,6 +241,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			guard("createAppointments");
 			const d = data(app);
 			const input = NewAppointmentSchema.parse(raw);
+			availability.refuseStaff(app, input.columnId, input.serviceId);
 			const svc = d.services.find((s) => s.id === input.serviceId);
 			const ids = [input.columnId, ...input.resourceIds];
 			const pkg =
@@ -292,6 +304,8 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			const a = d.appointments.find((x) => x.id === id);
 			if (a === undefined) throw new PortError("not-found", id);
 			const next: Appointment = { ...a, ...stripUndefined(patch) };
+			if (patch.date !== undefined || patch.startMin !== undefined || patch.columnId !== undefined)
+				availability.refuseStaff(app, next.columnId, next.serviceId);
 			if (
 				!d.columns.some((c) => c.id === next.columnId) ||
 				!next.resourceIds.every((r) => d.columns.some((c) => c.id === r)) ||
@@ -481,8 +495,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
 		},
-		clientPage(app, filter, query, cursor) {
-			return pagedClients(this)(app, filter, query, cursor);
+		clientPage(app, ask) {
+			return pagedClients(this, (at) => new Set(data(at).packages.map((p) => p.clientId)))(
+				app,
+				ask,
+			);
 		},
 		async clientsByIds(app, ids) {
 			guard("clients");

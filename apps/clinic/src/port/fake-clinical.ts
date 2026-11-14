@@ -150,12 +150,22 @@ export function createFakeClinical(deps: ClinicalDeps): ClinicalMethods {
 							(sum, p) => sum + Math.max(0, ledger(p.totalBani, paidBani(p)).remainingBani),
 							0,
 						);
+					const last = d.appointments
+						.filter(
+							(a) =>
+								a.clientId === c.id &&
+								a.date < today &&
+								a.status !== "cancelled" &&
+								a.status !== "no-show",
+						)
+						.reduce<string | null>((at, a) => (at === null || a.date > at ? a.date : at), null);
 					return {
 						clientId: c.id,
 						next: next === null ? null : { date: next.date, startMin: next.startMin },
 						owedBani,
 						blacklist: activeEntry(app, c.id),
 						pinnedNotes: s.notes.filter((n) => n.clientId === c.id && n.pinned).length,
+						lastVisit: last,
 					};
 				});
 		},

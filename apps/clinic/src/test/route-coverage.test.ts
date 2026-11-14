@@ -23,6 +23,8 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"visitor.mine": "the visitor flow's contract (a customer's own appointments)",
 	"visitor.mineCancel": "the visitor flow's contract",
 	"visitor.mineReschedule": "the sites' Programările mele (@psi/scheduling-sdk ownBookings)",
+	"visitor.contact":
+		"the public sites' contact pages and footers (the console reads orgProfile.get)",
 	"apps.create": "the platform's provisioning (an estate administrator)",
 	"apps.get": "the platform's provisioning",
 	"apps.update": "the platform's provisioning",

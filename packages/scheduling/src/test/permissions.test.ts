@@ -45,8 +45,9 @@ describe("the catalogue", () => {
 	});
 
 	it("covers every resource of the plan with at least one action", () => {
-		// 32 of the plan, and the Owner's own three: billing, the organisation, the assistants' budget
-		expect(RESOURCES.length).toBe(35);
+		// 32 of the plan, the Owner's own three (billing, the organisation, the assistants' budget), and the
+		// availability editor's two: the practitioners' hours, stopping online booking
+		expect(RESOURCES.length).toBe(37);
 		for (const resource of RESOURCES) expect(CATALOGUE[resource].actions.length).toBeGreaterThan(0);
 	});
 
