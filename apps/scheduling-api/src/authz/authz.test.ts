@@ -288,6 +288,76 @@ describe("the live adapter", () => {
 		});
 	});
 
+	/** A BatchCheck that answers after `delay` ms, allowing every relation named `yes`, and counts what is in flight. */
+	const slowBatch = (delay: number, refuse?: (n: number) => boolean) => {
+		const seen = { posts: 0, inFlight: 0, most: 0 };
+		const fetch: typeof globalThis.fetch = async (_input, init) => {
+			const n = seen.posts++;
+			seen.inFlight += 1;
+			seen.most = Math.max(seen.most, seen.inFlight);
+			await new Promise((r) => setTimeout(r, delay));
+			seen.inFlight -= 1;
+			if (refuse?.(n) === true) return new Response("{}", { status: 503 });
+			const body = JSON.parse(String(init?.body)) as {
+				checks: { correlation_id: string; tuple_key: { relation: string } }[];
+			};
+			const result = Object.fromEntries(
+				body.checks.map((c) => [
+					c.correlation_id,
+					c.tuple_key.relation.startsWith("yes") ? { allowed: true } : {},
+				]),
+			);
+			return new Response(JSON.stringify({ result }), { status: 200 });
+		};
+		return { seen, fetch };
+	};
+	const catalogue = (n: number) =>
+		Array.from({ length: n }, (_v, i) => ({
+			user: "user:a",
+			relation: i % 7 === 0 ? `yes_${i}` : `no_${i}`,
+			object: "sched_app:x",
+		}));
+
+	it("asks the catalogue's ten chunks side by side, and answers in the order asked", async () => {
+		const { seen, fetch } = slowBatch(15);
+		const questions = catalogue(481);
+		const out = await build(fetch).checkMany(questions);
+		expect(seen.posts).toBe(10);
+		expect(seen.most).toBe(10);
+		expect(out).toEqual(questions.map((q) => q.relation.startsWith("yes")));
+	});
+
+	it("never more than ten BatchChecks in flight, however large the ask", async () => {
+		const { seen, fetch } = slowBatch(10);
+		const questions = catalogue(1201);
+		const out = await build(fetch).checkMany(questions);
+		expect(seen.posts).toBe(25);
+		expect(seen.most).toBe(10);
+		expect(out).toEqual(questions.map((q) => q.relation.startsWith("yes")));
+	});
+
+	it("one chunk, one call: a batch of 50 or fewer is never split", async () => {
+		for (const n of [1, 49, 50]) {
+			const { seen, fetch } = slowBatch(1);
+			expect(await build(fetch).checkMany(catalogue(n))).toHaveLength(n);
+			expect(seen.posts).toBe(1);
+		}
+		const { seen, fetch } = slowBatch(1);
+		expect(await build(fetch).checkMany(catalogue(51))).toHaveLength(51);
+		expect(seen.posts).toBe(2);
+	});
+
+	it("no questions, no call", async () => {
+		const { seen, fetch } = slowBatch(1);
+		expect(await build(fetch).checkMany([])).toEqual([]);
+		expect(seen.posts).toBe(0);
+	});
+
+	it("one chunk refused fails the whole batch while the others answer", async () => {
+		const { fetch } = slowBatch(5, (n) => n === 6);
+		await expect(build(fetch).checkMany(catalogue(481))).rejects.toBeInstanceOf(AuthzUnavailable);
+	});
+
 	it("an item OpenFGA could not answer fails the whole batch, never a partial answer", async () => {
 		const bad = () =>
 			Promise.resolve(

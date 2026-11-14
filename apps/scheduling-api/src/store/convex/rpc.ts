@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { timed } from "../../timing";
 import { StoreRefused, StoreUnavailable } from "../types";
 
 /**
@@ -67,8 +68,8 @@ export function createRpc(config: RpcConfig): Rpc {
 		return value.data;
 	};
 	return {
-		query: (fn, args, schema) => call("query", fn, args, schema),
-		mutation: (fn, args, schema) => call("mutation", fn, args, schema),
+		query: (fn, args, schema) => timed("convex", () => call("query", fn, args, schema)),
+		mutation: (fn, args, schema) => timed("convex", () => call("mutation", fn, args, schema)),
 	};
 }
 
