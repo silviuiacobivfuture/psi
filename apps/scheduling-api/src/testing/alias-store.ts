@@ -55,6 +55,13 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 		clients: {
 			...collection(inner.c.clients),
 			getMany: async (app, ids) => (await inner.c.clients.getMany(to(app), ids)).map(rowOut),
+			page: async (app, ask) => {
+				const got = await inner.c.clients.page(to(app), ask);
+				return {
+					...got,
+					rows: got.rows.map((r) => ({ ...r, row: rowOut(r.row) })),
+				};
+			},
 		},
 		appointments: collection(inner.c.appointments),
 		packages: collection(inner.c.packages),

@@ -1,3 +1,4 @@
+import { pageStart } from "@psi/scheduling/clinic";
 import { DEFAULT_PAGE, type RouteSpec, type SchedType } from "@psi/scheduling-sdk/contract";
 import type { Tuple } from "../authz/port";
 import type { Ctx } from "../http/context";
@@ -14,16 +15,46 @@ export function paginate<T>(
 	cursor: string | undefined,
 ): { items: T[]; nextCursor?: string } {
 	const size = limit ?? DEFAULT_PAGE;
-	const start =
-		cursor === undefined
-			? 0
-			: Number.parseInt(Buffer.from(cursor, "base64url").toString("utf8"), 10);
-	if (!Number.isInteger(start) || start < 0) throw fail("invalid", "bad cursor");
+	const start = offsetOf(cursor);
 	const page = items.slice(start, start + size);
 	return start + size < items.length
-		? { items: page, nextCursor: Buffer.from(String(start + size)).toString("base64url") }
+		? { items: page, nextCursor: cursorAt(start + size) }
 		: { items: page };
 }
+
+/**
+ * A numbered page of a list the store answered whole (a bounded list: one client's, one day's, the team): the page
+ * at `offset` (else at the cursor), moved back to the last page's start when past the end, with the total and where it
+ * starts. The rows were read already; this only cuts them.
+ */
+export function numbered<T>(
+	items: readonly T[],
+	limit: number | undefined,
+	cursor: string | undefined,
+	offset: number | undefined,
+): { items: T[]; nextCursor?: string; total: number; offset: number } {
+	const size = limit ?? DEFAULT_PAGE;
+	const start = pageStart(offset ?? offsetOf(cursor), size, items.length);
+	const end = Math.min(items.length, start + size);
+	return {
+		items: items.slice(start, end),
+		total: items.length,
+		offset: start,
+		...(end < items.length ? { nextCursor: cursorAt(end) } : {}),
+	};
+}
+
+/** Where an offset cursor points (none: the start); a cursor that is not one is `invalid`. */
+export function offsetOf(cursor: string | undefined): number {
+	if (cursor === undefined) return 0;
+	const start = Number.parseInt(Buffer.from(cursor, "base64url").toString("utf8"), 10);
+	if (!Number.isInteger(start) || start < 0) throw fail("invalid", "bad cursor");
+	return start;
+}
+
+/** The offset cursor of an item index. */
+export const cursorAt = (offset: number): string =>
+	Buffer.from(String(offset)).toString("base64url");
 
 export async function must<R extends { id: string; app: string }>(
 	collection: Collection<R>,
@@ -82,7 +113,10 @@ export async function writeRowThenTuples<T>(
 	step: {
 		write: () => Promise<T>;
 		undo: (saved: T) => Promise<void>;
-		tuples: (saved: T) => { writes: readonly Tuple[]; deletes: readonly Tuple[] };
+		tuples: (saved: T) => {
+			writes: readonly Tuple[];
+			deletes: readonly Tuple[];
+		};
 	},
 ): Promise<T> {
 	const saved = await step.write();

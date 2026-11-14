@@ -481,8 +481,11 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 						(c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))),
 			);
 		},
-		clientPage(app, filter, query, cursor) {
-			return pagedClients(this)(app, filter, query, cursor);
+		clientPage(app, ask) {
+			return pagedClients(this, (at) => new Set(data(at).packages.map((p) => p.clientId)))(
+				app,
+				ask,
+			);
 		},
 		async clientsByIds(app, ids) {
 			guard("clients");

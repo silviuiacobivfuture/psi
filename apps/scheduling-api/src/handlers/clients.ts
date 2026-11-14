@@ -1,4 +1,8 @@
-import type { CLEARABLE_CLIENT, FieldGroupName } from "@psi/scheduling-sdk/contract";
+import {
+	type CLEARABLE_CLIENT,
+	DEFAULT_PAGE,
+	type FieldGroupName,
+} from "@psi/scheduling-sdk/contract";
 import { NONE, reaches } from "../authz/access";
 import { appLink, treatingLink } from "../authz/links";
 import type { HandlersOf } from "../http/context";
@@ -7,7 +11,7 @@ import { FIELDS } from "../ports/crypto";
 import type { ClientRow } from "../store/types";
 import { clientGroupReach, clientView } from "./fields";
 import { readableNotes } from "./notes";
-import { diff, must, newId, paginate, stamps, writeTuples } from "./shared";
+import { cursorAt, diff, must, newId, offsetOf, paginate, stamps, writeTuples } from "./shared";
 
 const GROUPS = [
 	"contact",
@@ -32,34 +36,66 @@ export const clientHandlers: HandlersOf<
 	async "clients.list"(ctx) {
 		const { ids, q, status } = ctx.query;
 		const clients = ctx.deps.store.c.clients;
-		// Named clients, and the clients of a person who reaches only some (a therapist's own), are read by id in one
-		// batched read, never the whole list to find a few. Named ones answer in any standing; a reach, in the standing asked.
-		const loaded =
-			ids !== undefined
-				? await clients.getMany(
-						ctx.app,
-						ids.filter((id) => reaches(ctx.reach, id)),
-					)
-				: ctx.reach.kind === "ids"
-					? (await clients.getMany(ctx.app, [...ctx.reach.ids])).filter((r) => r.status === status)
-					: await clients.list(ctx.app, { eq: { status } });
-		const needle = ids === undefined ? q?.toLowerCase() : undefined;
-		const rows = loaded
-			.filter((r) => reaches(ctx.reach, r.id))
-			.filter((r) => needle === undefined || r.name.toLowerCase().includes(needle))
-			.sort((a, b) => BY_NAME.compare(a.name, b.name));
 		// A list never decrypts or audits clinical data: that is one client at a time.
 		const groups = ctx.query.fields === "groups";
 		const include = { contact: groups, guardian: groups, money: groups, clinical: false };
 		const reach = groups
 			? await clientGroupReach(ctx)
 			: { contact: NONE, guardian: NONE, money: NONE, clinical: NONE };
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		const shown = async (
+			rows: readonly ClientRow[],
+			lastVisit?: ReadonlyMap<string, number | null>,
+		) =>
+			(await Promise.all(rows.map((row) => clientView(ctx, row, reach, include)))).map((v) => {
+				const at = lastVisit?.get(v.client.id);
+				return at === undefined || at === null ? v.client : { ...v.client, lastVisitAt: at };
+			});
+		if (ids !== undefined) {
+			// Named clients (the calendar's, the blacklist's) are read by id in one batched read, in any standing.
+			const rows = (
+				await clients.getMany(
+					ctx.app,
+					ids.filter((id) => reaches(ctx.reach, id)),
+				)
+			).sort((a, b) => BY_NAME.compare(a.name, b.name));
+			const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+			return {
+				...page,
+				items: await shown(page.items),
+				total: rows.length,
+				offset: 0,
+			};
+		}
+		if (ctx.query.flag === "listed" && (await ctx.scopesOf("blacklist_view")).length === 0)
+			throw forbidden("not allowed to filter by the blacklist", {
+				permission: "blacklist_view",
+			});
+		// One page from the store's indexes, the total counted in the same read and within the caller's reach: a
+		// therapist's count is their own clients', never the clinic's.
+		const size = ctx.query.limit ?? DEFAULT_PAGE;
+		const offset = ctx.query.offset ?? offsetOf(ctx.query.cursor);
+		if (ctx.reach.kind === "none") return { items: [], total: 0, offset: 0 };
+		const got = await clients.page(ctx.app, {
+			standing: status,
+			sort: ctx.query.sort,
+			offset,
+			size,
+			now: ctx.now,
+			...(ctx.reach.kind === "ids" ? { within: [...ctx.reach.ids] } : {}),
+			...(ctx.query.practitioner === undefined ? {} : { practitioners: ctx.query.practitioner }),
+			...(ctx.query.flag === undefined ? {} : { flag: ctx.query.flag }),
+			...(ctx.query.package === undefined ? {} : { packages: ctx.query.package }),
+			...(q === undefined || q === "" ? {} : { q }),
+		});
+		const end = got.offset + got.rows.length;
 		return {
-			...page,
-			items: (await Promise.all(page.items.map((row) => clientView(ctx, row, reach, include)))).map(
-				(v) => v.client,
+			items: await shown(
+				got.rows.map((r) => r.row),
+				new Map(got.rows.map((r) => [r.row.id, r.lastVisit])),
 			),
+			total: got.total,
+			offset: got.offset,
+			...(end < got.total ? { nextCursor: cursorAt(end) } : {}),
 		};
 	},
 
