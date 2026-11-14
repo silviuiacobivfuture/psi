@@ -90,6 +90,9 @@ export function membersGroup(sdk: SdkContext) {
 				});
 			}),
 
+		newSignInLink: (app: AppSlug, subject: string): Promise<string> =>
+			run(async () => (await api.staff.link({ app, subject })).signInLink),
+
 		linkCalendar: (app: AppSlug, subject: string, personId: string): Promise<void> =>
 			run(async () => {
 				await api.people.update({ app, id: personId, subject });

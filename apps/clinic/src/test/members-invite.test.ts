@@ -14,6 +14,7 @@ const STAFF = [
 		customer: true,
 	},
 	{ subject: "acct-tag", displayName: '<b>Ana</b> & "co"', email: "tag@example.test" },
+	{ subject: "acct-seen", displayName: "Sorin Văzut", email: "seen@example.test", signedIn: true },
 ];
 beforeEach(async () => {
 	c = await startConsole(
@@ -183,5 +184,80 @@ describe("Invită prin e-mail", () => {
 		expect(await (await c.get("/settings/audit")).text()).toContain(
 			"A invitat prin e-mail în echipă",
 		);
+	});
+});
+
+describe("Link nou de setare a parolei", () => {
+	const invited = async (email: string, name: string): Promise<string> => {
+		await invite([
+			["email", email],
+			["displayName", name],
+		]);
+		const found = (await c.port.members("psizone")).find((x) => x.displayName === name);
+		if (found === undefined) throw new Error("not invited");
+		return found.subject;
+	};
+	const ask = (subject: string, who: Console = c) =>
+		who.post(`/settings/members/${encodeURIComponent(subject)}/link`, "", FORM);
+
+	it("is offered in the editor of a member with an e-mail, and gives a new link once", async () => {
+		const subject = await invited("nou@example.test", "Nou Venit");
+		expect(await (await c.get(`/settings/members?edit=${subject}`)).text()).toContain(
+			'data-form="member-link"',
+		);
+		const r = await ask(subject);
+		expect(r.status).toBe(200);
+		expect(r.headers.get("cache-control")).toContain("no-store");
+		const html = await r.text();
+		expect(html).toContain("data-new-link");
+		expect(html).toContain('id="mb-invite-link"');
+		expect(html).toContain(`https://sso.example.test/recovery/${subject}-`);
+		expect(await (await c.get("/settings/audit")).text()).toContain(
+			"A făcut un link nou de setare a parolei pentru",
+		);
+	});
+
+	it("is not offered for a member with no e-mail address", async () => {
+		expect(await (await c.get("/settings/members?edit=iuliana")).text()).not.toContain(
+			'data-form="member-link"',
+		);
+	});
+
+	it.each([
+		["a member who has already signed in", "seen@example.test", "Sorin Văzut"],
+		["a member added by the sign-in id, with no e-mail", "", ""],
+	])("refuses %s: the editor opens again with the reason, and no link is shown", async (_what, email, name) => {
+		const subject = email === "" ? "iuliana" : await invited(email, name);
+		const r = await ask(subject);
+		expect(r.status).toBe(200);
+		const html = await r.text();
+		expect(html).toContain("Linkul nu a fost făcut");
+		expect(html).not.toContain("data-new-link");
+		expect(html).not.toContain("sso.example.test/recovery");
+	});
+
+	it("says so when the sign-in does not answer", async () => {
+		const subject = await invited("nou@example.test", "Nou Venit");
+		await c.close();
+		c = await startConsole(
+			MEMBER,
+			{ today: "2026-11-16", staff: STAFF, failing: new Set(["newSignInLink"]) },
+			{ [MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }] },
+		);
+		await c.signIn();
+		const html = await (await ask(subject)).text();
+		expect(html).toContain("contul de autentificare nu răspunde acum");
+		expect(html).not.toContain("data-new-link");
+	});
+
+	it("is refused to someone who may not add members", async () => {
+		const reception = await startConsole(
+			MEMBER,
+			{ today: "2026-11-16", staff: STAFF },
+			{ [MEMBER.sub]: [{ app: "psizone", roles: ["reception"] }] },
+		);
+		await reception.signIn();
+		expect((await ask("iuliana", reception)).status).toBe(403);
+		await reception.close();
 	});
 });

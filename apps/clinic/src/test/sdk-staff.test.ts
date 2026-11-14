@@ -75,6 +75,28 @@ describe("the invitation, through the service", () => {
 		expect(k.api.world.notifier.sent.some((n) => n.event === "team.invite")).toBe(true);
 	});
 
+	it("a new link for that member, through the service; refused once they have signed in, writing nothing", async () => {
+		const made = k.api.world.staff.accounts.get("nou.sdk@example.test");
+		const subject = made?.subject ?? "";
+		const ask = () =>
+			olga.raw(`/settings/members/${encodeURIComponent(subject)}/link`, {
+				method: "POST",
+				body: "",
+				headers: FORM,
+			});
+		const r = await ask();
+		expect(r.status).toBe(200);
+		expect(await r.text()).toContain(`https://sso.test/recover/${made?.userId}`);
+		k.api.world.staff.signIn("nou.sdk@example.test", Date.now());
+		const before = await k.api.world.fingerprint();
+		const again = await ask();
+		expect(again.status).toBe(303);
+		expect(again.headers.get("location")).toBe(
+			`/settings/members?edit=${encodeURIComponent(subject)}&problem=link-conflict`,
+		);
+		expect(await k.api.world.fingerprint()).toBe(before);
+	});
+
 	it("a client's address is refused with its reason, and nothing is written", async () => {
 		const before = await k.api.world.fingerprint();
 		const r = await invite(olga, [
