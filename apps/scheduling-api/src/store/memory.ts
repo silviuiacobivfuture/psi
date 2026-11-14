@@ -1,6 +1,7 @@
 import { currentActor } from "./actor";
 import { createMemoryAvailability } from "./memory-availability";
 import { createMemoryBlacklist } from "./memory-blacklist";
+import { memoryClientPage } from "./memory-client-page";
 import { MemoryCollection } from "./memory-collection";
 import { createMemoryFeedback } from "./memory-feedback";
 import { createMemoryKeyed } from "./memory-keyed";
@@ -36,6 +37,9 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 	const blacklist = createMemoryBlacklist(c, clock);
 	applyVisitRules(c, blacklist.staff);
 	applyTeamRules(c);
+	const clients = Object.assign(c.clients, {
+		page: memoryClientPage(c.clients, c.appointments, c.packages, () => blacklist.port),
+	});
 	const events = new Map<string, Changes[]>();
 	const listeners = new Map<string, Set<(events: Changes[]) => void>>();
 	const changes: StorePort["changes"] = {
@@ -95,7 +99,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 		},
 	};
 	return {
-		c,
+		c: { ...c, clients },
 		changes,
 		settings,
 		appsOf: (subject) =>

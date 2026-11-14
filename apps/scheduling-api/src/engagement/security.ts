@@ -21,6 +21,7 @@ const SENSITIVE: Readonly<Record<string, SecurityAction>> = {
 	"member.remove": "members",
 	"member.overrides": "members",
 	"app.update": "settings",
+	"org.profile": "settings",
 };
 
 export const sensitiveOf = (auditAction: string): SecurityAction | undefined =>

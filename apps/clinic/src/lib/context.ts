@@ -9,6 +9,7 @@ import type { Capabilities, ClinicPort } from "../port/port";
 import { type AppSlug, AppSlugSchema, type AssistantMode, type Membership } from "../port/schema";
 import type { Can } from "./can";
 import { type Locale, localeFrom } from "./i18n";
+import { keepSizeOnDevice } from "./paging";
 import type { Theme } from "./theme";
 import type { ViewAsState } from "./view-as";
 
@@ -69,6 +70,7 @@ export async function storedPrefs(
 	const keep = { path: "/", maxAge: 31536000, sameSite: "Lax" as const };
 	setCookie(c, "lang", own.locale, keep);
 	setCookie(c, "theme", own.theme, keep);
+	keepSizeOnDevice(c, subject, own.pageSize ?? "none");
 	return {
 		...device,
 		locale: own.locale,

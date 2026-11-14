@@ -10,34 +10,10 @@ import { appendPage, MoreQuery, moreHref, ShowMore } from "../lib/show-more";
 import { m } from "../paraglide/messages.js";
 import type { ListedClient } from "../port/port";
 import { registerMembers } from "./members-routes";
+import { registerOrgProfile } from "./org-profile";
 import { OrgFrame, renderSoonArea } from "./org-settings";
 
 const NOCACHE = { "cache-control": "private, no-store" } as const;
-
-function Fact({ label, value }: { label: string; value: string }): JSX.Element {
-	return (
-		<div class="adm-stack">
-			<span class="adm-muted">{label}</span>
-			<strong>{value}</strong>
-		</div>
-	);
-}
-
-async function renderProfile(ctx: Ctx): Promise<JSX.Element> {
-	const o = at(ctx.locale);
-	return OrgFrame({
-		ctx,
-		area: "profile",
-		title: areaText("profile", ctx.locale).title,
-		children: (
-			<div class="adm-card adm-stack" style="gap:var(--space-4)">
-				<Fact label={m.st_profile_name({}, o)} value={ctx.caps.appName} />
-				<Fact label={m.st_profile_zone({}, o)} value={ctx.caps.timeZone} />
-				<Fact label={m.st_profile_slug({}, o)} value={ctx.app} />
-			</div>
-		),
-	});
-}
 
 /** One client on the blacklist, linking to their page. */
 function ListedRow({ row }: { row: ListedClient }): JSX.Element {
@@ -105,7 +81,7 @@ async function renderBlacklist(ctx: Ctx): Promise<JSX.Element> {
 }
 
 export function registerOrgAreas(app: Hono<Env>): void {
-	app.get("/settings/profile", async (c) => c.html(await renderProfile(c.var.ctx), 200, NOCACHE));
+	registerOrgProfile(app);
 	registerMembers(app);
 	app.get("/settings/blacklist", async (c) =>
 		c.html(await renderBlacklist(c.var.ctx), 200, NOCACHE),

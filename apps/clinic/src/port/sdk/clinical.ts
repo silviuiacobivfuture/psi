@@ -5,8 +5,9 @@ import {
 	type FileMeta as ApiFile,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
+import { NO_CLIENTS, narrowedTo } from "../client-list";
 import {
-	CLIENT_PAGE_SIZE,
+	type ClientListAsk,
 	type ClientPage,
 	LIST_PAGE,
 	type ListedClient,
@@ -111,25 +112,28 @@ export function clinicalGroup(
 					owedBani: null,
 					blacklist: listed.get(c.id) ?? null,
 					pinnedNotes: pinned.get(c.id) ?? 0,
+					lastVisit: null,
 				}));
 			}),
-		clientPage: (
-			app: AppSlug,
-			filter: "current" | "archived",
-			q: string,
-			cursor: string | null,
-		): Promise<ClientPage> =>
+		clientPage: (app: AppSlug, ask: ClientListAsk): Promise<ClientPage> =>
 			run(async () => {
-				const query = q.trim();
-				const [page, listed] = await Promise.all([
+				const query = ask.q.trim();
+				const narrowed = narrowedTo(ask);
+				if (narrowed !== null && narrowed.length === 0) return NO_CLIENTS;
+				const [page, listed, tz] = await Promise.all([
 					api.clients.list({
 						app,
-						status: filter === "current" ? "active" : "archived",
+						status: ask.filter === "current" ? "active" : "archived",
 						...(query === "" ? {} : { q: query }),
-						limit: CLIENT_PAGE_SIZE,
-						...(cursor === null ? {} : { cursor }),
+						sort: ask.sort,
+						offset: (ask.page - 1) * ask.size,
+						limit: ask.size,
+						...(narrowed === null ? {} : { practitioner: narrowed.join(",") }),
+						...(ask.flag === null ? {} : { flag: ask.flag }),
+						...(ask.pkg === null ? {} : { package: ask.pkg }),
 					}),
 					activeByClient(app),
+					sdk.zone(app),
 				]);
 				const clients = page.items.map(clientOf);
 				const pinned = await more.pinnedCounts(
@@ -138,14 +142,16 @@ export function clinicalGroup(
 				);
 				return {
 					clients,
-					summaries: clients.map((c) => ({
+					summaries: page.items.map((c) => ({
 						clientId: c.id,
 						next: null,
 						owedBani: null,
 						blacklist: listed.get(c.id) ?? null,
 						pinnedNotes: pinned.get(c.id) ?? 0,
+						lastVisit: c.lastVisitAt === undefined ? null : wallOf(c.lastVisitAt, tz).date,
 					})),
-					nextCursor: page.nextCursor ?? null,
+					total: page.total,
+					page: Math.floor(page.offset / ask.size) + 1,
 				};
 			}),
 		clientFlags: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Record<string, ClientFlag>> =>

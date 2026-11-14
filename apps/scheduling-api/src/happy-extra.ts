@@ -168,6 +168,10 @@ export const EXTRA_HAPPY = {
 		}),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
+	"orgProfile.get": (w) => olga(w, "GET", "/org-profile"),
+	"orgProfile.put": (w) =>
+		olga(w, "PUT", "/org-profile", { revision: 0, profile: { phones: [], hours: [] } }),
+	"visitor.contact": (w) => w.callKey("psizone-web", "GET", `${A}/book/contact`),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),
 	"blacklist.create": (w) =>
 		olga(w, "POST", "/blacklist", {

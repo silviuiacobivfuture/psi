@@ -195,6 +195,8 @@ export interface ClientSummary {
 	owedBani: number | null;
 	blacklist: BlacklistEntry | null;
 	pinnedNotes: number;
+	/** The day the client last came (a visit held, not missed), in the clinic's zone; null when never or not known. */
+	lastVisit: string | null;
 }
 
 /** What the calendar and the editor need to flag about a client. */

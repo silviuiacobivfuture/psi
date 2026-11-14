@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { timed } from "../../timing";
-import { StoreRefused, StoreUnavailable } from "../types";
+import { type StoreFailure, StoreRefused, StoreUnavailable } from "../types";
 
 /**
  * The service's one way to call the server-keyed Convex wrappers (`api*`, `staff*`, `changes`): Convex's own HTTP API
@@ -40,6 +40,21 @@ const RETRY_AFTER_MS = 250;
 /** Convex's words for a failure a second try may not meet (its message is read for this only, never passed on). */
 const TRANSIENT = /transient|overloaded|temporarily|try again|timed out|too many concurrent/i;
 
+/** A function error's class, read from Convex's message for the log alone (the message itself is never kept). */
+export function functionErrorCode(message: string): NonNullable<StoreFailure["code"]> {
+	if (/(documents|bytes) written|too many writes|write (limit|set)/i.test(message))
+		return "write_limit";
+	if (/(documents|bytes) read|too many reads|read (limit|set)/i.test(message)) return "read_limit";
+	if (/timed out|timeout/i.test(message)) return "timeout";
+	if (TRANSIENT.test(message)) return "transient";
+	if (/could not find (public )?function|function .* not found|no such function/i.test(message))
+		return "function_not_found";
+	if (/argumentvalidationerror|does not match validator|validator/i.test(message))
+		return "invalid_args";
+	if (/uncaught/i.test(message)) return "uncaught";
+	return "other";
+}
+
 type Outcome<T> =
 	| { ok: true; value: T }
 	| { ok: false; error: StoreUnavailable; transient: boolean };
@@ -70,7 +85,7 @@ export function createRpc(config: RpcConfig): Rpc {
 		} catch {
 			return {
 				ok: false,
-				error: new StoreUnavailable(`${fn}: the store did not answer`),
+				error: new StoreUnavailable(`${fn}: the store did not answer`, { fn, kind: "no_answer" }),
 				transient: true,
 			};
 		}
@@ -83,9 +98,18 @@ export function createRpc(config: RpcConfig): Rpc {
 				(body.success &&
 					body.data.status === "error" &&
 					TRANSIENT.test(body.data.errorMessage ?? ""));
+			const code =
+				body.success && body.data.status === "error"
+					? functionErrorCode(body.data.errorMessage ?? "")
+					: undefined;
 			return {
 				ok: false,
-				error: new StoreUnavailable(`${fn}: the store refused the call (${response.status})`),
+				error: new StoreUnavailable(`${fn}: the store refused the call (${response.status})`, {
+					fn,
+					kind: code === undefined ? "refused" : "function_error",
+					status: response.status,
+					...(code === undefined ? {} : { code }),
+				}),
 				transient,
 			};
 		}
@@ -93,7 +117,10 @@ export function createRpc(config: RpcConfig): Rpc {
 		if (!value.success)
 			return {
 				ok: false,
-				error: new StoreUnavailable(`${fn}: the store answered an unexpected shape`),
+				error: new StoreUnavailable(`${fn}: the store answered an unexpected shape`, {
+					fn,
+					kind: "shape",
+				}),
 				transient: false,
 			};
 		return { ok: true, value: value.data };

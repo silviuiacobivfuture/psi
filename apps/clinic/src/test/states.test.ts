@@ -76,12 +76,14 @@ describe("calendar states", () => {
 describe("clients states", () => {
 	it("empty", async () =>
 		expect(await open({ empty: true }, "/clients")).toContain("Niciun client aici"));
-	it("many, with a count", async () => expect(await open({}, "/clients")).toMatch(/21 clienți/));
+	it("many, with a count", async () => expect(await open({}, "/clients")).toMatch(/1–21 din 21/));
 	it("search narrows, including diacritics, and a miss is an empty state", async () => {
 		c = await startConsole(MEMBER);
 		await c.signIn();
 		expect(await (await c.get("/clients?q=%C8%99tefan")).text()).toContain("Ștefan Exemplu 01");
-		expect(await (await c.get("/clients?q=zzzz")).text()).toContain("Niciun client aici");
+		expect(await (await c.get("/clients?q=zzzz")).text()).toContain(
+			"Niciun client nu se potrivește",
+		);
 	});
 	it("error", async () =>
 		expect(await open({ failing: failing("clients") }, "/clients")).toContain(

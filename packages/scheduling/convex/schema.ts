@@ -252,7 +252,12 @@ export default defineSchema({
 	})
 		.index("by_tenant_name", ["tenant", "name"])
 		.index("by_tenant_legacy", ["tenant", "legacyId"])
-		.index("by_tenant_deleted", ["tenant", "deletedAt"]),
+		.index("by_tenant_deleted", ["tenant", "deletedAt"])
+		/**
+		 * One standing of one clinic as an index range (`apiClientPage`): the current clients are `deletedAt` and
+		 * `archivedAt` both absent, the archive is `deletedAt` absent and `archivedAt` set. Existing rows need no backfill.
+		 */
+		.index("by_tenant_standing_name", ["tenant", "deletedAt", "archivedAt", "name"]),
 
 	/** What finds a client's duplicates: `p:` phone, `e:` e-mail, `g:` guardian's contact + the child's name. */
 	clientKeys: defineTable({ tenant: v.string(), key: v.string(), client: v.id("clients") })
