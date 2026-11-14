@@ -8,7 +8,8 @@ import type { AuditAction, AuditEntity } from "@psi/scheduling/clinic";
  * mapped to the closest action and entity.
  *
  * What the closed log cannot say, on Convex: the values of `detail` (who a client moved from and to, the reason given),
- * and the API's own action name when two API actions share one Convex action. The API action, the target's type and a
+ * and the API's own action name when two API actions share one Convex action. A team change is the exception: its
+ * wrapper keeps the before and after (roles, calendars, grants, denials, who left) and names the member by subject. The API action, the target's type and a
  * service actor travel as FIELD names (`api.<action>`, `type.<type>`, `by.service`), which the service reads back.
  */
 export interface Mapping {

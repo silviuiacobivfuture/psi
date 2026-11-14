@@ -110,6 +110,48 @@ describe("what reaches Convex is field names and a count", () => {
 		expect(sent[0]?.args).toMatchObject({ action: "record.read", entity: "client" });
 	});
 
+	it("reads a team change's before and after back in the API's ids; an event without them stays as it was", async () => {
+		const practitioner = "j".repeat(32);
+		const listed = (events: unknown[]): Rpc => ({
+			query: (_fn, _args, schema) => Promise.resolve(schema.parse({ ok: true, events })),
+			mutation: () => Promise.reject(new Error("nothing is written by a read")),
+		});
+		const stored = {
+			at: 2,
+			actor: "olga",
+			action: "member.change",
+			entity: "member",
+			entityId: "journal-newbie",
+			summary: "member.change; fields: displayName, roles, coordinates",
+		};
+		const rows = await auditCollection(
+			caller(
+				listed([
+					{
+						...stored,
+						id: "e1",
+						changes: [
+							{ field: "displayName", from: "", to: "Nou Venit" },
+							{ field: "roles", from: "", to: "k1,k2" },
+							{ field: "coordinates", from: "", to: practitioner },
+						],
+					},
+					{ ...stored, id: "e2", at: 1 },
+				]),
+			),
+		).list("psizone", {});
+		expect(rows.map((r) => [r.action, r.target])).toEqual([
+			["member.put", { type: "members", id: "journal-newbie" }],
+			["member.put", { type: "members", id: "journal-newbie" }],
+		]);
+		expect(rows[0]?.detail?.changes).toEqual({
+			displayName: { from: "", to: "Nou Venit" },
+			roles: { from: "", to: "k1,k2" },
+			coordinates: { from: "", to: `p${practitioner}` },
+		});
+		expect(rows[1]?.detail?.changes).toBeUndefined();
+	});
+
 	it("never rewrites or removes an event", async () => {
 		const audit = auditCollection(caller(fake().rpc));
 		await expect(audit.replace(event("x.y"))).rejects.toMatchObject({ reason: "not_allowed" });
