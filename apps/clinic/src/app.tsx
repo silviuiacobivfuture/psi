@@ -4,7 +4,7 @@ import type { Pwa } from "@psi/pwa";
 import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
-import { setCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
 import { mountAssistant } from "./assistant/mount";
@@ -17,7 +17,7 @@ import { canOf } from "./lib/can";
 import { activeApp, type Ctx, storedPrefs, viewerPrefs } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { judge, landingFor } from "./lib/gates";
-import { at } from "./lib/i18n";
+import { at, localeFrom } from "./lib/i18n";
 import { sse } from "./lib/sse";
 import { serverTiming, timed } from "./lib/timings";
 import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
@@ -37,6 +37,7 @@ import { MorePage } from "./pages/more";
 import { registerMySettings } from "./pages/my-settings";
 import { registerOrgAreas } from "./pages/org-areas";
 import { registerOrgSettings } from "./pages/org-settings";
+import { OutagePage } from "./pages/outage";
 import { registerPlatform } from "./pages/platform";
 import { registerPrint } from "./pages/print-routes";
 import { registerRecordsWithoutClient } from "./pages/records-without-client";
@@ -270,7 +271,21 @@ export function createApp(deps: AppDeps): Hono<Env> {
 			unavailable: 503,
 		} as const;
 		const ctx = c.var.ctx;
-		if (ctx === undefined) return c.text(err.code, status[err.code]);
+		// The service failed before the request's context existed (who asks, which app, what they may do): a page in
+		// their language with a way back in for a navigation, the code for a fragment or a call that is not one.
+		if (ctx === undefined) {
+			const navigation = c.req.method === "GET" && c.req.header("datastar-request") !== "true";
+			if (!navigation) return c.text(err.code, status[err.code]);
+			const u = new URL(c.req.url);
+			return c.html(
+				await OutagePage({
+					locale: localeFrom(getCookie(c, "lang")),
+					retryHref: `${u.pathname}${u.search}`,
+				}),
+				status[err.code],
+				{ "cache-control": "no-store", "retry-after": "5" },
+			);
+		}
 		if (c.req.header("datastar-request") === "true") return c.text(err.code, status[err.code]);
 		return c.html(
 			await Page({
