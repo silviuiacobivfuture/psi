@@ -20,6 +20,16 @@ spec:
       owner: account
       secret:
         name: account-db-app
+  # The application role's password FOLLOWS account-db-app (OpenBao secret/apps/account/db): initdb reads it once, at
+  # creation, so without this a password rotated in OpenBao would never reach the database. Rotating it is a write
+  # to OpenBao only; CNPG sets the role's password and the console restarts on its new URL (Reloader).
+  managed:
+    roles:
+      - name: account
+        ensure: present
+        login: true
+        passwordSecret:
+          name: account-db-app
   # hcloud-volumes: a single-instance Cluster has no live path onto another storage class.
   # 10Gi is the Hetzner block-volume minimum, not a sizing estimate.
   storage:
