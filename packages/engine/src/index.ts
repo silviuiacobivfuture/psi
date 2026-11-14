@@ -6,6 +6,7 @@ export {
 	DEFAULT_TIMEOUTS,
 	type EngineFailure,
 	type EngineTimeouts,
+	type EngineTranscript,
 	type FailureStage,
 } from "./ask-context";
 export {
@@ -26,6 +27,7 @@ export {
 	type BookingCancel,
 	type BookingCriteria,
 	type BookingKind,
+	type BookingLimits,
 	type BookingNotice,
 	type BookingOffer,
 	type BookingScope,
@@ -161,6 +163,7 @@ export {
 	CRISIS_SCAN_LIMIT,
 	type CrossReferenceRule,
 	type Profile,
+	type ProfileFallback,
 	type ProfileHandoff,
 	type ProfileLocale,
 	ProfileSchema,
@@ -241,4 +244,14 @@ export {
 	EngineTimingSchema,
 	type ToolTiming,
 } from "./timing";
+export {
+	createGovernance,
+	type Governance,
+	type GovernanceSource,
+	type VisitorAssistantPort,
+	VisitorAssistantPortSchema,
+	type VisitorStoreRead,
+	VisitorStoreReadSchema,
+	type VisitorUsageRecord,
+} from "./visitor-governance";
 export { GROUNDED_ANSWER_WORKFLOW, type GroundedAnswer } from "./workflow";

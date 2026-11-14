@@ -66,13 +66,30 @@ export interface BookingOffer {
 	choose?: boolean;
 	/** The state to carry into the next turn (absent once the flow is over). */
 	state?: BookingState;
+	/** The organisation's limits the form holds to, on a site its settings govern. */
+	limits?: BookingLimits;
 }
 
 /** The profile's scheduling, when both the profile opted in and the engine was given a store. */
 export interface BookingScope {
 	port: SchedulingPort;
 	scope: ProfileScheduling;
+	/** The organisation's limits on booking in the chat, on a site its settings govern. */
+	limits?: BookingLimits;
 }
+
+/**
+ * The organisation's limits on booking in the chat (`booking.*` of its visitor settings): no time later than
+ * `horizonDays` from now is offered, and `offerCallback` false leaves the call-back out of the form. The offer carries
+ * them, so the app's form (its picker and its call-back switch) holds to them too. The booking form's own fields (the
+ * name, a way to reach the person, for whom, consent and the time or call back) are not part of them.
+ */
+export interface BookingLimits {
+	horizonDays: number;
+	offerCallback: boolean;
+}
+
+const DAY_MS = 86_400_000;
 
 /** How many free times one offer shows, and over how many days. */
 const OFFER_SLOTS = 6;
@@ -166,12 +183,28 @@ function timesOffer(
 	};
 }
 
-function look(
+async function look(
 	booking: BookingScope,
 	criteria: BookingCriteria,
 	now: number,
 	limit: number = OFFER_SLOTS,
 	partOfDay: PartOfDay = criteria.partOfDay,
+): Promise<FindAvailabilityOutput> {
+	const found = await lookAll(booking, criteria, now, limit, partOfDay);
+	const horizon = booking.limits?.horizonDays;
+	if (horizon === undefined || found.status !== "ok") return found;
+	// Nothing later than the organisation's horizon is offered.
+	const last = now + horizon * DAY_MS;
+	const slots = found.slots.filter((slot) => Date.parse(slot.startsAt) <= last);
+	return slots.length === 0 ? { ...found, status: "none", slots } : { ...found, slots };
+}
+
+function lookAll(
+	booking: BookingScope,
+	criteria: BookingCriteria,
+	now: number,
+	limit: number,
+	partOfDay: PartOfDay,
 ): Promise<FindAvailabilityOutput> {
 	return runFindAvailability(
 		booking.port,
@@ -223,6 +256,11 @@ async function confirmOffer(
 	shown: ReadonlyArray<ProposedSlot>,
 	now: number,
 ): Promise<BookingOffer> {
+	const horizon = booking.limits?.horizonDays;
+	// A time past the organisation's horizon (carried in an older state) is not offered for confirmation.
+	if (horizon !== undefined && Date.parse(slot.startsAt) > now + horizon * DAY_MS) {
+		return searchOffer(booking, criteria, now, "not_free");
+	}
 	const checked = await runRequestAppointment(booking.port, booking.scope, {
 		service: criteria.service,
 		slotId: slot.slotId,
@@ -349,7 +387,10 @@ async function live(booking: BookingScope): Promise<BookingScope> {
 		const names = Object.fromEntries(
 			entries.flatMap((e) => (e.name === undefined ? [] : [[e.slug, e.name]])),
 		);
-		return { port, scope: { tenant: scope.tenant, services: entries.map((e) => e.slug), names } };
+		return {
+			...booking,
+			scope: { tenant: scope.tenant, services: entries.map((e) => e.slug), names },
+		};
 	} catch {
 		return booking;
 	}
@@ -402,6 +443,18 @@ export async function bookingTurn(
 	input: { question: string; state?: BookingState },
 	packs: ReadonlyArray<LanguagePack>,
 	now: number = Date.now(),
+): Promise<BookingOffer | undefined> {
+	const offer = await bookingStep(offered, input, packs, now);
+	return offer === undefined || offered.limits === undefined
+		? offer
+		: { ...offer, limits: offered.limits };
+}
+
+async function bookingStep(
+	offered: BookingScope,
+	input: { question: string; state?: BookingState },
+	packs: ReadonlyArray<LanguagePack>,
+	now: number,
 ): Promise<BookingOffer | undefined> {
 	const { question, state } = input;
 	const booking = await live(offered);

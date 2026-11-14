@@ -14,7 +14,14 @@ export type FakeReply =
 			/** What the provider reports it used (OpenRouter's usage accounting, cost in dollars) on the last chunk. */
 			usage?: { prompt: number; completion: number; cached?: number; cost?: number };
 	  }
-	| { kind: "tool"; query: string; tool?: string; input?: object }
+	| {
+			kind: "tool";
+			query: string;
+			tool?: string;
+			input?: object;
+			/** What the provider reports this step used. */
+			usage?: { prompt: number; completion: number };
+	  }
 	| { kind: "status"; status: number }
 	| { kind: "hang" };
 
@@ -95,7 +102,19 @@ async function reply(res: ServerResponse, answer: FakeReply, n: number): Promise
 				],
 			}),
 		);
-		sse(res, chunk({}, "tool_calls"));
+		const stepUsed = answer.usage;
+		sse(res, {
+			...chunk({}, "tool_calls"),
+			...(stepUsed === undefined
+				? {}
+				: {
+						usage: {
+							prompt_tokens: stepUsed.prompt,
+							completion_tokens: stepUsed.completion,
+							total_tokens: stepUsed.prompt + stepUsed.completion,
+						},
+					}),
+		});
 	} else {
 		for (const [i, content] of answer.chunks.entries()) {
 			if (i > 0 && answer.delayMs !== undefined) await pause(answer.delayMs);

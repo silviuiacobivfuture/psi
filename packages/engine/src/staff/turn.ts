@@ -6,6 +6,7 @@ import { MODEL_KEY } from "../agent";
 import { within } from "../deadline";
 import type { LanguageDetector } from "../language/detect";
 import { forgetAnswer } from "../memory";
+import { usageOf as modelUsageOf, USAGE_WAIT_MS, type UsageSource } from "../usage";
 import { matchActions } from "./actions";
 import { modelKeyOf, type StaffUsage, skillsFor, toolAllowance } from "./assistant-config";
 import type { StaffCard, StaffEvent, StaffTurnInput } from "./events";
@@ -16,8 +17,6 @@ import { SESSION_KEY, type StaffSession } from "./session";
 import { toolKeyOf } from "./tool-ids";
 
 const FIRST_CHUNK_MS = 15_000;
-/** How long the end of a turn waits for the provider's usage figures before recording what it has. */
-const USAGE_WAIT_MS = 2_000;
 
 /**
  * The provider caches everything up to here: the standing instructions (the organisation's version of them, its skills)
@@ -25,49 +24,9 @@ const USAGE_WAIT_MS = 2_000;
  */
 export const CACHE_BREAKPOINT = { openrouter: { cacheControl: { type: "ephemeral" as const } } };
 
-const UsageShape = z
-	.object({
-		inputTokens: z.number().optional(),
-		outputTokens: z.number().optional(),
-		cachedInputTokens: z.number().optional(),
-	})
-	.passthrough();
-const CostShape = z
-	.object({
-		openrouter: z
-			.object({ usage: z.object({ cost: z.number().optional() }).passthrough() })
-			.passthrough(),
-	})
-	.passthrough();
-const whole = (n: number | undefined): number =>
-	n === undefined || !Number.isFinite(n) ? 0 : Math.max(0, Math.round(n));
-
-/** What a finished stream used, read from Mastra's totals and OpenRouter's accounting (dollars to micro-dollars). */
-async function usageOf(
-	output: { totalUsage: PromiseLike<unknown>; providerMetadata: PromiseLike<unknown> },
-	signal: AbortSignal,
-): Promise<StaffUsage> {
-	const [used, meta] = await Promise.all([
-		within(Promise.resolve(output.totalUsage), USAGE_WAIT_MS, "usage", signal).catch(
-			() => undefined,
-		),
-		within(Promise.resolve(output.providerMetadata), USAGE_WAIT_MS, "usage", signal).catch(
-			() => undefined,
-		),
-	]);
-	const u = UsageShape.safeParse(used);
-	const c = CostShape.safeParse(meta);
-	return {
-		inputTokens: whole(u.success ? u.data.inputTokens : undefined),
-		outputTokens: whole(u.success ? u.data.outputTokens : undefined),
-		cachedTokens: whole(u.success ? u.data.cachedInputTokens : undefined),
-		costMicroUsd: whole(
-			c.success && c.data.openrouter.usage.cost !== undefined
-				? c.data.openrouter.usage.cost * 1_000_000
-				: undefined,
-		),
-		limitHit: false,
-	};
+/** What a finished stream used, as the staff meters take it. */
+async function usageOf(output: UsageSource, signal: AbortSignal): Promise<StaffUsage> {
+	return { ...(await modelUsageOf(output, signal)), limitHit: false };
 }
 
 export interface TurnTimeouts {
