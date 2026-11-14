@@ -2,12 +2,14 @@ import type { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
 import { Mastra } from "@mastra/core/mastra";
 import { z } from "zod";
+import { turnModel } from "../agent";
 import { createLanguageDetector } from "../language/detect";
 import { BUNDLED_LANGUAGES } from "../language/index";
 import { openMemory } from "../memory";
-import { openRouterModel, type ProviderSort, readOpenRouterKey } from "../model";
+import { type ChatModel, openRouterModel, type ProviderSort, readOpenRouterKey } from "../model";
 import { createMemoryRateLimiter, type RateLimiter } from "../screening/rate-limit";
 import { createStaffAgent, STAFF_AGENT_ID } from "./agent";
+import { modelsOfKey, NO_STAFF_USAGE, refusalOf, standingInstructions } from "./assistant-config";
 import { buildBriefing } from "./briefing";
 import { staffCopy } from "./copy";
 import {
@@ -26,6 +28,7 @@ import type { RouteLike } from "./parity/routes";
 import type { IssuesPort, StaffPort } from "./port";
 import { staffInstructions } from "./prompt";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
+import { createReadCache, personOf } from "./read-cache";
 import type { StaffLinks } from "./session";
 import { runTurn, type TurnTimeouts } from "./turn";
 
@@ -120,13 +123,25 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		throw new StaffConfigurationError("the staff memory must not be the visitor memory");
 	}
 	const apiKey = options.model.apiKey ?? readOpenRouterKey(process.env);
-	const model = openRouterModel({
-		apiKey: apiKey ?? "",
-		modelId: options.model.id,
-		...(options.model.baseURL === undefined ? {} : { baseURL: options.model.baseURL }),
-		dataCollection: options.model.dataCollection ?? "deny",
-		sort: options.model.sort ?? "latency",
-	});
+	/** One model per primary-and-fallbacks key (what an organisation's settings choose), made once. */
+	const models = new Map<string, ChatModel>();
+	const modelFor = (key: string): ChatModel => {
+		const held = models.get(key);
+		if (held !== undefined) return held;
+		const { primary, fallbacks } = modelsOfKey(key);
+		const built = openRouterModel({
+			apiKey: apiKey ?? "",
+			modelId: primary,
+			fallbacks,
+			usage: true,
+			...(options.model.baseURL === undefined ? {} : { baseURL: options.model.baseURL }),
+			dataCollection: options.model.dataCollection ?? "deny",
+			sort: options.model.sort ?? "latency",
+		});
+		models.set(key, built);
+		return built;
+	};
+	const model = turnModel(modelFor, options.model.id);
 	const durable =
 		options.memory === undefined
 			? undefined
@@ -147,6 +162,7 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 	const timeZone = options.timeZone ?? DEFAULT_ZONE;
 	const now = options.now ?? Date.now;
 	const detector = createLanguageDetector(BUNDLED_LANGUAGES);
+	const reads = createReadCache(now);
 	const fail = (stage: string, error: unknown): void => {
 		try {
 			options.onFailure?.({
@@ -163,6 +179,9 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 
 	/** Messages a person sent a moment ago, by conversation: the same one again within the window is a double press. */
 	const recent = new Map<string, number>();
+	/** How many turns each conversation has had in this process (its length limit); bounded, the oldest forgotten first. */
+	const lengths = new Map<string, number>();
+	const MAX_TRACKED = 20_000;
 	const isRepeat = (sub: string, threadId: string | undefined, message: string): boolean => {
 		const at = now();
 		for (const [key, when] of recent) if (at - when > REPEAT_WINDOW_MS) recent.delete(key);
@@ -193,6 +212,7 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		links: options.links,
 		routes: options.routes ?? [],
 		issues: options.issues,
+		reads,
 	};
 	const open = (port: StaffPort, input: { page?: StaffPage; threadId?: string }) =>
 		openSession(port, deps, input);
@@ -219,11 +239,43 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 		}
 		const caps = await session.port.capabilities();
 		session.caps = caps.ok ? baseKeys(caps.value.permissions) : undefined;
-		if (!(await limiter.take(`staff:${session.principal.sub}`))) {
+		// What governs this turn, asked of the service as this person; without it no turn runs (its limits could not hold).
+		const configured = await session.port.assistant();
+		if (!configured.ok) {
+			fail("config", new Error(`the configuration was refused: ${configured.reason}`));
+			yield { type: "refusal", reason: "unavailable" };
+			yield { type: "done" };
+			return;
+		}
+		const config = configured.value;
+		if (config.stop !== undefined) {
+			// Counted, so the meters show how often a limit is met; nothing else is.
+			await session.port.recordUsage({ ...NO_STAFF_USAGE, limitHit: true });
+			yield { type: "refusal", reason: refusalOf(config.stop) };
+			yield { type: "done" };
+			return;
+		}
+		session.config = config;
+		const sub = session.principal.sub;
+		if (
+			!(await limiter.take(`staff:${sub}`, {
+				limit: config.settings.ratePerMinute,
+				windowMs: 60_000,
+			}))
+		) {
 			yield { type: "refusal", reason: "rate_limited" };
 			yield { type: "done" };
 			return;
 		}
+		const thread = `${sub}\u0000${parsed.data.threadId ?? "default"}`;
+		const said = (lengths.get(thread) ?? 0) + 1;
+		if (said > config.settings.messages.perSession) {
+			yield { type: "refusal", reason: "session_limit" };
+			yield { type: "done" };
+			return;
+		}
+		if (lengths.size >= MAX_TRACKED) lengths.delete(lengths.keys().next().value ?? "");
+		lengths.set(thread, said);
 		if (isRepeat(session.principal.sub, parsed.data.threadId, parsed.data.message)) {
 			yield { type: "refusal", reason: "duplicate" };
 			yield { type: "done" };
@@ -239,12 +291,19 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			agent,
 			session,
 			input: parsed.data,
-			instructions: staffInstructions(session.copy),
+			instructions: standingInstructions(session.copy, staffInstructions(session.copy), config),
 			memory,
 			detector,
-			timeouts,
+			timeouts: {
+				idleMs: Math.min(timeouts.idleMs, config.settings.timeouts.idleMs),
+				totalMs: Math.min(timeouts.totalMs, config.settings.timeouts.totalMs),
+			},
 			signal: control?.signal,
 			onFailure: fail,
+			onUsage: async (used) => {
+				const recorded = await session.port.recordUsage(used);
+				if (!recorded.ok) fail("usage", new Error(`the meters refused: ${recorded.reason}`));
+			},
 		});
 	}
 
@@ -257,7 +316,10 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			const session = port === undefined ? undefined : await open(port, {});
 			if (session === undefined)
 				return unconfirmed(staffCopy(fallback), proposalId, "no_principal");
-			return confirmProposal(session, proposalId);
+			const outcome = await confirmProposal(session, proposalId);
+			// A change (or an attempt) by this person: what they read before may no longer be so.
+			reads.forget(personOf(session.principal.sub, session.principal.appId));
+			return outcome;
 		},
 		async dismiss(port, proposalId) {
 			const session = port === undefined ? undefined : await open(port, {});

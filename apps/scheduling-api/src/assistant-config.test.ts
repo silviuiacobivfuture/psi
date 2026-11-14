@@ -153,14 +153,18 @@ describe.each(factories)("the assistants' configuration, on the $name store", (f
 			await refused(() => w.call("mallory", "GET", `${A}/effective`), 404, "not_found");
 			await refused(() => w.call(null, "GET", `${A}/effective`), 401, "unauthenticated");
 		});
-		it("looking at the app as someone else cannot save, nor record usage", async () => {
+		it("looking at the app as someone else cannot save; what the real caller's turn used is still metered, as theirs", async () => {
 			const revision = await revisionOf(`${A}/config`);
 			await refused(
 				() => w.call("olga", "PUT", `${A}/config`, orgAt(revision), VIEW_AS),
 				403,
 				"forbidden",
 			);
-			await refused(() => w.call("olga", "POST", `${A}/usage`, turnUse, VIEW_AS), 403, "forbidden");
+			const before = (await use()).staff.month.messages;
+			const metered = await w.call("olga", "POST", `${A}/usage`, turnUse, VIEW_AS);
+			expect(metered.status, JSON.stringify(metered.json)).toBe(200);
+			expect((await use()).staff.month.messages).toBe(before + 1);
+			expect((await eff("olga")).usage.mine?.messages).toBe(1);
 		});
 		it("values past the estate's ceilings are refused, each named, nothing stored", async () => {
 			const revision = await revisionOf(`${A}/config`);

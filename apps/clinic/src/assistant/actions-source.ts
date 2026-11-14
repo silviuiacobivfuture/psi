@@ -1,7 +1,13 @@
 import type { ActionInfo, ActionParam, StaffPage } from "@psi/engine/staff";
 import { z } from "zod";
 import { actionById, listActions, permitted, runAction } from "../actions/engine";
-import type { ActionCtx, ActionDef, EntityState, Screen } from "../actions/types";
+import {
+	type ActionCtx,
+	type ActionDef,
+	type EntityState,
+	SCREENS,
+	type Screen,
+} from "../actions/types";
 import { PortError } from "../port/port";
 import type { ActionsSource } from "./staff-port-extra";
 
@@ -90,8 +96,9 @@ function infoOf(def: ActionDef, locale: ActionCtx["locale"]): ActionInfo {
 export function createActionsSource(ctx: ActionCtx): ActionsSource {
 	return {
 		async listActions(page) {
+			// Without a page: everything the person may do on any screen (what the assistant's discovery lists).
 			const screens: ReadonlyArray<Screen> =
-				page === undefined ? ["global"] : ["global", ...SCREENS_OF[page.screen]];
+				page === undefined ? SCREENS : ["global", ...SCREENS_OF[page.screen]];
 			const entity: EntityState = page?.clientId === undefined ? {} : { clientId: page.clientId };
 			const seen = new Map<string, ActionDef>();
 			for (const screen of screens)

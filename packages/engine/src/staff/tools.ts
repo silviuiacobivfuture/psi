@@ -1,6 +1,6 @@
 import type { ToolsInput } from "@mastra/core/agent";
 import type { RequestContext } from "@mastra/core/request-context";
-import { parityTools } from "./parity/generate";
+import { DISCOVERY_TOOLS, discoveryTools } from "./parity/discovery";
 import { NEEDS, offered } from "./parity/needs";
 import { SESSION_KEY, type StaffSession } from "./session";
 import { toolKeyOf } from "./tool-ids";
@@ -92,7 +92,17 @@ export function staffTools({
 			return offered(NEEDS[key], session.caps);
 		}),
 	);
-	const generated =
-		session.caps === undefined ? {} : parityTools(session, session.routes, session.caps);
-	return Promise.resolve({ ...offeredTools, ...generated });
+	// Everything else the person may do is found and used through discovery: the model is never handed the whole table.
+	const all: ToolsInput = { ...offeredTools, ...discoveryTools(session) };
+	// A skill that applies may narrow the turn to its tools (discovery stays, filtered to the same list); never widen it.
+	const allow = session.allow;
+	if (allow === undefined) return Promise.resolve(all);
+	const keep = new Set<string>([
+		DISCOVERY_TOOLS.discover,
+		DISCOVERY_TOOLS.describe,
+		DISCOVERY_TOOLS.call,
+	]);
+	return Promise.resolve(
+		Object.fromEntries(Object.entries(all).filter(([id]) => allow.has(id) || keep.has(id))),
+	);
 }

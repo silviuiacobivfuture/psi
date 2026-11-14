@@ -7,6 +7,7 @@ import {
 	type StaffPort,
 	staffCopy,
 } from "@psi/engine/staff";
+import { ROUTES } from "@psi/scheduling-sdk/contract";
 import { staffViews } from "@psi/ui/staff-assistant";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
@@ -48,6 +49,8 @@ export function createAssistantEngine(
 			request: () => "/requests",
 			audit: () => "/audit",
 		},
+		// Every route of the service's contract the person may use is discoverable, and called with their own token.
+		routes: ROUTES,
 		onFailure: (f) => console.error(`[clinic] assistant ${f.stage}: ${f.error}`),
 	});
 }

@@ -137,7 +137,11 @@ describe.each(factories)("on the $name store", (factory) => {
 		// The roles editor browses as another member with `x-psi-view-as`: nothing sent that way may write.
 		// Ending the view is the one write allowed while viewing as someone else.
 		for (const spec of TEAM.filter(
-			(r) => r.method !== "GET" && r.platform !== true && r.id !== "viewAs.stop",
+			(r) =>
+				r.method !== "GET" &&
+				r.platform !== true &&
+				r.id !== "viewAs.stop" &&
+				r.id !== "me.assistantUsage",
 		)) {
 			it(`${spec.id}: a write with the view-as header is refused and writes nothing`, () =>
 				refused(

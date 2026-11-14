@@ -12,6 +12,12 @@ export {
 	type ActionParam,
 } from "./actions";
 export {
+	BUILT_IN_STAFF_CONFIG,
+	type StaffConfig,
+	type StaffUsage,
+	StaffUsageSchema,
+} from "./assistant-config";
+export {
 	type PanelCopy,
 	STAFF_EN,
 	STAFF_RO,
@@ -45,6 +51,8 @@ export type { ConfirmOutcome } from "./execute";
 export { type SealRoot, sealRootFrom } from "./memory-seal";
 export { STAFF_MEMORY_DAYS } from "./memory-store";
 export * from "./model";
+export { DISCOVERY_TOOLS } from "./parity/discovery";
+export { isParityRoute, NEVER_REASONS } from "./parity/routes";
 export type * from "./port";
 export { REFUSAL_CODES, STAFF_ACTIONS } from "./port";
 export {

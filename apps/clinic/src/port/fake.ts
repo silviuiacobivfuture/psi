@@ -1,6 +1,7 @@
 import { columnsOf, findConflicts, occupies, seriesDates } from "../domain/conflicts";
 import { packageUsage } from "../domain/usage";
 import { addDays, todayIso } from "../lib/dates";
+import { createFakeAssistant } from "./fake-assistant";
 import { appointmentChanges } from "./fake-audit";
 import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
@@ -122,6 +123,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	});
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
+	const assistant = createFakeAssistant(() => me);
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
 	const clinical = createFakeClinical({ today, data, guard, log, nextId: (p) => `${p}${++seq}` });
 
@@ -578,5 +580,6 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 			return data(app).audit;
 		},
 		...floorAndPrefs,
+		...assistant,
 	};
 }

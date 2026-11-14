@@ -2,6 +2,7 @@ import { openSession } from "../open";
 import type { RouteLike } from "../parity/routes";
 import type { IssuesPort, StaffPort } from "../port";
 import { createMemoryProposalStore, type ProposalStore } from "../proposals";
+import { createReadCache, type ReadCache } from "../read-cache";
 import type { StaffSession } from "../session";
 import { FAKE_NOW } from "./fake-port";
 
@@ -14,6 +15,7 @@ export function openTestSession(
 		now?: () => number;
 		routes?: ReadonlyArray<RouteLike>;
 		issues?: IssuesPort;
+		reads?: ReadCache;
 	} = {},
 ): Promise<StaffSession | undefined> {
 	return openSession(
@@ -25,6 +27,7 @@ export function openTestSession(
 			links: undefined,
 			routes: options.routes ?? [],
 			issues: options.issues,
+			reads: options.reads ?? createReadCache(options.now ?? (() => FAKE_NOW)),
 		},
 		{ page: options.page },
 	);

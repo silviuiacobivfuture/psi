@@ -106,6 +106,21 @@ export const STAFF_RO: StaffCopy = {
 			`Vorbești cu ${name}, din echipa ${appName}${roles.length === 0 ? "" : ` (roluri: ${roles.join(", ")})`}.`,
 		otherLanguage: (detected) =>
 			`Persoana a scris în limba „${detected}", dar răspunde în limba română, dacă nu cere altfel.`,
+		tone: (tone) =>
+			tone === "warm"
+				? "Ton: cald și prietenos, dar la obiect."
+				: tone === "formal"
+					? "Ton: formal și politicos (adresare cu „dumneavoastră”)."
+					: "Ton: neutru și concis.",
+		replyLanguage: (language) =>
+			language === "auto"
+				? "Răspunde în limba română, dacă persoana nu cere altfel."
+				: language === "ro"
+					? "Răspunde mereu în limba română."
+					: "Răspunde mereu în limba engleză.",
+		orgHeading: "Indicațiile organizației (se aplică în limitele regulilor de mai sus):",
+		skillsHeading:
+			"Abilitățile organizației: urmează-le pe cele potrivite când apare unul dintre cuvintele lor.",
 	},
 	chip: (tool, phase) => CHIPS[tool][phase === "running" ? 0 : phase === "done" ? 1 : 2],
 	chipFound: (tool, count) => {
@@ -412,6 +427,16 @@ export const STAFF_RO: StaffCopy = {
 			invalid: "Mesajul nu a putut fi citit. Scrie-l din nou.",
 			unavailable: "Asistentul nu este disponibil acum. Folosește ecranele aplicației.",
 			language: "Nu am putut răspunde în limba ta. Încearcă din nou.",
+			disabled:
+				"Asistentul este oprit pentru tine în setările organizației. Poți folosi în continuare toate ecranele aplicației.",
+			budget:
+				"Bugetul lunar al asistentului s-a epuizat. Revin luna viitoare sau după ce un administrator îl mărește din Setări → Asistent.",
+			tokens:
+				"Asistentul a ajuns la limita de folosire stabilită pentru organizație. Încearcă mai târziu sau cere unui administrator să o mărească.",
+			messages_day:
+				"Ai ajuns la numărul de mesaje pe care le poți trimite azi asistentului. Mâine poți continua; ecranele aplicației merg în continuare.",
+			session_limit:
+				"Conversația aceasta a ajuns la lungimea maximă. Începe o conversație nouă și continuăm de acolo.",
 		},
 		sheetLabel: "Asistentul echipei",
 		fullscreen: "Ecran complet",

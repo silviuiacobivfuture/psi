@@ -1,11 +1,13 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import type { StaffConfig } from "./assistant-config";
 import type { StaffCopy, ToolKey } from "./copy";
 import type { StaffCard, StaffPage } from "./events";
 import type { Principal } from "./model";
 import type { RouteLike } from "./parity/routes";
 import type { AuditEntry, IssuesPort, PortRefusal, StaffPort } from "./port";
 import type { ProposalStore } from "./proposals";
+import type { ReadCache } from "./read-cache";
 import { STAFF_TOOLS } from "./tool-ids";
 
 /** The request-context key a turn holds its session under. */
@@ -51,6 +53,12 @@ export interface StaffSession {
 	readonly taint: { stranger: boolean };
 	/** What the person may do here, loaded once per turn; undefined when the service could not say. */
 	caps: ReadonlySet<string> | undefined;
+	/** What governs this turn (the service's merged configuration); the built-in one until the turn reads it. */
+	config: StaffConfig;
+	/** The tools a skill that applies limits this turn to; undefined: every tool the person holds. */
+	allow: ReadonlySet<string> | undefined;
+	/** This person's recent reads (short-lived, never shared, forgotten on any change of theirs). */
+	readonly reads: ReadCache;
 }
 
 const AmbiguousSchema = z.object({
@@ -129,6 +137,8 @@ export async function guardedRun<O>(
 	phase: "read" | "propose",
 	work: () => Promise<ToolRun<O>>,
 	input?: unknown,
+	/** What a final refusal blocks for the rest of the turn: the tool, or (a discovery call) the one thing it named. */
+	blockAs: string = id,
 ): Promise<O | RefusedOutput> {
 	const refuse = (reason: PortRefusal | "not_allowed" | "repeat" | "tainted"): RefusedOutput => ({
 		status: "refused",
@@ -136,7 +146,7 @@ export async function guardedRun<O>(
 		explanation: session.copy.refusal[reason],
 	});
 	const again = input === undefined ? 0 : repeated(session, id, input);
-	if (session.blocked.has(id) || again > MAX_SAME_CALLS) {
+	if (session.blocked.has(blockAs) || again > MAX_SAME_CALLS) {
 		await record(session, {
 			tool: id,
 			phase: "refused",
@@ -154,7 +164,7 @@ export async function guardedRun<O>(
 		return refuse("unavailable");
 	}
 	if (!run.ok) {
-		if (FINAL.has(run.reason)) session.blocked.add(id);
+		if (FINAL.has(run.reason)) session.blocked.add(blockAs);
 		await record(session, {
 			tool: id,
 			phase: "refused",

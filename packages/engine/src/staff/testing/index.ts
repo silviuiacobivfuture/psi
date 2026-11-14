@@ -1,3 +1,4 @@
+export { staffConfigWith } from "./config";
 export { FAKE_ACTIONS, type FakeAction } from "./fake-actions";
 export { FakeIssuesPort } from "./fake-issues";
 export {

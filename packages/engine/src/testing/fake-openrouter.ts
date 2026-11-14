@@ -6,7 +6,14 @@ import { z } from "zod";
  * exercise the real provider, Mastra and the engine, with only the external service replaced.
  */
 export type FakeReply =
-	| { kind: "text"; chunks: ReadonlyArray<string>; delayMs?: number; finish?: string }
+	| {
+			kind: "text";
+			chunks: ReadonlyArray<string>;
+			delayMs?: number;
+			finish?: string;
+			/** What the provider reports it used (OpenRouter's usage accounting, cost in dollars) on the last chunk. */
+			usage?: { prompt: number; completion: number; cached?: number; cost?: number };
+	  }
 	| { kind: "tool"; query: string; tool?: string; input?: object }
 	| { kind: "status"; status: number }
 	| { kind: "hang" };
@@ -95,7 +102,21 @@ async function reply(res: ServerResponse, answer: FakeReply, n: number): Promise
 			if (res.destroyed) return;
 			sse(res, chunk(i === 0 ? { role: "assistant", content } : { content }));
 		}
-		sse(res, chunk({}, answer.finish ?? "stop"));
+		const used = answer.usage;
+		sse(res, {
+			...chunk({}, answer.finish ?? "stop"),
+			...(used === undefined
+				? {}
+				: {
+						usage: {
+							prompt_tokens: used.prompt,
+							completion_tokens: used.completion,
+							total_tokens: used.prompt + used.completion,
+							prompt_tokens_details: { cached_tokens: used.cached ?? 0 },
+							...(used.cost === undefined ? {} : { cost: used.cost }),
+						},
+					}),
+		});
 	}
 	res.end("data: [DONE]\n\n");
 }

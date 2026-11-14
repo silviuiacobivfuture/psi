@@ -1,6 +1,6 @@
 {
 	"name": "@psi/engine",
-	"version": "0.15.0",
+	"version": "0.16.0",
 	"private": true,
 	"type": "module",
 	"description": "A reusable grounded-answer engine on Mastra: profiles (personas as data), screening, retrieval, the per-sentence gate and the faithfulness scorer, on OpenRouter models",
@@ -22,6 +22,7 @@
 		"@mastra/libsql": "^1.29.0",
 		"@mastra/memory": "^1.41.0",
 		"@openrouter/ai-sdk-provider": "^3.1.0",
+		"@psi/scheduling-sdk": "workspace:*",
 		"hono": "^4.13.18",
 		"zod": "^3.25.76"
 	},
