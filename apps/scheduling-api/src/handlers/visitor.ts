@@ -1,7 +1,8 @@
 import { accountHashOf } from "@psi/scheduling";
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import { bookingFieldProblems } from "@psi/scheduling-sdk/contract";
-import { visitorSubject } from "../auth/principal";
+import { verifiedEmailOf, visitorSubject } from "../auth/principal";
+import { matchAccount } from "../engagement/account-links";
 import { alertBlacklist } from "../engagement/blacklist-alert";
 import { activateOnSignIn } from "../engagement/invite-flow";
 import {
@@ -109,6 +110,7 @@ export const visitorHandlers: HandlersOf<
 			{ reference: rest.reference, start: rest.start },
 			rest.reference,
 		);
+		if (subject !== undefined) await linkByBooking(ctx, subject, rest.reference, ctx.body.contact);
 		return rest;
 	},
 	async "visitor.cancel"(ctx) {
@@ -201,6 +203,29 @@ export const visitorHandlers: HandlersOf<
 		return moved;
 	},
 };
+
+/**
+ * A signed-in account booked: when its contact is a clinic client's, the account is linked to them (one client, by the
+ * e-mail the sign-in vouches for) or the team is asked which client it is. The booking never waits on it or fails
+ * because of it.
+ */
+async function linkByBooking(
+	ctx: C,
+	subject: string,
+	reference: string,
+	contact: { email?: string | undefined; phone?: string | undefined },
+): Promise<void> {
+	try {
+		await matchAccount(ctx, subject, {
+			emails: [contact.email],
+			phones: [contact.phone],
+			verifiedEmail: verifiedEmailOf(ctx.principal),
+			reference,
+		});
+	} catch {
+		ctx.deps.log({ level: "error", event: "account_match_failed", requestId: ctx.requestId });
+	}
+}
 
 /** Whose own data a `/me` route touches: the signed-in visitor, or the one a site's key names. */
 function ownSubject(principal: Parameters<typeof visitorSubject>[0]): string {

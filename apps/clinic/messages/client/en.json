@@ -186,5 +186,19 @@
 	"cl_contact_hint": "A field left empty is cleared on save. The client keeps a phone or an e-mail, their own or their guardian's, so that they can be booked.",
 	"cl_contact_required": "Nothing changed: the client would be left with no phone and no e-mail (nor a guardian's), and a booking needs one of them.",
 	"cl_phone_cleared": "The phone was cleared.",
-	"cl_email_cleared": "The e-mail was cleared."
+	"cl_email_cleared": "The e-mail was cleared.",
+	"al_title": "Online accounts to confirm",
+	"al_lead": "Someone with an online account booked with a client's contact details. Say which client it is, so they see their appointments and get the notifications, or that it is none of them.",
+	"al_via_email": "Same e-mail as:",
+	"al_via_phone": "Same phone as:",
+	"al_reference": "Booking {reference}",
+	"al_pick": "Choose the client",
+	"al_confirm": "It is this client",
+	"al_dismiss": "None of them",
+	"al_empty": "No account is waiting to be confirmed.",
+	"al_done_linked": "The account is linked to the client.",
+	"al_done_dismissed": "Noted: it is none of them.",
+	"al_conflict": "The client already has another online account. Nothing was changed.",
+	"al_banner": "Online accounts to confirm: {n}",
+	"al_open": "Review"
 }

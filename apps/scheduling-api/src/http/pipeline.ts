@@ -6,6 +6,7 @@ import {
 	VIEW_AS_HEADER,
 } from "@psi/scheduling-sdk/contract";
 import type { Context } from "hono";
+import { z } from "zod";
 import { type Principal, subjectOf, visitorSubject } from "../auth/principal";
 import { verifyServiceKey } from "../auth/service-keys";
 import { NONE, type Reach } from "../authz/access";
@@ -63,6 +64,8 @@ function parseQuery(spec: RouteSpec, c: Context<HttpEnv>): Record<string, unknow
 	return r.data;
 }
 
+const VouchedEmail = z.string().trim().email().max(254).optional();
+
 /** Who is calling. A bearer and a service key together are refused: one credential per call. */
 async function authenticate(deps: Deps, c: Context<HttpEnv>): Promise<Principal> {
 	const header = c.req.header("authorization");
@@ -86,17 +89,24 @@ async function authenticate(deps: Deps, c: Context<HttpEnv>): Promise<Principal>
 			kind: "person",
 			subject: result.subject,
 			...(result.name === undefined ? {} : { name: result.name }),
+			...(result.verifiedEmail === undefined ? {} : { verifiedEmail: result.verifiedEmail }),
 		};
 	}
 	if (key !== undefined) {
 		const result = verifyServiceKey(key, deps.config.callers, deps.config.callerHashes);
 		if (!result.ok) throw fail("invalid_token", "the service key was refused");
 		const onBehalfOf = c.req.header("x-psi-subject");
+		const named = onBehalfOf !== undefined && onBehalfOf !== "";
+		// A site may vouch for its visitor's e-mail only together with naming the visitor.
+		const vouched = VouchedEmail.safeParse(c.req.header("x-psi-verified-email"));
 		return {
 			kind: "service",
 			callerId: result.callerId,
 			app: result.app,
-			...(onBehalfOf === undefined || onBehalfOf === "" ? {} : { onBehalfOf }),
+			...(named ? { onBehalfOf } : {}),
+			...(named && vouched.success && vouched.data !== undefined
+				? { verifiedEmail: vouched.data }
+				: {}),
 		};
 	}
 	throw fail("unauthenticated", "sign in or present a service key");

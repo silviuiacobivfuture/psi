@@ -1,6 +1,6 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Ctx } from "../http/context";
-import { clientsOfAccount } from "./invite-flow";
+import { accountClients } from "./account-links";
 
 type C = Ctx<RouteSpec>;
 
@@ -21,15 +21,16 @@ export interface OwnItem {
 }
 
 /**
- * The clinic's own appointments of the clients an account has been invited for (a guardian's account covers each child).
+ * The clinic's own appointments of the clients an account covers: invited for (a guardian's account covers each child),
+ * or linked by a booking whose vouched e-mail was theirs, or by the team.
  * Only a live session shows: a soft-deleted one, a block, a group slot and a no-show are the team's business. A booking
  * the team made reads as `confirmed`, because that is what it is to the person.
  */
 export async function clinicAppointmentsOf(ctx: C, subject: string): Promise<OwnItem[]> {
 	const { store } = ctx.deps;
 	const out: OwnItem[] = [];
-	for (const invite of await clientsOfAccount(ctx, subject)) {
-		const rows = await store.c.appointments.list(ctx.app, { eq: { clientId: invite.clientId } });
+	for (const clientId of await accountClients(ctx, subject)) {
+		const rows = await store.c.appointments.list(ctx.app, { eq: { clientId } });
 		for (const a of rows) {
 			if (a.deletedAt !== undefined || a.kind !== "session") continue;
 			if (a.status !== "scheduled" && a.status !== "attended" && a.status !== "cancelled") continue;

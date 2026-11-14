@@ -2,14 +2,19 @@ import {
 	APP_DEFAULTS,
 	APP_KEYS,
 	type AppKey,
+	accountClientId,
 	type EventId,
 	type Notifier,
 	type Recipient,
 } from "@psi/notify";
 import { type IssuedLinks, issueLinks } from "@psi/notify/reminders";
+import { z } from "zod";
+import { json } from "../engagement/records";
 import type { LogEvent } from "../http/context";
 import type { AppointmentRow, ClientRow, StorePort } from "../store/types";
 import type { Notification } from "./notify";
+
+const LinkOf = z.object({ accountHash: z.string().length(64) });
 
 /** Where each brand's site lives; the team console is one per environment (CONSOLE_URL), the same for both brands. */
 export const SITE_URLS: Readonly<Record<AppKey, string>> = {
@@ -92,9 +97,12 @@ export function createNotifyEnv(options: NovuNotifyOptions): NotifyEnv {
 			if (row === undefined) return undefined;
 			const email = row.contact?.email ?? row.guardian?.email;
 			const phone = row.contact?.phone ?? row.guardian?.phone;
+			// A client linked to an online account is that account: its devices, its choices, every notice in one place.
+			const link = await store.keyed.get(app, "link", `c/${row.id}`);
+			const linked = link === undefined ? undefined : LinkOf.safeParse(json(link.body));
 			return {
 				audience: "client",
-				clientId: row.id,
+				clientId: linked?.success === true ? accountClientId(linked.data.accountHash) : row.id,
 				name: row.name,
 				locale: "ro",
 				...(email === undefined ? {} : { email }),
