@@ -1,3 +1,4 @@
+import { AVAILABILITY_ACTIONS } from "./registry-availability";
 import { CATALOG_ACTIONS } from "./registry-catalog";
 import { CLIENT_ACTIONS } from "./registry-client";
 import { DAILY_ACTIONS } from "./registry-daily";
@@ -21,6 +22,7 @@ export const ACTIONS: ReadonlyArray<ActionDef> = [
 	...ME_ACTIONS,
 	...MEMBER_ACTIONS,
 	...ROLE_MATRIX_ACTIONS,
+	...AVAILABILITY_ACTIONS,
 ];
 
 const ids = ACTIONS.map((a) => a.id);
