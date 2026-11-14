@@ -7,14 +7,7 @@ import {
 import type { z } from "zod/v4";
 import { NO_CLIENTS, narrowedTo } from "../client-list";
 import { type Numbered, offsetAt, type PageAt, pageOfOffset } from "../numbered";
-import {
-	type ClientListAsk,
-	type ClientPage,
-	LIST_PAGE,
-	type ListedClient,
-	type Paged,
-	PortError,
-} from "../port";
+import { type ClientListAsk, type ClientPage, type ListedClient, PortError } from "../port";
 import type { AppSlug, Client } from "../schema";
 import type { BlacklistEntry, ClientFile, ClientFlag, ClientSummary } from "../schema-clinical";
 import { clinicalNotesGroup } from "./clinical-notes";
@@ -268,20 +261,22 @@ export function clinicalGroup(
 				);
 				return list.filter((f) => f.status === "ready").map((f) => fileOf(f, tz));
 			}),
-		filePage: (app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>> =>
+		filePage: (app: AppSlug, clientId: string, ask: PageAt): Promise<Numbered<ClientFile>> =>
 			run(async () => {
 				const [tz, got] = await Promise.all([
 					sdk.zone(app),
 					api.files.list({
 						app,
 						id: clientId,
-						limit: LIST_PAGE,
-						...(cursor === null ? {} : { cursor }),
+						status: "ready",
+						offset: (ask.page - 1) * ask.size,
+						limit: ask.size,
 					}),
 				]);
 				return {
-					items: got.items.filter((f) => f.status === "ready").map((f) => fileOf(f, tz)),
-					nextCursor: got.nextCursor ?? null,
+					items: got.items.map((f) => fileOf(f, tz)),
+					total: got.total,
+					page: Math.floor(got.offset / ask.size) + 1,
 				};
 			}),
 		uploadFile: (

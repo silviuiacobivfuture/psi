@@ -11,6 +11,7 @@
 	"pg_size": "Pe pagină",
 	"pg_apply": "Aplică",
 	"cl_pager_nav": "Paginare clienți",
+	"cl_tab_pager_nav": "Paginare listă",
 	"cl_f_label": "Filtre",
 	"cl_f_sort": "Ordine",
 	"cl_sort_name": "Nume, A–Z",

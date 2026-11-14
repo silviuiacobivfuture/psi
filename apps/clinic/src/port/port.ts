@@ -447,10 +447,10 @@ export interface ClinicPort extends ProfilePort, OrgPort {
 	deleteRecord(app: AppSlug, id: string): Promise<void>;
 	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
 	/**
-	 * ONE page of a client's files, newest first, after `cursor` (null: the first). A page may hold fewer than LIST_PAGE
-	 * (an upload never finished is not shown): only a null `nextCursor` says it is the last.
+	 * ONE numbered page of a client's finished files, newest first, and how many there are: the service counts and cuts
+	 * them (an upload never finished is never counted).
 	 */
-	filePage(app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>>;
+	filePage(app: AppSlug, clientId: string, at: PageAt): Promise<Numbered<ClientFile>>;
 	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
 	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
 	downloadFile(

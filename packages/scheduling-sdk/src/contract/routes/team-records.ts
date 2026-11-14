@@ -269,10 +269,11 @@ export const OPERATION_ROUTES = [
 		method: "GET",
 		path: "/v1/apps/:app/clients/:id/files",
 		side: "team",
-		summary: "A client's files",
+		summary:
+			"A client's files, newest first, as numbered pages (`total`, `offset`); `status: ready` leaves out uploads never finished",
 		params: IdParam,
-		query: PageQuery,
-		response: page(FileMeta),
+		query: NumberedQuery.extend({ status: z.enum(["pending", "ready"]).optional() }),
+		response: countedPage(FileMeta),
 		permission: { key: "files_view", target: { kind: "object", type: "sched_client" } },
 	}),
 	route({
