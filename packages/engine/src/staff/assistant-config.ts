@@ -109,10 +109,16 @@ export function toolAllowance(
  * engine's own (or the organisation's override), the tone and language, the organisation's addition, and every skill
  * of the surface with its triggers (the model applies one when a trigger appears). Per-turn notes go after it.
  */
-export function standingInstructions(copy: StaffCopy, base: string, config: StaffConfig): string {
+export function standingInstructions(copy: StaffCopy, config: StaffConfig): string {
 	const s = config.settings;
+	// An override replaces the assistant's voice, never its rules: the data fence and confirm-before-change always hold.
+	const rules = [
+		copy.prompt.rulesHeading,
+		...copy.prompt.rules.map((r, i) => `${i + 1}. ${r}`),
+	].join("\n");
 	const parts = [
-		s.prompt.override ?? base,
+		s.prompt.override ?? copy.prompt.language,
+		rules,
 		copy.prompt.tone(s.tone),
 		copy.prompt.replyLanguage(s.language),
 	];

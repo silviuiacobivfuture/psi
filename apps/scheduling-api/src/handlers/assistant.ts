@@ -230,7 +230,8 @@ export const assistantHandlers: HandlersOf<
 				{ surface: "staff", period: day, scope: `sub:${ctx.subject}` },
 			],
 			{
-				messages: 1,
+				// A turn refused by a limit is a limit met, not a message.
+				messages: b.limitHit ? 0 : 1,
 				inputTokens: b.inputTokens,
 				outputTokens: b.outputTokens,
 				cachedTokens: b.cachedTokens,

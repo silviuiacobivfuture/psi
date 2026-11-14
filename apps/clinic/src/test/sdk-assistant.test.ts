@@ -12,7 +12,8 @@ afterAll(async () => {
 });
 
 const form = (fields: Record<string, string>): [URLSearchParams, Record<string, string>] => [
-	new URLSearchParams(fields),
+	// Edited from revision 0 unless the case says otherwise (the form carries the revision it was edited from).
+	new URLSearchParams({ revision: "0", ...fields }),
 	{ "content-type": "application/x-www-form-urlencoded" },
 ];
 
@@ -40,7 +41,10 @@ describe("the assistant's settings over the real service, as the signed-in perso
 	});
 	it("a value the estate's ceiling refuses comes back as words; the service keeps what it had", async () => {
 		const olga = await world.as("olga");
-		const res = await olga.post("/settings/assistant", ...form({ "staff.maxToolCalls": "20" }));
+		const res = await olga.post(
+			"/settings/assistant",
+			...form({ revision: "1", "staff.maxToolCalls": "20" }),
+		);
 		expect(await res.text()).toContain("Nu s-a salvat nimic.");
 		expect(
 			(await world.api.world.call("olga", "GET", "/v1/apps/psizone/assistant/config")).json

@@ -259,6 +259,7 @@ export async function renderAssistantSettings(
 				<Usage view={view} ctx={ctx} o={o} />
 				<p class="adm-muted">{writable ? m.as_lead({}, o) : m.as_readonly({}, o)}</p>
 				<form method="post" action="/settings/assistant" class="adm-stack" data-form="assistant">
+					<input type="hidden" name="revision" value={String(view.revision)} />
 					<fieldset class="adm-stack" disabled={!writable}>
 						{SURFACES.map((s) => (
 							<section key={s} class="adm-stack" aria-labelledby={`as-${s}`} data-surface={s}>

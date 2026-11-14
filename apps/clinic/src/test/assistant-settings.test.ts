@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { runAction } from "../actions/engine";
+import { canOf } from "../lib/can";
 import { type Console, MEMBER, startConsole } from "./harness";
 
 let c: Console | undefined;
@@ -15,7 +17,8 @@ const as = async (role: string, platformAdmin = false): Promise<Console> => {
 	return c;
 };
 const form = (fields: Record<string, string>): [URLSearchParams, Record<string, string>] => [
-	new URLSearchParams(fields),
+	// Edited from revision 0 unless the case says otherwise (the form carries the revision it was edited from).
+	new URLSearchParams({ revision: "0", ...fields }),
 	{ "content-type": "application/x-www-form-urlencoded" },
 ];
 
@@ -91,6 +94,7 @@ describe("Setări → Asistent: the organisation's tier", () => {
 		await owner.post(
 			"/settings/assistant",
 			...form({
+				revision: "1",
 				"skill.0.id": "unu",
 				"skill.0.name": "Unu",
 				"skill.0.instructions": "a",
@@ -103,6 +107,32 @@ describe("Setări → Asistent: the organisation's tier", () => {
 		expect((await owner.port.assistantConfig("psizone")).doc?.skills.map((s) => s.id)).toEqual([
 			"doi",
 		]);
+	});
+	it("a save from a revision someone else already saved over is refused as such, and changes nothing", async () => {
+		const owner = await as("owner");
+		await owner.post("/settings/assistant", ...form({ "staff.maxToolCalls": "5" }));
+		const late = await owner.post("/settings/assistant", ...form({ "staff.maxToolCalls": "2" }));
+		expect(await late.text()).toContain("Altcineva a salvat între timp.");
+		const view = await owner.port.assistantConfig("psizone");
+		expect([view.revision, view.doc?.staff.maxToolCalls]).toEqual([1, 5]);
+	});
+	it("a save without the revision it was edited from (an empty call, from anywhere) is refused and erases nothing", async () => {
+		const owner = await as("owner");
+		await owner.post("/settings/assistant", ...form({ "staff.maxToolCalls": "5" }));
+		const caps = await owner.port.capabilities(MEMBER.sub, "psizone");
+		const ctx = {
+			port: owner.port,
+			app: "psizone" as const,
+			can: canOf(caps, false),
+			actor: { subject: MEMBER.sub, name: "Ana" },
+			locale: "ro" as const,
+			today: "2026-11-16",
+		};
+		expect(
+			await runAction(ctx, "assistant.save", {}, { confirmed: true, via: "assistant" }),
+		).toEqual({ status: "refused", code: "invalid" });
+		const view = await owner.port.assistantConfig("psizone");
+		expect([view.revision, view.doc?.staff.maxToolCalls]).toEqual([1, 5]);
 	});
 	it("Reception can neither open nor save it, and nothing is written", async () => {
 		const reception = await as("reception");

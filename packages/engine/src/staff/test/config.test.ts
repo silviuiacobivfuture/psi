@@ -112,7 +112,9 @@ describe("a turn runs on the person's configuration", () => {
 		await collect(engine.chat(port, { message: "salut" }));
 		const text = JSON.stringify(firstBody().messages[0]?.content);
 		expect(text).toContain("Ești asistentul clinicii X.");
-		expect(text).not.toContain(STAFF_EN.prompt.rulesHeading);
+		// The override replaces the voice, never the rules.
+		expect(text).not.toContain(STAFF_EN.prompt.language);
+		expect(text).toContain(STAFF_EN.prompt.rulesHeading);
 		expect(text).toContain("Nu folosi emoji.");
 		expect(text).toContain(STAFF_EN.prompt.tone("formal"));
 		expect(text).toContain(STAFF_EN.prompt.replyLanguage("ro"));

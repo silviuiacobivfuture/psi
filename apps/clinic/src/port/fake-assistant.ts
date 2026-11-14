@@ -89,7 +89,7 @@ export function createFakeAssistant(actor: () => string): Part {
 		assistantEffective: async (app) => effective(app),
 		async recordAssistantUsage(app, u) {
 			const delta = {
-				messages: 1,
+				messages: u.limitHit ? 0 : 1,
 				inputTokens: u.inputTokens,
 				outputTokens: u.outputTokens,
 				cachedTokens: u.cachedTokens,

@@ -24,7 +24,14 @@ export function configMethods(
 ): Pick<StaffPort, "assistant" | "recordUsage" | "callRoute"> {
 	const { port, app } = o;
 	return {
-		assistant: () => wrap(async () => ok(await port.assistantEffective(app))),
+		assistant: () =>
+			wrap(async () => {
+				const config = await port.assistantEffective(app);
+				// Looking as someone else: nothing read is kept, so no view ever answers from another view's reads.
+				return ok(
+					o.readOnly ? { ...config, settings: { ...config.settings, cacheTtlSeconds: 0 } } : config,
+				);
+			}),
 		recordUsage: (usage) =>
 			wrap(async () => {
 				const stop = await port.recordAssistantUsage(app, { surface: "staff", ...usage });

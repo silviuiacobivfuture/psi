@@ -200,6 +200,9 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 			controller.signal,
 		);
 		streamed = output;
+		// The figures are read at the end, or never (a retried attempt): a failed stream must not leave them unhandled.
+		Promise.resolve(output.totalUsage).catch(() => undefined);
+		Promise.resolve(output.providerMetadata).catch(() => undefined);
 		settled.push(output.finishReason.catch(() => undefined));
 		const reader = output.fullStream.getReader();
 		const names = new Map<string, string>();
@@ -334,7 +337,8 @@ export async function* runTurn(args: TurnArgs): AsyncGenerator<StaffEvent, void,
 		if (failed) void forgetAnswer(args.memory, key, started, Promise.all(settled));
 	}
 	// What the attempt used is counted even when it failed: the provider may have charged for it.
-	if (streamed !== undefined && args.onUsage !== undefined) {
+	// A retry before any output is the same turn: it is recorded once, by the attempt that answers.
+	if (streamed !== undefined && args.onUsage !== undefined && !retry) {
 		try {
 			await args.onUsage(await usageOf(streamed, AbortSignal.timeout(USAGE_WAIT_MS * 2)));
 		} catch (error) {

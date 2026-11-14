@@ -26,7 +26,6 @@ import { openSession, type SessionDeps } from "./open";
 import { baseKeys } from "./parity/needs";
 import type { RouteLike } from "./parity/routes";
 import type { IssuesPort, StaffPort } from "./port";
-import { staffInstructions } from "./prompt";
 import { createMemoryProposalStore, type ProposalStore } from "./proposals";
 import { createReadCache, personOf } from "./read-cache";
 import type { StaffLinks } from "./session";
@@ -291,7 +290,7 @@ export function createStaffEngine(options: StaffEngineOptions): StaffEngine {
 			agent,
 			session,
 			input: parsed.data,
-			instructions: standingInstructions(session.copy, staffInstructions(session.copy), config),
+			instructions: standingInstructions(session.copy, config),
 			memory,
 			detector,
 			timeouts: {

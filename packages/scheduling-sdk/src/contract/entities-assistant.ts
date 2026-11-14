@@ -33,7 +33,10 @@ const PromptText = (max: number) =>
 	z
 		.string()
 		.max(max)
-		.refine((s) => !/<\/?(system|data|tool)[\s>]/i.test(s), "no system, data or tool tags");
+		.refine(
+			(s) => !/<\/?(system|data|record-data|tool)[\s>]/i.test(s),
+			"no system, data or tool tags",
+		);
 
 /** A named instruction pack the model follows when one of its triggers appears, optionally limited to some tools. */
 export const AssistantSkill = z.object({
@@ -248,7 +251,7 @@ export const AssistantUsageRecord = z.object({
 	inputTokens: int(0, 2_000_000),
 	outputTokens: int(0, 2_000_000),
 	cachedTokens: int(0, 2_000_000),
-	costMicroUsd: int(0, 50_000_000),
+	costMicroUsd: int(0, 5_000_000),
 	/** The turn was refused by a limit (counted, so a meter shows how often people hit one). */
 	limitHit: z.boolean(),
 });

@@ -117,6 +117,7 @@ export async function renderAssistantPlatform(
 					class="adm-stack"
 					data-form="assistant-platform"
 				>
+					<input type="hidden" name="revision" value={String(held.revision)} />
 					{SURFACES.map((s) => (
 						<section key={s} class="adm-stack" aria-labelledby={`pl-${s}`} data-surface={s}>
 							<h2 class="adm-h2" id={`pl-${s}`}>
