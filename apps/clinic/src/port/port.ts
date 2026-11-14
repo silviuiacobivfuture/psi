@@ -64,6 +64,7 @@ import type {
 	MemberDetail,
 	MemberInput,
 	OverridesInput,
+	SignInLink,
 	StaffMatch,
 } from "./schema-members";
 
@@ -303,10 +304,10 @@ export interface ClinicPort extends ProfilePort {
 	 */
 	inviteMember(app: AppSlug, input: InviteInput): Promise<InviteOutcome>;
 	/**
-	 * A fresh one-time set-password link for a member who has never signed in. Refuses (`conflict`, with the service's
+	 * The set-password link of a member who has never signed in: the sign-in answers the same one for 30 minutes. Refuses (`conflict`, with the service's
 	 * reason) one who already signed in, has no e-mail or no account of theirs in the staff group.
 	 */
-	newSignInLink(app: AppSlug, subject: string): Promise<string>;
+	newSignInLink(app: AppSlug, subject: string): Promise<SignInLink>;
 	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
 	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */

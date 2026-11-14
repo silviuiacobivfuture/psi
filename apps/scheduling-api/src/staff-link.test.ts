@@ -43,17 +43,28 @@ describe("a new set-password link for a member who never signed in", () => {
 		expect(events).toEqual([
 			expect.objectContaining({
 				target: expect.objectContaining({ id: subject }),
-				detail: { link: "issued" },
+				detail: { link: "shown" },
 			}),
 		]);
 		expect(JSON.stringify(events)).not.toContain("sso.test");
 		expect(JSON.stringify(w.logs)).not.toContain("sso.test/recover");
 	});
 
-	it("each request asks for a new link (the sign-in replaces its earlier one)", async () => {
+	it("says when the link stops working at the latest: 30 minutes from the request", async () => {
 		const subject = await invite();
-		await link(subject);
-		await link(subject);
+		expect(StaffLinkResult.parse((await link(subject)).json).expiresBy).toBe(
+			w.clock.now + 30 * 60_000,
+		);
+	});
+
+	it("asked again within its 30 minutes, the sign-in answers the same link, and the service passes it on as it is", async () => {
+		const subject = await invite();
+		const first = StaffLinkResult.parse((await link(subject)).json);
+		w.clock.now += 10 * 60_000;
+		const again = StaffLinkResult.parse((await link(subject)).json);
+		expect(again.signInLink).toBe(first.signInLink);
+		expect(again.expiresBy).toBe(w.clock.now + 30 * 60_000);
+		// asked each time: the service never keeps a link to answer from
 		expect(w.staff.calls.filter((c) => c.startsWith("recovery:"))).toHaveLength(3);
 	});
 });

@@ -27,7 +27,7 @@ export interface StaffDirectory {
 	leave(userId: string): Promise<void>;
 	/** When the account last signed in (UTC ms), or undefined if it never has. */
 	lastLogin(userId: string): Promise<number | undefined>;
-	/** A one-time link on which the person sets a password (short-lived; the sign-in's own setting). */
+	/** The person's set-password link: one per person for 30 minutes; asked again meanwhile, the sign-in answers the same. */
 	recoveryLink(userId: string): Promise<string>;
 	/** Switches an account off (reversible; nothing is deleted). */
 	deactivate(userId: string): Promise<void>;

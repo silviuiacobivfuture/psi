@@ -7,7 +7,7 @@ import { all, type Body, one } from "../lib/catalog-form";
 import { at, type Locale } from "../lib/i18n";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
-import { InviteOutcomeSchema } from "../port/schema-members";
+import { InviteOutcomeSchema, SignInLinkSchema } from "../port/schema-members";
 import { StaffResults } from "./member-add";
 import { renderMembers } from "./members";
 
@@ -34,8 +34,6 @@ const LINK_PROBLEM: Partial<Record<keyof typeof STATUS, string>> = {
 	conflict: "link-conflict",
 	unavailable: "link-unavailable",
 };
-
-const LinkMade = z.object({ signInLink: z.string().url() });
 
 /** The words of a `problem=` the page was sent back with. */
 function problemText(code: string | undefined, locale: Locale): string | undefined {
@@ -197,7 +195,7 @@ export function registerMembers(app: Hono<Env>): void {
 		const subject = c.req.param("subject");
 		const result = await runAction(actionCtx(ctx), "member.link", { subject }, { confirmed: true });
 		if (result.status === "ok") {
-			const made = LinkMade.safeParse(result.data);
+			const made = SignInLinkSchema.safeParse(result.data);
 			if (!made.success) return c.redirect(editing(subject), 303);
 			const member = (await ctx.port.members(ctx.app)).find((x) => x.subject === subject);
 			return c.html(
@@ -207,7 +205,7 @@ export function registerMembers(app: Hono<Env>): void {
 					undefined,
 					undefined,
 					undefined,
-					{ name: member?.displayName ?? subject, link: made.data.signInLink },
+					{ name: member?.displayName ?? subject, ...made.data },
 				),
 				200,
 				NOCACHE,

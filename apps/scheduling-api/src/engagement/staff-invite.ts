@@ -6,6 +6,9 @@ import type { StaffAccount, StaffDirectory } from "../ports/staff-directory";
 
 type C = Ctx<RouteSpec>;
 
+/** How long a set-password link works: the estate sign-in's setting (one link per person, the same one while it lasts). */
+export const SIGN_IN_LINK_MS = 30 * 60_000;
+
 /** The most people one search answers: the form shows a short list to pick from, never the directory. */
 const SEARCH_LIMIT = 20;
 
@@ -116,5 +119,6 @@ export async function inviteStaff(
 		member: memberOut(written.next),
 		account: made ? ("created" as const) : ("existing" as const),
 		signInLink,
+		signInLinkExpiresBy: signInLink === null ? null : ctx.now + SIGN_IN_LINK_MS,
 	};
 }
