@@ -385,6 +385,38 @@ describe("sending the request", () => {
 		await context.close();
 	});
 
+	for (const failure of ["a 500", "a dropped connection"] as const) {
+		it(`${failure}: sent once, never retried, and the form says it did not go through`, async () => {
+			const { page, context } = await open();
+			await page.route("**/programare", (route) =>
+				route.request().method() !== "POST"
+					? route.continue()
+					: failure === "a 500"
+						? route.fulfill({ status: 500, body: "" })
+						: route.abort("connectionreset"),
+			);
+			await fillContact(page);
+			await pill(page, "Un copil").click();
+			await page.locator(FORM).getByLabel("Sunt de acord").check();
+			const button = page.locator(`${FORM} button[type=submit]`);
+			const alert = page.locator(`${FORM} p[role=alert]`);
+			expect(await alert.isVisible()).toBe(false);
+			await button.click();
+			await alert.waitFor({ state: "visible" });
+			expect(await alert.textContent()).toContain(FAILED);
+			await page.waitForTimeout(3000);
+			expect(posts).toHaveLength(1);
+			expect(sent).toHaveLength(0);
+			expect(await button.isDisabled()).toBe(false);
+			// A second try that goes through clears the message and thanks the person.
+			await page.unroute("**/programare");
+			await button.click();
+			await page.getByText(THANKS).waitFor();
+			expect(posts).toHaveLength(2);
+			await context.close();
+		}, 15_000);
+	}
+
 	it("an incomplete form comes back with each error under its field and the first one focused", async () => {
 		const { page, context } = await open();
 		await page.locator(`${FORM} button[type=submit]`).click();

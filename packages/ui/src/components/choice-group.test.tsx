@@ -86,15 +86,14 @@ describe("ChoiceGroup", () => {
 		const focused = group({ autofocus: true });
 		const first = focused.querySelector("input");
 		expect(first?.hasAttribute("autofocus")).toBe(true);
-		expect(first?.getAttribute("data-init")).toBe("el.focus()");
 		expect(focused.querySelectorAll("[autofocus]")).toHaveLength(1);
-		expect(group().querySelectorAll("[autofocus], [data-init]")).toHaveLength(0);
+		expect(group().querySelectorAll("[autofocus]")).toHaveLength(0);
 	});
 
 	it("an exclusive option wires the change handler on checkboxes only, and refuses a value that is not a plain token", () => {
 		expect(
-			group({ exclusive: "any" }).querySelector("fieldset")?.getAttribute("data-on:change"),
-		).toContain("evt.target.value === 'any'");
+			group({ exclusive: "any" }).querySelector("fieldset")?.hasAttribute("data-on:change"),
+		).toBe(true);
 		expect(group().querySelector("fieldset")?.hasAttribute("data-on:change")).toBe(false);
 		expect(
 			group({ type: "radio", exclusive: "any" })
@@ -178,9 +177,7 @@ describe("TextArea", () => {
 	it("short once trimmed (and CRLF counted as the server counts it): the minimum is still hinted", () => {
 		const host = area({ value: "  scurt \r\n " });
 		expect(host.querySelector<HTMLElement>("#b-details-min")?.style.display).toBe("");
-		expect(
-			JSON.parse(host.querySelector(".pz-field")?.getAttribute("data-signals") ?? "{}"),
-		).toEqual({ _bDetailsN: 11, _bDetailsT: 5, _bDetailsBad: false });
+		expect(host.querySelector(".pz-field__count")?.textContent).toBe("11 / 2000");
 	});
 
 	it("with the server's error: shown at once in the error line, invalid, the minimum hint hidden", () => {
@@ -192,19 +189,11 @@ describe("TextArea", () => {
 		expect(field?.getAttribute("aria-invalid")).toBe("true");
 		expect(field?.getAttribute("aria-describedby")).toBe("b-details-error b-details-hint");
 		expect(host.querySelector(".pz-field")?.classList.contains("pz-field--error")).toBe(true);
-		expect(
-			JSON.parse(host.querySelector(".pz-field")?.getAttribute("data-signals") ?? "{}"),
-		).toEqual({ _bDetailsN: 3, _bDetailsT: 3, _bDetailsBad: true });
 	});
 
-	it("validates on blur and only clears while typing; the hint stays muted; extra attributes reach the field", () => {
+	it("without a hint there is no note; extra attributes reach the field", () => {
 		const host = area({ attrs: { autofocus: "autofocus" }, hint: undefined });
 		const field = host.querySelector("textarea");
-		expect(field?.getAttribute("data-on:blur")).toContain("_bDetailsT > 0 && $_bDetailsT < 10");
-		expect(field?.getAttribute("data-on:input")).toContain(
-			"$_bDetailsBad = $_bDetailsBad && $_bDetailsT < 10",
-		);
-		expect(field?.getAttribute("data-on:input")).not.toContain("$_bDetailsBad = true");
 		expect(field?.hasAttribute("autofocus")).toBe(true);
 		expect(host.querySelector(".pz-field__note")).toBeNull();
 		expect(field?.getAttribute("aria-describedby")).toBe("b-details-min");

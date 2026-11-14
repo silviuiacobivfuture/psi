@@ -1,6 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
+import { signalName } from "./signal-name";
 
 export interface TextAreaProps {
 	/** Unique in the page; it also names the field's Datastar signals. */
@@ -25,11 +26,6 @@ export interface TextAreaProps {
 	class?: string;
 }
 
-/** "b-details" → "_bDetails": a Datastar signal name of the id, local to the page (never sent). */
-function signalOf(id: string): string {
-	return `_${id.replace(/[^A-Za-z0-9]+([A-Za-z0-9])/g, (_, c: string) => c.toUpperCase())}`;
-}
-
 /**
  * A multi-line text field in the design system's input language, with a character counter and a
  * live minimum hint. It is validated when the person leaves it (or by the server on submit), never
@@ -51,7 +47,7 @@ export function TextArea({
 	attrs = {},
 	class: className,
 }: TextAreaProps): JSX.Element {
-	const s = signalOf(id);
+	const s = signalName(id);
 	const length = value.length;
 	const trimmed = value.replace(/\r\n?/g, "\n").trim().length;
 	const signals = JSON.stringify({

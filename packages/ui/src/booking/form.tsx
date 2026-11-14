@@ -3,6 +3,7 @@ import { FIELD_LIMITS } from "@psi/scheduling";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Button } from "../components/button";
 import { ChoiceGroup } from "../components/choice-group";
+import { signalName } from "../components/signal-name";
 import { TAKE_FOCUS } from "../components/take-focus";
 import { TextArea } from "../components/text-area";
 import { TextField } from "../components/text-field";
@@ -14,6 +15,16 @@ import type { AccountLine, BookingEnv, BookingErrors, BookingValues } from "./ty
 function whenChecked(raw: string | undefined): ReadonlyArray<string> {
 	const chosen = periodsOf(raw);
 	return chosen.length === 0 ? ["any"] : chosen;
+}
+
+/**
+ * Datastar's fetch events for this form: an answer that patched the page means the server heard it;
+ * a request that finished without one (a network failure, a 5xx) is said on the form, so the person
+ * is never left with a button that silently came back.
+ */
+function transportWatch(lost: string): string {
+	const sent = `$${lost}Sent`;
+	return `evt.detail.el === el && (evt.detail.type === 'started' ? (${sent} = false, $${lost} = false) : evt.detail.type === 'datastar-patch-elements' ? (${sent} = true) : evt.detail.type === 'finished' ? ($${lost} = !${sent}) : false)`;
 }
 
 /** The first field with an error, in the order the form shows them: it takes the focus. */
@@ -57,6 +68,7 @@ export function BookingForm({
 }): JSX.Element {
 	const { copy, routes } = env;
 	const f = fieldPrefix(id);
+	const lost = `${signalName(id)}Lost`;
 	const view = schedule?.view;
 	const [onlyAudience] = env.audiences;
 	// A time is being chosen: the contact fields wait for one; a call, or a store that cannot be read, skips it.
@@ -72,10 +84,13 @@ export function BookingForm({
 			action={routes.booking}
 			class="space-y-7"
 			novalidate
-			// One request at a time: Enter in a field submits even while the button is disabled.
-			data-on:submit__prevent={`$sending || @post('${routes.booking}', {contentType: 'form'})`}
+			// One request at a time: Enter in a field submits even while the button is disabled. A
+			// request is never retried by the browser: a retry after a lost answer would send it twice.
+			data-on:submit__prevent={`$sending || @post('${routes.booking}', {contentType: 'form', retry: 'never'})`}
 			data-indicator="sending"
 			data-attr:aria-busy="$sending ? 'true' : 'false'"
+			data-signals={JSON.stringify({ [`${lost}Sent`]: false, [lost]: false })}
+			data-on:datastar-fetch__document={transportWatch(lost)}
 		>
 			<input type="hidden" name="form" value={id} />
 			{account === undefined ? null : account.signedIn ? (
@@ -221,6 +236,9 @@ export function BookingForm({
 							</p>
 						) : null}
 					</div>
+					<p class="pz-field__error" role="alert" data-show={`$${lost}`} style="display: none">
+						{`${copy.failed.title}. ${copy.failed.text}`}
+					</p>
 					<Button type="submit" size="lg" arrow attrs={{ "data-attr:disabled": "$sending" }}>
 						{copy.fields.submit}
 					</Button>
