@@ -28,4 +28,5 @@ export { ERROR_CODES, ERROR_STATUS, ErrorBody, type ErrorBodyType, type ErrorCod
 export { buildOpenApi } from "./openapi";
 export * from "./primitives";
 export { ROUTES, type Route, type RouteId, type Routes } from "./routes/index";
+export { AccountLinkSuggestion } from "./routes/team-links";
 export * from "./routes/visitor";

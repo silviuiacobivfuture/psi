@@ -18,6 +18,8 @@ import type { SchedulingApiConfig } from "./service-env";
 /** A submit as the site makes it: the signed-in visitor's subject (never a hash) owns the request. */
 export interface VisitorSubmit extends Omit<SubmitInput, "accountHash"> {
 	subject?: string;
+	/** What the site's sign-in vouches for about that visitor: their e-mail, only when `email_verified`. */
+	verifiedEmail?: string;
 }
 
 /**
@@ -72,7 +74,7 @@ export function createVisitorScheduling(
 	config: SchedulingApiConfig,
 	app: string,
 ): VisitorScheduling {
-	const sdk = (subject?: string): SdkClient => {
+	const sdk = (subject?: string, verifiedEmail?: string): SdkClient => {
 		const clientIp = visitorAddress();
 		return createSdkClient({
 			baseUrl: config.url,
@@ -80,6 +82,7 @@ export function createVisitorScheduling(
 			auth: {
 				serviceKey: config.serviceKey,
 				...(subject === undefined ? {} : { subject }),
+				...(subject === undefined || verifiedEmail === undefined ? {} : { verifiedEmail }),
 				...(clientIp === undefined ? {} : { clientIp }),
 			},
 		});
@@ -120,7 +123,7 @@ export function createVisitorScheduling(
 		},
 		async submit(input) {
 			try {
-				const out = await sdk(input.subject).visitor.submit({
+				const out = await sdk(input.subject, input.verifiedEmail).visitor.submit({
 					app,
 					reference: input.reference,
 					holdToken: input.holdToken,

@@ -23,6 +23,7 @@ import { clearViewAs, readViewAs, type ViewAsState } from "./lib/view-as";
 import { scopedPort } from "./lib/view-scope";
 import { createNotifications } from "./notifications/mount";
 import type { NotificationsPort } from "./notifications/port";
+import { registerAccountLinks } from "./pages/account-links";
 import { registerAssistantPeople } from "./pages/assistant-people";
 import { registerAssistantPlatform } from "./pages/assistant-platform";
 import { registerAssistantSettings } from "./pages/assistant-settings";
@@ -230,6 +231,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	bell?.register(app);
 	registerFloor(app);
 	registerSearch(app);
+	registerAccountLinks(app);
 	registerClients(app);
 	registerRequests(app);
 	registerLive(app);

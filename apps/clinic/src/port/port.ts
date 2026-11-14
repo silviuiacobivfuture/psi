@@ -64,6 +64,7 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
+import type { AccountLink } from "./schema-links";
 import type {
 	InviteInput,
 	InviteOutcome,
@@ -276,6 +277,12 @@ export interface ClinicPort extends ProfilePort {
 	resendInvite(app: AppSlug, clientId: string): Promise<Invite>;
 	/** Withdraws it: the link stops working and the client is unlinked; the sign-in account itself is never touched. */
 	revokeInvite(app: AppSlug, clientId: string): Promise<Invite>;
+	/** Online accounts whose booking matched clients without certainty: the candidates this person may invite. */
+	accountLinks(app: AppSlug): Promise<ReadonlyArray<AccountLink>>;
+	/** Links the account to one candidate; `not-found` for no such pair, `conflict` when another account has the client. */
+	confirmAccountLink(app: AppSlug, id: string, clientId: string): Promise<void>;
+	/** The account is none of them: the suggestion goes and is not made again. */
+	dismissAccountLink(app: AppSlug, id: string): Promise<void>;
 	packages(app: AppSlug, clientId: string): Promise<ReadonlyArray<Package>>;
 	createPackage(app: AppSlug, clientId: string, input: NewPackage): Promise<Package>;
 	/** Refuses (`invalid`) sessions + bonus below the sessions already used. */

@@ -7,6 +7,7 @@ import { createAccess } from "./authz/access";
 import { createMemoryAuthz, platformAdminTuples } from "./authz/memory";
 import { buildDeps } from "./build";
 import type { Config } from "./config";
+import { DEFAULT_LEADS } from "./engagement/scheduler";
 import { createApp } from "./http/app";
 import { createMemoryMailer } from "./ports/mail";
 import { createMemoryNotify } from "./ports/notify";
@@ -40,6 +41,7 @@ const config: Config = {
 	],
 	masterKey: "ab".repeat(32),
 	delivery: "send",
+	reminders: DEFAULT_LEADS,
 	store: { kind: "memory" },
 	authz: { kind: "memory" },
 	mail: undefined,

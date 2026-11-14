@@ -45,6 +45,7 @@ const SCREENS = [
 	"/settings/audit",
 	"/settings",
 	"/me/settings",
+	"/account-links",
 	"/more",
 ];
 const PHONES = [360, 375, 390, 430];

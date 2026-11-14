@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Account, createAccount } from "./account";
 import { createBookingAccounts } from "./booking";
+import { verifiedEmailOf } from "./guard";
 
 const SITE = { slug: "test-web", key: "psizone", origin: "http://localhost" } as const;
 const base = createAccount({ site: SITE });
@@ -123,5 +124,59 @@ describe("a site that does not list requests in its account", () => {
 		expect(body.form).toEqual({ signedIn: true });
 		expect(body).not.toHaveProperty("subject");
 		expect(body).not.toHaveProperty("bookingsHref");
+	});
+});
+
+/** An unsigned token with these claims: what the session store holds is the provider's, checked at sign-in. */
+const tokenWith = (claims: Record<string, unknown>): string =>
+	`h.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.s`;
+
+describe("the e-mail a sign-in vouches for", () => {
+	it("is the token's e-mail only when email_verified is exactly true", () => {
+		expect(verifiedEmailOf(tokenWith({ email: "ana@example.test", email_verified: true }))).toBe(
+			"ana@example.test",
+		);
+		for (const claims of [
+			{ email: "ana@example.test", email_verified: false },
+			{ email: "ana@example.test", email_verified: "true" },
+			{ email: "ana@example.test" },
+			{ email_verified: true },
+			{ email: "not an address", email_verified: true },
+		])
+			expect(verifiedEmailOf(tokenWith(claims)), JSON.stringify(claims)).toBeNull();
+		expect(verifiedEmailOf(undefined)).toBeNull();
+		expect(verifiedEmailOf("not-a-token")).toBeNull();
+		expect(verifiedEmailOf("h.%%%.s")).toBeNull();
+	});
+
+	const signed = (vouched: string | null): Account => ({
+		...down(),
+		person: async () => ({
+			subject: "sub-1",
+			user: "user:sub-1",
+			name: "Ana",
+			email: "ana@example.test",
+		}),
+		verifiedEmail: async () => vouched,
+	});
+	const askedBy = async (source: Account, lists: boolean) => {
+		const accounts = createBookingAccounts({
+			account: base,
+			site: "psizone",
+			base: () => "",
+			listsRequests: lists,
+		});
+		const h = new Hono();
+		h.get("/", async (c) => c.json(await accounts.bookingAccount(c, "ro", "/contact", source)));
+		return (await h.request("http://localhost/")).json();
+	};
+
+	it("goes with the request's account when the site lists requests, and only then", async () => {
+		expect(await askedBy(signed("ana@example.test"), true)).toMatchObject({
+			subject: "sub-1",
+			verifiedEmail: "ana@example.test",
+		});
+		expect(await askedBy(signed(null), true)).not.toHaveProperty("verifiedEmail");
+		expect(await askedBy(signed("ana@example.test"), false)).not.toHaveProperty("verifiedEmail");
 	});
 });

@@ -19,6 +19,7 @@ const SCREENS = [
 	"/stats",
 	"/me/profile",
 	"/me/settings",
+	"/account-links",
 	"/settings",
 	"/settings/profile",
 	"/settings/blacklist",

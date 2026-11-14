@@ -1,6 +1,7 @@
 import type { Invite as ServiceInvite } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { AppSlug, Invite, InvitePick, InvitePreview } from "../schema";
+import type { AccountLink } from "../schema-links";
 import type { SdkContext } from "./context";
 
 type Wire = z.output<typeof ServiceInvite>;
@@ -20,7 +21,7 @@ export function inviteOf(i: Wire): Invite {
 	};
 }
 
-/** The client's online-account invitation: read, preview, send, send again, withdraw. */
+/** The client's online-account invitation (read, preview, send, send again, withdraw) and the accounts to link. */
 export function invitesGroup(sdk: SdkContext) {
 	const { api, run } = sdk;
 	return {
@@ -37,5 +38,16 @@ export function invitesGroup(sdk: SdkContext) {
 			run(async () => inviteOf(await api.invites.resend({ app, id: clientId }))),
 		revokeInvite: (app: AppSlug, clientId: string): Promise<Invite> =>
 			run(async () => inviteOf(await api.invites.revoke({ app, id: clientId }))),
+		// Accounts that booked with a client's contact, waiting for the team. One page holds what a desk can act on.
+		accountLinks: (app: AppSlug): Promise<ReadonlyArray<AccountLink>> =>
+			run(async () => (await api.accountLinks.list({ app, limit: 200 })).items),
+		confirmAccountLink: (app: AppSlug, id: string, clientId: string): Promise<void> =>
+			run(async () => {
+				await api.accountLinks.confirm({ app, id, clientId });
+			}),
+		dismissAccountLink: (app: AppSlug, id: string): Promise<void> =>
+			run(async () => {
+				await api.accountLinks.dismiss({ app, id });
+			}),
 	};
 }

@@ -23,6 +23,7 @@ const SCREENS = [
 	"/roster",
 	"/settings/roles?role=reception",
 	"/me/settings",
+	"/account-links",
 	"/settings",
 	"/settings/profile",
 	"/settings/blacklist",

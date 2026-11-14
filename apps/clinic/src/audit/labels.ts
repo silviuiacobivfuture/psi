@@ -78,6 +78,8 @@ const ACTION_KEY: Readonly<Record<string, string>> = {
 	"visitor.cancel": "visitor_cancel",
 	"visitor.reschedule": "visitor_reschedule",
 	"settings.update": "settings_update",
+	"client.account_link": "account_link",
+	"client.account_link_dismiss": "account_link_dismiss",
 };
 
 const ACTION_SAY: Readonly<Record<string, Say>> = {
@@ -133,6 +135,8 @@ const ACTION_SAY: Readonly<Record<string, Say>> = {
 	visitor_cancel: (l) => m.jr_act_visitor_cancel({}, at(l)),
 	visitor_reschedule: (l) => m.jr_act_visitor_reschedule({}, at(l)),
 	settings_update: (l) => m.jr_act_settings_update({}, at(l)),
+	account_link: (l) => m.jr_act_account_link({}, at(l)),
+	account_link_dismiss: (l) => m.jr_act_account_link_dismiss({}, at(l)),
 };
 
 const ASSISTANT = /^assistant\./;

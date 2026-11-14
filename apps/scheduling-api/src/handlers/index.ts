@@ -1,5 +1,6 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Handler, Handlers } from "../http/context";
+import { accountLinkHandlers } from "./account-links";
 import { adminHandlers } from "./admin";
 import { appointmentEditHandlers } from "./appointment-edit";
 import { appointmentHandlers } from "./appointments";
@@ -57,6 +58,7 @@ const complete: Handlers = {
 	...blacklistHandlers,
 	...feedbackHandlers,
 	...inviteHandlers,
+	...accountLinkHandlers,
 	...staffHandlers,
 	...deliveryHandlers,
 	...notificationPrefsHandlers,

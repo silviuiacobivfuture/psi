@@ -177,5 +177,7 @@
 	"jr_csv_device": "Device",
 	"jr_act_file_rename": "File renamed",
 	"jr_act_settings_update": "Personal settings changed",
-	"jr_act_visitor_reschedule": "Visitor moved the appointment"
+	"jr_act_visitor_reschedule": "Visitor moved the appointment",
+	"jr_act_account_link": "Online account linked to the client",
+	"jr_act_account_link_dismiss": "Online account is none of these clients"
 }

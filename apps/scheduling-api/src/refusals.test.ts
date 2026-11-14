@@ -25,7 +25,7 @@ const pathOf = (spec: RouteSpec, app = "psizone"): string =>
 	spec.path.replace(/:(\w+)/g, (_m, name: string) =>
 		name === "app" ? app : (PARAMS[name] ?? "x"),
 	);
-/** The two routes whose permission target is named in the body need one to get as far as the check. */
+/** The routes whose permission target is named in the body need one to get as far as the check. */
 const BODIES: Record<string, unknown> = {
 	"appointments.create": { practitionerId: "x00000000003", start: 1, end: 2 },
 	"series.create": {
@@ -35,6 +35,7 @@ const BODIES: Record<string, unknown> = {
 		recurrence: { count: 2 },
 	},
 	"leave.create": { personId: "x00000000003", from: "2026-12-01", to: "2026-12-02", kind: "co" },
+	"accountLinks.confirm": { clientId: "x00000000003" },
 };
 const bodyOf = (spec: RouteSpec): unknown =>
 	BODIES[spec.id] ?? (spec.body === undefined ? undefined : {});

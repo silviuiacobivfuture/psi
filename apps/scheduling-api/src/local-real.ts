@@ -6,6 +6,7 @@ import { createAccess } from "./authz/access";
 import { createMemoryAuthz } from "./authz/memory";
 import { buildDeps } from "./build";
 import type { Config } from "./config";
+import { DEFAULT_LEADS } from "./engagement/scheduler";
 import { seedAppAccess } from "./handlers/apps";
 import { createApp } from "./http/app";
 import { createLimiter } from "./ports/ratelimit";
@@ -64,6 +65,7 @@ const config: Config = {
 	callers: [{ id: "psizone-web", app: "psizone" }],
 	masterKey: env.CLINIC_MASTER_KEY_HEX,
 	delivery: "send",
+	reminders: DEFAULT_LEADS,
 	store: { kind: "convex", url: env.CONVEX_URL, serverKey: env.PSI_SCHEDULING_KEY },
 	authz: { kind: "memory" },
 	mail: undefined,

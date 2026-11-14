@@ -31,6 +31,7 @@ const stopScheduler = !deliversNotices(config)
 			port: deps.notifier,
 			clock: deps.clock,
 			log: deps.log,
+			leads: config.reminders,
 		}).start();
 process.stdout.write(
 	`scheduling-api listening on :${config.port} (${config.env}, store ${config.store.kind}, authz ${config.authz.kind}, notices ${config.delivery})\n`,

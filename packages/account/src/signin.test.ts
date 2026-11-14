@@ -250,4 +250,19 @@ describe("the session's ID token, for calling a service as the person", () => {
 		expect(claims.aud).toBe(`${site.slug}-test`);
 		expect(claims.iss).toBe(mock.issuer(site.slug));
 	});
+
+	it("vouches for the e-mail the provider verified, from that token, and for nothing signed out", async () => {
+		const site = SITES.blog;
+		const account = accounts.blog;
+		if (account === undefined) throw new Error("no account");
+		const app = new Hono();
+		account.mount(app);
+		app.get("/vouched", async (c) => c.json({ email: await account.verifiedEmail(c) }));
+		const b = createBrowser({ ...apps, [site.origin]: (req) => app.fetch(req) });
+		expect(await (await b.go(`${site.origin}/vouched`)).res.json()).toEqual({ email: null });
+		await b.go(`${site.origin}/auth/sign-in?return=/vouched`);
+		expect(await (await b.go(`${site.origin}/vouched`)).res.json()).toEqual({
+			email: "ana@psizone.test",
+		});
+	});
 });
