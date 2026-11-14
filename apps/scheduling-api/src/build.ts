@@ -2,7 +2,7 @@ import { createTokenVerifier } from "./auth/tokens";
 import { createAccess } from "./authz/access";
 import { createLiveAuthz } from "./authz/live";
 import { createMemoryAuthz, type MemoryAuthz } from "./authz/memory";
-import type { Config } from "./config";
+import { type Config, deliversNotices } from "./config";
 import type { Deps, LogEvent } from "./http/context";
 import { wireNotify } from "./notify-wiring";
 import { createFieldCrypto } from "./ports/crypto";
@@ -42,8 +42,10 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 	const clock = overrides.clock ?? Date.now;
 	const access = overrides.access ?? createAccess(authz, denials);
 	const sso = config.sso === undefined ? undefined : createAuthentikSso(config.sso);
+	// Held delivery wires the notices as an instance without Novu does: logged by id, no link signed, nothing sent.
+	const delivers = deliversNotices(config);
 	const wiring = wireNotify({
-		config,
+		config: delivers ? config : { ...config, notify: undefined },
 		store: overrides.store ?? store,
 		access,
 		sso: overrides.sso ?? sso,
@@ -58,7 +60,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		access,
 		sso,
 		links:
-			config.notify === undefined
+			config.notify === undefined || !delivers
 				? undefined
 				: {
 						secret: config.notify.reminderLinkSecret,
@@ -68,7 +70,10 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		invites: wiring.invites,
 		verifier: createTokenVerifier({ issuers: config.issuers }),
 		crypto: createFieldCrypto(config.masterKey, (overrides.store ?? store).keys),
-		mailer: config.mail === undefined ? undefined : createHttpMailer(config.mail),
+		mailer:
+			config.mail === undefined || config.delivery === "hold"
+				? undefined
+				: createHttpMailer(config.mail),
 		objects: config.objects === undefined ? undefined : createS3Store(config.objects),
 		notifier: wiring.notifier,
 		reminders: wiring.reminders,

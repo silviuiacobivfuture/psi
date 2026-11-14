@@ -37,6 +37,9 @@ patches:
                   - { name: S3_BUCKET, value: psi-scheduling-prod }
                   # Scopes this instance's `sched_app` objects in the shared OpenFGA store.
                   - { name: OPENFGA_APP_PREFIX, value: "prod-" }
+                  # Real data, people still served by the old app: nothing is sent to anyone until the cut-over,
+                  # when this line is removed (docs/plans/clinic.md, cut-over).
+                  - { name: NOTIFY_DELIVERY, value: hold }
   - target: { kind: Ingress, name: scheduling-api }
     patch: |-
       - op: replace
@@ -82,3 +85,7 @@ patches:
       - { op: replace, path: /spec/data/11/remoteRef/key, value: apps/scheduling-prod/env }
       - { op: replace, path: /spec/data/14/remoteRef/key, value: apps/novu-prod/estate }
       - { op: replace, path: /spec/data/15/remoteRef/key, value: apps/notify-prod/reminder-links }
+  - target: { kind: ExternalSecret, name: scheduling-api-sso }
+    patch: |-
+      - { op: replace, path: /spec/data/0/remoteRef/key, value: apps/scheduling-api-prod/sso }
+      - { op: replace, path: /spec/data/1/remoteRef/key, value: apps/scheduling-api-prod/sso }

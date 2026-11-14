@@ -49,6 +49,12 @@ const Common = z.object({
 	OIDC_ISSUERS: Json(z.array(IssuerSchema).min(1)),
 	SERVICE_CALLERS: Callers.default(""),
 	CLINIC_MASTER_KEY: Hex64,
+	/**
+	 * `hold`: nothing leaves the service for a person (no Novu notice, no scheduled pass, no reminder e-mail); every
+	 * notice is logged by id instead. For an instance whose data is real but whose people are still served by another
+	 * system (production before the cut-over), so nobody is told twice.
+	 */
+	NOTIFY_DELIVERY: z.enum(["send", "hold"]).default("send"),
 });
 
 const Memory = z.object({
@@ -119,6 +125,8 @@ export interface Config {
 	issuers: IssuerConfig[];
 	callers: CallerConfig[];
 	masterKey: string;
+	/** `hold`: notices are logged, never delivered, and the scheduled pass does not run. */
+	delivery: "send" | "hold";
 	store: { kind: "memory" } | { kind: "convex"; url: string; serverKey: string };
 	authz:
 		| { kind: "memory" }
@@ -232,6 +240,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 		issuers: common.data.OIDC_ISSUERS,
 		callers: common.data.SERVICE_CALLERS,
 		masterKey: common.data.CLINIC_MASTER_KEY,
+		delivery: common.data.NOTIFY_DELIVERY,
 		store:
 			backing.data.SCHEDULING_STORE === "convex"
 				? {
@@ -277,3 +286,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 		callerHashes,
 	};
 }
+
+/** Whether this instance tells people anything: notifications configured, and delivery not held. */
+export const deliversNotices = (config: Config): boolean =>
+	config.notify !== undefined && config.delivery === "send";

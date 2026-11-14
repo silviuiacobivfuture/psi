@@ -68,6 +68,7 @@ describe.skipIf(!kustomize)("the production overlays, rendered", () => {
 			"apps/novu-prod/estate",
 			"apps/scheduling-api-prod/env",
 			"apps/scheduling-api-prod/mail",
+			"apps/scheduling-api-prod/sso",
 			"apps/scheduling-prod/admin",
 			"apps/scheduling-prod/db",
 			"apps/scheduling-prod/env",
@@ -92,6 +93,13 @@ describe.skipIf(!kustomize)("the production overlays, rendered", () => {
 		expect(rendered["scheduling-api"]).toMatch(/OPENFGA_APP_PREFIX\n\s+value: prod-/);
 		expect(read("gitops/services/scheduling-api/base/deployment.yaml")).not.toContain(
 			"OPENFGA_APP_PREFIX",
+		);
+	});
+
+	it("holds every notice until the cut-over: real people are still told by the old app, and dev is not held", () => {
+		expect(rendered["scheduling-api"]).toMatch(/NOTIFY_DELIVERY\n\s+value: hold/);
+		expect(read("gitops/services/scheduling-api/base/deployment.yaml")).not.toContain(
+			"NOTIFY_DELIVERY",
 		);
 	});
 

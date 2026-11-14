@@ -39,6 +39,7 @@ const config: Config = {
 		{ id: "hemisync-web", app: "hemisync" },
 	],
 	masterKey: "ab".repeat(32),
+	delivery: "send",
 	store: { kind: "memory" },
 	authz: { kind: "memory" },
 	mail: undefined,

@@ -63,6 +63,7 @@ const config: Config = {
 	issuers: [{ issuer: issuer.issuer, audiences: [issuer.audience] }],
 	callers: [{ id: "psizone-web", app: "psizone" }],
 	masterKey: env.CLINIC_MASTER_KEY_HEX,
+	delivery: "send",
 	store: { kind: "convex", url: env.CONVEX_URL, serverKey: env.PSI_SCHEDULING_KEY },
 	authz: { kind: "memory" },
 	mail: undefined,

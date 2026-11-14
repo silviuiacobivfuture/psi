@@ -114,6 +114,7 @@ export function testConfig(issuer: TestIssuer): Config {
 			{ id: "cms", app: "psizone" },
 		],
 		masterKey: MASTER_KEY,
+		delivery: "send",
 		store: { kind: "memory" },
 		authz: { kind: "memory" },
 		mail: undefined,
