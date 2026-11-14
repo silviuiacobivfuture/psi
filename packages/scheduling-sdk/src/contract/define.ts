@@ -53,7 +53,10 @@ export interface RouteSpec {
 	permission?: Permission;
 	/** The audit action every successful mutation writes. */
 	audit?: string;
-	/** Needs the estate's platform administrator, not membership of an app (creating an app). */
+	/**
+	 * Needs the estate's platform administrator: alone where there is no app yet (creating one), and on top of the app's
+	 * own membership checks where the path names one ("Vezi ca…").
+	 */
 	platform?: true;
 	/** Server-sent events: `response` is one event. */
 	stream?: true;

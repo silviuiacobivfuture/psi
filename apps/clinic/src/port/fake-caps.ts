@@ -36,12 +36,9 @@ export function createFakeAccess(
 			let roles = holds(mine.roles);
 			let who = subject;
 			if (as !== undefined) {
-				const here = holds(mine.roles);
-				if (
-					deps.platformAdmins?.has(subject) !== true &&
-					!here.some((r) => r.grants.roles?.edit !== undefined)
-				)
-					throw new PortError("forbidden", "roles administrators only");
+				// As at the service: the estate administrator alone, never an app's owner or admin.
+				if (deps.platformAdmins?.has(subject) !== true)
+					throw new PortError("forbidden", "estate administrators only");
 				const [kind, id = ""] = [as.slice(0, as.indexOf(":")), as.slice(as.indexOf(":") + 1)];
 				if (kind === "role") {
 					roles = holds([id]);

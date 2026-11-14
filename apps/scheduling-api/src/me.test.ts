@@ -132,9 +132,9 @@ describe("GET /v1/apps/:app/me: who the caller is in this app and what they may 
 	});
 });
 
-describe("view as: a roles editor sees the app as a role or a member", () => {
+describe("view as: the estate administrator sees the app as a role or a member", () => {
 	it("reception: money and contact, no clinical group, no roles", async () => {
-		const me = await meOf("olga", `?as=${encodeURIComponent(`role:${w.ids.roles.reception}`)}`);
+		const me = await meOf("root", `?as=${encodeURIComponent(`role:${w.ids.roles.reception}`)}`);
 		expect(me.fieldGroups).toEqual(["core", "contact", "guardian", "money"]);
 		expect(me.permissions.roles_view).toBeUndefined();
 		expect(me.permissions.clients_view_clinical).toBeUndefined();
@@ -147,19 +147,19 @@ describe("view as: a roles editor sees the app as a role or a member", () => {
 			grant: ["audit_log_view_all"],
 			deny: ["clients_view_all_contact"],
 		});
-		const me = await meOf("olga", "?as=member:rita");
+		const me = await meOf("root", "?as=member:rita");
 		expect(me.subject).toBe("rita");
 		expect(me.permissions.audit_log_view).toEqual(["all"]);
 		expect(me.permissions.clients_view_contact).toBeUndefined();
 		expect(me.viewAs).toEqual({ kind: "member", id: "rita" });
 		// a bare subject is a member too
-		expect((await meOf("olga", "?as=rita")).subject).toBe("rita");
+		expect((await meOf("root", "?as=rita")).subject).toBe("rita");
 	});
 
 	it("matches what that person really sees when they sign in", async () => {
 		for (const who of ["dora", "cora", "rita", "ana"]) {
 			const own = await meOf(who);
-			const seen = await meOf("olga", `?as=member:${who}`);
+			const seen = await meOf("root", `?as=member:${who}`);
 			expect(seen.permissions, who).toEqual(own.permissions);
 			expect(seen.fieldGroups, who).toEqual(own.fieldGroups);
 			expect(seen.reach, who).toEqual(own.reach);
@@ -167,41 +167,66 @@ describe("view as: a roles editor sees the app as a role or a member", () => {
 	});
 
 	it("a role seen from its stored relations equals the same set held by a member through it", async () => {
-		const role = await meOf("olga", `?as=role:${w.ids.roles.accountant}`);
+		const role = await meOf("root", `?as=role:${w.ids.roles.accountant}`);
 		const ana = await meOf("ana");
 		expect(role.permissions).toEqual(ana.permissions);
 	});
 
-	it("refuses anyone without roles editing, and writes nothing", async () => {
-		for (const who of ["nina", "rita", "dora", "vera"]) {
-			const before = await w.fingerprint();
-			const as = `role:${w.ids.roles.owner}`;
-			const get = await w.call(who, "GET", `${A}/me?as=${encodeURIComponent(as)}`);
-			expect([get.status, (get.json.error as { code: string }).code]).toEqual([403, "forbidden"]);
-			expect((await w.call(who, "POST", `${A}/view-as`, { as })).status).toBe(403);
-			expect((await w.call(who, "DELETE", `${A}/view-as`)).status).toBe(403);
-			expect(await w.fingerprint()).toBe(before);
-		}
+	it.each([
+		"olga",
+		"nina",
+		"rita",
+		"dora",
+		"vera",
+	])("%s (not the estate administrator, the owner and the admin included): refused, nothing written or audited", async (who) => {
+		const before = await w.fingerprint();
+		const as = `role:${w.ids.roles.reception}`;
+		const get = await w.call(who, "GET", `${A}/me?as=${encodeURIComponent(as)}`);
+		expect([get.status, (get.json.error as { code: string }).code]).toEqual([403, "forbidden"]);
+		const start = await w.call(who, "POST", `${A}/view-as`, { as });
+		expect([start.status, (start.json.error as { code: string }).code]).toEqual([403, "forbidden"]);
+		expect((await w.call(who, "DELETE", `${A}/view-as`)).status).toBe(403);
+		// a malformed target is still refused for who is calling, before what they sent
+		expect((await w.call(who, "POST", `${A}/view-as`, { as: "x y" })).status).toBe(403);
+		expect(await w.fingerprint()).toBe(before);
+		expect(await auditActions()).not.toContain("view_as.start");
+	});
+
+	it("an estate administrator stops being one: refused from then on", async () => {
+		await w.platformAdmin("olga", true);
+		const as = `role:${w.ids.roles.reception}`;
+		expect((await w.call("olga", "POST", `${A}/view-as`, { as })).status).toBe(200);
+		await w.platformAdmin("olga", false);
+		const before = await w.fingerprint();
+		expect((await w.call("olga", "GET", `${A}/me?as=${encodeURIComponent(as)}`)).status).toBe(403);
+		expect((await w.call("olga", "POST", `${A}/view-as`, { as })).status).toBe(403);
+		expect(await w.fingerprint()).toBe(before);
+	});
+
+	it("the estate administrator is still held to the app: an app that does not exist is not found", async () => {
+		const as = `role:${w.ids.roles.reception}`;
+		expect((await w.call("root", "POST", "/v1/apps/nosuchapp/view-as", { as })).status).toBe(404);
+		expect((await w.call("root", "GET", `/v1/apps/nosuchapp/me?as=${as}`)).status).toBe(404);
 	});
 
 	it("an unknown role or member is not found; a malformed target is invalid", async () => {
-		expect((await w.call("olga", "GET", `${A}/me?as=role:nope-nope`)).status).toBe(404);
-		expect((await w.call("olga", "GET", `${A}/me?as=member:ghost`)).status).toBe(404);
-		expect((await w.call("olga", "GET", `${A}/me?as=banana:x`)).status).toBe(400);
-		expect((await w.call("olga", "POST", `${A}/view-as`, { as: "x y" })).status).toBe(400);
+		expect((await w.call("root", "GET", `${A}/me?as=role:nope-nope`)).status).toBe(404);
+		expect((await w.call("root", "GET", `${A}/me?as=member:ghost`)).status).toBe(404);
+		expect((await w.call("root", "GET", `${A}/me?as=banana:x`)).status).toBe(400);
+		expect((await w.call("root", "POST", `${A}/view-as`, { as: "x y" })).status).toBe(400);
 	});
 
 	it("writes start and stop as audit events of the administrator", async () => {
 		const as = `role:${w.ids.roles.reception}`;
-		await w.call("olga", "POST", `${A}/view-as`, { as });
-		await w.call("olga", "DELETE", `${A}/view-as`);
+		await w.call("root", "POST", `${A}/view-as`, { as });
+		await w.call("root", "DELETE", `${A}/view-as`);
 		const events = (await w.call("olga", "GET", `${A}/audit`)).json.items as {
 			action: string;
 			actor: { subject: string };
 			target: { id: string };
 		}[];
 		expect(events.find((e) => e.action === "view_as.start")).toMatchObject({
-			actor: { subject: "olga" },
+			actor: { subject: "root" },
 			target: { id: as },
 		});
 		expect(events.some((e) => e.action === "view_as.stop")).toBe(true);
@@ -236,7 +261,7 @@ describe("view as: a roles editor sees the app as a role or a member", () => {
 			(await w.call("olga", "GET", `${A}/clients`, undefined, { headers: header })).status,
 		).toBe(200);
 		expect(
-			(await w.call("olga", "DELETE", `${A}/view-as`, undefined, { headers: header })).status,
+			(await w.call("root", "DELETE", `${A}/view-as`, undefined, { headers: header })).status,
 		).toBe(200);
 	});
 });

@@ -269,12 +269,13 @@ describe("what a member may do (/me), and the view-as", () => {
 		expect(me.denied).toEqual(["leave_create_own"]);
 	});
 
-	it("shows another member's access only to someone who may edit roles", async () => {
-		const seen = await as("olga", "GET", "/me?as=rita");
+	it("shows another member's access only to the estate administrator, never to the app's owner", async () => {
+		const seen = await as("root", "GET", "/me?as=rita");
 		expect(seen.status).toBe(200);
 		expect(seen.json).toMatchObject({ subject: "rita" });
+		expect((await as("olga", "GET", "/me?as=rita")).status).toBe(403);
 		expect((await as("dora", "GET", "/me?as=rita")).status).toBe(403);
-		expect((await as("olga", "GET", "/me?as=ghost")).status).toBe(404);
+		expect((await as("root", "GET", "/me?as=ghost")).status).toBe(404);
 	});
 
 	it("is the same relations the server enforces: what /me lists works, what it omits is refused", async () => {
