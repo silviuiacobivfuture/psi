@@ -1,5 +1,6 @@
 import type { Can } from "../lib/can";
 import { at, type Locale } from "../lib/i18n";
+import { joinRoles } from "../lib/roles-joined";
 import { m } from "../paraglide/messages.js";
 import { changeRows, visibleChanges } from "./changes";
 import type { AuditLookup } from "./lookup";
@@ -44,7 +45,7 @@ export function auditCsv(
 		return [
 			e.at,
 			r.who,
-			r.roles.join(" + "),
+			joinRoles(r.roles),
 			e.asWhom ?? "",
 			r.action,
 			r.sentence,

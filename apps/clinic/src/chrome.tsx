@@ -21,6 +21,7 @@ import { orgSettingsOpen, PLATFORM_KEY } from "./lib/areas";
 import type { Ctx } from "./lib/context";
 import { worstFailure } from "./lib/failures";
 import { at, type Locale } from "./lib/i18n";
+import { joinRoles } from "./lib/roles-joined";
 import { FailureState } from "./pages/failure";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
@@ -112,7 +113,7 @@ export const rolesText = (
 	ids: ReadonlyArray<string>,
 	locale: Locale,
 	names: Readonly<Record<string, string>> | undefined = undefined,
-): string => ids.map((r) => roleName(r, locale, names)).join(" + ");
+): string => joinRoles(ids.map((r) => roleName(r, locale, names)));
 
 /** A role from the roles list, as people read it: translated when it is a seed role, else its own name. */
 export const roleLabel = (role: { id: string; name: string }, locale: Locale): string =>
