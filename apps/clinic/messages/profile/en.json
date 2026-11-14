@@ -24,13 +24,9 @@
 	"pf_notif": "Notifications",
 	"pf_notif_lead": "For each kind of news, choose where it should reach you.",
 	"pf_notif_kind": "News",
-	"pf_notif_save": "Save the notifications",
-	"pf_notif_saved": "The notifications were saved.",
 	"pf_k_requests": "New requests from the website",
 	"pf_k_appointments": "My appointments",
 	"pf_k_reminders": "Reminders to send",
-	"pf_k_feedback": "Feedback from clients",
-	"pf_c_inbox": "In the app",
 	"pf_c_push": "On the phone (push)",
 	"pf_c_email": "By e-mail",
 	"pf_sessions": "Active sessions",
@@ -46,5 +42,7 @@
 	"pf_feedback_answered": "Answered",
 	"pf_feedback_reply": "Answer: {reply}",
 	"pf_soon_title": "Coming soon",
-	"pf_soon_text": "The scheduling service does not keep this yet. The rest of the profile works."
+	"pf_soon_text": "The scheduling service does not keep this yet. The rest of the profile works.",
+	"pf_notif_moved": "Which news reaches you, by e-mail or as a push, and your quiet hours are chosen in My settings.",
+	"pf_notif_open": "Choose notifications"
 }

@@ -20,7 +20,6 @@ import type {
 	Package,
 	PackagePatch,
 	PaymentMethod,
-	PushPrefs,
 	Role,
 	RosterEntry,
 	SearchHit,
@@ -52,6 +51,7 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
+import type { MySettings, MySettingsView } from "./schema-settings";
 
 export type ClientFilter = "current" | "archived";
 
@@ -294,8 +294,10 @@ export interface ClinicPort extends ProfilePort {
 	): Promise<{ name: string; contentType: string; bytes: Uint8Array }>;
 	renameFile(app: AppSlug, id: string, name: string): Promise<ClientFile>;
 	deleteFile(app: AppSlug, id: string): Promise<void>;
-	pushPrefs(subject: string): Promise<PushPrefs>;
-	savePushPrefs(subject: string, prefs: PushPrefs): Promise<void>;
+	/** The person's own settings in this app; the defaults (`stored: false`) while they saved none. */
+	mySettings(app: AppSlug, subject: string): Promise<MySettingsView>;
+	/** Replaces them; the same set again changes nothing. `invalid` for a set the service does not take. */
+	saveMySettings(app: AppSlug, subject: string, settings: MySettings): Promise<MySettingsView>;
 	/** How this person's assistant shows (`null`: they never chose). Refuses `not-available-yet` while the service keeps none. */
 	assistantMode(subject: string): Promise<AssistantMode | null>;
 	saveAssistantMode(subject: string, mode: AssistantMode): Promise<void>;

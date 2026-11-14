@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from "@psi/scheduling-sdk/contract";
 import type { Populated } from "./testing/populate";
 import { HOUR, NOW, type Reply } from "./testing/world";
 
@@ -64,6 +65,8 @@ const rated = async (w: Populated): Promise<string> => {
 
 export const EXTRA_HAPPY = {
 	"files.rename": (w) => olga(w, "PATCH", `/files/${w.ids.file}`, { name: "renamed.pdf" }),
+	"me.settings": (w) => olga(w, "GET", "/me/settings"),
+	"me.saveSettings": (w) => olga(w, "PUT", "/me/settings", { ...DEFAULT_SETTINGS, theme: "dark" }),
 	"floorPlan.get": (w) => olga(w, "GET", "/floor-plan"),
 	"floorPlan.put": (w) => olga(w, "PUT", "/floor-plan", planAt(0)),
 	"blacklist.list": (w) => olga(w, "GET", "/blacklist"),

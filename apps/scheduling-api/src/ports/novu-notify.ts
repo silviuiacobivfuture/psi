@@ -9,6 +9,7 @@ import {
 import { issueLinks } from "@psi/notify/reminders";
 import type { LogEvent } from "../http/context";
 import type { StorePort } from "../store/types";
+import { choicesOf, teamRecipient } from "./choices";
 import type { Notification, NotifyPort, TeamName } from "./notify";
 
 /** Where each brand's site lives; the team console is one per environment (CONSOLE_URL), the same for both brands. */
@@ -67,7 +68,7 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 		};
 	}
 
-	async function practitioner(app: string, personId: string): Promise<Recipient | undefined> {
+	async function practitioner(app: AppKey, personId: string): Promise<Recipient | undefined> {
 		const person = await store.c.people.get(app, personId);
 		return person?.subject === undefined
 			? undefined
@@ -76,6 +77,7 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 					subject: person.subject,
 					name: person.displayName,
 					locale: "ro",
+					choices: await choicesOf(store, app, person.subject),
 				};
 	}
 
@@ -119,7 +121,16 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 		to: ReadonlyArray<Recipient | undefined>,
 		occurrence: string,
 	): Promise<void> {
-		const recipients = to.filter((r): r is Recipient => r !== undefined);
+		// A team is told member by member, so that each member's own choices hold.
+		const recipients = await Promise.all(
+			to
+				.filter((r): r is Recipient => r !== undefined)
+				.map((r) =>
+					r.audience === "team" || r.audience === "reception" || r.audience === "owners"
+						? teamRecipient(store, app, r.audience)
+						: r,
+				),
+		);
 		if (recipients.length === 0) return;
 		await notifier.notify(app, event, payload, recipients, occurrence);
 	}
@@ -168,7 +179,7 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 							facts.row.clientId === undefined
 								? undefined
 								: await client(n.app, facts.row.clientId),
-							await practitioner(n.app, facts.row.practitionerId),
+							await practitioner(app, facts.row.practitionerId),
 						],
 						n.idempotencyKey,
 					);
@@ -256,7 +267,12 @@ export function createNovuNotify(options: NovuNotifyOptions): NotifyPort {
 			case "leave.decided": {
 				const leave = await store.c.leave.get(n.app, str(refs, "leaveId") ?? "");
 				if (leave === undefined || to.kind !== "person") return;
-				const requester: Recipient = { audience: "requester", subject: to.subject, locale: "ro" };
+				const requester: Recipient = {
+					audience: "requester",
+					subject: to.subject,
+					locale: "ro",
+					choices: await choicesOf(store, app, to.subject),
+				};
 				return send(
 					app,
 					refs.decision === "approved" ? "leave.approved" : "leave.declined",

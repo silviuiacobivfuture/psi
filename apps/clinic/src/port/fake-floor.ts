@@ -1,6 +1,8 @@
 import { type FloorPlanDoc, FloorPlanDocSchema } from "@psi/ui/admin/floor-plan";
 import type { ClinicPort } from "./port";
-import type { AppSlug, AssistantMode, PushPrefs } from "./schema";
+import { PortError } from "./port";
+import type { AppSlug, AssistantMode } from "./schema";
+import { DEFAULT_SETTINGS, type MySettings, MySettingsSchema } from "./schema-settings";
 import type { AppData } from "./seed";
 import { seedPlan } from "./seed-plan";
 
@@ -10,20 +12,20 @@ export interface FloorDeps {
 	log: (d: AppData, actor: string, action: string, target: string) => void;
 }
 
-/** The floor plan and the push preferences of the fake. */
+/** The floor plan, each person's own settings and their assistant mode, in the fake. */
 export function createFakeFloorAndPrefs(
 	deps: FloorDeps,
 ): Pick<
 	ClinicPort,
 	| "floorPlan"
 	| "saveFloorPlan"
-	| "pushPrefs"
-	| "savePushPrefs"
+	| "mySettings"
+	| "saveMySettings"
 	| "assistantMode"
 	| "saveAssistantMode"
 > {
 	const { data, guard, log } = deps;
-	const prefs = new Map<string, PushPrefs>();
+	const settings = new Map<string, MySettings>();
 	const modes = new Map<string, AssistantMode>();
 	const plans = new Map<AppSlug, FloorPlanDoc>();
 	return {
@@ -42,13 +44,24 @@ export function createFakeFloorAndPrefs(
 			log(data(app), "console", "floor-plan.save", `revision ${doc.revision}`);
 			return { ok: true, doc };
 		},
-		async pushPrefs(subject) {
-			guard("pushPrefs");
-			return prefs.get(subject) ?? { requests: false, reminders: false };
+		async mySettings(app, subject) {
+			guard("mySettings");
+			const held = settings.get(`${app}|${subject}`);
+			return held === undefined
+				? { ...DEFAULT_SETTINGS, stored: false }
+				: { ...held, stored: true };
 		},
-		async savePushPrefs(subject, p) {
-			guard("savePushPrefs");
-			prefs.set(subject, p);
+		async saveMySettings(app, subject, raw) {
+			guard("saveMySettings");
+			// Like the service: the contract decides what a set of settings may be.
+			const parsed = MySettingsSchema.safeParse(raw);
+			if (!parsed.success) throw new PortError("invalid", "settings");
+			const key = `${app}|${subject}`;
+			if (JSON.stringify(settings.get(key)) !== JSON.stringify(parsed.data)) {
+				settings.set(key, parsed.data);
+				log(data(app), subject, "settings.update", subject);
+			}
+			return { ...parsed.data, stored: true };
 		},
 		async assistantMode(subject) {
 			guard("assistantMode");

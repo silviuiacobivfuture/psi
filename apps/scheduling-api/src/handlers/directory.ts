@@ -1,19 +1,9 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import type { Ctx } from "../http/context";
-import type { TeamName } from "../ports/notify";
-import type { MemberRow, RoleRow } from "../store/types";
+import { teamsOf } from "../ports/teams";
+import type { MemberRow } from "../store/types";
 
 type C = Ctx<RouteSpec>;
-
-/** The teams a member belongs to, from the roles they hold: everyone is the team; Owner is the owners; Reception is reception. */
-function teamsOf(member: MemberRow | undefined, roles: readonly RoleRow[]): ReadonlySet<TeamName> {
-	if (member === undefined) return new Set();
-	const names = new Set(roles.filter((r) => member.roles.includes(r.id)).map((r) => r.name));
-	const teams = new Set<TeamName>(["team"]);
-	if (names.has("Owner")) teams.add("owners");
-	if (names.has("Reception")) teams.add("reception");
-	return teams;
-}
 
 /**
  * Keeps the notifier's directory in step with a member who was added, changed or removed: their subscriber, and the

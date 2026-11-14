@@ -44,21 +44,17 @@ describe("Profilul meu", () => {
 		expect((await c.port.profile("psizone", MEMBER.sub)).phone).toBeNull();
 	});
 
-	it("saves the notification matrix per channel per kind, and only what was ticked", async () => {
+	it("leads to Setările mele for the notifications, and a form posted from an older page lands there", async () => {
 		await open();
+		const html = await (await c.get("/me/profile")).text();
+		expect(html).toContain('href="/me/settings#notif"');
+		expect(html).toContain("Alege notificările");
+		expect(html).not.toContain('action="/me/profile/notifications"');
 		const form = { "content-type": "application/x-www-form-urlencoded" };
-		const res = await c.post(
-			"/me/profile/notifications",
-			"n.requests.push=on&n.feedback.email=on",
-			form,
-		);
-		expect(await res.text()).toContain("Notificările au fost salvate.");
-		const { prefs } = await c.port.notificationPrefs(MEMBER.sub);
-		expect(prefs.filter((p) => p.on).map((p) => `${p.kind}.${p.channel}`)).toEqual([
-			"requests.push",
-			"feedback.email",
-		]);
-		expect(prefs).toHaveLength(12);
+		await c.post("/me/profile/notifications", "n.requests.push=on", form);
+		const saved = await c.port.mySettings("psizone", MEMBER.sub);
+		expect(saved.stored).toBe(true);
+		expect(saved.notifications.requests).toEqual({ email: false, push: true });
 	});
 
 	it("lists the person's own feedback, and the browsers with the way out of all of them", async () => {
@@ -82,13 +78,13 @@ describe("Profilul meu", () => {
 	it("says 'în curând' in the section the service cannot serve, and the rest still works", async () => {
 		await open();
 		const { PortError } = await import("../port/port");
-		const real = c.port.notificationPrefs;
-		c.port.notificationPrefs = () => Promise.reject(new PortError("unavailable", "no"));
+		const real = c.port.myFeedback;
+		c.port.myFeedback = () => Promise.reject(new PortError("unavailable", "no"));
 		const html = await (await c.get("/me/profile")).text();
-		c.port.notificationPrefs = real;
+		c.port.myFeedback = real;
 		expect(html).toContain("În curând");
 		expect(html).toContain("Contul meu");
-		expect(html).not.toContain('action="/me/profile/notifications"');
+		expect(html).not.toContain("Cu răspuns");
 	});
 
 	it("a write while looking at the app as someone else is refused", async () => {

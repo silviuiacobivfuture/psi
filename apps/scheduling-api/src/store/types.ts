@@ -24,7 +24,14 @@ import type {
 	WebRequest,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
-import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
+import type {
+	BlacklistPort,
+	DocumentsPort,
+	FeedbackPort,
+	ReportsPort,
+	SeriesPort,
+	SettingsPort,
+} from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -348,6 +355,8 @@ export interface StorePort {
 	appsOf(subject: string): Promise<{ app: string; roles: string[] }[]>;
 	visitor: VisitorPort;
 	requests: RequestsPort;
+	/** Each person's own settings per app. */
+	settings: SettingsPort;
 	/** Documents with a revision (the floor plan). */
 	docs: DocumentsPort;
 	/** Who may not book. */

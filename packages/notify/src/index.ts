@@ -24,6 +24,7 @@ export {
 } from "./catalogue";
 export { clientSubscriberId, subscriberHash, topicKey } from "./identity";
 export {
+	type Choices,
 	createNotifier,
 	idempotencyKey,
 	type Notifier,

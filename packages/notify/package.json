@@ -1,6 +1,6 @@
 {
 	"name": "@psi/notify",
-	"version": "0.7.0",
+	"version": "0.8.0",
 	"private": true,
 	"type": "module",
 	"description": "psi's notification layer on the estate's Novu: the clinic's catalogue (typed payloads, RO/EN templates), the code-first workflows the estate bridge serves, the trigger client, signed reminder links, the in-app inbox feed and the push hook.",

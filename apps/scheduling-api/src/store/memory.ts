@@ -7,7 +7,7 @@ import { applyVisitRules } from "./memory-rules";
 import { createMemorySeries } from "./memory-series";
 import { applyTeamRules } from "./memory-team";
 import { createMemoryVisitor } from "./memory-visitor";
-import type { StoredDocument } from "./ports";
+import { MAX_SETTINGS_CHARS, type StoredDocument, type StoredSettings } from "./ports";
 import { COLLECTIONS, type CollectionName, type Rows, type StorePort, StoreRefused } from "./types";
 
 /** The store's own bound on one document (the Convex wrapper's `MAX_DOCUMENT_CHARS`). */
@@ -73,9 +73,21 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 			return { revision: saved.revision, updatedAt: saved.updatedAt };
 		},
 	};
+	const kept = new Map<string, StoredSettings>();
+	const settings: StorePort["settings"] = {
+		get: (app, subject) => Promise.resolve(kept.get(`${app}|${subject}`)),
+		async put(app, subject, body) {
+			if ((await c.apps.get(app, app)) === undefined) throw new StoreRefused("not_found");
+			if (body.length > MAX_SETTINGS_CHARS) throw new StoreRefused("invalid");
+			const saved = { body, updatedAt: clock() };
+			kept.set(`${app}|${subject}`, saved);
+			return { updatedAt: saved.updatedAt };
+		},
+	};
 	return {
 		c,
 		changes,
+		settings,
 		appsOf: (subject) =>
 			Promise.resolve(
 				c.members
@@ -97,6 +109,7 @@ export function createMemoryStore(clock: () => number = Date.now): MemoryStore {
 				[...events.entries()],
 				state(),
 				[...documents.entries()],
+				[...kept.entries()],
 				blacklist.state(),
 				feedback.state(),
 			]),

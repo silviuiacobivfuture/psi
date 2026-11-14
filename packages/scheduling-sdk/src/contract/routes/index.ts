@@ -2,6 +2,7 @@ import { CATALOG_ROUTES, ME_ROUTES } from "./team-admin";
 import { BLACKLIST_ROUTES } from "./team-blacklist";
 import { CALENDAR_ROUTES } from "./team-clinic";
 import { FEEDBACK_ROUTES } from "./team-feedback";
+import { SETTINGS_ROUTES } from "./team-me";
 import { NOTE_ROUTES } from "./team-notes";
 import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
@@ -14,6 +15,7 @@ export const ROUTES = [
 	...META_ROUTES,
 	...VISITOR_ROUTES,
 	...ME_ROUTES,
+	...SETTINGS_ROUTES,
 	...CATALOG_ROUTES,
 	...CALENDAR_ROUTES,
 	...SERIES_ROUTES,

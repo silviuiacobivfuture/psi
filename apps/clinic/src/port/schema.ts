@@ -395,9 +395,3 @@ export type SearchHit = z.infer<typeof SearchHitSchema>;
 export const ASSISTANT_MODES = ["bar", "panel"] as const;
 export const AssistantModeSchema = z.enum(ASSISTANT_MODES);
 export type AssistantMode = z.infer<typeof AssistantModeSchema>;
-
-export const PushPrefsSchema = z.object({
-	requests: z.boolean(),
-	reminders: z.boolean(),
-});
-export type PushPrefs = z.infer<typeof PushPrefsSchema>;

@@ -15,6 +15,7 @@ export * from "./entities-feedback";
 export * from "./entities-plan";
 export * from "./entities-reports";
 export * from "./entities-series";
+export * from "./entities-settings";
 export { ERROR_CODES, ERROR_STATUS, ErrorBody, type ErrorBodyType, type ErrorCode } from "./errors";
 export { buildOpenApi } from "./openapi";
 export * from "./primitives";

@@ -110,10 +110,13 @@ describe.each(factories)("on the $name store", (factory) => {
 					return;
 				}
 				if (spec.id === "me.get" || spec.id === "me.capabilities") return;
+				// A member's own settings need no permission: a role with none still reaches its own (and only its own).
+				const ownOnly = spec.id === "me.settings" || spec.id === "me.saveSettings";
 				it("a member of another app is told the app is not there", () =>
 					refused(() => call("hugo"), 404, "not_found"));
 				it("a stranger is told the app is not there", () =>
 					refused(() => call("mallory"), 404, "not_found"));
+				if (ownOnly) return;
 				it("a role that lacks the permission", () => {
 					// An object the caller cannot reach is "not found" (no leak); a dynamic route first asks for ANY candidate.
 					const target = spec.permission?.target.kind;

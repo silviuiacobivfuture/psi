@@ -17,6 +17,7 @@ import { reminderHandlers } from "./reminders";
 import { reportHandlers } from "./reports";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
+import { settingsHandlers } from "./settings";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
@@ -40,6 +41,7 @@ const complete: Handlers = {
 	...feedbackHandlers,
 	...adminHandlers,
 	...viewAsHandlers,
+	...settingsHandlers,
 	...visitorHandlers,
 };
 

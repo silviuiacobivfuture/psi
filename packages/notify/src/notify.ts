@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
-import { type AppKey, type AppSettings, type EventId, inQuietHours } from "./apps";
-import { type Audience, type Channel, entryFor, PAYLOADS, workflowId } from "./catalogue";
+import { type AppKey, type AppSettings, type EventId, inQuietHours, type QuietHours } from "./apps";
+import {
+	type Audience,
+	type Channel,
+	entryFor,
+	PAYLOADS,
+	type PushKind,
+	workflowId,
+} from "./catalogue";
 import { clientSubscriberId, type TeamAudience, topicKey } from "./identity";
 import {
 	createNovuHttp,
@@ -12,6 +19,15 @@ import {
 import { createMemoryOutbox, type Job, type Outbox } from "./outbox";
 import type { Meta } from "./render";
 
+/**
+ * A person's own choices: the (kind, channel) pairs they switched off, and their own quiet hours (no push then). A
+ * kind is the catalogue entry's push purpose; an entry with none is not narrowed. The bell is never switched off.
+ */
+export interface Choices {
+	off: ReadonlyArray<{ kind: PushKind; channel: "email" | "push" }>;
+	quietHours: QuietHours | null;
+}
+
 /** Who a notification goes to: a person of the app, or one of its teams (a Novu topic). */
 export type Recipient =
 	| {
@@ -21,6 +37,7 @@ export type Recipient =
 			phone?: string;
 			name?: string;
 			locale?: "ro" | "en";
+			choices?: Choices;
 	  }
 	| {
 			audience: "practitioner" | "requester" | "actor";
@@ -29,8 +46,17 @@ export type Recipient =
 			email?: string;
 			name?: string;
 			locale?: "ro" | "en";
+			choices?: Choices;
 	  }
-	| { audience: "team" | "reception" | "owners" };
+	| {
+			audience: "team" | "reception" | "owners";
+			/**
+			 * The team's members, each with their own choices: the team's workflow then goes to each of them (their
+			 * subscriber id is their subject) instead of to the topic, so a person's choices hold for team messages too.
+			 * Absent: the topic, as the directory keeps it.
+			 */
+			members?: ReadonlyArray<{ subject: string; choices?: Choices }>;
+	  };
 
 export type TeamRecipient = Extract<Recipient, { audience: TeamAudience }>;
 export type PersonRecipient = Exclude<Recipient, TeamRecipient>;
@@ -155,6 +181,23 @@ function effectiveChannels(channels: ReadonlyArray<Channel>, quiet: boolean): Me
 	};
 }
 
+/** The channels left once the person's own choices for this entry's kind and their quiet hours are applied. */
+function chosen(
+	channels: Meta["channels"],
+	kind: PushKind | undefined,
+	choices: Choices | undefined,
+	now: number,
+): Meta["channels"] {
+	if (choices === undefined) return channels;
+	const off = (channel: "email" | "push"): boolean =>
+		kind !== undefined && choices.off.some((o) => o.kind === kind && o.channel === channel);
+	return {
+		in_app: channels.in_app,
+		push: channels.push && !off("push") && !inQuietHours(choices.quietHours, now),
+		email: channels.email && !off("email"),
+	};
+}
+
 export function createNotifier(options: NotifyOptions): Notifier {
 	const http: NovuHttp = createNovuHttp(options.novu);
 	const outbox = options.outbox ?? createMemoryOutbox();
@@ -173,6 +216,28 @@ export function createNotifier(options: NotifyOptions): Notifier {
 		return { subscriberId: fields.subscriberId, fields };
 	}
 
+	/** Who one recipient turns into: itself, or each member of a team that names them. */
+	function deliveries(
+		app: AppKey,
+		r: Recipient,
+	): Array<{ recipient: Recipient; target: Target; key: string; choices: Choices | undefined }> {
+		if (isTeam(r) && r.members !== undefined)
+			return r.members.map((m) => ({
+				recipient: r,
+				target: { subscriberId: m.subject },
+				key: m.subject,
+				choices: m.choices,
+			}));
+		return [
+			{
+				recipient: r,
+				target: target(app, r),
+				key: recipientKey(app, r),
+				choices: isTeam(r) ? undefined : r.choices,
+			},
+		];
+	}
+
 	return {
 		async notify(app, event, payload, to, occurrence) {
 			try {
@@ -189,10 +254,16 @@ export function createNotifier(options: NotifyOptions): Notifier {
 					return { status: "off", reason: "receipts-off" };
 				const quiet = inQuietHours(settings.quietHours, now());
 				const jobs: Job[] = [];
-				for (const r of to) {
+				for (const d of to.flatMap((r) => deliveries(app, r))) {
+					const r = d.recipient;
 					const entry = entryFor(event, r.audience);
 					if (entry === undefined) return { status: "invalid", reason: "recipient" };
-					const channels = effectiveChannels(entry.channels, quiet);
+					const channels = chosen(
+						effectiveChannels(entry.channels, quiet),
+						entry.push,
+						d.choices,
+						now(),
+					);
 					if (!channels.in_app && !channels.push && !channels.email) continue;
 					const meta: Meta = {
 						event,
@@ -205,21 +276,14 @@ export function createNotifier(options: NotifyOptions): Notifier {
 						consoleUrl: runtime.consoleUrl,
 						place: settings.place,
 					};
-					const key = idempotencyKey(
-						app,
-						event,
-						r.audience,
-						parsed.data,
-						recipientKey(app, r),
-						occurrence,
-					);
+					const key = idempotencyKey(app, event, r.audience, parsed.data, d.key, occurrence);
 					const integration = `plunk-${app}`;
 					jobs.push({
 						id: key,
 						idempotencyKey: key,
 						body: {
 							workflow: workflowId(app, event, r.audience),
-							to: target(app, r),
+							to: d.target,
 							payload: { ...parsed.data, meta },
 							overrides: {
 								email: {

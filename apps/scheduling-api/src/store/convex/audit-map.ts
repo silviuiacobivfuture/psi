@@ -39,6 +39,8 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	// Looking at the app as someone else changes nothing: the log has no word for it, so it is a settings-level event.
 	"view_as.start": own("builder.change", "builder"),
 	"view_as.stop": own("builder.change", "builder"),
+	// A person's own settings hold no clinic data: the log says that the member changed them.
+	"settings.update": own("member.change", "member"),
 	"role.create": rec("role.change", "role"),
 	"role.update": rec("role.change", "role"),
 	"role.permissions": rec("role.change", "role"),

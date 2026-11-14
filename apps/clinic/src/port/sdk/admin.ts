@@ -8,15 +8,21 @@ import {
 	type AssistantMode,
 	type AuditEvent,
 	type Membership,
-	type PushPrefs,
 	type Role,
 	type WebRequest,
 } from "../schema";
+import type { MySettings, MySettingsView } from "../schema-settings";
 import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { auditOf, drain, requestOf } from "./map";
 
 const DAY = 86_400_000;
+
+/** The service's answer as the console keeps it (when it was saved is the service's own business). */
+const settingsView = ({
+	updatedAt: _at,
+	...s
+}: MySettingsView & { updatedAt?: number }): MySettingsView => s;
 
 /** Requests, roles, audit, the team, capabilities and "Vezi ca…". */
 export function adminGroup(sdk: SdkContext) {
@@ -172,11 +178,11 @@ export function adminGroup(sdk: SdkContext) {
 		audit: (app: AppSlug): Promise<AuditEvent[]> =>
 			run(async () => (await api.audit.list({ app, limit: 200 })).items.map(auditOf)),
 
-		// The service has no route for a person's push preferences yet: the screen says "în curând".
-		pushPrefs: (_subject: string): Promise<PushPrefs> =>
-			Promise.reject(new PortError("not-available-yet", "push preferences")),
-		savePushPrefs: (_subject: string, _prefs: PushPrefs): Promise<void> =>
-			Promise.reject(new PortError("not-available-yet", "push preferences")),
+		// The person's own settings: the token says whose, so the subject is never sent.
+		mySettings: (app: AppSlug, _subject: string): Promise<MySettingsView> =>
+			run(async () => settingsView(await api.me.settings({ app }))),
+		saveMySettings: (app: AppSlug, _subject: string, s: MySettings): Promise<MySettingsView> =>
+			run(async () => settingsView(await api.me.saveSettings({ app, ...s }))),
 
 		// Nor one for how a person's assistant shows: the console keeps the choice on the device meanwhile.
 		assistantMode: (_subject: string): Promise<AssistantMode | null> =>

@@ -95,6 +95,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 				inner.requests.decide(to(app), ref, decision, reason, actor),
 		},
 		docs: forApp(inner.docs, to),
+		settings: forApp(inner.settings, to),
 		blacklist: forApp(inner.blacklist, to),
 		feedback: forApp(inner.feedback, to),
 		reports: forApp(inner.reports, to),
