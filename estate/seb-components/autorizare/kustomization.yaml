@@ -19,6 +19,9 @@ resources:
 # psi's console brand (declaration, theme, icons), mounted at /estate-brand (brand/kustomization.yaml).
 components:
   - ../../../brand
+  # psi's permissions bundle: its modules, catalogs and composed model, which Polaris releases at
+  # start-up and its module authority reads (gitops/services/autorizare-permissions).
+  - ../../../gitops/services/autorizare-permissions
 
 configMapGenerator:
   - name: estate-hub-registry
@@ -92,8 +95,8 @@ patches:
         path: /spec/maxUnavailable
         value: 1
 # Slot `image` (schema/slots/autorizare.yaml): the tag of the autorizare-svc image psi built
-# (scripts/estate-images.sh from SEB 0.1.85, psi's authorization inputs), sha256:279a9619… in
+# (scripts/estate-images.sh from SEB 0.1.88, psi's authorization inputs), sha256:92765e6a… in
 # registry.psizone.ro/psi, signed. The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-7b7bd078c
+    newTag: seb-b776c20ea
