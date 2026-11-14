@@ -350,3 +350,19 @@ its e-mail is off until chosen; new requests default to the bell, push and e-mai
 confirmation to the bell only); the lists to the bell and e-mail; the owners' numbers to e-mail; the feedback e-mail is switched off for an app until its site has the page that opens the link
 (`off` in the app's notification settings); revoking an invitation leaves the sign-in account as it was.
 
+## 13. Asked of SEB (2026-11-14)
+
+psi cannot do these itself; each stays open until SEB answers.
+
+1. **Novu bridge.** SEB's bridge (`psi/novu-bridge`, pinned by the bundle) is built without psi's catalogue and serves no
+   workflow. psi now runs its own, `apps/notify-bridge` (the `@psi/notify` registry, at
+   `http://notify-bridge.notify-bridge.svc:8080/api/novu`). Ask: build SEB's bridge from the estate's catalogue, or let an
+   estate name its own bridge URL in `novu-bootstrap`. Until then the bridge URL is set and the sync is run against the Novu
+   API by hand, and that is recorded as a one-time act.
+2. **The scheduling service's Authentik token.** `secret/apps/scheduling-api/sso` (and `-prod/sso`) hold a token minted by
+   hand for the `scheduling-invites` service account. Ask: an OpenBao auth role so a reconcile Job can mint and rotate it
+   as code.
+3. **Polaris serves psi.3's model.** The permissions bundle Polaris serves comes from the signed OCI bundle (psi.3), not from
+   `gitops/services/autorizare-permissions`. Ask: release psi.4 so Polaris serves the current model (`clients_invite` and
+   the later keys).
+
