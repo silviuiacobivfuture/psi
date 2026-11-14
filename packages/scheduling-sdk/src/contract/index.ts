@@ -18,6 +18,7 @@ export * from "./entities-invite";
 export * from "./entities-notify";
 export * from "./entities-plan";
 export * from "./entities-reports";
+export * from "./entities-roles";
 export * from "./entities-series";
 export * from "./entities-staff";
 export { ERROR_CODES, ERROR_STATUS, ErrorBody, type ErrorBodyType, type ErrorCode } from "./errors";

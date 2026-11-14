@@ -117,7 +117,7 @@ export async function renderMembers(
 	/** The invitation just made: shown once, in its own sheet (the one-time link with it). */
 	invited?: InviteOutcome,
 	/** A new set-password link just made for a member: shown once, in its own sheet. */
-	newLink?: { name: string; link: string },
+	newLink?: { name: string; link: string; expiresBy: number },
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
 	let body: JSX.Element;
@@ -163,7 +163,12 @@ export async function renderMembers(
 				) : null}
 				{invited === undefined ? null : <InvitedSheet ctx={ctx} outcome={invited} />}
 				{newLink === undefined ? null : (
-					<NewLinkSheet ctx={ctx} name={newLink.name} link={newLink.link} />
+					<NewLinkSheet
+						ctx={ctx}
+						name={newLink.name}
+						link={newLink.link}
+						expiresBy={newLink.expiresBy}
+					/>
 				)}
 				{open === null ? null : <MemberEditor ctx={ctx} d={d} member={open} />}
 				{doomed === undefined ? null : <RemoveSheet ctx={ctx} member={doomed} />}

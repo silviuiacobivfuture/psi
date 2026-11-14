@@ -13,6 +13,7 @@ import { type Backoff, DEFAULT_BACKOFF, liveSignals } from "./live";
 import { membersGroup } from "./members";
 import { profileGroup } from "./profile";
 import { reportsGroup } from "./reports";
+import { roleSummaryGroup } from "./role-summary";
 
 export interface SdkPortOptions {
 	/** The scheduling service's origin (SCHEDULING_API_URL). */
@@ -68,6 +69,7 @@ export function createSdkPort(options: SdkPortOptions): ClinicPort {
 		...membersGroup(sdk),
 		...reportsGroup(sdk, { columns: cal.columns, services: cal.services, calendar: cal.calendar }),
 		...profileGroup(sdk),
+		...roleSummaryGroup(sdk),
 		live: (app, signal) => liveSignals(api, app, signal, options.backoff ?? DEFAULT_BACKOFF),
 	};
 }

@@ -187,7 +187,7 @@ describe("Invită prin e-mail", () => {
 	});
 });
 
-describe("Link nou de setare a parolei", () => {
+describe("Arată linkul de setare a parolei (valabil 30 min)", () => {
 	const invited = async (email: string, name: string): Promise<string> => {
 		await invite([
 			["email", email],
@@ -200,7 +200,7 @@ describe("Link nou de setare a parolei", () => {
 	const ask = (subject: string, who: Console = c) =>
 		who.post(`/settings/members/${encodeURIComponent(subject)}/link`, "", FORM);
 
-	it("is offered in the editor of a member with an e-mail, and gives a new link once", async () => {
+	it("is offered in the editor of a member with an e-mail, and shows the link once with when it stops working", async () => {
 		const subject = await invited("nou@example.test", "Nou Venit");
 		expect(await (await c.get(`/settings/members?edit=${subject}`)).text()).toContain(
 			'data-form="member-link"',
@@ -211,10 +211,33 @@ describe("Link nou de setare a parolei", () => {
 		const html = await r.text();
 		expect(html).toContain("data-new-link");
 		expect(html).toContain('id="mb-invite-link"');
-		expect(html).toContain(`https://sso.example.test/recovery/${subject}-`);
+		expect(html).toContain(`https://sso.example.test/recovery/${subject}`);
+		expect(html).toContain("Valabil cel târziu până la");
+		expect(html).toContain("același link 30 de minute");
+		expect(html).toMatch(/data-link-expires="\d+"/);
 		expect(await (await c.get("/settings/audit")).text()).toContain(
-			"A făcut un link nou de setare a parolei pentru",
+			"A afișat linkul de setare a parolei pentru",
 		);
+	});
+
+	it("asked again within its 30 minutes, shows the same link", async () => {
+		const subject = await invited("nou@example.test", "Nou Venit");
+		const link = (html: string): string =>
+			/id="mb-invite-link"[^>]*value="([^"]+)"/.exec(html)?.[1] ?? "";
+		const first = link(await (await ask(subject)).text());
+		expect(first).not.toBe("");
+		expect(link(await (await ask(subject)).text())).toBe(first);
+	});
+
+	it("the invitation's own link says when it stops working too", async () => {
+		const html = await (
+			await invite([
+				["email", "alt@example.test"],
+				["displayName", "Alt Nou"],
+			])
+		).text();
+		expect(html).toContain("valabil 30 de minute");
+		expect(html).toContain("Valabil cel târziu până la");
 	});
 
 	it("is not offered for a member with no e-mail address", async () => {

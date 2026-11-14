@@ -88,6 +88,7 @@ describe("inviting someone by e-mail", () => {
 		const made = w.staff.accounts.get("nou.venit@example.test");
 		expect(made).toMatchObject({ staff: true, customer: false, active: true, name: "Nou Venit" });
 		expect(out.signInLink).toBe(`https://sso.test/recover/${made?.userId}`);
+		expect(out.signInLinkExpiresBy).toBe(w.clock.now + 30 * 60_000);
 		expect(out.member).toMatchObject({
 			subject: made?.subject,
 			displayName: "Nou Venit",
@@ -133,7 +134,7 @@ describe("inviting someone by e-mail", () => {
 	it("a person already in the staff group is added with their own account: nothing made, no link", async () => {
 		const known = w.staff.seed("nou.venit@example.test", "Nou Venit");
 		const out = StaffInviteResult.parse((await invite({})).json);
-		expect(out).toMatchObject({ account: "existing", signInLink: null });
+		expect(out).toMatchObject({ account: "existing", signInLink: null, signInLinkExpiresBy: null });
 		expect(out.member.subject).toBe(known.subject);
 		expect(w.staff.calls.filter((c) => /^(create|join|recovery):/.test(c))).toEqual([]);
 	});

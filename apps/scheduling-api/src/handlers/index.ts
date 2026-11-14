@@ -20,15 +20,17 @@ import { packageHandlers } from "./packages";
 import { recordHandlers } from "./records";
 import { reminderHandlers } from "./reminders";
 import { reportHandlers } from "./reports";
+import { roleSummaryHandlers } from "./role-summary";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
-import { staffHandlers } from "./staff";
+import { staffHandlers } from "./staff-accounts";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
 /** Every route of the contract has a handler here: the type is a mapped type over the table, so a missing one does not compile. */
 const complete: Handlers = {
 	...appHandlers,
+	...roleSummaryHandlers,
 	...memberHandlers,
 	...catalogHandlers,
 	...clientHandlers,
