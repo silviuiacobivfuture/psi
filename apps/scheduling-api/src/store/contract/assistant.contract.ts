@@ -42,6 +42,27 @@ export const assistantContract: ContractSection = (env) => {
 		});
 	});
 
+	describe("an organisation's configuration document", () => {
+		it("is its own kind beside the floor plan: saved, read back, stale from an older revision", async () => {
+			expect(await env().store.docs.get(app, "assistant_config")).toBeUndefined();
+			const saved = await withActor("rita", () =>
+				env().store.docs.put(app, "assistant_config", 0, '{"revision":1}'),
+			);
+			expect(saved.revision).toBe(1);
+			expect(await env().store.docs.get(app, "assistant_config")).toMatchObject({
+				revision: 1,
+				body: '{"revision":1}',
+				updatedBy: "rita",
+			});
+			expect(await env().store.docs.get(app, "floor_plan")).toBeUndefined();
+			expect(await env().store.docs.get(other, "assistant_config")).toBeUndefined();
+			await refused("stale", () =>
+				env().store.docs.put(app, "assistant_config", 0, '{"revision":1}'),
+			);
+			expect((await env().store.docs.get(app, "assistant_config"))?.body).toBe('{"revision":1}');
+		});
+	});
+
 	describe("the meters", () => {
 		it("nothing recorded reads as zeros, key by key", async () => {
 			expect(await env().store.usage.read(app, [month, day])).toEqual([NO_USAGE, NO_USAGE]);
