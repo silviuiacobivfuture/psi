@@ -29,9 +29,19 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
         value: "http://scheduling-backend.scheduling-backend-prod.svc:3211"
+      # The store's Postgres is CNPG's, which serves TLS under its own CA: the backend verifies it with that CA
+      # (CNPG's `scheduling-db-ca`, as SEB's Convex restore drill does) instead of turning verification off.
       - op: add
         path: /spec/template/spec/containers/0/env/-
-        value: { name: DO_NOT_REQUIRE_SSL, value: "true" }
+        value: { name: PG_CA_FILE, value: /etc/convex/pg-ca/ca.crt }
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: pg-ca, mountPath: /etc/convex/pg-ca, readOnly: true }
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: pg-ca
+          secret: { secretName: scheduling-db-ca, items: [{ key: ca.crt, path: ca.crt }] }
       - op: replace
         path: /spec/template/spec/initContainers/0/command/2
         value: '[ -n "${INSTANCE_NAME:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_NAME" >&2; exit 1; }; [ -n "${INSTANCE_SECRET:-}" ] || { echo "MISSING REQUIRED SECRET: INSTANCE_SECRET" >&2; exit 1; }; [ -n "${POSTGRES_URL:-}" ] || { echo "MISSING REQUIRED SECRET: POSTGRES_URL" >&2; exit 1; }; case "$INSTANCE_SECRET" in *[!0-9a-f]*) echo "INVALID SECRET: INSTANCE_SECRET must be lowercase hex" >&2; exit 1;; esac; [ "${#INSTANCE_SECRET}" -ge 32 ] || { echo "INVALID SECRET: INSTANCE_SECRET shorter than 32" >&2; exit 1; }; echo secrets-ok'
