@@ -151,6 +151,8 @@ export const appointmentHandlers: HandlersOf<
 	async "appointments.list"(ctx) {
 		const rows = (
 			await ctx.deps.store.c.appointments.list(ctx.app, {
+				// A client's visits are read by the client (an index in Convex), never the window's whole calendar.
+				...(ctx.query.clientId === undefined ? {} : { eq: { clientId: ctx.query.clientId } }),
 				range: { field: "start", gte: ctx.query.from, lt: ctx.query.to },
 			})
 		)

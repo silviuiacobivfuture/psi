@@ -2,6 +2,7 @@ import { Icon } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
+import { joinRoles } from "../lib/roles-joined";
 import { absolute, relative } from "../lib/when";
 import { m } from "../paraglide/messages.js";
 import { changeRows, visibleChanges } from "./changes";
@@ -51,7 +52,7 @@ export function DrawerBody({
 			<dl class="audit-kv">
 				<Item label={m.jr_d_who({}, o)}>{row.who}</Item>
 				{row.roles.length === 0 ? null : (
-					<Item label={m.jr_d_role({}, o)}>{row.roles.join(" + ")}</Item>
+					<Item label={m.jr_d_role({}, o)}>{joinRoles(row.roles)}</Item>
 				)}
 				{e.asWhom === undefined ? null : <Item label={m.jr_d_as({}, o)}>{e.asWhom}</Item>}
 				<Item label={m.jr_d_when({}, o)}>

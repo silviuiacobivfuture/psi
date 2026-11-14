@@ -37,6 +37,25 @@ export function scopedPort(port: ClinicPort, caps: Capabilities): ClinicPort {
 				? all
 				: all.filter((c) => c.practitionerId !== null && clients.has(c.practitionerId));
 		},
+		async clientsByIds(app, ids) {
+			const all = await port.clientsByIds(app, ids);
+			return clients === null
+				? all
+				: all.filter((c) => c.practitionerId !== null && clients.has(c.practitionerId));
+		},
+		async clientPage(app, filter, query, cursor) {
+			const page = await port.clientPage(app, filter, query, cursor);
+			if (clients === null) return page;
+			const shown = page.clients.filter(
+				(c) => c.practitionerId !== null && clients.has(c.practitionerId),
+			);
+			const ids = new Set(shown.map((c) => c.id));
+			return {
+				...page,
+				clients: shown,
+				summaries: page.summaries.filter((s) => ids.has(s.clientId)),
+			};
+		},
 		async client(app, id) {
 			const found = await port.client(app, id);
 			if (found === null || clients === null) return found;

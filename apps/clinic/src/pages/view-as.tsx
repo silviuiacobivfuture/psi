@@ -7,6 +7,7 @@ import { canOf } from "../lib/can";
 import type { Ctx } from "../lib/context";
 import { landingFor } from "../lib/gates";
 import { at, type Locale } from "../lib/i18n";
+import { joinRoles } from "../lib/roles-joined";
 import { sse } from "../lib/sse";
 import { clearViewAs, writeViewAs } from "../lib/view-as";
 import { m } from "../paraglide/messages.js";
@@ -126,7 +127,7 @@ export async function renderViewAs(
 								key={p.subject}
 								as={`member:${p.subject}`}
 								label={p.displayName}
-								hint={p.roles.map((r) => roleNames.get(r) ?? r).join(", ")}
+								hint={joinRoles(p.roles.map((r) => roleNames.get(r) ?? r))}
 								go={m.view_as_start({ name: p.displayName }, o)}
 							/>
 						))}

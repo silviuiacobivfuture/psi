@@ -24,8 +24,9 @@ import {
 	PaymentCreate,
 	RosterDay,
 	RosterPut,
+	RosterQuery,
 } from "../entities";
-import { AppParam, DateKey, Id, IdParam, Ms, Ok, PageQuery, page } from "../primitives";
+import { AppParam, DateKey, Id, IdList, IdParam, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Deleted = z.object({ id: Id, status: z.literal("deleted"), purgeAt: Ms });
 
@@ -218,6 +219,11 @@ export const CALENDAR_ROUTES = [
 				 * guardian and money groups the caller may see. Clinical data is never in a list: ask for the client.
 				 */
 				fields: z.enum(["identity", "groups"]).default("groups"),
+				/**
+				 * These clients only, whatever their standing (`status` and `q` are not applied): comma-separated ids, at most
+				 * MAX_IDS. The calendar names the clients of the visits it shows in ONE call, never one call per client.
+				 */
+				ids: IdList.optional(),
 			})
 			.extend(PageQuery.shape),
 		response: page(Client),
@@ -307,9 +313,11 @@ export const CALENDAR_ROUTES = [
 		method: "GET",
 		path: "/v1/apps/:app/clients/:id/packages",
 		side: "team",
-		summary: "A client's packages with computed balances",
+		summary:
+			"A client's packages with computed balances, and each one's payments for a caller who may see them (one call, not one per package)",
 		params: IdParam,
-		response: z.object({ items: z.array(Package) }),
+		query: PageQuery,
+		response: page(Package.extend({ payments: z.array(Payment).optional() })),
 		permission: { key: "packages_view", target: { kind: "object", type: "sched_client" } },
 	}),
 	route({
@@ -390,7 +398,7 @@ export const CALENDAR_ROUTES = [
 		side: "team",
 		summary: "The roster between two dates",
 		params: AppParam,
-		query: z.object({ from: DateKey, to: DateKey }),
+		query: RosterQuery,
 		response: z.object({ items: z.array(RosterDay) }),
 		permission: { key: "roster_view", target: { kind: "list", type: "sched_calendar" } },
 	}),
@@ -413,7 +421,8 @@ export const CALENDAR_ROUTES = [
 		side: "team",
 		summary: "Leave requests",
 		params: AppParam,
-		response: z.object({ items: z.array(Leave) }),
+		query: PageQuery,
+		response: page(Leave),
 		permission: { key: "leave_view", target: { kind: "list", type: "sched_calendar" } },
 	}),
 	route({

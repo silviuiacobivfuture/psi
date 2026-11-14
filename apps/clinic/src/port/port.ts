@@ -55,7 +55,14 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
-import type { MemberDetail, MemberInput, OverridesInput } from "./schema-members";
+import type {
+	InviteInput,
+	InviteOutcome,
+	MemberDetail,
+	MemberInput,
+	OverridesInput,
+	StaffMatch,
+} from "./schema-members";
 
 export type ClientFilter = "current" | "archived";
 
@@ -66,6 +73,15 @@ export interface CalendarData {
 	services: ReadonlyArray<Service>;
 	/** What to flag on a client's tiles, by client id (the console fills it in for the days it shows). */
 	flags?: Readonly<Record<string, ClientFlag>>;
+}
+
+/** How many clients one page of the list shows. */
+export const CLIENT_PAGE_SIZE = 50;
+
+export interface ClientPage {
+	clients: ReadonlyArray<Client>;
+	summaries: ReadonlyArray<ClientSummary>;
+	nextCursor: string | null;
 }
 
 export interface ReminderItem {
@@ -177,6 +193,8 @@ export interface ClinicPort extends ProfilePort {
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;
+	/** These clients, whatever their standing (the ones not found or not visible are absent), in batched reads. */
+	clientsByIds(app: AppSlug, ids: ReadonlyArray<string>): Promise<ReadonlyArray<Client>>;
 	clientAppointments(app: AppSlug, id: string): Promise<ReadonlyArray<Appointment>>;
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
@@ -268,6 +286,14 @@ export interface ClinicPort extends ProfilePort {
 	): Promise<{ grant: ReadonlyArray<string>; deny: ReadonlyArray<string> }>;
 	/** Takes the person out of the team: their roles, grants and denials go with them. */
 	removeMember(app: AppSlug, subject: string): Promise<void>;
+	/** People of the staff sign-in group matching a name or an e-mail (never a client's account); at most 20. */
+	searchStaff(app: AppSlug, query: string): Promise<ReadonlyArray<StaffMatch>>;
+	/**
+	 * Invites someone by e-mail: their account is found or made in the staff group, they are added with these roles and
+	 * e-mailed. Refuses (`conflict`, with the service's reason) a client's account, a switched-off one, someone already in
+	 * the team; (`unavailable`) when the sign-in cannot be reached or no staff group is configured.
+	 */
+	inviteMember(app: AppSlug, input: InviteInput): Promise<InviteOutcome>;
 	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
 	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */
@@ -293,6 +319,16 @@ export interface ClinicPort extends ProfilePort {
 		filter: ClientFilter,
 		query: string,
 	): Promise<ReadonlyArray<ClientSummary>>;
+	/**
+	 * ONE page of the client list (`cursor` null: the first) with the rich rows of those clients only: what the list
+	 * screen shows, a page at a time, however many clients the clinic has. `nextCursor` null: the last page.
+	 */
+	clientPage(
+		app: AppSlug,
+		filter: ClientFilter,
+		query: string,
+		cursor: string | null,
+	): Promise<ClientPage>;
 	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
 	clientFlags(
 		app: AppSlug,

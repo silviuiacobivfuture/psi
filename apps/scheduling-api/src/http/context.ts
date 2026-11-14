@@ -10,6 +10,7 @@ import type { Notification, NotifyPort } from "../ports/notify";
 import type { ObjectStore } from "../ports/objects";
 import type { Limiter } from "../ports/ratelimit";
 import type { SsoPort } from "../ports/sso";
+import type { StaffDirectory } from "../ports/staff-directory";
 import type { StorePort } from "../store/types";
 
 export interface LogEvent {
@@ -33,6 +34,8 @@ export interface Deps {
 	notifier: NotifyPort;
 	/** The estate's sign-in, as the invitation flow reaches it; absent when it is not configured (the routes answer 503). */
 	sso: SsoPort | undefined;
+	/** The staff group of the same sign-in, for adding a member; absent when no staff group is configured (503). */
+	staff: StaffDirectory | undefined;
 	/**
 	 * What signs and opens the links a message carries (the reminder links, the invitation link), and the console's origin.
 	 * Absent when notifications are not configured.

@@ -21,6 +21,7 @@ import { reminderHandlers } from "./reminders";
 import { reportHandlers } from "./reports";
 import { rosterHandlers } from "./roster";
 import { seriesHandlers } from "./series";
+import { staffHandlers } from "./staff";
 import { viewAsHandlers } from "./viewas";
 import { visitorHandlers } from "./visitor";
 
@@ -44,6 +45,7 @@ const complete: Handlers = {
 	...blacklistHandlers,
 	...feedbackHandlers,
 	...inviteHandlers,
+	...staffHandlers,
 	...deliveryHandlers,
 	...notificationPrefsHandlers,
 	...adminHandlers,

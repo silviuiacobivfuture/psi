@@ -23,7 +23,7 @@ export type Recipient =
 			locale?: "ro" | "en";
 	  }
 	| {
-			audience: "practitioner" | "requester" | "actor";
+			audience: "practitioner" | "requester" | "actor" | "invitee";
 			/** The estate sign-in subject. */
 			subject: string;
 			email?: string;
@@ -69,6 +69,7 @@ export function recipientKey(app: AppKey, r: Recipient): string {
 		case "practitioner":
 		case "requester":
 		case "actor":
+		case "invitee":
 			return r.subject;
 		case "team":
 		case "reception":

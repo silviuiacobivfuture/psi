@@ -82,9 +82,13 @@ describe("the deployment declares every secret in all four places", () => {
 		// The group the invited clients' accounts are made in is plain configuration: a client group, never the staff's.
 		expect(d).toContain("{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }");
 		expect(d).not.toMatch(/AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic(-prod)?-member/);
-		expect(read("gitops/services/scheduling-api/overlays/prod/kustomization.yaml")).toContain(
-			"{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }",
-		);
+		const prod = read("gitops/services/scheduling-api/overlays/prod/kustomization.yaml");
+		expect(prod).toContain("{ name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }");
+		// The team's search and invitation: the console's member group of each environment, never a customer group.
+		expect(d).toContain("{ name: AUTHENTIK_STAFF_GROUP, value: app-clinic-member }");
+		expect(prod).toContain("{ name: AUTHENTIK_STAFF_GROUP, value: app-clinic-prod-member }");
+		for (const text of [d, prod])
+			expect(text).not.toMatch(/AUTHENTIK_STAFF_GROUP, value: app-clinic(-prod)?-customer/);
 		for (const key of keys) {
 			expect(asserted).not.toContain(key);
 			expect(required).not.toContain(key);

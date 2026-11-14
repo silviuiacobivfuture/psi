@@ -47,6 +47,11 @@ export const STAFF_WORDS = {
 		body: m.appointment_requested_reception_body,
 		cta: m.appointment_requested_reception_cta,
 	},
+	team_invite_invitee: {
+		subject: m.team_invite_invitee_subject,
+		body: m.team_invite_invitee_body,
+		cta: m.team_invite_invitee_cta,
+	},
 	assistant_action_done_actor: {
 		subject: m.assistant_action_done_actor_subject,
 		body: m.assistant_action_done_actor_body,

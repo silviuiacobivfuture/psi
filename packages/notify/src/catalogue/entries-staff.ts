@@ -202,6 +202,16 @@ export const PERSONAL_ENTRIES: ReadonlyArray<Entry> = [
 		path: () => "/roster/leave",
 	},
 	{
+		// The person a member of the team added: the console's address and how to set a first password. Locked: it is
+		// how they learn they may sign in. Filed with the access notices (security), not as a preference of its own.
+		event: "team.invite",
+		audience: "invitee",
+		channels: ["email"],
+		locked: ["email"],
+		kind: "security",
+		path: () => "/",
+	},
+	{
 		event: "assistant.action_done",
 		audience: "actor",
 		channels: ["in_app"],

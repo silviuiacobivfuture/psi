@@ -10,6 +10,7 @@ import { createHttpMailer } from "./ports/mail";
 import { createS3Store } from "./ports/objects";
 import { createLimiter } from "./ports/ratelimit";
 import { createAuthentikSso } from "./ports/sso-authentik";
+import { createAuthentikStaff } from "./ports/staff-authentik";
 import { createMemoryStore } from "./store/memory";
 import { openConvexStore } from "./store/open-convex";
 import type { StorePort } from "./store/types";
@@ -42,6 +43,11 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 	const clock = overrides.clock ?? Date.now;
 	const access = overrides.access ?? createAccess(authz, denials);
 	const sso = config.sso === undefined ? undefined : createAuthentikSso(config.sso);
+	const staffGroup = config.sso?.staffGroup;
+	const staff =
+		config.sso === undefined || staffGroup === undefined
+			? undefined
+			: createAuthentikStaff({ ...config.sso, staffGroup });
 	// Held delivery wires the notices as an instance without Novu does: logged by id, no link signed, nothing sent.
 	const delivers = deliversNotices(config);
 	const wiring = wireNotify({
@@ -59,6 +65,7 @@ export function buildDeps(config: Config, overrides: Partial<Deps> = {}): Deps {
 		authz,
 		access,
 		sso,
+		staff,
 		links:
 			config.notify === undefined || !delivers
 				? undefined

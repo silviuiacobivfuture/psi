@@ -38,12 +38,28 @@ export const SCHED_TYPES = [
 ] as const;
 export type SchedType = (typeof SCHED_TYPES)[number];
 
+/** The most items one page may carry; a list asked for more is refused (400), never answered whole. */
+export const MAX_PAGE = 500;
+/** What a page carries when the caller names no `limit`. */
+export const DEFAULT_PAGE = 100;
+/** The widest window a calendar or a roster answers in one call (a month grid is six weeks). */
+export const MAX_WINDOW_DAYS = 62;
+
+/** The most ids one batch read names. */
+export const MAX_IDS = 100;
+/** Ids in a query string: comma-separated, no duplicates kept, at most MAX_IDS. */
+export const IdList = z
+	.string()
+	.max(MAX_IDS * 65)
+	.transform((s) => [...new Set(s.split(",").filter((x) => x !== ""))])
+	.pipe(z.array(Id).min(1).max(MAX_IDS));
+
 /** A page of a list: `nextCursor` is opaque and absent on the last page. */
 export function page<T extends z.ZodType>(item: T) {
 	return z.object({ items: z.array(item), nextCursor: z.string().optional() });
 }
 export const PageQuery = z.object({
-	limit: z.coerce.number().int().min(1).max(500).optional(),
+	limit: z.coerce.number().int().min(1).max(MAX_PAGE).optional(),
 	cursor: z.string().max(200).optional(),
 });
 export const AppParam = z.object({ app: AppId });

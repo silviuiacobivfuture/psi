@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { journalName, listed, moved } from "../src/clinic/audit-changes";
 import { isPermissionKey } from "../src/permissions/catalogue";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
@@ -207,6 +208,21 @@ export const putMember = mutation({
 			kind: "member",
 			version: 1,
 			fields,
+			auditId: args.subject,
+			// What the journal says of it: the name, the roles and the calendars before and after (never the e-mail).
+			changes: moved([
+				{
+					field: "displayName",
+					from: journalName(existing?.displayName ?? ""),
+					to: journalName(name),
+				},
+				{ field: "roles", from: listed(heldRoles.map((m) => m.role)), to: listed(roles) },
+				{
+					field: "coordinates",
+					from: listed(heldCoordinators.map((a) => a.practitioner)),
+					to: listed(coordinated),
+				},
+			]),
 		});
 		return { ok: true as const, changed: true as const, created: existing === null };
 	},
@@ -268,6 +284,20 @@ export const setOverrides = mutation({
 			kind: "override",
 			version: 1,
 			fields: ["grants", "denies"],
+			auditId: args.subject,
+			// Both lists, changed or not: the journal counts what the person holds individually now.
+			changes: [
+				{
+					field: "grants",
+					from: listed(held.filter((o) => o.effect === "grant").map((o) => o.permission)),
+					to: listed(grants),
+				},
+				{
+					field: "denies",
+					from: listed(held.filter((o) => o.effect === "deny").map((o) => o.permission)),
+					to: listed(denies),
+				},
+			],
 		});
 		return { ok: true as const, changed: true as const };
 	},
@@ -294,6 +324,12 @@ export const removeMember = mutation({
 			kind: "member",
 			version: 1,
 			fields: ["deleted"],
+			auditId: args.subject,
+			// Who left is gone from the team: the journal names them from what it kept.
+			changes: moved([
+				{ field: "displayName", from: journalName(profile.displayName), to: "" },
+				{ field: "roles", from: listed(held.roles.map((m) => m.role)), to: "" },
+			]),
 		});
 		return { ok: true as const };
 	},

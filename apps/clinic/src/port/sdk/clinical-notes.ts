@@ -1,8 +1,9 @@
 import { SEED_FORM_TEMPLATES, validateResponse } from "@psi/scheduling/clinic";
 import { SchedulingApiError } from "@psi/scheduling-sdk";
-import type {
-	ClientNote as ApiNoteSchema,
-	RecordFull as ApiRecordSchema,
+import {
+	type ClientNote as ApiNoteSchema,
+	type RecordFull as ApiRecordSchema,
+	MAX_IDS,
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { PortError } from "../port";
@@ -44,8 +45,6 @@ const FROM_API: Readonly<Record<ApiCategory, NoteCategory>> = {
 
 /** A record's draft/final state is the console's; the service keeps the answers only, so it rides in them under this key. */
 const STATUS_KEY = "$status";
-/** Fetching the pinned notes of a list is one read per client: this many at a time. */
-const PARALLEL = 8;
 
 const stamp = (ms: number, tz: string): string => {
 	const w = wallOf(ms, tz);
@@ -87,28 +86,29 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 		editedAt: n.updatedAt > n.createdAt ? stamp(n.updatedAt, tz) : null,
 	});
 
-	/** Pinned first, newest pin first: the order the service answers in. A person who may read no notes has none. */
-	async function pinned(app: AppSlug, clientId: string): Promise<ApiNote[]> {
+	/**
+	 * The pinned notes of these clients, pinned first and newest pin first (the order the service answers in), in ONE call
+	 * per MAX_IDS clients. A person who may read no notes has none.
+	 */
+	async function pinnedOf(
+		app: AppSlug,
+		ids: ReadonlyArray<string>,
+	): Promise<Map<string, ApiNote[]>> {
+		const batches: string[][] = [];
+		for (let at = 0; at < ids.length; at += MAX_IDS) batches.push(ids.slice(at, at + MAX_IDS));
 		try {
-			return (await api.notes.list({ app, id: clientId })).items.filter((n) => n.pinned);
+			const answers = await Promise.all(
+				batches.map((batch) => api.notes.pinned({ app, clients: batch.join(",") })),
+			);
+			return new Map(answers.flatMap((a) => a.items.map((i) => [i.clientId, i.notes] as const)));
 		} catch (error) {
 			if (
 				error instanceof SchedulingApiError &&
 				(error.code === "forbidden" || error.code === "not_found")
 			)
-				return [];
+				return new Map();
 			throw error;
 		}
-	}
-
-	async function eachClient<T>(
-		ids: ReadonlyArray<string>,
-		read: (id: string) => Promise<T>,
-	): Promise<T[]> {
-		const out: T[] = [];
-		for (let at = 0; at < ids.length; at += PARALLEL)
-			out.push(...(await Promise.all(ids.slice(at, at + PARALLEL).map(read))));
-		return out;
 	}
 
 	const template = (key: string) => SEED_FORM_TEMPLATES.find((t) => t.key === key);
@@ -117,8 +117,15 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 	async function ensureForm(app: AppSlug, key: string): Promise<void> {
 		const def = template(key);
 		if (def === undefined) throw new PortError("invalid", `unknown form ${key}`);
-		const held = await api.builder.list({ app, kind: "forms" });
-		if (held.items.some((f) => f.id === key)) return;
+		const held = await drain((cursor) =>
+			api.builder.list({
+				app,
+				kind: "forms",
+				limit: 500,
+				...(cursor === undefined ? {} : { cursor }),
+			}),
+		);
+		if (held.some((f) => f.id === key)) return;
 		await api.builder.put({
 			app,
 			kind: "forms",
@@ -159,27 +166,23 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 	return {
 		pinnedCounts: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Map<string, number>> =>
 			run(async () => {
-				const counts = await eachClient(
-					ids,
-					async (id) => [id, (await pinned(app, id)).length] as const,
-				);
-				return new Map(counts);
+				const by = await pinnedOf(app, ids);
+				return new Map(ids.map((id) => [id, by.get(id)?.length ?? 0] as const));
 			}),
 		pinnedFlags: (
 			app: AppSlug,
 			ids: ReadonlyArray<string>,
 		): Promise<Map<string, { body: string; category: NoteCategory }>> =>
 			run(async () => {
-				const found = await eachClient(
-					ids,
-					async (id) => [id, (await pinned(app, id))[0]] as const,
-				);
+				const by = await pinnedOf(app, ids);
 				return new Map(
-					found.flatMap(([id, n]) =>
-						n === undefined
-							? []
-							: [[id, { body: n.text, category: FROM_API[n.category] }] as const],
-					),
+					ids
+						.flatMap((id) => [[id, by.get(id)?.[0]] as const])
+						.flatMap(([id, n]) =>
+							n === undefined
+								? []
+								: [[id, { body: n.text, category: FROM_API[n.category] }] as const],
+						),
 				);
 			}),
 
@@ -188,9 +191,16 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 				const [tz, who, list] = await Promise.all([
 					sdk.zone(app),
 					names(app),
-					api.notes.list({ app, id: clientId }),
+					drain((cursor) =>
+						api.notes.list({
+							app,
+							id: clientId,
+							limit: 500,
+							...(cursor === undefined ? {} : { cursor }),
+						}),
+					),
 				]);
-				return list.items.map((n) => noteOf(n, tz, who));
+				return list.map((n) => noteOf(n, tz, who));
 			}),
 		addNote: (app: AppSlug, clientId: string, input: NewNote, by: Actor): Promise<ClientNote> =>
 			run(async () => {
@@ -230,9 +240,16 @@ export function clinicalNotesGroup(sdk: SdkContext) {
 				const [tz, who, list] = await Promise.all([
 					sdk.zone(app),
 					names(app),
-					api.records.list({ app, id: clientId }),
+					drain((cursor) =>
+						api.records.list({
+							app,
+							id: clientId,
+							limit: 500,
+							...(cursor === undefined ? {} : { cursor }),
+						}),
+					),
 				]);
-				return list.items.map((r) => recordOf(r, tz, who));
+				return list.map((r) => recordOf(r, tz, who));
 			}),
 		record: (app: AppSlug, id: string): Promise<ClientRecord | null> =>
 			run(async () => {

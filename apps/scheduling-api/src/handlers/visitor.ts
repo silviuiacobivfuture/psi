@@ -5,6 +5,7 @@ import { cancelClinicAppointment, clinicAppointmentsOf } from "../engagement/own
 import type { HandlersOf } from "../http/context";
 import { type ApiError, fail } from "../http/errors";
 import type { Reason } from "../store/types";
+import { paginate } from "./shared";
 
 const TEAM_REQUESTS = { kind: "team", permission: "web_requests_view" } as const;
 
@@ -135,7 +136,11 @@ export const visitorHandlers: HandlersOf<
 		await activateOnSignIn(ctx, subject);
 		const requests = await ctx.deps.store.visitor.mine(ctx.app, subject);
 		const clinic = await clinicAppointmentsOf(ctx, subject);
-		return { items: [...requests, ...clinic].sort((x, y) => y.start - x.start) };
+		return paginate(
+			[...requests, ...clinic].sort((x, y) => y.start - x.start),
+			ctx.query.limit,
+			ctx.query.cursor,
+		);
 	},
 	async "visitor.mineCancel"(ctx) {
 		const subject = visitorSubject(ctx.principal);

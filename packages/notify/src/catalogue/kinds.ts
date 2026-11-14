@@ -9,6 +9,7 @@ export const AUDIENCES = [
 	"practitioner",
 	"requester",
 	"actor",
+	"invitee",
 ] as const;
 export const AudienceSchema = z.enum(AUDIENCES);
 export type Audience = z.infer<typeof AudienceSchema>;

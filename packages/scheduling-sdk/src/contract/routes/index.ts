@@ -8,6 +8,7 @@ import { PLAN_ROUTES } from "./team-plan";
 import { META_ROUTES, OPERATION_ROUTES } from "./team-records";
 import { REPORT_ROUTES } from "./team-reports";
 import { SERIES_ROUTES } from "./team-series";
+import { STAFF_ROUTES } from "./team-staff";
 import { VISITOR_ROUTES } from "./visitor";
 
 /** THE contract: one row per route. The server mounts it, the SDK and the OpenAPI document derive from it. */
@@ -25,6 +26,7 @@ export const ROUTES = [
 	...BLACKLIST_ROUTES,
 	...FEEDBACK_ROUTES,
 	...INVITE_ROUTES,
+	...STAFF_ROUTES,
 ] as const;
 export type Routes = typeof ROUTES;
 export type Route = Routes[number];

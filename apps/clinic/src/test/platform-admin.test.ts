@@ -37,6 +37,24 @@ describe("the platform administrator", () => {
 		expect(roles).toBeLessThan(people);
 		expect(await (await c.get("/view-as")).text()).toContain("data-view-as-platform");
 	});
+	it("reads a person's several roles joined with ' + ' in the picker and on the view-as page", async () => {
+		c = await startConsole(MEMBER, {
+			platformAdmins: new Set([MEMBER.sub]),
+			members: {
+				[MEMBER.sub]: [{ app: "psizone", roles: ["owner"] }],
+				"two-roles": [{ app: "psizone", roles: ["reception", "therapist"] }],
+			},
+			names: { "two-roles": "Dana Două" },
+		});
+		await c.signIn();
+		const menu = await (await c.get("/view-as/menu")).text();
+		const page = await (await c.get("/view-as")).text();
+		for (const html of [menu, page]) {
+			expect(html).toContain("Dana Două");
+			expect(html).toMatch(/(Recepție \+ Terapeut|Terapeut \+ Recepție)/);
+			expect(html).not.toMatch(/(Recepție, Terapeut|Terapeut, Recepție)/);
+		}
+	});
 	it("is the only one offered 'Vezi ca…': an owner who is not the platform's administrator gets no pill, no entry, no picker", async () => {
 		await open(false);
 		const html = await (await c.get("/calendar")).text();

@@ -2,6 +2,7 @@ import { Icon } from "@psi/ui/admin";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import type { Ctx } from "./lib/context";
 import { at } from "./lib/i18n";
+import { joinRoles } from "./lib/roles-joined";
 import { m } from "./paraglide/messages.js";
 import type { TeamMember, ViewAsTarget } from "./port/port";
 import type { Role } from "./port/schema";
@@ -72,7 +73,7 @@ export function RoleMenuBody({
 					key={p.subject}
 					as={`member:${p.subject}`}
 					label={p.displayName}
-					hint={p.roles.map((r) => names.get(r) ?? r).join(", ")}
+					hint={joinRoles(p.roles.map((r) => names.get(r) ?? r))}
 				/>
 			))}
 		</div>

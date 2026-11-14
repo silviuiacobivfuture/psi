@@ -87,6 +87,9 @@ spec:
             - { name: MAIL_FROM_NAME, value: Psizone }
             # The directory group the invited clients' accounts are made in (never a staff group).
             - { name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }
+            # The directory group whose members reach the console: the team's search reads it and an invited member's
+            # account is made in it. Never a customer group (the service refuses to boot on the same group twice).
+            - { name: AUTHENTIK_STAFF_GROUP, value: app-clinic-member }
             - { name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro" }
           startupProbe:
             httpGet: { path: /health, port: http }

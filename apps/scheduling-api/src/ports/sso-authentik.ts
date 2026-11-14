@@ -1,117 +1,56 @@
 import { z } from "zod";
-import { type SsoAccount, type SsoPort, SsoUnavailable } from "./sso";
+import {
+	type AuthentikHttpOptions,
+	AuthentikRecovery,
+	AuthentikUser,
+	AuthentikUsers,
+	accountOf,
+	authentikCaller,
+	groupPk,
+} from "./authentik-http";
+import type { SsoPort } from "./sso";
 
-export interface AuthentikOptions {
-	/** `https://auth.psizone.ro` */
-	url: string;
-	/** An API token whose user may create users, read groups and create recovery links. */
-	token: string;
+export interface AuthentikOptions extends AuthentikHttpOptions {
 	customersGroup: string;
-	/** Authentik's provider setting for `sub`. */
-	subMode: "hashed_user_id" | "user_id" | "user_username" | "user_email";
-	fetch?: typeof globalThis.fetch;
-	timeoutMs?: number;
 }
 
-const User = z.object({
-	pk: z.number().int(),
-	username: z.string(),
-	email: z.string(),
-	is_active: z.boolean(),
-	uid: z.string(),
-});
-const Users = z.object({ results: z.array(User) });
 /** What a sign-in left on the user: `last_login` is null until the person has signed in once. */
 const Seen = z.object({ last_login: z.string().datetime({ offset: true }).nullable() });
-const Groups = z.object({ results: z.array(z.object({ pk: z.string(), name: z.string() })) });
-const Recovery = z.object({ link: z.string().url() });
 
 /**
- * Authentik's admin API (`/api/v3`). Every answer is parsed; any transport or status failure is `SsoUnavailable`, so the
- * invitation fails closed and nothing half-made is reported as done. The user's `uid` is what a provider in
- * `hashed_user_id` mode (Authentik's default) puts in `sub`; the other modes name another field.
+ * Authentik's admin API for the client invitation. The user's `uid` is what a provider in `hashed_user_id` mode
+ * (Authentik's default) puts in `sub`; the other modes name another field.
  */
 export function createAuthentikSso(options: AuthentikOptions): SsoPort {
-	const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
-	const base = `${options.url.replace(/\/+$/, "")}/api/v3`;
-
-	async function call<T>(
-		method: "GET" | "POST" | "PATCH",
-		path: string,
-		schema: z.ZodType<T>,
-		body?: Record<string, unknown>,
-	): Promise<T> {
-		let response: Response;
-		try {
-			response = await doFetch(`${base}${path}`, {
-				method,
-				headers: {
-					authorization: `Bearer ${options.token}`,
-					accept: "application/json",
-					...(body === undefined ? {} : { "content-type": "application/json" }),
-				},
-				...(body === undefined ? {} : { body: JSON.stringify(body) }),
-				signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
-			});
-		} catch {
-			throw new SsoUnavailable("the sign-in did not answer");
-		}
-		if (!response.ok) throw new SsoUnavailable(`the sign-in refused (${response.status})`);
-		const parsed = schema.safeParse(await response.json().catch(() => undefined));
-		if (!parsed.success) throw new SsoUnavailable("the sign-in answered something unexpected");
-		return parsed.data;
-	}
-
-	const subjectOf = (user: z.infer<typeof User>): string => {
-		switch (options.subMode) {
-			case "hashed_user_id":
-				return user.uid;
-			case "user_id":
-				return String(user.pk);
-			case "user_username":
-				return user.username;
-			case "user_email":
-				return user.email;
-			default: {
-				const never: never = options.subMode;
-				return never;
-			}
-		}
-	};
-	const account = (user: z.infer<typeof User>): SsoAccount => ({
-		userId: String(user.pk),
-		subject: subjectOf(user),
-		email: user.email,
-		active: user.is_active,
-	});
+	const call = authentikCaller(options);
+	const account = (user: AuthentikUser) => accountOf(options.subMode, user);
 
 	return {
 		async findByEmail(email) {
-			const out = await call("GET", `/core/users/?email=${encodeURIComponent(email)}`, Users);
+			const out = await call(
+				"GET",
+				`/core/users/?email=${encodeURIComponent(email)}`,
+				AuthentikUsers,
+			);
 			const found = out.results.find((u) => u.email.toLowerCase() === email.toLowerCase());
 			return found === undefined ? undefined : account(found);
 		},
 		async create(input) {
-			const groups = await call(
-				"GET",
-				`/core/groups/?name=${encodeURIComponent(options.customersGroup)}`,
-				Groups,
-			);
-			const group = groups.results.find((g) => g.name === options.customersGroup);
-			if (group === undefined) throw new SsoUnavailable("the customers group does not exist");
-			const user = await call("POST", "/core/users/", User, {
+			const group = await groupPk(call, options.customersGroup);
+			const user = await call("POST", "/core/users/", AuthentikUser, {
 				username: input.email,
 				name: input.name,
 				email: input.email,
 				is_active: true,
-				groups: [group.pk],
+				groups: [group],
 				path: "customers",
 			});
 			return account(user);
 		},
 		async recoveryLink(userId) {
-			return (await call("POST", `/core/users/${encodeURIComponent(userId)}/recovery/`, Recovery))
-				.link;
+			return (
+				await call("POST", `/core/users/${encodeURIComponent(userId)}/recovery/`, AuthentikRecovery)
+			).link;
 		},
 		async lastLogin(userId) {
 			const user = await call("GET", `/core/users/${encodeURIComponent(userId)}/`, Seen);

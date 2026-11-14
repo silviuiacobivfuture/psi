@@ -28,6 +28,7 @@ import {
 	recordTodo,
 	scheduleChanged,
 } from "./novu-staff";
+import { teamInvite } from "./novu-team";
 
 export { type NovuNotifyOptions, notifyApps } from "./novu-env";
 
@@ -65,6 +66,7 @@ const TRANSLATORS: Readonly<Record<NotifyEvent, Translate>> = {
 	"client.assigned": clientAssigned,
 	"delivery.failed": deliveryFailed,
 	"security.action": securityAction,
+	"team.invite": teamInvite,
 };
 
 /**

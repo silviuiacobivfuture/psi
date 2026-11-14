@@ -14,6 +14,7 @@ import { createMemoryNotify, type MemoryNotify } from "../ports/notify";
 import { createMemoryObjects, type MemoryObjects } from "../ports/objects";
 import { createLimiter } from "../ports/ratelimit";
 import { createFakeSso, type FakeSso } from "../ports/sso";
+import { createFakeStaffDirectory, type FakeStaffDirectory } from "../ports/staff-directory";
 import { createReminderActions } from "../reminder-actions";
 import { mountReminderRoutes } from "../reminder-routes";
 import { createMemoryStore, type MemoryStore } from "../store/memory";
@@ -48,6 +49,8 @@ export interface World {
 	notifier: MemoryNotify;
 	/** The sign-in: accounts in memory, every call recorded, and a switch to make it unreachable. */
 	sso: FakeSso;
+	/** The staff group of the sign-in: accounts in memory, every call recorded, and the same unreachable switch. */
+	staff: FakeStaffDirectory;
 	issuer: TestIssuer;
 	/** What the reminder links told the notifier (`reminder.confirmed`, `reminder.declined`). */
 	linkNotices: {
@@ -138,6 +141,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 	const objects = createMemoryObjects(() => clock.now);
 	const notifier = createMemoryNotify();
 	const sso = createFakeSso();
+	const staff = createFakeStaffDirectory();
 	const logs: LogEvent[] = [];
 	const linkNotices: World["linkNotices"] = [];
 	const usedLinks = createMemoryUsedLinks(() => clock.now);
@@ -158,6 +162,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		objects,
 		notifier,
 		sso,
+		staff,
 		links: {
 			secret: LINK_SECRET,
 			publicOrigin: "https://api-programari.test",
@@ -227,6 +232,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		objects,
 		notifier,
 		sso,
+		staff,
 		issuer,
 		linkNotices,
 		logs,
@@ -266,6 +272,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 				notifier.sent,
 				linkNotices,
 				[...sso.accounts.values()],
+				[...staff.accounts.values()],
 			]),
 	};
 }

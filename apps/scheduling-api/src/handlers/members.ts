@@ -6,30 +6,8 @@ import { fail, forbidden } from "../http/errors";
 import type { MemberRow } from "../store/types";
 import { syncMember } from "./directory";
 import { catalogueMatrix } from "./matrix";
+import { changesOf, checkRefs, listed, memberOut, writeMember } from "./member-write";
 import { diff, must, paginate, removeTuplesThenRow, replaced, writeRowThenTuples } from "./shared";
-
-/** A member as the wire carries them: the grants and denials stay the editor's own read. */
-function memberOut(m: MemberRow) {
-	return {
-		subject: m.subject,
-		displayName: m.displayName,
-		...(m.email === undefined ? {} : { email: m.email }),
-		roles: m.roles,
-		coordinates: m.coordinates,
-		createdAt: m.createdAt,
-		updatedAt: m.updatedAt,
-	};
-}
-
-/** A list of ids as the journal keeps a before/after: one text, sorted, comma-separated (empty for none). */
-const listed = (ids: readonly string[]): string => [...ids].sort().join(",");
-
-/** The journal's `changes`: only what moved, in the `{ field: { from, to } }` shape the console reads. */
-function changesOf(
-	pairs: Readonly<Record<string, { from: string; to: string }>>,
-): Record<string, { from: string; to: string }> {
-	return Object.fromEntries(Object.entries(pairs).filter(([, v]) => v.from !== v.to));
-}
 
 export const memberHandlers: HandlersOf<
 	"members.list" | "members.get" | "members.put" | "members.remove" | "members.overrides"
@@ -69,50 +47,12 @@ export const memberHandlers: HandlersOf<
 		const subject = String(ctx.params.subject);
 		if (subject === ctx.subject)
 			throw forbidden("nobody changes their own roles", { reason: "self" });
-		const roles = await ctx.deps.store.c.roles.list(ctx.app);
-		for (const r of ctx.body.roles)
-			if (!roles.some((x) => x.id === r)) throw fail("invalid", "unknown role", { role: r });
-		const people = await ctx.deps.store.c.people.list(ctx.app);
-		for (const p of ctx.body.coordinates)
-			if (!people.some((x) => x.id === p)) throw fail("invalid", "unknown person", { person: p });
+		await checkRefs(ctx, ctx.body.roles, ctx.body.coordinates);
 		const held = await ctx.deps.store.c.members.get(ctx.app, subject);
 		if (held === undefined && !(await ctx.canAll("members_create")))
 			throw forbidden("the role does not allow this", { permission: "members_create" });
-		const next: MemberRow = {
-			id: subject,
-			app: ctx.app,
-			subject,
-			displayName: ctx.body.displayName,
-			...(ctx.body.email === undefined ? {} : { email: ctx.body.email }),
-			roles: [...new Set(ctx.body.roles)],
-			coordinates: [...new Set(ctx.body.coordinates)],
-			grants: held?.grants ?? [],
-			denies: held?.denies ?? [],
-			createdAt: held?.createdAt ?? ctx.now,
-			updatedAt: ctx.now,
-		};
-		const change = diff(held === undefined ? [] : memberTuples(held), memberTuples(next));
-		await writeRowThenTuples(ctx, {
-			write: async () =>
-				held === undefined
-					? ctx.deps.store.c.members.insert(next)
-					: replaced(ctx.deps.store.c.members, next),
-			undo: async () => {
-				if (held === undefined) await ctx.deps.store.c.members.remove(ctx.app, subject);
-				else await ctx.deps.store.c.members.replace(held);
-			},
-			tuples: () => change,
-		});
-		await syncMember(ctx, ctx.app, subject, next);
-		ctx.note({
-			roles: next.roles,
-			created: held === undefined,
-			changes: changesOf({
-				displayName: { from: held?.displayName ?? "", to: next.displayName },
-				roles: { from: listed(held?.roles ?? []), to: listed(next.roles) },
-				coordinates: { from: listed(held?.coordinates ?? []), to: listed(next.coordinates) },
-			}),
-		});
+		const { next, detail } = await writeMember(ctx, subject, held, ctx.body);
+		ctx.note(detail);
 		return memberOut(next);
 	},
 

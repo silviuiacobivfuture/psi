@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import { route } from "../define";
 import { NotificationPrefs, NotificationPrefsView } from "../entities-notify";
-import { AppParam, Id, Locale, Ms, Ok } from "../primitives";
+import { AppParam, Id, Locale, Ms, Ok, PageQuery, page } from "../primitives";
 
 const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]{1,40}$/);
 const Mode = z.enum(["onsite", "online"]);
@@ -171,7 +171,8 @@ export const VISITOR_ROUTES = [
 		summary:
 			"The signed-in visitor's own appointments (service keys name the visitor in x-psi-subject)",
 		params: AppParam,
-		response: z.object({ items: z.array(OwnAppointment) }),
+		query: PageQuery,
+		response: page(OwnAppointment),
 	}),
 	route({
 		id: "visitor.mineCancel",

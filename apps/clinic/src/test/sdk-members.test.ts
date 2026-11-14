@@ -95,12 +95,14 @@ describe("presence: Setări → Membri", () => {
 		);
 		expect(needs).toEqual({
 			"member.new": ["members_create"],
+			"member.invite": ["members_create"],
 			"member.edit": ["members_edit"],
 			"member.overrides": ["members_edit"],
 			"member.calendar": ["people_edit"],
 			"member.remove": ["members_delete"],
 		});
 		expect(actionById("member.remove")?.confirm).toBe("confirm");
+		expect(actionById("member.invite")?.privateResult).toBe(true);
 	});
 });
 
