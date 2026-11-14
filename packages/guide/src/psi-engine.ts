@@ -7,9 +7,11 @@ import {
 	type EngineScore,
 	type EngineTimeouts,
 	type EngineTiming,
+	type EngineTranscript,
 	type RateLimiter,
 	type SchedulingPort,
 	type SettingsProvider,
+	type VisitorAssistantPort,
 } from "@psi/engine";
 import type { KnowledgeStore } from "@psi/knowledge";
 import { psiArticles } from "./articles";
@@ -67,6 +69,14 @@ export interface PsiEngineOptions {
 	 * get a scheduling agent and Mastra registers the scheduling tools.
 	 */
 	scheduling?: SchedulingPort;
+	/**
+	 * The organisation's visitor assistant settings and meters (`schedulingFromEnv(...).scheduling.assistant`). The
+	 * brands with a scheduling tenant (Psizone) are then governed by them: the store's limits, budget and model take
+	 * precedence over the CMS's `ai-settings`, which keep the content (see `@psi/engine`'s `visitor-governance.ts`).
+	 */
+	visitorAssistant?: VisitorAssistantPort;
+	/** Each finished turn's question and answer, only when the organisation keeps transcripts (redacted as it says). */
+	onTranscript?: (transcript: EngineTranscript) => void;
 	/**
 	 * The blog's articles the guides may list and recommend (`findArticles`), each guide only its
 	 * brands' (`ARTICLE_POLICY`); defaults to the repository's catalogue under the blog's own
@@ -160,6 +170,10 @@ export function createPsiEngine(options: PsiEngineOptions): Engine {
 		...(options.onScore === undefined ? {} : { onScore: options.onScore }),
 		...(options.onTiming === undefined ? {} : { onTiming: options.onTiming }),
 		...(options.scheduling === undefined ? {} : { scheduling: options.scheduling }),
+		...(options.visitorAssistant === undefined
+			? {}
+			: { visitorAssistant: options.visitorAssistant }),
+		...(options.onTranscript === undefined ? {} : { onTranscript: options.onTranscript }),
 		...options.mastra,
 		idPrefix: PSI_ID_PREFIX,
 		scorerId: PSI_SCORER,

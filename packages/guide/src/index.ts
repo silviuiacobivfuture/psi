@@ -101,3 +101,4 @@ export {
 } from "./psi-engine";
 export { type PsiScheduling, schedulingFromEnv, schedulingPort } from "./scheduling";
 export { settingsFromEnv } from "./settings";
+export { VISITOR_CONFIG_TTL_MS, visitorAssistantPort } from "./visitor-assistant";
