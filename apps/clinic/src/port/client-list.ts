@@ -54,3 +54,16 @@ export interface ClientPage {
 	total: number;
 	page: number;
 }
+
+/** Which page of a list is asked (1-based), and at what size. */
+export interface PageAsk {
+	readonly page: number;
+	readonly size: number;
+}
+
+/** One numbered page of a list: the rows, how many in all, the page really shown (past the end: the last). */
+export interface Numbered<T> {
+	readonly items: ReadonlyArray<T>;
+	readonly total: number;
+	readonly page: number;
+}

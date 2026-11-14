@@ -12,6 +12,7 @@
 	"pg_size": "Per page",
 	"pg_apply": "Apply",
 	"cl_pager_nav": "Client pages",
+	"cl_tab_pager_nav": "List pages",
 	"cl_f_label": "Filters",
 	"cl_f_sort": "Order",
 	"cl_sort_name": "Name, A–Z",

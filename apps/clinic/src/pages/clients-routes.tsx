@@ -2,19 +2,29 @@ import type { Context, Hono } from "hono";
 import type { Env } from "../app";
 import { Page } from "../chrome";
 import { at } from "../lib/i18n";
-import { inPlace, type PageSize, patchList, rememberSize } from "../lib/paging";
+import {
+	inPlace,
+	PageParams,
+	type PageSize,
+	pageAsked,
+	patchList,
+	rememberSize,
+	sizeOf,
+} from "../lib/paging";
 import { m } from "../paraglide/messages.js";
-import { PortError } from "../port/port";
-import { CLEARABLE_FIELDS } from "../port/schema-clinical";
+import { type Numbered, PortError } from "../port/port";
+import { CLEARABLE_FIELDS, type ClientFile } from "../port/schema-clinical";
 import { registerClientActions } from "./client-action-routes";
 import {
 	CLIENT_TABS,
 	type ClientOpen,
 	type ClientTab,
+	type ClientView,
 	renderClient,
 	type Soon,
 } from "./client-page";
-import { registerClientTabMore } from "./client-tab-more";
+import { PagedTabBody, shownPage } from "./client-tab-body";
+import { isPagedTab, tabHref, tabRegionId } from "./client-tab-pager";
 import { ClientFilters } from "./clients-filters";
 import {
 	ClientResults,
@@ -107,7 +117,11 @@ export function registerClients(app: Hono<Env>): void {
 			// What the service cannot keep yet is a tab that says "în curând", not a broken page.
 			const soon: Soon[] = [];
 			const open = openOf(c, tab);
-			let filesNext: string | null = null;
+			const paging = PageParams.parse(c.req.query());
+			const size = await sizeOf(ctx, paging);
+			await rememberSize(ctx, paging, size as PageSize);
+			const ask = { page: pageAsked(paging, size), size };
+			let filesShown: Numbered<ClientFile> = { items: [], total: 0, page: 1 };
 			const soft = async <T,>(
 				what: Soon,
 				load: Promise<ReadonlyArray<T>> | never[],
@@ -129,7 +143,7 @@ export function registerClients(app: Hono<Env>): void {
 				notes,
 				blacklist,
 				records,
-				files,
+				fileItems,
 				templates,
 				invite,
 			] = await Promise.all([
@@ -159,8 +173,8 @@ export function registerClients(app: Hono<Env>): void {
 				soft(
 					"files",
 					needs("files") && can.has("files_view")
-						? ctx.port.filePage(ctx.app, id, null).then((page) => {
-								filesNext = page.nextCursor;
+						? ctx.port.filePage(ctx.app, id, ask).then((page) => {
+								filesShown = page;
 								return page.items;
 							})
 						: [],
@@ -178,36 +192,40 @@ export function registerClients(app: Hono<Env>): void {
 			const renaming =
 				open.rename === null
 					? null
-					: (files.find((f) => f.id === open.rename) ??
+					: (fileItems.find((f) => f.id === open.rename) ??
 						(await ctx.port.files(ctx.app, id)).find((f) => f.id === open.rename) ??
 						null);
-			return c.html(
-				await renderClient(
-					ctx,
-					{
-						client,
-						tab,
-						invite,
-						inviteError: inviteErrorFrom(c.req.query("ierr")),
-						appointments,
-						packages,
-						services,
-						notes,
-						blacklist,
-						records,
-						files,
-						filesNext,
-						renaming,
-						templates,
-						soon,
-						open,
-						notice: noticeOf(c.req.query("new"), c.req.query("made")),
-					},
-					flash,
-				),
-				200,
-				{ "cache-control": "private, no-store" },
-			);
+			const view: ClientView = {
+				client,
+				tab,
+				invite,
+				inviteError: inviteErrorFrom(c.req.query("ierr")),
+				appointments,
+				packages,
+				services,
+				notes,
+				blacklist,
+				records,
+				paging: ask,
+				files: filesShown,
+				renaming,
+				templates,
+				soon,
+				open,
+				notice: noticeOf(c.req.query("new"), c.req.query("made")),
+			};
+			// A page of a tab fetched in place: only the tab's body is replaced, and the address follows it.
+			if (inPlace(c) && isPagedTab(tab))
+				return patchList({
+					c,
+					elements: [<PagedTabBody key={tab} ctx={ctx} view={view} tab={tab} />],
+					regionId: tabRegionId(tab),
+					url: tabHref(id, tab, shownPage(ctx, view, tab), ask.size),
+					asked: paging,
+				});
+			return c.html(await renderClient(ctx, view, flash), 200, {
+				"cache-control": "private, no-store",
+			});
 		} catch (err) {
 			const o = at(ctx.locale);
 			const missing = err instanceof PortError && err.code === "not-found";
@@ -244,5 +262,4 @@ export function registerClients(app: Hono<Env>): void {
 	registerClientActions(app);
 	registerInviteRoutes(app);
 	registerPackageRoutes(app);
-	registerClientTabMore(app);
 }

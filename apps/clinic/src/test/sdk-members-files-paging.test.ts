@@ -4,9 +4,9 @@ import { LIST_PAGE } from "../port/port";
 import { type SdkConsole, type Session, startSdkConsole } from "./sdk-harness";
 
 /**
- * The team and a client's files over the real service, a page at a time (members.list and files.list with their
- * cursors): one page and "Mai multe", which appends the next page and goes with the last, every row once; a file whose
- * upload never finished is never shown, and a page short of rows still offers the next while the service has more.
+ * The team and a client's files over the real service (members.list with its cursor: one page and "Mai multe", which
+ * appends the next page; files.list as numbered pages, counted by the service), every row once; a file whose
+ * upload never finished is never shown nor counted.
  */
 const A = "/v1/apps/psizone";
 const DATASTAR = { headers: { "datastar-request": "true" } };
@@ -114,33 +114,36 @@ describe("the team over the real service, a page at a time", () => {
 	});
 });
 
-describe("a client's files over the real service, a page at a time", () => {
-	it("every finished file once, newest first, none pending; the control gone with the last", async () => {
+describe("a client's files over the real service, as numbered pages", () => {
+	it("every finished file once across the pages, newest first, none pending, the total the service's", async () => {
 		const listed = (
 			(await k.api.world.call("olga", "GET", `${A}/clients/${client}/files?limit=500`)).json
 				.items as { id: string; status: string }[]
 		)
 			.filter((f) => f.status === "ready")
 			.map((f) => f.id);
-		const { first, all, last } = await walk(
-			await k.as("olga"),
-			`/clients/${client}/files`,
-			`/clients/${client}/more/files`,
-			/data-file="([^"]+)"/g,
-		);
-		expect(first).toBeLessThan(LIST_PAGE);
-		expect(first).toBeGreaterThan(0);
+		const olga = await k.as("olga");
+		const pages = Math.ceil(listed.length / 25);
+		const all: string[] = [];
+		for (let p = 1; p <= pages; p++) {
+			const html = await (await olga.get(`/clients/${client}/files?page=${p}&size=25`)).text();
+			expect(/data-range[^>]*>([^<]+)</.exec(html)?.[1]).toBe(
+				`${(p - 1) * 25 + 1}–${Math.min(p * 25, listed.length)} din ${listed.length}`,
+			);
+			all.push(...[...html.matchAll(/data-file="([^"]+)"/g)].map((x) => x[1] ?? ""));
+		}
 		expect(all).toEqual(listed);
 		for (const id of pending) expect(all).not.toContain(id);
-		expect(moreOf(last, `/clients/${client}/more/files`)).toBeNull();
 	});
 
-	it("is refused to who may not see files, answering nothing of them", async () => {
-		const res = await (await k.as("vera")).raw(
-			`/clients/${client}/more/files?cursor=50&shown=50`,
+	it("a page fetched in place patches only the tab and is refused to who may not see files", async () => {
+		const res = await (await k.as("olga")).raw(`/clients/${client}/files?page=2&size=25`, DATASTAR);
+		expect(await res.text()).toContain('id="cl-tab-files"');
+		const refused = await (await k.as("vera")).raw(
+			`/clients/${client}/files?page=2&size=25`,
 			DATASTAR,
 		);
-		expect(res.status).toBe(403);
-		expect(await res.text()).not.toContain("data-file=");
+		expect(refused.status).toBe(403);
+		expect(await refused.text()).not.toContain("data-file=");
 	});
 });

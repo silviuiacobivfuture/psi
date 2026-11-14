@@ -5,7 +5,7 @@ import type {
 import type { FloorPlanDoc, SaveResult } from "@psi/ui/admin/floor-plan";
 import type { z } from "zod/v4";
 import type { Conflict, Probe } from "../domain/conflicts";
-import type { ClientFilter, ClientListAsk, ClientPage } from "./client-list";
+import type { ClientFilter, ClientListAsk, ClientPage, Numbered, PageAsk } from "./client-list";
 import type { OrgPort } from "./org-port";
 import type { ProfilePort } from "./profile-port";
 import type { Report, ReportQuery } from "./report-schema";
@@ -82,6 +82,8 @@ export type {
 	ClientListAsk,
 	ClientPackageFilter,
 	ClientPage,
+	Numbered,
+	PageAsk,
 } from "./client-list";
 export { DEFAULT_PAGE_SIZE } from "./client-list";
 
@@ -450,10 +452,10 @@ export interface ClinicPort extends ProfilePort, OrgPort {
 	deleteRecord(app: AppSlug, id: string): Promise<void>;
 	files(app: AppSlug, clientId: string): Promise<ReadonlyArray<ClientFile>>;
 	/**
-	 * ONE page of a client's files, newest first, after `cursor` (null: the first). A page may hold fewer than LIST_PAGE
-	 * (an upload never finished is not shown): only a null `nextCursor` says it is the last.
+	 * ONE numbered page of a client's finished files, newest first, and how many there are: the service counts and cuts
+	 * them (an upload never finished is never counted).
 	 */
-	filePage(app: AppSlug, clientId: string, cursor: string | null): Promise<Paged<ClientFile>>;
+	filePage(app: AppSlug, clientId: string, ask: PageAsk): Promise<Numbered<ClientFile>>;
 	/** Refuses (`invalid`) an empty or too big file or one of a type the clinic does not keep. */
 	uploadFile(app: AppSlug, clientId: string, file: NewFile, by: Actor): Promise<ClientFile>;
 	downloadFile(
