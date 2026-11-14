@@ -70,6 +70,7 @@
 	"as_s_remove": "Șterge abilitatea",
 	"as_roles": "Pe roluri",
 	"as_roles_hint": "Pentru asistentul echipei: cine îl are și cu ce limite. O persoană cu mai multe roluri primește cea mai generoasă valoare.",
+	"as_limits_owner": "Bugetul și limitele le schimbă doar Proprietarul; le vezi așa cum sunt.",
 	"as_people_open": "Per persoană",
 	"as_people_title": "Asistent: per persoană",
 	"as_people_back": "Înapoi la setările asistentului",

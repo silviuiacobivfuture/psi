@@ -70,6 +70,7 @@
 	"as_s_remove": "Remove the skill",
 	"as_roles": "By role",
 	"as_roles_hint": "For the team's assistant: who has it and with what limits. A person with several roles gets the most generous value.",
+	"as_limits_owner": "The budget and the limits are the Owner's to change; you see them as they are.",
 	"as_people_open": "Per person",
 	"as_people_title": "Assistant: per person",
 	"as_people_back": "Back to the assistant's settings",

@@ -1,4 +1,5 @@
 import {
+	ASSISTANT_BUDGET_KEY,
 	type AssistantSkillType,
 	type AssistantSurfaceName,
 	BUILT_IN_SETTINGS,
@@ -144,18 +145,20 @@ function Roles({
 	view,
 	roles,
 	o,
+	lockLimits,
 }: {
 	view: AssistantOrgConfigType;
-	roles: ReadonlyArray<Role>;
+	roles: ReadonlyArray<Role> | undefined;
 	o: O;
+	lockLimits: boolean;
 }): JSX.Element {
 	return (
 		<section class="adm-card adm-stack" aria-labelledby="as-roles">
 			<h2 class="adm-h2" id="as-roles">
-				{m.as_roles({}, o)}
+				{roles === undefined ? m.as_people_open({}, o) : m.as_roles({}, o)}
 			</h2>
-			<p class="adm-muted">{m.as_roles_hint({}, o)}</p>
-			{roles.map((role) => (
+			{roles === undefined ? null : <p class="adm-muted">{m.as_roles_hint({}, o)}</p>}
+			{(roles ?? []).map((role) => (
 				<OverrideFields
 					key={role.id}
 					of="role"
@@ -163,6 +166,7 @@ function Roles({
 					legend={role.name}
 					own={view.doc?.roles[role.id] ?? {}}
 					staff={view.effective.staff}
+					lockLimits={lockLimits}
 					o={o}
 				/>
 			))}
@@ -182,9 +186,12 @@ export async function renderAssistantSettings(
 	try {
 		const [view, roles] = await Promise.all([
 			ctx.port.assistantConfig(ctx.app),
-			ctx.port.roles(ctx.app),
+			// An Administrator may not read the roles: no role section then, and a save keeps the role overrides.
+			ctx.can.has("roles_view") ? ctx.port.roles(ctx.app) : Promise.resolve(undefined),
 		]);
 		const writable = ctx.can.write("app_settings_edit");
+		// The budget and the limits are the Owner's: anyone else sees them locked (the service refuses a change).
+		const lockLimits = !ctx.can.write(ASSISTANT_BUDGET_KEY);
 		const skills = view.doc?.skills ?? [];
 		body = (
 			<div class="adm-stack" data-assistant-settings>
@@ -219,6 +226,7 @@ export async function renderAssistantSettings(
 									ceilings={view.ceilings[s]}
 									o={o}
 									note={<p class="adm-muted">{m.as_booking_fixed({}, o)}</p>}
+									lockLimits={lockLimits}
 								/>
 							</section>
 						))}
@@ -232,7 +240,7 @@ export async function renderAssistantSettings(
 							))}
 							{skills.length < 20 ? <Skill skill={undefined} n={skills.length} o={o} /> : null}
 						</section>
-						<Roles view={view} roles={roles} o={o} />
+						<Roles view={view} roles={roles} o={o} lockLimits={lockLimits} />
 						{writable ? (
 							<button class="adm-btn adm-btn--primary" type="submit" data-action="assistant.save">
 								{m.as_save({}, o)}

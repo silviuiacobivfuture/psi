@@ -140,6 +140,66 @@ describe.each(factories)("the assistants' configuration, on the $name store", (f
 			);
 			expect(saved.status, JSON.stringify(saved.json)).toBe(200);
 		});
+		it.each([
+			["a surface's limit", { staff: { maxToolCalls: 4, prompt: { append: "Răspunde scurt." } } }],
+			[
+				"the budget",
+				{
+					staff: {
+						maxToolCalls: 6,
+						prompt: { append: "Răspunde scurt." },
+						budget: { monthlyMicroUsd: 1_000_000 },
+					},
+				},
+			],
+			["the site's messages", { visitor: { tone: "formal", messages: { perDay: 5 } } }],
+			["a role's limit", { roles: { reception: { messagesPerDay: 9 } } }],
+			["a person's limit", { people: { rita: { tokensPerRequest: 2_000 } } }],
+			["removing a limit", { staff: { prompt: { append: "Răspunde scurt." } } }],
+		])("an Administrator who changes %s is refused, and nothing is written", async (_what, over) => {
+			const revision = await revisionOf(`${A}/config`);
+			const reply = await refused(
+				() => w.call("nina", "PUT", `${A}/config`, orgAt(revision, over)),
+				403,
+				"forbidden",
+			);
+			expect(err(reply).detail).toMatchObject({
+				permission: "assistant_budget_edit",
+				reason: "assistant_budget",
+			});
+			expect(await revisionOf(`${A}/config`)).toBe(revision);
+		});
+		it("an Administrator still saves everything else, the limits as they are", async () => {
+			const revision = await revisionOf(`${A}/config`);
+			const saved = await w.call(
+				"nina",
+				"PUT",
+				`${A}/config`,
+				orgAt(revision, {
+					// The same limits written in another order, with another instruction and a role switched off.
+					staff: { prompt: { append: "Răspunde foarte scurt." }, maxToolCalls: 6 },
+					roles: { reception: { enabled: false } },
+				}),
+			);
+			expect(saved.status, JSON.stringify(saved.json)).toBe(200);
+			expect(AssistantOrgConfig.parse(saved.json).doc?.staff.prompt?.append).toBe(
+				"Răspunde foarte scurt.",
+			);
+		});
+		it("the Owner changes the budget and the limits", async () => {
+			const revision = await revisionOf(`${A}/config`);
+			const saved = await w.call(
+				"olga",
+				"PUT",
+				`${A}/config`,
+				orgAt(revision, {
+					staff: { maxToolCalls: 4, budget: { monthlyMicroUsd: 1_000_000 } },
+					people: { rita: { tokensPerRequest: 2_000 } },
+				}),
+			);
+			expect(saved.status, JSON.stringify(saved.json)).toBe(200);
+			expect(AssistantOrgConfig.parse(saved.json).effective.staff.maxToolCalls).toBe(4);
+		});
 		it("Reception, Therapist, Coordinator, Accountant and Volunteer can neither read nor save it", async () => {
 			const revision = await revisionOf(`${A}/config`);
 			for (const who of ["rita", "dora", "cora", "ana", "vera"]) {

@@ -122,6 +122,28 @@ export const AssistantSettings = z.object({
 });
 export type AssistantSettingsType = z.infer<typeof AssistantSettings>;
 
+/**
+ * A surface's settings that are its budget or a limit (what it may spend, how much, how often, how long), and a role's
+ * or a person's overrides that are: the organisation's tier changes them only with `assistant_budget_edit` (the
+ * Owner's). The service refuses a save that changes one without it; the console shows them locked.
+ */
+export const ASSISTANT_LIMIT_SETTINGS = [
+	"budget",
+	"tokens",
+	"messages",
+	"ratePerMinute",
+	"maxOutputTokens",
+	"maxToolCalls",
+	"pageSize",
+	"timeouts",
+] as const;
+export const ASSISTANT_LIMIT_OVERRIDES = [
+	"maxToolCalls",
+	"messagesPerDay",
+	"tokensPerRequest",
+] as const;
+export const ASSISTANT_BUDGET_KEY = "assistant_budget_edit";
+
 /** What a tier changes: any part, the rest inherited. */
 export const AssistantSettingsPatchSchema = AssistantSettings.extend({
 	model: AssistantSettings.shape.model.partial(),

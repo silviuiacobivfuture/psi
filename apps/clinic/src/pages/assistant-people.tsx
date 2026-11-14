@@ -1,3 +1,4 @@
+import { ASSISTANT_BUDGET_KEY } from "@psi/scheduling-sdk/contract";
 import { Banner } from "@psi/ui/admin";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
@@ -28,6 +29,8 @@ export async function renderAssistantPeople(
 			ctx.port.members(ctx.app),
 		]);
 		const writable = ctx.can.write("app_settings_edit");
+		// The budget and the limits are the Owner's: anyone else sees them locked (the service refuses a change).
+		const lockLimits = !ctx.can.write(ASSISTANT_BUDGET_KEY);
 		const people = [...members].sort((a, b) => a.displayName.localeCompare(b.displayName, "ro"));
 		body = (
 			<div class="adm-stack" data-assistant-people>
@@ -69,6 +72,7 @@ export async function renderAssistantPeople(
 									legend={p.displayName}
 									own={view.doc?.people[p.subject] ?? {}}
 									staff={view.effective.staff}
+									lockLimits={lockLimits}
 									o={o}
 								/>
 							))}

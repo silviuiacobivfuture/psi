@@ -7,7 +7,14 @@ import {
 	type AssistantUsageMeterType,
 } from "@psi/scheduling-sdk/contract";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { FIELD_GROUPS, fieldsOf, type SettingField, shown, valueAt } from "../lib/assistant-form";
+import {
+	FIELD_GROUPS,
+	fieldsOf,
+	isLimit,
+	type SettingField,
+	shown,
+	valueAt,
+} from "../lib/assistant-form";
 import type { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 
@@ -48,7 +55,21 @@ function Choice(props: {
 	inherited: string;
 	options: ReadonlyArray<{ value: string; label: string }>;
 	o: O;
+	/** Shown, not changed: the value travels in a hidden field so a save keeps it as it is. */
+	locked?: boolean;
 }): JSX.Element {
+	if (props.locked === true)
+		return (
+			<>
+				<input type="hidden" name={props.name} value={props.value} />
+				<select class="adm-input" id={idOf(props.name)} disabled>
+					<option selected>
+						{props.options.find((x) => x.value === props.value)?.label ??
+							`${m.as_inherit({}, props.o)} (${props.inherited})`}
+					</option>
+				</select>
+			</>
+		);
 	return (
 		<select class="adm-input" id={idOf(props.name)} name={props.name}>
 			<option value="" selected={props.value === ""}>
@@ -70,8 +91,10 @@ function Input(props: {
 	inherited: string;
 	ceiling: string | undefined;
 	o: O;
+	/** A budget or limit the person may not change (`assistant_budget_edit` is the Owner's): shown, kept as it is. */
+	locked: boolean;
 }): JSX.Element {
-	const { field, name, value, inherited, o } = props;
+	const { field, name, value, inherited, o, locked } = props;
 	const onOff = [
 		{ value: "on", label: m.as_on({}, o) },
 		{ value: "off", label: m.as_off({}, o) },
@@ -87,6 +110,7 @@ function Input(props: {
 					inherited={label((v) => (v === "on" ? m.as_on({}, o) : m.as_off({}, o)))}
 					options={onOff}
 					o={o}
+					locked={locked}
 				/>
 			);
 			break;
@@ -139,6 +163,7 @@ function Input(props: {
 					min="0"
 					value={value}
 					placeholder={inherited}
+					readonly={locked}
 				/>
 			);
 			break;
@@ -152,6 +177,7 @@ function Input(props: {
 					value={value}
 					placeholder={inherited}
 					maxlength={400}
+					readonly={locked}
 				/>
 			);
 			break;
@@ -161,7 +187,7 @@ function Input(props: {
 		}
 	}
 	return (
-		<div class="adm-field">
+		<div class="adm-field" {...(locked ? { "data-locked": "" } : {})}>
 			<label for={idOf(name)}>{m[field.key]({}, o)}</label>
 			{control}
 			{props.ceiling === undefined ? null : (
@@ -183,9 +209,12 @@ export function SurfaceFields(props: {
 	ceilings: AssistantCeilingsType | undefined;
 	o: O;
 	note?: JSX.Element;
+	/** The person may not change the budget and limits (`assistant_budget_edit` is the Owner's): they are shown locked. */
+	lockLimits?: boolean;
 }): JSX.Element {
 	const { surface, prefix, own, inherited, ceilings, o } = props;
 	const fields = fieldsOf(surface);
+	const locked = (field: SettingField): boolean => props.lockLimits === true && isLimit(field);
 	return (
 		<div class="adm-stack">
 			{surface === "visitor" ? (
@@ -200,6 +229,11 @@ export function SurfaceFields(props: {
 					<fieldset key={group} class="adm-card adm-stack" data-group={`${surface}.${group}`}>
 						<legend class="adm-h3">{GROUP_TITLE[group](o)}</legend>
 						{group === "booking" ? props.note : null}
+						{inGroup.some(locked) ? (
+							<p class="adm-muted" data-note="limits-owner">
+								{m.as_limits_owner({}, o)}
+							</p>
+						) : null}
 						<div class="adm-grid">
 							{inGroup.map((field) => {
 								const max =
@@ -219,6 +253,7 @@ export function SurfaceFields(props: {
 												: shown(field.kind, max)
 										}
 										o={o}
+										locked={locked(field)}
 									/>
 								);
 							})}

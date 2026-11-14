@@ -1,5 +1,6 @@
 import type { RouteSpec } from "@psi/scheduling-sdk/contract";
 import {
+	ASSISTANT_BUDGET_KEY,
 	AssistantOrgDocument,
 	type AssistantOrgDocumentType,
 	AssistantPlatformDocument,
@@ -16,10 +17,11 @@ import {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { Ctx, HandlersOf } from "../http/context";
-import { fail } from "../http/errors";
+import { fail, forbidden } from "../http/errors";
 import type { StoredDocument } from "../store/ports";
 import type { UsageCounts, UsageKey } from "../store/ports-assistant";
 import { StoreRefused } from "../store/types";
+import { limitsChanged } from "./assistant-limits";
 import { must } from "./shared";
 
 type C = Ctx<RouteSpec>;
@@ -176,6 +178,13 @@ export const assistantHandlers: HandlersOf<
 
 	async "assistantConfig.put"(ctx) {
 		const edited = ctx.body.doc.revision;
+		// The budget and the limits are the Owner's: anyone else may save the rest, never a change to those.
+		const held = await orgTier(ctx);
+		if (limitsChanged(held.doc, ctx.body.doc) && !(await ctx.canAll(ASSISTANT_BUDGET_KEY)))
+			throw forbidden("the assistant's budget and limits are the Owner's", {
+				permission: ASSISTANT_BUDGET_KEY,
+				reason: "assistant_budget",
+			});
 		const platform = await platformTier(ctx);
 		const breaches = ceilingBreaches(ctx.body.doc, { platform: platform.doc });
 		if (breaches.length > 0)

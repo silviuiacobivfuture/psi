@@ -1,4 +1,6 @@
 import {
+	ASSISTANT_LIMIT_OVERRIDES,
+	ASSISTANT_LIMIT_SETTINGS,
 	AssistantCeilings,
 	type AssistantCeilingsType,
 	AssistantOrgDocument,
@@ -116,6 +118,14 @@ export const FIELD_GROUPS: ReadonlyArray<FieldGroup> = [
 
 export const fieldsOf = (surface: AssistantSurfaceName): ReadonlyArray<SettingField> =>
 	SETTING_FIELDS.filter((x) => x.only === undefined || x.only === surface);
+
+const LIMIT_ROOTS: ReadonlySet<string> = new Set(ASSISTANT_LIMIT_SETTINGS);
+/** A budget or a limit (`ASSISTANT_LIMIT_SETTINGS`): the Owner's to change (`assistant_budget_edit`). */
+export const isLimit = (field: SettingField): boolean =>
+	LIMIT_ROOTS.has(field.path.split(".")[0] ?? field.path);
+/** A role's or a person's override that is a limit (`ASSISTANT_LIMIT_OVERRIDES`). */
+export const isLimitOverride = (name: string): boolean =>
+	(ASSISTANT_LIMIT_OVERRIDES as ReadonlyArray<string>).includes(name);
 
 type Plain = Record<string, unknown>;
 const isPlain = (v: unknown): v is Plain =>
@@ -325,20 +335,21 @@ export type Parsed<T> = { ok: true; doc: T } | { ok: false; fields: ReadonlyArra
 
 /**
  * The organisation's document from the settings form, edited from `revision`: both surfaces, the skills and the role
- * overrides; the per-person overrides (set through the service, not this screen) are kept as they were.
+ * overrides; the per-person overrides (their own screen's) are kept as they were, and so are the role overrides when
+ * `roleIds` is undefined (the person may not read the roles, so the form had none to show).
  */
 export function orgDocFromForm(
 	form: Form,
 	held: AssistantOrgDocumentType | undefined,
 	revision: number,
-	roleIds: ReadonlyArray<string>,
+	roleIds: ReadonlyArray<string> | undefined,
 ): Parsed<AssistantOrgDocumentType> {
 	const parsed = AssistantOrgDocument.safeParse({
 		revision,
 		staff: patchFromForm(form, "staff", "staff"),
 		visitor: patchFromForm(form, "visitor", "visitor"),
 		skills: skillsFromForm(form),
-		roles: overridesFromForm(form, "role", roleIds),
+		roles: roleIds === undefined ? (held?.roles ?? {}) : overridesFromForm(form, "role", roleIds),
 		people: held?.people ?? {},
 	});
 	return parsed.success

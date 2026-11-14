@@ -104,12 +104,13 @@ export const ASSISTANT_ACTIONS: ReadonlyArray<ActionDef> = [
 		confirm: "none",
 		params: OrgForm,
 		run: async (ctx, form) => {
+			// Someone who may not read the roles (an Administrator) saves without them: the role overrides stay as they are.
 			const [held, roles] = await Promise.all([
 				ctx.port.assistantConfig(ctx.app),
-				ctx.port.roles(ctx.app),
+				ctx.can.has("roles_view") ? ctx.port.roles(ctx.app) : Promise.resolve(undefined),
 			]);
-			const roleIds = roles.map((r) => r.id);
-			const planned = plan(form, held.revision, () => formOfDoc(held.doc, roleIds));
+			const roleIds = roles?.map((r) => r.id);
+			const planned = plan(form, held.revision, () => formOfDoc(held.doc, roleIds ?? []));
 			if (!planned.ok) return { status: "refused", code: planned.code };
 			const doc = orgDocFromForm(planned.fields, held.doc, planned.revision, roleIds);
 			if (!doc.ok) return { status: "refused", code: "invalid" };

@@ -1,4 +1,4 @@
-import { BUILT_IN_CEILINGS } from "@psi/scheduling-sdk/contract";
+import { AssistantOrgConfig, BUILT_IN_CEILINGS } from "@psi/scheduling-sdk/contract";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createSdkPort } from "../port/sdk";
 import { type SdkConsole, startSdkConsole } from "./sdk-harness";
@@ -78,5 +78,55 @@ describe("the assistant's settings over the real service, as the signed-in perso
 		expect((await port("root").saveAssistantPlatform(doc)).revision).toBe(1);
 		const rita = await world.api.world.call("rita", "GET", "/v1/apps/psizone/assistant/effective");
 		expect(rita.json.settings).toMatchObject({ tone: "neutral" });
+	});
+});
+
+describe("the budget and the limits are the Owner's, over the real service", () => {
+	it("an Administrator sees them locked, saves the rest as they are, and a changed limit is refused with nothing written", async () => {
+		const olga = await world.as("olga");
+		const owned = await (await olga.get("/settings/assistant")).text();
+		expect(owned).not.toContain('data-note="limits-owner"');
+		const first = (await world.api.world.call("olga", "GET", "/v1/apps/psizone/assistant/config"))
+			.json;
+		await olga.post(
+			"/settings/assistant",
+			...form({ whole: "1", revision: String(first.revision), "staff.maxToolCalls": "4" }),
+		);
+		const held = async () =>
+			AssistantOrgConfig.parse(
+				(await world.api.world.call("olga", "GET", "/v1/apps/psizone/assistant/config")).json,
+			);
+		const before = await held();
+		const nina = await world.as("nina");
+		const page = await (await nina.get("/settings/assistant")).text();
+		expect(page).toContain('data-note="limits-owner"');
+		expect(page).toMatch(/name="staff\.maxToolCalls"[^>]*readonly/);
+		expect(page).not.toMatch(/name="staff\.prompt\.append"[^>]*readonly/);
+		const revision = String(before.revision);
+		// The form as the screen posts it: the locked limits as they are, an instruction changed.
+		const kept = await nina.post(
+			"/settings/assistant",
+			...form({
+				whole: "1",
+				revision,
+				"staff.maxToolCalls": "4",
+				"staff.prompt.append": "Răspunde scurt.",
+			}),
+		);
+		expect(kept.status).toBe(200);
+		const after = await held();
+		expect(after.revision).toBe(before.revision + 1);
+		expect(after.doc?.roles).toEqual(before.doc?.roles);
+		expect(after.doc?.staff).toMatchObject({
+			maxToolCalls: 4,
+			prompt: { append: "Răspunde scurt." },
+		});
+		// A post that changes a locked limit anyway (the browser's fields altered): refused, nothing written.
+		const tampered = await nina.post(
+			"/settings/assistant",
+			...form({ whole: "1", revision: String(after.revision), "staff.maxToolCalls": "9" }),
+		);
+		expect(tampered.status).toBe(403);
+		expect(await held()).toEqual(after);
 	});
 });

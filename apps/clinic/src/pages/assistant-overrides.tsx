@@ -1,6 +1,6 @@
 import type { AssistantStaffOverrideType } from "@psi/scheduling-sdk/contract";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { type OverrideOf, ROLE_FIELD_NAMES } from "../lib/assistant-form";
+import { isLimitOverride, type OverrideOf, ROLE_FIELD_NAMES } from "../lib/assistant-form";
 import type { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { AssistantOrgConfigType } from "../port/port";
@@ -46,6 +46,8 @@ export function OverrideFields(props: {
 	legend: string;
 	own: AssistantStaffOverrideType;
 	staff: AssistantOrgConfigType["effective"]["staff"];
+	/** The limits are shown, not changed: `assistant_budget_edit` is the Owner's. */
+	lockLimits?: boolean;
 	o: O;
 }): JSX.Element {
 	const { of, id, own, staff, o } = props;
@@ -80,6 +82,7 @@ export function OverrideFields(props: {
 								type={field === "model" ? "text" : "number"}
 								value={value === undefined ? "" : String(value)}
 								placeholder={inheritedOf(field, staff)}
+								readonly={props.lockLimits === true && isLimitOverride(field)}
 							/>
 						</label>
 					);
