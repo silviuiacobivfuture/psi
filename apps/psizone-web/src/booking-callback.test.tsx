@@ -138,6 +138,28 @@ describe("a callback request (no time chosen)", () => {
 		expect(log).toEqual([]);
 	});
 
+	it.each([
+		["one part of the day", ["afternoon"], "afternoon", "După-amiaza"],
+		["both parts of the day", ["morning", "afternoon"], "any", "Oricând"],
+		["Oricând next to a part of the day", ["morning", "any"], "any", "Oricând"],
+		["no box ticked", [], "any", "Oricând"],
+	])("the 'when' boxes, %s, reach the store and the team as one period", async (_why, when, stored, read) => {
+		const { app, fake, sent } = rig();
+		const body = new URLSearchParams({ ...valid, forWhom: "teen" });
+		body.delete("when");
+		for (const period of when) body.append("when", period);
+		const res = await app.request("/programare", {
+			method: "POST",
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+			body: body.toString(),
+		});
+		expectThanks((await res.text()).replace(/&#39;/g, "'"));
+		expect(fake.callbacks).toHaveLength(1);
+		expect(fake.callbacks[0]?.when).toBe(stored);
+		expect(fake.callbacks[0]?.audience).toBe("teen");
+		expect(sent[0]?.text).toContain(read);
+	});
+
 	it("English visitor: stored with locale en, the team's e-mail is still Romanian", async () => {
 		const { app, fake, sent } = rig();
 		const html = await post(app, "/en/programare", valid);
@@ -261,6 +283,8 @@ describe("a request that is not valid reaches nobody", () => {
 		["a name with digits", { name: "Ana 2" }, "numele"],
 		["the consent box left empty", { consent: "" }, "acordul"],
 		["nobody chosen to book for", { forWhom: "" }, "Eroare"],
+		["an audience the form never offers", { forWhom: "pet" }, "alege pentru cine"],
+		["a time to call the form never offers", { when: "evening" }, "alege când te putem suna"],
 	])("%s: the form comes back with the error, nothing stored, nothing sent", async (_why, over, shown) => {
 		const { app, fake, sent, log } = rig();
 		// "callback" is the picker's "call me instead" mode: the details (and their errors) are on screen.
@@ -268,7 +292,9 @@ describe("a request that is not valid reaches nobody", () => {
 		expect(html).toContain("<form");
 		expect(html).toContain(shown);
 		expect(html).not.toContain("Mulțumim");
-		expect(html).not.toContain(FAILED_TITLE);
+		// The form keeps its "did not go through" line hidden for a lost connection: it is not shown here.
+		const visible = html.replace(/<(\w+)[^>]*style="display: none"[^>]*>[\s\S]*?<\/\1>/g, "");
+		expect(visible).not.toContain(FAILED_TITLE);
 		expect(fake.callbacks).toEqual([]);
 		expect(sent).toEqual([]);
 		expect(log).toEqual([]);

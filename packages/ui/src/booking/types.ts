@@ -32,7 +32,10 @@ export type BookingValues = Partial<
 >;
 
 export type BookingErrors = Partial<
-	Record<"name" | "age" | "details" | "phone" | "email" | "forWhom" | "consent" | "slot", string>
+	Record<
+		"name" | "age" | "details" | "phone" | "email" | "forWhom" | "when" | "consent" | "slot",
+		string
+	>
 >;
 
 /**
@@ -66,6 +69,8 @@ export interface BookingCopy {
 		/** "Did you mean gmail.com?": the domain the typo probably meant. */
 		emailTypo: (domain: string) => string;
 		forWhom: string;
+		/** A time to call the form never offers (only a tampered request sends one). */
+		when: string;
 		consent: string;
 		/** The chosen time is not one the page offered. */
 		slot: string;
@@ -83,6 +88,8 @@ export interface BookingCopy {
 		ageHint: string;
 		details: string;
 		detailsHint: string;
+		/** The live hint under the details while they are shorter than the minimum: "at least 10 characters". */
+		detailsMin: string;
 		email: string;
 		phone: string;
 		consent: string;

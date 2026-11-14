@@ -4,6 +4,37 @@ import type { BookingCopy, BookingEnv, BookingErrors, BookingLocale } from "./ty
 
 const Audience = z.enum(["child", "teen", "adult"]);
 const Period = z.enum(["morning", "afternoon", "any"]);
+type Period = z.infer<typeof Period>;
+
+/** The periods the "when" checkboxes may send, in the form's order; "any" is the one that stands alone. */
+export const PERIODS = Period.options;
+
+/** "morning,afternoon" (the repeated `when` fields, joined) as the periods it names, in order, once each. */
+export function periodsOf(raw: string | undefined): ReadonlyArray<string> {
+	const named = new Set((raw ?? "").split(",").map((p) => p.trim()));
+	return PERIODS.filter((p) => named.has(p));
+}
+
+/**
+ * When a person can be called: the checkboxes allow several, the request carries one period. Nothing
+ * ticked, "any", or both parts of the day mean "any"; one part of the day is that one. A value the
+ * form never offers is refused, so a tampered request is not silently read as "any".
+ */
+export const WhenSchema = z
+	.string()
+	.default("")
+	.transform((raw) =>
+		raw
+			.split(",")
+			.map((p) => p.trim())
+			.filter((p) => p !== ""),
+	)
+	.pipe(z.array(Period).max(PERIODS.length))
+	.transform((chosen): Period => {
+		const set = new Set(chosen);
+		if (set.has("any") || set.size !== 1) return "any";
+		return set.has("morning") ? "morning" : "afternoon";
+	});
 
 /**
  * A booking request: who is asking and what is going on, every field mandatory and validated by
@@ -18,7 +49,7 @@ export const BookingRequest = z.object({
 	phone: PhoneSchema,
 	email: EmailSchema,
 	forWhom: Audience,
-	when: Period.default("any"),
+	when: WhenSchema,
 	/** A free slot's id when scheduling is on; empty (or absent) means "call me back". */
 	slot: z.string().max(120).default(""),
 	/** The service the slot is for; empty means the store's default. */
@@ -38,7 +69,7 @@ export const BookingConfirmation = z.object({
 	phone: PhoneSchema,
 	email: EmailSchema,
 	forWhom: Audience,
-	when: Period.default("any"),
+	when: WhenSchema,
 	/** The held slot's start (UTC ms), carried so a failed confirm still tells the team the time. */
 	start: z.union([z.string().regex(/^[0-9]{10,15}$/), z.literal("")]).default(""),
 	consent: z.literal("yes"),
@@ -112,6 +143,7 @@ export function errorsFor(issues: ReadonlyArray<z.ZodIssue>, copy: BookingCopy):
 				? copy.errors.emailTypo(issue.message.slice(5))
 				: copy.errors.email;
 		} else if (field === "forWhom") errors.forWhom ??= copy.errors.forWhom;
+		else if (field === "when") errors.when ??= copy.errors.when;
 		else if (field === "consent") errors.consent ??= copy.errors.consent;
 	}
 	return errors;

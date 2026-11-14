@@ -323,6 +323,121 @@ body {
 	color: var(--danger);
 }
 
+/* Multi-line text field: the input's language (border, radius, focus), with room to write. */
+.pz-input.pz-textarea {
+	height: auto;
+	min-height: 144px;
+	padding: 12px var(--space-4);
+	font: 400 16px / 24px var(--pz-body);
+	resize: vertical;
+}
+.pz-field__foot {
+	display: flex;
+	gap: var(--space-3);
+	font: 450 13px / 20px var(--pz-body);
+	color: var(--ink-muted);
+}
+.pz-field__count {
+	margin-inline-start: auto;
+	font-variant-numeric: tabular-nums;
+}
+/* A hint that stays muted when the field is in error (the error has its own line). */
+.pz-field__note {
+	font: 450 14px / 22px var(--pz-body);
+	color: var(--ink-muted);
+}
+.pz-field__error {
+	margin: 0;
+	font: 500 14px / 22px var(--pz-body);
+	color: var(--danger);
+}
+
+/* Choice chips: native radios / checkboxes in 44px pills; ticked = accent fill and a check mark. */
+.pz-choices {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+}
+.pz-choices > legend {
+	padding: 0;
+	margin-bottom: var(--space-3);
+}
+.pz-choices__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+.pz-choice {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 44px;
+	padding: 0 var(--space-4) 0 var(--space-3);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--line-control);
+	background: var(--surface-1);
+	color: var(--ink);
+	font: 600 15px / 20px var(--pz-label);
+	cursor: pointer;
+	user-select: none;
+	transition:
+		background 0.15s,
+		border-color 0.15s,
+		color 0.15s;
+}
+.pz-choice:hover {
+	border-color: var(--accent);
+}
+.pz-choice:has(:checked) {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--on-accent);
+}
+.pz-choice:has(:focus-visible) {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+/* The control itself covers the pill, invisible: clicks, taps and focus land on it. */
+.pz-choice__input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+.pz-choice__mark {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	border: 1.5px solid currentColor;
+	border-radius: 50%;
+}
+.pz-choice__mark--box {
+	border-radius: var(--radius-sm);
+}
+.pz-choice__mark > svg {
+	opacity: 0;
+}
+.pz-choice:has(:checked) .pz-choice__mark {
+	background: var(--on-accent);
+	border-color: var(--on-accent);
+	color: var(--accent);
+}
+.pz-choice:has(:checked) .pz-choice__mark > svg {
+	opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+	.pz-choice {
+		transition: none;
+	}
+}
+
 /* Ask bar (AI guide entry) */
 .pz-ask {
 	display: flex;

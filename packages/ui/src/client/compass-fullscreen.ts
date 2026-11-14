@@ -133,7 +133,7 @@ function fullscreen(nav: HTMLElement, sheet: HTMLElement, form: HTMLElement): vo
 		stop();
 		paint();
 		if (!inWidget(document.activeElement)) input?.focus({ preventScroll: true });
-		if (auto && live !== null) live.textContent = live.dataset.on ?? "";
+		if (auto && live !== null) live.textContent = live.dataset.announce ?? "";
 	}
 
 	/** `by`: the visitor chose it (button, Escape) or the sheet closed under it. */

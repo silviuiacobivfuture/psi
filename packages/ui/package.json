@@ -19,6 +19,7 @@
 		"./imagery.css": "./src/imagery.css",
 		"./inbox.css": "./src/notifications/inbox.css",
 		"./testing": "./src/testing.ts",
+		"./browser-testing": "./src/browser-testing.ts",
 		"./admin": "./src/admin/index.ts",
 		"./admin.css": "./src/admin/admin.css",
 		"./staff-assistant": "./src/staff-assistant/index.ts",
@@ -50,6 +51,7 @@
 		"esbuild": "^0.25.0",
 		"happy-dom": "20.14.6",
 		"hono": "^4.13.18",
+		"playwright-core": "1.48.2",
 		"typescript": "^5.7.3",
 		"vitest": "^2.1.9"
 	}

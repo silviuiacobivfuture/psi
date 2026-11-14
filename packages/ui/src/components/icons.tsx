@@ -26,3 +26,23 @@ export function ArrowIcon({ size = 18, class: className }: IconProps): JSX.Eleme
 		</svg>
 	);
 }
+
+/** Lucide-style check mark, decorative. */
+export function CheckIcon({ size = 14, class: className }: IconProps): JSX.Element {
+	return (
+		<svg
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="3"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+			class={className}
+		>
+			<path d="M20 6 9 17l-5-5" />
+		</svg>
+	);
+}
