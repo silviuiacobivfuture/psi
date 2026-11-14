@@ -20,6 +20,32 @@ export type Step =
 	| { kind: "missing"; name: string };
 
 const OWNER = "Owner";
+
+/** Other names a seed role is stored under: the console has always shown the Admin seed role as "Administrator". */
+const ALIASES: Readonly<Record<string, readonly string[]>> = { Admin: ["Administrator"] };
+
+/**
+ * Each seed role's stored row, by seed name. A role the app was created with is `system`; but a role written through
+ * the store afterwards (reconcile --seed-roles, an import, an early provisioning) is stored unflagged, and the Admin
+ * role may carry the name the console shows. So: the system role of that name first; else the one role named so (or
+ * by an alias), whatever its flag. Two unflagged candidates for one seed role are ambiguous and adopt neither.
+ */
+export function seedRolesOf(roles: ReadonlyArray<RoleRow>): Map<string, RoleRow> {
+	const out = new Map<string, RoleRow>();
+	for (const seed of SEED_ROLES) {
+		const names = [seed.name, ...(ALIASES[seed.name] ?? [])].map((n) => n.toLowerCase());
+		const named = roles.filter((r) => names.includes(r.name.toLowerCase()));
+		const system = named.filter((r) => r.system);
+		const pick =
+			system.length === 1
+				? system[0]
+				: system.length === 0 && named.length === 1
+					? named[0]
+					: undefined;
+		if (pick !== undefined) out.set(seed.name, pick);
+	}
+	return out;
+}
 const sorted = (xs: Iterable<string>): string[] => [...new Set(xs)].sort();
 const same = (a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean =>
 	sorted(a).join("\n") === sorted(b).join("\n");
@@ -32,7 +58,7 @@ const same = (a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean =>
  * Owner-only keys. Roles are planned bottom-up, so an included role's composition is known when its includer's is.
  */
 export function planReseed(roles: ReadonlyArray<RoleRow>, now: number): Step[] {
-	const seeded = new Map(roles.filter((r) => r.system).map((r) => [r.name, r]));
+	const seeded = seedRolesOf(roles);
 	const byId = new Map<string, ComposedRole>(
 		roles.map((r) => [r.id, { id: r.id, permissions: r.permissions, includes: r.includes }]),
 	);
