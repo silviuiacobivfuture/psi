@@ -21,7 +21,7 @@ let api: RunningApi;
 let mock: MockIssuer;
 let browser: Browser;
 /** What the next calls use as the person's token for the service: theirs, or one the service refuses. */
-let token: "own" | "refused" = "own";
+let token: "own" | "refused" | "once" = "own";
 
 /** OpenFGA as the model answers a person's own records: allowed when the owner tuple names the asking user. */
 const ownerFga: typeof globalThis.fetch = async (input, init) => {
@@ -146,8 +146,14 @@ beforeAll(async () => {
 		siteNames: { psizone: "Psizone" },
 		bookings: ownBookings({ baseUrl: api.url, app: "psizone" }),
 		// The service here trusts its own test issuer: the person's token is minted there, for their subject.
-		tokenFor: async (_c, person) =>
-			token === "own" ? api.tokenFor(person.subject) : "refused.token.value",
+		tokenFor: async (_c, person) => {
+			if (token === "once") {
+				// Lapsed once: the silent sign-in brings a token the service takes.
+				token = "own";
+				return "refused.token.value";
+			}
+			return token === "own" ? api.tokenFor(person.subject) : "refused.token.value";
+		},
 		now: () => api.world.clock.now,
 		render: (c, page) =>
 			c.html(`<main>${String(page.body)}</main>`, page.status === 503 ? 503 : 200),
@@ -209,6 +215,17 @@ describe("Programările mele", () => {
 		expect(res.res.status).toBe(404);
 		expect(await mine()).toEqual(before);
 		expect((await go("/cont/programari/q-not-hers-0001/muta")).status).toBe(404);
+	});
+
+	it("a lapsed token is renewed silently and the page ends at its clean address, so a later lapse renews again", async () => {
+		for (const round of [1, 2]) {
+			token = "once";
+			const walk = await browser.go(`${ORIGIN}/cont/programari`);
+			expect(walk.res.status, `round ${round}`).toBe(200);
+			expect(walk.trail.some((u) => u.includes("prompt=none"))).toBe(true);
+			expect(walk.trail.at(-1)).toBe(`${ORIGIN}/cont/programari`);
+		}
+		token = "own";
 	});
 
 	it("a token the service refuses sends the person through a silent sign-in once, then says the service is unavailable", async () => {

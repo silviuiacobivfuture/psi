@@ -196,7 +196,7 @@ export function MoveBody({
 							<legend class="mb-2 text-body text-ink">{day}</legend>
 							<div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
 								{list.map((t) => (
-									<label class="flex min-h-11 cursor-pointer items-center justify-center rounded-md border border-line text-body-sm text-ink has-checked:border-accent has-checked:bg-surface-2">
+									<label class="flex min-h-11 cursor-pointer items-center justify-center rounded-md border border-line text-body-sm text-ink has-checked:border-accent has-checked:bg-surface-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2">
 										<input
 											class="sr-only"
 											type="radio"

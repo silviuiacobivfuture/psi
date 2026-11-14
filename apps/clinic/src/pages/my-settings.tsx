@@ -150,7 +150,9 @@ export async function renderMySettings(
 						value={ctx.caps.roles.map((r) => roleName(r, ctx.locale)).join(", ")}
 					/>
 				</section>
-				<Preferences ctx={ctx} settings={settings} />
+				{/* The language and theme the person sees now (the top bar may have changed them on this device): saving
+				keeps them for every device. */}
+				<Preferences ctx={ctx} settings={{ ...settings, locale: ctx.locale, theme: ctx.pref }} />
 				<section class="adm-stack" id="notif" aria-labelledby="me-notif">
 					<h2 class="adm-h2" id="me-notif">
 						{m.me_notifications({}, o)}

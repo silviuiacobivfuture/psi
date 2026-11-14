@@ -80,6 +80,8 @@ export function registerBookingRoutes(app: Hono, j: Journey, port: OwnBookingsPo
 		if (token === null) return renew(c, path("bookings"));
 		const rows = await own(c, person, token, "viewer");
 		if (rows === "expired") return renew(c, path("bookings"));
+		// Renewed: the address loses its marker, so a later lapse renews again instead of stopping.
+		if (c.req.query("fresh") === "1") return c.redirect(path("bookings"), 303);
 		const ok = c.req.query("ok");
 		return j.page(
 			c,
@@ -136,6 +138,7 @@ export function registerBookingRoutes(app: Hono, j: Journey, port: OwnBookingsPo
 		if (token === null) return renew(c, moving(id.data));
 		const rows = await own(c, person, token, "editor");
 		if (typeof rows === "string") return refused(c, rows, moving(id.data));
+		if (c.req.query("fresh") === "1") return c.redirect(moving(id.data), 303);
 		const booking = rows.find((r) => r.id === id.data);
 		if (booking === undefined) return c.body(null, 404);
 		if (!booking.canChange) return refused(c, "too_late", moving(id.data));
