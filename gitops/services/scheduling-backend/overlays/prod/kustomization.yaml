@@ -13,7 +13,7 @@ resources:
   - db.yaml
 images:
   - name: registry.psizone.ro/psi/scheduling-backend
-    newTag: "ca082e1"
+    newTag: "086489c"
 patches:
   - target: { kind: ExternalSecret, name: scheduling-backend-env }
     path: externalsecret.yaml
