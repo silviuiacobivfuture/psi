@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { effectiveOf } from "@psi/scheduling/permissions";
 import { ROUTES } from "@psi/scheduling-sdk/contract";
 import { describe, expect, it } from "vitest";
 import {
@@ -187,7 +188,15 @@ describe("the catalogue", () => {
 		const all = new Set(allAppRelations());
 		for (const role of seedRoles())
 			for (const r of role.permissions) expect(all.has(r), `${role.slug}: ${r}`).toBe(true);
-		expect(new Set(seedRoles().find((r) => r.slug === "owner")?.permissions)).toEqual(all);
+		// The Owner holds every relation in the end: its own keys and every role it includes, transitively.
+		const seeds = seedRoles();
+		const byId = new Map(
+			seeds.map((r) => [r.slug, { id: r.slug, permissions: r.permissions, includes: r.includes }]),
+		);
+		expect(new Set(effectiveOf("owner", byId).keys)).toEqual(all);
+		for (const role of seeds)
+			for (const inc of role.includes)
+				expect(byId.has(inc), `${role.slug} includes ${inc}`).toBe(true);
 	});
 
 	it("gives the platform administrators no clinical access: their permissions have no field group", () => {

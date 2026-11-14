@@ -6,6 +6,7 @@ import { mutation, type QueryCtx, query } from "./_generated/server";
 import { deleteAll, owned, REFUSED, record } from "./apiSupport";
 import { logChange } from "./changeLog";
 import { requireServer } from "./guard";
+import { includesOf } from "./roleIncludes";
 import { actorValidator, serverKeyValidator } from "./validators";
 
 /**
@@ -201,11 +202,17 @@ export const saveRole = mutation({
 		name: v.optional(v.string()),
 		description: v.optional(v.string()),
 		permissions: v.optional(v.array(v.string())),
+		includes: v.optional(v.array(v.string())),
 	},
 	handler: async (ctx, args) => {
 		requireServer(args.key);
 		const row = await owned(ctx, "roles", args.tenant, args.role);
 		if (row === null) return REFUSED("not_found");
+		const includes =
+			args.includes === undefined
+				? undefined
+				: await includesOf(ctx, args.tenant, row._id, args.includes);
+		if (args.includes !== undefined && includes === undefined) return REFUSED("invalid");
 		const name = args.name?.trim();
 		if (
 			(name !== undefined && (name === "" || name.length > 60)) ||
@@ -233,12 +240,14 @@ export const saveRole = mutation({
 			...(args.permissions !== undefined && !same(args.permissions, row.permissions)
 				? ["permissions"]
 				: []),
+			...(includes !== undefined && !same(includes, row.includes ?? []) ? ["includes"] : []),
 		];
 		if (fields.length === 0) return { ok: true as const, changed: false as const };
 		await ctx.db.patch(row._id, {
 			name: name ?? row.name,
 			description: args.description ?? row.description,
 			permissions: args.permissions ?? row.permissions,
+			includes: includes ?? row.includes ?? [],
 			updatedAt: Date.now(),
 			updatedBy: args.actor.subject,
 		});

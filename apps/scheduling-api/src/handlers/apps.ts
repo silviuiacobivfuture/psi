@@ -1,5 +1,3 @@
-import { allAppRelations, appRelation, permissionOf } from "../authz/catalogue";
-import { roleGrant } from "../authz/links";
 import { seedRoles } from "../authz/roles-seed";
 import { memberTuples, objectLinks, platformLink, roleTuples } from "../authz/tuples";
 import type { Deps, HandlersOf } from "../http/context";
@@ -7,31 +5,8 @@ import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
 import { capabilitiesOf } from "./capabilities";
 import { syncMember } from "./directory";
-import { catalogueMatrix } from "./matrix";
-import {
-	diff,
-	must,
-	newId,
-	paginate,
-	removeTuplesThenRow,
-	replaced,
-	stamps,
-	writeRowThenTuples,
-} from "./shared";
-
-/** What the Owner role always keeps, so an app cannot lock itself out of its own roles and team. */
-const GUARDED = [
-	"roles_view",
-	"roles_create",
-	"roles_edit",
-	"roles_delete",
-	"members_view",
-	"members_edit",
-].map((key) => {
-	const def = permissionOf(key);
-	if (def === undefined) throw new Error(`guarded permission ${key} is not in the catalogue`);
-	return appRelation(def, "all");
-});
+import { isOwnerRole } from "./roles";
+import { must, stamps } from "./shared";
 
 /** Creates an app with its seed roles and its first owner, and the tuples that make them real. */
 export async function provisionApp(
@@ -73,6 +48,8 @@ export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string
 						description: r.description,
 						system: true,
 						permissions: [...new Set(r.permissions)].sort(),
+						// The seed roles include one another (Owner > Administrator > ...): by the ids given just here.
+						includes: r.includes.map((slug) => `${id}-${slug}`).sort(),
 						...stamps(now),
 					}),
 				);
@@ -110,25 +87,8 @@ export async function seedAppAccess(deps: Deps, id: string, ownerSubject: string
 	}
 }
 
-const OWNER_ROLE = "Owner";
-const isOwnerRole = (role: RoleRow): boolean => role.system && role.name === OWNER_ROLE;
-
-function needsOwnerKept(role: RoleRow, permissions: readonly string[]): boolean {
-	return !isOwnerRole(role) || GUARDED.every((r) => permissions.includes(r));
-}
-
 export const appHandlers: HandlersOf<
-	| "me.get"
-	| "me.capabilities"
-	| "apps.create"
-	| "apps.get"
-	| "apps.update"
-	| "roles.list"
-	| "roles.create"
-	| "roles.get"
-	| "roles.update"
-	| "roles.setPermissions"
-	| "roles.remove"
+	"me.get" | "me.capabilities" | "apps.create" | "apps.get" | "apps.update"
 > = {
 	async "me.get"(ctx) {
 		if (ctx.principal.kind !== "person")
@@ -187,122 +147,4 @@ export const appHandlers: HandlersOf<
 			updatedAt: next.updatedAt,
 		};
 	},
-
-	async "roles.list"(ctx) {
-		const rows = (await ctx.deps.store.c.roles.list(ctx.app)).sort((a, b) =>
-			a.name.localeCompare(b.name),
-		);
-		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
-		return { ...page, items: page.items.map(roleOut) };
-	},
-
-	async "roles.create"(ctx) {
-		const source =
-			ctx.body.copyFrom === undefined
-				? undefined
-				: await must(ctx.deps.store.c.roles, ctx.app, ctx.body.copyFrom, "role");
-		const role: RoleRow = {
-			id: newId("r"),
-			app: ctx.app,
-			name: ctx.body.name,
-			...(ctx.body.description === undefined ? {} : { description: ctx.body.description }),
-			system: false,
-			permissions: source?.permissions ?? [],
-			...stamps(ctx.now),
-		};
-		const saved = await writeRowThenTuples(ctx, {
-			write: () => ctx.deps.store.c.roles.insert(role),
-			undo: async (r) => {
-				await ctx.deps.store.c.roles.remove(ctx.app, r.id);
-			},
-			tuples: (r) => ({ writes: roleTuples(r), deletes: [] }),
-		});
-		return roleOut(saved);
-	},
-
-	async "roles.get"(ctx) {
-		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
-		return {
-			role: roleOut(role),
-			matrix: catalogueMatrix((def) =>
-				def.scopes.filter((s) => role.permissions.includes(appRelation(def, s))),
-			),
-		};
-	},
-
-	async "roles.update"(ctx) {
-		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
-		const next: RoleRow = {
-			...role,
-			...(ctx.body.name === undefined ? {} : { name: ctx.body.name }),
-			...(ctx.body.description === undefined ? {} : { description: ctx.body.description }),
-			updatedAt: ctx.now,
-		};
-		await ctx.deps.store.c.roles.replace(next);
-		return roleOut(next);
-	},
-
-	async "roles.setPermissions"(ctx) {
-		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
-		const valid = new Set(allAppRelations());
-		const wanted = [...new Set(ctx.body.permissions)].sort();
-		for (const p of wanted)
-			if (!valid.has(p)) throw fail("invalid", "not a permission relation", { relation: p });
-		if (!needsOwnerKept(role, wanted))
-			throw fail("conflict", "the Owner role keeps the permissions that manage roles and members", {
-				reason: "owner_lockout",
-			});
-		const next: RoleRow = { ...role, permissions: wanted, updatedAt: ctx.now };
-		const change = diff(
-			role.permissions.map((p) => roleGrant(role.id, role.app, p)),
-			wanted.map((p) => roleGrant(role.id, role.app, p)),
-		);
-		await writeRowThenTuples(ctx, {
-			write: async () => replaced(ctx.deps.store.c.roles, next),
-			undo: async () => {
-				await ctx.deps.store.c.roles.replace(role);
-			},
-			tuples: () => change,
-		});
-		ctx.note({ added: change.writes.length, removed: change.deletes.length });
-		return roleOut(next);
-	},
-
-	async "roles.remove"(ctx) {
-		const role = await must(ctx.deps.store.c.roles, ctx.app, String(ctx.params.id), "role");
-		if (isOwnerRole(role))
-			throw fail("conflict", "the Owner role cannot be deleted", { reason: "owner_lockout" });
-		const holders = (await ctx.deps.store.c.members.list(ctx.app)).filter((m) =>
-			m.roles.includes(role.id),
-		);
-		if (holders.length > 0)
-			throw fail("conflict", "people still hold this role", { holders: holders.length });
-		await removeTuplesThenRow(ctx, {
-			tuples: roleTuples(role),
-			remove: async () => {
-				await ctx.deps.store.c.roles.remove(ctx.app, role.id);
-			},
-		});
-		return { ok: true as const };
-	},
 };
-
-function roleOut(r: RoleRow): {
-	id: string;
-	name: string;
-	description?: string;
-	system: boolean;
-	permissions: string[];
-	createdAt: number;
-	updatedAt: number;
-} {
-	return {
-		id: r.id,
-		name: r.name,
-		...(r.description === undefined ? {} : { description: r.description }),
-		system: r.system,
-		permissions: r.permissions,
-		createdAt: r.createdAt,
-		updatedAt: r.updatedAt,
-	};
-}

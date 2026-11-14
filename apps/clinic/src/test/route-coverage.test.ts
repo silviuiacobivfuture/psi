@@ -38,6 +38,8 @@ const NOT_THE_CONSOLE: Readonly<Record<string, string>> = {
 	"payments.remove":
 		"a payment is never deleted from the console (the ledger is append-only there)",
 	"roster.put": "the roster is edited in the scheduling backend for now",
+	"ownership.transfer":
+		"handing the organisation over: the Owner's or the estate administrator's call to the service; no console screen yet",
 	"leave.list": "leave requests: not offered by the console yet",
 	"leave.create": "leave requests: not offered by the console yet",
 	"leave.decide": "leave requests: not offered by the console yet",

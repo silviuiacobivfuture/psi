@@ -14,6 +14,7 @@ export const PERMISSIONS = {
 		members_create: "members:members_create",
 		members_edit: "members:members_edit",
 		members_delete: "members:members_delete",
+		members_manage_admins: "members:members_manage_admins",
 	},
 	people: {
 		people_view: "people:people_view",
@@ -276,6 +277,17 @@ export const PERMISSIONS = {
 		notes_pin: "notes:notes_pin",
 		notes_pin_clinical: "notes:notes_pin_clinical",
 	},
+	billing: {
+		billing_view: "billing:billing_view",
+		billing_edit: "billing:billing_edit",
+	},
+	organisation: {
+		organisation_delete: "organisation:organisation_delete",
+		organisation_transfer: "organisation:organisation_transfer",
+	},
+	assistant_budget: {
+		assistant_budget_edit: "assistant_budget:assistant_budget_edit",
+	},
 	register: {
 		register_read: "register:register_read",
 		register_write: "register:register_write",
@@ -318,8 +330,11 @@ export const ALL_PERMISSIONS = [
 	"appointments:appointments_view_clinical",
 	"appointments:appointments_view_core",
 	"appointments:appointments_view_money",
+	"assistant_budget:assistant_budget_edit",
 	"audit_log:audit_log_export",
 	"audit_log:audit_log_view",
+	"billing:billing_edit",
+	"billing:billing_view",
 	"blacklist:blacklist_create",
 	"blacklist:blacklist_create_warn",
 	"blacklist:blacklist_delete",
@@ -411,6 +426,7 @@ export const ALL_PERMISSIONS = [
 	"members:members_create",
 	"members:members_delete",
 	"members:members_edit",
+	"members:members_manage_admins",
 	"members:members_view",
 	"notes:notes_create",
 	"notes:notes_create_clinical",
@@ -426,6 +442,8 @@ export const ALL_PERMISSIONS = [
 	"notice_board:notice_board_delete",
 	"notice_board:notice_board_edit",
 	"notice_board:notice_board_view",
+	"organisation:organisation_delete",
+	"organisation:organisation_transfer",
 	"packages:packages_create",
 	"packages:packages_delete",
 	"packages:packages_edit",
@@ -499,7 +517,7 @@ export type Permission = (typeof ALL_PERMISSIONS)[number];
 
 /** The roles this application declares, with the relations each grants. */
 export const ROLES = {
-	"sched:app_admin": ["sched_app#app_settings_view_all", "sched_app#app_settings_edit_all", "sched_app#members_view_all", "sched_app#members_create_all", "sched_app#members_edit_all", "sched_app#members_delete_all", "sched_app#roles_view_all", "sched_app#roles_create_all", "sched_app#roles_edit_all", "sched_app#roles_delete_all"],
+	"sched:app_admin": ["sched_app#app_settings_view_all", "sched_app#app_settings_edit_all", "sched_app#members_view_all", "sched_app#members_create_all", "sched_app#members_edit_all", "sched_app#members_delete_all", "sched_app#members_manage_admins_all", "sched_app#roles_view_all", "sched_app#roles_create_all", "sched_app#roles_edit_all", "sched_app#roles_delete_all", "sched_app#organisation_delete_all", "sched_app#organisation_transfer_all"],
 	"sched:integration": ["sched_register#reader", "sched_register#writer"],
 } as const;
 
@@ -536,6 +554,7 @@ export const PERMISSION_ROLES: Record<string, readonly string[]> = {
 	"members:members_create": ["sched:app_admin"],
 	"members:members_edit": ["sched:app_admin"],
 	"members:members_delete": ["sched:app_admin"],
+	"members:members_manage_admins": ["sched:app_admin"],
 	"people:people_view": [],
 	"people:people_create": [],
 	"people:people_edit": [],
@@ -737,6 +756,11 @@ export const PERMISSION_ROLES: Record<string, readonly string[]> = {
 	"notes:notes_delete_clinical": [],
 	"notes:notes_pin": [],
 	"notes:notes_pin_clinical": [],
+	"billing:billing_view": [],
+	"billing:billing_edit": [],
+	"organisation:organisation_delete": ["sched:app_admin"],
+	"organisation:organisation_transfer": ["sched:app_admin"],
+	"assistant_budget:assistant_budget_edit": [],
 	"register:register_read": ["sched:integration"],
 	"register:register_write": ["sched:integration"],
 };
@@ -758,6 +782,7 @@ export const PERMISSION_CLOSURE = {
 	"members:members_create": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
 	"members:members_edit": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
 	"members:members_delete": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
+	"members:members_manage_admins": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
 	"people:people_view": { scopeType: "platform", relations: [], viaSet: [] },
 	"people:people_create": { scopeType: "platform", relations: [], viaSet: [] },
 	"people:people_edit": { scopeType: "platform", relations: [], viaSet: [] },
@@ -959,6 +984,11 @@ export const PERMISSION_CLOSURE = {
 	"notes:notes_delete_clinical": { scopeType: "platform", relations: [], viaSet: [] },
 	"notes:notes_pin": { scopeType: "platform", relations: [], viaSet: [] },
 	"notes:notes_pin_clinical": { scopeType: "platform", relations: [], viaSet: [] },
+	"billing:billing_view": { scopeType: "platform", relations: [], viaSet: [] },
+	"billing:billing_edit": { scopeType: "platform", relations: [], viaSet: [] },
+	"organisation:organisation_delete": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
+	"organisation:organisation_transfer": { scopeType: "platform", relations: ["administrator", "role_sched_app_admin"], viaSet: [] },
+	"assistant_budget:assistant_budget_edit": { scopeType: "platform", relations: [], viaSet: [] },
 	"register:register_read": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
 	"register:register_write": { scopeType: "org", relations: ["role_sched_integration"], viaSet: [] },
 } as const satisfies Record<Permission, { scopeType: string; relations: readonly string[]; viaSet: readonly string[] }>;

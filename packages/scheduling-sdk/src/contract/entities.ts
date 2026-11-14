@@ -72,9 +72,19 @@ export const Role = z.object({
 	name: Name,
 	description: z.string().max(500).optional(),
 	system: z.boolean(),
+	/** Its own permission relations: what it adds to the roles it includes. */
 	permissions: z.array(z.string()),
+	/** The roles of the app this one includes: their permissions are held through it, transitively. */
+	includes: z.array(Id).default([]),
 	...Stamps,
 });
+/** The roles a role includes, replaced as a set: no cycle, at most 6 deep, roles of the same app. */
+export const RoleIncludes = z.object({ includes: z.array(Id).max(20) });
+/**
+ * For each permission a role holds through a role it includes, the nearest role that holds it as its own: what the
+ * console shows as "din Recepție" (a permission the role holds itself is not listed).
+ */
+export const Inherited = z.record(z.string(), Id);
 export const RoleCreate = z.object({
 	name: Name,
 	description: z.string().max(500).optional(),

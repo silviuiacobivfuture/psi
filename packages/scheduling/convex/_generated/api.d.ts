@@ -75,6 +75,7 @@ import type * as move from "../move.js";
 import type * as notifyStore from "../notifyStore.js";
 import type * as reportRows from "../reportRows.js";
 import type * as retention from "../retention.js";
+import type * as roleIncludes from "../roleIncludes.js";
 import type * as roomPlan from "../roomPlan.js";
 import type * as seed from "../seed.js";
 import type * as setupSupport from "../setupSupport.js";
@@ -179,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   notifyStore: typeof notifyStore;
   reportRows: typeof reportRows;
   retention: typeof retention;
+  roleIncludes: typeof roleIncludes;
   roomPlan: typeof roomPlan;
   seed: typeof seed;
   setupSupport: typeof setupSupport;

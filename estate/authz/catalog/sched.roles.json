@@ -291,6 +291,27 @@
 			}
 		},
 		{
+			"key": "billing",
+			"name": {
+				"ro": "billing",
+				"en": "billing"
+			}
+		},
+		{
+			"key": "organisation",
+			"name": {
+				"ro": "organisation",
+				"en": "organisation"
+			}
+		},
+		{
+			"key": "assistant_budget",
+			"name": {
+				"ro": "assistant_budget",
+				"en": "assistant_budget"
+			}
+		},
+		{
 			"key": "register",
 			"name": {
 				"ro": "Registrul organizației",
@@ -318,10 +339,13 @@
 				"sched_app#members_create_all",
 				"sched_app#members_edit_all",
 				"sched_app#members_delete_all",
+				"sched_app#members_manage_admins_all",
 				"sched_app#roles_view_all",
 				"sched_app#roles_create_all",
 				"sched_app#roles_edit_all",
-				"sched_app#roles_delete_all"
+				"sched_app#roles_delete_all",
+				"sched_app#organisation_delete_all",
+				"sched_app#organisation_transfer_all"
 			],
 			"assignable": true,
 			"max_duration": null

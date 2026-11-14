@@ -4,11 +4,13 @@ import {
 	allPermissionKeys,
 	CATALOGUE,
 	isPermissionKey,
+	OWNER_ONLY_KEYS,
 	RELATION_NAME_MAX,
 	RESOURCES,
 	recordResourceFor,
 	relationName,
 	SEED_ROLES,
+	seedEffective,
 } from "../permissions";
 
 /**
@@ -111,7 +113,8 @@ const EXPECTED: Record<string, string[]> = {
 const grants = (name: string): string[] => {
 	const found = SEED_ROLES.find((r) => r.name === name);
 	if (found === undefined) throw new Error(name);
-	return [...found.permissions].sort();
+	// What the role holds in the end: its own keys and every role it includes.
+	return [...seedEffective(name)].sort();
 };
 
 describe("every seed role's exact grants", () => {
@@ -119,10 +122,12 @@ describe("every seed role's exact grants", () => {
 		expect(grants(name)).toEqual(EXPECTED[name]);
 	});
 
-	it("Owner holds every key; Admin every key but roles and the audit log", () => {
+	it("Owner holds every key; Admin every key but roles, the audit log and the Owner's own", () => {
 		expect(grants("Owner")).toEqual([...ALL_PERMISSION_KEYS].sort());
 		expect(grants("Admin")).toEqual(
-			[...ALL_PERMISSION_KEYS].filter((k) => !/^(roles|audit_log)_/.test(k)).sort(),
+			[...ALL_PERMISSION_KEYS]
+				.filter((k) => !/^(roles|audit_log)_/.test(k) && !OWNER_ONLY_KEYS.includes(k))
+				.sort(),
 		);
 	});
 

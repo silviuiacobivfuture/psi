@@ -2,7 +2,7 @@ import type { JSX } from "hono/jsx/jsx-runtime";
 import { at, type Locale } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import { areaLabel, resourceText, rowText } from "./labels";
-import { ColumnHead, FoldView, MarkView } from "./marks";
+import { ColumnHead, FoldView, FromView, MarkView } from "./marks";
 import { type AreaRows, type Column, foldOf, markOf } from "./model";
 
 /** The Datastar signal that opens a resource's actions: `rmoAppSettings`. */
@@ -115,6 +115,7 @@ export function MatrixTable({ areas, columns, yours, expanded, locale }: TablePr
 												class={yoursClass(c)}
 											>
 												<MarkView mark={markOf(c, row)} locale={locale} />
+												<FromView column={c} row={row.id} locale={locale} />
 											</td>
 										))}
 									</tr>

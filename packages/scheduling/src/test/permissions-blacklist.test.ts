@@ -10,6 +10,7 @@ import {
 	OWNER,
 	RECEPTION,
 	SEED_ROLES,
+	seedEffective,
 	THERAPIST,
 	VOLUNTEER,
 } from "../permissions";
@@ -17,7 +18,7 @@ import {
 const perms = (name: string) => {
 	const role = SEED_ROLES.find((r) => r.name === name);
 	if (role === undefined) throw new Error(name);
-	return effectivePermissions([role]);
+	return effectivePermissions([{ ...role, permissions: seedEffective(name) }]);
 };
 const NONE = { own: false, assigned: false } as const;
 

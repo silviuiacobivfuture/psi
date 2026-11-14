@@ -366,6 +366,12 @@ export const RoleSchema = z.object({
 	/** grants[resource][action] = scope. Absent = none. */
 	grants: z.record(z.record(ScopeSchema)),
 	fieldGroups: z.array(z.enum(FIELD_GROUPS)),
+	/** The roles it includes: their permissions are held through it (the port fills this in). */
+	includes: z.array(z.string()).optional(),
+	/** inherited[resource][action]: the widest scope held through an included role, and the nearest role holding it. */
+	inherited: z.record(z.record(z.object({ scope: ScopeSchema, from: z.string() }))).optional(),
+	/** Every relation it holds in the end, its own and inherited: what "inclus în" is computed from. */
+	effective: z.array(z.string()).optional(),
 });
 export type Role = z.infer<typeof RoleSchema>;
 

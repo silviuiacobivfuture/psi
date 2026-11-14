@@ -200,6 +200,10 @@ const OWN: Record<
 			permissions: ["clients_view_all", "calendars_view_all"],
 		});
 	},
+	"roles.setIncludes": async (w) => {
+		const r = await olga(w, "POST", "/roles", { name: "Composed" });
+		return olga(w, "PUT", `/roles/${r.json.id}/includes`, { includes: [w.ids.roles.volunteer] });
+	},
 	"roles.remove": async (w) =>
 		olga(w, "DELETE", `/roles/${(await olga(w, "POST", "/roles", { name: "Gone" })).json.id}`),
 	"people.list": (w) => olga(w, "GET", "/people"),

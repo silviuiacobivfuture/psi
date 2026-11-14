@@ -11,6 +11,7 @@ import { NewLinkForm } from "./member-add";
 import { type OverrideChoice, overrideChoices, summaryOf } from "./member-summary";
 import type { MembersData } from "./members";
 import { actionLabel, groupLabel, resourceLabel, scopeLabel } from "./role-labels";
+import { RolePick } from "./role-pick";
 
 /**
  * The choices of a list, plus what the member already holds that the list could not show (a list this person may not
@@ -258,15 +259,16 @@ export function MemberEditor({
 							/>
 						</label>
 						<p class="adm-muted">{m.mb_roles_hint({}, o)}</p>
-						<Pick
+						<RolePick
 							legend={m.mb_roles({}, o)}
-							name="roles"
 							items={withHeld(
 								d.roles.map((r) => ({ id: r.id, name: roleLabel(r, ctx.locale) })),
 								member.roles,
 								(id) => roleName(id, ctx.locale),
 							)}
+							roles={d.roles}
 							on={member.roles}
+							locale={ctx.locale}
 						/>
 						<Pick
 							legend={m.mb_coordinates({}, o)}
