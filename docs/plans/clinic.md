@@ -405,3 +405,20 @@ What stops anything else:
 
 Rolling back: run promote with an older dev `sha`.
 
+### Building dev on this workstation (owner, 2026-11-14)
+
+The single CI runner builds every image in turn. When it is the bottleneck, `tools/ci/local-release.sh` does the
+`apps` workflow's work here, for DEV only: the same plan (`scripts/affected-apps.mjs --since-deployed dev`), the same
+Dockerfiles, build args, locked SEB bundle and Harbor tags (the commit's 7 characters), parallel builds, and the same
+tag-bump commits on dev (`ci(<app>): deploy <tag> to dev [skip ci]`), made only once every image is pushed.
+
+    BAO_TOKEN=<OpenBao token> tools/ci/local-release.sh [<dev sha>]
+
+- It reads CI's push robot (`platform/harbor/ci-robot`) from OpenBao (`BAO_ADDR`, default the port-forward on
+  127.0.0.1:18200). The login lives in a private docker config that is removed on exit. Nothing secret is printed.
+- Cancel the queued `apps` run of the same commit first: otherwise it rebuilds the same images, and a run still in
+  flight can move a tag back to its older commit.
+- It never builds for production. Production still moves only through **promote**, which pins tags that already
+  exist. The tests stay CI's (`estate-gates`).
+
+
