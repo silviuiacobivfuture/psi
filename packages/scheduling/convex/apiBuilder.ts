@@ -10,6 +10,7 @@ import { formDefinitionSchema, valueSchemaFor } from "../src/clinic/forms";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { CATALOG_MAX, TOO_MANY_ROWS } from "./bounded";
 import { requireServer } from "./guard";
 import { practitionerOf } from "./setupSupport";
 import { actorValidator, encryptedValidator, serverKeyValidator } from "./validators";
@@ -90,7 +91,8 @@ export const forms = query({
 		const rows = await ctx.db
 			.query("formDefinitions")
 			.withIndex("by_tenant_key_version", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (rows.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return {
 			ok: true as const,
 			forms: rows.map((r) => ({
@@ -266,11 +268,13 @@ export const definitions = query({
 		const defs = await ctx.db
 			.query("builderDefs")
 			.withIndex("by_tenant_kind_key", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (defs.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		const fields = await ctx.db
 			.query("customFieldDefs")
 			.withIndex("by_tenant_entity_key", (q) => q.eq("tenant", args.tenant))
-			.collect();
+			.take(CATALOG_MAX + 1);
+		if (fields.length > CATALOG_MAX) return REFUSED(TOO_MANY_ROWS);
 		return {
 			ok: true as const,
 			definitions: defs

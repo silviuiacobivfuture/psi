@@ -1,6 +1,6 @@
 import { accountHashOf, DecisionReasonSchema, type StaffSchedulingClient } from "@psi/scheduling";
 import { z } from "zod";
-import type { RequestsPort, VisitorPort } from "../types";
+import { type RequestsPort, StoreRefused, type VisitorPort } from "../types";
 import { answer, type Rpc, unwrap } from "./rpc";
 
 /**
@@ -33,6 +33,8 @@ export function requestsPort(rpc: Rpc, staff: StaffSchedulingClient): RequestsPo
 	return {
 		async list(app, from, to) {
 			const booked = await staff.requests({ tenant: app, from, to });
+			// An app with no booking tenant yet has no bookings; a window too full to read is refused, never cut short.
+			if (!booked.ok && booked.reason === "too_many_rows") throw new StoreRefused(booked.reason);
 			const callbacks = unwrap(
 				await rpc.query("webRequests:callbacks", { tenant: app, from, to }, Callbacks),
 			);

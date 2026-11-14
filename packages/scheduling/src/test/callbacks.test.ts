@@ -7,6 +7,7 @@ import type { CallbackInput, CallbacksStaff } from "../callbacks-client";
 import { createSchedulingClient, type SchedulingClient } from "../client";
 import type { SchedulingConfig } from "../config";
 import { createStaffSchedulingClient } from "../staff-client";
+import { CONVEX_DATA, CONVEX_URL } from "./backend";
 
 /**
  * Callback requests against the real local backend (README), in throwaway `test-callbacks-…`
@@ -14,8 +15,9 @@ import { createStaffSchedulingClient } from "../staff-client";
  */
 
 const PKG = resolve(import.meta.dirname, "../..");
-const KEY_FILE = resolve(PKG, "../../.data/convex/secrets/server-key");
-const URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+// The backend every backend test uses (`PSI_CONVEX_PORT`, `PSI_CONVEX_DATA` for a session's own one).
+const KEY_FILE = join(CONVEX_DATA, "secrets/server-key");
+const URL = CONVEX_URL;
 const reachable = await fetch(`${URL}/version`, { signal: AbortSignal.timeout(2_000) })
 	.then((res) => res.ok)
 	.catch(() => false);

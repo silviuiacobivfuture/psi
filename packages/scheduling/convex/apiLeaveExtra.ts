@@ -3,6 +3,7 @@ import { isLocalDate } from "../src/domain/time";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { actorValidator, serverKeyValidator } from "./validators";
 
@@ -145,10 +146,11 @@ export const leaves = query({
 			const row = await owned(ctx, "leaveRequests", args.tenant, args.leave);
 			return { ok: true as const, leaves: row === null ? [] : [leaveOut(row)] };
 		}
-		const rows = await ctx.db
-			.query("leaveRequests")
-			.withIndex("by_tenant_from", (q) => q.eq("tenant", args.tenant))
-			.collect();
+		const rows = await within(
+			ctx.db.query("leaveRequests").withIndex("by_tenant_from", (q) => q.eq("tenant", args.tenant)),
+			LIST_MAX,
+		);
+		if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 		return { ok: true as const, leaves: rows.map(leaveOut) };
 	},
 });

@@ -38,6 +38,7 @@ import type * as apiVisits from "../apiVisits.js";
 import type * as appointments from "../appointments.js";
 import type * as availability from "../availability.js";
 import type * as blacklistGate from "../blacklistGate.js";
+import type * as bounded from "../bounded.js";
 import type * as calendar from "../calendar.js";
 import type * as callbackSchema from "../callbackSchema.js";
 import type * as callbacks from "../callbacks.js";
@@ -135,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   availability: typeof availability;
   blacklistGate: typeof blacklistGate;
+  bounded: typeof bounded;
   calendar: typeof calendar;
   callbackSchema: typeof callbackSchema;
   callbacks: typeof callbacks;

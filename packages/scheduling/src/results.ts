@@ -405,7 +405,7 @@ export const RawStaffRequestsSchema = z.discriminatedUnion("ok", [
 		timeZone: z.string(),
 		requests: z.array(StaffRequestSchema),
 	}),
-	z.object({ ok: z.literal(false), reason: z.literal("unknown_tenant") }),
+	z.object({ ok: z.literal(false), reason: z.enum(["unknown_tenant", "too_many_rows"]) }),
 ]);
 
 const DuplicateSchema = z.object({

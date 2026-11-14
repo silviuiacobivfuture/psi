@@ -4,6 +4,7 @@ import { isLocalDate } from "../src/domain/time";
 import type { Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { LIST_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { requireServer } from "./guard";
 import { practitionerOf } from "./setupSupport";
 import { actorValidator, rosterStatusValidator, serverKeyValidator } from "./validators";
@@ -197,18 +198,23 @@ export const range = query({
 		requireServer(args.key);
 		if (!isLocalDate(args.from) || !isLocalDate(args.to) || args.to < args.from)
 			return REFUSED("bad_date");
-		const days = await ctx.db
-			.query("rosterDays")
-			.withIndex("by_tenant_date", (q) =>
-				q.eq("tenant", args.tenant).gte("date", args.from).lte("date", args.to),
-			)
-			.collect();
-		const blocks = (
-			await ctx.db
+		const days = await within(
+			ctx.db
+				.query("rosterDays")
+				.withIndex("by_tenant_date", (q) =>
+					q.eq("tenant", args.tenant).gte("date", args.from).lte("date", args.to),
+				),
+			LIST_MAX,
+		);
+		// A block can start long before the range and still cover it: the app's blocks, bounded, filtered by overlap.
+		const held = await within(
+			ctx.db
 				.query("staffBlocks")
-				.withIndex("by_tenant_person_start", (q) => q.eq("tenant", args.tenant))
-				.collect()
-		).filter((b) => b.dateStart <= args.to && b.dateEnd >= args.from);
+				.withIndex("by_tenant_person_start", (q) => q.eq("tenant", args.tenant)),
+			LIST_MAX,
+		);
+		if (days === undefined || held === undefined) return REFUSED(TOO_MANY_ROWS);
+		const blocks = held.filter((b) => b.dateStart <= args.to && b.dateEnd >= args.from);
 		return {
 			ok: true as const,
 			days: days.map((d) => ({ ...d, id: d._id })),

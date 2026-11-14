@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { owned, REFUSED, record } from "./apiSupport";
+import { PER_CLIENT_MAX, TOO_MANY_ROWS, within } from "./bounded";
 import { logChange } from "./changeLog";
 import { requireServer } from "./guard";
 import {
@@ -213,29 +214,42 @@ export const ledger = query({
 		if (args.package !== undefined) {
 			const pack = await owned(ctx, "packages", args.tenant, args.package);
 			if (pack === null) return { ok: true as const, lines: [] };
-			const lines = await ctx.db
-				.query("payments")
-				.withIndex("by_tenant_package", (q) => q.eq("tenant", args.tenant).eq("package", pack._id))
-				.collect();
+			const lines = await within(
+				ctx.db
+					.query("payments")
+					.withIndex("by_tenant_package", (q) =>
+						q.eq("tenant", args.tenant).eq("package", pack._id),
+					),
+				PER_CLIENT_MAX,
+			);
+			if (lines === undefined) return REFUSED(TOO_MANY_ROWS);
 			return { ok: true as const, lines: lines.map(line) };
 		}
 		if (args.client !== undefined) {
 			const client = await owned(ctx, "clients", args.tenant, args.client);
 			if (client === null) return { ok: true as const, lines: [] };
-			const lines = await ctx.db
-				.query("payments")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-				.collect();
+			const lines = await within(
+				ctx.db
+					.query("payments")
+					.withIndex("by_tenant_client", (q) =>
+						q.eq("tenant", args.tenant).eq("client", client._id),
+					),
+				PER_CLIENT_MAX,
+			);
+			if (lines === undefined) return REFUSED(TOO_MANY_ROWS);
 			return { ok: true as const, lines: lines.map(line) };
 		}
 		if (args.visit !== undefined) {
 			const visit = await owned(ctx, "visits", args.tenant, args.visit);
 			const clientId = visit?.client;
 			if (visit === null || clientId === undefined) return { ok: true as const, lines: [] };
-			const lines = await ctx.db
-				.query("payments")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", clientId))
-				.collect();
+			const lines = await within(
+				ctx.db
+					.query("payments")
+					.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", clientId)),
+				PER_CLIENT_MAX,
+			);
+			if (lines === undefined) return REFUSED(TOO_MANY_ROWS);
 			return { ok: true as const, lines: lines.filter((x) => x.visit === visit._id).map(line) };
 		}
 		const lines = await ctx.db
@@ -256,10 +270,15 @@ export const packages = query({
 		if (args.client !== undefined) {
 			const client = await owned(ctx, "clients", args.tenant, args.client);
 			if (client === null) return { ok: true as const, packages: [] };
-			const rows = await ctx.db
-				.query("packages")
-				.withIndex("by_tenant_client", (q) => q.eq("tenant", args.tenant).eq("client", client._id))
-				.collect();
+			const rows = await within(
+				ctx.db
+					.query("packages")
+					.withIndex("by_tenant_client", (q) =>
+						q.eq("tenant", args.tenant).eq("client", client._id),
+					),
+				PER_CLIENT_MAX,
+			);
+			if (rows === undefined) return REFUSED(TOO_MANY_ROWS);
 			return { ok: true as const, packages: rows.map((p) => ({ ...p, id: p._id })) };
 		}
 		const rows = await ctx.db
