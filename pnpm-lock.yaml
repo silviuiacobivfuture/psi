@@ -424,6 +424,9 @@ importers:
       '@psi/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../../packages/scheduling-sdk
       '@psi/site-control':
         specifier: workspace:*
         version: link:../../packages/site-control
@@ -443,6 +446,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@psi/scheduling-api':
+        specifier: workspace:*
+        version: link:../scheduling-api
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5

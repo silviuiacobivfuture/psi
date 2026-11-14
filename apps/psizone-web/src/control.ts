@@ -1,5 +1,4 @@
 import type { PartState } from "@psi/cms-client";
-import { readSchedulingEnv } from "@psi/scheduling";
 import { mountSiteControl, type SiteControl, type StaffLinkWords } from "@psi/site-control";
 import type { Hono } from "hono";
 import { account, reservations } from "./account";
@@ -9,13 +8,14 @@ import { guideCopyDefaults } from "./guide-copy";
 import { at } from "./i18n";
 import { m } from "./paraglide/messages.js";
 import { pwa } from "./pwa/site";
+import { readSchedulingApiEnv } from "./scheduling-api-env";
 
 /** Whether the evaluation calendar is configured (never a key): on, absent, or why it is off. */
 export function schedulingState(env: Readonly<Record<string, string | undefined>>): {
 	state: PartState;
 	reason?: string;
 } {
-	const read = readSchedulingEnv(env);
+	const read = readSchedulingApiEnv(env);
 	if (read.ok) return { state: "on" };
 	return read.problem === "no_url"
 		? { state: "not_configured" }

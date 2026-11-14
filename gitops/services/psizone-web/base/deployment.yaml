@@ -32,7 +32,7 @@ spec:
             - -c
             - >-
               m=0;
-              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; }; [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; };
+              [ -n "${CHROMA_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: CHROMA_API_KEY" >&2; m=1; }; [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: OPENROUTER_API_KEY" >&2; m=1; }; [ -n "${SCHEDULING_SERVICE_KEY:-}" ] || { echo "MISSING REQUIRED SECRET: SCHEDULING_SERVICE_KEY" >&2; m=1; };
               [ "$m" = 0 ] && echo secrets-ok
           resources:
             requests: { cpu: 10m, memory: 16Mi }
@@ -50,9 +50,10 @@ spec:
           ports: [{ name: http, containerPort: 3000 }]
           envFrom:
             - secretRef: { name: psizone-web-env }
-            # OPTIONAL by design: the scheduling server key (secret/apps/scheduling/env). Absent, the
-            # app finds scheduling off (CONVEX_URL set, no key) and keeps its callback form; this
-            # never blocks a deploy. After the key first appears, roll the pod (envFrom is read at start).
+            # OPTIONAL by design: the Convex store's server key (secret/apps/scheduling/env), read now
+            # only by the account's "my bookings" pages (/cont/programari). Booking itself goes through
+            # the scheduling service (SCHEDULING_API_URL + SCHEDULING_SERVICE_KEY). Absent, the account
+            # pages show no bookings; this never blocks a deploy. Roll the pod after it first appears.
             - secretRef: { name: psizone-web-scheduling, optional: true }
             # OPTIONAL by design: the outgoing mail that tells the team of a callback request
             # (secret/apps/psizone-web/mail). Absent, requests are still stored and the site logs
@@ -63,7 +64,11 @@ spec:
             # The knowledge store (packages/knowledge): Chroma in the cluster, through its auth
             # sidecar; the token is CHROMA_API_KEY from psizone-web-env.
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
-            # The scheduling store (packages/scheduling): the Convex backend's in-cluster Service.
+            # The scheduling service (apps/scheduling-api): every booking, hold, callback request and
+            # the guide's free times, with SCHEDULING_SERVICE_KEY from psizone-web-env. Its
+            # NetworkPolicy admits this namespace's app=psizone-web pods on :4380.
+            - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api.svc" }
+            # The Convex store, for the account's "my bookings" pages only (account.ts).
             - { name: CONVEX_URL, value: "http://scheduling-backend.scheduling.svc:3210" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }

@@ -7,7 +7,6 @@ import {
 	sameOrigin,
 } from "@psi/account";
 import type { Guide } from "@psi/guide";
-import { accountHashOf } from "@psi/scheduling";
 import type { Context } from "hono";
 import { account } from "./account";
 import type { BookingValues } from "./booking";
@@ -26,8 +25,8 @@ export interface BookingAccount {
 	form?: AccountLine;
 	/** The profile's name, e-mail and phone, editable; empty for an anonymous visitor. */
 	prefill: Pick<BookingValues, "name" | "email" | "phone">;
-	/** `accountHashOf(subject)` for the scheduling store; undefined when anonymous. */
-	accountHash?: string;
+	/** The account's subject, which owns the request in the scheduling service (it appears in /cont/programari); undefined when anonymous. */
+	subject?: string;
 	/** The person's bookings page, when signed in. */
 	bookingsHref?: string;
 }
@@ -95,7 +94,7 @@ async function accountFor(
 			...(filled?.email ? { email: filled.email } : {}),
 			...(filled?.phone ? { phone: filled.phone } : {}),
 		},
-		accountHash: accountHashOf(person.subject),
+		subject: person.subject,
 		bookingsHref: `${base(locale)}${JOURNEY_PAGES.bookings}`,
 	};
 }

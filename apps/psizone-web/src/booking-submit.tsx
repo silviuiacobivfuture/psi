@@ -1,5 +1,4 @@
 import { decodeSlot } from "@psi/guide";
-import type { SchedulingClient } from "@psi/scheduling";
 import type { Context, Hono } from "hono";
 import {
 	BookingConfirm,
@@ -20,10 +19,11 @@ import type { Intake } from "./callback-intake";
 import type { CallbackRequest } from "./callback-mail";
 import { at, type Locale } from "./i18n";
 import { m } from "./paraglide/messages.js";
+import type { VisitorScheduling } from "./scheduling-api-client";
 
 /** What the booking POST routes work with: the scheduling store, the calendar picker, the intake. */
 export interface BookingDeps {
-	scheduling: SchedulingClient | undefined;
+	scheduling: VisitorScheduling | undefined;
 	picker: Picker;
 	intake: Intake;
 	tenant: string;
@@ -168,7 +168,7 @@ export function registerBookingSubmit(
 				holdToken,
 				contact: { name, email, phone },
 				audience: forWhom,
-				...(who.accountHash === undefined ? {} : { accountHash: who.accountHash }),
+				...(who.subject === undefined ? {} : { subject: who.subject }),
 			});
 			if (!sent.ok) {
 				return again(
